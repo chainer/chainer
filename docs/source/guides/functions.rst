@@ -19,7 +19,7 @@ After reading this section, you will be able to:
 Differentiable Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Chainer provides a collection of functions in the :mod:`~chainer.functions` module.
+Chainer provides a collection of functions in the :mod:`chainer.functions` module.
 It covers typical use cases in deep learning, so many existing works can be implemented with them.
 On the other hand, deep learning is evolving rapidly and we cannot cover all possible functions to define unseen architectures.
 So it is important to learn how to define your own functions.
