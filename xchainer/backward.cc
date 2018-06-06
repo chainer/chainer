@@ -21,29 +21,32 @@ namespace xchainer {
 
 BackwardContext::BackwardContext(
         const OpNode& op_node,
-        Device& output_device,
-        gsl::span<const std::reference_wrapper<const nonstd::optional<Array>>> prev_grads,
-        gsl::span<const Shape> prev_node_shapes,
-        gsl::span<const Dtype> prev_node_dtypes,
+        gsl::span<const std::reference_wrapper<const ArrayNode>> prev_nodes,
         gsl::span<const GraphId> stop_graph_ids,
         gsl::span<std::reference_wrapper<nonstd::optional<Array>>> input_grads_storage)
     : op_node_{op_node},
-      output_device_{output_device},
-      prev_grads_{prev_grads},
-      prev_node_shapes_{prev_node_shapes},
-      prev_node_dtypes_{prev_node_dtypes},
+      prev_nodes_{prev_nodes},
       stop_graph_ids_{stop_graph_ids},
       input_grads_storage_{input_grads_storage},
-      zero_output_grads_{prev_grads_.size()} {
-    assert(prev_grads.size() == prev_node_shapes.size());
-    assert(prev_grads.size() == prev_node_dtypes.size());
+      zero_output_grads_{prev_nodes_.size()} {
     assert(input_grads_storage_.size() <= op_node.next_node_count());
 };
+
+bool BackwardContext::HasOutputGrad(int output_index) const { return gsl::at(prev_nodes_, output_index).get().grad().has_value(); }
+
+Array BackwardContext::Cut(const Array& a) const {
+#ifndef NDEBUG
+    for (const ArrayNode& prev_node : prev_nodes_) {
+        assert((!prev_node.grad().has_value() || &(*prev_node.grad()) != &a) && "Output grads do not have to be cut");
+    }
+#endif /*NDEBUG*/
+    return a.AsConstant(stop_graph_ids_);
+}
 
 const Array& BackwardContext::GetOutputGrad(int output_index) const {
     // If the output gradient has a propagated value, return it.
     if (HasOutputGrad(output_index)) {
-        return *prev_grads_[output_index].get();
+        return *prev_nodes_[output_index].get().grad();
     }
 
     // If there already is a zero-filled gradient allocated, return it.
@@ -54,7 +57,8 @@ const Array& BackwardContext::GetOutputGrad(int output_index) const {
     }
 
     // Allocate new zero-filled gradient an return it.
-    zero_grad = Zeros(prev_node_shapes_[output_index], prev_node_dtypes_[output_index], output_device_);
+    const ArrayNode prev_node = prev_nodes_[output_index];
+    zero_grad = Zeros(prev_node.shape(), prev_node.dtype(), prev_node.device());
     return *zero_grad;
 }
 
@@ -189,16 +193,10 @@ private:
         auto it_last = range.second;
         assert(it_first != it_last);
 
-        // Collect gradients from previous array nodes
-        std::vector<std::reference_wrapper<const nonstd::optional<Array>>> prev_grads;
-        std::vector<Shape> prev_shapes;
-        std::vector<Dtype> prev_dtypes;
-        Device& prev_device = (it_first->second)->device();
+        // Collect previous array nodes to be passed to BackwardContext.
+        std::vector<std::reference_wrapper<const ArrayNode>> prev_nodes;
         for (auto it = it_first; it != it_last; ++it) {
-            const std::shared_ptr<ArrayNode>& prev_node = it->second;
-            prev_grads.emplace_back(prev_node->grad());
-            prev_shapes.emplace_back(prev_node->shape());
-            prev_dtypes.emplace_back(prev_node->dtype());
+            prev_nodes.emplace_back(*it->second);
         }
 
         // Determine graph IDs to stop gradients
@@ -221,9 +219,9 @@ private:
             for (int next_node_index : backward_entry.next_node_indices()) {
                 next_grads_subset.emplace_back(gsl::at(next_grads, next_node_index));
             }
-            BackwardContext bctx{op_node, prev_device, prev_grads, prev_shapes, prev_dtypes, graph_ids_to_stop_gradient, next_grads_subset};
 
             // Call backward.
+            BackwardContext bctx{op_node, prev_nodes, graph_ids_to_stop_gradient, next_grads_subset};
             backward_entry.backward_func()(bctx);
         }
 

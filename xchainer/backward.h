@@ -62,17 +62,14 @@ public:
     // ordinary functions).
     BackwardContext(
             const OpNode& op_node,
-            Device& output_device,
-            gsl::span<const std::reference_wrapper<const nonstd::optional<Array>>> prev_grads,
-            gsl::span<const Shape> prev_node_shapes,
-            gsl::span<const Dtype> prev_node_dtypes,
+            gsl::span<const std::reference_wrapper<const ArrayNode>> prev_nodes,
             gsl::span<const GraphId> stop_graph_ids,
             gsl::span<std::reference_wrapper<nonstd::optional<Array>>> input_grads_storage);
 
     // Returns whether the output has a propagated gradient.
     // If there is only one output, the output always has the propagated gradient, therefore you do not have to call this function in that
     // case.
-    bool HasOutputGrad(int output_index) const { return gsl::at(prev_grads_, output_index).get().has_value(); }
+    bool HasOutputGrad(int output_index) const;
 
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
@@ -81,21 +78,14 @@ public:
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
     const Array& output_grad() const {
-        assert(prev_grads_.size() == 1);
+        assert(prev_nodes_.size() == 1);
         return GetOutputGrad(0);
     }
 
     // Stores the computed input gradient.
     backward_detail::SetInputGradProxy input_grad() { return backward_detail::SetInputGradProxy{*this}; }
 
-    Array Cut(const Array& a) const {
-#ifndef NDEBUG
-        for (const nonstd::optional<Array>& prev_grad : prev_grads_) {
-            assert((!prev_grad.has_value() || &(*prev_grad) != &a) && "Output grads do not have to be cut");
-        }
-#endif /*NDEBUG*/
-        return a.AsConstant(stop_graph_ids_);
-    }
+    Array Cut(const Array& a) const;
 
     // Stores the computed input gradient.
     void SetInputGrad(std::initializer_list<Array> input_grads) {
@@ -141,15 +131,12 @@ private:
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
     const Array& GetOutputGrad() const {
-        assert(prev_grads_.size() == 1);
+        assert(prev_nodes_.size() == 1);
         return GetOutputGrad(0);
     }
 
     const OpNode& op_node_;
-    Device& output_device_;
-    gsl::span<const std::reference_wrapper<const nonstd::optional<Array>>> prev_grads_;
-    gsl::span<const Shape> prev_node_shapes_;
-    gsl::span<const Dtype> prev_node_dtypes_;
+    gsl::span<const std::reference_wrapper<const ArrayNode>> prev_nodes_;
     gsl::span<const GraphId> stop_graph_ids_;
 
     // Gradient passed in SetInputGrad() will be put into this storage.
