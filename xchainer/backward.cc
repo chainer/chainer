@@ -121,7 +121,7 @@ void DefineBackwardScope::DefineImpl(std::initializer_list<ConstArrayRef> inputs
                                                                  ? xchainer::internal::GetMutableArrayNode(out, graph_id)
                                                                  : xchainer::internal::CreateArrayNode(out, graph_id);
             if (out_node->next_node() == nullptr) {
-                out_node->set_next_node(op_node);
+                out_node->SetNextNode(op_node);
             }
         }
     }
@@ -154,7 +154,7 @@ public:
             const std::shared_ptr<ArrayNode>& array_node = output_array_nodes_[i];
 
             if (!array_node->grad()) {
-                array_node->set_grad(OnesLike(output, output.device()));
+                array_node->SetGrad(OnesLike(output, output.device()));
             }
             PushNextOpNode(array_node);
         }
@@ -248,7 +248,7 @@ private:
         for (size_t i = 0; i < next_array_nodes.size(); ++i) {
             nonstd::optional<Array>& gx = gxs[i];
             if (gx.has_value()) {
-                next_array_nodes[i]->accumulate_grad(std::move(*gx));
+                next_array_nodes[i]->AccumulateGrad(std::move(*gx));
             }
         }
     }

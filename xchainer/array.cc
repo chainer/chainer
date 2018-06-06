@@ -316,7 +316,7 @@ void Array::Fill(Scalar value) const { device().Fill(*this, value); }
 const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
 
 void Array::SetGrad(Array grad, const GraphId& graph_id) const {
-    internal::GetMutableArrayNode(*this, graph_id)->set_grad(std::move(grad));
+    internal::GetMutableArrayNode(*this, graph_id)->SetGrad(std::move(grad));
 }
 
 void Array::ClearGrad(const GraphId& graph_id) const { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
