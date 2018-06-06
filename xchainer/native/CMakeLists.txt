@@ -9,7 +9,7 @@ install(FILES
 add_library(xchainer_native STATIC
     native_device.cc
     # native_device/activation.cc
-    # native_device/arithmetic.cc
+    native_device/arithmetic.cc
     # native_device/conv.cc
     # native_device/copy.cc
     # native_device/comparison.cc
