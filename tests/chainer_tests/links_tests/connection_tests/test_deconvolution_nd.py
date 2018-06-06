@@ -142,14 +142,18 @@ class TestDeconvolutionNDWrappers(unittest.TestCase):
 
     def test_deconv1d(self):
         in_c, out_c, x = self._get_data(1)
-        link_nd = deconvolution_nd.DeconvolutionND(1, in_c, out_c, 2, initialW=1)
-        link_1d = deconvolution_nd.Deconvolution1D(in_c, out_c, 2, initialW=1)
+        link_nd = deconvolution_nd.DeconvolutionND(
+            1, in_c, out_c, 2, initialW=1)
+        link_1d = deconvolution_nd.Deconvolution1D(
+            in_c, out_c, 2, initialW=1)
         testing.assert_allclose(link_nd(x).data, link_1d(x).data)
 
     def test_deconv3d(self):
         in_c, out_c, x = self._get_data(3)
-        link_nd = deconvolution_nd.DeconvolutionND(3, in_c, out_c, 2, initialW=1)
-        link_3d = deconvolution_nd.Deconvolution3D(in_c, out_c, 2, initialW=1)
+        link_nd = deconvolution_nd.DeconvolutionND(
+            3, in_c, out_c, 2, initialW=1)
+        link_3d = deconvolution_nd.Deconvolution3D(
+            in_c, out_c, 2, initialW=1)
         testing.assert_allclose(link_nd(x).data, link_3d(x).data)
 
 
