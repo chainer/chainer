@@ -1,0 +1,174 @@
+#include "xchainer/cuda/cuda_device.h"
+
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <numeric>
+
+#include <cuda_runtime.h>
+
+#include "xchainer/array.h"
+#include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/cuda/elementwise.cuh"
+#include "xchainer/device.h"
+#include "xchainer/dtype.h"
+#include "xchainer/scalar.h"
+
+namespace xchainer {
+namespace cuda {
+
+namespace {
+
+template <typename T>
+struct AddImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 + x2; }
+};
+
+}  // namespace
+
+// TODO(sonots): support stream
+void CudaDevice::Add(const Array& x1, const Array& x2, const Array& out) {
+    CheckDevicesCompatible(x1, x2, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, const T, T>(AddImpl<T>{}, x1, x2, out);
+    });
+}
+
+namespace {
+
+template <typename T>
+struct AddASImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = x1 + x2; }
+    T x2;
+};
+
+}  // namespace
+
+void CudaDevice::AddAS(const Array& x1, Scalar x2, const Array& out) {
+    CheckDevicesCompatible(x1, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, T>(AddASImpl<T>{static_cast<T>(x2)}, x1, out);
+    });
+}
+
+namespace {
+
+template <typename T>
+struct SubtractImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 - x2; }
+};
+
+}  // namespace
+
+void CudaDevice::Subtract(const Array& x1, const Array& x2, const Array& out) {
+    CheckDevicesCompatible(x1, x2, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, const T, T>(SubtractImpl<T>{}, x1, x2, out);
+    });
+}
+
+namespace {
+
+template <typename T>
+struct SubtractASImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = x1 - x2; }
+    T x2;
+};
+
+}  // namespace
+
+void CudaDevice::SubtractAS(const Array& x1, Scalar x2, const Array& out) {
+    CheckDevicesCompatible(x1, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, T>(SubtractASImpl<T>{static_cast<T>(x2)}, x1, out);
+    });
+}
+
+namespace {
+
+template <typename T>
+struct MultiplyImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 * x2; }
+};
+
+}  // namespace
+
+// TODO(sonots): support stream
+void CudaDevice::Multiply(const Array& x1, const Array& x2, const Array& out) {
+    CheckDevicesCompatible(x1, x2, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, const T, T>(MultiplyImpl<T>{}, x1, x2, out);
+    });
+}
+
+namespace {
+
+template <typename T>
+struct MultiplyASImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = x1 * x2; }
+    T x2;
+};
+
+}  // namespace
+
+void CudaDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
+    CheckDevicesCompatible(x1, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, T>(MultiplyASImpl<T>{static_cast<T>(x2)}, x1, out);
+    });
+}
+
+namespace {
+
+template <typename T>
+struct DivideImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 / x2; }
+};
+
+}  // namespace
+
+void CudaDevice::Divide(const Array& x1, const Array& x2, const Array& out) {
+    CheckDevicesCompatible(x1, x2, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, const T, T>(DivideImpl<T>{}, x1, x2, out);
+    });
+}
+
+namespace {
+
+template <typename T>
+struct DivideASImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = x1 / x2; }
+    T x2;
+};
+
+}  // namespace
+
+void CudaDevice::DivideAS(const Array& x1, Scalar x2, const Array& out) {
+    CheckDevicesCompatible(x1, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, T>(DivideASImpl<T>{static_cast<T>(x2)}, x1, out);
+    });
+}
+
+}  // namespace cuda
+}  // namespace xchainer
