@@ -35,6 +35,17 @@ class TestTextDataset(unittest.TestCase):
         with self.assertRaises(ValueError):
             ds[0]
 
+    def test_close_exception(self):
+        ds = self._dataset(['ascii_1.txt', 'ascii_1.txt', 'ascii_1.txt'])
+        assert not ds._fps[0].closed
+        assert not ds._fps[1].closed
+        assert not ds._fps[2].closed
+        ds._fps[1] = None
+        with self.assertRaises(AttributeError):
+            ds.close()
+        assert ds._fps[0].closed
+        assert ds._fps[2].closed
+
     def test_len(self):
         ds = self._dataset('ascii_1.txt')
         assert len(ds) == 3
