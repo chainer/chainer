@@ -60,7 +60,6 @@ requirements = {
         'pillow',
     ],
     'appveyor': [
-        '-r stylecheck',
         '-r test',
         'pytest-timeout',
         'pytest-cov',
