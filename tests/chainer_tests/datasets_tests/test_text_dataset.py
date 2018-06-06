@@ -28,6 +28,13 @@ class TestTextDataset(unittest.TestCase):
 
         return datasets.TextDataset(path, **kwargs)
 
+    def test_close(self):
+        ds = self._dataset('ascii_1.txt')
+        assert ds[0] == 'hello\n'
+        ds.close()
+        with self.assertRaises(ValueError):
+            ds[0]
+
     def test_len(self):
         ds = self._dataset('ascii_1.txt')
         assert len(ds) == 3
