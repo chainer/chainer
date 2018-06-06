@@ -25,6 +25,12 @@ class CudaDevice : public Device {
 public:
     ~CudaDevice() override;
 
+    void Synchronize() override;
+
+    cublasHandle_t cublas_handle();
+
+    // memory.cc
+
     std::shared_ptr<void> Allocate(size_t bytesize) override;
 
     std::shared_ptr<void> MakeDataFromForeignPointer(const std::shared_ptr<void>& data) override;
@@ -40,20 +46,21 @@ public:
 
     std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
+    // fill.cu
+
     void Fill(const Array& out, Scalar value) override;
 
     void Arange(Scalar start, Scalar step, const Array& out) override;
 
-    void ArgMax(const Array& a, const Axes& axis, const Array& out) override;
+    void Identity(const Array& out) override;
 
-    void Sum(const Array& a, const Axes& axis, const Array& out) override;
-    void AMax(const Array& a, const Axes& axis, const Array& out) override;
+    void Eye(int64_t k, const Array& out) override;
 
-    void Copy(const Array& a, const Array& out) override;
+    void Diagflat(const Array& v, int64_t k, const Array& out) override;
 
-    void AsType(const Array& a, const Array& out) override;
+    void Linspace(double start, double stop, const Array& out) override;
 
-    void Equal(const Array& x1, const Array& x2, const Array& out) override;
+    // arithmetic.cu
 
     void Add(const Array& x1, const Array& x2, const Array& out) override;
     void AddAS(const Array& x1, Scalar x2, const Array& out) override;
@@ -67,24 +74,43 @@ public:
     void Divide(const Array& x1, const Array& x2, const Array& out) override;
     void DivideAS(const Array& x1, Scalar x2, const Array& out) override;
 
+    // reduction.cu
+
+    void ArgMax(const Array& a, const Axes& axis, const Array& out) override;
+
+    void Sum(const Array& a, const Axes& axis, const Array& out) override;
+    void AMax(const Array& a, const Axes& axis, const Array& out) override;
+
+    // copy.cu
+
+    void Copy(const Array& a, const Array& out) override;
+
+    void AsType(const Array& a, const Array& out) override;
+
+    // comparison.cu
+
+    void Equal(const Array& x1, const Array& x2, const Array& out) override;
+
+    // activation.cu
+
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
+
+    // dot.cc
 
     void Dot(const Array& a, const Array& b, const Array& out) override;
 
+    // exp_log.cu
+
     void Exp(const Array& x, const Array& out) override;
     void Log(const Array& x, const Array& out) override;
+
+    // indexing.cu
 
     void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;
 
     void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override;
 
-    void Identity(const Array& out) override;
-
-    void Eye(int64_t k, const Array& out) override;
-
-    void Diagflat(const Array& v, int64_t k, const Array& out) override;
-
-    void Linspace(double start, double stop, const Array& out) override;
+    // conv.cc
 
     Array Conv(
             const Array& x,
@@ -113,10 +139,6 @@ public:
 
     // TODO(sonots): implement me
     std::shared_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override { return nullptr; }
-
-    void Synchronize() override;
-
-    cublasHandle_t cublas_handle();
 
 protected:
     CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_context_{index} {}
