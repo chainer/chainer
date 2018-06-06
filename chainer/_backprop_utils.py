@@ -69,6 +69,7 @@ class GradTable(object):
 def backprop_step(
         func, target_input_indexes, grad_outputs, grad_inputs):
     assert isinstance(target_input_indexes, tuple)
+    assert target_input_indexes == tuple(sorted(target_input_indexes))
     assert isinstance(grad_outputs, tuple)
     if func.backward_accumulate.__code__ \
             is not chainer.FunctionNode.backward_accumulate.__code__:
@@ -96,8 +97,6 @@ def backprop_step(
 
         len_gxs = len(gxs)
         if len_gxs == len(func.inputs):
-            assert len(target_input_indexes) < len_gxs or \
-                target_input_indexes == tuple(range(len_gxs)), "not sorted"
             gxs = tuple([gxs[i] for i in target_input_indexes])
         elif len_gxs != len(target_input_indexes):
             raise ValueError(
