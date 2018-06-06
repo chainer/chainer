@@ -13,6 +13,7 @@ install(FILES
 CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cublas.cc
     cuda_device.cu
+    cuda_device/activation.cu
     cuda_device/arithmetic.cu
     cuda_device/copy.cu
     cuda_device/comparison.cu
