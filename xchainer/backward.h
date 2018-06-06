@@ -35,6 +35,9 @@ public:
     SetInputGradProxy& operator=(const SetInputGradProxy&) = delete;
 
     // Assign the input gradient.
+    void operator=(std::initializer_list<Array> grads);
+
+    // Assign the input gradient.
     template <typename Arg>
     void operator=(Arg&& arg);
 
@@ -94,6 +97,16 @@ public:
         return a.AsConstant(stop_graph_ids_);
     }
 
+    // Stores the computed input gradient.
+    void SetInputGrad(std::initializer_list<Array> input_grads) {
+        assert(input_grads_storage_.size() == input_grads.size());
+        auto it_dst = input_grads_storage_.begin();
+        for (const Array& input_grad : input_grads) {
+            SetInputGradImpl(it_dst->get(), input_grad);
+            ++it_dst;
+        }
+    }
+
 private:
     friend class backward_detail::SetInputGradProxy;
 
@@ -115,16 +128,6 @@ private:
         auto it_dst = input_grads_storage_.begin();
         for (const Array& input_grad : input_grads) {
             SetInputGradImpl(it_dst->get(), std::move(input_grad));
-            ++it_dst;
-        }
-    }
-
-    // Stores the computed input gradient.
-    void SetInputGrad(std::initializer_list<Array> input_grads) {
-        assert(input_grads_storage_.size() == input_grads.size());
-        auto it_dst = input_grads_storage_.begin();
-        for (const Array& input_grad : input_grads) {
-            SetInputGradImpl(it_dst->get(), input_grad);
             ++it_dst;
         }
     }
@@ -172,6 +175,8 @@ private:
 };
 
 namespace backward_detail {
+
+inline void SetInputGradProxy::operator=(std::initializer_list<Array> grads) { bctx_.SetInputGrad(grads); }
 
 template <typename Arg>
 void SetInputGradProxy::operator=(Arg&& arg) {
