@@ -75,9 +75,13 @@ public:
     void Sum(const Array& a, const Axes& axis, const Array& out) override;
     void AMax(const Array& a, const Axes& axis, const Array& out) override;
 
+    // copy.cu
+
     void Copy(const Array& a, const Array& out) override;
 
     void AsType(const Array& a, const Array& out) override;
+
+    // comparison.cu
 
     void Equal(const Array& x1, const Array& x2, const Array& out) override;
 
