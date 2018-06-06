@@ -124,7 +124,7 @@ def test_conv_transpose(device, x_shape, w_shape, b_shape, stride, pad, test_out
     ((1, 3, 4, 3), (3, 5, 2, 2), (6,), 1, 0, None),  # Mismatched w and b.
     ((2, 3, 4, 3), (3, 5, 2, 2), None, (1,), 0, None),  # Wrong number of strides.
     ((1, 3, 4, 3), (3, 5, 2, 2), None, 3, (2,), None),  # Wrong number of paddings.
-    ((1, 3, 2, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), None),  # Output sizes should be positive
+    ((1, 3, 2, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), (-1, 13, 4)),  # All output sizes must be positive
     ((2, 3, 4), (3, 5, 1), (5,), 1, 0, (5,)),  # Output dims are inconsistent
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
