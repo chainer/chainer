@@ -128,6 +128,8 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
+    // batch_norm.cc
+
     std::shared_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 
 protected:
