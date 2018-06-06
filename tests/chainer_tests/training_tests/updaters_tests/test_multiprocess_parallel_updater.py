@@ -182,6 +182,8 @@ class TestChildReporter(unittest.TestCase):
 class TestCUDAContext(unittest.TestCase):
 
     @attr.gpu
+    @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
+                         'MultiprocessParallelUpdater is not available.')
     def test_cuda_init(self):
         ret, stdoutdata, stderrdata = _run_test_snippet('cuda_init.py')
         assert ret == 0, (
