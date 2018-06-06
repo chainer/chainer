@@ -122,8 +122,8 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             raise Exception(
                 'NCCL is not enabled. MultiprocessParallelUpdater '
                 'requires NCCL.\n'
-                'Please reinstall chainer after you install NCCL.\n'
-                '(see https://github.com/chainer/chainer#installation).')
+                'Please reinstall CuPy after you install NCCL.\n'
+                '(see https://docs-cupy.chainer.org/en/latest/install.html)')
         try:
             cuda.cupy.cuda.driver.ctxGetCurrent()
             _cuda_initialized = True
