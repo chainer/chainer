@@ -197,8 +197,9 @@ public:
     // For multi-input ops, usually this function is called for each of independent subsets of input arrays.
     template <typename BackwardFunc>
     void Define(std::initializer_list<ConstArrayRef> inputs, BackwardFunc&& backward_func) {
-        // The result type of backward functions must be void.
-        static_assert(std::is_same<std::result_of_t<BackwardFunc(BackwardContext&)>, void>::value, "");
+        static_assert(
+                std::is_same<std::result_of_t<BackwardFunc(BackwardContext&)>, void>::value,
+                "The result type of backward functions must be void.");
 
         DefineImpl(inputs, std::forward<BackwardFunc>(backward_func));
     }
@@ -214,7 +215,7 @@ private:
     std::vector<ConstArrayRef> outputs_;
 
     // A collection of op nodes, each of which corresponds to a graph.
-    // This record is increasingly populated as new graph is encountered in multiple Define() calls.
+    // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<OpNode>> op_node_map_;
 
     std::vector<GraphId> stop_graph_ids_;

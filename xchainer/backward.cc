@@ -35,9 +35,8 @@ BackwardContext::BackwardContext(
       stop_graph_ids_{stop_graph_ids},
       input_grads_storage_{input_grads_storage},
       zero_output_grads_{prev_grads_.size()} {
-    size_t n_prev = prev_grads.size();
-    assert(n_prev == prev_node_shapes.size());
-    assert(n_prev == prev_node_dtypes.size());
+    assert(prev_grads.size() == prev_node_shapes.size());
+    assert(prev_grads.size() == prev_node_dtypes.size());
     assert(input_grads_storage_.size() <= op_node.next_node_count());
 };
 
