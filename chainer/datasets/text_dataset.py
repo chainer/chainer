@@ -139,6 +139,15 @@ class TextDataset(dataset_mixin.DatasetMixin):
                           self._newline)
         ]
 
+    def close(self):
+        """Manually closes all text files.
+
+        In most cases, you don't have to call this method, because files will
+        automatically be closed after TextDataset instance goes out of scope.
+        """
+        for fp in self._fps:
+            fp.close()
+
     def get_example(self, idx):
         if idx < 0 or len(self._lines) <= idx:
             raise IndexError
