@@ -13,6 +13,7 @@
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
+#include "xchainer/check_backward.h"
 #include "xchainer/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"
@@ -25,6 +26,7 @@
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
+#include "xchainer/testing/array.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -415,6 +417,181 @@ TEST(BackpropEnableDoubleBackpropTest, Disabled) {
 
     EXPECT_EQ(0u, z_op->next_nodes().size());
     EXPECT_EQ(0u, z_op->backward_entries().size());
+}
+
+TEST(BackpropFunctionTest, OneToOneFunc) {
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    auto func = [](const Array& x, Array& y) -> void {
+        y = 2 * x.AsConstant() + 1;
+        ASSERT_TRUE(y.IsConstant());
+
+        {
+            DefineBackwardScope bwd{"func", y};
+            if (!x.IsConstant()) {
+                bwd.Define({x}, [](BackwardContext& bctx) {
+                    const Array& gout = bctx.output_grad();  // index is omitted
+                    bctx.input_grad() = 2 * gout;  // index is omitted
+                });
+            }
+        }
+    };
+
+    using T = double;
+    Shape shape{2};
+    Array a = (*testing::BuildArray(shape).WithData<T>({1, 2}).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithData<T>({3, 1}).WithPadding(3);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward(
+            [&func](const std::vector<Array>& xs) -> std::vector<Array> {
+                Array out{};
+                func(xs[0], out);
+                return {out};
+            },
+            {a},
+            {go},
+            {eps});
+}
+
+TEST(BackpropFunctionTest, OneToMultiFunc) {
+    return;  // TODO(niboshi): Multi-output function does not work. Fix me
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    auto func = [](const Array& x1, Array& y1, Array& y2) -> void {
+        y1 = 2 * x1.AsConstant() + 1;
+        y2 = 3 * x1.AsConstant() + 2;
+        ASSERT_TRUE(y1.IsConstant());
+        ASSERT_TRUE(y2.IsConstant());
+
+        {
+            DefineBackwardScope bwd{"func", {y1, y2}};
+            if (!x1.IsConstant()) {
+                bwd.Define({x1}, [](BackwardContext& bctx) {
+                    const Array& gy1 = bctx.output_grad(0);  // by index
+                    const Array& gy2 = bctx.output_grad(1);
+                    // TODO(niboshi): Support assignment by index, like the following.
+                    // bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
+                    bctx.input_grad() = 2 * gy1 + 3 * gy2;
+                });
+            }
+        }
+    };
+
+    using T = double;
+    Shape shape{2};
+    Array x1 = (*testing::BuildArray(shape).WithData<T>({1, 2})).RequireGrad();
+    Array gy1 = testing::BuildArray(shape).WithData<T>({1, -3});
+    Array gy2 = testing::BuildArray(shape).WithData<T>({3, -1});
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward(
+            [&func](const std::vector<Array>& xs) -> std::vector<Array> {
+                Array y1{};
+                Array y2{};
+                func(xs[0], y1, y2);
+                return {y1, y2};
+            },
+            {x1},
+            {gy1, gy2},
+            {eps, eps});
+}
+
+TEST(BackpropFunctionTest, MultiToOneFunc) {
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    auto func = [](const Array& x1, const Array& x2, const Array& x3, Array& y1) -> void {
+        y1 = 2 * x1.AsConstant() + 3 * x2.AsConstant() + 1;
+        ASSERT_TRUE(y1.IsConstant());
+
+        {
+            DefineBackwardScope bwd{"func", {y1}};
+            if (!x1.IsConstant()) {
+                bwd.Define({x1}, [](BackwardContext& bctx) {
+                    const Array& gy1 = bctx.output_grad(0);  // by index
+                    // TODO(niboshi): Support assignment by index, like the following.
+                    // bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
+                    bctx.input_grad() = 2 * gy1;
+                });
+            }
+            if (!x2.IsConstant() || !x3.IsConstant()) {
+                bwd.Define({x2, x3}, [](BackwardContext& bctx) {
+                    const Array& gy1 = bctx.output_grad(0);  // by index
+                    bctx.input_grad() = {3 * gy1, 0 * gy1};  // by list
+                });
+            }
+        }
+    };
+
+    using T = double;
+    Shape shape{2};
+    Array x1 = (*testing::BuildArray(shape).WithData<T>({1, 2})).RequireGrad();
+    Array x2 = (*testing::BuildArray(shape).WithData<T>({4, -1})).RequireGrad();
+    Array x3 = (*testing::BuildArray(shape).WithData<T>({-1, 2})).RequireGrad();
+    Array gy1 = testing::BuildArray(shape).WithData<T>({1, -3});
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward(
+            [&func](const std::vector<Array>& xs) -> std::vector<Array> {
+                Array y1{};
+                func(xs[0], xs[1], xs[2], y1);
+                return {y1};
+            },
+            {x1, x2, x3},
+            {gy1},
+            {eps, eps, eps});
+}
+
+TEST(BackpropFunctionTest, MultiToMultiFunc) {
+    return;  // TODO(niboshi): Multi-output function does not work. Fix me
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    auto func = [](const Array& x1, const Array& x2, const Array& x3, Array& y1, Array& y2) -> void {
+        y1 = 2 * x1.AsConstant() + 3 * x2.AsConstant() + 1;
+        y2 = 3 * x1.AsConstant() + x2.AsConstant() + 2 * x3.AsConstant() + 2;
+        ASSERT_TRUE(y1.IsConstant());
+        ASSERT_TRUE(y2.IsConstant());
+
+        {
+            DefineBackwardScope bwd{"func", {y1, y2}};
+            if (!x1.IsConstant()) {
+                bwd.Define({x1}, [](BackwardContext& bctx) {
+                    const Array& gy1 = bctx.output_grad(0);  // by index
+                    const Array& gy2 = bctx.output_grad(1);
+                    // TODO(niboshi): Support assignment by index, like the following.
+                    // bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
+                    bctx.input_grad() = 2 * gy1 + 3 * gy2;
+                });
+            }
+            if (!x2.IsConstant() || !x3.IsConstant()) {
+                bwd.Define({x2, x3}, [](BackwardContext& bctx) {
+                    const Array& gy1 = bctx.output_grad(0);  // by index
+                    const Array& gy2 = bctx.output_grad(1);
+                    bctx.input_grad() = {3 * gy1 + gy2, 2 * gy2};  // by list
+                });
+            }
+        }
+    };
+
+    using T = double;
+    Shape shape{2};
+    Array x1 = (*testing::BuildArray(shape).WithData<T>({1, 2})).RequireGrad();
+    Array x2 = (*testing::BuildArray(shape).WithData<T>({4, -1})).RequireGrad();
+    Array x3 = (*testing::BuildArray(shape).WithData<T>({-1, 2})).RequireGrad();
+    Array gy1 = testing::BuildArray(shape).WithData<T>({1, -3});
+    Array gy2 = testing::BuildArray(shape).WithData<T>({3, -1});
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward(
+            [&func](const std::vector<Array>& xs) -> std::vector<Array> {
+                Array y1{};
+                Array y2{};
+                func(xs[0], xs[1], xs[2], y1, y2);
+                return {y1, y2};
+            },
+            {x1, x2, x3},
+            {gy1, gy2},
+            {eps, eps});
 }
 
 }  // namespace
