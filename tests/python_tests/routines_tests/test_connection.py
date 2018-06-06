@@ -55,7 +55,7 @@ def test_conv(device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_d
 ])
 @pytest.mark.parametrize('cover_all', [True, False])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_invalid_conv(device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype):
+def test_conv_invalid(device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype):
     with pytest.raises(xchainer.DimensionError):
         xchainer.conv(*_create_conv_args(xchainer, device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype))
 
@@ -128,7 +128,7 @@ def test_conv_transpose(device, x_shape, w_shape, b_shape, stride, pad, test_out
     ((2, 3, 4), (3, 5, 1), (5,), 1, 0, (5,)),  # Output dims are inconsistent
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_invalid_conv_transpose(device, x_shape, w_shape, b_shape, stride, pad, outsize, float_dtype):
+def test_conv_transpose_invalid(device, x_shape, w_shape, b_shape, stride, pad, outsize, float_dtype):
     with pytest.raises(xchainer.DimensionError):
         xchainer.conv_transpose(*_create_conv_transpose_args(xchainer, device, x_shape,
                                                              w_shape, b_shape, stride, pad, outsize, float_dtype))
