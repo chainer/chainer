@@ -1206,6 +1206,10 @@ class TestMatMul(unittest.TestCase):
     def _get_forward_answer(self, x, y):
         if x.ndim <= 2 or y.ndim == 1:
             return numpy.dot(x, y)
+        elif hasattr(numpy, 'matmul'):
+            # Note: NumPy 1.14.0 has a bug in einsum (numpy/numpy#10343),
+            # so we use matmul if available to avoid it
+            return numpy.matmul(x, y)
         else:
             return numpy.einsum('...ij,...jk->...ik', x, y)
 
