@@ -1,4 +1,5 @@
 import io
+import sys
 import threading
 
 import six
@@ -145,8 +146,14 @@ class TextDataset(dataset_mixin.DatasetMixin):
         In most cases, you do not have to call this method, because files will
         automatically be closed after TextDataset instance goes out of scope.
         """
+        exc = None
         for fp in self._fps:
-            fp.close()
+            try:
+                fp.close()
+            except Exception:
+                exc = sys.exc_info()
+        if exc is not None:
+            six.reraise(*exc)
 
     def get_example(self, idx):
         if idx < 0 or len(self._lines) <= idx:
