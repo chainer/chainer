@@ -102,15 +102,18 @@ class BatchNormalization(link.Link):
             >>> bn = chainer.links.BatchNormalization(3)
             >>> bn.avg_mean.shape
             (3,)
+            >>> bn.beta += 2.0
+            >>> bn.gamma *= 5.0
+            >>> list(sorted(bn.namedparams()))
+            [('/beta', variable([2., 2., 2.])), ('/gamma', variable([5., 5., 5.]))]
             >>> y = bn(x)
             >>> y.shape
             (10, 3, 32, 32)
             >>> np.testing.assert_allclose(
-            ...     y.array.mean(axis=(0, 2, 3)), 0, atol=1e-6)
+            ...     y.array.mean(axis=(0, 2, 3)), bn.beta.array, atol=1e-6)
             >>> np.testing.assert_allclose(
-            ...     y.array.var(axis=(0, 2, 3)),
-            ...     x.var(axis=(0, 2, 3)) / (x.var(axis=(0, 2, 3)) + 2e-5),
-            ...     atol=1e-6)
+            ...     y.array.std(axis=(0, 2, 3)),
+            ...     bn.gamma.array, atol=1e-3)
 
             To normalize for each channel for each pixel, ``size`` should
             be the tuple of the dimensions.
@@ -122,10 +125,10 @@ class BatchNormalization(link.Link):
             >>> y.shape
             (10, 3, 32, 32)
             >>> np.testing.assert_allclose(
-            ...     y.array.mean(axis=0), 0, atol=1e-6)
+            ...     y.array.mean(axis=0), bn.beta.array, atol=1e-6)
             >>> np.testing.assert_allclose(
-            ...     y.array.var(axis=0),
-            ...     x.var(axis=0) / (x.var(axis=0) + 2e-5), atol=1e-6)
+            ...     y.array.std(axis=0),
+            ...     bn.gamma.array, atol=1e-3)
 
             By default, channel axis is (or starts from) the 1st axis of the
             input shape.
@@ -141,12 +144,10 @@ class BatchNormalization(link.Link):
             The examples in 1. corresponds to the following, respectively.
 
             >>> bn = chainer.links.BatchNormalization(axis=(0, 2, 3))
-            >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3,)
 
             >>> bn = chainer.links.BatchNormalization(axis=0)
-            >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3, 32, 32)
 
