@@ -83,6 +83,7 @@ void DefineBackwardScope::DefineImpl(std::initializer_list<ConstArrayRef> inputs
             inputs.begin(), inputs.end(), [&inputs](const Array& input) { return &input.device() == &(inputs[0].get().device()); }));
 
     // Collect input nodes, grouped by graph
+    // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
     std::unordered_map<GraphId, std::vector<std::reference_wrapper<std::shared_ptr<ArrayNode>>>> graph_to_next_nodes;
     for (const Array& input : inputs) {
         for (std::shared_ptr<ArrayNode>& input_node : input.nodes()) {
