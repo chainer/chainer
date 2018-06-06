@@ -192,10 +192,20 @@ class BatchNormalization(link.Link):
                  initial_avg_mean=None, initial_avg_var=None):
         super(BatchNormalization, self).__init__()
 
+        self._kwargs = [
+            ('size', size),
+            ('decay', decay),
+            ('eps', eps),
+            ('dtype', dtype),
+            ('use_gamma', use_gamma),
+            ('use_beta', use_beta),
+        ]
+
         if size is None and axis is None:
             raise RuntimeError('size or axis is required')
         self._initial_avg_mean = initial_avg_mean
         self._initial_avg_var = initial_avg_var
+
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
@@ -241,6 +251,19 @@ class BatchNormalization(link.Link):
         initializer = initializers._get_initializer(initializer)
         return initializers.generate_array(
             initializer, size, self.xp, dtype=self._dtype, device=self.device)
+
+    @property
+    def printable_specs(self):
+        specs = [
+            ('size', self.avg_mean.shape[0]),
+            ('decay', self.decay),
+            ('eps', self.eps),
+            ('dtype', self.avg_mean.dtype),
+            ('use_gamma', hasattr(self, 'gamma')),
+            ('use_beta', hasattr(self, 'beta')),
+        ]
+        for spec in specs:
+            yield spec
 
     def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)
