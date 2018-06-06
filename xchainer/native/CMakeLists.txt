@@ -15,7 +15,7 @@ add_library(xchainer_native STATIC
     # native_device/comparison.cc
     # native_device/dot.cc
     # native_device/exp_log.cc
-    # native_device/fill.cc
+    native_device/fill.cc
     # native_device/indexing.cc
     native_device/memory.cc
     # native_device/reduction.cc
