@@ -111,15 +111,9 @@ private:
     friend class backward_detail::SetInputGradProxy;
 
     // Stores the computed input gradient.
-    void SetInputGrad(Array&& input_grad) {
+    void SetInputGrad(Array input_grad) {
         assert(input_grads_storage_.size() == 1);
         SetInputGradImpl(input_grads_storage_[0].get(), std::move(input_grad));
-    }
-
-    // Stores the computed input gradient.
-    void SetInputGrad(const Array& input_grad) {
-        assert(input_grads_storage_.size() == 1);
-        SetInputGradImpl(input_grads_storage_[0].get(), input_grad);
     }
 
     // Stores the computed input gradient.
@@ -132,19 +126,11 @@ private:
         }
     }
 
-    void SetInputGradImpl(nonstd::optional<Array>& grad_storage, Array&& input_grad) {
+    void SetInputGradImpl(nonstd::optional<Array>& grad_storage, Array input_grad) {
         if (grad_storage.has_value()) {
             grad_storage = *grad_storage + std::move(input_grad);
         } else {
             grad_storage = std::move(input_grad);
-        }
-    }
-
-    void SetInputGradImpl(nonstd::optional<Array>& grad_storage, const Array& input_grad) {
-        if (grad_storage.has_value()) {
-            grad_storage = *grad_storage + input_grad;
-        } else {
-            grad_storage = input_grad;
         }
     }
 

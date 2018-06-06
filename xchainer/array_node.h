@@ -36,13 +36,11 @@ public:
 
     const nonstd::optional<Array>& grad() const noexcept { return grad_; }
 
-    void SetGrad(const Array& grad) { grad_ = grad; }
+    void SetGrad(Array grad) { grad_ = std::move(grad); }
 
-    void SetGrad(Array&& grad) { grad_ = std::move(grad); }
-
-    void AccumulateGrad(Array&& grad) {
+    void AccumulateGrad(Array grad) {
         if (grad_.has_value()) {
-            grad_ = *grad_ + grad;
+            grad_ = *grad_ + std::move(grad);
         } else {
             grad_ = std::move(grad);
         }
