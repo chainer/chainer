@@ -18,6 +18,7 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cuda_device/copy.cu
     cuda_device/comparison.cu
     cuda_device/dot.cc
+    cuda_device/exp_log.cu
     cuda_device/fill.cu
     cuda_device/reduction.cu
     cuda_backend.cc

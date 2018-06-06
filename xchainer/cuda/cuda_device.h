@@ -93,6 +93,8 @@ public:
 
     void Dot(const Array& a, const Array& b, const Array& out) override;
 
+    // exp_log.cu
+
     void Exp(const Array& x, const Array& out) override;
     void Log(const Array& x, const Array& out) override;
 

@@ -133,42 +133,6 @@ std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& sr
 
 namespace {
 
-template <typename T>
-struct ExpImpl {
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::exp(x); }
-};
-
-}  // namespace
-
-void CudaDevice::Exp(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    CheckCudaError(cudaSetDevice(index()));
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(ExpImpl<T>{}, x, out);
-    });
-}
-
-namespace {
-
-template <typename T>
-struct LogImpl {
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::log(x); }
-};
-
-}  // namespace
-
-void CudaDevice::Log(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    CheckCudaError(cudaSetDevice(index()));
-    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(LogImpl<T>{}, x, out);
-    });
-}
-
-namespace {
-
 // Makes axes for permutation that moves [first_axis, last_axis) to the head.
 Axes MakeRollingPermutation(int8_t first_axis, int8_t last_axis, int8_t ndim) {
     assert(0 <= first_axis);
