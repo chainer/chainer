@@ -104,6 +104,8 @@ public:
 
     void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override;
 
+    // conv.cc
+
     Array Conv(
             const Array& x,
             const Array& w,

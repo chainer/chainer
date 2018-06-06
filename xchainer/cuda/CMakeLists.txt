@@ -15,6 +15,7 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cuda_device.cu
     cuda_device/activation.cu
     cuda_device/arithmetic.cu
+    cuda_device/conv.cc
     cuda_device/copy.cu
     cuda_device/comparison.cu
     cuda_device/dot.cc
