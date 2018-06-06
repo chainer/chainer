@@ -2,7 +2,6 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
-from chainer import testing
 import chainer.training.updaters.multiprocess_parallel_updater as mpu
 
 
@@ -23,8 +22,7 @@ def test():
     cuda.cupy.cuda.runtime.runtimeGetVersion()
 
     try:
-        updater = mpu.MultiprocessParallelUpdater(
-            iters, optimizer, devices=devices)
+        mpu.MultiprocessParallelUpdater(iters, optimizer, devices=devices)
     except RuntimeError as e:
         assert 'CUDA context' in str(e)
         return
