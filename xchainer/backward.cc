@@ -121,8 +121,9 @@ void DefineBackwardScope::DefineImpl(std::initializer_list<ConstArrayRef> inputs
             const std::shared_ptr<ArrayNode>& out_node = xchainer::internal::HasArrayNode(out, graph_id)
                                                                  ? xchainer::internal::GetMutableArrayNode(out, graph_id)
                                                                  : xchainer::internal::CreateArrayNode(out, graph_id);
-            out_node->set_next_node(op_node);
-            out_node->set_rank(op_node->rank() + 1);
+            if (out_node->next_node() == nullptr) {
+                out_node->set_next_node(op_node);
+            }
         }
     }
 
