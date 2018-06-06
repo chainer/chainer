@@ -42,6 +42,11 @@ public:
     OpNode() = default;
     explicit OpNode(std::string name) : name_{std::move(name)} {}
 
+    OpNode(const OpNode&) = delete;
+    OpNode(OpNode&&) = delete;
+    OpNode& operator=(const OpNode&) = delete;
+    OpNode& operator=(OpNode&&) = delete;
+
     void RegisterBackwardFunction(
             gsl::span<std::reference_wrapper<std::shared_ptr<ArrayNode>>> next_nodes,
             std::function<void(BackwardContext&)>&& backward_func);

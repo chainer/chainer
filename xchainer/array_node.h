@@ -14,6 +14,11 @@ public:
     ArrayNode(const Shape& shape, Dtype dtype, Device& device, GraphId graph_id)
         : shape_{shape}, dtype_{dtype}, device_{device}, graph_id_{std::move(graph_id)} {}
 
+    ArrayNode(const ArrayNode&) = delete;
+    ArrayNode(ArrayNode&&) = delete;
+    ArrayNode& operator=(const ArrayNode&) = delete;
+    ArrayNode& operator=(ArrayNode&&) = delete;
+
     const Shape& shape() const { return shape_; }
 
     Dtype dtype() const { return dtype_; }

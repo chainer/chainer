@@ -57,7 +57,7 @@ const Array& BackwardContext::GetOutputGrad(int output_index) const {
     }
 
     // Allocate new zero-filled gradient an return it.
-    const ArrayNode prev_node = prev_nodes_[output_index];
+    const ArrayNode& prev_node = prev_nodes_[output_index];
     zero_grad = Zeros(prev_node.shape(), prev_node.dtype(), prev_node.device());
     return *zero_grad;
 }
