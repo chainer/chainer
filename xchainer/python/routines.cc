@@ -433,6 +433,32 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("stride") = 1,
           py::arg("pad") = 0,
           py::arg("cover_all") = false);
+    m.def("conv_transpose",
+          [](const ArrayBodyPtr& x,
+             const ArrayBodyPtr& w,
+             const nonstd::optional<ArrayBodyPtr>& b,
+             py::handle stride,
+             py::handle pad,
+             const nonstd::optional<py::tuple>& outsize) {
+              // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
+              Array x_array{x};
+              int8_t ndim = x_array.ndim() - 2;
+              return ConvTranspose(
+                             x_array,
+                             Array{w},
+                             b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
+                             ToStackVector<int64_t>(stride, ndim),
+                             ToStackVector<int64_t>(pad, ndim),
+                             outsize.has_value() ? nonstd::optional<StackVector<int64_t, kMaxNdim>>{ToStackVector<int64_t>(*outsize, ndim)}
+                                                 : nonstd::nullopt)
+                      .move_body();
+          },
+          py::arg("x"),
+          py::arg("w"),
+          py::arg("b") = nullptr,
+          py::arg("stride") = 1,
+          py::arg("pad") = 0,
+          py::arg("outsize") = nullptr);
 }
 
 }  // namespace internal
