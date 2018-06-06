@@ -25,6 +25,12 @@ class CudaDevice : public Device {
 public:
     ~CudaDevice() override;
 
+    void Synchronize() override;
+
+    cublasHandle_t cublas_handle();
+
+    // memory.cc
+
     std::shared_ptr<void> Allocate(size_t bytesize) override;
 
     std::shared_ptr<void> MakeDataFromForeignPointer(const std::shared_ptr<void>& data) override;
@@ -133,10 +139,6 @@ public:
 
     // TODO(sonots): implement me
     std::shared_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override { return nullptr; }
-
-    void Synchronize() override;
-
-    cublasHandle_t cublas_handle();
 
 protected:
     CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_context_{index} {}
