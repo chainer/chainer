@@ -16,6 +16,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/native/col2im.h"
 #include "xchainer/native/im2col.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
@@ -171,63 +172,6 @@ Array NativeDevice::ConvGradWeight(
     return TensorDot(gy.AsConstant(), col, out_axes, col_axes).AsType(w_dtype, false);
 }
 
-namespace {
-
-Array Col2Im(
-        const Array& col,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& out_size) {
-    // Cannot use const due to internal compiler error with gcc 5.4.0.
-    int8_t batch_size = col.shape()[0];
-    int8_t channels = col.shape()[1];
-    auto ndim = static_cast<int8_t>(stride.size());
-
-    Shape padded_shape{batch_size, channels};
-    for (int8_t i = 0; i < ndim; ++i) {
-        padded_shape.emplace_back(out_size[i] + 2 * pad[i] + stride[i] - 1);
-    }
-    Array padded_out = Zeros(padded_shape, col.dtype(), col.device());
-
-    // Write to the output array
-    VisitDtype(col.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-
-        Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
-        Indexer<> kernel_indexer{Shape{col.shape().begin() + 2, col.shape().begin() + 2 + ndim}};
-        Indexer<> in_image_dims_indexer{Shape{col.shape().begin() + 2 + ndim, col.shape().end()}};
-        Indexer<> col_indexer{col.shape()};
-        Indexer<> padded_out_indexer{padded_shape};
-        IndexableArray<const T> col_iarray{col};
-        IndexableArray<T> padded_out_iarray{padded_out};
-
-        // Indices over the output image.
-        NdimIndex out_image_index{ndim};
-
-        for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
-            for (auto it_in_image_dims = in_image_dims_indexer.It(0); it_in_image_dims; ++it_in_image_dims) {
-                for (int8_t i = 0; i < ndim; ++i) {
-                    out_image_index.index()[i] = it_in_image_dims.index()[i] * stride[i] + it_kernel.index()[i];
-                }
-
-                for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
-                    auto it_col = col_indexer.At(it_batch_channel, it_kernel, it_in_image_dims);
-                    auto it_padded_out = padded_out_indexer.At(it_batch_channel, out_image_index);
-                    padded_out_iarray[it_padded_out] += col_iarray[it_col];
-                }
-            }
-        }
-    });
-
-    std::vector<ArrayIndex> slice{ArrayIndex{Slice{}}, ArrayIndex{Slice{}}};  // All batch and channel dimensions.
-    for (int8_t i = 0; i < ndim; ++i) {
-        slice.emplace_back(Slice{pad[i], pad[i] + out_size[i]});
-    }
-    return padded_out.At(slice);
-}
-
-}  // namespace
-
 Array NativeDevice::ConvTranspose(
         const Array& x,
         const Array& w,
@@ -238,7 +182,7 @@ Array NativeDevice::ConvTranspose(
     Array col = TensorDot(w.AsConstant(), x.AsConstant(), {0}, {1});  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
     col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
 
-    Array y = Col2Im(col, stride, pad, out_size);  // shape: batch_size, out_channel, out_size...
+    Array y = internal::Col2Im(col, stride, pad, out_size);  // shape: batch_size, out_channel, out_size...
 
     // Add bias, if given.
     if (b.has_value()) {

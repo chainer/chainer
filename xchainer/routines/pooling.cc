@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "xchainer/array.h"
@@ -32,8 +33,18 @@ Array MaxPool(
 
     std::shared_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward();
 
-    // TODO(hvy): Connect graphs.
-    return fb->Forward(x, kernel_size, stride, pad, cover_all);
+    Array out = fb->Forward(x, kernel_size, stride, pad, cover_all);
+
+    auto backward_function = [=](const Array& gout, const std::vector<GraphId>&) -> Array {
+        Array gx = fb->Backward(x, kernel_size, stride, pad, cover_all, gout);
+        auto double_backward_function = [ =, fb = std::move(fb) ](const Array& ggx, const std::vector<GraphId>&)->Array {
+            return fb->DoubleBackward(x, kernel_size, stride, pad, cover_all, gout, ggx);  // ggout.
+        };
+        internal::SetUpOpNodes("max_pooling_backward", {gout}, gx, {double_backward_function});
+        return gx;
+    };
+    internal::SetUpOpNodes("max_pooling", {x}, out, {backward_function});
+    return out;
 }
 
 }  // namespace xchainer
