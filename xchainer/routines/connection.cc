@@ -131,6 +131,12 @@ Array ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& pad,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) {
     ConvCheckNdim(x, w, stride, pad);
+    if (x.shape()[1] != w.shape()[0]) {
+        throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
+    }
+    if (b.has_value() && (b->ndim() != 1 || b->shape()[0] != w.shape()[1])) {
+        throw DimensionError{"Mismatched bias shape ", b->shape(), " for weights ", w.shape(), "."};
+    }
     int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
     Shape in_dims{x.shape().begin() + 2, x.shape().end()};
     Shape kernel_size{w.shape().begin() + 2, w.shape().end()};
@@ -146,6 +152,11 @@ Array ConvTranspose(
         cover_all_determined = true;
         for (int8_t i = 0; i < ndim; ++i) {
             real_out_size.emplace_back(internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all));
+        }
+    }
+    for (int64_t size : real_out_size) {
+        if (size < 0) {
+            throw DimensionError{"All output sizes must be positive"};
         }
     }
 
@@ -166,7 +177,7 @@ Array ConvTranspose(
         // Check detected cover_all is consistent
         for (int8_t i = 0; i < ndim; ++i) {
             if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], cover_all)) {
-                throw XchainerError{"Output dims ", Shape{real_out_size.begin(), real_out_size.end()}, " is incosistent."};
+                throw DimensionError{"Output dims ", Shape{real_out_size.begin(), real_out_size.end()}, " are inconsistent."};
             }
         }
     }
