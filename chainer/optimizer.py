@@ -467,7 +467,8 @@ class Optimizer(object):
             if not self.use_auto_new_epoch:
                 raise RuntimeError(
                     'invalid new_epoch call with auto=True.\n'
-                    'Fix the updater to set optimizer.use_auto_new_epoch = True.')
+                    'Fix the updater to set '
+                    'optimizer.use_auto_new_epoch = True.')
         else:
             if self.use_auto_new_epoch:
                 raise RuntimeError(
