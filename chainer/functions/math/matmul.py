@@ -4,7 +4,7 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import function_node
-from chainer import functions
+import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
 
@@ -128,40 +128,42 @@ class MatMul(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             if is_b_vector:
-                u, v = functions.cast(gy, b.dtype), b
+                u, v = chainer.functions.cast(gy, b.dtype), b
                 if not is_a_vector:
                     if self.transa:
                         u, v = v, u
-                    u = functions.expand_dims(u, -1)
-                    v = functions.expand_dims(v, -2) if v.ndim > 1 else v
-                ga = functions.cast(u * v, a.dtype)
+                    u = chainer.functions.expand_dims(u, -1)
+                    v = (chainer.functions.expand_dims(v, -2) if v.ndim > 1
+                         else v)
+                ga = chainer.functions.cast(u * v, a.dtype)
             elif is_a_vector:
-                bt = functions.rollaxis(b, -1 if self.transb else -2)
-                ga = functions.tensordot(bt, gy, axes=gy.ndim)
-                ga = functions.cast(ga, a.dtype)
+                bt = chainer.functions.rollaxis(b, -1 if self.transb else -2)
+                ga = chainer.functions.tensordot(bt, gy, axes=gy.ndim)
+                ga = chainer.functions.cast(ga, a.dtype)
             else:
                 ga, = MatMul(self.transc, not self.transb, self.transa,
                              a.dtype).apply((gy, b))
-                ga = functions.sum_to(ga, a.shape)
+                ga = chainer.functions.sum_to(ga, a.shape)
             ret.append(ga)
 
         if 1 in indexes:
             if is_a_vector:
-                u, v = a, functions.cast(gy, a.dtype)
+                u, v = a, chainer.functions.cast(gy, a.dtype)
                 if not is_b_vector:
                     if self.transb:
                         u, v = v, u
-                    u = functions.expand_dims(u, -1)
-                    v = functions.expand_dims(v, -2) if v.ndim > 1 else v
-                gb = functions.cast(u * v, b.dtype)
+                    u = chainer.functions.expand_dims(u, -1)
+                    v = (chainer.functions.expand_dims(v, -2) if v.ndim > 1
+                         else v)
+                gb = chainer.functions.cast(u * v, b.dtype)
             elif is_b_vector:
-                at = functions.rollaxis(a, -2 if self.transa else -1)
-                gb = functions.tensordot(at, gy, axes=gy.ndim)
-                gb = functions.cast(gb, b.dtype)
+                at = chainer.functions.rollaxis(a, -2 if self.transa else -1)
+                gb = chainer.functions.tensordot(at, gy, axes=gy.ndim)
+                gb = chainer.functions.cast(gb, b.dtype)
             else:
                 gb, = MatMul(not self.transa, self.transc, self.transb,
                              b.dtype).apply((a, gy))
-                gb = functions.sum_to(gb, b.shape)
+                gb = chainer.functions.sum_to(gb, b.shape)
             ret.append(gb)
 
         return ret
