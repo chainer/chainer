@@ -87,18 +87,6 @@ class BatchNormalization(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
 
-        if x.shape[0] == 1:
-            warnings.warn(
-                'A batch with no more than one sample has been given'
-                ' to F.batch_normalization. F.batch_normalization'
-                ' will always output a zero tensor for such batches.'
-                ' This could be caused by incorrect configuration in'
-                ' your code (such as running evaluation while'
-                ' chainer.config.train=True),'
-                ' but could also happen in the last batch of training'
-                ' if non-repeating iterator is used.',
-                UserWarning)
-
         xp = cuda.get_array_module(x)
         if self.running_mean is None:
             self.running_mean = xp.zeros_like(gamma)
@@ -106,6 +94,26 @@ class BatchNormalization(function_node.FunctionNode):
 
         self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
+
+        if all(x.shape[i] == 1 for i in self.axis):
+            if 0 in self.axis:
+                warnings.warn(
+                    'A batch with no more than one sample has been given'
+                    ' to F.batch_normalization. F.batch_normalization'
+                    ' will always output a zero tensor for such batches.'
+                    ' This could be caused by incorrect configuration in'
+                    ' your code (such as running evaluation while'
+                    ' chainer.config.train=True),'
+                    ' but could also happen in the last batch of training'
+                    ' if non-repeating iterator is used.',
+                    UserWarning)
+            else:
+                warnings.warn(
+                    'F.batch_normalization received a batch with single'
+                    ' dimensions along all axes that are used for aggregating'
+                    ' statistics. F.batch_normalization'
+                    ' will always output a zero tensor for such batches.',
+                    UserWarning)
 
         # TODO(niboshi): Refactor calculation of expander and axis into a
         # function and call it just before they are used.
@@ -233,7 +241,11 @@ class BatchNormalization(function_node.FunctionNode):
             beta = beta[expander]
             self.mean = x.mean(axis=self.axis)
             var = x.var(axis=self.axis)
-            self.inv_std = (var + self.eps) ** (-0.5)
+            if xp is numpy:
+                self.inv_std = numpy.reciprocal(numpy.sqrt(
+                    var + self.eps, dtype=x.dtype))
+            else:
+                self.inv_std = cuda.cupyx.rsqrt(var + self.eps)
             y = _apply_bn_fwd(xp, x, self.mean[expander],
                               self.inv_std[expander], gamma, beta)
             # Update running statistics
@@ -707,7 +719,7 @@ def _get_dtype_of_tensor_descriptor(desc):
 
 
 def batch_normalization(x, gamma, beta, **kwargs):
-    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9)
+    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9, axis=None)
 
     Batch normalization function.
 
@@ -765,7 +777,7 @@ def batch_normalization(x, gamma, beta, **kwargs):
             be ``None``.
         decay (float): Decay rate of moving average. It is used during
             training.
-        axis (int or tuple of int): Axis over which normalization is
+        axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input
             dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
             and normalization is performed over 0th, 2nd and 3rd axis of input.
@@ -807,7 +819,7 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
         mean (Variable): Shifting parameter of input.
         var (Variable): Square of scaling parameter of input.
         eps (float): Epsilon value for numerical stability.
-        axis (int or tuple of int): Axis over which normalization is
+        axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input
             dimensions. For example, if ``x.ndim is 4``, axis becomes (0, 2, 3)
             and normalization is performed over 0th, 2nd and 3rd axis of input.

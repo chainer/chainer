@@ -1,11 +1,15 @@
-Functions
-=========
+Wrapper Functions
+=================
 
 .. module:: chainer.functions
 
-Chainer provides basic :class:`~chainer.FunctionNode` implementations in the
-:mod:`chainer.functions` package. Most of them are wrapped by plain Python
-functions, which users should use.
+Wrapper functions are backward-able functions (probably differentiable) plain Python functions.
+
+Argument inputs are tuples of input :class:`~chainer.Variable`, such as :class:`~numpy.ndarray` or :class:`~cupy.ndarray` objects. If the input is a :class:`~numpy.ndarray` or a :class:`~cupy.ndarray`, it is automatically wrapped with :class:`~chainer.Variable`.
+
+Wrapper functions return a :class:`~chainer.Variable` object or a tuple of multiple :class:`~chainer.Variable` objects.
+
+Wrapper functions should not have learnable parameters when used in models and are usually not members of the :class:`~chainer.Chain`. Even if they do have learnable parameters, these are ignored by Chainer training, to prevent the functions from changing output due to adjustment of learned parameters during training.
 
 .. note::
    As of v1.5, the concept of parameterized functions are gone, and they are
@@ -79,6 +83,7 @@ Array manipulations
    chainer.functions.get_item
    chainer.functions.hstack
    chainer.functions.im2col
+   chainer.functions.moveaxis
    chainer.functions.pad
    chainer.functions.pad_sequence
    chainer.functions.permutate
@@ -227,6 +232,7 @@ Mathematical functions
    chainer.functions.sin
    chainer.functions.sinh
    chainer.functions.sign
+   chainer.functions.sparse_matmul
    chainer.functions.sqrt
    chainer.functions.square
    chainer.functions.squared_difference

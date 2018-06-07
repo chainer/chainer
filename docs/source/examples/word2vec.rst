@@ -206,7 +206,7 @@ Next, let's define a network for Skip-gram.
       number of context words.
       
 First, we obtain the embedding vectors of contexts by ``e = self.embed(contexts)``.
-Then ``F.broadcast_to(x[:, None], (shape[0], shape[1]))`` performs broadcasting of
+Then ``F.broadcast_to(x[:, None], (batch_size, n_context))`` performs broadcasting of
 ``x`` (its shape is ``(batch_size,)``) to ``(batch_size, n_context)`` by copying the
 same value ``n_context`` time to fill the second axis, and then the broadcasted ``x``
 is reshaped into 1-D vector ``(batchsize * n_context,)`` while ``e`` is reshaped to

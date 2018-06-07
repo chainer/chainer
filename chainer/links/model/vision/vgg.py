@@ -1,5 +1,6 @@
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -159,7 +160,7 @@ class VGG16Layers(link.Chain):
         caffemodel = CaffeFunction(path_caffemodel)
         npz.save_npz(path_npz, caffemodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], **kwargs):
+    def __call__(self, x, layers=None, **kwargs):
         """__call__(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
@@ -182,6 +183,9 @@ class VGG16Layers(link.Chain):
 
         """
 
+        if layers is None:
+            layers = ['prob']
+
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
             'Use chainer.using_config')
@@ -200,7 +204,7 @@ class VGG16Layers(link.Chain):
                 target_layers.remove(key)
         return activations
 
-    def extract(self, images, layers=['fc7'], size=(224, 224), **kwargs):
+    def extract(self, images, layers=None, size=(224, 224), **kwargs):
         """extract(self, images, layers=['fc7'], size=(224, 224))
 
         Extracts all the feature maps of given images.
@@ -211,14 +215,37 @@ class VGG16Layers(link.Chain):
         it is also interpreted as a shortcut method that implicitly calls
         ``prepare`` and ``__call__`` functions.
 
+        Unlike ``predict`` method, this method does not override
+        ``chainer.config.train`` and ``chainer.config.enable_backprop``
+        configuration. If you want to extract features without updating
+        model parameters, you need to manually set configuration when
+        calling this method as follows:
+
+         .. code-block:: python
+
+             # model is an instance of VGG16Layers
+             with chainer.using_config('train', False):
+                 with chainer.using_config('enable_backprop', False):
+                     feature = model.extract([image])
+
         .. warning::
 
-           ``test`` and ``volatile`` arguments are not supported anymore since
-           v2.
-           Instead, use ``chainer.using_config('train', train)`` and
-           ``chainer.using_config('enable_backprop', not volatile)``
-           respectively.
-           See :func:`chainer.using_config`.
+           ``test`` and ``volatile`` arguments are not supported
+           anymore since v2. Instead, users should configure
+           training and volatile modes with ``train`` and
+           ``enable_backprop``, respectively.
+
+           Note that default behavior of this method is different
+           between v1 and later versions. Specifically,
+           the default values of ``test`` in v1 were ``True`` (test mode).
+           But that of ``chainer.config.train`` is also ``True``
+           (train mode). Therefore, users need to explicitly switch
+           ``train`` to ``False`` to run the code in test mode and
+           ``enable_backprop`` to ``False`` to turn off
+           coputational graph construction.
+
+           See the `upgrade guide <https://docs.chainer.org/en/stable\
+           /upgrade_v2.html#training-mode-is-configured-by-a-thread-local-flag>`_.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -234,6 +261,9 @@ class VGG16Layers(link.Chain):
             the corresponding feature map variable.
 
         """
+
+        if layers is None:
+            layers = ['fc7']
 
         argument.check_unexpected_kwargs(
             kwargs, test='test argument is not supported anymore. '
@@ -330,7 +360,9 @@ def _max_pooling_2d(x):
 
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     VGG16Layers.convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model
