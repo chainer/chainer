@@ -190,6 +190,13 @@ class TestInvalidArguments(unittest.TestCase):
         with self.assertRaises(ValueError):
             functions.spatial_pyramid_pooling_2d(self.v, 3, pooling='avg')
 
+        with testing.assert_warns(DeprecationWarning), \
+                self.assertRaises(ValueError):
+            functions.spatial_pyramid_pooling_2d(
+                self.v, 3, pooling_class=(
+                    chainer.functions.pooling
+                    .average_pooling_2d.AveragePooling2D))
+
     def test_ambiguous_pooling(self):
         self.check_ambiguous_poolings()
 
