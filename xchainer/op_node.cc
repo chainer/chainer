@@ -19,6 +19,14 @@ OpNodeBackwardEntry::OpNodeBackwardEntry(std::vector<size_t> next_node_indices, 
 
 }  // namespace internal
 
+OpNode::OpNode(std::string name, const std::vector<std::shared_ptr<ArrayNode>>& prev_nodes)
+    : name_{std::move(name)}, graph_id_{prev_nodes.front()->graph_id()} {
+    // Create weak_ptrs to previous array nodes
+    for (const std::shared_ptr<ArrayNode>& prev_node : prev_nodes) {
+        prev_nodes_.emplace_back(prev_node);
+    }
+}
+
 void OpNode::RegisterBackwardFunction(
         gsl::span<std::reference_wrapper<std::shared_ptr<ArrayNode>>> next_nodes, std::function<void(BackwardContext&)>&& backward_func) {
     // Set this to a large enough number to avoid copy of shared pointers
@@ -51,12 +59,6 @@ void OpNode::RegisterBackwardFunction(
         backward_entries_.reserve(kDefaultNextNodesReserveCount);
     }
     backward_entries_.emplace_back(std::move(next_node_indices), std::move(backward_func));
-}
-
-GraphId OpNode::graph_id() const {
-    assert(!next_nodes_.empty() && "This op node does not belong to any graph");
-
-    return next_nodes_.front()->graph_id();
 }
 
 }  // namespace xchainer

@@ -134,7 +134,8 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     {
         DefineBackwardScope bwd{"subtract", out};
         if (!x1.IsConstant()) {
-            bwd.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+            // TODO(niboshi): Avoid copy
+            bwd.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
         }
         if (!x2.IsConstant()) {
             bwd.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad(); });

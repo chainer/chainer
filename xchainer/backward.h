@@ -62,7 +62,7 @@ public:
     // ordinary functions).
     BackwardContext(
             const OpNode& op_node,
-            gsl::span<const std::reference_wrapper<const ArrayNode>> prev_nodes,
+            gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes,
             gsl::span<const GraphId> stop_graph_ids,
             gsl::span<std::reference_wrapper<nonstd::optional<Array>>> input_grads_storage);
 
@@ -136,7 +136,7 @@ private:
     }
 
     const OpNode& op_node_;
-    gsl::span<const std::reference_wrapper<const ArrayNode>> prev_nodes_;
+    gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes_;
     gsl::span<const GraphId> stop_graph_ids_;
 
     // Gradient passed in SetInputGrad() will be put into this storage.

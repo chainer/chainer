@@ -40,7 +40,7 @@ private:
 class OpNode {
 public:
     OpNode() = default;
-    explicit OpNode(std::string name) : name_{std::move(name)} {}
+    explicit OpNode(std::string name, const std::vector<std::shared_ptr<ArrayNode>>& prev_nodes);
 
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;
@@ -68,14 +68,20 @@ public:
 
     size_t next_node_count() const { return next_nodes_.size(); }
 
+    size_t prev_node_count() const { return prev_nodes_.size(); }
+
+    const std::vector<std::weak_ptr<ArrayNode>>& prev_nodes() const { return prev_nodes_; }
+
     int64_t rank() const { return rank_; }
 
-    GraphId graph_id() const;
+    GraphId graph_id() const { return graph_id_; }
 
 private:
     std::string name_;
+    GraphId graph_id_;
     int64_t rank_{0};
     std::vector<std::shared_ptr<ArrayNode>> next_nodes_;
+    std::vector<std::weak_ptr<ArrayNode>> prev_nodes_;
 
     std::vector<internal::OpNodeBackwardEntry> backward_entries_;
 };

@@ -21,7 +21,7 @@ namespace xchainer {
 
 BackwardContext::BackwardContext(
         const OpNode& op_node,
-        gsl::span<const std::reference_wrapper<const ArrayNode>> prev_nodes,
+        gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes,
         gsl::span<const GraphId> stop_graph_ids,
         gsl::span<std::reference_wrapper<nonstd::optional<Array>>> input_grads_storage)
     : op_node_{op_node},
@@ -112,23 +112,27 @@ void DefineBackwardScope::DefineImpl(std::initializer_list<ConstArrayRef> inputs
         // Find op node
         auto insert_result = op_node_map_.insert(OpNodeMapValue{graph_id, nullptr});
         if (insert_result.second) {
-            // Create new op node instance
-            insert_result.first->second = std::make_shared<OpNode>(op_name_);
-        }
-        std::shared_ptr<OpNode>& op_node = insert_result.first->second;
-
-        // Add an edge to the input node
-        op_node->RegisterBackwardFunction(next_nodes, static_cast<std::function<void(BackwardContext&)>>(backward_func));
-
-        // Add edges from the output nodes
-        for (const Array& out : outputs) {
-            const std::shared_ptr<ArrayNode>& out_node = xchainer::internal::HasArrayNode(out, graph_id)
-                                                                 ? xchainer::internal::GetMutableArrayNode(out, graph_id)
-                                                                 : xchainer::internal::CreateArrayNode(out, graph_id);
-            if (out_node->next_node() == nullptr) {
-                out_node->SetNextNode(op_node);
+            // Create new op instance
+            // Create weakrefs to output nodes
+            std::vector<std::shared_ptr<ArrayNode>> prev_nodes;
+            for (const Array& out : outputs) {
+                const std::shared_ptr<ArrayNode>& out_node = xchainer::internal::HasArrayNode(out, graph_id)
+                                                                     ? xchainer::internal::GetMutableArrayNode(out, graph_id)
+                                                                     : xchainer::internal::CreateArrayNode(out, graph_id);
+                assert(out_node->next_node() == nullptr);
+                prev_nodes.emplace_back(out_node);
+            }
+            // Create new op instance
+            std::shared_ptr<OpNode>& new_op_node = insert_result.first->second = std::make_shared<OpNode>(op_name_, prev_nodes);
+            // Add edges from the output nodes
+            for (std::shared_ptr<ArrayNode>& prev_node : prev_nodes) {
+                prev_node->SetNextNode(new_op_node);
             }
         }
+
+        // Add an edge to the input node
+        std::shared_ptr<OpNode>& op_node = insert_result.first->second;
+        op_node->RegisterBackwardFunction(next_nodes, static_cast<std::function<void(BackwardContext&)>>(backward_func));
     }
 
     assert(!op_node_map_.empty());
@@ -187,18 +191,6 @@ public:
 
 private:
     std::vector<nonstd::optional<Array>> ComputeNextGradients(const OpNode& op_node, const GraphId& graph_id) {
-        // Find the previous array nodes of this OpNode
-        auto range = previous_array_node_map_.equal_range(&op_node);
-        auto it_first = range.first;
-        auto it_last = range.second;
-        assert(it_first != it_last);
-
-        // Collect previous array nodes to be passed to BackwardContext.
-        std::vector<std::reference_wrapper<const ArrayNode>> prev_nodes;
-        for (auto it = it_first; it != it_last; ++it) {
-            prev_nodes.emplace_back(*it->second);
-        }
-
         // Determine graph IDs to stop gradients
         std::vector<GraphId> graph_ids_to_stop_gradient;
         if (double_backprop_ == DoubleBackpropOption::kDisable) {
@@ -208,6 +200,13 @@ private:
         // Run backward functions to compute gradients of next array nodes.
         std::vector<nonstd::optional<Array>> next_grads;
         next_grads.resize(op_node.next_node_count());
+
+        std::vector<std::reference_wrapper<ArrayNode>> prev_nodes;
+        for (const std::weak_ptr<ArrayNode>& weak_prev_node : op_node.prev_nodes()) {
+            std::shared_ptr<ArrayNode> prev_node = weak_prev_node.lock();
+            assert(prev_node != nullptr);  // Weak ptrs should be alive
+            prev_nodes.emplace_back(*prev_node);
+        }
 
         for (const internal::OpNodeBackwardEntry& backward_entry : op_node.backward_entries()) {
             // Store the references to the placeholders of next gradients (`next_grads`) for the subset of input arrays of this backward
@@ -226,17 +225,17 @@ private:
         }
 
         // If previous array nodes are output nodes of backward, clear their gradients
-        for (auto it = it_first; it != it_last; ++it) {
-            ArrayNode& prev_node = *(it->second);
-            if (std::find_if(output_array_nodes_.begin(), output_array_nodes_.end(), [&prev_node](const auto& ref) {
-                    return &prev_node == ref.get().get();
-                }) == output_array_nodes_.end()) {
+        for (ArrayNode& prev_node : prev_nodes) {
+            if (std::find_if(
+                        output_array_nodes_.begin(), output_array_nodes_.end(), [&prev_node](const std::shared_ptr<ArrayNode>& out_node) {
+                            return &prev_node == out_node.get();
+                        }) == output_array_nodes_.end()) {
                 prev_node.ClearGrad();
             }
         }
 
         // Erase processed OpNode from the map
-        previous_array_node_map_.erase(it_first, it_last);
+        previous_array_node_map_.erase(&op_node);
 
         return next_grads;
     }
@@ -260,10 +259,15 @@ private:
                 double_backprop_ == DoubleBackpropOption::kEnable ? array_node->next_node() : array_node->move_next_node();
 
         if (next_op_node) {
-            if (previous_array_node_map_.find(next_op_node.get()) == previous_array_node_map_.end()) {
+            auto range = previous_array_node_map_.equal_range(next_op_node.get());
+            if (std::none_of(range.first, range.second, [&array_node](const auto& pair) { return pair.second == array_node; })) {
+                // First appearance of the combination of op node and next node .
                 previous_array_node_map_.emplace(next_op_node.get(), array_node);
-                candidate_op_nodes_.push_back(std::move(next_op_node));
-                std::push_heap(candidate_op_nodes_.begin(), candidate_op_nodes_.end(), OpNodeComparator{});
+                if (range.first == range.second) {
+                    // First appearance of this op node. Push it to the queue.
+                    candidate_op_nodes_.push_back(std::move(next_op_node));
+                    std::push_heap(candidate_op_nodes_.begin(), candidate_op_nodes_.end(), OpNodeComparator{});
+                }
             }
         }
     }
@@ -271,8 +275,7 @@ private:
     // Op nodes to be visited. This is a max heap ordered by the rank of each op node (see OpNodeComparator).
     std::vector<std::shared_ptr<OpNode>> candidate_op_nodes_;
 
-    // This mapping is used to call the backward of the op node. Using raw pointers here is safe because the op node is alive when we call
-    // the backward. This mapping also works as a bookkeeping of op nodes that have already been seen.
+    // This mapping is used to keep previous array nodes alive (referenced from op nodes as weak pointers).
     std::unordered_multimap<const OpNode*, std::shared_ptr<ArrayNode>> previous_array_node_map_;
 
     // Arguments to Backward().
