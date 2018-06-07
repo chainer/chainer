@@ -342,10 +342,14 @@ public:
         RunImpl(state, array_node);
     }
 
-    std::string UniqueName(const ArrayNode& array_node) {
+    std::string GetArrayNodeName(const ArrayNode& array_node) {
         static constexpr char kChars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
         static constexpr size_t kNumChars = sizeof(kChars) / sizeof(kChars[0]) - 1;
         static constexpr size_t kLen = static_cast<size_t>(std::ceil(sizeof(size_t) * 8U / std::log2(kNumChars)));
+        auto it = array_name_map_.find(&array_node);
+        if (it != array_name_map_.end()) {
+            return it->second;
+        }
         size_t hash = std::hash<const ArrayNode*>{}(&array_node);
         std::string s(kLen, '0');
         // Fill the string from left to right, because hash may be just the raw address and MSBs may be indistinguishable.
@@ -362,7 +366,7 @@ public:
     }
 
     void RunImpl(State& state, const ArrayNode& array_node) {
-        std::string name = UniqueName(array_node);
+        std::string name = GetArrayNodeName(array_node);
 
         int indent = state.indent;
         VisitedNodeSet& visited_nodes = state.visited_nodes;
@@ -392,15 +396,31 @@ public:
         }
     }
 
+    void SetArrayName(const ArrayNode& array_node, std::string name) { array_name_map_[&array_node] = std::move(name); }
+
 private:
     std::ostream& os_;
     Options options_{};
+    std::unordered_map<const ArrayNode*, std::string> array_name_map_;
 };
 
 }  // namespace
 
-void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent) {
-    PrintComputationalGraphImpl{os}.Run(*internal::GetArrayNode(array, graph_id), indent);
+void DebugDumpComputationalGraph(
+        std::ostream& os,
+        const Array& array,
+        const GraphId& graph_id,
+        int indent,
+        const std::vector<std::pair<std::reference_wrapper<const Array>, std::string>>& array_name_map) {
+    PrintComputationalGraphImpl impl{os};
+    for (const auto& pair : array_name_map) {
+        for (const std::shared_ptr<ArrayNode>& node : pair.first.get().nodes()) {
+            if (node->graph_id() == graph_id) {
+                impl.SetArrayName(*node, pair.second);
+            }
+        }
+    }
+    impl.Run(*internal::GetArrayNode(array, graph_id), indent);
 }
 
 }  // namespace xchainer
