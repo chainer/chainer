@@ -116,7 +116,6 @@ TEST_P(PoolingTest, MaxPoolingCoverAll) {
     std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
     Shape out_shape{batch_size, channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
-
     Array x = testing::BuildArray(x_shape)
                       .WithData<T>(
                               {0.951628,   0.8341918,  0.5700014,  0.02573909, 0.10652946, 0.45143777, 0.12487986, 0.6040584,  0.7059066,
@@ -142,7 +141,6 @@ TEST_P(PoolingTest, MaxPoolingCoverAll) {
                                0.05052375, 0.05624698, 0.10016874, 0.9320143,  0.09351984, 0.53812116, 0.20279366, 0.22279656, 0.33266315,
                                0.8101899,  0.6632538,  0.64406633})
                       .WithPadding(1);  // Computed with Chainer.
-
     Array out = MaxPooling(x, kernel_size, stride, pad, cover_all);
 
     Array e_out = testing::BuildArray(out_shape).WithData<T>(

@@ -12,7 +12,18 @@ install(FILES
 
 CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cublas.cc
-    cuda_device.cu
+    cuda_device.cc
+    cuda_device/activation.cu
+    cuda_device/arithmetic.cu
+    cuda_device/conv.cc
+    cuda_device/copy.cu
+    cuda_device/comparison.cu
+    cuda_device/dot.cc
+    cuda_device/exp_log.cu
+    cuda_device/fill.cu
+    cuda_device/indexing.cu
+    cuda_device/memory.cc
+    cuda_device/reduction.cu
     cuda_backend.cc
     cuda_runtime.cc
     cudnn.cc

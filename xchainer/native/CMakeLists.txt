@@ -3,12 +3,27 @@ install(FILES
     native_backend.h
     elementwise.h
     reduce.h
+    im2col.h
     DESTINATION include/xchainer/native
     )
 
 add_library(xchainer_native STATIC
     native_device.cc
-    native_backend.cc)
+    native_device/activation.cc
+    native_device/arithmetic.cc
+    native_device/batch_norm.cc
+    native_device/conv.cc
+    native_device/copy.cc
+    native_device/comparison.cc
+    native_device/dot.cc
+    native_device/exp_log.cc
+    native_device/fill.cc
+    native_device/indexing.cc
+    native_device/memory.cc
+    native_device/pool.cc
+    native_device/reduction.cc
+    native_backend.cc
+    im2col.cc)
 
 if(${ENABLE_TEST})
   add_executable(xchainer_native_test
