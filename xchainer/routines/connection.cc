@@ -152,7 +152,6 @@ Array ConvTranspose(
         cover_all_determined = true;
         for (int8_t i = 0; i < ndim; ++i) {
             real_out_size.emplace_back(internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all));
-            std::cout << internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all) << std::endl;
         }
     }
     for (int64_t size : real_out_size) {
