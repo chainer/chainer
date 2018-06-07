@@ -95,6 +95,9 @@ class TestMax(unittest.TestCase):
 
 class TestMaxInvalid(unittest.TestCase):
 
+    def setUp(self):
+        self.x = numpy.array([1], dtype=numpy.float32)
+
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
             functions.max(self.x, [0])
@@ -198,6 +201,9 @@ class TestMin(unittest.TestCase):
 
 
 class TestMinInvalid(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.array([1], dtype=numpy.float32)
 
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
