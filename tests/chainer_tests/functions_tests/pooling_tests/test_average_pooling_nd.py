@@ -58,7 +58,7 @@ class TestAveragePoolingND(unittest.TestCase):
         self.assertEqual(y.data.dtype, self.dtype)
         y_data = cuda.to_cpu(y.data)
 
-        def idx_size(idx):
+        def denom(idx):
             if self.pad_value is None:
                 s = 1
                 for slic in idx:
@@ -74,7 +74,7 @@ class TestAveragePoolingND(unittest.TestCase):
             for c in six.moves.range(3):
                 x = self.x[k, c]
                 expect = numpy.array(
-                    [x[idx].sum() / idx_size(idx) for idx in patches])
+                    [x[idx].sum() / denom(idx) for idx in patches])
                 expect = expect.reshape(y_data.shape[2:])
                 testing.assert_allclose(
                     expect, y_data[k, c], **self.check_forward_options)
