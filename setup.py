@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import imp
 import os
 import pkg_resources
 import sys
@@ -119,13 +118,13 @@ else:
     print('No CuPy installation detected')
 
 here = os.path.abspath(os.path.dirname(__file__))
-__version__ = imp.load_source(
-    '_version', os.path.join(here, 'chainer', '_version.py')).__version__
+# Get __version__ variable
+exec(open(os.path.join(here, 'chainer', '_version.py')).read())
 
 
 setup(
     name='chainer',
-    version=__version__,
+    version=__version__,  # NOQA
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
