@@ -1,33 +1,33 @@
-from __future__ import print_function
-
 import chainer
 import numpy as np
 
 import model
 
 
-def load_npz_file_to_model(npz_filename, model_object):
+def load_npz_file_to_model(npz_filename='model.npz'):
+    # Create model object first
+    model1 = model.MLP()
+
+    # Load the saved parameters into the model object
     chainer.serializers.load_npz(npz_filename, model_object)
     print('{} loaded!'.format(npz_filename))
 
-
-# Create model object first
-model1 = model.MLP()
-
-# Load the saved parameters into the model object
-load_npz_file_to_model('model.npz', model1)
+    return model1
 
 
-def load_hdf5_file_to_model(hdf5_filename, model_object):
+def load_hdf5_file_to_model(hdf5_filename='model.h5'):
+    # Create another model object first
+    model2 = model.MLP()
+
+    # Load the saved parameters into the model object
     chainer.serializers.load_hdf5(hdf5_filename, model_object)
     print('{} loaded!'.format(hdf5_filename))
 
+    return model2
 
-# Create another model object first
-model2 = model.MLP()
 
-# Load the saved parameters into the model object
-load_hdf5_file_to_model('model.h5', model2)
+model1 = load_npz_file_to_model()
+model2 = load_hdf5_file_to_model()
 
 # Check that the loaded parameters are same
 model2_params = {name: param for name, param in model2.namedparams()}
