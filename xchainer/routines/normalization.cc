@@ -1,20 +1,15 @@
 #include "xchainer/routines/normalization.h"
 
-<<<<<<< HEAD
-=======
 #include <cstdint>
->>>>>>> 561fd66... CUDA BatchNorm to save intermediate results
 #include <memory>
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
-#include "xchainer/constant.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
-#include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
-#include "xchainer/stack_vector.h"
 
 namespace xchainer {
 
@@ -66,7 +61,7 @@ Array BatchNorm(
     Array gamma_keepdims = gamma.shape() == reduced_shape ? gamma : gamma.Reshape(reduced_shape);
     Array beta_keepdims = beta.shape() == reduced_shape ? beta : beta.Reshape(reduced_shape);
 
-    std::shared_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
+    std::unique_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
     // TODO(hvy): Connect graph.
     return fb->Forward(x, gamma_keepdims, beta_keepdims, running_mean, running_var, eps, decay, sorted_axis);
 }

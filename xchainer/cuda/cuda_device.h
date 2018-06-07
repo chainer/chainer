@@ -141,6 +141,8 @@ public:
     // TODO(hvy): implement me
     std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override { return nullptr; }
 
+    // batch_norm.cu
+
     std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 
 protected:
