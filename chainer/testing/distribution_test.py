@@ -91,7 +91,7 @@ class distribution_unittest(unittest.TestCase):
                 one_params = {k: v[i] for k, v
                               in self.scipy_onebyone_params.items()}
                 ent2.append(self.scipy_dist.entropy(**one_params))
-            ent2 = numpy.stack(ent2).reshape(self.shape)
+            ent2 = numpy.vstack(ent2).reshape(self.shape)
         else:
             ent2 = self.scipy_dist.entropy(**self.scipy_params)
         array.assert_allclose(ent1, ent2)
@@ -166,11 +166,11 @@ class distribution_unittest(unittest.TestCase):
 
         if self.scipy_onebyone:
             onebyone_smp = smp.reshape(
-                (int(numpy.prod(self.smp_shape)),
+                (int(numpy.prod(self.sample_shape)),
                  numpy.prod(self.shape),
                  int(numpy.prod(self.event_shape))))
             onebyone_smp = numpy.swapaxes(onebyone_smp, 0, 1)
-            onebyone_smp = onebyone_smp.reshape((-1,) + self.smp_shape
+            onebyone_smp = onebyone_smp.reshape((-1,) + self.sample_shape
                                                 + self.event_shape)
             log_prob2 = []
             for i in range(numpy.prod(self.shape)):
@@ -178,9 +178,9 @@ class distribution_unittest(unittest.TestCase):
                               in self.scipy_onebyone_params.items()}
                 one_smp = onebyone_smp[i]
                 log_prob2.append(scipy_prob(one_smp, **one_params))
-            log_prob2 = numpy.stack(log_prob2)
-            log_prob2 = log_prob2.reshape(log_prob2.shape[0], -1).T
-            log_prob2 = log_prob2.reshape(self.smp_shape + self.shape)
+            log_prob2 = numpy.vstack(log_prob2)
+            log_prob2 = log_prob2.reshape(numpy.prod(self.shape), -1).T
+            log_prob2 = log_prob2.reshape(self.sample_shape + self.shape)
         else:
             log_prob2 = scipy_prob(smp, **self.scipy_params)
         array.assert_allclose(log_prob1, log_prob2)
@@ -225,7 +225,7 @@ class distribution_unittest(unittest.TestCase):
                 one_params = {k: v[i] for k, v
                               in self.scipy_onebyone_params.items()}
                 mean2.append(self.scipy_dist.mean(**one_params))
-            mean2 = numpy.stack(mean2).reshape(
+            mean2 = numpy.vstack(mean2).reshape(
                 self.shape + self.cpu_dist.event_shape)
         else:
             mean2 = self.scipy_dist.mean(**self.scipy_params)
@@ -276,9 +276,12 @@ class distribution_unittest(unittest.TestCase):
                               in self.scipy_onebyone_params.items()}
                 smp2.append(self.scipy_dist.rvs(
                     size=(100000,)+self.sample_shape, **one_params))
-            smp2 = numpy.stack(smp2)
+            smp2 = numpy.vstack(smp2)
+            smp2 = smp2.reshape((numpy.prod(self.shape), 100000)
+                                + self.sample_shape
+                                + self.cpu_dist.event_shape)
             smp2 = numpy.rollaxis(
-                smp2, 0, len(smp2.shape)-len(self.cpu_dist.event_shape))
+                smp2, 0, smp2.ndim-len(self.cpu_dist.event_shape))
             smp2 = smp2.reshape((100000,) + self.sample_shape + self.shape
                                 + self.cpu_dist.event_shape)
         else:
@@ -356,7 +359,7 @@ class distribution_unittest(unittest.TestCase):
                 one_params = {k: v[i] for k, v
                               in self.scipy_onebyone_params.items()}
                 variance2.append(self.scipy_dist.var(**one_params))
-            variance2 = numpy.stack(variance2).reshape(
+            variance2 = numpy.vstack(variance2).reshape(
                 self.shape + self.cpu_dist.event_shape)
         else:
             variance2 = self.scipy_dist.var(**self.scipy_params)
