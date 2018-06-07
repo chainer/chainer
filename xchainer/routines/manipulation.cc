@@ -89,9 +89,9 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
     Array out = internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
     {
-        DefineBackwardScope bwd{"transpose", out};
+        BackwardBuilder bb{"transpose", out};
         if (!a.IsConstant()) {
-            bwd.Define({a}, [real_axes](BackwardContext& bctx) {
+            bb.Define({a}, [real_axes](BackwardContext& bctx) {
                 Axes backward_axes;
                 backward_axes.resize(real_axes.ndim());
                 for (int8_t i = 0; i < real_axes.ndim(); ++i) {
@@ -200,9 +200,9 @@ Array Reshape(const Array& a, const Shape& newshape) {
     Array out = internal::MakeArray(newshape, strides, a.dtype(), a.device(), a.data(), a.offset());
 
     {
-        DefineBackwardScope bwd{"reshape", out};
+        BackwardBuilder bb{"reshape", out};
         if (!a.IsConstant()) {
-            bwd.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
+            bb.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
         }
     }
 
@@ -257,9 +257,9 @@ Array Squeeze(const Array& a, const OptionalAxes& axis) {
                         : internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
     {
-        DefineBackwardScope bwd{"squeeze", out};
+        BackwardBuilder bb{"squeeze", out};
         if (!a.IsConstant()) {
-            bwd.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
+            bb.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
         }
     }
 
@@ -311,9 +311,9 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
     Array out = internal::MakeArray(shape, strides, array.dtype(), array.device(), array.data(), array.offset());
 
     {
-        DefineBackwardScope bwd{"broadcast_to", out};
+        BackwardBuilder bb{"broadcast_to", out};
         if (!array.IsConstant()) {
-            bwd.Define({array}, [in_shape](BackwardContext& bctx) {
+            bb.Define({array}, [in_shape](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 if (gout.shape() == in_shape) {
                     bctx.input_grad() = gout;

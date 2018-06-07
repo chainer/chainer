@@ -158,13 +158,13 @@ void SetInputGradProxy::operator=(Arg&& arg) {
 
 }  // namespace backward_detail
 
-class DefineBackwardScope {
+class BackwardBuilder {
 public:
-    DefineBackwardScope(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids);
-    DefineBackwardScope(const char* op_name, std::initializer_list<ConstArrayRef> outputs) : DefineBackwardScope{op_name, outputs, {}} {}
-    DefineBackwardScope(const char* op_name, const Array& output, gsl::span<const GraphId> stop_graph_ids)
-        : DefineBackwardScope{op_name, {output}, stop_graph_ids} {};
-    DefineBackwardScope(const char* op_name, const Array& output) : DefineBackwardScope{op_name, {output}, {}} {};
+    BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids);
+    BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs) : BackwardBuilder{op_name, outputs, {}} {}
+    BackwardBuilder(const char* op_name, const Array& output, gsl::span<const GraphId> stop_graph_ids)
+        : BackwardBuilder{op_name, {output}, stop_graph_ids} {};
+    BackwardBuilder(const char* op_name, const Array& output) : BackwardBuilder{op_name, {output}, {}} {};
 
     // Defines a backward function with respect to specified input arrays.
     // For multi-input ops, usually this function is called for each of independent subsets of input arrays.

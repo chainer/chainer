@@ -197,9 +197,9 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     a.device().AsType(a, out);
 
     if (GetKind(dt) == DtypeKind::kFloat) {
-        DefineBackwardScope bwd{"ascontiguousarray", out};
+        BackwardBuilder bb{"ascontiguousarray", out};
         if (!a.IsConstant()) {
-            bwd.Define({a}, [src_dt](BackwardContext& bctx) {
+            bb.Define({a}, [src_dt](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = gout.AsType(src_dt, false);
             });
@@ -242,9 +242,9 @@ Array Diag(const Array& v, int64_t k, Device& device) {
     }
 
     {
-        DefineBackwardScope bwd{"diag", out};
+        BackwardBuilder bb{"diag", out};
         if (!v.IsConstant()) {
-            bwd.Define({v}, [& device = v.device(), k ](BackwardContext & bctx) {
+            bb.Define({v}, [& device = v.device(), k ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Diag(gout, k, device);
             });

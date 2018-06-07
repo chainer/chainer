@@ -228,9 +228,9 @@ Array Array::ToDevice(Device& dst_device) const {
 
     // Backward operation is implemented as backward-transfer.
     {
-        DefineBackwardScope bwd{"transfer", out};
+        BackwardBuilder bb{"transfer", out};
         if (!IsConstant()) {
-            bwd.Define({*this}, [&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
+            bb.Define({*this}, [&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
         }
     }
     return out;
@@ -265,9 +265,9 @@ Array Array::AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind) const
             device().Copy(*this, out);
 
             {
-                DefineBackwardScope bwd{"copy", out, graph_ids};
+                BackwardBuilder bb{"copy", out, graph_ids};
                 if (!IsConstant()) {
-                    bwd.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+                    bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
                 }
             }
 
@@ -301,9 +301,9 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     device().AsType(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
-        DefineBackwardScope bwd{"astype", out};
+        BackwardBuilder bb{"astype", out};
         if (!IsConstant()) {
-            bwd.Define({*this}, [src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
+            bb.Define({*this}, [src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
         }
     }
 

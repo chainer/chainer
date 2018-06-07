@@ -50,15 +50,15 @@ Array Dot(const Array& a, const Array& b) {
     a.device().Dot(a_matrix, b_matrix, out_matrix);
 
     {
-        DefineBackwardScope bwd{"dot", out_matrix};
+        BackwardBuilder bb{"dot", out_matrix};
         if (!a_matrix.IsConstant()) {
-            bwd.Define({a_matrix}, [b_matrix](BackwardContext& bctx) {
+            bb.Define({a_matrix}, [b_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(gout, bctx.Cut(b_matrix).Transpose());
             });
         }
         if (!b_matrix.IsConstant()) {
-            bwd.Define({b_matrix}, [a_matrix](BackwardContext& bctx) {
+            bb.Define({b_matrix}, [a_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(bctx.Cut(a_matrix).Transpose(), gout);
             });

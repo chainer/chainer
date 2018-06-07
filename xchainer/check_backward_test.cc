@@ -34,9 +34,9 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
     Array out = EmptyLike(in);
 
     {
-        DefineBackwardScope bwd{"incorrect_unary", {out}};
+        BackwardBuilder bb{"incorrect_unary", {out}};
         if (!in.IsConstant()) {
-            bwd.Define({in}, [](BackwardContext& bctx) {
+            bb.Define({in}, [](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = gout * gout;
             });
@@ -63,9 +63,9 @@ Arrays ForwardWithIncorrectDoubleBackpropOption(const Arrays& inputs) {
     Array out = a.AsConstant() * a.AsConstant();
 
     {
-        DefineBackwardScope bwd{"incorrect_square", {out}};
+        BackwardBuilder bb{"incorrect_square", {out}};
         if (!a.IsConstant()) {
-            bwd.Define({a}, [a](BackwardContext& bctx) {
+            bb.Define({a}, [a](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 // `a` would be `bctx.Cut(a)` if implemented correctly
                 bctx.input_grad() = 2 * gout * a;

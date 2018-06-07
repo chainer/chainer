@@ -83,13 +83,13 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
-        DefineBackwardScope bwd{"add", out};
+        BackwardBuilder bb{"add", out};
         // TODO(niboshi): Avoid copy
         if (!x1.IsConstant()) {
-            bwd.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
+            bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
         }
         if (!x2.IsConstant()) {
-            bwd.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
+            bb.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
         }
     }
 
@@ -99,9 +99,9 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
 void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
     {
-        DefineBackwardScope bwd{"add_scalar", out};
+        BackwardBuilder bb{"add_scalar", out};
         if (!x1.IsConstant()) {
-            bwd.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+            bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
     }
 
@@ -132,13 +132,13 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
-        DefineBackwardScope bwd{"subtract", out};
+        BackwardBuilder bb{"subtract", out};
         if (!x1.IsConstant()) {
             // TODO(niboshi): Avoid copy
-            bwd.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
+            bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
         }
         if (!x2.IsConstant()) {
-            bwd.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad(); });
+            bb.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad(); });
         }
     }
 
@@ -148,9 +148,9 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
 void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
     {
-        DefineBackwardScope bwd{"subtract_scalar", out};
+        BackwardBuilder bb{"subtract_scalar", out};
         if (!x1.IsConstant()) {
-            bwd.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+            bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
     }
 
@@ -181,12 +181,12 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
-        DefineBackwardScope bwd{"multiply", out};
+        BackwardBuilder bb{"multiply", out};
         if (!x1.IsConstant()) {
-            bwd.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
+            bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
         }
         if (!x2.IsConstant()) {
-            bwd.Define({x2}, [other = x1](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
+            bb.Define({x2}, [other = x1](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
         }
     }
 
@@ -196,9 +196,9 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
 void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
     {
-        DefineBackwardScope bwd{"multiply_scalar", out};
+        BackwardBuilder bb{"multiply_scalar", out};
         if (!x1.IsConstant()) {
-            bwd.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
+            bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
         }
     }
 
@@ -230,12 +230,12 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
-        DefineBackwardScope bwd{"divide", out};
+        BackwardBuilder bb{"divide", out};
         if (!x1.IsConstant()) {
-            bwd.Define({x1}, [x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() / bctx.Cut(x2); });
+            bb.Define({x1}, [x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() / bctx.Cut(x2); });
         }
         if (!x2.IsConstant()) {
-            bwd.Define({x2}, [x1, x2](BackwardContext& bctx) {
+            bb.Define({x2}, [x1, x2](BackwardContext& bctx) {
                 Array lhs_const = bctx.Cut(x1);
                 Array rhs_const = bctx.Cut(x2);
                 bctx.input_grad() = -bctx.output_grad() * lhs_const / (rhs_const * rhs_const);
@@ -249,9 +249,9 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
 void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
     {
-        DefineBackwardScope bwd{"divide_scalar", out};
+        BackwardBuilder bb{"divide_scalar", out};
         if (!x1.IsConstant()) {
-            bwd.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() / other; });
+            bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() / other; });
         }
     }
 
@@ -280,9 +280,9 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     a.device().Sum(a, sorted_axis, out);
 
     {
-        DefineBackwardScope bwd{"sum", out};
+        BackwardBuilder bb{"sum", out};
         if (!a.IsConstant()) {
-            bwd.Define({a}, [ sorted_axis, in_shape = a.shape(), keepdims ](BackwardContext & bctx) {
+            bb.Define({a}, [ sorted_axis, in_shape = a.shape(), keepdims ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
@@ -315,9 +315,9 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
     a.device().AMax(a, sorted_axis, out);
 
     {
-        DefineBackwardScope bwd{"amax", out};
+        BackwardBuilder bb{"amax", out};
         if (!a.IsConstant()) {
-            bwd.Define({a}, [sorted_axis, a, out](BackwardContext& bctx) {
+            bb.Define({a}, [sorted_axis, a, out](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
@@ -348,9 +348,9 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
 
     {
-        DefineBackwardScope bwd{"if_less_else", out};
+        BackwardBuilder bb{"if_less_else", out};
         if (!neg.IsConstant()) {
-            bwd.Define({neg}, [x1, x2](BackwardContext& bctx) {
+            bb.Define({neg}, [x1, x2](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = IfLessElse(bctx.Cut(x1), x2, Scalar{0, gout.dtype()}, gout);
             });
@@ -373,9 +373,9 @@ Array Exp(const Array& x) {
     x.device().Exp(x, out);
 
     {
-        DefineBackwardScope bwd{"exp", out};
+        BackwardBuilder bb{"exp", out};
         if (!x.IsConstant()) {
-            bwd.Define({x}, [x](BackwardContext& bctx) {
+            bb.Define({x}, [x](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Exp(bctx.Cut(x)) * gout;
             });
@@ -390,9 +390,9 @@ Array Log(const Array& x) {
     x.device().Log(x, out);
 
     {
-        DefineBackwardScope bwd{"log", out};
+        BackwardBuilder bb{"log", out};
         if (!x.IsConstant()) {
-            bwd.Define({x}, [x](BackwardContext& bctx) {
+            bb.Define({x}, [x](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = gout / bctx.Cut(x);
             });

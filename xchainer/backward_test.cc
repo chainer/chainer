@@ -439,9 +439,9 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
         ASSERT_TRUE(y1.IsConstant());
 
         {
-            DefineBackwardScope bwd{"func", y1};
+            BackwardBuilder bb{"func", y1};
             if (!x1.IsConstant()) {
-                bwd.Define({x1}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                bb.Define({x1}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad();
                     testing::ExpectEqual(gy1_value, gy1);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -497,9 +497,9 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
         ASSERT_TRUE(y2.IsConstant());
 
         {
-            DefineBackwardScope bwd{"func", {y1, y2}};
+            BackwardBuilder bb{"func", {y1, y2}};
             if (!x1.IsConstant()) {
-                bwd.Define({x1}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                bb.Define({x1}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
                     const Array& gy2 = bctx.output_grad(1);
                     testing::ExpectEqual(gy1_value, gy1);
@@ -568,9 +568,9 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
         ASSERT_TRUE(y1.IsConstant());
 
         {
-            DefineBackwardScope bwd{"func", {y1}};
+            BackwardBuilder bb{"func", {y1}};
             if (!x1.IsConstant()) {
-                bwd.Define({x1}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                bb.Define({x1}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad();
                     testing::ExpectEqual(gy1_value, gy1);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -582,7 +582,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                 });
             }
             if (!x2.IsConstant() || !x3.IsConstant()) {
-                bwd.Define({x2, x3}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                bb.Define({x2, x3}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
                     testing::ExpectEqual(gy1_value, gy1);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -648,9 +648,9 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
         ASSERT_TRUE(y2.IsConstant());
 
         {
-            DefineBackwardScope bwd{"func", {y1, y2}};
+            BackwardBuilder bb{"func", {y1, y2}};
             if (!x1.IsConstant()) {
-                bwd.Define({x1}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                bb.Define({x1}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
                     const Array& gy2 = bctx.output_grad(1);
                     testing::ExpectEqual(gy1_value, gy1);
@@ -666,7 +666,7 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                 });
             }
             if (!x2.IsConstant() || !x3.IsConstant()) {
-                bwd.Define({x2, x3}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                bb.Define({x2, x3}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
                     const Array& gy2 = bctx.output_grad(1);
                     testing::ExpectEqual(gy1_value, gy1);

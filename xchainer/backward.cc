@@ -62,8 +62,7 @@ const Array& BackwardContext::GetOutputGrad(int output_index) const {
     return *zero_grad;
 }
 
-DefineBackwardScope::DefineBackwardScope(
-        const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids)
+BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()}, stop_graph_ids_{stop_graph_ids.begin(), stop_graph_ids.end()} {
     // Non-const outputs (e.g. in-place ops.) must have been detected and repored before reaching here.
     assert(std::all_of(outputs.begin(), outputs.end(), [](const Array& output) { return output.IsConstant(); }));
@@ -73,9 +72,9 @@ DefineBackwardScope::DefineBackwardScope(
     }));
 }
 
-void DefineBackwardScope::DefineImpl(std::initializer_list<ConstArrayRef> inputs_list, backward_detail::BackwardFunc&& backward_func) {
-    // `outputs` may or may not include non-constant arrays, because `DefineBackwardScope::Define` may be called repeatedly in a single op.
-    // At the beginning of this function, `op_node_map` holds the op nodes created in the previous calls of `DefineBackwardScope::Define`
+void BackwardBuilder::DefineImpl(std::initializer_list<ConstArrayRef> inputs_list, backward_detail::BackwardFunc&& backward_func) {
+    // `outputs` may or may not include non-constant arrays, because `BackwardBuilder::Define` may be called repeatedly in a single op.
+    // At the beginning of this function, `op_node_map` holds the op nodes created in the previous calls of `BackwardBuilder::Define`
     // for this op.
 
     using OpNodeMapValue = std::remove_reference_t<decltype(op_node_map_)>::value_type;
