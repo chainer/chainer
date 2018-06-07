@@ -211,5 +211,12 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
        This function currently does not support ``cover_all`` mode as
        :func:`max_pooling_2d`. Average pooling runs in non-cover-all mode.
 
+    .. note::
+
+       The values in the padded region is treated as 0, leading the averages
+       biased towards zero.
+       To obtain unbiased averages, use :func:`average_pooling_nd` with
+       ``pad_value=None``.
+
     """
     return AveragePooling2D(ksize, stride, pad, False).apply((x,))[0]
