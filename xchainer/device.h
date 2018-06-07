@@ -203,7 +203,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) = 0;
 
-    virtual std::shared_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() = 0;
+    virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() = 0;
 
     virtual void Synchronize() = 0;
 

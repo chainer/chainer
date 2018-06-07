@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <memory>
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
@@ -134,8 +135,8 @@ public:
 
 }  // namespace
 
-std::shared_ptr<BatchNormForwardBackward> NativeDevice::GetBatchNormForwardBackward() {
-    return std::make_shared<NativeBatchNormForwardBackward>();
+std::unique_ptr<BatchNormForwardBackward> NativeDevice::GetBatchNormForwardBackward() {
+    return std::make_unique<NativeBatchNormForwardBackward>();
 }
 
 }  // namespace native

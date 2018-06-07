@@ -130,7 +130,7 @@ public:
 
     // batch_norm.cc
 
-    std::shared_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
+    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 
 protected:
     NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}

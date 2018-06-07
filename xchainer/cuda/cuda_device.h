@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 #include <nonstd/optional.hpp>
 
@@ -138,7 +139,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
     // TODO(sonots): implement me
-    std::shared_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override { return nullptr; }
+    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override { return nullptr; }
 
 protected:
     CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_context_{index} {}

@@ -1,5 +1,7 @@
 #include "xchainer/routines/normalization.h"
 
+#include <memory>
+
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/constant.h"
@@ -35,7 +37,7 @@ Array BatchNorm(
     CheckEqual(reduced, running_var.shape());
 
     // TODO(hvy): Implement backward.
-    std::shared_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
+    std::unique_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
     return fb->Forward(
             x, gamma, beta, running_mean, running_var, eps, decay, axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0});
 }
