@@ -41,13 +41,13 @@ class StepShift(extension.Extension):
         if self._last_value is not None:
             value = self._last_value
         else:
-            value = self._compute_next_value()
+            value = self._init
         self._update_value(optimizer, value)
 
     def __call__(self, trainer):
         self._t += 1
         optimizer = self._get_optimizer(trainer)
-        value = self._init * self._gamma ** floor(self._t / self._step)
+        value = self._init * self._gamma ** numpy.floor(self._t / self._step)
         self._update_value(optimizer, value)
 
     def serialize(self, serializer):
