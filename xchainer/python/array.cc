@@ -44,8 +44,6 @@ namespace internal {
 
 namespace py = pybind11;
 
-namespace {
-
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Shape shape{array.shape(), array.shape() + array.ndim()};
     Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
@@ -63,6 +61,8 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     // Create and return the array
     return xchainer::internal::FromHostData(shape, dtype, data, strides, device).move_body();
 }
+
+namespace {
 
 ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& list, Device& device) {
     Shape shape = ToShape(shape_tup);

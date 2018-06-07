@@ -9,6 +9,7 @@
 #include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
+#include "xchainer/error.h"
 #include "xchainer/routines/math.h"
 #include "xchainer/stack_vector.h"
 
@@ -41,12 +42,11 @@ Array ConvGradW(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    int8_t ndim = w_shape.ndim() - 2;  // Number of spacial dimensions
-    assert(ndim > 0);
-    assert(x.ndim() == ndim + 2);
-    assert(gy.ndim() == ndim + 2);
-    assert(stride.size() == static_cast<size_t>(ndim));
-    assert(pad.size() == static_cast<size_t>(ndim));
+    assert(w_shape.ndim() > 2);
+    assert(x.ndim() == w_shape.ndim());
+    assert(gy.ndim() == w_shape.ndim());
+    assert(stride.size() == static_cast<size_t>(w_shape.ndim() - 2));
+    assert(pad.size() == static_cast<size_t>(w_shape.ndim() - 2));
     Array out = x.device().ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
 
     {
@@ -72,6 +72,23 @@ Array ConvGradW(
     return out;
 }
 
+void ConvCheckNdim(
+        const Array& x, const Array& w, const StackVector<int64_t, kMaxNdim>& stride, const StackVector<int64_t, kMaxNdim>& pad) {
+    if (w.ndim() != x.ndim()) {
+        throw DimensionError{"Mismatched number of dimensions between input ", x.ndim(), " and weights ", w.ndim(), "."};
+    }
+    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    if (ndim < 0) {
+        throw DimensionError{"Number of spacial dimensions must be greater than or equal to 0"};
+    }
+    if (static_cast<int8_t>(stride.size()) != ndim) {
+        throw DimensionError{"Wrong numbers of strides ", stride.size(), " for input with ", x.ndim(), " dimensions."};
+    }
+    if (static_cast<int8_t>(pad.size()) != ndim) {
+        throw DimensionError{"Wrong numbers of paddings ", pad.size(), " for input with ", x.ndim(), " dimensions."};
+    }
+}
+
 }  // namespace
 
 Array Conv(
@@ -81,6 +98,14 @@ Array Conv(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
+    ConvCheckNdim(x, w, stride, pad);
+    if (w.shape()[1] != x.shape()[1]) {
+        throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
+    }
+    if (b.has_value() && (b->ndim() != 1 || b->shape()[0] != w.shape()[0])) {
+        throw DimensionError{"Mismatched bias shape ", b->shape(), " for weights ", w.shape(), "."};
+    }
+
     Array out = x.device().Conv(x, w, b, stride, pad, cover_all);
 
     {
@@ -123,6 +148,13 @@ Array ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size) {
+    ConvCheckNdim(x, w, stride, pad);
+    if (x.shape()[1] != w.shape()[0]) {
+        throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
+    }
+    if (b.has_value() && (b->ndim() != 1 || b->shape()[0] != w.shape()[1])) {
+        throw DimensionError{"Mismatched bias shape ", b->shape(), " for weights ", w.shape(), "."};
+    }
     int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
     Shape in_dims{x.shape().begin() + 2, x.shape().end()};
     Shape kernel_size{w.shape().begin() + 2, w.shape().end()};
@@ -138,6 +170,11 @@ Array ConvTranspose(
         cover_all_determined = true;
         for (int8_t i = 0; i < ndim; ++i) {
             real_out_size.emplace_back(internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all));
+        }
+    }
+    for (int64_t size : real_out_size) {
+        if (size < 0) {
+            throw DimensionError{"All output sizes must be positive"};
         }
     }
 
@@ -161,7 +198,7 @@ Array ConvTranspose(
                 // Check detected cover_all is consistent
                 for (int8_t i = 0; i < ndim; ++i) {
                     if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], cover_all)) {
-                        throw XchainerError{"Output dims ", Shape{real_out_size.begin(), real_out_size.end()}, " is incosistent."};
+                        throw XchainerError{"Output dims ", Shape{real_out_size.begin(), real_out_size.end()}, " are incosistent."};
                     }
                 }
             }

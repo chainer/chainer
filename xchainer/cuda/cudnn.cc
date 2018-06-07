@@ -47,6 +47,22 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
     }
 }
 
+// Returns a pointer to a value of given type, allocated on the static storage.
+template <int kValue>
+const void* GetValuePtr(Dtype dtype) {
+    static const float kFloat32Value = kValue;
+    static const double kFloat64Value = kValue;
+
+    switch (dtype) {
+        case Dtype::kFloat64:
+            return &kFloat64Value;
+        case Dtype::kFloat32:
+            return &kFloat32Value;
+        default:
+            XCHAINER_NEVER_REACH();
+    }
+}
+
 template <typename T, typename U, typename... ErrorArgs>
 T narrow(U u, const ErrorArgs&... error_args) {
     T t = static_cast<T>(u);
@@ -99,120 +115,16 @@ StackVector<int, kMaxNdim> GetIntArrayStrides(const Strides& strides, int64_t it
     return int_strides;
 }
 
-void SetTensorDescriptor(cudnnTensorDescriptor_t desc, const Array& arr, cudnnTensorFormat_t format) {
-    assert(arr.IsContiguous());
-    cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
-    if (arr.shape().ndim() == 4) {
-        StackVector<int, kMaxNdim> nchw = GetIntShape(arr.shape());
-        CheckCudnnError(cudnnSetTensor4dDescriptor(desc, format, cudnn_dtype, nchw[0], nchw[1], nchw[2], nchw[3]));
-    } else {
-        StackVector<int, kMaxNdim> int_strides = GetIntArrayStrides(arr.strides(), arr.item_size());  // strides divided by item_size
-        StackVector<int, kMaxNdim> int_shape = GetIntShape(arr.shape());
-        CheckCudnnError(cudnnSetTensorNdDescriptor(desc, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
-    }
-}
-
-void SetFilterDescriptor(cudnnFilterDescriptor_t desc, const Array& arr, cudnnTensorFormat_t format) {
-    assert(arr.IsContiguous());
-    cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
-    if (arr.shape().ndim() == 4) {
-        StackVector<int, kMaxNdim> nchw = GetIntShape(arr.shape());
-        CheckCudnnError(cudnnSetFilter4dDescriptor(desc, cudnn_dtype, format, nchw[0], nchw[1], nchw[2], nchw[3]));
-    } else {
-        StackVector<int, kMaxNdim> int_shape = GetIntShape(arr.shape());
-        CheckCudnnError(cudnnSetFilterNdDescriptor(desc, cudnn_dtype, format, arr.ndim(), &int_shape[0]));
-    }
-}
-
-void SetConvolutionDescriptor(
-        cudnnConvolutionDescriptor_t desc,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-        int groups,
-        Dtype dtype,
-        cudnnConvolutionMode_t mode) {
-    size_t ndim = pad.size();
-    assert(ndim == stride.size());
-    assert(!dilation || ndim == dilation->size());
-
-    StackVector<int, kMaxNdim> int_stride = GetIntStride(stride);
-    StackVector<int, kMaxNdim> int_pad = GetIntPad(pad);
-    StackVector<int, kMaxNdim> int_dilation{};
-    if (!dilation) {
-        // TODO(sonots): Use assign(ndim, 1) if it becomes available
-        for (size_t i = 0; i < ndim; ++i) {
-            int_dilation.emplace_back(1);
-        }
-    } else {
-        int_dilation = GetIntDilation(*dilation);
-    }
-
-    cudnnDataType_t compute_type = GetCudnnDataType(dtype);
-
-    if (ndim == 2) {
-        CheckCudnnError(cudnnSetConvolution2dDescriptor(
-                desc, int_pad[0], int_pad[1], int_stride[0], int_stride[1], int_dilation[0], int_dilation[1], mode, compute_type));
-    } else {
-        CheckCudnnError(cudnnSetConvolutionNdDescriptor(desc, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], mode, compute_type));
-    }
-    if (groups > 1) {
-        CheckCudnnError(cudnnSetConvolutionGroupCount(desc, groups));
-    }
-}
-
-std::shared_ptr<cudnnTensorStruct> CreateTensorDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW) {
-    cudnnTensorDescriptor_t desc{};
-    CheckCudnnError(cudnnCreateTensorDescriptor(&desc));
-    auto shared_desc = std::shared_ptr<cudnnTensorStruct>{
-            desc, [](cudnnTensorDescriptor_t desc) { CheckCudnnError(cudnnDestroyTensorDescriptor(desc)); }};
-    SetTensorDescriptor(desc, arr, format);
-    return shared_desc;
-}
-
-std::shared_ptr<cudnnFilterStruct> CreateFilterDescriptor(const Array& arr, cudnnTensorFormat_t format = CUDNN_TENSOR_NCHW) {
-    cudnnFilterDescriptor_t desc{};
-    CheckCudnnError(cudnnCreateFilterDescriptor(&desc));
-    auto shared_desc = std::shared_ptr<cudnnFilterStruct>{
-            desc, [](cudnnFilterDescriptor_t desc) { CheckCudnnError(cudnnDestroyFilterDescriptor(desc)); }};
-    SetFilterDescriptor(desc, arr, format);
-    return shared_desc;
-}
-
-std::shared_ptr<cudnnConvolutionStruct> CreateConvolutionDescriptor(
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        Dtype dtype,
-        cudnnConvolutionMode_t mode = CUDNN_CROSS_CORRELATION,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation = nonstd::nullopt,
-        int groups = 1) {
-    cudnnConvolutionDescriptor_t desc{};
-    CheckCudnnError(cudnnCreateConvolutionDescriptor(&desc));
-    auto shared_desc = std::shared_ptr<cudnnConvolutionStruct>{
-            desc, [](cudnnConvolutionDescriptor_t desc) { CheckCudnnError(cudnnDestroyConvolutionDescriptor(desc)); }};
-    SetConvolutionDescriptor(desc, pad, stride, dilation, groups, dtype, mode);
-    return shared_desc;
-}
-
 }  // namespace
 
 namespace internal {
 
-void CudnnContext::AddBias(const std::shared_ptr<cudnnTensorStruct>& y_desc, const Array& y, const Array& b) {
+void CudnnContext::AddBias(const TensorDescriptor& y_desc, const Array& y, const Array& b) {
     assert(&b.device() == &y.device());
     assert(b.dtype() == y.dtype());
 
     int8_t ndim = y.ndim() - 2;  // Number of spacial dimensions
     assert(ndim > 0);
-
-    static const float kFloatOne = 1;
-    static const double kDoubleOne = 1;
-    const void* one{};
-    if (y.dtype() == Dtype::kFloat64) {
-        one = &kDoubleOne;
-    } else {
-        one = &kFloatOne;
-    }
 
     Shape new_shape{};
     new_shape.emplace_back(1);
@@ -222,14 +134,14 @@ void CudnnContext::AddBias(const std::shared_ptr<cudnnTensorStruct>& y_desc, con
     }
     Array b_cont = AsContiguousArray(b).Reshape(new_shape);
 
-    std::shared_ptr<cudnnTensorStruct> b_desc = CreateTensorDescriptor(b_cont);
+    TensorDescriptor b_desc{b_cont};
     CheckCudnnError(cudnnAddTensor(
             handle(),
-            one,
-            b_desc.get(),
+            GetValuePtr<1>(y.dtype()),
+            *b_desc,
             xchainer::internal::GetRawOffsetData<void>(b_cont),
-            one,
-            y_desc.get(),
+            GetValuePtr<1>(y.dtype()),
+            *y_desc,
             xchainer::internal::GetRawOffsetData<void>(y)));
 }
 
@@ -271,19 +183,21 @@ CudnnContext::~CudnnContext() {
 }
 
 std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwardAlgorithm(
-        const std::shared_ptr<cudnnTensorStruct>& x_desc,
+        const TensorDescriptor& x_desc,
         const Array& x,
-        const std::shared_ptr<cudnnFilterStruct>& filter_desc,
+        const FilterDescriptor& filter_desc,
         const Array& w,
-        const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
-        const std::shared_ptr<cudnnTensorStruct>& y_desc,
+        const ConvolutionDescriptor& conv_desc,
+        const TensorDescriptor& y_desc,
         const Array& y,
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
     auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
-    if (conv_fwd_algo_cache_map_.count(key)) {
-        return conv_fwd_algo_cache_map_[key];
+    auto& algo_cache_map = conv_fwd_algo_cache_map_;
+    auto it = algo_cache_map.find(key);
+    if (it != algo_cache_map.end()) {
+        return it->second;
     }
 
     std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
@@ -293,12 +207,12 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwar
 
     CheckCudnnError(cudnnFindConvolutionForwardAlgorithmEx(
             handle(),
-            x_desc.get(),
+            *x_desc,
             xchainer::internal::GetRawOffsetData<void>(x),
-            filter_desc.get(),
+            *filter_desc,
             xchainer::internal::GetRawOffsetData<void>(w),
-            conv_desc.get(),
-            y_desc.get(),
+            *conv_desc,
+            *y_desc,
             xchainer::internal::GetRawOffsetData<void>(y),
             1,  // requested algo count,
             &returned_algo_count,
@@ -307,25 +221,25 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwar
             max_workspace_size));
     assert(returned_algo_count == 1);
 
-    std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_memory = {perf_result.algo, perf_result.memory};
-    conv_fwd_algo_cache_map_[key] = algo_memory;
-    return algo_memory;
+    return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
 
 std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnContext::FindConvolutionBackwardDataAlgorithm(
-        const std::shared_ptr<cudnnFilterStruct>& filter_desc,
+        const FilterDescriptor& filter_desc,
         const Array& w,
-        const std::shared_ptr<cudnnTensorStruct>& x_desc,
+        const TensorDescriptor& x_desc,
         const Array& x,
-        const std::shared_ptr<cudnnConvolutionStruct>& conv_desc,
-        const std::shared_ptr<cudnnTensorStruct>& y_desc,
+        const ConvolutionDescriptor& conv_desc,
+        const TensorDescriptor& y_desc,
         const Array& y,
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
     auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
-    if (conv_bwd_data_algo_cache_map_.count(key)) {
-        return conv_bwd_data_algo_cache_map_[key];
+    auto& algo_cache_map = conv_bwd_data_algo_cache_map_;
+    auto it = algo_cache_map.find(key);
+    if (it != algo_cache_map.end()) {
+        return it->second;
     }
 
     std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
@@ -335,22 +249,63 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnContext::FindConvolutionBa
 
     CheckCudnnError(cudnnFindConvolutionBackwardDataAlgorithmEx(
             handle(),
-            filter_desc.get(),
+            *filter_desc,
             xchainer::internal::GetRawOffsetData<void>(w),
-            x_desc.get(),
+            *x_desc,
             xchainer::internal::GetRawOffsetData<void>(x),
-            conv_desc.get(),
-            y_desc.get(),
+            *conv_desc,
+            *y_desc,
             xchainer::internal::GetRawOffsetData<void>(y),
             1,  // requested algo count,
             &returned_algo_count,
             &perf_result,
             workspace.get(),
             max_workspace_size));
+    assert(returned_algo_count == 1);
 
-    std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_memory = {perf_result.algo, perf_result.memory};
-    conv_bwd_data_algo_cache_map_[key] = algo_memory;
-    return algo_memory;
+    return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
+}
+
+std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudnnContext::FindConvolutionBackwardFilterAlgorithm(
+        const TensorDescriptor& x_desc,
+        const Array& x,
+        const TensorDescriptor& gy_desc,
+        const Array& gy,
+        const ConvolutionDescriptor& conv_desc,
+        const FilterDescriptor& gw_desc,
+        const Array& gw,
+        size_t max_workspace_size,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride) {
+    auto key = internal::ConvAlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, x.dtype(), max_workspace_size};
+    auto& algo_cache_map = conv_bwd_filter_algo_cache_map_;
+    auto it = algo_cache_map.find(key);
+    if (it != algo_cache_map.end()) {
+        return it->second;
+    }
+
+    std::shared_ptr<void> workspace = x.device().Allocate(max_workspace_size);
+
+    cudnnConvolutionBwdFilterAlgoPerf_t perf_result{};
+    int returned_algo_count{};
+
+    CheckCudnnError(cudnnFindConvolutionBackwardFilterAlgorithmEx(
+            handle(),
+            *x_desc,
+            xchainer::internal::GetRawOffsetData<void>(x),
+            *gy_desc,
+            xchainer::internal::GetRawOffsetData<void>(gy),
+            *conv_desc,
+            *gw_desc,
+            xchainer::internal::GetRawOffsetData<void>(gw),
+            1,  // requested algo count,
+            &returned_algo_count,
+            &perf_result,
+            workspace.get(),
+            max_workspace_size));
+    assert(returned_algo_count == 1);
+
+    return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
 
 // TODO(sonots): Support tensor core
@@ -368,32 +323,17 @@ void CudnnContext::ConvolutionForward(
     assert(&w.device() == &x.device());
     assert(w.dtype() == x.dtype());
 
-    CudaDevice& device = static_cast<CudaDevice&>(x.device());
-    CudaBackend& backend = static_cast<CudaBackend&>(device.backend());
-
-    static const float kFloatZero = 0;
-    static const float kFloatOne = 1;
-    static const double kDoubleZero = 0;
-    static const double kDoubleOne = 1;
-    const void* zero{};
-    const void* one{};
-    if (x.dtype() == Dtype::kFloat64) {
-        zero = &kDoubleZero;
-        one = &kDoubleOne;
-    } else {
-        zero = &kFloatZero;
-        one = &kFloatOne;
-    }
+    auto& device = static_cast<CudaDevice&>(x.device());
+    auto& backend = static_cast<CudaBackend&>(device.backend());
 
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
     assert(y.IsContiguous());
 
-    std::shared_ptr<cudnnTensorStruct> x_desc = CreateTensorDescriptor(x_cont);
-    std::shared_ptr<cudnnTensorStruct> y_desc = CreateTensorDescriptor(y);
-    std::shared_ptr<cudnnFilterStruct> filter_desc = CreateFilterDescriptor(w_cont, CUDNN_TENSOR_NCHW);
-    std::shared_ptr<cudnnConvolutionStruct> conv_desc =
-            CreateConvolutionDescriptor(pad, stride, x.dtype(), CUDNN_CROSS_CORRELATION, dilation, groups);
+    TensorDescriptor x_desc{x_cont};
+    TensorDescriptor y_desc{y};
+    FilterDescriptor filter_desc{w_cont};
+    ConvolutionDescriptor conv_desc{x.dtype(), pad, stride, dilation, groups};
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
     // auto tune
@@ -406,17 +346,17 @@ void CudnnContext::ConvolutionForward(
 
     CheckCudnnError(cudnnConvolutionForward(
             handle(),
-            one,
-            x_desc.get(),
+            GetValuePtr<1>(x.dtype()),
+            *x_desc,
             xchainer::internal::GetRawOffsetData<void>(x_cont),
-            filter_desc.get(),
+            *filter_desc,
             xchainer::internal::GetRawOffsetData<void>(w_cont),
-            conv_desc.get(),
+            *conv_desc,
             algo,
             workspace.get(),
             workspace_size,
-            zero,
-            y_desc.get(),
+            GetValuePtr<0>(x.dtype()),
+            *y_desc,
             xchainer::internal::GetRawOffsetData<void>(y)));
 
     if (b) {
@@ -438,32 +378,17 @@ void CudnnContext::ConvolutionBackwardData(
     assert(&w.device() == &x.device());
     assert(w.dtype() == x.dtype());
 
-    CudaDevice& device = static_cast<CudaDevice&>(x.device());
-    CudaBackend& backend = static_cast<CudaBackend&>(device.backend());
-
-    static const float kFloatZero = 0;
-    static const float kFloatOne = 1;
-    static const double kDoubleZero = 0;
-    static const double kDoubleOne = 1;
-    const void* zero{};
-    const void* one{};
-    if (x.dtype() == Dtype::kFloat64) {
-        zero = &kDoubleZero;
-        one = &kDoubleOne;
-    } else {
-        zero = &kFloatZero;
-        one = &kFloatOne;
-    }
+    auto& device = static_cast<CudaDevice&>(x.device());
+    auto& backend = static_cast<CudaBackend&>(device.backend());
 
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
     assert(y.IsContiguous());
 
-    std::shared_ptr<cudnnTensorStruct> x_desc = CreateTensorDescriptor(x_cont);
-    std::shared_ptr<cudnnTensorStruct> y_desc = CreateTensorDescriptor(y);
-    std::shared_ptr<cudnnFilterStruct> filter_desc = CreateFilterDescriptor(w_cont, CUDNN_TENSOR_NCHW);
-    std::shared_ptr<cudnnConvolutionStruct> conv_desc =
-            CreateConvolutionDescriptor(pad, stride, x.dtype(), CUDNN_CROSS_CORRELATION, dilation, groups);
+    TensorDescriptor x_desc{x_cont};
+    TensorDescriptor y_desc{y};
+    FilterDescriptor filter_desc{w_cont};
+    ConvolutionDescriptor conv_desc{x.dtype(), pad, stride, dilation, groups};
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
     // auto tune
@@ -476,21 +401,167 @@ void CudnnContext::ConvolutionBackwardData(
 
     CheckCudnnError(cudnnConvolutionBackwardData(
             handle(),
-            one,
-            filter_desc.get(),
+            GetValuePtr<1>(x.dtype()),
+            *filter_desc,
             xchainer::internal::GetRawOffsetData<void>(w_cont),
-            x_desc.get(),
+            *x_desc,
             xchainer::internal::GetRawOffsetData<void>(x_cont),
-            conv_desc.get(),
+            *conv_desc,
             algo,
             workspace.get(),
             workspace_size,
-            zero,
-            y_desc.get(),
+            GetValuePtr<0>(x.dtype()),
+            *y_desc,
             xchainer::internal::GetRawOffsetData<void>(y)));
 
     if (b) {
         AddBias(y_desc, y, *b);
+    }
+}
+
+void CudnnContext::ConvolutionBackwardFilter(
+        const Array& x,
+        const Array& gy,
+        const Array& gw,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+        int groups) {
+    assert(&x.device() == &gy.device());
+    assert(&x.device() == &gw.device());
+    assert(x.dtype() == gy.dtype());
+    assert(x.dtype() == gw.dtype());
+
+    CudaDevice& device = static_cast<CudaDevice&>(x.device());
+    CudaBackend& backend = static_cast<CudaBackend&>(device.backend());
+
+    Array x_cont = AsContiguousArray(x);
+    Array gy_cont = AsContiguousArray(gy);
+    Array gw_cont = AsContiguousArray(gw);
+
+    TensorDescriptor x_desc{x_cont};
+    TensorDescriptor gy_desc{gy_cont};
+    FilterDescriptor gw_desc{gw_cont};
+    ConvolutionDescriptor conv_desc{x.dtype(), pad, stride, dilation, groups};
+    size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
+
+    // auto tune
+    std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size =
+            FindConvolutionBackwardFilterAlgorithm(x_desc, x, gy_desc, gy, conv_desc, gw_desc, gw, max_workspace_size, pad, stride);
+
+    cudnnConvolutionBwdFilterAlgo_t algo = std::get<0>(algo_workspace_size);
+    size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
+    std::shared_ptr<void> workspace = device.Allocate(workspace_size);
+
+    CheckCudnnError(cudnnConvolutionBackwardFilter(
+            handle(),
+            GetValuePtr<1>(x.dtype()),
+            *x_desc,
+            xchainer::internal::GetRawOffsetData<void>(x_cont),
+            *gy_desc,
+            xchainer::internal::GetRawOffsetData<void>(gy_cont),
+            *conv_desc,
+            algo,
+            workspace.get(),
+            workspace_size,
+            GetValuePtr<0>(x.dtype()),
+            *gw_desc,
+            xchainer::internal::GetRawOffsetData<void>(gw)));
+}
+
+CudnnContext::ConvolutionDescriptor::ConvolutionDescriptor() { CheckCudnnError(cudnnCreateConvolutionDescriptor(&desc_)); }
+
+CudnnContext::ConvolutionDescriptor::~ConvolutionDescriptor() {
+    if (desc_ != nullptr) {
+        CheckCudnnError(cudnnDestroyConvolutionDescriptor(desc_));
+    }
+}
+
+CudnnContext::ConvolutionDescriptor::ConvolutionDescriptor(
+        Dtype dtype,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+        int groups)
+    : ConvolutionDescriptor{} {
+    size_t ndim = pad.size();
+    assert(ndim == stride.size());
+    assert(!dilation || ndim == dilation->size());
+
+    StackVector<int, kMaxNdim> int_stride = GetIntStride(stride);
+    StackVector<int, kMaxNdim> int_pad = GetIntPad(pad);
+    StackVector<int, kMaxNdim> int_dilation{};
+    if (!dilation) {
+        // TODO(sonots): Use assign(ndim, 1) if it becomes available
+        for (size_t i = 0; i < ndim; ++i) {
+            int_dilation.emplace_back(1);
+        }
+    } else {
+        int_dilation = GetIntDilation(*dilation);
+    }
+
+    cudnnDataType_t compute_type = GetCudnnDataType(dtype);
+
+    if (ndim == 2) {
+        CheckCudnnError(cudnnSetConvolution2dDescriptor(
+                desc_,
+                int_pad[0],
+                int_pad[1],
+                int_stride[0],
+                int_stride[1],
+                int_dilation[0],
+                int_dilation[1],
+                CUDNN_CROSS_CORRELATION,
+                compute_type));
+    } else {
+        CheckCudnnError(cudnnSetConvolutionNdDescriptor(
+                desc_, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], CUDNN_CROSS_CORRELATION, compute_type));
+    }
+    if (groups > 1) {
+        CheckCudnnError(cudnnSetConvolutionGroupCount(desc_, groups));
+    }
+}
+
+CudnnContext::TensorDescriptor::TensorDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
+
+CudnnContext::TensorDescriptor::~TensorDescriptor() {
+    if (desc_ != nullptr) {
+        CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
+    }
+}
+
+CudnnContext::TensorDescriptor::TensorDescriptor(const Array& arr) : TensorDescriptor{} {
+    assert(arr.IsContiguous());
+
+    cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
+    if (arr.shape().ndim() == 4) {
+        StackVector<int, kMaxNdim> nchw = GetIntShape(arr.shape());
+        CheckCudnnError(cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, cudnn_dtype, nchw[0], nchw[1], nchw[2], nchw[3]));
+    } else {
+        StackVector<int, kMaxNdim> int_strides = GetIntArrayStrides(arr.strides(), arr.item_size());  // strides divided by item_size
+        StackVector<int, kMaxNdim> int_shape = GetIntShape(arr.shape());
+        CheckCudnnError(cudnnSetTensorNdDescriptor(desc_, cudnn_dtype, arr.ndim(), &int_shape[0], &int_strides[0]));
+    }
+}
+
+CudnnContext::FilterDescriptor::FilterDescriptor() { CheckCudnnError(cudnnCreateFilterDescriptor(&desc_)); }
+
+CudnnContext::FilterDescriptor::~FilterDescriptor() {
+    if (desc_ != nullptr) {
+        CheckCudnnError(cudnnDestroyFilterDescriptor(desc_));
+    }
+}
+
+CudnnContext::FilterDescriptor::FilterDescriptor(const Array& w) : FilterDescriptor{} {
+    assert(w.IsContiguous());
+
+    cudnnDataType_t cudnn_dtype = GetCudnnDataType(w.dtype());
+    if (w.shape().ndim() == 4) {
+        StackVector<int, kMaxNdim> nchw = GetIntShape(w.shape());
+        CheckCudnnError(cudnnSetFilter4dDescriptor(desc_, cudnn_dtype, CUDNN_TENSOR_NCHW, nchw[0], nchw[1], nchw[2], nchw[3]));
+    } else {
+        StackVector<int, kMaxNdim> int_shape = GetIntShape(w.shape());
+        CheckCudnnError(cudnnSetFilterNdDescriptor(desc_, cudnn_dtype, CUDNN_TENSOR_NCHW, w.ndim(), &int_shape[0]));
     }
 }
 

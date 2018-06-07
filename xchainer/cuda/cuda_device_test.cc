@@ -25,25 +25,14 @@ void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_pt
     }
 }
 
-TEST(CudaDeviceTest, Ctor) {
-    Context ctx;
-    CudaBackend backend{ctx};
-    {
-        CudaDevice device{backend, 0};
-        EXPECT_EQ(&backend, &device.backend());
-        EXPECT_EQ(0, device.index());
-    }
-    {
-        CudaDevice device{backend, 1};
-        EXPECT_EQ(&backend, &device.backend());
-        EXPECT_EQ(1, device.index());
-    }
+CudaDevice& GetCudaDevice(Context& ctx, int device_index) {
+    // Using dynamic_cast to ensure it's actually CudaDevice
+    return dynamic_cast<CudaDevice&>(ctx.GetDevice({"cuda", device_index}));
 }
 
 TEST(CudaDeviceTest, Allocate) {
     Context ctx;
-    CudaBackend backend{ctx};
-    CudaDevice device{backend, 0};
+    CudaDevice& device = GetCudaDevice(ctx, 0);
 
     {
         size_t bytesize = 3;
@@ -62,8 +51,7 @@ TEST(CudaDeviceTest, Allocate) {
 
 TEST(CudaDeviceTest, MakeDataFromForeignPointer) {
     Context ctx;
-    CudaBackend backend{ctx};
-    CudaDevice device{backend, 0};
+    CudaDevice& device = GetCudaDevice(ctx, 0);
 
     std::shared_ptr<void> cuda_data = device.Allocate(3);
     EXPECT_EQ(cuda_data.get(), device.MakeDataFromForeignPointer(cuda_data).get());
@@ -71,8 +59,7 @@ TEST(CudaDeviceTest, MakeDataFromForeignPointer) {
 
 TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonCudaMemory) {
     Context ctx;
-    CudaBackend backend{ctx};
-    CudaDevice device{backend, 0};
+    CudaDevice& device = GetCudaDevice(ctx, 0);
 
     std::shared_ptr<void> cpu_data = std::make_unique<uint8_t[]>(3);
     EXPECT_THROW(device.MakeDataFromForeignPointer(cpu_data), XchainerError) << "must throw an exception if non CUDA memory is given";
@@ -80,8 +67,7 @@ TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonCudaMemory) {
 
 TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonUnifiedMemory) {
     Context ctx;
-    CudaBackend backend{ctx};
-    CudaDevice device{backend, 0};
+    CudaDevice& device = GetCudaDevice(ctx, 0);
 
     void* raw_ptr = nullptr;
     cuda::CheckCudaError(cudaMalloc(&raw_ptr, 3));
@@ -92,12 +78,11 @@ TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonUnifiedMemory) {
 
 TEST(CudaDeviceTest, MakeDataFromForeignPointer_FromAnotherDevice) {
     Context ctx;
-    CudaBackend backend{ctx};
 
-    XCHAINER_REQUIRE_DEVICE(backend, 2);
+    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), 2);
 
-    CudaDevice device{backend, 0};
-    CudaDevice another_device{backend, 1};
+    CudaDevice& device = GetCudaDevice(ctx, 0);
+    CudaDevice& another_device = GetCudaDevice(ctx, 1);
 
     std::shared_ptr<void> cuda_data = another_device.Allocate(3);
     EXPECT_THROW(device.MakeDataFromForeignPointer(cuda_data), XchainerError)
@@ -113,8 +98,7 @@ TEST(CudaDeviceTest, FromHostMemory) {
     });
 
     Context ctx;
-    CudaBackend backend{ctx};
-    CudaDevice device{backend, 0};
+    CudaDevice& device = GetCudaDevice(ctx, 0);
 
     std::shared_ptr<void> dst = device.FromHostMemory(src, bytesize);
     ExpectDataEqual<float>(src, dst, size);
@@ -140,8 +124,7 @@ TEST(CudaDeviceTest, DotNonContiguousOut) {
 // TODO(sonots): Any ways to test cudaDeviceSynchronize()?
 TEST(CudaDeviceTest, Synchronize) {
     Context ctx;
-    CudaBackend backend{ctx};
-    CudaDevice device{backend, 0};
+    CudaDevice& device = GetCudaDevice(ctx, 0);
     EXPECT_NO_THROW(device.Synchronize());
 }
 

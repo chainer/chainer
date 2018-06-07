@@ -34,12 +34,12 @@ TEST_F(DeviceTest, Ctor) {
     Context& ctx = GetDefaultContext();
     native::NativeBackend native_backend{ctx};
     {
-        native::NativeDevice device{native_backend, 0};
+        Device& device = native_backend.GetDevice(0);
         EXPECT_EQ(&native_backend, &device.backend());
         EXPECT_EQ(0, device.index());
     }
     {
-        native::NativeDevice device{native_backend, 1};
+        Device& device = native_backend.GetDevice(1);
         EXPECT_EQ(&native_backend, &device.backend());
         EXPECT_EQ(1, device.index());
     }
@@ -50,19 +50,18 @@ TEST_F(DeviceTest, SetDefaultDevice) {
     EXPECT_EQ(&ctx.GetDevice({"native", 0}), &GetDefaultDevice());
 
     native::NativeBackend native_backend{ctx};
-    native::NativeDevice native_device{native_backend, 0};
+    Device& native_device = native_backend.GetDevice(0);
     SetDefaultDevice(&native_device);
     ASSERT_EQ(&native_device, &GetDefaultDevice());
 
 #ifdef XCHAINER_ENABLE_CUDA
     cuda::CudaBackend cuda_backend{ctx};
-    cuda::CudaDevice cuda_device{cuda_backend, 0};
+    Device& cuda_device = cuda_backend.GetDevice(0);
     SetDefaultDevice(&cuda_device);
     ASSERT_EQ(&cuda_device, &GetDefaultDevice());
 #endif  // XCHAINER_ENABLE_CUDA
 
-    native::NativeBackend native_backend2{ctx};
-    native::NativeDevice native_device2{native_backend2, 2};
+    Device& native_device2 = ctx.GetDevice({"native", 2});
     SetDefaultDevice(&native_device2);
     ASSERT_EQ(&native_device2, &GetDefaultDevice());
 }
@@ -70,11 +69,11 @@ TEST_F(DeviceTest, SetDefaultDevice) {
 TEST_F(DeviceTest, ThreadLocal) {
     Context& ctx = GetDefaultContext();
     native::NativeBackend backend1{ctx};
-    native::NativeDevice device1{backend1, 1};
+    Device& device1 = backend1.GetDevice(1);
     SetDefaultDevice(&device1);
 
     native::NativeBackend backend2{ctx};
-    native::NativeDevice device2{backend2, 2};
+    Device& device2 = backend2.GetDevice(2);
     auto future = std::async(std::launch::async, [&ctx, &device2] {
         SetDefaultContext(&ctx);
         SetDefaultDevice(&device2);
@@ -91,7 +90,7 @@ TEST_F(DeviceTest, ThreadLocalDefault) {
     Device& device = ctx.GetDevice({"native", 0});
 
     native::NativeBackend backend1{ctx};
-    native::NativeDevice device1{backend1, 1};
+    Device& device1 = backend1.GetDevice(1);
     SetDefaultDevice(&device1);
     auto future = std::async(std::launch::async, [] { return &GetDefaultDevice(); });
 
@@ -103,15 +102,15 @@ TEST_F(DeviceTest, DeviceScopeCtor) {
     {
         // DeviceScope should work even if default device is not set
         native::NativeBackend backend{ctx};
-        native::NativeDevice device{backend, 0};
+        Device& device = backend.GetDevice(0);
         DeviceScope scope(device);
     }
     native::NativeBackend backend1{ctx};
-    native::NativeDevice device1{backend1, 1};
+    Device& device1 = backend1.GetDevice(1);
     SetDefaultDevice(&device1);
     {
         native::NativeBackend backend2{ctx};
-        native::NativeDevice device2{backend2, 2};
+        Device& device2 = backend2.GetDevice(2);
         DeviceScope scope(device2);
         EXPECT_EQ(&device2, &GetDefaultDevice());
     }
@@ -120,12 +119,12 @@ TEST_F(DeviceTest, DeviceScopeCtor) {
         DeviceScope scope;
         EXPECT_EQ(&device1, &GetDefaultDevice());
         native::NativeBackend backend2{ctx};
-        native::NativeDevice device2{backend2, 2};
+        Device& device2 = backend2.GetDevice(2);
         SetDefaultDevice(&device2);
     }
     ASSERT_EQ(&device1, &GetDefaultDevice());
     native::NativeBackend backend2{ctx};
-    native::NativeDevice device2{backend2, 2};
+    Device& device2 = backend2.GetDevice(2);
     {
         DeviceScope scope(device2);
         scope.Exit();

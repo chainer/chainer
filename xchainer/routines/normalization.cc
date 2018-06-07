@@ -1,5 +1,7 @@
 #include "xchainer/routines/normalization.h"
 
+#include <memory>
+
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/constant.h"
@@ -11,7 +13,7 @@
 
 namespace xchainer {
 
-Array BatchNormalization(
+Array BatchNorm(
         const Array& x,
         const Array& gamma,
         const Array& beta,
@@ -20,6 +22,7 @@ Array BatchNormalization(
         Scalar eps,
         Scalar decay,
         const OptionalAxes& axis) {
+    // TODO(hvy): Check that running_mean, running_var is contiguous.
     Dtype dtype = x.dtype();
     CheckEqual(dtype, gamma.dtype());
     CheckEqual(dtype, beta.dtype());
@@ -33,19 +36,10 @@ Array BatchNormalization(
     CheckEqual(reduced, running_mean.shape());
     CheckEqual(reduced, running_var.shape());
 
-    Array out = EmptyLike(x, x.device());
-    x.device().BatchNormalization(
-            x,
-            gamma,
-            beta,
-            running_mean,
-            running_var,
-            eps,
-            decay,
-            axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0},
-            out);
     // TODO(hvy): Implement backward.
-    return out;
+    std::unique_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
+    return fb->Forward(
+            x, gamma, beta, running_mean, running_var, eps, decay, axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0});
 }
 
 }  // namespace xchainer
