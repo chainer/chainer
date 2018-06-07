@@ -13,16 +13,20 @@ class Classifier(link.Chain):
 
     Args:
         predictor (~chainer.Link): Predictor network.
-        lossfun (function): Loss function.
-        accfun (function): Function that computes accuracy.
+        lossfun (:doc:`wrapper function </reference/functions>`):
+            Loss function.
+        accfun (:doc:`wrapper function </reference/functions>`): Function
+            that computes accuracy.
         label_key (int or str): Key to specify label variable from arguments.
             When it is ``int``, a variable in positional arguments is used.
             And when it is ``str``, a variable in keyword arguments is used.
 
     Attributes:
         predictor (~chainer.Link): Predictor network.
-        lossfun (function): Loss function.
-        accfun (function): Function that computes accuracy.
+        lossfun (:doc:`wrapper function </reference/functions>`): Loss
+            function.
+        accfun (:doc:`wrapper function </reference/functions>`): Function
+            that computes accuracy.
         y (~chainer.Variable): Prediction for the last minibatch.
         loss (~chainer.Variable): Loss value for the last minibatch.
         accuracy (~chainer.Variable): Accuracy for the last minibatch.
@@ -70,7 +74,7 @@ class Classifier(link.Chain):
         with self.init_scope():
             self.predictor = predictor
 
-    def forward(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         """Computes the loss value for an input and label pair.
 
         It also computes accuracy and stores it to the attribute.

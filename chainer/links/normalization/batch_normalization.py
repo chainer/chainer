@@ -98,8 +98,8 @@ class BatchNormalization(link.Link):
                 initial_beta.dtype = dtype
                 self.beta = variable.Parameter(initial_beta, size)
 
-    def forward(self, x, **kwargs):
-        """forward(self, x, finetune=False)
+    def __call__(self, x, **kwargs):
+        """__call__(self, x, finetune=False)
 
         Invokes the forward propagation of BatchNormalization.
 
