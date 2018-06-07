@@ -424,7 +424,7 @@ class DivGrad(function_node.FunctionNode):
         if 1 in indexes:
             gx1 = None if ggx0 is None else -ggx0 * gy / x1_square
             gx1_1 = (None if ggx1 is None else
-                     ggx1 * 2 * gy * x0 * (x1_square * x1))
+                     ggx1 * 2 * gy * x0 / (x1_square * x1))
             if gx1 is None:
                 gx1 = gx1_1
             elif gx1_1 is not None:
