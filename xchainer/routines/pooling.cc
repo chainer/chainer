@@ -13,7 +13,7 @@
 
 namespace xchainer {
 
-Array MaxPooling(
+Array MaxPool(
         const Array& x,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
@@ -30,7 +30,7 @@ Array MaxPooling(
         throw DimensionError{"Wrong numbers of paddings ", pad.size(), " for input with ", x.ndim(), " dimensions."};
     }
 
-    std::shared_ptr<MaxPoolingForwardBackward> fb = x.device().GetMaxPoolingForwardBackward();
+    std::shared_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward();
 
     // TODO(hvy): Connect graphs.
     return fb->Forward(x, kernel_size, stride, pad, cover_all);

@@ -139,7 +139,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
     // TODO(hvy): implement me
-    std::unique_ptr<MaxPoolingForwardBackward> GetMaxPoolingForwardBackward() override { return nullptr; }
+    std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override { return nullptr; }
 
     // TODO(sonots): implement me
     std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override { return nullptr; }

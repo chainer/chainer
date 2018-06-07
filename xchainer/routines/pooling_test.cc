@@ -32,7 +32,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(PoolingTest, MaxPooling) {
+TEST_P(PoolingTest, MaxPool) {
     if (GetParam() == "cuda") {
         // TODO(hvy): Test CUDA when implemented.
         return;
@@ -78,7 +78,7 @@ TEST_P(PoolingTest, MaxPooling) {
                                0.87756634, 0.3690981,  0.6356852})
                       .WithPadding(1);  // Computed with Chainer.
 
-    Array out = MaxPooling(x, kernel_size, stride, pad);
+    Array out = MaxPool(x, kernel_size, stride, pad);
 
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
             {0.9677815,  0.9677815,  0.6074731,  0.97462624, 0.97462624, 0.80568856, 0.7416107,  0.34700692, 0.80568856, 0.8825699,
@@ -96,7 +96,7 @@ TEST_P(PoolingTest, MaxPooling) {
     testing::ExpectEqual(e_out, out);
 }
 
-TEST_P(PoolingTest, MaxPoolingCoverAll) {
+TEST_P(PoolingTest, MaxPoolCoverAll) {
     if (GetParam() == "cuda") {
         // TODO(hvy): Test CUDA when implemented.
         return;
@@ -141,7 +141,7 @@ TEST_P(PoolingTest, MaxPoolingCoverAll) {
                                0.05052375, 0.05624698, 0.10016874, 0.9320143,  0.09351984, 0.53812116, 0.20279366, 0.22279656, 0.33266315,
                                0.8101899,  0.6632538,  0.64406633})
                       .WithPadding(1);  // Computed with Chainer.
-    Array out = MaxPooling(x, kernel_size, stride, pad, cover_all);
+    Array out = MaxPool(x, kernel_size, stride, pad, cover_all);
 
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
             {0.951628,   0.8341918,  0.6040584,  0.8674204, 0.9550997,  0.9550997,  0.69606817, 0.5913821,  0.26333022, 0.85048497,

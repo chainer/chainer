@@ -130,7 +130,7 @@ public:
 
     // pool.cc
 
-    std::unique_ptr<MaxPoolingForwardBackward> GetMaxPoolingForwardBackward() override;
+    std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override;
 
     // batch_norm.cc
 
