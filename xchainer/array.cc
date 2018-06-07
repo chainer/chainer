@@ -227,11 +227,9 @@ Array Array::ToDevice(Device& dst_device) const {
     assert(out.body() != nullptr);
 
     // Backward operation is implemented as backward-transfer.
-    {
+    if (!IsConstant()) {
         BackwardBuilder bb{"transfer", out};
-        if (!IsConstant()) {
-            bb.Define({*this}, [&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
-        }
+        bb.Define({*this}, [&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
     }
     return out;
 }
@@ -264,11 +262,9 @@ Array Array::AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind) const
             Array out = EmptyLike(*this, device());
             device().Copy(*this, out);
 
-            {
+            if (!IsConstant()) {
                 BackwardBuilder bb{"copy", out, graph_ids};
-                if (!IsConstant()) {
-                    bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
-                }
+                bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
             }
 
             assert(out.IsContiguous());
@@ -300,11 +296,9 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     Array out = Empty(shape(), dtype, device());
     device().AsType(*this, out);
 
-    if (GetKind(dtype) == DtypeKind::kFloat) {
+    if (!IsConstant() && GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", out};
-        if (!IsConstant()) {
-            bb.Define({*this}, [src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
-        }
+        bb.Define({*this}, [src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
     }
 
     assert(out.IsContiguous());

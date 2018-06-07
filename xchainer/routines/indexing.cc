@@ -96,15 +96,13 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
     Array out = xchainer::internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), out_offset);
 
-    {
+    if (!a.IsConstant()) {
         BackwardBuilder bb{"get_item", out};
-        if (!a.IsConstant()) {
-            bb.Define({a}, [ indices, a_shape = a.shape(), a_dtype = a.dtype() ](BackwardContext & bctx) {
-                const Array& gout = bctx.output_grad();
-                Array gin = Zeros(a_shape, a_dtype, gout.device());
-                bctx.input_grad() = AddAt(gin, indices, gout);
-            });
-        }
+        bb.Define({a}, [ indices, a_shape = a.shape(), a_dtype = a.dtype() ](BackwardContext & bctx) {
+            const Array& gout = bctx.output_grad();
+            Array gin = Zeros(a_shape, a_dtype, gout.device());
+            bctx.input_grad() = AddAt(gin, indices, gout);
+        });
     }
 
     return out;
@@ -164,14 +162,12 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     a.device().Take(a, indices, axis_norm, out);
 
-    {
+    if (!a.IsConstant()) {
         BackwardBuilder bb{"take", out};
-        if (!a.IsConstant()) {
-            bb.Define({a}, [ indices, axis_norm, a_shape = a.shape() ](BackwardContext & bctx) {
-                const Array& gout = bctx.output_grad();
-                bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
-            });
-        }
+        bb.Define({a}, [ indices, axis_norm, a_shape = a.shape() ](BackwardContext & bctx) {
+            const Array& gout = bctx.output_grad();
+            bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
+        });
     }
 
     return out;

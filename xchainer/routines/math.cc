@@ -98,11 +98,9 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
 
 void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    {
+    if (!x1.IsConstant()) {
         BackwardBuilder bb{"add_scalar", out};
-        if (!x1.IsConstant()) {
-            bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
-        }
+        bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
 
     x1.device().AddAS(x1, x2, out);
@@ -147,11 +145,9 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
 
 void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    {
+    if (!x1.IsConstant()) {
         BackwardBuilder bb{"subtract_scalar", out};
-        if (!x1.IsConstant()) {
-            bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
-        }
+        bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
 
     x1.device().SubtractAS(x1, x2, out);
@@ -195,11 +191,9 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
 
 void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    {
+    if (!x1.IsConstant()) {
         BackwardBuilder bb{"multiply_scalar", out};
-        if (!x1.IsConstant()) {
-            bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
-        }
+        bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
     }
 
     x1.device().MultiplyAS(x1, x2, out);
@@ -248,11 +242,9 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
 
 void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
-    {
+    if (!x1.IsConstant()) {
         BackwardBuilder bb{"divide_scalar", out};
-        if (!x1.IsConstant()) {
-            bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() / other; });
-        }
+        bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() / other; });
     }
 
     x1.device().DivideAS(x1, x2, out);
@@ -279,24 +271,22 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
     a.device().Sum(a, sorted_axis, out);
 
-    {
+    if (!a.IsConstant()) {
         BackwardBuilder bb{"sum", out};
-        if (!a.IsConstant()) {
-            bb.Define({a}, [ sorted_axis, in_shape = a.shape(), keepdims ](BackwardContext & bctx) {
-                const Array& gout = bctx.output_grad();
-                assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+        bb.Define({a}, [ sorted_axis, in_shape = a.shape(), keepdims ](BackwardContext & bctx) {
+            const Array& gout = bctx.output_grad();
+            assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
-                if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
-                    Shape out_shape_broadcastable = gout.shape();
-                    for (auto axis : sorted_axis) {
-                        out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
-                    }
-                    bctx.input_grad() = gout.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
-                } else {
-                    bctx.input_grad() = gout.BroadcastTo(in_shape);
+            if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
+                Shape out_shape_broadcastable = gout.shape();
+                for (auto axis : sorted_axis) {
+                    out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
                 }
-            });
-        }
+                bctx.input_grad() = gout.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
+            } else {
+                bctx.input_grad() = gout.BroadcastTo(in_shape);
+            }
+        });
     }
 
     return out;
@@ -314,26 +304,24 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     a.device().AMax(a, sorted_axis, out);
 
-    {
+    if (!a.IsConstant()) {
         BackwardBuilder bb{"amax", out};
-        if (!a.IsConstant()) {
-            bb.Define({a}, [sorted_axis, a, out](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+        bb.Define({a}, [sorted_axis, a, out](BackwardContext& bctx) {
+            const Array& gout = bctx.output_grad();
+            assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
-                // Add broadcastable dimensions to out and gout
-                // for each one that was reduced in the forward operation
-                Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
-                Array reshaped_gout = gout.Reshape(shape);
-                Array reshaped_out = out.AsConstant(CopyKind::kView).Reshape(shape);
+            // Add broadcastable dimensions to out and gout
+            // for each one that was reduced in the forward operation
+            Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
+            Array reshaped_gout = gout.Reshape(shape);
+            Array reshaped_out = out.AsConstant(CopyKind::kView).Reshape(shape);
 
-                // Compute the gradient
-                Array cond = (bctx.Cut(a) == reshaped_out);
-                Array broadcasted_gout = reshaped_gout.BroadcastTo(cond.shape());
-                // TODO(sonots): Use `where` if it becomes available.
-                bctx.input_grad() = broadcasted_gout * cond.AsType(gout.dtype(), false);
-            });
-        }
+            // Compute the gradient
+            Array cond = (bctx.Cut(a) == reshaped_out);
+            Array broadcasted_gout = reshaped_gout.BroadcastTo(cond.shape());
+            // TODO(sonots): Use `where` if it becomes available.
+            bctx.input_grad() = broadcasted_gout * cond.AsType(gout.dtype(), false);
+        });
     }
 
     return out;
@@ -347,14 +335,12 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     Array out = EmptyLike(x1, x1.device());
     x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
 
-    {
+    if (!neg.IsConstant()) {
         BackwardBuilder bb{"if_less_else", out};
-        if (!neg.IsConstant()) {
-            bb.Define({neg}, [x1, x2](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                bctx.input_grad() = IfLessElse(bctx.Cut(x1), x2, Scalar{0, gout.dtype()}, gout);
-            });
-        }
+        bb.Define({neg}, [x1, x2](BackwardContext& bctx) {
+            const Array& gout = bctx.output_grad();
+            bctx.input_grad() = IfLessElse(bctx.Cut(x1), x2, Scalar{0, gout.dtype()}, gout);
+        });
     }
 
     return out;
@@ -372,14 +358,12 @@ Array Exp(const Array& x) {
     Array out = EmptyLike(x, x.device());
     x.device().Exp(x, out);
 
-    {
+    if (!x.IsConstant()) {
         BackwardBuilder bb{"exp", out};
-        if (!x.IsConstant()) {
-            bb.Define({x}, [x](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                bctx.input_grad() = Exp(bctx.Cut(x)) * gout;
-            });
-        }
+        bb.Define({x}, [x](BackwardContext& bctx) {
+            const Array& gout = bctx.output_grad();
+            bctx.input_grad() = Exp(bctx.Cut(x)) * gout;
+        });
     }
 
     return out;
@@ -389,14 +373,12 @@ Array Log(const Array& x) {
     Array out = EmptyLike(x, x.device());
     x.device().Log(x, out);
 
-    {
+    if (!x.IsConstant()) {
         BackwardBuilder bb{"log", out};
-        if (!x.IsConstant()) {
-            bb.Define({x}, [x](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                bctx.input_grad() = gout / bctx.Cut(x);
-            });
-        }
+        bb.Define({x}, [x](BackwardContext& bctx) {
+            const Array& gout = bctx.output_grad();
+            bctx.input_grad() = gout / bctx.Cut(x);
+        });
     }
 
     return out;

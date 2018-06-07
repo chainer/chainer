@@ -88,18 +88,16 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
 
     Array out = internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    {
+    if (!a.IsConstant()) {
         BackwardBuilder bb{"transpose", out};
-        if (!a.IsConstant()) {
-            bb.Define({a}, [real_axes](BackwardContext& bctx) {
-                Axes backward_axes;
-                backward_axes.resize(real_axes.ndim());
-                for (int8_t i = 0; i < real_axes.ndim(); ++i) {
-                    backward_axes[real_axes[i]] = i;
-                }
-                bctx.input_grad() = bctx.output_grad().Transpose(backward_axes);
-            });
-        }
+        bb.Define({a}, [real_axes](BackwardContext& bctx) {
+            Axes backward_axes;
+            backward_axes.resize(real_axes.ndim());
+            for (int8_t i = 0; i < real_axes.ndim(); ++i) {
+                backward_axes[real_axes[i]] = i;
+            }
+            bctx.input_grad() = bctx.output_grad().Transpose(backward_axes);
+        });
     }
 
     return out;
@@ -199,11 +197,9 @@ Array Reshape(const Array& a, const Shape& newshape) {
 
     Array out = internal::MakeArray(newshape, strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    {
+    if (!a.IsConstant()) {
         BackwardBuilder bb{"reshape", out};
-        if (!a.IsConstant()) {
-            bb.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
-        }
+        bb.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
     }
 
     assert(out.shape() == newshape);
@@ -256,11 +252,9 @@ Array Squeeze(const Array& a, const OptionalAxes& axis) {
                         ? a
                         : internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    {
+    if (!a.IsConstant()) {
         BackwardBuilder bb{"squeeze", out};
-        if (!a.IsConstant()) {
-            bb.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
-        }
+        bb.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
     }
 
     return out;
@@ -310,37 +304,35 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
 
     Array out = internal::MakeArray(shape, strides, array.dtype(), array.device(), array.data(), array.offset());
 
-    {
+    if (!array.IsConstant()) {
         BackwardBuilder bb{"broadcast_to", out};
-        if (!array.IsConstant()) {
-            bb.Define({array}, [in_shape](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                if (gout.shape() == in_shape) {
-                    bctx.input_grad() = gout;
-                    return;
-                }
+        bb.Define({array}, [in_shape](BackwardContext& bctx) {
+            const Array& gout = bctx.output_grad();
+            if (gout.shape() == in_shape) {
+                bctx.input_grad() = gout;
+                return;
+            }
 
-                int8_t lead = gout.ndim() - in_shape.ndim();
-                Axes lead_axis{};
-                lead_axis.resize(lead);
-                std::iota(lead_axis.begin(), lead_axis.end(), int8_t{0});
+            int8_t lead = gout.ndim() - in_shape.ndim();
+            Axes lead_axis{};
+            lead_axis.resize(lead);
+            std::iota(lead_axis.begin(), lead_axis.end(), int8_t{0});
 
-                Axes axis{lead_axis};
-                for (int8_t i = 0; i < in_shape.ndim(); ++i) {
-                    if (in_shape[i] == 1) {
-                        axis.emplace_back(i + lead);
-                    }
+            Axes axis{lead_axis};
+            for (int8_t i = 0; i < in_shape.ndim(); ++i) {
+                if (in_shape[i] == 1) {
+                    axis.emplace_back(i + lead);
                 }
-                axis.erase(std::unique(axis.begin(), axis.end()), axis.end());  // Sum does not accept axis with duplicate elements
+            }
+            axis.erase(std::unique(axis.begin(), axis.end()), axis.end());  // Sum does not accept axis with duplicate elements
 
-                Array gin = gout.Sum(axis, true);
-                if (lead > 0) {
-                    bctx.input_grad() = gin.Squeeze(lead_axis);
-                } else {
-                    bctx.input_grad() = std::move(gin);
-                }
-            });
-        }
+            Array gin = gout.Sum(axis, true);
+            if (lead > 0) {
+                bctx.input_grad() = gin.Squeeze(lead_axis);
+            } else {
+                bctx.input_grad() = std::move(gin);
+            }
+        });
     }
 
     return out;

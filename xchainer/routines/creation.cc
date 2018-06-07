@@ -196,14 +196,12 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     Array out = Empty(shape, dt, a.device());
     a.device().AsType(a, out);
 
-    if (GetKind(dt) == DtypeKind::kFloat) {
+    if (!a.IsConstant() && GetKind(dt) == DtypeKind::kFloat) {
         BackwardBuilder bb{"ascontiguousarray", out};
-        if (!a.IsConstant()) {
-            bb.Define({a}, [src_dt](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                bctx.input_grad() = gout.AsType(src_dt, false);
-            });
-        }
+        bb.Define({a}, [src_dt](BackwardContext& bctx) {
+            const Array& gout = bctx.output_grad();
+            bctx.input_grad() = gout.AsType(src_dt, false);
+        });
     }
 
     assert(out.IsContiguous());
@@ -241,14 +239,12 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         throw DimensionError{"Input must be 1D or 2D."};
     }
 
-    {
+    if (!v.IsConstant()) {
         BackwardBuilder bb{"diag", out};
-        if (!v.IsConstant()) {
-            bb.Define({v}, [& device = v.device(), k ](BackwardContext & bctx) {
-                const Array& gout = bctx.output_grad();
-                bctx.input_grad() = Diag(gout, k, device);
-            });
-        }
+        bb.Define({v}, [& device = v.device(), k ](BackwardContext & bctx) {
+            const Array& gout = bctx.output_grad();
+            bctx.input_grad() = Diag(gout, k, device);
+        });
     }
 
     return out;

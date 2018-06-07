@@ -33,14 +33,12 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
     const Array& in = inputs[0];
     Array out = EmptyLike(in);
 
-    {
+    if (!in.IsConstant()) {
         BackwardBuilder bb{"incorrect_unary", {out}};
-        if (!in.IsConstant()) {
-            bb.Define({in}, [](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                bctx.input_grad() = gout * gout;
-            });
-        }
+        bb.Define({in}, [](BackwardContext& bctx) {
+            const Array& gout = bctx.output_grad();
+            bctx.input_grad() = gout * gout;
+        });
     }
 
     VisitDtype(in.dtype(), [&](auto pt) {
@@ -62,15 +60,13 @@ Arrays ForwardWithIncorrectDoubleBackpropOption(const Arrays& inputs) {
 
     Array out = a.AsConstant() * a.AsConstant();
 
-    {
+    if (!a.IsConstant()) {
         BackwardBuilder bb{"incorrect_square", {out}};
-        if (!a.IsConstant()) {
-            bb.Define({a}, [a](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                // `a` would be `bctx.Cut(a)` if implemented correctly
-                bctx.input_grad() = 2 * gout * a;
-            });
-        }
+        bb.Define({a}, [a](BackwardContext& bctx) {
+            const Array& gout = bctx.output_grad();
+            // `a` would be `bctx.Cut(a)` if implemented correctly
+            bctx.input_grad() = 2 * gout * a;
+        });
     }
 
     return {out};
