@@ -17,6 +17,7 @@ class TestNormal(testing.distribution_unittest):
         from scipy import stats
         self.dist = distributions.Normal
         self.scipy_dist = stats.norm
+        self.scipy_onebyone = True
 
         self.test_targets = set([
             "batch_shape", "cdf", "entropy", "event_shape", "icdf", "log_cdf",
