@@ -60,13 +60,7 @@ def test_conv_invalid(device, x_shape, w_shape, b_shape, stride, pad, cover_all,
         xchainer.conv(*_create_conv_args(xchainer, device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype))
 
 
-def _get_conv_transpose_outsize(x_shape, w_shape, stride, pad, test_outsize):
-    if test_outsize == 'None':
-        return None
-    if test_outsize == 'standard':
-        cover_all = False
-    elif test_outsize == 'cover_all':
-        cover_all = True
+def _get_conv_transpose_outsize(x_shape, w_shape, stride, pad, cover_all):
     in_dims = x_shape[2:]
     kernel_size = w_shape[2:]
     ndim = len(in_dims)
@@ -83,8 +77,6 @@ def _create_conv_transpose_args(xp, device, x_shape, w_shape, b_shape, stride, p
         b = None
     else:
         b = array_utils.create_dummy_ndarray(xp, b_shape, float_dtype)
-    if device.backend.name == 'cuda':  # outsize is not supported by CUDA.
-        outsize = None
     return x, w, b, stride, pad, outsize
 
 
@@ -102,16 +94,22 @@ def _create_conv_transpose_args(xp, device, x_shape, w_shape, b_shape, stride, p
     ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
     ((2, 3, 5, 6, 3), (3, 2, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
 ])
-@pytest.mark.parametrize('test_outsize', ['None', 'standard', 'cover_all'])
+@pytest.mark.parametrize('cover_all', [None, True, False])  # If None, outsize argument will be None.
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_conv_transpose(device, x_shape, w_shape, b_shape, stride, pad, test_outsize, float_dtype):
+def test_conv_transpose(device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype):
     if device.backend.name == 'cuda' and len(x_shape) <= 3:
         # cuDNN does not support 1 dimensional convolution and throws DimensionError.
         # TODO(sonots): Support 1 dimensional convolution with CUDA.
         return xchainer.testing.ignore()
+    if device.backend.name == 'cuda' and cover_all is True:
+        # outsize (for cover_all=True) is not supported by CUDA.
+        return xchainer.testing.ignore()
 
     def create_args(xp):
-        outsize = _get_conv_transpose_outsize(x_shape, w_shape, stride, pad, test_outsize)
+        if cover_all is None:
+            outsize = None
+        else:
+            outsize = _get_conv_transpose_outsize(x_shape, w_shape, stride, pad, cover_all)
         return _create_conv_transpose_args(xp, device, x_shape, w_shape, b_shape, stride, pad, outsize, float_dtype)
 
     xchainer.testing.assert_allclose(xchainer.conv_transpose(*create_args(xchainer)),
@@ -124,11 +122,12 @@ def test_conv_transpose(device, x_shape, w_shape, b_shape, stride, pad, test_out
     ((1, 3, 4, 3), (3, 5, 2, 2), (6,), 1, 0, None),  # Mismatched w and b.
     ((2, 3, 4, 3), (3, 5, 2, 2), None, (1,), 0, None),  # Wrong number of strides.
     ((1, 3, 4, 3), (3, 5, 2, 2), None, 3, (2,), None),  # Wrong number of paddings.
-    ((1, 3, 2, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), (-1, 13, 4)),  # All output sizes must be positive
+    ((1, 3, 2, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), (-1, 13, 4)),  # All output sizes must be non-negative
+    ((1, 3, 2, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), None),  # All output sizes must be non-negative
     ((2, 3, 4), (3, 5, 1), (5,), 1, 0, (5,)),  # Output dims are inconsistent
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_conv_transpose_invalid(device, x_shape, w_shape, b_shape, stride, pad, outsize, float_dtype):
     with pytest.raises(xchainer.DimensionError):
-        xchainer.conv_transpose(*_create_conv_transpose_args(xchainer, device, x_shape,
-                                                             w_shape, b_shape, stride, pad, outsize, float_dtype))
+        xchainer.conv_transpose(*_create_conv_transpose_args(
+            xchainer, device, x_shape, w_shape, b_shape, stride, pad, outsize, float_dtype))
