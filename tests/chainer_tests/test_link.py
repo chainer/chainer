@@ -508,15 +508,15 @@ class TestLink(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.assertEqual(self.link.count_params(), 8)
-        assert len(w) == 2
-        assert w[0].category is UserWarning
+        self.assertEqual(len(w), 2)
+        self.assertIs(w[0].category, UserWarning)
 
         self.link.u.initialize((2, 3))
         self.link.v.initialize((2, 3))
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.link.count_params()
-        assert not w
+        self.assertFalse(w)
 
 
 class TestLinkRepeat(unittest.TestCase):
@@ -1003,14 +1003,14 @@ class TestChain(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
-        assert len(w) == 1
-        assert w[0].category is UserWarning
+        self.assertEqual(len(w), 1)
+        self.assertIs(w[0].category, UserWarning)
 
         self.c2.l3.x.initialize((3,))
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
-        assert not w
+        self.assertFalse(w)
 
 
 class TestChainRepeat(unittest.TestCase):
@@ -1495,20 +1495,20 @@ class TestChainList(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.assertEqual(self.c1.count_params(), 8)
-        assert len(w) == 1
-        assert w[0].category is UserWarning
+        self.assertEqual(len(w), 1)
+        self.assertIs(w[0].category, UserWarning)
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
-        assert len(w) == 1
-        assert w[0].category is UserWarning
+        self.assertEqual(len(w), 1)
+        self.assertIs(w[0].category, UserWarning)
 
         self.c2[0][0].y.initialize((2, 3))
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
-        assert not w
+        self.assertFalse(w)
 
 
 class TestChainListRepeat(unittest.TestCase):
