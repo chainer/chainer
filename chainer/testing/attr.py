@@ -73,5 +73,4 @@ def gpu(f):
     declare that one GPU is required to run.
     """
 
-    check_available()
-    return _multi_gpu(1)(pytest.mark.gpu(f))
+    return multi_gpu(1)(f)
