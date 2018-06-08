@@ -7,6 +7,7 @@ add_library(xchainer_routines STATIC
     manipulation.cc
     math.cc
     normalization.cc
+    pooling.cc
     sorting.cc
 )
 
@@ -19,6 +20,7 @@ install(FILES
     manipulation.h
     math.h
     normalization.h
+    pooling.h
     routines_util.h
     sorting.h
     DESTINATION include/xchainer/routines
@@ -34,6 +36,7 @@ if(${ENABLE_TEST})
       manipulation_test.cc
       math_test.cc
       normalization_test.cc
+      pooling_test.cc
       sorting_test.cc
   )
   target_link_libraries(xchainer_routines_test

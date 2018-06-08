@@ -1,7 +1,9 @@
 #include "xchainer/native/native_device.h"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 
@@ -16,32 +18,7 @@
 
 namespace xchainer {
 namespace native {
-
 namespace {
-
-Array ExpandDims(const Array& a, const Axes& axes) {
-    // Compute the new set of strides with the new axes.
-    int8_t expanded_ndim = a.ndim() + axes.ndim();
-    int8_t i_axis = 0;
-    int8_t i_stride = 0;
-    const Strides& strides = a.strides();
-    Strides expanded_strides;
-    for (int8_t i = 0; i < expanded_ndim; ++i) {
-        if (i_axis < axes.ndim() && i == axes[i_axis]) {
-            expanded_strides.emplace_back(int64_t{1});
-            ++i_axis;
-        } else {
-            expanded_strides.emplace_back(strides[i_stride]);
-            ++i_stride;
-        }
-    }
-    assert(i_axis == axes.ndim());
-    assert(i_stride == strides.ndim());
-    assert(expanded_strides.ndim() == a.ndim() + axes.ndim());
-
-    return xchainer::internal::MakeArray(
-            xchainer::internal::ExpandShape(a.shape(), axes), expanded_strides, a.dtype(), a.device(), a.data(), a.offset());
-}
 
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
@@ -75,57 +52,72 @@ public:
             Scalar eps,
             Scalar decay,
             const Axes& axis) override {
-        Dtype dtype = x.dtype();
+#ifndef NDEBUG
+        {
+            Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis, true);
+            assert(gamma.shape() == reduced_shape);
+            assert(beta.shape() == reduced_shape);
 
-        Array x_mean = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, x.device());
+            int64_t reduced_total_size = reduced_shape.GetTotalSize();
+            assert(running_mean.GetTotalSize() == reduced_total_size);
+            assert(running_var.GetTotalSize() == reduced_total_size);
+
+            assert(GetKind(eps.dtype()) == DtypeKind::kFloat);
+            assert(GetKind(decay.dtype()) == DtypeKind::kFloat);
+        }
+#endif  // NDEBUG
+        Dtype dtype = x.dtype();
+        Device& device = x.device();
+
+        Array x_mean = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, device);
         Mean(x, axis, x_mean);
 
-        Array x_var = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, x.device());
+        Array x_var = xchainer::internal::EmptyReduced(x.shape(), dtype, axis, true, device);
         Var(x, x_mean, axis, x_var);
 
-        Array out = EmptyLike(x, x.device());
+        Array out = EmptyLike(x, device);
         int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
-        VisitFloatingPointDtype(
-                dtype, [&x, &x_mean, &x_var, &running_mean, &running_var, &gamma, &beta, eps, decay, &axis, &out, n](auto pt) {
-                    using T = typename decltype(pt)::type;
+        VisitFloatingPointDtype(dtype, [&, eps, decay, n](auto pt) {
+            using T = typename decltype(pt)::type;
 
-                    // Compute the batch normalization.
-                    struct BatchNormImpl {
-                        void operator()(int64_t /*i*/, T x, T x_mean, T x_var, T gamma, T beta, T& out) {
-                            out = (x - x_mean) / std::sqrt(x_var + eps) * gamma + beta;
-                        }
-                        T eps;
-                    };
-                    Elementwise<const T, const T, const T, const T, const T, T>(
-                            BatchNormImpl{static_cast<T>(eps)},
-                            x,
-                            x_mean.BroadcastTo(out.shape()),
-                            x_var.BroadcastTo(out.shape()),
-                            ExpandDims(gamma, axis).BroadcastTo(out.shape()),
-                            ExpandDims(beta, axis).BroadcastTo(out.shape()),
-                            out);
+            // Compute the batch normalization.
+            struct BatchNormImpl {
+                void operator()(int64_t /*i*/, T x, T x_mean, T x_var, T gamma, T beta, T& out) {
+                    out = (x - x_mean) / std::sqrt(x_var + eps) * gamma + beta;
+                }
+                T eps;
+            };
+            Elementwise<const T, const T, const T, const T, const T, T>(
+                    BatchNormImpl{static_cast<T>(eps)},
+                    x,
+                    x_mean.BroadcastTo(out.shape()),
+                    x_var.BroadcastTo(out.shape()),
+                    gamma.BroadcastTo(out.shape()),
+                    beta.BroadcastTo(out.shape()),
+                    out);
 
-                    // Update the running mean and variance in-place using an unbiased estimate.
-                    struct UpdateStatsImpl {
-                        void operator()(int64_t /*i*/, T mean, T var, T& running_mean, T& running_var) {
-                            running_mean *= decay;
-                            running_mean += (T{1} - decay) * mean;
-                            running_var *= decay;
-                            running_var += (T{1} - decay) * adjust * var;
-                        }
-                        T decay;
-                        T adjust;
-                    };
-                    Elementwise<const T, const T, T, T>(
-                            UpdateStatsImpl{static_cast<T>(decay), static_cast<T>(n) / std::max(n - 1, int64_t{1})},
-                            x_mean,
-                            x_var,
-                            ExpandDims(running_mean, axis),
-                            ExpandDims(running_var, axis));
-                });
+            // Update the running mean and variance in-place using an unbiased estimate.
+            struct UpdateStatsImpl {
+                void operator()(int64_t /*i*/, T mean, T var, T& running_mean, T& running_var) {
+                    running_mean *= decay;
+                    running_mean += (T{1} - decay) * mean;
+                    running_var *= decay;
+                    running_var += (T{1} - decay) * adjust * var;
+                }
+                T decay;
+                T adjust;
+            };
+            Elementwise<const T, const T, T, T>(
+                    UpdateStatsImpl{static_cast<T>(decay), static_cast<T>(n) / std::max(n - 1, int64_t{1})},
+                    x_mean.Reshape(running_mean.shape()),
+                    x_var.Reshape(running_mean.shape()),
+                    running_mean,
+                    running_var);
+        });
         return out;
     }
 
+    // TODO(hvy): Implement me.
     std::array<Array, 3> Backward(
             const Array& /*x*/, const Array& /*gamma*/, const Array& /*gout*/, Scalar /*eps*/, Scalar /*decay*/, const Axes& /*axis*/)
             override {

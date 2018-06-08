@@ -17,6 +17,23 @@ namespace xchainer {
 
 class Array;
 
+class MaxPoolForwardBackward {
+public:
+    virtual Array Forward(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all) = 0;
+    virtual Array Backward(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all,
+            const Array& gout) = 0;
+};
+
 class BatchNormForwardBackward {
 public:
     virtual Array Forward(
@@ -202,6 +219,8 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) = 0;
+
+    virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() = 0;
 
     virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() = 0;
 

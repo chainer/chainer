@@ -87,7 +87,6 @@ Shape ReduceShape(const Shape& shape, const Axes& axes, bool keepdims) {
 }
 
 Shape ExpandShape(const Shape& shape, const Axes& axes) {
-    assert(shape.ndim() >= axes.ndim());
     Shape expanded;
     int8_t i_axis = 0;
     int8_t i_shape = 0;

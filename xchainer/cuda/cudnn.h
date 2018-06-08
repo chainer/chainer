@@ -10,6 +10,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/device.h"
+#include "xchainer/dtype.h"
 #include "xchainer/error.h"
 
 namespace xchainer {
@@ -17,6 +18,8 @@ namespace cuda {
 
 class CudnnError : public XchainerError {
 public:
+    using XchainerError::XchainerError;
+
     explicit CudnnError(cudnnStatus_t status);
     cudnnStatus_t error() const noexcept { return status_; }
 
@@ -60,6 +63,21 @@ class CudnnContext {
 public:
     explicit CudnnContext(int device_index);
     ~CudnnContext();
+
+    // Wraps cudnnBatchNormalizationForwardTraining.
+    // scale and bias correspond to gamma and beta respectively.
+    void BatchNormalizationForwardTraining(
+            cudnnBatchNormMode_t mode,
+            const Array& x,
+            const Array& y,
+            const Array& scale,
+            const Array& bias,
+            double exponential_average_factor,
+            const Array& result_running_mean,
+            const Array& result_running_variance,
+            double eps,
+            const nonstd::optional<Array>& result_save_mean = nonstd::nullopt,
+            const nonstd::optional<Array>& result_save_inv_variance = nonstd::nullopt);
 
     void ConvolutionForward(
             const Array& x,

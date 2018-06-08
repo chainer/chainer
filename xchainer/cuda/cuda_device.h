@@ -138,8 +138,12 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
-    // TODO(sonots): implement me
-    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override { return nullptr; }
+    // TODO(hvy): implement me
+    std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override { return nullptr; }
+
+    // batch_norm.cu
+
+    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 
 protected:
     CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_context_{index} {}

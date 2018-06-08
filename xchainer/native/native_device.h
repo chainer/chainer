@@ -128,6 +128,10 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
+    // pool.cc
+
+    std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override;
+
     // batch_norm.cc
 
     std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
