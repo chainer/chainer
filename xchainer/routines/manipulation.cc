@@ -131,7 +131,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
         // without copy.
         Shape reduced_shape{};
         Strides reduced_strides{};
-        if (in_shape.GetTotalSize() == 1) {
+        if (total_size == 1) {
             reduced_shape.push_back(int64_t{1});
             reduced_strides.push_back(item_size);
         } else {
