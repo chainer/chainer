@@ -1,10 +1,10 @@
 import sys
+
 import chainer
 import h5py
 import numpy as np
 
 import model
-
 
 # Create a model object first
 model = model.MLP()
@@ -32,11 +32,10 @@ def save_parameters_as_hdf5(model, filename='model.h5'):
     print('--- The list of saved params in model.h5 ---')
     f = h5py.File('model.h5', 'r')
     for param_key, param in f.items():
-        sys.stdout.write('{}:'.format(param_key))
+        msg = '{}:'.format(param_key)
         if isinstance(param, h5py.Dataset):
-            print(' {}'.format(param.shape))
-        else:
-            print('')
+            msg += ' {}'.format(param.shape)
+        print(msg)
         if isinstance(param, h5py.Group):
             for child_key, child in param.items():
                 print('  {}:{}'.format(child_key, child.shape))
