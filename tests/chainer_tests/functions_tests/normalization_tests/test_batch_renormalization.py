@@ -89,11 +89,10 @@ class TestBatchRenormalization(unittest.TestCase):
 
         self.train = True
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args):
         with chainer.using_config('train',  self.train):
@@ -153,7 +152,6 @@ class TestBatchRenormalization(unittest.TestCase):
             tested[0], expected[0], **self.check_forward_options)
 
         # test backward
-        self.check_backward_options.pop('dtype')
         for g, g_expected in zip(tested[1:], expected[1:]):
             testing.assert_allclose(
                 g, g_expected, **self.check_backward_options)
