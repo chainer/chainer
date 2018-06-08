@@ -315,7 +315,7 @@ class EnvVarScope {
 public:
     EnvVarScope(std::string name, const std::string& value) : name_(std::move(name)) {
         const char* old_value = getenv(name_.c_str());
-        if (old_value) {
+        if (old_value != nullptr) {
             old_value_ = std::string(old_value);
         }
         setenv(name_.c_str(), value.c_str(), 1);
