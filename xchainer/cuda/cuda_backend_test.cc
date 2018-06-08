@@ -313,7 +313,7 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
 
 class EnvVarScope {
 public:
-    EnvVarScope(const std::string& name, const std::string& value) : name_(name) {
+    EnvVarScope(std::string name, const std::string& value) : name_(std::move(name)) {
         const char* old_value = getenv(name_.c_str());
         if (old_value) {
             old_value_ = std::string(old_value);
