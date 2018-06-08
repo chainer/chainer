@@ -57,8 +57,8 @@ class distribution_unittest(unittest.TestCase):
     def test_batch_shape_cpu(self):
         self.assertEqual(self.cpu_dist.batch_shape, self.shape)
 
-    @skip_not_in_test_target('batch_shape')
     @attr.gpu
+    @skip_not_in_test_target('batch_shape')
     def test_batch_shape_gpu(self):
         self.assertEqual(self.gpu_dist.batch_shape, self.shape)
 
@@ -75,8 +75,8 @@ class distribution_unittest(unittest.TestCase):
     def test_cdf_cpu(self):
         self.check_cdf(False)
 
-    @skip_not_in_test_target('cdf')
     @attr.gpu
+    @skip_not_in_test_target('cdf')
     def test_cdf_gpu(self):
         self.check_cdf(True)
 
@@ -100,8 +100,8 @@ class distribution_unittest(unittest.TestCase):
     def test_entropy_cpu(self):
         self.check_entropy(False)
 
-    @skip_not_in_test_target('entropy')
     @attr.gpu
+    @skip_not_in_test_target('entropy')
     def test_entropy_gpu(self):
         self.check_entropy(True)
 
@@ -109,8 +109,8 @@ class distribution_unittest(unittest.TestCase):
     def test_event_shape_cpu(self):
         self.assertEqual(self.cpu_dist.event_shape, self.event_shape)
 
-    @skip_not_in_test_target('event_shape')
     @attr.gpu
+    @skip_not_in_test_target('event_shape')
     def test_event_shape_gpu(self):
         self.assertEqual(self.gpu_dist.event_shape, self.event_shape)
 
@@ -129,8 +129,8 @@ class distribution_unittest(unittest.TestCase):
     def test_icdf_cpu(self):
         self.check_icdf(False)
 
-    @skip_not_in_test_target('icdf')
     @attr.gpu
+    @skip_not_in_test_target('icdf')
     def test_icdf_gpu(self):
         self.check_icdf(True)
 
@@ -147,8 +147,8 @@ class distribution_unittest(unittest.TestCase):
     def test_log_cdf_cpu(self):
         self.check_log_cdf(False)
 
-    @skip_not_in_test_target('log_cdf')
     @attr.gpu
+    @skip_not_in_test_target('log_cdf')
     def test_log_cdf_gpu(self):
         self.check_log_cdf(True)
 
@@ -189,8 +189,8 @@ class distribution_unittest(unittest.TestCase):
     def test_log_prob_cpu(self):
         self.check_log_prob(False)
 
-    @skip_not_in_test_target('log_prob')
     @attr.gpu
+    @skip_not_in_test_target('log_prob')
     def test_log_prob_gpu(self):
         self.check_log_prob(True)
 
@@ -208,8 +208,8 @@ class distribution_unittest(unittest.TestCase):
     def test_log_survival_cpu(self):
         self.check_log_survival(False)
 
-    @skip_not_in_test_target('log_survival')
     @attr.gpu
+    @skip_not_in_test_target('log_survival')
     def test_log_survival_gpu(self):
         self.check_log_survival(True)
 
@@ -235,8 +235,8 @@ class distribution_unittest(unittest.TestCase):
     def test_mean_cpu(self):
         self.check_mean(False)
 
-    @skip_not_in_test_target('mean')
     @attr.gpu
+    @skip_not_in_test_target('mean')
     def test_mean_gpu(self):
         self.check_mean(True)
 
@@ -256,8 +256,8 @@ class distribution_unittest(unittest.TestCase):
     def test_prob_cpu(self):
         self.check_prob(False)
 
-    @skip_not_in_test_target('prob')
     @attr.gpu
+    @skip_not_in_test_target('prob')
     def test_prob_gpu(self):
         self.check_prob(True)
 
@@ -297,8 +297,8 @@ class distribution_unittest(unittest.TestCase):
     def test_sample_cpu(self):
         self.check_sample(False)
 
-    @skip_not_in_test_target('sample')
     @attr.gpu
+    @skip_not_in_test_target('sample')
     def test_sample_gpu(self):
         self.check_sample(True)
 
@@ -314,8 +314,8 @@ class distribution_unittest(unittest.TestCase):
     def test_stddev_cpu(self):
         self.check_stddev(False)
 
-    @skip_not_in_test_target('stddev')
     @attr.gpu
+    @skip_not_in_test_target('stddev')
     def test_stddev_gpu(self):
         self.check_stddev(True)
 
@@ -323,8 +323,8 @@ class distribution_unittest(unittest.TestCase):
     def test_support_cpu(self):
         self.assertEqual(self.cpu_dist.support, self.support)
 
-    @skip_not_in_test_target('support')
     @attr.gpu
+    @skip_not_in_test_target('support')
     def test_support_gpu(self):
         self.assertEqual(self.gpu_dist.support, self.support)
 
@@ -342,8 +342,8 @@ class distribution_unittest(unittest.TestCase):
     def test_survival_cpu(self):
         self.check_survival(False)
 
-    @skip_not_in_test_target('survival')
     @attr.gpu
+    @skip_not_in_test_target('survival')
     def test_survival_gpu(self):
         self.check_survival(True)
 
@@ -369,7 +369,7 @@ class distribution_unittest(unittest.TestCase):
     def test_variance_cpu(self):
         self.check_variance(False)
 
-    @skip_not_in_test_target('variance')
     @attr.gpu
+    @skip_not_in_test_target('variance')
     def test_variance_gpu(self):
         self.check_variance(True)
