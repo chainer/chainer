@@ -160,21 +160,40 @@ Array ConvTranspose(
     Shape kernel_size{w.shape().begin() + 2, w.shape().end()};
 
     bool cover_all = false;
-    bool cover_all_determined = false;
 
     // Compute out_size if not specified
     StackVector<int64_t, kMaxNdim> real_out_size;
     if (out_size.has_value()) {
         real_out_size = *out_size;
-    } else {
-        cover_all_determined = true;
+
+        for (int64_t size : real_out_size) {
+            if (size < 0) {
+                throw DimensionError{"All output sizes must be non-negative."};
+            }
+        }
+
+        // Detect cover_all from out_size
         for (int8_t i = 0; i < ndim; ++i) {
-            real_out_size.emplace_back(internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all));
+            if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], false)) {
+                cover_all = true;
+                break;
+            }
+        }
+    } else {
+        // cover_all is assumed to be false.
+        for (int8_t i = 0; i < ndim; ++i) {
+            int64_t out_dim = internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all);
+            if (out_dim < 0) {
+                throw DimensionError{"Inconsistent dimensions. Output dimension at axis ", i, " would be negative."};
+            }
+            real_out_size.emplace_back(out_dim);
         }
     }
-    for (int64_t size : real_out_size) {
-        if (size < 0) {
-            throw DimensionError{"All output sizes must be positive"};
+
+    // Check out_size and cover_all are consistent
+    for (int8_t i = 0; i < ndim; ++i) {
+        if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], cover_all)) {
+            throw DimensionError{"Output dims ", Shape{real_out_size.begin(), real_out_size.end()}, " are incosistent."};
         }
     }
 
@@ -182,41 +201,21 @@ Array ConvTranspose(
     Array out = x.device().ConvTranspose(x, w, b, stride, pad, real_out_size);
 
     {
-        BackwardBuilder bb{"conv_transpose", {out}};
+        BackwardBuilder bb{"conv_transpose", out};
 
-        if (!x.IsConstant() || !w.IsConstant()) {
-            // Detect cover_all
-            if (!cover_all_determined) {
-                for (int8_t i = 0; i < ndim; ++i) {
-                    if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], false)) {
-                        cover_all = true;
-                        break;
-                    }
-                }
-                cover_all_determined = true;
+        if (!x.IsConstant()) {
+            bb.Define({x}, [ x_shape = x.shape(), w, stride, pad, cover_all ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
+                bctx.input_grad() = Conv(gout, bctx.Cut(w), nonstd::nullopt, stride, pad, cover_all);
+            });
+        }
 
-                // Check detected cover_all is consistent
-                for (int8_t i = 0; i < ndim; ++i) {
-                    if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], cover_all)) {
-                        throw XchainerError{"Output dims ", Shape{real_out_size.begin(), real_out_size.end()}, " are incosistent."};
-                    }
-                }
-            }
-
-            if (!x.IsConstant()) {
-                bb.Define({x}, [ x_shape = x.shape(), w, stride, pad, cover_all ](BackwardContext & bctx) {
-                    const Array& gout = bctx.output_grad();
-                    StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
-                    bctx.input_grad() = Conv(gout, bctx.Cut(w), nonstd::nullopt, stride, pad, cover_all);
-                });
-            }
-
-            if (!w.IsConstant()) {
-                bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
-                    const Array& gout = bctx.output_grad();
-                    bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, bctx.Cut(x), stride, pad, cover_all);
-                });
-            }
+        if (!w.IsConstant()) {
+            bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, bctx.Cut(x), stride, pad, cover_all);
+            });
         }
 
         if (b.has_value() && !b->IsConstant()) {
