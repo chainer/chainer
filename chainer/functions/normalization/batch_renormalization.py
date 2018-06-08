@@ -27,14 +27,13 @@ def _xhat(x, mean, std, expander):
 class BatchRenormalizationFunction(function.Function):
 
     def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9,
-                 rmax=1, dmax=0, freeze_running_statistics=False):
+                 rmax=1, dmax=0):
         self.running_mean = mean
         self.running_var = var
         self.rmax = rmax
         self.dmax = dmax
         self.r = None
         self.d = None
-        self.freeze_running_statistics = freeze_running_statistics
 
         self.eps = eps
         self.mean_cache = None
@@ -80,37 +79,30 @@ class BatchRenormalizationFunction(function.Function):
             var = x.var(axis=axis) + self.eps
         self.std = xp.sqrt(var, dtype=var.dtype)
 
-        if not self.freeze_running_statistics or self.r is None:
-            if configuration.config.train:
-                running_sigma = xp.sqrt(self.running_var + self.eps,
-                                        dtype=self.running_mean.dtype)
-                self.r = xp.clip(self.std / running_sigma,
-                                 1.0 / self.rmax, self.rmax)
-                self.d = xp.clip((mean - self.running_mean) / running_sigma,
-                                 -self.dmax, self.dmax)
+        if configuration.config.train:
+            running_sigma = xp.sqrt(self.running_var + self.eps,
+                                    dtype=self.running_mean.dtype)
+            self.r = xp.clip(self.std / running_sigma,
+                             1.0 / self.rmax, self.rmax)
+            self.d = xp.clip((mean - self.running_mean) / running_sigma,
+                             -self.dmax, self.dmax)
 
-                # Update running statistics:
-                m = x.size // gamma[expander].size
-                self.running_mean *= self.decay
-                adjust = m / max(m - 1., 1.)  # unbiased estimation
-                temp_ar = xp.array(mean)
-                temp_ar *= (1 - self.decay)
-                self.running_mean += temp_ar
-                del temp_ar
-                self.running_var *= self.decay
-                temp_ar = xp.array(var)
-                temp_ar *= (1 - self.decay) * adjust
-                self.running_var += temp_ar
-                del temp_ar
-            else:
-                self.r = xp.ones_like(gamma)
-                self.d = xp.zeros_like(gamma)
-
-        if self.freeze_running_statistics:
-            # Need to explicitly cast during gradient check, as r and d are
-            # not updated during finite differences
-            self.r = self.r.astype(gamma.dtype)
-            self.d = self.d.astype(gamma.dtype)
+            # Update running statistics:
+            m = x.size // gamma[expander].size
+            self.running_mean *= self.decay
+            adjust = m / max(m - 1., 1.)  # unbiased estimation
+            temp_ar = xp.array(mean)
+            temp_ar *= (1 - self.decay)
+            self.running_mean += temp_ar
+            del temp_ar
+            self.running_var *= self.decay
+            temp_ar = xp.array(var)
+            temp_ar *= (1 - self.decay) * adjust
+            self.running_var += temp_ar
+            del temp_ar
+        else:
+            self.r = xp.ones_like(gamma)
+            self.d = xp.zeros_like(gamma)
 
         gamma = gamma[expander]
         beta = beta[expander]
