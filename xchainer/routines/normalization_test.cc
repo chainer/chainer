@@ -30,10 +30,6 @@ private:
 };
 
 TEST_P(NormalizationTest, BatchNorm) {
-    if (GetParam() == "cuda") {
-        // TODO(hvy): Add CUDA implementation
-        return;
-    }
     using T = float;
 
     Shape x_shape{3, 4, 2, 1};
@@ -58,16 +54,16 @@ TEST_P(NormalizationTest, BatchNorm) {
     Array out = BatchNorm(a, gamma, beta, running_mean, running_var, eps, decay);
 
     // Expectations were computed using Chainer.
-    Array e_out = testing::BuildArray(x_shape).WithData<float>({0.43345568, 0.9024843,   -0.27429962, 0.6594735,  0.6550931,  0.18604966,
-                                                                0.5901094,  -0.19329488, 1.6671101,   0.14835835, 0.12437291, -0.0761953,
-                                                                0.1049637,  0.25257912,  -0.22290352, 1.3381515,  0.0976615,  1.0142955,
-                                                                0.49441338, 0.88410795,  -0.22555014, 0.360244,   0.80405533, 0.7667286});
+    Array e_out = testing::BuildArray(x_shape).WithData<T>({0.43345568, 0.9024843,   -0.27429962, 0.6594735,  0.6550931,  0.18604966,
+                                                            0.5901094,  -0.19329488, 1.6671101,   0.14835835, 0.12437291, -0.0761953,
+                                                            0.1049637,  0.25257912,  -0.22290352, 1.3381515,  0.0976615,  1.0142955,
+                                                            0.49441338, 0.88410795,  -0.22555014, 0.360244,   0.80405533, 0.7667286});
     Array e_running_mean =
             testing::BuildArray(reduced_shape)
-                    .WithData<float>({0.32339868, 0.8161536, 0.23810402, 0.34773383, 0.59947413, 0.88410705, 0.10184264, 0.31641942});
+                    .WithData<T>({0.32339868, 0.8161536, 0.23810402, 0.34773383, 0.59947413, 0.88410705, 0.10184264, 0.31641942});
     Array e_running_var =
             testing::BuildArray(reduced_shape)
-                    .WithData<float>({0.7451742, 0.33908403, 0.01705596, 0.76526403, 0.08779196, 0.00319096, 0.6016993, 0.60400796});
+                    .WithData<T>({0.7451742, 0.33908403, 0.01705596, 0.76526403, 0.08779196, 0.00319096, 0.6016993, 0.60400796});
 
     testing::ExpectAllClose(e_out, out, 1e-6f, 1e-6f);
     testing::ExpectAllClose(e_running_mean, running_mean, 1e-6f, 1e-6f);
@@ -75,16 +71,12 @@ TEST_P(NormalizationTest, BatchNorm) {
 }
 
 TEST_P(NormalizationTest, BatchNormWithAxis) {
-    if (GetParam() == "cuda") {
-        // TODO(hvy): Add CUDA implementation
-        return;
-    }
     using T = float;
 
     Shape x_shape{3, 4, 2, 1};
-    Shape reduced_shape{4, 1};
-    Axes axis{0, 2};
-    Scalar eps{1e-5f};
+    Shape reduced_shape{4};
+    Axes axis{0, 2, 3};
+    Scalar eps{2e-5f};
     Scalar decay{0.8f};
 
     // Input data were generated randomly.
@@ -99,14 +91,14 @@ TEST_P(NormalizationTest, BatchNormWithAxis) {
     Array out = BatchNorm(a, gamma, beta, running_mean, running_var, eps, decay, axis);
 
     // Expectations were computed using Chainer.
-    Array e_out = testing::BuildArray(x_shape).WithData<float>(
-            {-0.4931047,  0.88867813,  0.96136284,  0.5786838,   -0.08176702, 1.3705747,  -0.05147286, 0.31848282,
-             0.48396856,  -0.09601258, -0.25695923, 0.562902,    0.35752136,  0.7790225,  0.41560876,  -0.23286907,
-             -0.01872858, -0.29866958, -0.17327842, -0.35529473, 1.2525094,   0.43257034, 0.12490187,  0.33066076});
-    Array e_running_mean = testing::BuildArray(reduced_shape).WithData<float>({0.35380796, 0.3172636, 0.79048187, 0.6975811});
-    Array e_running_var = testing::BuildArray(reduced_shape).WithData<float>({0.01976142, 0.7138863, 0.16801749, 0.18175972});
+    Array e_out = testing::BuildArray(x_shape).WithData<T>({-0.4931047,  0.88867813,  0.96136284, 0.5786838,   -0.08176702, 1.3705747,
+                                                            -0.05147286, 0.31848282,  0.48396856, -0.09601258, -0.25695923, 0.562902,
+                                                            0.35752136,  0.7790225,   0.41560876, -0.23286907, -0.01872858, -0.29866958,
+                                                            -0.17327842, -0.35529473, 1.2525094,  0.43257034,  0.12490187,  0.33066076});
+    Array e_running_mean = testing::BuildArray(reduced_shape).WithData<T>({0.35380796, 0.3172636, 0.79048187, 0.6975811});
+    Array e_running_var = testing::BuildArray(reduced_shape).WithData<T>({0.01976142, 0.7138863, 0.16801749, 0.18175972});
 
-    testing::ExpectAllClose(e_out, out, 1e-6f, 1e-6f);
+    testing::ExpectAllClose(e_out, out, 1e-6f, 1e-4f);
     testing::ExpectAllClose(e_running_mean, running_mean, 1e-6f, 1e-6f);
     testing::ExpectAllClose(e_running_var, running_var, 1e-6f, 1e-6f);
 }
