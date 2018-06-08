@@ -407,8 +407,8 @@ void CudnnContext::ConvolutionForward(
     assert(&w.device() == &x.device());
     assert(w.dtype() == x.dtype());
 
-    auto& device = static_cast<CudaDevice&>(x.device());
-    auto& backend = static_cast<CudaBackend&>(device.backend());
+    auto& device = dynamic_cast<CudaDevice&>(x.device());
+    auto& backend = dynamic_cast<CudaBackend&>(device.backend());
 
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
@@ -462,8 +462,8 @@ void CudnnContext::ConvolutionBackwardData(
     assert(&w.device() == &x.device());
     assert(w.dtype() == x.dtype());
 
-    auto& device = static_cast<CudaDevice&>(x.device());
-    auto& backend = static_cast<CudaBackend&>(device.backend());
+    auto& device = dynamic_cast<CudaDevice&>(x.device());
+    auto& backend = dynamic_cast<CudaBackend&>(device.backend());
 
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
@@ -516,8 +516,8 @@ void CudnnContext::ConvolutionBackwardFilter(
     assert(x.dtype() == gy.dtype());
     assert(x.dtype() == gw.dtype());
 
-    CudaDevice& device = static_cast<CudaDevice&>(x.device());
-    CudaBackend& backend = static_cast<CudaBackend&>(device.backend());
+    CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
+    CudaBackend& backend = dynamic_cast<CudaBackend&>(device.backend());
 
     Array x_cont = AsContiguousArray(x);
     Array gy_cont = AsContiguousArray(gy);
