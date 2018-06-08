@@ -156,12 +156,14 @@ def static_forward_optimizations(func, inputs):
     to automatically wrap it to be compatible.
 
     This function should be called from the ``FunctionNode`` apply() method
-    just after func.forward() is called.
+    in place of the original `func.forward(inputs)` call.
 
     Args:
         func (instance of FunctionNode):
-        inputs (tuple of ndarray): input arrays to func
+        inputs (tuple of ndarray): input arrays to `func`
 
+    Returns:
+        (tuple of ndarray): The outputs of the function.
     """
 
     schedule_function = chainer.config.schedule_func
