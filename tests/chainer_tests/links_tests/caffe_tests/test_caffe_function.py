@@ -573,6 +573,35 @@ class TestLeakyReLU(TestCaffeFunctionBaseMock):
         self.mock.assert_called_once_with(self.inputs[0], slope=0.5)
 
 
+class TestReshape(TestCaffeFunctionBaseMock):
+
+    func_name = 'chainer.functions.reshape'
+    in_shapes = [(3, 2, 3)]
+    out_shapes = [(3, 6)]
+
+    data = {
+        'layer': [
+            {
+                'name': 'l1',
+                'type': 'Reshape',
+                'bottom': ['x'],
+                'top': ['y'],
+                'reshape_param': {
+                    'shape': {
+                        'dim': [3, 6]
+                    }
+                }
+            }
+        ]
+    }
+
+    def test_reshape(self):
+        self.init_func()
+        self.assertEqual(len(self.func.layers), 1)
+        self.call(['x'], ['y'])
+        self.mock.assert_called_once_with(self.inputs[0], shape=[3, 6])
+
+
 class TestBatchNorm(TestCaffeFunctionBaseMock):
 
     func_name = 'chainer.links.BatchNormalization.__call__'
