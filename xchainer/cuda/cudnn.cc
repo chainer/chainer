@@ -65,7 +65,7 @@ const void* GetValuePtr(Dtype dtype) {
 
 template <typename T, typename U, typename... ErrorArgs>
 T narrow(U u, const ErrorArgs&... error_args) {
-    T t = static_cast<T>(u);
+    auto t = static_cast<T>(u);
     if (static_cast<U>(t) != u) {
         throw XchainerError{error_args...};
     }
