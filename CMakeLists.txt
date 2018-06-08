@@ -22,8 +22,14 @@ include(cmake/third-party.cmake)
 # Configure options
 option(BUILD_PYTHON "Build Python binding" OFF)
 option(ENABLE_TEST "Enable building test" ON)
-option(ENABLE_COVERAGE "Enable test coverage with gcov" OFF)
 option(WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" OFF)
+
+if(DEFINED ENV{ENABLE_COVERAGE})
+    set(DEFAULT_ENABLE_COVERAGE $ENV{ENABLE_COVERAGE})
+else()
+    set(DEFAULT_ENABLE_COVERAGE OFF)
+endif()
+option(ENABLE_COVERAGE "Enable test coverage with gcov" ${DEFAULT_ENABLE_COVERAGE})
 
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
