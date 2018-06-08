@@ -205,6 +205,7 @@ Mathematical functions
    chainer.functions.batch_det
    chainer.functions.erf
    chainer.functions.erfc
+   chainer.functions.erfinv
    chainer.functions.exp
    chainer.functions.expm1
    chainer.functions.fft
