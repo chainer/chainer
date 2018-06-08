@@ -55,15 +55,12 @@ def multi_gpu(gpu_num):
     check_available()
 
     def deco(f):
-        return _multi_gpu(gpu_num)(pytest.mark.gpu(f))
+        return unittest.skipIf(
+            0 <= _gpu_limit < gpu_num,
+            reason='{} GPUs required'.format(gpu_num)
+        )(pytest.mark.gpu(f))
 
     return deco
-
-
-def _multi_gpu(gpu_num):
-    return unittest.skipIf(
-        0 <= _gpu_limit < gpu_num,
-        reason='{} GPUs required'.format(gpu_num))
 
 
 def gpu(f):
