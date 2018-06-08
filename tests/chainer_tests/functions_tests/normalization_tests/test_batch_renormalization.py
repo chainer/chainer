@@ -153,14 +153,13 @@ class TestFixedBatchRenormalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
-    def _pure_forward(self, *args):
-        with testing.assert_warns(DeprecationWarning):
-            return batch_renormalization.fixed_batch_renormalization(
-                *args, eps=self.eps)
+    def _forward(self, *args):
+        return batch_renormalization.fixed_batch_renormalization(
+            *args, eps=self.eps)
 
     def check_forward(self, args):
         with chainer.using_config('train',  self.train):
-            y = self._pure_forward(*args)
+            y = self._forward(*args)
         self.assertEqual(y.data.dtype, self.dtype)
 
         y_expect = _batch_renormalization(
@@ -183,7 +182,7 @@ class TestFixedBatchRenormalization(unittest.TestCase):
     def check_backward(self, args, y_grad):
         with chainer.using_config('train',  self.train):
             gradient_check.check_backward(
-                self._pure_forward,
+                self._forward,
                 args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
