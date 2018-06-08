@@ -234,8 +234,9 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
 
 def fixed_batch_renormalization(x, gamma, beta, mean, var, eps=2e-5):
     warnings.warn(
-        'fixed_batch_renormalization is deprecated.',
-        FutureWarning)
+        'fixed_batch_renormalization is deprecated. '
+        'Use fixed_batch_normalization instead.',
+        DeprecationWarning)
     with configuration.using_config('train', False):
         return batch_normalization.fixed_batch_normalization(
             x, gamma, beta, mean, var, eps
