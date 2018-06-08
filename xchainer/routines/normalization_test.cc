@@ -98,7 +98,7 @@ TEST_P(NormalizationTest, BatchNormWithAxis) {
     Array e_running_mean = testing::BuildArray(reduced_shape).WithData<T>({0.35380796, 0.3172636, 0.79048187, 0.6975811});
     Array e_running_var = testing::BuildArray(reduced_shape).WithData<T>({0.01976142, 0.7138863, 0.16801749, 0.18175972});
 
-    testing::ExpectAllClose(e_out, out, 1e-4f, 1e-4f);
+    testing::ExpectAllClose(e_out, out, 1e-6f, 1e-4f);
     testing::ExpectAllClose(e_running_mean, running_mean, 1e-6f, 1e-6f);
     testing::ExpectAllClose(e_running_var, running_var, 1e-6f, 1e-6f);
 }
