@@ -1,8 +1,11 @@
+import warnings
+
 import numpy
 
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function
+from chainer.functions.normalization import batch_normalization
 from chainer.utils import type_check
 
 
@@ -230,6 +233,10 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
 
 
 def fixed_batch_renormalization(x, gamma, beta, mean, var, eps=2e-5):
+    warnings.warn(
+        'fixed_batch_renormalization is deprecated.',
+        FutureWarning)
     with configuration.using_config('train', False):
-        return BatchRenormalizationFunction(eps, None, None, 0.0)(
-            x, gamma, beta, mean, var)
+        return batch_normalization.fixed_batch_normalization(
+            x, gamma, beta, mean, var, eps
+        )
