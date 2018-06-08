@@ -110,10 +110,14 @@ def _check_xchainer_numpy_result_impl(check_result_func, xchainer_result, numpy_
     # This function raises _ResultsCheckFailure if any failure occurs.
     # `indices` is a tuple of indices to reach both `xchainer_results` and `numpy_results` from top-level results.
 
+    if xchainer_result is _ignored_result and numpy_result is _ignored_result:
+        return
+
     if isinstance(xchainer_result, tuple):
         if not isinstance(numpy_result, tuple):
             raise _ResultsCheckFailure('Different result types', indices)
-        assert len(xchainer_result) == len(numpy_result)
+        if len(xchainer_result) != len(numpy_result):
+            raise _ResultsCheckFailure('Result length mismatch', indices)
         for i, (xc_r, np_r) in enumerate(zip(xchainer_result, numpy_result)):
             _check_xchainer_numpy_result_impl(check_result_func, xc_r, np_r, indices + (i,))
 
@@ -145,8 +149,7 @@ def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_resul
 
         def make_message(e):
             indices_str = ''.join(f'[{i}]' for i in indices)
-            s = ''
-            s += f'{e.msg}: {e.condense_results(np_r, xc_r)}\n\n'
+            s = f'{e.msg}: {e.condense_results(np_r, xc_r)}\n\n'
             if len(indices) > 0:
                 s += f'xchainer results{indices_str}: {type(xc_r)}\n'
                 s += f'{xc_r}\n\n'
@@ -158,7 +161,7 @@ def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_resul
             s += f'{numpy_result}\n\n'
             return s
 
-        assert False, make_message(e)
+        raise AssertionError(make_message(e))
 
 
 def _make_decorator(check_result_func, name, accept_error):
