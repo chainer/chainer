@@ -2,6 +2,7 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import configuration
+from chainer.functions.normalization import batch_normalization
 from chainer.functions.normalization import batch_renormalization
 from chainer.links.normalization.batch_normalization import BatchNormalization
 from chainer import variable
@@ -83,6 +84,6 @@ class BatchRenormalization(BatchNormalization):
             # Use running average statistics or fine-tuned statistics.
             mean = variable.Variable(self.avg_mean)
             var = variable.Variable(self.avg_var)
-            ret = batch_renormalization.fixed_batch_renormalization(
+            ret = batch_normalization.fixed_batch_normalization(
                 x, gamma, beta, mean, var, self.eps)
         return ret
