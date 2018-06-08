@@ -17,7 +17,13 @@ option(BUILD_PYTHON "Build Python binding" OFF)
 option(ENABLE_TEST "Enable building test" ON)
 option(ENABLE_COVERAGE "Enable test coverage with gcov" OFF)
 option(WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" OFF)
-option(BUILD_CUDA "Build CUDA backend if available" ON)
+
+if(DEFINED ENV{BUILD_CUDA})
+    set(DEFAULT_BUILD_CUDA $ENV{BUILD_CUDA})
+else()
+    set(DEFAULT_BUILD_CUDA ON)
+endif()
+option(BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT_BUILD_CUDA})
 
 # CUDA
 if(${BUILD_CUDA})
