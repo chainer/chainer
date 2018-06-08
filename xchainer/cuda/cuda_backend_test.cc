@@ -1,6 +1,6 @@
 #include "xchainer/cuda/cuda_backend.h"
 
-#include <stdlib.h>
+#include <stdlib.h>  // NOLINT
 
 #include <tuple>
 
