@@ -18,9 +18,9 @@ class Classifier(link.Chain):
             You can specify one of loss functions from
             :doc:`built-in loss functions </reference/functions>`, or
             your own loss function (see the example below).
-            The function must accept two argument; the first is an output from
-            predictor (Variable in general), and the second is the ground truth
-            labels.
+            The function must accept two argument (Variable which is an output
+            from predictor, and its ground truth labels), and return a
+            Variable.
         accfun (callable):
             Function that computes accuracy.
             You can specify one of evaluation functions from
