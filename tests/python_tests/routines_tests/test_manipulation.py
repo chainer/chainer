@@ -151,20 +151,26 @@ _reshape_shape = [
 @xchainer.testing.numpy_xchainer_array_equal()
 @pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
 @pytest.mark.parametrize('shape_type', [tuple, list])
-def test_reshape(is_module, xp, a_shape, b_shape, shape_type):
-    # TODO(niboshi): Remove padding=False
-    a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64', padding=False)
+@pytest.mark.parametrize('padding', [False, True])
+def test_reshape(is_module, xp, a_shape, b_shape, shape_type, padding):
+    a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64', padding=padding)
     if is_module:
         b = xp.reshape(a, shape_type(b_shape))
     else:
         b = a.reshape(shape_type(b_shape))
 
     if xp is xchainer:
-        assert b.is_contiguous
-        assert a._debug_data_memory_address == b._debug_data_memory_address, 'Reshape must be done without copy'
-        assert numpy.arange(a.size).reshape(b_shape).strides == b.strides, 'Strides after reshape must match NumPy behavior'
+        copied = a._debug_data_memory_address != b._debug_data_memory_address
+    else:
+        copied = a.ctypes.data != b.ctypes.data
 
-    return b
+    if copied:
+        if xp is xchainer:
+            assert b.is_contiguous
+        else:
+            assert b.flags.c_contiguous
+
+    return copied, b
 
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError, xchainer.XchainerError))
