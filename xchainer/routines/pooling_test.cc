@@ -34,7 +34,7 @@ private:
 
 TEST_P(PoolingTest, MaxPool) {
     if (GetParam() == "cuda") {
-        // TODO(hvy): Test CUDA when implemented.
+        // CuDNN convolution does not support cover_all, which is true by default.
         return;
     }
     using T = float;
@@ -78,7 +78,7 @@ TEST_P(PoolingTest, MaxPool) {
                                0.87756634, 0.3690981,  0.6356852})
                       .WithPadding(1);  // Computed with Chainer.
 
-    Array out = MaxPool(x, kernel_size, stride, pad);
+    Array out = MaxPool(x, kernel_size, stride, pad);  // cover_all should be true.
 
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
             {0.9677815,  0.9677815,  0.6074731,  0.97462624, 0.97462624, 0.80568856, 0.7416107,  0.34700692, 0.80568856, 0.8825699,
@@ -96,11 +96,7 @@ TEST_P(PoolingTest, MaxPool) {
     testing::ExpectEqual(e_out, out);
 }
 
-TEST_P(PoolingTest, MaxPoolCoverAll) {
-    if (GetParam() == "cuda") {
-        // TODO(hvy): Test CUDA when implemented.
-        return;
-    }
+TEST_P(PoolingTest, MaxPoolNoCoverAll) {
     using T = float;
 
     int64_t batch_size = 3;

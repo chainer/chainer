@@ -72,36 +72,28 @@ T narrow(U u, const ErrorArgs&... error_args) {
     return t;
 }
 
-StackVector<int, kMaxNdim> GetIntShape(const Shape& shape) {
-    StackVector<int, kMaxNdim> int_shape;
-    for (int8_t i = 0; i < shape.ndim(); ++i) {
-        int_shape.emplace_back(narrow<int>(shape[i], "Casting the shape size: ", shape[i], " at dimension: ", i, " to int failed."));
+template <typename T>
+StackVector<int, kMaxNdim> GetIntStackVector(const T& container, const char* src) {
+    StackVector<int, kMaxNdim> int_container;
+    for (size_t i = 0; i < container.size(); ++i) {
+        int_container.emplace_back(
+                narrow<int>(container[i], "Casting the ", src, ": ", container[i], " at dimension: ", i, " to int failed."));
     }
-    return int_shape;
+    return int_container;
 }
 
-StackVector<int, kMaxNdim> GetIntStride(const StackVector<int64_t, kMaxNdim>& stride) {
-    StackVector<int, kMaxNdim> int_stride;
-    for (size_t i = 0; i < stride.size(); ++i) {
-        int_stride.emplace_back(narrow<int>(stride[i], "Casting the stride: ", stride[i], " at dimension: ", i, " to int failed."));
-    }
-    return int_stride;
+StackVector<int, kMaxNdim> GetIntShape(const Shape& shape) { return GetIntStackVector(shape, "shape size"); }
+
+StackVector<int, kMaxNdim> GetIntKernelSize(const StackVector<int64_t, kMaxNdim>& kernel_size) {
+    return GetIntStackVector(kernel_size, "kernel size");
 }
 
-StackVector<int, kMaxNdim> GetIntPad(const StackVector<int64_t, kMaxNdim>& pad) {
-    StackVector<int, kMaxNdim> int_pad;
-    for (size_t i = 0; i < pad.size(); ++i) {
-        int_pad.emplace_back(narrow<int>(pad[i], "Casting the pad: ", pad[i], " at dimension: ", i, " to int failed."));
-    }
-    return int_pad;
-}
+StackVector<int, kMaxNdim> GetIntStride(const StackVector<int64_t, kMaxNdim>& stride) { return GetIntStackVector(stride, "stride"); }
+
+StackVector<int, kMaxNdim> GetIntPad(const StackVector<int64_t, kMaxNdim>& pad) { return GetIntStackVector(pad, "pad"); }
 
 StackVector<int, kMaxNdim> GetIntDilation(const StackVector<int64_t, kMaxNdim>& dilation) {
-    StackVector<int, kMaxNdim> int_dilation;
-    for (size_t i = 0; i < dilation.size(); ++i) {
-        int_dilation.emplace_back(narrow<int>(dilation[i], "Casting the dilation: ", dilation[i], " at dimension: ", i, " to int failed."));
-    }
-    return int_dilation;
+    return GetIntStackVector(dilation, "dilation");
 }
 
 // Returns strides divided by item_size
@@ -519,6 +511,73 @@ CudnnContext::ConvolutionDescriptor::ConvolutionDescriptor(
     }
     if (groups > 1) {
         CheckCudnnError(cudnnSetConvolutionGroupCount(desc_, groups));
+    }
+}
+
+void CudnnContext::MaxPoolingForward(
+        const Array& x,
+        const Array& y,
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride) {
+    assert(&y.device() == &x.device());
+    assert(y.dtype() == x.dtype());
+
+    Array x_cont = AsContiguousArray(x);
+    assert(y.IsContiguous());
+
+    TensorDescriptor x_desc{x_cont};
+    TensorDescriptor y_desc{y};
+    PoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
+
+    CheckCudnnError(cudnnPoolingForward(
+            handle(),
+            *pool_desc,
+            GetValuePtr<1>(x.dtype()),
+            *x_desc,
+            xchainer::internal::GetRawOffsetData<void>(x_cont),
+            GetValuePtr<0>(x.dtype()),
+            *y_desc,
+            xchainer::internal::GetRawOffsetData<void>(y)));
+}
+
+CudnnContext::PoolingDescriptor::PoolingDescriptor() { CheckCudnnError(cudnnCreatePoolingDescriptor(&desc_)); }
+
+CudnnContext::PoolingDescriptor::~PoolingDescriptor() {
+    if (desc_ != nullptr) {
+        CheckCudnnError(cudnnDestroyPoolingDescriptor(desc_));
+    }
+}
+
+CudnnContext::PoolingDescriptor::PoolingDescriptor(
+        cudnnPoolingMode_t mode,
+        cudnnNanPropagation_t max_pooling_nan_opt,
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& stride)
+    : PoolingDescriptor{} {
+    size_t ndim = kernel_size.size();
+    assert(ndim == pad.size());
+    assert(ndim == stride.size());
+
+    StackVector<int, kMaxNdim> int_kernel_size = GetIntKernelSize(kernel_size);
+    StackVector<int, kMaxNdim> int_pad = GetIntPad(pad);
+    StackVector<int, kMaxNdim> int_stride = GetIntStride(stride);
+
+    if (ndim == 2) {
+        CheckCudnnError(cudnnSetPooling2dDescriptor(
+                desc_,
+                mode,
+                max_pooling_nan_opt,
+                int_kernel_size[0],
+                int_kernel_size[1],
+                int_pad[0],
+                int_pad[1],
+                int_stride[0],
+                int_stride[1]));
+    } else {
+        CheckCudnnError(
+                cudnnSetPoolingNdDescriptor(desc_, mode, max_pooling_nan_opt, ndim, &int_kernel_size[0], &int_pad[0], &int_stride[0]));
     }
 }
 
