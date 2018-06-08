@@ -41,12 +41,8 @@ class BatchRenormalizationFunction(function.Function):
         self.decay = decay
 
     def check_type_forward(self, in_types):
-        n_in = type_check.eval(in_types.size())
-        if n_in != 3 and n_in != 5:
-            raise type_check.InvalidType(
-                '%s or %s' % (in_types.size() == 3, in_types.size() == 5),
-                '%s == %s' % (in_types.size(), n_in))
-        x_type, gamma_type, beta_type = in_types[:3]
+        type_check.expect(in_types.size() == 3)
+        x_type, gamma_type, beta_type = in_types
         M = type_check.eval(gamma_type.ndim)
         type_check.expect(
             x_type.dtype.kind == 'f',
@@ -57,22 +53,13 @@ class BatchRenormalizationFunction(function.Function):
             beta_type.dtype == x_type.dtype,
             gamma_type.shape == beta_type.shape,
         )
-        if len(in_types) == 5:
-            mean_type, var_type = in_types[3:]
-            type_check.expect(
-                mean_type.dtype == x_type.dtype,
-                mean_type.shape == gamma_type.shape,
-                var_type.dtype == x_type.dtype,
-                var_type.shape == gamma_type.shape,
-            )
 
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
-        x, gamma, beta = inputs[:3]
+        x, gamma, beta = inputs
 
-        # Note: If length of inputs is not 5, we must be in train mode.
-        if len(inputs) != 5:
-            assert configuration.config.train
+        # Note: we must be in train mode.
+        assert configuration.config.train
 
         if configuration.config.train:
             if self.running_mean is None:
@@ -81,9 +68,6 @@ class BatchRenormalizationFunction(function.Function):
             else:
                 self.running_mean = xp.array(self.running_mean)
                 self.running_var = xp.array(self.running_var)
-        elif len(inputs) == 5:
-            fixed_mean = inputs[3]
-            fixed_var = inputs[4]
 
         head_ndim = gamma.ndim + 1
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
@@ -94,9 +78,6 @@ class BatchRenormalizationFunction(function.Function):
             axis = (0,) + tuple(range(head_ndim, x.ndim))
             mean = x.mean(axis=axis)
             var = x.var(axis=axis) + self.eps
-        else:
-            mean = fixed_mean
-            var = fixed_var + self.eps
         self.std = xp.sqrt(var, dtype=var.dtype)
 
         if not self.freeze_running_statistics or self.r is None:
@@ -155,29 +136,15 @@ class BatchRenormalizationFunction(function.Function):
         return y,
 
     def backward(self, inputs, grad_outputs):
-        x, gamma = inputs[:2]
+        x, gamma, _ = inputs
         gy = grad_outputs[0]
         head_ndim = gamma.ndim + 1
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
         m = gamma.dtype.type(x.size // gamma.size)
         axis = (0,) + tuple(range(head_ndim, x.ndim))
         xp = cuda.get_array_module(x)
-        if len(inputs) == 5:
-            # This case is unlikely to be used in practice and so does not
-            # need to be optimized for performance.
-            mean = inputs[3]
-            var = inputs[4] + self.eps
-            std = xp.sqrt(var, dtype=var.dtype)
-            gs = gamma / std
-            gbeta = gy.sum(axis=axis)
-            x_hat = _xhat(x, mean, std, expander)
-            ggamma = (gy * x_hat).sum(axis=axis)
-            gmean = -gs * gbeta
-            gvar = -0.5 * gamma / var * ggamma
-            gx = gs[expander] * gy
-            return gx, ggamma, gbeta, gmean, gvar
 
-        # Note: If length of inputs is not 5, we must be in train mode.
+        # Note: we must be in train mode.
         assert configuration.config.train
         # NOTE(tommi): cuDNN is not used since it does not support
         # batch renormalization
