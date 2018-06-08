@@ -5,13 +5,14 @@ from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
 from chainer.graph_optimizations.static_graph_utilities \
-    import static_schedule_func
+    import static_code
 from chainer.utils import type_check
 
 
 class LinearFunction(function_node.FunctionNode):
 
     _config_use_ideep = None
+    _supports_static_optimizations = True
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -33,8 +34,10 @@ class LinearFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
 
-    @static_schedule_func
-    def static_linear_no_bias(self, x, W, y, xp, optimized):
+    @static_code
+    def static_linear_no_bias(self, xp, optimized, inputs, outputs):
+        x, W = inputs
+        y = outputs[0]
         # NumPy raises an error when the array is not contiguous.
         # See: https://github.com/chainer/chainer/issues/2744
         # TODO(niboshi): Remove this code when NumPy is fixed.
@@ -51,8 +54,10 @@ class LinearFunction(function_node.FunctionNode):
         else:
             y[:] = x.dot(W.T).astype(x.dtype, copy=False)
 
-    @static_schedule_func
-    def static_add_bias(self, y, bias):
+    @static_code
+    def static_add_bias(self, inputs, outputs):
+        bias = inputs[0]
+        y = outputs[0]
         y += bias
 
     def forward(self, inputs):
@@ -89,9 +94,10 @@ class LinearFunction(function_node.FunctionNode):
         # other than `None`. The reason is to prevent dynamic allocation
         # of output arrays during execution of the static schedule
         # because it would break the model.
-        self.static_linear_no_bias(x, W, y, xp, x.dtype == W.dtype)
+        self.static_linear_no_bias(xp, x.dtype == W.dtype, inputs=[x, W],
+                                   outputs=[y])
         if len(inputs) == 3:
-            self.static_add_bias(y, b)
+            self.static_add_bias(inputs=[b], outputs=[y])
 
         self.retain_inputs((0, 1))  # b is not retained
         return y,
