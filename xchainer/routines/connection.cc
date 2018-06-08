@@ -172,8 +172,6 @@ Array ConvTranspose(
                 break;
             }
         }
-        cover_all_determined = true;
-
         // Check detected cover_all is consistent
         for (int8_t i = 0; i < ndim; ++i) {
             if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], cover_all)) {
