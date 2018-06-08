@@ -19,6 +19,36 @@ def _batch_renormalization(expander, gamma, beta, x, mean, var, r, d):
     return y_expect
 
 
+# naive implementation of differentiable batch renormalization
+def _naive_batch_renormalization(
+        x, gamma, beta, rmax, dmax, eps, avg_mean, avg_std, axis):
+    shape = x.shape
+    stat_shape = list(shape)
+    for i in axis:
+        stat_shape[i] = 1
+    stat_shape = tuple(stat_shape)
+    gamma = chainer.functions.broadcast_to(
+        chainer.functions.reshape(gamma, stat_shape), shape)
+    beta = chainer.functions.broadcast_to(
+        chainer.functions.reshape(beta, stat_shape), shape)
+    avg_mean = avg_mean.reshape(stat_shape)
+    avg_std = avg_std.reshape(stat_shape)
+
+    mean = chainer.functions.broadcast_to(
+        chainer.functions.mean(x, axis=axis, keepdims=True), shape)
+    std = chainer.functions.broadcast_to(
+        chainer.functions.sqrt(
+            eps +
+            chainer.functions.mean(
+                chainer.functions.square(x - mean),
+                axis=axis, keepdims=True)),
+        shape)
+    r = (std.array / avg_std).clip(1./rmax, rmax)
+    d = ((mean.array - avg_mean) / avg_std).clip(-dmax, dmax)
+    xhat = ((x - mean) / std) * r + d
+    return gamma * xhat + beta
+
+
 @testing.parameterize(*(testing.product({
     'param_shape': [(3, 4), (3, 2, 3)],
     'ndim': [0, 1, 2],
@@ -117,6 +147,50 @@ class TestBatchRenormalization(unittest.TestCase):
     @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
+            [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy))
+
+    def check_compare_naive(self, args, y_grad):
+        def compute(f):
+            x, gamma, beta = [chainer.Variable(v.copy()) for v in args]
+            y = f(x, gamma, beta)
+            y.grad = y_grad.copy()
+            y.backward()
+            return y.array, x.grad, gamma.grad, beta.grad
+
+        def f_tested(x, gamma, beta):
+            return batch_renormalization.batch_renormalization(
+                x, gamma, beta, self.rmax, self.dmax,
+                eps=self.eps, running_mean=self.running_mean,
+                running_var=self.running_var)
+
+        def f_expected(x, gamma, beta):
+            return _naive_batch_renormalization(
+                x, gamma, beta, self.rmax, self.dmax, self.eps,
+                avg_mean=self.running_mean,
+                avg_std=(self.eps + self.running_var) ** 0.5,
+                axis=self.aggr_axes)
+
+        tested = compute(f_tested)
+        expected = compute(f_expected)
+
+        # test forward
+        testing.assert_allclose(
+            tested[0], expected[0], **self.check_forward_options)
+
+        # test backward
+        self.check_backward_options.pop('dtype')
+        for g, g_expected in zip(tested[1:], expected[1:]):
+            testing.assert_allclose(
+                g, g_expected, **self.check_backward_options)
+
+    @condition.retry(3)
+    def test_compare_naive_cpu(self):
+        self.check_compare_naive(self.args, self.gy)
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_compare_naive_gpu(self):
+        self.check_compare_naive(
             [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy))
 
 
