@@ -8,13 +8,6 @@ endif()
 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
-# CUDA
-find_package(CUDA QUIET)
-if(${CUDA_FOUND})
-    add_definitions(-DXCHAINER_ENABLE_CUDA=1)
-    find_package(CuDNN 7 REQUIRED)
-endif()
-
 # includes
 include(cmake/clang-tidy.cmake)
 include(cmake/third-party.cmake)
@@ -24,6 +17,16 @@ option(BUILD_PYTHON "Build Python binding" OFF)
 option(ENABLE_TEST "Enable building test" ON)
 option(ENABLE_COVERAGE "Enable test coverage with gcov" OFF)
 option(WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" OFF)
+option(BUILD_CUDA "Build CUDA backend if available" ON)
+
+# CUDA
+if(${BUILD_CUDA})
+    find_package(CUDA QUIET)
+    if(${CUDA_FOUND})
+        add_definitions(-DXCHAINER_ENABLE_CUDA=1)
+        find_package(CuDNN 7 REQUIRED)
+    endif()
+endif()
 
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
