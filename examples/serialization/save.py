@@ -1,5 +1,3 @@
-import sys
-
 import chainer
 import h5py
 import numpy as np

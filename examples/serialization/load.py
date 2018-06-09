@@ -9,7 +9,7 @@ def load_npz_file_to_model(npz_filename='model.npz'):
     model1 = model.MLP()
 
     # Load the saved parameters into the model object
-    chainer.serializers.load_npz(npz_filename, model_object)
+    chainer.serializers.load_npz(npz_filename, model1)
     print('{} loaded!'.format(npz_filename))
 
     return model1
@@ -20,7 +20,7 @@ def load_hdf5_file_to_model(hdf5_filename='model.h5'):
     model2 = model.MLP()
 
     # Load the saved parameters into the model object
-    chainer.serializers.load_hdf5(hdf5_filename, model_object)
+    chainer.serializers.load_hdf5(hdf5_filename, model2)
     print('{} loaded!'.format(hdf5_filename))
 
     return model2
