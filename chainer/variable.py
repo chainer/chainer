@@ -22,15 +22,15 @@ def _check_grad_type(func, x, gx):
         return
     if not chainer.is_arrays_compatible((gx, x.data)):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
-               (type(x.data), type(gx)))
+               (type(gx), type(x.data)))
         typ = TypeError
     elif gx.dtype != x.data.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
-               (x.data.dtype, gx.dtype))
+               (gx.dtype, x.data.dtype))
         typ = TypeError
     elif gx.shape != x.data.shape:
         msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
-               (x.data.shape, gx.shape))
+               (gx.shape, x.data.shape))
         typ = ValueError
     else:
         return
