@@ -1,4 +1,5 @@
 import sys
+import weakref
 
 import chainer
 from chainer.backends import cuda
@@ -151,6 +152,45 @@ class ScheduleInfo(object):
         return out
 
 
+class ArrayInfo(object):
+
+    """Array information needed by the scheduler.
+
+    This contains information about one array used in the
+    naive static schedule corresponding to the
+    define-by-run code.
+
+    """
+
+    def __init__(self):
+        # Weak reference to the array in the define-by-run code.
+        self.weak_ref = None
+        # The array (normal reference)
+        self.array = None
+        self.shape = None
+        self.dtype = None
+        # either numpy or cupy
+        self.ndarray_module = None
+        # device id, if available.
+        self.device = None
+        # It specifies the input variable corresponding
+        # to this array as the tuple (pass_depth, in_var_index).
+        self.in_var_index = None
+        # It specifies the output variable corresponding
+        # to this array as the tuple (pass_depth, out_var_index).
+        self.out_var_index = None
+        # If the array was returned as a dynamically allocated array
+        # in the define-by-run code, this specifies the location
+        # in the schedule as the tuple (pass_depth, sched_func_index)
+        # where sched_func_index is the index of the corresponding
+        # ScheduleInfo object in the StaticScheduleFunction's
+        # self.schedule_info_list
+        self.dynamic_allocation_index = None
+        # This is the same as self.dynamic_allocation_index, but for the
+        # case where the array was statically allocated in the
+        # define-by-run code.
+        self.static_allocation_index = None
+
 class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
     """A function that executes the static schedule of a Chain.
@@ -205,20 +245,31 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
     def __init__(self, schedule_manager, verbosity_level=0,
                  enable_double_backprop=False):
+        # A pass depth of 0 corresponds to the schedule for the forward pass.
+        # A pass depth of 1 corresponds to the schedule for the backward pass.
+        # A pass depth of 2 corresponds to the schedule for the
+        # double-backward pass, and so on.
+        self.pass_depth = 0
         self.schedule_manager = schedule_manager
+        # A list of ScheduleInfo objects, each of which contains one function
+        # in the static schedule. The order of functions in this list is
+        # the order they should be called in the schedule.
         self.schedule_info_list = []
         # A list of all unique ndarrays used in this schedule and any deeply
         # contained schedules (backward, double-backward schedules).
+        # That is, it is shared among all pass depths.
         # Note that this typically includes the ndarray attributes of the
         # parameters of the chain, the input variables to the chain,
         # and any intermediate arrays (activations, etc) created while
         # executing the define-by-run code of the chain.
-        # todo: Consider making this a list of UniqueArray objects, where
+        self.unique_arrays = []
+        # A list of UniqueArray objects, where
         # each object contains information such as what the array corresponds
         # to (variable, parameter.data, etc), weak or regular reference,
         # whether
         # it was dynamically allocated or read-only in the schedule.
-        self.unique_arrays = []
+        # It is the same length as unique_arrays.
+        self.unique_array_infos = []
         # Maps id(ndarray) to its position in self.unique_arrays
         # This is shared by this schedule and all deeply-contained schedules.
         self.array_id_to_unique_index = dict()
@@ -274,6 +325,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         sched = StaticScheduleFunction(self.schedule_manager,
                                        self.verbosity_level,
                                        self.enable_double_backprop)
+        sched.pass_depth = self.pass_depth + 1
         sched.unique_arrays = self.unique_arrays
         sched.array_id_to_unique_index = self.array_id_to_unique_index
         sched.params_list = self.params_list
@@ -404,6 +456,15 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
     def __repr__(self):
         out = "StaticSchedule:\n"
+        if self.pass_depth == 0:
+            depth = 'forward pass'
+        elif self.pass_depth == 1:
+            depth = 'backward pass'
+        elif self.pass_depth == 2:
+            depth = 'double backward pass'
+        else:
+            depth = str(self.pass_depth)
+        out += "Pass depth: " + depth + "\n"
         out += "Length of unique_arrays: " + \
                str(len(self.unique_arrays)) + "\n"
         for x in self.schedule_info_list:
@@ -498,7 +559,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         """
         for hook in self.out_var_hooks:
             (out_var_ind, unique_list_index) = hook
-            out_var = self._out_vars[out_var_ind]
+            out_var = self.out_vars[out_var_ind]
             out_var.data = self.unique_arrays[unique_list_index]
             if self.verbosity_level >= 2:
                 print('StaticScheduleFunction: running output variable hook: '
@@ -518,7 +579,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 forward pass (or corresponding backward pass) on the
                 local sub-graph corresponding to the static chain.
         """
-        self._out_vars = out_vars
+        self.out_vars = out_vars
         # Create output-variable update hooks.
         for var_ind, var in enumerate(out_vars):
             if var is not None:
@@ -631,15 +692,12 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
     def forward(self, inputs):
         if self.verbosity_level >= 2:
             print('Calling StaticScheduleFunction.forward()...')
-            print('with input variable arrays: ', inputs)
 
         # Note: This method will be invoked every iteration starting
         # from the second
-        # iteration. That is because the corresponding define-by-run c
-        # ode runs instead
+        # iteration. That is because the corresponding define-by-run
+        # code runs instead
         # during the first iteration.
-        # Copy any external input arrays into the statically-allocated
-        # arrays:
         if not self.schedule_built:
             raise RuntimeError('forward() was called before '
                                'build_schedule()!')
@@ -657,7 +715,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         self.run_out_var_hooks()
         self.run_param_post_hooks()
         ret = []
-        for y in self._out_vars:
+        for y in self.out_vars:
             if y is None or y.data is None:
                 ret.append(None)
             else:
@@ -689,18 +747,23 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 with chainer.using_config('enable_backprop', True):
                     for ind, var in enumerate(new_grad_outputs):
                         # todo: possibly don't need the following:
-                        self._out_vars[ind].grad = new_grad_outputs[ind].data
+                        self.out_vars[ind].grad = new_grad_outputs[ind].data
 
                     inputs = [param for param in self.chain.params()]
                     for var in self.in_vars:
                         inputs.append(var)
                     # Need shorter var to avoid "line too long error"
                     ugh = self.enable_double_backprop
-                    chainer.grad(self._out_vars,
+                    chainer.grad(self.out_vars,
                                  inputs,
                                  grad_outputs=new_grad_outputs,
                                  set_grad=True,
                                  enable_double_backprop=ugh)
+
+            # We no longer need the backward graph from self.out_vars, so
+            # unchain them.
+            for var in self.out_vars:
+                var.unchain_backward()
 
             # Note: var.grad_var is allowed to be None below:
             backward_out_vars = [var.grad_var for var in self.in_vars]
@@ -732,13 +795,13 @@ class ScheduleManager(object):
     def __init__(self, minimize_cache_size=True, verbosity_level=0):
         # Maps a key string to a list of schedule functions.
         self.schedules = dict()
-        self._minimize_cache_size = minimize_cache_size
+        self.minimize_cache_size = minimize_cache_size
         self.in_use_count = dict()
-        self._end_forward = False
-        self._prev_train_config = None
-        self._max_in_use_train = 0
-        self._train_count = 0
-        self._verbosity_level = verbosity_level
+        self.forward_over = False
+        self.prev_train_config = None
+        self.max_in_use_train = 0
+        self.train_count = 0
+        self.verbosity_level = verbosity_level
 
     def get_schedule(self, in_vars, enable_double_backprop=False):
         """Get a static schedule.
@@ -776,13 +839,13 @@ class ScheduleManager(object):
         Returns:
             An instance of ``StaticScheduleFunction``.
         """
-        if self._end_forward:
-            self._end_forward = False
-        if self._minimize_cache_size:
-            if chainer.config.train != self._prev_train_config:
+        if self.forward_over:
+            self.forward_over = False
+        if self.minimize_cache_size:
+            if chainer.config.train != self.prev_train_config:
                 # Training config changed, so clear caches.
-                self._prev_train_config = chainer.config.train
-                if self._verbosity_level >= 2:
+                self.prev_train_config = chainer.config.train
+                if self.verbosity_level >= 2:
                     print("Clearing schedule cache...")
                 self.schedules.clear()
                 self.in_use_count.clear()
@@ -799,7 +862,7 @@ class ScheduleManager(object):
                 sched = sched_list[0]
             else:
                 # avoid "line too long":
-                vb = self._verbosity_level
+                vb = self.verbosity_level
                 edb = enable_double_backprop
                 sched = StaticScheduleFunction(self,
                                                verbosity_level=vb,
@@ -809,14 +872,14 @@ class ScheduleManager(object):
         else:
             key_str = 'train:' + \
                       ''.join(str(x.shape) + str(x.dtype) for x in in_vars)
-            self._train_count += 1
+            self.train_count += 1
 
             if key_str in self.schedules:
                 sched_list = self.schedules[key_str]
                 available_index = self.in_use_count[key_str]
                 if available_index >= len(sched_list):
                     # avoid "line too long":
-                    vb = self._verbosity_level
+                    vb = self.verbosity_level
                     edb = enable_double_backprop
                     sched = StaticScheduleFunction(self,
                                                    verbosity_level=vb,
@@ -827,7 +890,7 @@ class ScheduleManager(object):
                 self.in_use_count[key_str] = available_index + 1
             else:
                 # avoid "line too long":
-                vb = self._verbosity_level
+                vb = self.verbosity_level
                 edb = enable_double_backprop
                 sched = StaticScheduleFunction(self,
                                                verbosity_level=vb,
@@ -849,17 +912,17 @@ class ScheduleManager(object):
         training mode, then this method will be called automatically.
 
         """
-        if not self._end_forward:
+        if not self.forward_over:
             for key in self.in_use_count:
                 self.in_use_count[key] = 0
-            self._end_forward = True
+            self.forward_over = True
 
-            if self._train_count > self._max_in_use_train:
-                self._max_in_use_train = self._train_count
-                if self._verbosity_level >= 2:
+            if self.train_count > self.max_in_use_train:
+                self.max_in_use_train = self.train_count
+                if self.verbosity_level >= 2:
                     print("Maximum in-use schedules per training iteration: ",
-                          self._max_in_use_train)
-            self._train_count = 0
+                          self.max_in_use_train)
+            self.train_count = 0
 
     def __repr__(self):
         out = "ScheduleManager:\n"

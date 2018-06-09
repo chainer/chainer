@@ -56,8 +56,7 @@ class RNNForLMUnrolled(chainer.Chain):
         with self.init_scope():
             self.rnn = RNNForLMSlice(n_vocab, n_units)
 
-    @static_graph(enable_double_backprop=False, verbosity_level=1,
-                  force_test_define_by_run=True)
+    @static_graph(enable_double_backprop=False, verbosity_level=1)
     def __call__(self, words):
         """Perform a forward pass on the supplied list of words.
 
