@@ -6,12 +6,12 @@ Sentiment Analysis with Recursive Neural Network
 0. Introduction
 ================
 
-In this tutorial, we will use the Recursive Neural Network to analyze sentiment of sentences.
+In this tutorial, we will use the Recursive Neural Network to analyze sentiment in sentences.
 
 Sentiment analysis is one of the major tasks of Natural Language Processing (NLP),
-which identifies writers’ sentiments for sentences. When expressing sentiment,
+which identifies writers’ sentiments in sentences. When expressing sentiment,
 we basically uses labels whether it is positive or negative. For example,
-in the case of the dataset used this time, emotions are expressed in 5 stages
+in the case of the dataset used this time, emotions are expressed in 5 classes
 like 1(really negative), 2(negative), 3(neutral), 4(positive), 5(really positive).
 
 .. figure:: ../../image/sentiment/sentiment-treebank.png
@@ -23,10 +23,10 @@ Sentiment analysis is implemented with Recursive Neural Network. Recursive Neura
 Network is a recursive neural net with a tree structure. NLP often expresses
 sentences in a tree structure, Recursive Neural Network is often used in NLP.
 First, we explain the training method of Recursive Neural Network without
-mini-batch processing. After that, as a advanced story, I explain the training
+mini-batch processing. After that, as a advanced story, we explain the training
 method of mini-batched Recursive Neural Network.
 
-In this tutorial, you will understand the following:
+In this tutorial, we will understand the following:
 
 #. What is Recursive Neural Network?
 #. Implementation of sentiment analysis by Recursive Neural Network using Chainer
@@ -38,8 +38,8 @@ In this tutorial, you will understand the following:
 ========================================
 
 Recursive Neural Network is one of Recurrent Neural Networks that extended to
-a tree structure. As both networks is often written as RNN, so you need to be
-careful which one you are expressing. In many cases, it refers to the Recurrent
+a tree structure. As both networks are often written as RNN, so we need to be
+careful which one we are expressing. In many cases, it refers to the Recurrent
 Neural Network in many cases, but in natural language processing it sometimes
 refers to the Recursive Neural Network.
 
@@ -66,8 +66,8 @@ elements compared to Recurrent Neural Network, because the depth is enough with
 2. Implementation of sentiment analysis by Recursive Neural Network
 ====================================================================
 
-As shown below, we explain the implementation with Colaboratory. If you have a
-browser, you can immediately run the tutorial in the GPU environment.
+As shown below, we explain the implementation with Colaboratory. If we have a
+browser, we can immediately run the tutorial in the GPU environment.
 So, please try it!
 
 `chainer-community/chainer-colab-notebook/OfficialExample(ja)/sentiment_ja.ipynb <https://colab.research.google.com/drive/1NQOxHw-JINkDbY4JDT5Tgy8fOuEcbJbv>`_
@@ -197,7 +197,7 @@ So, the implementation is to calculate each sample and finally summarize the res
    :dedent: 4
  
 .. note::
-    Actually, you can perform parallel calculation of mini batch in Recursive Neural Network by using stack.
+    Actually, we can perform parallel calculation of mini batch in Recursive Neural Network by using stack.
     Since it is published in the latter part of notebook as (Advanced), please refer to it.
 
 
@@ -237,7 +237,7 @@ You can easily implement it using :class:`~chainer.training.extensions.MicroAver
 
     $ pwd
     /root2chainer/chainer/examples/sentiment
-    $ python train_sentiment.py --epoch 4 --test  # run by test mode. If you want to use all data, remove "--test".
+    $ python train_sentiment.py --epoch 4 --test  # run by test mode. If we want to use all data, remove "--test".
     epoch       main/loss   validation/main/loss  main/accuracy  validation/main/accuracy  elapsed_time
     1           1573.94                           0.202703                                 1.06574       
     2           522.063     617.106               0.617117       0.415301                  1.70406       
@@ -267,8 +267,8 @@ For each node of the tree structure dataset, numbers are assigned to each node i
     :scale: 50%
 
 The returning order is a procedure of numbering nodes of a tree structure. It is a procedure of attaching
-a smaller number to all child nodes than the parent node. If you process nodes in descending order of numbers,
-you can trace the child nodes before the parent node.
+a smaller number to all child nodes than the parent node. If we process nodes in descending order of numbers,
+we can trace the child nodes before the parent node.
 
 .. literalinclude:: ../../../examples/sentiment/train_recursive_minibatch.py
    :language: python
@@ -289,11 +289,11 @@ Recursive Neural Network has two operations: Operation A for computing an embedd
 Operation B for computing the hidden state vector of the parent node from the hidden state vectors of the two
 child nodes.
 
-For each sample, we assign index to each node in returning order. If you traverse the node in return order,
-you will find that operation A is performed on the leaf node and operation B is performed at the other nodes.
+For each sample, we assign index to each node in returning order. If we traverse the node in return order,
+we will find that operation A is performed on the leaf node and operation B is performed at the other nodes.
 
 This operation can also be regarded as using a stack to scan a tree structure. A stack is a last-in,
-x first-out data structure that allows you to do two things: a push operation to add data and a pop operation
+x first-out data structure that allows we to do two things: a push operation to add data and a pop operation
 to get the last pushed data.
 For operation A, push the calculation result to the stack. For operation B, pop two data and push the new
 calculation result.
@@ -309,7 +309,7 @@ we can calculate different tree structures by simple repeating processing. There
 
 Let the sentence length be :math:`I` and the number of dimensions of the hidden vector be :math:`D`,
 the thin stack can efficiently use the memory by using the matrix of :math:`(2I-1) \times D`.
-In a normal stack, you need :math:`O(I^2 D)` space computation, whereas thin stacks require :math:`O(ID)`.
+In a normal stack, we need :math:`O(I^2 D)` space computation, whereas thin stacks require :math:`O(ID)`.
 It is realized by push operation ``thin_stack_set`` and pop operation ``thin_stack_get``.
 First of all, we define ``ThinStackSet`` and ``ThinStackGet`` which inherit ``chainer.Function``.
 ``ThinStackSet`` is literally a function to set values on the thin stack.
@@ -341,7 +341,7 @@ it as a function argument.
 3.3 Preparation of Updater/Trainer and execution of training
 ----------------------------------------------------------------
 
-Let's train with the new model ``ThinStackRecursiveNet``. Since you can now compute mini batches in parallel, you can see that training is faster.
+Let's train with the new model ``ThinStackRecursiveNet``. Since we can now compute mini batches in parallel, we can see that training is faster.
 
 .. literalinclude:: ../../../examples/sentiment/train_recursive_minibatch.py
    :language: python
@@ -355,5 +355,5 @@ It should get much faster!
 4. Reference
 =============
 * [1] `Socher, Richard; et al. "Recursive Deep Models for Semantic Compositionality Over a Sentiment Treebank". <https://nlp.stanford.edu/~socherr/EMNLP2013_RNTN.pdf>`_
-* [2] 深層学習による自然言語処理 (機械学習プロフェッショナルシリーズ)
+* [2] 深層学習による自然言語処理 (機械学習プロフェッショナルシリーズ) [Japanese]
 * [3] `A Fast Unified Model for Parsing and Sentence Understanding <http://nlp.stanford.edu/pubs/bowman2016spinn.pdf>`_
