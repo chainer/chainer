@@ -1,3 +1,4 @@
+import io
 import os
 import unittest
 
@@ -13,7 +14,7 @@ class TestRunnable(unittest.TestCase):
                 if not filename.endswith('.py') or '__init__' in filename:
                     continue
                 path = os.path.join(dirpath, filename)
-                with open(path) as f:
+                with io.open(path, encoding='utf-8') as f:
                     source = f.read()
                 self.assertIn('testing.run_module(__name__, __file__)',
                               source,

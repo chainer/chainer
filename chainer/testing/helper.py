@@ -46,6 +46,35 @@ def with_requires(*requirements):
     return unittest.skipIf(skip, msg)
 
 
+def without_requires(*requirements):
+    """Run a test case only when given requirements are not satisfied.
+
+    .. admonition:: Example
+
+    This test case runs only when `numpy>=1.10` is not installed.
+
+    >>> from chainer import testing
+    ... class Test(unittest.TestCase):
+    ...     @testing.without_requires('numpy>=1.10')
+    ...     def test_without_numpy_1_10(self):
+    ...         pass
+
+    Args:
+    requirements: A list of string representing requirement condition to
+        run a given test case.
+
+    """
+    ws = pkg_resources.WorkingSet()
+    try:
+        ws.require(*requirements)
+        skip = True
+    except pkg_resources.ResolutionError:
+        skip = False
+
+    msg = 'requires: {}'.format(','.join(requirements))
+    return unittest.skipIf(skip, msg)
+
+
 @contextlib.contextmanager
 def assert_warns(expected):
     with warnings.catch_warnings(record=True) as w:
