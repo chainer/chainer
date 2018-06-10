@@ -581,9 +581,12 @@ Use apply() method instead.\
         :meth:`forward`.
 
         Returns:
-            A tuple of retained input variables.
+            A tuple of retained input variables, if available. Otherwise
+            return `None`.
 
         """
+        if self._input_indexes_to_retain is None or self.inputs is None:
+            return
         inputs = self.inputs
         return tuple([inputs[index].get_variable()
                       for index in self._input_indexes_to_retain])
@@ -595,7 +598,8 @@ Use apply() method instead.\
         :meth:`forward`.
 
         Returns:
-            A tuple of retained output variables.
+            A tuple of retained output variables, if available. Otherwise
+            return `None`.
 
         .. note::
 
@@ -605,6 +609,8 @@ Use apply() method instead.\
            node of the function node.
 
         """
+        if self._output_indexes_to_retain is None or self.outputs is None:
+            return
         ret = []
         outputs = self.outputs
 

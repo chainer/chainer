@@ -45,7 +45,7 @@ class ScheduleInfo(object):
     """
 
     def __init__(self, func, args, kwargs, inputs_hooks, outputs_hooks,
-                 return_hooks, unique_arrays,
+                 return_hooks, delete_hooks, unique_arrays, array_infos,
                  func_name=None):
         self.func = func
         self.args = args
@@ -54,12 +54,22 @@ class ScheduleInfo(object):
         self.outputs_hooks = outputs_hooks
         self.return_hooks = return_hooks
         self.unique_arrays = unique_arrays
+        self.array_infos = array_infos
+        assert len(self.array_infos) == len(self.unique_arrays)
         self.func_name = func_name
         self.in_list = None
         if len(self.inputs_hooks) > 0:
             self.in_list = self.kwargs['inputs']
         if len(self.outputs_hooks) > 0:
             self.out_list = self.kwargs['outputs']
+        # Check if 'func' wraps code of a 'FunctionNode':
+        self.function_node = None
+        if len(self.args) > 0:
+            maybe_func = self.args[0]
+            if isinstance(maybe_func, chainer.FunctionNode):
+                self.function_node = maybe_func
+        # List of indices in unique_arrays to delete.
+        self.delete_hooks = delete_hooks
 
     def run_pre_hooks(self):
         """Run hooks to set correct references.
@@ -83,6 +93,9 @@ class ScheduleInfo(object):
         for hook in self.outputs_hooks:
             (ind, unique_ind) = hook
             self.out_list[ind] = self.unique_arrays[unique_ind]
+
+        for ind in self.delete_hooks:
+            self.unique_arrays[ind] = None
 
     def run_post_hooks(self, return_arrays):
         """Run post-hooks.
@@ -114,29 +127,29 @@ class ScheduleInfo(object):
             # array in the results array.
             (ret_index, unique_list_index) = hook
 
-            # todo: Ideally, we would like to update the reference in
-            # unique_arays to the array that was dynamically allocated
-            # and returned by the function. However, this is not currently
-            # safe for Chainer functions that have been auto-wrapped
-            # because the corresponding backward calls of some of these
-            # functions do not explicitly take the retained inputs/outputs
-            # in the function arguments. See ReLU for an example of this.
-            # However, we two options to discover when this occurs and take
-            # the appropriate action:
-            # 1. Add code to retain_inputs()/retain_outputs() of FunctionNode
-            # to inform this class when it is safe to copy reference.
-            # 2. Store only weak references in the schedule during the first
-            # trace of the computations and check when/if the array gets
-            # freed. If it is not deleted, assume that it is still needed and
-            # perform copy instead.
-            if False:
-                # This is preferred, when possible.
-                self.unique_arrays[unique_list_index] = \
-                    return_arrays[ret_index]
-            else:
+            # Note: input/output variables to a FunctionNode that are
+            # retained using retain_inputs() or retain_outputs() are
+            # not currently explicitly used as input arguments to the
+            # auto-wrapped functions, and so their corresponding array
+            # reference could be used inside a function wrapped with
+            # @static_code without the array explicitly appearing in the
+            # 'inputs' argument. It is therefore not safe to change the
+            # reference of such arrays, and so for them, we must be
+            # sure to copy the dynamically-allocated array into the
+            # same array that was used in the define-by-run code and
+            # set 'need_copy' to True in such cases.
+            need_copy = self.array_infos[unique_list_index].retain
+            # todo: possible memory leak when need_copy False is allowed?
+            if need_copy:
                 # This must be used if the model used retain_inputs() or
                 # retain_outputs().
                 self.unique_arrays[unique_list_index][...] = \
+                    return_arrays[ret_index]
+            else:
+                # This is preferred, when possible, since it should
+                # be faster than a copy to simply update the array
+                # reference.
+                self.unique_arrays[unique_list_index] = \
                     return_arrays[ret_index]
 
     def __call__(self):
@@ -162,23 +175,31 @@ class ArrayInfo(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, array):
         # Weak reference to the array in the define-by-run code.
-        self.weak_ref = None
-        # The array (normal reference)
+        self.weak_ref = weakref.ref(array)
+        self.id = id(array)
+        # The array (normal reference). Do not create in initializer.
         self.array = None
-        self.shape = None
-        self.dtype = None
+        self.shape = array.shape
+        self.dtype = array.dtype
         # either numpy or cupy
-        self.ndarray_module = None
-        # device id, if available.
-        self.device = None
+        self.ndarray_module = cuda.get_array_module(array)
+        if self.ndarray_module is cuda.cupy:
+            # device id, if available.
+            self.device = cuda.get_device_from_array(array)
+        else:
+            # numpy (cpu)
+            self.device = -1
+        # todo: save array order ('C', 'F' as well?
         # It specifies the input variable corresponding
         # to this array as the tuple (pass_depth, in_var_index).
         self.in_var_index = None
         # It specifies the output variable corresponding
         # to this array as the tuple (pass_depth, out_var_index).
         self.out_var_index = None
+        # todo: set in initializer as keyword arg?
+        self.dynamically_allocated = False
         # If the array was returned as a dynamically allocated array
         # in the define-by-run code, this specifies the location
         # in the schedule as the tuple (pass_depth, sched_func_index)
@@ -186,10 +207,48 @@ class ArrayInfo(object):
         # ScheduleInfo object in the StaticScheduleFunction's
         # self.schedule_info_list
         self.dynamic_allocation_index = None
+        self.dynamic_allocation_pass_depth = None
+        self.dynamic_deletion_index = None
+        self.dynamic_deletion_pass_depth = None
         # This is the same as self.dynamic_allocation_index, but for the
         # case where the array was statically allocated in the
         # define-by-run code.
         self.static_allocation_index = None
+        # If the array needs to be retained (was included in
+        # retain_inputs/retain_outputs),
+        # this will be set to True later.
+        self.retain = False
+
+    def was_deleted(self):
+        return self.weak_ref() is None
+
+    def get_new_empty_array(self):
+        """Make and return a new empty ndarray.
+
+        Make and return a new empty ndarray that has the same shape,
+        dtype, and device as the array that was supplied to the
+        initializer.
+
+        """
+        # todo: set device id
+        return self.ndarray_module.empty(self.shape, dtype=self.dtype)
+
+    def __repr__(self):
+        out = "shape: {}\n".format(self.shape)
+        if self.was_deleted():
+            out += "Weak reference: dead\n"
+        else:
+            out += "Weak reference: alive\n"
+        if self.retain:
+            out += "Retained with retain_inputs()/retain_outputs().\n"
+        if self.dynamically_allocated:
+            out += "Dynamically allocated at\n"
+            out += \
+                "  pass_depth: {}\n".format(self.dynamic_allocation_pass_depth)
+            out += "  sched_index: {}\n".format(self.dynamic_allocation_index)
+        out += "array id: {}".format(self.id)
+        return out
+
 
 class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
@@ -319,6 +378,29 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # variable.
         self.unique_ind_to_out_var_ind = dict()
 
+    def get_unique_index_from_array(self, array):
+        """Return the array index if it exists.
+
+        Return the index of the array in self.unique_array_infos if the
+        array already exists in self.unique_array_info with a valid
+        reference. Otherwise, return None.
+        """
+        ar_id = id(array)
+        if ar_id in self.array_id_to_unique_index:
+            # It is possible that this id is stale if a previous
+            # array that had the same id has already been deleted.
+            # So, verify that the existing array with this id is
+            # still alive.
+            unique_ind = self.array_id_to_unique_index[ar_id]
+            info = self.unique_array_infos[unique_ind]
+            assert ar_id == info.id
+            if info.was_deleted():
+                # id was stale, so remove from the dict.
+                del self.array_id_to_unique_index[ar_id]
+                return None
+            else:
+                return self.array_id_to_unique_index[ar_id]
+
     def get_contained_schedule(self):
         # Make and return the backward schedule (relative to
         # this schedule).
@@ -327,6 +409,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                                        self.enable_double_backprop)
         sched.pass_depth = self.pass_depth + 1
         sched.unique_arrays = self.unique_arrays
+        sched.unique_array_infos = self.unique_array_infos
         sched.array_id_to_unique_index = self.array_id_to_unique_index
         sched.params_list = self.params_list
         sched.grad_var_list = self.grad_var_list
@@ -341,8 +424,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         """
         return len(self.schedule_info_list) == 0
 
-    def append_function(self, func, args, kwargs, func_name=None,
-                        return_arrays=None):
+    def append_function(self, func, args, kwargs, func_name=None):
         """Append a function to the static schedule.
 
         Append a function `func` to the static schedule. `func` can
@@ -376,22 +458,77 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
         """
 
+        # Check previous function in the schedule, if available.
+        # Check the arrays in the retained inputs/outputs and force them
+        # to remain statically allocated in the schedule.
+        # ids of any retained arrays.
+        retained_ids = set()
+
+        last_sched_info_ind = len(self.schedule_info_list) - 1
+        if last_sched_info_ind >= 0:
+            prev_sched_info = self.schedule_info_list[last_sched_info_ind]
+            if prev_sched_info.function_node is not None:
+                # get retained inputs/outputs.
+                retained_in_vars = \
+                    prev_sched_info.function_node.get_retained_inputs()
+                retained_out_vars = \
+                    prev_sched_info.function_node.get_retained_outputs()
+                if (retained_in_vars is not None and
+                        retained_out_vars is not None):
+                    retained_vars = retained_in_vars + retained_out_vars
+                elif retained_in_vars is not None:
+                    retained_vars = retained_in_vars
+                elif retained_out_vars is not None:
+                    retained_vars = retained_out_vars
+                else:
+                    retained_vars = None
+                if retained_vars is not None:
+                    for var in retained_vars:
+                        retained_ids.add(id(var.data))
+
+        for keep_id in retained_ids:
+            unique_ind = self.array_id_to_unique_index[keep_id]
+            array_info = self.unique_array_infos[unique_ind]
+            array_info.retain = True
+            # Note: the following line is not actually needed.
+            # array_info.array = array_info.weak_ref()
+
+        delete_hooks = []
+        for unique_ind, ar_info in enumerate(self.unique_array_infos):
+            # todo: this is O(N^2) and maybe too slow for large graphs.
+            # Optimize it later.
+            if ar_info.was_deleted():
+                if ar_info.dynamic_deletion_index is None:
+                    if self.verbosity_level >= 2:
+                        print('Adding delete hook:')
+                    delete_hooks.append(unique_ind)
+                    ar_info.dynamic_deletion_index = last_sched_info_ind + 1
+                    ar_info.dynamic_deletion_pass_depth = self.pass_depth
+
+        # Call the `@static_code`-decorated function.
+        ret = func(*args, **kwargs)
+
         inputs_hooks = []
         if 'inputs' in kwargs:
             in_list = kwargs['inputs']
             assert isinstance(in_list, list)
             for ind, x in enumerate(in_list):
                 if _is_xp(x):
-                    if id(x) not in self.array_id_to_unique_index:
-                        self.unique_arrays.append(x)
+                    unique_ind = self.get_unique_index_from_array(x)
+                    if unique_ind is None:
+                        # Note: we appedn None here because we cannot store any
+                        # additional reference to the array.
+                        # Otherwise, it would
+                        # prevent garbage collection. Note that a
+                        # weak reference
+                        # will be stored in the ArrayInfo below.
+                        self.unique_arrays.append(None)
+                        self.unique_array_infos.append(ArrayInfo(x))
                         unique_ind = len(self.unique_arrays) - 1
                         self.array_id_to_unique_index[id(x)] = unique_ind
-                    else:
-                        unique_ind = self.array_id_to_unique_index[id(x)]
                     inputs_hooks.append((ind, unique_ind))
                     # Now that the hook has been added, we can delete
-                    # array reference from 'args'. This is safe because
-                    # unique_arrays contians the master reference.
+                    # array reference from 'args'.
                     in_list[ind] = None
 
         outputs_hooks = []
@@ -400,16 +537,19 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             assert isinstance(out_list, list)
             for ind, x in enumerate(out_list):
                 if _is_xp(x):
-                    if id(x) not in self.array_id_to_unique_index:
+                    unique_ind = self.get_unique_index_from_array(x)
+                    if unique_ind is None:
                         self.unique_arrays.append(x)
+                        # todo: enable the following line instead once the
+                        # auto-intializing hooks are added. This will further
+                        # reduce memory usage.
+                        # self.unique_arrays.append(None)
+                        self.unique_array_infos.append(ArrayInfo(x))
                         unique_ind = len(self.unique_arrays) - 1
                         self.array_id_to_unique_index[id(x)] = unique_ind
-                    else:
-                        unique_ind = self.array_id_to_unique_index[id(x)]
                     outputs_hooks.append((ind, unique_ind))
                     # Now that the hook has been added, we can delete
-                    # array reference from 'args'. This is safe because
-                    # unique_arrays contians the master reference.
+                    # array reference from 'args'.
                     out_list[ind] = None
 
         # A list of hooks (each is a tuple) that will be used to set
@@ -419,25 +559,39 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         # that were dynamically allocated in the return value of
         # 'func'.
         return_hooks = []
-        if return_arrays is not None:
-            assert (isinstance(return_arrays, list) or
-                    isinstance(return_arrays, tuple))
-            for ret_index, item in enumerate(return_arrays):
+        if ret is not None:
+            assert (isinstance(ret, list) or
+                    isinstance(ret, tuple))
+            for ret_index, item in enumerate(ret):
                 if _is_xp(item):
-                    if id(item) not in self.array_id_to_unique_index:
-                        # todo: consider only appending a weak reference so
-                        # that
-                        # we can know when it is no longer needed and add a
-                        # delete hook at that time.
-                        self.unique_arrays.append(item)
+                    # note: id might not be unique if objects have been
+                    # garbage collected.
+                    item_id = id(item)
+                    unique_index = self.get_unique_index_from_array(item)
+                    if unique_index is None:
+                        # Note: Append None instead of 'item' to prevent an
+                        # extra reference from being stored. Otherwise it
+                        # would prevent garbage collection.
+                        self.unique_arrays.append(None)
+                        ar_info = ArrayInfo(item)
+                        ar_info.dynamically_allocated = True
+                        sched_info_ind = len(self.schedule_info_list)
+                        ar_info.dynamic_allocation_index = sched_info_ind
+                        ar_info.dynamic_allocation_pass_depth = self.pass_depth
+                        self.unique_array_infos.append(ar_info)
                         unique_index = len(self.unique_arrays) - 1
-                        self.array_id_to_unique_index[id(item)] = \
+                        self.array_id_to_unique_index[item_id] = \
                             unique_index
                     else:
                         # Since all of the return arrays are suppoed to
                         # have been dynamically allocated inside 'func',
                         # they had better not already be in unique_arrays.
                         # If so, it is an error.
+                        unique_index = self.array_id_to_unique_index[item_id]
+                        print('the current id: ', item_id)
+                        print('the unique_index: ', unique_index)
+                        print('array info: ',
+                              self.unique_array_infos[unique_ind])
                         raise RuntimeError('Found result array from schedule '
                                            'function already in '
                                            'unique_arrays!')
@@ -451,8 +605,12 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                                                     inputs_hooks,
                                                     outputs_hooks,
                                                     return_hooks,
+                                                    delete_hooks,
                                                     self.unique_arrays,
+                                                    self.unique_array_infos,
                                                     func_name=func_name))
+
+        return ret
 
     def __repr__(self):
         out = "StaticSchedule:\n"
@@ -550,7 +708,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                 print('output variable at return index: ', out_var_ind)
             if ind in self.dynamically_allocated_unique_index:
                 print('Dynamically allocated inside schedule.')
-                print('value: ', item)
 
     def run_out_var_hooks(self):
         """Run hooks to update output variable array references.
@@ -564,7 +721,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             if self.verbosity_level >= 2:
                 print('StaticScheduleFunction: running output variable hook: '
                       'out_var_ind, unique_list_index): ', hook)
-                print('Value is: ', out_var)
 
     def set_out_variables(self, out_vars):
         """Set output variables.
@@ -613,11 +769,23 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         self.chain = chain
         self.in_vars = in_vars
 
+        # Iterate through all array info objects and for any arrays that
+        # still have a valid reference, copy into unique_arrays.
+        if self.verbosity_level >= 2:
+            print('Building schedule for pass depth: ', self.pass_depth)
+        for ind, info in enumerate(self.unique_array_infos):
+            if self.verbosity_level >= 2:
+                print('unique array index: ', ind)
+                print('array info: ', info)
+            if not info.was_deleted():
+                self.unique_arrays[ind] = info.weak_ref()
+
         # Verify that all array references are actually unique.
         unique_ids = set()
         for ar in self.unique_arrays:
-            assert id(ar) not in unique_ids
-            unique_ids.add(id(ar))
+            if ar is not None:
+                assert id(ar) not in unique_ids
+                unique_ids.add(id(ar))
 
         for param in chain.params():
             param_key = id(param)
@@ -728,7 +896,6 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
     def backward(self, target_input_indexes, grad_outputs):
         if self.verbosity_level >= 2:
             print('Calling StaticScheduleFunction.backward()...')
-            print('with grad_outputs: ', grad_outputs)
         # The first time this method is called, the define-by-run code is
         # executed in order to create a static schedule.
         self.schedule_manager.end_forward()
@@ -770,6 +937,8 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             self.backward_schedule_func.set_out_variables(backward_out_vars)
             for n in range(len(self.in_vars)):
                 self.in_vars[n] = None
+            if self.verbosity_level >= 2:
+                print('building backward schedule.')
             self.backward_schedule_func.build_schedule(self.chain,
                                                        new_grad_outputs)
 

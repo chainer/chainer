@@ -126,13 +126,13 @@ def static_code(*dec_args, **dec_kwargs):
         def wrapped_func(*args, **kwargs):
             # Save arguments, function, and results pointers/references
             # to the schedule list:
-            ret = func(*args, **kwargs)
             # If trace mode is on, add to schedule.
             schedule_function = chainer.config.schedule_func
             if schedule_function is not None:
-                schedule_function.append_function(func, args, kwargs,
-                                                  func_name=func_name,
-                                                  return_arrays=ret)
+                # Note: 'ret = func(*args, **kwargs)' is called inside
+                # the following method.
+                ret = schedule_function.append_function(func, args, kwargs,
+                                                        func_name=func_name)
                 # Add the schedule function as an attribute of the
                 # FunctionNode instance (or more generally, to any class)
                 # that contains the wrapped function as a method
@@ -141,6 +141,8 @@ def static_code(*dec_args, **dec_kwargs):
                     if inspect.isclass(instance):
                         # note: this is not currently needed.
                         instance.schedule_func = schedule_function
+            else:
+                ret = func(*args, **kwargs)
             return ret
         return wrapped_func
     if zero_args:
