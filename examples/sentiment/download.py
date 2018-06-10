@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os
 import os.path
 from six.moves.urllib import request
 import zipfile

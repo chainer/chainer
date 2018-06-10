@@ -57,8 +57,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.intersphinx',
               'sphinx.ext.mathjax',
               'sphinx.ext.napoleon',
-              'sphinx.ext.linkcode',
-              'nbsphinx']
+              'sphinx.ext.linkcode']
 
 try:
     import sphinxcontrib.spelling  # noqa
@@ -109,7 +108,7 @@ language = None
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['**.ipynb_checkpoints']
+exclude_patterns = []
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
