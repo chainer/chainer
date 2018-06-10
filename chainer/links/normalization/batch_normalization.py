@@ -122,10 +122,10 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
-        argument.check_unexpected_kwargs(
-            kwargs, test='test argument is not supported anymore. '
-            'Use chainer.using_config')
-        finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
+        finetune, = argument.parse_kwargs(
+            kwargs, ('finetune', False),
+            test='test argument is not supported anymore. '
+                 'Use chainer.using_config')
 
         if hasattr(self, 'gamma'):
             gamma = self.gamma
