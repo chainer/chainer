@@ -822,12 +822,11 @@ def batch_normalization(x, gamma, beta, **kwargs):
 
     """  # NOQA
 
-    argument.check_unexpected_kwargs(
-        kwargs, train='train argument is not supported anymore. '
-        'Use chainer.using_config')
     eps, running_mean, running_var, decay, axis = argument.parse_kwargs(
         kwargs, ('eps', 2e-5), ('running_mean', None),
-        ('running_var', None), ('decay', 0.9), ('axis', None))
+        ('running_var', None), ('decay', 0.9), ('axis', None),
+        train='train argument is not supported anymore. '
+        'Use chainer.using_config')
 
     return BatchNormalization(eps, running_mean, running_var, decay,
                               axis).apply((x, gamma, beta))[0]

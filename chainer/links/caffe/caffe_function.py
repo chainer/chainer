@@ -203,10 +203,11 @@ class CaffeFunction(link.Chain):
             corresponding to elements of the  `outputs` argument.
 
         """
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         variables = dict(inputs)
         for func_name, bottom, top in self.layers:

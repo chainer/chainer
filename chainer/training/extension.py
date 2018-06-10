@@ -129,10 +129,11 @@ def make_extension(trigger=None, default_name=None, priority=None,
             the beginning of the training loop.
 
     """
-    msg = ('invoke_before_training has been removed since Chainer v2.0.0. '
-           'Use initializer= instead.')
-    argument.check_unexpected_kwargs(kwargs, invoke_before_training=msg)
-    argument.assert_kwargs_empty(kwargs)
+    if kwargs:
+        msg = ('invoke_before_training has been removed since Chainer v2.0.0. '
+               'Use initializer= instead.')
+        argument.check_unexpected_kwargs(kwargs, invoke_before_training=msg)
+        argument.assert_kwargs_empty(kwargs)
 
     if trigger is None:
         trigger = Extension.trigger

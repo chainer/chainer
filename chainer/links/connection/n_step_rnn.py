@@ -57,12 +57,14 @@ class NStepRNNBase(link.ChainList):
     """  # NOQA
 
     def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
-            'Use chainer.using_config',
-            use_bi_direction='use_bi_direction is not supported anymore',
-            activation='activation is not supported anymore')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                use_cudnn='use_cudnn argument is not supported anymore. '
+                'Use chainer.using_config',
+                use_bi_direction='use_bi_direction is not supported anymore',
+                activation='activation is not supported anymore')
+            argument.assert_kwargs_empty(kwargs)
 
         weights = []
         if self.use_bi_direction:
@@ -177,10 +179,11 @@ class NStepRNNBase(link.ChainList):
         Returns:
             tuple: hs
         """
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
         xp = cuda.get_array_module(*(list(hs) + list(xs)))

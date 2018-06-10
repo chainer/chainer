@@ -272,10 +272,11 @@ def cudnn_rnn_weight_concat(
 class BaseNStepRNN(function.Function):
 
     def __init__(self, n_layers, states, lengths, rnn_dir, rnn_mode, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         if rnn_dir not in _rnn_dirs:
             candidate_list = ','.join(_rnn_dirs.keys())
@@ -821,13 +822,13 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
        :func:`chainer.functions.n_step_birnn`
 
     """  # NOQA
-
-    argument.check_unexpected_kwargs(
-        kwargs, train='train argument is not supported anymore. '
-        'Use chainer.using_config',
-        use_cudnn='use_cudnn argument is not supported anymore. '
-        'Use chainer.using_config')
-    argument.assert_kwargs_empty(kwargs)
+    if kwargs:
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config',
+            use_cudnn='use_cudnn argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
     activation_list = ['tanh', 'relu']
     if activation not in activation_list:
