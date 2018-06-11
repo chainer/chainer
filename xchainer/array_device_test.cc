@@ -39,7 +39,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
     // Fallback to default device which is CPU
     {
         Context& ctx = GetDefaultContext();
-        auto& cpu_device = static_cast<native::NativeDevice&>(ctx.GetDevice({"native", 0}));
+        auto& cpu_device = dynamic_cast<native::NativeDevice&>(ctx.GetDevice({"native", 0}));
         auto scope = std::make_unique<DeviceScope>(cpu_device);
         Array array = create_array_func();
         EXPECT_EQ(&cpu_device, &array.device());
@@ -48,7 +48,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
     // Fallback to default device which is GPU
     {
         Context& ctx = GetDefaultContext();
-        auto& cuda_device = static_cast<cuda::CudaDevice&>(ctx.GetDevice({"cuda", 0}));
+        auto& cuda_device = dynamic_cast<cuda::CudaDevice&>(ctx.GetDevice({"cuda", 0}));
         auto scope = std::make_unique<DeviceScope>(cuda_device);
         Array array = create_array_func();
         EXPECT_EQ(&cuda_device, &array.device());
@@ -59,7 +59,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
 // Check that Arrays are created on the specified device, if specified, without taking into account the default device
 void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_array_func) {
     Context& ctx = GetDefaultContext();
-    auto& cpu_device = static_cast<native::NativeDevice&>(ctx.GetDevice({"native", 0}));
+    auto& cpu_device = dynamic_cast<native::NativeDevice&>(ctx.GetDevice({"native", 0}));
 
     // Explicitly create on CPU
     {
@@ -72,7 +72,7 @@ void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_arra
         EXPECT_EQ(&cpu_device, &array.device());
     }
 #ifdef XCHAINER_ENABLE_CUDA
-    auto& cuda_device = static_cast<cuda::CudaDevice&>(ctx.GetDevice({"cuda", 0}));
+    auto& cuda_device = dynamic_cast<cuda::CudaDevice&>(ctx.GetDevice({"cuda", 0}));
 
     {
         auto scope = std::make_unique<DeviceScope>(cuda_device);

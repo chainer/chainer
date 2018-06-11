@@ -65,7 +65,7 @@ const void* GetValuePtr(Dtype dtype) {
 
 template <typename T, typename U, typename... ErrorArgs>
 T narrow(U u, const ErrorArgs&... error_args) {
-    T t = static_cast<T>(u);
+    auto t = static_cast<T>(u);
     if (static_cast<U>(t) != u) {
         throw XchainerError{error_args...};
     }
@@ -407,8 +407,8 @@ void CudnnContext::ConvolutionForward(
     assert(&w.device() == &x.device());
     assert(w.dtype() == x.dtype());
 
-    auto& device = static_cast<CudaDevice&>(x.device());
-    auto& backend = static_cast<CudaBackend&>(device.backend());
+    auto& device = static_cast<CudaDevice&>(x.device());  // NOLINT
+    auto& backend = static_cast<CudaBackend&>(device.backend());  // NOLINT
 
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
@@ -462,8 +462,8 @@ void CudnnContext::ConvolutionBackwardData(
     assert(&w.device() == &x.device());
     assert(w.dtype() == x.dtype());
 
-    auto& device = static_cast<CudaDevice&>(x.device());
-    auto& backend = static_cast<CudaBackend&>(device.backend());
+    auto& device = static_cast<CudaDevice&>(x.device());  // NOLINT
+    auto& backend = static_cast<CudaBackend&>(device.backend());  // NOLINT
 
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
@@ -516,8 +516,8 @@ void CudnnContext::ConvolutionBackwardFilter(
     assert(x.dtype() == gy.dtype());
     assert(x.dtype() == gw.dtype());
 
-    CudaDevice& device = static_cast<CudaDevice&>(x.device());
-    CudaBackend& backend = static_cast<CudaBackend&>(device.backend());
+    auto& device = static_cast<CudaDevice&>(x.device());  // NOLINT
+    auto& backend = static_cast<CudaBackend&>(device.backend());  // NOLINT
 
     Array x_cont = AsContiguousArray(x);
     Array gy_cont = AsContiguousArray(gy);
