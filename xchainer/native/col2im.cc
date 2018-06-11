@@ -26,7 +26,6 @@ Array Col2Im(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& out_size) {
-    // Cannot use const due to internal compiler error with gcc 5.4.0.
     int8_t batch_size = col.shape()[0];
     int8_t channels = col.shape()[1];
     auto ndim = static_cast<int8_t>(stride.size());
