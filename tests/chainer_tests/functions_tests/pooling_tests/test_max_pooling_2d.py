@@ -224,4 +224,29 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
             self.assertEqual(func.called, expect)
 
 
+class TestMaxPooling2DIndices(unittest.TestCase):
+    def setUp(self):
+        self.x = numpy.arange(
+            2 * 3 * 4 * 3, dtype=numpy.float32).reshape(2, 3, 4, 3)
+
+    def _check(self, x):
+        out, indices = functions.max_pooling_2d(
+                x, 3, stride=2, pad=1, cover_all=False, return_indices=True)
+        assert isinstance(out, chainer.Variable)
+        assert isinstance(out.array, type(x))
+        assert isinstance(indices, type(x))
+
+    def test_cpu(self):
+        self._check(self.x)
+
+    @attr.gpu
+    @attr.cudnn
+    def test_gpu(self):
+        x = cuda.to_gpu(self.x)
+        with chainer.using_config('use_cudnn', 'never'):
+            self._check(x)
+        with chainer.using_config('use_cudnn', 'always'):
+            self._check(x)
+
+
 testing.run_module(__name__, __file__)
