@@ -85,6 +85,7 @@ public:
     // Stores the computed input gradient.
     backward_detail::SetInputGradProxy input_grad() { return backward_detail::SetInputGradProxy{*this}; }
 
+    // Given an array, cuts the graphs to stop gradients and returns the resulting array.
     Array Cut(const Array& a) const;
 
     // Stores the computed input gradient.
