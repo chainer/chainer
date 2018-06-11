@@ -138,8 +138,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
-    // TODO(hvy): implement me
-    std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override { return nullptr; }
+    std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override;
 
     // batch_norm.cu
 

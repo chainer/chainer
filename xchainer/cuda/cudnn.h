@@ -105,6 +105,12 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
             int groups);
+    void MaxPoolingForward(
+            const Array& x,
+            const Array& y,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& stride);
 
     cudnnHandle_t handle() { return handle_; }
 
@@ -151,6 +157,24 @@ private:
     private:
         ConvolutionDescriptor();
         cudnnConvolutionDescriptor_t desc_{};
+    };
+
+    class PoolingDescriptor {
+    public:
+        explicit PoolingDescriptor(
+                cudnnPoolingMode_t mode,
+                cudnnNanPropagation_t max_pooling_nan_opt,
+                const StackVector<int64_t, kMaxNdim>& kernel_size,
+                const StackVector<int64_t, kMaxNdim>& pad,
+                const StackVector<int64_t, kMaxNdim>& stride);
+        ~PoolingDescriptor();
+
+        cudnnPoolingDescriptor_t descriptor() const { return desc_; }
+        cudnnPoolingDescriptor_t operator*() const { return desc_; }
+
+    private:
+        PoolingDescriptor();
+        cudnnPoolingDescriptor_t desc_{};
     };
 
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
