@@ -35,7 +35,7 @@ Array MaxPool(
 
     Array out = fb->Forward(x, kernel_size, stride, pad, cover_all);
 
-    // Supporting arbitrary number of backwards using with a recursive definition.
+    // Supporting arbitrary number of backwards using a recursive definition.
     // TODO(hvy): Test backward of double backward.
     struct MaxPoolBwd {
         Array operator()(const Array& gout, const std::vector<GraphId>&) {
