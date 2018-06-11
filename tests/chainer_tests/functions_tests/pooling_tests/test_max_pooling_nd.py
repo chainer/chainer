@@ -313,7 +313,7 @@ class TestMaxPoolingNDIndices(unittest.TestCase):
 
     def _check(self, x):
         out, indices = functions.max_pooling_nd(
-                x, 3, stride=2, pad=1, cover_all=False, return_indices=True)
+            x, 3, stride=2, pad=1, cover_all=False, return_indices=True)
         assert isinstance(out, chainer.Variable)
         assert isinstance(out.array, type(x))
         assert isinstance(indices, type(x))
