@@ -271,9 +271,7 @@ from chainer.functions.math.trigonometric import tan  # NOQA
 from chainer.functions.math.trigonometric import Tan  # NOQA
 
 from chainer.functions.noise.dropout import dropout  # NOQA
-from chainer.functions.noise.dropout import Dropout  # NOQA
 from chainer.functions.noise.gaussian import gaussian  # NOQA
-from chainer.functions.noise.gaussian import Gaussian  # NOQA
 from chainer.functions.noise.gumbel_softmax import gumbel_softmax  # NOQA
 from chainer.functions.noise.simplified_dropconnect import simplified_dropconnect  # NOQA
 from chainer.functions.noise.simplified_dropconnect import SimplifiedDropconnect  # NOQA
@@ -296,9 +294,7 @@ from chainer.functions.pooling.average_pooling_2d import AveragePooling2D  # NOQ
 from chainer.functions.pooling.average_pooling_nd import average_pooling_nd  # NOQA
 from chainer.functions.pooling.average_pooling_nd import AveragePoolingND  # NOQA
 from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
-from chainer.functions.pooling.max_pooling_2d import MaxPooling2D  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
-from chainer.functions.pooling.max_pooling_nd import MaxPoolingND  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import ROIPooling2D  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
