@@ -43,8 +43,7 @@ Array MaxPool(
             auto double_backward_function = [this, gout](const Array& ggx, const std::vector<GraphId>&) {
                 Array ggout = fb->DoubleBackward(x, kernel_size, stride, pad, cover_all, gout, ggx);
                 // Make ggout further backpropable.
-                internal::SetUpOpNodes(
-                        "max_pooling_double_backward", {ggx}, ggout, {MaxPoolBwd{x, kernel_size, stride, pad, cover_all, std::move(fb)}});
+                internal::SetUpOpNodes("max_pooling_double_backward", {ggx}, ggout, {*this});
                 return ggout;
             };
             internal::SetUpOpNodes("max_pooling_backward", {gout}, gx, {double_backward_function});
