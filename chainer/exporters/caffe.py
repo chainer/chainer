@@ -238,7 +238,7 @@ class _RetrieveAsCaffeModel(object):
 
         elif func.label == 'FixedBatchNormalization':
             _, gamma, beta, mean, var = func.inputs
-            batch_norm_param = {'use_global_stats': True}
+            batch_norm_param = {'use_global_stats': True, 'eps': func.eps}
             params['type'] = 'BatchNorm'
             params['bottom'] = params['bottom'][:1]
             params['batch_norm_param'] = batch_norm_param
