@@ -29,7 +29,7 @@ public:
             bool cover_all) override {
         // Cache col and axes for Backward.
         // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        col_ = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, cover_all, GetMin(x.dtype()));
+        col_ = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, cover_all, GetLowestOrInf(x.dtype()));
         axes_.resize(kernel_size.size());
         std::iota(axes_.begin(), axes_.end(), 2);
         return col_.Max(axes_);
@@ -77,7 +77,7 @@ public:
             bool cover_all,
             const Array& /*gout*/,
             const Array& ggx) override {
-        Array col = internal::Im2Col(ggx.AsConstant(), kernel_size, stride, pad, cover_all, GetMin(x.dtype()));
+        Array col = internal::Im2Col(ggx.AsConstant(), kernel_size, stride, pad, cover_all, GetLowestOrInf(x.dtype()));
         return Take(
                 col.Transpose(GetSwapSpatialDimensionsAxes(kernel_size.size())).Reshape({col.GetTotalSize()}),
                 indices_ + offset_.Reshape(indices_.shape()),
@@ -85,13 +85,15 @@ public:
     }
 
 private:
-    Scalar GetMin(Dtype dtype) {
+    Scalar GetLowestOrInf(Dtype dtype) {
         return VisitDtype(dtype, [](auto pt) {
             using T = typename decltype(pt)::type;
             return Scalar{NumericLimits<T>::LowestOrInf()};
         });
     }
 
+    // Returns axes that does the following transpose.
+    // (batch_size, channel, a_1, a_2, ...., a_n, b_1, b_2, ..., b_n) -> (batch_size, channel, b_1, b_2, ...., b_n, a_1, a_2, ..., a_n).
     Axes GetSwapSpatialDimensionsAxes(size_t n) {
         Axes axes;
         axes.resize(2 + 2 * n);  // E.g. (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
