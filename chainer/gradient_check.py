@@ -372,7 +372,8 @@ def check_backward(
     array, pass ``None`` to ``gy_data``. In this case, it sets ``1`` to
     ``grad`` attribute of the result::
 
-    >>> check_backward(my_loss_func, (x1_data, x2_data), None)  # doctest: +SKIP
+    >>> check_backward(my_loss_func,
+    ...                (x1_data, x2_data), None)  # doctest: +SKIP
 
     If ``MyFunc`` returns multiple outputs, pass all gradients for outputs
     as a tuple::
