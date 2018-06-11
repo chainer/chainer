@@ -88,6 +88,15 @@ public:
     // Given an array, cuts the graphs to stop gradients and returns the resulting array.
     Array Cut(const Array& a) const;
 
+private:
+    friend class backward_detail::SetInputGradProxy;
+
+    // Stores the computed input gradient.
+    void SetInputGrad(Array input_grad) {
+        assert(input_grads_storage_.size() == 1);
+        SetInputGradImpl(input_grads_storage_[0].get(), std::move(input_grad));
+    }
+
     // Stores the computed input gradient.
     void SetInputGrad(std::initializer_list<Array> input_grads) {
         assert(input_grads_storage_.size() == input_grads.size());
@@ -96,15 +105,6 @@ public:
             SetInputGradImpl(it_dst->get(), input_grad);
             ++it_dst;
         }
-    }
-
-private:
-    friend class backward_detail::SetInputGradProxy;
-
-    // Stores the computed input gradient.
-    void SetInputGrad(Array input_grad) {
-        assert(input_grads_storage_.size() == 1);
-        SetInputGradImpl(input_grads_storage_[0].get(), std::move(input_grad));
     }
 
     // Stores the computed input gradient.
