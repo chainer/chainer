@@ -2,18 +2,14 @@
 
 #include <cstdint>
 #include <memory>
-#include <numeric>
 
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
-#include "xchainer/native/im2col.h"
-#include "xchainer/numeric_limits.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
-#include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
 
