@@ -13,12 +13,11 @@ class Dropout(function_node.FunctionNode):
 
     """Dropout regularization."""
 
-    mask = None
-
-    def __init__(self, dropout_ratio):
+    def __init__(self, dropout_ratio, mask=None):
         if not 0.0 <= dropout_ratio < 1.0:
             raise ValueError('dropout_ratio must be in the range [0, 1)')
         self.dropout_ratio = dropout_ratio
+        self.mask = mask
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -26,7 +25,8 @@ class Dropout(function_node.FunctionNode):
 
     def forward(self, x):
         if (intel64.should_use_ideep('>=auto')
-                and intel64.inputs_all_ready(x)):
+                and intel64.inputs_all_ready(x)
+                and self.mask is None):
             return self._forward_ideep(x)
 
         if self.mask is not None:
@@ -85,13 +85,14 @@ class DropoutGrad(function_node.FunctionNode):
 
 
 def dropout(x, ratio=.5, **kwargs):
-    """dropout(x, ratio=.5)
+    """dropout(x, ratio=.5, *, mask=None, return_mask=False)
 
     Drops elements of input variable randomly.
 
     This function drops input elements randomly with probability ``ratio`` and
     scales the remaining elements by factor ``1 / (1 - ratio)``. In testing
-    mode, it does nothing and just returns ``x``.
+    mode (i.e., ``chainer.config.train`` is set to ``False``), it does nothing
+    and just returns ``x``.
 
     .. warning::
 
@@ -105,9 +106,28 @@ def dropout(x, ratio=.5, **kwargs):
             Input variable. A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         ratio (float):
             Dropout ratio. The ``ratio`` must be ``0.0 <= ratio < 1.0``.
+        mask (ndarray or None):
+            The mask to be used for dropout.
+            The shape and dtype must be the same as ``x`` and should be on the
+            same device.
+            If ``mask`` is not specified or set to ``None``, a mask will be
+            generated randomly according to the given ``ratio``.
+            If ``mask`` is specified, ``ratio`` will be ignored.
+            Note that iDeep will not be used for this function if mask is
+            specified, as iDeep does not support it.
+        return_mask (bool):
+            If ``True``, the mask used for dropout is returned altogether with
+            the output variable.
+            The returned mask can later be reused by passing it to ``mask``
+            argument.
 
     Returns:
-        ~chainer.Variable: Output variable.
+        ~chainer.Variable or tuple:
+            When ``return_mask`` is ``False`` (default), returns the output
+            variable. Otherwise returnes the tuple of the output variable and
+            mask (ndarray). The mask will be on the same device as the input.
+            The mask will become ``None`` when ``chainer.config.train`` is set
+            to ``False``.
 
     See the paper by G. Hinton: `Improving neural networks by preventing \
     co-adaptation of feature detectors <https://arxiv.org/abs/1207.0580>`_.
@@ -133,12 +153,22 @@ def dropout(x, ratio=.5, **kwargs):
         True
 
     """
+    mask = None
+    return_mask = False
     if kwargs:
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        mask, return_mask = argument.parse_kwargs(
+            kwargs, ('mask', mask), ('return_mask', return_mask),
+            train='train argument is not supported anymore. '
+                  'Use chainer.using_config')
 
     if configuration.config.train:
-        return Dropout(ratio).apply((x,))[0]
-    return chainer.as_variable(x)
+        func = Dropout(ratio, mask)
+        out, = func.apply((x,))
+        mask = func.mask
+    else:
+        out = chainer.as_variable(x)
+        mask = None
+
+    if return_mask:
+        return out, mask
+    return out
