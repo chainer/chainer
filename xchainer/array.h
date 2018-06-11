@@ -21,6 +21,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/enum.h"
+#include "xchainer/error.h"
 #include "xchainer/graph.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
@@ -194,12 +195,12 @@ public:
     bool IsConstant() const { return body_->nodes_.empty(); }
 
     // Returns whether the array is constant with regard to specified graph.
-    bool IsConstant(const GraphId& graph_id) const { return !IsGradRequired(graph_id); }
+    // TODO(niboshi): Implement
+    bool IsConstant(const GraphId& graph_id) const { throw NotImplementedError(); }
 
     // Returns whether the array is constant with regard to all of the specified graphs.
-    bool IsConstant(gsl::span<const GraphId> graph_ids) const {
-        return std::none_of(graph_ids.begin(), graph_ids.end(), [this](const GraphId& gid) { return IsConstant(gid); });
-    }
+    // TODO(niboshi): Implement
+    bool IsConstant(gsl::span<const GraphId> graph_ids) const { throw NotImplementedError(); }
 
     // Creates a new ArrayNode to store the gradient
     const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const {
