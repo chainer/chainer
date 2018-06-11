@@ -21,6 +21,7 @@
 #include "xchainer/routines/logic.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
+#include "xchainer/routines/normalization.h"
 #include "xchainer/routines/sorting.h"
 #include "xchainer/scalar.h"
 #include "xchainer/stack_vector.h"
@@ -459,6 +460,28 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("stride") = 1,
           py::arg("pad") = 0,
           py::arg("outsize") = nullptr);
+
+    // normalization routines
+    m.def("batch_norm",
+          [](const ArrayBodyPtr& x,
+             const ArrayBodyPtr& gamma,
+             const ArrayBodyPtr& beta,
+             const ArrayBodyPtr& running_mean,
+             const ArrayBodyPtr& running_var,
+             Scalar eps,
+             Scalar decay,
+             const nonstd::optional<std::vector<int8_t>>& axis) {
+              return BatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{running_mean}, Array{running_var}, eps, decay, ToAxes(axis))
+                      .move_body();
+          },
+          py::arg("x"),
+          py::arg("gamma"),
+          py::arg("beta"),
+          py::arg("running_mean"),
+          py::arg("running_var"),
+          py::arg("eps") = 2e-5,
+          py::arg("decay") = 0.9,
+          py::arg("axis") = nullptr);
 }
 
 }  // namespace internal

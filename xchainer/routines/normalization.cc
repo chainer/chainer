@@ -27,8 +27,6 @@ Array BatchNorm(
     CheckEqual(dtype, beta.dtype());
     CheckEqual(dtype, running_mean.dtype());
     CheckEqual(dtype, running_var.dtype());
-    CheckEqual(dtype, eps.dtype());
-    CheckEqual(dtype, decay.dtype());
 
     Axes sorted_axis = axis.has_value() ? internal::GetSortedAxes(*axis, x.ndim()) : Axes{0};
 

@@ -42,9 +42,6 @@ public:
             int64_t reduced_total_size = reduced_shape.GetTotalSize();
             assert(running_mean.GetTotalSize() == reduced_total_size);
             assert(running_var.GetTotalSize() == reduced_total_size);
-
-            assert(GetKind(eps.dtype()) == DtypeKind::kFloat);
-            assert(GetKind(decay.dtype()) == DtypeKind::kFloat);
         }
 #endif  // NDEBUG
         if (!running_mean.IsContiguous()) {
@@ -93,7 +90,7 @@ private:
             // TODO(hvy): Consider CUDNN_BATCHNORM_SPATIAL_PERSISTENT if we can afford to check for overflow, with or without blocking.
             return CUDNN_BATCHNORM_SPATIAL;
         }
-        throw DimensionError{"Invalid axis for BatchNorm using cuDNN ", axis, ". Expected 0, 3 or 4 dimensions."};
+        throw DimensionError{"Invalid axis for BatchNorm using cuDNN ", axis, ". Expected 1, 3 or 4 dimensions."};
     }
 
     internal::CudnnContext& cudnn_context_;
