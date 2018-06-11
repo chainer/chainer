@@ -13,13 +13,13 @@ from chainer.functions.math.matmul import matmul
 def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
     """Two-dimensional deformable convolution function using computed offset.
 
-    This is implementation of two-dimensional deformable convolution used in
+    This is an implementation of two-dimensional deformable convolution from
     `Deformable Convolutional Networks <https://arxiv.org/abs/1703.06211>`_.
 
     It takes four variables: the input image ``x``, the offset image
     ``offset``, the filter weight ``W``, and the bias vector ``b``.
 
-    Notation: here is a notation for dimensionalities.
+    Notation: here is the notation for the dimensionalities.
 
     - :math:`n` is the batch size.
     - :math:`c_I` and :math:`c_O` are the number of the input and output,
@@ -28,8 +28,8 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
       respectively.
     - :math:`k_H` and :math:`k_W` are the height and width of the filters,
       respectively.
-    - :math:`s_Y` and :math:`s_X` are the stride of the filter.
-    - :math:`p_H` and :math:`p_W` are the spatial padding size.
+    - :math:`s_Y` and :math:`s_X` are the strides of the filter.
+    - :math:`p_H` and :math:`p_W` are the spatial padding sizes.
 
     The output size :math:`(h_O, w_O)` is determined by the following
     equations:
