@@ -129,8 +129,7 @@ def clipped_relu(x, z=20.0):
     .. math:: \\text{ClippedReLU}(x, z) = \\min(\\max(0, x), z).
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or `ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_n)`-shaped float array.
         z (float): Clipping value. (default = 20.0)
 
