@@ -8,14 +8,13 @@ class Distribution(object):
     `Distribution` is a bass class for dealing with probability distributions.
 
     This class provides the following capabilities.
-    
-    1.Sampling random points.
-    
-    2. Evaluating a probability-related function at a given realization value.
-    (e.g., probability density function, probability mass function)
-    
-    3. Obtaining properties of distributions.
-    (e.g., mean, variance)
+
+    1. Sampling random points.
+
+    2. Evaluating a probability-related function at a given realization \
+    value. (e.g., probability density function, probability mass function)
+
+    3. Obtaining properties of distributions. (e.g., mean, variance)
 
     Note that every method and property that computes them from
     `chainer.Variable` can basically be differentiated.
