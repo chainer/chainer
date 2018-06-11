@@ -8,13 +8,6 @@ endif()
 
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
-# CUDA
-find_package(CUDA QUIET)
-if(${CUDA_FOUND})
-    add_definitions(-DXCHAINER_ENABLE_CUDA=1)
-    find_package(CuDNN 7 REQUIRED)
-endif()
-
 # includes
 include(cmake/clang-tidy.cmake)
 include(cmake/third-party.cmake)
@@ -30,6 +23,22 @@ else()
     set(DEFAULT_ENABLE_COVERAGE OFF)
 endif()
 option(ENABLE_COVERAGE "Enable test coverage with gcov" ${DEFAULT_ENABLE_COVERAGE})
+
+if(DEFINED ENV{BUILD_CUDA})
+    set(DEFAULT_BUILD_CUDA $ENV{BUILD_CUDA})
+else()
+    set(DEFAULT_BUILD_CUDA ON)
+endif()
+option(BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT_BUILD_CUDA})
+
+# CUDA
+if(${BUILD_CUDA})
+    find_package(CUDA QUIET)
+    if(${CUDA_FOUND})
+        add_definitions(-DXCHAINER_ENABLE_CUDA=1)
+        find_package(CuDNN 7 REQUIRED)
+    endif()
+endif()
 
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
