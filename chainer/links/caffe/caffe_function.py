@@ -351,6 +351,15 @@ class CaffeFunction(link.Chain):
         self.forwards[layer.name] = fw
         self._add_layer(layer)
 
+    @_layer('Reshape', None)
+    def _setup_reshape(self, layer):
+        shape = layer.reshape_param.shape.dim
+
+        fw = _SingleArgumentFunction(functions.reshape, shape=shape)
+
+        self.forwards[layer.name] = fw
+        self._add_layer(layer)
+
     @_layer('BatchNorm', None)
     def _setup_batchnorm(self, layer):
         # Get layer parameters.
