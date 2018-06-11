@@ -10,14 +10,14 @@ namespace xchainer {
 namespace cuda {
 
 CudaDevice::~CudaDevice() {
-    if (cublas_handle_) {
+    if (cublas_handle_ != nullptr) {
         cudaSetDevice(index());
         cublasDestroy(cublas_handle_);
     }
 }
 
 cublasHandle_t CudaDevice::cublas_handle() {
-    if (!cublas_handle_) {
+    if (cublas_handle_ == nullptr) {
         CheckCudaError(cudaSetDevice(index()));
         CheckCublasError(cublasCreate(&cublas_handle_));
     }
