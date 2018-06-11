@@ -218,7 +218,7 @@ class TestMaxPoolingND(unittest.TestCase):
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), use_cudnn='never')
 
     def test_backward_cpu_more_than_once(self):
-        func = functions.MaxPoolingND(
+        func = functions.pooling.max_pooling_nd.MaxPoolingND(
             self.ndim, self.ksize, stride=self.stride, pad=self.pad,
             cover_all=self.cover_all)
         func.apply((self.x,))

@@ -49,7 +49,7 @@ class TestGaussian(unittest.TestCase):
         # pass, then reused)
         # TODO(hvy): Do no expose internals of the tested function using
         # e.g. numpy.random.RandomState
-        gaussian = functions.Gaussian()
+        gaussian = functions.noise.gaussian.Gaussian()
 
         def f(m, v):
             return gaussian.apply((m, v))[0]
@@ -68,7 +68,7 @@ class TestGaussian(unittest.TestCase):
 
     def check_double_backward(self, m_data, v_data, y_grad, m_grad_grad,
                               v_grad_grad):
-        gaussian = functions.Gaussian()
+        gaussian = functions.noise.gaussian.Gaussian()
 
         def f(m, v):
             y = gaussian.apply((m, v))[0]
