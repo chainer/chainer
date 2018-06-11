@@ -357,7 +357,7 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
             ``pad=p`` and ``pad=(p, p)`` are equivalent.
         cover_all (bool): If ``True``, all spatial locations are pooled into
             some output pixels. It may make the output size larger.
-        return_indices (bool): If ``True``, pooling indices are returned
+        return_indices (bool): If ``True``, pooling indices array is returned
             altogether with the output variable. The returned indices are
             expected for use by :func:`chainer.functions.upsampling_2d`.
             Note that cuDNN will not be used for this function if
