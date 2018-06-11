@@ -119,7 +119,7 @@ private:
 
     void SetInputGradImpl(nonstd::optional<Array>& grad_storage, Array input_grad) {
         if (grad_storage.has_value()) {
-            grad_storage = *grad_storage + std::move(input_grad);
+            grad_storage = *grad_storage + input_grad;
         } else {
             grad_storage = std::move(input_grad);
         }

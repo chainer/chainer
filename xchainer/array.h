@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -197,12 +198,7 @@ public:
 
     // Returns whether the array is constant with regard to all of the specified graphs.
     bool IsConstant(gsl::span<const GraphId> graph_ids) const {
-        for (const GraphId& gid : graph_ids) {
-            if (!IsConstant(gid)) {
-                return false;
-            }
-        }
-        return true;
+        return std::none_of(graph_ids.begin(), graph_ids.end(), [this](const GraphId& gid) { return IsConstant(gid); });
     }
 
     // Creates a new ArrayNode to store the gradient

@@ -45,7 +45,7 @@ public:
 
     void AccumulateGrad(Array grad) {
         if (grad_.has_value()) {
-            grad_ = *grad_ + std::move(grad);
+            grad_ = *grad_ + grad;
         } else {
             grad_ = std::move(grad);
         }
