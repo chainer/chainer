@@ -11,7 +11,6 @@ from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
-from chainer.utils import experimental
 from chainer.utils import type_check
 from chainer import variable
 
@@ -308,8 +307,6 @@ Use apply() method instead.\
                 self._retained_output_data = tuple(retained_data)
 
             self.lazy_grad_sum = configuration.config.lazy_grad_sum
-            if self.lazy_grad_sum:
-                experimental('config.lazy_grad_sum')
 
         return ret
 

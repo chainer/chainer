@@ -2,7 +2,6 @@ import collections
 
 from chainer.functions.theano import theano_function
 from chainer import link
-from chainer import utils
 
 
 def _to_var_tuple(vs):
@@ -67,7 +66,6 @@ class TheanoFunction(link.Link):
     """
 
     def __init__(self, inputs, outputs):
-        utils.experimental('chainer.links.TheanoFunction')
         try:
             # When Theano library is imported, it executes a lot of
             # initialization process. To minimize its side effect,

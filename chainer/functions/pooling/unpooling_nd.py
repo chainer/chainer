@@ -4,7 +4,6 @@ import six
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import pooling_nd
-from chainer import utils
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -23,7 +22,6 @@ class UnpoolingND(pooling_nd._PoolingND):
                  cover_all=True):
         super(UnpoolingND, self).__init__(ndim, ksize, stride, pad, cover_all)
         self.outs = None if outsize is None else outsize
-        utils.experimental('chainer.functions.pooling.UnpoolingND')
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
