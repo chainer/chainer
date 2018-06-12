@@ -591,7 +591,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                         EXPECT_TRUE(gy1.IsConstant());
                     }
                     testing::ExpectEqual(gy1_value, gy1);
-                    bctx.input_grad() = {3 * gy1, 1 * gy1};  // by list
+                    bctx.input_grad() = {3 * gy1, 1 * gy1};  // by std::initializer_list
                 });
             }
         }
@@ -680,7 +680,9 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                     }
                     testing::ExpectEqual(gy1_value, gy1);
                     testing::ExpectEqual(gy2_value, gy2);
-                    bctx.input_grad() = {3 * gy1 + gy2, 2 * gy2};  // by list
+
+                    std::vector<Array> ginputs = {3 * gy1 + gy2, 2 * gy2};
+                    bctx.input_grad() = ginputs;  // by std::vector
                 });
             }
         }
