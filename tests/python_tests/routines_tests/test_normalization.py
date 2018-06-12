@@ -61,14 +61,12 @@ def test_batch_norm(device, x_shape, reduced_shape, eps, decay, axis, float_dtyp
         x_np, gamma_np, beta_np, running_mean=running_mean_np, running_var=running_var_np, **optional_args).data
 
     # Check the running values are updates.
-    with pytest.raises(AssertionError):
-        xchainer.testing.assert_array_equal(initial_running_mean, running_mean_xc)
-    with pytest.raises(AssertionError):
-        xchainer.testing.assert_array_equal(initial_running_var, running_var_xc)
+    assert not numpy.allclose(xchainer.tonumpy(initial_running_mean), xchainer.tonumpy(running_mean_xc))
+    assert not numpy.allclose(xchainer.tonumpy(initial_running_var), xchainer.tonumpy(running_var_xc))
 
-    xchainer.testing.assert_allclose(y_xc, y_np, rtol=1e-6, atol=1e-5)
-    xchainer.testing.assert_allclose(running_mean_xc, running_mean_np, rtol=1e-6, atol=1e-6)
-    xchainer.testing.assert_allclose(running_var_xc, running_var_np, rtol=1e-6, atol=1e-6)
+    xchainer.testing.assert_allclose_ex(y_xc, y_np, rtol=1e-6, atol=1e-5)
+    xchainer.testing.assert_allclose_ex(running_mean_xc, running_mean_np, rtol=1e-6, atol=1e-6)
+    xchainer.testing.assert_allclose_ex(running_var_xc, running_var_np, rtol=1e-6, atol=1e-6)
 
 
 @pytest.mark.parametrize('x_shape,gamma_shape,beta_shape,running_mean_shape,running_var_shape,axis', [
