@@ -9,7 +9,6 @@ import chainer
 from chainer import function
 from chainer import function_node
 from chainer.links.caffe.protobuf3 import caffe_pb2 as caffe_pb
-from chainer import utils
 from chainer import variable
 
 
@@ -434,7 +433,6 @@ def export(model, args, directory=None,
 
     """
 
-    utils.experimental('chainer.exporters.caffe.export')
     assert isinstance(args, (tuple, list))
     if len(args) != 1:
         raise NotImplementedError()

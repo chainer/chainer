@@ -9,7 +9,6 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import average_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
-from chainer import utils
 from chainer.utils import conv
 from chainer.utils import conv_nd
 
@@ -48,7 +47,6 @@ class AveragePoolingND(pooling_nd._PoolingND):
             raise ValueError(
                 'pad_value must be either 0 or None, not {}.'.format(
                     pad_value))
-        utils.experimental('chainer.functions.pooling.AveragePoolingND')
 
         # TODO(takagi) Support cover_all mode.
         if cover_all is True:
