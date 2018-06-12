@@ -112,7 +112,7 @@ private:
         assert(input_grads_storage_.size() == input_grads.size());
         auto it_dst = input_grads_storage_.begin();
         for (const Array& input_grad : input_grads) {
-            SetInputGradImpl(it_dst->get(), std::move(input_grad));
+            SetInputGradImpl(it_dst->get(), input_grad);
             ++it_dst;
         }
     }
