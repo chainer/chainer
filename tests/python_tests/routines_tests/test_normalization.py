@@ -33,8 +33,8 @@ def _create_batch_norm_ndarray_args(xp, device, x_shape, gamma_shape, beta_shape
     ((2, 3, 4, 5, 2), (3, 4, 5, 2), (0,)),
     ((2, 3, 4, 5, 2), (3,), (0, 2, 3, 4))
 ])
-@pytest.mark.parametrize('eps', [2e-5])
-@pytest.mark.parametrize('decay', [0.9, 0.5])
+@pytest.mark.parametrize('eps', [None, 3e-5])
+@pytest.mark.parametrize('decay', [None, 0.5])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_batch_norm(device, x_shape, reduced_shape, eps, decay, axis, float_dtype):
     def create_args(xp):
@@ -48,10 +48,17 @@ def test_batch_norm(device, x_shape, reduced_shape, eps, decay, axis, float_dtyp
     initial_running_mean = running_mean_xc.copy()
     initial_running_var = running_var_xc.copy()
 
-    y_xc = xchainer.batch_norm(
-        x_xc, gamma_xc, beta_xc, running_mean=running_mean_xc, running_var=running_var_xc, eps=eps, decay=decay, axis=axis)
+    optional_args = {}
+    if eps is not None:
+        optional_args['eps'] = eps
+    if decay is not None:
+        optional_args['decay'] = decay
+    if axis is not None:
+        optional_args['axis'] = axis
+
+    y_xc = xchainer.batch_norm(x_xc, gamma_xc, beta_xc, running_mean=running_mean_xc, running_var=running_var_xc, **optional_args)
     y_np = chainer.functions.batch_normalization(
-        x_np, gamma_np, beta_np, running_mean=running_mean_np, running_var=running_var_np, eps=eps, decay=decay, axis=axis).data
+        x_np, gamma_np, beta_np, running_mean=running_mean_np, running_var=running_var_np, **optional_args).data
 
     # Check the running values are updates.
     with pytest.raises(AssertionError):
