@@ -122,8 +122,8 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             raise Exception(
                 'NCCL is not enabled. MultiprocessParallelUpdater '
                 'requires NCCL.\n'
-                'Please reinstall chainer after you install NCCL.\n'
-                '(see https://github.com/chainer/chainer#installation).')
+                'Please reinstall CuPy after you install NCCL.\n'
+                '(see https://docs-cupy.chainer.org/en/latest/install.html)')
         try:
             cuda.cupy.cuda.driver.ctxGetCurrent()
             _cuda_initialized = True
@@ -131,7 +131,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             # The context is not initialized, it will be fine.
             _cuda_initialized = False
         if _cuda_initialized:
-            raise ValueError(
+            raise RuntimeError(
                 'The CUDA context has been already initialized. '
                 'MultiprocessParallelUpdater assumes the context is '
                 'uninitialized. Please do not call CUDA API before '
@@ -169,6 +169,12 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             main = devices.pop('main')
             devices = list(six.itervalues(devices))
             devices = [main] + devices
+        elif isinstance(devices, (list, tuple)):
+            devices = list(devices)
+        else:
+            raise ValueError(
+                'devices argument should be either dict, list or tuple,'
+                ' but {} was given.'.format(type(devices)))
         if devices is None or any(device is None for device in devices):
             raise ValueError('must specify GPU devices')
 
