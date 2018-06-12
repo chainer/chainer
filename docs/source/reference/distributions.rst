@@ -20,7 +20,7 @@ Distributions
 Functionals of distribution
 ---------------------------
 
-.. module:: chainer
+.. currentmodule:: chainer
 
 .. autosummary::
   :toctree: generated/

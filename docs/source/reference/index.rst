@@ -10,6 +10,7 @@ Reference
    variable
    functions
    links
+   distributions
    optimizers
    initializers
    training
@@ -22,4 +23,3 @@ Reference
    graph
    caffe
    check
-   distributions
