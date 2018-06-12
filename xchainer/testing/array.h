@@ -19,10 +19,11 @@
 
 namespace xchainer {
 namespace testing {
+namespace array_detail {
 
 class ArrayBuilder {
 public:
-    explicit ArrayBuilder(const Shape& shape) : shape_(shape), device_(std::ref(GetDefaultDevice())) {}
+    explicit ArrayBuilder(const Shape& shape) : shape_{shape}, device_{&GetDefaultDevice()} {}
 
     operator Array() const { return Build(); }
 
@@ -81,7 +82,7 @@ public:
                     }
                 }
             }
-            return internal::FromHostData(shape, dtype, std::move(ptr), std::move(strides), builder.device_);
+            return internal::FromHostData(shape, dtype, std::move(ptr), std::move(strides), *builder.device_);
         };
         return *this;
     }
@@ -113,7 +114,7 @@ public:
     }
 
     ArrayBuilder& WithDevice(Device& device) {
-        device_ = device;
+        device_ = &device;
         return *this;
     }
 
@@ -141,7 +142,7 @@ private:
 
     Shape shape_;
 
-    std::reference_wrapper<Device> device_;
+    Device* device_{};
 
     // Padding items (multiplied by sizeof(T) during construction) to each dimension.
     // TODO(niboshi): Support negative strides
@@ -151,7 +152,9 @@ private:
     std::function<Array(const ArrayBuilder&)> create_array_;
 };
 
-inline ArrayBuilder BuildArray(const Shape& shape) { return ArrayBuilder{shape}; }
+}  // namespace array_detail
+
+inline array_detail::ArrayBuilder BuildArray(const Shape& shape) { return array_detail::ArrayBuilder{shape}; }
 
 }  // namespace testing
 }  // namespace xchainer
