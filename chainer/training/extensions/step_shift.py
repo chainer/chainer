@@ -7,12 +7,17 @@ from chainer.training import extension
 
 class StepShift(extension.Extension):
 
-    """Trainer extension to multiply an optimizer attribute by a fixed value
-    for every ``k`` iterations.
+    """Trainer extension to shift an optimizer attribute in "steps".
 
-    For example, given ``k``, a multiplier ``gamma`` and an initial value
+    This extension multiplies the specified attribute of the optimizer in
+    "steps". The typical use case is to scale the attribute at every ``k``th
+    iteration.
+
+    For example, suppose that this extension is invoked at every iteration,
+    then given ``k``, a multiplier ``gamma`` and an initial value
     ``init``, the optimizer attribute is set to
-    ``init * gamma ^ (floor(iter / k))``.
+    ``init * gamma ^ (floor(i / k))``, where ``i`` represents the index of the
+    current iteration.
 
     This extension is also called before the training loop starts by default.
 
