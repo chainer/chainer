@@ -19,6 +19,27 @@ namespace xchainer {
 namespace native {
 namespace {
 
+Scalar GetLowestOrInf(Dtype dtype) {
+    return VisitDtype(dtype, [](auto pt) {
+        using T = typename decltype(pt)::type;
+        return Scalar{NumericLimits<T>::LowestOrInf()};
+    });
+}
+
+// Returns axes that does the following transpose.
+// (batch_size, channel, a_1, a_2, ...., a_n, b_1, b_2, ..., b_n) -> (batch_size, channel, b_1, b_2, ...., b_n, a_1, a_2, ..., a_n).
+Axes GetSwapSpatialDimensionsAxes(size_t n) {
+    Axes axes;
+    axes.resize(2 + 2 * n);  // E.g. (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
+    axes[0] = 0;  // Batch dimension kept as is.
+    axes[1] = 1;  // Channel dimension kept as is.
+    for (size_t i = 2; i < n + 2; ++i) {  // Output and kernel spatial dimensions to be swapped.
+        axes[i] = n + i;
+        axes[n + i] = i;
+    }
+    return axes;
+}
+
 class NativeMaxPoolForwardBackward : public xchainer::MaxPoolForwardBackward {
 public:
     Array Forward(
@@ -83,27 +104,6 @@ public:
     }
 
 private:
-    Scalar GetLowestOrInf(Dtype dtype) {
-        return VisitDtype(dtype, [](auto pt) {
-            using T = typename decltype(pt)::type;
-            return Scalar{NumericLimits<T>::LowestOrInf()};
-        });
-    }
-
-    // Returns axes that does the following transpose.
-    // (batch_size, channel, a_1, a_2, ...., a_n, b_1, b_2, ..., b_n) -> (batch_size, channel, b_1, b_2, ...., b_n, a_1, a_2, ..., a_n).
-    Axes GetSwapSpatialDimensionsAxes(size_t n) {
-        Axes axes;
-        axes.resize(2 + 2 * n);  // E.g. (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
-        axes[0] = 0;  // Batch dimension kept as is.
-        axes[1] = 1;  // Channel dimension kept as is.
-        for (size_t i = 2; i < n + 2; ++i) {  // Output and kernel spatial dimensions to be swapped.
-            axes[i] = n + i;
-            axes[n + i] = i;
-        }
-        return axes;
-    }
-
     Array col_{};
     Axes axes_{};
     Array indices_{};
