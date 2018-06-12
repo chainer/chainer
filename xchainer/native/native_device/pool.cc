@@ -27,7 +27,6 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all) override {
-        // Cache col and axes for Backward.
         // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
         col_ = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, cover_all, GetLowestOrInf(x.dtype()));
         axes_.resize(kernel_size.size());
@@ -42,7 +41,6 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             bool /*cover_all*/,
             const Array& gout) override {
-        // Cache indices for DoubleBackward.
         indices_ = col_.ArgMax(axes_);
         assert(indices_.shape() == gout.shape());
 
@@ -52,7 +50,7 @@ public:
         Shape out_flat{out_total_size};
         Device& device = x.device();
         Array gcol = Zeros({out_total_size * kernel_total_size}, x.dtype(), device);
-        offset_ = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices_.dtype(), device);  // Cache kernel offsets.
+        offset_ = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices_.dtype(), device);
         device.AddAt(gcol, indices_.Reshape(out_flat) + offset_, {0}, gout.AsConstant().Reshape(out_flat), gcol);
 
         // Reshape col gradients to (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
@@ -106,11 +104,8 @@ private:
         return axes;
     }
 
-    // Cached in Forward and reused in Backward to compute indices.
     Array col_{};
     Axes axes_{};
-
-    // Cached in Backward and reused in DoubleBackward.
     Array indices_{};
     Array offset_{};
 };
