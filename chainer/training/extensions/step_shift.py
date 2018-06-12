@@ -10,9 +10,9 @@ class StepShift(extension.Extension):
     """Trainer extension to multiply an optimizer attribute by a fixed value
     for every ``k`` iterations.
 
-    For example, suppose that this extension is called at every k iterations,
-    with a multiplier ``gamma`` and an initial value ``init``, then the
-    optimizer attribute will be set to ``init * gamma ^ (floor(iter / k))``.
+    For example, given ``k``, a multiplier ``gamma`` and an initial value
+    ``init``, the optimizer attribute is set to
+    ``init * gamma ^ (floor(iter / k))``.
 
     This extension is also called before the training loop starts by default.
 
@@ -20,8 +20,7 @@ class StepShift(extension.Extension):
         attr (str): Name of the optimizer attribute to adjust.
         init (float): The initial value of the attribute.
         gamma (float): The multiplier.
-        step (int): The number of iterations to do the multiplication, i.e.,
-            ``k``.
+        step (int): The interval for the multiplication, i.e., ``k``.
         optimizer (~chainer.Optimizer): Target optimizer object. If it is None,
             the main optimizer of the trainer is used.
 
