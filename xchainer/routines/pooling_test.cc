@@ -154,8 +154,6 @@ TEST_P(PoolingTest, MaxPoolNoCoverAll) {
     testing::ExpectEqual(e_out, out);
 }
 
-///////////////////////////////////////////////////////////////////
-
 TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
     using T = float;
 
