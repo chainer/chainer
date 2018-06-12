@@ -78,7 +78,7 @@ TEST_P(PoolingTest, MaxPool) {
                                0.09489103, 0.8165871,  0.8357075,  0.09764841, 0.05153274, 0.8971699,  0.9327884,  0.32184523, 0.15035488,
                                0.29527086, 0.34706247, 0.08613685, 0.22496991, 0.28078404, 0.17121029, 0.4556634,  0.5025214,  0.7903231,
                                0.87756634, 0.3690981,  0.6356852})
-                      .WithPadding(1);  // Computed with Chainer.
+                      .WithPadding(1);  // Randomly generated.
 
     Array out = MaxPool(x, kernel_size, stride, pad);  // cover_all should be true.
 
@@ -138,7 +138,7 @@ TEST_P(PoolingTest, MaxPoolNoCoverAll) {
                                0.44132948, 0.8370784,  0.46001586, 0.14595562, 0.18176174, 0.68951994, 0.37592548, 0.0262325,  0.40434295,
                                0.05052375, 0.05624698, 0.10016874, 0.9320143,  0.09351984, 0.53812116, 0.20279366, 0.22279656, 0.33266315,
                                0.8101899,  0.6632538,  0.64406633})
-                      .WithPadding(1);  // Computed with Chainer.
+                      .WithPadding(1);  // Randomly generated.
     Array out = MaxPool(x, kernel_size, stride, pad, cover_all);
 
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
@@ -204,7 +204,7 @@ TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
                                0.7823987,  0.328573,   0.24309944, 0.50480926, 0.26718357, 0.5933533,  0.82193506, 0.8797568,  0.5687586,
                                0.8594091,  0.82480854, 0.8240346,  0.7362367,  0.6144636,  0.1727837,  0.50839895, 0.6949624,  0.29187527,
                                0.49906296, 0.255307,   0.520505,   0.4900493,  0.03956361, 0.08103298, 0.64027756, 0.6599848,  0.5945138})
-                      .WithPadding(1);  // Computed with Chainer.
+                      .WithPadding(1);  // Randomly generated.
     Array out = MaxPool(x, kernel_size, stride, pad, cover_all);
 
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
@@ -262,7 +262,7 @@ TEST_P(PoolingTest, MaxPoolBackward) {
                                  0.29527086, 0.34706247, 0.08613685, 0.22496991, 0.28078404, 0.17121029, 0.4556634,  0.5025214,  0.7903231,
                                  0.87756634, 0.3690981,  0.6356852})
                         .WithPadding(1))
-                      .RequireGrad();  // Computed with Chainer.
+                      .RequireGrad();  // Same values as the MaxPool test.
 
     Array go = testing::BuildArray(out_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1);
 
@@ -322,7 +322,7 @@ TEST_P(PoolingTest, MaxPoolDoubleBackward) {
                                  0.29527086, 0.34706247, 0.08613685, 0.22496991, 0.28078404, 0.17121029, 0.4556634,  0.5025214,  0.7903231,
                                  0.87756634, 0.3690981,  0.6356852})
                         .WithPadding(1))
-                      .RequireGrad();  // Computed with Chainer.
+                      .RequireGrad();  // Same values as the MaxPool test.
 
     Array go = (*testing::BuildArray(out_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1)).RequireGrad();
     Array ggx = testing::BuildArray(x_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1);
