@@ -202,8 +202,7 @@ void CheckBackwardComputation(
     if (!failed_input_indices.empty()) {
         std::ostringstream os;
         os << "Numerical error in backward on inputs (out of " << inputs.size() << "): ";
-        for (size_t j = 0; j < failed_input_indices.size(); ++j) {
-            size_t i = failed_input_indices[j];
+        for (size_t i : failed_input_indices) {
             if (i != 0) {
                 os << ", ";
             }
@@ -362,8 +361,7 @@ void CheckDoubleBackwardComputation(
     if (!failed_input_indices.empty()) {
         std::ostringstream os;
         os << "Numerical error in double backward on inputs (out of " << inputs.size() << "): ";
-        for (size_t j = 0; j < failed_input_indices.size(); ++j) {
-            size_t i = failed_input_indices[j];
+        for (size_t i : failed_input_indices) {
             if (i != 0) {
                 os << ", ";
             }

@@ -76,9 +76,7 @@ public:
 
         // Reshape col gradients to (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
         Shape out_shape_with_kernel = gout.shape();
-        for (size_t i = 0; i < kernel_size.size(); ++i) {
-            out_shape_with_kernel.emplace_back(kernel_size[i]);
-        }
+        std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(out_shape_with_kernel));
 
         // Transform col gradients to input shape.
         return internal::Col2Im(
