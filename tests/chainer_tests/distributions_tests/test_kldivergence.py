@@ -45,6 +45,17 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Normal(**params)
 
+    def make_multivariatenormal_dist(self, is_gpu=False):
+        loc = numpy.random.uniform(
+            -1, 1, self.shape + (3,)).astype(numpy.float32)
+        cov = numpy.random.normal(size=self.shape + (3, 3))
+        cov = numpy.matmul(
+            cov, numpy.rollaxis(cov, -1, -2)).astype(numpy.float32)
+        scale_tril = numpy.linalg.cholesky(cov).astype(numpy.float32)
+        params = self.encode_params(
+            {"loc": loc, "scale_tril": scale_tril}, is_gpu)
+        return distributions.MultivariateNormal(**params)
+
     def test_normal_normal_cpu(self):
         dist1 = self.make_normal_dist()
         dist2 = self.make_normal_dist()
@@ -54,6 +65,17 @@ class TestKLDivergence(unittest.TestCase):
     def test_normal_normal_gpu(self):
         dist1 = self.make_normal_dist(True)
         dist2 = self.make_normal_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_multivariatenormal_multivariatenormal_cpu(self):
+        dist1 = self.make_multivariatenormal_dist()
+        dist2 = self.make_multivariatenormal_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_multivariatenormal_multivariatenormal_gpu(self):
+        dist1 = self.make_multivariatenormal_dist(True)
+        dist2 = self.make_multivariatenormal_dist(True)
         self.check_kl(dist1, dist2)
 
 
