@@ -1,5 +1,3 @@
-import unittest
-
 from chainer import distributions
 from chainer import testing
 import numpy
