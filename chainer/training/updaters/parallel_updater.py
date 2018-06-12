@@ -156,4 +156,4 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             model.copyparams(model_main)
 
         if self.auto_new_epoch and iterator.is_new_epoch:
-            optimizer.new_epoch()
+            optimizer.new_epoch(auto=True)
