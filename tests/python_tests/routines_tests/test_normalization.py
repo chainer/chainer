@@ -60,7 +60,7 @@ def test_batch_norm(device, x_shape, reduced_shape, eps, decay, axis, float_dtyp
     y_np = chainer.functions.batch_normalization(
         x_np, gamma_np, beta_np, running_mean=running_mean_np, running_var=running_var_np, **optional_args).data
 
-    # Check the running values are updates.
+    # Check that the running values are updated.
     assert not numpy.allclose(xchainer.tonumpy(initial_running_mean), xchainer.tonumpy(running_mean_xc))
     assert not numpy.allclose(xchainer.tonumpy(initial_running_var), xchainer.tonumpy(running_var_xc))
 
