@@ -46,7 +46,6 @@ class CMakeBuild(build_ext.build_ext):
 
         if self.debug:  # python setup.py build --debug
             cfg = 'Debug'
-            cmake_args += ['-DENABLE_COVERAGE=ON']
         else:
             cfg = 'Release'
 
