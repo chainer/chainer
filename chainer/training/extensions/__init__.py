@@ -14,6 +14,7 @@ from chainer.training.extensions.plot_report import PlotReport  # NOQA
 from chainer.training.extensions.polynomial_shift import PolynomialShift  # NOQA
 from chainer.training.extensions.print_report import PrintReport  # NOQA
 from chainer.training.extensions.progress_bar import ProgressBar  # NOQA
+from chainer.training.extensions.step_shift import StepShift  # NOQA
 from chainer.training.extensions.value_observation import observe_lr  # NOQA
 from chainer.training.extensions.value_observation import observe_value  # NOQA
 from chainer.training.extensions.variable_statistics_plot import VariableStatisticsPlot  # NOQA
