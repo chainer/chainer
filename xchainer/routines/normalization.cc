@@ -5,6 +5,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/backward.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
@@ -59,9 +60,34 @@ Array BatchNorm(
     Array gamma_keepdims = gamma.shape() == reduced_shape ? gamma : gamma.Reshape(reduced_shape);
     Array beta_keepdims = beta.shape() == reduced_shape ? beta : beta.Reshape(reduced_shape);
 
-    std::unique_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
-    // TODO(hvy): Connect graph.
-    return fb->Forward(x, gamma_keepdims, beta_keepdims, running_mean, running_var, eps, decay, sorted_axis);
+    std::shared_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
+    Array running_mean_view = running_mean.Reshape(reduced_shape);
+    Array running_var_view = running_var.Reshape(reduced_shape);
+    assert(running_mean_view.data() == running_mean.data());  // No copy should occur
+    assert(running_var_view.data() == running_var.data());
+
+    Array out = fb->Forward(x, gamma_keepdims, beta_keepdims, running_mean_view, running_var_view, eps, decay, sorted_axis);
+
+    {
+        BackwardBuilder bb{"batch_norm", {out}};
+        if (!x.IsConstant() || !gamma.IsConstant() || !beta.IsConstant()) {
+            bb.Define(
+                    {x, gamma, beta},
+                    [ fb = std::move(fb), x = x.AsConstant(), gamma_keepdims = gamma_keepdims.AsConstant(), eps, sorted_axis ](
+                            BackwardContext & bctx) {
+                        const Array& gout = bctx.output_grad();
+                        auto ginputs = fb->Backward(x, gamma_keepdims, gout, eps, sorted_axis);
+                        // TODO(niboshi): Implement double backward
+
+                        // TODO(niboshi): Implement a convenient function in BackwardContext to move arrays from a container
+                        for (size_t i = 0; i < ginputs.size(); ++i) {
+                            bctx.input_grad(i) = std::move(ginputs[i]);
+                        }
+                    });
+        }
+    }
+
+    return out;
 }
 
 }  // namespace xchainer

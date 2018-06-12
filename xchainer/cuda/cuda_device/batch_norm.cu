@@ -75,8 +75,7 @@ public:
 
     // TODO(hvy): Implement me.
     std::array<Array, 3> Backward(
-            const Array& /*x*/, const Array& /*gamma*/, const Array& /*gout*/, Scalar /*eps*/, Scalar /*decay*/, const Axes& /*axis*/)
-            override {
+            const Array& /*x*/, const Array& /*gamma*/, const Array& /*gout*/, Scalar /*eps*/, const Axes& /*axis*/) override {
         return {Array{}, Array{}, Array{}};
     }
 

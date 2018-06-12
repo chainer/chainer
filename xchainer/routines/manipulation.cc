@@ -270,7 +270,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
     const Strides& in_strides = array.strides();
 
     if (in_shape.size() > shape.size()) {
-        throw DimensionError{"Cannot broadcast to smaller dimensions"};
+        throw DimensionError{"Cannot broadcast to smaller dimensions from ", in_shape, " to ", shape, "."};
     }
 
     // Compute the new set of strides after broadcastining.
