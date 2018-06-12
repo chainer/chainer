@@ -48,7 +48,7 @@ def _matmul(a, b, transa=False, transb=False, transout=False):
 
     if hasattr(xp, 'matmul'):  # numpy.matmul is supported from version 1.10.0
         return xp.matmul(a, b)
-    if a.ndim <= 2:
+    if a.ndim <= 2 or b.ndim <= 2:
         return numpy.dot(a, b)
     else:
         return numpy.einsum('...ij,...jk->...ik', a, b)

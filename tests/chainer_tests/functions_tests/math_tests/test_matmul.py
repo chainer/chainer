@@ -52,6 +52,10 @@ from chainer.utils import type_check
          'transa': False, 'transb': True},
         {'x1_shape': (6, 5, 2), 'x2_shape': (6, 10, 5), 'gy_shape': (6, 2, 10),
          'transa': True, 'transb': True},
+        {'x1_shape': (2, 3, 4), 'x2_shape': (4,), 'gy_shape': (2, 3),
+         'transa': False, 'transb': False},
+        {'x1_shape': (4,), 'x2_shape': (2, 4, 3), 'gy_shape': (2, 3),
+         'transa': False, 'transb': False},
 
         # batchsize = 1
         {'x1_shape': (1, 2, 5), 'x2_shape': (1, 5, 10), 'gy_shape': (1, 2, 10),
@@ -99,7 +103,7 @@ class TestMatMul(unittest.TestCase):
         if transb and x2.ndim >= 2:
             x2 = x2.swapaxes(-1, -2)
 
-        if x1.ndim <= 2:
+        if x1.ndim <= 2 or x2.ndim <= 2:
             return numpy.dot(x1, x2)
         else:
             return numpy.einsum('...ij,...jk->...ik', x1, x2)
