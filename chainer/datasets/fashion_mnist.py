@@ -13,7 +13,7 @@ fashion_mnist_labels = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
 
 
 def get_fashion_mnist_labels(labels):
-    """Given a list of fashion-MNIST labels, returns name list of those labels
+    """Given a list of fashion-MNIST labels, returns name list of those labels.
 
     Args:
         labels (list): List of labels of image values, numbers from 0-9.
