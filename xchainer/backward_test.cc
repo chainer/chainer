@@ -578,6 +578,11 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                     } else {
                         EXPECT_TRUE(gy1.IsConstant());
                     }
+
+                    // input_grad has null array
+                    EXPECT_EQ(nullptr, bctx.input_grad().body());
+
+                    // input_grad setter
                     bctx.input_grad() = 2 * gy1;  // omit index
 
                     // Check bctx.input_grad() as a getter
@@ -595,6 +600,12 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                         EXPECT_TRUE(gy1.IsConstant());
                     }
                     testing::ExpectEqual(gy1_value, gy1);
+
+                    // input_grad has null array
+                    EXPECT_EQ(nullptr, bctx.input_grad(0).body());
+                    EXPECT_EQ(nullptr, bctx.input_grad(1).body());
+
+                    // input_grad setter
                     bctx.input_grad(0) = 3 * gy1;  // by index
                     bctx.input_grad(1) = 1 * gy1;
 
