@@ -98,7 +98,7 @@ private:
     }
 
     // Stores the computed input gradient.
-    void SetInputGrad(std::initializer_list<Array> input_grads) {
+    void SetInputGrad(gsl::span<const Array> input_grads) {
         assert(input_grads_storage_.size() == input_grads.size());
         auto it_dst = input_grads_storage_.begin();
         for (const Array& input_grad : input_grads) {
@@ -107,21 +107,12 @@ private:
         }
     }
 
-    // Stores the computed input gradient.
-    void SetInputGrad(gsl::span<Array> input_grads) {
-        assert(input_grads_storage_.size() == input_grads.size());
-        auto it_dst = input_grads_storage_.begin();
-        for (const Array& input_grad : input_grads) {
-            SetInputGradImpl(it_dst->get(), input_grad);
-            ++it_dst;
-        }
-    }
-
-    void SetInputGradImpl(nonstd::optional<Array>& grad_storage, Array input_grad) {
+    template <typename ArrayType>
+    void SetInputGradImpl(nonstd::optional<Array>& grad_storage, ArrayType&& input_grad) {
         if (grad_storage.has_value()) {
             grad_storage = *grad_storage + input_grad;
         } else {
-            grad_storage = std::move(input_grad);
+            grad_storage = std::forward<ArrayType>(input_grad);
         }
     }
 
@@ -150,7 +141,9 @@ private:
 
 namespace backward_detail {
 
-inline void SetInputGradProxy::operator=(std::initializer_list<Array> grads) { bctx_.SetInputGrad(grads); }
+inline void SetInputGradProxy::operator=(std::initializer_list<Array> grads) {
+    bctx_.SetInputGrad(gsl::span<const Array>{grads.begin(), grads.end()});
+}
 
 template <typename Arg>
 void SetInputGradProxy::operator=(Arg&& arg) {
