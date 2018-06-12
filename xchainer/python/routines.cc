@@ -27,6 +27,7 @@
 
 #include "xchainer/python/array.h"
 #include "xchainer/python/array_index.h"
+#include "xchainer/python/axes.h"
 #include "xchainer/python/common.h"
 #include "xchainer/python/device.h"
 #include "xchainer/python/dtype.h"
