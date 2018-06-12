@@ -32,7 +32,7 @@ class Normal(distribution.Distribution):
         location :math:`\\mu`. This is the mean parameter.
         scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\log(\\sigma^2)`.
+        scale :math:`\\sigma`.
 
     """
 
