@@ -33,7 +33,7 @@ def _create_batch_norm_ndarray_args(xp, device, x_shape, gamma_shape, beta_shape
     ((2, 3, 4, 5, 2), (3, 4, 5, 2), (0,)),
     ((2, 3, 4, 5, 2), (3,), (0, 2, 3, 4))
 ])
-@pytest.mark.parametrize('eps', [None, 3e-5])
+@pytest.mark.parametrize('eps', [None, 3e-5, 1.2])
 @pytest.mark.parametrize('decay', [None, 0.5])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_batch_norm(device, x_shape, reduced_shape, eps, decay, axis, float_dtype):
