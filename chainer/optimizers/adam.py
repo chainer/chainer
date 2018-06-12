@@ -188,7 +188,8 @@ class Adam(optimizer.GradientMethod):
                <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
     Args:
-        alpha (float): Step size.
+        alpha (float): Initial learning rate, scaled and adjusted
+                       value is returned if using AdamW.
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
