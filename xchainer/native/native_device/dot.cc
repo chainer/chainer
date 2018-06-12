@@ -13,6 +13,16 @@
 namespace xchainer {
 namespace native {
 
+namespace {
+
+void DotCheckNdim(int8_t ndim) {
+    // TODO(sonots): Support ndim >= 2
+    if (ndim != 2) {
+        throw DimensionError{"XChainer dot supports only 2-dimensional arrays."};
+    }
+}
+
+}  // namespace
 void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -21,9 +31,10 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         IndexableArray<const T> b_iarray{b};
         IndexableArray<T> out_iarray{out};
 
-        assert(a_iarray.ndim() == 2);
-        assert(b_iarray.ndim() == 2);
-        assert(out_iarray.ndim() == 2);
+        // We have to check iarray ndim, otherwise clang-tidy fails bound-checking.
+        DotCheckNdim(a_iarray.ndim());
+        DotCheckNdim(b_iarray.ndim());
+        DotCheckNdim(out_iarray.ndim());
 
         int64_t m = a.shape()[0];
         int64_t k = a.shape()[1];
@@ -35,12 +46,12 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         // TODO(beam2d): Use BLAS.
         for (int64_t i = 0; i < m; ++i) {
             for (int64_t j = 0; j < n; ++j) {
-                int64_t out_i[] = {i, j};  // NOLINT: array index out of bounds
+                int64_t out_i[] = {i, j};
                 T& out_value = out_iarray[out_i];
                 out_value = 0;
                 for (int64_t l = 0; l < k; ++l) {
-                    int64_t a_i[] = {i, l};  // NOLINT: array index out of bounds
-                    int64_t b_i[] = {l, j};  // NOLINT: array index out of bounds
+                    int64_t a_i[] = {i, l};
+                    int64_t b_i[] = {l, j};
                     out_value += a_iarray[a_i] * b_iarray[b_i];
                 }
             }

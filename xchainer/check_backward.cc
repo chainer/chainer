@@ -198,35 +198,40 @@ void CheckBackwardComputation(
         assert(numerical_grads[i].dtype() == inputs[i].dtype());
     }
 
-    // Check consistency between backward gradients and numeric gradients.
-    std::ostringstream failure_os;
-    for (size_t i = 0; i < inputs.size(); ++i) {
+    // Check numerical consistency between numerical and backward gradients.
+    std::vector<size_t> failed_input_indices;
+    for (size_t i = 0; i < backward_grads.size(); ++i) {
         if (!backward_grads[i].has_value()) {
             continue;
         }
-
-        const Array& backward_grad = *backward_grads[i];
-        const Array& numerical_grad = numerical_grads[i];
-        if (!AllClose(backward_grad, numerical_grad, atol, rtol)) {
-            failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
-                       << "Graph name: " << graph_id << "\n"
-                       << "Atol: " << atol << "\n"
-                       << "Rtol: " << rtol << "\n"
-                       << "Error:\n"
-                       << backward_grad - numerical_grad << "\n"  // TODO(niboshi): Use abs
-                       << "Backward gradients:\n"
-                       << backward_grad << "\n"
-                       << "Numerical gradients:\n"
-                       << numerical_grad << "\n"
-                       << "Eps (perturbation in numerical gradients):\n"
-                       << eps[i];
+        if (!AllClose(*backward_grads[i], numerical_grads[i], atol, rtol)) {
+            failed_input_indices.emplace_back(i);
         }
     }
-
-    // Do nothing if all backward-numerical gradient pairs were close, else generate a nonfatal failure
-    std::string failure_message = failure_os.str();
-    if (!failure_message.empty()) {
-        throw GradientCheckError{failure_message};
+    if (!failed_input_indices.empty()) {
+        std::ostringstream os;
+        os << "Numerical error in backward on inputs (out of " << inputs.size() << "): ";
+        for (size_t j = 0; j < failed_input_indices.size(); ++j) {
+            size_t i = failed_input_indices[j];
+            if (i != 0) {
+                os << ", ";
+            }
+            os << i;
+        }
+        os << std::endl;
+        os << "Graph: " << graph_id << std::endl;
+        os << "Atol: " << atol << "  Rtol: " << rtol << std::endl;
+        for (size_t i : failed_input_indices) {
+            os << "Error[" << i << "]:" << std::endl
+               << *backward_grads[i] - numerical_grads[i] << std::endl  // TODO(niboshi): Use abs
+               << "Backward gradients[" << i << "]:" << std::endl
+               << *backward_grads[i] << std::endl
+               << "Numerical gradients[" << i << "]:" << std ::endl
+               << numerical_grads[i] << std::endl
+               << "Eps[" << i << "] (perturbation in numerical gradients):" << std::endl
+               << eps[i] << std::endl;
+        }
+        throw GradientCheckError{os.str()};
     }
 }
 
@@ -338,42 +343,55 @@ void CheckDoubleBackwardComputation(
             BackwardGradients(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, graph_id);
     assert(backward_grads.size() == nin + nout);
 
-    std::ostringstream failure_os;
-    bool has_error = false;
-
     // Check if all the second order gradients exist
-    for (size_t i = 0; i < backward_grads.size(); ++i) {
-        if (!backward_grads[i].has_value()) {
-            failure_os << "Second order gradient w.r.t. the input gradient " << i << " (Total inputs: " << inputs.size()
-                       << ", outputs: " << nout << ") is missing on the graph '" << graph_id << "'. "
-                       << "Maybe you need additional nonlinearity in the target function.";
-            has_error = true;
+    {
+        std::ostringstream os;
+        bool has_error = false;
+        for (size_t i = 0; i < backward_grads.size(); ++i) {
+            if (!backward_grads[i].has_value()) {
+                os << "Second order gradient w.r.t. the input gradient " << i << " (Total inputs: " << inputs.size()
+                   << ", outputs: " << nout << ") is missing on the graph '" << graph_id << "'. "
+                   << "Maybe you need additional nonlinearity in the target function.";
+                has_error = true;
+            }
         }
-    }
-    if (has_error) {
-        throw GradientCheckError{failure_os.str()};
+        if (has_error) {
+            throw GradientCheckError{os.str()};
+        }
     }
 
     // Check numerical consistency between numerical and backward gradients.
+    std::vector<size_t> failed_input_indices;
     for (size_t i = 0; i < backward_grads.size(); ++i) {
         if (!AllClose(*backward_grads[i], numerical_grads[i], atol, rtol)) {
-            failure_os << "Backward check failure on input " << i << " (Total inputs: " << inputs.size() << ")\n"
-                       << "Graph name: " << graph_id << "\n"
-                       << "Atol: " << atol << "\n"
-                       << "Rtol: " << rtol << "\n"
-                       << "Error:\n"
-                       << *backward_grads[i] - numerical_grads[i] << "\n"  // TODO(niboshi): Use abs
-                       << "Backward gradients:\n"
-                       << *backward_grads[i] << "\n"
-                       << "Numerical gradients:\n"
-                       << numerical_grads[i] << "\n"
-                       << "Eps (perturbation in numerical gradients):\n"
-                       << eps[i];
-            has_error = true;
+            failed_input_indices.emplace_back(i);
         }
     }
-    if (has_error) {
-        throw GradientCheckError{failure_os.str()};
+
+    if (!failed_input_indices.empty()) {
+        std::ostringstream os;
+        os << "Numerical error in double backward on inputs (out of " << inputs.size() << "): ";
+        for (size_t j = 0; j < failed_input_indices.size(); ++j) {
+            size_t i = failed_input_indices[j];
+            if (i != 0) {
+                os << ", ";
+            }
+            os << i;
+        }
+        os << std::endl;
+        os << "Graph: " << graph_id << std::endl;
+        os << "Atol: " << atol << "  Rtol: " << rtol << std::endl;
+        for (size_t i : failed_input_indices) {
+            os << "Error[" << i << "]:" << std::endl
+               << *backward_grads[i] - numerical_grads[i] << std::endl  // TODO(niboshi): Use abs
+               << "Backward gradients[" << i << "]:" << std::endl
+               << *backward_grads[i] << std::endl
+               << "Numerical gradients[" << i << "]:" << std ::endl
+               << numerical_grads[i] << std::endl
+               << "Eps[" << i << "] (perturbation in numerical gradients):" << std::endl
+               << eps[i] << std::endl;
+        }
+        throw GradientCheckError{os.str()};
     }
 }
 

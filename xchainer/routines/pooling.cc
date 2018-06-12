@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "xchainer/array.h"
@@ -30,10 +31,35 @@ Array MaxPool(
         throw DimensionError{"Wrong numbers of paddings ", pad.size(), " for input with ", x.ndim(), " dimensions."};
     }
 
-    std::shared_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward();
+    std::unique_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward();
 
-    // TODO(hvy): Connect graphs.
-    return fb->Forward(x, kernel_size, stride, pad, cover_all);
+    Array out = fb->Forward(x, kernel_size, stride, pad, cover_all);
+
+    // Supporting arbitrary number of backwards using a recursive definition.
+    // TODO(hvy): Test backward of double backward.
+    struct MaxPoolBwd {
+        Array operator()(const Array& gout, const std::vector<GraphId>&) {
+            Array gx = fb->Backward(x, kernel_size, stride, pad, cover_all, gout);
+            auto double_backward_function = [this, gout](const Array& ggx, const std::vector<GraphId>&) {
+                Array ggout = fb->DoubleBackward(x, kernel_size, stride, pad, cover_all, gout, ggx);
+                // Make ggout further backpropable.
+                internal::SetUpOpNodes("max_pooling_double_backward", {ggx}, ggout, {*this});
+                return ggout;
+            };
+            internal::SetUpOpNodes("max_pooling_backward", {gout}, gx, {double_backward_function});
+            return gx;
+        }
+
+        Array x;
+        StackVector<int64_t, kMaxNdim> kernel_size;
+        StackVector<int64_t, kMaxNdim> stride;
+        StackVector<int64_t, kMaxNdim> pad;
+        bool cover_all;
+        std::shared_ptr<MaxPoolForwardBackward> fb;
+    };
+
+    internal::SetUpOpNodes("max_pooling", {x}, out, {MaxPoolBwd{x, kernel_size, stride, pad, cover_all, std::move(fb)}});
+    return out;
 }
 
 }  // namespace xchainer
