@@ -23,13 +23,15 @@ BackwardContext::BackwardContext(
         const OpNode& op_node,
         gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes,
         gsl::span<const GraphId> stop_graph_ids,
-        gsl::span<std::reference_wrapper<nonstd::optional<Array>>> input_grads_storage)
+        std::vector<Array>& input_grads_storage)
     : op_node_{op_node},
       prev_nodes_{prev_nodes},
       stop_graph_ids_{stop_graph_ids},
       input_grads_storage_{input_grads_storage},
       zero_output_grads_{prev_nodes_.size()} {
     assert(input_grads_storage_.size() <= op_node.next_node_count());
+    // Input grads must be initialized with null-body arrays.
+    assert(std::all_of(input_grads_storage_.begin(), input_grads_storage_.end(), [](const Array& g) { return g.body() == nullptr; }));
 };
 
 bool BackwardContext::HasOutputGrad(int output_index) const { return gsl::at(prev_nodes_, output_index).get().grad().has_value(); }
@@ -208,19 +210,26 @@ private:
         }
 
         for (const internal::OpNodeBackwardEntry& backward_entry : op_node.backward_entries()) {
-            // Store the references to the placeholders of next gradients (`next_grads`) for the subset of input arrays of this backward
-            // call.
-            // The backward function will call BackwardContext::SetInputGrad() via `bctx` and it in turn stores the gradient into
-            // these placeholders.
-            std::vector<std::reference_wrapper<nonstd::optional<Array>>> next_grads_subset;
-            next_grads_subset.reserve(backward_entry.next_node_count());
-            for (int next_node_index : backward_entry.next_node_indices()) {
-                next_grads_subset.emplace_back(gsl::at(next_grads, next_node_index));
-            }
+            // `next_grads_subset` stores the next gradients (`next_grads`) of the subset of input arrays of this backward
+            // call. `BackwardContext` holds it by reference and calls of BackwardContext::SetInputGrad() store the
+            // gradients there. It initially holds null-body arrays.
+            std::vector<Array> next_grads_subset;
+            next_grads_subset.resize(backward_entry.next_node_count());
 
             // Call backward.
             BackwardContext bctx{op_node, prev_nodes, graph_ids_to_stop_gradient, next_grads_subset};
             backward_entry.backward_func()(bctx);
+
+            // Accumulate grads from `next_grads_subset`.
+            for (size_t i = 0; i < backward_entry.next_node_count(); ++i) {
+                size_t i_next_grad = backward_entry.next_node_indices()[i];
+                nonstd::optional<Array>& target_grad = next_grads[i_next_grad];
+                if (target_grad.has_value()) {
+                    *target_grad += next_grads_subset[i];
+                } else {
+                    target_grad = std::move(next_grads_subset[i]);
+                }
+            }
         }
 
         // If previous array nodes are output nodes of backward, clear their gradients

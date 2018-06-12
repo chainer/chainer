@@ -578,7 +578,11 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                     } else {
                         EXPECT_TRUE(gy1.IsConstant());
                     }
-                    bctx.input_grad() = 2 * gy1;
+                    bctx.input_grad() = 2 * gy1;  // omit index
+
+                    // Check bctx.input_grad() as a getter
+                    Array gx1_back = bctx.input_grad();
+                    testing::ExpectEqual(2 * gy1, gx1_back);
                 });
             }
             if (!x2.IsConstant() || !x3.IsConstant()) {
@@ -591,7 +595,14 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                         EXPECT_TRUE(gy1.IsConstant());
                     }
                     testing::ExpectEqual(gy1_value, gy1);
-                    bctx.input_grad() = {3 * gy1, 1 * gy1};  // by std::initializer_list
+                    bctx.input_grad(0) = 3 * gy1;  // by index
+                    bctx.input_grad(1) = 1 * gy1;
+
+                    // Check bctx.input_grad() as a getter
+                    Array gx2_back = bctx.input_grad(0);
+                    Array gx3_back = bctx.input_grad(1);
+                    testing::ExpectEqual(3 * gy1, gx2_back);
+                    testing::ExpectEqual(1 * gy1, gx3_back);
                 });
             }
         }
@@ -662,7 +673,7 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                         EXPECT_TRUE(gy1.IsConstant());
                         EXPECT_TRUE(gy2.IsConstant());
                     }
-                    bctx.input_grad() = 2 * gy1 + 3 * gy2;
+                    bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
                 });
             }
             if (!x2.IsConstant() || !x3.IsConstant()) {
@@ -681,8 +692,10 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                     testing::ExpectEqual(gy1_value, gy1);
                     testing::ExpectEqual(gy2_value, gy2);
 
-                    std::vector<Array> ginputs = {3 * gy1 + gy2, 2 * gy2};
-                    bctx.input_grad() = ginputs;  // by std::vector
+                    Array gx2 = 3 * gy1 + gy2;
+                    Array gx3 = 2 * gy2;
+                    bctx.input_grad(0) = gx2;  // by index, from non-temporary
+                    bctx.input_grad(1) = gx3;
                 });
             }
         }

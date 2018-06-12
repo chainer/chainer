@@ -24,27 +24,6 @@ namespace backward_detail {
 
 using BackwardFunc = std::function<void(BackwardContext&)>;
 
-// An opaque object class returned by BackwardContext::input_grad().
-class SetInputGradProxy {
-public:
-    explicit SetInputGradProxy(BackwardContext& bctx) : bctx_{bctx} {}
-
-    SetInputGradProxy(SetInputGradProxy&&) = default;
-    SetInputGradProxy(const SetInputGradProxy&) = default;
-    SetInputGradProxy& operator=(SetInputGradProxy&&) = delete;
-    SetInputGradProxy& operator=(const SetInputGradProxy&) = delete;
-
-    // Assign the input gradient.
-    void operator=(std::initializer_list<Array> grads);
-
-    // Assign the input gradient.
-    template <typename Arg>
-    void operator=(Arg&& arg);
-
-private:
-    BackwardContext& bctx_;
-};
-
 }  // namespace backward_detail
 
 class OpNode;
@@ -64,7 +43,7 @@ public:
             const OpNode& op_node,
             gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes,
             gsl::span<const GraphId> stop_graph_ids,
-            gsl::span<std::reference_wrapper<nonstd::optional<Array>>> input_grads_storage);
+            std::vector<Array>& input_grads_storage);
 
     // Returns whether the output has a propagated gradient.
     // If there is only one output, the output always has the propagated gradient, therefore you do not have to call this function in that
@@ -82,40 +61,20 @@ public:
         return GetOutputGrad(0);
     }
 
-    // Stores the computed input gradient.
-    backward_detail::SetInputGradProxy input_grad() { return backward_detail::SetInputGradProxy{*this}; }
+    // Returns the reference to the input gradient.
+    Array& input_grad() {
+        assert(input_grads_storage_.size() == 1);
+        return gsl::at(input_grads_storage_, 0);
+    }
+
+    // Returns the reference to the input gradient.
+    Array& input_grad(size_t index) { return gsl::at(input_grads_storage_, index); }
 
     // Given an array, cuts the graphs to stop gradients and returns the resulting array.
     Array Cut(const Array& a) const;
 
 private:
-    friend class backward_detail::SetInputGradProxy;
-
     // Stores the computed input gradient.
-    void SetInputGrad(Array input_grad) {
-        assert(input_grads_storage_.size() == 1);
-        SetInputGradImpl(input_grads_storage_[0].get(), std::move(input_grad));
-    }
-
-    // Stores the computed input gradient.
-    void SetInputGrad(gsl::span<const Array> input_grads) {
-        assert(input_grads_storage_.size() == input_grads.size());
-        auto it_dst = input_grads_storage_.begin();
-        for (const Array& input_grad : input_grads) {
-            SetInputGradImpl(it_dst->get(), input_grad);
-            ++it_dst;
-        }
-    }
-
-    template <typename ArrayType>
-    void SetInputGradImpl(nonstd::optional<Array>& grad_storage, ArrayType&& input_grad) {
-        if (grad_storage.has_value()) {
-            grad_storage = *grad_storage + input_grad;
-        } else {
-            grad_storage = std::forward<ArrayType>(input_grad);
-        }
-    }
-
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
     const Array& GetOutputGrad(int output_index) const;
@@ -131,26 +90,15 @@ private:
     gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes_;
     gsl::span<const GraphId> stop_graph_ids_;
 
+    // A reference to the storage of input gradient arrays.
     // Gradient passed in SetInputGrad() will be put into this storage.
-    gsl::span<std::reference_wrapper<nonstd::optional<Array>>> input_grads_storage_;
+    // Unset gradients will have null array body.
+    std::vector<Array>& input_grads_storage_;
 
     // Holds zero-filled arrays for outputs without actual gradients.
     // The arrays are allocated on-demand in GetOutputGrad.
     mutable std::vector<nonstd::optional<Array>> zero_output_grads_;
 };
-
-namespace backward_detail {
-
-inline void SetInputGradProxy::operator=(std::initializer_list<Array> grads) {
-    bctx_.SetInputGrad(gsl::span<const Array>{grads.begin(), grads.end()});
-}
-
-template <typename Arg>
-void SetInputGradProxy::operator=(Arg&& arg) {
-    bctx_.SetInputGrad(std::forward<Arg>(arg));
-}
-
-}  // namespace backward_detail
 
 class BackwardBuilder {
 public:
