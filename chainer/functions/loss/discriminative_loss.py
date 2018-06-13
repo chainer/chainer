@@ -10,7 +10,8 @@ from chainer.functions.array.transpose import transpose
 from chainer.functions.math.average import average
 from chainer.functions.math.basic_math import absolute
 from chainer.functions.math.maximum import maximum
-from chainer.functions.math.sum import sum
+from chainer.functions.math.sum import sum as c_sum
+import warnings
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
@@ -49,10 +50,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         gamma (float): Weight for regularization loss(gamma * regularizer_loss)
 
     Returns:
-        float: (alpha * variance_loss)+
-               (beta * distance_loss) +
-               (gamma * regularizer_loss)
-
+        ~chainer.Variable: Output variable. A
+        :math:`()`-shaped float array.
     """
 
     def __init__(self, delta_v, delta_d, max_n_clusters, norm=1, alpha=1.0,
@@ -76,37 +75,60 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """Function to calculate L1 Norm by given axes
 
         Args:
-            x (nd-array): Input matrix to calculate norm
+            x (:class:`~chainer.Variable\` or \
+            :class:\`numpy.ndarray\` or \
+            :class:`cupy.ndarray`):
+                Input matrix to calculate norm
             axis (int / tuple): Axes information for norm calculation
 
         Returns:
-            nd-array : Norm applied to given axes
+            :class:`~chainer.Variable\` or \
+            :class:\`numpy.ndarray\` or \
+            :class:`cupy.ndarray` : Norm applied to given axes
         """
-        return sum(absolute(x), axis=axis)
+        return c_sum(absolute(x), axis=axis)
 
     def _l2_norm(self, x, axis):
         """Function to calculate L2 Norm by given axes
 
         Args:
-            x (nd-array): Input matrix to calculate norm
+            x (:class:`~chainer.Variable\` or \
+            :class:\`numpy.ndarray\` or \
+            :class:`cupy.ndarray`):
+                Input matrix to calculate norm
             axis (int / tuple): Axes information for norm calculation
 
         Returns:
-            nd-array : Norm applied to given axes
+            :class:`~chainer.Variable\` or \
+            :class:\`numpy.ndarray\` or \
+            :class:`cupy.ndarray` :
+                Norm applied to given axes
         """
-        return sum(x ** 2, axis=axis)
+        return c_sum(x ** 2, axis=axis)
 
     def _variance_term(self, pred, gt, means, delta_v, gt_idx):
         """Function to calculate variance term
 
         Args:
-            pred (nd-array): Prediction output
-            gt (nd-array): Ground truth output
-            means (nd-array): Instance means
+            pred (:class:`~chainer.Variable\` or \
+            :class:\`numpy.ndarray\` or '
+            :class:`cupy.ndarray`):
+                Prediction output
+            gt (:class:`~chainer.Variable\` or \
+            :class:\`numpy.ndarray\` or '
+            :class:`cupy.ndarray`):
+                Ground truth output
+            means (:class:`~chainer.Variable\` or \
+            :class:\`numpy.ndarray\` or '
+            :class:`cupy.ndarray`):
+                Instance means
             delta_v (float): Coefficient to decide 'pull force' power
             gt_idx (tuple / nd-array): Indexes of ground truth instances
+
         Returns:
-            float : variance loss
+            :class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray` : variance loss
         """
 
         bs, n_filters, n_loc = pred.shape
@@ -134,7 +156,22 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         var_term = 0.0
         for i in range(bs):
-            var_term += sum(_var[i, gt_idx[i]]) / sum(g[i, gt_idx[i], 0])
+            if len(gt_idx[i]) < 1:
+                warnings.warn("Warning : Empty gt_idx is found. " +
+                              "Please check dataset content.")
+                continue
+
+            gt_sm = c_sum(g[i, gt_idx[i], 0])
+            if gt_sm.data == 0:
+                warnings.warn("Warning : Zero gt_sm is found. " +
+                              "Please check dataset content.")
+                continue
+
+            var_sm = c_sum(_var[i, gt_idx[i]])
+            if var_sm.data == 0:
+                continue
+
+            var_term += (var_sm / gt_sm)
         var_term /= bs
 
         return var_term
@@ -173,7 +210,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             nrm = self.norm(m_1 - m_2, axis=2)
             margin = 2.0 * dd * (1.0 - module.eye(nobj, dtype=means.dtype))
 
-            _dist_term_sample = sum(
+            _dist_term_sample = c_sum(
                 maximum(module.asarray(0.0, means.dtype), margin - nrm) ** 2)
             _dist_term_sample /= nobj * (nobj - 1)
             dist_term += _dist_term_sample
@@ -182,12 +219,12 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         return dist_term
 
-    def _regularization_term(self, means, n_objects):
+    def _regularization_term(self, means, gt_idx):
         """Function to calculate regularization term
 
         Args:
             means (nd-array): Instance means
-            n_objects (int): Instance count in current input
+            gt_idx (tuple / nd-array): Indexes of ground truth instances
 
         Returns:
             float : distance loss
@@ -198,7 +235,9 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         reg_term = 0.0
         for i in range(bs):
-            reg_term += average(self.norm(m[i, : n_objects[i], :], 1))
+            if len(gt_idx[i]) == 0:
+                continue
+            reg_term += average(self.norm(m[i, gt_idx[i], :], 1))
         reg_term /= bs
 
         return reg_term
@@ -207,14 +246,22 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """Function to calculate cluster means
 
         Args:
-            pred (nd-array): Prediction output
-            gt (nd-array): Ground truth output
+            pred (:class:`~chainer.Variable` or \
+                  :class:`numpy.ndarray` or \
+                  :class:`cupy.ndarray`) : Prediction output
+            gt (:class:`~chainer.Variable` or \
+                :class:`numpy.ndarray` or \
+                :class:`cupy.ndarray`) : Ground truth output
             n_objects (int): Instance number in current input
             max_n_objects (int): Maximum possible instance number
-            gt_idx (tuple / nd-array): Indexes of ground truth instances
+            gt_idx (tuple / nd-array):
+                Indexes of ground truth instances
 
         Returns:
-            tuple : distance loss
+            tuple :
+            (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`)  distance loss
         """
 
         bs = pred.shape[0]
@@ -238,8 +285,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             p_item = p[i, :, gt_idx[i]]
             g_item = g[i, :, gt_idx[i]]
 
-            p_sum = sum(p_item, axis=2)
-            g_sum = cast(sum(g_item, axis=2), p_sum.dtype)
+            p_sum = c_sum(p_item, axis=2)
+            g_sum = cast(c_sum(g_item, axis=2), p_sum.dtype)
             _mean_sample = p_sum / g_sum
 
             n_fill_objects = max_n_objects - n_objects[i]
@@ -259,11 +306,24 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """Function to preprocess inputs
 
         Args:
-            prediction (nd-array): Prediction output
-            labels (nd-array): Ground truth output
+            prediction (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`):
+                Prediction output
+            labels (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`):
+                Ground truth output
+
         Returns:
-            nd-array : Prediction output
-            nd-array : Ground truth output
+            (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`) :
+                Prediction output
+            (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`) :
+                Ground truth output
         """
         # Reshape layers to prepare for processing
 
@@ -290,12 +350,26 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         Args:
             x (tuple) : Contains several inputs
-                - x[0] = segmentation prediction output
-                - x[1] = segmentation ground truth
-                - x[2] = number of objects in ground truth
-                - x[3] = indexes of non-zero ground truths
+                - x[0] (:class:`~chainer.Variable` or \
+                        :class:`numpy.ndarray` or \
+                        :class:`cupy.ndarray`)
+                        segmentation prediction output
+                - x[1] (:class:`~chainer.Variable` or \
+                        :class:`numpy.ndarray` or \
+                        :class:`cupy.ndarray`)
+                        segmentation ground truth
+                - x[2] (:class:`~chainer.Variable` or \
+                        :class:`numpy.ndarray` or \
+                        :class:`cupy.ndarray`)
+                        number of objects in ground truth
+                - x[3] (:class:`~chainer.Variable` or \
+                        :class:`numpy.ndarray` or \
+                        :class:`cupy.ndarray`)
+                        indexes of non-zero ground truths
         Returns:
-            float : Loss value
+            (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`) : Loss value
         """
 
         buffer = chainer.config.type_check
@@ -315,7 +389,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         l_var = self._variance_term(prediction, labels, c_means, self.delta_v,
                                     gt_idx)
         l_dist = self._distance_term(c_means, self.delta_d, n_objects)
-        l_reg = self._regularization_term(c_means, n_objects)
+        l_reg = self._regularization_term(c_means, gt_idx)
 
         chainer.config.type_check = buffer
         return self.alpha * l_var + self.beta * l_dist + self.gamma * l_reg
@@ -351,10 +425,22 @@ def discriminative_margin_based_clustering_loss(
 
     Args:
         x (tuple) : Contains several inputs
-                - x[0] = segmentation prediction output     (n, i, w, h)
-                - x[1] = segmentation ground truth          (n, i, w, h)
-                - x[2] = number of objects in ground truth  (n,)
-                - x[3] = indexes of non-zero ground truths  (n, variable)
+                - x[0](:class:`~chainer.Variable` or \
+                       :class:`numpy.ndarray` or \
+                       :class:`cupy.ndarray`) :
+                         segmentation prediction output     (n, i, w, h)
+                - x[1](:class:`~chainer.Variable` or \
+                       :class:`numpy.ndarray` or \
+                       :class:`cupy.ndarray`) :
+                         segmentation ground truth          (n, i, w, h)
+                - x[2](:class:`~chainer.Variable` or \
+                       :class:`numpy.ndarray` or \
+                       :class:`cupy.ndarray`) :
+                         number of objects in ground truth  (n,)
+                - x[3](:class:`~chainer.Variable` or \
+                       :class:`numpy.ndarray` or \
+                       :class:`cupy.ndarray`) :
+                         indexes of non-zero ground truths  (n, variable)
         where,
             - n is batch size
             - i is total instance count
@@ -370,9 +456,12 @@ def discriminative_margin_based_clustering_loss(
         gamma (float): Weight for regularization loss(gamma * regularizer_loss)
 
     Returns:
-        float: (alpha * variance_loss)+
-               (beta * distance_loss) +
-               (gamma * regularizer_loss)
+        (:class:`~chainer.Variable` or \
+        :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            (alpha * variance_loss)+
+            (beta * distance_loss) +
+            (gamma * regularizer_loss)
     """
     return DiscriminativeMarginBasedClusteringLoss(
         delta_v, delta_d, max_n_clusters, norm, alpha, beta, gamma)(x)
