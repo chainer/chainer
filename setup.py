@@ -101,20 +101,21 @@ def find_any_distribution(pkgs):
     return None
 
 
-# Currently cupy provides source package (cupy) and binary wheel packages
-# (cupy-cudaXX). Chainer can use any one of these packages.
-cupy_pkg = find_any_distribution([
-    'cupy-cuda91',
-    'cupy-cuda90',
-    'cupy-cuda80',
-    'cupy',
-])
-if cupy_pkg is not None:
-    req = cupy_requirement(cupy_pkg.project_name)
-    install_requires.append(req)
-    print('Use %s' % req)
-else:
-    print('No CuPy installation detected')
+if 0 == os.environ.get('CHAINER_SETUP_IGNORE_CUPY', 0):
+    # Currently cupy provides source package (cupy) and binary wheel packages
+    # (cupy-cudaXX). Chainer can use any one of these packages.
+    cupy_pkg = find_any_distribution([
+        'cupy-cuda91',
+        'cupy-cuda90',
+        'cupy-cuda80',
+        'cupy',
+    ])
+    if cupy_pkg is not None:
+        req = cupy_requirement(cupy_pkg.project_name)
+        install_requires.append(req)
+        print('Use %s' % req)
+    else:
+        print('No CuPy installation detected')
 
 here = os.path.abspath(os.path.dirname(__file__))
 # Get __version__ variable
