@@ -48,6 +48,7 @@ from chainer.functions.array.copy import copy  # NOQA
 from chainer.functions.array.copy import Copy  # NOQA
 from chainer.functions.array.depth2space import depth2space  # NOQA
 from chainer.functions.array.depth2space import Depth2Space  # NOQA
+from chainer.functions.array.diagonal import diagonal  # NOQA
 from chainer.functions.array.dstack import dstack  # NOQA
 from chainer.functions.array.expand_dims import expand_dims  # NOQA
 from chainer.functions.array.expand_dims import ExpandDims  # NOQA
