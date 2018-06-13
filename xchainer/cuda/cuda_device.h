@@ -29,6 +29,7 @@ public:
     void Synchronize() override;
 
     cublasHandle_t cublas_handle();
+    cudnnHandle_t cudnn_handle();
 
     // memory.cc
 
@@ -157,8 +158,8 @@ private:
     friend CudaDevice* xchainer::cuda::internal::CreateDevice(CudaBackend&, int);
 
     MemoryPool memory_pool_;
-    internal::CudnnContext cudnn_context_;
     cublasHandle_t cublas_handle_{};
+    cudnnHandle_t cudnn_handle_{};
 };
 
 }  // namespace cuda
