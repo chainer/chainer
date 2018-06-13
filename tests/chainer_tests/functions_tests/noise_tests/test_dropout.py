@@ -2,10 +2,13 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
+from chainer.testing import attr
 from chainer.testing import backend
 
 
@@ -127,6 +130,48 @@ class TestDropout(unittest.TestCase):
 
     def test_immutable(self, backend_config):
         self.check_immutable(self.inputs, backend_config)
+
+
+@testing.parameterize(*testing.product({
+    'specify_mask': [True, False],
+    'train': [True, False],
+}))
+class TestDropoutMask(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+        self.mask = (numpy.random.uniform(-1, 1, (2, 3)) > 0).astype(
+            numpy.float32)
+
+    def _check(self):
+        mask = self.mask if self.specify_mask else None
+        with chainer.using_config('train', self.train):
+            out, out_mask = functions.dropout(
+                self.x, 0.5, mask=mask, return_mask=True)
+
+        if self.train:
+            assert isinstance(out_mask, type(out.array))
+            if mask is None:
+                assert out_mask.shape == out.array.shape
+            else:
+                assert out_mask is mask
+        else:
+            assert out_mask is None
+
+    def test_cpu(self):
+        with chainer.using_config('use_ideep', 'never'):
+            self._check()
+
+    @attr.ideep
+    def test_cpu_ideep(self):
+        with chainer.using_config('use_ideep', 'always'):
+            self._check()
+
+    @attr.gpu
+    def test_gpu(self):
+        self.x = cuda.to_gpu(self.x)
+        self.mask = cuda.to_gpu(self.mask)
+        self._check()
 
 
 testing.run_module(__name__, __file__)
