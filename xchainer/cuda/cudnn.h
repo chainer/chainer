@@ -59,25 +59,71 @@ using ConvBwdDataAlgoCacheMap =
 using ConvBwdFilterAlgoCacheMap =
         std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 
-class CudnnContext {
+class TensorDescriptor {
 public:
-    explicit CudnnContext(int device_index);
-    ~CudnnContext();
+    explicit TensorDescriptor(const Array& arr);
+    ~TensorDescriptor();
 
-    // Wraps cudnnBatchNormalizationForwardTraining.
-    // scale and bias correspond to gamma and beta respectively.
-    void BatchNormalizationForwardTraining(
-            cudnnBatchNormMode_t mode,
-            const Array& x,
-            const Array& y,
-            const Array& scale,
-            const Array& bias,
-            double exponential_average_factor,
-            const Array& result_running_mean,
-            const Array& result_running_variance,
-            double eps,
-            const nonstd::optional<Array>& result_save_mean = nonstd::nullopt,
-            const nonstd::optional<Array>& result_save_inv_variance = nonstd::nullopt);
+    cudnnTensorDescriptor_t descriptor() const { return desc_; }
+    cudnnTensorDescriptor_t operator*() const { return desc_; }
+
+private:
+    TensorDescriptor();
+    cudnnTensorDescriptor_t desc_{};
+};
+
+class FilterDescriptor {
+public:
+    explicit FilterDescriptor(const Array& w);
+    ~FilterDescriptor();
+
+    cudnnFilterDescriptor_t descriptor() const { return desc_; }
+    cudnnFilterDescriptor_t operator*() const { return desc_; }
+
+private:
+    FilterDescriptor();
+    cudnnFilterDescriptor_t desc_{};
+};
+
+class ConvolutionDescriptor {
+public:
+    explicit ConvolutionDescriptor(
+            Dtype dtype,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+            int groups);
+    ~ConvolutionDescriptor();
+
+    cudnnConvolutionDescriptor_t descriptor() const { return desc_; }
+    cudnnConvolutionDescriptor_t operator*() const { return desc_; }
+
+private:
+    ConvolutionDescriptor();
+    cudnnConvolutionDescriptor_t desc_{};
+};
+
+class PoolingDescriptor {
+public:
+    explicit PoolingDescriptor(
+            cudnnPoolingMode_t mode,
+            cudnnNanPropagation_t max_pooling_nan_opt,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& stride);
+    ~PoolingDescriptor();
+
+    cudnnPoolingDescriptor_t descriptor() const { return desc_; }
+    cudnnPoolingDescriptor_t operator*() const { return desc_; }
+
+private:
+    PoolingDescriptor();
+    cudnnPoolingDescriptor_t desc_{};
+};
+
+class ConvContext {
+public:
+    explicit ConvContext(cudnnHandle_t handle) : handle_(handle) {}
 
     void ConvolutionForward(
             const Array& x,
@@ -125,68 +171,6 @@ public:
     cudnnHandle_t handle() { return handle_; }
 
 private:
-    class TensorDescriptor {
-    public:
-        explicit TensorDescriptor(const Array& arr);
-        ~TensorDescriptor();
-
-        cudnnTensorDescriptor_t descriptor() const { return desc_; }
-        cudnnTensorDescriptor_t operator*() const { return desc_; }
-
-    private:
-        TensorDescriptor();
-        cudnnTensorDescriptor_t desc_{};
-    };
-
-    class FilterDescriptor {
-    public:
-        explicit FilterDescriptor(const Array& w);
-        ~FilterDescriptor();
-
-        cudnnFilterDescriptor_t descriptor() const { return desc_; }
-        cudnnFilterDescriptor_t operator*() const { return desc_; }
-
-    private:
-        FilterDescriptor();
-        cudnnFilterDescriptor_t desc_{};
-    };
-
-    class ConvolutionDescriptor {
-    public:
-        explicit ConvolutionDescriptor(
-                Dtype dtype,
-                const StackVector<int64_t, kMaxNdim>& pad,
-                const StackVector<int64_t, kMaxNdim>& stride,
-                const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-                int groups);
-        ~ConvolutionDescriptor();
-
-        cudnnConvolutionDescriptor_t descriptor() const { return desc_; }
-        cudnnConvolutionDescriptor_t operator*() const { return desc_; }
-
-    private:
-        ConvolutionDescriptor();
-        cudnnConvolutionDescriptor_t desc_{};
-    };
-
-    class PoolingDescriptor {
-    public:
-        explicit PoolingDescriptor(
-                cudnnPoolingMode_t mode,
-                cudnnNanPropagation_t max_pooling_nan_opt,
-                const StackVector<int64_t, kMaxNdim>& kernel_size,
-                const StackVector<int64_t, kMaxNdim>& pad,
-                const StackVector<int64_t, kMaxNdim>& stride);
-        ~PoolingDescriptor();
-
-        cudnnPoolingDescriptor_t descriptor() const { return desc_; }
-        cudnnPoolingDescriptor_t operator*() const { return desc_; }
-
-    private:
-        PoolingDescriptor();
-        cudnnPoolingDescriptor_t desc_{};
-    };
-
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
             const TensorDescriptor& x_desc,
             const Array& x,
@@ -222,7 +206,6 @@ private:
             const StackVector<int64_t, kMaxNdim>& stride);
     void AddBias(const TensorDescriptor& y_desc, const Array& y, const Array& b);
 
-    int device_index_;
     cudnnHandle_t handle_{};
     ConvFwdAlgoCacheMap conv_fwd_algo_cache_map_{};
     ConvBwdDataAlgoCacheMap conv_bwd_data_algo_cache_map_{};

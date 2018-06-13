@@ -111,7 +111,7 @@ StackVector<int, kMaxNdim> GetIntArrayStrides(const Strides& strides, int64_t it
 
 namespace internal {
 
-void CudnnContext::AddBias(const TensorDescriptor& y_desc, const Array& y, const Array& b) {
+void ConvContext::AddBias(const TensorDescriptor& y_desc, const Array& y, const Array& b) {
     assert(&b.device() == &y.device());
     assert(b.dtype() == y.dtype());
 
@@ -164,17 +164,17 @@ std::size_t ConvAlgoCacheKeyHash::operator()(const ConvAlgoCacheKey& key) const 
     return seed;
 }
 
-CudnnContext::CudnnContext(int device_index) : device_index_{device_index} {
+ConvContext::ConvContext(int device_index) : device_index_{device_index} {
     CheckCudaError(cudaSetDevice(device_index_));
     CheckCudnnError(cudnnCreate(&handle_));
 }
 
-CudnnContext::~CudnnContext() {
+ConvContext::~ConvContext() {
     cudaSetDevice(device_index_);
     cudnnDestroy(handle_);
 }
 
-void CudnnContext::BatchNormalizationForwardTraining(
+void ConvContext::BatchNormalizationForwardTraining(
         cudnnBatchNormMode_t mode,
         const Array& x,
         const Array& y,
@@ -258,7 +258,7 @@ void CudnnContext::BatchNormalizationForwardTraining(
             result_save_inv_variance_raw));
 }
 
-std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwardAlgorithm(
+std::pair<cudnnConvolutionFwdAlgo_t, size_t> ConvContext::FindConvolutionForwardAlgorithm(
         const TensorDescriptor& x_desc,
         const Array& x,
         const FilterDescriptor& filter_desc,
@@ -300,7 +300,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnContext::FindConvolutionForwar
     return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
 
-std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnContext::FindConvolutionBackwardDataAlgorithm(
+std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> ConvContext::FindConvolutionBackwardDataAlgorithm(
         const FilterDescriptor& filter_desc,
         const Array& w,
         const TensorDescriptor& x_desc,
@@ -342,7 +342,7 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnContext::FindConvolutionBa
     return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
 
-std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudnnContext::FindConvolutionBackwardFilterAlgorithm(
+std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> ConvContext::FindConvolutionBackwardFilterAlgorithm(
         const TensorDescriptor& x_desc,
         const Array& x,
         const TensorDescriptor& gy_desc,
@@ -385,7 +385,7 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudnnContext::FindConvolution
 }
 
 // TODO(sonots): Support tensor core
-void CudnnContext::ConvolutionForward(
+void ConvContext::ConvolutionForward(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
@@ -440,7 +440,7 @@ void CudnnContext::ConvolutionForward(
     }
 }
 
-void CudnnContext::ConvolutionBackwardData(
+void ConvContext::ConvolutionBackwardData(
         const Array& w,
         const Array& x,
         const nonstd::optional<Array>& b,
@@ -495,7 +495,7 @@ void CudnnContext::ConvolutionBackwardData(
     }
 }
 
-void CudnnContext::ConvolutionBackwardFilter(
+void ConvContext::ConvolutionBackwardFilter(
         const Array& x,
         const Array& gy,
         const Array& gw,
@@ -545,15 +545,15 @@ void CudnnContext::ConvolutionBackwardFilter(
             xchainer::internal::GetRawOffsetData<void>(gw)));
 }
 
-CudnnContext::ConvolutionDescriptor::ConvolutionDescriptor() { CheckCudnnError(cudnnCreateConvolutionDescriptor(&desc_)); }
+ConvolutionDescriptor::ConvolutionDescriptor() { CheckCudnnError(cudnnCreateConvolutionDescriptor(&desc_)); }
 
-CudnnContext::ConvolutionDescriptor::~ConvolutionDescriptor() {
+ConvolutionDescriptor::~ConvolutionDescriptor() {
     if (desc_ != nullptr) {
         CheckCudnnError(cudnnDestroyConvolutionDescriptor(desc_));
     }
 }
 
-CudnnContext::ConvolutionDescriptor::ConvolutionDescriptor(
+ConvolutionDescriptor::ConvolutionDescriptor(
         Dtype dtype,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride,
@@ -598,7 +598,7 @@ CudnnContext::ConvolutionDescriptor::ConvolutionDescriptor(
     }
 }
 
-void CudnnContext::MaxPoolingForward(
+void ConvContext::MaxPoolingForward(
         const Array& x,
         const Array& y,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
@@ -664,15 +664,15 @@ void CudnnContext::MaxPoolingBackward(
             xchainer::internal::GetRawOffsetData<void>(dx)));
 }
 
-CudnnContext::PoolingDescriptor::PoolingDescriptor() { CheckCudnnError(cudnnCreatePoolingDescriptor(&desc_)); }
+PoolingDescriptor::PoolingDescriptor() { CheckCudnnError(cudnnCreatePoolingDescriptor(&desc_)); }
 
-CudnnContext::PoolingDescriptor::~PoolingDescriptor() {
+PoolingDescriptor::~PoolingDescriptor() {
     if (desc_ != nullptr) {
         CheckCudnnError(cudnnDestroyPoolingDescriptor(desc_));
     }
 }
 
-CudnnContext::PoolingDescriptor::PoolingDescriptor(
+PoolingDescriptor::PoolingDescriptor(
         cudnnPoolingMode_t mode,
         cudnnNanPropagation_t max_pooling_nan_opt,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
@@ -704,15 +704,15 @@ CudnnContext::PoolingDescriptor::PoolingDescriptor(
     }
 }
 
-CudnnContext::TensorDescriptor::TensorDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
+TensorDescriptor::TensorDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
 
-CudnnContext::TensorDescriptor::~TensorDescriptor() {
+TensorDescriptor::~TensorDescriptor() {
     if (desc_ != nullptr) {
         CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
     }
 }
 
-CudnnContext::TensorDescriptor::TensorDescriptor(const Array& arr) : TensorDescriptor{} {
+TensorDescriptor::TensorDescriptor(const Array& arr) : TensorDescriptor{} {
     assert(arr.IsContiguous());
 
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
@@ -726,15 +726,15 @@ CudnnContext::TensorDescriptor::TensorDescriptor(const Array& arr) : TensorDescr
     }
 }
 
-CudnnContext::FilterDescriptor::FilterDescriptor() { CheckCudnnError(cudnnCreateFilterDescriptor(&desc_)); }
+FilterDescriptor::FilterDescriptor() { CheckCudnnError(cudnnCreateFilterDescriptor(&desc_)); }
 
-CudnnContext::FilterDescriptor::~FilterDescriptor() {
+FilterDescriptor::~FilterDescriptor() {
     if (desc_ != nullptr) {
         CheckCudnnError(cudnnDestroyFilterDescriptor(desc_));
     }
 }
 
-CudnnContext::FilterDescriptor::FilterDescriptor(const Array& w) : FilterDescriptor{} {
+FilterDescriptor::FilterDescriptor(const Array& w) : FilterDescriptor{} {
     assert(w.IsContiguous());
 
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(w.dtype());

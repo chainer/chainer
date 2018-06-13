@@ -80,7 +80,7 @@ Array CudaDevice::Conv(
     }
     Array y = Empty(out_shape, x.dtype(), *this);
 
-    cudnn_context_.ConvolutionForward(x, w, b, y, pad, stride, nonstd::nullopt, 1);
+    conv_context().ConvolutionForward(x, w, b, y, pad, stride, nonstd::nullopt, 1);
 
     return y;
 }
@@ -109,7 +109,7 @@ Array CudaDevice::ConvGradWeight(
     assert(gy.ndim() == w_shape.ndim());
 
     Array gw = Empty(w_shape, w_dtype, *this);
-    cudnn_context_.ConvolutionBackwardFilter(x, gy, gw, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/);
+    conv_context().ConvolutionBackwardFilter(x, gy, gw, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/);
 
     return gw;
 }
@@ -149,7 +149,7 @@ Array CudaDevice::ConvTranspose(
 
     Array y = Empty(out_shape, x.dtype(), *this);
 
-    cudnn_context_.ConvolutionBackwardData(w, x, b, y, pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/);
+    conv_context().ConvolutionBackwardData(w, x, b, y, pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/);
 
     return y;
 }
