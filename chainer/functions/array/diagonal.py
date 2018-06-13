@@ -55,17 +55,19 @@ class DiagonalGrad(function_node.FunctionNode):
 
 
 def diagonal(x, offset=0, axis1=0, axis2=1):
-    """
+    """Take diagonal
+
+    Axes other than ``axis1`` and ``axis2`` are regarded as batch dimensions.
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): A variable to be sliced.
-        slices (int, slice, Ellipsis, None, integer array-like, boolean\
-        array-like or tuple of them):
-            An object to specify the selection of elements.
+        offset (int): Offset from the principal diagonal. An upper diagonal
+            matrix can have nonzero diagonals with nonnegative offsets.
+        axis1 (int): First axis (that has row indices) of matrix
+        axis2 (int): Second axis (that has column indices) of matrix
 
     Returns:
-        A :class:`~chainer.Variable` object which contains sliced array of
-        ``x``.
+        ~chainer.Variable: (Batched) diagonal vectors
     """
     return Diagonal(offset, axis1, axis2).apply((x,))[0]
