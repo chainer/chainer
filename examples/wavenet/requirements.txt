@@ -1,0 +1,4 @@
+cupy
+chainer
+librosa
+tqdm
