@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import functions
