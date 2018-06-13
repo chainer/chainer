@@ -84,12 +84,11 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
 
     {
         BackwardBuilder bb{"add", out};
-        // TODO(niboshi): Avoid copy
         if (!x1.IsConstant()) {
-            bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
+            bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
         if (!x2.IsConstant()) {
-            bb.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
+            bb.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
     }
 
@@ -132,8 +131,7 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     {
         BackwardBuilder bb{"subtract", out};
         if (!x1.IsConstant()) {
-            // TODO(niboshi): Avoid copy
-            bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Copy(); });
+            bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
         if (!x2.IsConstant()) {
             bb.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad(); });

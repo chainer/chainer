@@ -177,15 +177,6 @@ void CheckBackwardComputation(
                                      GetDtypeName(inputs[i].dtype()),
                                      "."};
         }
-
-        for (size_t j = i + 1; j < inputs.size(); ++j) {
-            if (!backward_grads[j].has_value()) {
-                continue;
-            }
-            if (backward_grads[i]->body() == backward_grads[j]->body()) {
-                throw GradientCheckError{"Gradients of inputs ", i, " and ", j, " share the identical array."};
-            }
-        }
     }
 
     // Compute numerical gradients

@@ -173,7 +173,7 @@ public:
 
             {
                 std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients(*op_node, graph_id_);
-                AccumulateNextGradients(*op_node, gxs);
+                AccumulateNextGradients(*op_node, std::move(gxs));
             }
 
             for (const auto& next_array_node : op_node->next_nodes()) {
@@ -216,6 +216,22 @@ private:
             BackwardContext bctx{op_node, prev_nodes, graph_ids_to_stop_gradient, next_grads_subset};
             backward_entry.backward_func()(bctx);
 
+#ifndef NDEBUG
+            // Assert input and output gradients do not share identical bodies
+            for (auto it = next_grads_subset.begin(); it != next_grads_subset.end(); ++it) {
+                // TODO(sonots): Allow backward without setting input grads
+                assert(it->body() != nullptr);
+                for (const ArrayNode& prev_node : prev_nodes) {
+                    if (prev_node.grad().has_value()) {
+                        assert(it->body() != prev_node.grad().body());
+                    }
+                }
+                for (auto jt = next_grads_subset.begin(); jt != it; ++jt) {
+                    assert(it->body() != jt->body());
+                }
+            }
+#endif
+
             // Accumulate grads from `next_grads_subset`.
             for (size_t i = 0; i < backward_entry.next_node_count(); ++i) {
                 size_t i_next_grad = backward_entry.next_node_indices()[i];
@@ -244,7 +260,7 @@ private:
         return next_grads;
     }
 
-    void AccumulateNextGradients(const OpNode& op_node, std::vector<nonstd::optional<Array>>& gxs) {
+    void AccumulateNextGradients(const OpNode& op_node, std::vector<nonstd::optional<Array>> gxs) {
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node.next_nodes();
         assert(next_array_nodes.size() == gxs.size());
         for (size_t i = 0; i < next_array_nodes.size(); ++i) {
