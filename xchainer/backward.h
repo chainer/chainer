@@ -74,7 +74,6 @@ public:
     Array Cut(const Array& a) const;
 
 private:
-    // Stores the computed input gradient.
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
     const Array& GetOutputGrad(int output_index) const;
@@ -91,7 +90,7 @@ private:
     gsl::span<const GraphId> stop_graph_ids_;
 
     // A reference to the storage of input gradient arrays.
-    // Gradient passed in SetInputGrad() will be put into this storage.
+    // Gradient passed in input_grad() will be put into this storage.
     // Unset gradients will have null array body.
     std::vector<Array>& input_grads_storage_;
 

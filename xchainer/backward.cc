@@ -211,7 +211,7 @@ private:
 
         for (const internal::OpNodeBackwardEntry& backward_entry : op_node.backward_entries()) {
             // `next_grads_subset` stores the next gradients (`next_grads`) of the subset of input arrays of this backward
-            // call. `BackwardContext` holds it by reference and calls of BackwardContext::SetInputGrad() store the
+            // call. `BackwardContext` holds it by reference and assignment to BackwardContext::input_grad() store the
             // gradients there. It initially holds null-body arrays.
             std::vector<Array> next_grads_subset;
             next_grads_subset.resize(backward_entry.next_node_count());

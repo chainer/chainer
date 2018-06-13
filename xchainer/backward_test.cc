@@ -511,9 +511,7 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
                         EXPECT_TRUE(gy1.IsConstant());
                         EXPECT_TRUE(gy2.IsConstant());
                     }
-                    // TODO(niboshi): Support assignment by index, like the following.
-                    // bctx.input_grad(0) = ...;  // by index
-                    bctx.input_grad() = 2 * gy1 + 3 * gy2;
+                    bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
                 });
             }
         }
