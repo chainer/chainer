@@ -472,7 +472,7 @@ class TestLink(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.assertEqual(self.link.count_params(), 8)
+            assert self.link.count_params() == 8
         assert len(w) == 2
         assert w[0].category is UserWarning
 
@@ -891,7 +891,7 @@ class TestChain(unittest.TestCase):
         mocks['l2'].assert_called_with('x', self.l2.x.data)
 
     def test_count_params(self):
-        self.assertEqual(self.c1.count_params(), 8)
+        assert self.c1.count_params() == 8
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
@@ -1416,7 +1416,7 @@ class TestChainList(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.assertEqual(self.c1.count_params(), 8)
+            assert self.c1.count_params() == 8
         assert len(w) == 1
         assert w[0].category is UserWarning
 
