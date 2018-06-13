@@ -54,14 +54,24 @@ class MulAdd(chainer.FunctionNode):
         g, = grad_outputs
         ret = []
         for i, g_in in zip(target_input_indexes, grad_inputs):
-            if g_in is None:
-                g_in = g * 0.  # sorry, it's slow.
             if i == 0:
-                ret.append(muladd(g, b, g_in))
+                ret.append(
+                    g * b
+                    if g_in is None else
+                    muladd(g, b, g_in)
+                )
             elif i == 1:
-                ret.append(muladd(a, g, g_in))
+                ret.append(
+                    a * g
+                    if g_in is None else
+                    muladd(a, g, g_in)
+                )
             elif i == 2:
-                ret.append(g + g_in)
+                ret.append(
+                    g
+                    if g_in is None else
+                    g + g_in
+                )
             else:
                 assert False
         return tuple(ret)
