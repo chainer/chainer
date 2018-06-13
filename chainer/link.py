@@ -194,6 +194,15 @@ class Link(object):
         finally:
             self._within_init_scope = old_flag
 
+    def __call__(self, *args, **kwargs):
+        try:
+            forward = self.forward
+        except AttributeError:
+            raise TypeError(
+                '{} object has neither \'Link.__call__\' method overridden'
+                ' nor \'forward\' method defined.'.format(self))
+        return forward(*args, **kwargs)
+
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
             value.name = name
