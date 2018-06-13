@@ -10,15 +10,15 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize([{
+@testing.parameterize(*testing.product({
     'delta_v': [0.5],
     'delta_d': [5],
     'alpha': [1],
     'beta': [1],
     'gamma': [0.001],
     'norm': [1],
-    'result': [9709.743276179566]
-}] + [{
+    'result': [9709.69497664]
+}) + testing.product(({
     'delta_v': [3],
     'delta_d': [10],
     'alpha': [0.1],
@@ -26,8 +26,8 @@ from chainer.testing import attr
     'gamma': [0.1],
     'max_n_clusters': [2],
     'norm': [2],
-    'result': [2140420.229810252]
-}])
+    'result': [2140205.11050112]
+})))
 class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
 
     def setUp(self):
@@ -62,14 +62,14 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
     def check_forward_cpu(self, x_data, t_data):
         t = chainer.Variable(t_data)
         out = self.get_result(x_data)
-        numpy.testing.assert_almost_equal(out.data == t.data)
+        numpy.testing.assert_almost_equal(out.data, t.data)
 
     def check_forward_gpu(self, x_data, t_data):
         t = chainer.Variable(t_data)
         out = self.get_result(x_data)
         out.to_cpu()
         t.to_cpu()
-        numpy.testing.assert_almost_equal(out.data == t.data)
+        numpy.testing.assert_almost_equal(out.data, t.data)
 
     def test_forward_cpu(self):
         inputs = [cuda.to_cpu(self.input), cuda.to_cpu(self.gt),
@@ -91,7 +91,7 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
         cpu_res = self.get_result(inputs_cpu)
         gpu_res = self.get_result(inputs_gpu)
         gpu_res.to_cpu()
-        numpy.testing.assert_almost_equal(cpu_res.data == gpu_res.data)
+        numpy.testing.assert_almost_equal(cpu_res.data, gpu_res.data)
 
     def check_backward(self, x0_data, x1_data, y_grad):
         gradient_check.check_backward(
