@@ -123,25 +123,26 @@ class TestBatchRenormalization(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward([cuda.to_gpu(i) for i in self.args])
 
-    def check_compare_naive(self, args, y_grad):
+    def check_compare_naive(self, args, stats, y_grad):
         def compute(f):
             x, gamma, beta = [chainer.Variable(v.copy()) for v in args]
-            y = f(x, gamma, beta)
+            running_mean, running_var = [v.copy() for v in stats]
+            y = f(x, gamma, beta, running_mean, running_var)
             y.grad = y_grad.copy()
             y.backward()
             return y.array, x.grad, gamma.grad, beta.grad
 
-        def f_tested(x, gamma, beta):
+        def f_tested(x, gamma, beta, running_mean, running_var):
             return batch_renormalization.batch_renormalization(
                 x, gamma, beta, self.rmax, self.dmax,
-                eps=self.eps, running_mean=self.running_mean,
-                running_var=self.running_var)
+                eps=self.eps, running_mean=running_mean,
+                running_var=running_var)
 
-        def f_expected(x, gamma, beta):
+        def f_expected(x, gamma, beta, running_mean, running_var):
             return _naive_batch_renormalization(
                 x, gamma, beta, self.rmax, self.dmax, self.eps,
-                avg_mean=self.running_mean,
-                avg_std=(self.eps + self.running_var) ** 0.5,
+                avg_mean=running_mean,
+                avg_std=(self.eps + running_var) ** 0.5,
                 axis=self.aggr_axes)
 
         tested = compute(f_tested)
@@ -158,13 +159,17 @@ class TestBatchRenormalization(unittest.TestCase):
 
     @condition.retry(3)
     def test_compare_naive_cpu(self):
-        self.check_compare_naive(self.args, self.gy)
+        self.check_compare_naive(
+            self.args, [self.running_mean, self.running_var],
+            self.gy)
 
     @attr.gpu
     @condition.retry(3)
     def test_compare_naive_gpu(self):
         self.check_compare_naive(
-            [cuda.to_gpu(i) for i in self.args], cuda.to_gpu(self.gy))
+            [cuda.to_gpu(i) for i in self.args],
+            [cuda.to_gpu(i) for i in [self.running_mean, self.running_var]],
+            cuda.to_gpu(self.gy))
 
 
 @testing.parameterize(*testing.product({
