@@ -90,4 +90,35 @@ class TestGaussian(unittest.TestCase):
                                    cuda.to_gpu(self.ggv))
 
 
+@testing.parameterize(*testing.product({
+    'specify_eps': [True, False],
+}))
+class TestGaussianEps(unittest.TestCase):
+
+    def setUp(self):
+        self.m = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        self.v = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        self.eps = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+
+    def _check(self):
+        eps = self.eps if self.specify_eps else None
+        out, out_eps = functions.gaussian(
+            self.m, self.v, eps=eps, return_eps=True)
+        assert isinstance(out_eps, type(out.array))
+        if eps is None:
+            assert out_eps.shape == out.array.shape
+        else:
+            assert out_eps is eps
+
+    def test_cpu(self):
+        self._check()
+
+    @attr.gpu
+    def test_gpu(self):
+        self.m = cuda.to_gpu(self.m)
+        self.v = cuda.to_gpu(self.v)
+        self.eps = cuda.to_gpu(self.eps)
+        self._check()
+
+
 testing.run_module(__name__, __file__)
