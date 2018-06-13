@@ -9,6 +9,7 @@
 
 #include <gsl/gsl>
 
+#include "xchainer/backward.h"
 #include "xchainer/graph.h"
 
 namespace xchainer {
@@ -22,17 +23,17 @@ namespace internal {
 
 class OpNodeBackwardEntry {
 public:
-    OpNodeBackwardEntry(std::vector<size_t> next_node_indices, std::function<void(BackwardContext&)> backward_func);
+    OpNodeBackwardEntry(std::vector<size_t> next_node_indices, BackwardFunction backward_func);
 
     size_t next_node_count() const { return next_node_indices_.size(); }
 
     gsl::span<const size_t> next_node_indices() const { return next_node_indices_; }
 
-    const std::function<void(BackwardContext&)>& backward_func() const { return backward_func_; }
+    const BackwardFunction& backward_func() const { return backward_func_; }
 
 private:
     std::vector<size_t> next_node_indices_;
-    std::function<void(BackwardContext&)> backward_func_;
+    BackwardFunction backward_func_;
 };
 
 }  // namespace internal
@@ -47,9 +48,7 @@ public:
     OpNode& operator=(const OpNode&) = delete;
     OpNode& operator=(OpNode&&) = delete;
 
-    void RegisterBackwardFunction(
-            gsl::span<std::reference_wrapper<std::shared_ptr<ArrayNode>>> next_nodes,
-            std::function<void(BackwardContext&)>&& backward_func);
+    void RegisterBackwardFunction(gsl::span<std::reference_wrapper<std::shared_ptr<ArrayNode>>> next_nodes, BackwardFunction backward_func);
 
     void Unchain() {
         backward_entries_.clear();

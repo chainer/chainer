@@ -36,16 +36,7 @@ BackwardContext::BackwardContext(
 
 bool BackwardContext::HasOutputGrad(int output_index) const { return gsl::at(prev_nodes_, output_index).get().grad().has_value(); }
 
-Array BackwardContext::Cut(const Array& a) const {
-#ifndef NDEBUG
-    for (const ArrayNode& prev_node : prev_nodes_) {
-        assert((!prev_node.grad().has_value() || &(*prev_node.grad()) != &a) && "Output grads do not have to be cut");
-    }
-#endif /*NDEBUG*/
-    return a.AsConstant(stop_graph_ids_);
-}
-
-const Array& BackwardContext::GetOutputGrad(int output_index) const {
+const Array& BackwardContext::output_grad(int output_index) const {
     // If the output gradient has a propagated value, return it.
     if (HasOutputGrad(output_index)) {
         return *prev_nodes_[output_index].get().grad();
@@ -64,6 +55,15 @@ const Array& BackwardContext::GetOutputGrad(int output_index) const {
     return *zero_grad;
 }
 
+Array BackwardContext::Cut(const Array& a) const {
+#ifndef NDEBUG
+    for (const ArrayNode& prev_node : prev_nodes_) {
+        assert((!prev_node.grad().has_value() || &(*prev_node.grad()) != &a) && "Output grads do not have to be cut");
+    }
+#endif /*NDEBUG*/
+    return a.AsConstant(stop_graph_ids_);
+}
+
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()}, stop_graph_ids_{stop_graph_ids.begin(), stop_graph_ids.end()} {
     // Non-const outputs (e.g. in-place ops.) must have been detected and repored before reaching here.
@@ -74,7 +74,7 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<Cons
     }));
 }
 
-void BackwardBuilder::DefineImpl(std::initializer_list<ConstArrayRef> inputs_list, backward_detail::BackwardFunc&& backward_func) {
+void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs_list, BackwardFunction backward_func) {
     // `outputs` may or may not include non-constant arrays, because `BackwardBuilder::Define` may be called repeatedly in a single op.
     // At the beginning of this function, `op_node_map` holds the op nodes created in the previous calls of `BackwardBuilder::Define`
     // for this op.
@@ -127,13 +127,13 @@ void BackwardBuilder::DefineImpl(std::initializer_list<ConstArrayRef> inputs_lis
             std::shared_ptr<OpNode>& new_op_node = insert_result.first->second = std::make_shared<OpNode>(op_name_, prev_nodes);
             // Add edges from the output nodes
             for (std::shared_ptr<ArrayNode>& prev_node : prev_nodes) {
-                prev_node->SetNextNode(new_op_node);
+                prev_node->set_next_node(new_op_node);
             }
         }
 
         // Add an edge to the input node
         std::shared_ptr<OpNode>& op_node = insert_result.first->second;
-        op_node->RegisterBackwardFunction(next_nodes, static_cast<std::function<void(BackwardContext&)>>(backward_func));
+        op_node->RegisterBackwardFunction(next_nodes, backward_func);
     }
 
     assert(!op_node_map_.empty());
@@ -164,7 +164,7 @@ public:
             const std::shared_ptr<ArrayNode>& array_node = output_array_nodes_[i];
 
             if (!array_node->grad()) {
-                array_node->SetGrad(OnesLike(output, output.device()));
+                array_node->set_grad(OnesLike(output, output.device()));
             }
             PushNextOpNode(array_node);
         }

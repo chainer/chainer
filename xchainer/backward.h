@@ -13,24 +13,15 @@
 
 namespace xchainer {
 
+class BackwardContext;
+class OpNode;
+
 enum class DoubleBackpropOption : bool {
     kDisable = false,
     kEnable = true,
 };
 
-class BackwardContext;
-
-namespace backward_detail {
-
-using BackwardFunc = std::function<void(BackwardContext&)>;
-
-}  // namespace backward_detail
-
-class OpNode;
-
-namespace internal {
-class ArrayBody;
-}  // namespace internal
+using BackwardFunction = std::function<void(BackwardContext&)>;
 
 class BackwardContext {
 public:
@@ -52,13 +43,13 @@ public:
 
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
-    const Array& output_grad(int output_index) const { return GetOutputGrad(output_index); }
+    const Array& output_grad(int output_index) const;
 
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
     const Array& output_grad() const {
         assert(prev_nodes_.size() == 1);
-        return GetOutputGrad(0);
+        return output_grad(0);
     }
 
     // Returns the reference to the input gradient.
@@ -74,17 +65,6 @@ public:
     Array Cut(const Array& a) const;
 
 private:
-    // Returns the reference to an output gradient array if it has a propagated value.
-    // Otherwise, an zero-filled array is allocated and a reference to it is returned.
-    const Array& GetOutputGrad(int output_index) const;
-
-    // Returns the reference to an output gradient array if it has a propagated value.
-    // Otherwise, an zero-filled array is allocated and a reference to it is returned.
-    const Array& GetOutputGrad() const {
-        assert(prev_nodes_.size() == 1);
-        return GetOutputGrad(0);
-    }
-
     const OpNode& op_node_;
     gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes_;
     gsl::span<const GraphId> stop_graph_ids_;
@@ -95,7 +75,7 @@ private:
     std::vector<Array>& input_grads_storage_;
 
     // Holds zero-filled arrays for outputs without actual gradients.
-    // The arrays are allocated on-demand in GetOutputGrad.
+    // The arrays are allocated on-demand in output_grad.
     mutable std::vector<nonstd::optional<Array>> zero_output_grads_;
 };
 
@@ -109,20 +89,9 @@ public:
 
     // Defines a backward function with respect to specified input arrays.
     // For multi-input ops, usually this function is called for each of independent subsets of input arrays.
-    template <typename BackwardFunc>
-    void Define(std::initializer_list<ConstArrayRef> inputs, BackwardFunc&& backward_func) {
-        static_assert(
-                std::is_same<std::result_of_t<BackwardFunc(BackwardContext&)>, void>::value,
-                "The result type of backward functions must be void.");
-
-        DefineImpl(inputs, std::forward<BackwardFunc>(backward_func));
-    }
+    void Define(std::initializer_list<ConstArrayRef> inputs, BackwardFunction backward_func);
 
 private:
-    // Defines a backward function with respect to specified input arrays.
-    // For multi-input ops, usually this function is called for each of independent subsets of input arrays.
-    void DefineImpl(std::initializer_list<ConstArrayRef> inputs, backward_detail::BackwardFunc&& backward_func);
-
     const char* op_name_;
 
     // Output arrays of the op.

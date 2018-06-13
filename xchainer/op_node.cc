@@ -14,7 +14,7 @@
 namespace xchainer {
 namespace internal {
 
-OpNodeBackwardEntry::OpNodeBackwardEntry(std::vector<size_t> next_node_indices, std::function<void(BackwardContext&)> backward_func)
+OpNodeBackwardEntry::OpNodeBackwardEntry(std::vector<size_t> next_node_indices, BackwardFunction backward_func)
     : next_node_indices_{std::move(next_node_indices)}, backward_func_{std::move(backward_func)} {}
 
 }  // namespace internal
@@ -28,7 +28,7 @@ OpNode::OpNode(std::string name, const std::vector<std::shared_ptr<ArrayNode>>& 
 }
 
 void OpNode::RegisterBackwardFunction(
-        gsl::span<std::reference_wrapper<std::shared_ptr<ArrayNode>>> next_nodes, std::function<void(BackwardContext&)>&& backward_func) {
+        gsl::span<std::reference_wrapper<std::shared_ptr<ArrayNode>>> next_nodes, BackwardFunction backward_func) {
     // Set this to a large enough number to avoid copy of shared pointers
     static constexpr size_t kDefaultNextNodesReserveCount = 5U;
 
