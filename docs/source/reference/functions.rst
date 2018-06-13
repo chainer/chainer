@@ -120,6 +120,7 @@ Neural network connections
    chainer.functions.deconvolution_2d
    chainer.functions.deconvolution_nd
    chainer.functions.depthwise_convolution_2d
+   chainer.functions.deformable_convolution_2d_sampler
    chainer.functions.dilated_convolution_2d
    chainer.functions.embed_id
    chainer.functions.linear
