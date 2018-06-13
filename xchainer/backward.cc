@@ -74,25 +74,22 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<Cons
     }));
 }
 
-void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs_list, BackwardFunction backward_func) {
+void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, BackwardFunction backward_func) {
     // `outputs` may or may not include non-constant arrays, because `BackwardBuilder::Define` may be called repeatedly in a single op.
     // At the beginning of this function, `op_node_map` holds the op nodes created in the previous calls of `BackwardBuilder::Define`
     // for this op.
 
-    using OpNodeMapValue = std::remove_reference_t<decltype(op_node_map_)>::value_type;
-    const std::vector<ConstArrayRef>& outputs = outputs_;
-    std::vector<ConstArrayRef> inputs{inputs_list.begin(), inputs_list.end()};
-
     // All input arrays must have the same device.
     assert(std::all_of(
-            inputs.begin(), inputs.end(), [&inputs](const Array& input) { return &input.device() == &(inputs[0].get().device()); }));
+            inputs.begin(), inputs.end(), [&inputs](const Array& input) { return &input.device() == &(inputs.begin()->get().device()); }));
 
     // Collect input nodes, grouped by graph
     // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
-    std::unordered_map<GraphId, std::vector<std::reference_wrapper<std::shared_ptr<ArrayNode>>>> graph_to_next_nodes;
+    using NextArrayNodes = std::vector<std::reference_wrapper<std::shared_ptr<ArrayNode>>>;
+    std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes;
     for (const Array& input : inputs) {
-        for (std::shared_ptr<ArrayNode>& input_node : input.nodes()) {
-            const GraphId& graph_id = input_node->graph_id();
+        for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {
+            const GraphId& graph_id = next_array_node->graph_id();
 
             // Skip if the node belong to the graphs to stop gradients
             if (stop_graph_ids_.end() != std::find(stop_graph_ids_.begin(), stop_graph_ids_.end(), graph_id)) {
@@ -100,40 +97,39 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs_list, B
             }
 
             // Add the array node to the mapping
-            auto& vec = graph_to_next_nodes[graph_id];
-            vec.emplace_back(input_node);
+            auto& vec = graph_to_next_array_nodes[graph_id];
+            vec.emplace_back(next_array_node);
         }
     }
 
     // Create op node for each graph
-    for (auto& pair : graph_to_next_nodes) {
+    for (auto& pair : graph_to_next_array_nodes) {
         const GraphId& graph_id = pair.first;
-        auto& next_nodes = pair.second;
+        NextArrayNodes& next_array_nodes = pair.second;
 
         // Find op node
-        auto insert_result = op_node_map_.insert(OpNodeMapValue{graph_id, nullptr});
+        auto insert_result = op_node_map_.emplace(graph_id, nullptr);
         if (insert_result.second) {
             // Create new op instance
-            // Create weakrefs to output nodes
-            std::vector<std::shared_ptr<ArrayNode>> prev_nodes;
-            for (const Array& out : outputs) {
-                const std::shared_ptr<ArrayNode>& out_node = xchainer::internal::HasArrayNode(out, graph_id)
-                                                                     ? xchainer::internal::GetMutableArrayNode(out, graph_id)
-                                                                     : xchainer::internal::CreateArrayNode(out, graph_id);
-                assert(out_node->next_node() == nullptr);
-                prev_nodes.emplace_back(out_node);
+            std::vector<std::shared_ptr<ArrayNode>> prev_array_nodes;
+            for (const Array& out : outputs_) {
+                const std::shared_ptr<ArrayNode>& prev_array_node = xchainer::internal::HasArrayNode(out, graph_id)
+                                                                            ? xchainer::internal::GetMutableArrayNode(out, graph_id)
+                                                                            : xchainer::internal::CreateArrayNode(out, graph_id);
+                prev_array_nodes.emplace_back(prev_array_node);
             }
-            // Create new op instance
-            std::shared_ptr<OpNode>& new_op_node = insert_result.first->second = std::make_shared<OpNode>(op_name_, prev_nodes);
+            // Create new op instance with weakrefs to output nodes
+            std::shared_ptr<OpNode>& new_op_node = insert_result.first->second = std::make_shared<OpNode>(op_name_, prev_array_nodes);
             // Add edges from the output nodes
-            for (std::shared_ptr<ArrayNode>& prev_node : prev_nodes) {
-                prev_node->set_next_node(new_op_node);
+            for (std::shared_ptr<ArrayNode>& prev_array_node : prev_array_nodes) {
+                assert(prev_array_node->next_node() == nullptr);
+                prev_array_node->set_next_node(new_op_node);
             }
         }
 
-        // Add an edge to the input node
+        // Add edges to the input nodes
         std::shared_ptr<OpNode>& op_node = insert_result.first->second;
-        op_node->RegisterBackwardFunction(next_nodes, backward_func);
+        op_node->RegisterBackwardFunction(next_array_nodes, backward_func);
     }
 
     assert(!op_node_map_.empty());
@@ -211,7 +207,7 @@ private:
 
         for (const internal::OpNodeBackwardEntry& backward_entry : op_node.backward_entries()) {
             // `next_grads_subset` stores the next gradients (`next_grads`) of the subset of input arrays of this backward
-            // call. `BackwardContext` holds it by reference and assignment to BackwardContext::input_grad() store the
+            // call. `BackwardContext` holds it by reference and assignment to BackwardContext::input_grad() stores the
             // gradients there. It initially holds null-body arrays.
             std::vector<Array> next_grads_subset;
             next_grads_subset.resize(backward_entry.next_node_count());
@@ -243,7 +239,7 @@ private:
         }
 
         // Erase processed OpNode from the map
-        previous_array_node_map_.erase(&op_node);
+        previous_array_node_keeper_.erase(&op_node);
 
         return next_grads;
     }
@@ -267,11 +263,12 @@ private:
                 double_backprop_ == DoubleBackpropOption::kEnable ? array_node->next_node() : array_node->move_next_node();
 
         if (next_op_node) {
-            auto range = previous_array_node_map_.equal_range(next_op_node.get());
+            auto range = previous_array_node_keeper_.equal_range(next_op_node.get());
             if (std::none_of(range.first, range.second, [&array_node](const auto& pair) { return pair.second == array_node; })) {
-                // First appearance of the combination of op node and next node .
-                previous_array_node_map_.emplace(next_op_node.get(), array_node);
-                if (range.first == range.second) {
+                // First appearance of the combination of op node and next node.
+                bool is_first_visit = range.first == range.second;
+                previous_array_node_keeper_.emplace(next_op_node.get(), array_node);  // Iterators are invalidated here.
+                if (is_first_visit) {
                     // First appearance of this op node. Push it to the queue.
                     candidate_op_nodes_.push_back(std::move(next_op_node));
                     std::push_heap(candidate_op_nodes_.begin(), candidate_op_nodes_.end(), OpNodeComparator{});
@@ -284,7 +281,7 @@ private:
     std::vector<std::shared_ptr<OpNode>> candidate_op_nodes_;
 
     // This mapping is used to keep previous array nodes alive (referenced from op nodes as weak pointers).
-    std::unordered_multimap<const OpNode*, std::shared_ptr<ArrayNode>> previous_array_node_map_;
+    std::unordered_multimap<const OpNode*, std::shared_ptr<ArrayNode>> previous_array_node_keeper_;
 
     // Arguments to Backward().
     // Be careful that references require the referred objects alive (it should be guaranteed by Backward()).
