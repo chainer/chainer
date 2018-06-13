@@ -109,11 +109,11 @@ class TestBackwardAccumulate(unittest.TestCase):
             for _, hasgrad in self.inputs_isvar_hasgrad]
         self.gy = np.random.randn(*shape).astype(np.float32)
 
-    def _get_true_inputs(self):
+    def _get_inputs(self):
         copied_data = [x.copy() for x in self.inputs_data]
         copied_grad = [
             None if g is None else g.copy() for g in self.inputs_data]
-        inputs = [
+        return [
             chainer.Variable(x, grad=g) if isvar else x
             for x, g, (isvar, _) in zip(
                 copied_data,
@@ -121,26 +121,25 @@ class TestBackwardAccumulate(unittest.TestCase):
                 self.inputs_isvar_hasgrad
             )
         ]
-        return [inputs[i] for i in self.var_mapping]
 
     def check_backward_accumulate(self, xp):
-        a, b, c = self._get_true_inputs()
+        inputs = self._get_inputs()
+        a, b, c = [inputs[i] for i in self.var_mapping]
         y = muladd(a, b, c)
         y.grad = self.gy
         y.backward()
 
-        a2, b2, c2 = self._get_true_inputs()
+        inputs2 = self._get_inputs()
+        a2, b2, c2 = [inputs2[i] for i in self.var_mapping]
         y2 = chainer.as_variable(a2 * b2 + c2)
         y2.grad = self.gy
         y2.backward()
 
         tol = {'atol': 1e-4, 'rtol': 1e-4}
-        if isinstance(a, chainer.Variable):
-            xp.testing.assert_allclose(a.grad, a2.grad, **tol)
-        if isinstance(b, chainer.Variable):
-            xp.testing.assert_allclose(b.grad, b2.grad, **tol)
-        if isinstance(c, chainer.Variable):
-            xp.testing.assert_allclose(c.grad, c2.grad, **tol)
+        for x, x2, (isvar, _) in zip(
+                inputs, inputs2, self.inputs_isvar_hasgrad):
+            if isvar:
+                xp.testing.assert_allclose(x.grad, x2.grad, **tol)
 
     def test_backward_accumulate_cpu(self):
         self.check_backward_accumulate(np)
