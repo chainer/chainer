@@ -138,7 +138,16 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
+    // pool.cc
+
     std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override;
+
+    Array AveragePool(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all) override;
 
     // batch_norm.cu
 

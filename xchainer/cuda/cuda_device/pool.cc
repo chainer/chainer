@@ -88,5 +88,15 @@ std::unique_ptr<MaxPoolForwardBackward> CudaDevice::GetMaxPoolForwardBackward() 
     return std::make_unique<CudaMaxPoolForwardBackward>(cudnn_context_);
 }
 
+Array CudaDevice::AveragePool(
+        const Array& /*x*/,
+        const StackVector<int64_t, kMaxNdim>& /*kernel_size*/,
+        const StackVector<int64_t, kMaxNdim>& /*stride*/,
+        const StackVector<int64_t, kMaxNdim>& /*pad*/,
+        bool /*cover_all*/) {
+    // TODO(hvy): Implement me.
+    throw NotImplementedError{};
+}
+
 }  // namespace cuda
 }  // namespace xchainer

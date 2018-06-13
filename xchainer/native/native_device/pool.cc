@@ -14,6 +14,7 @@
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
 #include "xchainer/scalar.h"
+#include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
@@ -113,6 +114,37 @@ private:
 
 std::unique_ptr<MaxPoolForwardBackward> NativeDevice::GetMaxPoolForwardBackward() {
     return std::make_unique<NativeMaxPoolForwardBackward>();
+}
+
+namespace {
+
+void Mean(const Array& a, const Axes& axis, const Array& out) {
+    Device& device = a.device();
+    device.Sum(a, axis, out);
+    device.DivideAS(out, xchainer::internal::CountItemsAlongAxes(a.shape(), axis), out);
+}
+
+}  // namespace
+
+Array NativeDevice::AveragePool(
+        const Array& x,
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    // TODO(hvy): Support cover_all.
+    if (cover_all) {
+        throw NotImplementedError{"Native average pooling does not yet support cover_all."};
+    }
+    Array col = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, cover_all, 0);
+
+    // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
+    Axes kernel_axes;
+    kernel_axes.resize(kernel_size.size());
+    std::iota(kernel_axes.begin(), kernel_axes.end(), 2);  // From k_1, up to k_n.
+    Array out = xchainer::internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
+    Mean(col, kernel_axes, out);
+    return out;
 }
 
 }  // namespace native

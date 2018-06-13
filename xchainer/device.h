@@ -230,6 +230,13 @@ public:
 
     virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() = 0;
 
+    virtual Array AveragePool(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all) = 0;
+
     virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() = 0;
 
     virtual void Synchronize() = 0;
