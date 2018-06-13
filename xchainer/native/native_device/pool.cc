@@ -1,5 +1,6 @@
 #include "xchainer/native/native_device.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <numeric>
