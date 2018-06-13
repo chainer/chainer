@@ -71,94 +71,91 @@ def muladd(a, b, c):
     return MulAdd().apply((a, b, c))[0]
 
 
-@testing.parameterize(*testing.product({
-    'var_a': [False, True],
-    'var_b': [False, True],
-    'var_c': [False, True],
-    'distinct': [True, False],
-})[1:])
+@testing.parameterize(*(
+    testing.product({
+        'var_mapping': [(0, 1, 2)],  # distinct
+        'in0_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+        'in1_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+        'in2_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+    }) + testing.product({
+        'var_mapping': [
+            (0, 0, 1),  # a == b != c
+            (0, 1, 0),
+            (0, 1, 1),
+        ],
+        'in0_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+        'in1_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+    }) + testing.product({
+        'var_mapping': [(0, 0, 0)],  # a == b == c
+        'in0_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+    })
+))
 class TestBackwardAccumulate(unittest.TestCase):
 
     shape = 3,
 
     def setUp(self):
+        n = max(self.var_mapping) + 1
+        self.inputs_isvar_hasgrad = [
+            getattr(self, 'in{}_isvar_hasgrad'.format(i))
+            for i in range(n)]
+
         shape = self.shape
-        self.a = np.random.randn(*shape).astype(np.float32)
-        self.b = np.random.randn(*shape).astype(np.float32)
-        self.c = np.random.randn(*shape).astype(np.float32)
-        self.g = np.random.randn(*shape).astype(np.float32)
-        self.ga = np.random.randn(*shape).astype(np.float32)
-        self.gb = np.random.randn(*shape).astype(np.float32)
-        self.gc = np.random.randn(*shape).astype(np.float32)
+        self.inputs_data = [
+            np.random.randn(*shape).astype(np.float32)
+            for _ in range(n)]
+        self.inputs_grad = [
+            np.random.randn(*shape).astype(np.float32) if hasgrad else None
+            for _, hasgrad in self.inputs_isvar_hasgrad]
+        self.gy = np.random.randn(*shape).astype(np.float32)
 
-    def share_vars(self, a, b, c):
-        if self.distinct:
-            return a, b, c
-        if self.var_a == self.var_b:
-            b = a
-        if self.var_a == self.var_c:
-            c = a
-        elif self.var_b == self.var_c:
-            c = b
-        return a, b, c
+    def _get_true_inputs(self):
+        copied_data = [x.copy() for x in self.inputs_data]
+        copied_grad = [
+            None if g is None else g.copy() for g in self.inputs_data]
+        inputs = [
+            chainer.Variable(x, grad=g) if isvar else x
+            for x, g, (isvar, _) in zip(
+                copied_data,
+                copied_grad,
+                self.inputs_isvar_hasgrad
+            )
+        ]
+        return [inputs[i] for i in self.var_mapping]
 
-    def check_backward_accumulate(self, xp, has_input_grads):
-        a, b, c = self.a, self.b, self.c
-        if has_input_grads:
-            ga, gb, gc = self.ga, self.gb, self.gc
-        else:
-            ga, gb, gc = None, None, None
-        if self.var_a:
-            a = chainer.Variable(a, grad=ga)
-        if self.var_b:
-            b = chainer.Variable(b, grad=gb)
-        if self.var_c:
-            c = chainer.Variable(c, grad=gc)
-        a, b, c = self.share_vars(a, b, c)
+    def check_backward_accumulate(self, xp):
+        a, b, c = self._get_true_inputs()
         y = muladd(a, b, c)
-        y.grad = self.g
+        y.grad = self.gy
         y.backward()
 
-        a2 = chainer.Variable(self.a, grad=ga)
-        b2 = chainer.Variable(self.b, grad=gb)
-        c2 = chainer.Variable(self.c, grad=gc)
-        a2, b2, c2 = self.share_vars(a2, b2, c2)
-        y2 = a2 * b2 + c2
-        y2.grad = self.g
+        a2, b2, c2 = self._get_true_inputs()
+        y2 = chainer.as_variable(a2 * b2 + c2)
+        y2.grad = self.gy
         y2.backward()
 
         tol = {'atol': 1e-4, 'rtol': 1e-4}
-        if self.var_a:
+        if isinstance(a, chainer.Variable):
             xp.testing.assert_allclose(a.grad, a2.grad, **tol)
-        if self.var_b:
+        if isinstance(b, chainer.Variable):
             xp.testing.assert_allclose(b.grad, b2.grad, **tol)
-        if self.var_c:
+        if isinstance(c, chainer.Variable):
             xp.testing.assert_allclose(c.grad, c2.grad, **tol)
 
     def test_backward_accumulate_cpu(self):
-        self.check_backward_accumulate(np, True)
-
-    def test_backward_accumulate_cpu_none(self):
-        self.check_backward_accumulate(np, False)
+        self.check_backward_accumulate(np)
 
     def _to_gpu(self):
-        self.a = cuda.to_gpu(self.a)
-        self.b = cuda.to_gpu(self.b)
-        self.c = cuda.to_gpu(self.c)
-        self.g = cuda.to_gpu(self.g)
-        self.ga = cuda.to_gpu(self.ga)
-        self.gb = cuda.to_gpu(self.gb)
-        self.gc = cuda.to_gpu(self.gc)
+        self.inputs_data = [cuda.to_gpu(x) for x in self.inputs_data]
+        self.inputs_grad = [
+            None if g is None else cuda.to_gpu(g)
+            for g in self.inputs_grad]
+        self.gy = cuda.to_gpu(self.gy)
 
     @attr.gpu
     def test_backward_accumulate_gpu(self):
         self._to_gpu()
-        self.check_backward_accumulate(cuda.cupy, True)
-
-    @attr.gpu
-    def test_backward_accumulate_gpu_none(self):
-        self._to_gpu()
-        self.check_backward_accumulate(cuda.cupy, False)
+        self.check_backward_accumulate(cuda.cupy)
 
 
 class TestVariableNode(unittest.TestCase):
