@@ -61,9 +61,6 @@ public:
             int64_t reduced_total_size = reduced_shape.GetTotalSize();
             assert(running_mean.GetTotalSize() == reduced_total_size);
             assert(running_var.GetTotalSize() == reduced_total_size);
-
-            assert(GetKind(eps.dtype()) == DtypeKind::kFloat);
-            assert(GetKind(decay.dtype()) == DtypeKind::kFloat);
         }
 #endif  // NDEBUG
         Dtype dtype = x.dtype();
