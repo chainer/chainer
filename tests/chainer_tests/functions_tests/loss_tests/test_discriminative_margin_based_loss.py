@@ -9,7 +9,7 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(*(testing.product({
+@testing.parameterize({
     'delta_v': [0.5],
     'delta_d': [5],
     'alpha': [1],
@@ -17,7 +17,7 @@ from chainer.testing import attr
     'gamma': [0.001],
     'norm': [1],
     'result': [9709.743276179566]
-}) + testing.product({
+} + {
     'delta_v': [3],
     'delta_d': [10],
     'alpha': [0.1],
@@ -26,7 +26,7 @@ from chainer.testing import attr
     'max_n_clusters': [2],
     'norm': [2],
     'result': [2140420.229810252]
-})))
+})
 class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
 
     def setUp(self):
@@ -61,14 +61,14 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
     def check_forward_cpu(self, x_data, t_data):
         t = chainer.Variable(t_data)
         out = self.get_result(x_data)
-        assert(out.data == t.data)
+        numpy.testing.assert_almost_equal(out.data == t.data)
 
     def check_forward_gpu(self, x_data, t_data):
         t = chainer.Variable(t_data)
         out = self.get_result(x_data)
         out.to_cpu()
         t.to_cpu()
-        assert (out.data == t.data)
+        numpy.testing.assert_almost_equal (out.data == t.data)
 
     def test_forward_cpu(self):
         inputs = [cuda.to_cpu(self.input), cuda.to_cpu(self.gt),
@@ -90,7 +90,7 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
         cpu_res = self.get_result(inputs_cpu)
         gpu_res = self.get_result(inputs_gpu)
         gpu_res.to_cpu()
-        assert(cpu_res.data == gpu_res.data)
+        numpy.testing.assert_almost_equal(cpu_res.data == gpu_res.data)
 
 
 testing.run_module(__name__, __file__)
