@@ -68,10 +68,11 @@ def zoneout(h, x, ratio=.5, **kwargs):
     Activations <https://arxiv.org/abs/1606.01305>`_.
 
     """
-    argument.check_unexpected_kwargs(
-        kwargs, train='train argument is not supported anymore. '
-        'Use chainer.using_config')
-    argument.assert_kwargs_empty(kwargs)
+    if kwargs:
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
     if configuration.config.train:
         return Zoneout(ratio).apply((h, x))[0]

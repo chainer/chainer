@@ -194,6 +194,15 @@ class Link(object):
         finally:
             self._within_init_scope = old_flag
 
+    def __call__(self, *args, **kwargs):
+        try:
+            forward = self.forward
+        except AttributeError:
+            raise TypeError(
+                '{} object has neither \'Link.__call__\' method overridden'
+                ' nor \'forward\' method defined.'.format(self))
+        return forward(*args, **kwargs)
+
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
             value.name = name
@@ -416,8 +425,11 @@ Assign a Parameter object directly to an attribute within a \
             value = d[name]
             if isinstance(value, cuda.ndarray):
                 value = value.get()  # to numpy.ndarray
-            if (isinstance(value, numpy.ndarray) and
-                    intel64.inputs_all_ready((value,))):
+            if (isinstance(value, numpy.ndarray) and value.ndim in (1, 2, 4)):
+                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
+                # Currently iDeep only supports (1, 2, 4)-dim arrays.
+                # Note that array returned from `ideep.array` may not be an
+                # iDeep mdarray, e.g., when the dtype is not float32.
                 value = intel64.ideep.array(
                     value, itype=intel64.ideep.wgt_array)
             d[name] = value

@@ -1751,4 +1751,43 @@ class TestIntel64(unittest.TestCase):
         assert isinstance(self.link.no_ideep, numpy.ndarray)
 
 
+class TestCallMethod(unittest.TestCase):
+
+    def setUp(self):
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+
+        self.model = Model()
+
+    def test_has_forward_no_call(self):
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # model.forward is called
+        self.model.forward.assert_called_once()
+
+    def test_has_call_and_forward(self):
+        self.model.__call__ = mock.MagicMock()
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # Link.__call__ is called
+        self.model.forward.assert_called_with(0)
+        self.model.__call__.assert_not_called()
+
+    def test_has_call_no_forward(self):
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+                self.mock = mock.MagicMock()
+
+            def __call__(self, x):
+                self.mock(x)
+
+        model = Model()
+        model(0)  # model.__call__ is called
+        model.mock.assert_called_with(0)
+
+    def test_no_call_no_forward(self):
+        with self.assertRaises(TypeError):
+            self.model(0)
+
+
 testing.run_module(__name__, __file__)

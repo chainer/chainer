@@ -43,6 +43,14 @@ class BatchNormalization(link.Link):
             unit(1) which makes no effect.
         use_beta (bool): If ``True``, use shifting parameter. Otherwise, use
             unit(0) which makes no effect.
+        axis (int or tuple of int): Axis over which normalization is
+            performed. When axis is ``None``, it is determined from input
+            dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
+            and normalization is performed over 0th, 2nd and 3rd axis of input.
+            If it is 2, axis becomes (0) and normalization is performed
+            over 0th axis of input. When a tuple of int is given to this
+            option, numbers in the tuple must be being sorted in ascending
+            order. For example, (0, 2) is OK, but (2, 0) is not.
 
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
@@ -60,14 +68,6 @@ class BatchNormalization(link.Link):
         decay (float): Decay rate of moving average. It is used on training.
         ~BatchNormalization.eps (float): Epsilon value for numerical stability.
             This value is added to the batch variances.
-        axis (int or tuple of int): Axis over which normalization is
-            performed. When axis is ``None``, it is determined from input
-            dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
-            and normalization is performed over 0th, 2nd and 3rd axis of input.
-            If it is 2, axis becomes (0) and normalization is performed
-            over 0th axis of input. When a tuple of int is given to this
-            option, numbers in the tuple must be being sorted in ascending
-            order. For example, (0, 2) is OK, but (2, 0) is not.
 
     .. admonition:: Example
 
@@ -228,10 +228,10 @@ class BatchNormalization(link.Link):
                 if i not in self.axis])
             self._initialize_params(param_shape)
 
-        argument.check_unexpected_kwargs(
-            kwargs, test='test argument is not supported anymore. '
-            'Use chainer.using_config')
-        finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
+        finetune, = argument.parse_kwargs(
+            kwargs, ('finetune', False),
+            test='test argument is not supported anymore. '
+                 'Use chainer.using_config')
 
         if hasattr(self, 'gamma'):
             gamma = self.gamma

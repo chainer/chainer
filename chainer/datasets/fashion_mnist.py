@@ -2,12 +2,13 @@ import os
 
 import numpy
 
+import chainer
 from chainer.dataset import download
 from chainer.datasets._mnist_helper import make_npz
 from chainer.datasets._mnist_helper import preprocess_mnist
 
 
-def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
+def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=None,
                       label_dtype=numpy.int32, rgb_format=False):
     """Gets the Fashion-MNIST dataset.
 
@@ -34,7 +35,8 @@ def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
 
         scale (float): Pixel value scale. If it is 1 (default), pixels are
             scaled to the interval ``[0, 1]``.
-        dtype: Data type of resulting image arrays.
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
         label_dtype: Data type of the labels.
         rgb_format (bool): if ``ndim == 3`` and ``rgb_format`` is ``True``, the
             image will be converted to rgb format by duplicating the channels
@@ -47,6 +49,8 @@ def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=numpy.float32,
 
     """
     train_raw = _retrieve_fashion_mnist_training()
+    dtype = chainer.get_dtype(dtype)
+
     train = preprocess_mnist(train_raw, withlabel, ndim, scale, dtype,
                              label_dtype, rgb_format)
     test_raw = _retrieve_fashion_mnist_test()

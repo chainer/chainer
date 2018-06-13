@@ -87,18 +87,6 @@ class BatchNormalization(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
 
-        if x.shape[0] == 1:
-            warnings.warn(
-                'A batch with no more than one sample has been given'
-                ' to F.batch_normalization. F.batch_normalization'
-                ' will always output a zero tensor for such batches.'
-                ' This could be caused by incorrect configuration in'
-                ' your code (such as running evaluation while'
-                ' chainer.config.train=True),'
-                ' but could also happen in the last batch of training'
-                ' if non-repeating iterator is used.',
-                UserWarning)
-
         xp = cuda.get_array_module(x)
         if self.running_mean is None:
             self.running_mean = xp.zeros_like(gamma)
@@ -106,6 +94,26 @@ class BatchNormalization(function_node.FunctionNode):
 
         self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
+
+        if all(x.shape[i] == 1 for i in self.axis):
+            if 0 in self.axis:
+                warnings.warn(
+                    'A batch with no more than one sample has been given'
+                    ' to F.batch_normalization. F.batch_normalization'
+                    ' will always output a zero tensor for such batches.'
+                    ' This could be caused by incorrect configuration in'
+                    ' your code (such as running evaluation while'
+                    ' chainer.config.train=True),'
+                    ' but could also happen in the last batch of training'
+                    ' if non-repeating iterator is used.',
+                    UserWarning)
+            else:
+                warnings.warn(
+                    'F.batch_normalization received a batch with single'
+                    ' dimensions along all axes that are used for aggregating'
+                    ' statistics. F.batch_normalization'
+                    ' will always output a zero tensor for such batches.',
+                    UserWarning)
 
         # TODO(niboshi): Refactor calculation of expander and axis into a
         # function and call it just before they are used.
@@ -711,7 +719,7 @@ def _get_dtype_of_tensor_descriptor(desc):
 
 
 def batch_normalization(x, gamma, beta, **kwargs):
-    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9)
+    """batch_normalization(x, gamma, beta, eps=2e-5, running_mean=None, running_var=None, decay=0.9, axis=None)
 
     Batch normalization function.
 
@@ -720,12 +728,12 @@ def batch_normalization(x, gamma, beta, **kwargs):
     which is referred to as the channel shape. This channel shape corresponds
     to the dimensions in the input which are not averaged over. Since the
     first dimension of the input corresponds to the batch size, the second
-    dimension of `x` will correspond to the first dimension of the channel
-    shape, the third dimension of `x` will correspond to the second channel
+    dimension of ``x`` will correspond to the first dimension of the channel
+    shape, the third dimension of ``x`` will correspond to the second channel
     dimension (if it exists) and so on. Therefore, the dimensionality of the
     input must be at least one plus the number of channel dimensions. The
     total effective "batch size" will then be considered to be the product of
-    all dimensions in `x` except for the channel dimensions.
+    all dimensions in ``x`` except for the channel dimensions.
 
     As an example, if the input is four dimensional and the parameter
     variables are one dimensional, then it is assumed that the first
@@ -735,14 +743,6 @@ def batch_normalization(x, gamma, beta, **kwargs):
     batch size in the batch normalization computations. That is,
     the total batch size will be considered to be the product of all
     input dimensions except the second dimension.
-
-    Note: If this function is called, it will not be possible to access the
-    updated running mean and variance statistics, because they are members
-    of the function object, which cannot be accessed by the caller.
-    If it is desired to access the updated running statistics, it is necessary
-    to get a new instance of the function object, call the object, and then
-    access the running_mean and/or running_var attributes. See the
-    corresponding Link class for an example of how to do this.
 
     .. warning::
 
@@ -756,20 +756,22 @@ def batch_normalization(x, gamma, beta, **kwargs):
         beta (Variable): Shifting parameter of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
         running_mean (numpy.ndarray or cupy.ndarray):
-            Running average of the mean. This is a
-            running average of the mean over several mini-batches using
-            the decay parameter. If ``None``, the running average is not
-            computed. If this is ``None``, then ``runnng_var`` must also
-            be ``None``.
+            Running average of the mean. This is a running average of
+            the mean over several mini-batches using the decay parameter.
+            The function takes a previous running average, and updates
+            the array in-place by the new running average.
+            If ``None``, the running average is not computed. If this is
+            ``None``, then ``runnng_var`` must also be ``None``.
         running_var (numpy.ndarray or cupy.ndarray):
-            Running average of the variance. This is a
-            running average of the variance over several mini-batches using
-            the decay parameter. If ``None``, the running average is not
-            computed. If this is ``None``, then ``running_mean`` must also
-            be ``None``.
+            Running average of the variance. This is a running average of
+            the variance over several mini-batches using the decay parameter.
+            The function takes a previous running average, and updates
+            the array in-place by the new running average.
+            If ``None``, the running average is not computed. If this is
+            ``None``, then ``running_mean`` must also be ``None``.
         decay (float): Decay rate of moving average. It is used during
             training.
-        axis (int or tuple of int): Axis over which normalization is
+        axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input
             dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
             and normalization is performed over 0th, 2nd and 3rd axis of input.
@@ -781,16 +783,15 @@ def batch_normalization(x, gamma, beta, **kwargs):
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
-    .. seealso:: :class:`links.BatchNormalization`
+    .. seealso:: :class:`~chainer.links.BatchNormalization`
 
     """  # NOQA
 
-    argument.check_unexpected_kwargs(
-        kwargs, train='train argument is not supported anymore. '
-        'Use chainer.using_config')
     eps, running_mean, running_var, decay, axis = argument.parse_kwargs(
         kwargs, ('eps', 2e-5), ('running_mean', None),
-        ('running_var', None), ('decay', 0.9), ('axis', None))
+        ('running_var', None), ('decay', 0.9), ('axis', None),
+        train='train argument is not supported anymore. '
+        'Use chainer.using_config')
 
     return BatchNormalization(eps, running_mean, running_var, decay,
                               axis).apply((x, gamma, beta))[0]
@@ -811,7 +812,7 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
         mean (Variable): Shifting parameter of input.
         var (Variable): Square of scaling parameter of input.
         eps (float): Epsilon value for numerical stability.
-        axis (int or tuple of int): Axis over which normalization is
+        axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input
             dimensions. For example, if ``x.ndim is 4``, axis becomes (0, 2, 3)
             and normalization is performed over 0th, 2nd and 3rd axis of input.
@@ -821,8 +822,8 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
             order. For example, (0, 2) is OK, but (2, 0) is not.
 
     .. seealso::
-       :func:`functions.batch_normalization`,
-       :class:`links.BatchNormalization`
+       :func:`~chainer.functions.batch_normalization`,
+       :class:`~chainer.links.BatchNormalization`
 
     """
     return FixedBatchNormalization(eps, axis).apply((x, gamma, beta, mean,

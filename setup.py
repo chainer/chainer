@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import imp
 import os
 import pkg_resources
 import sys
@@ -21,7 +20,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 
 
 def cupy_requirement(pkg):
-    return '{}==5.0.0a1'.format(pkg)
+    return '{}==5.0.0b1'.format(pkg)
 
 
 requirements = {
@@ -36,7 +35,7 @@ requirements = {
     ],
     'stylecheck': [
         'autopep8',
-        'hacking',
+        'hacking==1.0.0',
     ],
     'test': [
         'pytest',
@@ -60,7 +59,6 @@ requirements = {
         'pillow',
     ],
     'appveyor': [
-        '-r stylecheck',
         '-r test',
         'pytest-timeout',
         'pytest-cov',
@@ -119,13 +117,13 @@ else:
     print('No CuPy installation detected')
 
 here = os.path.abspath(os.path.dirname(__file__))
-__version__ = imp.load_source(
-    '_version', os.path.join(here, 'chainer', '_version.py')).__version__
+# Get __version__ variable
+exec(open(os.path.join(here, 'chainer', '_version.py')).read())
 
 
 setup(
     name='chainer',
-    version=__version__,
+    version=__version__,  # NOQA
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
@@ -135,6 +133,7 @@ setup(
               'chainer.backends',
               'chainer.dataset',
               'chainer.datasets',
+              'chainer.distributions',
               'chainer.exporters',
               'chainer.functions',
               'chainer.functions.activation',
