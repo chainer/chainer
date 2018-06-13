@@ -160,11 +160,12 @@ class VariableNode(object):
     _old_style_grad_generator = None
 
     def __init__(self, variable, name, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs,
-            grad='unexpected keyword argument "grad": '
-                 'pass the gradient to Variable instead'
-        )
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                grad='unexpected keyword argument "grad": '
+                     'pass the gradient to Variable instead'
+            )
         self._variable = weakref.ref(variable)
         self.name = name
         self._requires_grad = variable.requires_grad
@@ -467,14 +468,10 @@ class Variable(object):
     """  # NOQA
 
     def __init__(self, data=None, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, volatile='volatile argument is not supported anymore. '
+        name, grad, requires_grad = argument.parse_kwargs(
+            kwargs, ('name', None), ('grad', None), ('requires_grad', True),
+            volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
-        name, grad, requires_grad \
-            = argument.parse_kwargs(
-                kwargs, ('name', None), ('grad', None),
-                ('requires_grad', True))
-
         if (data is not None and
                 not isinstance(data, chainer.get_array_types())):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
