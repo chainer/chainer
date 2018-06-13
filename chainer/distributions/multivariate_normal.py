@@ -3,8 +3,8 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
 from chainer.functions.array import moveaxis
+from chainer.functions.array import repeat
 from chainer.functions.array import squeeze
 from chainer.functions.array import swapaxes
 from chainer.functions.math import basic_math
@@ -12,8 +12,8 @@ from chainer.functions.math import exponential
 from chainer.functions.math import inv
 from chainer.functions.math import matmul
 from chainer.functions.math import sum as sum_mod
-import numpy
 import math
+import numpy
 
 ENTROPYC = 0.5 * math.log(2 * math.pi * math.e)
 LOGPROBC = - 0.5 * math.log(2 * math.pi)
@@ -22,6 +22,7 @@ LOGPROBC = - 0.5 * math.log(2 * math.pi)
 class MultivariateNormal(distribution.Distribution):
 
     """MultivariateNormal Distribution.
+
     Args:
         loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Parameter of distribution representing the \
