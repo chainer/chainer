@@ -216,28 +216,29 @@ private:
             BackwardContext bctx{op_node, prev_nodes, graph_ids_to_stop_gradient, next_grads_subset};
             backward_entry.backward_func()(bctx);
 
-#ifndef NDEBUG
-            // Assert input and output gradients do not share identical bodies
             for (auto it = next_grads_subset.begin(); it != next_grads_subset.end(); ++it) {
                 // TODO(sonots): Allow backward without setting input grads
                 assert(it->body() != nullptr);
-                for (const ArrayNode& prev_node : prev_nodes) {
-                    if (prev_node.grad().has_value()) {
-                        assert(it->body() != prev_node.grad().body());
-                    }
-                }
-                for (auto jt = next_grads_subset.begin(); jt != it; ++jt) {
-                    assert(it->body() != jt->body());
+                // Make a view if the next gradient is identical to one of other prev or next gradients.
+                // TODO(niboshi): Check node identity instead of body identity.
+                if (std::any_of(
+                            prev_nodes.begin(),
+                            prev_nodes.end(),
+                            [it](const ArrayNode& prev_node) {
+                                return prev_node.grad().has_value() && it->body() == prev_node.grad()->body();
+                            }) ||
+                    std::any_of(next_grads_subset.begin(), it, [it](const Array& next_grad) { return next_grad.body() == it->body(); })) {
+                    // TODO(niboshi): Copy is needed to make new nodes. Come up with a solution to avoid copy.
+                    *it = it->Copy();
                 }
             }
-#endif
 
             // Accumulate grads from `next_grads_subset`.
             for (size_t i = 0; i < backward_entry.next_node_count(); ++i) {
                 size_t i_next_grad = backward_entry.next_node_indices()[i];
                 nonstd::optional<Array>& target_grad = next_grads[i_next_grad];
                 if (target_grad.has_value()) {
-                    *target_grad += next_grads_subset[i];
+                    target_grad = *target_grad + next_grads_subset[i];
                 } else {
                     target_grad = std::move(next_grads_subset[i]);
                 }
