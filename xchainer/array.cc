@@ -67,6 +67,16 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
     return *it;
 }
 
+Array MakeUnsharedView(const Array& array) {
+    Array out{std::make_shared<internal::ArrayBody>(
+            array.shape(), array.strides(), array.dtype(), array.device(), array.data(), array.offset())};
+    if (!array.IsConstant()) {
+        BackwardBuilder bb{"view", out};
+        bb.Define({array}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+    }
+    return out;
+}
+
 }  // namespace internal
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
