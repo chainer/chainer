@@ -221,17 +221,17 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
+        finetune, = argument.parse_kwargs(
+            kwargs, ('finetune', False),
+            test='test argument is not supported anymore. '
+                 'Use chainer.using_config')
+
         if not hasattr(self, 'avg_mean'):
             param_shape = tuple([
                 d
                 for i, d in enumerate(x.shape)
                 if i not in self.axis])
             self._initialize_params(param_shape)
-
-        finetune, = argument.parse_kwargs(
-            kwargs, ('finetune', False),
-            test='test argument is not supported anymore. '
-                 'Use chainer.using_config')
 
         if hasattr(self, 'gamma'):
             gamma = self.gamma
