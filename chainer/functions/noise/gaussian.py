@@ -4,6 +4,7 @@ import chainer
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
@@ -19,10 +20,10 @@ class Gaussian(function_node.FunctionNode):
 
     """
 
-    def __init__(self):
+    def __init__(self, eps=None):
         # Per-instance noise that is generated once during its first forward
         # pass and then reused in subsequent calls, unless explicitly reset
-        self.eps = None
+        self.eps = eps
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -76,8 +77,10 @@ class Gaussian(function_node.FunctionNode):
         return ret
 
 
-def gaussian(mean, ln_var):
-    """Gaussian sampling function.
+def gaussian(mean, ln_var, **kwargs):
+    """gaussian(mean, ln_var, *, eps=None, return_eps=False)
+
+    Gaussian sampling function.
 
     This function takes a mean :math:`\\mu` and the logarithm of a variance
     :math:`\\log(\\sigma^2)` as inputs and outputs a sample drawn from a
@@ -91,10 +94,35 @@ def gaussian(mean, ln_var):
         ln_var (~chainer.Variable):
             Input variable representing the logarithm of a variance
             :math:`\\log(\\sigma^2)`.
+        eps (ndarray or None):
+            The eps value to be used.
+            The shape and dtype must be the same as ``ln_var`` and should be
+            on the same device.
+            If ``eps`` is not specified or set to ``None``, an eps value will
+            be generated randomly.
+        return_eps (bool):
+            If ``True``, the eps value used in this function is returned
+            altogether with the output variable.
+            The returned eps can later be reused by passing it to the ``eps``
+            argument.
 
     Returns:
-        ~chainer.Variable:
-            Output variable with the shape of ``mean`` and/or ``ln_var``.
+        ~chainer.Variable or tuple:
+            When ``return_eps`` is ``False`` (default), returns the output
+            variable with the shape of ``mean`` and/or ``ln_var``.
+            Otherwise returnes the tuple of the output variable and eps
+            (ndarray).
+            The eps will be on the same device as the input (``ln_var``).
 
     """
-    return Gaussian().apply((mean, ln_var))[0]
+    eps = None
+    return_eps = False
+    if kwargs:
+        eps, return_eps = argument.parse_kwargs(
+            kwargs, ('eps', eps), ('return_eps', return_eps))
+
+    func = Gaussian(eps)
+    out = func.apply((mean, ln_var))[0]
+    if return_eps:
+        return out, func.eps
+    return out
