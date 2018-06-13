@@ -531,7 +531,7 @@ class TestLinkRepeat(unittest.TestCase):
                     self.x = chainer.Parameter(
                         chainer.initializers.Normal(), shape=(2, 3))
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.link = Layer()
@@ -1022,7 +1022,7 @@ class TestChainRepeat(unittest.TestCase):
                 with self.init_scope():
                     self.link = chainer.Link()
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.chain = ChainForTest()
@@ -1513,7 +1513,7 @@ class TestChainListRepeat(unittest.TestCase):
             def __init__(self):
                 super(ChainListForTest, self).__init__(chainer.Link())
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.chainlist = ChainListForTest()
@@ -1766,11 +1766,11 @@ class TestCallMethod(unittest.TestCase):
         self.model.forward.assert_called_once()
 
     def test_has_call_and_forward(self):
-        self.model.__call__ = mock.MagicMock()
         self.model.forward = mock.MagicMock()
-        self.model(0)  # Link.__call__ is called
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # Link.forward is called
         self.model.forward.assert_called_with(0)
-        self.model.__call__.assert_not_called()
+        self.model.forward.assert_not_called()
 
     def test_has_call_no_forward(self):
         class Model(chainer.Chain):
@@ -1778,11 +1778,11 @@ class TestCallMethod(unittest.TestCase):
                 super(Model, self).__init__()
                 self.mock = mock.MagicMock()
 
-            def __call__(self, x):
+            def forward(self, x):
                 self.mock(x)
 
         model = Model()
-        model(0)  # model.__call__ is called
+        model(0)  # model.forward is called
         model.mock.assert_called_with(0)
 
     def test_no_call_no_forward(self):

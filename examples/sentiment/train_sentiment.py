@@ -47,7 +47,7 @@ class RecursiveNet(chainer.Chain):
             self.l = L.Linear(n_units * 2, n_units)
             self.w = L.Linear(n_units, n_label)
 
-    def __call__(self, x):
+    def forward(self, x):
         accum_loss = 0.0
         result = collections.defaultdict(lambda: 0)
         # calculate each tree in batch ``x`` because we cannot process as batch

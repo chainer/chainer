@@ -29,7 +29,7 @@ class SimpleLink(chainer.Link):
                 numpy.float32)
             self.w = chainer.Parameter(init_w)
 
-    def __call__(self, x):
+    def forward(self, x):
         return self.w * x
 
 

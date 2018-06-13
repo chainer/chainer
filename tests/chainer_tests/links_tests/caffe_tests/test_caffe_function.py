@@ -124,7 +124,7 @@ class TestConcat(TestCaffeFunctionBaseMock):
 
 class TestConvolution(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Convolution2D.__call__'
+    func_name = 'chainer.links.Convolution2D.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -221,7 +221,7 @@ class TestDropout(TestCaffeFunctionBaseMock):
 
 class TestInnerProduct(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Linear.__call__'
+    func_name = 'chainer.links.Linear.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -271,7 +271,7 @@ class TestInnerProduct(TestCaffeFunctionBaseMock):
 
 class TestInnerProductDim4(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Linear.__call__'
+    func_name = 'chainer.links.Linear.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -575,7 +575,7 @@ class TestLeakyReLU(TestCaffeFunctionBaseMock):
 
 class TestBatchNorm(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.BatchNormalization.__call__'
+    func_name = 'chainer.links.BatchNormalization.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -618,7 +618,7 @@ class TestBatchNorm(TestCaffeFunctionBaseMock):
 
 class TestBatchNormUsingGlobalStats(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.BatchNormalization.__call__'
+    func_name = 'chainer.links.BatchNormalization.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -802,7 +802,7 @@ class TestEltwiseMax(TestCaffeFunctionBaseMock):
 
 class TestScale(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Scale.__call__'
+    func_name = 'chainer.links.Scale.forward'
     in_shapes = [(2, 3), (2, 3)]
     out_shapes = [(2, 3)]
 
@@ -829,7 +829,7 @@ class TestScale(TestCaffeFunctionBaseMock):
 
 class TestScaleOneBottom(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Scale.__call__'
+    func_name = 'chainer.links.Scale.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 
@@ -864,7 +864,7 @@ class TestScaleOneBottom(TestCaffeFunctionBaseMock):
 
 class TestScaleWithBias(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Scale.__call__'
+    func_name = 'chainer.links.Scale.forward'
     in_shapes = [(2, 3), (2, 3)]
     out_shapes = [(2, 3)]
 
@@ -901,7 +901,7 @@ class TestScaleWithBias(TestCaffeFunctionBaseMock):
 
 class TestScaleOneBottomWithBias(TestCaffeFunctionBaseMock):
 
-    func_name = 'chainer.links.Scale.__call__'
+    func_name = 'chainer.links.Scale.forward'
     in_shapes = [(2, 3)]
     out_shapes = [(2, 3)]
 

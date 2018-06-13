@@ -16,7 +16,7 @@ class DummyModel(chainer.Chain):
         self.args = []
         self.test = test
 
-    def __call__(self, x):
+    def forward(self, x):
         self.args.append(x)
         chainer.report({'loss': x.sum()}, self)
 
@@ -28,7 +28,7 @@ class DummyModelTwoArgs(chainer.Chain):
         self.args = []
         self.test = test
 
-    def __call__(self, x, y):
+    def forward(self, x, y):
         self.args.append((x, y))
         chainer.report({'loss': x.sum() + y.sum()}, self)
 

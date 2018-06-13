@@ -36,7 +36,7 @@ class TestCaffeExport(unittest.TestCase):
                     self.b2 = L.BatchNormalization(1)
                     self.l3 = L.Linear(None, 1)
 
-            def __call__(self, x):
+            def forward(self, x):
                 h = F.relu(self.l1(x))
                 h = self.b2(h)
                 return self.l3(h)
@@ -46,35 +46,35 @@ class TestCaffeExport(unittest.TestCase):
     def test_Reshape(self):
         class Link(chainer.Chain):
 
-            def __call__(self, x):
+            def forward(self, x):
                 return F.reshape(x, (-1,))
 
         caffe.export(Link(), [self.x], None, True, 'test')
 
     def test_AveragePooling2D(self):
         class Link(chainer.Chain):
-            def __call__(self, x):
+            def forward(self, x):
                 return F.average_pooling_2d(x, 1, 1, 0)
 
         caffe.export(Link(), [self.x], None, True, 'test')
 
     def test_MaxPooling2D(self):
         class Link(chainer.Chain):
-            def __call__(self, x):
+            def forward(self, x):
                 return F.max_pooling_2d(x, 1, 1, 0)
 
         caffe.export(Link(), [self.x], None, True, 'test')
 
     def test_Softmax(self):
         class Link(chainer.Chain):
-            def __call__(self, x):
+            def forward(self, x):
                 return F.softmax(x)
 
         caffe.export(Link(), [self.x], None, True, 'test')
 
     def test_Add(self):
         class Link(chainer.Chain):
-            def __call__(self, x):
+            def forward(self, x):
                 return x + x
 
         caffe.export(Link(), [self.x], None, True, 'test')

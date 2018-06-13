@@ -36,7 +36,7 @@ class ImageCaptionModel(chainer.Chain):
         """Single image to resized and normalized image."""
         return self.feat_extractor.prepare(img)
 
-    def __call__(self, imgs, captions):
+    def forward(self, imgs, captions):
         """Batch of images to a single loss."""
         imgs = Variable(imgs)
         if self.finetune_feat_extractor:
@@ -87,7 +87,7 @@ class VGG16FeatureExtractor(chainer.Chain):
         """
         return L.model.vision.vgg.prepare(img)
 
-    def __call__(self, imgs):
+    def forward(self, imgs):
         """Batch of images to image features."""
         img_feats = self.cnn(imgs, [self.cnn_layer_name])[self.cnn_layer_name]
         return img_feats
@@ -122,7 +122,7 @@ class LSTMLanguageModel(chainer.Chain):
 
         self.dropout_ratio = dropout_ratio
 
-    def __call__(self, img_feats, captions):
+    def forward(self, img_feats, captions):
         """Batch of image features and image captions to a singe loss.
 
         Compute the softmax cross-entropy captioning loss.
@@ -212,7 +212,7 @@ class NStepLSTMLanguageModel(chainer.Chain):
 
         self.dropout_ratio = dropout_ratio
 
-    def __call__(self, img_feats, captions):
+    def forward(self, img_feats, captions):
         """Batch of image features and image captions to a singe loss.
 
         Compute the softmax cross-entropy captioning loss in a single pass

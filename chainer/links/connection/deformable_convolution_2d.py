@@ -69,7 +69,7 @@ class DeformableConvolution2D(link.Chain):
                 in_channels, out_channels, ksize, stride, pad,
                 deform_nobias, deform_initialW, deform_initial_bias)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the deformable convolution.
 
         Args:
@@ -121,7 +121,7 @@ class DeformableConvolution2DSampler(link.Link):
         if self.b is not None:
             self.b.initialize(self.out_channels)
 
-    def __call__(self, x, offset):
+    def forward(self, x, offset):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return deformable_convolution_2d_sampler(

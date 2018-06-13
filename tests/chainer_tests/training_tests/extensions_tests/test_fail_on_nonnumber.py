@@ -20,7 +20,7 @@ class Model(chainer.Chain):
         with self.init_scope():
             self.l = links.Linear(1, 3)
 
-    def __call__(self, x):
+    def forward(self, x):
         return self.l(x)
 
 

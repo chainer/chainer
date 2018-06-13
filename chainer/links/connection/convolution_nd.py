@@ -82,7 +82,7 @@ class ConvolutionND(link.Link):
                 initial_bias = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(initial_bias, out_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies N-dimensional convolution layer.
 
         Args:

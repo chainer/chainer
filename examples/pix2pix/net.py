@@ -27,7 +27,7 @@ class ConvBNR(chainer.Chain):
             if use_bn:
                 self.bn = L.BatchNormalization(ch1)
 
-    def __call__(self, x):
+    def forward(self, x):
         h = self.c(x)
         if self.use_bn:
             h = self.bn(h)
@@ -59,7 +59,7 @@ class Encoder(chainer.Chain):
             self.c7 = ConvBNR(512, 512, use_bn=True, sample='down',
                               activation=F.leaky_relu, dropout=False)
 
-    def __call__(self, x):
+    def forward(self, x):
         hs = [F.leaky_relu(self.c0(x))]
         for i in range(1, 8):
             hs.append(self['c%d' % i](hs[i-1]))
@@ -87,7 +87,7 @@ class Decoder(chainer.Chain):
                               activation=F.relu, dropout=False)
             self.c7 = L.Convolution2D(128, out_ch, 3, 1, 1, initialW=w)
 
-    def __call__(self, hs):
+    def forward(self, hs):
         h = self.c0(hs[-1])
         for i in range(1, 8):
             h = F.concat([h, hs[-i-1]])
@@ -115,7 +115,7 @@ class Discriminator(chainer.Chain):
                               activation=F.leaky_relu, dropout=False)
             self.c4 = L.Convolution2D(512, 1, 3, 1, 1, initialW=w)
 
-    def __call__(self, x_0, x_1):
+    def forward(self, x_0, x_1):
         h = F.concat([self.c0_0(x_0), self.c0_1(x_1)])
         h = self.c1(h)
         h = self.c2(h)
