@@ -60,8 +60,9 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
     def backward(self, inputs, grad_outputs):
         x, t = self.get_retained_inputs()
         gy, = grad_outputs
-        return SigmoidCrossEntropyGrad(
+        gx, = SigmoidCrossEntropyGrad(
             self.reduce, self.count, self.ignore_mask, t.data).apply((x, gy))
+        return gx, None
 
 
 class SigmoidCrossEntropyGrad(function_node.FunctionNode):
@@ -88,10 +89,10 @@ class SigmoidCrossEntropyGrad(function_node.FunctionNode):
         else:
             gx = (gy * self.ignore_mask * (y - self.t)).astype(y.dtype)
 
-        return gx, None
+        return gx,
 
     def backward(self, indexes, grad_outputs):
-        ggx, _ = grad_outputs
+        ggx, = grad_outputs
         x, gy = self.get_retained_inputs()
         y = chainer.functions.sigmoid(x)
         yp = y * (1 - y)
