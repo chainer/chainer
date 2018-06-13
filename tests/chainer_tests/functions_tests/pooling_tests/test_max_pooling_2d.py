@@ -227,14 +227,31 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
 class TestMaxPooling2DIndices(unittest.TestCase):
     def setUp(self):
         self.x = numpy.arange(
-            2 * 3 * 4 * 3, dtype=numpy.float32).reshape(2, 3, 4, 3)
+            2 * 3 * 4 * 4, dtype=numpy.float32).reshape(2, 3, 4, 4)
+        numpy.random.shuffle(self.x)
 
     def _check(self, x):
         out, indices = functions.max_pooling_2d(
-            x, 3, stride=2, pad=1, cover_all=False, return_indices=True)
+            x, 2, cover_all=False, return_indices=True)
         assert isinstance(out, chainer.Variable)
         assert isinstance(out.array, type(x))
         assert isinstance(indices, type(x))
+        assert indices.shape == out.array.shape
+
+        # Calculate expected indices.
+        expect = numpy.zeros(indices.shape, dtype=indices.dtype)
+        for k in six.moves.range(2):
+            for c in six.moves.range(3):
+                xx = x[k, c]
+                expect[k, c] = numpy.array([
+                    [xx[0:2, 0:2].ravel().argmax(),
+                     xx[0:2, 2:4].ravel().argmax()],
+                    [xx[2:4, 0:2].ravel().argmax(),
+                     xx[2:4, 2:4].ravel().argmax()],
+                ])
+        if out.xp is not numpy:
+            expect = cuda.to_gpu(expect)
+        assert (expect == indices).all()
 
     def test_cpu(self):
         self._check(self.x)
