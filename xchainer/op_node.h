@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
@@ -8,51 +9,80 @@
 
 #include <gsl/gsl>
 
+#include "xchainer/backward.h"
 #include "xchainer/graph.h"
 
 namespace xchainer {
 
 class Array;
 class ArrayNode;
+class BackwardContext;
+class Device;
+
+namespace internal {
+
+class OpNodeBackwardEntry {
+public:
+    OpNodeBackwardEntry(std::vector<size_t> next_array_node_indices, BackwardFunction backward_func);
+
+    size_t next_node_count() const { return next_array_node_indices_.size(); }
+
+    gsl::span<const size_t> next_node_indices() const { return next_array_node_indices_; }
+
+    const BackwardFunction& backward_func() const { return backward_func_; }
+
+private:
+    std::vector<size_t> next_array_node_indices_;
+    BackwardFunction backward_func_;
+};
+
+}  // namespace internal
 
 class OpNode {
 public:
     OpNode() = default;
-    explicit OpNode(std::string name) : name_{std::move(name)} {}
-    OpNode(std::string name,
-           int64_t rank,
-           std::vector<std::shared_ptr<ArrayNode>> next_nodes,
-           std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>> backward_functions)
-        : name_{std::move(name)}, rank_{rank}, next_nodes_{std::move(next_nodes)}, backward_functions_{std::move(backward_functions)} {}
+    explicit OpNode(std::string name, const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes);
 
-    void RegisterNextNode(
-            std::shared_ptr<ArrayNode> next_node, std::function<Array(const Array&, const std::vector<GraphId>&)> backward_function) {
-        next_nodes_.push_back(std::move(next_node));
-        backward_functions_.push_back(std::move(backward_function));
-    }
+    OpNode(const OpNode&) = delete;
+    OpNode(OpNode&&) = delete;
+    OpNode& operator=(const OpNode&) = delete;
+    OpNode& operator=(OpNode&&) = delete;
+
+    void RegisterBackwardFunction(gsl::span<std::reference_wrapper<std::shared_ptr<ArrayNode>>> next_nodes, BackwardFunction backward_func);
 
     void Unchain() {
-        next_nodes_.clear();
-        backward_functions_.clear();
+        backward_entries_.clear();
+        next_array_nodes_.clear();
     }
 
     std::string name() const { return name_; }
 
+    gsl::span<std::shared_ptr<ArrayNode>> next_nodes() { return next_array_nodes_; }
+
+    gsl::span<const std::shared_ptr<ArrayNode>> next_nodes() const { return next_array_nodes_; }
+
+    gsl::span<internal::OpNodeBackwardEntry> backward_entries() { return backward_entries_; }
+
+    gsl::span<const internal::OpNodeBackwardEntry> backward_entries() const { return backward_entries_; }
+
+    size_t next_node_count() const { return next_array_nodes_.size(); }
+
+    size_t prev_node_count() const { return prev_array_nodes_.size(); }
+
+    const std::vector<std::weak_ptr<ArrayNode>>& prev_nodes() const { return prev_array_nodes_; }
+
     int64_t rank() const { return rank_; }
 
-    void set_rank(int64_t rank) { rank_ = rank; }
-
-    gsl::span<const std::shared_ptr<ArrayNode>> next_nodes() const { return gsl::make_span(next_nodes_); }
-
-    gsl::span<const std::function<Array(const Array&, const std::vector<GraphId>&)>> backward_functions() const {
-        return gsl::make_span(backward_functions_);
-    }
+    GraphId graph_id() const { return graph_id_; }
 
 private:
     std::string name_;
+    GraphId graph_id_;
     int64_t rank_{0};
-    std::vector<std::shared_ptr<ArrayNode>> next_nodes_;
-    std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>> backward_functions_;
+    std::vector<std::shared_ptr<ArrayNode>> next_array_nodes_;
+    std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes_;
+
+    std::vector<internal::OpNodeBackwardEntry> backward_entries_;
 };
 
 }  // namespace xchainer

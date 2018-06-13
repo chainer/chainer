@@ -6,6 +6,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
@@ -48,17 +49,25 @@ Array ConvGradW(
     assert(pad.size() == static_cast<size_t>(w_shape.ndim() - 2));
     Array out = x.device().ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
 
-    auto x_backward_function =
-            [ x_shape = x.shape(), gy, stride, pad ](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
-        StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
-        assert(out_size.size() == stride.size());
-        return ConvTranspose(gy.AsConstant(graph_ids_to_stop_gradient), gout, nonstd::nullopt, stride, pad, out_size);
-    };
-    auto gy_backward_function = [x, stride, pad, cover_all](
-                                        const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient) -> Array {
-        return Conv(x.AsConstant(graph_ids_to_stop_gradient), gout, nonstd::nullopt, stride, pad, cover_all);
-    };
-    internal::SetUpOpNodes("conv-grad-weight", {x, gy}, out, {x_backward_function, gy_backward_function});
+    {
+        BackwardBuilder bb{"conv-grad-weight", {out}};
+
+        if (!x.IsConstant()) {
+            bb.Define({x}, [ x_shape = x.shape(), gy, stride, pad ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
+                assert(out_size.size() == stride.size());
+                bctx.input_grad() = ConvTranspose(bctx.Cut(gy), gout, nonstd::nullopt, stride, pad, out_size);
+            });
+        }
+
+        if (!gy.IsConstant()) {
+            bb.Define({gy}, [x, stride, pad, cover_all](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = Conv(bctx.Cut(x), gout, nonstd::nullopt, stride, pad, cover_all);
+            });
+        }
+    }
 
     return out;
 }
@@ -98,28 +107,37 @@ Array Conv(
     }
 
     Array out = x.device().Conv(x, w, b, stride, pad, cover_all);
-    auto x_backward_function =
-            [ x_shape = x.shape(), w, stride, pad ](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)->Array {
-        StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
-        return ConvTranspose(gout, w.AsConstant(graph_ids_to_stop_gradient), nonstd::nullopt, stride, pad, out_size);
-    };
-    auto w_backward_function = [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](
-                                       const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)
-                                       ->Array {
-        return ConvGradW(w_dtype, w_shape, x.AsConstant(graph_ids_to_stop_gradient), gout, stride, pad, cover_all);
-    };
-    if (b.has_value()) {
-        auto b_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array {
-            Axes axis{0};
-            for (int8_t i = 2; i < gout.ndim(); ++i) {
-                axis.emplace_back(int64_t{i});
-            }
-            return Sum(gout, axis, false);
-        };
-        internal::SetUpOpNodes("conv", {x, w, *b}, out, {x_backward_function, w_backward_function, b_backward_function});
-    } else {
-        internal::SetUpOpNodes("conv", {x, w}, out, {x_backward_function, w_backward_function});
+
+    {
+        BackwardBuilder bb{"conv", {out}};
+
+        if (!x.IsConstant()) {
+            bb.Define({x}, [ x_shape = x.shape(), w, stride, pad ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
+                bctx.input_grad() = ConvTranspose(gout, bctx.Cut(w), nonstd::nullopt, stride, pad, out_size);
+            });
+        }
+
+        if (!w.IsConstant()) {
+            bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = ConvGradW(w_dtype, w_shape, bctx.Cut(x), gout, stride, pad, cover_all);
+            });
+        }
+
+        if (b.has_value() && !b->IsConstant()) {
+            bb.Define({*b}, [](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                Axes axis{0};
+                for (int8_t i = 2; i < gout.ndim(); ++i) {
+                    axis.emplace_back(int64_t{i});
+                }
+                bctx.input_grad() = Sum(gout, axis, false);
+            });
+        }
     }
+
     return out;
 }
 
@@ -142,66 +160,76 @@ Array ConvTranspose(
     Shape kernel_size{w.shape().begin() + 2, w.shape().end()};
 
     bool cover_all = false;
-    bool cover_all_determined = false;
 
     // Compute out_size if not specified
     StackVector<int64_t, kMaxNdim> real_out_size;
     if (out_size.has_value()) {
         real_out_size = *out_size;
-    } else {
-        cover_all_determined = true;
-        for (int8_t i = 0; i < ndim; ++i) {
-            real_out_size.emplace_back(internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all));
-        }
-    }
-    for (int64_t size : real_out_size) {
-        if (size < 0) {
-            throw DimensionError{"All output sizes must be positive"};
-        }
-    }
 
-    // Compute transposed convolution
-    Array out = x.device().ConvTranspose(x, w, b, stride, pad, real_out_size);
+        for (int64_t size : real_out_size) {
+            if (size < 0) {
+                throw DimensionError{"All output sizes must be non-negative."};
+            }
+        }
 
-    // Detect cover_all
-    // TODO(niboshi): This logic is only required if x belongs to some graph.
-    if (!cover_all_determined) {
+        // Detect cover_all from out_size
         for (int8_t i = 0; i < ndim; ++i) {
             if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], false)) {
                 cover_all = true;
                 break;
             }
         }
-        // Check detected cover_all is consistent
+    } else {
+        // cover_all is assumed to be false.
         for (int8_t i = 0; i < ndim; ++i) {
-            if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], cover_all)) {
-                throw DimensionError{"Output dims ", Shape{real_out_size.begin(), real_out_size.end()}, " are inconsistent."};
+            int64_t out_dim = internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all);
+            if (out_dim < 0) {
+                throw DimensionError{"Inconsistent dimensions. Output dimension at axis ", i, " would be negative."};
             }
+            real_out_size.emplace_back(out_dim);
         }
     }
 
-    auto x_backward_function =
-            [ x_shape = x.shape(), w, stride, pad, cover_all ](const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)
-                    ->Array {
-        return Conv(gout, w.AsConstant(graph_ids_to_stop_gradient), nonstd::nullopt, stride, pad, cover_all);
-    };
-    auto w_backward_function = [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](
-                                       const Array& gout, const std::vector<GraphId>& graph_ids_to_stop_gradient)
-                                       ->Array {
-        return ConvGradW(w_dtype, w_shape, gout, x.AsConstant(graph_ids_to_stop_gradient), stride, pad, cover_all);
-    };
-    if (b.has_value()) {
-        auto b_backward_function = [](const Array& gout, const std::vector<GraphId>&) -> Array {
-            Axes axis{0};
-            for (int8_t i = 2; i < gout.ndim(); ++i) {
-                axis.emplace_back(int64_t{i});
-            }
-            return Sum(gout, axis, false);
-        };
-        internal::SetUpOpNodes("conv_transpose", {x, w, *b}, out, {x_backward_function, w_backward_function, b_backward_function});
-    } else {
-        internal::SetUpOpNodes("conv_transpose", {x, w}, out, {x_backward_function, w_backward_function});
+    // Check out_size and cover_all are consistent
+    for (int8_t i = 0; i < ndim; ++i) {
+        if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], cover_all)) {
+            throw DimensionError{"Output dims ", Shape{real_out_size.begin(), real_out_size.end()}, " are incosistent."};
+        }
     }
+
+    // Compute transposed convolution
+    Array out = x.device().ConvTranspose(x, w, b, stride, pad, real_out_size);
+
+    {
+        BackwardBuilder bb{"conv_transpose", out};
+
+        if (!x.IsConstant()) {
+            bb.Define({x}, [ x_shape = x.shape(), w, stride, pad, cover_all ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
+                bctx.input_grad() = Conv(gout, bctx.Cut(w), nonstd::nullopt, stride, pad, cover_all);
+            });
+        }
+
+        if (!w.IsConstant()) {
+            bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, bctx.Cut(x), stride, pad, cover_all);
+            });
+        }
+
+        if (b.has_value() && !b->IsConstant()) {
+            bb.Define({*b}, [](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                Axes axis{0};
+                for (int8_t i = 2; i < gout.ndim(); ++i) {
+                    axis.emplace_back(int64_t{i});
+                }
+                bctx.input_grad() = Sum(gout, axis, false);
+            });
+        }
+    }
+
     return out;
 }
 

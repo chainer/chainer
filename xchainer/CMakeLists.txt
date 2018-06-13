@@ -12,6 +12,7 @@ install(FILES
     array.h
     array_body.h
     array_index.h
+    array_node.h
     array_repr.h
     axes.h
     backend.h
@@ -30,6 +31,7 @@ install(FILES
     indexer.h
     macro.h
     numeric_limits.h
+    op_node.h
     optional_container_arg.h
     reduction_kernel_arg.h
     scalar.h
@@ -54,6 +56,7 @@ add_library(xchainer SHARED
     dtype.cc
     numeric.cc
     numerical_gradient.cc
+    op_node.cc
     scalar.cc
     shape.cc
     strides.cc

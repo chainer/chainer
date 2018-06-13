@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/backward.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/scalar.h"
@@ -195,11 +196,14 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     Array out = Empty(shape, dt, a.device());
     a.device().AsType(a, out);
 
-    if (GetKind(dt) == DtypeKind::kFloat && GetKind(src_dt) == DtypeKind::kFloat) {
-        internal::SetUpOpNodes("ascontiguousarray", {a}, out, {[src_dt](const Array& gout, const std::vector<GraphId>&) {
-                                   return gout.AsType(src_dt, false);
-                               }});
+    if (!a.IsConstant() && GetKind(dt) == DtypeKind::kFloat) {
+        BackwardBuilder bb{"ascontiguousarray", out};
+        bb.Define({a}, [src_dt](BackwardContext& bctx) {
+            const Array& gout = bctx.output_grad();
+            bctx.input_grad() = gout.AsType(src_dt, false);
+        });
     }
+
     assert(out.IsContiguous());
     return out;
 }
@@ -235,8 +239,13 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         throw DimensionError{"Input must be 1D or 2D."};
     }
 
-    auto backward_function = [& device = v.device(), k ](const Array& gout, const std::vector<GraphId>&) { return Diag(gout, k, device); };
-    internal::SetUpOpNodes("diag", {v}, out, {backward_function});
+    if (!v.IsConstant()) {
+        BackwardBuilder bb{"diag", out};
+        bb.Define({v}, [& device = v.device(), k ](BackwardContext & bctx) {
+            const Array& gout = bctx.output_grad();
+            bctx.input_grad() = Diag(gout, k, device);
+        });
+    }
 
     return out;
 }
