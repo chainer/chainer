@@ -69,5 +69,16 @@ def diagonal(x, offset=0, axis1=0, axis2=1):
 
     Returns:
         ~chainer.Variable: (Batched) diagonal vectors
+
+    .. admonition:: Example
+
+        >>> x = chainer.Variable(np.arange(9).reshape(3, 3).astype(np.float32))
+        >>> x
+        variable([[0., 1., 2.],
+                  [3., 4., 5.],
+                  [6., 7., 8.]])
+        >>> chainer.functions.diagonal(x, offset=1)
+        variable([1., 5.])
+
     """
     return Diagonal(offset, axis1, axis2).apply((x,))[0]
