@@ -2,12 +2,11 @@ import numpy
 
 from chainer import cuda
 
-from chainer.functions.array.broadcast import broadcast_to
-from chainer.functions.array.concat import concat
-from chainer.functions.array.pad import pad as pad_func
-from chainer.functions.array.spatial_transformer_sampler import\
-    spatial_transformer_sampler
-from chainer.functions.math.matmul import matmul
+from chainer.functions.array import broadcast
+from chainer.functions.array import concat
+from chainer.functions.array import pad as pad_module
+from chainer.functions.array import spatial_transformer_sampler
+from chainer.functions.math import matmul
 
 
 def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
@@ -95,16 +94,17 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
 
     grid = _offset2grid(offset, kh, kw, sy, sx, ph, pw, h, w)
     grid = grid.reshape(n, 2, kh * kw, out_h * out_w)
-    x_pad = pad_func(x, ((0, 0), (0, 0), (ph, ph), (pw, pw)), 'constant')
-    x_st = spatial_transformer_sampler(x_pad, grid)
+    x_pad = pad_module.pad(x, ((0, 0), (0, 0), (ph, ph), (pw, pw)), 'constant')
+    x_st = spatial_transformer_sampler.spatial_transformer_sampler(
+        x_pad, grid)
 
     x_st = x_st.transpose(0, 3, 1, 2).reshape(n * out_h * out_w, c * kh * kw)
     W = W.transpose(1, 2, 3, 0).reshape(c * kh * kw, out_c)
-    y = matmul(x_st, W)
+    y = matmul.matmul(x_st, W)
     y = y.reshape(n, out_h, out_w, out_c).transpose(0, 3, 1, 2)
 
     if b is not None:
-        b = broadcast_to(b[None, :, None, None], y.shape)
+        b = broadcast.broadcast_to(b[None, :, None, None], y.shape)
         y += b
     return y
 
@@ -133,7 +133,7 @@ def _offset2grid(offset, kh, kw, sy, sx, ph, pw, h, w):
     y_coord = (y_coord / (h + 2 * ph - 1) - 0.5) * 2
 
     # Shape of `coord` is (n, 2 * kh * kw, out_h, out_w)
-    coord = concat([x_coord, y_coord], axis=1)
+    coord = concat.concat([x_coord, y_coord], axis=1)
     return coord
 
 
