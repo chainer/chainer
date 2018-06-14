@@ -104,8 +104,8 @@ class BatchNormalization(link.Link):
             (3,)
             >>> bn.beta += 2.0
             >>> bn.gamma *= 5.0
-            >>> list(sorted(bn.namedparams()))
-            [('/beta', variable([2., 2., 2.])), ('/gamma', variable([5., 5., 5.]))]
+            >>> list(sorted(bn.namedparams()))  # doctest: +ELLIPSIS
+            [('/beta', variable([2., ...])), ('/gamma', variable([5., ...]))]
             >>> y = bn(x)
             >>> y.shape
             (10, 3, 32, 32)
