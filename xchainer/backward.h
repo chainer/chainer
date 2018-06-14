@@ -34,7 +34,11 @@ public:
             const OpNode& op_node,
             gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes,
             gsl::span<const GraphId> stop_graph_ids,
-            std::vector<Array>& input_grads_storage);
+            std::vector<Array>& input_grads_storage,
+            bool next_backward_required);
+
+    // Indicates whether the next order of backward is required. It reflects DoubleBackpropOption.
+    bool next_required() const { return next_backward_required_; }
 
     // Returns whether the output has a propagated gradient.
     // If there is only one output, the output always has the propagated gradient, therefore you do not have to call this function in that
@@ -77,6 +81,8 @@ private:
     // Holds zero-filled arrays for outputs without actual gradients.
     // The arrays are allocated on-demand in output_grad.
     mutable std::vector<nonstd::optional<Array>> zero_output_grads_;
+
+    bool next_backward_required_;
 };
 
 class BackwardBuilder {

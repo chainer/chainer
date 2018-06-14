@@ -23,12 +23,14 @@ BackwardContext::BackwardContext(
         const OpNode& op_node,
         gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes,
         gsl::span<const GraphId> stop_graph_ids,
-        std::vector<Array>& input_grads_storage)
+        std::vector<Array>& input_grads_storage,
+        bool next_backward_required)
     : op_node_{op_node},
       prev_nodes_{prev_nodes},
       stop_graph_ids_{stop_graph_ids},
       input_grads_storage_{input_grads_storage},
-      zero_output_grads_{prev_nodes_.size()} {
+      zero_output_grads_{prev_nodes_.size()},
+      next_backward_required_{next_backward_required} {
     assert(input_grads_storage_.size() <= op_node.next_node_count());
     // Input grads must be initialized with null-body arrays.
     assert(std::all_of(input_grads_storage_.begin(), input_grads_storage_.end(), [](const Array& g) { return g.body() == nullptr; }));
@@ -213,7 +215,8 @@ private:
             next_grads_subset.resize(backward_entry.next_node_count());
 
             // Call backward.
-            BackwardContext bctx{op_node, prev_nodes, graph_ids_to_stop_gradient, next_grads_subset};
+            BackwardContext bctx{
+                    op_node, prev_nodes, graph_ids_to_stop_gradient, next_grads_subset, double_backprop_ == DoubleBackpropOption::kEnable};
             backward_entry.backward_func()(bctx);
 
             for (auto it = next_grads_subset.begin(); it != next_grads_subset.end(); ++it) {
