@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <tuple>
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
