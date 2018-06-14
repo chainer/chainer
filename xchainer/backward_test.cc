@@ -559,7 +559,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
         ASSERT_FALSE(x1.IsConstant());
         ASSERT_FALSE(x2.IsConstant());
         ASSERT_FALSE(x3.IsConstant());
-        y1 = 2 * x1.AsConstant() + 1;
+        y1 = 2 * x1.AsConstant() + 3 * x2.AsConstant() + x3.AsConstant() + 1;
         ASSERT_TRUE(y1.IsConstant());
 
         {
@@ -610,8 +610,8 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
     };
 
     Array x1 = x1_value.MakeView().RequireGrad(graph_id);
-    Array x2 = x1_value.MakeView().RequireGrad(graph_id);
-    Array x3 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x2 = x2_value.MakeView().RequireGrad(graph_id);
+    Array x3 = x3_value.MakeView().RequireGrad(graph_id);
     Array y1{};
     forward(x1, x2, x3, y1);
 
@@ -655,8 +655,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
         ASSERT_FALSE(x1.IsConstant());
         ASSERT_FALSE(x2.IsConstant());
         ASSERT_FALSE(x3.IsConstant());
-        y1 = 2 * x1.AsConstant() + 1;
-        y2 = 3 * x1.AsConstant() + 2;
+        y1 = 2 * x1.AsConstant() + 3 * x2.AsConstant() + 1;
+        y2 = 3 * x1.AsConstant() + 1 * x2.AsConstant() + 2 * x3.AsConstant() + 4;
         ASSERT_TRUE(y1.IsConstant());
         ASSERT_TRUE(y2.IsConstant());
 
@@ -698,8 +698,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
     };
 
     Array x1 = x1_value.MakeView().RequireGrad(graph_id);
-    Array x2 = x1_value.MakeView().RequireGrad(graph_id);
-    Array x3 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x2 = x2_value.MakeView().RequireGrad(graph_id);
+    Array x3 = x3_value.MakeView().RequireGrad(graph_id);
     Array y1{};
     Array y2{};
     forward(x1, x2, x3, y1, y2);
