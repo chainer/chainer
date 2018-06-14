@@ -1,3 +1,4 @@
+import functools
 import unittest
 
 import chainer
@@ -9,6 +10,7 @@ import numpy
 
 def skip_not_in_test_target(test_target):
     def decorator(f):
+        @functools.wraps(f)
         def new_f(self, *args, **kwargs):
             if test_target not in self.test_targets:
                 self.skipTest(
