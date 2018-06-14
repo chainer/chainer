@@ -1,5 +1,7 @@
 import copy
 
+from chainer.backends import cuda
+
 
 class Distribution(object):
 
@@ -328,6 +330,15 @@ class Distribution(object):
 
         """
         raise NotImplementedError
+
+    @property
+    def xp(self):
+        """Array module for the distribution.
+
+        Depending on which of CPU/GPU this distribution is on, this property
+        returns :mod:`numpy` or :mod:`cupy`.
+        """
+        return cuda.get_array_module(*self.params.values())
 
 
 _KLDIVERGENCE = {}
