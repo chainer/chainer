@@ -116,7 +116,7 @@ def dropout(x, ratio=.5, **kwargs):
             Note that iDeep will not be used for this function if mask is
             specified, as iDeep does not support it.
         return_mask (bool):
-            If ``True``, the mask used for dropout is returned altogether with
+            If ``True``, the mask used for dropout is returned together with
             the output variable.
             The returned mask can later be reused by passing it to ``mask``
             argument.
