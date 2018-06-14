@@ -37,14 +37,6 @@ cudnnHandle_t CudaDevice::cudnn_handle() {
     return cudnn_handle_;
 }
 
-internal::ConvContext& CudaDevice::conv_context() {
-    if (conv_context_) {
-        return *conv_context_;
-    }
-    conv_context_.emplace(cudnn_handle());
-    return *conv_context_;
-}
-
 void CudaDevice::Synchronize() {
     CheckCudaError(cudaSetDevice(index()));
     CheckCudaError(cudaDeviceSynchronize());

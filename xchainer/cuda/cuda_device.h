@@ -32,8 +32,6 @@ public:
     cublasHandle_t cublas_handle();
     cudnnHandle_t cudnn_handle();
 
-    internal::ConvContext& conv_context();
-
     // memory.cc
 
     std::shared_ptr<void> Allocate(size_t bytesize) override;
@@ -163,7 +161,7 @@ private:
     MemoryPool memory_pool_;
     cublasHandle_t cublas_handle_{};
     cudnnHandle_t cudnn_handle_{};
-    nonstd::optional<internal::ConvContext> conv_context_{};
+    internal::ConvContext conv_context_{};
 };
 
 }  // namespace cuda

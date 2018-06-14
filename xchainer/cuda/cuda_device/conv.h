@@ -53,39 +53,8 @@ using ConvBwdFilterAlgoCacheMap =
 
 class ConvContext {
 public:
-    explicit ConvContext(cudnnHandle_t handle) : handle_(handle) {}
-
-    void ConvolutionForward(
-            const Array& x,
-            const Array& w,
-            const nonstd::optional<Array>& b,
-            const Array& y,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-            int groups);
-    void ConvolutionBackwardData(
-            const Array& w,
-            const Array& x,
-            const nonstd::optional<Array>& b,
-            const Array& y,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-            int groups);
-    void ConvolutionBackwardFilter(
-            const Array& x,
-            const Array& gy,
-            const Array& gw,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-            int groups);
-
-    cudnnHandle_t handle() { return handle_; }
-
-private:
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
+            cudnnHandle_t handle,
             const TensorDescriptor& x_desc,
             const Array& x,
             const FilterDescriptor& filter_desc,
@@ -97,6 +66,7 @@ private:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
     std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> FindConvolutionBackwardDataAlgorithm(
+            cudnnHandle_t handle,
             const FilterDescriptor& filter_desc,
             const Array& w,
             const TensorDescriptor& x_desc,
@@ -108,6 +78,7 @@ private:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
     std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> FindConvolutionBackwardFilterAlgorithm(
+            cudnnHandle_t handle,
             const TensorDescriptor& x_desc,
             const Array& x,
             const TensorDescriptor& gy_desc,
@@ -118,9 +89,9 @@ private:
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
-    void AddBias(const TensorDescriptor& y_desc, const Array& y, const Array& b);
+    void AddBias(cudnnHandle_t handle, const TensorDescriptor& y_desc, const Array& y, const Array& b);
 
-    cudnnHandle_t handle_{};
+private:
     ConvFwdAlgoCacheMap conv_fwd_algo_cache_map_{};
     ConvBwdDataAlgoCacheMap conv_bwd_data_algo_cache_map_{};
     ConvBwdFilterAlgoCacheMap conv_bwd_filter_algo_cache_map_{};
