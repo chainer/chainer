@@ -27,6 +27,7 @@ Learnable connections
    chainer.links.ConvolutionND
    chainer.links.Deconvolution2D
    chainer.links.DeconvolutionND
+   chainer.links.DeformableConvolution2D
    chainer.links.DepthwiseConvolution2D
    chainer.links.DilatedConvolution2D
    chainer.links.EmbedID
