@@ -334,8 +334,6 @@ class TestMaxPoolingNDIndices(unittest.TestCase):
             expect = cuda.to_gpu(expect)
         assert (expect == indices).all()
 
-
-
     def test_cpu(self):
         self._check(self.x)
 
