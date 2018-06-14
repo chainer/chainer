@@ -95,7 +95,7 @@ def gaussian(mean, ln_var, **kwargs):
         ln_var (~chainer.Variable):
             Input variable representing the logarithm of a variance
             :math:`\\log(\\sigma^2)`.
-        eps (ndarray or None):
+        eps (`ndarray` or None):
             The eps value to be used.
             You do not have to specify this value, unless you need to make
             results deterministic.
@@ -114,7 +114,7 @@ def gaussian(mean, ln_var, **kwargs):
             When ``return_eps`` is ``False`` (default), returns the output
             variable with the shape of ``mean`` and/or ``ln_var``.
             Otherwise returnes the tuple of the output variable and eps
-            (ndarray).
+            (`ndarray`).
             The eps will be on the same device as the input (``ln_var``).
 
     """
