@@ -55,14 +55,14 @@ public:
         PoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
 
         CheckCudnnError(cudnnPoolingForward(
-                    cudnn_handle_,
-                    *pool_desc,
-                    GetValuePtr<1>(x.dtype()),
-                    *x_desc,
-                    xchainer::internal::GetRawOffsetData<void>(x_cont),
-                    GetValuePtr<0>(x.dtype()),
-                    *y_desc,
-                    xchainer::internal::GetRawOffsetData<void>(y)));
+                cudnn_handle_,
+                *pool_desc,
+                GetValuePtr<1>(x.dtype()),
+                *x_desc,
+                xchainer::internal::GetRawOffsetData<void>(x_cont),
+                GetValuePtr<0>(x.dtype()),
+                *y_desc,
+                xchainer::internal::GetRawOffsetData<void>(y)));
 
         y_ = y.AsConstant();
         return y;
@@ -101,18 +101,18 @@ public:
         PoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
 
         CheckCudnnError(cudnnPoolingBackward(
-                    cudnn_handle_,
-                    *pool_desc,
-                    GetValuePtr<1>(x.dtype()),
-                    *y_desc,
-                    xchainer::internal::GetRawOffsetData<void>(y_cont),
-                    *dy_desc,
-                    xchainer::internal::GetRawOffsetData<void>(dy_cont),
-                    *x_desc,
-                    xchainer::internal::GetRawOffsetData<void>(x_cont),
-                    GetValuePtr<0>(x.dtype()),
-                    *dx_desc,
-                    xchainer::internal::GetRawOffsetData<void>(dx)));
+                cudnn_handle_,
+                *pool_desc,
+                GetValuePtr<1>(x.dtype()),
+                *y_desc,
+                xchainer::internal::GetRawOffsetData<void>(y_cont),
+                *dy_desc,
+                xchainer::internal::GetRawOffsetData<void>(dy_cont),
+                *x_desc,
+                xchainer::internal::GetRawOffsetData<void>(x_cont),
+                GetValuePtr<0>(x.dtype()),
+                *dx_desc,
+                xchainer::internal::GetRawOffsetData<void>(dx)));
 
         return gx;
     }
