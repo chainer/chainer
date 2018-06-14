@@ -106,7 +106,7 @@ def dropout(x, ratio=.5, **kwargs):
             Input variable. A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         ratio (float):
             Dropout ratio. The ``ratio`` must be ``0.0 <= ratio < 1.0``.
-        mask (ndarray or None):
+        mask (`ndarray` or None):
             The mask to be used for dropout.
             The shape and dtype must be the same as ``x`` and should be on the
             same device.
@@ -125,7 +125,7 @@ def dropout(x, ratio=.5, **kwargs):
         ~chainer.Variable or tuple:
             When ``return_mask`` is ``False`` (default), returns the output
             variable. Otherwise returnes the tuple of the output variable and
-            mask (ndarray). The mask will be on the same device as the input.
+            mask (`ndarray`). The mask will be on the same device as the input.
             The mask will become ``None`` when ``chainer.config.train`` is set
             to ``False``.
 
