@@ -18,6 +18,7 @@ class TestCUDAProfileHook(unittest.TestCase):
     def setUp(self):
         self.h = function_hooks.CUDAProfileHook()
         self.x = numpy.random.uniform(-1, 1, (2, 3)).astype('f')
+        self.gy = numpy.random.uniform(-1, 1, (2, 3)).astype('f')
 
     def test_name(self):
         self.assertEqual(self.h.name, 'CUDAProfileHook')
@@ -37,8 +38,9 @@ class TestCUDAProfileHook(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
-    def check_backward(self, x):
+    def check_backward(self, x, gy):
         y = chainer.Variable(x) + chainer.Variable(x)
+        y.grad = gy
         with mock.patch('cupy.cuda.nvtx.RangePush') as push, \
                 mock.patch('cupy.cuda.nvtx.RangePop') as pop:
             with self.h:
@@ -48,10 +50,10 @@ class TestCUDAProfileHook(unittest.TestCase):
         pop.assert_called_once_with()
 
     def test_backward_cpu(self):
-        self.check_backward(self.x)
+        self.check_backward(self.x, self.gy)
 
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x))
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
 @attr.gpu

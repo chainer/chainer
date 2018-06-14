@@ -507,10 +507,9 @@ class TestLink(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.link.count_params()
+            assert self.link.count_params() == 8
         assert len(w) == 2
         assert w[0].category is UserWarning
-        assert self.link.count_params() == 8
 
         self.link.u.initialize((2, 3))
         self.link.v.initialize((2, 3))
@@ -999,12 +998,13 @@ class TestChain(unittest.TestCase):
         mocks['l2'].assert_called_with('x', self.l2.x.data)
 
     def test_count_params(self):
+        assert self.c1.count_params() == 8
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
         assert len(w) == 1
         assert w[0].category is UserWarning
-        assert self.c1.count_params() == 8
 
         self.c2.l3.x.initialize((3,))
         with warnings.catch_warnings(record=True) as w:
@@ -1494,10 +1494,15 @@ class TestChainList(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
+            assert self.c1.count_params() == 8
+        assert len(w) == 1
+        assert w[0].category is UserWarning
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             self.c2.count_params()
         assert len(w) == 1
         assert w[0].category is UserWarning
-        assert self.c1.count_params() == 8
 
         self.c2[0][0].y.initialize((2, 3))
         with warnings.catch_warnings(record=True) as w:
@@ -1749,6 +1754,45 @@ class TestIntel64(unittest.TestCase):
             self.link.register_persistent('no_ideep')
         self.link.to_intel64()
         assert isinstance(self.link.no_ideep, numpy.ndarray)
+
+
+class TestCallMethod(unittest.TestCase):
+
+    def setUp(self):
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+
+        self.model = Model()
+
+    def test_has_forward_no_call(self):
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # model.forward is called
+        self.model.forward.assert_called_once()
+
+    def test_has_call_and_forward(self):
+        self.model.__call__ = mock.MagicMock()
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # Link.__call__ is called
+        self.model.forward.assert_called_with(0)
+        self.model.__call__.assert_not_called()
+
+    def test_has_call_no_forward(self):
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+                self.mock = mock.MagicMock()
+
+            def __call__(self, x):
+                self.mock(x)
+
+        model = Model()
+        model(0)  # model.__call__ is called
+        model.mock.assert_called_with(0)
+
+    def test_no_call_no_forward(self):
+        with self.assertRaises(TypeError):
+            self.model(0)
 
 
 testing.run_module(__name__, __file__)
