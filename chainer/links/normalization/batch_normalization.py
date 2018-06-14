@@ -144,10 +144,16 @@ class BatchNormalization(link.Link):
             The examples in 1. corresponds to the following, respectively.
 
             >>> bn = chainer.links.BatchNormalization(axis=(0, 2, 3))
+            >>> hasattr(bn, 'avg_mean')
+            False
+            >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3,)
 
             >>> bn = chainer.links.BatchNormalization(axis=0)
+            >>> hasattr(bn, 'avg_mean')
+            False
+            >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3, 32, 32)
 
