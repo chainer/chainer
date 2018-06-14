@@ -109,6 +109,8 @@ class TestGaussianEps(unittest.TestCase):
             assert out_eps.shape == out.array.shape
         else:
             assert out_eps is eps
+        out2 = functions.gaussian(self.m, self.v, eps=out_eps)
+        testing.assert_allclose(out.array, out2.array)
 
     def test_cpu(self):
         self._check()
