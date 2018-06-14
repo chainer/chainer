@@ -2,13 +2,16 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <utility>
 
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
 #include "xchainer/backend_util.h"
+#include "xchainer/cuda/cuda_device/conv.h"
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/hash_combine.h"
 #include "xchainer/device.h"

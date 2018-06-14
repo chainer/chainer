@@ -1,17 +1,13 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <utility>
-
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
-#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
+#include "xchainer/stack_vector.h"
 
 namespace xchainer {
 namespace cuda {

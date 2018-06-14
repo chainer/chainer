@@ -1,7 +1,10 @@
 #include "xchainer/cuda/cuda_device.h"
 
+#include <cassert>
 #include <cstdint>
 #include <memory>
+
+#include <cudnn.h>
 
 #include "xchainer/array.h"
 #include "xchainer/backend_util.h"
@@ -9,7 +12,6 @@
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
-#include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"

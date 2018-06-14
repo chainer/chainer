@@ -1,21 +1,13 @@
 #include "xchainer/cuda/cudnn.h"
 
-#include <algorithm>
-#include <limits>
-#include <memory>
-#include <utility>
-#include <vector>
+#include <cassert>
 
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
-#include "xchainer/cuda/cuda_device.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
-#include "xchainer/routines/creation.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
