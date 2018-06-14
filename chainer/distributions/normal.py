@@ -88,6 +88,10 @@ class Normal(distribution.Distribution):
     def mean(self):
         return self.loc
 
+    @property
+    def params(self):
+        return {'loc': self.loc, 'scale': self.scale}
+
     def prob(self, x):
         return PROBC / broadcast.broadcast_to(self.scale, x.shape) * \
             exponential.exp(

@@ -203,6 +203,16 @@ class Distribution(object):
         """
         raise NotImplementedError
 
+    @property
+    def params(self):
+        """Returns the parameters of the distribution.
+
+        Returns:
+            dict: The parameters of the distribution.
+
+        """
+        raise NotImplementedError
+
     def perplexity(self, x):
         """Evaluates the perplexity function at the given points.
 
