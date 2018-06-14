@@ -105,9 +105,19 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
             int groups);
+
     void MaxPoolingForward(
             const Array& x,
             const Array& y,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& stride);
+    // Only 2 and 3 spatial dimensions are supported by cuDNN.
+    void MaxPoolingBackward(
+            const Array& y,
+            const Array& dy,
+            const Array& x,
+            const Array& dx,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
