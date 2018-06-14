@@ -108,11 +108,13 @@ def dropout(x, ratio=.5, **kwargs):
             Dropout ratio. The ``ratio`` must be ``0.0 <= ratio < 1.0``.
         mask (`ndarray` or None):
             The mask to be used for dropout.
-            The shape and dtype must be the same as ``x`` and should be on the
-            same device.
+            You do not have to specify this value, unless you need to make
+            results deterministic.
             If ``mask`` is not specified or set to ``None``, a mask will be
             generated randomly according to the given ``ratio``.
             If ``mask`` is specified, ``ratio`` will be ignored.
+            The shape and dtype must be the same as ``x`` and should be on the
+            same device.
             Note that iDeep will not be used for this function if mask is
             specified, as iDeep does not support it.
         return_mask (bool):
