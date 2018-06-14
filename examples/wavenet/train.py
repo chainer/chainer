@@ -9,8 +9,10 @@ except ImportError:
 import chainer
 from chainer.training import extensions
 
+from net import EncoderDecoderModel
+from net import UpsampleNet
+from net import WaveNet
 from utils import Preprocess
-from net import UpsampleNet, WaveNet, EncoderDecoderModel
 
 
 parser = argparse.ArgumentParser(description='Chainer example: WaveNet')

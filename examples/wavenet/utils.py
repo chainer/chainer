@@ -1,7 +1,7 @@
 import random
 
-import numpy
 import librosa
+import numpy
 
 
 class MuLaw(object):

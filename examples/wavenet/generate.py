@@ -1,12 +1,14 @@
 import argparse
 
-import tqdm
-import numpy
-import librosa
 import chainer
+import librosa
+import numpy
+import tqdm
 
-from utils import Preprocess, MuLaw
-from net import UpsampleNet, WaveNet
+from net import UpsampleNet
+from net import WaveNet
+from utils import MuLaw
+from utils import Preprocess
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--input', '-i', help='input file')
