@@ -72,16 +72,16 @@ class TestMaxPooling2D(unittest.TestCase):
     def forward_cpu(self, inputs):
         x, = inputs
         expect = numpy.empty(self.output_shape, dtype=self.dtype)
-        for k in six.moves.range(2):
+        for i in six.moves.range(2):
             for c in six.moves.range(3):
-                xx = x[k, c]
+                xx = x[i, c]
                 if self.cover_all:
-                    expect[k, c] = numpy.array([
+                    expect[i, c] = numpy.array([
                         [xx[0:2, 0:2].max(), xx[0:2, 1:3].max()],
                         [xx[1:4, 0:2].max(), xx[1:4, 1:3].max()],
                         [xx[3:4, 0:2].max(), xx[3:4, 1:3].max()]])
                 else:
-                    expect[k, c] = numpy.array([
+                    expect[i, c] = numpy.array([
                         [xx[0:2, 0:2].max(), xx[0:2, 1:3].max()],
                         [xx[1:4, 0:2].max(), xx[1:4, 1:3].max()]])
         return expect,
@@ -240,10 +240,10 @@ class TestMaxPooling2DIndices(unittest.TestCase):
 
         # Calculate expected indices.
         expect = numpy.zeros(indices.shape, dtype=indices.dtype)
-        for k in six.moves.range(2):
+        for i in six.moves.range(2):
             for c in six.moves.range(3):
-                xx = x[k, c]
-                expect[k, c] = numpy.array([
+                xx = x[i, c]
+                expect[i, c] = numpy.array([
                     [xx[0:2, 0:2].ravel().argmax(),
                      xx[0:2, 2:4].ravel().argmax()],
                     [xx[2:4, 0:2].ravel().argmax(),
