@@ -32,20 +32,27 @@ class Normal(distribution.Distribution):
         location :math:`\\mu`. This is the mean parameter.
         scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\log(\\sigma^2)`.
+        scale :math:`\\sigma`. Either `scale` or `ln_var` (not both) must \
+        have a value.
+        ln_var(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing the \
+        scale :math:`\\log(\\sigma^2)`. Either `scale` or `ln_var` (not both) \
+        must have a value.
 
     """
 
-    def __init__(self, loc, scale):
+    def __init__(self, loc, scale=None, ln_var=None):
         super(Normal, self).__init__()
-        if isinstance(loc, chainer.Variable):
-            self.loc = loc
+        if (scale is None) ^ (ln_var is None):
+            raise ValueError(
+                "Either `scale` or `ln_var` (not both) must have a value.")
+        self.loc = chainer.as_variable(loc)
+        if scale is None:
+            self.ln_var = chainer.as_variable(ln_var)
+            self.scale = exponential.exp(0.5 * self.ln_var)
         else:
-            self.loc = chainer.Variable(loc)
-        if isinstance(scale, chainer.Variable):
-            self.scale = scale
-        else:
-            self.scale = chainer.Variable(scale)
+            self.scale = chainer.as_variable(scale)
+            self.ln_var = 2. * exponential.log(self.scale)
 
     @property
     def batch_shape(self):
