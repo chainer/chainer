@@ -21,8 +21,9 @@ class Gaussian(function_node.FunctionNode):
     """
 
     def __init__(self, eps=None):
-        # Per-instance noise that is generated once during its first forward
-        # pass and then reused in subsequent calls, unless explicitly reset
+        # When ``eps`` is set to None, per-instance noise that is generated
+        # once during its first forward pass and then reused in subsequent
+        # calls.
         self.eps = eps
 
     def check_type_forward(self, in_types):
@@ -96,13 +97,15 @@ def gaussian(mean, ln_var, **kwargs):
             :math:`\\log(\\sigma^2)`.
         eps (ndarray or None):
             The eps value to be used.
-            The shape and dtype must be the same as ``ln_var`` and should be
-            on the same device.
+            You do not have to specify this value, unless you need to make
+            results deterministic.
             If ``eps`` is not specified or set to ``None``, an eps value will
             be generated randomly.
+            The shape and dtype must be the same as ``ln_var`` and should be
+            on the same device.
         return_eps (bool):
             If ``True``, the eps value used in this function is returned
-            altogether with the output variable.
+            together with the output variable.
             The returned eps can later be reused by passing it to the ``eps``
             argument.
 
