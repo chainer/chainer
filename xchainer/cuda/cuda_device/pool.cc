@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "xchainer/array.h"
+#include "xchainer/backend_util.h"
 #include "xchainer/constant.h"
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/dtype.h"
@@ -19,7 +20,7 @@ namespace {
 
 class CudaMaxPoolForwardBackward : public xchainer::MaxPoolForwardBackward {
 public:
-    explicit CudaMaxPoolForwardBackward(cudnnHandle_t cudnn_handle_) : cudnn_handle_{cudnn_handle} {}
+    explicit CudaMaxPoolForwardBackward(cudnnHandle_t cudnn_handle) : cudnn_handle_{cudnn_handle} {}
 
     Array Forward(
             const Array& x,
@@ -49,18 +50,18 @@ public:
         Array y = Empty(out_shape, x.dtype(), x.device());
         Array x_cont = AsContiguousArray(x);
 
-        TensorDescriptor x_desc{x_cont};
-        TensorDescriptor y_desc{y};
+        internal::TensorDescriptor x_desc{x_cont};
+        internal::TensorDescriptor y_desc{y};
 
-        PoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
+        internal::PoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
 
         CheckCudnnError(cudnnPoolingForward(
                 cudnn_handle_,
                 *pool_desc,
-                GetValuePtr<1>(x.dtype()),
+                internal::GetValuePtr<1>(x.dtype()),
                 *x_desc,
                 xchainer::internal::GetRawOffsetData<void>(x_cont),
-                GetValuePtr<0>(x.dtype()),
+                internal::GetValuePtr<0>(x.dtype()),
                 *y_desc,
                 xchainer::internal::GetRawOffsetData<void>(y)));
 
@@ -89,30 +90,30 @@ public:
         assert(gout.shape() == y_.shape());
 
         Array gx = EmptyLike(x, x.device());
-        Array y_cont = AsContiguousArray(y);
-        Array dy_cont = AsContiguousArray(dy);
+        Array y_cont = AsContiguousArray(y_);
+        Array gout_cont = AsContiguousArray(gout);
         Array x_cont = AsContiguousArray(x);
 
-        TensorDescriptor y_desc{y_cont};
-        TensorDescriptor dy_desc{dy_cont};
-        TensorDescriptor x_desc{x_cont};
-        TensorDescriptor dx_desc{dx};
+        internal::TensorDescriptor y_desc{y_cont};
+        internal::TensorDescriptor gout_desc{gout_cont};
+        internal::TensorDescriptor x_desc{x_cont};
+        internal::TensorDescriptor gx_desc{gx};
 
-        PoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
+        internal::PoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
 
         CheckCudnnError(cudnnPoolingBackward(
                 cudnn_handle_,
                 *pool_desc,
-                GetValuePtr<1>(x.dtype()),
+                internal::GetValuePtr<1>(x.dtype()),
                 *y_desc,
                 xchainer::internal::GetRawOffsetData<void>(y_cont),
-                *dy_desc,
-                xchainer::internal::GetRawOffsetData<void>(dy_cont),
+                *gout_desc,
+                xchainer::internal::GetRawOffsetData<void>(gout_cont),
                 *x_desc,
                 xchainer::internal::GetRawOffsetData<void>(x_cont),
-                GetValuePtr<0>(x.dtype()),
-                *dx_desc,
-                xchainer::internal::GetRawOffsetData<void>(dx)));
+                internal::GetValuePtr<0>(x.dtype()),
+                *gx_desc,
+                xchainer::internal::GetRawOffsetData<void>(gx)));
 
         return gx;
     }

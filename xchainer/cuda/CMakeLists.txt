@@ -2,6 +2,7 @@ install(FILES
     cublas.h
     cuda_backend.h
     cuda_device.h
+    cuda_device/conv.h
     cuda_runtime.h
     cudnn.h
     elementwise.cuh

@@ -8,6 +8,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/backend_util.h"
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -82,28 +83,28 @@ public:
         Array out = EmptyLike(x, device);
         Array x_cont = AsContiguousArray(x);
 
-        TensorDescriptor x_desc{x_cont};
-        TensorDescriptor out_desc{out};
-        TensorDescriptor gamma_beta_mean_var_desc{gamma};
+        internal::TensorDescriptor x_desc{x_cont};
+        internal::TensorDescriptor out_desc{out};
+        internal::TensorDescriptor gamma_beta_mean_var_desc{gamma};
 
         CheckCudnnError(cudnnBatchNormalizationForwardTraining(
-                    cudnn_handle_,
-                    GetBatchNormMode(axis),
-                    GetValuePtr<1>(x.dtype()),
-                    GetValuePtr<0>(x.dtype()),
-                    *x_desc,
-                    xchainer::internal::GetRawOffsetData<void>(x_cont),
-                    *out_desc,
-                    xchainer::internal::GetRawOffsetData<void>(out),
-                    *gamma_beta_mean_var_desc,
-                    xchainer::internal::GetRawOffsetData<void>(gamm),
-                    xchainer::internal::GetRawOffsetData<void>(beta),
-                    1.0 - static_cast<double>(decay),
-                    xchainer::internal::GetRawOffsetData<void>(running_mean),
-                    xchainer::internal::GetRawOffsetData<void>(running_var),
-                    static_cast<double>(eps),
-                    xchainer::internal::GetRawOffsetData<void>(result_mean_),
-                    xchainer::internal::GetRawOffsetData<void>(result_var_));
+                cudnn_handle_,
+                GetBatchNormMode(axis),
+                internal::GetValuePtr<1>(x.dtype()),
+                internal::GetValuePtr<0>(x.dtype()),
+                *x_desc,
+                xchainer::internal::GetRawOffsetData<void>(x_cont),
+                *out_desc,
+                xchainer::internal::GetRawOffsetData<void>(out),
+                *gamma_beta_mean_var_desc,
+                xchainer::internal::GetRawOffsetData<void>(gamma),
+                xchainer::internal::GetRawOffsetData<void>(beta),
+                1.0 - static_cast<double>(decay),
+                xchainer::internal::GetRawOffsetData<void>(running_mean),
+                xchainer::internal::GetRawOffsetData<void>(running_var),
+                static_cast<double>(eps),
+                xchainer::internal::GetRawOffsetData<void>(result_mean_),
+                xchainer::internal::GetRawOffsetData<void>(result_inv_var_)));
 
         return out;
     }

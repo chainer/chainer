@@ -12,6 +12,7 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/cuda/cuda_device/conv.h"
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/memory_pool.h"
 #include "xchainer/device.h"

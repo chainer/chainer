@@ -10,10 +10,8 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
-#include "xchainer/backend_util.h"
 #include "xchainer/cuda/cuda_device.h"
 #include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/cuda/hash_combine.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"

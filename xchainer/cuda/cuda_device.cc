@@ -32,16 +32,16 @@ cublasHandle_t CudaDevice::cublas_handle() {
 cudnnHandle_t CudaDevice::cudnn_handle() {
     if (cudnn_handle_ == nullptr) {
         CheckCudaError(cudaSetDevice(index()));
-        CheckCublasError(cudnnCreate(&cudnn_handle_));
+        CheckCudnnError(cudnnCreate(&cudnn_handle_));
     }
     return cudnn_handle_;
 }
 
-ConvContext& CudaDevice::conv_context() {
+internal::ConvContext& CudaDevice::conv_context() {
     if (conv_context_) {
         return *conv_context_;
     }
-    conv_context_.emplace{cudnn_handle()};
+    conv_context_.emplace(cudnn_handle());
     return *conv_context_;
 }
 
