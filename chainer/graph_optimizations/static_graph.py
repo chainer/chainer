@@ -929,8 +929,11 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
             # We no longer need the backward graph from self.out_vars, so
             # unchain them.
-            for var in self.out_vars:
-                var.unchain_backward()
+            # todo (vogel): enable this eventually. For now, it
+            # casuses some needed variables to be set to None
+            # in some models such as CIFAR example.
+            # for var in self.out_vars:
+            #    var.unchain_backward()
 
             # Note: var.grad_var is allowed to be None below:
             backward_out_vars = [var.grad_var for var in self.in_vars]
