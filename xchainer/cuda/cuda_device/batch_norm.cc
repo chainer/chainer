@@ -22,7 +22,7 @@ namespace {
 
 class CudaBatchNormForwardBackward : public xchainer::BatchNormForwardBackward {
 public:
-    explicit CudaBatchNormForwardBackward(internal::CudnnContext& cudnn_context) : cudnn_context_{cudnn_context} {}
+    explicit CudaBatchNormForwardBackward(cudnnHandle_t cudnn_handle) : cudnn_handle_{cudnn_handle} {}
 
     Array Forward(
             const Array& x,
@@ -33,6 +33,10 @@ public:
             Scalar eps,
             Scalar decay,
             const Axes& axis) override {
+        if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
+            throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
+        }
+
 #ifndef NDEBUG
         {
             Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis, true);
@@ -42,8 +46,26 @@ public:
             int64_t reduced_total_size = reduced_shape.GetTotalSize();
             assert(running_mean.GetTotalSize() == reduced_total_size);
             assert(running_var.GetTotalSize() == reduced_total_size);
+
+            Device& device = x.device();
+            assert(&device == &gamma.device());
+            assert(&device == &beta.device());
+            assert(&device == &running_mean.device());
+            assert(&device == &running_var.device());
+
+            Dtype dtype = x.dtype();
+            assert(dtype == gammba.dtype());
+            assert(dtype == beta.dtype());
+            assert(dtype == running_mean.dtype());
+            assert(dtype == running_var.dtype());
+
+            assert(gamma.IsContiguous());
+            assert(beta.IsContiguous());
+            assert(running_mean.IsContiguous());
+            assert(running_var.IsContiguous());
         }
 #endif  // NDEBUG
+
         if (!running_mean.IsContiguous()) {
             throw DeviceError{"Running mean must to be contiguous for cuDNN to update it in-place."};
         }
@@ -58,18 +80,31 @@ public:
         result_inv_var_ = EmptyLike(gamma, device);
 
         Array out = EmptyLike(x, device);
-        cudnn_context_.BatchNormalizationForwardTraining(
-                GetBatchNormMode(axis),
-                x,
-                out,
-                gamma,
-                beta,
-                1.0 - static_cast<double>(decay),
-                running_mean,
-                running_var,
-                static_cast<double>(eps),
-                result_mean_,
-                result_inv_var_);
+        Array x_cont = AsContiguousArray(x);
+
+        TensorDescriptor x_desc{x_cont};
+        TensorDescriptor out_desc{out};
+        TensorDescriptor gamma_beta_mean_var_desc{gamma};
+
+        CheckCudnnError(cudnnBatchNormalizationForwardTraining(
+                    cudnn_handle_,
+                    GetBatchNormMode(axis),
+                    GetValuePtr<1>(x.dtype()),
+                    GetValuePtr<0>(x.dtype()),
+                    *x_desc,
+                    xchainer::internal::GetRawOffsetData<void>(x_cont),
+                    *out_desc,
+                    xchainer::internal::GetRawOffsetData<void>(out),
+                    *gamma_beta_mean_var_desc,
+                    xchainer::internal::GetRawOffsetData<void>(gamm),
+                    xchainer::internal::GetRawOffsetData<void>(beta),
+                    1.0 - static_cast<double>(decay),
+                    xchainer::internal::GetRawOffsetData<void>(running_mean),
+                    xchainer::internal::GetRawOffsetData<void>(running_var),
+                    static_cast<double>(eps),
+                    xchainer::internal::GetRawOffsetData<void>(result_mean_),
+                    xchainer::internal::GetRawOffsetData<void>(result_var_));
+
         return out;
     }
 
@@ -97,7 +132,7 @@ private:
         throw DimensionError{"Invalid axis for BatchNorm using cuDNN ", axis, ". Expected 1, 3 or 4 dimensions."};
     }
 
-    internal::CudnnContext& cudnn_context_;
+    cudnnHandle_t cudnn_handle_;
 
     // Cache intermediate results during Forward for reuse in Backward.
     Array result_mean_{};
@@ -107,7 +142,7 @@ private:
 }  // namespace
 
 std::unique_ptr<BatchNormForwardBackward> CudaDevice::GetBatchNormForwardBackward() {
-    return std::make_unique<CudaBatchNormForwardBackward>(cudnn_context_);
+    return std::make_unique<CudaBatchNormForwardBackward>(cudnn_handle());
 }
 
 }  // namespace cuda
