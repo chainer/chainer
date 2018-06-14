@@ -59,12 +59,15 @@ script:
   - flake8
   - autopep8 -r . --diff | tee check_autopep8
   - test ! -s check_autopep8
-  - cd tests
+  - pushd tests
   - pytest -m "not slow and not gpu and not cudnn and not ideep" chainer_tests
+  - popd
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-      cd ..;
       READTHEDOCS=True python setup.py develop;
     fi
+  - pushd docs
+  - make html
+  - popd
 
 sudo: false
 
