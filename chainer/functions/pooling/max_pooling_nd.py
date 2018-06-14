@@ -257,7 +257,7 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
         cover_all (bool): If ``True``, all spatial locations are pooled into
             some output pixels. It may make the output size larger.
         return_indices (bool): If ``True``, pooling indices array is returned
-            altogether with the output variable. The returned indices are
+            together with the output variable. The returned indices are
             expected for use by :func:`chainer.functions.upsampling_nd`.
             Note that cuDNN will not be used for this function if
             ``return_indices`` is set to ``True``, as cuDNN does not return
