@@ -158,6 +158,10 @@ class TestDropoutMask(unittest.TestCase):
         else:
             assert out_mask is None
 
+        with chainer.using_config('train', self.train):
+            out2 = functions.dropout(self.x, 0.5, mask=out_mask)
+        testing.assert_allclose(out.array, out2.array)
+
     def test_cpu(self):
         with chainer.using_config('use_ideep', 'never'):
             self._check()
