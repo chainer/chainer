@@ -316,16 +316,16 @@ def check_backward(
     ``MyFunc``, that takes two arguments and returns one value, you can wrap
     it in a ordinary function and check its gradient computations as follows:
 
-    >>> def test_my_func(self):
-    ...
-    ...     def func(xs):
-    ...         y, = MyFunc().apply(xs)
-    ...         return y
-    ...
-    ...     x1_data = xp.array(...)
-    ...     x2_data = xp.array(...)
-    ...     gy_data = xp.array(...)
-    ...     check_backward(func, (x1_data, x2_data), gy_data)
+    .. code-block:: python
+
+        def func(xs):
+            y, = MyFunc().apply(xs)
+            return y
+
+        x1_data = xp.array(...)
+        x2_data = xp.array(...)
+        gy_data = xp.array(...)
+        check_backward(func, (x1_data, x2_data), gy_data)
 
     This method creates :class:`~chainer.Variable` objects with ``x_data``
     and calls ``func`` with the :class:`~chainer.Variable`\\ s to get its
@@ -366,36 +366,46 @@ def check_backward(
 
     You can simplify a test when ``MyFunc`` gets only one argument:
 
-    >>> check_backward(func, x1_data, gy_data)  # doctest: +SKIP
+    .. code-block:: python
+
+        check_backward(func, x1_data, gy_data)
 
     If ``MyFunc`` is a loss function which returns a zero-dimensional
     array, pass ``None`` to ``gy_data``. In this case, it sets ``1`` to
     ``grad`` attribute of the result:
 
-    >>> check_backward(my_loss_func,
-    ...                (x1_data, x2_data), None)  # doctest: +SKIP
+    .. code-block:: python
+
+        check_backward(my_loss_func,
+                       (x1_data, x2_data), None)
 
     If ``MyFunc`` returns multiple outputs, pass all gradients for outputs
     as a tuple:
 
-    >>> gy1_data = xp.array(...)  # doctest: +SKIP
-    >>> gy2_data = xp.array(...)  # doctest: +SKIP
-    >>> check_backward(func, x1_data, (gy1_data, gy2_data))  # doctest: +SKIP
+    .. code-block:: python
+
+        gy1_data = xp.array(...)
+        gy2_data = xp.array(...)
+        check_backward(func, x1_data, (gy1_data, gy2_data))
 
     You can also test a :class:`~chainer.Link`.
     To check gradients of parameters of the link, set a tuple of the parameters
     to ``params`` arguments:
 
-    >>> check_backward(my_link, (x1_data, x2_data), gy_data,
-    ...                (my_link.W, my_link.b))  # doctest: +SKIP
+    .. code-block:: python
+
+        check_backward(my_link, (x1_data, x2_data), gy_data,
+                       (my_link.W, my_link.b))
 
     Note that ``params`` are not ``ndarray``\\ s,
     but :class:`~chainer.Variables`\\ s.
 
     Function objects are acceptable as ``func`` argument:
 
-    >>> check_backward(lambda x1, x2: f(x1, x2),
-    ...                (x1_data, x2_data), gy_data)  # doctest: +SKIP
+    .. code-block:: python
+
+        check_backward(lambda x1, x2: f(x1, x2),
+                       (x1_data, x2_data), gy_data)
 
     .. note::
 
