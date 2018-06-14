@@ -838,13 +838,13 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     return ret
 
 
-def _backprop(outputs, inputs, visited_funcs, visited_vars,
+def _backprop(outputs, inputs, subgraph_funcs, subgraph_vars,
               retain_grad, grads, loss_scale):
 
     input_nodes = set(x.node for x in inputs)
 
     for _, _, func in sorted([(-func.rank, i, func)
-                              for i, func in enumerate(visited_funcs)]):
+                              for i, func in enumerate(subgraph_funcs)]):
         # Collect the gradients w.r.t. the outputs
         gys = []
         for y_ref in func.outputs:
@@ -868,7 +868,7 @@ def _backprop(outputs, inputs, visited_funcs, visited_vars,
         input_indexes = []
         selected_inputs = set()
         for i, x in enumerate(func.inputs):
-            if x not in visited_vars:
+            if x not in subgraph_vars:
                 continue
             assert x.requires_grad
             input_indexes.append(i)
