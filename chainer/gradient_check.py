@@ -629,6 +629,8 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     params_grad_grad = _as_tuple(params_grad_grad)
     n_x = len(x_data)
 
+    first_order_no_grads = [x.dtype.kind != 'f' for x in x_data]
+
     def first_order_grad(*inputs):
         xs = inputs[:n_x]
         gys = inputs[n_x:]
@@ -641,7 +643,19 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
 
         y.backward(enable_double_backprop=True)
 
-        return tuple([x.grad_var for x in xs] + [p.grad_var for p in params])
+        gxs = []
+        for skip, x in six.moves.zip(first_order_no_grads, xs):
+            if skip:
+                if x.grad is not None:
+                    raise RuntimeError(
+                        'gradient of int variable must be None')
+            else:
+                if x.grad is None:
+                    raise RuntimeError(
+                        'gradients of some arguments are not calculated')
+                gxs.append(x.grad_var)
+
+        return tuple(gxs + [p.grad_var for p in params])
 
     inputs = x_data + y_grad
     grad_grad = x_grad_grad + params_grad_grad
