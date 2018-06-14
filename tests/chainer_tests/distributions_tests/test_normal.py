@@ -12,8 +12,7 @@ import numpy
 @testing.with_requires('scipy')
 class TestNormal(testing.distribution_unittest):
 
-    def setUp(self):
-        testing.distribution_unittest.setUp(self)
+    def setUp_configure(self):
         from scipy import stats
         self.dist = distributions.Normal
         self.scipy_dist = stats.norm
@@ -24,7 +23,6 @@ class TestNormal(testing.distribution_unittest):
             "log_prob", "log_survival", "mean", "prob", "sample", "stddev",
             "support", "survival", "variance"])
 
-    def params_init(self):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)

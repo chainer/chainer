@@ -30,7 +30,16 @@ class distribution_unittest(unittest.TestCase):
         self.scipy_onebyone = False
         self.test_targets = set()
 
-        self.params_init()
+        self.setUp_configure()
+
+        targets_not_found = self.test_targets - {
+            "batch_shape", "cdf", "entropy", "event_shape", "icdf", "log_cdf",
+            "log_prob", "log_survival", "mean", "prob", "sample", "stddev",
+            "support", "survival", "variance"}
+        if targets_not_found:
+            raise ValueError(
+                "invalid target(s): {}".format(targets_not_found))
+
         if self.is_variable:
             self.params = {k: chainer.Variable(v)
                            for k, v in self.params.items()}
