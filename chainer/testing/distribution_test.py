@@ -23,11 +23,12 @@ def skip_not_in_test_target(test_target):
 
 class distribution_unittest(unittest.TestCase):
 
+    scipy_onebyone = False
+
     def setUp(self):
         self.support = 'real'
         self.event_shape = ()
         self.continuous = True
-        self.scipy_onebyone = False
         self.test_targets = set()
 
         self.setUp_configure()
