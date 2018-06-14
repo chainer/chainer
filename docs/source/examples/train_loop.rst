@@ -248,7 +248,7 @@ The training loop code is as follows:
         model.cleargrads()
         loss.backward()
 
-        # Update all the trainable parameters
+        # Update all the trainable parameters
         optimizer.update()
         # --------------------- until here ---------------------
 
