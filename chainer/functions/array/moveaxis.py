@@ -95,7 +95,14 @@ class Moveaxis(function_node.FunctionNode):
 
 
 def moveaxis(x, source, destination):
-    """Move the source axis to the destination.
+    """Move the source axes to the destination.
+
+    This function transpose the input ``x`` by moving
+    the axes ``source`` to the axes ``destination``.
+    Other axes remain in their original order.
+
+    See also :func:`chainer.functions.transpose`,
+    :func:`chainer.functions.swapaxes`.
 
     Args:
         x (~chainer.Variable): Input variable.
@@ -107,5 +114,14 @@ def moveaxis(x, source, destination):
 
     Returns:
         ~chainer.Variable: Variable whose axis is moved.
+
+    .. admonition:: Example
+
+        >>> x = np.zeros((2, 3, 4, 5), np.float32)
+        >>> chainer.functions.moveaxis(x, 0, -1).shape
+        (3, 4, 5, 2)
+        >>> chainer.functions.moveaxis(x, (0, 3), (2, 0)).shape
+        (5, 3, 2, 4)
+
     """
     return Moveaxis(source, destination).apply((x,))[0]
