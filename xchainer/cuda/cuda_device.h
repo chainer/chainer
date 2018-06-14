@@ -161,7 +161,7 @@ private:
     MemoryPool memory_pool_;
     cublasHandle_t cublas_handle_{};
     cudnnHandle_t cudnn_handle_{};
-    internal::ConvContext conv_context_{};
+    internal::ConvAlgo conv_algo_{};
 };
 
 }  // namespace cuda

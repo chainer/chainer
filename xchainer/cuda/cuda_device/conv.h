@@ -51,7 +51,7 @@ using ConvBwdDataAlgoCacheMap =
 using ConvBwdFilterAlgoCacheMap =
         std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 
-class ConvContext {
+class ConvAlgo {
 public:
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
             cudnnHandle_t handle,
@@ -89,7 +89,6 @@ public:
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
-    void AddBias(cudnnHandle_t handle, const TensorDescriptor& y_desc, const Array& y, const Array& b);
 
 private:
     ConvFwdAlgoCacheMap conv_fwd_algo_cache_map_{};
