@@ -443,6 +443,8 @@ class Optimizer(object):
                 The function must accept arbitrary arguments
                 and return one :class:`~chainer.Variable` object that
                 represents the loss (or objective) value.
+                Returned value must be a Variable derived from the input
+                Variable object.
                 ``lossfun`` can be omitted for single gradient-based methods.
                 In this case, this method assumes gradient arrays computed.
             args, kwds: Arguments for the loss function.

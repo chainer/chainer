@@ -35,10 +35,13 @@ class MLPConvolution2D(link.ChainList):
             equivalent.
         activation (callable):
             Activation function for internal hidden units.
-            You can pass
+            You can specify one of activation functions from
             :doc:`built-in activation functions </reference/functions>` or
-            your own function, which takes one argument, which is the output
-            from each child link.
+            your own function.
+            The function must accept one argument (the output from each child
+            link), and return a value.
+            Returned value must be a Variable derived from the input Variable
+            to perform backpropagation on the variable.
             Note that this function is not applied to the output of this link.
         conv_init: An initializer of weight matrices
             passed to the convolution layers. This option must be specified as
