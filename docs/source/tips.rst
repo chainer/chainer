@@ -117,7 +117,7 @@ On recommended systems, you can install iDeep wheel (binary distribution) by:
 
 .. code-block:: console
 
-    $ pip install ideep4py
+    $ pip install 'ideep4py<2'
 
 Enable iDeep Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
