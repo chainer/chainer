@@ -105,6 +105,10 @@ public:
     void Exp(const Array& x, const Array& out) override;
     void Log(const Array& x, const Array& out) override;
 
+    // misc.cu
+
+    void Sqrt(const Array& x, const Array& out) override;
+
     // indexing.cu
 
     void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;
@@ -150,7 +154,7 @@ public:
             bool cover_all,
             bool count_include_pad) override;
 
-    // batch_norm.cu
+    // batch_norm.cc
 
     std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 

@@ -75,8 +75,12 @@ public:
 
     // TODO(hvy): Implement me.
     std::array<Array, 3> Backward(
-            const Array& /*x*/, const Array& /*gamma*/, const Array& /*gout*/, Scalar /*eps*/, Scalar /*decay*/, const Axes& /*axis*/)
-            override {
+            const Array& /*x*/, const Array& /*gamma*/, const Array& /*gout*/, Scalar /*eps*/, const Axes& /*axis*/) override {
+        return {Array{}, Array{}, Array{}};
+    }
+
+    // TODO(niboshi): Implement me.
+    std::array<Array, 3> DoubleBackward(const Array& /*ggx*/, const Array& /*gggamma*/, const Array& /*ggbeta*/) {
         return {Array{}, Array{}, Array{}};
     }
 

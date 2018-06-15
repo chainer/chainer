@@ -21,6 +21,7 @@ install(FILES
     math.h
     normalization.h
     pooling.h
+    routines_util.h
     sorting.h
     DESTINATION include/xchainer/routines
     )

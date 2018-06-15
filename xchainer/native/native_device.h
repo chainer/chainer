@@ -95,6 +95,10 @@ public:
     void Exp(const Array& x, const Array& out) override;
     void Log(const Array& x, const Array& out) override;
 
+    // misc.cc
+
+    void Sqrt(const Array& x, const Array& out) override;
+
     // indexing.cc
 
     void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;
@@ -139,10 +143,6 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all,
             bool count_include_pad) override;
-
-    // batch_norm.cc
-
-    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 
 protected:
     NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}

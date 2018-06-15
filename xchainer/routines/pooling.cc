@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
@@ -47,16 +48,27 @@ Array MaxPool(
     // Supporting arbitrary number of backwards using a recursive definition.
     // TODO(hvy): Test backward of double backward.
     struct MaxPoolBwd {
-        Array operator()(const Array& gout, const std::vector<GraphId>&) {
+        void operator()(BackwardContext& bctx1) {
+            const Array& gout = bctx1.output_grad();
             Array gx = fb->Backward(x, kernel_size, stride, pad, cover_all, gout);
-            auto double_backward_function = [this, gout](const Array& ggx, const std::vector<GraphId>&) {
-                Array ggout = fb->DoubleBackward(x, kernel_size, stride, pad, cover_all, gout, ggx);
-                // Make ggout further backpropable.
-                internal::SetUpOpNodes("max_pooling_double_backward", {ggx}, ggout, {*this});
-                return ggout;
-            };
-            internal::SetUpOpNodes("max_pooling_backward", {gout}, gx, {double_backward_function});
-            return gx;
+            {
+                BackwardBuilder bb2{"max_pooling_backward", gx};
+                if (!gout.IsConstant()) {
+                    bb2.Define({gout}, [this, gout](BackwardContext& bctx2) {
+                        const Array& ggx = bctx2.output_grad();
+                        Array ggout = fb->DoubleBackward(x, kernel_size, stride, pad, cover_all, gout, ggx);
+                        // Make ggout further backpropable.
+                        {
+                            BackwardBuilder bb3{"max_pooling_double_backward", ggout};
+                            if (!ggx.IsConstant()) {
+                                bb3.Define({ggx}, *this);
+                            }
+                        }
+                        bctx2.input_grad() = ggout;
+                    });
+                }
+            }
+            bctx1.input_grad() = gx;
         }
 
         Array x;
@@ -67,7 +79,12 @@ Array MaxPool(
         std::shared_ptr<MaxPoolForwardBackward> fb;
     };
 
-    internal::SetUpOpNodes("max_pooling", {x}, out, {MaxPoolBwd{x, kernel_size, stride, pad, cover_all, std::move(fb)}});
+    {
+        BackwardBuilder bb1{"max_pooling", out};
+        if (!x.IsConstant()) {
+            bb1.Define({x}, MaxPoolBwd{x, kernel_size, stride, pad, cover_all, std::move(fb)});
+        }
+    }
     return out;
 }
 

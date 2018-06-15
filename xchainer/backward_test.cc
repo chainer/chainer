@@ -13,6 +13,7 @@
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
+#include "xchainer/check_backward.h"
 #include "xchainer/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"
@@ -25,6 +26,8 @@
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
+#include "xchainer/testing/array.h"
+#include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -385,13 +388,13 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
 
     auto y_nodes = z_op->next_nodes();
     ASSERT_EQ(2u, y_nodes.size());
-    EXPECT_EQ(2u, z_op->backward_functions().size());
+    EXPECT_EQ(2u, z_op->backward_entries().size());
 
     for (const std::shared_ptr<ArrayNode>& y_node : y_nodes) {
         std::shared_ptr<const OpNode> y_op = y_node->next_node();
         ASSERT_TRUE(y_op);
         ASSERT_EQ(1u, y_op->next_nodes().size());
-        EXPECT_EQ(1u, y_op->backward_functions().size());
+        EXPECT_EQ(1u, y_op->backward_entries().size());
     }
 }
 
@@ -414,8 +417,317 @@ TEST(BackpropEnableDoubleBackpropTest, Disabled) {
     EXPECT_FALSE(z_node->next_node());
 
     EXPECT_EQ(0u, z_op->next_nodes().size());
-    EXPECT_EQ(0u, z_op->backward_functions().size());
+    EXPECT_EQ(0u, z_op->backward_entries().size());
 }
+
+class BackpropFunctionTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
+
+TEST_P(BackpropFunctionTest, OneToOneFunc) {
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    using T = double;
+    GraphId graph_id = "testgraph";
+    Shape shape{2};
+    Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
+    Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
+    Array gx1_value = 2 * gy1_value;
+
+    DoubleBackpropOption double_backprop_opt = GetParam();
+
+    auto forward = [gy1_value, double_backprop_opt, &graph_id](const Array& x1, Array& y1) {
+        ASSERT_FALSE(x1.IsConstant());
+        y1 = 2 * x1.AsConstant() + 1;
+        ASSERT_TRUE(y1.IsConstant());
+
+        {
+            BackwardBuilder bb{"func", y1};
+            bb.Define({x1}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                const Array& gy1 = bctx.output_grad();  // omit index
+                testing::ExpectEqual(gy1_value, gy1);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                } else {
+                    EXPECT_TRUE(gy1.IsConstant());
+                }
+                bctx.input_grad() = 2 * gy1;  // omit index
+            });
+        }
+    };
+
+    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array y1{};
+    forward(x1, y1);
+
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        y1.SetGrad(gy1_value.MakeView().RequireGrad(graph_id), graph_id);
+    } else {
+        y1.SetGrad(gy1_value, graph_id);
+    }
+    Backward({y1}, graph_id, double_backprop_opt);
+
+    testing::ExpectEqual(gy1_value, *y1.GetGrad(graph_id));
+    testing::ExpectEqual(gx1_value, *x1.GetGrad(graph_id));
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
+    } else {
+        EXPECT_TRUE(y1.GetGrad(graph_id)->IsConstant());
+    }
+}
+
+TEST_P(BackpropFunctionTest, OneToMultiFunc) {
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    using T = double;
+    GraphId graph_id = "testgraph";
+    Shape shape{2};
+    Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
+    Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
+    Array gy2_value = testing::BuildArray(shape).WithData<T>({4, -1});
+    Array gx1_value = 2 * gy1_value + 3 * gy2_value;
+
+    DoubleBackpropOption double_backprop_opt = GetParam();
+
+    auto forward = [gy1_value, gy2_value, double_backprop_opt, &graph_id](const Array& x1, Array& y1, Array& y2) {
+        ASSERT_FALSE(x1.IsConstant());
+        y1 = 2 * x1.AsConstant() + 1;
+        y2 = 3 * x1.AsConstant() + 2;
+        ASSERT_TRUE(y1.IsConstant());
+        ASSERT_TRUE(y2.IsConstant());
+
+        {
+            BackwardBuilder bb{"func", {y1, y2}};
+            bb.Define({x1}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                const Array& gy1 = bctx.output_grad(0);  // by index
+                const Array& gy2 = bctx.output_grad(1);
+                testing::ExpectEqual(gy1_value, gy1);
+                testing::ExpectEqual(gy2_value, gy2);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                    EXPECT_TRUE(gy2.IsGradRequired(graph_id));
+                } else {
+                    EXPECT_TRUE(gy1.IsConstant());
+                    EXPECT_TRUE(gy2.IsConstant());
+                }
+                bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
+            });
+        }
+    };
+
+    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array y1{};
+    Array y2{};
+    forward(x1, y1, y2);
+
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        y1.SetGrad(gy1_value.MakeView().RequireGrad(graph_id), graph_id);
+        y2.SetGrad(gy2_value.MakeView().RequireGrad(graph_id), graph_id);
+    } else {
+        y1.SetGrad(gy1_value, graph_id);
+        y2.SetGrad(gy2_value, graph_id);
+    }
+    Backward({y1, y2}, graph_id, double_backprop_opt);
+
+    testing::ExpectEqual(gy1_value, *y1.GetGrad(graph_id));
+    testing::ExpectEqual(gy2_value, *y2.GetGrad(graph_id));
+    testing::ExpectEqual(gx1_value, *x1.GetGrad(graph_id));
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
+        EXPECT_TRUE(y2.GetGrad(graph_id)->IsGradRequired(graph_id));
+    } else {
+        EXPECT_TRUE(y1.GetGrad(graph_id)->IsConstant());
+        EXPECT_TRUE(y2.GetGrad(graph_id)->IsConstant());
+    }
+}
+
+TEST_P(BackpropFunctionTest, MultiToOneFunc) {
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    using T = double;
+    GraphId graph_id = "testgraph";
+    Shape shape{2};
+    Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
+    Array x2_value = testing::BuildArray(shape).WithData<T>({4, -1});
+    Array x3_value = testing::BuildArray(shape).WithData<T>({-1, 3});
+    Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
+    Array gx1_value = 2 * gy1_value;
+    Array gx2_value = 3 * gy1_value;
+    Array gx3_value = 1 * gy1_value;
+
+    DoubleBackpropOption double_backprop_opt = GetParam();
+
+    auto forward = [gy1_value, double_backprop_opt, &graph_id](const Array& x1, const Array& x2, const Array& x3, Array& y1) {
+        ASSERT_FALSE(x1.IsConstant());
+        ASSERT_FALSE(x2.IsConstant());
+        ASSERT_FALSE(x3.IsConstant());
+        y1 = 2 * x1.AsConstant() + 3 * x2.AsConstant() + x3.AsConstant() + 1;
+        ASSERT_TRUE(y1.IsConstant());
+
+        {
+            BackwardBuilder bb{"func", {y1}};
+            bb.Define({x1}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                const Array& gy1 = bctx.output_grad();  // omit index
+                testing::ExpectEqual(gy1_value, gy1);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                } else {
+                    EXPECT_TRUE(gy1.IsConstant());
+                }
+
+                // input_grad has null array
+                EXPECT_EQ(nullptr, bctx.input_grad().body());
+
+                // input_grad setter
+                bctx.input_grad() = 2 * gy1;  // omit index
+
+                // Check bctx.input_grad() as a getter
+                Array gx1_back = bctx.input_grad();
+                testing::ExpectEqual(2 * gy1, gx1_back);
+            });
+            bb.Define({x2, x3}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                const Array& gy1 = bctx.output_grad(0);  // by index
+                testing::ExpectEqual(gy1_value, gy1);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                } else {
+                    EXPECT_TRUE(gy1.IsConstant());
+                }
+
+                // input_grad has null array
+                EXPECT_EQ(nullptr, bctx.input_grad(0).body());
+                EXPECT_EQ(nullptr, bctx.input_grad(1).body());
+
+                // input_grad setter
+                bctx.input_grad(0) = 3 * gy1;  // by index
+                bctx.input_grad(1) = 1 * gy1;
+
+                // Check bctx.input_grad() as a getter
+                Array gx2_back = bctx.input_grad(0);
+                Array gx3_back = bctx.input_grad(1);
+                testing::ExpectEqual(3 * gy1, gx2_back);
+                testing::ExpectEqual(1 * gy1, gx3_back);
+            });
+        }
+    };
+
+    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x2 = x2_value.MakeView().RequireGrad(graph_id);
+    Array x3 = x3_value.MakeView().RequireGrad(graph_id);
+    Array y1{};
+    forward(x1, x2, x3, y1);
+
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        y1.SetGrad(gy1_value.MakeView().RequireGrad(graph_id), graph_id);
+    } else {
+        y1.SetGrad(gy1_value, graph_id);
+    }
+    Backward({y1}, graph_id, double_backprop_opt);
+
+    testing::ExpectEqual(gy1_value, *y1.GetGrad(graph_id));
+    testing::ExpectEqual(gx1_value, *x1.GetGrad(graph_id));
+    testing::ExpectEqual(gx2_value, *x2.GetGrad(graph_id));
+    testing::ExpectEqual(gx3_value, *x3.GetGrad(graph_id));
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
+    } else {
+        EXPECT_TRUE(y1.GetGrad(graph_id)->IsConstant());
+    }
+}
+
+TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    using T = double;
+    GraphId graph_id = "testgraph";
+    Shape shape{2};
+    Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
+    Array x2_value = testing::BuildArray(shape).WithData<T>({4, -1});
+    Array x3_value = testing::BuildArray(shape).WithData<T>({-1, 3});
+    Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
+    Array gy2_value = testing::BuildArray(shape).WithData<T>({4, -1});
+    Array gx1_value = 2 * gy1_value + 3 * gy2_value;
+    Array gx2_value = 3 * gy1_value + 1 * gy2_value;
+    Array gx3_value = 0 * gy1_value + 2 * gy2_value;
+
+    DoubleBackpropOption double_backprop_opt = GetParam();
+
+    auto forward = [gy1_value, gy2_value, double_backprop_opt, &graph_id](
+                           const Array& x1, const Array& x2, const Array& x3, Array& y1, Array& y2) {
+        ASSERT_FALSE(x1.IsConstant());
+        ASSERT_FALSE(x2.IsConstant());
+        ASSERT_FALSE(x3.IsConstant());
+        y1 = 2 * x1.AsConstant() + 3 * x2.AsConstant() + 1;
+        y2 = 3 * x1.AsConstant() + 1 * x2.AsConstant() + 2 * x3.AsConstant() + 4;
+        ASSERT_TRUE(y1.IsConstant());
+        ASSERT_TRUE(y2.IsConstant());
+
+        {
+            BackwardBuilder bb{"func", {y1, y2}};
+            bb.Define({x1}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                const Array& gy1 = bctx.output_grad(0);  // by index
+                const Array& gy2 = bctx.output_grad(1);
+                testing::ExpectEqual(gy1_value, gy1);
+                testing::ExpectEqual(gy2_value, gy2);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                    EXPECT_TRUE(gy2.IsGradRequired(graph_id));
+                } else {
+                    EXPECT_TRUE(gy1.IsConstant());
+                    EXPECT_TRUE(gy2.IsConstant());
+                }
+                bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
+            });
+            bb.Define({x2, x3}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                const Array& gy1 = bctx.output_grad(0);  // by index
+                const Array& gy2 = bctx.output_grad(1);
+                testing::ExpectEqual(gy1_value, gy1);
+                testing::ExpectEqual(gy2_value, gy2);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                    EXPECT_TRUE(gy2.IsGradRequired(graph_id));
+                } else {
+                    EXPECT_TRUE(gy1.IsConstant());
+                    EXPECT_TRUE(gy2.IsConstant());
+                }
+
+                Array gx2 = 3 * gy1 + gy2;
+                Array gx3 = 2 * gy2;
+                bctx.input_grad(0) = gx2;  // by index, from non-temporary
+                bctx.input_grad(1) = gx3;
+            });
+        }
+    };
+
+    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x2 = x2_value.MakeView().RequireGrad(graph_id);
+    Array x3 = x3_value.MakeView().RequireGrad(graph_id);
+    Array y1{};
+    Array y2{};
+    forward(x1, x2, x3, y1, y2);
+
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        y1.SetGrad(gy1_value.MakeView().RequireGrad(graph_id), graph_id);
+        y2.SetGrad(gy2_value.MakeView().RequireGrad(graph_id), graph_id);
+    } else {
+        y1.SetGrad(gy1_value, graph_id);
+        y2.SetGrad(gy2_value, graph_id);
+    }
+    Backward({y1, y2}, graph_id, double_backprop_opt);
+
+    testing::ExpectEqual(gy1_value, *y1.GetGrad(graph_id));
+    testing::ExpectEqual(gy2_value, *y2.GetGrad(graph_id));
+    testing::ExpectEqual(gx1_value, *x1.GetGrad(graph_id));
+    testing::ExpectEqual(gx2_value, *x2.GetGrad(graph_id));
+    testing::ExpectEqual(gx3_value, *x3.GetGrad(graph_id));
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
+        EXPECT_TRUE(y2.GetGrad(graph_id)->IsGradRequired(graph_id));
+    } else {
+        EXPECT_TRUE(y1.GetGrad(graph_id)->IsConstant());
+        EXPECT_TRUE(y2.GetGrad(graph_id)->IsConstant());
+    }
+}
+
+INSTANTIATE_TEST_CASE_P(Params, BackpropFunctionTest, ::testing::Values(DoubleBackpropOption::kDisable, DoubleBackpropOption::kEnable));
 
 }  // namespace
 }  // namespace xchainer

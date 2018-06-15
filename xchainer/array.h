@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -19,6 +20,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/enum.h"
+#include "xchainer/error.h"
 #include "xchainer/graph.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
@@ -35,13 +37,6 @@ using ConstArrayRef = std::reference_wrapper<const Array>;
 namespace internal {
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
-
-void SetUpOpNodes(
-        const std::string& name,
-        const std::vector<ConstArrayRef>& inputs,
-        const Array& out,
-        const std::vector<std::function<Array(const Array&, const std::vector<GraphId>&)>>& backward_functions,
-        const std::vector<GraphId>& graph_ids_to_stop_gradients = {});
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
@@ -174,7 +169,10 @@ public:
 
     // Creates a copy or a view. It will be disconnected from the specified graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsConstant(const std::vector<GraphId>& graph_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsConstant(std::initializer_list<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const {
+        return AsConstant(gsl::span<const GraphId>{graph_ids.begin(), graph_ids.end()}, kind);
+    }
 
     // Casts to a specified type.
     // By default, always returns a newly allocated array. If `copy` is false,
@@ -191,6 +189,17 @@ public:
     void ClearGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
     bool IsGradRequired(const GraphId& graph_id = kDefaultGraphId) const { return internal::HasArrayNode(*this, graph_id); }
+
+    // Returns whether the array is constant with regard to any graph.
+    bool IsConstant() const { return body_->nodes_.empty(); }
+
+    // Returns whether the array is constant with regard to specified graph.
+    // TODO(niboshi): Implement
+    bool IsConstant(const GraphId& /*graph_id*/) const { throw NotImplementedError(); }
+
+    // Returns whether the array is constant with regard to all of the specified graphs.
+    // TODO(niboshi): Implement
+    bool IsConstant(gsl::span<const GraphId> /*graph_ids*/) const { throw NotImplementedError(); }
 
     // Creates a new ArrayNode to store the gradient
     const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const {

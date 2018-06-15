@@ -53,8 +53,38 @@ public:
             Scalar eps,
             Scalar decay,
             const Axes& axis) = 0;
-    virtual std::array<Array, 3> Backward(
-            const Array& x, const Array& gamma, const Array& gout, Scalar eps, Scalar decay, const Axes& axis) = 0;
+
+    // TODO(niboshi): Restrict arguments to `gout` only
+    virtual std::array<Array, 3> Backward(const Array& x, const Array& gamma, const Array& gout, Scalar eps, const Axes& axis) = 0;
+
+    virtual std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) = 0;
+};
+
+class GenericBatchNormForwardBackward : public BatchNormForwardBackward {
+public:
+    Array Forward(
+            const Array& x,
+            const Array& gamma,
+            const Array& beta,
+            const Array& running_mean,
+            const Array& running_var,
+            Scalar eps,
+            Scalar decay,
+            const Axes& axis) override;
+
+    std::array<Array, 3> Backward(const Array& x, const Array& gamma, const Array& gout, Scalar eps, const Axes& axis);
+    std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) override;
+
+private:
+    // TODO(niboshi): Fix header dependency order and hold arrays directly.
+    std::shared_ptr<Array> x_mean_;
+    std::shared_ptr<Array> x_inv_std_;
+    std::shared_ptr<Array> x_;
+    std::shared_ptr<Array> gamma_;
+    std::shared_ptr<Array> gout_;
+    std::shared_ptr<Array> gx_;
+    std::shared_ptr<Array> ggamma_;
+    Axes axis_;
 };
 
 // Device base class.
@@ -161,6 +191,9 @@ public:
     virtual void Exp(const Array& x, const Array& out) = 0;
     virtual void Log(const Array& x, const Array& out) = 0;
 
+    // TODO(niboshi): Implement corresponding function in routines
+    virtual void Sqrt(const Array& x, const Array& out) = 0;
+
     // Takes elements specified by indices from an array.
     // Indices that are out of bounds are wrapped around.
     //
@@ -238,7 +271,9 @@ public:
             bool cover_all,
             bool count_include_pad) = 0;
 
-    virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() = 0;
+    virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() {
+        return std::make_unique<GenericBatchNormForwardBackward>();
+    }
 
     virtual void Synchronize() = 0;
 
