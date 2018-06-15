@@ -38,6 +38,14 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+namespace {
+
+// Callback called when a new array body is created and set to an array.
+// See xchainer::internal::SetArrayBodyHook().
+xchainer::internal::ArrayBodyHook* g_array_body_hook = nullptr;
+
+}  // namespace
+
 namespace internal {
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset) {
@@ -65,10 +73,27 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
     return *it;
 }
 
+ArrayBodyHookScope ::ArrayBodyHookScope(ArrayBodyHook& hook) {
+    assert(g_array_body_hook == nullptr);  // nested use is not supported
+    g_array_body_hook = &hook;
+}
+
+ArrayBodyHookScope ::~ArrayBodyHookScope() {
+    if (!exited_) {
+        g_array_body_hook = nullptr;
+        exited_ = true;
+    }
+}
+
 }  // namespace internal
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
-    : body_{std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)} {}
+    : body_{std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)} {
+    if (g_array_body_hook) {
+        // TODO(niboshi): Make thread-safe
+        (*g_array_body_hook)(body_);
+    }
+}
 
 Array Array::operator-() const { return Negative(*this); }
 

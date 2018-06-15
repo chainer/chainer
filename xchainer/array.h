@@ -50,6 +50,36 @@ std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId&
 
 const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
+class ArrayBodyHook {
+public:
+    virtual void operator()(const std::shared_ptr<ArrayBody>& array_body) = 0;
+};
+
+// Sets the callback called when a new array body is created and set to an array.
+// This callback is for use in unit tests.
+// It is not called on Array's default ctor, because no array body is created.
+// It is not called on Array's copy ctor or operator=, because the array body is not created but its pointer is simply copied.
+class ArrayBodyHookScope {
+public:
+    explicit ArrayBodyHookScope(ArrayBodyHook& hook);
+    ~ArrayBodyHookScope();
+
+    ArrayBodyHookScope(const ArrayBodyHookScope&) = delete;
+    ArrayBodyHookScope& operator=(const ArrayBodyHookScope&) = delete;
+    ArrayBodyHookScope(ArrayBodyHookScope&& other) {
+        exited_ = other.exited_;
+        other.exited_ = true;
+    }
+    ArrayBodyHookScope& operator=(ArrayBodyHookScope&& other) {
+        exited_ = other.exited_;
+        other.exited_ = true;
+        return *this;
+    }
+
+private:
+    bool exited_ = false;
+};
+
 }  // namespace internal
 
 // The main data structure of multi-dimensional array.
