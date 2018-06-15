@@ -38,6 +38,9 @@ class MLPConvolution2D(link.ChainList):
             You can specify one of activation functions from
             :doc:`built-in activation functions </reference/functions>` or
             your own function.
+            It should not be an
+            :doc:`activation functions with parameters </reference/links>`
+            (i.e., :class:`~chainer.Link` instance).
             The function must accept one argument (the output from each child
             link), and return a value.
             Returned value must be a Variable derived from the input Variable

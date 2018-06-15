@@ -440,6 +440,9 @@ class Optimizer(object):
                 You can specify one of loss functions from
                 :doc:`built-in loss functions </reference/functions>`, or
                 your own loss function.
+                It should not be an
+                :doc:`loss functions with parameters </reference/links>`
+                (i.e., :class:`~chainer.Link` instance).
                 The function must accept arbitrary arguments
                 and return one :class:`~chainer.Variable` object that
                 represents the loss (or objective) value.
