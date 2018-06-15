@@ -128,18 +128,7 @@ void Mean(const Array& a, const Axes& axis, const Array& out) {
     device.DivideAS(out, xchainer::internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
-void Minimum(const Array& x1, Scalar x2, const Array& out) {
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            void operator()(int64_t /*i*/, T x1, T& out) { out = x1 < x2 ? x1 : x2; }
-            T x2;
-        };
-        Elementwise<const T, T>(Impl{static_cast<T>(x2)}, x1, out);
-    });
-}
-
-Array GetPoolingWidth(
+Array GetPoolingWidths(
         const Shape& shape,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
@@ -152,33 +141,52 @@ Array GetPoolingWidth(
     assert(n == static_cast<int8_t>(stride.size()));
     assert(n == static_cast<int8_t>(pad.size()));
 
-    Array width;
+    Array widths;
     for (int64_t i = 0; i < n; ++i) {
-        int64_t d = shape[2 + i];
+        int64_t dim = shape[2 + i];
         int64_t k = kernel_size[i];
         int64_t s = stride[i];
         int64_t p = pad[i];
 
-        int64_t dim = xchainer::internal::GetConvOutDim(d, k, s, p, cover_all);
-        Array starts = Arange(dim, dtype) * s - p;
-        Array ends = starts + k;
+        Array width = Empty({xchainer::internal::GetConvOutDim(dim, k, s, p, cover_all)}, dtype);
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t i, T& width) {
+                    T start = i * stride - pad;
+                    T end = start + kernel_size;
+                    if (!count_include_pad) {
+                        if (start < 0) {
+                            start = 0;
+                        }
+                        if (end > dim) {
+                            end = dim;
+                        }
+                    }
+                    width = end - start;
+                }
+                T dim;
+                T kernel_size;
+                T stride;
+                T pad;
+                bool count_include_pad;
+            };
+            Elementwise<T>(Impl{static_cast<T>(dim), static_cast<T>(k), static_cast<T>(s), static_cast<T>(p), count_include_pad}, width);
+        });
 
-        if (!count_include_pad) {
-            starts = Maximum(0, starts);
-            Minimum(ends, d, ends);
-        }
-        assert(starts.shape() == ends.shape());
         if (i == 0) {
-            width = ends - starts;
+            widths = width;
         } else {
-            Shape width_expanded = width.shape();
-            width_expanded.emplace_back(1);
-            Shape w_expanded{1};
-            std::copy(starts.shape().begin(), starts.shape().end(), std::back_inserter(w_expanded));
-            width = TensorDot(width.Reshape(width_expanded), (ends - starts).Reshape(w_expanded), {static_cast<int8_t>(width.ndim())}, {0});
+            Shape widths_expanded = widths.shape();
+            widths_expanded.emplace_back(1);
+
+            Shape width_expanded{1};
+            std::copy(width.shape().begin(), width.shape().end(), std::back_inserter(width_expanded));
+
+            widths = TensorDot(widths.Reshape(widths_expanded), width.Reshape(width_expanded), {static_cast<int8_t>(widths.ndim())}, {0});
         }
     }
-    return width;
+    return widths;
 }
 
 }  // namespace
@@ -211,7 +219,7 @@ Array NativeDevice::AveragePool(
         device.Sum(col, kernel_axes, out);
         device.Divide(
                 out,
-                GetPoolingWidth(x.shape(), kernel_size, stride, pad, cover_all, count_include_pad, x.dtype()).BroadcastTo(out.shape()),
+                GetPoolingWidths(x.shape(), kernel_size, stride, pad, cover_all, count_include_pad, x.dtype()).BroadcastTo(out.shape()),
                 out);
     }
     return out;
