@@ -73,7 +73,7 @@ Array BatchNorm(
         if (!x.IsConstant() || !gamma.IsConstant() || !beta.IsConstant()) {
             bb.Define({x, gamma, beta}, [ fb = std::move(fb), x, gamma = gamma_keepdims, eps, sorted_axis ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
-                auto ginputs = fb->Backward(x.AsConstant(), gamma, gout, eps, sorted_axis);
+                auto ginputs = fb->Backward(x, gamma, gout, eps, sorted_axis);
                 assert(ginputs.size() == 3);
                 const Array& gx = ginputs[0];
                 const Array& ggamma = ginputs[1];
@@ -85,7 +85,7 @@ Array BatchNorm(
                 Array x_cut = bctx.Cut(x);
                 Array gamma_cut = bctx.Cut(gamma);
 
-                if (bctx.next_required() && (!x.IsConstant() || !gamma_cut.IsConstant() || !gout.IsConstant())) {
+                if (bctx.next_required() && (!x_cut.IsConstant() || !gamma_cut.IsConstant() || !gout.IsConstant())) {
                     BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
                     bb2.Define({x_cut, gamma_cut, gout}, [fb = std::move(fb)](BackwardContext & bctx2) {
                         const Array& g2x = bctx2.output_grad(0);
