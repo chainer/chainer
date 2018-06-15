@@ -18,6 +18,9 @@ class Classifier(link.Chain):
             You can specify one of loss functions from
             :doc:`built-in loss functions </reference/functions>`, or
             your own loss function (see the example below).
+            It should not be an
+            :doc:`loss functions with parameters </reference/links>`
+            (i.e., :class:`~chainer.Link` instance).
             The function must accept two argument (an output from predictor
             and its ground truth labels), and return a loss.
             Returned value must be a Variable derived from the input Variable
