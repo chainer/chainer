@@ -16,6 +16,20 @@
 namespace xchainer {
 
 class Array;
+class Device;
+
+namespace internal {
+
+void CheckDevicesCompatible(const Device& device, const Array& array);
+
+// Throws an exception if array devices are incompatible, else does nothing.
+template <typename... Arrays>
+void CheckDevicesCompatible(const Device& device, const Array& first, const Arrays&... rest) {
+    CheckDevicesCompatible(device, first);
+    CheckDevicesCompatible(device, rest...);
+}
+
+}  // namespace internal
 
 class MaxPoolForwardBackward {
 public:
@@ -284,14 +298,11 @@ protected:
 
     // Throws an exception if array devices are incompatible, else does nothing.
     template <typename... Arrays>
-    void CheckDevicesCompatible(const Array& first, const Arrays&... rest) {
-        CheckDevicesCompatible(first);
-        CheckDevicesCompatible(rest...);
+    void CheckDevicesCompatible(const Arrays&... arrays) {
+        internal::CheckDevicesCompatible(*this, arrays...);
     }
 
 private:
-    void CheckDevicesCompatible(const Array& array);
-
     Backend& backend_;
     int index_;
 };
