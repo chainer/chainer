@@ -21,6 +21,74 @@ namespace xchainer {
 namespace cuda {
 namespace {
 
+class CudnnBNTensor4dDescriptor {
+public:
+    CudnnBNTensor4dDescriptor(const internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) : CudnnBNTensor4dDescriptor{} {
+        CheckCudnnError(cudnnDeriveBNTensorDescriptor(desc_, *x_desc, mode));
+    }
+
+    ~CudnnBNTensor4dDescriptor() {
+        if (desc_ != nullptr) {
+            CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
+        }
+    }
+
+    cudnnTensorDescriptor_t descriptor() const { return desc_; }
+    cudnnTensorDescriptor_t operator*() const { return desc_; }
+
+    Dtype GetDtype() {
+        cudnnDataType_t cudnn_dtype;
+        int n;
+        int c;
+        int h;
+        int w;
+        int n_stride;
+        int c_stride;
+        int h_stride;
+        int w_stride;
+
+        CheckCudnnError(cudnnGetTensor4dDescriptor(desc_, &cudnn_dtype, &n, &c, &h, &w, &n_stride, &c_stride, &h_stride, &w_stride));
+
+        switch (cudnn_dtype) {
+            case CUDNN_DATA_DOUBLE:
+                return Dtype::kFloat64;
+            case CUDNN_DATA_FLOAT:
+                return Dtype::kFloat32;
+            // TODO(sonots): Support float16
+            // case CUDNN_DATA_HALF;
+            //     return Dtype::kFloat16;
+            default:
+                throw DtypeError{"Unsupported cudnn data type: ", cudnn_dtype};
+        }
+    }
+
+private:
+    CudnnBNTensor4dDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
+    cudnnTensorDescriptor_t desc_{};
+};
+
+// Example: Axes{0, 2, 3} with ndim 4 => Axes{1}
+Axes ComputeKeyAxis(int8_t x_ndim, const Axes& axis) {
+    Axes key_axis{};
+    for (int8_t idim = 0; idim < x_ndim; ++idim) {
+        if (std::none_of(axis.begin(), axis.end(), [idim](int8_t jdim) { return idim == jdim; })) {
+            key_axis.emplace_back(idim);
+        }
+    }
+    return key_axis;
+}
+
+Array As4dArray(const Array& arr, const Axes& key_axis) {
+    if (arr.ndim() == 4 && key_axis[0] == 1) {
+        return arr;
+    } else if (key_axis[0] == arr.ndim() - 1) {
+        int64_t last_dim_size = arr.shape()[arr.ndim() - 1];
+        return arr.Reshape({arr.GetTotalSize() / last_dim_size, last_dim_size, 1, 1});
+    } else {
+        throw DimensionError{"Unexpected combination of array shape: ", arr.shape(), " and key_axis: ", key_axis};
+    }
+}
+
 class CudaBatchNormForwardBackward : public xchainer::BatchNormForwardBackward {
 public:
     explicit CudaBatchNormForwardBackward(cudnnHandle_t cudnn_handle) : cudnn_handle_{cudnn_handle} {}
@@ -73,36 +141,63 @@ public:
         }
 
         Device& device = x.device();
+        Dtype dtype = x.dtype();
 
-        // Initialize cache.
-        result_mean_ = EmptyLike(gamma, device);
-        result_inv_var_ = EmptyLike(gamma, device);
+        Array x_cont = AsContiguousArray(x);
+        internal::CudnnTensorDescriptor x_desc{As4dArray(x_cont, ComputeKeyAxis(x.ndim(), axis))};
+        cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
+
+        CudnnBNTensor4dDescriptor gamma_beta_mean_var_desc{x_desc, mode};
+        Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
+
+        Array gamma_casted = gamma.AsType(gamma_beta_mean_var_dtype, false);
+        Array beta_casted = beta.AsType(gamma_beta_mean_var_dtype, false);
+        Array running_mean_casted = running_mean.AsType(gamma_beta_mean_var_dtype, false);
+        Array running_var_casted = running_var.AsType(gamma_beta_mean_var_dtype, false);
 
         Array out = EmptyLike(x, device);
-        Array x_cont = AsContiguousArray(x);
 
-        internal::CudnnTensorDescriptor x_desc{x_cont};
-        internal::CudnnTensorDescriptor out_desc{out};
-        internal::CudnnTensorDescriptor gamma_beta_mean_var_desc{gamma};
+        // Initialize cache.
+        result_mean_ = EmptyLike(gamma_casted, device);
+        result_inv_var_ = EmptyLike(gamma_casted, device);
 
         CheckCudnnError(cudnnBatchNormalizationForwardTraining(
                 cudnn_handle_,
-                GetBatchNormMode(axis),
-                internal::GetValuePtr<1>(x.dtype()),
-                internal::GetValuePtr<0>(x.dtype()),
+                mode,
+                internal::GetValuePtr<1>(dtype),
+                internal::GetValuePtr<0>(dtype),
                 *x_desc,
                 xchainer::internal::GetRawOffsetData<void>(x_cont),
-                *out_desc,
+                *x_desc,
                 xchainer::internal::GetRawOffsetData<void>(out),
                 *gamma_beta_mean_var_desc,
-                xchainer::internal::GetRawOffsetData<void>(gamma),
-                xchainer::internal::GetRawOffsetData<void>(beta),
+                xchainer::internal::GetRawOffsetData<void>(gamma_casted),
+                xchainer::internal::GetRawOffsetData<void>(beta_casted),
                 1.0 - static_cast<double>(decay),
-                xchainer::internal::GetRawOffsetData<void>(running_mean),
-                xchainer::internal::GetRawOffsetData<void>(running_var),
+                xchainer::internal::GetRawOffsetData<void>(running_mean_casted),
+                xchainer::internal::GetRawOffsetData<void>(running_var_casted),
                 static_cast<double>(eps),
                 xchainer::internal::GetRawOffsetData<void>(result_mean_),
                 xchainer::internal::GetRawOffsetData<void>(result_inv_var_)));
+
+        // When data type of prameters is converted, say, from fp16
+        // to fp32, the values of fp32 arrays of running_mean and
+        // running_var updated by batchNormalizationForwardTraining
+        // must be explicitly written back to their original fp16 arrays.
+        //
+        // TODO(sonots): write tests after we supports fp16
+        if (dtype != gamma_beta_mean_var_dtype) {
+            device.MemoryCopyFrom(
+                    xchainer::internal::GetRawOffsetData<void>(running_mean),
+                    xchainer::internal::GetRawOffsetData<void>(running_mean_casted.AsType(dtype, false)),
+                    running_mean.GetNBytes(),
+                    device);
+            device.MemoryCopyFrom(
+                    xchainer::internal::GetRawOffsetData<void>(running_var),
+                    xchainer::internal::GetRawOffsetData<void>(running_var_casted.AsType(dtype, false)),
+                    running_var.GetNBytes(),
+                    device);
+        }
 
         return out;
     }
