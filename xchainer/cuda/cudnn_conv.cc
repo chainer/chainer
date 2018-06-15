@@ -11,8 +11,8 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backend_util.h"
-#include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/hash_combine.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -49,7 +49,7 @@ void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array
 
 namespace internal {
 
-std::size_t ConvAlgoCacheKeyHash::operator()(const ConvAlgoCacheKey& key) const {
+std::size_t CudnnConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) const {
     std::size_t seed = 0;
     HashCombine(seed, std::hash<int8_t>()(key.x_shape.ndim()));
     for (int64_t v : key.x_shape) {
@@ -114,8 +114,8 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnConv::FindConvolutionForwardAl
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
-    auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
-    auto& algo_cache_map = conv_fwd_algo_cache_map_;
+    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
+    auto& algo_cache_map = fwd_algo_cache_map_;
     auto it = algo_cache_map.find(key);
     if (it != algo_cache_map.end()) {
         return it->second;
@@ -157,8 +157,8 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnConv::FindConvolutionBackw
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
-    auto key = internal::ConvAlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
-    auto& algo_cache_map = conv_bwd_data_algo_cache_map_;
+    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
+    auto& algo_cache_map = bwd_data_algo_cache_map_;
     auto it = algo_cache_map.find(key);
     if (it != algo_cache_map.end()) {
         return it->second;
@@ -200,8 +200,8 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudnnConv::FindConvolutionBac
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
-    auto key = internal::ConvAlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, x.dtype(), max_workspace_size};
-    auto& algo_cache_map = conv_bwd_filter_algo_cache_map_;
+    auto key = AlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, x.dtype(), max_workspace_size};
+    auto& algo_cache_map = bwd_filter_algo_cache_map_;
     auto it = algo_cache_map.find(key);
     if (it != algo_cache_map.end()) {
         return it->second;
@@ -437,8 +437,8 @@ Array CudnnConv::ConvGradWeight(
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
     // auto tune
-    std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardFilterAlgorithm(
-            handle, x_desc, x, gy_desc, gy, conv_desc, gw_desc, gw, max_workspace_size, pad, stride);
+    std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size =
+            FindConvolutionBackwardFilterAlgorithm(handle, x_desc, x, gy_desc, gy, conv_desc, gw_desc, gw, max_workspace_size, pad, stride);
 
     cudnnConvolutionBwdFilterAlgo_t algo = std::get<0>(algo_workspace_size);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));

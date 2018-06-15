@@ -18,34 +18,6 @@ namespace cuda {
 
 namespace internal {
 
-struct ConvAlgoCacheKey {
-    Shape x_shape;
-    Shape w_shape;
-    Shape y_shape;
-    StackVector<int64_t, kMaxNdim> pad;
-    StackVector<int64_t, kMaxNdim> stride;
-    Dtype dtype;
-    size_t max_workspace_size;
-
-    bool operator==(const ConvAlgoCacheKey& other) const {
-        return x_shape == other.x_shape && w_shape == other.w_shape && y_shape == other.y_shape && pad == other.pad &&
-               stride == other.stride && dtype == other.dtype && max_workspace_size == other.max_workspace_size;
-    }
-
-    bool operator!=(const ConvAlgoCacheKey& other) const { return !operator==(other); }
-};
-
-struct ConvAlgoCacheKeyHash {
-    using result_type = std::size_t;
-    std::size_t operator()(const ConvAlgoCacheKey& key) const;
-};
-
-using ConvFwdAlgoCacheMap = std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
-using ConvBwdDataAlgoCacheMap =
-        std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionBwdDataAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
-using ConvBwdFilterAlgoCacheMap =
-        std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
-
 class CudnnConv {
 public:
     Array Conv(
@@ -117,10 +89,35 @@ private:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
 
-private:
-    ConvFwdAlgoCacheMap conv_fwd_algo_cache_map_{};
-    ConvBwdDataAlgoCacheMap conv_bwd_data_algo_cache_map_{};
-    ConvBwdFilterAlgoCacheMap conv_bwd_filter_algo_cache_map_{};
+    struct AlgoCacheKey {
+        Shape x_shape;
+        Shape w_shape;
+        Shape y_shape;
+        StackVector<int64_t, kMaxNdim> pad;
+        StackVector<int64_t, kMaxNdim> stride;
+        Dtype dtype;
+        size_t max_workspace_size;
+
+        bool operator==(const AlgoCacheKey& other) const {
+            return x_shape == other.x_shape && w_shape == other.w_shape && y_shape == other.y_shape && pad == other.pad &&
+                   stride == other.stride && dtype == other.dtype && max_workspace_size == other.max_workspace_size;
+        }
+
+        bool operator!=(const AlgoCacheKey& other) const { return !operator==(other); }
+    };
+
+    struct AlgoCacheKeyHash {
+        using result_type = std::size_t;
+        std::size_t operator()(const AlgoCacheKey& key) const;
+    };
+
+    using FwdAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, AlgoCacheKeyHash>;
+    using BwdDataAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::pair<cudnnConvolutionBwdDataAlgo_t, size_t>, AlgoCacheKeyHash>;
+    using BwdFilterAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t>, AlgoCacheKeyHash>;
+
+    FwdAlgoCacheMap fwd_algo_cache_map_{};
+    BwdDataAlgoCacheMap bwd_data_algo_cache_map_{};
+    BwdFilterAlgoCacheMap bwd_filter_algo_cache_map_{};
 };
 
 }  // namespace internal
