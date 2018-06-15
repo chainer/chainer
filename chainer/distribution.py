@@ -52,13 +52,13 @@ class Distribution(object):
         >>> cov = np.random.normal(size=shape + (d, d)).astype(np.float32)
         >>> cov = np.matmul(cov, np.rollaxis(cov, -1, -2))
         >>> l = np.linalg.cholesky(cov)
-        >>> dist = D.MultivariateNormal(loc, l)
-        >>> dist.event_shape
+        >>> dist = D.MultivariateNormal(loc, l)  # doctest: +SKIP
+        >>> dist.event_shape  # doctest: +SKIP
         (2,)
-        >>> dist.batch_shape
+        >>> dist.batch_shape  # doctest: +SKIP
         (4, 3)
-        >>> sample = dist.sample(sample_shape=(6, 5))
-        >>> sample.shape
+        >>> sample = dist.sample(sample_shape=(6, 5))  # doctest: +SKIP
+        >>> sample.shape  # doctest: +SKIP
         (6, 5, 4, 3, 2)
 
     Every probability-related function takes realization value whose shape is
