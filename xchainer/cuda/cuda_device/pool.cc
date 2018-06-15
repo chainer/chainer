@@ -52,10 +52,10 @@ public:
         Array y = Empty(out_shape, x.dtype(), x.device());
         Array x_cont = AsContiguousArray(x);
 
-        internal::TensorDescriptor x_desc{x_cont};
-        internal::TensorDescriptor y_desc{y};
+        internal::CudnnTensorDescriptor x_desc{x_cont};
+        internal::CudnnTensorDescriptor y_desc{y};
 
-        internal::PoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
+        internal::CudnnPoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
 
         CheckCudnnError(cudnnPoolingForward(
                 cudnn_handle_,
@@ -96,12 +96,12 @@ public:
         Array gout_cont = AsContiguousArray(gout);
         Array x_cont = AsContiguousArray(x);
 
-        internal::TensorDescriptor y_desc{y_cont};
-        internal::TensorDescriptor gout_desc{gout_cont};
-        internal::TensorDescriptor x_desc{x_cont};
-        internal::TensorDescriptor gx_desc{gx};
+        internal::CudnnTensorDescriptor y_desc{y_cont};
+        internal::CudnnTensorDescriptor gout_desc{gout_cont};
+        internal::CudnnTensorDescriptor x_desc{x_cont};
+        internal::CudnnTensorDescriptor gx_desc{gx};
 
-        internal::PoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
+        internal::CudnnPoolingDescriptor pool_desc{CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
 
         CheckCudnnError(cudnnPoolingBackward(
                 cudnn_handle_,

@@ -43,65 +43,65 @@ const void* GetValuePtr(Dtype dtype) {
     }
 }
 
-class TensorDescriptor {
+class CudnnTensorDescriptor {
 public:
-    explicit TensorDescriptor(const Array& arr);
-    ~TensorDescriptor();
+    explicit CudnnTensorDescriptor(const Array& arr);
+    ~CudnnTensorDescriptor();
 
     cudnnTensorDescriptor_t descriptor() const { return desc_; }
     cudnnTensorDescriptor_t operator*() const { return desc_; }
 
 private:
-    TensorDescriptor();
+    CudnnTensorDescriptor();
     cudnnTensorDescriptor_t desc_{};
 };
 
-class FilterDescriptor {
+class CudnnFilterDescriptor {
 public:
-    explicit FilterDescriptor(const Array& w);
-    ~FilterDescriptor();
+    explicit CudnnFilterDescriptor(const Array& w);
+    ~CudnnFilterDescriptor();
 
     cudnnFilterDescriptor_t descriptor() const { return desc_; }
     cudnnFilterDescriptor_t operator*() const { return desc_; }
 
 private:
-    FilterDescriptor();
+    CudnnFilterDescriptor();
     cudnnFilterDescriptor_t desc_{};
 };
 
-class ConvolutionDescriptor {
+class CudnnConvolutionDescriptor {
 public:
-    explicit ConvolutionDescriptor(
+    explicit CudnnConvolutionDescriptor(
             Dtype dtype,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride,
             const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
             int groups);
-    ~ConvolutionDescriptor();
+    ~CudnnConvolutionDescriptor();
 
     cudnnConvolutionDescriptor_t descriptor() const { return desc_; }
     cudnnConvolutionDescriptor_t operator*() const { return desc_; }
 
 private:
-    ConvolutionDescriptor();
+    CudnnConvolutionDescriptor();
     cudnnConvolutionDescriptor_t desc_{};
 };
 
-class PoolingDescriptor {
+class CudnnPoolingDescriptor {
 public:
-    explicit PoolingDescriptor(
+    explicit CudnnPoolingDescriptor(
             cudnnPoolingMode_t mode,
             cudnnNanPropagation_t max_pooling_nan_opt,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
-    ~PoolingDescriptor();
+    ~CudnnPoolingDescriptor();
 
     cudnnPoolingDescriptor_t descriptor() const { return desc_; }
     cudnnPoolingDescriptor_t operator*() const { return desc_; }
 
 private:
-    PoolingDescriptor();
+    CudnnPoolingDescriptor();
     cudnnPoolingDescriptor_t desc_{};
 };
 

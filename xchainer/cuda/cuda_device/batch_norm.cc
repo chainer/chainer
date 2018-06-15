@@ -83,9 +83,9 @@ public:
         Array out = EmptyLike(x, device);
         Array x_cont = AsContiguousArray(x);
 
-        internal::TensorDescriptor x_desc{x_cont};
-        internal::TensorDescriptor out_desc{out};
-        internal::TensorDescriptor gamma_beta_mean_var_desc{gamma};
+        internal::CudnnTensorDescriptor x_desc{x_cont};
+        internal::CudnnTensorDescriptor out_desc{out};
+        internal::CudnnTensorDescriptor gamma_beta_mean_var_desc{gamma};
 
         CheckCudnnError(cudnnBatchNormalizationForwardTraining(
                 cudnn_handle_,

@@ -45,7 +45,7 @@ void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array
     }
 }
 
-void AddBias(cudnnHandle_t handle, const internal::TensorDescriptor& y_desc, const Array& y, const Array& b) {
+void AddBias(cudnnHandle_t handle, const internal::CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
     assert(&b.device() == &y.device());
     assert(b.dtype() == y.dtype());
 
@@ -60,7 +60,7 @@ void AddBias(cudnnHandle_t handle, const internal::TensorDescriptor& y_desc, con
     }
     Array b_cont = AsContiguousArray(b).Reshape(new_shape);
 
-    internal::TensorDescriptor b_desc{b_cont};
+    internal::CudnnTensorDescriptor b_desc{b_cont};
     CheckCudnnError(cudnnAddTensor(
             handle,
             internal::GetValuePtr<1>(y.dtype()),
@@ -104,12 +104,12 @@ std::size_t ConvAlgoCacheKeyHash::operator()(const ConvAlgoCacheKey& key) const 
 
 std::pair<cudnnConvolutionFwdAlgo_t, size_t> ConvAlgo::FindConvolutionForwardAlgorithm(
         cudnnHandle_t handle,
-        const TensorDescriptor& x_desc,
+        const CudnnTensorDescriptor& x_desc,
         const Array& x,
-        const FilterDescriptor& filter_desc,
+        const CudnnFilterDescriptor& filter_desc,
         const Array& w,
-        const ConvolutionDescriptor& conv_desc,
-        const TensorDescriptor& y_desc,
+        const CudnnConvolutionDescriptor& conv_desc,
+        const CudnnTensorDescriptor& y_desc,
         const Array& y,
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
@@ -147,12 +147,12 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> ConvAlgo::FindConvolutionForwardAlg
 
 std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> ConvAlgo::FindConvolutionBackwardDataAlgorithm(
         cudnnHandle_t handle,
-        const FilterDescriptor& filter_desc,
+        const CudnnFilterDescriptor& filter_desc,
         const Array& w,
-        const TensorDescriptor& x_desc,
+        const CudnnTensorDescriptor& x_desc,
         const Array& x,
-        const ConvolutionDescriptor& conv_desc,
-        const TensorDescriptor& y_desc,
+        const CudnnConvolutionDescriptor& conv_desc,
+        const CudnnTensorDescriptor& y_desc,
         const Array& y,
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
@@ -190,12 +190,12 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> ConvAlgo::FindConvolutionBackwa
 
 std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> ConvAlgo::FindConvolutionBackwardFilterAlgorithm(
         cudnnHandle_t handle,
-        const TensorDescriptor& x_desc,
+        const CudnnTensorDescriptor& x_desc,
         const Array& x,
-        const TensorDescriptor& gy_desc,
+        const CudnnTensorDescriptor& gy_desc,
         const Array& gy,
-        const ConvolutionDescriptor& conv_desc,
-        const FilterDescriptor& gw_desc,
+        const CudnnConvolutionDescriptor& conv_desc,
+        const CudnnFilterDescriptor& gw_desc,
         const Array& gw,
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
@@ -280,10 +280,10 @@ Array CudaDevice::Conv(
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
 
-    internal::TensorDescriptor x_desc{x_cont};
-    internal::TensorDescriptor y_desc{y};
-    internal::FilterDescriptor filter_desc{w_cont};
-    internal::ConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+    internal::CudnnTensorDescriptor x_desc{x_cont};
+    internal::CudnnTensorDescriptor y_desc{y};
+    internal::CudnnFilterDescriptor filter_desc{w_cont};
+    internal::CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
     // auto tune
@@ -358,10 +358,10 @@ Array CudaDevice::ConvTranspose(
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
 
-    internal::TensorDescriptor x_desc{x_cont};
-    internal::TensorDescriptor y_desc{y};
-    internal::FilterDescriptor filter_desc{w_cont};
-    internal::ConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
+    internal::CudnnTensorDescriptor x_desc{x_cont};
+    internal::CudnnTensorDescriptor y_desc{y};
+    internal::CudnnFilterDescriptor filter_desc{w_cont};
+    internal::CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
     // auto tune
@@ -429,10 +429,10 @@ Array CudaDevice::ConvGradWeight(
     Array gy_cont = AsContiguousArray(gy);
     Array gw_cont = AsContiguousArray(gw);
 
-    internal::TensorDescriptor x_desc{x_cont};
-    internal::TensorDescriptor gy_desc{gy_cont};
-    internal::FilterDescriptor gw_desc{gw_cont};
-    internal::ConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+    internal::CudnnTensorDescriptor x_desc{x_cont};
+    internal::CudnnTensorDescriptor gy_desc{gy_cont};
+    internal::CudnnFilterDescriptor gw_desc{gw_cont};
+    internal::CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
     // auto tune

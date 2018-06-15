@@ -85,15 +85,15 @@ StackVector<int, kMaxNdim> GetIntArrayStrides(const Strides& strides, int64_t it
 
 namespace internal {
 
-TensorDescriptor::TensorDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
+CudnnTensorDescriptor::CudnnTensorDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
 
-TensorDescriptor::~TensorDescriptor() {
+CudnnTensorDescriptor::~CudnnTensorDescriptor() {
     if (desc_ != nullptr) {
         CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
     }
 }
 
-TensorDescriptor::TensorDescriptor(const Array& arr) : TensorDescriptor{} {
+CudnnTensorDescriptor::CudnnTensorDescriptor(const Array& arr) : CudnnTensorDescriptor{} {
     assert(arr.IsContiguous());
 
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
@@ -107,15 +107,15 @@ TensorDescriptor::TensorDescriptor(const Array& arr) : TensorDescriptor{} {
     }
 }
 
-FilterDescriptor::FilterDescriptor() { CheckCudnnError(cudnnCreateFilterDescriptor(&desc_)); }
+CudnnFilterDescriptor::CudnnFilterDescriptor() { CheckCudnnError(cudnnCreateFilterDescriptor(&desc_)); }
 
-FilterDescriptor::~FilterDescriptor() {
+CudnnFilterDescriptor::~CudnnFilterDescriptor() {
     if (desc_ != nullptr) {
         CheckCudnnError(cudnnDestroyFilterDescriptor(desc_));
     }
 }
 
-FilterDescriptor::FilterDescriptor(const Array& w) : FilterDescriptor{} {
+CudnnFilterDescriptor::CudnnFilterDescriptor(const Array& w) : CudnnFilterDescriptor{} {
     assert(w.IsContiguous());
 
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(w.dtype());
@@ -128,21 +128,21 @@ FilterDescriptor::FilterDescriptor(const Array& w) : FilterDescriptor{} {
     }
 }
 
-ConvolutionDescriptor::ConvolutionDescriptor() { CheckCudnnError(cudnnCreateConvolutionDescriptor(&desc_)); }
+CudnnConvolutionDescriptor::CudnnConvolutionDescriptor() { CheckCudnnError(cudnnCreateConvolutionDescriptor(&desc_)); }
 
-ConvolutionDescriptor::~ConvolutionDescriptor() {
+CudnnConvolutionDescriptor::~CudnnConvolutionDescriptor() {
     if (desc_ != nullptr) {
         CheckCudnnError(cudnnDestroyConvolutionDescriptor(desc_));
     }
 }
 
-ConvolutionDescriptor::ConvolutionDescriptor(
+CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
         Dtype dtype,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
         int groups)
-    : ConvolutionDescriptor{} {
+    : CudnnConvolutionDescriptor{} {
     size_t ndim = pad.size();
     assert(ndim == stride.size());
     assert(!dilation || ndim == dilation->size());
@@ -181,21 +181,21 @@ ConvolutionDescriptor::ConvolutionDescriptor(
     }
 }
 
-PoolingDescriptor::PoolingDescriptor() { CheckCudnnError(cudnnCreatePoolingDescriptor(&desc_)); }
+CudnnPoolingDescriptor::CudnnPoolingDescriptor() { CheckCudnnError(cudnnCreatePoolingDescriptor(&desc_)); }
 
-PoolingDescriptor::~PoolingDescriptor() {
+CudnnPoolingDescriptor::~CudnnPoolingDescriptor() {
     if (desc_ != nullptr) {
         CheckCudnnError(cudnnDestroyPoolingDescriptor(desc_));
     }
 }
 
-PoolingDescriptor::PoolingDescriptor(
+CudnnPoolingDescriptor::CudnnPoolingDescriptor(
         cudnnPoolingMode_t mode,
         cudnnNanPropagation_t max_pooling_nan_opt,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride)
-    : PoolingDescriptor{} {
+    : CudnnPoolingDescriptor{} {
     size_t ndim = kernel_size.size();
     assert(ndim == pad.size());
     assert(ndim == stride.size());
