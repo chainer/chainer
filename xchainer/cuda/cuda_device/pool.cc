@@ -13,6 +13,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/connection.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
 

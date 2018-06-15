@@ -2,9 +2,9 @@ install(FILES
     cublas.h
     cuda_backend.h
     cuda_device.h
-    cuda_device/conv.h
     cuda_runtime.h
     cudnn.h
+    cudnn_conv.h
     elementwise.cuh
     memory_pool.h
     reduce.cuh
@@ -31,6 +31,7 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cuda_backend.cc
     cuda_runtime.cc
     cudnn.cc
+    cudnn_conv.cc
     memory_pool.cc)
 
 CUDA_ADD_CUBLAS_TO_TARGET(xchainer_cuda)

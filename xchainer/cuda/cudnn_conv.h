@@ -46,8 +46,40 @@ using ConvBwdDataAlgoCacheMap =
 using ConvBwdFilterAlgoCacheMap =
         std::unordered_map<ConvAlgoCacheKey, std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t>, ConvAlgoCacheKeyHash>;
 
-class ConvAlgo {
+class CudnnConv {
 public:
+    Array Conv(
+            Device& device,
+            cudnnHandle_t handle,
+            const Array& x,
+            const Array& w,
+            const nonstd::optional<Array>& b,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all);
+    Array ConvTranspose(
+            Device& device,
+            cudnnHandle_t handle,
+            const Array& x,
+            const Array& w,
+            const nonstd::optional<Array>& b,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& out_size);
+    Array ConvGradWeight(
+            Device& device,
+            cudnnHandle_t handle,
+            Dtype w_dtype,
+            const Shape& w_shape,
+            const Array& x,
+            const Array& gy,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all);
+
+private:
+    void AddBias(cudnnHandle_t handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b);
+
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
             cudnnHandle_t handle,
             const CudnnTensorDescriptor& x_desc,
