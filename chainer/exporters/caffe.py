@@ -115,10 +115,10 @@ class _RetrieveAsCaffeModel(object):
             s += ' ' * (depth * indent)
             s += '}\n'
             return s
-        elif isinstance(layer_params, (int, float)):
-            return '{}: {}\n'.format(name, layer_params)
         elif isinstance(layer_params, bool):
             return '{}: {}\n'.format(name, 'true' if layer_params else 'false')
+        elif isinstance(layer_params, six.integer_types + (float,)):
+            return '{}: {}\n'.format(name, layer_params)
         elif isinstance(layer_params, str):
             return '{}: "{}"\n'.format(name, layer_params)
         elif isinstance(layer_params, list):
