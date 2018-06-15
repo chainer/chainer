@@ -235,7 +235,8 @@ public:
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) = 0;
+            bool cover_all,
+            bool count_include_pad) = 0;
 
     virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() = 0;
 

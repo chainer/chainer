@@ -9,10 +9,14 @@
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/native/col2im.h"
+#include "xchainer/native/elementwise.h"
 #include "xchainer/native/im2col.h"
+#include "xchainer/native/tensor_dot.h"
 #include "xchainer/numeric_limits.h"
+#include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
+#include "xchainer/routines/math.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
@@ -124,6 +128,59 @@ void Mean(const Array& a, const Axes& axis, const Array& out) {
     device.DivideAS(out, xchainer::internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
+void Minimum(const Array& x1, Scalar x2, const Array& out) {
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct Impl {
+            void operator()(int64_t /*i*/, T x1, T& out) { out = x1 < x2 ? x1 : x2; }
+            T x2;
+        };
+        Elementwise<const T, T>(Impl{static_cast<T>(x2)}, x1, out);
+    });
+}
+
+Array GetPoolingWidth(
+        const Shape& shape,
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all,
+        bool count_include_pad,
+        Dtype dtype) {
+    int8_t n = shape.ndim() - 2;
+    assert(n == static_cast<int8_t>(kernel_size.size()));
+    assert(n == static_cast<int8_t>(stride.size()));
+    assert(n == static_cast<int8_t>(pad.size()));
+
+    Array width;
+    for (int64_t i = 0; i < n; ++i) {
+        int64_t d = shape[2 + i];
+        int64_t k = kernel_size[i];
+        int64_t s = stride[i];
+        int64_t p = pad[i];
+
+        int64_t dim = xchainer::internal::GetConvOutDim(d, k, s, p, cover_all);
+        Array starts = Arange(dim, dtype) * s - p;
+        Array ends = starts + k;
+
+        if (!count_include_pad) {
+            starts = Maximum(0, starts);
+            Minimum(ends, d, ends);
+        }
+        assert(starts.shape() == ends.shape());
+        if (i == 0) {
+            width = ends - starts;
+        } else {
+            Shape width_expanded = width.shape();
+            width_expanded.emplace_back(1);
+            Shape w_expanded{1};
+            std::copy(starts.shape().begin(), starts.shape().end(), std::back_inserter(w_expanded));
+            width = TensorDot(width.Reshape(width_expanded), (ends - starts).Reshape(w_expanded), {static_cast<int8_t>(width.ndim())}, {0});
+        }
+    }
+    return width;
+}
+
 }  // namespace
 
 Array NativeDevice::AveragePool(
@@ -131,19 +188,32 @@ Array NativeDevice::AveragePool(
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
+        bool cover_all,
+        bool count_include_pad) {
     // TODO(hvy): Support cover_all.
     if (cover_all) {
         throw NotImplementedError{"Native average pooling does not yet support cover_all."};
     }
+
     Array col = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, cover_all, 0);
 
     // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
     Axes kernel_axes;
     kernel_axes.resize(kernel_size.size());
     std::iota(kernel_axes.begin(), kernel_axes.end(), 2);  // From k_1, up to k_n.
+
     Array out = xchainer::internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
-    Mean(col, kernel_axes, out);
+
+    if (count_include_pad) {
+        Mean(col, kernel_axes, out);
+    } else {
+        Device& device = x.device();
+        device.Sum(col, kernel_axes, out);
+        device.Divide(
+                out,
+                GetPoolingWidth(x.shape(), kernel_size, stride, pad, cover_all, count_include_pad, x.dtype()).BroadcastTo(out.shape()),
+                out);
+    }
     return out;
 }
 
