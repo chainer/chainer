@@ -185,7 +185,7 @@ void CheckBackwardComputation(
         double atol,
         double rtol,
         const GraphId& graph_id) {
-    // Copies the input arrays, so that computed gradients are released on the end of this function.
+    // Copies the input arrays, so that computed gradients are released at the end of this function.
     // This is needed to detect unreleased array bodies using ArrayBodyHook.
     // Copied input arrays are not connected to the original input arrays, but RequireGrad() is configured to match the original.
     std::vector<Array> inputs_copy;

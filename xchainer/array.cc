@@ -89,7 +89,7 @@ ArrayBodyHookScope ::~ArrayBodyHookScope() {
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_{std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)} {
-    if (g_array_body_hook) {
+    if (g_array_body_hook != nullptr) {
         // TODO(niboshi): Make thread-safe
         (*g_array_body_hook)(body_);
     }
