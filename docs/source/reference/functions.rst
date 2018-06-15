@@ -5,7 +5,7 @@ Wrapper Functions
 
 Wrapper functions are backward-able functions (probably differentiable) plain Python functions.
 
-Argument inputs are tuples of input :class:`~chainer.Variable`, such as :class:`~numpy.ndarray` or :class:`~cupy.ndarray` objects. If the input is a :class:`~numpy.ndarray` or a :class:`~cupy.ndarray`, it is automatically wrapped with :class:`~chainer.Variable`.
+Argument inputs are tuples of input :class:`~chainer.Variable`, such as :class:`numpy.ndarray` or :class:`cupy.ndarray` objects. If the input is a :class:`numpy.ndarray` or a :class:`cupy.ndarray`, it is automatically wrapped with :class:`~chainer.Variable`.
 
 Wrapper functions return a :class:`~chainer.Variable` object or a tuple of multiple :class:`~chainer.Variable` objects.
 
@@ -14,7 +14,7 @@ Wrapper functions should not have learnable parameters when used in models and a
 .. note::
    As of v1.5, the concept of parameterized functions are gone, and they are
    replaced by corresponding :class:`~chainer.Link` implementations. They are
-   found in the :mod:`~chainer.links` namespace.
+   found in the :mod:`chainer.links` namespace.
 
 ..
    For contributors that want to update these lists:
