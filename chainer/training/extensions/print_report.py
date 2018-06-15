@@ -24,13 +24,18 @@ class PrintReport(extension.Extension):
     """
 
     def __init__(self, entries, log_report='LogReport', out=sys.stdout):
-        if not hasattr(out, "write") or not hasattr(out, "flush"):
+        if not hasattr(out, "write"):
             raise TypeError(
-                "Output stream should support `write' and `flush' method!")
+                "Output stream should support `write' method!")
 
         self._entries = entries
         self._log_report = log_report
         self._out = out
+
+        if hasattr(out, "flush"):
+            self._flush = lambda: out.flush()
+        else:
+            self._flush = lambda: None
 
         self._log_len = 0  # number of observations already printed
 
@@ -51,7 +56,6 @@ class PrintReport(extension.Extension):
 
         if self._header:
             out.write(self._header)
-            out.flush()
             self._header = None
 
         log_report = self._log_report
@@ -88,4 +92,4 @@ class PrintReport(extension.Extension):
             else:
                 out.write(empty)
         out.write('\n')
-        out.flush()
+        self._flush()
