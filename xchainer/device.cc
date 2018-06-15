@@ -136,7 +136,7 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(
     ggamma_ = std::make_shared<Array>(ggamma);
     gout_ = std::make_shared<Array>(gout);
 
-    return {{std::move(gx), std::move(ggamma), std::move(gbeta)}};
+    return {std::move(gx), std::move(ggamma), std::move(gbeta)};
 }
 
 std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) {
@@ -167,7 +167,7 @@ std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array
 
     Array ggamma2 = r / gamma;
 
-    return {{std::move(gx2), std::move(ggamma2), std::move(ggy2)}};
+    return {std::move(gx2), std::move(ggamma2), std::move(ggy2)};
 }
 
 }  // namespace xchainer
