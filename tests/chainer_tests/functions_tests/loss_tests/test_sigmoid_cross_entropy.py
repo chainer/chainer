@@ -10,7 +10,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer import utils
 
 
 @testing.parameterize(
