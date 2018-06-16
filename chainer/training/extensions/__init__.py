@@ -17,5 +17,3 @@ from chainer.training.extensions.progress_bar import ProgressBar  # NOQA
 from chainer.training.extensions.value_observation import observe_lr  # NOQA
 from chainer.training.extensions.value_observation import observe_value  # NOQA
 from chainer.training.extensions.variable_statistics_plot import VariableStatisticsPlot  # NOQA
-from chainer.training.extensions.warm_up import WarmUp  # NOQA
-from chainer.training.extensions.multistep import Multistep  # NOQA
