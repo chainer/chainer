@@ -41,7 +41,7 @@ class TestCaffeExport(unittest.TestCase):
             def __call__(self, x):
                 h = F.relu(self.l1(x))
                 h = self.b2(h)
-                h = self.l3(h)
+                h = F.leaky_relu(self.l3(h), slope=0.1)
                 return self.l4(h)
 
         assert_export_import_match(Model(), self.x)
