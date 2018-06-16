@@ -35,12 +35,14 @@ class TestCaffeExport(unittest.TestCase):
                 with self.init_scope():
                     self.l1 = L.Convolution2D(None, 1, 1, 1, 0)
                     self.b2 = L.BatchNormalization(1, eps=1e-2)
-                    self.l3 = L.Linear(None, 1)
+                    self.l3 = L.Deconvolution2D(None, 1, 1, 1, 0)
+                    self.l4 = L.Linear(None, 1)
 
             def __call__(self, x):
                 h = F.relu(self.l1(x))
                 h = self.b2(h)
-                return self.l3(h)
+                h = self.l3(h)
+                return self.l4(h)
 
         assert_export_import_match(Model(), self.x)
 
