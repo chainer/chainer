@@ -136,14 +136,11 @@ class BatchNormalization(function_node.FunctionNode):
                 expand_dim = True
                 x = x[:, :, None, None]
 
-            gamma = gamma[expander]
-            beta = beta[expander]
-            W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
-
             y, self.mean, self.var, self.inv_std = (
                 intel64.ideep.batchNormalization.Forward(
                     intel64.ideep.array(x),
-                    intel64.ideep.array(W),
+                    intel64.ideep.array(gamma),
+                    intel64.ideep.array(beta),
                     None,
                     None,
                     self.eps
@@ -304,16 +301,12 @@ class BatchNormalizationGrad(function.Function):
                 x = x[:, :, None, None]
                 gy = gy[:, :, None, None]
 
-            gamma = gamma[expander]
-            beta = numpy.zeros_like(gamma)
-            W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
-
             gx, gW = intel64.ideep.batchNormalization.Backward(
                 intel64.ideep.array(x),
                 intel64.ideep.array(gy),
                 self.mean,
                 self.var,
-                intel64.ideep.array(W),
+                intel64.ideep.array(gamma),
                 self.eps)
 
             ggamma, gbeta = gW[:2]
@@ -485,13 +478,10 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 expand_dim = True
                 x = x[:, :, None, None]
 
-            gamma = gamma[expander]
-            beta = beta[expander]
-            W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
-
             y, = intel64.ideep.batchNormalization.Forward(
                 intel64.ideep.array(x),
-                intel64.ideep.array(W),
+                intel64.ideep.array(gamma),
+                intel64.ideep.array(beta),
                 intel64.ideep.array(mean),
                 intel64.ideep.array(var),
                 self.eps
