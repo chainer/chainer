@@ -289,6 +289,14 @@ class _RetrieveAsCaffeModel(object):
         elif func.label == 'ReLU':
             params['type'] = 'ReLU'
 
+        elif func.label == 'LeakyReLU':
+            relu_param = {'negative_slope': func.slope}
+            params['type'] = 'ReLU'
+            params['relu_param'] = relu_param
+            if net is not None:
+                for k, v in six.iteritems(relu_param):
+                    setattr(layer.relu_param, k, v)
+
         elif func.label == 'Concat':
             axis = func.axis
             concat_param = {'axis': axis}
