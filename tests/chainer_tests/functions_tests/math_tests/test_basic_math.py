@@ -241,7 +241,7 @@ class TestBinaryOp(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'dtype': [numpy.float16, numpy.float64],
 }))
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
