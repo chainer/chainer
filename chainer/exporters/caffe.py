@@ -192,6 +192,7 @@ class _RetrieveAsCaffeModel(object):
                 params['type'] = 'Convolution'
             else:
                 params['type'] = 'Deconvolution'
+                convolution_param['num_output'] = n_in
             params['convolution_param'] = convolution_param
 
             if net is not None:

@@ -175,6 +175,59 @@ class TestConvolution(TestCaffeFunctionBaseMock):
         self.mock.assert_called_once_with(self.inputs[0])
 
 
+class TestDeconvolution(TestCaffeFunctionBaseMock):
+
+    func_name = 'chainer.links.Deconvolution2D.__call__'
+    in_shapes = [(2, 3)]
+    out_shapes = [(2, 3)]
+
+    data = {
+        'layer': [
+            {
+                'name': 'l1',
+                'type': 'Deconvolution',
+                'bottom': ['x'],
+                'top': ['y'],
+                'convolution_param': {
+                    'kernel_size': [2],
+                    'stride': [3],
+                    'pad': [4],
+                    'group': 3,
+                    'bias_term': True,
+                },
+                'blobs': [
+                    {
+                        'num': 6,
+                        'channels': 4,
+                        'data': list(range(96))
+                    },
+                    {
+                        'data': list(range(12))
+                    }
+                ]
+            }
+        ]
+    }
+
+    def test_deconvolution(self):
+        self.init_func()
+        self.assertEqual(len(self.func.layers), 1)
+        f = self.func.l1
+        self.assertIsInstance(f, links.Deconvolution2D)
+        for i in range(3):  # 3 == group
+            in_slice = slice(i * 4, (i + 1) * 4)  # 4 == channels
+            out_slice = slice(i * 2, (i + 1) * 2)  # 2 == num / group
+            w = f.W.data[out_slice, in_slice]
+            numpy.testing.assert_array_equal(
+                w.flatten(), range(i * 32, (i + 1) * 32))
+
+        numpy.testing.assert_array_equal(
+            f.b.data, range(12))
+
+        self.call(['x'], ['y'])
+        self.mock.assert_called_once_with(self.inputs[0])
+
+
 class TestData(TestCaffeFunctionBase):
 
     data = {
