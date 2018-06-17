@@ -12,17 +12,6 @@ def _is_xp(x):
     return isinstance(x, np.ndarray) or isinstance(x, cuda.ndarray)
 
 
-# todo: remove this since no longer used?
-def _debug_print_stats(args):
-    for arg in args:
-        if _is_xp(arg):
-            print('id of array: ', id(arg))
-        elif isinstance(arg, (list, tuple)):
-            _debug_print_stats(arg)
-        else:
-            print('no-arg-func name: ', str(arg))
-
-
 class ScheduleInfo(object):
 
     """A callable wrapper for a function in the static schedule.
@@ -169,9 +158,8 @@ class ArrayInfo(object):
 
     """Array information needed by the scheduler.
 
-    This contains information about one array used in the
-    naive static schedule corresponding to the
-    define-by-run code.
+    This contains information about one array used in the naive static
+    schedule corresponding to the define-by-run code.
 
     """
 
@@ -1167,7 +1155,6 @@ def static_graph(*args, **kwargs):
     as kernel fusion and various memory optimizations are not implemented
     yet. Expect performance to improve as this feature is developed further.
 
-
     Usage:
 
     The user is responsible for ensuring that this decorator is only appied
@@ -1183,7 +1170,6 @@ def static_graph(*args, **kwargs):
     corresponding
     to `B` should not be marked as static. (this requirement might be relaxed
     in the future).
-
 
     In order to maximize backward compatibility with existing code,
     we chose to make
@@ -1222,7 +1208,6 @@ def static_graph(*args, **kwargs):
         supplying the keyword argument ``enable_double_backprop=True``
         to this decorator. Note: this feature has not been tested yet.
 
-
     Notes:
         There are additional optimizations (to reduce memory usage and increase
         performance) that are not yet implemented. When using statc graph
@@ -1249,7 +1234,8 @@ def static_graph(*args, **kwargs):
         tuple is also a variable, list, or tuple.
 
     This decorator can be supplied with the following optional keyword
-    arguments:
+    arguments. Note that since this is still an experimental feature,
+    the API and arguments might change in the future.
 
     Args:
         force_test_define_by_run (bool): If `True`, disable static graph
@@ -1269,17 +1255,18 @@ def static_graph(*args, **kwargs):
             information:
             0: Warnings only. (the default value)
             1: Show only information that is collected during the first
-                iteration and when a new static schedule is created.
+            iteration and when a new static schedule is created.
             2: Detailed debugging information, possibly showing new
-                information every iteration.
+            information every iteration.
 
         enable_double_backprop (bool): If `True`, enable double-backprop.
             The default value is `False` (not enabled).
 
-
     Returns:
         Wrapped ``__call__()`` method with static chain support.
+
     """
+
     force_test_define_by_run = False
     # todo: enable eventually
     minimize_cache_size = False

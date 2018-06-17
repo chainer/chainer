@@ -7,25 +7,57 @@ def static_code(*dec_args, **dec_kwargs):
     """Decorator to mark a function for inclusion in the static schedule.
 
     This decorator is used to mark a function or method to be included
-    in the static schedule. This will only occur if the function is
-    called (directly or deeply) from inside a static chain's `__call__()`
-    method. That is, if a chain's `__call__()` uses the `@static_graph`
-    decorator, then any code that is executed while inside `__call__()`
-    that uses `@static_code` will be included in the corresponding
-    static schedule. Such code will be added to the static schedule in the
-    order that it was called.
+    in a static schedule. The are multiple types of static schedules, such
+    as "forward pass schedule", "backward pass schedule", "double backward
+    pass schedule" etc.. The type of schedule that the decorated function's
+    code is added to will depend on the context in which this decorator
+    is used. For example, the decorated code will be added to the
+    "forward pass schedule" if it is called while executing the define-by-
+    run code of a static subgraph. To inform the framework that a particular
+    portion of define-by-run code corresponds to a static subgraph, the
+    code should be placed inside the `__call__()` method of a chain and
+    then apply the `@static_graph` decorator to the `__call__()` method.
+    We will refer to such a chain as a "static chain."
+    This will cause any functions
+    decorated with `static_code` that are called while inside of `__call__()`
+    to be included in the forward pass static
+    schedule in the same order in which they were executed in the
+    define-by-run code.
 
-    This decorator should be applied to any code that needs to run each
-    iteration. This should ideally only include the code that performs
-    the actual forward and/or backward computations, and not include code
-    for initializaing parameters, checking types, etc.. If the user would
-    like to include any other code in a static chain's `__call__()` method
-    that needs to run every iteration, then it should also use this
-    decorator.
+    Likewise, for any `FunctionNode` instances that are called inside
+    a static chain, any code that is run while inside the `backward()`
+    method that calls a function using this decorator will be added to
+    the corresponding "backward pass schedule."
 
     Usage:
 
-    This decorator can be applied to either a function or a method (typically
+    This decorator should be applied to any code called from a static chain
+    that needs to run each
+    iteration. This should only include the code that performs
+    the actual forward and/or backward computations and not include code
+    for initializing parameters, checking types, etc..
+
+    As long as a chain is marked as static, the framework
+    will automatically wrap any `FunctionNode` instances so that the
+    code inside their `forward()` and `backward()` methods is added to
+    the corresponding forward and backward static schedules, respectively.
+    The user can therefore assume that any built-in Chainer functions and
+    links will already automatically be included in the static schedule.
+    As a result, in most cases, the user will not need to explicitly
+    use this decorator.
+
+    However, there are two cases where the user will need to use this
+    decorator:
+
+    1. Code with side effects that is called from a static chain's define-by-
+    run code must be placed in a function decorated with `@static_code`.
+
+    2. Any user-defined links that contain code other chain Chainer
+    function calls that must run every iteration must place such code
+    in a function decorated with `@static_graph`.
+
+
+    This decorator can be applied to either a function or a method (usually
     of a `FunctionNode`). There are no required arguments, and so a user can
     apply it to "side effect" code to cause an operation to be executed each
     iteration. The more usual use case is where the core framework code
@@ -57,11 +89,12 @@ def static_code(*dec_args, **dec_kwargs):
 
     If the function will return results in one or more arrays, there are
     two options:
-        1. Write the results in-place into preallocated arrays that are
-            supplied in a list in the `outputs` keyword argument.
-        OR
-        2. Dynamically allocate the result array(s) inside the function
-            and return them inside a tuple.
+
+    1. Write the results in-place into preallocated arrays that are
+    supplied in a list in the `outputs` keyword argument.
+
+    2. Dynamically allocate the result array(s) inside the function
+    and return them inside a tuple.
 
     Note: Care must be taken for the case where two schedule functions
     "func_A" and "func_B" operate on the same array `x`. In such cases,
@@ -82,16 +115,17 @@ def static_code(*dec_args, **dec_kwargs):
 
     It is suggested to have the function return any output arrays in-place
     into pre-allocated arrays (1. above) when possible since this provides
-    the most flexability to the scheduler to make various computation speed
-    vs memory usage tradeoffs. For example, this allows the use of a
+    the most flexability to the scheduler to make various tradeoffs
+    between computation efficiency and memory usage.
+    For example, this allows the use of a
     completely static array allocations (no allocations after the first
     iteration), if desired. However, if memory reduction is needed, the
-    scheduler may delete arrays in `inputs` once they are no longer
+    scheduler may delete the arrays in `inputs` once they are no longer
     needed in an iteration and then reallocate them again in the next
     iteration just before the function is called. Note, however, that
-    completely static array allocations if of course not possible if
+    completely static array allocations are of course not possible if
     any of the schedule functions return a tuple of dynamically allocated
-    arrays.
+    arrays, as the existing chainer functions do.
 
     The following optional arguments apply to the wrapped function or method.
 
@@ -107,10 +141,11 @@ def static_code(*dec_args, **dec_kwargs):
             must write its results in-place into these arrays. Any
             output arrays that may be used inside another schedule
             function must appear in this list.
+
     Returns:
         None or a tuple of ndarray: If the function dynamically
-            allocates its output arrays, they must be returned in a tuple
-            of arrays.
+        allocates its output arrays, they must be returned in a tuple
+        of arrays.
 
     """
     func_name = None
@@ -154,10 +189,10 @@ def static_code(*dec_args, **dec_kwargs):
 def static_forward_optimizations(func, inputs):
     """Perform checks needed for creation of a static schedule.
 
-    Check if `func` supports static graph optimizations. If not, try
-    to automatically wrap it to be compatible.
+    Check if `func` supports static graph optimizations. If not,
+    automatically wrap it to be compatible.
 
-    This function should be called from the ``FunctionNode`` apply() method
+    This function is called from the `FunctionNode` apply() method
     in place of the original `func.forward(inputs)` call.
 
     Args:

@@ -1,5 +1,9 @@
-#!/usr/bin/env python
-"""Convnet example using CIFAR10 or CIFAR100 dataset
+"""CIFAR example with static subgraph optimizations.
+
+This is a version of the Chainer CIFAR example that has been modified
+to support the static subgraph optimizations feature. Note that
+the code is mostly unchanged except for the addition of the
+`@static_graph` decorator to the model chain's `__call__()` method.
 
 This code is a custom loop version of train_cifar.py. That is, we train
 models without using the Trainer class in chainer and instead write a

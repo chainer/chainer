@@ -1,4 +1,4 @@
-# Recurrent Net Language Model
+# Recurrent Net Language Model with static subgraph optimization
 
 This is an example of a recurrent net for language modeling.
 The network is trained to predict the word given the preceding word sequence.

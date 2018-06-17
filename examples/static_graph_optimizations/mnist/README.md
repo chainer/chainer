@@ -1,4 +1,4 @@
-# Multi-Layer Perceptron for MNIST Classification
+# Multi-Layer Perceptron for MNIST Classification with static subgraph optimization
 
 This is a minimal example to write a feed-forward net.
 The code consists of three parts: dataset preparation, network and optimizer definition and learning loop.

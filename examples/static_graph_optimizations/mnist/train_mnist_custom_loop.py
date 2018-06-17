@@ -1,5 +1,9 @@
-#!/usr/bin/env python
-"""Fully-connected neural network example using MNIST dataset
+"""MNIST example with static subgraph optimizations.
+
+This is a version of the Chainer MNIST example that has been modified
+to support the static subgraph optimizations feature. Note that
+the code is mostly unchanged except for the addition of the
+`@static_graph` decorator to the model chain's `__call__()` method.
 
 This code is a custom loop version of train_mnist.py. That is, we train
 models without using the Trainer class in chainer and instead write a

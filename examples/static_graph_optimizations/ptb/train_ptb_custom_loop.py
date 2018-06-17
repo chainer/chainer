@@ -1,4 +1,15 @@
-"""Sample script of recurrent neural network language model.
+"""Recurrent neural network language model with static graph optimizations.
+
+This is a modified version of the standard Chainer ptb example that
+includes static subgraph optimizations. It is mostly unchanged
+from the original model that the RNN is unrolled for `bproplen`
+slices inside of a static chain.
+
+This was required because the `LSTM` link used by the ptb example
+is not currently fully compatible with the static subgraph
+optimizations feature. Specifically, it does not yet support
+multiple calls in the same iteration unless it is called from
+inside a single static chain.
 
 This code is ported from the following implementation written in Torch.
 https://github.com/tomsercu/lstm
@@ -56,7 +67,7 @@ class RNNForLMUnrolled(chainer.Chain):
         with self.init_scope():
             self.rnn = RNNForLMSlice(n_vocab, n_units)
 
-    @static_graph(enable_double_backprop=False, verbosity_level=1)
+    @static_graph(verbosity_level=1)
     def __call__(self, words):
         """Perform a forward pass on the supplied list of words.
 
@@ -174,7 +185,7 @@ def main():
                              '(= length of truncated BPTT)')
     parser.add_argument('--epoch', '-e', type=int, default=39,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
+    parser.add_argument('--gpu', '-g', type=int, default=0,
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
@@ -246,7 +257,6 @@ def main():
     iteration = 0
 
     while train_iter.epoch < args.epoch:
-        loss = 0
         iteration += 1
         words = []
         labels = []

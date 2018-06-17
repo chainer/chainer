@@ -1,5 +1,10 @@
-#!/usr/bin/env python
+"""MNIST example with static subgraph optimizations.
 
+This is a version of the Chainer MNIST example that has been modified
+to support the static subgraph optimizations feature. Note that
+the code is mostly unchanged except for the addition of the
+`@static_graph` decorator to the model chain's `__call__()` method.
+"""
 from __future__ import print_function
 
 import argparse
@@ -7,6 +12,8 @@ import argparse
 import chainer
 import chainer.functions as F
 from chainer.graph_optimizations.static_graph import static_graph
+from chainer.graph_optimizations.static_graph_utilities \
+    import static_code
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
@@ -22,9 +29,22 @@ class MLP(chainer.Chain):
             self.l1 = L.Linear(None, n_units)  # n_in -> n_units
             self.l2 = L.Linear(None, n_units)  # n_units -> n_units
             self.l3 = L.Linear(None, n_out)  # n_units -> n_out
+        self.side_effect_counter = 0
 
-    @static_graph(verbosity_level=1)
+    @static_code
+    def example_side_effect(self):
+        # Any code that needs to run each iteration inside the `__call__()`
+        # method should be wrapped inside of a method/function like this
+        # using the `@static_code` decorator.
+        self.side_effect_counter += 1
+        if self.side_effect_counter % 1000 == 0:
+            print("Side effect counter: ", self.side_effect_counter)
+
+    @static_graph
     def __call__(self, x):
+        # Example code with side effects:
+        self.example_side_effect()
+        # Define-by-run code:
         h1 = F.relu(self.l1(x))
         h2 = F.relu(self.l2(h1))
         return self.l3(h2)
