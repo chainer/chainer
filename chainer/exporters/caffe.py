@@ -407,6 +407,7 @@ def export(model, args, directory=None,
         - :func:`~chainer.functions.batch_normalization`
         - :func:`~chainer.functions.local_response_normalization`
         - :func:`~chainer.functions.relu`
+        - :func:`~chainer.functions.leaky_relu`
         - :func:`~chainer.functions.concat`
         - :func:`~chainer.functions.softmax`
         - :func:`~chainer.functions.reshape`
