@@ -10,7 +10,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer import utils
 
 
 @testing.parameterize(
@@ -38,7 +37,6 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
             -1, 1, self.shape).astype(numpy.float32)
 
         self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
-        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data, t_data, use_cudnn='always'):
         x_val = chainer.Variable(x_data)
@@ -175,53 +173,6 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
             self.check_backward_no_reduction(
                 cuda.to_gpu(self.x), cuda.to_gpu(self.t),
                 cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, x_data, t_data, y_grad, gx_grad,
-                              normalize=True, reduce='mean'):
-        # Skip too large case. That requires a long time.
-        if self.shape[0] == 65536:
-            return
-
-        if reduce == 'mean':
-            y_grad = utils.force_array(y_grad.sum())
-
-        def f(x, t):
-            return chainer.functions.sigmoid_cross_entropy(
-                x, t, normalize=normalize, reduce=reduce)
-
-        gradient_check.check_double_backward(
-            f, (x_data, t_data), y_grad, (gx_grad, None),
-            **self.check_double_backward_options)
-
-    def test_double_backward_cpu(self):
-        with chainer.using_config('use_cudnn', 'never'):
-            self.check_double_backward(self.x, self.t, self.gy, self.ggx,
-                                       normalize=self.normalize, reduce='mean')
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        with chainer.using_config('use_cudnn', 'always'):
-            self.check_double_backward(cuda.to_gpu(self.x),
-                                       cuda.to_gpu(self.t),
-                                       cuda.to_gpu(self.gy),
-                                       cuda.to_gpu(self.ggx),
-                                       normalize=self.normalize,
-                                       reduce='mean')
-
-    def test_double_backward_no_reduction_cpu(self):
-        with chainer.using_config('use_cudnn', 'never'):
-            self.check_double_backward(self.x, self.t, self.gy, self.ggx,
-                                       normalize=self.normalize, reduce='no')
-
-    @attr.gpu
-    def test_double_backward_no_reduction_gpu(self):
-        with chainer.using_config('use_cudnn', 'always'):
-            self.check_double_backward(cuda.to_gpu(self.x),
-                                       cuda.to_gpu(self.t),
-                                       cuda.to_gpu(self.gy),
-                                       cuda.to_gpu(self.ggx),
-                                       normalize=self.normalize,
-                                       reduce='no')
 
 
 @testing.parameterize(
