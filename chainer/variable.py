@@ -22,15 +22,15 @@ def _check_grad_type(func, x, gx):
         return
     if not chainer.is_arrays_compatible((gx, x.data)):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
-               (type(x.data), type(gx)))
+               (type(gx), type(x.data)))
         typ = TypeError
     elif gx.dtype != x.data.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
-               (x.data.dtype, gx.dtype))
+               (gx.dtype, x.data.dtype))
         typ = TypeError
     elif gx.shape != x.data.shape:
         msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
-               (x.data.shape, gx.shape))
+               (gx.shape, x.data.shape))
         typ = ValueError
     else:
         return
@@ -160,11 +160,12 @@ class VariableNode(object):
     _old_style_grad_generator = None
 
     def __init__(self, variable, name, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs,
-            grad='unexpected keyword argument "grad": '
-                 'pass the gradient to Variable instead'
-        )
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                grad='unexpected keyword argument "grad": '
+                     'pass the gradient to Variable instead'
+            )
         self._variable = weakref.ref(variable)
         self.name = name
         self._requires_grad = variable.requires_grad
@@ -467,14 +468,10 @@ class Variable(object):
     """  # NOQA
 
     def __init__(self, data=None, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, volatile='volatile argument is not supported anymore. '
+        name, grad, requires_grad = argument.parse_kwargs(
+            kwargs, ('name', None), ('grad', None), ('requires_grad', True),
+            volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
-        name, grad, requires_grad \
-            = argument.parse_kwargs(
-                kwargs, ('name', None), ('grad', None),
-                ('requires_grad', True))
-
         if (data is not None and
                 not isinstance(data, chainer.get_array_types())):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
@@ -780,9 +777,11 @@ Actual: {0}'''.format(type(data))
             if isinstance(data, cuda.ndarray):
                 # cupy.ndarray to numpy.ndarray
                 data = data.get()
-            if (isinstance(data, numpy.ndarray) and
-                    intel64.inputs_all_ready((data,))):
-                # numpy.ndarray to ideep.mdarray
+            if (isinstance(data, numpy.ndarray) and data.ndim in (1, 2, 4)):
+                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
+                # Currently iDeep only supports (1, 2, 4)-dim arrays.
+                # Note that array returned from `ideep.array` may not be an
+                # iDeep mdarray, e.g., when the dtype is not float32.
                 data = intel64.ideep.array(
                     data, itype=intel64.ideep.wgt_array)
             self._data = [data]
