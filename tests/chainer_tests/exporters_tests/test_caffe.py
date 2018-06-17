@@ -14,10 +14,12 @@ from chainer import testing
 #     {'layer': 'LinearFunction'},
 #     {'layer': 'Reshape'},
 #     {'layer': 'Convolution2DFunction'},
+#     {'layer': 'Deconvolution2DFunction'},
 #     {'layer': 'AveragePooling2D'},
 #     {'layer': 'MaxPooling2D'},
 #     {'layer': 'BatchNormalization'},
 #     {'layer': 'ReLU'},
+#     {'layer': 'LeakyReLU'},
 #     {'layer': 'Softmax'},
 #     {'layer': 'Add'},
 # ])
@@ -73,6 +75,13 @@ class TestCaffeExport(unittest.TestCase):
         class Link(chainer.Chain):
             def __call__(self, x):
                 return F.max_pooling_2d(x, 1, 1, 0)
+
+        assert_export_import_match(Link(), self.x)
+
+    def test_LeakyReLU(self):
+        class Link(chainer.Chain):
+            def __call__(self, x):
+                return F.leaky_relu(x, slope=0.1)
 
         assert_export_import_match(Link(), self.x)
 
