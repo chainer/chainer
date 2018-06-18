@@ -151,6 +151,10 @@ public:
 
     std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 
+    Array FixedBatchNorm(
+            const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis)
+            override;
+
 protected:
     CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
 
