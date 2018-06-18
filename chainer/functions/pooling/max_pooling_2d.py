@@ -368,7 +368,7 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
         ~chainer.Variable or tuple:
             When ``return_indices`` is ``False`` (default), returns the output
             variable.
-            When ``True``, returnes the tuple of the output variable and
+            When ``True``, returns the tuple of the output variable and
             pooling indices (`ndarray`). Pooling indices will be on the same
             device as the input.
 
