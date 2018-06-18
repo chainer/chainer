@@ -7,7 +7,6 @@ from chainer.functions.math import clip
 from chainer.functions.math import exponential
 from chainer.functions.math import sign
 from chainer.functions.math import sqrt
-import cupy
 import numpy
 
 
@@ -87,7 +86,7 @@ class Laplace(distribution.Distribution):
 
     def sample_n(self, n):
         if self._is_gpu:
-            eps = cupy.random.laplace(
+            eps = cuda.cupy.random.laplace(
                 size=(n,) + self.loc.shape).astype(numpy.float32)
         else:
             eps = numpy.random.laplace(
