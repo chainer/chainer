@@ -1311,6 +1311,30 @@ class TestMatMul(unittest.TestCase):
             cuda.to_gpu(self.ggx), cuda.to_gpu(self.ggy))
 
 
+@testing.parameterize(
+    {'x_shape': (), 'y_shape': ()},
+    {'x_shape': (3, 2), 'y_shape': ()},
+    {'x_shape': (), 'y_shape': (2, 4)},
+    {'x_shape': (2, 3), 'y_shape': (2, 3)},
+    {'x_shape': (2,), 'y_shape': (1,)},
+)
+@unittest.skipUnless(sys.version_info >= (3, 5),
+                     'Only for Python3.5 or higher')
+class TestMatMulInvalidShape(unittest.TestCase):
+
+    dtype = numpy.float32
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
+        self.y = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+
+    def test_invalid_type(self):
+        x = chainer.Variable(self.x)
+        y = chainer.Variable(self.y)
+        with self.assertRaises(type_check.InvalidType):
+            x @ y
+
+
 class TestNotSupportOperation(unittest.TestCase):
 
     def setUp(self):
