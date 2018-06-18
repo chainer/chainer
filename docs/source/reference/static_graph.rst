@@ -5,25 +5,25 @@ Static Subgraph Optimizations (Static Define-By-Run)
 
 
 .. note::
-   This is an experimental feature and so the API might change in the future as it is developed.
-            
+ This is an experimental feature and so the API might change in the future as it is developed.
+ 
 Introduction
 ------------
 
-Existing deep learning frameworks can roughly be classified as either a "static graph" or "dynamic graph" framework. In a static graph framework, which we also call "define-and-run", the computation graph is definied before the model is run. This implies that the same neural network model will be used each iteration without modifications, hence the name "static." This allows various graph optimizations to potentially be performed to improve the runtime performance and/or reduce memory usage. The optimized code for the computation graph is then used when the model is run.
+Existing deep learning frameworks can roughly be classified as either a "static graph" or "dynamic graph" framework. In a static graph framework, which we also call "define-and-run", the computation graph is defined before the model is run. This implies that the same neural network model will be used each iteration without modifications, hence the name "static." This allows various graph optimizations to potentially be performed to improve the runtime performance and/or reduce memory usage. The optimized code for the computation graph is then used when the model is run.
 
-However, in a "dynamic graph" (also called "define-by-run") framework such as Chainer, the computatin graph is not defined before the model is run. Rather, it is constructed incrementally and automatically by the framework as the computations of the forward pass are executed. That is, the user writes code to perform the computations of the forward pass in terms of Chainer functions (which have an API similar to an array libaray like NumPy). Users may also find it more natural to simply the write code that implements the forward computations, rather than having to define a computation graph beforehand. As these functions execute, the computation graph is incrementally built so that it will be available after the final function in the forward pass has finished executing. This has some advantages, such as allowing easier debugging compared to a static graph framework, since the user can step through the computations of the forward pass in a debugger. Note that in a static graph framework, debugging might not be so straightforward if graph optimizations are performed before running the model. Define-by-run also provides flexability to include control flow operations so that a different or modified graph can be constructed each iteration. However, this flexability also tends to make dynamic graph frameworks slower than static graph framworks. For example, in Chainer there is overhead involved in dynamically constructing the graph each iteration, since it involves creating many objects (each function call creates a new `FunctionNode` object as well as creating new `Variable` and array memory allocation for each output of the function), and traversing the backward graph during training. Further, we cannot perform some optimizations such as fusion of operations and in-place operations.
+However, in a "dynamic graph" (also called "define-by-run") framework such as Chainer, the computation graph is not defined before the model is run. Rather, it is constructed incrementally and automatically by the framework as the computations of the forward pass are executed. That is, the user writes code to perform the computations of the forward pass in terms of Chainer functions, which have an API similar to an array library like NumPy. Users may also find it more natural to simply the write code that implements the forward computations, rather than having to define a computation graph beforehand. As these functions execute, the computation graph is incrementally built so that it will be available after the last function in the forward pass has been called. This has some advantages, such as allowing easier debugging compared to a static graph framework, since the user can step through the computations of the forward pass in a debugger. Note that in a static graph framework, debugging might not be so straightforward if graph optimizations are performed before running the model. Define-by-run also provides the flexibility to include control flow operations so that a modified or even completely different graph can be constructed each iteration. Unfortunately, this flexibility also tends to make dynamic graph frameworks slower than static graph frameworks. For example, in Chainer there is a performance penalty involved in dynamically constructing the graph each iteration, since it involves creating many objects (each function call creates a new `FunctionNode` object as well as creating new `Variable` and array memory allocation for each output of the function). There are also various dynamic type checks and computation graph traversal that need to be performed, adding to the runtime overhead. Further, we cannot perform some optimizations such as fusion of operations and in-place operations.
 
-Static subgraph optimizations (Static define by run) feature
+Static subgraph optimizations feature
 -------------------------------------------------------------
 
-This feature is motivated by the observation that typical deep neural networks correspond to a static computation graph and that even the networks that correspond to a dynamic graph tend to be mostly static. By "mostly static", we mean that the ratio of the total number of function nodes in the graph divided by the number of largest static subgraphs is relatively high. Thus, although define-by-run provides the flexibility to create a completely different computation graph each iteration, it seems that the models used in practice are mostly static. We think define-by-run provides other benefits, though, such as supporting more intuitive coding and easier debugging compared to the define-and-run style. We would therefore like to keep the define-by-run coding style while improving its runtime performance for the typical case when large parts of the model are actually static.
+This feature is motivated by the observation that typical deep neural networks correspond to a static computation graph and that even the networks that correspond to a dynamic graph tend to be mostly static. By "mostly static", we mean that the ratio of the total number of function nodes in the graph to the number of largest static subgraphs is relatively high. So, although define-by-run provides the flexibility to create a completely different computation graph each iteration, it seems that the models used in practice are mostly static. We think define-by-run still provides other benefits, though, such as supporting more intuitive coding and easier debugging compared to the define-and-run style. We would therefore like to keep the define-by-run coding style while improving its runtime performance for the typical case where the model is largely static.
 
-The solution proposed in this feature is to let the user annotate the largest static subgraphs in their model so that the framework can then automatically replace the define-by-run code of these static subgraphs with performance-optimized code. The define-by-run code will still execute during the first iteration. However, as this code executes, a trace of the needed computations is also collected so that optimized static schedules can be generated for the static subgraphs. Then, starting from the second iteration, this optimized code will automatically be run in place of of the original define-by-run code. Note that in the common case in which the whole model is static, the user only needs to add a single "static graph" annotation and their code will then run with the performance of a static graph framework, while still supporting the define-by-run coding style and corresponding ease of debugging during the first iteration.
+The solution proposed by this feature is to let the user annotate the largest static subgraphs in their model so that the framework can then automatically replace the define-by-run code of these static subgraphs with performance-optimized code. The define-by-run code will still execute during the first iteration. However, as this code executes, a trace of the needed computations is also collected so that optimized static schedules can be generated for the static subgraphs. Then, starting from the second iteration, this optimized code will automatically be run in place of of the original define-by-run code. Note that in the common case in which the whole model is static, the user only needs to add a single "static graph" annotation and their code will then run with the performance of a static graph framework, while still supporting the define-by-run coding style.
 
-The benefit of annotating the static subgraphs in the model is that it allows the define-by-run code to be replaced with an optimized static schedule, which can then potentially support a user-controlable tradeoff between runtime performance and memory usage. This is possible because having the full computation graph available enables various optimizations that cannot safely or automatically be performed in define-by-run. Examples (which we have not implemented but might consider in the future) include sub-linear memory usage [1], exploiting graph parallelism, operator fustion, and in-place optimizations.
+The benefit of annotating the static subgraphs in the model is that it allows the define-by-run code to be replaced with an optimized static schedule, which can then potentially support a user-controllable trade-off between runtime performance and memory usage. This is possible because having the full computation graph available enables various optimizations that cannot safely or automatically be performed in define-by-run. Examples (which we have not implemented but might consider in the future) include sub-linear memory usage [1], exploiting graph parallelism, operator fusion, and in-place optimizations.
 
-Although various graph-based optimizations are possible in a future version, the current implementation achieves its speedups by retaining only the code that is actually needed to compute the forward pass, backward pass, and so on. This allows us to remove most of the Python interpreter overhead because the Python code that performs dynamic operations such as allocating `Function` and `Variable` objects, checking types, and traversing the backward graph is not included in the optimized static schedule code. Although the static schedule code is currently still written in Python, in the future, we might consider implementing it in native code such as Cython/C/C++ to further improve performance while still being invisible to the user. In that case, it could be interesting to consider keeping the Chainer framework implemented in pure Python, with only the static graph optimizations module potentially using a native implementation. If our assumption that the models used in practice are mostly static continues to hold, then it could be interesting to see if such an architecture might even be able to approach the performance of a full native implementation. A key assumption motivating this feature is that the main performance bottlenecks occur inside the largest static subgraphs. So, if we can optimize these static subgraphs, it might be fine for any remaining framework code to be implemented in pure Python. Although such Python code would be slow, it might still have negligible runtime overhead. Such a software architecture would also have the benefit of providing a simple and clean separation between Python and native code in the framework. Perhaps this could also provide a more maintainable codebase as an alternative to having many Python wrappers around native implementations scattered around the framework codebase.
+Although various graph-based optimizations are possible in a future version, the current implementation achieves its speedup by retaining only the code that is actually needed to compute the forward pass, backward pass, and so on. This allows us to remove most of the Python interpreter overhead because the Python code that performs dynamic operations such as allocating `Function` and `Variable` objects, checking types, and traversing the backward graph is not included in the optimized static schedule code. Although the static schedule code is currently still written in Python, in the future, we could consider implementing it in native code such as Cython/C/C++ to further improve performance while still being invisible to the user. In that case, it could be interesting to consider keeping the core framework implemented in pure Python, with only the static graph optimizations module potentially using a native implementation. If our assumption that the models used in practice are mostly static continues to hold, then it could be interesting to see if such an architecture might even be able to approach the performance of a full native implementation. A key assumption motivating this feature is that the main performance bottlenecks occur inside the largest static subgraphs. So, if we can optimize these static subgraphs, it might be fine for any remaining framework code to be implemented in pure Python. Although such Python code would be slow, it might have negligible runtime overhead. Such a software architecture would also have the benefit of providing a simple and clean separation between Python and native code in the framework. Perhaps this could also provide a more maintainable codebase as an alternative to having many Python wrappers around native implementations scattered around the framework codebase.
 
 Usage
 -----
@@ -37,7 +37,7 @@ The first step is to import the necessary packages:
    :lines: 14-16
    :caption: train_mnist.py
 
-Since the neural network model `MLP` corresponds to a static graph, we can annotate it as a static graph by using the `@static_graph` decorator on the chain's ``__call__()`` method. This let's the framework know that that the define-by-run code of the chain always creates the same graph (that is, it always performs the same sequence of computations) each time it is called. We will refer to such a chain as a "static chain" in the documentation. 
+Since the neural network model `MLP` corresponds to a static graph, we can annotate it as a static graph by using the `@static_graph` decorator on the chain's ``__call__()`` method. This lets the framework know that that the define-by-run code of the chain always creates the same graph (that is, it always performs the same sequence of computations) each time it is called. We will refer to such a chain as a **static chain** in the documentation. 
 
 .. literalinclude:: ../../../examples/static_graph_optimizations/mnist/train_mnist.py
    :language: python
@@ -45,14 +45,14 @@ Since the neural network model `MLP` corresponds to a static graph, we can annot
    :caption: train_mnist.py
 
 .. note::
-   If your model's define-by-run code has any control flow operations that could cause it to call different Chainer functions/links each time it is called, then you cannot use this decorator.
+   If your model's define-by-run code has any control flow operations that could cause it to potentially call different Chainer functions/links each time it is called, then you cannot use this decorator.
 
 .. note::
    There are currently some restrictions on how variables can be passed into a static chain's ``__call__()`` method. Refer to the documentation of `@static_graph` for details.
 
-Recall that the define-by-run code of a static chain's ``__call__()`` method only actually runs during the first iteration and is then replaced by optimized static schedule code. The current implementation only knows how to do this for calls to Chainer functions and links. Any other code that the users puts in ``__call__()`` will only ever get called once by default, since the define-by-run code is only executed during the first iteration! In order to make sure such "side effect" code actually executes each iteration, we need to put it inside a function or method decorated by :meth:`static_code()` as shown in the chain above for the :meth:`example_side_effect()` method.
+Recall that the define-by-run code of a static chain's ``__call__()`` method only actually runs during the first iteration and is then replaced by optimized static schedule code. The current implementation only knows how to do this auto-replacement for calls to Chainer functions and links. Any other code that the user puts in ``__call__()`` will only ever get called once by default, since the define-by-run code is only executed during the first iteration! In order to make sure such "side effect" code actually gets called each iteration, we need to put it inside a function or method decorated by :meth:`static_code()` as shown in the chain above for the :meth:`example_side_effect()` method.
 
-In this example, we only need to use `@static_graph` on the model chain, since the model is static. However, in general dynamic graphs, each of the largest static subgraphs (which should each be written as a chain) should also use `@static_graph`.
+In this example, we only need to use `@static_graph` on the model chain, since the whole model is static. However, in more general dynamic models, each of the largest static subgraphs (which should each be written as a chain) should also use `@static_graph`.
 
 .. note::
    Nested application of `@static_graph` is not allowed. That is, if a `@static_graph`-decorated chain calls another chains, only the outermost chain should use the decorator. This restriction might be lifted in a future version.
@@ -76,19 +76,19 @@ such statically-allocated intermediate results could get overwritten, which woul
 result in the wrong values being used during the backward pass.
 
 Recall that starting from the second iteration, a static chain will 
-automatically switch from define-by-run to using a static schedule, if possible. It does this using the schedules that were created from the define-by-run code during the first iteration. These can be considered "cached" schedules, and there will be one cached schedule for each time the define-by-run code was executed for a particular combination of input variable type signatures.
+automatically switch from define-by-run to running a static schedule, if possible. It does this using the schedules that were created from the define-by-run code during the first iteration. These can be considered "cached" schedules, and there will be one cached schedule for each time the define-by-run code was executed for a particular combination of input variable type signatures.
 
-Note that in some cases, even after the first iteration, it may not be possible to use a static schedule and the define-by-run code will need to be called again. This can happen for example if the input variable types to a static chain change. It can also happen if a static chain is called more times in a single iteration than the number of cached schedules that are available. For example, if a static chain
+Note that in some cases, even after the first iteration, it might not be possible to use a static schedule and the define-by-run code will need to be called. This can happen for example if the input variable types to a static chain change. It can also happen if a static chain is called more times in a single iteration than the number of cached schedules that are currently available. For example, if a static chain
 is called 4 times during the first iteration and 7 times during the second iteration (such as in an RNN time slice that is unrolled a variable number of times each iteration),
 then only the first 4 calls of the chain during the second iteration will use
 static schedules and the remaining 3 calls will use define-by-run. Now, 7
-cached static schedules will be avaialable and so define-by-run will only
+cached static schedules will be available and so define-by-run will only
 be used again if the chain is called more than 7 times during the same iteration. Similarly, if the mini-batch size changes at any point, the define-by-run code will
 need to be executed again if there are no available cached schedules. 
 
-Note that since a distinct static schedule must be used for each call of a static chain during the same iteration, it is therefore necessary that a static chain somehow be informed when each iteration has completed so that it will know when it is safe to start reusing cached schedules again. 
+Note that since a distinct static schedule must be used for each call of a static chain during the same iteration, it is therefore necessary that a static chain somehow be informed when a given iteration has completed so that it will know when it is safe to start reusing its cached schedules again. 
 When training mode is active, we currently use the first call of ``backward()`` on the 
-computation graph that includes the static chain to signal to the static chain that 
+computation graph to signal to the static chain that 
 the forward pass has completed. The user may also manually inform the chain that
 the iteration has completed by calling ``end_forward()`` on the chain's schedule
 manager. A static chain will have a ``schedule_manager`` attribute once it has
@@ -97,25 +97,25 @@ been called. So, if the chain is called ``my_chain``, you can call
 has completed. Since we make no assumptions regarding the number of times that
 a static chain may be called in a given iteration, we cannot assume that the
 static chain will continue to be called the same number of times after the 
-first iteration. It is therefore necessary to allways call ``end_forward()`` at
+first iteration. It is therefore necessary to allays call ``end_forward()`` at
 the end of the iteration if you do not wish to call ``backward()``.
 
 When evaluation mode is 
 active or if backrop mode is off, it is not necessary to retain separate internal
 arrays, since backpropagation will not be used. Thus, in this case the chain
 can simply begin using a static schedule the second time it is called even
-when it is called multiple times in the same iteration.
+when it is called multiple times in the same iteration. That is, the same cached schedule may be called multiple times in a given iteration.
 
 Effects on model debugging
 --------------------------
 
-Note that since the code in the static chain's ``__call__()`` only runs during the first iteration, you will only be able to debug this code as define-by-run during the first iteration. It is assumed that if the chain is actually is static, any problems in its define-by-run code should be apparant during the first iteration and it should not be (as) necessary to debug this code in later iterations. However, this feature does provide some functionality to help with debugging. For example, it is possible to obtain and inspect the current static schedules. It is also possible to directly step through the code of the static schedule if you wish (by debugging the ``forward()`` method of :class:`StaticScheduleFunction` in :mod:`~chainer.static_graph`).
+Note that since the code in the static chain's ``__call__()`` only runs during the first iteration, you will only be able to debug this code as define-by-run during the first iteration. It is assumed that if the chain is actually is static, any problems in its define-by-run code should be apparent during the first iteration and it should not be (as) necessary to debug this code in later iterations. However, this feature does provide some functionality to help with debugging. For example, it is possible to obtain and inspect the current static schedules. It is also possible to directly step through the code of the static schedule if you wish (by debugging the ``forward()`` method of :class:`StaticScheduleFunction` in :mod:`~chainer.static_graph`).
 
 
 Limitations and future work
 ---------------------------
 
-- Optimization switches to let the user select the tradeoff between runtime performance and reduced memory usage: The current implementation acheives its speedups mainly by reducing the amount of Python code that needs to run, but does not yet implement advanced optimizations for memory usage or runtime performance. Ideally, the user should be able to adjust performance tunning parameters to control the tradeoff between memory consumption and runtime performance.
+- Optimization switches to let the user select the trade-off between runtime performance and memory usage: The current implementation achieves its speedups mainly by reducing the amount of Python code that needs to run, but does not yet implement advanced optimizations for memory usage or runtime performance. Ideally, the user should be able to adjust performance tuning parameters to control the trade-off between memory consumption and runtime performance.
 
 - Incompatibility with GRU and LSTM links: This feature requires that all input variables to a chain need to explicitly appear in the arguments to the chain's ``__call__()`` method. However, the GRU and LSTM links with state maintain variable attributes of the chain for the RNN state variables. Design changes to support such links and/or modifications to these links are being considered. These links may still be used with the current implementation, as long as the corresponding RNN is unrolled inside of a static chain. For an example of this, see the modified ptb example at `chainer.examples.static_graph_optimizations.ptb`
 
@@ -123,9 +123,9 @@ Limitations and future work
 
 - Advanced graph optimizations: Advanced optimizations such as fusion of operations is not yet implemented.
 
-- Constraints on arguments to a static chain: The current version requires that all input variables used insde `__call__()` of a static chain must either appear in the arguments of this method or be defined in the define-by-run code. Furthermore, any variables that appear in the arguments list must appear by themeselves or be contained inside a list or tuple. Arbitrary levels of nesting are allowed.
+- Constraints on arguments to a static chain: The current version requires that all input variables used inside `__call__()` of a static chain must either appear in the arguments of this method or be defined in the define-by-run code. Furthermore, any variables that appear in the arguments list must appear by themselves or be contained inside a list or tuple. Arbitrary levels of nesting are allowed.
 
-- Model export: In the case where the complete computation graph for the model is static, it should be possible in principle to export the static schedule in a format that can be run on other platforms and languages. One of the other original motivations for this feature was to support exporting static Chainer models to run on C/C++ and/or optimize the static schedule execution code in Cython/C/C++. However, it seems that ONNX is now fullfilling this purpose and there is a separate ONNX exporter already in development for Chainer. Perhaps these two features can be merged at some point in the future.
+- Model export: In the case where the complete computation graph for the model is static, it should be possible in principle to export the static schedule in a format that can be run on other platforms and languages. One of the other original motivations for this feature was to support exporting static Chainer models to run on C/C++ and/or optimize the static schedule execution code in Cython/C/C++. However, it seems that ONNX is now fulfilling this purpose and there is a separate ONNX exporter already in development for Chainer. Perhaps these two features can be merged at some point in the future.
 
 - Double-backward support: This feature was designed to support double-backward (gradient of gradient) but it has not been tested.
 
@@ -141,7 +141,7 @@ Most functions and links will not need to be modified at all in order to support
 
 An existing function (that is, a subclass of `FunctionNode`) can be modified to support static graph optimizations as follows. The basic idea is to wrap any code that needs to be called each iteration inside a method that is decorated with ``@static_code``. Note that code that should only run once, such as initializing parameters, should not be wrapped.
 
-It is also necesary to set the ``_supports_static_optimizations = True`` class attribute. Note that this attribute is ``False`` by default in ``FunctionNode``.
+It is also necessary to set the ``_supports_static_optimizations = True`` class attribute. Note that this attribute is ``False`` by default in ``FunctionNode``.
 
 
 Since the function is part of a static graph, any parameters and output arrays should ideally be statically allocated during the first iteration (while the define-by-run code is executing) and then reused starting from the second iteration. The ``@static_code``-decorated functions that are called each iteration will perform the various deep learning computations, writing results in-place into these static arrays. Since the results are written in-place, there is no need for an `@static_code`-decorated function to explicitly return a result. Rather, any results arrays should be passed as inputs along with any other input arguments to the function. However, it also is allowed to return dynamically allocated arrays so that existing Chainer functions can be easily supported.
@@ -149,7 +149,8 @@ The following code shows the typical pattern for performing the forward computat
 
     @static_code
     def static_forward(self, inputs, outputs):
-        # This function will get included in the static
+        # This function will get
+ included in the static
         # schedule and called each iteration.
         # Any input arrays must be passed in a list
         # to the `inputs` keyword argument.
@@ -157,7 +158,7 @@ The following code shows the typical pattern for performing the forward computat
         # Any output arrays must be passed in a list
         # to the `outputs` keyword argument, and must
         # have already been initialized to the required
-        # shape. Results are written inplace into output
+        # shape. Results are written in-place into output
         # arrays.
         y = outputs[0]
 
@@ -195,11 +196,6 @@ Most existing links will work as-is and do not need to be modified. However, if 
 
 If a link performs different computations depending on the training mode but is otherwise static, then it does not need to be modified.
 
-Viewing the static schedule
-----------------------------
-
-TODO
-
 Reference
 ---------
 
@@ -210,3 +206,4 @@ Reference
    :nosignatures:
 
    chainer.graph_optimizations.static_graph.static_graph
+
