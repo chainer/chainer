@@ -193,7 +193,7 @@ class MultiAdd(function_node.FunctionNode):
             return xs
         y = None
         if intel64.should_use_ideep('>=auto'):
-            bxs = numpy.broadcast_arrays(xs)
+            bxs = numpy.broadcast_arrays(*xs)
             if intel64.inputs_all_ready(bxs):
                 y = intel64.ideep.multi_add(bxs)
         if y is None:
