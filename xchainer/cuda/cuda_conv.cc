@@ -1,4 +1,4 @@
-#include "xchainer/cuda/cudnn_conv.h"
+#include "xchainer/cuda/cuda_conv.h"
 
 #include <algorithm>
 #include <cassert>
@@ -49,7 +49,7 @@ void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array
 
 namespace internal {
 
-std::size_t CudnnConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) const {
+std::size_t CudaConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) const {
     std::size_t seed = 0;
     HashCombine(seed, std::hash<int8_t>()(key.x_shape.ndim()));
     for (int64_t v : key.x_shape) {
@@ -76,7 +76,7 @@ std::size_t CudnnConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) con
     return seed;
 }
 
-void CudnnConv::AddBias(cudnnHandle_t handle, const internal::CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
+void CudaConv::AddBias(cudnnHandle_t handle, const internal::CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
     assert(&b.device() == &y.device());
     assert(b.dtype() == y.dtype());
 
@@ -102,7 +102,7 @@ void CudnnConv::AddBias(cudnnHandle_t handle, const internal::CudnnTensorDescrip
             xchainer::internal::GetRawOffsetData<void>(y)));
 }
 
-std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnConv::FindConvolutionForwardAlgorithm(
+std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlgorithm(
         cudnnHandle_t handle,
         const CudnnTensorDescriptor& x_desc,
         const Array& x,
@@ -145,7 +145,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudnnConv::FindConvolutionForwardAl
     return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
 
-std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnConv::FindConvolutionBackwardDataAlgorithm(
+std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwardDataAlgorithm(
         cudnnHandle_t handle,
         const CudnnFilterDescriptor& filter_desc,
         const Array& w,
@@ -188,7 +188,7 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudnnConv::FindConvolutionBackw
     return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
 
-std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudnnConv::FindConvolutionBackwardFilterAlgorithm(
+std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBackwardFilterAlgorithm(
         cudnnHandle_t handle,
         const CudnnTensorDescriptor& x_desc,
         const Array& x,
@@ -232,7 +232,7 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudnnConv::FindConvolutionBac
 }
 
 // TODO(sonots): Support tensor core
-Array CudnnConv::Conv(
+Array CudaConv::Conv(
         Device& device,
         cudnnHandle_t handle,
         const Array& x,
@@ -315,7 +315,7 @@ Array CudnnConv::Conv(
     return y;
 }
 
-Array CudnnConv::ConvTranspose(
+Array CudaConv::ConvTranspose(
         Device& device,
         cudnnHandle_t handle,
         const Array& x,
@@ -394,7 +394,7 @@ Array CudnnConv::ConvTranspose(
     return y;
 }
 
-Array CudnnConv::ConvGradWeight(
+Array CudaConv::ConvGradWeight(
         Device& device,
         cudnnHandle_t handle,
         Dtype w_dtype,

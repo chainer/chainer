@@ -18,7 +18,7 @@ namespace cuda {
 
 namespace internal {
 
-class CudnnConv {
+class CudaConv {
 public:
     Array Conv(
             Device& device,
