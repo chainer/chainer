@@ -88,6 +88,7 @@ Array manipulations
    chainer.functions.concat
    chainer.functions.copy
    chainer.functions.depth2space
+   chainer.functions.diagonal
    chainer.functions.dstack
    chainer.functions.expand_dims
    chainer.functions.flatten
