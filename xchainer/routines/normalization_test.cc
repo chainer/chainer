@@ -210,6 +210,37 @@ TEST_P(NormalizationTest, BatchNormDoubleBackward) {
             1e-2);
 }
 
+TEST_P(NormalizationTest, FixedBatchNorm) {
+    using T = float;
+
+    Shape x_shape{3, 4, 2, 1};
+    Shape reduced_shape{4, 2, 1};
+    Scalar eps{2e-5f};
+    Scalar decay{0.9f};
+
+    // Input and expected data are the same as BatchNorm test.
+    Array x = testing::BuildArray(x_shape).WithData<T>({0.6742742, 0.8028925,  0.28383577, 0.8412501,  0.8006508,  0.32548666,
+                                                        0.4981232, 0.2899665,  0.8781784,  0.09848342, 0.56066823, 0.46877825,
+                                                        0.5734097, 0.46068498, 0.02365979, 0.40318793, 0.61877257, 0.9073324,
+                                                        0.817619,  0.9549834,  0.43688482, 0.67947686, 0.62297916, 0.36094204});
+    Array gamma = testing::BuildArray(reduced_shape)
+                          .WithData<T>({0.67531216, 0.38460097, 0.3139644, 0.41022405, 0.3633898, 0.07180618, 0.4424598, 0.63477284});
+    Array beta = testing::BuildArray(reduced_shape)
+                         .WithData<T>({0.7327423, 0.6883794, 0.11482884, 0.4891287, 0.17816886, 0.26629093, 0.3904204, 0.63719493});
+    Array mean = testing::BuildArray(reduced_shape)
+                         .WithData<T>({0.27891612, 0.83984816, 0.20299992, 0.3024816, 0.59901035, 0.9280579, 0.07075989, 0.31253654});
+    Array var = testing::BuildArray(reduced_shape)
+                        .WithData<T>({0.8258983, 0.35525382, 0.01103283, 0.843107, 0.09379472, 0., 0.6574457, 0.6707562});
+    Array out = FixedBatchNorm(x, gamma, beta, mean, var, eps);
+
+    Array e_out = testing::BuildArray(x_shape).WithData<T>({0.43345568, 0.9024843,   -0.27429962, 0.6594735,  0.6550931,  0.18604966,
+                                                            0.5901094,  -0.19329488, 1.6671101,   0.14835835, 0.12437291, -0.0761953,
+                                                            0.1049637,  0.25257912,  -0.22290352, 1.3381515,  0.0976615,  1.0142955,
+                                                            0.49441338, 0.88410795,  -0.22555014, 0.360244,   0.80405533, 0.7667286});
+
+    testing::ExpectAllClose(e_out, out, 1e-6f, 1e-6f);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         NormalizationTest,

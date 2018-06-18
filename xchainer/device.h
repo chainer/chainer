@@ -267,6 +267,9 @@ public:
         return std::make_unique<GenericBatchNormForwardBackward>();
     }
 
+    virtual Array FixedBatchNorm(
+            const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis);
+
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat
