@@ -371,9 +371,10 @@ class Optimizer(object):
             :meth:`update` method.
         ~Optimizer.epoch: Current epoch. It is incremented by the
             :meth:`new_epoch` method.
-        use_auto_new_epoch: Boolean flag to indicate if :meth:`new_epoch` will
-            be called by the updater. Updater should set this flag to ``True``
-            if it automatically calls :meth:`new_epoch`.
+        ~Optimizer.use_auto_new_epoch: Boolean flag to indicate if
+            :meth:`new_epoch` will be called by the updater. Updater should
+            set this flag to ``True`` if it automatically calls
+            :meth:`new_epoch`.
 
     """
 
