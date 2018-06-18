@@ -99,8 +99,7 @@ Array BatchNorm(
         bb.Define(
                 {x, gamma, beta}, [ fb = std::move(fb), x, gamma = result.gamma, eps, axis = result.sorted_axis ](BackwardContext & bctx) {
                     const Array& gout = bctx.output_grad();
-                    auto ginputs = fb->Backward(x, gamma, gout, eps, axis);
-                    assert(ginputs.size() == 3);
+                    std::array<Array, 3> ginputs = fb->Backward(x, gamma, gout, eps, axis);
                     const Array& gx = ginputs[0];
                     const Array& ggamma = ginputs[1];
                     const Array& gbeta = ginputs[2];
@@ -113,13 +112,12 @@ Array BatchNorm(
 
                     if (bctx.next_required() && (!x_cut.IsConstant() || !gamma_cut.IsConstant() || !gout.IsConstant())) {
                         BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
-                        bb2.Define({x_cut, gamma_cut, gout}, [fb = std::move(fb)](BackwardContext & bctx2) {
+                        bb2.Define({x_cut, gamma_cut, gout}, [fb](BackwardContext& bctx2) {
                             const Array& g2x = bctx2.output_grad(0);
                             const Array& g2gamma = bctx2.output_grad(1);
                             const Array& g2beta = bctx2.output_grad(2);
-                            auto ginputs2 = fb->DoubleBackward(g2x, g2gamma, g2beta);
+                            std::array<Array, 3> ginputs2 = fb->DoubleBackward(g2x, g2gamma, g2beta);
                             // TODO(niboshi): Make it further backproppable
-                            assert(ginputs2.size() == 3);
                             // TODO(niboshi): Assign at once
                             bctx2.input_grad(0) = ginputs2[0];  // ggx
                             bctx2.input_grad(1) = ginputs2[1];  // gggamma
