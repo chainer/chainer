@@ -73,13 +73,11 @@ Array Reciprocal(const Array& x) { return OnesLike(x, x.device()) / x; }
 
 struct ApplyBatchNormResult {
     Array out;
-    Array mean;
-    Array var;
     Array inv_std;
 };
 
-ApplyBatchNormResult ApplyFixedBatchNorm(
-        const Array& x, const Array& gamma, const Array& beta, Array mean, Array var, Scalar eps, const Axes& axis) {
+ApplyBatchNormResult ApplyBatchNorm(
+        const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
 #ifndef NDEBUG
     {
         Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis, true);
@@ -90,24 +88,16 @@ ApplyBatchNormResult ApplyFixedBatchNorm(
         assert(mean.GetTotalSize() == reduced_total_size);
         assert(var.GetTotalSize() == reduced_total_size);
 
+        assert(x.IsConstant());
         assert(mean.IsConstant());
         assert(var.IsConstant());
     }
 #endif  // NDEBUG
-    Array x_const = x.AsConstant();
     Array inv_std = Reciprocal(Sqrt(var + eps));
 
-    Array out = (x_const - mean) * inv_std * gamma.AsConstant() + beta.AsConstant();
+    Array out = (x - mean) * inv_std * gamma.AsConstant() + beta.AsConstant();
 
-    return {std::move(out), std::move(mean), std::move(var), std::move(inv_std)};
-}
-
-ApplyBatchNormResult ApplyBatchNorm(const Array& x, const Array& gamma, const Array& beta, Scalar eps, const Axes& axis) {
-    Array x_const = x.AsConstant();
-    Array x_mean = Mean(x_const, axis, true);
-    Array x_var = Var(x_const, x_mean, axis, true);
-
-    return ApplyFixedBatchNorm(x_const, gamma, beta, std::move(x_mean), std::move(x_var), eps, axis);
+    return {std::move(out), std::move(inv_std)};
 }
 
 }  // namespace
@@ -121,10 +111,12 @@ Array GenericBatchNormForwardBackward::Forward(
         Scalar eps,
         Scalar decay,
         const Axes& axis) {
-    ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, eps, axis);
+    Array x_const = x.AsConstant();
+    Array x_mean = Mean(x_const, axis, true);
+    Array x_var = Var(x_const, x_mean, axis, true);
+
+    ApplyBatchNormResult result = ApplyBatchNorm(x_const, gamma, beta, x_mean, x_var, eps, axis);
     Array& out = result.out;
-    Array& x_mean = result.mean;
-    Array& x_var = result.var;
     Array& x_inv_std = result.inv_std;
 
     Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay)};
@@ -197,7 +189,7 @@ std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array
 
 Array Device::FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
-    ApplyBatchNormResult result = ApplyFixedBatchNorm(x, gamma, beta, mean, var, eps, axis);
+    ApplyBatchNormResult result = ApplyBatchNorm(x.AsConstant(), gamma, beta, mean.AsConstant(), var.AsConstant(), eps, axis);
     return std::move(result.out);
 }
 
