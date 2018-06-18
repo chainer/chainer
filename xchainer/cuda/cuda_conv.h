@@ -1,13 +1,15 @@
 #pragma once
 
-#include <cudnn.h>
-
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
 #include <utility>
 
+#include <cudnn.h>
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
+#include "xchainer/constant.h"
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"

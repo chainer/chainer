@@ -7,6 +7,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
+#include "xchainer/constant.h"
 
 namespace xchainer {
 namespace cuda {
