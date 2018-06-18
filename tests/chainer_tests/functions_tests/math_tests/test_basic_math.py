@@ -3,6 +3,7 @@ import sys
 import unittest
 
 import numpy
+import pytest
 
 import chainer
 from chainer.backends import cuda
@@ -399,16 +400,16 @@ class TestBinaryOpConstant(unittest.TestCase):
         self._test_constant_array_one(
             func, x_data, numpy.array([3.0, 4.0], self.dtype))
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, [3.0, 4.0])
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, (3.0, 4.0))
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, [3.0, 4.0, 5.0])
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, (3.0, 4.0, 5.0))
-        with self.assertRaises(type_check.InvalidType):
+        with pytest.raises(type_check.InvalidType):
             self._test_constant_array_one(
                 func, x_data, numpy.array([3.0, 4.0, 5.0], self.dtype))
 
@@ -426,7 +427,7 @@ class TestBinaryOpConstant(unittest.TestCase):
         self._test_constant_array_gpu_one(
             func, x_data, cuda.to_gpu(numpy.array([3.0, 4.0], self.dtype)))
 
-        with self.assertRaises(exception):
+        with pytest.raises(exception):
             self._test_constant_array_one(
                 func, x_data, cuda.to_gpu(
                     numpy.array([3.0, 4.0, 5.0], self.dtype)))
@@ -1311,6 +1312,30 @@ class TestMatMul(unittest.TestCase):
             cuda.to_gpu(self.ggx), cuda.to_gpu(self.ggy))
 
 
+@testing.parameterize(
+    {'x_shape': (), 'y_shape': ()},
+    {'x_shape': (3, 2), 'y_shape': ()},
+    {'x_shape': (), 'y_shape': (2, 4)},
+    {'x_shape': (2, 3), 'y_shape': (2, 3)},
+    {'x_shape': (2,), 'y_shape': (1,)},
+)
+@unittest.skipUnless(sys.version_info >= (3, 5),
+                     'Only for Python3.5 or higher')
+class TestMatMulInvalidShape(unittest.TestCase):
+
+    dtype = numpy.float32
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
+        self.y = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+
+    def test_invalid_type(self):
+        x = chainer.Variable(self.x)
+        y = chainer.Variable(self.y)
+        with pytest.raises(type_check.InvalidType):
+            operator.matmul(x, y)
+
+
 class TestNotSupportOperation(unittest.TestCase):
 
     def setUp(self):
@@ -1318,31 +1343,31 @@ class TestNotSupportOperation(unittest.TestCase):
         self.y = chainer.Variable(numpy.zeros(10))
 
     def test_lt(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x < self.y
 
     def test_le(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x <= self.y
 
     def test_eq(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x == self.y
 
     def test_ne(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x != self.y
 
     def test_gt(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x > self.y
 
     def test_ge(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x >= self.y
 
     def test_nonzero(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             if self.x:
                 pass
 
