@@ -90,12 +90,12 @@ public:
     BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids);
     BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs) : BackwardBuilder{op_name, outputs, {}} {}
     BackwardBuilder(const char* op_name, const Array& output, gsl::span<const GraphId> stop_graph_ids)
-        : BackwardBuilder{op_name, {output}, stop_graph_ids} {};
-    BackwardBuilder(const char* op_name, const Array& output) : BackwardBuilder{op_name, {output}, {}} {};
+        : BackwardBuilder{op_name, std::initializer_list<ConstArrayRef>{output}, stop_graph_ids} {}
+    BackwardBuilder(const char* op_name, const Array& output) : BackwardBuilder{op_name, {output}, {}} {}
 
     // Defines a backward function with respect to specified input arrays.
     // For multi-input ops, usually this function is called for each of independent subsets of input arrays.
-    void Define(std::initializer_list<ConstArrayRef> inputs, BackwardFunction backward_func);
+    void Define(std::initializer_list<ConstArrayRef> inputs, const BackwardFunction& backward_func);
 
 private:
     const char* op_name_;
