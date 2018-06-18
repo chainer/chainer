@@ -12,6 +12,7 @@
 #include "xchainer/array.h"
 #include "xchainer/backend_util.h"
 #include "xchainer/cuda/cuda_backend.h"
+#include "xchainer/cuda/cuda_device.h"
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/hash_combine.h"
 #include "xchainer/device.h"
@@ -233,8 +234,7 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBack
 
 // TODO(sonots): Support tensor core
 Array CudaConv::Conv(
-        Device& device,
-        cudnnHandle_t handle,
+        CudaDevice& device,
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
@@ -283,7 +283,9 @@ Array CudaConv::Conv(
     internal::CudnnTensorDescriptor y_desc{y};
     internal::CudnnFilterDescriptor filter_desc{w_cont};
     internal::CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
+    cudnnHandle_t handle = device.cudnn_handle();
 
     // auto tune
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size = FindConvolutionForwardAlgorithm(
@@ -316,8 +318,7 @@ Array CudaConv::Conv(
 }
 
 Array CudaConv::ConvTranspose(
-        Device& device,
-        cudnnHandle_t handle,
+        CudaDevice& device,
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
@@ -362,7 +363,9 @@ Array CudaConv::ConvTranspose(
     internal::CudnnTensorDescriptor y_desc{y};
     internal::CudnnFilterDescriptor filter_desc{w_cont};
     internal::CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
+
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
+    cudnnHandle_t handle = device.cudnn_handle();
 
     // auto tune
     std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardDataAlgorithm(
@@ -395,8 +398,7 @@ Array CudaConv::ConvTranspose(
 }
 
 Array CudaConv::ConvGradWeight(
-        Device& device,
-        cudnnHandle_t handle,
+        CudaDevice& device,
         Dtype w_dtype,
         const Shape& w_shape,
         const Array& x,
@@ -434,7 +436,9 @@ Array CudaConv::ConvGradWeight(
     internal::CudnnTensorDescriptor gy_desc{gy_cont};
     internal::CudnnFilterDescriptor gw_desc{gw_cont};
     internal::CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
+    cudnnHandle_t handle = device.cudnn_handle();
 
     // auto tune
     std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size =

@@ -18,13 +18,14 @@
 namespace xchainer {
 namespace cuda {
 
+class CudaDevice;
+
 namespace internal {
 
 class CudaConv {
 public:
     Array Conv(
-            Device& device,
-            cudnnHandle_t handle,
+            CudaDevice& device,
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
@@ -32,8 +33,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all);
     Array ConvTranspose(
-            Device& device,
-            cudnnHandle_t handle,
+            CudaDevice& device,
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
@@ -41,8 +41,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size);
     Array ConvGradWeight(
-            Device& device,
-            cudnnHandle_t handle,
+            CudaDevice& device,
             Dtype w_dtype,
             const Shape& w_shape,
             const Array& x,
