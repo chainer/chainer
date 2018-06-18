@@ -126,7 +126,8 @@ def dropout(x, ratio=.5, **kwargs):
     Returns:
         ~chainer.Variable or tuple:
             When ``return_mask`` is ``False`` (default), returns the output
-            variable. Otherwise returnes the tuple of the output variable and
+            variable.
+            When ``True``, returns the tuple of the output variable and
             mask (`ndarray`). The mask will be on the same device as the input.
             The mask will become ``None`` when ``chainer.config.train`` is set
             to ``False``.
