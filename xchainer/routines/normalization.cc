@@ -33,7 +33,7 @@ Array ReshapeOrIdentity(const Array& a, const Shape& shape) {
     return a.Reshape(shape);
 }
 
-// Reshapes the input arrays (except x) as needed and makes them constant arrays.
+// Reshapes the input arrays (except x) as needed.
 // Sorted axes is also returned.
 PreprocessBatchNormResult PreprocessBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, const OptionalAxes& axis) {
@@ -65,11 +65,10 @@ PreprocessBatchNormResult PreprocessBatchNorm(
                 "Variance must have the same size as the reduced input. Actual: ", var.GetTotalSize(), ". Expected: ", reduced_size, "."};
     }
 
-    Array x_const = x.AsConstant();
-    Array gamma_reshaped = ReshapeOrIdentity(gamma.AsConstant(), reduced_shape);
-    Array beta_reshaped = ReshapeOrIdentity(beta.AsConstant(), reduced_shape);
-    Array mean_reshaped = ReshapeOrIdentity(mean.AsConstant(), reduced_shape);
-    Array var_reshaped = ReshapeOrIdentity(var.AsConstant(), reduced_shape);
+    Array gamma_reshaped = ReshapeOrIdentity(gamma, reduced_shape);
+    Array beta_reshaped = ReshapeOrIdentity(beta, reduced_shape);
+    Array mean_reshaped = ReshapeOrIdentity(mean, reduced_shape);
+    Array var_reshaped = ReshapeOrIdentity(var, reduced_shape);
     assert(gamma_reshaped.data() == gamma.data());  // No data copy should occur
     assert(beta_reshaped.data() == beta.data());
     assert(mean_reshaped.data() == mean.data());
@@ -92,45 +91,47 @@ Array BatchNorm(
     PreprocessBatchNormResult result = PreprocessBatchNorm(x, gamma, beta, running_mean, running_var, axis);
     std::shared_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
 
-    Array out = fb->Forward(x.AsConstant(), result.gamma, result.beta, result.mean, result.var, eps, decay, result.sorted_axis);
+    Array out = fb->Forward(
+            x.AsConstant(), result.gamma.AsConstant(), result.beta.AsConstant(), result.mean, result.var, eps, decay, result.sorted_axis);
 
     if (!x.IsConstant() || !gamma.IsConstant() || !beta.IsConstant()) {
         BackwardBuilder bb{"batch_norm", {out}};
-        bb.Define({x, gamma, beta}, [ fb = std::move(fb), x, gamma = gamma_keepdims, eps, sorted_axis ](BackwardContext & bctx) {
-            const Array& gout = bctx.output_grad();
-            auto ginputs = fb->Backward(x, gamma, gout, eps, sorted_axis);
-            assert(ginputs.size() == 3);
-            const Array& gx = ginputs[0];
-            const Array& ggamma = ginputs[1];
-            const Array& gbeta = ginputs[2];
-            assert(gx.IsConstant());
-            assert(ggamma.IsConstant());
-            assert(gbeta.IsConstant());
+        bb.Define(
+                {x, gamma, beta}, [ fb = std::move(fb), x, gamma = result.gamma, eps, axis = result.sorted_axis ](BackwardContext & bctx) {
+                    const Array& gout = bctx.output_grad();
+                    auto ginputs = fb->Backward(x, gamma, gout, eps, axis);
+                    assert(ginputs.size() == 3);
+                    const Array& gx = ginputs[0];
+                    const Array& ggamma = ginputs[1];
+                    const Array& gbeta = ginputs[2];
+                    assert(gx.IsConstant());
+                    assert(ggamma.IsConstant());
+                    assert(gbeta.IsConstant());
 
-            Array x_cut = bctx.Cut(x);
-            Array gamma_cut = bctx.Cut(gamma);
+                    Array x_cut = bctx.Cut(x);
+                    Array gamma_cut = bctx.Cut(gamma);
 
-            if (bctx.next_required() && (!x_cut.IsConstant() || !gamma_cut.IsConstant() || !gout.IsConstant())) {
-                BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
-                bb2.Define({x_cut, gamma_cut, gout}, [fb = std::move(fb)](BackwardContext & bctx2) {
-                    const Array& g2x = bctx2.output_grad(0);
-                    const Array& g2gamma = bctx2.output_grad(1);
-                    const Array& g2beta = bctx2.output_grad(2);
-                    auto ginputs2 = fb->DoubleBackward(g2x, g2gamma, g2beta);
-                    // TODO(niboshi): Make it further backproppable
-                    assert(ginputs2.size() == 3);
+                    if (bctx.next_required() && (!x_cut.IsConstant() || !gamma_cut.IsConstant() || !gout.IsConstant())) {
+                        BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
+                        bb2.Define({x_cut, gamma_cut, gout}, [fb = std::move(fb)](BackwardContext & bctx2) {
+                            const Array& g2x = bctx2.output_grad(0);
+                            const Array& g2gamma = bctx2.output_grad(1);
+                            const Array& g2beta = bctx2.output_grad(2);
+                            auto ginputs2 = fb->DoubleBackward(g2x, g2gamma, g2beta);
+                            // TODO(niboshi): Make it further backproppable
+                            assert(ginputs2.size() == 3);
+                            // TODO(niboshi): Assign at once
+                            bctx2.input_grad(0) = ginputs2[0];  // ggx
+                            bctx2.input_grad(1) = ginputs2[1];  // gggamma
+                            bctx2.input_grad(2) = ginputs2[2];  // ggout
+                        });
+                    }
+
                     // TODO(niboshi): Assign at once
-                    bctx2.input_grad(0) = ginputs2[0];  // ggx
-                    bctx2.input_grad(1) = ginputs2[1];  // gggamma
-                    bctx2.input_grad(2) = ginputs2[2];  // ggout
+                    bctx.input_grad(0) = gx;
+                    bctx.input_grad(1) = ggamma;
+                    bctx.input_grad(2) = gbeta;
                 });
-            }
-
-            // TODO(niboshi): Assign at once
-            bctx.input_grad(0) = gx;
-            bctx.input_grad(1) = ggamma;
-            bctx.input_grad(2) = gbeta;
-        });
     }
 
     return out;
@@ -138,7 +139,8 @@ Array BatchNorm(
 
 Array FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis) {
-    PreprocessBatchNormResult result = PreprocessBatchNorm(x, gamma, beta, mean, var, axis);
+    PreprocessBatchNormResult result =
+            PreprocessBatchNorm(x, gamma.AsConstant(), beta.AsConstant(), mean.AsConstant(), var.AsConstant(), axis);
     return x.device().FixedBatchNorm(x.AsConstant(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis);
 }
 
