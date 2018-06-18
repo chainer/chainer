@@ -89,13 +89,15 @@ ApplyBatchNormResult ApplyBatchNorm(
         assert(var.GetTotalSize() == reduced_total_size);
 
         assert(x.IsConstant());
+        assert(gamma.IsConstant());
+        assert(beta.IsConstant());
         assert(mean.IsConstant());
         assert(var.IsConstant());
     }
 #endif  // NDEBUG
     Array inv_std = Reciprocal(Sqrt(var + eps));
 
-    Array out = (x - mean) * inv_std * gamma.AsConstant() + beta.AsConstant();
+    Array out = (x - mean) * inv_std * gamma + beta;
 
     return {std::move(out), std::move(inv_std)};
 }
@@ -115,7 +117,7 @@ Array GenericBatchNormForwardBackward::Forward(
     Array x_mean = Mean(x_const, axis, true);
     Array x_var = Var(x_const, x_mean, axis, true);
 
-    ApplyBatchNormResult result = ApplyBatchNorm(x_const, gamma, beta, x_mean, x_var, eps, axis);
+    ApplyBatchNormResult result = ApplyBatchNorm(x_const, gamma.AsConstant(), beta.AsConstant(), x_mean, x_var, eps, axis);
     Array& out = result.out;
     Array& x_inv_std = result.inv_std;
 
@@ -189,7 +191,8 @@ std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array
 
 Array Device::FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
-    ApplyBatchNormResult result = ApplyBatchNorm(x.AsConstant(), gamma, beta, mean.AsConstant(), var.AsConstant(), eps, axis);
+    ApplyBatchNormResult result =
+            ApplyBatchNorm(x.AsConstant(), gamma.AsConstant(), beta.AsConstant(), mean.AsConstant(), var.AsConstant(), eps, axis);
     return std::move(result.out);
 }
 
