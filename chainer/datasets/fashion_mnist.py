@@ -27,7 +27,7 @@ def get_fashion_mnist_labels(labels):
     for l in labels:
         assert range(10).index(l) >= 0
 
-    return [fashion_mnist_labels[l] for l in labels]
+    return [_fashion_mnist_labels[l] for l in labels]
 
 
 def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=None,
