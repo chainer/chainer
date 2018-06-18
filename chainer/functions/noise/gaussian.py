@@ -113,7 +113,7 @@ def gaussian(mean, ln_var, **kwargs):
         ~chainer.Variable or tuple:
             When ``return_eps`` is ``False`` (default), returns the output
             variable with the shape of ``mean`` and/or ``ln_var``.
-            Otherwise returnes the tuple of the output variable and eps
+            When ``True``, returns the tuple of the output variable and eps
             (`ndarray`).
             The eps will be on the same device as the input (``ln_var``).
 
