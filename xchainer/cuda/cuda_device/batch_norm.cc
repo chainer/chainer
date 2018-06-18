@@ -55,7 +55,7 @@ public:
             assert(&device == &running_var.device());
 
             Dtype dtype = x.dtype();
-            assert(dtype == gammba.dtype());
+            assert(dtype == gamma.dtype());
             assert(dtype == beta.dtype());
             assert(dtype == running_mean.dtype());
             assert(dtype == running_var.dtype());
