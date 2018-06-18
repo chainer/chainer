@@ -37,11 +37,11 @@ void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array
                             w.dtype(),
                             " and the input array dtype: ",
                             x.dtype(),
-                            " are same"};
+                            " to be the same"};
     }
     if (b && b->dtype() != x.dtype()) {
         throw XchainerError{
-                "XChainer cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " are same"};
+                "XChainer cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " to be the same"};
     }
 }
 
