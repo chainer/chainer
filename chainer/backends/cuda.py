@@ -659,7 +659,7 @@ def get_cudnn_dropout_states():
     if not cudnn_enabled:
         raise RuntimeError('cuDNN is not enabled.')
 
-    thread_id = threading.get_ident()
+    thread_id = threading.current_thread().ident
     return get_cudnn_dropout_states_core(thread_id)
 
 
@@ -679,6 +679,6 @@ def get_cudnn_dropout_states_core(thread_id):
     else:
         seed = numpy.uint64(seed)
 
-    seed = seed + numpy.uint64(states_id)
+    seed += numpy.uint64(states_id)
     handle = cudnn.get_handle()
     return cudnn.DropoutStates(handle, seed)
