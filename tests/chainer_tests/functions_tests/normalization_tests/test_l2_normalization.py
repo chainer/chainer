@@ -14,6 +14,7 @@ from chainer.testing import attr
 
 
 def _skip_if(cond, reason):
+    """Skip test if cond(self) is True"""
     def decorator(impl):
         @functools.wraps(impl)
         def wrapper(self, *args, **kwargs):
@@ -23,12 +24,6 @@ def _skip_if(cond, reason):
                 impl(self, *args, **kwargs)
         return wrapper
     return decorator
-
-
-_skip_if_many_zeros = _skip_if(
-    lambda self: self.nonzeros is not None,
-    'known to be indifferentiable'
-)
 
 
 @testing.parameterize(*testing.product([
@@ -45,6 +40,8 @@ _skip_if_many_zeros = _skip_if(
         {'shape': (), 'axis': ()},
     ],
     [
+        # nonzeros (optional int): max number of nonzero elems in input
+        # truezero (bool): flag whether zero elems are exactly zero
         {'eps': 1e-5, 'nonzeros': None},
         {'eps': 1e-1, 'nonzeros': None},
         {'eps': 1e-1, 'nonzeros': 0, 'truezero': True},
@@ -120,7 +117,9 @@ class TestL2Normalization(unittest.TestCase):
         self.check_backward(
             cuda.to_gpu(self.x), self.axis, cuda.to_gpu(self.gy))
 
-    @_skip_if_many_zeros
+    @_skip_if(
+        lambda self: self.nonzeros is not None,
+        'backward of L2Normalize is non-differentiable at zero vector')
     def check_double_backward(self, x_data, axis, y_grad, x_grad_grad):
         def f(x):
             return functions.normalize(x, eps=self.eps, axis=axis)
@@ -132,7 +131,6 @@ class TestL2Normalization(unittest.TestCase):
         self.check_double_backward(self.x, self.axis, self.gy, self.ggx)
 
     @attr.gpu
-    @_skip_if_many_zeros
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), self.axis, cuda.to_gpu(self.gy),
