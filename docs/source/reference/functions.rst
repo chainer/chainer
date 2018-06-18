@@ -253,6 +253,7 @@ Mathematical functions
    chainer.functions.square
    chainer.functions.squared_difference
    chainer.functions.sum
+   chainer.functions.sum_to
    chainer.functions.tanh
    chainer.functions.tan
    chainer.functions.tensordot
