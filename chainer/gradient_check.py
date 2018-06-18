@@ -33,7 +33,7 @@ def numerical_grad(
     ``eps``.
 
     Args:
-        f (function): Python function with no arguments that runs forward
+        f (callable): Python function with no arguments that runs forward
             computation and returns the result.
         inputs (tuple of arrays): Tuple of arrays that should be treated as
             inputs. Each element of them is slightly modified to realize
