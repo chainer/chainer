@@ -216,7 +216,6 @@ TEST_P(NormalizationTest, FixedBatchNorm) {
     Shape x_shape{3, 4, 2, 1};
     Shape reduced_shape{4, 2, 1};
     Scalar eps{2e-5f};
-    Scalar decay{0.9f};
 
     // Input and expected data are the same as BatchNorm test.
     Array x = testing::BuildArray(x_shape).WithData<T>({0.6742742, 0.8028925,  0.28383577, 0.8412501,  0.8006508,  0.32548666,
