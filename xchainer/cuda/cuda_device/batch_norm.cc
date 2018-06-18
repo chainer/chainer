@@ -80,7 +80,7 @@ public:
     }
 
     // TODO(niboshi): Implement me.
-    std::array<Array, 3> DoubleBackward(const Array& /*ggx*/, const Array& /*gggamma*/, const Array& /*ggbeta*/) {
+    std::array<Array, 3> DoubleBackward(const Array& /*ggx*/, const Array& /*gggamma*/, const Array& /*ggbeta*/) override {
         return {Array{}, Array{}, Array{}};
     }
 

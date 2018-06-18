@@ -76,7 +76,7 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<Cons
     }));
 }
 
-void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, BackwardFunction backward_func) {
+void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const BackwardFunction& backward_func) {
     // `outputs` may or may not include non-constant arrays, because `BackwardBuilder::Define` may be called repeatedly in a single op.
     // At the beginning of this function, `op_node_map` holds the op nodes created in the previous calls of `BackwardBuilder::Define`
     // for this op.

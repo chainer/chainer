@@ -48,7 +48,8 @@ public:
     OpNode& operator=(const OpNode&) = delete;
     OpNode& operator=(OpNode&&) = delete;
 
-    void RegisterBackwardFunction(gsl::span<std::reference_wrapper<std::shared_ptr<ArrayNode>>> next_nodes, BackwardFunction backward_func);
+    void RegisterBackwardFunction(
+            gsl::span<std::reference_wrapper<std::shared_ptr<ArrayNode>>> next_array_nodes, BackwardFunction backward_func);
 
     void Unchain() {
         backward_entries_.clear();
