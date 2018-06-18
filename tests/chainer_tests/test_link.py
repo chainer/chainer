@@ -507,10 +507,9 @@ class TestLink(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.link.count_params()
+            assert self.link.count_params() == 8
         assert len(w) == 2
         assert w[0].category is UserWarning
-        assert self.link.count_params() == 8
 
         self.link.u.initialize((2, 3))
         self.link.v.initialize((2, 3))
@@ -999,12 +998,13 @@ class TestChain(unittest.TestCase):
         mocks['l2'].assert_called_with('x', self.l2.x.data)
 
     def test_count_params(self):
+        assert self.c1.count_params() == 8
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
         assert len(w) == 1
         assert w[0].category is UserWarning
-        assert self.c1.count_params() == 8
 
         self.c2.l3.x.initialize((3,))
         with warnings.catch_warnings(record=True) as w:
@@ -1115,10 +1115,13 @@ class TestChainList(unittest.TestCase):
         self.l3 = chainer.Link()
         with self.l3.init_scope():
             self.l3.x = chainer.Parameter(shape=3)
+        self.l4 = chainer.Link()
+        self.l5 = chainer.Link()
         self.c1 = chainer.ChainList(self.l1)
         self.c1.add_link(self.l2)
         self.c2 = chainer.ChainList(self.c1)
         self.c2.append(self.l3)
+        self.c3 = chainer.ChainList(self.l4)
 
     def test_init(self):
         self.assertIs(self.c1[0], self.l1)
@@ -1132,6 +1135,32 @@ class TestChainList(unittest.TestCase):
 
     def test_append(self):
         self.assertIs(self.c2[1], self.l3)
+        self.assertEqual(self.l3.name, '1')
+
+    def test_setitem(self):
+        self.c1[1] = self.l3
+        self.assertIs(self.l2.name, None)
+        self.assertEqual(self.l3.name, '1')
+
+    def test_setitem_slice(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[3:0:-1] = [self.l4, self.l5]  # l1 l5 l4
+        self.assertEqual(len(self.c1), 3)
+        self.assertEqual(self.l1.name, '0')
+        self.assertIs(self.l2.name, None)
+        self.assertIs(self.l3.name, None)
+        self.assertEqual(self.l4.name, '2')
+        self.assertEqual(self.l5.name, '1')
+
+    def test_iadd(self):
+        self.c2 += self.c3
+        self.assertIs(len(self.c2), 3)
+        self.assertEqual(self.l4.name, '2')
+
+    def test_delete_item(self):
+        del self.c2[0]
+        self.assertIs(self.c1.name, None)
+        self.assertEqual(len(self.c2), 1)
         self.assertEqual(self.l3.name, '1')
 
     def test_assign_param_in_init_scope(self):
@@ -1494,10 +1523,15 @@ class TestChainList(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
+            assert self.c1.count_params() == 8
+        assert len(w) == 1
+        assert w[0].category is UserWarning
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             self.c2.count_params()
         assert len(w) == 1
         assert w[0].category is UserWarning
-        assert self.c1.count_params() == 8
 
         self.c2[0][0].y.initialize((2, 3))
         with warnings.catch_warnings(record=True) as w:
