@@ -53,7 +53,11 @@ public:
             Scalar eps,
             Scalar decay,
             const Axes& axis) = 0;
+
+    // TODO(niboshi): Restrict arguments to `gout` only
     virtual std::array<Array, 3> Backward(const Array& x, const Array& gamma, const Array& gout, Scalar eps, const Axes& axis) = 0;
+
+    virtual std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) = 0;
 };
 
 class GenericBatchNormForwardBackward : public BatchNormForwardBackward {
@@ -68,11 +72,19 @@ public:
             Scalar decay,
             const Axes& axis) override;
 
-    std::array<Array, 3> Backward(const Array& x, const Array& gamma, const Array& gout, Scalar /*eps*/, const Axes& axis) override;
+    std::array<Array, 3> Backward(const Array& x, const Array& gamma, const Array& gout, Scalar eps, const Axes& axis);
+    std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) override;
 
 private:
+    // TODO(niboshi): Fix header dependency order and hold arrays directly.
     std::shared_ptr<Array> x_mean_;
     std::shared_ptr<Array> x_inv_std_;
+    std::shared_ptr<Array> x_;
+    std::shared_ptr<Array> gamma_;
+    std::shared_ptr<Array> gout_;
+    std::shared_ptr<Array> gx_;
+    std::shared_ptr<Array> ggamma_;
+    Axes axis_;
 };
 
 // Device base class.

@@ -154,6 +154,62 @@ TEST_P(NormalizationTest, BatchNormBackward) {
             1e-3);
 }
 
+TEST_P(NormalizationTest, BatchNormDoubleBackward) {
+    if (GetParam() == "cuda") {
+        // TODO(niboshi): Implemenent for CUDA
+        return;
+    }
+    using T = float;
+
+    Shape x_shape{3, 4, 2, 1};
+    Shape reduced_shape{4, 2, 1};
+    Scalar eps{2e-5f};
+    Scalar decay{0.9f};
+
+    // Input data are the same as the forward test.
+    Array x = (*testing::BuildArray(x_shape).WithData<T>({0.6742742, 0.8028925,  0.28383577, 0.8412501,  0.8006508,  0.32548666,
+                                                          0.4981232, 0.2899665,  0.8781784,  0.09848342, 0.56066823, 0.46877825,
+                                                          0.5734097, 0.46068498, 0.02365979, 0.40318793, 0.61877257, 0.9073324,
+                                                          0.817619,  0.9549834,  0.43688482, 0.67947686, 0.62297916, 0.36094204}))
+                      .RequireGrad();
+    Array gamma = (*testing::BuildArray(reduced_shape)
+                            .WithData<T>({0.67531216, 0.38460097, 0.3139644, 0.41022405, 0.3633898, 0.07180618, 0.4424598, 0.63477284}))
+                          .RequireGrad();
+    Array beta = (*testing::BuildArray(reduced_shape)
+                           .WithData<T>({0.7327423, 0.6883794, 0.11482884, 0.4891287, 0.17816886, 0.26629093, 0.3904204, 0.63719493}))
+                         .RequireGrad();
+    Array running_mean =
+            testing::BuildArray(reduced_shape)
+                    .WithData<T>({0.27891612, 0.83984816, 0.20299992, 0.3024816, 0.59901035, 0.9280579, 0.07075989, 0.31253654});
+    Array running_var = testing::BuildArray(reduced_shape)
+                                .WithData<T>({0.8258983, 0.35525382, 0.01103283, 0.843107, 0.09379472, 0., 0.6574457, 0.6707562});
+    Array go = (*testing::BuildArray(x_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1)).RequireGrad();
+
+    Array ggx = testing::BuildArray(x_shape).WithLinearData(0.4f, -0.2f).WithPadding(1);
+    Array gggamma = testing::BuildArray(reduced_shape).WithLinearData(-0.5f, 0.3f).WithPadding(1);
+    Array ggbeta = testing::BuildArray(reduced_shape).WithLinearData(-0.6f, -0.4f).WithPadding(1);
+
+    Array x_eps = Full(x.shape(), 1e-3f);
+    Array gamma_eps = Full(gamma.shape(), 1e-1f);
+    Array beta_eps = Full(beta.shape(), 1e-1f);
+    Array go_eps = Full(go.shape(), 1e-1f);
+
+    CheckDoubleBackwardComputation(
+            [&](const std::vector<Array>& xs) -> std::vector<Array> {
+                const Array& x = xs[0];
+                const Array& gamma = xs[1];
+                const Array& beta = xs[2];
+                Array y = BatchNorm(x, gamma, beta, running_mean.Copy(), running_var.Copy(), eps, decay);
+                return {y * y};
+            },
+            {x, gamma, beta},
+            {go},
+            {ggx, gggamma, ggbeta},
+            {x_eps, gamma_eps, beta_eps, go_eps},
+            1e-3,
+            1e-2);
+}
+
 TEST_P(NormalizationTest, FixedBatchNorm) {
     using T = float;
 

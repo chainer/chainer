@@ -133,14 +133,57 @@ Array GenericBatchNormForwardBackward::Forward(
 std::array<Array, 3> GenericBatchNormForwardBackward::Backward(
         const Array& x, const Array& gamma, const Array& gout, Scalar /*eps*/, const Axes& axis) {
     // Note: x_inv_std_ has the information of eps.
+    const Array x_const = x.AsConstant();
+    const Array gamma_const = gamma.AsConstant();
+    const Array gout_const = gout.AsConstant();
     const Array& x_mean = *x_mean_;
     const Array& x_inv_std = *x_inv_std_;
+
     double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
+    Array x_hat = (x_const - x_mean) * x_inv_std;
+    Array ggamma = (gout_const * x_hat).Sum(axis);
+    Array gbeta = gout_const.Sum(axis);
+    Array gx = (gamma_const * x_inv_std) * (gout_const - (x_hat * ggamma + gbeta) * inv_n);
+
+    axis_ = axis;
+    x_ = std::make_shared<Array>(x);
+    gamma_ = std::make_shared<Array>(gamma);
+    gx_ = std::make_shared<Array>(gx);
+    ggamma_ = std::make_shared<Array>(ggamma);
+    gout_ = std::make_shared<Array>(gout);
+
+    return {std::move(gx), std::move(ggamma), std::move(gbeta)};
+}
+
+std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) {
+    const Array& gout = *gout_;
+    const Array& x = *x_;
+    const Array& gamma = *gamma_;
+    const Array& x_inv_std = *x_inv_std_;
+    const Array& x_mean = *x_mean_;
+    const Axes& axis = axis_;
+    const Array& gx = *gx_;
+    const Array& ggamma = *ggamma_;
+
+    // Auxiliary values
+    double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
+    Array r = (gx * ggx).Sum(axis);
+    Array coeff = gamma * x_inv_std;
+    Array coeff_m = coeff * inv_n;
     Array x_hat = (x - x_mean) * x_inv_std;
-    Array ggamma = (gout * x_hat).Sum(axis);
-    Array gbeta = gout.Sum(axis);
-    Array gx = (gamma * x_inv_std) * (gout - (x_hat * ggamma + gbeta) * inv_n);
-    return {{gx, ggamma, gbeta}};
+
+    Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(axis);
+    Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(axis);
+
+    Array gx_hat2 = gggamma2 * gout - coeff_m * ggamma * ggx;
+    Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(axis));
+    Array gmean2 = -x_inv_std * gx_hat2.Sum(axis);
+    Array gx2 = x_inv_std * gx_hat2 + inv_n * (gmean2 + x_hat * gstd2);
+    Array ggy2 = gggamma2 * x_hat + ggbeta2 + coeff * ggx;
+
+    Array ggamma2 = r / gamma;
+
+    return {std::move(gx2), std::move(ggamma2), std::move(ggy2)};
 }
 
 Array Device::FixedBatchNorm(

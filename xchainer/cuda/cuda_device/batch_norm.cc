@@ -79,6 +79,11 @@ public:
         return {Array{}, Array{}, Array{}};
     }
 
+    // TODO(niboshi): Implement me.
+    std::array<Array, 3> DoubleBackward(const Array& /*ggx*/, const Array& /*gggamma*/, const Array& /*ggbeta*/) {
+        return {Array{}, Array{}, Array{}};
+    }
+
 private:
     cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
         if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
