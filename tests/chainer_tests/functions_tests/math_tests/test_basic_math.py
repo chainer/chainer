@@ -240,7 +240,13 @@ class TestBinaryOp(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(3, 2), ()],
+    'in_shapes': [
+        ((3, 2),) * 3,
+        ((),) * 3,
+        ((1, 3), (), (2, 1, 2, 1)),
+        ((), (2, 1, 2), (3, 1)),
+        ((3, 1), (1, 1), (2,)),
+    ],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @backend.inject_backend_tests(
@@ -258,13 +264,15 @@ class TestBinaryOp(unittest.TestCase):
 class TestMultipleAdd(unittest.TestCase):
 
     def setUp(self):
-        self.x1 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
-        self.x2 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
-        self.x3 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggx1 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggx2 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggx3 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        x1_shape, x2_shape, x3_shape = self.in_shapes
+        self.x1 = numpy.random.uniform(.5, 1, x1_shape).astype(self.dtype)
+        self.x2 = numpy.random.uniform(.5, 1, x2_shape).astype(self.dtype)
+        self.x3 = numpy.random.uniform(.5, 1, x3_shape).astype(self.dtype)
+        y_shape = numpy.broadcast(self.x1, self.x2, self.x3).shape
+        self.gy = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, x1_shape).astype(self.dtype)
+        self.ggx2 = numpy.random.uniform(-1, 1, x2_shape).astype(self.dtype)
+        self.ggx3 = numpy.random.uniform(-1, 1, x3_shape).astype(self.dtype)
 
     def check_forward(self, func, x1_data, x2_data, x3_data, backend_config):
         # convert to cupy.ndarray for GPU tests
