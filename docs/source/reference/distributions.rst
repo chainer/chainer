@@ -15,6 +15,7 @@ Distributions
    :nosignatures:
    
    chainer.distributions.Normal
+   chainer.distributions.Laplace
 
 
 Functionals of distribution
