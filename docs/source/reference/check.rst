@@ -75,7 +75,7 @@ Utilities for testing serializable objects.
 Trainer Extension Testing Utilities
 -----------------------------------
 
-Utilities for testing Trainer extensions.
+Utilities for testing :ref:`trainer extensions <extensions>`.
 
 .. autosummary::
    :toctree: generated/
