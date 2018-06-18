@@ -191,11 +191,12 @@ class MultiAdd(function_node.FunctionNode):
         self.len = len(xs)
         if len(xs) == 1:
             return xs
-        if (intel64.should_use_ideep('>=auto')
-                and intel64.inputs_all_ready(xs)
-                and all(x.shape == xs[0].shape for x in xs[1:])):
-            y = intel64.ideep.multi_add(xs)
-        else:
+        y = None
+        if intel64.should_use_ideep('>=auto'):
+            bxs = numpy.broadcast_arrays(xs)
+            if intel64.inputs_all_ready(bxs):
+                y = intel64.ideep.multi_add(bxs)
+        if y is None:
             # The output should be a new array. Add the first 2 arrays
             # and get the result y. Then add the rest arrays to y.
             y = xs[0] + xs[1]
