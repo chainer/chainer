@@ -216,7 +216,6 @@ TEST_P(NormalizationTest, FixedBatchNorm) {
     Shape x_shape{3, 4, 2, 1};
     Shape reduced_shape{4, 2, 1};
     Scalar eps{2e-5f};
-    Scalar decay{0.9f};
 
     // Input and expected data are the same as BatchNorm test.
     Array x = testing::BuildArray(x_shape).WithData<T>({0.6742742, 0.8028925,  0.28383577, 0.8412501,  0.8006508,  0.32548666,
@@ -233,10 +232,10 @@ TEST_P(NormalizationTest, FixedBatchNorm) {
                         .WithData<T>({0.8258983, 0.35525382, 0.01103283, 0.843107, 0.09379472, 0., 0.6574457, 0.6707562});
     Array out = FixedBatchNorm(x, gamma, beta, mean, var, eps);
 
-    Array e_out = testing::BuildArray(x_shape).WithData<T>({0.43345568, 0.9024843,   -0.27429962, 0.6594735,  0.6550931,  0.18604966,
-                                                            0.5901094,  -0.19329488, 1.6671101,   0.14835835, 0.12437291, -0.0761953,
-                                                            0.1049637,  0.25257912,  -0.22290352, 1.3381515,  0.0976615,  1.0142955,
-                                                            0.49441338, 0.88410795,  -0.22555014, 0.360244,   0.80405533, 0.7667286});
+    Array e_out = testing::BuildArray(x_shape).WithData<T>({1.02652526, 0.66453373,  0.35623461,  0.72982913,  0.41739842, -9.40880394,
+                                                            0.6236236,  0.61970204,  1.17804265,  0.21001297,  1.18295884, 0.56342345,
+                                                            0.14779580, -7.23801136, 0.36471885,  0.70745426,  0.98528314, 0.73192370,
+                                                            1.95030916, 0.78064066,  -0.01417956, -3.72501326, 0.69175488, 0.67471159});
 
     testing::ExpectAllClose(e_out, out, 1e-6f, 1e-6f);
 }
