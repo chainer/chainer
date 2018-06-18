@@ -1333,7 +1333,7 @@ class TestMatMulInvalidShape(unittest.TestCase):
         x = chainer.Variable(self.x)
         y = chainer.Variable(self.y)
         with pytest.raises(type_check.InvalidType):
-            x @ y
+            operator.matmul(x, y)
 
 
 class TestNotSupportOperation(unittest.TestCase):
