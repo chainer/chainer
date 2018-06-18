@@ -431,11 +431,21 @@ class Optimizer(object):
         parameters.
 
         Args:
-            lossfun (function): Loss function. It accepts arbitrary arguments
-                and returns one :class:`~chainer.Variable` object that
-                represents the loss (or objective) value. This argument can be
-                omitted for single gradient-based methods. In this case, this
-                method assumes gradient arrays computed.
+            lossfun (callable):
+                Loss function.
+                You can specify one of loss functions from
+                :doc:`built-in loss functions </reference/functions>`, or
+                your own loss function.
+                It should not be an
+                :doc:`loss functions with parameters </reference/links>`
+                (i.e., :class:`~chainer.Link` instance).
+                The function must accept arbitrary arguments
+                and return one :class:`~chainer.Variable` object that
+                represents the loss (or objective) value.
+                Returned value must be a Variable derived from the input
+                Variable object.
+                ``lossfun`` can be omitted for single gradient-based methods.
+                In this case, this method assumes gradient arrays computed.
             args, kwds: Arguments for the loss function.
 
         """
@@ -459,7 +469,7 @@ class Optimizer(object):
         attribute.
 
         Args:
-            hook (function): Hook function. If ``hook.call_for_each_param`` is
+            hook (callable): Hook function. If ``hook.call_for_each_param`` is
                 true, this hook function is called for each parameter by
                 passing the update rule and the parameter. Otherwise, this hook
                 function is called only once each iteration by passing the
