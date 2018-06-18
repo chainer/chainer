@@ -32,10 +32,6 @@ class TestDiagonal(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
-        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
-        if self.dtype == numpy.float16:
-            self.check_double_backward_options.update(dtype=numpy.float64)
-
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
         y = functions.diagonal(x, *self.args)
@@ -68,7 +64,7 @@ class TestDiagonal(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad,
-            **self.check_double_backward_options)
+            atol=1e-3, rtol=1e-2, dtype=numpy.float64)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
