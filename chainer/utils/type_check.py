@@ -503,6 +503,27 @@ Invalid operation is performed in: {0} (Forward)
         self.actual = actual
 
 
+def argname(in_types, names):
+    """Assigns user friendly names for the input types.
+
+    This function also asserts that lenghts of in_types and names are the
+    same.
+
+    Args:
+        in_types (tuple of TypeInfoTuple): Tuple of type information to assign
+            name to.
+        names (tuple of str): Human-readabel names of ``in_types``.
+    """
+    if len(in_types) != len(names):
+        raise InvalidType(
+            '{} argument(s)'.format(str(len(names))),
+            '{} argument(s)'.format(str(len(in_types))),
+            'Invalid number of arguments')
+    for in_type, name in zip(in_types, names):
+        if isinstance(in_type, Variable):
+            in_type.name = name
+
+
 def expect(*bool_exprs):
     """Evaluates and tests all given expressions.
 

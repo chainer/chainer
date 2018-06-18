@@ -3,7 +3,6 @@ import operator
 
 from chainer.functions.normalization import layer_normalization
 from chainer import link
-from chainer import utils
 from chainer import variable
 
 
@@ -60,9 +59,6 @@ class LayerNormalization(link.Link):
 
         if size is not None:
             self._initialize_params(size)
-
-        utils.experimental(
-            'chainer.links.normalization.layer_normalization.py')
 
     def _initialize_params(self, size):
         self.gamma.initialize(size)
