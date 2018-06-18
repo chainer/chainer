@@ -3,6 +3,7 @@ import sys
 import unittest
 
 import numpy
+import pytest
 
 import chainer
 from chainer.backends import cuda
@@ -399,16 +400,16 @@ class TestBinaryOpConstant(unittest.TestCase):
         self._test_constant_array_one(
             func, x_data, numpy.array([3.0, 4.0], self.dtype))
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, [3.0, 4.0])
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, (3.0, 4.0))
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, [3.0, 4.0, 5.0])
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, (3.0, 4.0, 5.0))
-        with self.assertRaises(type_check.InvalidType):
+        with pytest.raises(type_check.InvalidType):
             self._test_constant_array_one(
                 func, x_data, numpy.array([3.0, 4.0, 5.0], self.dtype))
 
@@ -426,7 +427,7 @@ class TestBinaryOpConstant(unittest.TestCase):
         self._test_constant_array_gpu_one(
             func, x_data, cuda.to_gpu(numpy.array([3.0, 4.0], self.dtype)))
 
-        with self.assertRaises(exception):
+        with pytest.raises(exception):
             self._test_constant_array_one(
                 func, x_data, cuda.to_gpu(
                     numpy.array([3.0, 4.0, 5.0], self.dtype)))
@@ -1331,7 +1332,7 @@ class TestMatMulInvalidShape(unittest.TestCase):
     def test_invalid_type(self):
         x = chainer.Variable(self.x)
         y = chainer.Variable(self.y)
-        with self.assertRaises(type_check.InvalidType):
+        with pytest.raises(type_check.InvalidType):
             x @ y
 
 
@@ -1342,31 +1343,31 @@ class TestNotSupportOperation(unittest.TestCase):
         self.y = chainer.Variable(numpy.zeros(10))
 
     def test_lt(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x < self.y
 
     def test_le(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x <= self.y
 
     def test_eq(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x == self.y
 
     def test_ne(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x != self.y
 
     def test_gt(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x > self.y
 
     def test_ge(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x >= self.y
 
     def test_nonzero(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             if self.x:
                 pass
 
