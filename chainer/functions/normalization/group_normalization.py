@@ -1,4 +1,3 @@
-import six
 import warnings
 
 from chainer.backends import cuda
@@ -58,8 +57,10 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
     # equivalent to Group Normalization.
     # And redundant dimension is added in order to utilize ideep64/cuDNN.
     x = reshape.reshape(x, (1, batch_size * groups, -1, 1))
-    dummy_gamma = xp.ones(batch_size * groups).astype(xp.float32)
-    dummy_beta = xp.zeros(batch_size * groups).astype(xp.float32)
+
+    with cuda.get_device_from_array(x):
+        dummy_gamma = xp.ones(batch_size * groups).astype(xp.float32)
+        dummy_beta = xp.zeros(batch_size * groups).astype(xp.float32)
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -68,7 +69,7 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
 
     x = reshape.reshape(x, original_shape)
 
-    target_shape = [1, channels] + [1 for _ in six.moves.xrange(x.ndim - 2)]
+    target_shape = [1, channels] + [1] * (x.ndim - 2)
     gamma_broadcast = broadcast.broadcast_to(
         reshape.reshape(gamma, target_shape), x.shape)
     beta_broadcast = broadcast.broadcast_to(
