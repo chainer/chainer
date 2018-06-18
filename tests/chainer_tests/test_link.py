@@ -1010,6 +1010,7 @@ class TestChainList(unittest.TestCase):
             self.l3.x = chainer.Parameter(shape=3)
         self.l4 = chainer.Link()
         self.l5 = chainer.Link()
+        self.l6 = chainer.Link()
         self.c1 = chainer.ChainList(self.l1)
         self.c1.add_link(self.l2)
         self.c2 = chainer.ChainList(self.c1)
@@ -1032,7 +1033,6 @@ class TestChainList(unittest.TestCase):
 
     def test_setitem(self):
         self.c1[1] = self.l3
-        self.assertIs(self.l2.name, None)
         self.assertEqual(self.l3.name, '1')
 
     def test_setitem_slice(self):
@@ -1040,10 +1040,24 @@ class TestChainList(unittest.TestCase):
         self.c1[3:0:-1] = [self.l4, self.l5]  # l1 l5 l4
         self.assertEqual(len(self.c1), 3)
         self.assertEqual(self.l1.name, '0')
-        self.assertIs(self.l2.name, None)
-        self.assertIs(self.l3.name, None)
         self.assertEqual(self.l4.name, '2')
         self.assertEqual(self.l5.name, '1')
+
+    def test_setitem_slice_short(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[1:3] = [self.l4]  # l1 l4
+        self.assertEqual(len(self.c1), 2)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '1')
+
+    def test_setitem_slice_long(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[1:3] = [self.l4, self.l5, self.l6]  # l1 l4 l5 l6
+        self.assertEqual(len(self.c1), 4)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '1')
+        self.assertEqual(self.l5.name, '2')
+        self.assertEqual(self.l6.name, '3')
 
     def test_iadd(self):
         self.c2 += self.c3
@@ -1052,9 +1066,8 @@ class TestChainList(unittest.TestCase):
 
     def test_delete_item(self):
         del self.c2[0]
-        self.assertIs(self.c1.name, None)
         self.assertEqual(len(self.c2), 1)
-        self.assertEqual(self.l3.name, '1')
+        self.assertEqual(self.l3.name, '0')
 
     def test_assign_param_in_init_scope(self):
         p = chainer.Parameter()
