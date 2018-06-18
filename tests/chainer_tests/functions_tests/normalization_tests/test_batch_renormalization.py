@@ -27,24 +27,21 @@ def _naive_batch_renormalization(
     for i in axis:
         stat_shape[i] = 1
     stat_shape = tuple(stat_shape)
-    gamma = chainer.functions.broadcast_to(
-        chainer.functions.reshape(gamma, stat_shape), shape)
-    beta = chainer.functions.broadcast_to(
-        chainer.functions.reshape(beta, stat_shape), shape)
+    gamma = chainer.functions.reshape(gamma, stat_shape)
+    beta = chainer.functions.reshape(beta, stat_shape)
     avg_mean = avg_mean.reshape(stat_shape)
     avg_std = avg_std.reshape(stat_shape)
 
-    mean = chainer.functions.broadcast_to(
-        chainer.functions.mean(x, axis=axis, keepdims=True), shape)
-    std = chainer.functions.broadcast_to(
-        chainer.functions.sqrt(
-            eps +
-            chainer.functions.mean(
-                chainer.functions.square(x - mean),
-                axis=axis, keepdims=True)),
-        shape)
+    mean = chainer.functions.mean(x, axis=axis, keepdims=True)
+    _, gamma, beta, mean = chainer.functions.broadcast(x, gamma, beta, mean)
+    std = chainer.functions.sqrt(
+        eps +
+        chainer.functions.mean(
+            chainer.functions.square(x - mean),
+            axis=axis, keepdims=True))
     r = (std.array / avg_std).clip(1./rmax, rmax)
     d = ((mean.array - avg_mean) / avg_std).clip(-dmax, dmax)
+    _, std, r, d = chainer.functions.broadcast(x, std, r, d)
     xhat = ((x - mean) / std) * r + d
     return gamma * xhat + beta
 
