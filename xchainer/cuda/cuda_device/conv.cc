@@ -3,11 +3,11 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/constant.h"
 #include "xchainer/cuda/cuda_conv.h"
 #include "xchainer/dtype.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
-#include "xchainer/constant.h"
 
 namespace xchainer {
 namespace cuda {
