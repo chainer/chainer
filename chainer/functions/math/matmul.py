@@ -83,13 +83,13 @@ class MatMul(function_node.FunctionNode):
         type_check.expect(
             a_type.dtype.kind == 'f',
             b_type.dtype.kind == 'f',
+            a_type.ndim >= 1,
+            b_type.ndim >= 1,
         )
 
         a_ndim = type_check.eval(a_type.ndim)
         b_ndim = type_check.eval(b_type.ndim)
-        if a_ndim == 0 or b_ndim == 0:
-            pass
-        elif b_ndim == 1:
+        if b_ndim == 1:
             a_idx = -2 if self.transa and a_ndim > 1 else -1
             type_check.expect(a_type.shape[a_idx] == b_type.shape[0])
         elif a_ndim == 1:
@@ -107,11 +107,8 @@ class MatMul(function_node.FunctionNode):
     def forward(self, x):
         self.retain_inputs((0, 1))
         a, b = x
-        if a.ndim == 0 or b.ndim == 0:
-            y = a * b
-        else:
-            # may broadcast
-            y = _matmul(a, b, self.transa, self.transb, self.transc)
+        # may broadcast
+        y = _matmul(a, b, self.transa, self.transb, self.transc)
 
         if self.dtype is not None:
             dtype = self.dtype
