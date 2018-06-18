@@ -33,7 +33,6 @@ def _naive_batch_renormalization(
     avg_std = avg_std.reshape(stat_shape)
 
     mean = chainer.functions.mean(x, axis=axis, keepdims=True)
-    _, gamma, beta, mean = chainer.functions.broadcast(x, gamma, beta, mean)
     std = chainer.functions.sqrt(
         eps +
         chainer.functions.mean(
@@ -41,7 +40,6 @@ def _naive_batch_renormalization(
             axis=axis, keepdims=True))
     r = (std.array / avg_std).clip(1./rmax, rmax)
     d = ((mean.array - avg_mean) / avg_std).clip(-dmax, dmax)
-    _, std, r, d = chainer.functions.broadcast(x, std, r, d)
     xhat = ((x - mean) / std) * r + d
     return gamma * xhat + beta
 
