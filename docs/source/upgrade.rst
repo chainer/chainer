@@ -18,21 +18,21 @@ When calling a Chainer function such as :func:`~chainer.functions.relu`, a corre
 Chainer v5
 ==========
 
-Changed Behavior of ``Optimizer.new_epoch``
--------------------------------------------
+Updaters Call ``Optimizer.new_epoch``
+-------------------------------------
 
-This change only affects to a minor number of users (who call ``new_epoch()`` method of Optimizers while using a trainer, or who implement their own Updater class).
+This change should affect only a minority of users (who call :meth:`chainer.Optimizer.new_epoch` while using a trainer, or who implement their own :class:`~chainer.training.Updater` class).
 
-Optimizers provide ``new_epoch()`` method, which can be used to change optimizer behavior depending on the current epoch number.
+Optimizers provide :meth:`~chainer.Optimizer.new_epoch` method, which can be used to change the behavior of optimizers depending on the current epoch number.
 Prior to Chainer v5, this method was expected to be called by users.
-In Chainer v5, Updaters call ``new_epoch()`` method of Optimizers automatically.
-If you are calling ``new_epoch()`` method manually while using a trainer (Updater), you may need any of the following fixes:
+In Chainer v5, updaters has been changed to call :meth:`~chainer.Optimizer.new_epoch` automatically.
+If you are calling :meth:`~chainer.Optimizer.new_epoch` method manually while using a trainer (or an updater), you may need any of the following fixes:
 
-* Pass ``auto_new_epoch=False`` to the constructor of the Updater to stop ``new_epoch()`` being called automatically by Updaters.
+* Pass ``auto_new_epoch=False`` to the constructor of the updater (e.g., :class:`~chainer.training.updaters.StandardUpdater`) to stop :meth:`~chainer.Optimizer.new_epoch` from being called automatically by the updater.
 * Avoid calling ``new_epoch()`` method manually.
 
-If you are implementing your own Updater class, you may need to update your code to automatically call ``new_epoch()``.
-See `#4608 <https://github.com/chainer/chainer/pull/4608>`__ for the detailed discussions.
+If you are implementing your own Updater class, you may need to update your code to automatically call :meth:`~chainer.Optimizer.new_epoch`.
+See `#4608 <https://github.com/chainer/chainer/pull/4608>`__ for more details.
 
 
 Chainer v4
