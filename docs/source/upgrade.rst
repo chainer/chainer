@@ -31,7 +31,7 @@ If you are calling :meth:`~chainer.Optimizer.new_epoch` method manually while us
 * Pass ``auto_new_epoch=False`` to the constructor of the updater (e.g., :class:`~chainer.training.updaters.StandardUpdater`) to stop :meth:`~chainer.Optimizer.new_epoch` from being called automatically by the updater.
 * Avoid calling :meth:`~chainer.Optimizer.new_epoch` method manually.
 
-If you are implementing your own Updater class, you may need to update your code to automatically call :meth:`~chainer.Optimizer.new_epoch` (you can refer to the changes introduced in `#4608 <https://github.com/chainer/chainer/pull/4608>`__ to understand how to fix your updater).
+If you are implementing your own :class:`~chainer.training.Updater` class, you may need to update your code to automatically call :meth:`~chainer.Optimizer.new_epoch` (you can refer to the changes introduced in `#4608 <https://github.com/chainer/chainer/pull/4608>`__ to understand how to fix your updater).
 
 
 Chainer v4
