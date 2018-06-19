@@ -183,7 +183,7 @@ class BatchNormalization(function_node.FunctionNode):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, self.mode))
             cudnn_mode = self.mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -345,7 +345,7 @@ class BatchNormalizationGrad(function.Function):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, self.mode))
             cudnn_mode = self.mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -542,7 +542,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, mode))
             cudnn_mode = mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -694,14 +694,13 @@ class _BNMode(object):
                 self.cudnn_dtype_ok)
 
 
-def _as4darray(arr, key_axis):
-    if arr.ndim == 4 and key_axis[0] == 1:
+def _as4darray(arr, mode):
+    assert mode.cudnn_dim_ok
+    if mode.is_for_conv2d:
+        assert arr.ndim == 4
         return arr
-    elif key_axis[0] == arr.ndim - 1:
+    else:  # is_for_linear
         return arr.reshape(numpy.prod(arr.shape[0:-1]), -1, 1, 1)
-    else:
-        msg = 'Unexpected combination of array shape and key_axis'
-        raise RuntimeError(msg)
 
 
 def _x_hat(x, mean, inv_std):
