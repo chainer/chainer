@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <numeric>
+#include <utility>
 
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
@@ -175,7 +176,7 @@ Array GetPadModeIgnorePoolingWidths(
         });
 
         if (i == 0) {
-            widths = width;
+            widths = std::move(width);
         } else {
             Shape widths_expanded = widths.shape();
             widths_expanded.emplace_back(1);
