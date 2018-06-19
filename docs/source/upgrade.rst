@@ -29,7 +29,7 @@ In Chainer v5, updaters has been changed to call :meth:`~chainer.Optimizer.new_e
 If you are calling :meth:`~chainer.Optimizer.new_epoch` method manually while using a trainer (or an updater), you may need any of the following fixes:
 
 * Pass ``auto_new_epoch=False`` to the constructor of the updater (e.g., :class:`~chainer.training.updaters.StandardUpdater`) to stop :meth:`~chainer.Optimizer.new_epoch` from being called automatically by the updater.
-* Avoid calling ``new_epoch()`` method manually.
+* Avoid calling :meth:`~chainer.Optimizer.new_epoch` method manually.
 
 If you are implementing your own Updater class, you may need to update your code to automatically call :meth:`~chainer.Optimizer.new_epoch`.
 See `#4608 <https://github.com/chainer/chainer/pull/4608>`__ for more details.
