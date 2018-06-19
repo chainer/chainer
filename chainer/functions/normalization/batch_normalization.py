@@ -24,6 +24,7 @@ def _compute_axis(x_ndim, gamma_ndim=1, axis=None):
     return axis
 
 
+# Computes a complementary set of axis
 def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
     axis = _compute_axis(x_ndim, gamma_ndim, axis)
     key_axis = tuple([i for i in range(x_ndim) if i not in axis])
