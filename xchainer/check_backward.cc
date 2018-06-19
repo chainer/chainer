@@ -236,6 +236,26 @@ void CheckBackwardComputation(
     }
 }
 
+// Throws GradientCheckError if any array bodies are not freed in the leak tracker.
+void CheckAllArrayBodiesFreed(internal::ArrayBodyLeakTracker& tracker) {
+    std::vector<std::shared_ptr<internal::ArrayBody>> alive_arr_bodies = tracker.GetAliveArrayBodies();
+    if (!alive_arr_bodies.empty()) {
+        // TODO(niboshi): Output only array bodies that are not referenced from other array bodies
+        std::ostringstream os;
+        os << "Some array bodies are not freed." << std::endl << "Number of alive array bodies: " << alive_arr_bodies.size() << std::endl;
+        for (const std::shared_ptr<internal::ArrayBody>& array_body : alive_arr_bodies) {
+            Array array{array_body};
+            os << "- Unreleased array body: " << array_body.get() << std::endl;
+            os << array << std::endl;
+            for (const std::shared_ptr<ArrayNode>& array_node : array.nodes()) {
+                const GraphId& graph_id = array_node->graph_id();
+                DebugDumpComputationalGraph(os, array, graph_id);
+            }
+        }
+        throw GradientCheckError{os.str()};
+    }
+}
+
 }  // namespace
 
 void CheckBackward(
@@ -255,7 +275,7 @@ void CheckBackward(
     }
     // TODO(niboshi): Array leak detection is not enabled. Fix the leaks and enable this check.
     // TODO(niboshi): Check in double backward computation, too.
-    // tracker.CheckAllFreed();
+    // CheckAllArrayBodiesFreed(tracker);
 }
 
 void CheckDoubleBackwardComputation(

@@ -12,7 +12,7 @@ class ArrayBodyLeakTracker {
 public:
     void operator()(const std::shared_ptr<internal::ArrayBody>& array_body);
 
-    void CheckAllFreed();
+    std::vector<std::shared_ptr<ArrayBody>> GetAliveArrayBodies() const;
 
 private:
     std::vector<std::weak_ptr<internal::ArrayBody>> weak_ptrs_;
