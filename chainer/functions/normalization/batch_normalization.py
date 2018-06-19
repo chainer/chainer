@@ -18,14 +18,14 @@ if cuda.cudnn_enabled:
     _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
-def _compute_axis(x_ndim, param_ndim=1, axis=None):
+def _compute_axis(x_ndim, gamma_ndim=1, axis=None):
     if axis is None:
-        axis = (0,) + tuple(range(param_ndim + 1, x_ndim))
+        axis = (0,) + tuple(range(gamma_ndim + 1, x_ndim))
     return axis
 
 
-def _compute_key_axis(x_ndim, param_ndim=1, axis=None):
-    axis = _compute_axis(x_ndim, param_ndim, axis)
+def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
+    axis = _compute_axis(x_ndim, gamma_ndim, axis)
     key_axis = tuple([i for i in range(x_ndim) if i not in axis])
     return key_axis
 
