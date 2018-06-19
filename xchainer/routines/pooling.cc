@@ -11,7 +11,6 @@
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/math.h"
-#include "xchainer/routines/pooling.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
