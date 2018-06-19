@@ -1,9 +1,7 @@
 import unittest
-import warnings
 
 import numpy
 
-import chainer
 from chainer.backends import cuda
 from chainer.links.model.vision import googlenet
 from chainer.links.model.vision import resnet
@@ -111,47 +109,6 @@ class TestResNetLayers(unittest.TestCase):
     def test_extract_gpu(self):
         self.link.to_gpu()
         self.check_extract()
-
-    def check_warning_in_extract(self, debug, train):
-        # Compute running statistics of BatchNormalization
-        # layers to avoid NaN.
-        if debug and not train:
-            with chainer.using_config('debug', False):
-                with chainer.using_config('train', True):
-                    for _ in range(10):
-                        x1 = numpy.random.uniform(
-                            0, 255, (320, 240, 3)).astype(numpy.uint8)
-                        x2 = numpy.random.uniform(
-                            0, 255, (320, 240, 3)).astype(numpy.uint8)
-                        self.link.extract([x1, x2])
-
-        with numpy.errstate(all='ignore'):
-            with chainer.using_config('debug', debug):
-                with chainer.using_config('train', train):
-                    with warnings.catch_warnings(record=True) as w:
-                        x1 = numpy.random.uniform(
-                            0, 255, (320, 240, 3)).astype(numpy.uint8)
-                        x2 = numpy.random.uniform(
-                            0, 255, (320, 240, 3)).astype(numpy.uint8)
-                        self.link.extract([x1, x2])
-
-        if debug and train:
-            assert len(w) == 1
-            assert w[0].category is RuntimeWarning
-        else:
-            assert len(w) == 0
-
-    def test_warning_in_extract_0(self):
-        self.check_warning_in_extract(True, True)
-
-    def test_warning_in_extract_1(self):
-        self.check_warning_in_extract(True, False)
-
-    def test_warning_in_extract_2(self):
-        self.check_warning_in_extract(False, True)
-
-    def test_warning_in_extract_3(self):
-        self.check_warning_in_extract(False, False)
 
     def check_predict(self):
         x1 = numpy.random.uniform(0, 255, (320, 240, 3)).astype(numpy.uint8)
@@ -267,35 +224,6 @@ class TestVGG16Layers(unittest.TestCase):
     def test_extract_gpu(self):
         self.link.to_gpu()
         self.check_extract()
-
-    def check_warning_in_extract(self, debug, train):
-        with numpy.errstate(all='ignore'):
-            with chainer.using_config('debug', debug):
-                with chainer.using_config('train', train):
-                    with warnings.catch_warnings(record=True) as w:
-                        x1 = numpy.random.uniform(
-                            0, 255, (320, 240, 3)).astype(numpy.uint8)
-                        x2 = numpy.random.uniform(
-                            0, 255, (320, 240, 3)).astype(numpy.uint8)
-                        self.link.extract([x1, x2])
-
-        if debug and train:
-            assert len(w) == 1
-            assert w[0].category is RuntimeWarning
-        else:
-            assert len(w) == 0
-
-    def test_warning_in_extract_0(self):
-        self.check_warning_in_extract(True, True)
-
-    def test_warning_in_extract_1(self):
-        self.check_warning_in_extract(True, False)
-
-    def test_warning_in_extract_2(self):
-        self.check_warning_in_extract(False, True)
-
-    def test_warning_in_extract_3(self):
-        self.check_warning_in_extract(False, False)
 
     def check_predict(self):
         x1 = numpy.random.uniform(0, 255, (320, 240, 3)).astype(numpy.uint8)
@@ -429,35 +357,6 @@ class TestGoogLeNet(unittest.TestCase):
     def test_extract_gpu(self):
         self.link.to_gpu()
         self.check_extract()
-
-    def check_warning_in_extract(self, debug, train):
-        with numpy.errstate(all='ignore'):
-            with chainer.using_config('debug', debug):
-                with chainer.using_config('train', train):
-                    with warnings.catch_warnings(record=True) as w:
-                        x1 = numpy.random.uniform(
-                            0, 255, (320, 240, 3)).astype(numpy.uint8)
-                        x2 = numpy.random.uniform(
-                            0, 255, (320, 240, 3)).astype(numpy.uint8)
-                        self.link.extract([x1, x2])
-
-        if debug and train:
-            assert len(w) == 1
-            assert w[0].category is RuntimeWarning
-        else:
-            assert len(w) == 0
-
-    def test_warning_in_extract_0(self):
-        self.check_warning_in_extract(True, True)
-
-    def test_warning_in_extract_1(self):
-        self.check_warning_in_extract(True, False)
-
-    def test_warning_in_extract_2(self):
-        self.check_warning_in_extract(False, True)
-
-    def test_warning_in_extract_3(self):
-        self.check_warning_in_extract(False, False)
 
     def check_predict(self):
         x1 = numpy.random.uniform(0, 255, (320, 240, 3)).astype(numpy.uint8)
