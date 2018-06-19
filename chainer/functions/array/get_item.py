@@ -60,24 +60,25 @@ class GetItemGrad(function_node.FunctionNode):
             try:
                 numpy.add.at(gx, self.slices, gy)
             except IndexError:
+                done = False
                 # In numpy<1.13, 0-dim boolean index is only supported by
                 # arr.__getitem__ for 0-dim arr.
                 if not _numpy_supports_0d_bool_index and len(self.slices) == 1:
                     idx = numpy.asanyarray(self.slices[0])
-                    if idx.dtype.kind == '?':
-                        # 
+                    if idx.dtype == numpy.dtype(bool):
                         numpy.add.at(gx[None], idx[None], gy)
+                        done = True
 
-                msg = 'GetItem does not support backward for this slices.' \
-                    ' The slices argument is not supported by numpy.add.at,' \
-                    ' while it is supported by numpy.ndarray.__getitem__.\n'
-                msg += '''
+                if not done:
+                    msg = '''
+GetItem does not support backward for this slices. The slices argument is not
+supported by numpy.add.at, while it is supported by numpy.ndarray.__getitem__.
+
 Please report this error to the issue tracker with the stack trace,
 the information of your environment, and your script:
 https://github.com/chainer/chainer/issues/new.
 '''
-                raise IndexError(msg)
-
+                    raise IndexError(msg)
         else:
             gx.scatter_add(self.slices, inputs[0])
         return gx,
