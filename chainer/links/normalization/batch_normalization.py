@@ -139,7 +139,11 @@ class BatchNormalization(link.Link):
 
             With ``axis`` option, similarly to NumPy, you may specify the
             aggregate axes, which are treated as the "batch" axes for the
-            batch statistics. You can omit ``size`` if ``axis`` is given.
+            batch statistics.
+
+            You can omit ``size`` if ``axis`` is given. In this case, creation
+            of persistent values ``avg_mean``, ``avg_var`` and parameters
+            ``beta``, ``gamma`` is deferred until first forward propagation.
 
             The examples in 1. corresponds to the following, respectively.
 
