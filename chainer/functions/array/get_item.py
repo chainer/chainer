@@ -52,7 +52,16 @@ class GetItemGrad(function_node.FunctionNode):
         xp = cuda.get_array_module(*inputs)
         gx = xp.zeros(self._in_shape, self._in_dtype)
         if xp is numpy:
-            numpy.add.at(gx, self.slices, inputs[0])
+            try:
+                numpy.add.at(gx, self.slices, inputs[0])
+            except IndexError:
+                # support 0-dim boolean mask in numpy<1.13
+                if len(self.slices) == 1:
+                    slices = numpy.array(self.slices[0])[None],
+                    numpy.add.at(gx[None], slices, inputs[0])
+                else:
+                    # TODO(kataoka): support more cases
+                    raise
         else:
             gx.scatter_add(self.slices, inputs[0])
         return gx,
