@@ -136,7 +136,6 @@ Array GetPadModeIgnorePoolingWidths(
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all,
         Dtype dtype) {
     int8_t n = shape.ndim() - 2;
     assert(n == static_cast<int8_t>(kernel_size.size()));
@@ -150,7 +149,7 @@ Array GetPadModeIgnorePoolingWidths(
         int64_t s = stride[i];
         int64_t p = pad[i];
 
-        Array width = Empty({xchainer::internal::GetConvOutDim(dim, k, s, p, cover_all)}, dtype);
+        Array width = Empty({xchainer::internal::GetConvOutDim(dim, k, s, p, false)}, dtype);
         VisitDtype(dtype, [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
@@ -196,14 +195,8 @@ Array NativeDevice::AveragePool(
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all,
         AveragePoolPadMode pad_mode) {
-    // TODO(hvy): Support cover_all.
-    if (cover_all) {
-        throw NotImplementedError{"Native average pooling does not yet support cover_all."};
-    }
-
-    Array col = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, cover_all, 0);
+    Array col = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, false, 0);
 
     // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
     Axes kernel_axes;
@@ -219,8 +212,7 @@ Array NativeDevice::AveragePool(
         case AveragePoolPadMode::kIgnore: {
             Device& device = x.device();
             device.Sum(col, kernel_axes, out);
-            const Array widths =
-                    GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, cover_all, x.dtype()).BroadcastTo(out.shape());
+            const Array widths = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(out.shape());
             device.Divide(out, widths, out);
             break;
         }

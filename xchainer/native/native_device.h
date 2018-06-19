@@ -142,7 +142,6 @@ public:
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all,
             AveragePoolPadMode pad_mode) override;
 
 protected:
