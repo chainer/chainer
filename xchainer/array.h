@@ -50,39 +50,6 @@ std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId&
 
 const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
-class ArrayBodyLeakTracker {
-public:
-    void operator()(const std::shared_ptr<internal::ArrayBody>& array_body);
-
-    void CheckAllFreed();
-
-private:
-    std::vector<std::weak_ptr<internal::ArrayBody>> weak_ptrs_;
-};
-
-// A scope object to detect array body leaks.
-// It tracks newly created array bodies which are being set to arrays within the scope.
-class ArrayBodyLeakDetectionScope {
-public:
-    explicit ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& tracker);
-    ~ArrayBodyLeakDetectionScope();
-
-    ArrayBodyLeakDetectionScope(const ArrayBodyLeakDetectionScope&) = delete;
-    ArrayBodyLeakDetectionScope& operator=(const ArrayBodyLeakDetectionScope&) = delete;
-    ArrayBodyLeakDetectionScope(ArrayBodyLeakDetectionScope&& other) {
-        exited_ = other.exited_;
-        other.exited_ = true;
-    }
-    ArrayBodyLeakDetectionScope& operator=(ArrayBodyLeakDetectionScope&& other) {
-        exited_ = other.exited_;
-        other.exited_ = true;
-        return *this;
-    }
-
-private:
-    bool exited_ = false;
-};
-
 }  // namespace internal
 
 // The main data structure of multi-dimensional array.

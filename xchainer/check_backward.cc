@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/array_body_leak_detection.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backward.h"
 #include "xchainer/error.h"
