@@ -48,17 +48,15 @@ public:
             assert(running_mean.GetTotalSize() == reduced_total_size);
             assert(running_var.GetTotalSize() == reduced_total_size);
 
-            Device& device = x.device();
-            assert(&device == &gamma.device());
-            assert(&device == &beta.device());
-            assert(&device == &running_mean.device());
-            assert(&device == &running_var.device());
+            assert(&x.device() == &gamma.device());
+            assert(&x.device() == &beta.device());
+            assert(&x.device() == &running_mean.device());
+            assert(&x.device() == &running_var.device());
 
-            Dtype dtype = x.dtype();
-            assert(dtype == gamma.dtype());
-            assert(dtype == beta.dtype());
-            assert(dtype == running_mean.dtype());
-            assert(dtype == running_var.dtype());
+            assert(x.dtype() == gamma.dtype());
+            assert(x.dtype() == beta.dtype());
+            assert(x.dtype() == running_mean.dtype());
+            assert(x.dtype() == running_var.dtype());
 
             assert(gamma.IsContiguous());
             assert(beta.IsContiguous());
