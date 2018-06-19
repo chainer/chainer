@@ -50,27 +50,30 @@ std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId&
 
 const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
-class ArrayBodyHook {
+class ArrayBodyLeakTracker {
 public:
-    virtual void operator()(const std::shared_ptr<ArrayBody>& array_body) = 0;
+    void operator()(const std::shared_ptr<internal::ArrayBody>& array_body);
+
+    void CheckAllFreed();
+
+private:
+    std::vector<std::weak_ptr<internal::ArrayBody>> weak_ptrs_;
 };
 
-// Sets the callback called when a new array body is created and set to an array.
-// This callback is for use in unit tests.
-// It is not called on Array's default ctor, because no array body is created.
-// It is not called on Array's copy ctor or operator=, because the array body is not created but its pointer is simply copied.
-class ArrayBodyHookScope {
+// A scope object to detect array body leaks.
+// It tracks newly created array bodies which are being set to arrays within the scope.
+class ArrayBodyLeakDetectionScope {
 public:
-    explicit ArrayBodyHookScope(ArrayBodyHook& hook);
-    ~ArrayBodyHookScope();
+    explicit ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& tracker);
+    ~ArrayBodyLeakDetectionScope();
 
-    ArrayBodyHookScope(const ArrayBodyHookScope&) = delete;
-    ArrayBodyHookScope& operator=(const ArrayBodyHookScope&) = delete;
-    ArrayBodyHookScope(ArrayBodyHookScope&& other) {
+    ArrayBodyLeakDetectionScope(const ArrayBodyLeakDetectionScope&) = delete;
+    ArrayBodyLeakDetectionScope& operator=(const ArrayBodyLeakDetectionScope&) = delete;
+    ArrayBodyLeakDetectionScope(ArrayBodyLeakDetectionScope&& other) {
         exited_ = other.exited_;
         other.exited_ = true;
     }
-    ArrayBodyHookScope& operator=(ArrayBodyHookScope&& other) {
+    ArrayBodyLeakDetectionScope& operator=(ArrayBodyLeakDetectionScope&& other) {
         exited_ = other.exited_;
         other.exited_ = true;
         return *this;

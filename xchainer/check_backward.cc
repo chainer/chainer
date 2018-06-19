@@ -135,48 +135,6 @@ void CheckDoubleBackpropOption(
     }
 }
 
-namespace {
-
-class ArrayBodyHook : public internal::ArrayBodyHook {
-public:
-    void operator()(const std::shared_ptr<internal::ArrayBody>& array_body) override {
-        // Keep weak pointer
-        weak_ptrs_.emplace_back(array_body);
-    }
-
-    void CheckAllFreed() {
-        std::vector<std::shared_ptr<internal::ArrayBody>> alive_ptrs;
-
-        for (const std::weak_ptr<internal::ArrayBody> weak_ptr : weak_ptrs_) {
-            std::shared_ptr<internal::ArrayBody> ptr = weak_ptr.lock();
-            if (ptr != nullptr) {
-                alive_ptrs.emplace_back(ptr);
-            }
-        }
-
-        if (!alive_ptrs.empty()) {
-            // TODO(niboshi): Output only array bodies that are not referenced from other array bodies
-            std::ostringstream os;
-            os << "Some array bodies are not freed." << std::endl << "Number of alive array bodies: " << alive_ptrs.size() << std::endl;
-            for (const std::shared_ptr<internal::ArrayBody>& array_body : alive_ptrs) {
-                Array array{array_body};
-                os << "- Unreleased array body: " << array_body.get() << std::endl;
-                os << array << std::endl;
-                for (const std::shared_ptr<ArrayNode>& array_node : array.nodes()) {
-                    const GraphId& graph_id = array_node->graph_id();
-                    DebugDumpComputationalGraph(os, array, graph_id);
-                }
-            }
-            throw GradientCheckError{os.str()};
-        }
-    }
-
-private:
-    std::vector<std::weak_ptr<internal::ArrayBody>> weak_ptrs_;
-};
-
-}  // namespace
-
 void CheckBackwardComputation(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
@@ -289,14 +247,14 @@ void CheckBackward(
         const GraphId& graph_id) {
     CheckDoubleBackpropOption(func, inputs, graph_id);
 
-    ArrayBodyHook hook{};
+    internal::ArrayBodyLeakTracker tracker{};
     {
-        internal::ArrayBodyHookScope hook_scope{hook};
+        internal::ArrayBodyLeakDetectionScope scope{tracker};
         CheckBackwardComputation(func, inputs, grad_outputs, eps, atol, rtol, graph_id);
     }
     // TODO(niboshi): Array leak detection is not enabled. Fix the leaks and enable this check.
     // TODO(niboshi): Check in double backward computation, too.
-    // hook.CheckAllFreed();
+    // tracker.CheckAllFreed();
 }
 
 void CheckDoubleBackwardComputation(

@@ -40,9 +40,9 @@
 namespace xchainer {
 namespace {
 
-// Callback called when a new array body is created and set to an array.
-// See xchainer::internal::SetArrayBodyHook().
-xchainer::internal::ArrayBodyHook* g_array_body_hook = nullptr;
+// The global array body leak tracker.
+// See xchainer::internal::SetArrayBodyLeakTracker().
+xchainer::internal::ArrayBodyLeakTracker* g_array_body_leak_tracker = nullptr;
 
 }  // namespace
 
@@ -73,14 +73,46 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
     return *it;
 }
 
-ArrayBodyHookScope ::ArrayBodyHookScope(ArrayBodyHook& hook) {
-    assert(g_array_body_hook == nullptr);  // nested use is not supported
-    g_array_body_hook = &hook;
+void ArrayBodyLeakTracker::operator()(const std::shared_ptr<internal::ArrayBody>& array_body) {
+    // Keep weak pointer
+    weak_ptrs_.emplace_back(array_body);
 }
 
-ArrayBodyHookScope ::~ArrayBodyHookScope() {
+void ArrayBodyLeakTracker::CheckAllFreed() {
+    std::vector<std::shared_ptr<internal::ArrayBody>> alive_ptrs;
+
+    for (const std::weak_ptr<internal::ArrayBody> weak_ptr : weak_ptrs_) {
+        std::shared_ptr<internal::ArrayBody> ptr = weak_ptr.lock();
+        if (ptr != nullptr) {
+            alive_ptrs.emplace_back(ptr);
+        }
+    }
+
+    if (!alive_ptrs.empty()) {
+        // TODO(niboshi): Output only array bodies that are not referenced from other array bodies
+        std::ostringstream os;
+        os << "Some array bodies are not freed." << std::endl << "Number of alive array bodies: " << alive_ptrs.size() << std::endl;
+        for (const std::shared_ptr<internal::ArrayBody>& array_body : alive_ptrs) {
+            Array array{array_body};
+            os << "- Unreleased array body: " << array_body.get() << std::endl;
+            os << array << std::endl;
+            for (const std::shared_ptr<ArrayNode>& array_node : array.nodes()) {
+                const GraphId& graph_id = array_node->graph_id();
+                DebugDumpComputationalGraph(os, array, graph_id);
+            }
+        }
+        throw GradientCheckError{os.str()};
+    }
+}
+
+ArrayBodyLeakDetectionScope ::ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& tracker) {
+    assert(g_array_body_leak_tracker == nullptr);  // nested use is not supported
+    g_array_body_leak_tracker = &tracker;
+}
+
+ArrayBodyLeakDetectionScope ::~ArrayBodyLeakDetectionScope() {
     if (!exited_) {
-        g_array_body_hook = nullptr;
+        g_array_body_leak_tracker = nullptr;
         exited_ = true;
     }
 }
@@ -89,9 +121,9 @@ ArrayBodyHookScope ::~ArrayBodyHookScope() {
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : body_{std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)} {
-    if (g_array_body_hook != nullptr) {
+    if (g_array_body_leak_tracker != nullptr) {
         // TODO(niboshi): Make thread-safe
-        (*g_array_body_hook)(body_);
+        (*g_array_body_leak_tracker)(body_);
     }
 }
 
