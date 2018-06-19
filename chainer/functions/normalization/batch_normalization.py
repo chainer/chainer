@@ -704,12 +704,6 @@ def _as4darray(arr, key_axis):
         raise RuntimeError(msg)
 
 
-def _get_mode(x, gamma):
-    if x.ndim == 4 and gamma.ndim == 1:
-        return libcudnn.CUDNN_BATCHNORM_SPATIAL
-    return libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
-
-
 def _x_hat(x, mean, inv_std):
     x_mu = x - mean
     x_mu *= inv_std
