@@ -5,8 +5,8 @@ set -eu
 #    run-mnist.sh [options]
 #
 # Options:
-#    --train-script-path The path to Python training script.
-#    --data-dir The path to the MNIST dataset root directory.
+#    --train-script-path:   The path to Python training script.
+#    --data-dir:            The path to the MNIST dataset root directory.
 
 
 # Register all devices for which the MNIST training script should be tested.
