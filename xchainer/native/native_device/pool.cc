@@ -144,33 +144,34 @@ Array GetPadModeIgnorePoolingWidths(
 
     Array widths;
     for (int64_t i = 0; i < n; ++i) {
-        int64_t dim = shape[2 + i];
-        int64_t k = kernel_size[i];
-        int64_t s = stride[i];
-        int64_t p = pad[i];
+        int64_t dim_i = shape[2 + i];
+        int64_t kernel_size_i = kernel_size[i];
+        int64_t stride_i = stride[i];
+        int64_t pad_i = pad[i];
 
-        Array width = Empty({xchainer::internal::GetConvOutDim(dim, k, s, p, false)}, dtype);
-        VisitDtype(dtype, [dim, k, s, p, &width](auto pt) {
+        Array width = Empty({xchainer::internal::GetConvOutDim(dim_i, kernel_size_i, stride_i, pad_i, false)}, dtype);
+        VisitDtype(dtype, [dim_i, kernel_size_i, stride_i, pad_i, &width](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
-                void operator()(int64_t i, T& width) {
-                    T start = i * stride - pad;
-                    T end = start + kernel_size;
+                void operator()(int64_t i, T& w) {
+                    T start = i * s - p;
+                    T end = start + k;
                     if (start < 0) {
                         start = 0;
                     }
-                    if (end > dim) {
-                        end = dim;
+                    if (end > d) {
+                        end = d;
                     }
-                    width = end - start;
+                    w = end - start;
                 }
 
-                T dim;
-                T kernel_size;
-                T stride;
-                T pad;
+                T d;
+                T k;
+                T s;
+                T p;
             };
-            Elementwise<T>(Impl{static_cast<T>(dim), static_cast<T>(k), static_cast<T>(s), static_cast<T>(p)}, width);
+            Elementwise<T>(
+                    Impl{static_cast<T>(dim_i), static_cast<T>(kernel_size_i), static_cast<T>(stride_i), static_cast<T>(pad_i)}, width);
         });
 
         if (i == 0) {
