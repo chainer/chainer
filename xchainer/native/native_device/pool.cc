@@ -212,7 +212,7 @@ Array NativeDevice::AveragePool(
         case AveragePoolPadMode::kIgnore: {
             Device& device = x.device();
             device.Sum(col, kernel_axes, out);
-            const Array widths = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(out.shape());
+            Array widths = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(out.shape());
             device.Divide(out, widths, out);
             break;
         }
