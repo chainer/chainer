@@ -95,10 +95,10 @@ Array AveragePool(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all,
-        AveragePoolMode average_pool_mode) {
+        AveragePoolPadMode pad_mode) {
     CheckPoolInputs(x, kernel_size, stride, pad);
     // TODO(hvy): Implement backward.
-    return x.device().AveragePool(x, kernel_size, stride, pad, cover_all, average_pool_mode);
+    return x.device().AveragePool(x, kernel_size, stride, pad, cover_all, pad_mode);
 }
 
 }  // namespace xchainer

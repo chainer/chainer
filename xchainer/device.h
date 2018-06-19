@@ -270,7 +270,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all,
-            AveragePoolMode average_pool_mode) = 0;
+            AveragePoolPadMode pad_mode) = 0;
 
     virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() {
         return std::make_unique<GenericBatchNormForwardBackward>();

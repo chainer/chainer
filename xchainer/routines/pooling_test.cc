@@ -447,7 +447,7 @@ TEST_P(PoolingTest, AveragePool) {
                                0.1968342,  0.5656382,  0.0296214})
                       .WithPadding(1);  // Randomly generated.
 
-    Array out = AveragePool(x, kernel_size, stride, pad, false, AveragePoolMode::kIgnore);
+    Array out = AveragePool(x, kernel_size, stride, pad, false, AveragePoolPadMode::kIgnore);
 
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
             {0.02136722, 0.11548865, 0.29737243, 0.5615185,  0.7379023,  0.24097063, 0.3587226,  0.5367772,  0.6490081,
@@ -514,7 +514,7 @@ TEST_P(PoolingTest, AveragePoolCountIncludePadding) {
                                0.64444274, 0.46360555, 0.34956232})
                       .WithPadding(1);  // Randomly generated.
 
-    Array out = AveragePool(x, kernel_size, stride, pad, false, AveragePoolMode::kZero);
+    Array out = AveragePool(x, kernel_size, stride, pad, false, AveragePoolPadMode::kZero);
 
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
             {0.14547887, 0.11143565, 0.23709683, 0.43740582, 0.4930414,  0.38481522, 0.3631035,  0.2613494,  0.3619775,  0.46806145,

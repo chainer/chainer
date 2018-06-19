@@ -7,7 +7,7 @@ enum class CopyKind {
     kView,
 };
 
-enum class AveragePoolMode {
+enum class AveragePoolPadMode {
     kZero = 1,
     kIgnore,
 };

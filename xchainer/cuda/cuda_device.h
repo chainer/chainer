@@ -153,7 +153,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all,
-            AveragePoolMode average_pool_mode) override;
+            AveragePoolPadMode pad_mode) override;
 
     // batch_norm.cc
 

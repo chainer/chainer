@@ -130,16 +130,16 @@ void Mean(const Array& a, const Axes& axis, const Array& out) {
     device.DivideAS(out, xchainer::internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
-template <typename T, AveragePoolMode kAveragePoolMode>
+template <typename T, AveragePoolPadMode kAveragePoolPadMode>
 struct GetPoolingWidthsImpl {
     void operator()(int64_t i, T& width) {
         T start = i * stride - pad;
         T end = start + kernel_size;
-        switch (kAveragePoolMode) {
-            case AveragePoolMode::kZero:
+        switch (kAveragePoolPadMode) {
+            case AveragePoolPadMode::kZero:
                 // Do nothing.
                 break;
-            case AveragePoolMode::kIgnore: {
+            case AveragePoolPadMode::kIgnore: {
                 if (start < 0) {
                     start = 0;
                 }
@@ -160,7 +160,7 @@ struct GetPoolingWidthsImpl {
     T pad;
 };
 
-template <AveragePoolMode kAveragePoolMode>
+template <AveragePoolPadMode kAveragePoolPadMode>
 Array GetPoolingWidths(
         const Shape& shape,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
@@ -184,7 +184,8 @@ Array GetPoolingWidths(
         VisitDtype(dtype, [&](auto pt) {
             using T = typename decltype(pt)::type;
             Elementwise<T>(
-                    GetPoolingWidthsImpl<T, kAveragePoolMode>{static_cast<T>(dim), static_cast<T>(k), static_cast<T>(s), static_cast<T>(p)},
+                    GetPoolingWidthsImpl<T, kAveragePoolPadMode>{
+                            static_cast<T>(dim), static_cast<T>(k), static_cast<T>(s), static_cast<T>(p)},
                     width);
         });
 
@@ -211,7 +212,7 @@ Array NativeDevice::AveragePool(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all,
-        AveragePoolMode average_pool_mode) {
+        AveragePoolPadMode pad_mode) {
     // TODO(hvy): Support cover_all.
     if (cover_all) {
         throw NotImplementedError{"Native average pooling does not yet support cover_all."};
@@ -226,14 +227,14 @@ Array NativeDevice::AveragePool(
 
     Array out = xchainer::internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
 
-    switch (average_pool_mode) {
-        case AveragePoolMode::kZero:
+    switch (pad_mode) {
+        case AveragePoolPadMode::kZero:
             Mean(col, kernel_axes, out);
             break;
-        case AveragePoolMode::kIgnore: {
+        case AveragePoolPadMode::kIgnore: {
             Device& device = x.device();
             device.Sum(col, kernel_axes, out);
-            const Array widths = GetPoolingWidths<AveragePoolMode::kIgnore>(x.shape(), kernel_size, stride, pad, cover_all, x.dtype())
+            const Array widths = GetPoolingWidths<AveragePoolPadMode::kIgnore>(x.shape(), kernel_size, stride, pad, cover_all, x.dtype())
                                          .BroadcastTo(out.shape());
             device.Divide(out, widths, out);
             break;
