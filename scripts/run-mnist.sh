@@ -55,7 +55,7 @@ for device in "${devices[@]}"
 do
     # TODO(hvy): Train for longer when the performance of the native device is improved.
     IFS=$'\n'
-    outputs=($(python "${train_script_path}" --data="${data_dir}" --device="${device}" --iteration=10 --batchsize=100 --eval-size=100 --eval-interval=iter))
+    outputs=($(python "${train_script_path}" --data="${data_dir}" --device="${device}" --iteration=10 --batchsize=100 --eval-size=100))
 
     loss_begin="$(get_loss ${outputs[0]})"
     acc_begin="$(get_accuracy ${outputs[0]})"

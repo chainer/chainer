@@ -98,8 +98,6 @@ def main():
     parser.add_argument('--data', '-p', default='mnist',
                         help='Path to the directory that contains MNIST dataset')
     parser.add_argument('--device', '-d', default='native', help='Device to use')
-    parser.add_argument('--eval-interval', default='epoch', help='Interval with which the model is evaluated',
-                        choices=['epoch', 'iter'])
     parser.add_argument('--eval-size', default=None, type=int,
                         help='Number of samples to use from the test set for evaluation. None to use all.')
     args = parser.parse_args()
@@ -123,9 +121,13 @@ def main():
     if sum(stop_cond is not None for stop_cond in [args.epoch, args.iteration]) != 1:
         raise ValueError('Only either of epoch and iteration can be used as a stopping condition')
     if args.iteration is not None:
+        eval_interval = 'iteration'
+
         def check_stop_trigger(iters):
             return iters >= args.iteration
-    else:  # By epoch
+    else:
+        assert args.epoch is not None
+        eval_interval = 'epoch'
         iterations_per_epoch = math.ceil(N / batch_size)
 
         def check_stop_trigger(iters):
@@ -152,8 +154,7 @@ def main():
             loss.backward()
             model.update(lr=0.01)
 
-            # Eval per iteration
-            if args.eval_interval == 'iter':
+            if eval_interval == 'iteration':
                 mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
                 print(f'iteration {iters}... loss={mean_loss},\taccuracy={accuracy}')
 
@@ -162,8 +163,7 @@ def main():
                 is_finished = True
                 break
 
-        # Eval per epoch
-        if args.eval_interval == 'epoch':
+        if eval_interval == 'epoch':
             mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
             print(f'iteration {iters}... loss={mean_loss},\taccuracy={accuracy}')
 
