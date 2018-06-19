@@ -117,7 +117,7 @@ def main():
     N = X.shape[0]   # TODO(beam2d): implement len
     all_indices_np = np.arange(N, dtype=np.int64)  # TODO(beam2d): support int32 indexing
     batch_size = args.batchsize
-    eval_size = args.batchsize
+    eval_size = args.eval_size
 
     # Set stopping condition
     if sum(stop_cond is not None for stop_cond in [args.epoch, args.iteration]) != 1:
