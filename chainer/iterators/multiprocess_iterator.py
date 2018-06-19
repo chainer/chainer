@@ -345,7 +345,8 @@ class _PrefetchLoop(object):
         self._pool = multiprocessing.Pool(
             processes=self.n_processes,
             initializer=_fetch_setup,
-            initargs=(self.dataset, self.mem_size, self.mem_bulk))
+            initargs=(self.dataset, self.mem_size, self.mem_bulk),
+            maxtasksperchild=10)
         if self._interruption_testing:
             pids = self._pool.map(_report_pid, range(self.n_processes))
             print(' '.join(map(str, pids)))
