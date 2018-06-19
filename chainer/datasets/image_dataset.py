@@ -164,8 +164,8 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
 
 
 class LabeledZippedImageDataset(dataset_mixin.DatasetMixin):
-    """Dataset of zipped image and label pairs built from a list of paths
-    and labels.
+
+    """Dataset of zipped image and label pairs.
 
     This dataset is zip version of `LabeledImageDataset`. It takes a
     zipfile like `ZippedImageDataset`. The label file shall contain
@@ -183,7 +183,6 @@ class LabeledZippedImageDataset(dataset_mixin.DatasetMixin):
         dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
             used by default (see :ref:`configuration`).
         label_dtype: Data type of the labels.
-
     """
     def __init__(self, zipfilename, labelfilename, dtype=None,
                  label_dtype=numpy.int32):
