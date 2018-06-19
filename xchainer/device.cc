@@ -94,6 +94,8 @@ ApplyBatchNormResult ApplyBatchNorm(
         assert(mean.IsConstant());
         assert(var.IsConstant());
     }
+#else
+    (void)axis;  // unused
 #endif  // NDEBUG
     Array inv_std = Reciprocal(Sqrt(var + eps));
 
