@@ -17,13 +17,13 @@ static_assert(std::is_pod<decltype(t_default_device)>::value, "t_default_device 
 
 }  // namespace
 
-namespace internal {
-
-void CheckDevicesCompatible(const Device& device, const Array& array) {
-    if (&device != &array.device()) {
-        throw DeviceError{"Device (", device.name(), ") is not compatible with array's device (", array.device().name(), ")."};
+void Device::CheckDevicesCompatible(const Array& array) {
+    if (this != &array.device()) {
+        throw DeviceError{"Device (", name(), ") is not compatible with array's device (", array.device().name(), ")."};
     }
 }
+
+namespace internal {
 
 Device* GetDefaultDeviceNoExcept() noexcept { return t_default_device; }
 
