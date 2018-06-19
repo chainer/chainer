@@ -15,7 +15,7 @@
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/memory_pool.h"
 #include "xchainer/device.h"
-#include "xchainer/enum.h"
+#include "xchainer/routines/pooling.h"
 #include "xchainer/scalar.h"
 #include "xchainer/stack_vector.h"
 

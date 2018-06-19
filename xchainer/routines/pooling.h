@@ -4,7 +4,6 @@
 
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
-#include "xchainer/enum.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
@@ -15,6 +14,11 @@ Array MaxPool(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all = true);
+
+enum class AveragePoolPadMode {
+    kZero = 1,
+    kIgnore,
+};
 
 Array AveragePool(
         const Array& x,

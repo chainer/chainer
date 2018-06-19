@@ -9,9 +9,9 @@
 #include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
-#include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/math.h"
+#include "xchainer/routines/pooling.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {

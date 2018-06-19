@@ -12,7 +12,6 @@
 #include "xchainer/check_backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device_id.h"
-#include "xchainer/enum.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
 #include "xchainer/testing/array.h"

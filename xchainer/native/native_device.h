@@ -9,10 +9,10 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/device.h"
-#include "xchainer/enum.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
+#include "xchainer/routines/pooling.h"
 #include "xchainer/scalar.h"
 #include "xchainer/stack_vector.h"
 

@@ -9,7 +9,6 @@
 #include "xchainer/axes.h"
 #include "xchainer/backend.h"
 #include "xchainer/constant.h"
-#include "xchainer/enum.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
@@ -17,6 +16,7 @@
 namespace xchainer {
 
 class Array;
+enum class AveragePoolPadMode;
 
 class MaxPoolForwardBackward {
 public:
