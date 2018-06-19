@@ -159,10 +159,12 @@ def dropout(x, ratio=.5, **kwargs):
     mask = None
     return_mask = False
     if kwargs:
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config')
         mask, return_mask = argument.parse_kwargs(
-            kwargs, ('mask', mask), ('return_mask', return_mask),
-            train='train argument is not supported anymore. '
-                  'Use chainer.using_config')
+            kwargs, ('mask', mask), ('return_mask', return_mask))
+        argument.assert_kwargs_empty(kwargs)
 
     if configuration.config.train:
         func = Dropout(ratio, mask)
