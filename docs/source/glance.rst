@@ -91,6 +91,7 @@ Here's the whole picture of the code:
     trainer = training.Trainer(updater, (1, 'epoch'), out='result')
 
 .. testcode::
+
    # Evaluate the model with the test dataset for each epoch
    trainer.extend(extensions.Evaluator(test_iter, model, device=-1))
    
