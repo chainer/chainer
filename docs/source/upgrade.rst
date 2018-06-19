@@ -8,6 +8,26 @@ This is a list of changes introduced in each release that users should be aware 
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
 
+Chainer v5
+==========
+
+Changed Behavior of ``Optimizer.new_epoch``
+-------------------------------------------
+
+This change only affects to minor number of users (who call ``new_epoch()`` method of Optimizers while using trainer, or who implement their own Updater class).
+
+Optimizers provides ``new_epoch()`` method, which can be used to change optimizer behavior depending on the current epoch number.
+Prior to Chainer v5, this method was expected to be called by users.
+In Chainer v5, Updaters call ``new_epoch()`` method of Optimizers automatically.
+If you are calling ``new_epoch()`` method manually while using trainer (Updater), you may need any of the following fixes:
+
+* Pass ``auto_new_epoch=False`` to the constructor of the Updater to stop ``new_epoch()`` being called automatically by Updaters.
+* Avoid calling ``new_epoch()`` method manually.
+
+If you are implementing your own Updater class, you may need to update your code to automatically call ``new_epoch()``.
+See `#4608 <https://github.com/chainer/chainer/pull/4608>`__ for the detailed discussions.
+
+
 Chainer v4
 ==========
 
