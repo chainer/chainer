@@ -2,7 +2,7 @@
 set -eu
 
 # Usage:
-#    run-mnist.sh [options]
+#    test-mnist.sh [options]
 #
 # Options:
 #    --train-script-path:   The path to Python training script.
