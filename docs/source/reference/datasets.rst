@@ -158,6 +158,8 @@ ImageDataset
    :nosignatures:
 
    chainer.datasets.ImageDataset
+   chainer.datasets.ZippedImageDataset
+   chainer.datasets.MultiZippedImageDataset
 
 LabeledImageDataset
 ~~~~~~~~~~~~~~~~~~~
