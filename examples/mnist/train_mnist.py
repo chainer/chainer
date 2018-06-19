@@ -123,20 +123,21 @@ def main():
     if args.iteration is not None:
         eval_interval = 'iteration'
 
-        def check_stop_trigger(iters):
-            return iters >= args.iteration
+        def check_stop_trigger(it):
+            return it >= args.iteration
     else:
         assert args.epoch is not None
         eval_interval = 'epoch'
         iterations_per_epoch = math.ceil(N / batch_size)
 
-        def check_stop_trigger(iters):
-            return iters // iterations_per_epoch >= args.epoch
+        def check_stop_trigger(it):
+            return it // iterations_per_epoch >= args.epoch
 
     # Train
     model.require_grad()
 
-    iters = 0
+    it = 0
+    epoch = 0
     is_finished = False
 
     while not is_finished:
@@ -154,18 +155,19 @@ def main():
             loss.backward()
             model.update(lr=0.01)
 
+            it += 1
             if eval_interval == 'iteration':
                 mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
-                print(f'iteration {iters}... loss={mean_loss},\taccuracy={accuracy}')
+                print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy}')
 
-            iters += 1
-            if check_stop_trigger(iters):
+            if check_stop_trigger(it):
                 is_finished = True
                 break
 
+        epoch += 1
         if eval_interval == 'epoch':
             mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
-            print(f'iteration {iters}... loss={mean_loss},\taccuracy={accuracy}')
+            print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy}')
 
 
 def get_mnist(path, name):
