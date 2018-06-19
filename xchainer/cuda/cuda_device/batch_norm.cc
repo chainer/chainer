@@ -21,13 +21,13 @@ namespace xchainer {
 namespace cuda {
 namespace {
 
-class CudnnBNTensor4dDescriptor {
+class CudnnBNTensorDescriptor {
 public:
-    CudnnBNTensor4dDescriptor(const internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) : CudnnBNTensor4dDescriptor{} {
+    CudnnBNTensorDescriptor(const internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) : CudnnBNTensorDescriptor{} {
         CheckCudnnError(cudnnDeriveBNTensorDescriptor(desc_, *x_desc, mode));
     }
 
-    ~CudnnBNTensor4dDescriptor() {
+    ~CudnnBNTensorDescriptor() {
         if (desc_ != nullptr) {
             CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
         }
@@ -37,17 +37,10 @@ public:
     cudnnTensorDescriptor_t operator*() const { return desc_; }
 
     Dtype GetDtype() {
-        cudnnDataType_t cudnn_dtype;
-        int n;
-        int c;
-        int h;
-        int w;
-        int n_stride;
-        int c_stride;
-        int h_stride;
-        int w_stride;
+        cudnnDataType_t cudnn_dtype{};
+        int ndim{};
 
-        CheckCudnnError(cudnnGetTensor4dDescriptor(desc_, &cudnn_dtype, &n, &c, &h, &w, &n_stride, &c_stride, &h_stride, &w_stride));
+        CheckCudnnError(cudnnGetTensorNdDescriptor(desc_, 0, &cudnn_dtype, &ndim, nullptr, nullptr));
 
         switch (cudnn_dtype) {
             case CUDNN_DATA_DOUBLE:
@@ -63,31 +56,9 @@ public:
     }
 
 private:
-    CudnnBNTensor4dDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
+    CudnnBNTensorDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
     cudnnTensorDescriptor_t desc_{};
 };
-
-// Example: Axes{0, 2, 3} with ndim 4 => Axes{1}
-Axes ComputeKeyAxis(int8_t x_ndim, const Axes& axis) {
-    Axes key_axis{};
-    for (int8_t idim = 0; idim < x_ndim; ++idim) {
-        if (std::none_of(axis.begin(), axis.end(), [idim](int8_t jdim) { return idim == jdim; })) {
-            key_axis.emplace_back(idim);
-        }
-    }
-    return key_axis;
-}
-
-Array As4dArray(const Array& arr, const Axes& key_axis) {
-    if (arr.ndim() == 4 && key_axis[0] == 1) {
-        return arr;
-    } else if (key_axis[0] == arr.ndim() - 1) {
-        int64_t last_dim_size = arr.shape()[arr.ndim() - 1];
-        return arr.Reshape({arr.GetTotalSize() / last_dim_size, last_dim_size, 1, 1});
-    } else {
-        throw DimensionError{"Unexpected combination of array shape: ", arr.shape(), " and key_axis: ", key_axis};
-    }
-}
 
 class CudaBatchNormForwardBackward : public xchainer::BatchNormForwardBackward {
 public:
@@ -144,10 +115,10 @@ public:
         Dtype dtype = x.dtype();
 
         Array x_cont = AsContiguousArray(x);
-        internal::CudnnTensorDescriptor x_desc{As4dArray(x_cont, ComputeKeyAxis(x.ndim(), axis))};
+        internal::CudnnTensorDescriptor x_desc{x_cont};
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
-        CudnnBNTensor4dDescriptor gamma_beta_mean_var_desc{x_desc, mode};
+        CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
         Array gamma_casted = gamma.AsType(gamma_beta_mean_var_dtype, false);
@@ -214,6 +185,7 @@ public:
     }
 
 private:
+    // TODO(sonots): Support other than 4, 5 dimensional arrays by reshaping into 4-dimensional arrays as Chainer does.
     cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
         if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
             return CUDNN_BATCHNORM_PER_ACTIVATION;
