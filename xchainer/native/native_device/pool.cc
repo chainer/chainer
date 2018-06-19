@@ -8,6 +8,8 @@
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
+#include "xchainer/enum.h"
+#include "xchainer/macro.h"
 #include "xchainer/native/col2im.h"
 #include "xchainer/native/elementwise.h"
 #include "xchainer/native/im2col.h"
@@ -128,13 +130,43 @@ void Mean(const Array& a, const Axes& axis, const Array& out) {
     device.DivideAS(out, xchainer::internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
+template <typename T, AveragePoolMode kAveragePoolMode>
+struct GetPoolingWidthsImpl {
+    void operator()(int64_t i, T& width) {
+        T start = i * stride - pad;
+        T end = start + kernel_size;
+        switch (kAveragePoolMode) {
+            case AveragePoolMode::kZero:
+                // Do nothing.
+                break;
+            case AveragePoolMode::kIgnore: {
+                if (start < 0) {
+                    start = 0;
+                }
+                if (end > dim) {
+                    end = dim;
+                }
+                break;
+            }
+            default:
+                XCHAINER_NEVER_REACH();
+        }
+        width = end - start;
+    }
+
+    T dim;
+    T kernel_size;
+    T stride;
+    T pad;
+};
+
+template <AveragePoolMode kAveragePoolMode>
 Array GetPoolingWidths(
         const Shape& shape,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all,
-        bool count_include_pad,
         Dtype dtype) {
     int8_t n = shape.ndim() - 2;
     assert(n == static_cast<int8_t>(kernel_size.size()));
@@ -151,27 +183,9 @@ Array GetPoolingWidths(
         Array width = Empty({xchainer::internal::GetConvOutDim(dim, k, s, p, cover_all)}, dtype);
         VisitDtype(dtype, [&](auto pt) {
             using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t i, T& width) {
-                    T start = i * stride - pad;
-                    T end = start + kernel_size;
-                    if (!count_include_pad) {
-                        if (start < 0) {
-                            start = 0;
-                        }
-                        if (end > dim) {
-                            end = dim;
-                        }
-                    }
-                    width = end - start;
-                }
-                T dim;
-                T kernel_size;
-                T stride;
-                T pad;
-                bool count_include_pad;
-            };
-            Elementwise<T>(Impl{static_cast<T>(dim), static_cast<T>(k), static_cast<T>(s), static_cast<T>(p), count_include_pad}, width);
+            Elementwise<T>(
+                    GetPoolingWidthsImpl<T, kAveragePoolMode>{static_cast<T>(dim), static_cast<T>(k), static_cast<T>(s), static_cast<T>(p)},
+                    width);
         });
 
         if (i == 0) {
@@ -197,7 +211,7 @@ Array NativeDevice::AveragePool(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all,
-        bool count_include_pad) {
+        AveragePoolMode average_pool_mode) {
     // TODO(hvy): Support cover_all.
     if (cover_all) {
         throw NotImplementedError{"Native average pooling does not yet support cover_all."};
@@ -212,15 +226,20 @@ Array NativeDevice::AveragePool(
 
     Array out = xchainer::internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
 
-    if (count_include_pad) {
-        Mean(col, kernel_axes, out);
-    } else {
-        Device& device = x.device();
-        device.Sum(col, kernel_axes, out);
-        device.Divide(
-                out,
-                GetPoolingWidths(x.shape(), kernel_size, stride, pad, cover_all, count_include_pad, x.dtype()).BroadcastTo(out.shape()),
-                out);
+    switch (average_pool_mode) {
+        case AveragePoolMode::kZero:
+            Mean(col, kernel_axes, out);
+            break;
+        case AveragePoolMode::kIgnore: {
+            Device& device = x.device();
+            device.Sum(col, kernel_axes, out);
+            const Array widths = GetPoolingWidths<AveragePoolMode::kIgnore>(x.shape(), kernel_size, stride, pad, cover_all, x.dtype())
+                                         .BroadcastTo(out.shape());
+            device.Divide(out, widths, out);
+            break;
+        }
+        default:
+            XCHAINER_NEVER_REACH();
     }
     return out;
 }

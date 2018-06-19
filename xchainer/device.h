@@ -9,6 +9,7 @@
 #include "xchainer/axes.h"
 #include "xchainer/backend.h"
 #include "xchainer/constant.h"
+#include "xchainer/enum.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
@@ -269,7 +270,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all,
-            bool count_include_pad) = 0;
+            AveragePoolMode average_pool_mode) = 0;
 
     virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() {
         return std::make_unique<GenericBatchNormForwardBackward>();

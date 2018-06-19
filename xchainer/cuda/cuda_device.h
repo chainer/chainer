@@ -15,6 +15,7 @@
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/cuda/memory_pool.h"
 #include "xchainer/device.h"
+#include "xchainer/enum.h"
 #include "xchainer/scalar.h"
 #include "xchainer/stack_vector.h"
 
@@ -152,7 +153,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all,
-            bool count_include_pad) override;
+            AveragePoolMode average_pool_mode) override;
 
     // batch_norm.cc
 

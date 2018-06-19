@@ -4,6 +4,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
+#include "xchainer/enum.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
@@ -21,6 +22,6 @@ Array AveragePool(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all = false,
-        bool count_include_pad = false);
+        AveragePoolMode average_pool_mode = AveragePoolMode::kIgnore);
 
 }  // namespace xchainer

@@ -7,6 +7,7 @@
 #include "xchainer/constant.h"
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/dtype.h"
+#include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
@@ -107,7 +108,7 @@ Array CudaDevice::AveragePool(
         const StackVector<int64_t, kMaxNdim>& /*stride*/,
         const StackVector<int64_t, kMaxNdim>& /*pad*/,
         bool /*cover_all*/,
-        bool /*count_include_pad*/) {
+        AveragePoolMode /*count_include_pad*/) {
     // TODO(hvy): Implement me.
     throw NotImplementedError{};
 }

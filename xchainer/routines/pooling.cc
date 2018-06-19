@@ -9,6 +9,7 @@
 #include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
+#include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/math.h"
 #include "xchainer/stack_vector.h"
@@ -94,10 +95,10 @@ Array AveragePool(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all,
-        bool count_include_pad) {
+        AveragePoolMode average_pool_mode) {
     CheckPoolInputs(x, kernel_size, stride, pad);
     // TODO(hvy): Implement backward.
-    return x.device().AveragePool(x, kernel_size, stride, pad, cover_all, count_include_pad);
+    return x.device().AveragePool(x, kernel_size, stride, pad, cover_all, average_pool_mode);
 }
 
 }  // namespace xchainer
