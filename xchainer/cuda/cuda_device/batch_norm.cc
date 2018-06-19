@@ -21,6 +21,45 @@ namespace xchainer {
 namespace cuda {
 namespace {
 
+class CudnnBNTensorDescriptor {
+public:
+    CudnnBNTensorDescriptor(const internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) : CudnnBNTensorDescriptor{} {
+        CheckCudnnError(cudnnDeriveBNTensorDescriptor(desc_, *x_desc, mode));
+    }
+
+    ~CudnnBNTensorDescriptor() {
+        if (desc_ != nullptr) {
+            CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
+        }
+    }
+
+    cudnnTensorDescriptor_t descriptor() const { return desc_; }
+    cudnnTensorDescriptor_t operator*() const { return desc_; }
+
+    Dtype GetDtype() {
+        cudnnDataType_t cudnn_dtype{};
+        int ndim{};
+
+        CheckCudnnError(cudnnGetTensorNdDescriptor(desc_, 0, &cudnn_dtype, &ndim, nullptr, nullptr));
+
+        switch (cudnn_dtype) {
+            case CUDNN_DATA_DOUBLE:
+                return Dtype::kFloat64;
+            case CUDNN_DATA_FLOAT:
+                return Dtype::kFloat32;
+            // TODO(sonots): Support float16
+            // case CUDNN_DATA_HALF;
+            //     return Dtype::kFloat16;
+            default:
+                throw DtypeError{"Unsupported cudnn data type: ", cudnn_dtype};
+        }
+    }
+
+private:
+    CudnnBNTensorDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
+    cudnnTensorDescriptor_t desc_{};
+};
+
 class CudaBatchNormForwardBackward : public xchainer::BatchNormForwardBackward {
 public:
     explicit CudaBatchNormForwardBackward(cudnnHandle_t cudnn_handle) : cudnn_handle_{cudnn_handle} {}
@@ -73,36 +112,67 @@ public:
         }
 
         Device& device = x.device();
+        Dtype dtype = x.dtype();
 
-        // Initialize cache.
-        result_mean_ = EmptyLike(gamma, device);
-        result_inv_var_ = EmptyLike(gamma, device);
+        Array x_cont = AsContiguousArray(x);
+        internal::CudnnTensorDescriptor x_desc{x_cont};
+        cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
+
+        CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
+        Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
+
+        Array gamma_casted = gamma.AsType(gamma_beta_mean_var_dtype, false);
+        Array beta_casted = beta.AsType(gamma_beta_mean_var_dtype, false);
+        Array running_mean_casted = running_mean.AsType(gamma_beta_mean_var_dtype, false);
+        Array running_var_casted = running_var.AsType(gamma_beta_mean_var_dtype, false);
 
         Array out = EmptyLike(x, device);
-        Array x_cont = AsContiguousArray(x);
 
-        internal::CudnnTensorDescriptor x_desc{x_cont};
-        internal::CudnnTensorDescriptor out_desc{out};
-        internal::CudnnTensorDescriptor gamma_beta_mean_var_desc{gamma};
+        // Initialize cache.
+        result_mean_ = EmptyLike(gamma_casted, device);
+        result_inv_var_ = EmptyLike(gamma_casted, device);
 
         CheckCudnnError(cudnnBatchNormalizationForwardTraining(
                 cudnn_handle_,
-                GetBatchNormMode(axis),
-                internal::GetValuePtr<1>(x.dtype()),
-                internal::GetValuePtr<0>(x.dtype()),
+                mode,
+                internal::GetValuePtr<1>(dtype),
+                internal::GetValuePtr<0>(dtype),
                 *x_desc,
                 xchainer::internal::GetRawOffsetData<void>(x_cont),
-                *out_desc,
+                *x_desc,
                 xchainer::internal::GetRawOffsetData<void>(out),
                 *gamma_beta_mean_var_desc,
-                xchainer::internal::GetRawOffsetData<void>(gamma),
-                xchainer::internal::GetRawOffsetData<void>(beta),
+                xchainer::internal::GetRawOffsetData<void>(gamma_casted),
+                xchainer::internal::GetRawOffsetData<void>(beta_casted),
                 1.0 - static_cast<double>(decay),
-                xchainer::internal::GetRawOffsetData<void>(running_mean),
-                xchainer::internal::GetRawOffsetData<void>(running_var),
+                xchainer::internal::GetRawOffsetData<void>(running_mean_casted),
+                xchainer::internal::GetRawOffsetData<void>(running_var_casted),
                 static_cast<double>(eps),
                 xchainer::internal::GetRawOffsetData<void>(result_mean_),
                 xchainer::internal::GetRawOffsetData<void>(result_inv_var_)));
+
+        // When data type of prameters is converted, say, from fp16
+        // to fp32, the values of fp32 arrays of running_mean and
+        // running_var updated by batchNormalizationForwardTraining
+        // must be explicitly written back to their original fp16 arrays.
+        //
+        // TODO(sonots): write tests after we supports fp16
+        if (dtype != gamma_beta_mean_var_dtype) {
+            assert(running_mean.IsContiguous());
+            assert(running_mean_casted.IsContiguous());
+            assert(running_var.IsContiguous());
+            assert(running_var_casted.IsContiguous());
+            device.MemoryCopyFrom(
+                    xchainer::internal::GetRawOffsetData<void>(running_mean),
+                    xchainer::internal::GetRawOffsetData<void>(running_mean_casted.AsType(dtype, false)),
+                    running_mean.GetNBytes(),
+                    device);
+            device.MemoryCopyFrom(
+                    xchainer::internal::GetRawOffsetData<void>(running_var),
+                    xchainer::internal::GetRawOffsetData<void>(running_var_casted.AsType(dtype, false)),
+                    running_var.GetNBytes(),
+                    device);
+        }
 
         return out;
     }
@@ -119,6 +189,7 @@ public:
     }
 
 private:
+    // TODO(sonots): Support other than 4, 5 dimensional arrays by reshaping into 4-dimensional arrays as Chainer does.
     cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
         if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
             return CUDNN_BATCHNORM_PER_ACTIVATION;
