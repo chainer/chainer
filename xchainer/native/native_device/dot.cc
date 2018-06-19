@@ -25,17 +25,18 @@ void DotCheckNdim(int8_t ndim) {
 }  // namespace
 void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
+
+    DotCheckNdim(a.ndim());
+    DotCheckNdim(b.ndim());
+    DotCheckNdim(out.ndim());
+
     out.Fill(0);
+
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> a_iarray{a};
-        IndexableArray<const T> b_iarray{b};
-        IndexableArray<T> out_iarray{out};
-
-        // We have to check iarray ndim, otherwise clang-tidy fails bound-checking.
-        DotCheckNdim(a_iarray.ndim());
-        DotCheckNdim(b_iarray.ndim());
-        DotCheckNdim(out_iarray.ndim());
+        IndexableArray<const T, 2> a_iarray{a};
+        IndexableArray<const T, 2> b_iarray{b};
+        IndexableArray<T, 2> out_iarray{out};
 
         int64_t m = a.shape()[0];
         int64_t k = a.shape()[1];
