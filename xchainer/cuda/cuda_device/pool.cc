@@ -107,7 +107,7 @@ Array CudaDevice::AveragePool(
         const StackVector<int64_t, kMaxNdim>& /*kernel_size*/,
         const StackVector<int64_t, kMaxNdim>& /*stride*/,
         const StackVector<int64_t, kMaxNdim>& /*pad*/,
-        AveragePoolPadMode /*count_include_pad*/) {
+        AveragePoolPadMode /*pad_mode*/) {
     // TODO(hvy): Implement me.
     throw NotImplementedError{};
 }
