@@ -371,6 +371,10 @@ def main():
             trigger=(args.validation_interval, 'iteration'))
 
     print('start training')
+    if args.resume:
+        # Resume from a snapshot
+        chainer.serializers.load_npz(args.resume, trainer)
+
     trainer.run()
 
 

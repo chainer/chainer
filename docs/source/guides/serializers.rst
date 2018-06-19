@@ -40,6 +40,11 @@ The state of an optimizer can also be saved by the same functions:
    Note that serialization of optimizer only saves its internal states including number of iterations, momentum vectors of MomentumSGD, etc.
    It does not save the parameters and persistent values of the target link.
    We have to explicitly save the target link with the optimizer to resume the optimization from saved states.
+   This can be done by saving the entire :class:'~training.Trainer' object, like this:
+
+.. code-block:: console
+
+   >>> serializers.save_npz('my.state', trainer)
 
 Support of the HDF5 format is enabled if the h5py package is installed.
 Serialization and deserialization with the HDF5 format are almost identical to those with the NPZ format;
