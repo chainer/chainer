@@ -158,6 +158,10 @@ public:
         //
         // TODO(sonots): write tests after we supports fp16
         if (dtype != gamma_beta_mean_var_dtype) {
+            assert(running_mean.IsContiguous());
+            assert(running_mean_casted.IsContiguous());
+            assert(running_var.IsContiguous());
+            assert(running_var_casted.IsContiguous());
             device.MemoryCopyFrom(
                     xchainer::internal::GetRawOffsetData<void>(running_mean),
                     xchainer::internal::GetRawOffsetData<void>(running_mean_casted.AsType(dtype, false)),
