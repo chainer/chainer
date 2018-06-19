@@ -14,6 +14,7 @@
 #include "xchainer/error.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/pooling.h"
 #include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
 
@@ -142,6 +143,16 @@ private:
 
 std::unique_ptr<MaxPoolForwardBackward> CudaDevice::GetMaxPoolForwardBackward() {
     return std::make_unique<CudaMaxPoolForwardBackward>(cudnn_handle());
+}
+
+Array CudaDevice::AveragePool(
+        const Array& /*x*/,
+        const StackVector<int64_t, kMaxNdim>& /*kernel_size*/,
+        const StackVector<int64_t, kMaxNdim>& /*stride*/,
+        const StackVector<int64_t, kMaxNdim>& /*pad*/,
+        AveragePoolPadMode /*pad_mode*/) {
+    // TODO(hvy): Implement me.
+    throw NotImplementedError{};
 }
 
 }  // namespace cuda

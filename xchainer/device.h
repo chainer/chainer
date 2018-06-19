@@ -16,6 +16,7 @@
 namespace xchainer {
 
 class Array;
+enum class AveragePoolPadMode;
 
 class MaxPoolForwardBackward {
 public:
@@ -262,6 +263,13 @@ public:
             const StackVector<int64_t, kMaxNdim>& out_size) = 0;
 
     virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() = 0;
+
+    virtual Array AveragePool(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            AveragePoolPadMode pad_mode) = 0;
 
     virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() {
         return std::make_unique<GenericBatchNormForwardBackward>();

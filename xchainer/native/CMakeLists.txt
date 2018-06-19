@@ -5,6 +5,7 @@ install(FILES
     reduce.h
     col2im.h
     im2col.h
+    tensor_dot.h
     DESTINATION include/xchainer/native
     )
 
@@ -25,7 +26,8 @@ add_library(xchainer_native STATIC
     native_device/reduction.cc
     native_backend.cc
     col2im.cc
-    im2col.cc)
+    im2col.cc
+    tensor_dot.cc)
 
 if(${ENABLE_TEST})
   add_executable(xchainer_native_test

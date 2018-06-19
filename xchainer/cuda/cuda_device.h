@@ -15,6 +15,7 @@
 #include "xchainer/cuda/cuda_conv.h"
 #include "xchainer/cuda/memory_pool.h"
 #include "xchainer/device.h"
+#include "xchainer/routines/pooling.h"
 #include "xchainer/scalar.h"
 #include "xchainer/stack_vector.h"
 
@@ -146,6 +147,13 @@ public:
     // pool.cc
 
     std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override;
+
+    Array AveragePool(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            AveragePoolPadMode pad_mode) override;
 
     // batch_norm.cc
 

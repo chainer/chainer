@@ -4,16 +4,24 @@
 #include <cstdint>
 #include <memory>
 #include <numeric>
+#include <utility>
 
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
+#include "xchainer/macro.h"
 #include "xchainer/native/col2im.h"
+#include "xchainer/native/elementwise.h"
 #include "xchainer/native/im2col.h"
+#include "xchainer/native/tensor_dot.h"
 #include "xchainer/numeric_limits.h"
+#include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/indexing.h"
+#include "xchainer/routines/math.h"
+#include "xchainer/routines/pooling.h"
 #include "xchainer/scalar.h"
+#include "xchainer/shape.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
@@ -113,6 +121,107 @@ private:
 
 std::unique_ptr<MaxPoolForwardBackward> NativeDevice::GetMaxPoolForwardBackward() {
     return std::make_unique<NativeMaxPoolForwardBackward>();
+}
+
+namespace {
+
+// TODO(hvy): Use Device::Mean when implemented.
+void Mean(const Array& a, const Axes& axis, const Array& out) {
+    Device& device = a.device();
+    device.Sum(a, axis, out);
+    device.DivideAS(out, xchainer::internal::CountItemsAlongAxes(a.shape(), axis), out);
+}
+
+Array GetPadModeIgnorePoolingWidths(
+        const Shape& shape,
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        Dtype dtype) {
+    int8_t n = shape.ndim() - 2;
+    assert(n == static_cast<int8_t>(kernel_size.size()));
+    assert(n == static_cast<int8_t>(stride.size()));
+    assert(n == static_cast<int8_t>(pad.size()));
+
+    Array widths;
+    for (int64_t i = 0; i < n; ++i) {
+        int64_t dim_i = shape[2 + i];
+        int64_t kernel_size_i = kernel_size[i];
+        int64_t stride_i = stride[i];
+        int64_t pad_i = pad[i];
+
+        Array width = Empty({xchainer::internal::GetConvOutDim(dim_i, kernel_size_i, stride_i, pad_i, false)}, dtype);
+        VisitDtype(dtype, [dim_i, kernel_size_i, stride_i, pad_i, &width](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t i, T& w) {
+                    T start = i * s - p;
+                    T end = start + k;
+                    if (start < 0) {
+                        start = 0;
+                    }
+                    if (end > d) {
+                        end = d;
+                    }
+                    w = end - start;
+                }
+
+                T d;
+                T k;
+                T s;
+                T p;
+            };
+            Elementwise<T>(
+                    Impl{static_cast<T>(dim_i), static_cast<T>(kernel_size_i), static_cast<T>(stride_i), static_cast<T>(pad_i)}, width);
+        });
+
+        if (i == 0) {
+            widths = std::move(width);
+        } else {
+            Shape widths_expanded = widths.shape();
+            widths_expanded.emplace_back(1);
+
+            Shape width_expanded{1};
+            std::copy(width.shape().begin(), width.shape().end(), std::back_inserter(width_expanded));
+
+            widths = TensorDot(widths.Reshape(widths_expanded), width.Reshape(width_expanded), {static_cast<int8_t>(widths.ndim())}, {0});
+        }
+    }
+    return widths;
+}
+
+}  // namespace
+
+Array NativeDevice::AveragePool(
+        const Array& x,
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        AveragePoolPadMode pad_mode) {
+    Array col = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, false, 0);
+
+    // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
+    Axes kernel_axes;
+    kernel_axes.resize(kernel_size.size());
+    std::iota(kernel_axes.begin(), kernel_axes.end(), 2);  // From k_1, up to k_n.
+
+    Array out = xchainer::internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
+
+    switch (pad_mode) {
+        case AveragePoolPadMode::kZero:
+            Mean(col, kernel_axes, out);
+            break;
+        case AveragePoolPadMode::kIgnore: {
+            Device& device = x.device();
+            device.Sum(col, kernel_axes, out);
+            Array widths = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(out.shape());
+            device.Divide(out, widths, out);
+            break;
+        }
+        default:
+            XCHAINER_NEVER_REACH();
+    }
+    return out;
 }
 
 }  // namespace native
