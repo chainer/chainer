@@ -124,44 +124,14 @@ std::unique_ptr<MaxPoolForwardBackward> NativeDevice::GetMaxPoolForwardBackward(
 
 namespace {
 
+// TODO(hvy): Use Device::Mean when implemented.
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
     device.Sum(a, axis, out);
     device.DivideAS(out, xchainer::internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
-template <typename T, AveragePoolPadMode kAveragePoolPadMode>
-struct GetPoolingWidthsImpl {
-    void operator()(int64_t i, T& width) {
-        T start = i * stride - pad;
-        T end = start + kernel_size;
-        switch (kAveragePoolPadMode) {
-            case AveragePoolPadMode::kZero:
-                // Do nothing.
-                break;
-            case AveragePoolPadMode::kIgnore: {
-                if (start < 0) {
-                    start = 0;
-                }
-                if (end > dim) {
-                    end = dim;
-                }
-                break;
-            }
-            default:
-                XCHAINER_NEVER_REACH();
-        }
-        width = end - start;
-    }
-
-    T dim;
-    T kernel_size;
-    T stride;
-    T pad;
-};
-
-template <AveragePoolPadMode kAveragePoolPadMode>
-Array GetPoolingWidths(
+Array GetPadModeIgnorePoolingWidths(
         const Shape& shape,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
@@ -183,10 +153,25 @@ Array GetPoolingWidths(
         Array width = Empty({xchainer::internal::GetConvOutDim(dim, k, s, p, cover_all)}, dtype);
         VisitDtype(dtype, [&](auto pt) {
             using T = typename decltype(pt)::type;
-            Elementwise<T>(
-                    GetPoolingWidthsImpl<T, kAveragePoolPadMode>{
-                            static_cast<T>(dim), static_cast<T>(k), static_cast<T>(s), static_cast<T>(p)},
-                    width);
+            struct Impl {
+                void operator()(int64_t i, T& width) {
+                    T start = i * stride - pad;
+                    T end = start + kernel_size;
+                    if (start < 0) {
+                        start = 0;
+                    }
+                    if (end > dim) {
+                        end = dim;
+                    }
+                    width = end - start;
+                }
+
+                T dim;
+                T kernel_size;
+                T stride;
+                T pad;
+            };
+            Elementwise<T>(Impl{static_cast<T>(dim), static_cast<T>(k), static_cast<T>(s), static_cast<T>(p)}, width);
         });
 
         if (i == 0) {
@@ -234,8 +219,8 @@ Array NativeDevice::AveragePool(
         case AveragePoolPadMode::kIgnore: {
             Device& device = x.device();
             device.Sum(col, kernel_axes, out);
-            const Array widths = GetPoolingWidths<AveragePoolPadMode::kIgnore>(x.shape(), kernel_size, stride, pad, cover_all, x.dtype())
-                                         .BroadcastTo(out.shape());
+            const Array widths =
+                    GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, cover_all, x.dtype()).BroadcastTo(out.shape());
             device.Divide(out, widths, out);
             break;
         }
