@@ -72,12 +72,12 @@ class TestMaxPoolingND(unittest.TestCase):
         self.assertEqual(self.gy.shape, y_data.shape)
         patches = pooling_nd_helper.pooling_patches(
             dims, ksize, stride, pad, self.cover_all)
-        for k in six.moves.range(2):
+        for i in six.moves.range(2):
             for c in six.moves.range(3):
-                x = self.x[k, c]
+                x = self.x[i, c]
                 expect = numpy.array([x[idx].max() for idx in patches])
                 expect = expect.reshape(y_data.shape[2:])
-                testing.assert_allclose(expect, y_data[k, c])
+                testing.assert_allclose(expect, y_data[i, c])
 
     @condition.retry(3)
     def test_forward_cpu(self):
@@ -303,6 +303,47 @@ class TestMaxPoolingNDCudnnCall(unittest.TestCase):
         with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
+
+
+class TestMaxPoolingNDIndices(unittest.TestCase):
+    def setUp(self):
+        self.x = numpy.arange(
+            2 * 3 * 4 * 4, dtype=numpy.float32).reshape(2, 3, 4, 4)
+
+    def _check(self, x):
+        out, indices = functions.max_pooling_nd(
+            x, 2, cover_all=False, return_indices=True)
+        assert isinstance(out, chainer.Variable)
+        assert isinstance(out.array, type(x))
+        assert isinstance(indices, type(x))
+        assert indices.shape == out.array.shape
+
+        # Calculate expected indices.
+        expect = numpy.zeros(indices.shape, dtype=indices.dtype)
+        for i in six.moves.range(2):
+            for c in six.moves.range(3):
+                xx = x[i, c]
+                expect[i, c] = numpy.array([
+                    [xx[0:2, 0:2].ravel().argmax(),
+                     xx[0:2, 2:4].ravel().argmax()],
+                    [xx[2:4, 0:2].ravel().argmax(),
+                     xx[2:4, 2:4].ravel().argmax()],
+                ])
+        if out.xp is not numpy:
+            expect = cuda.to_gpu(expect)
+        assert (expect == indices).all()
+
+    def test_cpu(self):
+        self._check(self.x)
+
+    @attr.gpu
+    @attr.cudnn
+    def test_gpu(self):
+        x = cuda.to_gpu(self.x)
+        with chainer.using_config('use_cudnn', 'never'):
+            self._check(x)
+        with chainer.using_config('use_cudnn', 'always'):
+            self._check(x)
 
 
 testing.run_module(__name__, __file__)
