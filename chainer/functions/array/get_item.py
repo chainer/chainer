@@ -61,11 +61,14 @@ class GetItemGrad(function_node.FunctionNode):
                 numpy.add.at(gx, self.slices, gy)
             except IndexError:
                 done = False
-                # In numpy<1.13, 0-dim boolean index is only supported by
-                # arr.__getitem__ for 0-dim arr.
+                # In numpy<1.13, 0-dim boolean index is not supported in
+                # numpy.add.at and it's supported for 0-dim arr in
+                # arr.__getitem__.
                 if not _numpy_supports_0d_bool_index and len(self.slices) == 1:
                     idx = numpy.asanyarray(self.slices[0])
                     if idx.dtype == numpy.dtype(bool):
+                        # Convert the array and the mask to 1-dim.
+                        # numpy.add.at with them is supported in older numpy.
                         numpy.add.at(gx[None], idx[None], gy)
                         done = True
 
