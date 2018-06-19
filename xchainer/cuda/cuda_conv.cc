@@ -246,9 +246,9 @@ Array CudaConv::Conv(
     }
 
     if (b) {
-        xchainer::internal::CheckDevicesCompatible(device, x, w, *b);
+        device.CheckDevicesCompatible(x, w, *b);
     } else {
-        xchainer::internal::CheckDevicesCompatible(device, x, w);
+        device.CheckDevicesCompatible(x, w);
     }
 
     ConvCheckDtype(x, w, b);
@@ -326,9 +326,9 @@ Array CudaConv::ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& out_size) {
     if (b) {
-        xchainer::internal::CheckDevicesCompatible(device, x, w, *b);
+        device.CheckDevicesCompatible(x, w, *b);
     } else {
-        xchainer::internal::CheckDevicesCompatible(device, x, w);
+        device.CheckDevicesCompatible(x, w);
     }
 
     ConvCheckDtype(x, w, b);
@@ -410,7 +410,7 @@ Array CudaConv::ConvGradWeight(
         throw XchainerError{"CUDA convolution does not support cover_all"};
     }
 
-    xchainer::internal::CheckDevicesCompatible(device, x, gy);
+    device.CheckDevicesCompatible(x, gy);
 
     int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
     if (ndim < 2) {
