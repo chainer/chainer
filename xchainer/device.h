@@ -279,9 +279,6 @@ public:
     Context& context() const { return backend_.context(); }
     int index() const { return index_; }
 
-protected:
-    Device(Backend& backend, int index) : backend_{backend}, index_{index} {}
-
     // Throws an exception if array devices are incompatible, else does nothing.
     template <typename... Arrays>
     void CheckDevicesCompatible(const Array& first, const Arrays&... rest) {
@@ -289,9 +286,12 @@ protected:
         CheckDevicesCompatible(rest...);
     }
 
-private:
     void CheckDevicesCompatible(const Array& array);
 
+protected:
+    Device(Backend& backend, int index) : backend_{backend}, index_{index} {}
+
+private:
     Backend& backend_;
     int index_;
 };
