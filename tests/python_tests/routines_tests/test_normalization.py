@@ -7,7 +7,7 @@ import xchainer
 from tests import array_utils
 
 
-def _create_batch_norm_ndarray_args(xp, device, x_shape, gamma_shape, beta_shape, running_mean_shape, running_var_shape, float_dtype):
+def _create_batch_norm_ndarray_args(xp, device, x_shape, gamma_shape, beta_shape, mean_shape, var_shape, float_dtype):
     x = array_utils.create_dummy_ndarray(xp, x_shape, float_dtype)
 
     # Non-contiguous gamma and beta is not supported by CUDA.
@@ -18,10 +18,10 @@ def _create_batch_norm_ndarray_args(xp, device, x_shape, gamma_shape, beta_shape
 
     # Non-contiguous running values which are updated in-place are not supported by CUDA, so we only pad for other devices.
     pad_running = device.backend.name != 'cuda'
-    running_mean = array_utils.create_dummy_ndarray(xp, running_mean_shape, float_dtype, padding=pad_running)
-    running_var = array_utils.create_dummy_ndarray(xp, running_var_shape, float_dtype, padding=pad_running, start=0)
+    mean = array_utils.create_dummy_ndarray(xp, mean_shape, float_dtype, padding=pad_running)
+    var = array_utils.create_dummy_ndarray(xp, var_shape, float_dtype, padding=pad_running, start=0)
 
-    return x, gamma, beta, running_mean, running_var
+    return x, gamma, beta, mean, var
 
 
 # Note that CUDA (cuDNN) only supports batch normalization with 4 or 5-dimenisional data.
@@ -43,8 +43,8 @@ _batch_norm_invalid_dimensions_params = [
     ((2, 3, 4, 5), (3,), (3,), (3,), (3,), (2, 3)),  # Bad reduction, axis is (2, 3) but should be (0, 2, 3).
     ((2, 3, 4, 5), (3, 4), (3,), (3,), (3,), (0, 2, 3)),  # Bad gamma shape.
     ((2, 3, 4, 5), (3,), (3, 4), (3,), (3,), (0, 2, 3)),  # Bad beta shape.
-    ((2, 3, 4, 5), (3,), (3,), (3, 4), (3,), (0, 2, 3)),  # Bad running_mean shape.
-    ((2, 3, 4, 5), (3,), (3,), (3,), (3, 4), (0, 2, 3)),  # Bad running_var shape.
+    ((2, 3, 4, 5), (3,), (3,), (3, 4), (3,), (0, 2, 3)),  # Bad mean shape.
+    ((2, 3, 4, 5), (3,), (3,), (3,), (3, 4), (0, 2, 3)),  # Bad var shape.
 ]
 
 
