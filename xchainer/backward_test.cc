@@ -171,6 +171,13 @@ TEST_P(BackpropTest, BackwardMultipleOutputs) {
     });
 }
 
+TEST_P(BackpropTest, BackwardWithComplicatedRanks) {
+    CheckBackpropSingleElement({1.0f}, {-2.0f}, [](auto& xs) {
+        Array a = -xs[0] + 0;
+        return -(-a) + a;
+    });
+}
+
 TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
     auto xs = MakeFullArrays({1}, {2.0f, 3.0f});
     auto y1 = xs[0] * xs[1];  // without graph
