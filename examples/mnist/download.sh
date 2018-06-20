@@ -1,14 +1,12 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]; then
-    dst="mnist"
-elif [ $# -eq 1 ]; then
-    dst="$1"
-else
+if [ $# -gt 1 ]; then
     echo "Too many arguments." >&2
     exit 1
 fi
 
-mkdir -p "$dst"
-cd "$dst"
+dir=${1:-mnist}
+
+mkdir -p "$dir"
+cd "$dir"
 wget http://yann.lecun.com/exdb/mnist/{train,t10k}-{images-idx3,labels-idx1}-ubyte.gz
