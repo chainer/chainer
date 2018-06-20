@@ -95,9 +95,28 @@ Array AveragePool(
         const StackVector<int64_t, kMaxNdim>& pad,
         AveragePoolPadMode pad_mode) {
     CheckPoolInputs(x, kernel_size, stride, pad);
-    // TODO(hvy): Implement backward.
-    std::unique_ptr<AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(pad_mode);
-    return fb->Forward(x, kernel_size, stride, pad);
+    std::shared_ptr<AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(pad_mode);
+    Array out = fb->Forward(x, kernel_size, stride, pad);
+    {
+        BackwardBuilder bb1{"average_pooling", out};
+        if (!x.IsConstant()) {
+            bb1.Define({x}, [ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                Array gx = fb->Backward(x, kernel_size, stride, pad, gout);
+                {
+                    BackwardBuilder bb2{"average_pooling_backward", gx};
+                    if (!gout.IsConstant()) {
+                        bb2.Define({gout}, [kernel_size, stride, pad, pad_mode](BackwardContext& bctx2) {
+                            const Array& ggx = bctx2.output_grad();
+                            bctx2.input_grad() = AveragePool(ggx, kernel_size, stride, pad, pad_mode);
+                        });
+                    }
+                }
+                bctx.input_grad() = gx;
+            });
+        }
+    }
+    return out;
 }
 
 }  // namespace xchainer

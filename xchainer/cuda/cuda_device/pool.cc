@@ -202,12 +202,12 @@ public:
     }
 
     Array Backward(
-            const Array& /*x*/,
-            const StackVector<int64_t, kMaxNdim>& /*kernel_size*/,
-            const StackVector<int64_t, kMaxNdim>& /*stride*/,
-            const StackVector<int64_t, kMaxNdim>& /*pad*/,
-            const Array& /*gout*/) {
-        throw NotImplementedError{};
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            const Array& gout) {
+        return pool_fwd_bwd_.Backward(x, kernel_size, stride, pad, false, gout);
     }
 
 private:
