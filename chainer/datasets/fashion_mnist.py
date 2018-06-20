@@ -9,7 +9,7 @@ from chainer.datasets._mnist_helper import preprocess_mnist
 
 
 _fashion_mnist_labels = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
-                        'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+                         'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
 
 
 def get_fashion_mnist_labels(labels):
