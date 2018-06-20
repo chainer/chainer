@@ -56,6 +56,7 @@ class DummyDeserializer(serializer.Deserializer):
     'shared_mem': [None, 1000000],
     'order_sampler': [
         None, lambda order, _: numpy.random.permutation(len(order))],
+    'maxtasksperchild': [None, 1, 10],
 }))
 class TestMultiprocessIterator(unittest.TestCase):
 
@@ -63,7 +64,8 @@ class TestMultiprocessIterator(unittest.TestCase):
         self.n_processes = 2
         self.options = {'n_processes': self.n_processes,
                         'n_prefetch': self.n_prefetch,
-                        'shared_mem': self.shared_mem}
+                        'shared_mem': self.shared_mem,
+                        'maxtasksperchild': self.maxtasksperchild}
         if self.order_sampler is not None:
             self.options.update(
                 {'order_sampler': self.order_sampler})
