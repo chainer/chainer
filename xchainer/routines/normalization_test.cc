@@ -106,10 +106,6 @@ TEST_P(NormalizationTest, BatchNormWithAxis) {
 }
 
 TEST_P(NormalizationTest, BatchNormBackward) {
-    if (GetParam() == "cuda") {
-        // TODO(niboshi): Implemenent for CUDA
-        return;
-    }
     using T = float;
 
     Shape x_shape{3, 4, 2, 1};
