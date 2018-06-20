@@ -190,38 +190,45 @@ Array GetPadModeIgnorePoolingWidths(
     return widths;
 }
 
+class NativeAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {
+public:
+    Array Forward(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            AveragePoolPadMode pad_mode) {
+        Array col = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, false, 0);
+
+        // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
+        Axes kernel_axes;
+        kernel_axes.resize(kernel_size.size());
+        std::iota(kernel_axes.begin(), kernel_axes.end(), 2);  // From k_1, up to k_n.
+
+        Array out = xchainer::internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
+
+        switch (pad_mode) {
+            case AveragePoolPadMode::kZero:
+                Mean(col, kernel_axes, out);
+                break;
+            case AveragePoolPadMode::kIgnore: {
+                Device& device = x.device();
+                device.Sum(col, kernel_axes, out);
+                Array widths = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(out.shape());
+                device.Divide(out, widths, out);
+                break;
+            }
+            default:
+                XCHAINER_NEVER_REACH();
+        }
+        return out;
+    }
+};
+
 }  // namespace
 
-Array NativeDevice::AveragePool(
-        const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        AveragePoolPadMode pad_mode) {
-    Array col = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, false, 0);
-
-    // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-    Axes kernel_axes;
-    kernel_axes.resize(kernel_size.size());
-    std::iota(kernel_axes.begin(), kernel_axes.end(), 2);  // From k_1, up to k_n.
-
-    Array out = xchainer::internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
-
-    switch (pad_mode) {
-        case AveragePoolPadMode::kZero:
-            Mean(col, kernel_axes, out);
-            break;
-        case AveragePoolPadMode::kIgnore: {
-            Device& device = x.device();
-            device.Sum(col, kernel_axes, out);
-            Array widths = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(out.shape());
-            device.Divide(out, widths, out);
-            break;
-        }
-        default:
-            XCHAINER_NEVER_REACH();
-    }
-    return out;
+std::unique_ptr<AveragePoolForwardBackward> NativeDevice::GetAveragePoolForwardBackward() {
+    return std::make_unique<NativeAveragePoolForwardBackward>();
 }
 
 }  // namespace native

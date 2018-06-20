@@ -43,6 +43,16 @@ public:
             const Array& ggx) = 0;
 };
 
+class AveragePoolForwardBackward {
+public:
+    virtual Array Forward(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            AveragePoolPadMode pad_mode) = 0;
+};
+
 class BatchNormForwardBackward {
 public:
     virtual Array Forward(
@@ -264,12 +274,7 @@ public:
 
     virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() = 0;
 
-    virtual Array AveragePool(
-            const Array& x,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            AveragePoolPadMode pad_mode) = 0;
+    virtual std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward() = 0;
 
     virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() {
         return std::make_unique<GenericBatchNormForwardBackward>();

@@ -145,59 +145,75 @@ std::unique_ptr<MaxPoolForwardBackward> CudaDevice::GetMaxPoolForwardBackward() 
     return std::make_unique<CudaMaxPoolForwardBackward>(cudnn_handle());
 }
 
-Array CudaDevice::AveragePool(
-        const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        AveragePoolPadMode pad_mode) {
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
-    if (ndim < 2) {
-        throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
+namespace {
+
+class CudaAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {
+public:
+    explicit CudaAveragePoolForwardBackward(cudnnHandle_t cudnn_handle) : cudnn_handle_{cudnn_handle} {}
+
+    Array Forward(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            AveragePoolPadMode pad_mode) {
+        int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+        if (ndim < 2) {
+            throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
+        }
+
+        assert(kernel_size.size() == static_cast<size_t>(ndim));
+        assert(stride.size() == static_cast<size_t>(ndim));
+        assert(pad.size() == static_cast<size_t>(ndim));
+
+        // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
+        Shape out_shape{x.shape()[0], x.shape()[1]};
+        for (int8_t i = 0; i < ndim; ++i) {
+            out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], false));
+            assert(out_shape.back() > 0);
+        }
+
+        Array y = Empty(out_shape, x.dtype(), x.device());
+        Array x_cont = AsContiguousArray(x);
+
+        internal::CudnnTensorDescriptor x_desc{x_cont};
+        internal::CudnnTensorDescriptor y_desc{y};
+
+        cudnnPoolingMode_t pooling_mode{};
+        switch (pad_mode) {
+            case AveragePoolPadMode::kZero:
+                pooling_mode = CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING;
+                break;
+            case AveragePoolPadMode::kIgnore:
+                pooling_mode = CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING;
+                break;
+            default:
+                XCHAINER_NEVER_REACH();
+        }
+
+        internal::CudnnPoolingDescriptor pool_desc{pooling_mode, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
+
+        CheckCudnnError(cudnnPoolingForward(
+                cudnn_handle_,
+                *pool_desc,
+                internal::GetValuePtr<1>(x.dtype()),
+                *x_desc,
+                xchainer::internal::GetRawOffsetData<void>(x_cont),
+                internal::GetValuePtr<0>(x.dtype()),
+                *y_desc,
+                xchainer::internal::GetRawOffsetData<void>(y)));
+
+        return y;
     }
 
-    assert(kernel_size.size() == static_cast<size_t>(ndim));
-    assert(stride.size() == static_cast<size_t>(ndim));
-    assert(pad.size() == static_cast<size_t>(ndim));
+private:
+    cudnnHandle_t cudnn_handle_;
+};
 
-    // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
-    Shape out_shape{x.shape()[0], x.shape()[1]};
-    for (int8_t i = 0; i < ndim; ++i) {
-        out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], false));
-        assert(out_shape.back() > 0);
-    }
+}  // namespace
 
-    Array y = Empty(out_shape, x.dtype(), x.device());
-    Array x_cont = AsContiguousArray(x);
-
-    internal::CudnnTensorDescriptor x_desc{x_cont};
-    internal::CudnnTensorDescriptor y_desc{y};
-
-    cudnnPoolingMode_t pooling_mode{};
-    switch (pad_mode) {
-        case AveragePoolPadMode::kZero:
-            pooling_mode = CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING;
-            break;
-        case AveragePoolPadMode::kIgnore:
-            pooling_mode = CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING;
-            break;
-        default:
-            XCHAINER_NEVER_REACH();
-    }
-
-    internal::CudnnPoolingDescriptor pool_desc{pooling_mode, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
-
-    CheckCudnnError(cudnnPoolingForward(
-            cudnn_handle(),
-            *pool_desc,
-            internal::GetValuePtr<1>(x.dtype()),
-            *x_desc,
-            xchainer::internal::GetRawOffsetData<void>(x_cont),
-            internal::GetValuePtr<0>(x.dtype()),
-            *y_desc,
-            xchainer::internal::GetRawOffsetData<void>(y)));
-
-    return y;
+std::unique_ptr<AveragePoolForwardBackward> CudaDevice::GetAveragePoolForwardBackward() {
+    return std::make_unique<CudaAveragePoolForwardBackward>(cudnn_handle());
 }
 
 }  // namespace cuda

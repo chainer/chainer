@@ -96,7 +96,8 @@ Array AveragePool(
         AveragePoolPadMode pad_mode) {
     CheckPoolInputs(x, kernel_size, stride, pad);
     // TODO(hvy): Implement backward.
-    return x.device().AveragePool(x, kernel_size, stride, pad, pad_mode);
+    std::unique_ptr<AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward();
+    return fb->Forward(x, kernel_size, stride, pad, pad_mode);
 }
 
 }  // namespace xchainer

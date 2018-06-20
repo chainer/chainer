@@ -148,12 +148,7 @@ public:
 
     std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override;
 
-    Array AveragePool(
-            const Array& x,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            AveragePoolPadMode pad_mode) override;
+    std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward() override;
 
     // batch_norm.cc
 
