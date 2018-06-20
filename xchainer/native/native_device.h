@@ -137,7 +137,7 @@ public:
 
     std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override;
 
-    std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward() override;
+    std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward(AveragePoolPadMode pad_mode) override;
 
 protected:
     NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}

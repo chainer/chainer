@@ -192,12 +192,13 @@ Array GetPadModeIgnorePoolingWidths(
 
 class NativeAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {
 public:
+    explicit NativeAveragePoolForwardBackward(AveragePoolPadMode pad_mode) : pad_mode_{pad_mode} {}
+
     Array Forward(
             const Array& x,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            AveragePoolPadMode pad_mode) {
+            const StackVector<int64_t, kMaxNdim>& pad) {
         Array col = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, false, 0);
 
         // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
@@ -207,7 +208,7 @@ public:
 
         Array out = xchainer::internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
 
-        switch (pad_mode) {
+        switch (pad_mode_) {
             case AveragePoolPadMode::kZero:
                 Mean(col, kernel_axes, out);
                 break;
@@ -223,12 +224,24 @@ public:
         }
         return out;
     }
+
+    Array Backward(
+            const Array& /*x*/,
+            const StackVector<int64_t, kMaxNdim>& /*kernel_size*/,
+            const StackVector<int64_t, kMaxNdim>& /*stride*/,
+            const StackVector<int64_t, kMaxNdim>& /*pad*/,
+            const Array& /*gout*/) {
+        throw NotImplementedError{};
+    }
+
+private:
+    AveragePoolPadMode pad_mode_;
 };
 
 }  // namespace
 
-std::unique_ptr<AveragePoolForwardBackward> NativeDevice::GetAveragePoolForwardBackward() {
-    return std::make_unique<NativeAveragePoolForwardBackward>();
+std::unique_ptr<AveragePoolForwardBackward> NativeDevice::GetAveragePoolForwardBackward(AveragePoolPadMode pad_mode) {
+    return std::make_unique<NativeAveragePoolForwardBackward>(pad_mode);
 }
 
 }  // namespace native
