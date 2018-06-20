@@ -371,23 +371,23 @@ public:
 
         int indent = state.indent;
         VisitedNodeSet& visited_nodes = state.visited_nodes;
-        os_ << Indent(indent) << "ArrayNode<" << name << ">" << std::endl;
+        os_ << Indent(indent) << "ArrayNode<" << name << " rank=" << array_node.rank() << " shape=" << array_node.shape()
+            << " dtype=" << GetDtypeName(array_node.dtype()) << ">" << std::endl;
 
         if (visited_nodes.end() == std::find(visited_nodes.begin(), visited_nodes.end(), &array_node)) {
             visited_nodes.insert(&array_node);
 
             if (options_.print_metadata) {
-                os_ << Indent(indent + 2) << "<" << array_node.shape() << " " << GetDtypeName(array_node.dtype()) << ">";
                 if (array_node.grad()) {
                     const Array& grad = *array_node.grad();
-                    os_ << " grad=<" << grad.shape() << " " << GetDtypeName(grad.dtype()) << ">";
+                    os_ << Indent(indent + 2) << "grad=<shape=" << grad.shape() << " dtype=" << GetDtypeName(grad.dtype()) << ">"
+                        << std::endl;
                 }
-                os_ << std::endl;
             }
 
             std::shared_ptr<const OpNode> op = array_node.next_node();
             if (op) {
-                os_ << Indent(indent + 1) << "Op<" << op->name() << "," << op->rank() << "," << op.get() << ">" << std::endl;
+                os_ << Indent(indent + 1) << "Op<" << op->name() << " " << op.get() << " rank=" << op->rank() << ">" << std::endl;
                 for (const std::shared_ptr<const ArrayNode>& next_node : op->next_nodes()) {
                     state.indent += 2;
                     RunImpl(state, *next_node);
