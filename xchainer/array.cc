@@ -387,7 +387,7 @@ public:
 
             std::shared_ptr<const OpNode> op = array_node.next_node();
             if (op) {
-                os_ << Indent(indent + 1) << "Op<" << op->name() << "," << op.get() << ">" << std::endl;
+                os_ << Indent(indent + 1) << "Op<" << op->name() << "," << op->rank() << "," << op.get() << ">" << std::endl;
                 for (const std::shared_ptr<const ArrayNode>& next_node : op->next_nodes()) {
                     state.indent += 2;
                     RunImpl(state, *next_node);
