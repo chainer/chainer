@@ -22,9 +22,9 @@ namespace xchainer {
 namespace cuda {
 namespace {
 
-class CudaPoolForwardBackward {
+class CudaPoolImpl {
 public:
-    CudaPoolForwardBackward(cudnnHandle_t cudnn_handle, cudnnPoolingMode_t cudnn_pooling_mode)
+    CudaPoolImpl(cudnnHandle_t cudnn_handle, cudnnPoolingMode_t cudnn_pooling_mode)
         : cudnn_handle_{cudnn_handle}, cudnn_pooling_mode_{cudnn_pooling_mode} {}
 
     Array Forward(
@@ -166,7 +166,7 @@ public:
     }
 
 private:
-    CudaPoolForwardBackward pool_fwd_bwd_;
+    CudaPoolImpl pool_fwd_bwd_;
 };
 
 }  // namespace
@@ -211,7 +211,7 @@ public:
     }
 
 private:
-    CudaPoolForwardBackward pool_fwd_bwd_;
+    CudaPoolImpl pool_fwd_bwd_;
 };
 
 }  // namespace
