@@ -25,14 +25,30 @@ def _create_batch_norm_ndarray_args(xp, device, x_shape, gamma_shape, beta_shape
 
 
 # Note that CUDA (cuDNN) only supports batch normalization with 4 or 5-dimenisional data.
-@pytest.mark.parametrize('x_shape,reduced_shape,axis', [
+# x_shape,reduced_shape,axis
+_batch_norm_params = [
     ((2, 3, 4, 5), (3, 4, 5), None),
     ((2, 3, 4, 5), (3, 4, 5), (0,)),
     ((2, 3, 4, 5), (3,), (0, 2, 3)),
     ((2, 3, 4, 5, 2), (3, 4, 5, 2), None),
     ((2, 3, 4, 5, 2), (3, 4, 5, 2), (0,)),
     ((2, 3, 4, 5, 2), (3,), (0, 2, 3, 4))
-])
+]
+
+
+# x_shape,gamma_shape,beta_shape,mean_shape,var_shape,axis
+_batch_norm_invalid_dimensions_params = [
+    ((2, 3, 4, 5), (3,), (3,), (3,), (3,), None),  # Bad reduction, axis defaults to (0,) but should be (0, 2, 3).
+    ((2, 3, 4, 5), (3,), (3,), (3,), (3,), ()),  # Bad reduction, axis is () but should be (0, 2, 3).
+    ((2, 3, 4, 5), (3,), (3,), (3,), (3,), (2, 3)),  # Bad reduction, axis is (2, 3) but should be (0, 2, 3).
+    ((2, 3, 4, 5), (3, 4), (3,), (3,), (3,), (0, 2, 3)),  # Bad gamma shape.
+    ((2, 3, 4, 5), (3,), (3, 4), (3,), (3,), (0, 2, 3)),  # Bad beta shape.
+    ((2, 3, 4, 5), (3,), (3,), (3, 4), (3,), (0, 2, 3)),  # Bad running_mean shape.
+    ((2, 3, 4, 5), (3,), (3,), (3,), (3, 4), (0, 2, 3)),  # Bad running_var shape.
+]
+
+
+@pytest.mark.parametrize('x_shape,reduced_shape,axis', _batch_norm_params)
 @pytest.mark.parametrize('eps', [None, 3e-5, 1.2])
 @pytest.mark.parametrize('decay', [None, 0.5])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -69,15 +85,7 @@ def test_batch_norm(device, x_shape, reduced_shape, eps, decay, axis, float_dtyp
     xchainer.testing.assert_allclose_ex(running_var_xc, running_var_np, rtol=1e-6, atol=1e-6)
 
 
-@pytest.mark.parametrize('x_shape,gamma_shape,beta_shape,running_mean_shape,running_var_shape,axis', [
-    ((2, 3, 4, 5), (3,), (3,), (3,), (3,), None),  # Bad reduction, axis defaults to (0,) but should be (0, 2, 3).
-    ((2, 3, 4, 5), (3,), (3,), (3,), (3,), ()),  # Bad reduction, axis is () but should be (0, 2, 3).
-    ((2, 3, 4, 5), (3,), (3,), (3,), (3,), (2, 3)),  # Bad reduction, axis is (2, 3) but should be (0, 2, 3).
-    ((2, 3, 4, 5), (3, 4), (3,), (3,), (3,), (0, 2, 3)),  # Bad gamma shape.
-    ((2, 3, 4, 5), (3,), (3, 4), (3,), (3,), (0, 2, 3)),  # Bad beta shape.
-    ((2, 3, 4, 5), (3,), (3,), (3, 4), (3,), (0, 2, 3)),  # Bad running_mean shape.
-    ((2, 3, 4, 5), (3,), (3,), (3,), (3, 4), (0, 2, 3)),  # Bad running_var shape.
-])
+@pytest.mark.parametrize('x_shape,gamma_shape,beta_shape,running_mean_shape,running_var_shape,axis', _batch_norm_invalid_dimensions_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_batch_norm_invalid_dimensions(device, x_shape, gamma_shape, beta_shape, running_mean_shape, running_var_shape, axis, float_dtype):
     x, gamma, beta, running_mean, running_var = _create_batch_norm_ndarray_args(
@@ -87,17 +95,9 @@ def test_batch_norm_invalid_dimensions(device, x_shape, gamma_shape, beta_shape,
         xchainer.batch_norm(x, gamma, beta, running_mean=running_mean, running_var=running_var, eps=1e-2, decay=0.9, axis=axis)
 
 
-# Note that CUDA (cuDNN) only supports batch normalization with 4 or 5-dimenisional data.
-@pytest.mark.parametrize('x_shape,reduced_shape,axis', [
-    ((2, 3, 4, 5), (3, 4, 5), None),
-    ((2, 3, 4, 5), (3, 4, 5), (0,)),
-    ((2, 3, 4, 5), (3,), (0, 2, 3)),
-    ((2, 3, 4, 5, 2), (3, 4, 5, 2), None),
-    ((2, 3, 4, 5, 2), (3, 4, 5, 2), (0,)),
-    ((2, 3, 4, 5, 2), (3,), (0, 2, 3, 4))
-])
-@pytest.mark.parametrize('eps', [None]) # , 3e-5, 1.2])
-@pytest.mark.parametrize_device(['native:0']) # , 'cuda:0'])
+@pytest.mark.parametrize('x_shape,reduced_shape,axis', _batch_norm_params)
+@pytest.mark.parametrize('eps', [None, 3e-5, 1.2])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_fixed_batch_norm(device, x_shape, reduced_shape, eps, axis, float_dtype):
     def create_args(xp):
         return _create_batch_norm_ndarray_args(
@@ -119,15 +119,7 @@ def test_fixed_batch_norm(device, x_shape, reduced_shape, eps, axis, float_dtype
     xchainer.testing.assert_allclose_ex(y_xc, y_np, rtol=1e-6, atol=1e-5)
 
 
-@pytest.mark.parametrize('x_shape,gamma_shape,beta_shape,mean_shape,var_shape,axis', [
-    ((2, 3, 4, 5), (3,), (3,), (3,), (3,), None),  # Bad reduction, axis defaults to (0,) but should be (0, 2, 3).
-    ((2, 3, 4, 5), (3,), (3,), (3,), (3,), ()),  # Bad reduction, axis is () but should be (0, 2, 3).
-    ((2, 3, 4, 5), (3,), (3,), (3,), (3,), (2, 3)),  # Bad reduction, axis is (2, 3) but should be (0, 2, 3).
-    ((2, 3, 4, 5), (3, 4), (3,), (3,), (3,), (0, 2, 3)),  # Bad gamma shape.
-    ((2, 3, 4, 5), (3,), (3, 4), (3,), (3,), (0, 2, 3)),  # Bad beta shape.
-    ((2, 3, 4, 5), (3,), (3,), (3, 4), (3,), (0, 2, 3)),  # Bad mean shape.
-    ((2, 3, 4, 5), (3,), (3,), (3,), (3, 4), (0, 2, 3)),  # Bad var shape.
-])
+@pytest.mark.parametrize('x_shape,gamma_shape,beta_shape,mean_shape,var_shape,axis', _batch_norm_invalid_dimensions_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_fixed_batch_norm_invalid_dimensions(device, x_shape, gamma_shape, beta_shape, mean_shape, var_shape, axis, float_dtype):
     x, gamma, beta, mean, var = _create_batch_norm_ndarray_args(
