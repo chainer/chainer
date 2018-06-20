@@ -264,6 +264,6 @@ void DebugDumpComputationalGraph(
         const Array& array,
         const GraphId& graph_id,
         int indent = 0,
-        const std::vector<std::pair<std::reference_wrapper<const Array>, std::string>>& array_name_map = {});
+        const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map = {});
 
 }  // namespace xchainer

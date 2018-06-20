@@ -411,7 +411,7 @@ void DebugDumpComputationalGraph(
         const Array& array,
         const GraphId& graph_id,
         int indent,
-        const std::vector<std::pair<std::reference_wrapper<const Array>, std::string>>& array_name_map) {
+        const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map) {
     PrintComputationalGraphImpl impl{os};
     for (const auto& pair : array_name_map) {
         for (const std::shared_ptr<ArrayNode>& node : pair.first.get().nodes()) {
