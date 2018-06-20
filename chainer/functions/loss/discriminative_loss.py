@@ -412,7 +412,6 @@ def discriminative_margin_based_clustering_loss(
     as close as possible to the original position.
     By applying discriminative loss function, groups of segmentation instances
     can be moved together.
-
     This loss function calculates three different parameters:
         - Variance Loss:
             Loss to penalize distances between pixels which are belonging
@@ -425,6 +424,7 @@ def discriminative_margin_based_clustering_loss(
 
     Args:
         x (tuple) : Contains several inputs
+
                 - x[0](:class:`~chainer.Variable` or \
                        :class:`numpy.ndarray` or \
                        :class:`cupy.ndarray`) :
@@ -441,12 +441,12 @@ def discriminative_margin_based_clustering_loss(
                        :class:`numpy.ndarray` or \
                        :class:`cupy.ndarray`) :
                          indexes of non-zero ground truths  (n, variable)
-        where,
-            - n is batch size
-            - i is total instance count
-            - w is width of the image
-            - h is height of the image
-            - variable is variable length depending on list size
+            where,
+                - n is batch size
+                - i is total instance count
+                - w is width of the image
+                - h is height of the image
+                - variable is variable length depending on list size
         delta_v (float): Minimum distance to start penalizing variance
         delta_d (float): Maximum distance to stop penalizing distance
         max_n_clusters (int): Maximum possible number of clusters.
