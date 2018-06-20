@@ -6,6 +6,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/op_node.h"
+#include "xchainer/shape.h"
 
 namespace xchainer {
 
@@ -45,9 +46,13 @@ public:
 
     const nonstd::optional<Array>& grad() const noexcept { return grad_; }
 
-    void set_grad(Array grad) { grad_ = std::move(grad); }
+    void set_grad(Array grad) {
+        CheckEqual(shape_, grad.shape());
+        grad_ = std::move(grad);
+    }
 
     void AccumulateGrad(Array grad) {
+        CheckEqual(shape_, grad.shape());
         if (grad_.has_value()) {
             grad_ = *grad_ + grad;
         } else {

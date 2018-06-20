@@ -734,6 +734,45 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
     }
 }
 
+TEST_P(BackpropFunctionTest, InvalidGradShape) {
+    DoubleBackpropOption double_backprop_opt = GetParam();
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        return;
+    }
+
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    using T = double;
+    GraphId graph_id = "testgraph";
+    Shape shape{2};
+    Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
+    Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
+
+    auto forward = [](const Array& x1, Array& y1) {
+        ASSERT_FALSE(x1.IsConstant());
+        y1 = 2 * x1.AsConstant() + 1;
+        ASSERT_TRUE(y1.IsConstant());
+
+        {
+            BackwardBuilder bb{"func", y1};
+            bb.Define({x1}, [](BackwardContext& bctx) {
+                const Array& gy1 = bctx.output_grad(0);
+                EXPECT_TRUE(gy1.IsConstant());
+                bctx.input_grad() = gy1.Reshape({2, 1});  // Intentionally set to a wrong shape (2, 1), instead of (2,).
+            });
+        }
+    };
+
+    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array y1{};
+    forward(x1, y1);
+
+    y1.SetGrad(gy1_value, graph_id);
+
+    // The shape of the computed gradient of x1 is (2, 1) but the shape of x1 is (2,), thus an exception should be thrown.
+    EXPECT_THROW(Backward({y1}, graph_id, double_backprop_opt), DimensionError);
+}
+
 INSTANTIATE_TEST_CASE_P(Params, BackpropFunctionTest, ::testing::Values(DoubleBackpropOption::kDisable, DoubleBackpropOption::kEnable));
 
 }  // namespace

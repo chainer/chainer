@@ -217,6 +217,41 @@ TEST_P(ArrayTest, Grad) {
     }
 }
 
+TEST_P(ArrayTest, InvalidGradNoGraph) {
+    using T = float;
+    GraphId graph_id = "graph_1";
+    Shape shape{2, 3};
+
+    Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
+    Array g = testing::BuildArray(shape).WithData<T>({8, 4, 6, 3, 2, 1});
+
+    EXPECT_THROW(x.SetGrad(g), XchainerError);  // x does not belong to the default graph.
+    EXPECT_THROW(x.SetGrad(g, graph_id), XchainerError);  // x does not belong to the given graph.
+}
+
+TEST_P(ArrayTest, InvalidGradBadShape) {
+    using T = float;
+    Shape shape{2, 3};
+    Shape bad_grad_shape{1, 3};
+
+    // Shape of g does match shape of x
+    {
+        // using the default graph.
+        Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
+        Array g = testing::BuildArray(bad_grad_shape).WithData<T>({8, 4, 6});
+        x.RequireGrad();
+        EXPECT_THROW(x.SetGrad(g), DimensionError);
+    }
+    {
+        // using a specified graph.
+        Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
+        Array g = testing::BuildArray(bad_grad_shape).WithData<T>({8, 4, 6});
+        GraphId graph_id = "graph_1";
+        x.RequireGrad(graph_id);
+        EXPECT_THROW(x.SetGrad(g, graph_id), DimensionError);
+    }
+}
+
 TEST_P(ArrayTest, ContiguousFill) {
     CheckContiguousFill(true);
     CheckContiguousFill(false);
