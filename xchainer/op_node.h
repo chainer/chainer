@@ -57,9 +57,9 @@ public:
 
     std::string name() const { return name_; }
 
-    gsl::span<std::shared_ptr<ArrayNode>> next_nodes() { return next_array_nodes_; }
+    gsl::span<std::shared_ptr<ArrayNode>> next_nodes();
 
-    gsl::span<const std::shared_ptr<ArrayNode>> next_nodes() const { return next_array_nodes_; }
+    gsl::span<const std::shared_ptr<ArrayNode>> next_nodes() const;
 
     gsl::span<internal::OpNodeBackwardEntry> backward_entries() { return backward_entries_; }
 
