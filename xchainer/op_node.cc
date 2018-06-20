@@ -33,7 +33,7 @@ void OpNode::RegisterBackwardFunction(
 
     // Update the rank of op node
     for (const std::shared_ptr<ArrayNode>& next_array_node : next_array_nodes) {
-        rank_ = std::max(rank_, next_array_node->rank());
+        rank_ = std::max(rank_, next_array_node->rank() + 1);
     }
 
     // Store next nodes and record indices of them
