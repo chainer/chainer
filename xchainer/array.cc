@@ -45,8 +45,8 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 }
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id) {
-    return std::find_if(array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& node) {
-               return graph_id == node->graph_id();
+    return std::find_if(array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& array_node) {
+               return graph_id == array_node->graph_id();
            }) != array.nodes().end();
 }
 
@@ -276,10 +276,10 @@ Array Array::AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind) const
             Array out{shape(), strides(), dtype(), device(), body_->data_, offset()};
 
             // Duplicate the array nodes only when graph IDs are not found in specified graph_ids.
-            for (const std::shared_ptr<ArrayNode>& node : nodes()) {
-                if (std::find(graph_ids.begin(), graph_ids.end(), node->graph_id()) == graph_ids.end()) {
+            for (const std::shared_ptr<ArrayNode>& array_node : nodes()) {
+                if (std::find(graph_ids.begin(), graph_ids.end(), array_node->graph_id()) == graph_ids.end()) {
                     // extend the graph
-                    out.body_->nodes_.emplace_back(node);
+                    out.body_->nodes_.emplace_back(array_node);
                 }
             }
             return std::move(out);
@@ -323,10 +323,10 @@ namespace {
 
 class PrintComputationalGraphImpl {
 private:
-    using VisitedNodeSet = std::unordered_set<const ArrayNode*>;
+    using VisitedArrayNodeSet = std::unordered_set<const ArrayNode*>;
 
     struct State {
-        VisitedNodeSet visited_nodes;
+        VisitedArrayNodeSet visited_array_nodes;
         int indent;
     };
 
@@ -370,12 +370,12 @@ public:
         std::string name = GetArrayNodeName(array_node);
 
         int indent = state.indent;
-        VisitedNodeSet& visited_nodes = state.visited_nodes;
+        VisitedArrayNodeSet& visited_array_nodes = state.visited_array_nodes;
         os_ << Indent(indent) << "ArrayNode<" << name << " rank=" << array_node.rank() << " shape=" << array_node.shape()
             << " dtype=" << GetDtypeName(array_node.dtype()) << ">" << std::endl;
 
-        if (visited_nodes.end() == std::find(visited_nodes.begin(), visited_nodes.end(), &array_node)) {
-            visited_nodes.insert(&array_node);
+        if (visited_array_nodes.end() == std::find(visited_array_nodes.begin(), visited_array_nodes.end(), &array_node)) {
+            visited_array_nodes.insert(&array_node);
 
             if (options_.print_metadata) {
                 if (array_node.grad()) {
@@ -385,12 +385,12 @@ public:
                 }
             }
 
-            std::shared_ptr<const OpNode> op = array_node.next_node();
+            std::shared_ptr<const OpNode> op = array_node.next_op_node();
             if (op) {
                 os_ << Indent(indent + 1) << "Op<" << op->name() << " " << op.get() << " rank=" << op->rank() << ">" << std::endl;
-                for (const std::shared_ptr<const ArrayNode>& next_node : op->next_nodes()) {
+                for (const std::shared_ptr<const ArrayNode>& next_array_node : op->next_array_nodes()) {
                     state.indent += 2;
-                    RunImpl(state, *next_node);
+                    RunImpl(state, *next_array_node);
                     state.indent -= 2;
                 }
             }
@@ -415,9 +415,9 @@ void DebugDumpComputationalGraph(
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map) {
     PrintComputationalGraphImpl impl{os};
     for (const auto& pair : array_name_map) {
-        for (const std::shared_ptr<ArrayNode>& node : pair.first.get().nodes()) {
-            if (node->graph_id() == graph_id) {
-                impl.SetArrayName(*node, pair.second);
+        for (const std::shared_ptr<ArrayNode>& array_node : pair.first.get().nodes()) {
+            if (array_node->graph_id() == graph_id) {
+                impl.SetArrayName(*array_node, pair.second);
             }
         }
     }

@@ -32,7 +32,7 @@ public:
     // ordinary functions).
     BackwardContext(
             const OpNode& op_node,
-            gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes,
+            gsl::span<const std::reference_wrapper<ArrayNode>> prev_array_nodes,
             gsl::span<const GraphId> stop_graph_ids,
             std::vector<Array>& input_grads_storage,
             bool next_backward_required);
@@ -52,7 +52,7 @@ public:
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
     const Array& output_grad() const {
-        assert(prev_nodes_.size() == 1);
+        assert(prev_array_nodes_.size() == 1);
         return output_grad(0);
     }
 
@@ -70,7 +70,7 @@ public:
 
 private:
     const OpNode& op_node_;
-    gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes_;
+    gsl::span<const std::reference_wrapper<ArrayNode>> prev_array_nodes_;
     gsl::span<const GraphId> stop_graph_ids_;
 
     // A reference to the storage of input gradient arrays.

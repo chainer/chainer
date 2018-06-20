@@ -23,7 +23,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
         const GraphId& graph_id,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kEnable) {
     for (const auto& input : inputs) {
-        if (internal::HasArrayNode(input, graph_id) && internal::GetArrayNode(input, graph_id)->next_node()) {
+        if (internal::HasArrayNode(input, graph_id) && internal::GetArrayNode(input, graph_id)->next_op_node()) {
             throw GradientCheckError{"BackwardGradients: All inputs must be leaf nodes of computational graph"};
         }
     }

@@ -27,7 +27,7 @@ OpNode::OpNode(std::string name, const std::vector<std::shared_ptr<ArrayNode>>& 
     }
 }
 
-gsl::span<std::shared_ptr<ArrayNode>> OpNode::next_nodes() {
+gsl::span<std::shared_ptr<ArrayNode>> OpNode::next_array_nodes() {
     assert(std::all_of(next_array_nodes_.begin(), next_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
         return arr_node != nullptr;
     }));
@@ -37,7 +37,7 @@ gsl::span<std::shared_ptr<ArrayNode>> OpNode::next_nodes() {
     return next_array_nodes_;
 }
 
-gsl::span<const std::shared_ptr<ArrayNode>> OpNode::next_nodes() const {
+gsl::span<const std::shared_ptr<ArrayNode>> OpNode::next_array_nodes() const {
     assert(std::all_of(next_array_nodes_.begin(), next_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
         return arr_node != nullptr;
     }));
