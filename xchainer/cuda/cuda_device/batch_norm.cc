@@ -175,14 +175,18 @@ public:
             assert(running_mean_casted.IsContiguous());
             assert(running_var.IsContiguous());
             assert(running_var_casted.IsContiguous());
+
+            Array running_mean_casted_back = running_mean_casted.AsType(dtype, false);
+            Array running_var_casted_back = running_var_casted.AsType(dtype, false);
+
             device.MemoryCopyFrom(
                     xchainer::internal::GetRawOffsetData<void>(running_mean),
-                    xchainer::internal::GetRawOffsetData<void>(running_mean_casted.AsType(dtype, false)),
+                    xchainer::internal::GetRawOffsetData<void>(running_mean_casted_back),
                     running_mean.GetNBytes(),
                     device);
             device.MemoryCopyFrom(
                     xchainer::internal::GetRawOffsetData<void>(running_var),
-                    xchainer::internal::GetRawOffsetData<void>(running_var_casted.AsType(dtype, false)),
+                    xchainer::internal::GetRawOffsetData<void>(running_var_casted_back),
                     running_var.GetNBytes(),
                     device);
         }
@@ -248,10 +252,10 @@ Array CudaDevice::FixedBatchNorm(
     CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
     Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
-    Array gamma_casted = gamma.AsType(gamma_beta_mean_var_dtype, false);
-    Array beta_casted = beta.AsType(gamma_beta_mean_var_dtype, false);
-    Array mean_casted = mean.AsType(gamma_beta_mean_var_dtype, false);
-    Array var_casted = var.AsType(gamma_beta_mean_var_dtype, false);
+    Array gamma_casted_cont = AsContiguousArray(gamma.AsType(gamma_beta_mean_var_dtype, false));
+    Array beta_casted_cont = AsContiguousArray(beta.AsType(gamma_beta_mean_var_dtype, false));
+    Array mean_casted_cont = AsContiguousArray(mean.AsType(gamma_beta_mean_var_dtype, false));
+    Array var_casted_cont = AsContiguousArray(var.AsType(gamma_beta_mean_var_dtype, false));
 
     Array out = EmptyLike(x, x.device());
 
@@ -265,10 +269,10 @@ Array CudaDevice::FixedBatchNorm(
             *x_desc,
             xchainer::internal::GetRawOffsetData<void>(out),
             *gamma_beta_mean_var_desc,
-            xchainer::internal::GetRawOffsetData<void>(AsContiguousArray(gamma_casted)),
-            xchainer::internal::GetRawOffsetData<void>(AsContiguousArray(beta_casted)),
-            xchainer::internal::GetRawOffsetData<void>(AsContiguousArray(mean_casted)),
-            xchainer::internal::GetRawOffsetData<void>(AsContiguousArray(var_casted)),
+            xchainer::internal::GetRawOffsetData<void>(gamma_casted_cont),
+            xchainer::internal::GetRawOffsetData<void>(beta_casted_cont),
+            xchainer::internal::GetRawOffsetData<void>(mean_casted_cont),
+            xchainer::internal::GetRawOffsetData<void>(var_casted_cont),
             static_cast<double>(eps)));
 
     return out;
