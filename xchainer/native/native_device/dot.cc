@@ -25,16 +25,18 @@ void DotCheckNdim(int8_t ndim) {
 }  // namespace
 void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
+
+    DotCheckNdim(a.ndim());
+    DotCheckNdim(b.ndim());
+    DotCheckNdim(out.ndim());
+
+    out.Fill(0);
+
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        IndexableArray<const T> a_iarray{a};
-        IndexableArray<const T> b_iarray{b};
-        IndexableArray<T> out_iarray{out};
-
-        // We have to check iarray ndim, otherwise clang-tidy fails bound-checking.
-        DotCheckNdim(a_iarray.ndim());
-        DotCheckNdim(b_iarray.ndim());
-        DotCheckNdim(out_iarray.ndim());
+        IndexableArray<const T, 2> a_iarray{a};
+        IndexableArray<const T, 2> b_iarray{b};
+        IndexableArray<T, 2> out_iarray{out};
 
         int64_t m = a.shape()[0];
         int64_t k = a.shape()[1];
@@ -45,14 +47,13 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
 
         // TODO(beam2d): Use BLAS.
         for (int64_t i = 0; i < m; ++i) {
-            for (int64_t j = 0; j < n; ++j) {
-                int64_t out_i[] = {i, j};
-                T& out_value = out_iarray[out_i];
-                out_value = 0;
-                for (int64_t l = 0; l < k; ++l) {
-                    int64_t a_i[] = {i, l};
-                    int64_t b_i[] = {l, j};
-                    out_value += a_iarray[a_i] * b_iarray[b_i];
+            for (int64_t l = 0; l < k; ++l) {
+                int64_t a_i_l[] = {i, l};
+                T a_value = a_iarray[a_i_l];
+                for (int64_t j = 0; j < n; ++j) {
+                    int64_t out_i_j[] = {i, j};
+                    int64_t b_l_j[] = {l, j};
+                    out_iarray[out_i_j] += a_value * b_iarray[b_l_j];
                 }
             }
         }
