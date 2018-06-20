@@ -77,8 +77,8 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
     total_loss = xc.zeros((), dtype=xc.float32)
     num_correct = xc.zeros((), dtype=xc.int32)
     for i in range(0, N_test, batch_size):
-        x = X_test[i:i + batch_size]
-        t = Y_test[i:i + batch_size]
+        x = X_test[i:min(i + batch_size, N_test)]
+        t = Y_test[i:min(i + batch_size, N_test)]
 
         y = model.forward(x)
         total_loss += compute_loss(y, t) * batch_size
