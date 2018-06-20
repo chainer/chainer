@@ -21,6 +21,19 @@ namespace xchainer {
 namespace cuda {
 namespace {
 
+// TODO(sonots): Support other than 4, 5 dimensional arrays by reshaping into 4-dimensional arrays as Chainer does.
+cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
+    if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
+        return CUDNN_BATCHNORM_PER_ACTIVATION;
+    }
+    if ((axis.ndim() == 3 && axis[0] == 0 && axis[1] == 2 && axis[2] == 3) ||
+        (axis.ndim() == 4 && axis[0] == 0 && axis[1] == 2 && axis[2] == 3 && axis[3] == 4)) {  // (1, channels, (1, )1, 1)
+        // TODO(hvy): Consider CUDNN_BATCHNORM_SPATIAL_PERSISTENT if we can afford to check for overflow, with or without blocking.
+        return CUDNN_BATCHNORM_SPATIAL;
+    }
+    throw DimensionError{"Invalid axis for BatchNorm using cuDNN ", axis, ". Expected 1, 3 or 4 dimensions."};
+}
+
 class CudnnBNTensorDescriptor {
 public:
     CudnnBNTensorDescriptor(const internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) : CudnnBNTensorDescriptor{} {
@@ -189,19 +202,6 @@ public:
     }
 
 private:
-    // TODO(sonots): Support other than 4, 5 dimensional arrays by reshaping into 4-dimensional arrays as Chainer does.
-    cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
-        if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
-            return CUDNN_BATCHNORM_PER_ACTIVATION;
-        }
-        if ((axis.ndim() == 3 && axis[0] == 0 && axis[1] == 2 && axis[2] == 3) ||
-            (axis.ndim() == 4 && axis[0] == 0 && axis[1] == 2 && axis[2] == 3 && axis[3] == 4)) {  // (1, channels, (1, )1, 1)
-            // TODO(hvy): Consider CUDNN_BATCHNORM_SPATIAL_PERSISTENT if we can afford to check for overflow, with or without blocking.
-            return CUDNN_BATCHNORM_SPATIAL;
-        }
-        throw DimensionError{"Invalid axis for BatchNorm using cuDNN ", axis, ". Expected 1, 3 or 4 dimensions."};
-    }
-
     cudnnHandle_t cudnn_handle_;
 
     // Cache intermediate results during Forward for reuse in Backward.
@@ -213,6 +213,65 @@ private:
 
 std::unique_ptr<BatchNormForwardBackward> CudaDevice::GetBatchNormForwardBackward() {
     return std::make_unique<CudaBatchNormForwardBackward>(cudnn_handle());
+}
+
+Array CudaDevice::FixedBatchNorm(
+        const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
+    if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
+        throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
+    }
+
+#ifndef NDEBUG
+    {
+        Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis, true);
+        assert(gamma.shape() == reduced_shape);
+        assert(beta.shape() == reduced_shape);
+        assert(mean.shape() == reduced_shape);
+        assert(var.shape() == reduced_shape);
+
+        assert(&x.device() == &gamma.device());
+        assert(&x.device() == &beta.device());
+        assert(&x.device() == &mean.device());
+        assert(&x.device() == &var.device());
+
+        assert(x.dtype() == gamma.dtype());
+        assert(x.dtype() == beta.dtype());
+        assert(x.dtype() == mean.dtype());
+        assert(x.dtype() == var.dtype());
+    }
+#endif  // NDEBUG
+
+    Array x_cont = AsContiguousArray(x);
+    internal::CudnnTensorDescriptor x_desc{x_cont};
+    cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
+
+    CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
+    Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
+
+    Array gamma_casted = gamma.AsType(gamma_beta_mean_var_dtype, false);
+    Array beta_casted = beta.AsType(gamma_beta_mean_var_dtype, false);
+    Array mean_casted = mean.AsType(gamma_beta_mean_var_dtype, false);
+    Array var_casted = var.AsType(gamma_beta_mean_var_dtype, false);
+
+    Array out = EmptyLike(x, x.device());
+
+    CheckCudnnError(cudnnBatchNormalizationForwardInference(
+            cudnn_handle(),
+            GetBatchNormMode(axis),
+            internal::GetValuePtr<1>(x.dtype()),
+            internal::GetValuePtr<0>(x.dtype()),
+            *x_desc,
+            xchainer::internal::GetRawOffsetData<void>(x_cont),
+            *x_desc,
+            xchainer::internal::GetRawOffsetData<void>(out),
+            *gamma_beta_mean_var_desc,
+            xchainer::internal::GetRawOffsetData<void>(AsContiguousArray(gamma_casted)),
+            xchainer::internal::GetRawOffsetData<void>(AsContiguousArray(beta_casted)),
+            xchainer::internal::GetRawOffsetData<void>(AsContiguousArray(mean_casted)),
+            xchainer::internal::GetRawOffsetData<void>(AsContiguousArray(var_casted)),
+            static_cast<double>(eps)));
+
+    return out;
 }
 
 }  // namespace cuda
