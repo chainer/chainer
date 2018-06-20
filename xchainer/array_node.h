@@ -34,10 +34,14 @@ public:
         assert(next_node_ == nullptr);
         assert(graph_id() == next_node->graph_id());
         next_node_ = std::move(next_node);
-        rank_ = next_node_->rank() + 1;
     }
 
-    int64_t rank() const { return rank_; }
+    int64_t rank() const {
+        if (next_node_ == nullptr) {
+            return 0;
+        }
+        return next_node_->rank();
+    }
 
     const nonstd::optional<Array>& grad() const noexcept { return grad_; }
 
@@ -57,7 +61,6 @@ public:
 
 private:
     std::shared_ptr<OpNode> next_node_;
-    int64_t rank_{0};
     Shape shape_;
     Dtype dtype_;
     Device& device_;
