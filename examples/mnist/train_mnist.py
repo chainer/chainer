@@ -2,7 +2,6 @@
 
 import argparse
 import gzip
-import math
 import pathlib
 
 import numpy as np
@@ -93,8 +92,8 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
 def main():
     parser = argparse.ArgumentParser('Train a neural network on MNIST dataset')
     parser.add_argument('--batchsize', '-B', type=int, default=100, help='Batch size')
-    parser.add_argument('--epoch', '-E', type=int, default=None, help='Number of epochs to train')
-    parser.add_argument('--iteration', '-I', type=int, default=None, help='Number of iterations to train. Cannot be combined with epoch')
+    parser.add_argument('--epoch', '-E', type=int, default=20, help='Number of epochs to train')
+    parser.add_argument('--iteration', '-I', type=int, default=None, help='Number of iterations to train. Epoch is ignored if specified.')
     parser.add_argument('--data', '-p', default='mnist',
                         help='Path to the directory that contains MNIST dataset')
     parser.add_argument('--device', '-d', default='native', help='Device to use')
@@ -116,22 +115,6 @@ def main():
     all_indices_np = np.arange(N, dtype=np.int64)  # TODO(beam2d): support int32 indexing
     batch_size = args.batchsize
     eval_size = args.eval_size
-
-    # Set stopping condition
-    if sum(stop_cond is not None for stop_cond in [args.epoch, args.iteration]) != 1:
-        raise ValueError('Only either of epoch and iteration can be used as a stopping condition')
-    if args.iteration is not None:
-        eval_interval = 'iteration'
-
-        def check_stop_trigger(it):
-            return it >= args.iteration
-    else:
-        assert args.epoch is not None
-        eval_interval = 'epoch'
-        iterations_per_epoch = math.ceil(N / batch_size)
-
-        def check_stop_trigger(it):
-            return it // iterations_per_epoch >= args.epoch
 
     # Train
     model.require_grad()
@@ -156,18 +139,19 @@ def main():
             model.update(lr=0.01)
 
             it += 1
-            if eval_interval == 'iteration':
+            if args.iteration is not None:
                 mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
                 print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy}')
-
-            if check_stop_trigger(it):
-                is_finished = True
-                break
+                if it >= args.iteration:
+                    is_finished = True
+                    break
 
         epoch += 1
-        if eval_interval == 'epoch':
+        if args.iteration is None:  # stop based on epoch, instead of iteration
             mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
             print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy}')
+            if epoch >= args.epoch:
+                is_finished = True
 
 
 def get_mnist(path, name):
