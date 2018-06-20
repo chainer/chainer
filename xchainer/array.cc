@@ -361,7 +361,7 @@ public:
     }
 
     std::string Indent(int indent) {
-        static const char kIndentChar = ' ';
+        static constexpr char kIndentChar = ' ';
         return std::string(static_cast<size_t>(indent * 2), kIndentChar);
     }
 
