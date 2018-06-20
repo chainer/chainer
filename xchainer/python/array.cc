@@ -297,6 +297,12 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg("graph_id") = kDefaultGraphId,
           py::arg("enable_double_backprop") = false);
+    c.def("_debug_dump_computational_graph",
+          [](const ArrayBodyPtr& self, const GraphId& graph_id) {
+              Array array{self};
+              DebugDumpComputationalGraph(std::cout, array, graph_id);
+          },
+          py::arg("graph_id") = kDefaultGraphId);
     c.def_property(
             "grad",
             [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
