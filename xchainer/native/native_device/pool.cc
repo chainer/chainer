@@ -198,7 +198,7 @@ public:
             const Array& x,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad) {
+            const StackVector<int64_t, kMaxNdim>& pad) override {
         Array col = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, false, 0);
 
         // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
@@ -230,7 +230,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& /*kernel_size*/,
             const StackVector<int64_t, kMaxNdim>& /*stride*/,
             const StackVector<int64_t, kMaxNdim>& /*pad*/,
-            const Array& /*gout*/) {
+            const Array& /*gout*/) override {
         throw NotImplementedError{};
     }
 

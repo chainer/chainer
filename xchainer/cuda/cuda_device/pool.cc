@@ -197,7 +197,7 @@ public:
             const Array& x,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad) {
+            const StackVector<int64_t, kMaxNdim>& pad) override {
         return pool_fwd_bwd_.Forward(x, kernel_size, stride, pad, false);
     }
 
@@ -206,7 +206,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const Array& gout) {
+            const Array& gout) override {
         return pool_fwd_bwd_.Backward(x, kernel_size, stride, pad, false, gout);
     }
 
