@@ -109,11 +109,6 @@ public:
             assert(x.dtype() == beta.dtype());
             assert(x.dtype() == running_mean.dtype());
             assert(x.dtype() == running_var.dtype());
-
-            assert(gamma.IsContiguous());
-            assert(beta.IsContiguous());
-            assert(running_mean.IsContiguous());
-            assert(running_var.IsContiguous());
         }
 #endif  // NDEBUG
 
@@ -134,16 +129,19 @@ public:
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
-        Array gamma_casted = gamma.AsType(gamma_beta_mean_var_dtype, false);
-        Array beta_casted = beta.AsType(gamma_beta_mean_var_dtype, false);
+        Array gamma_casted_cont = AsContiguousArray(gamma.AsType(gamma_beta_mean_var_dtype, false));
+        Array beta_casted_cont = AsContiguousArray(beta.AsType(gamma_beta_mean_var_dtype, false));
+
+        assert(running_mean.IsContiguous());
+        assert(running_var.IsContiguous());
         Array running_mean_casted = running_mean.AsType(gamma_beta_mean_var_dtype, false);
         Array running_var_casted = running_var.AsType(gamma_beta_mean_var_dtype, false);
 
         Array out = EmptyLike(x, device);
 
         // Initialize cache.
-        result_mean_ = EmptyLike(gamma_casted, device);
-        result_inv_var_ = EmptyLike(gamma_casted, device);
+        result_mean_ = EmptyLike(gamma_casted_cont, device);
+        result_inv_var_ = EmptyLike(gamma_casted_cont, device);
 
         CheckCudnnError(cudnnBatchNormalizationForwardTraining(
                 cudnn_handle_,
@@ -155,8 +153,8 @@ public:
                 *x_desc,
                 xchainer::internal::GetRawOffsetData<void>(out),
                 *gamma_beta_mean_var_desc,
-                xchainer::internal::GetRawOffsetData<void>(gamma_casted),
-                xchainer::internal::GetRawOffsetData<void>(beta_casted),
+                xchainer::internal::GetRawOffsetData<void>(gamma_casted_cont),
+                xchainer::internal::GetRawOffsetData<void>(beta_casted_cont),
                 1.0 - static_cast<double>(decay),
                 xchainer::internal::GetRawOffsetData<void>(running_mean_casted),
                 xchainer::internal::GetRawOffsetData<void>(running_var_casted),
