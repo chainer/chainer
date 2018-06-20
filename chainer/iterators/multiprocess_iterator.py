@@ -57,6 +57,10 @@ class MultiprocessIterator(iterator.Iterator):
             This should return the next order. The size of the order
             should remain constant.
             This option cannot be used when ``shuffle`` is not ``None``.
+        maxtasksperchild (int): Number of tasks a worker of prefetch process
+            can complete before it will exit and be replaced with a fresh
+            worker process, to enable unused resources to be freed. If
+            ``None``, worker processes will live as long as the pool.
 
     """
 
@@ -67,7 +71,7 @@ class MultiprocessIterator(iterator.Iterator):
 
     def __init__(self, dataset, batch_size, repeat=True, shuffle=None,
                  n_processes=None, n_prefetch=1, shared_mem=None,
-                 order_sampler=None):
+                 order_sampler=None, maxtasksperchild=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self.repeat = repeat
@@ -76,6 +80,7 @@ class MultiprocessIterator(iterator.Iterator):
         self.n_processes = n_processes or multiprocessing.cpu_count()
         self.n_prefetch = max(n_prefetch, 1)
         self.shared_mem = shared_mem
+        self.maxtasksperchild = maxtasksperchild
 
         if self.shuffle is not None:
             if order_sampler is not None:
@@ -98,7 +103,7 @@ class MultiprocessIterator(iterator.Iterator):
             self.dataset, self.batch_size, self.repeat,
             self.n_processes, self.n_prefetch, self.shared_mem,
             self._comm, self.order_sampler,
-            self._interruption_testing)
+            self._interruption_testing, self.maxtasksperchild)
         # defer launching prefetch thread until creating the worker pool,
         # not to leave a background thread in forked processes.
         self._thread = None
@@ -302,7 +307,7 @@ class _PrefetchLoop(object):
     def __init__(self, dataset, batch_size, repeat,
                  n_processes, n_prefetch, mem_size, comm,
                  order_sampler,
-                 _interruption_testing):
+                 _interruption_testing, maxtasksperchild):
         self.dataset = dataset
         self.batch_size = batch_size
         self.repeat = repeat
@@ -310,6 +315,7 @@ class _PrefetchLoop(object):
         self.mem_size = mem_size
         self.comm = comm
         self.order_sampler = order_sampler
+        self.maxtasksperchild = maxtasksperchild
 
         self._allocate_shared_memory()
         self._pool = None
@@ -346,7 +352,7 @@ class _PrefetchLoop(object):
             processes=self.n_processes,
             initializer=_fetch_setup,
             initargs=(self.dataset, self.mem_size, self.mem_bulk),
-            maxtasksperchild=10)
+            maxtasksperchild=self.maxtasksperchild)
         if self._interruption_testing:
             pids = self._pool.map(_report_pid, range(self.n_processes))
             print(' '.join(map(str, pids)))
