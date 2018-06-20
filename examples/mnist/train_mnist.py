@@ -68,8 +68,6 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
 
     if N_test > X_test.shape[0]:
         raise ValueError(f'Test size can be no larger than {X_test.shape[0]}')
-    if N_test < batch_size:
-        batch_size = N_test
 
     model.no_grad()
 
