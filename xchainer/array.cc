@@ -330,6 +330,7 @@ private:
         int indent;
     };
 
+    // TODO(niboshi): Make the options configurable from outside
     struct Options {
         bool print_metadata{true};
     };
