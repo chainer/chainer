@@ -400,11 +400,7 @@ TEST_P(PoolingTest, MaxPoolDoubleBackward) {
             1e-3);
 }
 
-TEST_P(PoolingTest, AveragePool) {
-    if (GetParam() == "cuda") {
-        // TODO(hvy): Test CUDA when implemented.
-        return;
-    }
+TEST_P(PoolingTest, AveragePoolPadModeIgnore) {
     using T = float;
 
     int64_t batch_size = 3;
@@ -467,11 +463,7 @@ TEST_P(PoolingTest, AveragePool) {
     testing::ExpectAllClose(e_out, out, 1e-7, 1e-7);
 }
 
-TEST_P(PoolingTest, AveragePoolCountIncludePadding) {
-    if (GetParam() == "cuda") {
-        // TODO(hvy): Test CUDA when implemented.
-        return;
-    }
+TEST_P(PoolingTest, AveragePoolPadModeZero) {
     using T = float;
 
     int64_t batch_size = 3;
