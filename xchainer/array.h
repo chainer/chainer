@@ -46,11 +46,6 @@ std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId&
 
 const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
-// Creates a view where graphs are connected but array nodes are not shared.
-// TODO(niboshi): Make it the default behavior of Array::MakeView, and rename the old MakeView
-// TODO(niboshi): Write unit test
-Array MakeUnsharedView(const Array& array);
-
 }  // namespace internal
 
 // The main data structure of multi-dimensional array.
@@ -152,7 +147,7 @@ public:
     Array Copy() const;
 
     // Creates a view.
-    // It does not make a new node for any graphs.
+    // It creates a new array node and connects graphs.
     Array MakeView() const;
 
     // Transfers the array to another device. It will be connected to all the graphs.

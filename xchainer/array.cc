@@ -67,16 +67,6 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
     return *it;
 }
 
-Array MakeUnsharedView(const Array& array) {
-    Array out{std::make_shared<internal::ArrayBody>(
-            array.shape(), array.strides(), array.dtype(), array.device(), array.data(), array.offset())};
-    if (!array.IsConstant()) {
-        BackwardBuilder bb{"view", out};
-        bb.Define({array}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
-    }
-    return out;
-}
-
 }  // namespace internal
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
@@ -205,7 +195,13 @@ Array Array::Take(const Array& indices, int8_t axis) const { return xchainer::Ta
 Array Array::Copy() const { return xchainer::Copy(*this); }
 
 Array Array::MakeView() const {
-    return Array{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), body_->data_, offset(), body_->nodes_)};
+    Array out{std::make_shared<internal::ArrayBody>(
+            shape(), strides(), dtype(), device(), data(), offset())};
+    if (!IsConstant()) {
+        BackwardBuilder bb{"view", out};
+        bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+    }
+    return out;
 }
 
 Array Array::ToDevice(Device& dst_device) const {

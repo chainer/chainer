@@ -229,7 +229,7 @@ private:
                             }) ||
                     std::any_of(next_grads_subset.begin(), it, [it](const Array& next_grad) { return next_grad.body() == it->body(); })) {
                     // TODO(niboshi): View is needed to make new nodes. Come up with a solution to avoid extra backward insertion.
-                    *it = internal::MakeUnsharedView(*it);
+                    *it = it->MakeView();
                 }
             }
 

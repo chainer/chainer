@@ -594,6 +594,31 @@ TEST_P(ArrayTest, MakeView) {
     testing::ExpectEqualView(a, o);
 }
 
+TEST_P(ArrayTest, MakeViewBackward) {
+    using T = double;
+    Array x = (*testing::BuildArray({3, 2}).WithLinearData<T>()).RequireGrad();
+    Array gy = testing::BuildArray({3, 2}).WithLinearData<T>(2.0, -0.5);
+    Array eps = FullLike(x, 1e-3);
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {xs[0].MakeView()}; }, {x}, {gy}, {eps});
+}
+
+TEST_P(ArrayTest, MakeViewDoubleBackward) {
+    using T = double;
+    Array x = (*testing::BuildArray({3, 2}).WithLinearData<T>()).RequireGrad();
+    Array gy = (*testing::BuildArray({3, 2}).WithLinearData<T>(2.0, -0.5)).RequireGrad();
+    Array ggx = testing::BuildArray({3, 2}).WithLinearData<T>(-1.0, 0.3);
+    Array eps = FullLike(x, 1e-3);
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                Array y = xs[0].MakeView();
+                return {y * y};
+            },
+            {x},
+            {gy},
+            {ggx},
+            {eps, eps});
+}
+
 TEST_P(ArrayTest, AsConstantCopy) {
     // Stop gradients on all graphs
     {
