@@ -113,7 +113,7 @@ class TestUnpooling2D(unittest.TestCase):
                               use_cudnn='always'):
         def f(x):
             return functions.unpooling_2d(x, self.ksize, outsize=self.outsize,
-                                       cover_all=self.cover_all)
+                                          cover_all=self.cover_all)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
                 f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
