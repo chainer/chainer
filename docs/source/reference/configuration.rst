@@ -43,6 +43,13 @@ Configuration Keys
 
    You can change the default value to ``True`` by setting ``CHAINER_DEBUG`` environment variable to ``1``.
 
+* ``dtype`` (default: ``numpy.float32``)
+   Default floating point data type.
+
+   Chainer uses this dtype to construct arrays when the dtype is not specified (e.g. initializers).
+
+   You can change the default value by setting ``CHAINER_DTYPE`` environment variable to ``float16``, ``float32`` or ``float64``.
+
 * ``enable_backprop`` (default: ``True``)
    Flag to enable backpropagation support.
 
@@ -229,6 +236,16 @@ You can also make your own code behave differently in training and test modes as
    chainer.configuration.GlobalConfig
    chainer.configuration.LocalConfig
 
+Related functions
+~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.get_dtype
+
+
 Environment Variables
 ---------------------
 
@@ -259,6 +276,10 @@ Here are the environment variables Chainer uses.
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_LAZY_GRAD_SUM``                 | Used as the default value for ``chainer.config.lazy_grad_sum`` configuration.                         |
 |                                           | Set ``1`` to enable batch accumulation of gradients.                                                  |
+|                                           | See :ref:`configuration` for details.                                                                 |
++-------------------------------------------+-------------------------------------------------------------------------------------------------------+
+| ``CHAINER_DTYPE``                         | Used as the default value for ``chainer.config.dtype`` configuration.                                 |
+|                                           | The value must be any of ``'float16'``, ``'float32'`` or ``'float64'``.                               |
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_TYPE_CHECK``                    | Used as the default value for ``chainer.config.type_check`` configuration.                            |
