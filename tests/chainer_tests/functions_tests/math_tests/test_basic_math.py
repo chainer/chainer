@@ -199,12 +199,8 @@ class TestBinaryOp(unittest.TestCase):
             options = {'atol': 5e-3, 'rtol': 5e-2}
         options.update(args)
 
-        def _op(*xs):
-            y = op(*xs)
-            return y * y
-
         gradient_check.check_double_backward(
-            _op, (x1_data, x2_data), y_grad, (ggx1_data, ggx2_data),
+            op, (x1_data, x2_data), y_grad, (ggx1_data, ggx2_data),
             dtype=numpy.float64, **options)
 
     def double_backward_cpu(self, op, **options):
@@ -334,13 +330,9 @@ class TestMultipleAdd(unittest.TestCase):
             options = {'atol': 5e-3, 'rtol': 5e-2}
         options.update(args)
 
-        def _func(*xs):
-            y = func(*xs)
-            return y * y
-
         with backend_config:
             gradient_check.check_double_backward(
-                _func, (x1_data, x2_data, x3_data), y_grad,
+                func, (x1_data, x2_data, x3_data), y_grad,
                 (ggx1_data,
                  ggx2_data, ggx3_data),
                 dtype=numpy.float64, **options)
@@ -769,8 +761,7 @@ class TestVariableConstantOp(unittest.TestCase):
             options = {'atol': 5e-3, 'rtol': 5e-2}
 
         def _op(x):
-            y = op(x, self.value)
-            return y * y
+            return op(x, self.value)
 
         gradient_check.check_double_backward(
             _op, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
@@ -1006,8 +997,7 @@ class TestVariableConstantArrayOp(unittest.TestCase):
             options = {'atol': 5e-3, 'rtol': 5e-2}
 
         def _op(x):
-            y = op(x, value)
-            return y * y
+            return op(x, value)
 
         gradient_check.check_double_backward(
             _op, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
