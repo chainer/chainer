@@ -49,13 +49,13 @@ class TestPrintReport(unittest.TestCase):
         self.report(self.trainer)
         self.stream.flush.assert_called_once_with()
 
-    def test_stream_without_flush_is_not_flushed(self):
+    def test_stream_without_flush_raises_no_exception(self):
         self._setup(delete_flush=True)
         self.assertFalse(hasattr(self.stream, 'flush'))
-        self.stream.flush = MagicMock()
-        self.stream.flush.assert_not_called()
-        self.report(self.trainer)
-        self.stream.flush.assert_not_called()
+        try:
+            self.report(self.trainer)
+        except Exception as e:
+            self.fail("Unexpected exception: %s `%s'" % (type(e), e))
 
 
 testing.run_module(__name__, __file__)
