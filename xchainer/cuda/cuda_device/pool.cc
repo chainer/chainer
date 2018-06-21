@@ -36,12 +36,13 @@ public:
           stride_{stride},
           pad_{pad},
           cover_all_{cover_all},
-          cudnn_pooling_mode_{cudnn_pooling_mode} {}
-
-    Array Forward(const Array& x) {
+          cudnn_pooling_mode_{cudnn_pooling_mode} {
         if (cover_all_) {
             throw XchainerError{"CUDA pooling does not support cover_all"};
         }
+    }
+
+    Array Forward(const Array& x) {
         int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
         if (ndim < 2) {
             throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
@@ -82,9 +83,6 @@ public:
     }
 
     Array Backward(const Array& x, const Array& gout) {
-        if (cover_all_) {
-            throw XchainerError{"CUDA pooling does not support cover_all"};
-        }
         int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
         if (ndim < 2) {
             throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
@@ -142,17 +140,17 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all)
-        : pool_impl{cudnn_handle, kernel_size, stride, pad, cover_all, CUDNN_POOLING_MAX} {}
+        : pool_impl_{cudnn_handle, kernel_size, stride, pad, cover_all, CUDNN_POOLING_MAX} {}
 
-    Array Forward(const Array& x) override { return pool_impl.Forward(x); }
+    Array Forward(const Array& x) override { return pool_impl_.Forward(x); }
 
-    Array Backward(const Array& x, const Array& gout) override { return pool_impl.Backward(x, gout); }
+    Array Backward(const Array& x, const Array& gout) override { return pool_impl_.Backward(x, gout); }
 
     // TODO(hvy): Implement me.
     Array DoubleBackward(const Array& /*x*/, const Array& /*gout*/, const Array& /*ggx*/) override { return Array{}; }
 
 private:
-    PoolImpl pool_impl;
+    PoolImpl pool_impl_;
 };
 
 }  // namespace
@@ -186,14 +184,14 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             AveragePoolPadMode pad_mode)
-        : pool_impl{cudnn_handle, kernel_size, stride, pad, false, GetCudnnPoolingMode(pad_mode)} {}
+        : pool_impl_{cudnn_handle, kernel_size, stride, pad, false, GetCudnnPoolingMode(pad_mode)} {}
 
-    Array Forward(const Array& x) override { return pool_impl.Forward(x); }
+    Array Forward(const Array& x) override { return pool_impl_.Forward(x); }
 
-    Array Backward(const Array& x, const Array& gout) override { return pool_impl.Backward(x, gout); }
+    Array Backward(const Array& x, const Array& gout) override { return pool_impl_.Backward(x, gout); }
 
 private:
-    PoolImpl pool_impl;
+    PoolImpl pool_impl_;
 };
 
 }  // namespace
