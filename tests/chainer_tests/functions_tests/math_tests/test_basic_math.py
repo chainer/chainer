@@ -1098,11 +1098,8 @@ class TestUnaryFunctions(unittest.TestCase):
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
 
-        def f(x):
-            x = op(x)
-            return x * x
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
+            op, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
 
     def double_backward_cpu(self, op):
         self.check_double_backward(op, self.x, self.gy, self.ggx)
@@ -1268,20 +1265,16 @@ class TestMatMul(unittest.TestCase):
             self, x_data, y_data, z_grad, x_grad_grad, y_grad_grad):
         if self.right_const:
             def op(x):
-                z = operator.matmul(x, y_data.astype(x.dtype))
-                return z * z
+                return operator.matmul(x, y_data.astype(x.dtype))
             data = x_data,
             grad_grad = x_grad_grad,
         elif self.left_const:
             def op(y):
-                z = operator.matmul(x_data.astype(y.dtype), y)
-                return z * z
+                return operator.matmul(x_data.astype(y.dtype), y)
             data = y_data,
             grad_grad = y_grad_grad,
         else:
-            def op(x, y):
-                z = operator.matmul(x, y)
-                return z * z
+            op = operator.matmul
             data = x_data, y_data
             grad_grad = x_grad_grad, y_grad_grad
 
