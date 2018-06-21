@@ -79,11 +79,10 @@ class TestUpsampling2D(unittest.TestCase):
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
                               use_cudnn='always'):
         def f(x):
-            y = F.upsampling_2d(
+            return F.upsampling_2d(
                 x, self.p.indexes, ksize=(self.p.kh, self.p.kw),
                 stride=(self.p.sy, self.p.sx), pad=(self.p.ph, self.p.pw),
                 outsize=self.in_shape[2:], cover_all=self.p.cover_all)
-            return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
                 f, x_data, y_grad, x_grad_grad, dtype='d',

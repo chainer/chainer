@@ -116,12 +116,9 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
                               use_cudnn='always'):
-        def f(x):
-            y = self.func(x)
-            return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
-                f, x_data, y_grad, x_grad_grad,
+                self.func, x_data, y_grad, x_grad_grad,
                 dtype=numpy.float64, atol=5e-3, rtol=5e-3)
 
     @condition.retry(3)
