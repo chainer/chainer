@@ -1,10 +1,16 @@
 #pragma once
 
+#include <cassert>
+#include <cstdint>
 #include <memory>
+#include <utility>
 
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/device.h"
+#include "xchainer/dtype.h"
+#include "xchainer/graph.h"
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
 
@@ -68,7 +74,7 @@ private:
     void CheckGradCompatible(const Array& grad) {
         CheckEqual(dtype_, grad.dtype());
         CheckEqual(shape_, grad.shape());
-        device_.CheckDevicesCompatible(grad);
+        CheckEqual(device_, grad.device());
     }
 
     std::shared_ptr<OpNode> next_op_node_;
