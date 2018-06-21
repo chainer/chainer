@@ -114,8 +114,7 @@ class TestDropout(unittest.TestCase):
         dropout = functions.noise.dropout.Dropout(self.ratio)
 
         def f(*inputs):
-            y, = dropout.apply(inputs)
-            return y * y,
+            return dropout.apply(inputs)
 
         with backend_config:
             gradient_check.check_double_backward(

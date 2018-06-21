@@ -71,8 +71,7 @@ class TestGaussian(unittest.TestCase):
         gaussian = functions.noise.gaussian.Gaussian()
 
         def f(m, v):
-            y = gaussian.apply((m, v))[0]
-            return y * y
+            return gaussian.apply((m, v))
 
         gradient_check.check_double_backward(
             f, (m_data, v_data), y_grad, (m_grad_grad, v_grad_grad),
