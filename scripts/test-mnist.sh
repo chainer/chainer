@@ -7,6 +7,7 @@ set -eu
 # Options:
 #    --train-script-path:   The path to Python training script.
 #    --data-dir:            The path to the MNIST dataset root directory.
+#    --conda-env:           The name of the conda environment.
 
 
 # Register all devices for which the MNIST training script should be tested.
