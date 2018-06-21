@@ -14,14 +14,14 @@
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
+namespace {
 
-Array MaxPool(
+void CheckPoolInputs(
         const Array& x,
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+        const StackVector<int64_t, kMaxNdim>& pad) {
+    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions.
     if (static_cast<int8_t>(kernel_size.size()) != ndim) {
         throw DimensionError{"Wrong numbers of kernel size dimensions ", kernel_size.size(), " for input with ", x.ndim(), " dimensions."};
     }
@@ -31,9 +31,18 @@ Array MaxPool(
     if (static_cast<int8_t>(pad.size()) != ndim) {
         throw DimensionError{"Wrong numbers of paddings ", pad.size(), " for input with ", x.ndim(), " dimensions."};
     }
+}
 
+}  // namespace
+
+Array MaxPool(
+        const Array& x,
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    CheckPoolInputs(x, kernel_size, stride, pad);
     std::unique_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward();
-
     Array out = fb->Forward(x, kernel_size, stride, pad, cover_all);
 
     // Supporting arbitrary number of backwards using a recursive definition.
@@ -77,6 +86,17 @@ Array MaxPool(
         }
     }
     return out;
+}
+
+Array AveragePool(
+        const Array& x,
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        AveragePoolPadMode pad_mode) {
+    CheckPoolInputs(x, kernel_size, stride, pad);
+    // TODO(hvy): Implement backward.
+    return x.device().AveragePool(x, kernel_size, stride, pad, pad_mode);
 }
 
 }  // namespace xchainer

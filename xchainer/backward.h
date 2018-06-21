@@ -32,9 +32,13 @@ public:
     // ordinary functions).
     BackwardContext(
             const OpNode& op_node,
-            gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes,
+            gsl::span<const std::reference_wrapper<ArrayNode>> prev_array_nodes,
             gsl::span<const GraphId> stop_graph_ids,
-            std::vector<Array>& input_grads_storage);
+            std::vector<Array>& input_grads_storage,
+            bool next_backward_required);
+
+    // Indicates whether the next order of backward is required. It reflects DoubleBackpropOption.
+    bool next_required() const { return next_backward_required_; }
 
     // Returns whether the output has a propagated gradient.
     // If there is only one output, the output always has the propagated gradient, therefore you do not have to call this function in that
@@ -48,7 +52,7 @@ public:
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
     const Array& output_grad() const {
-        assert(prev_nodes_.size() == 1);
+        assert(prev_array_nodes_.size() == 1);
         return output_grad(0);
     }
 
@@ -66,7 +70,7 @@ public:
 
 private:
     const OpNode& op_node_;
-    gsl::span<const std::reference_wrapper<ArrayNode>> prev_nodes_;
+    gsl::span<const std::reference_wrapper<ArrayNode>> prev_array_nodes_;
     gsl::span<const GraphId> stop_graph_ids_;
 
     // A reference to the storage of input gradient arrays.
@@ -77,6 +81,8 @@ private:
     // Holds zero-filled arrays for outputs without actual gradients.
     // The arrays are allocated on-demand in output_grad.
     mutable std::vector<nonstd::optional<Array>> zero_output_grads_;
+
+    bool next_backward_required_;
 };
 
 class BackwardBuilder {
@@ -84,12 +90,12 @@ public:
     BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids);
     BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs) : BackwardBuilder{op_name, outputs, {}} {}
     BackwardBuilder(const char* op_name, const Array& output, gsl::span<const GraphId> stop_graph_ids)
-        : BackwardBuilder{op_name, {output}, stop_graph_ids} {};
-    BackwardBuilder(const char* op_name, const Array& output) : BackwardBuilder{op_name, {output}, {}} {};
+        : BackwardBuilder{op_name, std::initializer_list<ConstArrayRef>{output}, stop_graph_ids} {}
+    BackwardBuilder(const char* op_name, const Array& output) : BackwardBuilder{op_name, {output}, {}} {}
 
     // Defines a backward function with respect to specified input arrays.
     // For multi-input ops, usually this function is called for each of independent subsets of input arrays.
-    void Define(std::initializer_list<ConstArrayRef> inputs, BackwardFunction backward_func);
+    void Define(std::initializer_list<ConstArrayRef> inputs, const BackwardFunction& backward_func);
 
 private:
     const char* op_name_;

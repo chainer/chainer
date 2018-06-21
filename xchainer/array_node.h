@@ -25,19 +25,23 @@ public:
 
     Device& device() const { return device_; }
 
-    const std::shared_ptr<OpNode>& next_node() { return next_node_; }
-    std::shared_ptr<const OpNode> next_node() const { return next_node_; }
-    std::shared_ptr<OpNode> move_next_node() { return std::move(next_node_); }
+    const std::shared_ptr<OpNode>& next_op_node() { return next_op_node_; }
+    std::shared_ptr<const OpNode> next_op_node() const { return next_op_node_; }
+    std::shared_ptr<OpNode> move_next_op_node() { return std::move(next_op_node_); }
 
-    void set_next_node(std::shared_ptr<OpNode> next_node) {
-        assert(next_node != nullptr);
-        assert(next_node_ == nullptr);
-        assert(graph_id() == next_node->graph_id());
-        next_node_ = std::move(next_node);
-        rank_ = next_node_->rank() + 1;
+    void set_next_op_node(std::shared_ptr<OpNode> next_op_node) {
+        assert(next_op_node != nullptr);
+        assert(next_op_node_ == nullptr);
+        assert(graph_id() == next_op_node->graph_id());
+        next_op_node_ = std::move(next_op_node);
     }
 
-    int64_t rank() const { return rank_; }
+    int64_t rank() const {
+        if (next_op_node_ == nullptr) {
+            return 0;
+        }
+        return next_op_node_->rank();
+    }
 
     const nonstd::optional<Array>& grad() const noexcept { return grad_; }
 
@@ -56,8 +60,7 @@ public:
     void ClearGrad() noexcept { grad_.reset(); }
 
 private:
-    std::shared_ptr<OpNode> next_node_;
-    int64_t rank_{0};
+    std::shared_ptr<OpNode> next_op_node_;
     Shape shape_;
     Dtype dtype_;
     Device& device_;

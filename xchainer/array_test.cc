@@ -487,27 +487,27 @@ TEST_P(ArrayTest, ComputationalGraph) {
     b.RequireGrad(graph_id);
 
     {
-        auto a_node = internal::GetArrayNode(a, graph_id);
-        auto b_node = internal::GetArrayNode(b, graph_id);
-        EXPECT_NE(a_node, nullptr);
-        EXPECT_NE(b_node, nullptr);
-        auto a_op_node = a_node->next_node();
-        auto b_op_node = b_node->next_node();
+        auto a_array_node = internal::GetArrayNode(a, graph_id);
+        auto b_array_node = internal::GetArrayNode(b, graph_id);
+        EXPECT_NE(a_array_node, nullptr);
+        EXPECT_NE(b_array_node, nullptr);
+        auto a_op_node = a_array_node->next_op_node();
+        auto b_op_node = b_array_node->next_op_node();
         EXPECT_EQ(a_op_node, nullptr);
         EXPECT_EQ(b_op_node, nullptr);
     }
 
     Array c = a + b;
     {
-        auto a_node = internal::GetArrayNode(a, graph_id);
-        auto b_node = internal::GetArrayNode(b, graph_id);
-        auto c_node = internal::GetArrayNode(c, graph_id);
-        EXPECT_NE(a_node, nullptr);
-        EXPECT_NE(b_node, nullptr);
-        EXPECT_NE(c_node, nullptr);
-        auto a_op_node = a_node->next_node();
-        auto b_op_node = b_node->next_node();
-        auto c_op_node = c_node->next_node();
+        auto a_array_node = internal::GetArrayNode(a, graph_id);
+        auto b_array_node = internal::GetArrayNode(b, graph_id);
+        auto c_array_node = internal::GetArrayNode(c, graph_id);
+        EXPECT_NE(a_array_node, nullptr);
+        EXPECT_NE(b_array_node, nullptr);
+        EXPECT_NE(c_array_node, nullptr);
+        auto a_op_node = a_array_node->next_op_node();
+        auto b_op_node = b_array_node->next_op_node();
+        auto c_op_node = c_array_node->next_op_node();
         EXPECT_EQ(a_op_node, nullptr);
         EXPECT_EQ(b_op_node, nullptr);
         EXPECT_NE(c_op_node, nullptr);
@@ -516,18 +516,18 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array o = a * c;
     {
-        auto a_node = internal::GetArrayNode(a, graph_id);
-        auto b_node = internal::GetArrayNode(b, graph_id);
-        auto c_node = internal::GetArrayNode(c, graph_id);
-        auto o_node = internal::GetArrayNode(o, graph_id);
-        EXPECT_NE(a_node, nullptr);
-        EXPECT_NE(b_node, nullptr);
-        EXPECT_NE(c_node, nullptr);
-        EXPECT_NE(o_node, nullptr);
-        auto a_op_node = a_node->next_node();
-        auto b_op_node = b_node->next_node();
-        auto c_op_node = c_node->next_node();
-        auto o_op_node = o_node->next_node();
+        auto a_array_node = internal::GetArrayNode(a, graph_id);
+        auto b_array_node = internal::GetArrayNode(b, graph_id);
+        auto c_array_node = internal::GetArrayNode(c, graph_id);
+        auto o_array_node = internal::GetArrayNode(o, graph_id);
+        EXPECT_NE(a_array_node, nullptr);
+        EXPECT_NE(b_array_node, nullptr);
+        EXPECT_NE(c_array_node, nullptr);
+        EXPECT_NE(o_array_node, nullptr);
+        auto a_op_node = a_array_node->next_op_node();
+        auto b_op_node = b_array_node->next_op_node();
+        auto c_op_node = c_array_node->next_op_node();
+        auto o_op_node = o_array_node->next_op_node();
         EXPECT_EQ(a_op_node, nullptr);
         EXPECT_EQ(b_op_node, nullptr);
         EXPECT_NE(c_op_node, nullptr);

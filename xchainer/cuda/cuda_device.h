@@ -12,9 +12,10 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/cuda/cuda_backend.h"
-#include "xchainer/cuda/cudnn.h"
+#include "xchainer/cuda/cuda_conv.h"
 #include "xchainer/cuda/memory_pool.h"
 #include "xchainer/device.h"
+#include "xchainer/routines/pooling.h"
 #include "xchainer/scalar.h"
 #include "xchainer/stack_vector.h"
 
@@ -29,6 +30,7 @@ public:
     void Synchronize() override;
 
     cublasHandle_t cublas_handle();
+    cudnnHandle_t cudnn_handle();
 
     // memory.cc
 
@@ -105,6 +107,10 @@ public:
     void Exp(const Array& x, const Array& out) override;
     void Log(const Array& x, const Array& out) override;
 
+    // misc.cu
+
+    void Sqrt(const Array& x, const Array& out) override;
+
     // indexing.cu
 
     void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;
@@ -138,21 +144,35 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) override;
 
+    // pool.cc
+
     std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override;
 
-    // batch_norm.cu
+    Array AveragePool(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            AveragePoolPadMode pad_mode) override;
+
+    // batch_norm.cc
 
     std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
 
+    Array FixedBatchNorm(
+            const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis)
+            override;
+
 protected:
-    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_context_{index} {}
+    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
 
 private:
     friend CudaDevice* xchainer::cuda::internal::CreateDevice(CudaBackend&, int);
 
     MemoryPool memory_pool_;
-    internal::CudnnContext cudnn_context_;
     cublasHandle_t cublas_handle_{};
+    cudnnHandle_t cudnn_handle_{};
+    internal::CudaConv cuda_conv_{};
 };
 
 }  // namespace cuda

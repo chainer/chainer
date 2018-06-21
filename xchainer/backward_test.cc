@@ -171,6 +171,13 @@ TEST_P(BackpropTest, BackwardMultipleOutputs) {
     });
 }
 
+TEST_P(BackpropTest, BackwardWithComplicatedRanks) {
+    CheckBackpropSingleElement({1.0f}, {-2.0f}, [](auto& xs) {
+        Array a = -xs[0] + 0;
+        return -(-a) + a;
+    });
+}
+
 TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
     auto xs = MakeFullArrays({1}, {2.0f, 3.0f});
     auto y1 = xs[0] * xs[1];  // without graph
@@ -380,21 +387,21 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     Array z = y1 * y2;
     Backward(z, kDefaultGraphId, DoubleBackpropOption::kEnable);
 
-    std::shared_ptr<const ArrayNode> z_node = internal::GetArrayNode(z);
-    ASSERT_TRUE(z_node);
+    std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayNode(z);
+    ASSERT_TRUE(z_array_node);
 
-    std::shared_ptr<const OpNode> z_op = z_node->next_node();
-    ASSERT_TRUE(z_op);
+    std::shared_ptr<const OpNode> z_op_node = z_array_node->next_op_node();
+    ASSERT_TRUE(z_op_node);
 
-    auto y_nodes = z_op->next_nodes();
-    ASSERT_EQ(2u, y_nodes.size());
-    EXPECT_EQ(2u, z_op->backward_entries().size());
+    auto y_array_nodes = z_op_node->next_array_nodes();
+    ASSERT_EQ(2u, y_array_nodes.size());
+    EXPECT_EQ(2u, z_op_node->backward_entries().size());
 
-    for (const std::shared_ptr<ArrayNode>& y_node : y_nodes) {
-        std::shared_ptr<const OpNode> y_op = y_node->next_node();
-        ASSERT_TRUE(y_op);
-        ASSERT_EQ(1u, y_op->next_nodes().size());
-        EXPECT_EQ(1u, y_op->backward_entries().size());
+    for (const std::shared_ptr<ArrayNode>& y_array_node : y_array_nodes) {
+        std::shared_ptr<const OpNode> y_op_node = y_array_node->next_op_node();
+        ASSERT_TRUE(y_op_node);
+        ASSERT_EQ(1u, y_op_node->next_array_nodes().size());
+        EXPECT_EQ(1u, y_op_node->backward_entries().size());
     }
 }
 
@@ -406,18 +413,18 @@ TEST(BackpropEnableDoubleBackpropTest, Disabled) {
     Array y1 = x1 + x2;
     Array y2 = x1 * x2;
     Array z = y1 * y2;
-    std::shared_ptr<const ArrayNode> z_node = internal::GetArrayNode(z);
-    ASSERT_TRUE(z_node);
-    std::shared_ptr<const OpNode> z_op = z_node->next_node();
-    ASSERT_TRUE(z_op);
+    std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayNode(z);
+    ASSERT_TRUE(z_array_node);
+    std::shared_ptr<const OpNode> z_op_node = z_array_node->next_op_node();
+    ASSERT_TRUE(z_op_node);
 
     Backward(z);
 
-    ASSERT_TRUE(z_node);
-    EXPECT_FALSE(z_node->next_node());
+    ASSERT_TRUE(z_array_node);
+    EXPECT_FALSE(z_array_node->next_op_node());
 
-    EXPECT_EQ(0u, z_op->next_nodes().size());
-    EXPECT_EQ(0u, z_op->backward_entries().size());
+    EXPECT_EQ(0u, z_op_node->next_array_nodes().size());
+    EXPECT_EQ(0u, z_op_node->backward_entries().size());
 }
 
 class BackpropFunctionTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
@@ -559,7 +566,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
         ASSERT_FALSE(x1.IsConstant());
         ASSERT_FALSE(x2.IsConstant());
         ASSERT_FALSE(x3.IsConstant());
-        y1 = 2 * x1.AsConstant() + 1;
+        y1 = 2 * x1.AsConstant() + 3 * x2.AsConstant() + x3.AsConstant() + 1;
         ASSERT_TRUE(y1.IsConstant());
 
         {
@@ -610,8 +617,8 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
     };
 
     Array x1 = x1_value.MakeView().RequireGrad(graph_id);
-    Array x2 = x1_value.MakeView().RequireGrad(graph_id);
-    Array x3 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x2 = x2_value.MakeView().RequireGrad(graph_id);
+    Array x3 = x3_value.MakeView().RequireGrad(graph_id);
     Array y1{};
     forward(x1, x2, x3, y1);
 
@@ -655,8 +662,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
         ASSERT_FALSE(x1.IsConstant());
         ASSERT_FALSE(x2.IsConstant());
         ASSERT_FALSE(x3.IsConstant());
-        y1 = 2 * x1.AsConstant() + 1;
-        y2 = 3 * x1.AsConstant() + 2;
+        y1 = 2 * x1.AsConstant() + 3 * x2.AsConstant() + 1;
+        y2 = 3 * x1.AsConstant() + 1 * x2.AsConstant() + 2 * x3.AsConstant() + 4;
         ASSERT_TRUE(y1.IsConstant());
         ASSERT_TRUE(y2.IsConstant());
 
@@ -698,8 +705,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
     };
 
     Array x1 = x1_value.MakeView().RequireGrad(graph_id);
-    Array x2 = x1_value.MakeView().RequireGrad(graph_id);
-    Array x3 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x2 = x2_value.MakeView().RequireGrad(graph_id);
+    Array x3 = x3_value.MakeView().RequireGrad(graph_id);
     Array y1{};
     Array y2{};
     forward(x1, x2, x3, y1, y2);

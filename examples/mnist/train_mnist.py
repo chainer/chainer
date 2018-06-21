@@ -63,13 +63,42 @@ def compute_loss(y, t):
     return -(score * mask).sum() * (1 / y.shape[0])
 
 
+def evaluate(model, X_test, Y_test, eval_size, batch_size):
+    N_test = X_test.shape[0] if eval_size is None else eval_size
+
+    if N_test > X_test.shape[0]:
+        raise ValueError(f'Test size can be no larger than {X_test.shape[0]}')
+
+    model.no_grad()
+
+    # TODO(beam2d): make xc.array(0, dtype=...) work
+    total_loss = xc.zeros((), dtype=xc.float32)
+    num_correct = xc.zeros((), dtype=xc.int32)
+    for i in range(0, N_test, batch_size):
+        x = X_test[i:min(i + batch_size, N_test)]
+        t = Y_test[i:min(i + batch_size, N_test)]
+
+        y = model.forward(x)
+        total_loss += compute_loss(y, t) * batch_size
+        num_correct += (y.argmax(axis=1).astype(t.dtype) == t).astype(xc.int32).sum()
+
+    model.require_grad()
+
+    mean_loss = float(total_loss) / N_test
+    accuracy = int(num_correct) / N_test
+    return mean_loss, accuracy
+
+
 def main():
     parser = argparse.ArgumentParser('Train a neural network on MNIST dataset')
     parser.add_argument('--batchsize', '-B', type=int, default=100, help='Batch size')
     parser.add_argument('--epoch', '-E', type=int, default=20, help='Number of epochs to train')
+    parser.add_argument('--iteration', '-I', type=int, default=None, help='Number of iterations to train. Epoch is ignored if specified.')
     parser.add_argument('--data', '-p', default='mnist',
                         help='Path to the directory that contains MNIST dataset')
     parser.add_argument('--device', '-d', default='native', help='Device to use')
+    parser.add_argument('--eval-size', default=None, type=int,
+                        help='Number of samples to use from the test set for evaluation. None to use all.')
     args = parser.parse_args()
 
     xc.set_default_device(args.device)
@@ -83,14 +112,18 @@ def main():
 
     # Training
     N = X.shape[0]   # TODO(beam2d): implement len
-    N_test = X_test.shape[0]
     all_indices_np = np.arange(N, dtype=np.int64)  # TODO(beam2d): support int32 indexing
     batch_size = args.batchsize
+    eval_size = args.eval_size
 
-    for epoch in range(args.epoch):
-        # Train
-        model.require_grad()
+    # Train
+    model.require_grad()
 
+    it = 0
+    epoch = 0
+    is_finished = False
+
+    while not is_finished:
         np.random.shuffle(all_indices_np)  # TODO(beam2d): not suupported in xc
         all_indices = xc.array(all_indices_np)
 
@@ -105,23 +138,20 @@ def main():
             loss.backward()
             model.update(lr=0.01)
 
-        # Eval
-        model.no_grad()
+            it += 1
+            if args.iteration is not None:
+                mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
+                print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy}')
+                if it >= args.iteration:
+                    is_finished = True
+                    break
 
-        # TODO(beam2d): make xc.array(0, dtype=...) work
-        total_loss = xc.zeros((), dtype=xc.float32)
-        num_correct = xc.zeros((), dtype=xc.int32)
-        for i in range(0, N_test, batch_size):
-            x = X_test[i:i + batch_size]
-            t = Y_test[i:i + batch_size]
-
-            y = model.forward(x)
-            total_loss += compute_loss(y, t) * batch_size
-            num_correct += (y.argmax(axis=1).astype(t.dtype) == t).astype(xc.int32).sum()
-
-        mean_loss = float(total_loss) / N_test
-        accuracy = int(num_correct) / N_test
-        print(f'epoch {epoch+1}... loss={mean_loss},\taccuracy={accuracy}')
+        epoch += 1
+        if args.iteration is None:  # stop based on epoch, instead of iteration
+            mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
+            print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy}')
+            if epoch >= args.epoch:
+                is_finished = True
 
 
 def get_mnist(path, name):

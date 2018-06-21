@@ -12,6 +12,7 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
+#include "xchainer/routines/pooling.h"
 #include "xchainer/scalar.h"
 #include "xchainer/stack_vector.h"
 
@@ -95,6 +96,10 @@ public:
     void Exp(const Array& x, const Array& out) override;
     void Log(const Array& x, const Array& out) override;
 
+    // misc.cc
+
+    void Sqrt(const Array& x, const Array& out) override;
+
     // indexing.cc
 
     void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;
@@ -132,9 +137,12 @@ public:
 
     std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override;
 
-    // batch_norm.cc
-
-    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
+    Array AveragePool(
+            const Array& x,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            AveragePoolPadMode pad_mode) override;
 
 protected:
     NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}

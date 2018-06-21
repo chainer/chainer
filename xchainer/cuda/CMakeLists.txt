@@ -1,6 +1,7 @@
 install(FILES
     cublas.h
     cuda_backend.h
+    cuda_conv.h
     cuda_device.h
     cuda_runtime.h
     cudnn.h
@@ -12,10 +13,11 @@ install(FILES
 
 CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cublas.cc
+    cuda_conv.cc
     cuda_device.cc
     cuda_device/activation.cu
     cuda_device/arithmetic.cu
-    cuda_device/batch_norm.cu
+    cuda_device/batch_norm.cc
     cuda_device/conv.cc
     cuda_device/copy.cu
     cuda_device/comparison.cu
@@ -24,6 +26,7 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cuda_device/fill.cu
     cuda_device/indexing.cu
     cuda_device/memory.cc
+    cuda_device/misc.cu
     cuda_device/pool.cc
     cuda_device/reduction.cu
     cuda_backend.cc

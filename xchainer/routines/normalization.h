@@ -23,4 +23,16 @@ Array BatchNorm(
         Scalar decay = 0.9,
         const OptionalAxes& axis = nonstd::nullopt);
 
+// Computes the fixed batch normalization.
+// axis argument is treated in the same way as BatchNorm.
+// Backward computation is not implemented.
+Array FixedBatchNorm(
+        const Array& x,
+        const Array& gamma,
+        const Array& beta,
+        const Array& mean,
+        const Array& var,
+        Scalar eps,
+        const OptionalAxes& axis = nonstd::nullopt);
+
 }  // namespace xchainer

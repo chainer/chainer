@@ -2,6 +2,7 @@
 
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cudnn.h>
 
 #include "xchainer/cuda/cublas.h"
 #include "xchainer/cuda/cuda_runtime.h"
@@ -14,6 +15,10 @@ CudaDevice::~CudaDevice() {
         cudaSetDevice(index());
         cublasDestroy(cublas_handle_);
     }
+    if (cudnn_handle_ != nullptr) {
+        cudaSetDevice(index());
+        cudnnDestroy(cudnn_handle_);
+    }
 }
 
 cublasHandle_t CudaDevice::cublas_handle() {
@@ -22,6 +27,14 @@ cublasHandle_t CudaDevice::cublas_handle() {
         CheckCublasError(cublasCreate(&cublas_handle_));
     }
     return cublas_handle_;
+}
+
+cudnnHandle_t CudaDevice::cudnn_handle() {
+    if (cudnn_handle_ == nullptr) {
+        CheckCudaError(cudaSetDevice(index()));
+        CheckCudnnError(cudnnCreate(&cudnn_handle_));
+    }
+    return cudnn_handle_;
 }
 
 void CudaDevice::Synchronize() {

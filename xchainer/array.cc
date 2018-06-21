@@ -2,12 +2,14 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <numeric>
 #include <ostream>
 #include <string>
 #include <tuple>
+#include <unordered_set>
 #include <utility>
 
 #include <gsl/gsl>
@@ -43,8 +45,8 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 }
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id) {
-    return std::find_if(array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& node) {
-               return graph_id == node->graph_id();
+    return std::find_if(array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& array_node) {
+               return graph_id == array_node->graph_id();
            }) != array.nodes().end();
 }
 
@@ -280,10 +282,10 @@ Array Array::AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind) const
             Array out{shape(), strides(), dtype(), device(), body_->data_, offset()};
 
             // Duplicate the array nodes only when graph IDs are not found in specified graph_ids.
-            for (const std::shared_ptr<ArrayNode>& node : nodes()) {
-                if (std::find(graph_ids.begin(), graph_ids.end(), node->graph_id()) == graph_ids.end()) {
+            for (const std::shared_ptr<ArrayNode>& array_node : nodes()) {
+                if (std::find(graph_ids.begin(), graph_ids.end(), array_node->graph_id()) == graph_ids.end()) {
                     // extend the graph
-                    out.body_->nodes_.emplace_back(node);
+                    out.body_->nodes_.emplace_back(array_node);
                 }
             }
             return std::move(out);
@@ -325,24 +327,107 @@ std::string Array::ToString() const { return ArrayRepr(*this); }
 
 namespace {
 
-void DebugDumpComputationalGraph(std::ostream& os, const ArrayNode& array_node, int indent) {
-    static const char kIndentChar = ' ';
+class PrintComputationalGraphImpl {
+private:
+    using VisitedArrayNodeSet = std::unordered_set<const ArrayNode*>;
 
-    os << std::string(static_cast<size_t>(indent * 2), kIndentChar) << "ArrayNode<" << &array_node << ">" << std::endl;
+    struct State {
+        VisitedArrayNodeSet visited_array_nodes;
+        int indent;
+    };
 
-    std::shared_ptr<const OpNode> op = array_node.next_node();
-    if (op) {
-        os << std::string(static_cast<size_t>((indent + 1) * 2), kIndentChar) << "Op<" << op->name() << "," << op.get() << ">" << std::endl;
-        for (const std::shared_ptr<const ArrayNode>& next_node : op->next_nodes()) {
-            DebugDumpComputationalGraph(os, *next_node, static_cast<size_t>(indent + 2));
+    // TODO(niboshi): Make the options configurable from outside
+    struct Options {
+        bool print_metadata{true};
+    };
+
+public:
+    explicit PrintComputationalGraphImpl(std::ostream& os) : os_{os} {}
+
+    void Run(const ArrayNode& array_node, int indent) {
+        State state{{}, indent};
+        RunImpl(state, array_node);
+    }
+
+    std::string GetArrayNodeName(const ArrayNode& array_node) {
+        static constexpr char kChars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        static constexpr size_t kNumChars = sizeof(kChars) / sizeof(kChars[0]) - 1;
+        static const auto kLen = static_cast<size_t>(std::ceil(sizeof(size_t) * 8U / std::log2(kNumChars)));
+        auto it = array_name_map_.find(&array_node);
+        if (it != array_name_map_.end()) {
+            return it->second;
+        }
+        size_t hash = std::hash<const ArrayNode*>{}(&array_node);
+        std::string s(kLen, '0');
+        // Fill the string from left to right, because hash may be just the raw address and MSBs may be indistinguishable.
+        for (auto it_s = s.begin(); hash > 0 && it_s != s.end(); ++it_s) {
+            *it_s = gsl::at(kChars, hash % kNumChars);
+            hash /= kNumChars;
+        }
+        return s;
+    }
+
+    std::string Indent(int indent) {
+        static constexpr char kIndentChar = ' ';
+        return std::string(static_cast<size_t>(indent * 2), kIndentChar);
+    }
+
+    void RunImpl(State& state, const ArrayNode& array_node) {
+        std::string name = GetArrayNodeName(array_node);
+
+        int indent = state.indent;
+        VisitedArrayNodeSet& visited_array_nodes = state.visited_array_nodes;
+        os_ << Indent(indent) << "ArrayNode<" << name << " rank=" << array_node.rank() << " shape=" << array_node.shape()
+            << " dtype=" << GetDtypeName(array_node.dtype()) << ">" << std::endl;
+
+        if (visited_array_nodes.end() == visited_array_nodes.find(&array_node)) {
+            visited_array_nodes.insert(&array_node);
+
+            if (options_.print_metadata) {
+                if (array_node.grad()) {
+                    const Array& grad = *array_node.grad();
+                    os_ << Indent(indent + 2) << "grad=<shape=" << grad.shape() << " dtype=" << GetDtypeName(grad.dtype()) << ">"
+                        << std::endl;
+                }
+            }
+
+            std::shared_ptr<const OpNode> op = array_node.next_op_node();
+            if (op) {
+                os_ << Indent(indent + 1) << "Op<" << op->name() << " " << op.get() << " rank=" << op->rank() << ">" << std::endl;
+                for (const std::shared_ptr<const ArrayNode>& next_array_node : op->next_array_nodes()) {
+                    state.indent += 2;
+                    RunImpl(state, *next_array_node);
+                    state.indent -= 2;
+                }
+            }
         }
     }
-}
+
+    void SetArrayName(const ArrayNode& array_node, std::string name) { array_name_map_[&array_node] = std::move(name); }
+
+private:
+    std::ostream& os_;
+    Options options_{};
+    std::unordered_map<const ArrayNode*, std::string> array_name_map_;
+};
 
 }  // namespace
 
-void DebugDumpComputationalGraph(std::ostream& os, const Array& array, const GraphId& graph_id, int indent) {
-    DebugDumpComputationalGraph(os, *internal::GetArrayNode(array, graph_id), indent);
+void DebugDumpComputationalGraph(
+        std::ostream& os,
+        const Array& array,
+        const GraphId& graph_id,
+        int indent,
+        const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map) {
+    PrintComputationalGraphImpl impl{os};
+    for (const auto& pair : array_name_map) {
+        for (const std::shared_ptr<ArrayNode>& array_node : pair.first.get().nodes()) {
+            if (array_node->graph_id() == graph_id) {
+                impl.SetArrayName(*array_node, pair.second);
+            }
+        }
+    }
+    impl.Run(*internal::GetArrayNode(array, graph_id), indent);
 }
 
 }  // namespace xchainer
