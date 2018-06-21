@@ -50,13 +50,13 @@ Array MaxPool(
     struct MaxPoolBwd {
         void operator()(BackwardContext& bctx1) {
             const Array& gout = bctx1.output_grad();
-            Array gx = fb->Backward(x, gout);
+            Array gx = fb->Backward(gout);
             {
                 BackwardBuilder bb2{"max_pooling_backward", gx};
                 if (!gout.IsConstant()) {
                     bb2.Define({gout}, [this, gout](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
-                        Array ggout = fb->DoubleBackward(x, gout, ggx);
+                        Array ggout = fb->DoubleBackward(ggx);
                         // Make ggout further backpropable.
                         {
                             BackwardBuilder bb3{"max_pooling_double_backward", ggout};
@@ -102,7 +102,7 @@ Array AveragePool(
         if (!x.IsConstant()) {
             bb1.Define({x}, [ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
-                Array gx = fb->Backward(x, gout);
+                Array gx = fb->Backward(gout);
                 {
                     BackwardBuilder bb2{"average_pool_backward", gx};
                     if (!gout.IsConstant()) {

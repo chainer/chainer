@@ -21,14 +21,14 @@ enum class AveragePoolPadMode;
 class MaxPoolForwardBackward {
 public:
     virtual Array Forward(const Array& x) = 0;
-    virtual Array Backward(const Array& x, const Array& gout) = 0;
-    virtual Array DoubleBackward(const Array& x, const Array& gout, const Array& ggx) = 0;
+    virtual Array Backward(const Array& gout) = 0;
+    virtual Array DoubleBackward(const Array& ggx) = 0;
 };
 
 class AveragePoolForwardBackward {
 public:
     virtual Array Forward(const Array& x) = 0;
-    virtual Array Backward(const Array& x, const Array& gout) = 0;
+    virtual Array Backward(const Array& gout) = 0;
 };
 
 class BatchNormForwardBackward {

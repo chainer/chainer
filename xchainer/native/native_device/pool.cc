@@ -63,10 +63,11 @@ public:
         col_ = internal::Im2Col(x.AsConstant(), kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x.dtype()));
         axes_.resize(kernel_size_.size());
         std::iota(axes_.begin(), axes_.end(), 2);
+        x_ = x.AsConstant();
         return col_.Max(axes_);
     }
 
-    Array Backward(const Array& x, const Array& gout) override {
+    Array Backward(const Array& gout) override {
         indices_ = col_.ArgMax(axes_);
         assert(indices_.shape() == gout.shape());
 
@@ -74,8 +75,8 @@ public:
         int64_t kernel_total_size = std::accumulate(kernel_size_.begin(), kernel_size_.end(), int64_t{1}, std::multiplies<>());
         int64_t out_total_size = indices_.GetTotalSize();
         Shape out_flat{out_total_size};
-        Device& device = x.device();
-        Array gcol = Zeros({out_total_size * kernel_total_size}, x.dtype(), device);
+        Device& device = x_.device();
+        Array gcol = Zeros({out_total_size * kernel_total_size}, x_.dtype(), device);
         offset_ = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices_.dtype(), device);
         device.AddAt(gcol, indices_.Reshape(out_flat) + offset_, {0}, gout.AsConstant().Reshape(out_flat), gcol);
 
@@ -88,11 +89,11 @@ public:
                 gcol.Reshape(out_shape_with_kernel).Transpose(GetSwapSpatialDimensionsAxes(kernel_size_.size())),
                 stride_,
                 pad_,
-                {x.shape().begin() + 2, x.shape().end()});
+                {x_.shape().begin() + 2, x_.shape().end()});
     }
 
-    Array DoubleBackward(const Array& x, const Array& /*gout*/, const Array& ggx) override {
-        Array col = internal::Im2Col(ggx.AsConstant(), kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x.dtype()));
+    Array DoubleBackward(const Array& ggx) override {
+        Array col = internal::Im2Col(ggx.AsConstant(), kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x_.dtype()));
         return Take(
                 col.Transpose(GetSwapSpatialDimensionsAxes(kernel_size_.size())).Reshape({col.GetTotalSize()}),
                 indices_ + offset_.Reshape(indices_.shape()),
@@ -103,6 +104,7 @@ private:
     const StackVector<int64_t, kMaxNdim> kernel_size_;
     const StackVector<int64_t, kMaxNdim> stride_;
     const StackVector<int64_t, kMaxNdim> pad_;
+    Array x_;
     bool cover_all_;
     Array col_{};
     Axes axes_{};
@@ -223,7 +225,7 @@ public:
         return out;
     }
 
-    Array Backward(const Array& /*x*/, const Array& /*gout*/) override { throw NotImplementedError{}; }
+    Array Backward(const Array& /*gout*/) override { throw NotImplementedError{}; }
 
 private:
     const StackVector<int64_t, kMaxNdim> kernel_size_;

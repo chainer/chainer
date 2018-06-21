@@ -77,13 +77,14 @@ public:
                 *y_desc,
                 xchainer::internal::GetRawOffsetData<void>(y)));
 
+        x_ = x.AsConstant();
         y_ = y.AsConstant();
 
         return y;
     }
 
-    Array Backward(const Array& x, const Array& gout) {
-        int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    Array Backward(const Array& gout) {
+        int8_t ndim = x_.ndim() - 2;  // Number of spacial dimensions
         if (ndim < 2) {
             throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
         }
@@ -93,10 +94,10 @@ public:
         assert(pad_.size() == static_cast<size_t>(ndim));
         assert(gout.shape() == y_.shape());
 
-        Array gx = EmptyLike(x, x.device());
+        Array gx = EmptyLike(x_, x_.device());
         Array y_cont = AsContiguousArray(y_);
         Array gout_cont = AsContiguousArray(gout);
-        Array x_cont = AsContiguousArray(x);
+        Array x_cont = AsContiguousArray(x_);
 
         internal::CudnnTensorDescriptor y_desc{y_cont};
         internal::CudnnTensorDescriptor gout_desc{gout_cont};
@@ -108,14 +109,14 @@ public:
         CheckCudnnError(cudnnPoolingBackward(
                 cudnn_handle_,
                 *pool_desc,
-                internal::GetValuePtr<1>(x.dtype()),
+                internal::GetValuePtr<1>(x_.dtype()),
                 *y_desc,
                 xchainer::internal::GetRawOffsetData<void>(y_cont),
                 *gout_desc,
                 xchainer::internal::GetRawOffsetData<void>(gout_cont),
                 *x_desc,
                 xchainer::internal::GetRawOffsetData<void>(x_cont),
-                internal::GetValuePtr<0>(x.dtype()),
+                internal::GetValuePtr<0>(x_.dtype()),
                 *gx_desc,
                 xchainer::internal::GetRawOffsetData<void>(gx)));
 
@@ -129,6 +130,7 @@ private:
     const StackVector<int64_t, kMaxNdim> pad_;
     bool cover_all_;
     cudnnPoolingMode_t cudnn_pooling_mode_;
+    Array x_;
     Array y_;
 };
 
@@ -144,10 +146,10 @@ public:
 
     Array Forward(const Array& x) override { return pool_impl_.Forward(x); }
 
-    Array Backward(const Array& x, const Array& gout) override { return pool_impl_.Backward(x, gout); }
+    Array Backward(const Array& gout) override { return pool_impl_.Backward(gout); }
 
     // TODO(hvy): Implement me.
-    Array DoubleBackward(const Array& /*x*/, const Array& /*gout*/, const Array& /*ggx*/) override { return Array{}; }
+    Array DoubleBackward(const Array& /*ggx*/) override { return Array{}; }
 
 private:
     PoolImpl pool_impl_;
@@ -188,7 +190,7 @@ public:
 
     Array Forward(const Array& x) override { return pool_impl_.Forward(x); }
 
-    Array Backward(const Array& x, const Array& gout) override { return pool_impl_.Backward(x, gout); }
+    Array Backward(const Array& gout) override { return pool_impl_.Backward(gout); }
 
 private:
     PoolImpl pool_impl_;
