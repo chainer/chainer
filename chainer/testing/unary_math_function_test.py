@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import numpy
 
@@ -48,15 +49,8 @@ def _make_data_default(shape, dtype):
     return x, gy, ggx
 
 
-def _nonlinear(func):
-    def aux(x):
-        y = func(x)
-        return y * y
-    return aux
-
-
 def unary_math_function_unittest(func, func_expected=None, label_expected=None,
-                                 make_data=None, is_linear=False,
+                                 make_data=None, is_linear=None,
                                  forward_options=None,
                                  backward_options=None,
                                  double_backward_options=None):
@@ -80,9 +74,8 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             and returns a tuple of input, gradient and double gradient data. By
             default, uniform destribution ranged ``[-1, 1]`` is used for all of
             them.
-        is_linear(bool): Tells the decorator that ``func`` is a linear function
-            so that it wraps ``func`` as a non-linear function to perform
-            double backward test. The default value is ``False``.
+        is_linear: This argument has no effect. It is left for backward
+            compatibility.
         forward_options(dict): Options to be specified as an argument of
             :func:`chainer.testing.assert_allclose` function.
             If not given, preset tolerance values are automatically selected.
@@ -258,9 +251,11 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
 
         if is_new_style:
             def check_double_backward(self, x_data, y_grad, x_grad_grad):
-                func1 = _nonlinear(func) if is_linear else func
+                if is_linear is not None:
+                    warnings.warn('is_linear option is deprecated',
+                                  DeprecationWarning)
                 gradient_check.check_double_backward(
-                    func1, x_data, y_grad,
+                    func, x_data, y_grad,
                     x_grad_grad, **self.double_backward_options)
             setattr(klass, "check_double_backward", check_double_backward)
 
