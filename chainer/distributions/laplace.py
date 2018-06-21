@@ -5,7 +5,6 @@ from chainer.functions.array import broadcast
 from chainer.functions.math import clip
 from chainer.functions.math import exponential
 from chainer.functions.math import sign
-from chainer.functions.math import sqrt
 import numpy
 import math
 
