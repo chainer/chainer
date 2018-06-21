@@ -141,6 +141,10 @@ Here's the whole picture of the code:
    else:
       print('Predicted Edible, Actual ' + ['Edible', 'Poisonous'][t[0]])
    
+.. testoutput::
+
+   Predicted ...
+
 If you've worked with other neural net frameworks, some of that code may look familiar. Let's break down what it's doing.
 
 Code Breakdown
