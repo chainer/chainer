@@ -32,11 +32,6 @@ class PrintReport(extension.Extension):
         self._log_report = log_report
         self._out = out
 
-        if hasattr(out, "flush"):
-            self._flush = lambda: out.flush()
-        else:
-            self._flush = lambda: None
-
         self._log_len = 0  # number of observations already printed
 
         # format information
@@ -92,4 +87,5 @@ class PrintReport(extension.Extension):
             else:
                 out.write(empty)
         out.write('\n')
-        self._flush()
+        if hasattr(out, "flush"):
+            out.flush()
