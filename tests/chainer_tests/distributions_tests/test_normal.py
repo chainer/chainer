@@ -7,11 +7,12 @@ import numpy
     'shape': [(3, 2), (1,)],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
-    'scipy_onebyone': [False, True],
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
 class TestNormal(testing.distribution_unittest):
+
+    scipy_onebyone = True
 
     def setUp_configure(self):
         from scipy import stats
