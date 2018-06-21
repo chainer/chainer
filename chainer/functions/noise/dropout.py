@@ -43,8 +43,9 @@ class Dropout(function_node.FunctionNode):
         return y,
 
     def forward_gpu(self, x):
-        if (chainer.should_use_cudnn('==always', 5000) and
-                x[0].flags.c_contiguous):
+        if (chainer.should_use_cudnn('==always', 5000)
+                and x[0].flags.c_contiguous
+                and self.mask is None):
             self._use_cudnn = True
 
             handle = cudnn.get_handle()
@@ -158,8 +159,8 @@ def dropout(x, ratio=.5, **kwargs):
             If ``mask`` is specified, ``ratio`` will be ignored.
             The shape and dtype must be the same as ``x`` and should be on the
             same device.
-            Note that iDeep will not be used for this function if mask is
-            specified, as iDeep does not support it.
+            Note that iDeep and cuDNN will not be used for this function if
+            mask is specified, as iDeep and cuDNN do not support it.
         return_mask (bool):
             If ``True``, the mask used for dropout is returned together with
             the output variable.
