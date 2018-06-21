@@ -43,7 +43,7 @@ class Normal(distribution.Distribution):
 
     def __init__(self, loc, scale=None, ln_var=None):
         super(Normal, self).__init__()
-        if (scale is None) ^ (ln_var is None):
+        if not (scale is None) ^ (ln_var is None):
             raise ValueError(
                 "Either `scale` or `ln_var` (not both) must have a value.")
         self.loc = chainer.as_variable(loc)
@@ -65,7 +65,7 @@ class Normal(distribution.Distribution):
 
     @property
     def entropy(self):
-        return exponential.log(self.scale) + ENTROPYC
+        return 0.5 * self.ln_var + ENTROPYC
 
     @property
     def event_shape(self):
@@ -84,7 +84,7 @@ class Normal(distribution.Distribution):
         return exponential.log(self.cdf(x))
 
     def log_prob(self, x):
-        return - exponential.log(broadcast.broadcast_to(self.scale, x.shape)) \
+        return - broadcast.broadcast_to(0.5 * self.ln_var, x.shape) \
             - 0.5 * (x - broadcast.broadcast_to(self.loc, x.shape)) ** 2 \
             / broadcast.broadcast_to(self.scale, x.shape) ** 2 + LOGPROBC
 
@@ -135,6 +135,6 @@ class Normal(distribution.Distribution):
 
 @distribution.register_kl(Normal, Normal)
 def _kl_normal_normal(dist1, dist2):
-    return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
+    return 0.5 * dist2.ln_var - 0.5 * dist1.ln_var \
         + 0.5 * (dist1.scale ** 2 + (dist1.loc - dist2.loc) ** 2) \
         / dist2.scale ** 2 - 0.5
