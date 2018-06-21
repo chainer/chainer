@@ -483,6 +483,23 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("eps") = 2e-5,
           py::arg("decay") = 0.9,
           py::arg("axis") = nullptr);
+    m.def("fixed_batch_norm",
+          [](const ArrayBodyPtr& x,
+             const ArrayBodyPtr& gamma,
+             const ArrayBodyPtr& beta,
+             const ArrayBodyPtr& mean,
+             const ArrayBodyPtr& var,
+             Scalar eps,
+             const nonstd::optional<std::vector<int8_t>>& axis) {
+              return FixedBatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{mean}, Array{var}, eps, ToAxes(axis)).move_body();
+          },
+          py::arg("x"),
+          py::arg("gamma"),
+          py::arg("beta"),
+          py::arg("mean"),
+          py::arg("var"),
+          py::arg("eps") = 2e-5,
+          py::arg("axis") = nullptr);
 }
 
 }  // namespace internal

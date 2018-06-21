@@ -346,7 +346,7 @@ public:
     std::string GetArrayNodeName(const ArrayNode& array_node) {
         static constexpr char kChars[] = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
         static constexpr size_t kNumChars = sizeof(kChars) / sizeof(kChars[0]) - 1;
-        static constexpr size_t kLen = static_cast<size_t>(std::ceil(sizeof(size_t) * 8U / std::log2(kNumChars)));
+        static const auto kLen = static_cast<size_t>(std::ceil(sizeof(size_t) * 8U / std::log2(kNumChars)));
         auto it = array_name_map_.find(&array_node);
         if (it != array_name_map_.end()) {
             return it->second;
@@ -355,7 +355,7 @@ public:
         std::string s(kLen, '0');
         // Fill the string from left to right, because hash may be just the raw address and MSBs may be indistinguishable.
         for (auto it_s = s.begin(); hash > 0 && it_s != s.end(); ++it_s) {
-            *it_s = kChars[hash % kNumChars];
+            *it_s = gsl::at(kChars, hash % kNumChars);
             hash /= kNumChars;
         }
         return s;
@@ -374,7 +374,7 @@ public:
         os_ << Indent(indent) << "ArrayNode<" << name << " rank=" << array_node.rank() << " shape=" << array_node.shape()
             << " dtype=" << GetDtypeName(array_node.dtype()) << ">" << std::endl;
 
-        if (visited_array_nodes.end() == std::find(visited_array_nodes.begin(), visited_array_nodes.end(), &array_node)) {
+        if (visited_array_nodes.end() == visited_array_nodes.find(&array_node)) {
             visited_array_nodes.insert(&array_node);
 
             if (options_.print_metadata) {

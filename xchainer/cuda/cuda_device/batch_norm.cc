@@ -40,6 +40,12 @@ public:
         CheckCudnnError(cudnnDeriveBNTensorDescriptor(desc_, *x_desc, mode));
     }
 
+    CudnnBNTensorDescriptor(const CudnnBNTensorDescriptor&) = delete;
+    CudnnBNTensorDescriptor& operator=(const CudnnBNTensorDescriptor&) = delete;
+
+    CudnnBNTensorDescriptor(CudnnBNTensorDescriptor&&) = delete;
+    CudnnBNTensorDescriptor& operator=(CudnnBNTensorDescriptor&&) = delete;
+
     ~CudnnBNTensorDescriptor() {
         if (desc_ != nullptr) {
             CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));

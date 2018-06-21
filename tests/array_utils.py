@@ -11,23 +11,22 @@ def total_size(shape):
 
 
 # TODO(beam2d): Think better way to make multiple different arrays
-def create_dummy_ndarray(xp, shape, dtype, device=None, pattern=1, padding=True):
+def create_dummy_ndarray(xp, shape, dtype, device=None, pattern=1, padding=True, start=None):
     dtype = xchainer.dtype(dtype).name
     size = total_size(shape)
-    if pattern == 1:
-        if dtype in ('bool', 'bool_'):
+
+    if dtype in ('bool', 'bool_'):
+        if pattern == 1:
             data = [i % 2 == 1 for i in range(size)]
-        elif dtype in xchainer.testing.unsigned_dtypes:
-            data = list(range(size))
         else:
-            data = list(range(-1, size - 1))
-    else:
-        if dtype in ('bool', 'bool_'):
             data = [i % 3 == 0 for i in range(size)]
-        elif dtype in xchainer.testing.unsigned_dtypes:
-            data = list(range(1, size + 1))
-        else:
-            data = list(range(-2, size - 2))
+    else:
+        if start is None:
+            if dtype in xchainer.testing.unsigned_dtypes:
+                start = 0 if pattern == 1 else 1
+            else:
+                start = -1 if pattern == 1 else -2
+        data = list(range(start, size + start))
 
     if padding is True:
         padding = 1
