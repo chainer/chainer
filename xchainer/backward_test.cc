@@ -387,21 +387,21 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     Array z = y1 * y2;
     Backward(z, kDefaultGraphId, DoubleBackpropOption::kEnable);
 
-    std::shared_ptr<const ArrayNode> z_node = internal::GetArrayNode(z);
-    ASSERT_TRUE(z_node);
+    std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayNode(z);
+    ASSERT_TRUE(z_array_node);
 
-    std::shared_ptr<const OpNode> z_op = z_node->next_node();
-    ASSERT_TRUE(z_op);
+    std::shared_ptr<const OpNode> z_op_node = z_array_node->next_op_node();
+    ASSERT_TRUE(z_op_node);
 
-    auto y_nodes = z_op->next_nodes();
-    ASSERT_EQ(2u, y_nodes.size());
-    EXPECT_EQ(2u, z_op->backward_entries().size());
+    auto y_array_nodes = z_op_node->next_array_nodes();
+    ASSERT_EQ(2u, y_array_nodes.size());
+    EXPECT_EQ(2u, z_op_node->backward_entries().size());
 
-    for (const std::shared_ptr<ArrayNode>& y_node : y_nodes) {
-        std::shared_ptr<const OpNode> y_op = y_node->next_node();
-        ASSERT_TRUE(y_op);
-        ASSERT_EQ(1u, y_op->next_nodes().size());
-        EXPECT_EQ(1u, y_op->backward_entries().size());
+    for (const std::shared_ptr<ArrayNode>& y_array_node : y_array_nodes) {
+        std::shared_ptr<const OpNode> y_op_node = y_array_node->next_op_node();
+        ASSERT_TRUE(y_op_node);
+        ASSERT_EQ(1u, y_op_node->next_array_nodes().size());
+        EXPECT_EQ(1u, y_op_node->backward_entries().size());
     }
 }
 
@@ -413,18 +413,18 @@ TEST(BackpropEnableDoubleBackpropTest, Disabled) {
     Array y1 = x1 + x2;
     Array y2 = x1 * x2;
     Array z = y1 * y2;
-    std::shared_ptr<const ArrayNode> z_node = internal::GetArrayNode(z);
-    ASSERT_TRUE(z_node);
-    std::shared_ptr<const OpNode> z_op = z_node->next_node();
-    ASSERT_TRUE(z_op);
+    std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayNode(z);
+    ASSERT_TRUE(z_array_node);
+    std::shared_ptr<const OpNode> z_op_node = z_array_node->next_op_node();
+    ASSERT_TRUE(z_op_node);
 
     Backward(z);
 
-    ASSERT_TRUE(z_node);
-    EXPECT_FALSE(z_node->next_node());
+    ASSERT_TRUE(z_array_node);
+    EXPECT_FALSE(z_array_node->next_op_node());
 
-    EXPECT_EQ(0u, z_op->next_nodes().size());
-    EXPECT_EQ(0u, z_op->backward_entries().size());
+    EXPECT_EQ(0u, z_op_node->next_array_nodes().size());
+    EXPECT_EQ(0u, z_op_node->backward_entries().size());
 }
 
 class BackpropFunctionTest : public ::testing::TestWithParam<DoubleBackpropOption> {};

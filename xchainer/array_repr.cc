@@ -217,14 +217,14 @@ struct ArrayReprImpl {
         os << ", shape=" << array.shape();
         os << ", dtype=" << array.dtype();
         os << ", device='" << array.device().name() << "'";
-        const std::vector<std::shared_ptr<ArrayNode>>& nodes = array.nodes();
-        if (!nodes.empty()) {
+        const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
+        if (!array_nodes.empty()) {
             os << ", graph_ids=[";
-            for (size_t i = 0; i < nodes.size(); ++i) {
+            for (size_t i = 0; i < array_nodes.size(); ++i) {
                 if (i > 0) {
                     os << ", ";
                 }
-                os << '\'' << nodes[i]->graph_id() << '\'';
+                os << '\'' << array_nodes[i]->graph_id() << '\'';
             }
             os << ']';
         }

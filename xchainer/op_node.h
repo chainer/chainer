@@ -25,9 +25,9 @@ class OpNodeBackwardEntry {
 public:
     OpNodeBackwardEntry(std::vector<size_t> next_array_node_indices, BackwardFunction backward_func);
 
-    size_t next_node_count() const { return next_array_node_indices_.size(); }
+    size_t next_array_node_count() const { return next_array_node_indices_.size(); }
 
-    gsl::span<const size_t> next_node_indices() const { return next_array_node_indices_; }
+    gsl::span<const size_t> next_array_node_indices() const { return next_array_node_indices_; }
 
     const BackwardFunction& backward_func() const { return backward_func_; }
 
@@ -58,19 +58,19 @@ public:
 
     std::string name() const { return name_; }
 
-    gsl::span<std::shared_ptr<ArrayNode>> next_nodes();
+    gsl::span<std::shared_ptr<ArrayNode>> next_array_nodes();
 
-    gsl::span<const std::shared_ptr<ArrayNode>> next_nodes() const;
+    gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes() const;
 
     gsl::span<internal::OpNodeBackwardEntry> backward_entries() { return backward_entries_; }
 
     gsl::span<const internal::OpNodeBackwardEntry> backward_entries() const { return backward_entries_; }
 
-    size_t next_node_count() const { return next_array_nodes_.size(); }
+    size_t next_array_node_count() const { return next_array_nodes_.size(); }
 
     size_t prev_node_count() const { return prev_array_nodes_.size(); }
 
-    const std::vector<std::weak_ptr<ArrayNode>>& prev_nodes() const { return prev_array_nodes_; }
+    const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes() const { return prev_array_nodes_; }
 
     int64_t rank() const { return rank_; }
 
