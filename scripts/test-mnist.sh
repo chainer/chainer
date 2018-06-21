@@ -7,6 +7,11 @@ set -eu
 # Options:
 #    --train-script-path:   The path to Python training script.
 #    --data-dir:            The path to the MNIST dataset root directory.
+#    --conda-env:           The name of a conda environment. If specified, requires that the PATH environment variable to conda (activate)
+#                           is configured.
+#
+# Notes:
+# - This script uses python and required that the PATH environment variable is configured accordingly.
 
 
 # Register all devices for which the MNIST training script should be tested.
@@ -32,6 +37,7 @@ function compare_numbers() {
 
 train_script_path=""
 data_dir=""
+conda_env=""
 
 while [ $# -gt 0 ]; do
     o="$1"
@@ -45,11 +51,19 @@ while [ $# -gt 0 ]; do
             data_dir="$1"
             shift
             ;;
+        "--conda-env")
+            conda_env="$1"
+            shift
+            ;;
         *)
             echo "$0: Unknown option: $o" >&2
             exit 1
     esac
 done
+
+if [ -n "$conda_env" ]; then
+    source activate "$conda_env"
+fi
 
 for device in "${devices[@]}"
 do
