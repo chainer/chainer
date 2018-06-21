@@ -22,9 +22,9 @@ namespace xchainer {
 namespace cuda {
 namespace {
 
-class CudaPoolImpl {
+class PoolImpl {
 public:
-    CudaPoolImpl(cudnnHandle_t cudnn_handle, cudnnPoolingMode_t cudnn_pooling_mode)
+    PoolImpl(cudnnHandle_t cudnn_handle, cudnnPoolingMode_t cudnn_pooling_mode)
         : cudnn_handle_{cudnn_handle}, cudnn_pooling_mode_{cudnn_pooling_mode} {}
 
     Array Forward(
@@ -132,7 +132,7 @@ private:
 
 class CudaMaxPoolForwardBackward : public xchainer::MaxPoolForwardBackward {
 public:
-    explicit CudaMaxPoolForwardBackward(cudnnHandle_t cudnn_handle) : pool_fwd_bwd_{cudnn_handle, CUDNN_POOLING_MAX} {}
+    explicit CudaMaxPoolForwardBackward(cudnnHandle_t cudnn_handle) : pool_impl{cudnn_handle, CUDNN_POOLING_MAX} {}
 
     Array Forward(
             const Array& x,
@@ -140,7 +140,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all) override {
-        return pool_fwd_bwd_.Forward(x, kernel_size, stride, pad, cover_all);
+        return pool_impl.Forward(x, kernel_size, stride, pad, cover_all);
     }
 
     Array Backward(
@@ -150,7 +150,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all,
             const Array& gout) override {
-        return pool_fwd_bwd_.Backward(x, kernel_size, stride, pad, cover_all, gout);
+        return pool_impl.Backward(x, kernel_size, stride, pad, cover_all, gout);
     }
 
     // TODO(hvy): Implement me.
@@ -166,7 +166,7 @@ public:
     }
 
 private:
-    CudaPoolImpl pool_fwd_bwd_;
+    PoolImpl pool_impl;
 };
 
 }  // namespace
@@ -191,14 +191,14 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
 class CudaAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {
 public:
     explicit CudaAveragePoolForwardBackward(cudnnHandle_t cudnn_handle, AveragePoolPadMode pad_mode)
-        : pool_fwd_bwd_{cudnn_handle, GetCudnnPoolingMode(pad_mode)} {}
+        : pool_impl{cudnn_handle, GetCudnnPoolingMode(pad_mode)} {}
 
     Array Forward(
             const Array& x,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad) override {
-        return pool_fwd_bwd_.Forward(x, kernel_size, stride, pad, false);
+        return pool_impl.Forward(x, kernel_size, stride, pad, false);
     }
 
     Array Backward(
@@ -207,11 +207,11 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             const Array& gout) override {
-        return pool_fwd_bwd_.Backward(x, kernel_size, stride, pad, false, gout);
+        return pool_impl.Backward(x, kernel_size, stride, pad, false, gout);
     }
 
 private:
-    CudaPoolImpl pool_fwd_bwd_;
+    PoolImpl pool_impl;
 };
 
 }  // namespace
