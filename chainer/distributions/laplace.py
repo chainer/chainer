@@ -5,8 +5,8 @@ from chainer.functions.array import broadcast
 from chainer.functions.math import clip
 from chainer.functions.math import exponential
 from chainer.functions.math import sign
-import numpy
 import math
+import numpy
 
 
 class Laplace(distribution.Distribution):
