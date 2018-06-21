@@ -24,16 +24,22 @@ namespace {
 
 class PoolImpl {
 public:
-    PoolImpl(cudnnHandle_t cudnn_handle, cudnnPoolingMode_t cudnn_pooling_mode)
-        : cudnn_handle_{cudnn_handle}, cudnn_pooling_mode_{cudnn_pooling_mode} {}
-
-    Array Forward(
-            const Array& x,
+    PoolImpl(
+            cudnnHandle_t cudnn_handle,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) {
-        if (cover_all) {
+            bool cover_all,
+            cudnnPoolingMode_t cudnn_pooling_mode)
+        : cudnn_handle_{cudnn_handle},
+          kernel_size_(kernel_size),
+          stride_(stride),
+          pad_(pad),
+          cover_all_(cover_all),
+          cudnn_pooling_mode_{cudnn_pooling_mode} {}
+
+    Array Forward(const Array& x) {
+        if (cover_all_) {
             throw XchainerError{"CUDA pooling does not support cover_all"};
         }
         int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
@@ -41,14 +47,14 @@ public:
             throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
         }
 
-        assert(kernel_size.size() == static_cast<size_t>(ndim));
-        assert(stride.size() == static_cast<size_t>(ndim));
-        assert(pad.size() == static_cast<size_t>(ndim));
+        assert(kernel_size_.size() == static_cast<size_t>(ndim));
+        assert(stride_.size() == static_cast<size_t>(ndim));
+        assert(pad_.size() == static_cast<size_t>(ndim));
 
         // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
         Shape out_shape{x.shape()[0], x.shape()[1]};
         for (int8_t i = 0; i < ndim; ++i) {
-            out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
+            out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], kernel_size_[i], stride_[i], pad_[i], cover_all_));
             assert(out_shape.back() > 0);
         }
 
@@ -58,7 +64,7 @@ public:
         internal::CudnnTensorDescriptor x_desc{x_cont};
         internal::CudnnTensorDescriptor y_desc{y};
 
-        internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
+        internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
         CheckCudnnError(cudnnPoolingForward(
                 cudnn_handle_,
@@ -75,14 +81,8 @@ public:
         return y;
     }
 
-    Array Backward(
-            const Array& x,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all,
-            const Array& gout) {
-        if (cover_all) {
+    Array Backward(const Array& x, const Array& gout) {
+        if (cover_all_) {
             throw XchainerError{"CUDA pooling does not support cover_all"};
         }
         int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
@@ -90,9 +90,9 @@ public:
             throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
         }
 
-        assert(kernel_size.size() == static_cast<size_t>(ndim));
-        assert(stride.size() == static_cast<size_t>(ndim));
-        assert(pad.size() == static_cast<size_t>(ndim));
+        assert(kernel_size_.size() == static_cast<size_t>(ndim));
+        assert(stride_.size() == static_cast<size_t>(ndim));
+        assert(pad_.size() == static_cast<size_t>(ndim));
         assert(gout.shape() == y_.shape());
 
         Array gx = EmptyLike(x, x.device());
@@ -105,7 +105,7 @@ public:
         internal::CudnnTensorDescriptor x_desc{x_cont};
         internal::CudnnTensorDescriptor gx_desc{gx};
 
-        internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
+        internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
         CheckCudnnError(cudnnPoolingBackward(
                 cudnn_handle_,
@@ -126,44 +126,30 @@ public:
 
 private:
     cudnnHandle_t cudnn_handle_;
+    const StackVector<int64_t, kMaxNdim> kernel_size_;
+    const StackVector<int64_t, kMaxNdim> stride_;
+    const StackVector<int64_t, kMaxNdim> pad_;
+    bool cover_all_;
     cudnnPoolingMode_t cudnn_pooling_mode_;
     Array y_;
 };
 
 class CudaMaxPoolForwardBackward : public xchainer::MaxPoolForwardBackward {
 public:
-    explicit CudaMaxPoolForwardBackward(cudnnHandle_t cudnn_handle) : pool_impl{cudnn_handle, CUDNN_POOLING_MAX} {}
-
-    Array Forward(
-            const Array& x,
+    explicit CudaMaxPoolForwardBackward(
+            cudnnHandle_t cudnn_handle,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) override {
-        return pool_impl.Forward(x, kernel_size, stride, pad, cover_all);
-    }
+            bool cover_all)
+        : pool_impl{cudnn_handle, kernel_size, stride, pad, cover_all, CUDNN_POOLING_MAX} {}
 
-    Array Backward(
-            const Array& x,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all,
-            const Array& gout) override {
-        return pool_impl.Backward(x, kernel_size, stride, pad, cover_all, gout);
-    }
+    Array Forward(const Array& x) override { return pool_impl.Forward(x); }
+
+    Array Backward(const Array& x, const Array& gout) override { return pool_impl.Backward(x, gout); }
 
     // TODO(hvy): Implement me.
-    Array DoubleBackward(
-            const Array& /*x*/,
-            const StackVector<int64_t, kMaxNdim>& /*kernel_size*/,
-            const StackVector<int64_t, kMaxNdim>& /*stride*/,
-            const StackVector<int64_t, kMaxNdim>& /*pad*/,
-            bool /*cover_all*/,
-            const Array& /*gout*/,
-            const Array& /*ggx*/) override {
-        return Array{};
-    }
+    Array DoubleBackward(const Array& /*x*/, const Array& /*gout*/, const Array& /*ggx*/) override { return Array{}; }
 
 private:
     PoolImpl pool_impl;
@@ -171,8 +157,12 @@ private:
 
 }  // namespace
 
-std::unique_ptr<MaxPoolForwardBackward> CudaDevice::GetMaxPoolForwardBackward() {
-    return std::make_unique<CudaMaxPoolForwardBackward>(cudnn_handle());
+std::unique_ptr<MaxPoolForwardBackward> CudaDevice::GetMaxPoolForwardBackward(
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    return std::make_unique<CudaMaxPoolForwardBackward>(cudnn_handle(), kernel_size, stride, pad, cover_all);
 }
 
 namespace {
@@ -190,25 +180,17 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
 
 class CudaAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {
 public:
-    explicit CudaAveragePoolForwardBackward(cudnnHandle_t cudnn_handle, AveragePoolPadMode pad_mode)
-        : pool_impl{cudnn_handle, GetCudnnPoolingMode(pad_mode)} {}
-
-    Array Forward(
-            const Array& x,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad) override {
-        return pool_impl.Forward(x, kernel_size, stride, pad, false);
-    }
-
-    Array Backward(
-            const Array& x,
+    explicit CudaAveragePoolForwardBackward(
+            cudnnHandle_t cudnn_handle,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const Array& gout) override {
-        return pool_impl.Backward(x, kernel_size, stride, pad, false, gout);
-    }
+            AveragePoolPadMode pad_mode)
+        : pool_impl{cudnn_handle, kernel_size, stride, pad, false, GetCudnnPoolingMode(pad_mode)} {}
+
+    Array Forward(const Array& x) override { return pool_impl.Forward(x); }
+
+    Array Backward(const Array& x, const Array& gout) override { return pool_impl.Backward(x, gout); }
 
 private:
     PoolImpl pool_impl;
@@ -216,8 +198,12 @@ private:
 
 }  // namespace
 
-std::unique_ptr<AveragePoolForwardBackward> CudaDevice::GetAveragePoolForwardBackward(AveragePoolPadMode pad_mode) {
-    return std::make_unique<CudaAveragePoolForwardBackward>(cudnn_handle(), pad_mode);
+std::unique_ptr<AveragePoolForwardBackward> CudaDevice::GetAveragePoolForwardBackward(
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        AveragePoolPadMode pad_mode) {
+    return std::make_unique<CudaAveragePoolForwardBackward>(cudnn_handle(), kernel_size, stride, pad, pad_mode);
 }
 
 }  // namespace cuda
