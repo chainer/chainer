@@ -32,6 +32,7 @@ function compare_numbers() {
 
 train_script_path=""
 data_dir=""
+conda_env=""
 
 while [ $# -gt 0 ]; do
     o="$1"
@@ -45,11 +46,19 @@ while [ $# -gt 0 ]; do
             data_dir="$1"
             shift
             ;;
+        "--conda-env")
+            conda_env="$1"
+            shift
+            ;;
         *)
             echo "$0: Unknown option: $o" >&2
             exit 1
     esac
 done
+
+if [ -n "$conda_env" ]; then
+    source activate "$conda_env"
+fi
 
 for device in "${devices[@]}"
 do
