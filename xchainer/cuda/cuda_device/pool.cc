@@ -32,10 +32,10 @@ public:
             bool cover_all,
             cudnnPoolingMode_t cudnn_pooling_mode)
         : cudnn_handle_{cudnn_handle},
-          kernel_size_(kernel_size),
-          stride_(stride),
-          pad_(pad),
-          cover_all_(cover_all),
+          kernel_size_{kernel_size},
+          stride_{stride},
+          pad_{pad},
+          cover_all_{cover_all},
           cudnn_pooling_mode_{cudnn_pooling_mode} {}
 
     Array Forward(const Array& x) {

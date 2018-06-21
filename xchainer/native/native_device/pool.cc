@@ -56,7 +56,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all)
-        : kernel_size_(kernel_size), stride_(stride), pad_(pad), cover_all_(cover_all) {}
+        : kernel_size_{kernel_size}, stride_{stride}, pad_{pad}, cover_all_{cover_all} {}
 
     Array Forward(const Array& x) override {
         // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
@@ -194,7 +194,7 @@ public:
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             AveragePoolPadMode pad_mode)
-        : kernel_size_(kernel_size), stride_(stride), pad_(pad), pad_mode_{pad_mode} {}
+        : kernel_size_{kernel_size}, stride_{stride}, pad_{pad}, pad_mode_{pad_mode} {}
 
     Array Forward(const Array& x) override {
         Array col = internal::Im2Col(x.AsConstant(), kernel_size_, stride_, pad_, false, 0);
