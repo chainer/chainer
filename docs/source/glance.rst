@@ -40,8 +40,17 @@ Here's the whole picture of the code:
    
    import numpy as np
    
+   mushroomsfile = 'mushrooms.csv'
+
+.. testcode::
+    :hide:
+
+    mushroomsfile = 'source/mushrooms.csv'
+
+.. testcode::
+
    data_array = np.genfromtxt(
-       'mushrooms.csv', delimiter=',', dtype=str, skip_header=1)
+       mushroomsfile, delimiter=',', dtype=str, skip_header=1)
    for col in range(data_array.shape[1]):
        data_array[:, col] = np.unique(data_array[:, col], return_inverse=True)[1]
    
