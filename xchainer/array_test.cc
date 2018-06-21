@@ -234,22 +234,11 @@ TEST_P(ArrayTest, InvalidGradBadShape) {
     Shape shape{2, 3};
     Shape bad_grad_shape{1, 3};
 
-    // Shape of g does match shape of x
-    {
-        // using the default graph.
-        Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
-        Array g = testing::BuildArray(bad_grad_shape).WithData<T>({8, 4, 6});
-        x.RequireGrad();
-        EXPECT_THROW(x.SetGrad(g), DimensionError);
-    }
-    {
-        // using a specified graph.
-        Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
-        Array g = testing::BuildArray(bad_grad_shape).WithData<T>({8, 4, 6});
-        GraphId graph_id = "graph_1";
-        x.RequireGrad(graph_id);
-        EXPECT_THROW(x.SetGrad(g, graph_id), DimensionError);
-    }
+    // Shape of g does not match the shape of x.
+    Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
+    Array g = testing::BuildArray(bad_grad_shape).WithData<T>({8, 4, 6});
+    x.RequireGrad();
+    EXPECT_THROW(x.SetGrad(g), DimensionError);
 }
 
 TEST_P(ArrayTest, ContiguousFill) {
