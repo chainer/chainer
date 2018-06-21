@@ -2,12 +2,12 @@ import chainer
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
-from chainer.functions.math import basic_math
 from chainer.functions.math import clip
 from chainer.functions.math import exponential
 from chainer.functions.math import sign
 from chainer.functions.math import sqrt
 import numpy
+import math
 
 
 class Laplace(distribution.Distribution):
@@ -17,7 +17,7 @@ class Laplace(distribution.Distribution):
     The probability density function of the distribution is expressed as
 
     .. math::
-        p(x;\\mu,\\sigma) = \\frac{1}{2b}
+        p(x;\\mu,b) = \\frac{1}{2b}
             \\exp\\left(-\\frac{|x-\\mu|}{b}\\right)
 
     Args:
@@ -33,9 +33,6 @@ class Laplace(distribution.Distribution):
         super(Laplace, self).__init__()
         self.loc = chainer.as_variable(loc)
         self.scale = chainer.as_variable(scale)
-
-    def __copy__(self):
-        return self._copy_to(Laplace(self.loc, self.scale))
 
     @property
     def batch_shape(self):
@@ -59,7 +56,7 @@ class Laplace(distribution.Distribution):
 
     def icdf(self, x):
         return self.loc - self.scale * sign.sign(x - 0.5) \
-            * exponential.log(- basic_math.absolute(2 * x - 1) + 1)
+            * exponential.log(- abs(2 * x - 1) + 1)
 
     @property
     def _is_gpu(self):
@@ -68,8 +65,7 @@ class Laplace(distribution.Distribution):
     def log_prob(self, x):
         bl = broadcast.broadcast_to(self.loc, x.shape)
         bs = broadcast.broadcast_to(self.scale, x.shape)
-        return - exponential.log(2 * bs) \
-            - basic_math.absolute(x - bl) / bs
+        return - exponential.log(2 * bs) - abs(x - bl) / bs
 
     @property
     def mean(self):
@@ -82,7 +78,7 @@ class Laplace(distribution.Distribution):
     def prob(self, x):
         bl = broadcast.broadcast_to(self.loc, x.shape)
         bs = broadcast.broadcast_to(self.scale, x.shape)
-        return 0.5 / bs * exponential.exp(- basic_math.absolute(x - bl) / bs)
+        return 0.5 / bs * exponential.exp(- abs(x - bl) / bs)
 
     def sample_n(self, n):
         if self._is_gpu:
@@ -99,7 +95,7 @@ class Laplace(distribution.Distribution):
 
     @property
     def stddev(self):
-        return sqrt.sqrt(2 * self.scale ** 2)
+        return math.sqrt(2) * self.scale
 
     @property
     def support(self):
@@ -112,7 +108,7 @@ class Laplace(distribution.Distribution):
 
 @distribution.register_kl(Laplace, Laplace)
 def _kl_laplace_laplace(dist1, dist2):
-    diff = basic_math.absolute(dist1.loc - dist2.loc)
+    diff = abs(dist1.loc - dist2.loc)
     return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
         + diff / dist2.scale \
         + dist1.scale / dist2.scale * exponential.exp(- diff / dist1.scale) - 1
