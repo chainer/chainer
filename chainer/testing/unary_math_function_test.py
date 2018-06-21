@@ -188,6 +188,9 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
                 return _make_data_default(shape, dtype)[0:2]
             make_data = aux
 
+    if is_linear is not None:
+        warnings.warn('is_linear option is deprecated', DeprecationWarning)
+
     def f(klass):
         assert issubclass(klass, unittest.TestCase)
 
@@ -251,9 +254,6 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
 
         if is_new_style:
             def check_double_backward(self, x_data, y_grad, x_grad_grad):
-                if is_linear is not None:
-                    warnings.warn('is_linear option is deprecated',
-                                  DeprecationWarning)
                 gradient_check.check_double_backward(
                     func, x_data, y_grad,
                     x_grad_grad, **self.double_backward_options)
