@@ -47,12 +47,12 @@ public:
     const nonstd::optional<Array>& grad() const noexcept { return grad_; }
 
     void set_grad(Array grad) {
-        CheckEqual(shape_, grad.shape());
+        CheckGradCompatible(grad);
         grad_ = std::move(grad);
     }
 
     void AccumulateGrad(Array grad) {
-        CheckEqual(shape_, grad.shape());
+        CheckGradCompatible(grad);
         if (grad_.has_value()) {
             grad_ = *grad_ + grad;
         } else {
@@ -65,6 +65,12 @@ public:
     void ClearGrad() noexcept { grad_.reset(); }
 
 private:
+    void CheckGradCompatible(const Array& grad) {
+        CheckEqual(dtype_, grad.dtype());
+        CheckEqual(shape_, grad.shape());
+        device_.CheckDevicesCompatible(grad);
+    }
+
     std::shared_ptr<OpNode> next_op_node_;
     Shape shape_;
     Dtype dtype_;
