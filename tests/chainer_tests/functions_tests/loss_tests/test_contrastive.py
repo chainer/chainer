@@ -105,8 +105,7 @@ class TestContrastive(unittest.TestCase):
     def check_double_backward(
             self, x0_data, x1_data, t_data, gy_data, gx0_data, gx1_data):
         def f(x0, x1):
-            y = functions.contrastive(x0, x1, t_data, self.margin, self.reduce)
-            return y * y
+            return functions.contrastive(x0, x1, t_data, self.margin, self.reduce)
 
         gradient_check.check_double_backward(
             f, (x0_data, x1_data), gy_data,
