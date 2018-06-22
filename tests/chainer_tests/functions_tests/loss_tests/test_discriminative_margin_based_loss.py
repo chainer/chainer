@@ -52,44 +52,40 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
                            [0, 1, 2, 3, 4]]
         self.y = numpy.asarray(self.result)
 
-    def get_result(self, x_data):
+    def get_result(self, prediction, labels, n_objects, gt_idx):
         out = functions.discriminative_margin_based_clustering_loss(
-            x_data, self.delta_v, self.delta_d,
-            self.max_n_clusters, self.norm, self.alpha,
-            self.beta, self.gamma)
+            prediction, labels, n_objects, gt_idx,
+            self.delta_v, self.delta_d, self.max_n_clusters,
+            self.norm, self.alpha, self.beta, self.gamma)
         return out
 
-    def check_forward_cpu(self, x_data, t_data):
+    def check_forward_cpu(self, prediction, labels, n_objects, gt_idx, t_data):
         t = chainer.Variable(t_data)
-        out = self.get_result(x_data)
+        out = self.get_result(prediction, labels, n_objects, gt_idx)
         numpy.testing.assert_almost_equal(out.data, t.data)
 
-    def check_forward_gpu(self, x_data, t_data):
+    def check_forward_gpu(self, prediction, labels, n_objects, gt_idx, t_data):
         t = chainer.Variable(t_data)
-        out = self.get_result(x_data)
+        out = self.get_result(prediction, labels, n_objects, gt_idx)
         out.to_cpu()
         t.to_cpu()
         numpy.testing.assert_almost_equal(out.data, t.data)
 
     def test_forward_cpu(self):
-        inputs = [cuda.to_cpu(self.input), cuda.to_cpu(self.gt),
-                  self.gt_obj, self.gt_obj_idx]
-        self.check_forward_cpu(inputs, self.y)
+        self.check_forward_cpu(cuda.to_cpu(self.input), cuda.to_cpu(self.gt),
+                               self.gt_obj, self.gt_obj_idx, self.y)
 
     @attr.gpu
     def test_forward_gpu(self):
-        inputs = [cuda.to_gpu(self.input), cuda.to_gpu(self.gt),
-                  self.gt_obj, self.gt_obj_idx]
-        self.check_forward_gpu(inputs, self.y)
+        self.check_forward_gpu(cuda.to_gpu(self.input), cuda.to_gpu(self.gt),
+                               self.gt_obj, self.gt_obj_idx, self.y)
 
     @attr.gpu
     def test_forward_gpu_cpu(self):
-        inputs_gpu = [cuda.to_gpu(self.input), cuda.to_gpu(self.gt),
-                      self.gt_obj, self.gt_obj_idx]
-        inputs_cpu = [cuda.to_cpu(self.input), cuda.to_cpu(self.gt),
-                      self.gt_obj, self.gt_obj_idx]
-        cpu_res = self.get_result(inputs_cpu)
-        gpu_res = self.get_result(inputs_gpu)
+        cpu_res = self.get_result(cuda.to_cpu(self.input), cuda.to_cpu(self.gt),
+                                  self.gt_obj, self.gt_obj_idx)
+        gpu_res = self.get_result(cuda.to_gpu(self.input), cuda.to_gpu(self.gt),
+                                  self.gt_obj, self.gt_obj_idx)
         gpu_res.to_cpu()
         numpy.testing.assert_almost_equal(cpu_res.data, gpu_res.data)
 

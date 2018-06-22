@@ -15,22 +15,20 @@ import warnings
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
-    """Discriminative margin based clustering loss function
+    """Discriminative margin-based clustering loss function
 
-    This is the implementation of following paper:
-    https://arxiv.org/pdf/1802.05591.pdf
+    This is the implementation of the following paper:
+    https://arxiv.org/abs/1802.05591
 
-    In segmentation, one of the biggest problem is having noise at the output
-    of trained network.
+    In segmentation, one of the biggest problem is to have noise at the output
+    of a trained network.
     For cross-entropy based approaches, if the pixel value is wrong,
-    the loss value will be same independent from wrong pixel's location.
-    However, for segmentation, even though network gives wrong pixel output,
-    it is desirable to have it
-    as close as possible to the original position.
+    the loss value will be same independent from the wrong pixel's location.
+    However, for segmentation, even though the network gives wrong pixel output,
+    it is desirable to have it as close as possible to the original position.
     By applying discriminative loss function, groups of segmentation instances
     can be moved together.
-
-    This loss function calculates three different parameters:
+    This loss function calculates the following three parameters:
         - Variance Loss:
             Loss to penalize distances between pixels which are belonging
             to same instance. (Pull force)
@@ -38,7 +36,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             Loss to penalize distances between the centers of instances.
             (Push force)
         - Regularization loss:
-            Small regularization loss to penalize weights against overfit
+            Small regularization loss to penalize weights against overfitting.
 
     Args:
         delta_v (float): Minimum distance to start penalizing variance
@@ -72,38 +70,9 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             raise ValueError("Norm can only be 1 or 2")
 
     def _l1_norm(self, x, axis):
-        """Function to calculate L1 Norm by given axes
-
-        Args:
-            x (:class:`~chainer.Variable` or \
-            :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`):
-                Input matrix to calculate norm
-            axis (int / tuple): Axes information for norm calculation
-
-        Returns:
-            :class:`~chainer.Variable` or \
-            :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray` : Norm applied to given axes
-        """
         return c_sum(absolute(x), axis=axis)
 
     def _l2_norm(self, x, axis):
-        """Function to calculate L2 Norm by given axes
-
-        Args:
-            x (:class:`~chainer.Variable` or \
-            :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`):
-                Input matrix to calculate norm
-            axis (int / tuple): Axes information for norm calculation
-
-        Returns:
-            :class:`~chainer.Variable` or \
-            :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray` :
-                Norm applied to given axes
-        """
         return c_sum(x ** 2, axis=axis)
 
     def _variance_term(self, pred, gt, means, delta_v, gt_idx):
@@ -134,7 +103,6 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         bs, n_filters, n_loc = pred.shape
         n_instances = gt.shape[1]
 
-        # Prepare each item with same size by broadcasting missing axes
         p = expand_dims(pred, axis=1)
         g = expand_dims(gt, axis=2)
         m = expand_dims(means, axis=3)
@@ -146,11 +114,11 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         m = cast(m, p.dtype)
         g = cast(g, p.dtype)
 
-        module = cuda.get_array_module(p)
-        dv = module.asarray(delta_v, p.dtype)
+        xp = cuda.get_array_module(p)
+        dv = xp.asarray(delta_v, p.dtype)
 
         _var = self.norm((p - m), 2)
-        _var = maximum(module.asarray(0.0, p.dtype),
+        _var = maximum(xp.asarray(0.0, p.dtype),
                        _var - dv) ** 2  # Suppress inlier distance
         _var = _var * g[:, :, 0, :]
 
@@ -337,7 +305,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         return prediction, labels
 
-    def __call__(self, args):
+    def __call__(self, prediction, labels, n_objects, gt_idx):
         """Applies discriminative margin based clustering loss
 
         Steps are:
@@ -349,23 +317,26 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             - Add weights to all and return loss value
 
         Args:
-            x (tuple) : Contains several inputs
-                - x[0] (:class:`~chainer.Variable` or \
-                        :class:`numpy.ndarray` or \
-                        :class:`cupy.ndarray`)
-                        segmentation prediction output
-                - x[1] (:class:`~chainer.Variable` or \
-                        :class:`numpy.ndarray` or \
-                        :class:`cupy.ndarray`)
-                        segmentation ground truth
-                - x[2] (:class:`~chainer.Variable` or \
-                        :class:`numpy.ndarray` or \
-                        :class:`cupy.ndarray`)
-                        number of objects in ground truth
-                - x[3] (:class:`~chainer.Variable` or \
-                        :class:`numpy.ndarray` or \
-                        :class:`cupy.ndarray`)
-                        indexes of non-zero ground truths
+            prediction(:class:`~chainer.Variable` or \
+                       :class:`numpy.ndarray` or \
+                       :class:`cupy.ndarray`) :
+                       segmentation prediction output
+                       (batch size, total instance count, width, height)
+            labels(:class:`~chainer.Variable` or \
+                   :class:`numpy.ndarray` or \
+                   :class:`cupy.ndarray`) :
+                   segmentation ground truth
+                   (batch size, total instance count, width, height)
+            n_objects(:class:`~chainer.Variable` or \
+                      :class:`numpy.ndarray` or \
+                      :class:`cupy.ndarray`) :
+                      number of objects in ground truth
+                      (batch size, )
+            gt_idx(:class:`~chainer.Variable` or \
+                   :class:`numpy.ndarray` or \
+                   :class:`cupy.ndarray`) :
+                   indexes of non-zero ground truths
+                   (batch size, variable length)
         Returns:
             (:class:`~chainer.Variable` or \
             :class:`numpy.ndarray` or \
@@ -375,11 +346,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         buffer = chainer.config.type_check
         chainer.config.type_check = False
 
-        assert(len(args) == 4)
-
         # Inputs
-        prediction, labels = self._prepare_inputs(args[0], args[1])
-        n_objects, gt_idx = args[2:4]
+        prediction, labels = self._prepare_inputs(prediction, labels)
 
         # Calculate cluster means
         c_means = self._means(prediction, labels, n_objects,
@@ -396,23 +364,23 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
 
 def discriminative_margin_based_clustering_loss(
-        x, delta_v, delta_d, max_n_clusters,
+        prediction, labels, n_objects, gt_idx,
+        delta_v, delta_d, max_n_clusters,
         norm=1, alpha=1.0, beta=1.0, gamma=0.001):
-    """Discriminative margin based clustering loss function
+    """Discriminative margin-based clustering loss function
 
-    This is the implementation of following paper:
-    https://arxiv.org/pdf/1802.05591.pdf
+    This is the implementation of the following paper:
+    https://arxiv.org/abs/1802.05591
 
-    In segmentation, one of the biggest problem is having noise at the output
+    In segmentation, one of the biggest problem is to have noise at the output
     of a trained network.
     For cross-entropy based approaches, if the pixel value is wrong,
-    the loss value will be same independent from wrong pixel's location.
-    However, for segmentation, even though network gives wrong pixel output,
-    it is desirable to have it
-    as close as possible to the original position.
+    the loss value will be same independent from the wrong pixel's location.
+    However, for segmentation, even though the network gives wrong pixel output,
+    it is desirable to have it as close as possible to the original position.
     By applying discriminative loss function, groups of segmentation instances
     can be moved together.
-    This loss function calculates three different parameters:
+    This loss function calculates the following three parameters:
         - Variance Loss:
             Loss to penalize distances between pixels which are belonging
             to same instance. (Pull force)
@@ -420,33 +388,29 @@ def discriminative_margin_based_clustering_loss(
             Loss to penalize distances between the centers of instances.
             (Push force)
         - Regularization loss:
-            Small regularization loss to penalize weights against overfit
+            Small regularization loss to penalize weights against overfitting.
 
     Args:
-        x (tuple) : Contains several inputs
-
-                - x[0](:class:`~chainer.Variable` or \
-                       :class:`numpy.ndarray` or \
-                       :class:`cupy.ndarray`) :
-                         segmentation prediction output     (n, i, w, h)
-                - x[1](:class:`~chainer.Variable` or \
-                       :class:`numpy.ndarray` or \
-                       :class:`cupy.ndarray`) :
-                         segmentation ground truth          (n, i, w, h)
-                - x[2](:class:`~chainer.Variable` or \
-                       :class:`numpy.ndarray` or \
-                       :class:`cupy.ndarray`) :
-                         number of objects in ground truth  (n,)
-                - x[3](:class:`~chainer.Variable` or \
-                       :class:`numpy.ndarray` or \
-                       :class:`cupy.ndarray`) :
-                         indexes of non-zero ground truths  (n, variable)
-            where,
-                - n is batch size
-                - i is total instance count
-                - w is width of the image
-                - h is height of the image
-                - variable is variable length depending on list size
+        prediction(:class:`~chainer.Variable` or \
+                   :class:`numpy.ndarray` or \
+                   :class:`cupy.ndarray`) :
+                   segmentation prediction output
+                   (batch size, total instance count, width, height)
+        labels(:class:`~chainer.Variable` or \
+               :class:`numpy.ndarray` or \
+               :class:`cupy.ndarray`) :
+               segmentation ground truth
+               (batch size, total instance count, width, height)
+        n_objects(:class:`~chainer.Variable` or \
+                  :class:`numpy.ndarray` or \
+                  :class:`cupy.ndarray`) :
+                  number of objects in ground truth
+                  (batch size, )
+        gt_idx(:class:`~chainer.Variable` or \
+               :class:`numpy.ndarray` or \
+               :class:`cupy.ndarray`) :
+               indexes of non-zero ground truths
+               (batch size, variable length)
         delta_v (float): Minimum distance to start penalizing variance
         delta_d (float): Maximum distance to stop penalizing distance
         max_n_clusters (int): Maximum possible number of clusters.
@@ -459,9 +423,10 @@ def discriminative_margin_based_clustering_loss(
         (:class:`~chainer.Variable` or \
         :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            (alpha * variance_loss)+
+            (alpha * variance_loss) +
             (beta * distance_loss) +
             (gamma * regularizer_loss)
     """
-    return DiscriminativeMarginBasedClusteringLoss(
-        delta_v, delta_d, max_n_clusters, norm, alpha, beta, gamma)(x)
+    loss = DiscriminativeMarginBasedClusteringLoss(
+        delta_v, delta_d, max_n_clusters, norm, alpha, beta, gamma)
+    return loss(prediction, labels, n_objects, gt_idx)
