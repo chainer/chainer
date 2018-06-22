@@ -990,12 +990,12 @@ class ChainList(Link, collections.MutableSequence):
 
     def __setitem__(self, index, value):
         if isinstance(index, int):
-            self._children[index].name = None
             value.name = str(index)
             self._children[index] = value
         elif isinstance(index, slice):
-            for i, j in enumerate(range(*index.indices(len(self._children)))):
-                self[j] = value[i]
+            self._children[index] = value
+            for i, c in enumerate(self._children):
+                c.name = str(i)
         else:
             raise TypeError(
                 'ChainList indices must be integers or slices, not %s' %
@@ -1014,8 +1014,9 @@ class ChainList(Link, collections.MutableSequence):
         return self._children[index]
 
     def __delitem__(self, index):
-        self._children[index].name = None
         del self._children[index]
+        for i, c in enumerate(self._children):
+            c.name = str(i)
 
     def insert(self, index, link):
         """Insert a child link at the given index.
@@ -1026,9 +1027,13 @@ class ChainList(Link, collections.MutableSequence):
             link (Link): The link to be inserted.
 
         """
-        self._children.insert(index, link)
-        for i in range(index, len(self._children)):
-            self._children[i].name = str(i)
+        if index == len(self._children):
+            self._children.append(link)
+            link.name = str(index)
+        else:
+            self._children.insert(index, link)
+            for i, c in enumerate(self._children):
+                c.name = str(i)
 
     def __iter__(self):
         return iter(self._children)
