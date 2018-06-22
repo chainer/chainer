@@ -6,26 +6,6 @@ from mock import MagicMock
 from chainer import testing
 from chainer.training import extensions
 
-
-class TestPrintReportInitialization(unittest.TestCase):
-    def test_stream_as_out_passes(self):
-        stream = MagicMock(spec=sys.stdout)
-        report = extensions.PrintReport(['epoch'], out=stream)
-        self.assertIsInstance(report, extensions.PrintReport)
-
-    def test_object_without_write_as_out_does_not_pass(self):
-        stream = MagicMock()
-        del stream.write
-        with self.assertRaises(TypeError):
-            extensions.PrintReport(['epoch'], out=stream)
-
-    def test_stream_without_flush_as_out_passes(self):
-        stream = MagicMock(spec=sys.stderr)
-        del stream.flush
-        report = extensions.PrintReport(['epoch'], out=stream)
-        self.assertIsInstance(report, extensions.PrintReport)
-
-
 class TestPrintReport(unittest.TestCase):
     def _setup(self, delete_flush=False):
         self.logreport = MagicMock(spec=extensions.LogReport(
