@@ -22,6 +22,15 @@
 namespace xchainer {
 namespace cuda {
 
+class CudaDevice;
+
+namespace internal {
+
+// for unit-tests
+CudaConv& GetCudaConv(CudaDevice& device);
+
+}  // namespace internal
+
 // TODO(sonots): Support thread-safety
 class CudaDevice : public Device {
 public:
@@ -170,7 +179,10 @@ protected:
     CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
 
 private:
-    friend CudaDevice* xchainer::cuda::internal::CreateDevice(CudaBackend&, int);
+    // for unit-tests
+    friend internal::CudaConv& internal::GetCudaConv(CudaDevice&);
+
+    friend CudaDevice* internal::CreateDevice(CudaBackend&, int);
 
     MemoryPool memory_pool_;
     cublasHandle_t cublas_handle_{};

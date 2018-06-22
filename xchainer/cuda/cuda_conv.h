@@ -51,6 +51,11 @@ public:
             bool cover_all);
 
 private:
+    // for unit-tests
+    friend size_t GetFwdAlgoCacheMapSize(const CudaConv& cuda_conv);
+    friend size_t GetBwdDataAlgoCacheMapSize(const CudaConv& cuda_conv);
+    friend size_t GetBwdFilterAlgoCacheMapSize(const CudaConv& cuda_conv);
+
     void AddBias(cudnnHandle_t handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b);
 
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(

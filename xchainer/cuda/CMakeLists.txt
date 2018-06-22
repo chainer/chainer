@@ -42,6 +42,7 @@ target_link_libraries(xchainer_cuda ${CUDNN_LIBRARIES})
 if(${ENABLE_TEST})
     add_executable(xchainer_cuda_test
         cuda_backend_test.cc
+        cuda_conv_test.cc
         cuda_device_test.cc
         cuda_runtime_test.cc
         memory_pool_test.cc
