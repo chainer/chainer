@@ -190,3 +190,9 @@ jobs:
 
             # Run all non-CUDA doctests
             find tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
+
+experimental:
+  notify:
+    branches:
+      only:
+        - nightly
