@@ -68,10 +68,9 @@ class ComputationalGraph(object):
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
-        remove_variable (bool): If ``True``,
-            :class:`~chainer.VariableNode`\\ s are removed from the resulting
-            computational graph. Only :class:`~chainer.FunctionNode`\\ s are
-            shown in the output.
+        remove_variable (bool): If ``True``, :class:`VariableNode`\\ s are
+            removed from the resulting computational graph. Only
+            :class:`FunctionNode`\\ s are shown in the output.
         show_name (bool): If ``True``, the ``name`` attribute of each node is
             added to the label of the node. Default is ``True``.
 
@@ -209,10 +208,9 @@ def build_computational_graph(
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
-        remove_variable (bool): If ``True``,
-            :class:`~chainer.VariableNode`\\ s are removed from the resulting
-            computational graph. Only :class:`~chainer.FunctionNode`\\ s are
-            shown in the output.
+        remove_variable (bool): If ``True``, :class:`VariableNode`\\ s are
+            removed from the resulting computational graph. Only
+            :class:`FunctionNode`\\ s are shown in the output.
         show_name (bool): If ``True``, the ``name`` attribute of each node is
             added to the label of the node. Default is ``True``.
 
