@@ -12,18 +12,17 @@ import numpy
 @testing.with_requires('scipy')
 class TestLaplace(testing.distribution_unittest):
 
-    def setUp(self):
-        testing.distribution_unittest.setUp(self)
+    scipy_onebyone = True
+
+    def setUp_configure(self):
         from scipy import stats
         self.dist = distributions.Laplace
         self.scipy_dist = stats.laplace
-        self.scipy_onebyone = True
 
         self.test_targets = set([
             "batch_shape", "cdf", "entropy", "event_shape", "log_prob",
             "mean", "prob", "sample", "stddev", "support", "variance"])
 
-    def params_init(self):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
