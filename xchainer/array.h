@@ -147,7 +147,7 @@ public:
     Array Copy() const;
 
     // Creates a view.
-    // It does not make a new node for any graphs.
+    // It creates a new array node and connects graphs.
     Array MakeView() const;
 
     // Transfers the array to another device. It will be connected to all the graphs.
