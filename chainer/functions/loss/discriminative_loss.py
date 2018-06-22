@@ -75,15 +75,15 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """Function to calculate L1 Norm by given axes
 
         Args:
-            x (:class:`~chainer.Variable\` or \
-            :class:\`numpy.ndarray\` or \
+            x (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`):
                 Input matrix to calculate norm
             axis (int / tuple): Axes information for norm calculation
 
         Returns:
-            :class:`~chainer.Variable\` or \
-            :class:\`numpy.ndarray\` or \
+            :class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
             :class:`cupy.ndarray` : Norm applied to given axes
         """
         return c_sum(absolute(x), axis=axis)
@@ -92,15 +92,15 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """Function to calculate L2 Norm by given axes
 
         Args:
-            x (:class:`~chainer.Variable\` or \
-            :class:\`numpy.ndarray\` or \
+            x (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`):
                 Input matrix to calculate norm
             axis (int / tuple): Axes information for norm calculation
 
         Returns:
-            :class:`~chainer.Variable\` or \
-            :class:\`numpy.ndarray\` or \
+            :class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
             :class:`cupy.ndarray` :
                 Norm applied to given axes
         """
@@ -110,16 +110,16 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """Function to calculate variance term
 
         Args:
-            pred (:class:`~chainer.Variable\` or \
-            :class:\`numpy.ndarray\` or '
+            pred (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or '
             :class:`cupy.ndarray`):
                 Prediction output
-            gt (:class:`~chainer.Variable\` or \
-            :class:\`numpy.ndarray\` or '
+            gt (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or '
             :class:`cupy.ndarray`):
                 Ground truth output
-            means (:class:`~chainer.Variable\` or \
-            :class:\`numpy.ndarray\` or '
+            means (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or '
             :class:`cupy.ndarray`):
                 Instance means
             delta_v (float): Coefficient to decide 'pull force' power
