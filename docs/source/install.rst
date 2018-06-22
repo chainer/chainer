@@ -125,6 +125,10 @@ Just use ``pip`` with ``-U`` option::
 
   $ pip install -U chainer
 
+.. seealso::
+
+   To fix the code which uses Chainer, please refer to the :doc:`upgrade`.
+
 
 Reinstall Chainer
 -----------------
