@@ -73,8 +73,15 @@ public:
             Scalar decay,
             const Axes& axis) override;
 
-    std::array<Array, 3> Backward(const Array& x, const Array& gamma, const Array& gout, Scalar eps, const Axes& axis);
+    std::array<Array, 3> Backward(const Array& x, const Array& gamma, const Array& gout, Scalar eps, const Axes& axis) override;
+
     std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) override;
+
+protected:
+    // TODO(hvy): Define and use getters with behavior if caches are not set.
+    void SetForwardResults(const nonstd::optional<Array>& x_mean, const Array& x_inv_std);
+    void SetBackwardResults(const Array& x, const Array& gamma, const Array& gx, const Array& ggamma, const Array& gout);
+    void SetAxis(const Axes& axis);
 
 private:
     // TODO(niboshi): Fix header dependency order and hold arrays directly.

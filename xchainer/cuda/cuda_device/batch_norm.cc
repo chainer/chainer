@@ -79,7 +79,7 @@ private:
     cudnnTensorDescriptor_t desc_{};
 };
 
-class CudaBatchNormForwardBackward : public xchainer::BatchNormForwardBackward {
+class CudaBatchNormForwardBackward : public xchainer::GenericBatchNormForwardBackward {
 public:
     explicit CudaBatchNormForwardBackward(cudnnHandle_t cudnn_handle) : cudnn_handle_{cudnn_handle} {}
 
@@ -195,6 +195,8 @@ public:
                     device);
         }
 
+        SetForwardResults(nonstd::nullopt, result_inv_var_);
+
         return out;
     }
 
@@ -268,12 +270,11 @@ public:
         if (gamma_beta_mean_var_dtype != dtype) {
             return {gx, ggamma.AsType(dtype, false), gbeta.AsType(dtype, false)};
         }
-        return {gx, ggamma, gbeta};
-    }
 
-    // TODO(niboshi): Implement me.
-    std::array<Array, 3> DoubleBackward(const Array& /*ggx*/, const Array& /*gggamma*/, const Array& /*ggbeta*/) override {
-        return {Array{}, Array{}, Array{}};
+        SetBackwardResults(x_cont, gamma, gx, ggamma, gout_cont);
+        SetAxis(axis);
+
+        return {gx, ggamma, gbeta};
     }
 
 private:

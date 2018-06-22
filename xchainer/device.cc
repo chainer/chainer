@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <type_traits>
 
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
 #include "xchainer/context.h"
 #include "xchainer/error.h"
@@ -106,6 +108,24 @@ ApplyBatchNormResult ApplyBatchNorm(
 
 }  // namespace
 
+void GenericBatchNormForwardBackward::SetForwardResults(const nonstd::optional<Array>& x_mean, const Array& x_inv_std) {
+    if (x_mean.has_value()) {
+        x_mean_ = std::make_shared<Array>(*x_mean);
+    }
+    x_inv_std_ = std::make_shared<Array>(x_inv_std);
+}
+
+void GenericBatchNormForwardBackward::SetBackwardResults(
+        const Array& x, const Array& gamma, const Array& gx, const Array& ggamma, const Array& gout) {
+    x_ = std::make_shared<Array>(x);
+    gamma_ = std::make_shared<Array>(gamma);
+    gx_ = std::make_shared<Array>(gx);
+    ggamma_ = std::make_shared<Array>(ggamma);
+    gout_ = std::make_shared<Array>(gout);
+}
+
+void GenericBatchNormForwardBackward::SetAxis(const Axes& axis) { axis_ = axis; }
+
 Array GenericBatchNormForwardBackward::Forward(
         const Array& x,
         const Array& gamma,
@@ -130,8 +150,7 @@ Array GenericBatchNormForwardBackward::Forward(
     running_var *= decay;
     running_var += inv_decay * (static_cast<double>(n) / std::max(n - 1, int64_t{1})) * x_var;
 
-    x_mean_ = std::make_shared<Array>(x_mean);
-    x_inv_std_ = std::make_shared<Array>(x_inv_std);
+    SetForwardResults(x_mean, x_inv_std);
     return std::move(out);
 }
 
@@ -141,6 +160,9 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(
     const Array x_const = x.AsConstant();
     const Array gamma_const = gamma.AsConstant();
     const Array gout_const = gout.AsConstant();
+    if (x_mean_ == nullptr) {
+        x_mean_ = std::make_shared<Array>(Mean(x, axis_, true));
+    }
     const Array& x_mean = *x_mean_;
     const Array& x_inv_std = *x_inv_std_;
 
@@ -150,13 +172,8 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(
     Array gbeta = gout_const.Sum(axis);
     Array gx = (gamma_const * x_inv_std) * (gout_const - (x_hat * ggamma + gbeta) * inv_n);
 
-    axis_ = axis;
-    x_ = std::make_shared<Array>(x);
-    gamma_ = std::make_shared<Array>(gamma);
-    gx_ = std::make_shared<Array>(gx);
-    ggamma_ = std::make_shared<Array>(ggamma);
-    gout_ = std::make_shared<Array>(gout);
-
+    SetBackwardResults(x, gamma, gx, ggamma, gout);
+    SetAxis(axis);
     return {std::move(gx), std::move(ggamma), std::move(gbeta)};
 }
 
@@ -165,6 +182,9 @@ std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array
     const Array& x = *x_;
     const Array& gamma = *gamma_;
     const Array& x_inv_std = *x_inv_std_;
+    if (x_mean_ == nullptr) {
+        x_mean_ = std::make_shared<Array>(Mean(x, axis_, true));
+    }
     const Array& x_mean = *x_mean_;
     const Axes& axis = axis_;
     const Array& gx = *gx_;
