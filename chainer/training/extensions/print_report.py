@@ -24,10 +24,6 @@ class PrintReport(extension.Extension):
     """
 
     def __init__(self, entries, log_report='LogReport', out=sys.stdout):
-        if not hasattr(out, "write"):
-            raise TypeError(
-                "Output stream should support `write' method!")
-
         self._entries = entries
         self._log_report = log_report
         self._out = out
