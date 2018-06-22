@@ -20,7 +20,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 
 
 def cupy_requirement(pkg):
-    return '{}==5.0.0b1'.format(pkg)
+    return '{}==5.0.0b2'.format(pkg)
 
 
 requirements = {
@@ -52,6 +52,7 @@ requirements = {
     'travis': [
         '-r stylecheck',
         '-r test',
+        '-r docs',
         # pytest-timeout>=1.3.0 requires pytest>=3.6.
         # TODO(niboshi): Consider upgrading pytest to >=3.6
         'pytest-timeout<1.3.0',

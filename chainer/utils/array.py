@@ -1,7 +1,9 @@
 import warnings
 
 import numpy
+import six
 
+import chainer
 from chainer.backends import cuda
 
 
@@ -35,3 +37,20 @@ def empty_like(x):
         return cuda.cupy.empty_like(x)
     else:
         return numpy.empty_like(x)
+
+
+def sum_to(x, shape):
+    if x.shape == shape:
+        return x
+    if isinstance(x, chainer.Variable):
+        raise TypeError(
+            'chainer.utils.sum_to does not support Variable input. '
+            'Use chainer.functions.sum_to instead.')
+    ndim = len(shape)
+    lead = x.ndim - ndim
+    lead_axis = tuple(six.moves.range(lead))
+    axis = tuple([i + lead for i, sx in enumerate(shape) if sx == 1])
+    y = x.sum(lead_axis + axis, keepdims=True)
+    if lead > 0:
+        y = y.squeeze(lead_axis)
+    return y

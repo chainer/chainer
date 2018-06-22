@@ -8,11 +8,13 @@ class Distribution(object):
     `Distribution` is a bass class for dealing with probability distributions.
 
     This class provides the following capabilities.
+
     1. Sampling random points.
-    2. Evaluating a probability-related function at a given realization value.
-        (e.g., probability density function, probability mass function)
-    3. Obtaining properties of distributions.
-        (e.g., mean, variance)
+
+    2. Evaluating a probability-related function at a given realization \
+    value. (e.g., probability density function, probability mass function)
+
+    3. Obtaining properties of distributions. (e.g., mean, variance)
 
     Note that every method and property that computes them from
     `chainer.Variable` can basically be differentiated.
@@ -50,13 +52,13 @@ class Distribution(object):
         >>> cov = np.random.normal(size=shape + (d, d)).astype(np.float32)
         >>> cov = np.matmul(cov, np.rollaxis(cov, -1, -2))
         >>> l = np.linalg.cholesky(cov)
-        >>> dist = D.MultivariateNormal(loc, l)
-        >>> dist.event_shape
+        >>> dist = D.MultivariateNormal(loc, l)  # doctest: +SKIP
+        >>> dist.event_shape  # doctest: +SKIP
         (2,)
-        >>> dist.batch_shape
+        >>> dist.batch_shape  # doctest: +SKIP
         (4, 3)
-        >>> sample = dist.sample(sample_shape=(6, 5))
-        >>> sample.shape
+        >>> sample = dist.sample(sample_shape=(6, 5))  # doctest: +SKIP
+        >>> sample.shape  # doctest: +SKIP
         (6, 5, 4, 3, 2)
 
     Every probability-related function takes realization value whose shape is
@@ -345,6 +347,8 @@ def register_kl(Dist1, Dist2):
         calculate a KL divergence value between an instance of `Dist1` and
         an instance of `Dist2` is registered.
 
+        .. code-block:: python
+
             from chainer import distributions
             @distributions.register_kl(Dist1, Dist2)
             def _kl_dist1_dist2(dist1, dist2):
@@ -379,7 +383,7 @@ def kl_divergence(dist1, dist2):
 
     Returns:
         ~chainer.Variable: Output variable representing kl divergence
-            :math:`D_{KL}(p||q)`.
+        :math:`D_{KL}(p||q)`.
 
     Using `register_kl`, we can define behavior of `kl_divergence` for any two
     distributions.
@@ -415,7 +419,7 @@ def cross_entropy(dist1, dist2):
 
     Returns:
         ~chainer.Variable: Output variable representing cross entropy
-            :math:`H(p,q)`.
+        :math:`H(p,q)`.
 
     """
     return dist1.entropy() + kl_divergence(dist1, dist2)
