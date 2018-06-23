@@ -157,7 +157,8 @@ public:
 
     // batch_norm.cc
 
-    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() override;
+    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward(
+            const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) override;
 
     Array FixedBatchNorm(
             const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis)

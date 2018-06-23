@@ -45,54 +45,55 @@ public:
 
 class BatchNormForwardBackward {
 public:
-    virtual Array Forward(
-            const Array& x,
-            const Array& gamma,
-            const Array& beta,
-            const Array& running_mean,
-            const Array& running_var,
-            Scalar eps,
-            Scalar decay,
-            const Axes& axis) = 0;
-
-    // TODO(niboshi): Restrict arguments to `gout` only
-    virtual std::array<Array, 3> Backward(const Array& x, const Array& gamma, const Array& gout, Scalar eps, const Axes& axis) = 0;
-
+    virtual Array Forward(const Array& x, const Array& gamma, const Array& beta) = 0;
+    virtual std::array<Array, 3> Backward(const Array& gout) = 0;
     virtual std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) = 0;
 };
 
 class GenericBatchNormForwardBackward : public BatchNormForwardBackward {
 public:
-    Array Forward(
-            const Array& x,
-            const Array& gamma,
-            const Array& beta,
-            const Array& running_mean,
-            const Array& running_var,
-            Scalar eps,
-            Scalar decay,
-            const Axes& axis) override;
+    GenericBatchNormForwardBackward(const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis);
 
-    std::array<Array, 3> Backward(const Array& x, const Array& gamma, const Array& gout, Scalar eps, const Axes& axis) override;
-
+    Array Forward(const Array& x, const Array& gamma, const Array& beta) override;
+    std::array<Array, 3> Backward(const Array& gout) override;
     std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) override;
 
 protected:
-    // TODO(hvy): Define and use getters with behavior if caches are not set.
-    void SetForwardResults(const nonstd::optional<Array>& x_mean, const Array& x_inv_std);
-    void SetBackwardResults(const Array& x, const Array& gamma, const Array& gx, const Array& ggamma, const Array& gout);
-    void SetAxis(const Axes& axis);
+    void SetForwardResults(const Array& x, const Array& gamma, const Array& x_mean, const Array& x_inv_std);
+    void SetBackwardResults(const Array& gout, const Array& gx, const Array& ggamma);
+
+    const Array& running_mean() { return running_mean_; }
+    const Array& running_var() { return running_var_; }
+    Scalar eps() { return eps_; }
+    Scalar decay() { return decay_; }
+    const Axes& axis() { return axis_; }
+
+    // Forward results.
+    const Array& x() { return *x_; }
+    const Array& gamma() { return *gamma_; }
+    const Array& x_mean() { return *x_mean_; }
+    const Array& x_inv_std() { return *x_inv_std_; }
+
+    // Backward results.
+    const Array& gout() { return *gout_; }
+    const Array& gx() { return *gx_; }
+    const Array& ggamma() { return *ggamma_; }
 
 private:
+    const Array& running_mean_;
+    const Array& running_var_;
+    Scalar eps_;
+    Scalar decay_;
+    Axes axis_;
+
     // TODO(niboshi): Fix header dependency order and hold arrays directly.
-    std::shared_ptr<Array> x_mean_;
-    std::shared_ptr<Array> x_inv_std_;
     std::shared_ptr<Array> x_;
     std::shared_ptr<Array> gamma_;
+    std::shared_ptr<Array> x_mean_;
+    std::shared_ptr<Array> x_inv_std_;
     std::shared_ptr<Array> gout_;
     std::shared_ptr<Array> gx_;
     std::shared_ptr<Array> ggamma_;
-    Axes axis_;
 };
 
 // Device base class.
@@ -278,8 +279,9 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             AveragePoolPadMode pad_mode) = 0;
 
-    virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward() {
-        return std::make_unique<GenericBatchNormForwardBackward>();
+    virtual std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward(
+            const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
+        return std::make_unique<GenericBatchNormForwardBackward>(running_mean, running_var, eps, decay, axis);
     }
 
     virtual Array FixedBatchNorm(

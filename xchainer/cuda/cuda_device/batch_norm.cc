@@ -81,56 +81,49 @@ private:
 
 class CudaBatchNormForwardBackward : public xchainer::GenericBatchNormForwardBackward {
 public:
-    explicit CudaBatchNormForwardBackward(cudnnHandle_t cudnn_handle) : cudnn_handle_{cudnn_handle} {}
-
-    Array Forward(
-            const Array& x,
-            const Array& gamma,
-            const Array& beta,
-            const Array& running_mean,
-            const Array& running_var,
-            Scalar eps,
-            Scalar decay,
-            const Axes& axis) override {
+    explicit CudaBatchNormForwardBackward(
+            cudnnHandle_t cudnn_handle, const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis)
+        : GenericBatchNormForwardBackward{running_mean, running_var, eps, decay, axis}, cudnn_handle_{cudnn_handle} {
         if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
             throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
         }
-
-#ifndef NDEBUG
-        {
-            Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis, true);
-            assert(gamma.shape() == reduced_shape);
-            assert(beta.shape() == reduced_shape);
-
-            int64_t reduced_total_size = reduced_shape.GetTotalSize();
-            assert(running_mean.GetTotalSize() == reduced_total_size);
-            assert(running_var.GetTotalSize() == reduced_total_size);
-
-            assert(&x.device() == &gamma.device());
-            assert(&x.device() == &beta.device());
-            assert(&x.device() == &running_mean.device());
-            assert(&x.device() == &running_var.device());
-
-            assert(x.dtype() == gamma.dtype());
-            assert(x.dtype() == beta.dtype());
-            assert(x.dtype() == running_mean.dtype());
-            assert(x.dtype() == running_var.dtype());
-        }
-#endif  // NDEBUG
-
         if (!running_mean.IsContiguous()) {
             throw DeviceError{"Running mean must to be contiguous for cuDNN to update it in-place."};
         }
         if (!running_var.IsContiguous()) {
             throw DeviceError{"Running variance must to be contiguous for cuDNN to update it in-place."};
         }
+    }
+
+    Array Forward(const Array& x, const Array& gamma, const Array& beta) override {
+#ifndef NDEBUG
+        {
+            Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis(), true);
+            assert(gamma.shape() == reduced_shape);
+            assert(beta.shape() == reduced_shape);
+
+            int64_t reduced_total_size = reduced_shape.GetTotalSize();
+            assert(running_mean().GetTotalSize() == reduced_total_size);
+            assert(running_var().GetTotalSize() == reduced_total_size);
+
+            assert(&x.device() == &gamma.device());
+            assert(&x.device() == &beta.device());
+            assert(&x.device() == &running_mean().device());
+            assert(&x.device() == &running_var().device());
+
+            assert(x.dtype() == gamma.dtype());
+            assert(x.dtype() == beta.dtype());
+            assert(x.dtype() == running_mean().dtype());
+            assert(x.dtype() == running_var().dtype());
+        }
+#endif  // NDEBUG
 
         Device& device = x.device();
         Dtype dtype = x.dtype();
 
         Array x_cont = AsContiguousArray(x);
         internal::CudnnTensorDescriptor x_desc{x_cont};
-        cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
+        cudnnBatchNormMode_t mode = GetBatchNormMode(axis());
 
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
@@ -138,16 +131,14 @@ public:
         Array gamma_casted_cont = AsContiguousArray(gamma.AsType(gamma_beta_mean_var_dtype, false));
         Array beta_casted_cont = AsContiguousArray(beta.AsType(gamma_beta_mean_var_dtype, false));
 
-        assert(running_mean.IsContiguous());
-        assert(running_var.IsContiguous());
-        Array running_mean_casted = running_mean.AsType(gamma_beta_mean_var_dtype, false);
-        Array running_var_casted = running_var.AsType(gamma_beta_mean_var_dtype, false);
+        assert(running_mean().IsContiguous());
+        assert(running_var().IsContiguous());
+        Array running_mean_casted = running_mean().AsType(gamma_beta_mean_var_dtype, false);
+        Array running_var_casted = running_var().AsType(gamma_beta_mean_var_dtype, false);
 
         Array out = EmptyLike(x, device);
-
-        // Initialize cache.
-        result_mean_ = EmptyLike(gamma_casted_cont, device);
-        result_inv_var_ = EmptyLike(gamma_casted_cont, device);
+        Array x_mean = EmptyLike(gamma_casted_cont, device);
+        Array x_inv_std = EmptyLike(gamma_casted_cont, device);
 
         CheckCudnnError(cudnnBatchNormalizationForwardTraining(
                 cudnn_handle_,
@@ -161,12 +152,12 @@ public:
                 *gamma_beta_mean_var_desc,
                 xchainer::internal::GetRawOffsetData<void>(gamma_casted_cont),
                 xchainer::internal::GetRawOffsetData<void>(beta_casted_cont),
-                1.0 - static_cast<double>(decay),
+                1.0 - static_cast<double>(decay()),
                 xchainer::internal::GetRawOffsetData<void>(running_mean_casted),
                 xchainer::internal::GetRawOffsetData<void>(running_var_casted),
-                static_cast<double>(eps),
-                xchainer::internal::GetRawOffsetData<void>(result_mean_),
-                xchainer::internal::GetRawOffsetData<void>(result_inv_var_)));
+                static_cast<double>(eps()),
+                xchainer::internal::GetRawOffsetData<void>(x_mean),
+                xchainer::internal::GetRawOffsetData<void>(x_inv_std)));
 
         // When data type of prameters is converted, say, from fp16
         // to fp32, the values of fp32 arrays of running_mean and
@@ -175,76 +166,76 @@ public:
         //
         // TODO(sonots): write tests after we supports fp16
         if (dtype != gamma_beta_mean_var_dtype) {
-            assert(running_mean.IsContiguous());
+            assert(running_mean().IsContiguous());
             assert(running_mean_casted.IsContiguous());
-            assert(running_var.IsContiguous());
+            assert(running_var().IsContiguous());
             assert(running_var_casted.IsContiguous());
 
             Array running_mean_casted_back = running_mean_casted.AsType(dtype, false);
             Array running_var_casted_back = running_var_casted.AsType(dtype, false);
 
             device.MemoryCopyFrom(
-                    xchainer::internal::GetRawOffsetData<void>(running_mean),
+                    xchainer::internal::GetRawOffsetData<void>(running_mean()),
                     xchainer::internal::GetRawOffsetData<void>(running_mean_casted_back),
-                    running_mean.GetNBytes(),
+                    running_mean().GetNBytes(),
                     device);
             device.MemoryCopyFrom(
-                    xchainer::internal::GetRawOffsetData<void>(running_var),
+                    xchainer::internal::GetRawOffsetData<void>(running_var()),
                     xchainer::internal::GetRawOffsetData<void>(running_var_casted_back),
-                    running_var.GetNBytes(),
+                    running_var().GetNBytes(),
                     device);
         }
 
-        SetForwardResults(nonstd::nullopt, result_inv_var_);
+        SetForwardResults(x_cont, gamma, x_mean, x_inv_std);
 
         return out;
     }
 
-    std::array<Array, 3> Backward(const Array& x, const Array& gamma, const Array& gout, Scalar eps, const Axes& axis) override {
-        if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
-            throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
-        }
-
+    std::array<Array, 3> Backward(const Array& gout) override {
+        const Array& x_cont = this->x();
+        const Array& gamma = this->gamma();
+        const Array& x_mean = this->x_mean();
+        const Array& x_inv_std = this->x_inv_std();
 #ifndef NDEBUG
         {
-            Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis, true);
+            Shape reduced_shape = xchainer::internal::ReduceShape(x_cont.shape(), axis(), true);
             assert(reduced_shape == gamma.shape());
-            assert(x.shape() == gout.shape());
+            assert(x_cont.shape() == gout.shape());
 
-            assert(result_mean_.body() != nullptr);
-            assert(result_inv_var_.body() != nullptr);
+            assert(x_mean.body() != nullptr);
+            assert(x_inv_std.body() != nullptr);
 
-            assert(&x.device() == &gamma.device());
-            assert(&x.device() == &gout.device());
-            assert(&x.device() == &result_mean_.device());
-            assert(&x.device() == &result_inv_var_.device());
+            assert(&x_cont.device() == &gamma.device());
+            assert(&x_cont.device() == &gout.device());
+            assert(&x_cont.device() == &x_mean.device());
+            assert(&x_cont.device() == &x_inv_std.device());
 
-            assert(x.dtype() == gamma.dtype());
-            assert(x.dtype() == gout.dtype());
+            assert(x_cont.dtype() == gamma.dtype());
+            assert(x_cont.dtype() == gout.dtype());
         }
 #endif  // NDEBUG
 
-        Device& device = x.device();
-        Dtype dtype = x.dtype();
+        Device& device = x_cont.device();
+        Dtype dtype = x_cont.dtype();
 
-        Array x_cont = AsContiguousArray(x);
+        assert(x_cont.IsContiguous());
         Array gout_cont = AsContiguousArray(gout);
-        Array gx = EmptyLike(x, device);
+        Array gx = EmptyLike(x_cont, device);
 
         internal::CudnnTensorDescriptor x_desc{x_cont};
-        cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
+        cudnnBatchNormMode_t mode = GetBatchNormMode(axis());
 
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
-        Shape gamma_beta_mean_var_shape = xchainer::internal::ReduceShape(x.shape(), axis, false);
+        Shape gamma_beta_mean_var_shape = xchainer::internal::ReduceShape(x_cont.shape(), axis(), false);
 
         Array gamma_casted_cont = AsContiguousArray(gamma.AsType(gamma_beta_mean_var_dtype, false));
         Array ggamma = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
         Array gbeta = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
-        assert(gamma_beta_mean_var_dtype == result_mean_.dtype());
-        assert(gamma_beta_mean_var_dtype == result_inv_var_.dtype());
-        assert(result_mean_.IsContiguous());
-        assert(result_inv_var_.IsContiguous());
+        assert(gamma_beta_mean_var_dtype == x_mean.dtype());
+        assert(gamma_beta_mean_var_dtype == x_inv_std.dtype());
+        assert(x_mean.IsContiguous());
+        assert(x_inv_std.IsContiguous());
 
         CheckCudnnError(cudnnBatchNormalizationBackward(
                 cudnn_handle_,
@@ -263,32 +254,29 @@ public:
                 xchainer::internal::GetRawOffsetData<void>(gamma_casted_cont),
                 xchainer::internal::GetRawOffsetData<void>(ggamma),
                 xchainer::internal::GetRawOffsetData<void>(gbeta),
-                static_cast<double>(eps),
-                xchainer::internal::GetRawOffsetData<void>(result_mean_),
-                xchainer::internal::GetRawOffsetData<void>(result_inv_var_)));
+                static_cast<double>(eps()),
+                xchainer::internal::GetRawOffsetData<void>(x_mean),
+                xchainer::internal::GetRawOffsetData<void>(x_inv_std)));
 
         if (gamma_beta_mean_var_dtype != dtype) {
-            return {gx, ggamma.AsType(dtype, false), gbeta.AsType(dtype, false)};
+            Array ggamma_casted = ggamma.AsType(dtype, false);
+            Array gbeta_casted = ggamma.AsType(dtype, false);
+            SetBackwardResults(gout_cont, gx, ggamma_casted);
+            return {std::move(gx), std::move(ggamma_casted), std::move(gbeta_casted)};
         }
-
-        SetBackwardResults(x_cont, gamma, gx, ggamma, gout_cont);
-        SetAxis(axis);
-
-        return {gx, ggamma, gbeta};
+        SetBackwardResults(gout_cont, gx, ggamma);
+        return {std::move(gx), std::move(ggamma), std::move(gbeta)};
     }
 
 private:
     cudnnHandle_t cudnn_handle_;
-
-    // Cache intermediate results during Forward for reuse in Backward.
-    Array result_mean_{};
-    Array result_inv_var_{};
 };
 
 }  // namespace
 
-std::unique_ptr<BatchNormForwardBackward> CudaDevice::GetBatchNormForwardBackward() {
-    return std::make_unique<CudaBatchNormForwardBackward>(cudnn_handle());
+std::unique_ptr<BatchNormForwardBackward> CudaDevice::GetBatchNormForwardBackward(
+        const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
+    return std::make_unique<CudaBatchNormForwardBackward>(cudnn_handle(), running_mean, running_var, eps, decay, axis);
 }
 
 Array CudaDevice::FixedBatchNorm(
