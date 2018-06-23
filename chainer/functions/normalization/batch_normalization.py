@@ -16,14 +16,15 @@ if cuda.cudnn_enabled:
     libcudnn = cuda.cuda.cudnn
 
 
-def _compute_axis(x_ndim, param_ndim=1, axis=None):
+def _compute_axis(x_ndim, gamma_ndim=1, axis=None):
     if axis is None:
-        axis = (0,) + tuple(range(param_ndim + 1, x_ndim))
+        axis = (0,) + tuple(range(gamma_ndim + 1, x_ndim))
     return axis
 
 
-def _compute_key_axis(x_ndim, param_ndim=1, axis=None):
-    axis = _compute_axis(x_ndim, param_ndim, axis)
+# Computes a complementary set of axis
+def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
+    axis = _compute_axis(x_ndim, gamma_ndim, axis)
     key_axis = tuple([i for i in range(x_ndim) if i not in axis])
     return key_axis
 
@@ -180,7 +181,7 @@ class BatchNormalization(function_node.FunctionNode):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, self.mode))
             cudnn_mode = self.mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -329,7 +330,7 @@ class BatchNormalizationGrad(function.Function):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, self.mode))
             cudnn_mode = self.mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -513,7 +514,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, mode))
             cudnn_mode = mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -658,20 +659,13 @@ class _BNMode(object):
                 self.cudnn_dtype_ok)
 
 
-def _as4darray(arr, key_axis):
-    if arr.ndim == 4 and key_axis[0] == 1:
+def _as4darray(arr, mode):
+    assert mode.cudnn_dim_ok
+    if mode.is_for_conv2d:
+        assert arr.ndim == 4
         return arr
-    elif key_axis[0] == arr.ndim - 1:
+    else:  # is_for_linear
         return arr.reshape(numpy.prod(arr.shape[0:-1]), -1, 1, 1)
-    else:
-        msg = 'Unexpected combination of array shape and key_axis'
-        raise RuntimeError(msg)
-
-
-def _get_mode(x, gamma):
-    if x.ndim == 4 and gamma.ndim == 1:
-        return libcudnn.CUDNN_BATCHNORM_SPATIAL
-    return libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
 
 
 def _x_hat(x, mean, inv_std):
