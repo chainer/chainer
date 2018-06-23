@@ -29,6 +29,7 @@ from chainer.functions.array.cast import cast  # NOQA
 from chainer.functions.array.concat import concat  # NOQA
 from chainer.functions.array.copy import copy  # NOQA
 from chainer.functions.array.depth2space import depth2space  # NOQA
+from chainer.functions.array.diagonal import diagonal  # NOQA
 from chainer.functions.array.dstack import dstack  # NOQA
 from chainer.functions.array.expand_dims import expand_dims  # NOQA
 from chainer.functions.array.flatten import flatten  # NOQA
@@ -67,6 +68,7 @@ from chainer.functions.connection.convolution_2d import convolution_2d  # NOQA
 from chainer.functions.connection.convolution_nd import convolution_nd  # NOQA
 from chainer.functions.connection.deconvolution_2d import deconvolution_2d  # NOQA
 from chainer.functions.connection.deconvolution_nd import deconvolution_nd  # NOQA
+from chainer.functions.connection.deformable_convolution_2d_sampler import deformable_convolution_2d_sampler  # NOQA
 from chainer.functions.connection.depthwise_convolution_2d import depthwise_convolution_2d  # NOQA
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
 from chainer.functions.connection.embed_id import embed_id  # NOQA
@@ -121,6 +123,7 @@ from chainer.functions.math.det import batch_det  # NOQA
 from chainer.functions.math.det import det  # NOQA
 from chainer.functions.math.erf import erf  # NOQA
 from chainer.functions.math.erfc import erfc  # NOQA
+from chainer.functions.math.erfinv import erfinv  # NOQA
 from chainer.functions.math.exponential import exp  # NOQA
 from chainer.functions.math.exponential import log  # NOQA
 from chainer.functions.math.exponential import log10  # NOQA
@@ -156,6 +159,7 @@ from chainer.functions.math.sqrt import sqrt  # NOQA
 from chainer.functions.math.square import square  # NOQA
 from chainer.functions.math.squared_difference import squared_difference  # NOQA
 from chainer.functions.math.sum import sum  # NOQA
+from chainer.functions.math.sum import sum_to  # NOQA
 from chainer.functions.math.tensordot import tensordot  # NOQA
 from chainer.functions.math.trigonometric import arccos  # NOQA
 from chainer.functions.math.trigonometric import arcsin  # NOQA
@@ -175,6 +179,7 @@ from chainer.functions.normalization.batch_normalization import batch_normalizat
 from chainer.functions.normalization.batch_normalization import fixed_batch_normalization  # NOQA
 from chainer.functions.normalization.batch_renormalization import batch_renormalization  # NOQA
 from chainer.functions.normalization.batch_renormalization import fixed_batch_renormalization  # NOQA
+from chainer.functions.normalization.group_normalization import group_normalization  # NOQA
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA
 from chainer.functions.normalization.local_response_normalization import local_response_normalization  # NOQA

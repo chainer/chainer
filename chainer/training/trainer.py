@@ -208,11 +208,12 @@ class Trainer(object):
                 instead.
 
         """
-        argument.check_unexpected_kwargs(
-            kwargs,
-            invoke_before_training='invoke_before_training has been removed '
-            'since Chainer v2.0.0. Use initializer= instead.')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                invoke_before_training='invoke_before_training has been '
+                'removed since Chainer v2.0.0. Use initializer= instead.')
+            argument.assert_kwargs_empty(kwargs)
 
         if name is None:
             name = getattr(extension, 'name', None)
