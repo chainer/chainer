@@ -82,9 +82,11 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_cpu(self):
-        cpu_res = self.get_result(cuda.to_cpu(self.input), cuda.to_cpu(self.gt),
+        cpu_res = self.get_result(cuda.to_cpu(self.input),
+                                  cuda.to_cpu(self.gt),
                                   self.gt_obj, self.gt_obj_idx)
-        gpu_res = self.get_result(cuda.to_gpu(self.input), cuda.to_gpu(self.gt),
+        gpu_res = self.get_result(cuda.to_gpu(self.input),
+                                  cuda.to_gpu(self.gt),
                                   self.gt_obj, self.gt_obj_idx)
         gpu_res.to_cpu()
         numpy.testing.assert_almost_equal(cpu_res.data, gpu_res.data)
