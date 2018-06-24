@@ -16,6 +16,7 @@ import warnings
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
+    
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
