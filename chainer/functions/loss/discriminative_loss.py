@@ -11,6 +11,7 @@ from chainer.functions.math.average import average
 from chainer.functions.math.basic_math import absolute
 from chainer.functions.math.maximum import maximum
 from chainer.functions.math.sum import sum as c_sum
+
 import warnings
 
 
@@ -24,8 +25,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     of a trained network.
     For cross-entropy based approaches, if the pixel value is wrong,
     the loss value will be same independent from the wrong pixel's location.
-    However, for segmentation, even though the network gives wrong pixel output,
-    it is desirable to have it as close as possible to the original position.
+    Even though the network gives wrong pixel output, it is desirable
+    to have it as close as possible to the original position.
     By applying discriminative loss function, groups of segmentation instances
     can be moved together.
     This loss function calculates the following three parameters:
@@ -376,8 +377,8 @@ def discriminative_margin_based_clustering_loss(
     of a trained network.
     For cross-entropy based approaches, if the pixel value is wrong,
     the loss value will be same independent from the wrong pixel's location.
-    However, for segmentation, even though the network gives wrong pixel output,
-    it is desirable to have it as close as possible to the original position.
+    Even though the network gives wrong pixel output, it is desirable
+    to have it as close as possible to the original position.
     By applying discriminative loss function, groups of segmentation instances
     can be moved together.
     This loss function calculates the following three parameters:
