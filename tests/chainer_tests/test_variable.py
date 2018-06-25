@@ -1698,8 +1698,9 @@ class TestVariableDoubleBackward(unittest.TestCase):
 
     def test_default_backward(self):
         x = chainer.Variable(np.empty((), np.float32))
-        y = F.identity(x)
+        y = x * 2
         y.backward()
+        assert x.grad_var is not y.grad_var
         self.assertIsNone(x.grad_var.creator)
         x.grad_var.backward()
         self.assertIsNone(y.grad_var.grad_var)
