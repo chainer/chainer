@@ -195,11 +195,11 @@ class TestVariable(unittest.TestCase):
             xp = np
         x = chainer.Variable(a)
         if isinstance(self.x, np.ndarray):
-            self.assertIs(x.data, a)
-            self.assertIs(x.array, a)
+            assert x.data is a
+            assert x.array is a
         self.assertIsInstance(x.data, xp.ndarray)
         self.assertIsInstance(x.array, xp.ndarray)
-        self.assertIs(x.data, x.array)
+        assert x.data is x.array
         self.assertEqual(x.shape, self.x.shape)
         self.assertEqual(x.ndim, self.x.ndim)
         self.assertEqual(x.size, self.x.size)
@@ -224,8 +224,8 @@ class TestVariable(unittest.TestCase):
         gv = chainer.Variable(g)
         v.grad_var = gv
 
-        self.assertIs(v.grad, g)
-        self.assertIs(v.grad_var, gv)
+        assert v.grad is g
+        assert v.grad_var is gv
 
     def check_len(self, gpu):
         x = self.x
@@ -377,7 +377,7 @@ class TestVariable(unittest.TestCase):
         ret = self.create_linear_chain(3, False)
         old_rank = ret[1].rank
         ret[1].unchain()
-        self.assertIsNone(ret[1].creator)
+        assert ret[1].creator is None
         self.assertEqual(ret[1].rank, old_rank)
         self.check_backward((ret[1],), (ret[2],), (ret[3],), False)
 
@@ -388,8 +388,8 @@ class TestVariable(unittest.TestCase):
             ret[1].creator_node = None
         else:
             ret[1].creator = None
-        self.assertIsNone(ret[1].creator)
-        self.assertIsNone(ret[1].creator_node)
+        assert ret[1].creator is None
+        assert ret[1].creator_node is None
         self.assertEqual(ret[1].rank, old_rank)
         self.check_backward((ret[1],), (ret[2],), (ret[3],), False)
 
@@ -404,12 +404,12 @@ class TestVariable(unittest.TestCase):
         old_rank = ret[1].rank
         creator_node = ret[1].creator_node
         ret[1].creator = None
-        self.assertIsNone(ret[1].creator)
+        assert ret[1].creator is None
         self.assertEqual(ret[1].rank, old_rank)
 
         ret[1].node._rank = -1
         ret[1].creator_node = creator_node
-        self.assertIs(ret[1].creator_node, creator_node)
+        assert ret[1].creator_node is creator_node
         self.assertEqual(ret[1].rank, creator_node.rank + 1)
         self.check_backward((ret[0],), (ret[1],), (ret[2],), False)
 
@@ -417,16 +417,16 @@ class TestVariable(unittest.TestCase):
         v = chainer.Variable()
         f = chainer.Function()
         v.creator = f
-        self.assertIs(v.creator, f)
-        self.assertIs(v.creator_node, f.node)
+        assert v.creator is f
+        assert v.creator_node is f.node
         self.assertEqual(v.rank, 1)
 
     def test_set_fresh_creator_node(self):
         v = chainer.Variable()
         f = chainer.FunctionNode()
         v.creator_node = f
-        self.assertIs(v.creator, f)
-        self.assertIs(v.creator_node, f)
+        assert v.creator is f
+        assert v.creator_node is f
         self.assertEqual(v.rank, 1)
 
     def test_unchain_backward_cpu(self):
@@ -488,8 +488,8 @@ class TestVariable(unittest.TestCase):
         c = b.copy()
         gc = gb.copy()
         a.to_cpu()
-        self.assertIs(a.data, b)
-        self.assertIs(a.grad, gb)
+        assert a.data is b
+        assert a.grad is gb
         np.testing.assert_array_equal(a.data, c)
         np.testing.assert_array_equal(a.grad, gc)
 
@@ -513,8 +513,8 @@ class TestVariable(unittest.TestCase):
         c = b.copy()
         gc = gb.copy()
         a.to_gpu()
-        self.assertIs(a.data, b)
-        self.assertIs(a.grad, gb)
+        assert a.data is b
+        assert a.grad is gb
         cp.testing.assert_array_equal(a.data, c)
         cp.testing.assert_array_equal(a.grad, gc)
 
@@ -550,7 +550,7 @@ class TestVariable(unittest.TestCase):
             a.grad = xp.full_like(a_data, np.nan)
 
         a.cleargrad()
-        self.assertIsNone(a.grad)
+        assert a.grad is None
 
     def test_cleargrad_cpu(self):
         self.check_cleargrad(np.empty(3, dtype=np.float32))
@@ -575,9 +575,9 @@ class TestVariable(unittest.TestCase):
 
         with testing.assert_warns(DeprecationWarning):
             a.zerograd()
-        self.assertIsNot(a.grad, None)
+        assert a.grad is not None
         if fill:
-            self.assertIsNone(a.grad_var.creator_node)
+            assert a.grad_var.creator_node is None
         g_expect = xp.zeros_like(a.data)
         xp.testing.assert_array_equal(a.grad, g_expect)
 
@@ -594,7 +594,7 @@ class TestVariable(unittest.TestCase):
             a = chainer.Variable(cupy.empty(3, dtype=np.float32))
         with testing.assert_warns(DeprecationWarning):
             a.zerograd()
-        self.assertIsNot(a.grad, None)
+        assert a.grad is not None
         self.assertEqual(int(a.grad.device), 1)
         with cuda.get_device_from_id(1):
             g_expect = cupy.zeros_like(a.data)
@@ -802,7 +802,7 @@ class TestVariable(unittest.TestCase):
         x = chainer.Variable(self.x)
         y = chainer.Variable(self.x)
         y.addgrad(x)
-        self.assertIsNone(y.grad)
+        assert y.grad is None
 
     def test_pickle_cpu(self):
         x = chainer.Variable(self.x)
@@ -905,7 +905,7 @@ class TestParameter(unittest.TestCase):
 
     def test_initializer(self):
         x = chainer.Parameter(shape=(1,))
-        self.assertIsNotNone(x.initializer)
+        assert x.initializer is not None
 
     def test_initialize_by_scalar(self):
         x = chainer.Parameter(2., (3,))
@@ -924,7 +924,7 @@ class TestParameter(unittest.TestCase):
     def test_initialize_by_array(self):
         data = np.array([1., 2., 3.], dtype='f')
         x = chainer.Parameter(data)
-        self.assertIs(x.data, data)
+        assert x.data is data
 
     @attr.gpu
     def test_initialize_by_cupy_array(self):
@@ -959,8 +959,8 @@ class TestUninitializedParameter(unittest.TestCase):
 
     def test_init_without_data(self):
         x = chainer.Parameter()
-        self.assertIsNone(x.data)
-        self.assertIsNone(x.grad)
+        assert x.data is None
+        assert x.grad is None
 
     def test_initialize(self):
         x = chainer.Parameter()
@@ -1022,13 +1022,13 @@ class TestUninitializedParameter(unittest.TestCase):
         x = chainer.Parameter()
         y = copy.copy(x)
         x.initialize((3, 2))
-        self.assertIs(x.data, y.data)
+        assert x.data is y.data
 
     def test_cleargrad(self):
         x = chainer.Parameter()
         x.cleargrad()
         x.initialize((3, 2))
-        self.assertIsNone(x.grad)
+        assert x.grad is None
 
     def check_zerograd(self, x, xp):
         self.assertIsInstance(x.grad, xp.ndarray)
@@ -1109,8 +1109,8 @@ class TestUninitializedParameter(unittest.TestCase):
         x = chainer.Parameter()
         y = chainer.Parameter()
         x.copydata(y)
-        self.assertIsNone(x.data)
-        self.assertIsNone(y.data)
+        assert x.data is None
+        assert y.data is None
 
     def test_addgrad_to_uninitialized_parameter(self):
         x = chainer.Parameter()
@@ -1701,9 +1701,9 @@ class TestVariableDoubleBackward(unittest.TestCase):
         y = x * 2
         y.backward()
         assert x.grad_var is not y.grad_var
-        self.assertIsNone(x.grad_var.creator)
+        assert x.grad_var.creator is None
         x.grad_var.backward()
-        self.assertIsNone(y.grad_var.grad_var)
+        assert y.grad_var.grad_var is None
 
     def test_raise_double_backprop(self):
         x = chainer.Variable(np.empty((), np.float32))
@@ -1745,9 +1745,9 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         y = F.identity(x)
         with testing.assert_warns(DeprecationWarning):
             y.backward()
-        self.assertIsNone(x.grad_var.creator)
+        assert x.grad_var.creator is None
         x.grad_var.backward()
-        self.assertIsNone(y.grad_var.grad_var)
+        assert y.grad_var.grad_var is None
 
     def test_raise_double_backprop(self):
         x = chainer.Variable(np.empty(1, np.float32))
@@ -1789,7 +1789,7 @@ class TestAsVariable(unittest.TestCase):
     def check_to_variable_from_array(self, x):
         y = chainer.as_variable(x)
         self.assertIsInstance(y, chainer.Variable)
-        self.assertIs(y.data, x)
+        assert y.data is x
         self.assertFalse(y.requires_grad)
 
     def test_to_variable_from_numpy(self):
@@ -1802,7 +1802,7 @@ class TestAsVariable(unittest.TestCase):
     def test_to_variable_from_variable(self):
         x = chainer.Variable(np.array(1, np.float32))
         y = chainer.as_variable(x)
-        self.assertIs(x, y)
+        assert x is y
         self.assertTrue(y.requires_grad)
 
 
