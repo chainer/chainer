@@ -197,8 +197,8 @@ class TestVariable(unittest.TestCase):
         if isinstance(self.x, np.ndarray):
             assert x.data is a
             assert x.array is a
-        self.assertIsInstance(x.data, xp.ndarray)
-        self.assertIsInstance(x.array, xp.ndarray)
+        assert isinstance(x.data, xp.ndarray)
+        assert isinstance(x.array, xp.ndarray)
         assert x.data is x.array
         assert x.shape == self.x.shape
         assert x.ndim == self.x.ndim
@@ -929,7 +929,7 @@ class TestParameter(unittest.TestCase):
     def test_initialize_by_cupy_array(self):
         data = cuda.cupy.array([1., 2., 3.], dtype='f')
         x = chainer.Parameter(data, (3,))
-        self.assertIsInstance(x.data, cuda.cupy.ndarray)
+        assert isinstance(x.data, cuda.cupy.ndarray)
         cuda.cupy.testing.assert_array_equal(x.data, data)
 
     def test_update_rule(self):
@@ -971,7 +971,7 @@ class TestUninitializedParameter(unittest.TestCase):
 
     def check_constant_initialization(self, x, a, xp):
         x.initialize(a.shape)
-        self.assertIsInstance(x.data, xp.ndarray)
+        assert isinstance(x.data, xp.ndarray)
         xp.testing.assert_array_equal(x.data, xp.asarray(a))
         xp.testing.assert_array_equal(x.grad, np.float32('nan'))
 
@@ -1030,7 +1030,7 @@ class TestUninitializedParameter(unittest.TestCase):
         assert x.grad is None
 
     def check_zerograd(self, x, xp):
-        self.assertIsInstance(x.grad, xp.ndarray)
+        assert isinstance(x.grad, xp.ndarray)
         assert x.grad.shape == x.data.shape
         assert x.grad.dtype == x.data.dtype
         xp.testing.assert_array_equal(x.grad, 0)
@@ -1080,7 +1080,7 @@ class TestUninitializedParameter(unittest.TestCase):
         x.to_gpu()
         x.copydata(y)
         cp = cuda.cupy
-        self.assertIsInstance(x.data, cp.ndarray)
+        assert isinstance(x.data, cp.ndarray)
         cp.testing.assert_array_equal(x.data, self.a)
 
     def test_copydata_from_uninitialized_parameter(self):
@@ -1088,8 +1088,8 @@ class TestUninitializedParameter(unittest.TestCase):
         x = chainer.Parameter(self.a)
         y = chainer.Parameter(initializer)
         x.copydata(y)
-        self.assertIsInstance(x.data, np.ndarray)
-        self.assertIsInstance(y.data, np.ndarray)
+        assert isinstance(x.data, np.ndarray)
+        assert isinstance(y.data, np.ndarray)
         np.testing.assert_array_equal(x.data, y.data)
 
     @attr.gpu
@@ -1100,8 +1100,8 @@ class TestUninitializedParameter(unittest.TestCase):
         y.to_gpu()
         x.copydata(y)
         cp = cuda.cupy
-        self.assertIsInstance(x.data, np.ndarray)
-        self.assertIsInstance(y.data, cp.ndarray)
+        assert isinstance(x.data, np.ndarray)
+        assert isinstance(y.data, cp.ndarray)
         cp.testing.assert_array_equal(x.data, y.data)
 
     def test_copydata_from_to_uninitialized_parameters(self):
@@ -1117,8 +1117,8 @@ class TestUninitializedParameter(unittest.TestCase):
         y.grad = self.b
         x.cleargrad()
         x.addgrad(y)
-        self.assertIsInstance(x.data, np.ndarray)
-        self.assertIsInstance(x.grad, np.ndarray)
+        assert isinstance(x.data, np.ndarray)
+        assert isinstance(x.grad, np.ndarray)
         np.testing.assert_array_equal(x.grad, self.b)
 
     @attr.gpu
@@ -1130,8 +1130,8 @@ class TestUninitializedParameter(unittest.TestCase):
         x.cleargrad()
         x.addgrad(y)
         cp = cuda.cupy
-        self.assertIsInstance(x.data, cp.ndarray)
-        self.assertIsInstance(x.grad, cp.ndarray)
+        assert isinstance(x.data, cp.ndarray)
+        assert isinstance(x.grad, cp.ndarray)
         cp.testing.assert_array_equal(x.grad, self.b)
 
     @attr.gpu
@@ -1142,8 +1142,8 @@ class TestUninitializedParameter(unittest.TestCase):
         y.to_gpu()
         x.cleargrad()
         x.addgrad(y)
-        self.assertIsInstance(x.data, np.ndarray)
-        self.assertIsInstance(x.grad, np.ndarray)
+        assert isinstance(x.data, np.ndarray)
+        assert isinstance(x.grad, np.ndarray)
         np.testing.assert_array_equal(x.grad, self.b)
 
     @attr.gpu
@@ -1156,8 +1156,8 @@ class TestUninitializedParameter(unittest.TestCase):
         x.cleargrad()
         x.addgrad(y)
         cp = cuda.cupy
-        self.assertIsInstance(x.data, cp.ndarray)
-        self.assertIsInstance(x.grad, cp.ndarray)
+        assert isinstance(x.data, cp.ndarray)
+        assert isinstance(x.grad, cp.ndarray)
         cp.testing.assert_array_equal(x.grad, self.b)
 
     @attr.multi_gpu(2)
@@ -1170,8 +1170,8 @@ class TestUninitializedParameter(unittest.TestCase):
         x.cleargrad()
         x.addgrad(y)
         cp = cuda.cupy
-        self.assertIsInstance(x.data, cp.ndarray)
-        self.assertIsInstance(x.grad, cp.ndarray)
+        assert isinstance(x.data, cp.ndarray)
+        assert isinstance(x.grad, cp.ndarray)
         assert int(x.data.device) == 1
         assert int(x.grad.device) == 1
         cp.testing.assert_array_equal(x.grad, self.b)
@@ -1787,7 +1787,7 @@ class TestAsVariable(unittest.TestCase):
 
     def check_to_variable_from_array(self, x):
         y = chainer.as_variable(x)
-        self.assertIsInstance(y, chainer.Variable)
+        assert isinstance(y, chainer.Variable)
         assert y.data is x
         assert not y.requires_grad
 
