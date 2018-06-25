@@ -9,13 +9,13 @@ class StandardUpdater(_updater.Updater):
 
     """Standard implementation of Updater.
 
-    This is the standard implementation of :class:`Updater`. It accepts one or
-    more training datasets and one or more optimizers. The default update
-    routine assumes that there is only one training dataset and one optimizer.
-    Users can override this update routine by inheriting this class and
-    overriding the :meth:`update_core` method. Each batch is converted to input
-    arrays by :func:`~chainer.datasets.concat_examples` by default, which can
-    also be manually set by ``converter`` argument.
+    This is the standard implementation of :class:`~chainer.training.Updater`.
+    It accepts one or more training datasets and one or more optimizers.
+    The default update routine assumes that there is only one training dataset
+    and one optimizer. Users can override this update routine by inheriting
+    this class and overriding the :meth:`update_core` method. Each batch is
+    converted to input arrays by :func:`chainer.dataset.concat_examples` by
+    default, which can also be manually set by ``converter`` argument.
 
     Args:
         iterator: Dataset iterator for the training dataset. It can also be a
@@ -28,7 +28,7 @@ class StandardUpdater(_updater.Updater):
             registered by the name ``'main'``.
         converter: Converter function to build input arrays. Each batch
             extracted by the main iterator and the ``device`` option are passed
-            to this function. :func:`~chainer.dataset.concat_examples` is used
+            to this function. :func:`chainer.dataset.concat_examples` is used
             by default.
         device: Device to which the training data is sent. Negative value
             indicates the host memory (CPU).
