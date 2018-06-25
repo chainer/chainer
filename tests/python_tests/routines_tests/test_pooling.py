@@ -24,6 +24,7 @@ def _create_max_pool_args(xp, device, x_shape, ksize, stride, pad, cover_all, fl
     ((1, 3, 2, 6, 3), (1, 3, 2), 2, (2, 0, 1)),
     ((1, 3, 2, 6, 3), (1, 3, 2), (1, 2, 3), (2, 0, 1)),
     ((2, 3, 2, 6, 3), (1, 3, 2), (1, 2, 3), (2, 0, 1)),
+    ((1, 3, 2, 6, 3, 2), (1, 3, 2, 2), 2, 2),
 ])
 @pytest.mark.parametrize('cover_all', [True, False])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])

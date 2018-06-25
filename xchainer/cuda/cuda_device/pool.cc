@@ -12,6 +12,7 @@
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/numeric_limits.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/pooling.h"
@@ -44,8 +45,8 @@ public:
 
     Array Forward(const Array& x) {
         int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
-        if (ndim < 2) {
-            throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
+        if (ndim != 2 && ndim != 3) {
+            throw DimensionError{"XChainer cuDNN pooling supports only 2 and 3 spatial dimensions."};
         }
 
         assert(kernel_size_.size() == static_cast<size_t>(ndim));
