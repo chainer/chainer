@@ -1,14 +1,12 @@
-#ifdef XCHAINER_ENABLE_CUDA
-
 #include "xchainer/cuda/cuda_conv.h"
 
+#include <algorithm>
 #include <cstdint>
 
 #include <gtest/gtest.h>
 
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
-#include "xchainer/cuda/cuda_conv.h"
 #include "xchainer/cuda/cuda_device.h"
 #include "xchainer/device_id.h"
 #include "xchainer/routines/connection.h"
@@ -177,5 +175,3 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
 
 }  // namespace cuda
 }  // namespace xchainer
-
-#endif  // XCHAINER_ENABLE_CUDA
