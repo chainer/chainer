@@ -734,12 +734,9 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
     }
 }
 
-TEST_P(BackpropFunctionTest, InvalidGradShape) {
-    DoubleBackpropOption double_backprop_opt = GetParam();
-    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        return;
-    }
+INSTANTIATE_TEST_CASE_P(Params, BackpropFunctionTest, ::testing::Values(DoubleBackpropOption::kDisable, DoubleBackpropOption::kEnable));
 
+TEST(BackpropGradValidationTest, InvalidGradShape) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
@@ -770,15 +767,10 @@ TEST_P(BackpropFunctionTest, InvalidGradShape) {
     y1.SetGrad(gy1_value, graph_id);
 
     // The shape of the computed gradient of x1 is (2, 1) but the shape of x1 is (2,), thus an exception should be thrown.
-    EXPECT_THROW(Backward({y1}, graph_id, double_backprop_opt), DimensionError);
+    EXPECT_THROW(Backward({y1}, graph_id, DoubleBackpropOption::kDisable), DimensionError);
 }
 
-TEST_P(BackpropFunctionTest, InvalidGradDtype) {
-    DoubleBackpropOption double_backprop_opt = GetParam();
-    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        return;
-    }
-
+TEST(BackpropGradValidationTest, InvalidGradDtype) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
@@ -809,15 +801,10 @@ TEST_P(BackpropFunctionTest, InvalidGradDtype) {
     y1.SetGrad(gy1_value, graph_id);
 
     // The dtype of the computed gradient of x1 is float but the dtype of x1 is double, thus an exception should be thrown.
-    EXPECT_THROW(Backward({y1}, graph_id, double_backprop_opt), DtypeError);
+    EXPECT_THROW(Backward({y1}, graph_id, DoubleBackpropOption::kDisable), DtypeError);
 }
 
-TEST_P(BackpropFunctionTest, InvalidGradDevice) {
-    DoubleBackpropOption double_backprop_opt = GetParam();
-    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        return;
-    }
-
+TEST(BackpropGradValidationTest, InvalidGradDevice) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
@@ -849,10 +836,8 @@ TEST_P(BackpropFunctionTest, InvalidGradDevice) {
     y1.SetGrad(gy1_value, graph_id);
 
     // The device of the computed gradient of x1 is on a different device from the device of x1, thus an exception should be throws.
-    EXPECT_THROW(Backward({y1}, graph_id, double_backprop_opt), DeviceError);
+    EXPECT_THROW(Backward({y1}, graph_id, DoubleBackpropOption::kDisable), DeviceError);
 }
-
-INSTANTIATE_TEST_CASE_P(Params, BackpropFunctionTest, ::testing::Values(DoubleBackpropOption::kDisable, DoubleBackpropOption::kEnable));
 
 }  // namespace
 }  // namespace xchainer
