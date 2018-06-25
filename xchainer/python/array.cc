@@ -150,10 +150,7 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
-    c.def("view", [](const ArrayBodyPtr& self) {
-        // Duplicate the array body
-        return std::make_shared<ArrayBody>(*self);
-    });
+    c.def("view", [](const ArrayBodyPtr& self) { return Array{self}.MakeView().move_body(); });
     c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
     c.def("to_device",
           [](const ArrayBodyPtr& self, py::handle device) { return Array{self}.ToDevice(internal::GetDevice(device)).move_body(); });

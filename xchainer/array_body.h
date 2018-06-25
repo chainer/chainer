@@ -43,6 +43,9 @@ public:
           offset_{offset},
           nodes_{std::move(nodes)} {}
 
+    ArrayBody(const ArrayBody&) = delete;
+    ArrayBody& operator=(const ArrayBody&) = delete;
+
 private:
     friend class ::xchainer::Array;
 
