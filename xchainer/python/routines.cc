@@ -529,8 +529,7 @@ void InitXchainerRoutines(pybind11::module& m) {
                              x_array,
                              ToStackVector<int64_t>(ksize, ndim),
                              stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
-                             ToStackVector<int64_t>(pad, ndim),
-                             AveragePoolPadMode::kZero)
+                             ToStackVector<int64_t>(pad, ndim))
                       .move_body();
           },
           py::arg("x"),
