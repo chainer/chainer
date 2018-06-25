@@ -305,7 +305,7 @@ def test_array_require_grad_with_graph_id():
 
 
 def test_array_grad():
-    array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
+    array = xchainer.ndarray((3, 1), xchainer.float32, [1., 1., 1.])
     grad = xchainer.ndarray((3, 1), xchainer.float32, [0.5, 0.5, 0.5])
 
     with pytest.raises(xchainer.XchainerError):
@@ -340,7 +340,7 @@ def test_array_grad():
 
 
 def test_array_grad_with_graph_id():
-    array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
+    array = xchainer.ndarray((3, 1), xchainer.float32, [1., 1., 1.])
     grad = xchainer.ndarray((3, 1), xchainer.float32, [0.5, 0.5, 0.5])
 
     with pytest.raises(xchainer.XchainerError):
@@ -419,7 +419,7 @@ def test_array_cleargrad():
 
 def test_array_grad_identity():
     shape = (3, 1)
-    array = xchainer.ndarray(shape, xchainer.int8, [1, 1, 1])
+    array = xchainer.ndarray(shape, xchainer.float32, [1., 1., 1.])
     grad = xchainer.ndarray(shape, xchainer.float32, [0.5, 0.5, 0.5])
     array.require_grad().set_grad(grad)
 
@@ -459,6 +459,31 @@ def test_array_require_grad_multiple_graphs_forward():
     # No unspecified graphs are generated
     assert not y.is_grad_required(xchainer.DEFAULT_GRAPH_ID)
     assert not y.is_grad_required('graph_3')
+
+
+@pytest.mark.parametrize('expected_error,invalid_shape,invalid_dtype,invalid_device', [
+    (xchainer.DtypeError, None, xchainer.int8, None),
+    (xchainer.DimensionError, (2, 1), None, None),
+    (xchainer.DeviceError, None, None, 'native:1'),
+])
+def test_array_grad_invalid_grad(expected_error, invalid_shape, invalid_dtype, invalid_device):
+    shape = (3, 1)
+    dtype = xchainer.float32
+    device = 'native:0'
+
+    array = xchainer.ndarray(shape, dtype, [1., 1., 1.], device=device)
+    array.require_grad()
+
+    grad_shape = shape if invalid_shape is None else invalid_shape
+    grad_dtype = dtype if invalid_dtype is None else invalid_dtype
+    grad_data = [1] * array_utils.total_size(grad_shape)
+    grad_device = device if invalid_device is None else invalid_device
+    invalid_grad = xchainer.ndarray(grad_shape, grad_dtype, grad_data, grad_device)
+
+    with pytest.raises(expected_error):
+        array.set_grad(invalid_grad)
+    with pytest.raises(expected_error):
+        array.grad = invalid_grad
 
 
 def test_array_backward():

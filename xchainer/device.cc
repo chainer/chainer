@@ -43,6 +43,12 @@ void SetDefaultDevice(Device* device) {
     t_default_device = device;
 }
 
+void CheckEqual(const Device& lhs, const Device& rhs) {
+    if (&lhs != &rhs) {
+        throw DeviceError{"Devices do not match: ", lhs.name(), ", ", rhs.name(), "."};
+    }
+}
+
 namespace {
 
 // Differentiable mean.

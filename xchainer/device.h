@@ -309,6 +309,8 @@ Device& GetDefaultDevice();
 // Raises ContextError if context mismatches between given device and default context.
 void SetDefaultDevice(Device* device);
 
+void CheckEqual(const Device& lhs, const Device& rhs);
+
 // Scope object that switches the default device by RAII.
 class DeviceScope {
 public:

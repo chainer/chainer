@@ -217,6 +217,55 @@ TEST_P(ArrayTest, Grad) {
     }
 }
 
+TEST_P(ArrayTest, InvalidGradNoGraph) {
+    using T = float;
+    GraphId graph_id = "graph_1";
+    Shape shape{2, 3};
+
+    Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
+    Array g = testing::BuildArray(shape).WithData<T>({8, 4, 6, 3, 2, 1});
+
+    EXPECT_THROW(x.SetGrad(g), XchainerError);  // x does not belong to the default graph.
+    EXPECT_THROW(x.SetGrad(g, graph_id), XchainerError);  // x does not belong to the given graph.
+}
+
+TEST_P(ArrayTest, InvalidGradMismatchedShape) {
+    using T = float;
+    Shape shape{2, 3};
+    Shape mismatched_shape{1, 3};
+
+    Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
+    Array g = testing::BuildArray(mismatched_shape).WithData<T>({8, 4, 6});
+    x.RequireGrad();
+
+    EXPECT_THROW(x.SetGrad(g), DimensionError);
+}
+
+TEST_P(ArrayTest, InvalidGradMismatchedDtype) {
+    using T = float;
+    using MismatchedT = int32_t;
+    Shape shape{2, 3};
+
+    Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
+    Array g = testing::BuildArray(shape).WithData<MismatchedT>({8, 4, 6, 3, 2, 1});
+    x.RequireGrad();
+
+    EXPECT_THROW(x.SetGrad(g), DtypeError);
+}
+
+TEST_P(ArrayTest, InvalidGradMismatchedDevice) {
+    using T = float;
+    Shape shape{2, 3};
+    Device& device = GetDefaultDevice();
+    Device& mismatched_device = device.backend().GetDevice(device.index() + 1);
+
+    Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6}).WithDevice(device);
+    Array g = testing::BuildArray(shape).WithData<T>({8, 4, 6, 3, 2, 1}).WithDevice(mismatched_device);
+    x.RequireGrad();
+
+    EXPECT_THROW(x.SetGrad(g), DeviceError);
+}
+
 TEST_P(ArrayTest, ContiguousFill) {
     CheckContiguousFill(true);
     CheckContiguousFill(false);
