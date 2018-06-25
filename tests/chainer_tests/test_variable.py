@@ -1184,8 +1184,8 @@ class TestDebugPrint(unittest.TestCase):
 
     def check_debug_print(self, v, mean, std):
         result = v.debug_print()
-        self.assertIn(v.summary(), result)
-        self.assertIn('dtype: float32', result)
+        assert v.summary() in result
+        assert 'dtype: float32' in result
         # py2.7 on win64 returns shape as long
         assert re.match(r'- shape: \(5L?, 3L?, 5L?, 5L?\)',
                         result.splitlines()[3])
@@ -1193,36 +1193,36 @@ class TestDebugPrint(unittest.TestCase):
         # no grad
         msg = 'statistics: mean={mean:.8f}, std={std:.8f}'
         msg = msg.format(mean=mean, std=std)
-        self.assertIn(msg, result)
-        self.assertIn('grad: None', result)
+        assert msg in result
+        assert 'grad: None' in result
 
         # zero grad
         with testing.assert_warns(DeprecationWarning):
             v.zerograd()
         result = v.debug_print()
-        self.assertIn('grad: 0', result)
+        assert 'grad: 0' in result
 
         # add grad
         v.grad = v.data
         result = v.debug_print()
 
         msg = 'grad: mean={mean:.8f}, std={std:.8f}'.format(mean=mean, std=std)
-        self.assertIn(msg, result)
+        assert msg in result
 
     def check_debug_print_empty(self, v):
         result = v.debug_print()
-        self.assertIn('device: None', result)
-        self.assertIn('backend: None', result)
-        self.assertIn('shape: None', result)
-        self.assertIn('dtype: None', result)
-        self.assertIn('statistics: None', result)
-        self.assertIn('grad: None', result)
+        assert 'device: None' in result
+        assert 'backend: None' in result
+        assert 'shape: None' in result
+        assert 'dtype: None' in result
+        assert 'statistics: None' in result
+        assert 'grad: None' in result
 
     def test_debug_print_cpu(self):
         v = chainer.Variable(self.arr)
         result = v.debug_print()
-        self.assertIn('device: CPU', result)
-        self.assertIn('numpy.ndarray', result)
+        assert 'device: CPU' in result
+        assert 'numpy.ndarray' in result
 
         self.check_debug_print(v, mean=float(np.mean(v.data)),
                                std=float(np.std(v.data)))
@@ -1233,8 +1233,8 @@ class TestDebugPrint(unittest.TestCase):
         v.to_gpu(0)
 
         result = v.debug_print()
-        self.assertIn('device: <CUDA Device 0>', result)
-        self.assertIn('cupy.core.core.ndarray', result)
+        assert 'device: <CUDA Device 0>' in result
+        assert 'cupy.core.core.ndarray' in result
 
         self.check_debug_print(v, mean=float(cuda.cupy.mean(v.data)),
                                std=float(cuda.cupy.std(v.data)))
@@ -1388,8 +1388,8 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
             y.backward()
             self.fail()
         except ValueError as e:
-            self.assertIn('Stacktrace', str(e))
-            self.assertIn('line %d' % line, str(e))
+            assert 'Stacktrace' in str(e)
+            assert 'line %d' % line in str(e)
 
     def test_traceback_cpu(self):
         self.check_traceback(self.x)
