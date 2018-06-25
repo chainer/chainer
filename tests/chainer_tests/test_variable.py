@@ -204,8 +204,8 @@ class TestVariable(unittest.TestCase):
         self.assertEqual(x.ndim, self.x.ndim)
         self.assertEqual(x.size, self.x.size)
         self.assertEqual(x.dtype, self.x.dtype)
-        self.assertTrue(x.requires_grad)
-        self.assertTrue(x.node.requires_grad)
+        assert x.requires_grad
+        assert x.node.requires_grad
 
     def test_attributes_cpu(self):
         self.check_attributes(False)
@@ -287,13 +287,12 @@ class TestVariable(unittest.TestCase):
         for o in outputs:
             o.backward(retain_grad)
 
-        self.assertTrue(all([x.grad_var is not None for x in inputs]))
+        assert all([x.grad_var is not None for x in inputs])
         if retain_grad:
-            self.assertTrue(
-                all([x.grad_var is not None for x in intermediates]))
+            assert all([x.grad_var is not None for x in intermediates])
         else:
-            self.assertTrue(all([x.grad_var is None for x in intermediates]))
-        self.assertTrue(any([x.grad_var is not None for x in outputs]))
+            assert all([x.grad_var is None for x in intermediates])
+        assert any([x.grad_var is not None for x in outputs])
 
     # length is number of edges. So, # of Variables created is length+1
     def create_linear_chain(self, length, gpu):
@@ -1188,8 +1187,8 @@ class TestDebugPrint(unittest.TestCase):
         self.assertIn(v.summary(), result)
         self.assertIn('dtype: float32', result)
         # py2.7 on win64 returns shape as long
-        self.assertTrue(re.match(r'- shape: \(5L?, 3L?, 5L?, 5L?\)',
-                                 result.splitlines()[3]))
+        assert re.match(r'- shape: \(5L?, 3L?, 5L?, 5L?\)',
+                        result.splitlines()[3])
 
         # no grad
         msg = 'statistics: mean={mean:.8f}, std={std:.8f}'
@@ -1430,7 +1429,7 @@ class TestReshape(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = x.reshape(shape)
         self.assertEqual(y.data.dtype, self.dtype)
-        self.assertTrue((self.x.reshape(shape) == cuda.to_cpu(y.data)).all())
+        assert (self.x.reshape(shape) == cuda.to_cpu(y.data)).all()
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -1469,7 +1468,7 @@ class TestTranspose(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = x.transpose(*axes)
         self.assertEqual(y.data.dtype, self.dtype)
-        self.assertTrue((self.x.transpose(*axes) == cuda.to_cpu(y.data)).all())
+        assert (self.x.transpose(*axes) == cuda.to_cpu(y.data)).all()
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -1790,7 +1789,7 @@ class TestAsVariable(unittest.TestCase):
         y = chainer.as_variable(x)
         self.assertIsInstance(y, chainer.Variable)
         assert y.data is x
-        self.assertFalse(y.requires_grad)
+        assert not y.requires_grad
 
     def test_to_variable_from_numpy(self):
         self.check_to_variable_from_array(np.empty(1, np.float32))
@@ -1803,7 +1802,7 @@ class TestAsVariable(unittest.TestCase):
         x = chainer.Variable(np.array(1, np.float32))
         y = chainer.as_variable(x)
         assert x is y
-        self.assertTrue(y.requires_grad)
+        assert y.requires_grad
 
 
 @testing.parameterize(*testing.product({
