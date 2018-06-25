@@ -18,15 +18,6 @@
 
 namespace xchainer {
 namespace cuda {
-namespace internal {
-
-CudaConv& GetCudaConv(CudaDevice& device) { return device.cuda_conv_; }
-
-size_t GetFwdAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.fwd_algo_cache_map_.size(); }
-size_t GetBwdDataAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.bwd_data_algo_cache_map_.size(); }
-size_t GetBwdFilterAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.bwd_filter_algo_cache_map_.size(); }
-
-}  // namespace internal
 
 TEST(CudaConvTest, FwdAlgoCache) {
     testing::DeviceSession device_session{DeviceId{"cuda", 0}};
