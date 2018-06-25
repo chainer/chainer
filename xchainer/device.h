@@ -20,27 +20,15 @@ enum class AveragePoolPadMode;
 
 class MaxPoolForwardBackward {
 public:
-    virtual Array Forward(
-            const Array& x,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) = 0;
-    virtual Array Backward(
-            const Array& x,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all,
-            const Array& gout) = 0;
-    virtual Array DoubleBackward(
-            const Array& x,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all,
-            const Array& gout,
-            const Array& ggx) = 0;
+    virtual Array Forward(const Array& x) = 0;
+    virtual Array Backward(const Array& gout) = 0;
+    virtual Array DoubleBackward(const Array& ggx) = 0;
+};
+
+class AveragePoolForwardBackward {
+public:
+    virtual Array Forward(const Array& x) = 0;
+    virtual Array Backward(const Array& gout) = 0;
 };
 
 class BatchNormForwardBackward {
@@ -262,10 +250,13 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& out_size) = 0;
 
-    virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() = 0;
+    virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward(
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all) = 0;
 
-    virtual Array AveragePool(
-            const Array& x,
+    virtual std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward(
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,

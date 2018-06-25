@@ -42,21 +42,21 @@ Array MaxPool(
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
     CheckPoolInputs(x, kernel_size, stride, pad);
-    std::unique_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward();
-    Array out = fb->Forward(x, kernel_size, stride, pad, cover_all);
+    std::unique_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward(kernel_size, stride, pad, cover_all);
+    Array out = fb->Forward(x);
 
     // Supporting arbitrary number of backwards using a recursive definition.
     // TODO(hvy): Test backward of double backward.
     struct MaxPoolBwd {
         void operator()(BackwardContext& bctx1) {
             const Array& gout = bctx1.output_grad();
-            Array gx = fb->Backward(x, kernel_size, stride, pad, cover_all, gout);
+            Array gx = fb->Backward(gout);
             {
                 BackwardBuilder bb2{"max_pooling_backward", gx};
                 if (!gout.IsConstant()) {
                     bb2.Define({gout}, [this, gout](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
-                        Array ggout = fb->DoubleBackward(x, kernel_size, stride, pad, cover_all, gout, ggx);
+                        Array ggout = fb->DoubleBackward(ggx);
                         // Make ggout further backpropable.
                         {
                             BackwardBuilder bb3{"max_pooling_double_backward", ggout};
@@ -95,8 +95,28 @@ Array AveragePool(
         const StackVector<int64_t, kMaxNdim>& pad,
         AveragePoolPadMode pad_mode) {
     CheckPoolInputs(x, kernel_size, stride, pad);
-    // TODO(hvy): Implement backward.
-    return x.device().AveragePool(x, kernel_size, stride, pad, pad_mode);
+    std::shared_ptr<AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(kernel_size, stride, pad, pad_mode);
+    Array out = fb->Forward(x);
+    {
+        BackwardBuilder bb1{"average_pool", out};
+        if (!x.IsConstant()) {
+            bb1.Define({x}, [ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
+                const Array& gout = bctx.output_grad();
+                Array gx = fb->Backward(gout);
+                {
+                    BackwardBuilder bb2{"average_pool_backward", gx};
+                    if (!gout.IsConstant()) {
+                        bb2.Define({gout}, [kernel_size, stride, pad, pad_mode](BackwardContext& bctx2) {
+                            const Array& ggx = bctx2.output_grad();
+                            bctx2.input_grad() = AveragePool(ggx, kernel_size, stride, pad, pad_mode);
+                        });
+                    }
+                }
+                bctx.input_grad() = gx;
+            });
+        }
+    }
+    return out;
 }
 
 }  // namespace xchainer

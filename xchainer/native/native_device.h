@@ -135,10 +135,13 @@ public:
 
     // pool.cc
 
-    std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward() override;
+    std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward(
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            bool cover_all) override;
 
-    Array AveragePool(
-            const Array& x,
+    std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward(
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,

@@ -51,66 +51,61 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
 
 class NativeMaxPoolForwardBackward : public xchainer::MaxPoolForwardBackward {
 public:
-    Array Forward(
-            const Array& x,
+    explicit NativeMaxPoolForwardBackward(
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) override {
+            bool cover_all)
+        : kernel_size_{kernel_size}, stride_{stride}, pad_{pad}, cover_all_{cover_all} {}
+
+    Array Forward(const Array& x) override {
         // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        col_ = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, cover_all, GetLowestOrInf(x.dtype()));
-        axes_.resize(kernel_size.size());
+        col_ = internal::Im2Col(x.AsConstant(), kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x.dtype()));
+        axes_.resize(kernel_size_.size());
         std::iota(axes_.begin(), axes_.end(), 2);
+        x_ = x.AsConstant();
         return col_.Max(axes_);
     }
 
-    Array Backward(
-            const Array& x,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool /*cover_all*/,
-            const Array& gout) override {
+    Array Backward(const Array& gout) override {
         indices_ = col_.ArgMax(axes_);
         assert(indices_.shape() == gout.shape());
 
         // Compute flattened col gradients.
-        int64_t kernel_total_size = std::accumulate(kernel_size.begin(), kernel_size.end(), int64_t{1}, std::multiplies<>());
+        int64_t kernel_total_size = std::accumulate(kernel_size_.begin(), kernel_size_.end(), int64_t{1}, std::multiplies<>());
         int64_t out_total_size = indices_.GetTotalSize();
         Shape out_flat{out_total_size};
-        Device& device = x.device();
-        Array gcol = Zeros({out_total_size * kernel_total_size}, x.dtype(), device);
+        Device& device = x_.device();
+        Array gcol = Zeros({out_total_size * kernel_total_size}, x_.dtype(), device);
         offset_ = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices_.dtype(), device);
         device.AddAt(gcol, indices_.Reshape(out_flat) + offset_, {0}, gout.AsConstant().Reshape(out_flat), gcol);
 
         // Reshape col gradients to (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
         Shape out_shape_with_kernel = gout.shape();
-        std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(out_shape_with_kernel));
+        std::copy(kernel_size_.begin(), kernel_size_.end(), std::back_inserter(out_shape_with_kernel));
 
         // Transform col gradients to input shape.
         return internal::Col2Im(
-                gcol.Reshape(out_shape_with_kernel).Transpose(GetSwapSpatialDimensionsAxes(kernel_size.size())),
-                stride,
-                pad,
-                {x.shape().begin() + 2, x.shape().end()});
+                gcol.Reshape(out_shape_with_kernel).Transpose(GetSwapSpatialDimensionsAxes(kernel_size_.size())),
+                stride_,
+                pad_,
+                {x_.shape().begin() + 2, x_.shape().end()});
     }
 
-    Array DoubleBackward(
-            const Array& x,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all,
-            const Array& /*gout*/,
-            const Array& ggx) override {
-        Array col = internal::Im2Col(ggx.AsConstant(), kernel_size, stride, pad, cover_all, GetLowestOrInf(x.dtype()));
+    Array DoubleBackward(const Array& ggx) override {
+        Array col = internal::Im2Col(ggx.AsConstant(), kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x_.dtype()));
         return Take(
-                col.Transpose(GetSwapSpatialDimensionsAxes(kernel_size.size())).Reshape({col.GetTotalSize()}),
+                col.Transpose(GetSwapSpatialDimensionsAxes(kernel_size_.size())).Reshape({col.GetTotalSize()}),
                 indices_ + offset_.Reshape(indices_.shape()),
                 0);
     }
 
 private:
+    const StackVector<int64_t, kMaxNdim> kernel_size_;
+    const StackVector<int64_t, kMaxNdim> stride_;
+    const StackVector<int64_t, kMaxNdim> pad_;
+    Array x_;
+    bool cover_all_;
     Array col_{};
     Axes axes_{};
     Array indices_{};
@@ -119,8 +114,12 @@ private:
 
 }  // namespace
 
-std::unique_ptr<MaxPoolForwardBackward> NativeDevice::GetMaxPoolForwardBackward() {
-    return std::make_unique<NativeMaxPoolForwardBackward>();
+std::unique_ptr<MaxPoolForwardBackward> NativeDevice::GetMaxPoolForwardBackward(
+        const StackVector<int64_t, kMaxNdim>& kernel_size,
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& pad,
+        bool cover_all) {
+    return std::make_unique<NativeMaxPoolForwardBackward>(kernel_size, stride, pad, cover_all);
 }
 
 namespace {
@@ -190,38 +189,59 @@ Array GetPadModeIgnorePoolingWidths(
     return widths;
 }
 
+class NativeAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {
+public:
+    explicit NativeAveragePoolForwardBackward(
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
+            AveragePoolPadMode pad_mode)
+        : kernel_size_{kernel_size}, stride_{stride}, pad_{pad}, pad_mode_{pad_mode} {}
+
+    Array Forward(const Array& x) override {
+        Array col = internal::Im2Col(x.AsConstant(), kernel_size_, stride_, pad_, false, 0);
+
+        // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
+        Axes kernel_axes;
+        kernel_axes.resize(kernel_size_.size());
+        std::iota(kernel_axes.begin(), kernel_axes.end(), 2);  // From k_1, up to k_n.
+
+        Array out = xchainer::internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
+
+        switch (pad_mode_) {
+            case AveragePoolPadMode::kZero:
+                Mean(col, kernel_axes, out);
+                break;
+            case AveragePoolPadMode::kIgnore: {
+                Device& device = x.device();
+                device.Sum(col, kernel_axes, out);
+                Array widths = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size_, stride_, pad_, x.dtype()).BroadcastTo(out.shape());
+                device.Divide(out, widths, out);
+                break;
+            }
+            default:
+                XCHAINER_NEVER_REACH();
+        }
+        return out;
+    }
+
+    Array Backward(const Array& /*gout*/) override { throw NotImplementedError{}; }
+
+private:
+    const StackVector<int64_t, kMaxNdim> kernel_size_;
+    const StackVector<int64_t, kMaxNdim> stride_;
+    const StackVector<int64_t, kMaxNdim> pad_;
+    const AveragePoolPadMode pad_mode_;
+};
+
 }  // namespace
 
-Array NativeDevice::AveragePool(
-        const Array& x,
+std::unique_ptr<AveragePoolForwardBackward> NativeDevice::GetAveragePoolForwardBackward(
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         AveragePoolPadMode pad_mode) {
-    Array col = internal::Im2Col(x.AsConstant(), kernel_size, stride, pad, false, 0);
-
-    // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-    Axes kernel_axes;
-    kernel_axes.resize(kernel_size.size());
-    std::iota(kernel_axes.begin(), kernel_axes.end(), 2);  // From k_1, up to k_n.
-
-    Array out = xchainer::internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, col.device());
-
-    switch (pad_mode) {
-        case AveragePoolPadMode::kZero:
-            Mean(col, kernel_axes, out);
-            break;
-        case AveragePoolPadMode::kIgnore: {
-            Device& device = x.device();
-            device.Sum(col, kernel_axes, out);
-            Array widths = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(out.shape());
-            device.Divide(out, widths, out);
-            break;
-        }
-        default:
-            XCHAINER_NEVER_REACH();
-    }
-    return out;
+    return std::make_unique<NativeAveragePoolForwardBackward>(kernel_size, stride, pad, pad_mode);
 }
 
 }  // namespace native
