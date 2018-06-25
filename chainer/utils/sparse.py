@@ -16,12 +16,14 @@ class CooMatrix(object):
         shape (tuple of int): The shape of the matrix in dense format.
         requires_grad (bool): If ``True``, gradient of this sparse matrix will
             be computed in back-propagation.
-        row_major (bool): If ``True``, the matrix is assumed to be sorted in
-            row-major format, in other words, the row indices are sorted.
-            If ``False``, the matrix is assumed to be sorted in column-major
-            format, in other words, the column indices are sorted. If ``None``,
-            the matrix is not assumed to be sorted in any format. The default
-            is ``None``. This information is used in some functions like
+        c_contiguous (bool): If ``True``, the matrix is assumed to be made from
+            C-contiguous array, in other words, the row indices are sorted
+            (also known as row-major format). If ``False``, the matrix is
+            assumed to be made from Fortran-contiguous array, in other words,
+            the column indices are sorted (also know as column-major format).
+            If ``None``, the matrix is automatically checked if it is
+            C-contiguous, Fortran-contiguous or another. The default is
+            ``None``. This information is used in some functions like
             sparse_matmul as a hint to improve performance.
 
     .. seealso::
@@ -31,7 +33,7 @@ class CooMatrix(object):
     """
 
     def __init__(self, data, row, col, shape, requires_grad=False,
-                 row_major=None,):
+                 c_contiguous=None):
         if not (1 <= data.ndim <= 2):
             raise ValueError('ndim of data must be 1 or 2.')
         if not (data.ndim == row.ndim == col.ndim):
@@ -44,7 +46,12 @@ class CooMatrix(object):
         self.row = row
         self.col = col
         self.shape = shape  # (row, col)
-        self.row_major = row_major
+        self.c_contiguous = c_contiguous
+        if c_contiguous is None:
+            if _is_c_contiguous(row, col):
+                self.c_contiguous = True
+            elif _is_c_contiguous(col, row):
+                self.c_contiguous = False
 
     def to_dense(self):
         """Returns a dense matrix format of this sparse matrix."""
@@ -135,3 +142,20 @@ def to_coo(x, ldnz=None, requires_grad=False):
         return CooMatrix(data, row, col, shape, requires_grad=requires_grad)
     else:
         raise ValueError('ndim of x must be 2 or 3.')
+
+
+def _is_c_contiguous(row, col):
+    """Check if a coo matrix with given row and col is c_contiguous"""
+    if row.ndim != 1 or col.ndim != 1:
+        return False
+    xp = cuda.get_array_module(row)
+    row_diff = xp.zeros(row.shape, dtype=row.dtype)
+    row_diff[1:] = row[1:] - row[:-1]
+    if xp.amin(row_diff) < 0:
+        return False
+    col_diff = xp.zeros(col.shape, dtype=col.dtype)
+    col_diff[1:] = col[1:] - col[:-1]
+    col_diff[(row_diff > 0)] = 0
+    if xp.amin(col_diff) < 0:
+        return False
+    return True

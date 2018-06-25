@@ -13,7 +13,7 @@ except ImportError:
     _scipy_available = False
 
 
-def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_row_major,
+def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_c_contiguous,
                 dn, transa, transb, transc, dtype=None):
     if dtype is None:
         dtype = numpy.result_type(sp_data.dtype, dn.dtype)
@@ -23,14 +23,14 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_row_major,
         A_row = sp_col
         A_col = sp_row
         A_shape = (sp_shape[1], sp_shape[0])
-        A_row_major = sp_row_major
-        if sp_row_major is not None:
-            A_row_major = not sp_row_major
+        A_c_contiguous = sp_c_contiguous
+        if sp_c_contiguous is not None:
+            A_c_contiguous = not sp_c_contiguous
     else:
         A_row = sp_row
         A_col = sp_col
         A_shape = sp_shape
-        A_row_major = sp_row_major
+        A_c_contiguous = sp_c_contiguous
     if transb:
         B = dn.swapaxes(-1, -2)
     else:
@@ -40,7 +40,7 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_row_major,
     if xp is numpy:
         C = _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype)
     else:
-        C = _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_row_major,
+        C = _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_c_contiguous,
                             B, dtype)
 
     if transc:
@@ -76,7 +76,7 @@ def _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype):
     return C
 
 
-def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_row_major, B, dtype):
+def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_c_contiguous, B, dtype):
     cupy_dtype = dtype
     if cupy_dtype == numpy.float16:
         cupy_dtype = numpy.float32
@@ -96,7 +96,7 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_row_major, B, dtype):
         C = cuda.cupy.zeros((nb, _m, _n), dtype=cupy_dtype)
 
     chunk = 1
-    if A_row_major:
+    if A_c_contiguous:
         # A chunk is the number of non-zero elements handled by a single GPU
         # thread. If contiguous non-zero elemets are related to the same
         # location of the output matrix and they are processed in the same
@@ -158,7 +158,7 @@ def _cupy_coo_matmul():
 
 class CooMatMul(function_node.FunctionNode):
 
-    def __init__(self, sp_row, sp_col, sp_shape, sp_row_major=None,
+    def __init__(self, sp_row, sp_col, sp_shape, sp_c_contiguous=None,
                  transa=False, transb=False, transc=False, dtype=None):
         if sp_row.ndim != sp_col.ndim:
             raise ValueError('ndim of sp_row and sp_col must be the same.')
@@ -173,7 +173,7 @@ class CooMatMul(function_node.FunctionNode):
         self.sp_row = sp_row  # ((nb,) ldnz)
         self.sp_col = sp_col  # ((nb,) ldnz)
         self.sp_shape = sp_shape  # (_m, _k) when transa is False
-        self.sp_row_major = sp_row_major
+        self.sp_c_contiguous = sp_c_contiguous
         self.transa = transa
         self.transb = transb
         self.transc = transc
@@ -210,7 +210,7 @@ class CooMatMul(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         sp, dn = inputs
         c = _coo_matmul(sp, self.sp_row, self.sp_col, self.sp_shape,
-                        self.sp_row_major, dn,
+                        self.sp_c_contiguous, dn,
                         self.transa, self.transb, self.transc, self.dtype)
         return utils.force_array(c, self.dtype),
 
@@ -220,13 +220,13 @@ class CooMatMul(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             g_sp = CooMatMulGradSP(self.sp_row, self.sp_col, self.sp_shape,
-                                   self.sp_row_major,
+                                   self.sp_c_contiguous,
                                    self.transc, not self.transb, self.transa,
                                    dtype=sp.dtype).apply((g_c, dn))[0]
             ret.append(g_sp)
         if 1 in indexes:
             g_dn = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
-                             self.sp_row_major,
+                             self.sp_c_contiguous,
                              not self.transa, self.transc, self.transb,
                              dtype=dn.dtype).apply((sp, g_c))[0]
             ret.append(g_dn)
@@ -346,7 +346,7 @@ def _cupy_coo_matmul_gradsp():
 
 class CooMatMulGradSP(function_node.FunctionNode):
 
-    def __init__(self, sp_row, sp_col, sp_shape, sp_row_major=None,
+    def __init__(self, sp_row, sp_col, sp_shape, sp_c_contiguous=None,
                  transa=False, transb=False, transc=False,
                  dtype=None):
         if sp_row.ndim != sp_col.ndim:
@@ -362,7 +362,7 @@ class CooMatMulGradSP(function_node.FunctionNode):
         self.sp_row = sp_row  # ((nb,) ldnz)
         self.sp_col = sp_col  # ((nb,) ldnz)
         self.sp_shape = sp_shape  # (_m, _n) when transc is False
-        self.sp_row_major = sp_row_major
+        self.sp_c_contiguous = sp_c_contiguous
         self.transa = transa
         self.transb = transb
         self.transc = transc
@@ -413,13 +413,13 @@ class CooMatMulGradSP(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             g_a = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
-                            self.sp_row_major,
+                            self.sp_c_contiguous,
                             self.transc, not self.transb, self.transa,
                             dtype=a.dtype).apply((g_sp, b))[0]
             ret.append(g_a)
         if 1 in indexes:
             g_b = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
-                            self.sp_row_major,
+                            self.sp_c_contiguous,
                             not self.transc, self.transa, not self.transb,
                             dtype=b.dtype).apply((g_sp, a))[0]
             ret.append(g_b)
@@ -452,13 +452,13 @@ def sparse_matmul(a, b, transa=False, transb=False):
     """
     if (isinstance(a, utils.CooMatrix) and
             isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):
-        return CooMatMul(a.row, a.col, a.shape, a.row_major,
+        return CooMatMul(a.row, a.col, a.shape, a.c_contiguous,
                          transa=transa,
                          transb=transb,
                          transc=False).apply((a.data, b))[0]
     elif (isinstance(a, (chainer.Variable, numpy.ndarray, cuda.ndarray)) and
           isinstance(b, utils.CooMatrix)):
-        return CooMatMul(b.row, b.col, b.shape, b.row_major,
+        return CooMatMul(b.row, b.col, b.shape, b.c_contiguous,
                          transa=not transb,
                          transb=not transa,
                          transc=True).apply((b.data, a))[0]
