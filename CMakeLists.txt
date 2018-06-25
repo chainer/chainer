@@ -103,6 +103,7 @@ include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
 
 # Test
 if(ENABLE_TEST)
+    add_definitions(-DXCHAINER_ENABLE_TEST=1)
     get_third_party(gtest)
     enable_testing()
     add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
