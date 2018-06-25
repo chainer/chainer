@@ -515,6 +515,11 @@ Assign a Parameter object directly to an attribute within a \
         copy is even done across the host and devices. Note that this method
         does not copy the gradient arrays.
 
+        *From v5.0.0:* this method also copies the persistent values (e.g. the
+        moving statistics of :class:`~chainer.links.BatchNormalization`). If
+        the persistent value is an ndarray, the elements are copied. Otherwise,
+        it is copied using :func:`copy.deepcopy`.
+
         Args:
             link (Link): Source link object.
 
@@ -523,6 +528,14 @@ Assign a Parameter object directly to an attribute within a \
         dst = self.__dict__
         for name in self._params:
             dst[name].copydata(src[name])
+        array_types = numpy.ndarray, cuda.ndarray
+        for name in self._persistent:
+            d = dst[name]
+            s = src[name]
+            if isinstance(d, array_types) and isinstance(s, array_types):
+                cuda.copyto(d, s)
+            else:
+                dst[name] = copy.deepcopy(s)
 
     def cleargrads(self):
         """Clears all gradient arrays.

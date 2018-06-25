@@ -351,6 +351,7 @@ class TestLink(unittest.TestCase):
         l.u.grad.fill(7)
         l.v.data.fill(8)
         l.v.grad.fill(9)
+        l.add_persistent('p', numpy.full_like(self.link.p, 10))
 
         self.link.copyparams(l)
         numpy.testing.assert_array_equal(self.link.x.data, l.x.data)
@@ -361,6 +362,7 @@ class TestLink(unittest.TestCase):
         numpy.testing.assert_array_equal(self.link.u.grad, gu)
         numpy.testing.assert_array_equal(self.link.v.data, l.v.data)
         numpy.testing.assert_array_equal(self.link.v.grad, None)
+        numpy.testing.assert_array_equal(self.link.p, l.p)
 
     def test_cleargrads(self):
         self.link.cleargrads()
