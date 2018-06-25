@@ -511,14 +511,14 @@ void InitXchainerRoutines(pybind11::module& m) {
               int8_t ndim = x_array.ndim() - 2;
               return MaxPool(Array{x},
                              ToStackVector<int64_t>(ksize, ndim),
-                             ToStackVector<int64_t>(stride, ndim),
+                             stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
                              ToStackVector<int64_t>(pad, ndim),
                              cover_all)
                       .move_body();
           },
           py::arg("x"),
           py::arg("ksize"),
-          py::arg("stride") = 1,
+          py::arg("stride") = py::none(),
           py::arg("pad") = 0,
           py::arg("cover_all") = false);
 }
