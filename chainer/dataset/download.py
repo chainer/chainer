@@ -104,6 +104,7 @@ def cached_download(url):
     with utils.tempdir(dir=cache_root) as temp_root:
         temp_path = os.path.join(temp_root, 'dl')
         sys.stderr.write('Downloading from {}...\n'.format(url))
+        sys.stderr.flush()
         request.urlretrieve(url, temp_path)
         with filelock.FileLock(lock_path):
             shutil.move(temp_path, cache_path)

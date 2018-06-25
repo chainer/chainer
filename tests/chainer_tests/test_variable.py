@@ -41,6 +41,132 @@ def constant(xs, value):
     return Constant(value)(*xs)
 
 
+class MulAdd(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        self.retain_inputs((0, 1))
+        a, b, c = inputs
+        return a * b + c,
+
+    def backward_accumulate(self, target_input_indexes, grad_outputs,
+                            grad_inputs):
+        a, b = self.get_retained_inputs()
+        g, = grad_outputs
+        ret = []
+        for i, g_in in zip(target_input_indexes, grad_inputs):
+            if i == 0:
+                ret.append(
+                    g * b
+                    if g_in is None else
+                    muladd(g, b, g_in)
+                )
+            elif i == 1:
+                ret.append(
+                    a * g
+                    if g_in is None else
+                    muladd(a, g, g_in)
+                )
+            elif i == 2:
+                ret.append(
+                    g
+                    if g_in is None else
+                    g + g_in
+                )
+            else:
+                assert False
+        return tuple(ret)
+
+
+def muladd(a, b, c):
+    return MulAdd().apply((a, b, c))[0]
+
+
+@testing.parameterize(*(
+    testing.product({
+        'var_mapping': [(0, 1, 2)],  # distinct
+        'in0_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+        'in1_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+        'in2_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+    }) + testing.product({
+        'var_mapping': [
+            (0, 0, 1),  # a == b != c
+            (0, 1, 0),
+            (0, 1, 1),
+        ],
+        'in0_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+        'in1_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+    }) + testing.product({
+        'var_mapping': [(0, 0, 0)],  # a == b == c
+        'in0_isvar_hasgrad': [(False, False), (True, False), (True, True)],
+    })
+))
+class TestBackwardAccumulate(unittest.TestCase):
+
+    shape = 3,
+
+    def setUp(self):
+        n = max(self.var_mapping) + 1
+        self.inputs_isvar_hasgrad = [
+            getattr(self, 'in{}_isvar_hasgrad'.format(i))
+            for i in range(n)]
+
+        shape = self.shape
+        self.inputs_data = [
+            np.random.randn(*shape).astype(np.float32)
+            for _ in range(n)]
+        self.inputs_grad = [
+            np.random.randn(*shape).astype(np.float32) if hasgrad else None
+            for _, hasgrad in self.inputs_isvar_hasgrad]
+        self.gy = np.random.randn(*shape).astype(np.float32)
+
+    def _get_inputs(self):
+        copied_data = [x.copy() for x in self.inputs_data]
+        copied_grad = [
+            None if g is None else g.copy() for g in self.inputs_data]
+        return [
+            chainer.Variable(x, grad=g) if isvar else x
+            for x, g, (isvar, _) in zip(
+                copied_data,
+                copied_grad,
+                self.inputs_isvar_hasgrad
+            )
+        ]
+
+    def check_backward_accumulate(self, xp):
+        inputs = self._get_inputs()
+        a, b, c = [inputs[i] for i in self.var_mapping]
+        y = muladd(a, b, c)
+        y.grad = self.gy
+        y.backward()
+
+        inputs2 = self._get_inputs()
+        a2, b2, c2 = [inputs2[i] for i in self.var_mapping]
+        y2 = chainer.as_variable(a2 * b2 + c2)
+        y2.grad = self.gy
+        y2.backward()
+
+        tol = {'atol': 1e-4, 'rtol': 1e-4}
+        for x, x2, (isvar, _) in zip(
+                inputs, inputs2, self.inputs_isvar_hasgrad):
+            if isvar:
+                xp.testing.assert_allclose(x.grad, x2.grad, **tol)
+
+    def test_backward_accumulate_cpu(self):
+        self.check_backward_accumulate(np)
+
+    def _to_gpu(self):
+        self.inputs_data = [cuda.to_gpu(x) for x in self.inputs_data]
+        self.inputs_grad = [
+            None if g is None else cuda.to_gpu(g)
+            for g in self.inputs_grad]
+        self.gy = cuda.to_gpu(self.gy)
+
+    @attr.gpu
+    def test_backward_accumulate_gpu(self):
+        self._to_gpu()
+        self.check_backward_accumulate(cuda.cupy)
+
+
 class TestVariableNode(unittest.TestCase):
 
     def test_grad(self):
@@ -1714,7 +1840,7 @@ class TestLossScale(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(3, 2), (2, 3, 4, 3)],
+    'shape': [(0,), (1,), (3, 2), (2, 3, 4, 3)],
     'dtype': [
         np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
         np.uint64, np.float16, np.float32, np.float64],
@@ -1791,7 +1917,7 @@ class TestIntel64(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(), (0,), (3, 2, 3), (4, 4, 3, 2, 3)],
+    'shape': [(), (3, 2, 3), (4, 4, 3, 2, 3)],
     'dtype': [
         np.int8, np.int16, np.int32, np.int64,
         np.uint8, np.uint16, np.uint32, np.uint64,
