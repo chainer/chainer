@@ -427,9 +427,9 @@ Array CudaConv::ConvGradWeight(
 
 #ifndef NDEBUG
     {
-        // w.shape = (out_channels, _, k_1, k_2, ..., k_N)
+        // w_shape = (out_channels, in_channels, k_1, k_2, ..., k_N)
         int64_t out_channels = w_shape[0];
-        // x_shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
+        // x.shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
         int64_t batch_size = x.shape()[0];
         // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
         Shape out_shape{batch_size, out_channels};
