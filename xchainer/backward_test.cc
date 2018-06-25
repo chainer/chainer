@@ -820,11 +820,11 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
 
         {
             BackwardBuilder bb{"func", y1};
-            bb.Define({x1}, [device = &x1.device()](BackwardContext & bctx) {
+            bb.Define({x1}, [& device = x1.device()](BackwardContext & bctx) {
                 const Array& gy1 = bctx.output_grad(0);
                 EXPECT_TRUE(gy1.IsConstant());
                 bctx.input_grad() =
-                        gy1.ToDevice(device->backend().GetDevice(device->index() + 1));  // Intentionally set to a different device.
+                        gy1.ToDevice(device.backend().GetDevice(device.index() + 1));  // Intentionally set to a different device.
             });
         }
     };
