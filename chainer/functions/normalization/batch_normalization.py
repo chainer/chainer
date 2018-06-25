@@ -16,14 +16,15 @@ if cuda.cudnn_enabled:
     libcudnn = cuda.cuda.cudnn
 
 
-def _compute_axis(x_ndim, param_ndim=1, axis=None):
+def _compute_axis(x_ndim, gamma_ndim=1, axis=None):
     if axis is None:
-        axis = (0,) + tuple(range(param_ndim + 1, x_ndim))
+        axis = (0,) + tuple(range(gamma_ndim + 1, x_ndim))
     return axis
 
 
-def _compute_key_axis(x_ndim, param_ndim=1, axis=None):
-    axis = _compute_axis(x_ndim, param_ndim, axis)
+# Computes a complementary set of axis
+def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
+    axis = _compute_axis(x_ndim, gamma_ndim, axis)
     key_axis = tuple([i for i in range(x_ndim) if i not in axis])
     return key_axis
 
@@ -180,7 +181,7 @@ class BatchNormalization(function_node.FunctionNode):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, self.mode))
             cudnn_mode = self.mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -329,7 +330,7 @@ class BatchNormalizationGrad(function.Function):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, self.mode))
             cudnn_mode = self.mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -513,7 +514,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, mode))
             cudnn_mode = mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -658,20 +659,13 @@ class _BNMode(object):
                 self.cudnn_dtype_ok)
 
 
-def _as4darray(arr, key_axis):
-    if arr.ndim == 4 and key_axis[0] == 1:
+def _as4darray(arr, mode):
+    assert mode.cudnn_dim_ok
+    if mode.is_for_conv2d:
+        assert arr.ndim == 4
         return arr
-    elif key_axis[0] == arr.ndim - 1:
+    else:  # is_for_linear
         return arr.reshape(numpy.prod(arr.shape[0:-1]), -1, 1, 1)
-    else:
-        msg = 'Unexpected combination of array shape and key_axis'
-        raise RuntimeError(msg)
-
-
-def _get_mode(x, gamma):
-    if x.ndim == 4 and gamma.ndim == 1:
-        return libcudnn.CUDNN_BATCHNORM_SPATIAL
-    return libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
 
 
 def _x_hat(x, mean, inv_std):
@@ -728,12 +722,12 @@ def batch_normalization(x, gamma, beta, **kwargs):
     which is referred to as the channel shape. This channel shape corresponds
     to the dimensions in the input which are not averaged over. Since the
     first dimension of the input corresponds to the batch size, the second
-    dimension of `x` will correspond to the first dimension of the channel
-    shape, the third dimension of `x` will correspond to the second channel
+    dimension of ``x`` will correspond to the first dimension of the channel
+    shape, the third dimension of ``x`` will correspond to the second channel
     dimension (if it exists) and so on. Therefore, the dimensionality of the
     input must be at least one plus the number of channel dimensions. The
     total effective "batch size" will then be considered to be the product of
-    all dimensions in `x` except for the channel dimensions.
+    all dimensions in ``x`` except for the channel dimensions.
 
     As an example, if the input is four dimensional and the parameter
     variables are one dimensional, then it is assumed that the first
@@ -743,14 +737,6 @@ def batch_normalization(x, gamma, beta, **kwargs):
     batch size in the batch normalization computations. That is,
     the total batch size will be considered to be the product of all
     input dimensions except the second dimension.
-
-    Note: If this function is called, it will not be possible to access the
-    updated running mean and variance statistics, because they are members
-    of the function object, which cannot be accessed by the caller.
-    If it is desired to access the updated running statistics, it is necessary
-    to get a new instance of the function object, call the object, and then
-    access the running_mean and/or running_var attributes. See the
-    corresponding Link class for an example of how to do this.
 
     .. warning::
 
@@ -764,17 +750,19 @@ def batch_normalization(x, gamma, beta, **kwargs):
         beta (Variable): Shifting parameter of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
         running_mean (numpy.ndarray or cupy.ndarray):
-            Running average of the mean. This is a
-            running average of the mean over several mini-batches using
-            the decay parameter. If ``None``, the running average is not
-            computed. If this is ``None``, then ``runnng_var`` must also
-            be ``None``.
+            Running average of the mean. This is a running average of
+            the mean over several mini-batches using the decay parameter.
+            The function takes a previous running average, and updates
+            the array in-place by the new running average.
+            If ``None``, the running average is not computed. If this is
+            ``None``, then ``runnng_var`` must also be ``None``.
         running_var (numpy.ndarray or cupy.ndarray):
-            Running average of the variance. This is a
-            running average of the variance over several mini-batches using
-            the decay parameter. If ``None``, the running average is not
-            computed. If this is ``None``, then ``running_mean`` must also
-            be ``None``.
+            Running average of the variance. This is a running average of
+            the variance over several mini-batches using the decay parameter.
+            The function takes a previous running average, and updates
+            the array in-place by the new running average.
+            If ``None``, the running average is not computed. If this is
+            ``None``, then ``running_mean`` must also be ``None``.
         decay (float): Decay rate of moving average. It is used during
             training.
         axis (int, tuple of int or None): Axis over which normalization is
@@ -789,16 +777,15 @@ def batch_normalization(x, gamma, beta, **kwargs):
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
-    .. seealso:: :class:`links.BatchNormalization`
+    .. seealso:: :class:`~chainer.links.BatchNormalization`
 
     """  # NOQA
 
-    argument.check_unexpected_kwargs(
-        kwargs, train='train argument is not supported anymore. '
-        'Use chainer.using_config')
     eps, running_mean, running_var, decay, axis = argument.parse_kwargs(
         kwargs, ('eps', 2e-5), ('running_mean', None),
-        ('running_var', None), ('decay', 0.9), ('axis', None))
+        ('running_var', None), ('decay', 0.9), ('axis', None),
+        train='train argument is not supported anymore. '
+        'Use chainer.using_config')
 
     return BatchNormalization(eps, running_mean, running_var, decay,
                               axis).apply((x, gamma, beta))[0]
@@ -829,8 +816,8 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
             order. For example, (0, 2) is OK, but (2, 0) is not.
 
     .. seealso::
-       :func:`functions.batch_normalization`,
-       :class:`links.BatchNormalization`
+       :func:`~chainer.functions.batch_normalization`,
+       :class:`~chainer.links.BatchNormalization`
 
     """
     return FixedBatchNormalization(eps, axis).apply((x, gamma, beta, mean,

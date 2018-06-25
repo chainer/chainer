@@ -189,9 +189,6 @@ def main():
     print('Output type: {}'.format(args.out_type))
     print('')
 
-    if args.gpu >= 0:
-        cuda.get_device_from_id(args.gpu).use()
-
     # Load the dataset
     train, val, _ = chainer.datasets.get_ptb_words()
     counts = collections.Counter(train)

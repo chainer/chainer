@@ -191,6 +191,30 @@ class TestUpdateRule(unittest.TestCase):
         self.update_rule.update(self.var)
 
 
+class TestOptimizer(unittest.TestCase):
+
+    def setUp(self):
+        self.optimizer = optimizer.Optimizer()
+
+    def test_new_epoch(self):
+        self.optimizer.new_epoch()
+        self.assertEqual(1, self.optimizer.epoch)
+
+    def test_invalid_new_epoch(self):
+        self.optimizer.use_auto_new_epoch = True
+        with self.assertRaises(RuntimeError):
+            self.optimizer.new_epoch()
+
+    def test_auto_new_epoch(self):
+        self.optimizer.use_auto_new_epoch = True
+        self.optimizer.new_epoch(auto=True)
+        self.assertEqual(1, self.optimizer.epoch)
+
+    def test_invalid_auto_new_epoch(self):
+        with self.assertRaises(RuntimeError):
+            self.optimizer.new_epoch(auto=True)
+
+
 class TestOptimizerHook(unittest.TestCase):
 
     def setUp(self):
