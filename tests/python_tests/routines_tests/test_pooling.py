@@ -84,13 +84,15 @@ def _create_average_pool_args(xp, device, x_shape, ksize, stride, pad, pad_mode,
         else:
             if pad_mode == 'zero':
                 ret_args['pad_value'] = 0
+            elif pad_mode == 'ignore':
+                ret_args['pad_value'] = None
             else:
                 pytest.fail('pad_mode: %s is not supported' % pad_mode)
-
 
     return ret_args
 
 
+@pytest.mark.filterwarnings('ignore:invalid value encountered in true_divide')  # ignore warning occuring when pad_value is None in chainer
 @pytest.mark.parametrize('x_shape,ksize,stride,pad', [
     ((2, 3, 4), (1,), 1, 0),
     ((1, 3, 4), (2, ), 3, 2),
@@ -102,10 +104,10 @@ def _create_average_pool_args(xp, device, x_shape, ksize, stride, pad, pad_mode,
     ((1, 3, 2, 6, 3), (1, 3, 2), 2, (2, 0, 1)),
     ((1, 3, 2, 6, 3), (1, 3, 2), (1, 2, 3), (2, 0, 1)),
     ((2, 3, 2, 6, 3), (1, 3, 2), (1, 2, 3), (2, 0, 1)),
-    ((1, 3, 2, 6, 3, 2), (1, 3, 2, 2), 2, 2),
+    ((1, 3, 2, 6, 3, 2), (1, 3, 1, 1), 1, 1),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('pad_mode', ['zero', None])
+@pytest.mark.parametrize('pad_mode', ['zero', 'ignore', None])
 def test_average_pool(device, x_shape, ksize, stride, pad, pad_mode, float_dtype):
     if device.backend.name == 'cuda' and len(ksize) != 2 and len(ksize) != 3:
         # cuDNN supports only 2 and 3 spatial dimensions.
@@ -125,7 +127,7 @@ def test_average_pool(device, x_shape, ksize, stride, pad, pad_mode, float_dtype
     ((1, 3, 4, 3), (2, 2), 3, (2,)),  # Wrong number of paddings.
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('pad_mode', ['zero', None])
+@pytest.mark.parametrize('pad_mode', ['zero', 'ignore', None])
 def test_average_pool_invalid(device, x_shape, ksize, stride, pad, pad_mode, float_dtype):
     with pytest.raises(xchainer.DimensionError):
         xchainer.average_pool(**_create_average_pool_args(xchainer, device, x_shape, ksize, stride, pad, pad_mode, float_dtype))
