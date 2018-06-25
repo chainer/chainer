@@ -520,22 +520,33 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("stride") = py::none(),
           py::arg("pad") = 0,
           py::arg("cover_all") = false);
-    // TODO(sonots): pad_mode
     m.def("average_pool",
-          [](const ArrayBodyPtr& x, py::handle ksize, py::handle stride, py::handle pad) {
+          [](const ArrayBodyPtr& x, py::handle ksize, py::handle stride, py::handle pad, const std::string& pad_mode) {
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
+
+              AveragePoolPadMode mode{};
+              if (pad_mode == "zero") {
+                  mode = AveragePoolPadMode::kZero;
+              } else if (pad_mode == "ignore") {
+                  mode = AveragePoolPadMode::kIgnore;
+              } else {
+                  throw XchainerError{"pad_mode must be either of 'zero' or 'ignore'"};
+              }
+
               return AveragePool(
                              x_array,
                              ToStackVector<int64_t>(ksize, ndim),
                              stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
-                             ToStackVector<int64_t>(pad, ndim))
+                             ToStackVector<int64_t>(pad, ndim),
+                             mode)
                       .move_body();
           },
           py::arg("x"),
           py::arg("ksize"),
           py::arg("stride") = py::none(),
-          py::arg("pad") = 0);
+          py::arg("pad") = 0,
+          py::arg("pad_mode") = "zero");
 }
 
 }  // namespace internal
