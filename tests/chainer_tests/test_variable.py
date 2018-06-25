@@ -7,6 +7,7 @@ import unittest
 
 import mock
 import numpy as np
+import pytest
 import six
 
 import chainer
@@ -170,7 +171,7 @@ class TestBackwardAccumulate(unittest.TestCase):
 class TestVariableNode(unittest.TestCase):
 
     def test_grad(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             variable.VariableNode(chainer.Variable(), '', grad=None)
 
 
@@ -233,7 +234,7 @@ class TestVariable(unittest.TestCase):
             x = cuda.to_gpu(x)
         x = chainer.Variable(x)
         if x.ndim == 0:
-            self.assertRaises(TypeError, x.__len__)
+            pytest.raises(TypeError, x.__len__)
         else:
             assert len(x) == self.x_shape[0]
 
@@ -460,23 +461,23 @@ class TestVariable(unittest.TestCase):
 
     def test_grad_type_check_pass_type(self):
         a = chainer.Variable(np.empty((), dtype=np.float32))
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             a.grad = np.float32()
 
     @attr.gpu
     def test_grad_type_check_type_cpu_gpu_mixture(self):
         a = chainer.Variable(np.empty((3,), dtype=np.float32))
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             a.grad = cuda.cupy.empty((3,), dtype=np.float32)
 
     def test_grad_type_check_dtype(self):
         a = chainer.Variable(np.empty((3,), dtype=np.float32))
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             a.grad = np.empty((3,), dtype=np.float64)
 
     def test_grad_type_check_shape(self):
         a = chainer.Variable(np.empty((3,), dtype=np.float32))
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             a.grad = np.empty((2,), dtype=np.float32)
 
     def test_to_cpu_from_cpu(self):
@@ -832,33 +833,33 @@ class TestVariableBasic(unittest.TestCase):
     def test_unequatable(self):
         a = chainer.Variable(np.ones((2,)))
         b = chainer.Variable(np.ones((2,)))
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             a == b
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             a == a
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             a != b
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             a != a
 
     def test_uncomparable(self):
         a = chainer.Variable(np.ones((2,)))
         b = chainer.Variable(np.ones((2,)))
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             a < b
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             a <= b
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             a > b
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             a >= b
 
     def test_bool_inconvertible(self):
         a = chainer.Variable(np.ones((2,)))
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             if a:
                 pass
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             if not a:
                 pass
 
@@ -1403,7 +1404,7 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
         x = chainer.Variable(x)
         y = F.identity(x)
         y.grad = np.array([np.nan], np.float32)
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             y.backward()
 
     def test_int(self):
@@ -1708,7 +1709,7 @@ class TestVariableDoubleBackward(unittest.TestCase):
         x = chainer.Variable(np.empty((), np.float32))
         y = IdentityFunction()(x)
         y.backward(enable_double_backprop=True)
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             x.grad_var.backward()
 
     def test_raise_double_backprop_2(self):
@@ -1716,14 +1717,14 @@ class TestVariableDoubleBackward(unittest.TestCase):
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         y.backward(enable_double_backprop=True)
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             x.grad_var.backward()
 
     def test_grad_raise_double_backprop(self):
         x = chainer.Variable(np.empty((), np.float32))
         y = IdentityFunction()(x)
         y.backward(enable_double_backprop=True)
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             chainer.grad([x.grad_var], [y.grad_var])
 
     def test_grad_raise_double_backprop_2(self):
@@ -1731,7 +1732,7 @@ class TestVariableDoubleBackward(unittest.TestCase):
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         y.backward(enable_double_backprop=True)
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             chainer.grad([x.grad_var], [y.grad_var])
 
 
@@ -1753,7 +1754,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         y = IdentityFunction()(x)
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             x.grad_var.backward()
 
     def test_raise_double_backprop_2(self):
@@ -1762,7 +1763,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         y = IdentityFunction()(z)  # old style
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             x.grad_var.backward()
 
     def test_grad_raise_double_backprop(self):
@@ -1770,7 +1771,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         y = IdentityFunction()(x)
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             chainer.grad([x.grad_var], [y.grad_var])
 
     def test_grad_raise_double_backprop_2(self):
@@ -1779,7 +1780,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         y = IdentityFunction()(z)  # old style
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             chainer.grad([x.grad_var], [y.grad_var])
 
 
