@@ -520,6 +520,23 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("stride") = py::none(),
           py::arg("pad") = 0,
           py::arg("cover_all") = false);
+    // TODO(sonots): pad_mode
+    m.def("average_pool",
+          [](const ArrayBodyPtr& x, py::handle ksize, py::handle stride, py::handle pad) {
+              Array x_array{x};
+              int8_t ndim = x_array.ndim() - 2;
+              return AveragePool(
+                             x_array,
+                             ToStackVector<int64_t>(ksize, ndim),
+                             stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
+                             ToStackVector<int64_t>(pad, ndim),
+                             AveragePoolPadMode::kZero)
+                      .move_body();
+          },
+          py::arg("x"),
+          py::arg("ksize"),
+          py::arg("stride") = py::none(),
+          py::arg("pad") = 0);
 }
 
 }  // namespace internal

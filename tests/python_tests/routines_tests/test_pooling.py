@@ -68,3 +68,51 @@ def test_max_pool(device, x_shape, ksize, stride, pad, cover_all, float_dtype):
 def test_max_pool_invalid(device, x_shape, ksize, stride, pad, cover_all, float_dtype):
     with pytest.raises(xchainer.DimensionError):
         xchainer.max_pool(**_create_max_pool_args(xchainer, device, x_shape, ksize, stride, pad, cover_all, float_dtype))
+
+
+def _create_average_pool_args(xp, device, x_shape, ksize, stride, pad, float_dtype):
+    x = array_utils.create_dummy_ndarray(xp, x_shape, float_dtype)
+    ret_args = dict(x=x, ksize=ksize)
+    if stride is not None:
+        ret_args['stride'] = stride
+    if pad is not None:
+        ret_args['pad'] = pad
+    return ret_args
+
+
+@pytest.mark.parametrize('x_shape,ksize,stride,pad', [
+    ((2, 3, 4), (1,), 1, 0),
+    ((1, 3, 4), (2, ), 3, 2),
+    ((1, 3, 4), (2,), 3, 2),
+    ((2, 3, 4, 4), (3, 3), 1, 0),
+    ((2, 3, 4, 4), (3, 3), None, 0),
+    ((1, 3, 4, 4), (3, 3), (1, 2), 1),
+    ((1, 3, 4, 4), (3, 3), 2, (2, 0)),
+    ((1, 3, 2, 6, 3), (1, 3, 2), 2, (2, 0, 1)),
+    ((1, 3, 2, 6, 3), (1, 3, 2), (1, 2, 3), (2, 0, 1)),
+    ((2, 3, 2, 6, 3), (1, 3, 2), (1, 2, 3), (2, 0, 1)),
+    ((1, 3, 2, 6, 3, 2), (1, 3, 2, 2), 2, 2),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_average_pool(device, x_shape, ksize, stride, pad, float_dtype):
+    if device.backend.name == 'cuda' and len(ksize) != 2 and len(ksize) != 3:
+        # cuDNN supports only 2 and 3 spatial dimensions.
+        return xchainer.testing.ignore()
+
+    def create_args(xp):
+        return _create_average_pool_args(xp, device, x_shape, ksize, stride, pad, float_dtype)
+
+    xchainer.testing.assert_allclose(xchainer.average_pool(**create_args(xchainer)),
+                                     chainer.functions.average_pooling_nd(**create_args(numpy)).data)
+
+
+@pytest.mark.parametrize('x_shape,ksize,stride,pad', [
+    ((1, 3), (), 1, 0),               # Requires at least one spatial dimension
+    ((2, 3, 4, 3), (2, 2, 1), 3, 2),  # Wrong number of ksize.
+    ((2, 3, 4, 3), (2, 2), (1,), 0),  # Wrong number of strides.
+    ((1, 3, 4, 3), (2, 2), 3, (2,)),  # Wrong number of paddings.
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_average_pool_invalid(device, x_shape, ksize, stride, pad, float_dtype):
+    with pytest.raises(xchainer.DimensionError):
+        xchainer.average_pool(**_create_average_pool_args(xchainer, device, x_shape, ksize, stride, pad, float_dtype))
