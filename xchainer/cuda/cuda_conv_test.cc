@@ -46,22 +46,22 @@ TEST(CudaConvTest, FwdAlgoCache) {
         StackVector<int64_t, kMaxNdim> pad{2, 0};
         bool cover_all = false;
 
-        EXPECT_EQ(size_t{0}, GetFwdAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{0}, internal::GetFwdAlgoCacheMapSize(cuda_conv));
         cuda_conv.Conv(device, x, w, b, stride, pad, cover_all);
-        EXPECT_EQ(size_t{1}, GetFwdAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{1}, internal::GetFwdAlgoCacheMapSize(cuda_conv));
         cuda_conv.Conv(device, x, w, b, stride, pad, cover_all);
-        EXPECT_EQ(size_t{1}, GetFwdAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{1}, internal::GetFwdAlgoCacheMapSize(cuda_conv));
     }
     {
         StackVector<int64_t, kMaxNdim> stride{1, 1};
         StackVector<int64_t, kMaxNdim> pad{0, 0};
         bool cover_all = false;
 
-        EXPECT_EQ(size_t{1}, GetFwdAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{1}, internal::GetFwdAlgoCacheMapSize(cuda_conv));
         Conv(x, w, b, stride, pad, cover_all);
-        EXPECT_EQ(size_t{2}, GetFwdAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{2}, internal::GetFwdAlgoCacheMapSize(cuda_conv));
         Conv(x, w, b, stride, pad, cover_all);
-        EXPECT_EQ(size_t{2}, GetFwdAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{2}, internal::GetFwdAlgoCacheMapSize(cuda_conv));
     }
 }
 
@@ -91,21 +91,21 @@ TEST(CudaConvTest, BwdDatadAlgoCache) {
         StackVector<int64_t, kMaxNdim> stride{3, 2};
         StackVector<int64_t, kMaxNdim> pad{2, 0};
 
-        EXPECT_EQ(size_t{0}, GetBwdDataAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{0}, internal::GetBwdDataAlgoCacheMapSize(cuda_conv));
         ConvTranspose(x, w, b, stride, pad);
-        EXPECT_EQ(size_t{1}, GetBwdDataAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{1}, internal::GetBwdDataAlgoCacheMapSize(cuda_conv));
         ConvTranspose(x, w, b, stride, pad);
-        EXPECT_EQ(size_t{1}, GetBwdDataAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{1}, internal::GetBwdDataAlgoCacheMapSize(cuda_conv));
     }
     {
         StackVector<int64_t, kMaxNdim> stride{1, 1};
         StackVector<int64_t, kMaxNdim> pad{0, 0};
 
-        EXPECT_EQ(size_t{1}, GetBwdDataAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{1}, internal::GetBwdDataAlgoCacheMapSize(cuda_conv));
         ConvTranspose(x, w, b, stride, pad);
-        EXPECT_EQ(size_t{2}, GetBwdDataAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{2}, internal::GetBwdDataAlgoCacheMapSize(cuda_conv));
         ConvTranspose(x, w, b, stride, pad);
-        EXPECT_EQ(size_t{2}, GetBwdDataAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{2}, internal::GetBwdDataAlgoCacheMapSize(cuda_conv));
     }
 }
 
@@ -140,11 +140,11 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
         std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
         Array gy = testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1);
 
-        EXPECT_EQ(size_t{0}, GetBwdFilterAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{0}, internal::GetBwdFilterAlgoCacheMapSize(cuda_conv));
         device.ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
-        EXPECT_EQ(size_t{1}, GetBwdFilterAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{1}, internal::GetBwdFilterAlgoCacheMapSize(cuda_conv));
         device.ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
-        EXPECT_EQ(size_t{1}, GetBwdFilterAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{1}, internal::GetBwdFilterAlgoCacheMapSize(cuda_conv));
     }
     {
         StackVector<int64_t, kMaxNdim> stride{1, 1};
@@ -156,11 +156,11 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
         std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
         Array gy = testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1);
 
-        EXPECT_EQ(size_t{1}, GetBwdFilterAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{1}, internal::GetBwdFilterAlgoCacheMapSize(cuda_conv));
         device.ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
-        EXPECT_EQ(size_t{2}, GetBwdFilterAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{2}, internal::GetBwdFilterAlgoCacheMapSize(cuda_conv));
         device.ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
-        EXPECT_EQ(size_t{2}, GetBwdFilterAlgoCacheMapSize(cuda_conv));
+        EXPECT_EQ(size_t{2}, internal::GetBwdFilterAlgoCacheMapSize(cuda_conv));
     }
 }
 

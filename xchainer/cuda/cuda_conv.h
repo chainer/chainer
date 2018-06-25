@@ -22,6 +22,13 @@ class CudaDevice;
 
 namespace internal {
 
+#if XCHAINER_ENABLE_TEST
+class CudaConv;
+size_t GetFwdAlgoCacheMapSize(const CudaConv& cuda_conv);
+size_t GetBwdDataAlgoCacheMapSize(const CudaConv& cuda_conv);
+size_t GetBwdFilterAlgoCacheMapSize(const CudaConv& cuda_conv);
+#endif
+
 class CudaConv {
 public:
     Array Conv(
@@ -117,15 +124,21 @@ private:
     using BwdFilterAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t>, AlgoCacheKeyHash>;
 
 #if XCHAINER_ENABLE_TEST
-    friend size_t GetFwdAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.fwd_algo_cache_map_.size(); }
-    friend size_t GetBwdDataAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.bwd_data_algo_cache_map_.size(); }
-    friend size_t GetBwdFilterAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.bwd_filter_algo_cache_map_.size(); }
+    friend size_t GetFwdAlgoCacheMapSize(const CudaConv& cuda_conv);
+    friend size_t GetBwdDataAlgoCacheMapSize(const CudaConv& cuda_conv);
+    friend size_t GetBwdFilterAlgoCacheMapSize(const CudaConv& cuda_conv);
 #endif
 
     FwdAlgoCacheMap fwd_algo_cache_map_{};
     BwdDataAlgoCacheMap bwd_data_algo_cache_map_{};
     BwdFilterAlgoCacheMap bwd_filter_algo_cache_map_{};
 };
+
+#if XCHAINER_ENABLE_TEST
+inline size_t GetFwdAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.fwd_algo_cache_map_.size(); }
+inline size_t GetBwdDataAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.bwd_data_algo_cache_map_.size(); }
+inline size_t GetBwdFilterAlgoCacheMapSize(const CudaConv& cuda_conv) { return cuda_conv.bwd_filter_algo_cache_map_.size(); }
+#endif
 
 }  // namespace internal
 }  // namespace cuda
