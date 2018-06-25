@@ -200,10 +200,10 @@ class TestVariable(unittest.TestCase):
         self.assertIsInstance(x.data, xp.ndarray)
         self.assertIsInstance(x.array, xp.ndarray)
         assert x.data is x.array
-        self.assertEqual(x.shape, self.x.shape)
-        self.assertEqual(x.ndim, self.x.ndim)
-        self.assertEqual(x.size, self.x.size)
-        self.assertEqual(x.dtype, self.x.dtype)
+        assert x.shape == self.x.shape
+        assert x.ndim == self.x.ndim
+        assert x.size == self.x.size
+        assert x.dtype == self.x.dtype
         assert x.requires_grad
         assert x.node.requires_grad
 
@@ -235,7 +235,7 @@ class TestVariable(unittest.TestCase):
         if x.ndim == 0:
             self.assertRaises(TypeError, x.__len__)
         else:
-            self.assertEqual(len(x), self.x_shape[0])
+            assert len(x) == self.x_shape[0]
 
     def test_len_cpu(self):
         self.check_len(False)
@@ -269,7 +269,7 @@ class TestVariable(unittest.TestCase):
         if gpu:
             c = cuda.to_gpu(c)
         c = chainer.Variable(c)
-        self.assertEqual(c.label, expected)
+        assert c.label == expected
 
     def test_label_cpu(self):
         self.check_label(self.label, False)
@@ -320,7 +320,7 @@ class TestVariable(unittest.TestCase):
         y = constant((x, x, x), (self.a, ))
         y.grad = xp.zeros_like(y.data)
         y.backward()
-        self.assertEqual(x.grad_var.shape, self.x_shape)
+        assert x.grad_var.shape == self.x_shape
 
     def test_backward_accumulate_cpu(self):
         self.check_backward_accumulate(False)
@@ -377,7 +377,7 @@ class TestVariable(unittest.TestCase):
         old_rank = ret[1].rank
         ret[1].unchain()
         assert ret[1].creator is None
-        self.assertEqual(ret[1].rank, old_rank)
+        assert ret[1].rank == old_rank
         self.check_backward((ret[1],), (ret[2],), (ret[3],), False)
 
     def check_set_none_to_creator(self, use_creator_node):
@@ -389,7 +389,7 @@ class TestVariable(unittest.TestCase):
             ret[1].creator = None
         assert ret[1].creator is None
         assert ret[1].creator_node is None
-        self.assertEqual(ret[1].rank, old_rank)
+        assert ret[1].rank == old_rank
         self.check_backward((ret[1],), (ret[2],), (ret[3],), False)
 
     def test_set_none_to_creator(self):
@@ -404,12 +404,12 @@ class TestVariable(unittest.TestCase):
         creator_node = ret[1].creator_node
         ret[1].creator = None
         assert ret[1].creator is None
-        self.assertEqual(ret[1].rank, old_rank)
+        assert ret[1].rank == old_rank
 
         ret[1].node._rank = -1
         ret[1].creator_node = creator_node
         assert ret[1].creator_node is creator_node
-        self.assertEqual(ret[1].rank, creator_node.rank + 1)
+        assert ret[1].rank == creator_node.rank + 1
         self.check_backward((ret[0],), (ret[1],), (ret[2],), False)
 
     def test_set_fresh_creator(self):
@@ -418,7 +418,7 @@ class TestVariable(unittest.TestCase):
         v.creator = f
         assert v.creator is f
         assert v.creator_node is f.node
-        self.assertEqual(v.rank, 1)
+        assert v.rank == 1
 
     def test_set_fresh_creator_node(self):
         v = chainer.Variable()
@@ -426,7 +426,7 @@ class TestVariable(unittest.TestCase):
         v.creator_node = f
         assert v.creator is f
         assert v.creator_node is f
-        self.assertEqual(v.rank, 1)
+        assert v.rank == 1
 
     def test_unchain_backward_cpu(self):
         ret = self.create_linear_chain(3, False)
@@ -537,8 +537,8 @@ class TestVariable(unittest.TestCase):
         gb = a.grad.copy()
         a.to_gpu(1)
 
-        self.assertEqual(int(cuda.get_device_from_array(a.data)), 1)
-        self.assertEqual(int(cuda.get_device_from_array(a.grad)), 1)
+        assert int(cuda.get_device_from_array(a.data)) == 1
+        assert int(cuda.get_device_from_array(a.grad)) == 1
         cp.testing.assert_array_equal(a.data, b)
         cp.testing.assert_array_equal(a.grad, gb)
 
@@ -594,7 +594,7 @@ class TestVariable(unittest.TestCase):
         with testing.assert_warns(DeprecationWarning):
             a.zerograd()
         assert a.grad is not None
-        self.assertEqual(int(a.grad.device), 1)
+        assert int(a.grad.device) == 1
         with cuda.get_device_from_id(1):
             g_expect = cupy.zeros_like(a.data)
             cupy.testing.assert_array_equal(a.grad, g_expect)
@@ -607,7 +607,7 @@ class TestVariable(unittest.TestCase):
             a.grad = cupy.empty_like(a.data)
         with testing.assert_warns(DeprecationWarning):
             a.zerograd()
-        self.assertEqual(int(a.grad.device), 1)
+        assert int(a.grad.device) == 1
         with cuda.get_device_from_id(1):
             g_expect = cupy.zeros_like(a.data)
             cupy.testing.assert_array_equal(a.grad, g_expect)
@@ -676,8 +676,8 @@ class TestVariable(unittest.TestCase):
             b.cleargrad()
         b.addgrad(a)
         xp.testing.assert_array_equal(b.grad, expect)
-        self.assertEqual(cuda.get_device_from_array(b.data),
-                         cuda.get_device_from_array(b.grad))
+        assert cuda.get_device_from_array(b.data) \
+            == cuda.get_device_from_array(b.grad)
 
     def test_addgrad_cpu_to_cpu(self):
         self.check_addgrad(np.full(3, 10, dtype=np.float32),
@@ -939,15 +939,15 @@ class TestParameter(unittest.TestCase):
         x.grad = g
         x.update_rule = update_rule
         x.update()
-        self.assertEqual(update_rule.update.call_count, 1)
-        self.assertEqual(update_rule.update.call_args_list[0], [(x,), {}])
+        assert update_rule.update.call_count == 1
+        assert update_rule.update.call_args_list[0] == [(x,), {}]
 
     def test_update_rule_without_grad(self):
         update_rule = mock.MagicMock()
         x = chainer.Parameter(self.a)
         x.update_rule = update_rule
         x.update()
-        self.assertEqual(update_rule.update.call_count, 1)
+        assert update_rule.update.call_count == 1
 
 
 class TestUninitializedParameter(unittest.TestCase):
@@ -964,8 +964,8 @@ class TestUninitializedParameter(unittest.TestCase):
     def test_initialize(self):
         x = chainer.Parameter()
         x.initialize((3, 2))
-        self.assertEqual(x.shape, (3, 2))
-        self.assertEqual(x.dtype, np.float32)
+        assert x.shape == (3, 2)
+        assert x.dtype == np.float32
         np.testing.assert_array_equal(x.data, np.float32('nan'))
         np.testing.assert_array_equal(x.grad, np.float32('nan'))
 
@@ -983,15 +983,15 @@ class TestUninitializedParameter(unittest.TestCase):
         initializer = initializers.Zero(np.float64)
         x = chainer.Parameter(initializer=initializer)
         x.initialize((2, 3))
-        self.assertEqual(x.data.dtype, np.float64)
-        self.assertEqual(x.grad.dtype, np.float64)
+        assert x.data.dtype == np.float64
+        assert x.grad.dtype == np.float64
 
     def test_initialize_node(self):
         initializer = initializers.Zero(np.float64)
         x = chainer.Parameter(initializer=initializer)
         x.initialize((2, 3))
-        self.assertEqual(x.node.shape, (2, 3))
-        self.assertEqual(x.node.dtype, np.float64)
+        assert x.node.shape == (2, 3)
+        assert x.node.dtype == np.float64
 
     @attr.gpu
     def test_initialize_to_gpu(self):
@@ -1031,8 +1031,8 @@ class TestUninitializedParameter(unittest.TestCase):
 
     def check_zerograd(self, x, xp):
         self.assertIsInstance(x.grad, xp.ndarray)
-        self.assertEqual(x.grad.shape, x.data.shape)
-        self.assertEqual(x.grad.dtype, x.data.dtype)
+        assert x.grad.shape == x.data.shape
+        assert x.grad.dtype == x.data.dtype
         xp.testing.assert_array_equal(x.grad, 0)
 
     def test_zerograd(self):
@@ -1065,7 +1065,7 @@ class TestUninitializedParameter(unittest.TestCase):
         with testing.assert_warns(DeprecationWarning):
             x.zerograd()
         x.initialize((3, 2))
-        self.assertEqual(x.grad.dtype, x.data.dtype)
+        assert x.grad.dtype == x.data.dtype
 
     def test_copydata_to_uninitialized_parameter(self):
         x = chainer.Parameter()
@@ -1172,8 +1172,8 @@ class TestUninitializedParameter(unittest.TestCase):
         cp = cuda.cupy
         self.assertIsInstance(x.data, cp.ndarray)
         self.assertIsInstance(x.grad, cp.ndarray)
-        self.assertEqual(int(x.data.device), 1)
-        self.assertEqual(int(x.grad.device), 1)
+        assert int(x.data.device) == 1
+        assert int(x.grad.device) == 1
         cp.testing.assert_array_equal(x.grad, self.b)
 
 
@@ -1258,8 +1258,8 @@ class TestVariableSetCreator(unittest.TestCase):
     def check_set_creator(self, x):
         x = chainer.Variable(x)
         x.set_creator(self.f)
-        self.assertEqual(x.creator, self.f)
-        self.assertEqual(x.rank, 11)
+        assert x.creator == self.f
+        assert x.rank == 11
 
     def test_set_creator_cpu(self):
         self.check_set_creator(self.x)
@@ -1271,8 +1271,8 @@ class TestVariableSetCreator(unittest.TestCase):
     def check_set_creator_node(self, x):
         x = chainer.Variable(x)
         x.set_creator_node(self.node)
-        self.assertEqual(x.creator_node, self.node)
-        self.assertEqual(x.rank, 11)
+        assert x.creator_node == self.node
+        assert x.rank == 11
 
     def test_set_creator_node_cpu(self):
         self.check_set_creator_node(self.x)
@@ -1428,7 +1428,7 @@ class TestReshape(unittest.TestCase):
         shape = self.out_shape
         x = chainer.Variable(x_data)
         y = x.reshape(shape)
-        self.assertEqual(y.data.dtype, self.dtype)
+        assert y.data.dtype == self.dtype
         assert (self.x.reshape(shape) == cuda.to_cpu(y.data)).all()
 
     def test_forward_cpu(self):
@@ -1467,7 +1467,7 @@ class TestTranspose(unittest.TestCase):
         axes = self.axes
         x = chainer.Variable(x_data)
         y = x.transpose(*axes)
-        self.assertEqual(y.data.dtype, self.dtype)
+        assert y.data.dtype == self.dtype
         assert (self.x.transpose(*axes) == cuda.to_cpu(y.data)).all()
 
     def test_forward_cpu(self):
@@ -1504,20 +1504,20 @@ class UnnamedVariableToStringTestBase(object):
             self.x = chainer.Variable(x)
 
     def test_repr_cpu(self):
-        self.assertEqual(repr(self.x), self.repr)
+        assert repr(self.x) == self.repr
 
     def test_str_cpu(self):
-        self.assertEqual(str(self.x), self.str)
+        assert str(self.x) == self.str
 
     @attr.gpu
     def test_repr_gpu(self):
         self.x.to_gpu()
-        self.assertEqual(repr(self.x), self.repr)
+        assert repr(self.x) == self.repr
 
     @attr.gpu
     def test_str_gpu(self):
         self.x.to_gpu()
-        self.assertEqual(str(self.x), self.str)
+        assert str(self.x) == self.str
 
 
 @testing.parameterize(
@@ -1578,20 +1578,20 @@ class TestUnnamedVariableDim2Size0ToString(unittest.TestCase):
         self.str = 'variable([])'
 
     def test_repr_cpu(self):
-        self.assertEqual(repr(self.x), self.repr)
+        assert repr(self.x) == self.repr
 
     def test_str_cpu(self):
-        self.assertEqual(str(self.x), self.str)
+        assert str(self.x) == self.str
 
     @attr.gpu
     def test_repr_gpu(self):
         self.x.to_gpu()
-        self.assertEqual(repr(self.x), self.repr)
+        assert repr(self.x) == self.repr
 
     @attr.gpu
     def test_str_gpu(self):
         self.x.to_gpu()
-        self.assertEqual(str(self.x), self.str)
+        assert str(self.x) == self.str
 
 
 class NamedVariableToStringTestBase(object):
@@ -1606,20 +1606,20 @@ class NamedVariableToStringTestBase(object):
             self.x = chainer.Variable(x, name='x')
 
     def test_named_repr(self):
-        self.assertEqual(repr(self.x), self.repr)
+        assert repr(self.x) == self.repr
 
     def test_named_str(self):
-        self.assertEqual(str(self.x), self.str)
+        assert str(self.x) == self.str
 
     @attr.gpu
     def test_repr_gpu(self):
         self.x.to_gpu()
-        self.assertEqual(repr(self.x), self.repr)
+        assert repr(self.x) == self.repr
 
     @attr.gpu
     def test_str_gpu(self):
         self.x.to_gpu()
-        self.assertEqual(str(self.x), self.str)
+        assert str(self.x) == self.str
 
 
 @testing.parameterize(
@@ -1668,20 +1668,20 @@ class TestNamedVariableDim2Size0ToString(unittest.TestCase):
         self.str = 'variable x([])'
 
     def test_named_repr(self):
-        self.assertEqual(repr(self.x), self.repr)
+        assert repr(self.x) == self.repr
 
     def test_named_str(self):
-        self.assertEqual(str(self.x), self.str)
+        assert str(self.x) == self.str
 
     @attr.gpu
     def test_repr_gpu(self):
         self.x.to_gpu()
-        self.assertEqual(repr(self.x), self.repr)
+        assert repr(self.x) == self.repr
 
     @attr.gpu
     def test_str_gpu(self):
         self.x.to_gpu()
-        self.assertEqual(str(self.x), self.str)
+        assert str(self.x) == self.str
 
 
 class IdentityFunction(chainer.Function):
