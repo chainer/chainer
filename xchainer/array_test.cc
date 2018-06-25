@@ -668,6 +668,40 @@ TEST_P(ArrayTest, MakeViewDoubleBackward) {
             {eps, eps});
 }
 
+TEST_P(ArrayTest, IsConstant) {
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+
+    EXPECT_TRUE(a.IsConstant());
+
+    a.RequireGrad("testgraph1");
+
+    EXPECT_FALSE(a.IsConstant());
+
+    a.RequireGrad("testgraph2");
+
+    EXPECT_FALSE(a.IsConstant());
+}
+
+TEST_P(ArrayTest, IsConstantAfterStop) {
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{}));
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1"}));
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+
+    a.RequireGrad("testgraph1");
+
+    EXPECT_FALSE(a.IsConstantAfterStop(std::vector<GraphId>{}));
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1"}));
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+
+    a.RequireGrad("testgraph2");
+
+    EXPECT_FALSE(a.IsConstantAfterStop(std::vector<GraphId>{}));
+    EXPECT_FALSE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1"}));
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+}
+
 TEST_P(ArrayTest, AsConstantCopy) {
     // Stop gradients on all graphs
     {

@@ -54,7 +54,8 @@ const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const Grap
     if (HasArrayNode(array, graph_id)) {
         throw XchainerError{"Duplicate graph registration: '", graph_id, "'."};
     }
-    array.nodes().emplace_back(std::make_shared<ArrayNode>(array.shape(), array.dtype(), array.device(), graph_id));
+    auto new_node = std::make_shared<ArrayNode>(array.body(), array.shape(), array.dtype(), array.device(), graph_id);
+    array.body()->AddNode(new_node);
     return array.nodes().back();
 }
 
@@ -278,14 +279,10 @@ Array Array::AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind) const
             return std::move(out);
         }
         case CopyKind::kView: {
-            Array out{shape(), strides(), dtype(), device(), body_->data_, offset()};
-
-            // Duplicate the array nodes only when graph IDs are not found in specified graph_ids.
-            for (const std::shared_ptr<ArrayNode>& array_node : nodes()) {
-                if (std::find(graph_ids.begin(), graph_ids.end(), array_node->graph_id()) == graph_ids.end()) {
-                    // extend the graph
-                    out.body_->nodes_.emplace_back(array_node);
-                }
+            Array out{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), data(), offset())};
+            if (!IsConstantAfterStop(graph_ids)) {
+                BackwardBuilder bb{"as_constant_view", out, graph_ids};
+                bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
             }
             return std::move(out);
         }
@@ -314,13 +311,23 @@ Array Array::AsType(Dtype dtype, bool copy) const {
 
 void Array::Fill(Scalar value) const { device().Fill(*this, value); }
 
-const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const { return internal::GetArrayNode(*this, graph_id)->grad(); }
-
-void Array::SetGrad(Array grad, const GraphId& graph_id) const {
-    internal::GetMutableArrayNode(*this, graph_id)->set_grad(std::move(grad));
+const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const {
+    const nonstd::optional<Array>* grad = body_->GetGrad(graph_id);
+    if (grad == nullptr) {
+        throw XchainerError{"Array does not belong to the graph: '", graph_id, "'."};
+    }
+    return *grad;
 }
 
-void Array::ClearGrad(const GraphId& graph_id) const { internal::GetMutableArrayNode(*this, graph_id)->ClearGrad(); }
+void Array::SetGrad(Array grad, const GraphId& graph_id) const {
+    nonstd::optional<Array>* target_grad = body_->GetGrad(graph_id);
+    if (target_grad == nullptr) {
+        throw XchainerError{"Array does not belong to the graph: '", graph_id, "'."};
+    }
+    internal::SetGrad(*target_grad, std::move(grad), shape(), dtype(), device());
+}
+
+void Array::ClearGrad(const GraphId& graph_id) const { body_->ClearGrad(graph_id); }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
@@ -376,17 +383,23 @@ public:
 
         int indent = state.indent;
         VisitedArrayNodeSet& visited_array_nodes = state.visited_array_nodes;
-        os_ << Indent(indent) << "ArrayNode<" << name << " rank=" << array_node.rank() << " shape=" << array_node.shape()
-            << " dtype=" << GetDtypeName(array_node.dtype()) << ">" << std::endl;
+        os_ << Indent(indent) << "ArrayNode<" << name << " " << &array_node << " rank=" << array_node.rank()
+            << " shape=" << array_node.shape() << " dtype=" << GetDtypeName(array_node.dtype()) << ">" << std::endl;
 
         if (visited_array_nodes.end() == visited_array_nodes.find(&array_node)) {
             visited_array_nodes.insert(&array_node);
 
             if (options_.print_metadata) {
-                if (array_node.grad()) {
-                    const Array& grad = *array_node.grad();
-                    os_ << Indent(indent + 2) << "grad=<shape=" << grad.shape() << " dtype=" << GetDtypeName(grad.dtype()) << ">"
-                        << std::endl;
+                std::shared_ptr<const internal::ArrayBody> body = array_node.GetBody();
+                if (body == nullptr) {
+                    os_ << Indent(indent + 2) << "body=(gone)";
+                } else {
+                    const nonstd::optional<Array>* grad = body->GetGrad(array_node.graph_id());
+                    assert(grad != nullptr);
+                    if (grad->has_value()) {
+                        os_ << Indent(indent + 2) << "grad=<shape=" << (*grad)->shape() << " dtype=" << GetDtypeName((*grad)->dtype())
+                            << ">" << std::endl;
+                    }
                 }
             }
 

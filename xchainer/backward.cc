@@ -12,36 +12,90 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/array_body.h"
 #include "xchainer/array_node.h"
 #include "xchainer/error.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
 
 namespace xchainer {
+namespace internal {
+namespace {
+
+void CheckGradCompatible(const Array& grad, const Shape& shape, Dtype dtype, Device& device) {
+    CheckEqual(dtype, grad.dtype());
+    CheckEqual(shape, grad.shape());
+    CheckEqual(device, grad.device());
+}
+
+}  // namespace
+
+void AccumulateGrad(nonstd::optional<Array>& target_grad, Array partial_grad, const Shape& shape, Dtype dtype, Device& device) {
+    CheckGradCompatible(partial_grad, shape, dtype, device);
+    if (target_grad.has_value()) {
+        target_grad = *target_grad + partial_grad;
+    } else {
+        target_grad = std::move(partial_grad);
+    }
+}
+
+void SetGrad(nonstd::optional<Array>& target_grad, Array grad, const Shape& shape, Dtype dtype, Device& device) {
+    CheckGradCompatible(grad, shape, dtype, device);
+    target_grad = std::move(grad);
+}
+
+GradRef::GradRef(ArrayNode* array_node) : array_node_{array_node}, original_grad_owner_body_{array_node->GetBody()} {
+    if (original_grad_owner_body_ != nullptr) {
+        original_grad_ptr_ = original_grad_owner_body_->GetGrad(array_node->graph_id());
+    }
+}
+
+nonstd::optional<Array>& GradRef::get() {
+    if (original_grad_ptr_ == nullptr) {
+        if (temporary_grad_ == nullptr) {
+            // Original gradient is gone and this is the first accumulation.
+            // Initialize the temporary gradient.
+            temporary_grad_ = std::make_unique<nonstd::optional<Array>>(nonstd::nullopt);
+        }
+
+        // Target of accumulation is the temporary gradient.
+        return *temporary_grad_;
+    }
+
+    // Target of accumulation is the original gradient.
+    return *original_grad_ptr_;
+}
+
+}  // namespace internal
 
 BackwardContext::BackwardContext(
         const OpNode& op_node,
         gsl::span<const std::reference_wrapper<ArrayNode>> prev_array_nodes,
+        gsl::span<internal::GradRef*> prev_grads,
         gsl::span<const GraphId> stop_graph_ids,
         std::vector<Array>& input_grads_storage,
+        const GraphId& graph_id,
         bool next_backward_required)
     : op_node_{op_node},
       prev_array_nodes_{prev_array_nodes},
+      prev_grads_{prev_grads},
       stop_graph_ids_{stop_graph_ids},
       input_grads_storage_{input_grads_storage},
       zero_output_grads_{prev_array_nodes_.size()},
+      graph_id_{graph_id},
       next_backward_required_{next_backward_required} {
     assert(input_grads_storage_.size() <= op_node.next_array_node_count());
+    assert(prev_array_nodes_.size() == prev_grads_.size());
     // Input grads must be initialized with null-body arrays.
     assert(std::all_of(input_grads_storage_.begin(), input_grads_storage_.end(), [](const Array& g) { return g.body() == nullptr; }));
 };
 
-bool BackwardContext::HasOutputGrad(int output_index) const { return gsl::at(prev_array_nodes_, output_index).get().grad().has_value(); }
+bool BackwardContext::HasOutputGrad(int output_index) const { return gsl::at(prev_grads_, output_index)->get().has_value(); }
 
 const Array& BackwardContext::output_grad(int output_index) const {
     // If the output gradient has a propagated value, return it.
     if (HasOutputGrad(output_index)) {
-        return *prev_array_nodes_[output_index].get().grad();
+        return *prev_grads_[output_index]->get();
     }
 
     // If there already is a zero-filled gradient allocated, return it.
@@ -57,10 +111,21 @@ const Array& BackwardContext::output_grad(int output_index) const {
     return *zero_grad;
 }
 
+Array& BackwardContext::input_grad() {
+    assert(input_grads_storage_.size() == 1);
+    return gsl::at(input_grads_storage_, 0);
+}
+
+Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_storage_, index); }
+
 Array BackwardContext::Cut(const Array& a) const {
 #ifndef NDEBUG
     for (const ArrayNode& prev_array_node : prev_array_nodes_) {
-        assert((!prev_array_node.grad().has_value() || &(*prev_array_node.grad()) != &a) && "Output grads do not have to be cut");
+        std::shared_ptr<const internal::ArrayBody> body = prev_array_node.GetBody();
+        if (body != nullptr) {
+            const nonstd::optional<Array>* prev_grad = body->GetGrad(graph_id_);
+            assert((prev_grad == nullptr || !prev_grad->has_value() || &**prev_grad != &a) && "Output grads do not have to be cut");
+        }
     }
 #endif /*NDEBUG*/
     return a.AsConstant(stop_graph_ids_);
@@ -161,9 +226,14 @@ public:
             const Array& output = outputs_[i];
             const std::shared_ptr<ArrayNode>& array_node = output_array_nodes_[i];
 
-            if (!array_node->grad()) {
-                array_node->set_grad(OnesLike(output, output.device()));
+            // Add GradRef for output array nodes
+            auto emplace_result = array_node_grad_map_.emplace(array_node.get(), internal::GradRef{array_node.get()});
+
+            // Set unset output gradients to the default value of one
+            if (!emplace_result.first->second.get().has_value()) {
+                emplace_result.first->second.get() = OnesLike(output, output.device());
             }
+
             PushNextOpNode(array_node);
         }
 
@@ -173,17 +243,33 @@ public:
             std::shared_ptr<OpNode> op_node = std::move(candidate_op_nodes_.back());
             candidate_op_nodes_.pop_back();
 
+            // Add GradRef for next array nodes
+            for (const std::shared_ptr<ArrayNode>& next_array_node : op_node->next_array_nodes()) {
+                array_node_grad_map_.emplace(next_array_node.get(), internal::GradRef{next_array_node.get()});
+            }
+
+            // Backpropagate gradients from the previous array nodes into the next array nodes.
             {
                 std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients(*op_node, graph_id_);
                 AccumulateNextGradients(*op_node, std::move(gxs));
             }
 
+            // Push the next op nodes into the queue
             for (const auto& next_array_node : op_node->next_array_nodes()) {
                 PushNextOpNode(next_array_node);
             }
 
             if (double_backprop_ == DoubleBackpropOption::kDisable) {
                 op_node->Unchain();
+            }
+
+            // Erase the array node's temporarily held grad
+            {
+                auto range = previous_array_node_keeper_.equal_range(op_node.get());
+                for (auto it = range.first; it != range.second; ++it) {
+                    size_t n_removed = array_node_grad_map_.erase(it->second.get());
+                    assert(n_removed > 0);
+                }
             }
         }
     }
@@ -201,10 +287,14 @@ private:
         next_grads.resize(op_node.next_array_node_count());
 
         std::vector<std::reference_wrapper<ArrayNode>> prev_array_nodes;
+        std::vector<internal::GradRef*> prev_grads;
         for (const std::weak_ptr<ArrayNode>& weak_prev_array_node : op_node.prev_array_nodes()) {
             std::shared_ptr<ArrayNode> prev_array_node = weak_prev_array_node.lock();
             assert(prev_array_node != nullptr);  // Weak ptrs should be alive
+
             prev_array_nodes.emplace_back(*prev_array_node);
+            internal::GradRef& grad = array_node_grad_map_.at(prev_array_node.get());
+            prev_grads.emplace_back(&grad);
         }
 
         for (const internal::OpNodeBackwardEntry& backward_entry : op_node.backward_entries()) {
@@ -217,8 +307,10 @@ private:
             // Call backward.
             BackwardContext bctx{op_node,
                                  prev_array_nodes,
+                                 prev_grads,
                                  graph_ids_to_stop_gradient,
                                  next_grads_subset,
+                                 graph_id_,
                                  double_backprop_ == DoubleBackpropOption::kEnable};
             backward_entry.backward_func()(bctx);
 
@@ -230,8 +322,13 @@ private:
                 if (std::any_of(
                             prev_array_nodes.begin(),
                             prev_array_nodes.end(),
-                            [it](const ArrayNode& prev_array_node) {
-                                return prev_array_node.grad().has_value() && it->body() == prev_array_node.grad()->body();
+                            [it, this](const ArrayNode& prev_array_node) {
+                                std::shared_ptr<const internal::ArrayBody> body = prev_array_node.GetBody();
+                                if (body == nullptr) {
+                                    return false;
+                                }
+                                const nonstd::optional<Array>* prev_grad = body->GetGrad(graph_id_);
+                                return prev_grad != nullptr && prev_grad->has_value() && it->body() == (*prev_grad)->body();
                             }) ||
                     std::any_of(next_grads_subset.begin(), it, [it](const Array& next_grad) { return next_grad.body() == it->body(); })) {
                     // TODO(niboshi): View is needed to make new nodes. Come up with a solution to avoid extra backward insertion.
@@ -243,11 +340,14 @@ private:
             for (size_t i = 0; i < backward_entry.next_array_node_count(); ++i) {
                 size_t i_next_grad = backward_entry.next_array_node_indices()[i];
                 nonstd::optional<Array>& target_grad = next_grads[i_next_grad];
-                if (target_grad.has_value()) {
-                    target_grad = *target_grad + next_grads_subset[i];
-                } else {
-                    target_grad = std::move(next_grads_subset[i]);
-                }
+                const ArrayNode& next_array_node = *op_node.next_array_nodes()[i_next_grad];
+
+                internal::AccumulateGrad(
+                        target_grad,
+                        std::move(next_grads_subset[i]),
+                        next_array_node.shape(),
+                        next_array_node.dtype(),
+                        next_array_node.device());
             }
         }
 
@@ -272,9 +372,13 @@ private:
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node.next_array_nodes();
         assert(next_array_nodes.size() == gxs.size());
         for (size_t i = 0; i < next_array_nodes.size(); ++i) {
+            const ArrayNode& next_array_node = *next_array_nodes[i];
             nonstd::optional<Array>& gx = gxs[i];
             if (gx.has_value()) {
-                next_array_nodes[i]->AccumulateGrad(std::move(*gx));
+                // Retrieve the pointer to the next gradient.
+                internal::GradRef& next_grad = array_node_grad_map_.at(next_array_nodes[i].get());
+                internal::AccumulateGrad(
+                        next_grad.get(), std::move(*gx), next_array_node.shape(), next_array_node.dtype(), next_array_node.device());
             }
         }
     }
@@ -306,6 +410,10 @@ private:
 
     // This mapping is used to keep previous array nodes alive (referenced from op nodes as weak pointers).
     std::unordered_multimap<const OpNode*, std::shared_ptr<ArrayNode>> previous_array_node_keeper_;
+
+    // Mapping from array nodes to the corresponding gradients. Gradients may be genuine gradients held by array bodies or temporaray
+    // gradients which are only valid during backward computation at most.
+    std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map_;
 
     // Arguments to Backward().
     // Be careful that references require the referred objects alive (it should be guaranteed by Backward()).

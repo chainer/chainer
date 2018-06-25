@@ -14,6 +14,7 @@
 
 #include "xchainer/array_body.h"
 #include "xchainer/array_index.h"
+#include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/axes.h"
 #include "xchainer/constant.h"
@@ -29,7 +30,6 @@
 namespace xchainer {
 
 class Array;
-class ArrayNode;
 
 using ArrayRef = std::reference_wrapper<Array>;
 using ConstArrayRef = std::reference_wrapper<const Array>;
@@ -200,6 +200,15 @@ public:
     // Returns whether the array is constant with regard to all of the specified graphs.
     // TODO(niboshi): Implement
     bool IsConstant(gsl::span<const GraphId> /*graph_ids*/) const { throw NotImplementedError(); }
+
+    // TODO(niboshi): The name of this function is temporary. To be reconsidered when nobackprop mode is implemented.
+    template <typename Container>
+    bool IsConstantAfterStop(Container stop_graph_ids) const {
+        const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = nodes();
+        return std::all_of(array_nodes.begin(), array_nodes.end(), [&stop_graph_ids](const std::shared_ptr<const ArrayNode>& array_node) {
+            return stop_graph_ids.end() != std::find(stop_graph_ids.begin(), stop_graph_ids.end(), array_node->graph_id());
+        });
+    }
 
     // Creates a new ArrayNode to store the gradient
     const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const {

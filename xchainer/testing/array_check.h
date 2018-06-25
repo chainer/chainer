@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include "xchainer/array.h"
+#include "xchainer/array_body.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/numeric.h"
@@ -43,6 +44,13 @@ inline void ExpectEqualView(const Array& expected, const Array& actual) {
 
     // Views should have different array bodies.
     EXPECT_NE(expected.body(), actual.body());
+
+    // No array nodes should be shared.
+    for (const std::shared_ptr<ArrayNode>& array_node_e : expected.nodes()) {
+        for (const std::shared_ptr<ArrayNode>& array_node_a : actual.nodes()) {
+            EXPECT_NE(array_node_e, array_node_a);
+        }
+    }
 
     ExpectEqual(expected, actual);
 }

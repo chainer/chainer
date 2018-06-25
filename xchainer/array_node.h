@@ -7,7 +7,6 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
@@ -16,10 +15,14 @@
 
 namespace xchainer {
 
+class Array;
+
 class ArrayNode {
 public:
-    ArrayNode(const Shape& shape, Dtype dtype, Device& device, GraphId graph_id)
-        : shape_{shape}, dtype_{dtype}, device_{device}, graph_id_{std::move(graph_id)} {}
+    ArrayNode(std::weak_ptr<internal::ArrayBody> body, const Shape& shape, Dtype dtype, Device& device, GraphId graph_id)
+        : body_{std::move(body)}, shape_{shape}, dtype_{dtype}, device_{device}, graph_id_{std::move(graph_id)} {
+        assert(body_.lock() != nullptr);
+    }
 
     ArrayNode(const ArrayNode&) = delete;
     ArrayNode(ArrayNode&&) = delete;
@@ -50,38 +53,24 @@ public:
         return next_op_node_->rank();
     }
 
-    const nonstd::optional<Array>& grad() const noexcept { return grad_; }
+    // Returns the graph ID.
+    const GraphId& graph_id() const { return graph_id_; }
 
-    void set_grad(Array grad) {
-        CheckGradCompatible(grad);
-        grad_ = std::move(grad);
-    }
+    // Clears the gradient array. This function does nothing if the array body is no longer alive.
+    void ClearGrad() noexcept;
 
-    void AccumulateGrad(Array grad) {
-        CheckGradCompatible(grad);
-        if (grad_.has_value()) {
-            grad_ = *grad_ + grad;
-        } else {
-            grad_ = std::move(grad);
-        }
-    }
+    // Returns the array body. It returns nullptr if the array body is no longer alive.
+    std::shared_ptr<const internal::ArrayBody> GetBody() const { return body_.lock(); }
 
-    GraphId graph_id() const { return graph_id_; }
-
-    void ClearGrad() noexcept { grad_.reset(); }
+    // Returns the array body. It returns nullptr if the array body is no longer alive.
+    std::shared_ptr<internal::ArrayBody> GetBody() { return body_.lock(); }
 
 private:
-    void CheckGradCompatible(const Array& grad) {
-        CheckEqual(dtype_, grad.dtype());
-        CheckEqual(shape_, grad.shape());
-        CheckEqual(device_, grad.device());
-    }
-
+    const std::weak_ptr<internal::ArrayBody> body_;
     std::shared_ptr<OpNode> next_op_node_;
     Shape shape_;
     Dtype dtype_;
     Device& device_;
-    nonstd::optional<Array> grad_;
     GraphId graph_id_;
 };
 

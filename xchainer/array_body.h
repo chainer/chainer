@@ -4,13 +4,17 @@
 #include <utility>
 #include <vector>
 
+#include <nonstd/optional.hpp>
+
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/graph.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
 namespace xchainer {
 
+class Array;
 class ArrayNode;
 
 namespace internal {
@@ -27,24 +31,47 @@ namespace internal {
 // the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
 public:
-    ArrayBody(
-            const Shape& shape,
-            const Strides& strides,
-            Dtype dtype,
-            Device& device,
-            std::shared_ptr<void> data,
-            int64_t offset,
-            std::vector<std::shared_ptr<ArrayNode>> nodes = std::vector<std::shared_ptr<ArrayNode>>())
-        : shape_{shape},
-          strides_{strides},
-          dtype_{dtype},
-          device_{device},
-          data_{std::move(data)},
-          offset_{offset},
-          nodes_{std::move(nodes)} {}
+    ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+
+    // Adds an array node to the array body.
+    // The array node must have been initialized with this array body in advance.
+    // Otherwise the behavior is undefined.
+    const std::shared_ptr<ArrayNode>& AddNode(std::shared_ptr<ArrayNode> array_node);
+
+    // Returns a gradient array.
+    // Returns nullptr if the array does not belong to the specified graph.
+    const nonstd::optional<Array>* GetGrad(const GraphId& graph_id) const {
+        return GetGradImpl<const ArrayBody*, const nonstd::optional<Array>*>(this, graph_id);
+    }
+
+    // Returns a gradient array.
+    // Returns nullptr if the array does not belong to the specified graph.
+    nonstd::optional<Array>* GetGrad(const GraphId& graph_id) { return GetGradImpl<ArrayBody*, nonstd::optional<Array>*>(this, graph_id); }
+
+    // Sets a gradient array.
+    // The behavior is undefined if there is no array node for the specified graph.
+    void SetGrad(Array grad, const GraphId& graph_id);
+
+    // Accumulates a gradient array.
+    // The behavior is undefined if there is no array node for the specified graph.
+    void AccumulateGrad(Array partial_grad, const GraphId& graph_id);
+
+    // Clears a gradient array.
+    // This function does nothing if there is no array node for the specified graph.
+    void ClearGrad(const GraphId& graph_id);
 
 private:
     friend class ::xchainer::Array;
+
+    // Asserts consistency of this instance.
+    //
+    // This function is no-op if NDEBUG is defined.
+    void AssertConsistency() const;
+
+    template <typename ThisPtr, typename ReturnType>
+    static ReturnType GetGradImpl(ThisPtr this_ptr, const GraphId& graph_id);
+
+    ssize_t GetNodeIndex(const GraphId& graph_id) const;
 
     Shape shape_;
     Strides strides_;
@@ -52,7 +79,9 @@ private:
     Device& device_;
     std::shared_ptr<void> data_;
     int64_t offset_;  // in bytes
+
     std::vector<std::shared_ptr<ArrayNode>> nodes_;
+    std::vector<std::unique_ptr<nonstd::optional<Array>>> grads_;
 };
 
 }  // namespace internal

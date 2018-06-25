@@ -45,6 +45,8 @@ install(FILES
 
 add_library(xchainer SHARED
     array.cc
+    array_body.cc
+    array_node.cc
     array_repr.cc
     axes.cc
     backend.cc
