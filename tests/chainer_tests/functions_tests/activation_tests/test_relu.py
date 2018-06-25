@@ -20,6 +20,7 @@ def _to_noncontiguous(arrays):
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
+    'inplace': [False, True],
 }))
 @testing.fix_random()
 @backend.inject_backend_tests(
@@ -67,7 +68,7 @@ class TestReLU(unittest.TestCase):
         x_data, = inputs
         x = chainer.Variable(x_data)
         with backend_config:
-            y = functions.relu(x)
+            y = functions.relu(x, self.inplace)
         assert y.data.dtype == self.dtype
 
         testing.assert_allclose(y_expected, y.data)
@@ -82,6 +83,9 @@ class TestReLU(unittest.TestCase):
         if not self.c_contiguous:
             inputs = _to_noncontiguous(inputs)
             grad_outputs = _to_noncontiguous(grad_outputs)
+
+        def relu(x):
+            return functions.relu(x, self.inplace)
 
         with backend_config:
             gradient_check.check_backward(
@@ -103,7 +107,7 @@ class TestReLU(unittest.TestCase):
             grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
 
         def f(x):
-            x = functions.relu(x)
+            x = functions.relu(x, False)
             return x * x
 
         x, = inputs
