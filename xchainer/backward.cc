@@ -251,7 +251,7 @@ private:
             }
         }
 
-        // If previous array nodes are output nodes of backward, clear their gradients
+        // If previous array nodes are not output nodes of backward, clear their gradients
         for (ArrayNode& prev_array_node : prev_array_nodes) {
             if (std::find_if(
                         output_array_nodes_.begin(),
