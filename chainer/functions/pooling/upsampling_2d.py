@@ -181,19 +181,9 @@ def upsampling_2d(
 
     .. admonition:: Example
 
-        It should be noted that you need to turn off
-        ``chainer.config.use_cudnn`` flag when you perform
-        :meth:`~chainer.functions.max_pooling_2d` function which will make a
-        pooling indicies for this :meth:`~chainer.functions.upsampling_2d`.
-        It is because
-        :attr:`~chainer.functions.pooling.max_pooling_2d.MaxPooling2D.indexes`
-        is never created and stored in the
-        :attr:`~chainer.functions.pooling.max_pooling_2d.MaxPooling2D`
-        object when cuDNN is used for it.
-
         >>> x = np.arange(1, 37).reshape(1, 1, 6, 6).astype(np.float32)
         >>> x = chainer.Variable(x)
-        >>> x.data
+        >>> x.array
         array([[[[ 1.,  2.,  3.,  4.,  5.,  6.],
                  [ 7.,  8.,  9., 10., 11., 12.],
                  [13., 14., 15., 16., 17., 18.],
@@ -203,21 +193,24 @@ def upsampling_2d(
 
         This is the original ``x`` before max pooling.
 
-        >>> p = F.pooling.max_pooling_2d.MaxPooling2D(2, 2)
-        >>> with chainer.using_config('use_cudnn', 'never'):
-        ...     pooled_x = p.apply((x,))[0]
-        >>> pooled_x.data
+        >>> pooled_x, indexes = F.max_pooling_2d(
+        ...     x, ksize=2, stride=2, return_indices=True)
+        >>> pooled_x.array
         array([[[[ 8., 10., 12.],
                  [20., 22., 24.],
                  [32., 34., 36.]]]], dtype=float32)
+        >>> indexes
+        array([[[[3, 3, 3],
+                 [3, 3, 3],
+                 [3, 3, 3]]]])
 
-        This is the output of the max pooling operation.
-        :meth:`~chainer.functions.upsampling_2d` needs
-        :attr:`~chainer.functions.pooling.max_pooling_2d.MaxPooling2D.indexes`
-        array stored in the max pooling object ``p``.
+        These are the outputs from the max pooling operation including the
+        resulting indices that will be used to upsample ``pooled_x``. Note
+        that the indices all point to the largest, in the case the last,
+        elements in each window.
 
         >>> upsampled_x = F.upsampling_2d(
-        ...     pooled_x, p.indexes, p.kh, p.sy, p.ph, x.shape[2:])
+        ...     pooled_x, indexes, ksize=2, stride=2, outsize=x.shape[2:])
         >>> upsampled_x.shape
         (1, 1, 6, 6)
         >>> upsampled_x.data
@@ -230,17 +223,20 @@ def upsampling_2d(
 
     Args:
         x (~chainer.Variable): Input variable.
-        indexes (~numpy.ndarray or ~cupy.ndarray): Index array that was used
-            to calculate x with MaxPooling2D.
-        ksize (int or (int, int)): ksize attribute of MaxPooling2D object that
-            is used to calculate x
-        stride (int or (int, int)): stride attribute of MaxPooling2D object
-            that is used to calculate x
-        pad (int or (int, int)): pad attribute of MaxPooling2D object that is
-            used to calculate x
+        indexes (~numpy.ndarray or ~cupy.ndarray): Index array returned from
+            preceding call to :meth:`~chainer.functions.max_pooling_2d`.
+        ksize (int or pair of ints): Size of pooling window. ``ksize=k`` and
+            ``ksize=(k, k)`` are equivalent.
+        stride (int or pair of ints or None): Stride of pooling applications.
+            ``stride=s`` and ``stride=(s, s)`` are equivalent. If ``None`` is
+            specified, then it uses same stride as the pooling window size.
+        pad (int or pair of ints): Spatial padding width for the input array.
+            ``pad=p`` and ``pad=(p, p)`` are equivalent.
         outsize ((int, int)): Expected output size (height, width).
-        cover_all (bool): Whether cover_all is used in the MaxPooling2D object
-            or not.
+        cover_all (bool): Should be set to ``True`` if all spatial locations
+            were pooled into some output pixels during the preceding pooling
+            operation.  ``False`` otherwise. See
+            :meth:`~chainer.functions.max_pooling_2d`.
 
     Returns:
         ~chainer.Variable: Output variable.
