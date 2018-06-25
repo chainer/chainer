@@ -47,12 +47,14 @@ class Normal(distribution.Distribution):
             raise ValueError(
                 "Either `scale` or `ln_var` (not both) must have a value.")
         self.loc = chainer.as_variable(loc)
-        if scale is None:
-            self.ln_var = chainer.as_variable(ln_var)
-            self.scale = exponential.exp(0.5 * self.ln_var)
-        else:
-            self.scale = chainer.as_variable(scale)
-            self.ln_var = 2. * exponential.log(self.scale)
+
+        with chainer.using_config('enable_backprop', True):
+            if scale is None:
+                self.ln_var = chainer.as_variable(ln_var)
+                self.scale = exponential.exp(0.5 * self.ln_var)
+            else:
+                self.scale = chainer.as_variable(scale)
+                self.ln_var = 2. * exponential.log(self.scale)
 
     @property
     def batch_shape(self):
