@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 #include <cudnn.h>
 
@@ -26,15 +27,15 @@ class PoolImpl {
 public:
     PoolImpl(
             cudnnHandle_t cudnn_handle,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
             bool cover_all,
             cudnnPoolingMode_t cudnn_pooling_mode)
         : cudnn_handle_{cudnn_handle},
-          kernel_size_{kernel_size},
-          stride_{stride},
-          pad_{pad},
+          kernel_size_{std::move(kernel_size)},
+          stride_{std::move(stride)},
+          pad_{std::move(pad)},
           cover_all_{cover_all},
           cudnn_pooling_mode_{cudnn_pooling_mode} {
         if (cover_all_) {
