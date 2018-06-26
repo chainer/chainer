@@ -335,10 +335,6 @@ TEST_P(PoolingTest, MaxPoolNoCoverAllBackward) {
 }
 
 TEST_P(PoolingTest, MaxPoolDoubleBackward) {
-    if (GetParam() == "cuda") {
-        // TODO(hvy): Test CUDA when implemented.
-        return;
-    }
     using T = float;
 
     int64_t batch_size = 3;
@@ -347,7 +343,7 @@ TEST_P(PoolingTest, MaxPoolDoubleBackward) {
     StackVector<int64_t, kMaxNdim> kernel_size{3, 2};
     StackVector<int64_t, kMaxNdim> stride{2, 1};
     StackVector<int64_t, kMaxNdim> pad{1, 0};
-    Shape out_dims{3, 3};
+    Shape out_dims{2, 3};
 
     Shape x_shape{batch_size, channels};
     std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
@@ -389,7 +385,7 @@ TEST_P(PoolingTest, MaxPoolDoubleBackward) {
 
     CheckDoubleBackwardComputation(
             [&](const std::vector<Array>& xs) -> std::vector<Array> {
-                Array y = MaxPool(xs[0], kernel_size, stride, pad);
+                Array y = MaxPool(xs[0], kernel_size, stride, pad, false);
                 return {y * y};
             },
             {x},

@@ -10,9 +10,13 @@
 #include "xchainer/array.h"
 #include "xchainer/backend_util.h"
 #include "xchainer/constant.h"
+#include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/cuda/cudnn.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
@@ -23,6 +27,62 @@
 namespace xchainer {
 namespace cuda {
 namespace {
+
+// Uses the previously computed y to find the indices for which the upstream gradients should be propagated.
+// It is faster in some cases than looking for the argmax again since we do not have to go though all elements.
+template <typename T>
+__global__ void MaxPoolDoubleBackwardKernel(
+        IndexableArray<const T> ggx_iarray,
+        IndexableArray<const T> x_iarray,
+        IndexableArray<const T> y_iarray,
+        IndexableArray<T> ggy_iarray,
+        Indexer<> x_indexer,
+        Indexer<> y_indexer,
+        Indexer<> kernel_indexer,
+        int64_t* kernel_size,
+        int64_t* stride,
+        int64_t* pad) {
+    NdimIndex y_index{y_indexer.ndim()};
+    NdimIndex x_index{x_indexer.ndim()};
+    int8_t ndim = x_indexer.ndim() - 2;
+
+    for (auto it = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
+        // Compute the y index (batch, channel, out_1, out_2, ..., out_n) from the raw index.
+        int64_t remainder = it.raw_index();
+        for (int8_t i = x_indexer.ndim() - 1; i >= 2; --i) {
+            int64_t dim = y_indexer.shape()[i];
+            y_index.index()[i] = remainder % dim;
+            remainder /= dim;
+        }
+        int64_t channels = y_indexer.shape()[1];
+        int64_t channel = remainder % channels;
+        int64_t batch = remainder / channels % y_indexer.shape()[0];
+
+        y_index.index()[0] = batch;
+        y_index.index()[1] = channel;
+
+        // Use y to find the index of x, then propagate the element from ggx corresponding to that index.
+        T y = y_iarray[y_indexer.At(y_index)];
+
+        x_index.index()[0] = batch;
+        x_index.index()[1] = channel;
+
+        for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
+            for (int8_t i = 0; i < ndim; ++i) {
+                int64_t idx = y_index.index()[2 + i] * stride[i] + it_kernel.index()[i] - pad[i];
+                idx = max(idx, int64_t{0});
+                idx = min(idx, x_indexer.shape()[2 + i] - 1);
+                x_index.index()[2 + i] = idx;
+            }
+
+            auto it_x = x_indexer.At(x_index);
+            if (y == x_iarray[it_x]) {
+                ggy_iarray[it] = ggx_iarray[it_x];
+                break;
+            }
+        }
+    }
+}
 
 class PoolImpl {
 public:
@@ -125,6 +185,53 @@ public:
         return gx;
     }
 
+    Array DoubleBackward(const Array& ggx) {
+        Device& device = ggx.device();
+        Array ggy = EmptyLike(y_, y_.device());
+
+        VisitDtype(ggy.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+
+            IndexableArray<const T> ggx_iarray{ggx};
+            IndexableArray<const T> x_iarray{x_};
+            IndexableArray<const T> y_iarray{y_};
+            IndexableArray<T> ggy_iarray{ggy};
+
+            Indexer<> x_indexer{x_.shape()};
+            Indexer<> y_indexer{y_.shape()};
+            Indexer<> kernel_indexer{Shape{kernel_size_.begin(), kernel_size_.end()}};
+
+            std::shared_ptr<void> kernel_size = device.Allocate(kernel_size_.size() * sizeof(int64_t));
+            CheckCudaError(
+                    cudaMemcpy(kernel_size.get(), kernel_size_.data(), kernel_size_.size() * sizeof(int64_t), cudaMemcpyHostToDevice));
+
+            std::shared_ptr<void> stride = device.Allocate(stride_.size() * sizeof(int64_t));
+            CheckCudaError(cudaMemcpy(stride.get(), stride_.data(), stride_.size() * sizeof(int64_t), cudaMemcpyHostToDevice));
+
+            std::shared_ptr<void> pad = device.Allocate(pad_.size() * sizeof(int64_t));
+            CheckCudaError(cudaMemcpy(pad.get(), pad_.data(), pad_.size() * sizeof(int64_t), cudaMemcpyHostToDevice));
+
+            static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MaxPoolDoubleBackwardKernel<T>).block_size;
+            int64_t total_size = y_indexer.total_size();
+            int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+            int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+            MaxPoolDoubleBackwardKernel<<<grid_size, block_size>>>(
+                    ggx_iarray,
+                    x_iarray,
+                    y_iarray,
+                    ggy_iarray,
+                    x_indexer,
+                    y_indexer,
+                    kernel_indexer,
+                    static_cast<int64_t*>(kernel_size.get()),
+                    static_cast<int64_t*>(stride.get()),
+                    static_cast<int64_t*>(pad.get()));
+        });
+
+        return ggy;
+    }
+
 private:
     cudnnHandle_t cudnn_handle_;
     const StackVector<int64_t, kMaxNdim> kernel_size_;
@@ -150,8 +257,7 @@ public:
 
     Array Backward(const Array& gout) override { return pool_impl_.Backward(gout); }
 
-    // TODO(hvy): Implement me.
-    Array DoubleBackward(const Array& /*ggx*/) override { return Array{}; }
+    Array DoubleBackward(const Array& ggx) override { return pool_impl_.DoubleBackward(ggx); }
 
 private:
     PoolImpl pool_impl_;
@@ -178,6 +284,7 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
         default:
             XCHAINER_NEVER_REACH();
     }
+    throw DeviceError{"Unsupported pad mode: ", static_cast<std::underlying_type<AveragePoolPadMode>::type>(pad_mode)};
 }
 
 class CudaAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {
