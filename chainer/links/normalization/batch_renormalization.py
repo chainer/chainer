@@ -5,7 +5,6 @@ from chainer import configuration
 from chainer.functions.normalization import batch_normalization
 from chainer.functions.normalization import batch_renormalization
 from chainer.links.normalization.batch_normalization import BatchNormalization
-from chainer import variable
 
 
 class BatchRenormalization(BatchNormalization):
