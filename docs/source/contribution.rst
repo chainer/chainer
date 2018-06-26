@@ -347,7 +347,15 @@ How to Write Tests
 ~~~~~~~~~~~~~~~~~~
 
 There are many examples of unit tests under the :tree:`tests` directory, so reading some of them is a good and recommended way to learn how to write tests for Chainer.
-They simply use the ``unittest`` package of the standard library, while some tests are using utilities from :mod:`chainer.testing`.
+They simply use the :mod:`unittest` package of the standard library, while some tests are using utilities from :mod:`chainer.testing`.
+
+In addition to the :ref:`coding-guide` mentioned above, the following rules are applied to the test code:
+
+* All test classes must inherit from :class:`unittest.TestCase`.
+* In addition to the :mod:`unittest` features, you can also use the following ``pytest`` features.
+
+    * ``assert`` statement instead of ``self.assert*`` methods (e.g., you can write ``assert x == 1`` instead of ``self.assertEqual(x, 1)``).
+    * ``with pytest.raises(...):`` instead of ``with self.assertRaises(...):``.
 
 Even if your patch includes GPU-related code, your tests should not fail without GPU capability.
 Test functions that require CUDA must be tagged by ``chainer.testing.attr.gpu`` decorator::
