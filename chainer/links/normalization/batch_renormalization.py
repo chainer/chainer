@@ -29,9 +29,6 @@ class BatchRenormalization(BatchNormalization):
 
     """
 
-    gamma = None
-    beta = None
-
     def __init__(self, size, rmax=1, dmax=0, decay=0.9, eps=2e-5,
                  dtype=numpy.float32, use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None):
@@ -44,14 +41,14 @@ class BatchRenormalization(BatchNormalization):
         self.d = None
 
     def __call__(self, x, finetune=False):
-        if self.gamma is not None:
+        if hasattr(self, 'gamma'):
             gamma = self.gamma
         else:
             with cuda.get_device_from_id(self._device_id):
                 gamma = self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype)
 
-        if self.beta is not None:
+        if hasattr(self, 'beta'):
             beta = self.beta
         else:
             with cuda.get_device_from_id(self._device_id):
@@ -59,10 +56,6 @@ class BatchRenormalization(BatchNormalization):
                     self.avg_mean.shape, dtype=x.dtype)
 
         if configuration.config.train:
-            if self.running_mean is None:
-                self.running_mean = self.xp.zeros_like(gamma)
-                self.running_var = self.xp.zeros_like(gamma)
-
             if finetune:
                 self.N += 1
                 decay = 1. - 1. / self.N

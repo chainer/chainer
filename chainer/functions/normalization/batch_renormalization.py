@@ -154,7 +154,7 @@ class BatchRenormalizationFunction(function.Function):
 
 
 def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
-                          running_mean=None, running_var=None, decay=0.9
+                          running_mean=None, running_var=None, decay=0.9,
                           update_statistics=None):
     """Batch renormalization function.
 
@@ -183,7 +183,7 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
     if update_statistics is None:
         warnings.warn(
             'In future, batch_renormalization function will update statistics'
-            ' by default.'
+            ' by default.',
             FutureWarning)
         update_statistics = False
     return BatchRenormalizationFunction(
