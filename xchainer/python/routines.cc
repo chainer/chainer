@@ -504,7 +504,6 @@ void InitXchainerRoutines(pybind11::module& m) {
 
     // pooling routines
     // TODO(sonots): Support return_indicies option of chainer.functions.max_pooling_nd.
-    // TODO(sonots): Fix default value of cover_all to true to align with chainer after CUDA supports it.
     m.def("max_pool",
           [](const ArrayBodyPtr& x, py::handle ksize, py::handle stride, py::handle pad, bool cover_all) {
               Array x_array{x};
