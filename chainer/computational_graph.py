@@ -162,8 +162,7 @@ class ComputationalGraph(object):
         """
         if format == 'dot':
             return self._to_dot()
-        else:
-            NotImplementedError('Currently, only dot format is supported.')
+        raise NotImplementedError('Currently, only dot format is supported.')
 
 
 def _skip_variable(nodes, edges):
