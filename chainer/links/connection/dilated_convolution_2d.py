@@ -11,6 +11,11 @@ class DilatedConvolution2D(link.Link):
     This link wraps the :func:`~chainer.functions.dilated_convolution_2d`
     function and holds the filter weight and bias vector as parameters.
 
+    .. note::
+       You can also define a dilated convolutional layer by passing ``dilate``
+       argument to :class:`chainer.links.Convolution2D`.
+       The functionality is the same.
+
     Args:
         in_channels (int or None): Number of channels of input arrays.
             If ``None``, parameter initialization will be deferred until the
