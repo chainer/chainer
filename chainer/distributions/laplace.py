@@ -21,7 +21,7 @@ class LaplaceCDF(chainer.function_node.FunctionNode):
     def backward(self, target_input_indexes, grad_outputs):
         gy, = grad_outputs
         y, = self.get_retained_outputs()
-        return utils.force_array((0.5 - abs(y - 0.5)) * gy),
+        return (0.5 - abs(y - 0.5)) * gy,
 
 
 class Laplace(distribution.Distribution):
@@ -67,8 +67,8 @@ class Laplace(distribution.Distribution):
         return ()
 
     def icdf(self, x):
-        return self.loc - self.scale * sign.sign(x - 0.5) \
-            * exponential.log(- abs(2 * x - 1) + 1)
+        y, = LaplaceICDF().apply((x,))
+        return self.loc + self.scale * y
 
     @property
     def _is_gpu(self):
