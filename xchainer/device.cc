@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <type_traits>
+#include <utility>
 
 #include "xchainer/array.h"
 #include "xchainer/context.h"
@@ -112,83 +113,89 @@ ApplyBatchNormResult ApplyBatchNorm(
 
 }  // namespace
 
-Array GenericBatchNormForwardBackward::Forward(
-        const Array& x,
-        const Array& gamma,
-        const Array& beta,
-        const Array& running_mean,
-        const Array& running_var,
-        Scalar eps,
-        Scalar decay,
-        const Axes& axis) {
-    Array x_const = x.AsConstant();
-    Array x_mean = Mean(x_const, axis, true);
-    Array x_var = Var(x_const, x_mean, axis, true);
+GenericBatchNormForwardBackward::GenericBatchNormForwardBackward(
+        const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, Axes axis)
+    : running_mean_{running_mean}, running_var_{running_var}, eps_{eps}, decay_{decay}, axis_{std::move(axis)} {}
 
-    ApplyBatchNormResult result = ApplyBatchNorm(x_const, gamma.AsConstant(), beta.AsConstant(), x_mean, x_var, eps, axis);
+void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std) {
+    x_ = std::make_shared<Array>(std::move(x));
+    gamma_ = std::make_shared<Array>(std::move(gamma));
+    x_mean_ = std::make_shared<Array>(std::move(x_mean));
+    x_inv_std_ = std::make_shared<Array>(std::move(x_inv_std));
+}
+
+void GenericBatchNormForwardBackward::SetBackwardResults(Array gout, Array gx, Array ggamma) {
+    gout_ = std::make_shared<Array>(std::move(gout));
+    gx_ = std::make_shared<Array>(std::move(gx));
+    ggamma_ = std::make_shared<Array>(std::move(ggamma));
+}
+
+Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
+    Array x_const = x.AsConstant();
+    Array gamma_const = gamma.AsConstant();
+    Array beta_const = beta.AsConstant();
+
+    Array x_mean = Mean(x_const, axis_, true);
+    Array x_var = Var(x_const, x_mean, axis_, true);
+
+    ApplyBatchNormResult result = ApplyBatchNorm(x_const, gamma_const, beta_const, x_mean, x_var, eps_, axis_);
     Array& out = result.out;
     Array& x_inv_std = result.inv_std;
 
-    Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay)};
-    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
-    running_mean *= decay;
-    running_mean += inv_decay * x_mean;
-    running_var *= decay;
-    running_var += inv_decay * (static_cast<double>(n) / std::max(n - 1, int64_t{1})) * x_var;
+    Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay_)};
+    int64_t n = x.GetTotalSize() / gamma_const.GetTotalSize();
+    running_mean_ *= decay_;
+    running_mean_ += inv_decay * x_mean;
+    running_var_ *= decay_;
+    running_var_ += inv_decay * (static_cast<double>(n) / std::max(n - 1, int64_t{1})) * x_var;
 
-    x_mean_ = std::make_shared<Array>(x_mean);
-    x_inv_std_ = std::make_shared<Array>(x_inv_std);
+    SetForwardResults(std::move(x_const), std::move(gamma_const), std::move(x_mean), std::move(x_inv_std));
+
     return std::move(out);
 }
 
-std::array<Array, 3> GenericBatchNormForwardBackward::Backward(
-        const Array& x, const Array& gamma, const Array& gout, Scalar /*eps*/, const Axes& axis) {
-    // Note: x_inv_std_ has the information of eps.
-    const Array x_const = x.AsConstant();
-    const Array gamma_const = gamma.AsConstant();
+std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout) {
     const Array gout_const = gout.AsConstant();
+
+    // Note: x_inv_std_ has the information of eps.
+    const Array& x_const = *x_;
+    const Array& gamma_const = *gamma_;
     const Array& x_mean = *x_mean_;
     const Array& x_inv_std = *x_inv_std_;
 
-    double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
+    double inv_n = 1.0 / (x_const.GetTotalSize() / gamma_const.GetTotalSize());
     Array x_hat = (x_const - x_mean) * x_inv_std;
-    Array ggamma = (gout_const * x_hat).Sum(axis);
-    Array gbeta = gout_const.Sum(axis);
+    Array ggamma = (gout_const * x_hat).Sum(axis_);
+    Array gbeta = gout_const.Sum(axis_);
     Array gx = (gamma_const * x_inv_std) * (gout_const - (x_hat * ggamma + gbeta) * inv_n);
 
-    axis_ = axis;
-    x_ = std::make_shared<Array>(x);
-    gamma_ = std::make_shared<Array>(gamma);
-    gx_ = std::make_shared<Array>(gx);
-    ggamma_ = std::make_shared<Array>(ggamma);
-    gout_ = std::make_shared<Array>(gout);
+    SetBackwardResults(gout, gx, ggamma);
 
     return {std::move(gx), std::move(ggamma), std::move(gbeta)};
 }
 
 std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) {
-    const Array& gout = *gout_;
     const Array& x = *x_;
     const Array& gamma = *gamma_;
-    const Array& x_inv_std = *x_inv_std_;
     const Array& x_mean = *x_mean_;
-    const Axes& axis = axis_;
+    const Array& x_inv_std = *x_inv_std_;
+    const Array& gout = *gout_;
     const Array& gx = *gx_;
     const Array& ggamma = *ggamma_;
 
     // Auxiliary values
     double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
-    Array r = (gx * ggx).Sum(axis);
+    Array r = (gx * ggx).Sum(axis_);
     Array coeff = gamma * x_inv_std;
     Array coeff_m = coeff * inv_n;
     Array x_hat = (x - x_mean) * x_inv_std;
 
-    Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(axis);
-    Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(axis);
+    Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(axis_);
+    Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(axis_);
 
     Array gx_hat2 = gggamma2 * gout - coeff_m * ggamma * ggx;
-    Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(axis));
-    Array gmean2 = -x_inv_std * gx_hat2.Sum(axis);
+    Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(axis_));
+    Array gmean2 = -x_inv_std * gx_hat2.Sum(axis_);
     Array gx2 = x_inv_std * gx_hat2 + inv_n * (gmean2 + x_hat * gstd2);
     Array ggy2 = gggamma2 * x_hat + ggbeta2 + coeff * ggx;
 

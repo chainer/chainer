@@ -89,47 +89,46 @@ Array BatchNorm(
         Scalar decay,
         const OptionalAxes& axis) {
     PreprocessBatchNormResult result = PreprocessBatchNorm(x, gamma, beta, running_mean, running_var, axis);
-    std::shared_ptr<BatchNormForwardBackward> fb = x.device().GetBatchNormForwardBackward();
+    std::shared_ptr<BatchNormForwardBackward> fb =
+            x.device().GetBatchNormForwardBackward(result.mean, result.var, eps, decay, result.sorted_axis);
 
-    Array out = fb->Forward(
-            x.AsConstant(), result.gamma.AsConstant(), result.beta.AsConstant(), result.mean, result.var, eps, decay, result.sorted_axis);
+    Array out = fb->Forward(x, result.gamma, result.beta);
 
     if (!x.IsConstant() || !gamma.IsConstant() || !beta.IsConstant()) {
         BackwardBuilder bb{"batch_norm", {out}};
-        bb.Define(
-                {x, gamma, beta}, [ fb = std::move(fb), x, gamma = result.gamma, eps, axis = result.sorted_axis ](BackwardContext & bctx) {
-                    const Array& gout = bctx.output_grad();
-                    std::array<Array, 3> ginputs = fb->Backward(x, gamma, gout, eps, axis);
-                    const Array& gx = ginputs[0];
-                    const Array& ggamma = ginputs[1];
-                    const Array& gbeta = ginputs[2];
-                    assert(gx.IsConstant());
-                    assert(ggamma.IsConstant());
-                    assert(gbeta.IsConstant());
+        bb.Define({x, gamma, beta}, [ fb = std::move(fb), x, gamma = result.gamma ](BackwardContext & bctx) {
+            const Array& gout = bctx.output_grad();
+            std::array<Array, 3> ginputs = fb->Backward(gout);
+            const Array& gx = ginputs[0];
+            const Array& ggamma = ginputs[1];
+            const Array& gbeta = ginputs[2];
+            assert(gx.IsConstant());
+            assert(ggamma.IsConstant());
+            assert(gbeta.IsConstant());
 
-                    Array x_cut = bctx.Cut(x);
-                    Array gamma_cut = bctx.Cut(gamma);
+            Array x_cut = bctx.Cut(x);
+            Array gamma_cut = bctx.Cut(gamma);
 
-                    if (bctx.next_required() && (!x_cut.IsConstant() || !gamma_cut.IsConstant() || !gout.IsConstant())) {
-                        BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
-                        bb2.Define({x_cut, gamma_cut, gout}, [fb](BackwardContext& bctx2) {
-                            const Array& g2x = bctx2.output_grad(0);
-                            const Array& g2gamma = bctx2.output_grad(1);
-                            const Array& g2beta = bctx2.output_grad(2);
-                            std::array<Array, 3> ginputs2 = fb->DoubleBackward(g2x, g2gamma, g2beta);
-                            // TODO(niboshi): Make it further backproppable
-                            // TODO(niboshi): Assign at once
-                            bctx2.input_grad(0) = ginputs2[0];  // ggx
-                            bctx2.input_grad(1) = ginputs2[1];  // gggamma
-                            bctx2.input_grad(2) = ginputs2[2];  // ggout
-                        });
-                    }
-
+            if (bctx.next_required() && (!x_cut.IsConstant() || !gamma_cut.IsConstant() || !gout.IsConstant())) {
+                BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
+                bb2.Define({x_cut, gamma_cut, gout}, [fb](BackwardContext& bctx2) {
+                    const Array& g2x = bctx2.output_grad(0);
+                    const Array& g2gamma = bctx2.output_grad(1);
+                    const Array& g2beta = bctx2.output_grad(2);
+                    std::array<Array, 3> ginputs2 = fb->DoubleBackward(g2x, g2gamma, g2beta);
+                    // TODO(niboshi): Make it further backproppable
                     // TODO(niboshi): Assign at once
-                    bctx.input_grad(0) = gx;
-                    bctx.input_grad(1) = ggamma;
-                    bctx.input_grad(2) = gbeta;
+                    bctx2.input_grad(0) = ginputs2[0];  // ggx
+                    bctx2.input_grad(1) = ginputs2[1];  // gggamma
+                    bctx2.input_grad(2) = ginputs2[2];  // ggout
                 });
+            }
+
+            // TODO(niboshi): Assign at once
+            bctx.input_grad(0) = gx;
+            bctx.input_grad(1) = ggamma;
+            bctx.input_grad(2) = gbeta;
+        });
     }
 
     return out;
