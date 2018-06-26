@@ -839,5 +839,74 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
     EXPECT_THROW(Backward({y1}, graph_id, DoubleBackpropOption::kDisable), DeviceError);
 }
 
+TEST(BackpropModeScopeTest, NoBackpropModeScopeCase1) {
+    EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
+    // TODO: this should work
+    // internal::BackpropModeStack& stack = internal::GetBackpropModeStack();
+    {
+        NoBackpropModeScope na_backprop_mode_scope;
+        {
+            internal::BackpropModeStack& stack = internal::GetBackpropModeStack();
+            EXPECT_EQ(size_t{1}, stack.size());
+            internal::BackpropMode& mode = stack.back();
+            EXPECT_EQ(nonstd::nullopt, mode.graph_id);
+            EXPECT_FALSE(mode.enabled);
+        }
+        {
+            ForceBackpropModeScope force_backprop_mode_scope{"default"};
+            {
+                internal::BackpropModeStack& stack = internal::GetBackpropModeStack();
+                EXPECT_EQ(size_t{2}, stack.size());
+                internal::BackpropMode& mode = stack.back();
+                EXPECT_EQ("default", *mode.graph_id);
+                EXPECT_TRUE(mode.enabled);
+            }
+        }
+        {
+            internal::BackpropModeStack& stack = internal::GetBackpropModeStack();
+            EXPECT_EQ(size_t{1}, stack.size());
+            internal::BackpropMode& mode = stack.back();
+            EXPECT_EQ(nonstd::nullopt, mode.graph_id);
+            EXPECT_FALSE(mode.enabled);
+        }
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
+}
+
+// https://isocpp.org/wiki/faq/dtors#order-dtors-for-locals
+// TEST(BackpropModeScopeTest, NoBackpropModeScopeCase2) {
+//     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
+//     // TODO: this should work
+//     // internal::BackpropModeStack& stack = internal::GetBackpropModeStack();
+//     {
+//         NoBackpropModeScope na_backprop_mode_scope{"default"};
+//         {
+//             internal::BackpropModeStack& stack = internal::GetBackpropModeStack();
+//             EXPECT_EQ(size_t{1}, stack.size());
+//             internal::BackpropMode& mode = stack.back();
+//             EXPECT_EQ(nonstd::nullopt, mode.graph_id);
+//             EXPECT_FALSE(mode.enabled);
+//         }
+//         {
+//             ForceBackpropModeScope force_backprop_mode_scope{"default"};
+//             {
+//                 internal::BackpropModeStack& stack = internal::GetBackpropModeStack();
+//                 EXPECT_EQ(size_t{2}, stack.size());
+//                 internal::BackpropMode& mode = stack.back();
+//                 EXPECT_EQ("default", *mode.graph_id);
+//                 EXPECT_TRUE(mode.enabled);
+//             }
+//         }
+//         {
+//             internal::BackpropModeStack& stack = internal::GetBackpropModeStack();
+//             EXPECT_EQ(size_t{1}, stack.size());
+//             internal::BackpropMode& mode = stack.back();
+//             EXPECT_EQ(nonstd::nullopt, mode.graph_id);
+//             EXPECT_FALSE(mode.enabled);
+//         }
+//     }
+//     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
+// }
+
 }  // namespace
 }  // namespace xchainer

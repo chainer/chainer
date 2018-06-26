@@ -3,10 +3,12 @@
 #include <functional>
 #include <initializer_list>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
+#include "xchainer/context.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
 #include "xchainer/shape.h"
@@ -119,5 +121,93 @@ void Backward(
         const std::vector<ConstArrayRef>& outputs,
         const GraphId& graph_id = kDefaultGraphId,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
+
+namespace internal {
+
+struct BackpropMode {
+    nonstd::optional<GraphId> graph_id;
+    bool enabled;
+};
+
+using BackpropModeStack = std::vector<BackpropMode>;
+using BackpropModeContextStack = std::unordered_map<const Context*, BackpropModeStack>;
+
+void SetBackpropModeContextStack(BackpropModeContextStack* backprop_mode_context_stack);
+BackpropModeContextStack* GetBackpropModeContextStack();
+BackpropModeStack& GetBackpropModeStack(const Context* context = GetDefaultContextNoExcept());
+
+}  // namespace internal
+
+// Scope object that switches the backprop mode by RAII.
+class NoBackpropModeScope {
+public:
+    // No backprop mode for all graphs
+    NoBackpropModeScope() : NoBackpropModeScope(nonstd::nullopt) {}
+    // No backprop mode for specified graph
+    explicit NoBackpropModeScope(const GraphId& graph_id) : NoBackpropModeScope(std::move(nonstd::optional<GraphId>{graph_id})) {}
+
+    NoBackpropModeScope(const NoBackpropModeScope&) = delete;
+    NoBackpropModeScope(NoBackpropModeScope&& other) = delete;
+    NoBackpropModeScope& operator=(const NoBackpropModeScope&) = delete;
+    NoBackpropModeScope& operator=(NoBackpropModeScope&& other) = delete;
+
+    ~NoBackpropModeScope() { Exit(); }
+
+    // Explicitly recovers the original scope. It will invalidate the scope object so that dtor will do nothing.
+    void Exit() {
+        if (!exited_) {
+            SetBackpropModeContextStack(orig_stack_);
+            exited_ = true;
+        }
+    }
+
+private:
+    explicit NoBackpropModeScope(nonstd::optional<GraphId> graph_id)
+        : orig_stack_{internal::GetBackpropModeContextStack()}, exited_{false} {
+        if (orig_stack_ != nullptr) {
+            curr_stack_ = *orig_stack_;  // copy
+        }
+        const Context* context = internal::GetDefaultContextNoExcept();
+        curr_stack_[context].emplace_back(internal::BackpropMode{std::move(graph_id), false});
+        internal::SetBackpropModeContextStack(&curr_stack_);
+    }
+
+    internal::BackpropModeContextStack* orig_stack_;  // outer scope should alive and hold the entity
+    internal::BackpropModeContextStack curr_stack_{};
+    bool exited_;
+};
+
+// Scope object that switches the backprop mode by RAII.
+class ForceBackpropModeScope {
+public:
+    explicit ForceBackpropModeScope(const GraphId& graph_id) : orig_stack_{internal::GetBackpropModeContextStack()}, exited_{false} {
+        if (orig_stack_ != nullptr) {
+            curr_stack_ = *orig_stack_;  // copy
+        }
+        const Context* context = internal::GetDefaultContextNoExcept();
+        curr_stack_[context].emplace_back(internal::BackpropMode{graph_id, true});
+        internal::SetBackpropModeContextStack(&curr_stack_);
+    }
+
+    ForceBackpropModeScope(const ForceBackpropModeScope&) = delete;
+    ForceBackpropModeScope(ForceBackpropModeScope&& other) = delete;
+    ForceBackpropModeScope& operator=(const ForceBackpropModeScope&) = delete;
+    ForceBackpropModeScope& operator=(ForceBackpropModeScope&& other) = delete;
+
+    ~ForceBackpropModeScope() { Exit(); }
+
+    // Explicitly recovers the original scope. It will invalidate the scope object so that dtor will do nothing.
+    void Exit() {
+        if (!exited_) {
+            SetBackpropModeContextStack(orig_stack_);
+            exited_ = true;
+        }
+    }
+
+private:
+    internal::BackpropModeContextStack* orig_stack_;  // outer scope should alive and hold the entity
+    internal::BackpropModeContextStack curr_stack_{};
+    bool exited_;
+};
 
 }  // namespace xchainer

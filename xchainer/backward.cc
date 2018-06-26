@@ -13,6 +13,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
+#include "xchainer/context.h"
 #include "xchainer/error.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
@@ -325,5 +326,28 @@ void Backward(const Array& output, const GraphId& graph_id, DoubleBackpropOption
 void Backward(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
     BackwardImpl{outputs, graph_id, double_backprop}.Run();
 }
+
+namespace {
+
+thread_local internal::BackpropModeContextStack* t_backprop_mode_context_stack{nullptr};
+
+}  // namespace
+
+namespace internal {
+
+void SetBackpropModeContextStack(BackpropModeContextStack* backprop_mode_context_stack) {
+    t_backprop_mode_context_stack = backprop_mode_context_stack;
+}
+
+BackpropModeContextStack* GetBackpropModeContextStack() { return t_backprop_mode_context_stack; }
+
+BackpropModeStack& GetBackpropModeStack(const Context* context) {
+    if (t_backprop_mode_context_stack == nullptr) {
+        throw XchainerError{"thread local storage for backpromp mode is empty."};
+    }
+    return t_backprop_mode_context_stack->at(context);  // may throw out_of_range error
+}
+
+}  // namespace internal
 
 }  // namespace xchainer
