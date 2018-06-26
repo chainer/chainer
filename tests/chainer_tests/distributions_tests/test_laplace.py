@@ -42,13 +42,13 @@ class TestLaplace(testing.distribution_unittest):
 
 @testing.parameterize(*testing.product({
     'shape': [(2, 3), ()],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'dtype': [numpy.float32, numpy.float64],
 }))
 class TestLaplaceCDF(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.normal(size=self.shape)
-        self.gy = numpy.random.normal(size=self.shape)
+        self.x = numpy.random.normal(size=self.shape).astype(self.dtype)
+        self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def forward(self, x):
