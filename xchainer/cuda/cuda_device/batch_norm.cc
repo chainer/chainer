@@ -212,13 +212,14 @@ public:
 
             assert(x_cont.dtype() == gamma.dtype());
             assert(x_cont.dtype() == gout.dtype());
+
+            assert(x_cont.IsContiguous());
         }
 #endif  // NDEBUG
 
         Device& device = x_cont.device();
         Dtype dtype = x_cont.dtype();
 
-        assert(x_cont.IsContiguous());
         Array gout_cont = AsContiguousArray(gout);
         Array gx = EmptyLike(x_cont, device);
 
