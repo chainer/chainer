@@ -85,7 +85,14 @@ class TestLaplaceICDF(unittest.TestCase):
     def check_forward(self, x_data):
         y = self.forward(x_data)
         cdf, = distributions.laplace.LaplaceCDF().apply((y,))
-        testing.assert_allclose(cdf, x_data)
+        testing.assert_allclose(cdf.array, x_data)
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
