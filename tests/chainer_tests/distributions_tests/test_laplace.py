@@ -51,13 +51,10 @@ class TestLaplaceCDF(unittest.TestCase):
         self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
-    def forward(self, x):
-        y, = distributions.laplace.LaplaceCDF().apply((x,))
-        return y
-
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            self.forward, x_data, y_grad, **self.backward_options)
+            distributions.laplace._laplace_cdf,
+            x_data, y_grad, **self.backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -78,13 +75,9 @@ class TestLaplaceICDF(unittest.TestCase):
         self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
-    def forward(self, x):
-        y, = distributions.laplace.LaplaceICDF().apply((x,))
-        return y
-
     def check_forward(self, x_data):
-        y = self.forward(x_data)
-        cdf, = distributions.laplace.LaplaceCDF().apply((y,))
+        y = distributions.laplace._laplace_icdf(x_data)
+        cdf = distributions.laplace._laplace_cdf(y)
         testing.assert_allclose(cdf.array, x_data)
 
     def test_forward_cpu(self):
@@ -96,7 +89,8 @@ class TestLaplaceICDF(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            self.forward, x_data, y_grad, **self.backward_options)
+            distributions.laplace._laplace_icdf,
+            x_data, y_grad, **self.backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
