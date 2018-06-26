@@ -134,7 +134,7 @@ using BackpropModeContextStack = std::unordered_map<const Context*, BackpropMode
 
 void SetBackpropModeContextStack(BackpropModeContextStack* backprop_mode_context_stack);
 BackpropModeContextStack* GetBackpropModeContextStack();
-BackpropModeStack& GetBackpropModeStack(const Context* context = GetDefaultContextNoExcept());
+BackpropModeStack* GetBackpropModeStack(const Context* context = GetDefaultContextNoExcept());
 
 }  // namespace internal
 

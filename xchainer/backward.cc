@@ -341,11 +341,11 @@ void SetBackpropModeContextStack(BackpropModeContextStack* backprop_mode_context
 
 BackpropModeContextStack* GetBackpropModeContextStack() { return t_backprop_mode_context_stack; }
 
-BackpropModeStack& GetBackpropModeStack(const Context* context) {
+BackpropModeStack* GetBackpropModeStack(const Context* context) {
     if (t_backprop_mode_context_stack == nullptr) {
-        throw XchainerError{"thread local storage for backpromp mode is empty."};
+        return nullptr;
     }
-    return t_backprop_mode_context_stack->at(context);  // may throw out_of_range error
+    return &t_backprop_mode_context_stack->at(context);  // may throw out_of_range error
 }
 
 }  // namespace internal
