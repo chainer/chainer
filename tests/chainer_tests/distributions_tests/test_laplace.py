@@ -64,7 +64,7 @@ class TestLaplaceCDF(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x1), cuda.to_gpu(self.gy))
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
 @testing.parameterize(*testing.product({
@@ -96,7 +96,7 @@ class TestLaplaceICDF(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x1), cuda.to_gpu(self.gy))
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
 testing.run_module(__name__, __file__)
