@@ -54,9 +54,7 @@ const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const Grap
     if (HasArrayNode(array, graph_id)) {
         throw XchainerError{"Duplicate graph registration: '", graph_id, "'."};
     }
-    auto new_node = std::make_shared<ArrayNode>(array.body(), array.shape(), array.dtype(), array.device(), graph_id);
-    array.body()->AddNode(new_node);
-    return array.nodes().back();
+    return array.body()->AddNode(std::make_shared<ArrayNode>(array.body(), array.shape(), array.dtype(), array.device(), graph_id));
 }
 
 std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id) { return GetMutableArrayNode(array, graph_id); }
