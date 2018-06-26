@@ -52,15 +52,15 @@ public:
 
 class GenericBatchNormForwardBackward : public BatchNormForwardBackward {
 public:
-    GenericBatchNormForwardBackward(const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis);
+    GenericBatchNormForwardBackward(const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, Axes axis);
 
     Array Forward(const Array& x, const Array& gamma, const Array& beta) override;
     std::array<Array, 3> Backward(const Array& gout) override;
     std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) override;
 
 protected:
-    void SetForwardResults(const Array& x, const Array& gamma, const Array& x_mean, const Array& x_inv_std);
-    void SetBackwardResults(const Array& gout, const Array& gx, const Array& ggamma);
+    void SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std);
+    void SetBackwardResults(Array gout, Array gx, Array ggamma);
 
     const Array& running_mean() { return running_mean_; }
     const Array& running_var() { return running_var_; }

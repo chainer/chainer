@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <type_traits>
+#include <utility>
 
 #include "xchainer/array.h"
 #include "xchainer/context.h"
@@ -107,20 +108,20 @@ ApplyBatchNormResult ApplyBatchNorm(
 }  // namespace
 
 GenericBatchNormForwardBackward::GenericBatchNormForwardBackward(
-        const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis)
-    : running_mean_{running_mean}, running_var_{running_var}, eps_{eps}, decay_{decay}, axis_{axis} {}
+        const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, Axes axis)
+    : running_mean_{running_mean}, running_var_{running_var}, eps_{eps}, decay_{decay}, axis_{std::move(axis)} {}
 
-void GenericBatchNormForwardBackward::SetForwardResults(const Array& x, const Array& gamma, const Array& x_mean, const Array& x_inv_std) {
-    x_ = std::make_shared<Array>(x);
-    gamma_ = std::make_shared<Array>(gamma);
-    x_mean_ = std::make_shared<Array>(x_mean);
-    x_inv_std_ = std::make_shared<Array>(x_inv_std);
+void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std) {
+    x_ = std::make_shared<Array>(std::move(x));
+    gamma_ = std::make_shared<Array>(std::move(gamma));
+    x_mean_ = std::make_shared<Array>(std::move(x_mean));
+    x_inv_std_ = std::make_shared<Array>(std::move(x_inv_std));
 }
 
-void GenericBatchNormForwardBackward::SetBackwardResults(const Array& gout, const Array& gx, const Array& ggamma) {
-    gout_ = std::make_shared<Array>(gout);
-    gx_ = std::make_shared<Array>(gx);
-    ggamma_ = std::make_shared<Array>(ggamma);
+void GenericBatchNormForwardBackward::SetBackwardResults(Array gout, Array gx, Array ggamma) {
+    gout_ = std::make_shared<Array>(std::move(gout));
+    gx_ = std::make_shared<Array>(std::move(gx));
+    ggamma_ = std::make_shared<Array>(std::move(ggamma));
 }
 
 Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
@@ -142,7 +143,7 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
     running_var_ *= decay_;
     running_var_ += inv_decay * (static_cast<double>(n) / std::max(n - 1, int64_t{1})) * x_var;
 
-    SetForwardResults(x_const, gamma_const, x_mean, x_inv_std);
+    SetForwardResults(std::move(x_const), std::move(gamma_const), std::move(x_mean), std::move(x_inv_std));
 
     return std::move(out);
 }
