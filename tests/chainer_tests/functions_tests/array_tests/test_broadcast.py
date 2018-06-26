@@ -23,6 +23,7 @@ from chainer.utils import type_check
         {'in_shapes': [(3, 2, 4)], 'out_shape': (3, 2, 4)},
         {'in_shapes': [(3, 1, 4), (1, 2, 4), (3, 2, 1)],
          'out_shape': (3, 2, 4)},
+        {'in_shapes': [(1, 0, 1), (2,)], 'out_shape': (1, 0, 2)},
     ],
     [
         {'dtype': numpy.float16},

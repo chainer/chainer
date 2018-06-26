@@ -9,7 +9,6 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import parameterize
-from chainer.utils import type_check
 
 
 @parameterize(
@@ -99,13 +98,12 @@ class TestGetItem(unittest.TestCase):
 
 @testing.parameterize(
     {'slices': [], 'sliced_shape': (0, 3, 2)},
-    {'slices': [[]], 'sliced_shape': (0, 3, 2)},
-    {'slices': [[[]]], 'sliced_shape': (1, 0, 3, 2)},
+    {'slices': ([],), 'sliced_shape': (0, 3, 2)},
     {'slices': ([[]],), 'sliced_shape': (1, 0, 3, 2)},
     {'slices': numpy.array([], dtype=numpy.bool),
         'sliced_shape': (0, 3, 2)},
-    {'slices': [1, [1]], 'sliced_shape': (1, 2)},
-    {'slices': [[1], slice(1, 2)], 'sliced_shape': (1, 1, 2)},
+    {'slices': (1, [1]), 'sliced_shape': (1, 2)},
+    {'slices': ([1], slice(1, 2)), 'sliced_shape': (1, 1, 2)},
     {'slices': [1, 0], 'sliced_shape': (2, 3, 2)},
     {'slices': ([1, 0],), 'sliced_shape': (2, 3, 2)},
     {'slices': numpy.array([[1, 0], [2, 3]]),
@@ -124,6 +122,8 @@ class TestGetItem(unittest.TestCase):
         'sliced_shape': (4, 2, 2)},
     {'slices': numpy.array([False, False, False, False]),
         'sliced_shape': (0, 3, 2)},
+    {'slices': (3, 2, Ellipsis, 1),
+     'sliced_shape': ()},
 )
 class TestGetItemAdvanced(unittest.TestCase):
 
@@ -234,10 +234,6 @@ class TestInvalidGetItem(unittest.TestCase):
     def test_multiple_ellipsis(self):
         with self.assertRaises(ValueError):
             functions.get_item(self.x_data, (Ellipsis, Ellipsis))
-
-    def test_too_many_indices(self):
-        with self.assertRaises(type_check.InvalidType):
-            functions.get_item(self.x_data, (0, 0, 0, 0))
 
 
 testing.run_module(__name__, __file__)

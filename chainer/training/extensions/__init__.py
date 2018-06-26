@@ -5,6 +5,7 @@ from chainer.training.extensions.computational_graph import dump_graph  # NOQA
 from chainer.training.extensions.evaluator import Evaluator  # NOQA
 from chainer.training.extensions.exponential_shift import ExponentialShift  # NOQA
 from chainer.training.extensions.fail_on_nonnumber import FailOnNonNumber  # NOQA
+from chainer.training.extensions.inverse_shift import InverseShift  # NOQA
 from chainer.training.extensions.linear_shift import LinearShift  # NOQA
 from chainer.training.extensions.log_report import LogReport  # NOQA
 from chainer.training.extensions.micro_average import MicroAverage  # NOQA

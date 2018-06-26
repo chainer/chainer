@@ -409,4 +409,56 @@ class TestInvalidArgument(unittest.TestCase):
             self.link(self.x, unknown_argument=1)
 
 
+@testing.parameterize(
+    {'shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
+    {'shape': (5, 4), 'axis': 0},
+    {'shape': (5, 4, 3), 'axis': (0, 1)},
+)
+class TestChannalSizeInference(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.randn(*self.shape).astype('f')
+
+        axis = self.axis
+        if isinstance(axis, int):
+            axis = (axis,)
+        self.expected_size = tuple(
+            n
+            for i, n in enumerate(self.shape)
+            if i not in axis
+        )
+
+    def test_no_inference(self):
+        bn = links.BatchNormalization(self.expected_size)
+        assert hasattr(bn, 'avg_mean')
+        assert hasattr(bn, 'avg_var')
+
+    def test_inference(self):
+        bn = links.BatchNormalization(axis=self.axis)
+        bn(self.x)
+        assert bn.beta.shape == self.expected_size
+        assert bn.gamma.shape == self.expected_size
+        assert bn.avg_mean.shape == self.expected_size
+        assert bn.avg_var.shape == self.expected_size
+
+    def test_no_gamma(self):
+        bn = links.BatchNormalization(axis=self.axis, use_gamma=False)
+        assert not hasattr(bn, 'gamma')
+        bn(self.x)
+        assert not hasattr(bn, 'gamma')
+
+    def test_no_beta(self):
+        bn = links.BatchNormalization(axis=self.axis, use_beta=False)
+        assert not hasattr(bn, 'beta')
+        bn(self.x)
+        assert not hasattr(bn, 'beta')
+
+
+class TestFailChannalSizeInference(unittest.TestCase):
+
+    def test_fail_inference(self):
+        with self.assertRaises(RuntimeError):
+            links.BatchNormalization()
+
+
 testing.run_module(__name__, __file__)
