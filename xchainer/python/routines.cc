@@ -509,7 +509,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           [](const ArrayBodyPtr& x, py::handle ksize, py::handle stride, py::handle pad, bool cover_all) {
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
-              return MaxPool(Array{x},
+              return MaxPool(x_array,
                              ToStackVector<int64_t>(ksize, ndim),
                              stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
                              ToStackVector<int64_t>(pad, ndim),
