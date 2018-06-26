@@ -1,6 +1,6 @@
 import chainer
 import chainer.functions as F
-import chainer.initializers as I
+from chainer import initializers
 import chainer.links as L
 
 
@@ -12,7 +12,7 @@ class NIN(chainer.Chain):
 
     def __init__(self):
         super(NIN, self).__init__()
-        conv_init = I.HeNormal()  # MSRA scaling
+        conv_init = initializers.HeNormal()  # MSRA scaling
 
         with self.init_scope():
             self.mlpconv1 = L.MLPConvolution2D(
