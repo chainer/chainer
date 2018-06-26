@@ -222,16 +222,47 @@ public:
             default:
                 XCHAINER_NEVER_REACH();
         }
+        x_ = x.AsConstant();
         return out;
     }
 
-    Array Backward(const Array& /*gout*/) override { throw NotImplementedError{}; }
+    Array Backward(const Array& gout) override {
+        // Reshape col gradients to (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
+
+        Shape gcol_shape = gout.shape();
+        gcol_shape.insert(gcol_shape.begin() + 2, kernel_size_.begin(), kernel_size_.end());
+        Shape reshape_to = gcol_shape;
+        std::fill(reshape_to.begin() + 2, reshape_to.begin() + x_.ndim(), int64_t{1});
+
+        Array gx{};
+
+        switch (pad_mode_) {
+            case AveragePoolPadMode::kZero: {
+                Array gcol = gout.Reshape(reshape_to).BroadcastTo(gcol_shape);
+                int64_t width = std::accumulate(kernel_size_.begin(), kernel_size_.end(), int64_t{1}, std::multiplies<>());
+                gx = internal::Col2Im(gcol, stride_, pad_, {x_.shape().begin() + 2, x_.shape().end()});
+                gx /= width;
+                break;
+            }
+            case AveragePoolPadMode::kIgnore: {
+                Array widths = GetPadModeIgnorePoolingWidths(x_.shape(), kernel_size_, stride_, pad_, x_.dtype());
+                widths = widths.BroadcastTo(gout.shape());
+                Array gcol = (gout / widths).Reshape(reshape_to).BroadcastTo(gcol_shape);
+                gx = internal::Col2Im(gcol, stride_, pad_, {x_.shape().begin() + 2, x_.shape().end()});
+                break;
+            }
+            default:
+                XCHAINER_NEVER_REACH();
+        }
+        return gx;
+    }
 
 private:
     const StackVector<int64_t, kMaxNdim> kernel_size_;
     const StackVector<int64_t, kMaxNdim> stride_;
     const StackVector<int64_t, kMaxNdim> pad_;
     const AveragePoolPadMode pad_mode_;
+    Array x_;
 };
 
 }  // namespace

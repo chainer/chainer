@@ -521,10 +521,6 @@ TEST_P(PoolingTest, AveragePoolPadModeZero) {
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeIgnoreBackward) {
-    // TODO(imanishi): test native when implemented
-    if (GetParam() == "native") {
-        return;
-    }
     using T = float;
 
     int64_t batch_size = 3;
@@ -583,10 +579,6 @@ TEST_P(PoolingTest, AveragePoolPadModeIgnoreBackward) {
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeZeroBackward) {
-    // TODO(imanishi): test native when implemented
-    if (GetParam() == "native") {
-        return;
-    }
     using T = float;
 
     int64_t batch_size = 3;
