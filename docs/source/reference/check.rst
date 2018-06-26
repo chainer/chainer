@@ -36,10 +36,13 @@ The :mod:`chainer.gradient_check` module makes it easy to implement the gradient
 
 Standard Assertions
 -------------------
+
 The assertions have same names as NumPy's ones.
 The difference from NumPy is that they can accept both :class:`numpy.ndarray`
 and :class:`cupy.ndarray`.
 
+.. module:: chainer.testing
+.. currentmodule:: chainer
 .. autosummary::
    :toctree: generated/
    :nosignatures:
