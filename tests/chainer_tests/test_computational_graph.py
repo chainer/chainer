@@ -216,6 +216,7 @@ class TestGraphBuilderStylization(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             self.g.dump('graphml')
 
+
 class TestGraphBuilderShowName(unittest.TestCase):
 
     def setUp(self):
