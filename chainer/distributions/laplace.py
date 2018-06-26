@@ -39,6 +39,16 @@ class LaplaceICDF(chainer.function_node.FunctionNode):
         return gy / (0.5 - abs(x - 0.5)),
 
 
+def _laplace_cdf(x):
+    y, = LaplaceCDF().apply((x,))
+    return y
+
+
+def _laplace_icdf(x):
+    y, = LaplaceICDF().apply((x,))
+    return y
+
+
 class Laplace(distribution.Distribution):
 
     """Laplace Distribution.
@@ -70,8 +80,7 @@ class Laplace(distribution.Distribution):
     def cdf(self, x):
         bl = broadcast.broadcast_to(self.loc, x.shape)
         bs = broadcast.broadcast_to(self.scale, x.shape)
-        y, = LaplaceCDF().apply(((x - bl) / bs,))
-        return y
+        return _laplace_cdf((x - bl) / bs)
 
     @property
     def entropy(self):
@@ -82,8 +91,7 @@ class Laplace(distribution.Distribution):
         return ()
 
     def icdf(self, x):
-        y, = LaplaceICDF().apply((x,))
-        return self.loc + self.scale * y
+        return self.loc + self.scale * _laplace_icdf(x)
 
     @property
     def _is_gpu(self):
