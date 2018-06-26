@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 #include <cudnn.h>
 
@@ -12,6 +13,7 @@
 #include "xchainer/cuda/cudnn.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/numeric_limits.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/pooling.h"
@@ -26,15 +28,15 @@ class PoolImpl {
 public:
     PoolImpl(
             cudnnHandle_t cudnn_handle,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
             bool cover_all,
             cudnnPoolingMode_t cudnn_pooling_mode)
         : cudnn_handle_{cudnn_handle},
-          kernel_size_{kernel_size},
-          stride_{stride},
-          pad_{pad},
+          kernel_size_{std::move(kernel_size)},
+          stride_{std::move(stride)},
+          pad_{std::move(pad)},
           cover_all_{cover_all},
           cudnn_pooling_mode_{cudnn_pooling_mode} {
         if (cover_all_) {
@@ -44,8 +46,8 @@ public:
 
     Array Forward(const Array& x) {
         int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
-        if (ndim < 2) {
-            throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
+        if (ndim != 2 && ndim != 3) {
+            throw DimensionError{"XChainer cuDNN pooling supports only 2 and 3 spatial dimensions."};
         }
 
         assert(kernel_size_.size() == static_cast<size_t>(ndim));

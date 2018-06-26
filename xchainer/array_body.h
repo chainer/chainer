@@ -61,6 +61,9 @@ public:
     // XchainerError is thrown if there is no array node for the specified graph.
     void ClearGrad(const GraphId& graph_id);
 
+    ArrayBody(const ArrayBody&) = delete;
+    ArrayBody& operator=(const ArrayBody&) = delete;
+
 private:
     friend class ::xchainer::Array;
 

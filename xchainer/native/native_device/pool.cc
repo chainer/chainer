@@ -52,11 +52,11 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
 class NativeMaxPoolForwardBackward : public xchainer::MaxPoolForwardBackward {
 public:
     explicit NativeMaxPoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
             bool cover_all)
-        : kernel_size_{kernel_size}, stride_{stride}, pad_{pad}, cover_all_{cover_all} {}
+        : kernel_size_{std::move(kernel_size)}, stride_{std::move(stride)}, pad_{std::move(pad)}, cover_all_{cover_all} {}
 
     Array Forward(const Array& x) override {
         // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
@@ -192,11 +192,11 @@ Array GetPadModeIgnorePoolingWidths(
 class NativeAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {
 public:
     explicit NativeAveragePoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            StackVector<int64_t, kMaxNdim> kernel_size,
+            StackVector<int64_t, kMaxNdim> stride,
+            StackVector<int64_t, kMaxNdim> pad,
             AveragePoolPadMode pad_mode)
-        : kernel_size_{kernel_size}, stride_{stride}, pad_{pad}, pad_mode_{pad_mode} {}
+        : kernel_size_{std::move(kernel_size)}, stride_{std::move(stride)}, pad_{std::move(pad)}, pad_mode_{pad_mode} {}
 
     Array Forward(const Array& x) override {
         Array col = internal::Im2Col(x.AsConstant(), kernel_size_, stride_, pad_, false, 0);
