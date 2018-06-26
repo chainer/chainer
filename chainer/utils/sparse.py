@@ -51,7 +51,7 @@ class CooMatrix(object):
             if _is_c_contiguous(row, col):
                 self.c_contiguous = True
             elif _is_c_contiguous(col, row):
-                self.c_contiguous = False
+                self.c_contiguous = False  # means this is F_contiguous
 
     def to_dense(self):
         """Returns a dense matrix format of this sparse matrix."""
@@ -146,8 +146,15 @@ def to_coo(x, ldnz=None, requires_grad=False):
 
 def _is_c_contiguous(row, col):
     """Check if a coo matrix with given row and col is c_contiguous"""
-    if row.ndim != 1 or col.ndim != 1:
-        return False
+    if not (row.shape == col.shape):
+        raise ValueError('shape of row and col must be the same.')
+    if row.ndim != 1:
+        for i in range(row.shape[0]):
+            if not _is_c_contiguous(row[i], col[i]):
+                return False
+        return True
+    if row.shape[0] <= 1:
+        return True
     xp = cuda.get_array_module(row)
     row_diff = xp.zeros(row.shape, dtype=row.dtype)
     row_diff[1:] = row[1:] - row[:-1]
