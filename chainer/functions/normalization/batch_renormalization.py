@@ -27,13 +27,14 @@ def _xhat(x, mean, std, expander):
 class BatchRenormalizationFunction(function.Function):
 
     def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9,
-                 rmax=1, dmax=0):
+                 rmax=1, dmax=0, update_statistics=True):
         self.running_mean = mean
         self.running_var = var
         self.rmax = rmax
         self.dmax = dmax
         self.r = None
         self.d = None
+        self.update_statistics = update_statistics
 
         self.eps = eps
         self.mean_cache = None
@@ -60,10 +61,7 @@ class BatchRenormalizationFunction(function.Function):
         # Note: we must be in train mode.
         assert configuration.config.train
 
-        if self.running_mean is None:
-            self.running_mean = xp.zeros_like(gamma)
-            self.running_var = xp.zeros_like(gamma)
-        else:
+        if not self.update_statistics:
             self.running_mean = xp.array(self.running_mean)
             self.running_var = xp.array(self.running_var)
 
@@ -156,7 +154,8 @@ class BatchRenormalizationFunction(function.Function):
 
 
 def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
-                          running_mean=None, running_var=None, decay=0.9):
+                          running_mean=None, running_var=None, decay=0.9
+                          update_statistics=None):
     """Batch renormalization function.
 
     This is an extension of batch normalization, which ensures that the
@@ -181,8 +180,15 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
     .. seealso:: :func:`functions.BatchNormalization`
 
     """
-    return BatchRenormalizationFunction(eps, running_mean, running_var,
-                                        decay, rmax, dmax)(x, gamma, beta)
+    if update_statistics is None:
+        warnings.warn(
+            'In future, batch_renormalization function will update statistics'
+            ' by default.'
+            FutureWarning)
+        update_statistics = False
+    return BatchRenormalizationFunction(
+        eps, running_mean, running_var, decay, rmax, dmax, update_statistics
+    )(x, gamma, beta)
 
 
 def fixed_batch_renormalization(x, gamma, beta, mean, var, eps=2e-5):

@@ -59,19 +59,20 @@ class BatchRenormalization(BatchNormalization):
                     self.avg_mean.shape, dtype=x.dtype)
 
         if configuration.config.train:
+            if self.running_mean is None:
+                self.running_mean = self.xp.zeros_like(gamma)
+                self.running_var = self.xp.zeros_like(gamma)
+
             if finetune:
                 self.N += 1
                 decay = 1. - 1. / self.N
             else:
                 decay = self.decay
 
-            func = batch_renormalization.BatchRenormalizationFunction(
+            ret = batch_renormalization.batch_renormalization(
+                x, gamma, beta, self.rmax, self.dmax,
                 self.eps, self.avg_mean, self.avg_var, decay,
-                self.rmax, self.dmax)
-            ret = func(x, gamma, beta)
-
-            self.avg_mean[:] = func.running_mean
-            self.avg_var[:] = func.running_var
+                update_statistics=True)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = self.avg_mean
