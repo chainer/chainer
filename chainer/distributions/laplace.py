@@ -29,14 +29,14 @@ class LaplaceICDF(chainer.function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
-        x = 2 * x - 1
+        x = 1 - 2 * x
         y = xp.sign(x) * xp.log1p(-abs(x))
         return utils.force_array(y, x.dtype),
 
     def backward(self, target_input_indexes, grad_outputs):
         gy, = grad_outputs
         x, = self.get_retained_inputs()
-        return gy / (abs(x - 0.5) - 0.5),
+        return gy / (0.5 - abs(x - 0.5)),
 
 
 class Laplace(distribution.Distribution):
