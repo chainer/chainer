@@ -124,9 +124,16 @@ void Backward(
 
 namespace internal {
 
-struct BackpropMode {
-    nonstd::optional<GraphId> graph_id;
-    bool enabled;
+class BackpropMode {
+public:
+    BackpropMode(const nonstd::optional<GraphId>& graph_id, bool enabled) : graph_id_(graph_id), enabled_(enabled) {}
+    BackpropMode(const GraphId& graph_id, bool enabled) : graph_id_(graph_id), enabled_(enabled) {}
+    bool operator==(const BackpropMode& other) const { return enabled_ == other.enabled_ && graph_id_ == other.graph_id_; }
+    bool operator!=(const BackpropMode& other) const { return !operator==(other); }
+
+private:
+    nonstd::optional<GraphId> graph_id_;
+    bool enabled_;
 };
 
 using BackpropModeStack = std::vector<BackpropMode>;
