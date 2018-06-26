@@ -36,6 +36,7 @@
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/context_session.h"
 #include "xchainer/testing/device_session.h"
+#include "xchainer/testing/util.h"
 
 namespace xchainer {
 namespace {
@@ -254,6 +255,7 @@ TEST_P(ArrayTest, InvalidGradMismatchedDtype) {
 }
 
 TEST_P(ArrayTest, InvalidGradMismatchedDevice) {
+    XCHAINER_REQUIRE_DEVICE(GetParam(), 2);
     using T = float;
     Shape shape{2, 3};
     Device& device = GetDefaultDevice();
