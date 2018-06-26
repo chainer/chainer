@@ -233,10 +233,9 @@ class TestDeconvolution2DFunction(unittest.TestCase):
             grad_grads = grad_grads + (b_grad_grad,)
 
         def f(*args):
-            y = F.deconvolution_2d(
+            return F.deconvolution_2d(
                 *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
                 dilate=self.dilate, groups=self.groups)
-            return y * y  # make the function nonlinear
 
         with backend_config:
             gradient_check.check_double_backward(

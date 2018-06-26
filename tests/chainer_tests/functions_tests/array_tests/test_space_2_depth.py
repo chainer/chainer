@@ -87,8 +87,7 @@ class TestSpace2Depth(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad):
         def f(x):
-            y = functions.space2depth(x, self.r)
-            return y * y
+            return functions.space2depth(x, self.r)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
