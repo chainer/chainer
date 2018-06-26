@@ -67,4 +67,36 @@ class TestLaplaceCDF(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x1), cuda.to_gpu(self.gy))
 
 
+@testing.parameterize(*testing.product({
+    'shape': [(2, 3), ()],
+    'dtype': [numpy.float32, numpy.float64],
+}))
+class TestLaplaceICDF(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.uniform(size=self.shape).astype(self.dtype)
+        self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
+        self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+
+    def forward(self, x):
+        y, = distributions.laplace.LaplaceICDF().apply((x,))
+        return y
+
+    def check_forward(self, x_data):
+        y = self.forward(x_data)
+        cdf, = distributions.laplace.LaplaceCDF().apply((y,))
+        testing.assert_allclose(cdf, x_data)
+
+    def check_backward(self, x_data, y_grad):
+        gradient_check.check_backward(
+            self.forward, x_data, y_grad, **self.backward_options)
+
+    def test_backward_cpu(self):
+        self.check_backward(self.x, self.gy)
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.x1), cuda.to_gpu(self.gy))
+
+
 testing.run_module(__name__, __file__)

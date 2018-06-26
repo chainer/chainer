@@ -3,7 +3,6 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
-from chainer.functions.math import sign
 from chainer import utils
 import math
 import numpy
@@ -22,6 +21,22 @@ class LaplaceCDF(chainer.function_node.FunctionNode):
         gy, = grad_outputs
         y, = self.get_retained_outputs()
         return (0.5 - abs(y - 0.5)) * gy,
+
+
+class LaplaceICDF(chainer.function_node.FunctionNode):
+
+    def forward(self, inputs):
+        self.retain_inputs((0,))
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        x = 2 * x - 1
+        y = xp.sign(x) * xp.log1p(-abs(x))
+        return utils.force_array(y, x.dtype),
+
+    def backward(self, target_input_indexes, grad_outputs):
+        gy, = grad_outputs
+        x, = self.get_retained_inputs()
+        return gy / (abs(x - 0.5) - 0.5),
 
 
 class Laplace(distribution.Distribution):
