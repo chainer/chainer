@@ -264,8 +264,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
             expander, gamma, beta, self.x, mean, var, self.link.eps, self.test)
 
     def test_no_gamma_and_beta(self):
-        self.assertFalse(hasattr(self.link, 'gamma'))
-        self.assertFalse(hasattr(self.link, 'beta'))
+        assert self.link.gamma is None
+        assert self.link.beta is None
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -430,8 +430,8 @@ class TestChannalSizeInference(unittest.TestCase):
 
     def test_no_inference(self):
         bn = links.BatchNormalization(self.expected_size)
-        assert hasattr(bn, 'avg_mean')
-        assert hasattr(bn, 'avg_var')
+        assert bn.avg_mean is not None
+        assert bn.avg_var is not None
 
     def test_inference(self):
         bn = links.BatchNormalization(axis=self.axis)
@@ -443,15 +443,15 @@ class TestChannalSizeInference(unittest.TestCase):
 
     def test_no_gamma(self):
         bn = links.BatchNormalization(axis=self.axis, use_gamma=False)
-        assert not hasattr(bn, 'gamma')
+        assert bn.gamma is None
         bn(self.x)
-        assert not hasattr(bn, 'gamma')
+        assert bn.gamma is None
 
     def test_no_beta(self):
         bn = links.BatchNormalization(axis=self.axis, use_beta=False)
-        assert not hasattr(bn, 'beta')
+        assert bn.beta is None
         bn(self.x)
-        assert not hasattr(bn, 'beta')
+        assert bn.beta is None
 
 
 class TestFailChannalSizeInference(unittest.TestCase):
