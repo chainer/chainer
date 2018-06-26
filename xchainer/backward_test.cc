@@ -865,6 +865,29 @@ TEST(BackpropModeScopeTest, NoBackpropModeScopeNoContext) {
     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
 }
 
+// TEST(BackpropModeScopeTest, NoBackpropModeScopeMultipleContexts) {
+//    EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
+//    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+//    {
+//        ContextScope context_scope1{};
+//        EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
+//        EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+//
+//        NoBackpropModeScope na_backprop_mode_scope;
+//        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+//        EXPECT_EQ(internal::BackpropMode(nonstd::nullopt, false), internal::GetBackpropModeStack()->back());
+//        {
+//            ForceBackpropModeScope force_backprop_mode_scope{"default"};
+//            EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
+//            EXPECT_EQ(internal::BackpropMode("default", true), internal::GetBackpropModeStack()->back());
+//        }
+//        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+//        EXPECT_EQ(internal::BackpropMode(nonstd::nullopt, false), internal::GetBackpropModeStack()->back());
+//    }
+//    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+//    EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
+//}
+
 // It is possible to use in flat scope
 TEST(BackpropModeScopeTest, NoBackpropModeScopeFlatScope) {
     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
@@ -882,6 +905,8 @@ TEST(BackpropModeScopeTest, NoBackpropModeScopeFlatScope) {
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
 }
+
+TEST(BackpropModeScopeTest, ForceBackpropModeScopeHead) { EXPECT_THROW(ForceBackpropModeScope{"default"}, XchainerError); }
 
 }  // namespace
 }  // namespace xchainer
