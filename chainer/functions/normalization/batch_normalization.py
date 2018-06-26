@@ -782,9 +782,12 @@ def batch_normalization(x, gamma, beta, **kwargs):
        See :func:`chainer.using_config`.
 
     Args:
-        x (Variable): Input variable.
-        gamma (Variable): Scaling parameter of normalized data.
-        beta (Variable): Shifting parameter of scaled normalized data.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Scaling parameter of normalized data.
+        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
         running_mean (numpy.ndarray or cupy.ndarray):
             Running average of the mean. This is a running average of
@@ -837,11 +840,16 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
     statistics cannot be used for prediction consistency.
 
     Args:
-        x (Variable): Input variable.
-        gamma (Variable): Scaling parameter of normalized data.
-        beta (Variable): Shifting parameter of scaled normalized data.
-        mean (Variable): Shifting parameter of input.
-        var (Variable): Square of scaling parameter of input.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Scaling parameter of normalized data.
+        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
+        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Shifting parameter of input.
+        var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Square of scaling parameter of input.
         eps (float): Epsilon value for numerical stability.
         axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input
