@@ -22,6 +22,7 @@
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/math.h"
 #include "xchainer/routines/normalization.h"
+#include "xchainer/routines/pooling.h"
 #include "xchainer/routines/sorting.h"
 #include "xchainer/scalar.h"
 #include "xchainer/stack_vector.h"
@@ -500,6 +501,25 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("var"),
           py::arg("eps") = 2e-5,
           py::arg("axis") = nullptr);
+
+    // pooling routines
+    // TODO(sonots): Support return_indicies option of chainer.functions.max_pooling_nd.
+    m.def("max_pool",
+          [](const ArrayBodyPtr& x, py::handle ksize, py::handle stride, py::handle pad, bool cover_all) {
+              Array x_array{x};
+              int8_t ndim = x_array.ndim() - 2;
+              return MaxPool(x_array,
+                             ToStackVector<int64_t>(ksize, ndim),
+                             stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
+                             ToStackVector<int64_t>(pad, ndim),
+                             cover_all)
+                      .move_body();
+          },
+          py::arg("x"),
+          py::arg("ksize"),
+          py::arg("stride") = py::none(),
+          py::arg("pad") = 0,
+          py::arg("cover_all") = false);
 }
 
 }  // namespace internal
