@@ -57,7 +57,7 @@ public:
     void AccumulateGrad(Array partial_grad, const GraphId& graph_id);
 
     // Clears a gradient array.
-    // This function does nothing if there is no array node for the specified graph.
+    // XchainerError is thrown if there is no array node for the specified graph.
     void ClearGrad(const GraphId& graph_id);
 
 private:

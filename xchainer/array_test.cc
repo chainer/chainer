@@ -992,6 +992,20 @@ INSTANTIATE_TEST_CASE_P(
 #endif  // XCHAINER_ENABLE_CUDA
                 std::string{"native"}));
 
+TEST(ArrayGradTest, ClearGradThrow) {
+    testing::ContextSession context_session{};
+    Array x = testing::BuildArray({2, 1}).WithLinearData<float>();
+
+    EXPECT_THROW(x.ClearGrad(), XchainerError);
+    EXPECT_THROW(x.ClearGrad("testgraph1"), XchainerError);
+
+    x.RequireGrad("testgraph1");
+
+    EXPECT_THROW(x.ClearGrad(), XchainerError);
+    EXPECT_THROW(x.ClearGrad("testgraph2"), XchainerError);
+    x.ClearGrad("testgraph1");  // no throw
+}
+
 TEST(ArrayAtTest, At) {
     using T = int32_t;
     testing::ContextSession context_session{};

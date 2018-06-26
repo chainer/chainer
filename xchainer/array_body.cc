@@ -7,6 +7,7 @@
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backward.h"
+#include "xchainer/error.h"
 #include "xchainer/graph.h"
 
 namespace xchainer {
@@ -72,8 +73,7 @@ void ArrayBody::AccumulateGrad(Array partial_grad, const GraphId& graph_id) {
 void ArrayBody::ClearGrad(const GraphId& graph_id) {
     nonstd::optional<Array>* grad = GetGrad(graph_id);
     if (grad == nullptr) {
-        // Array body (and also the grad) is already gone.
-        return;
+        throw XchainerError{"Array does not belong to the graph: '", graph_id, "'."};
     }
     grad->reset();
 }
