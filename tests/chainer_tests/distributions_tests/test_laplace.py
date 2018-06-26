@@ -25,7 +25,7 @@ class TestLaplace(testing.distribution_unittest):
         self.scipy_dist = stats.laplace
 
         self.test_targets = set([
-            "batch_shape", "cdf", "entropy", "event_shape", "log_prob",
+            "batch_shape", "cdf", "entropy", "event_shape", "icdf", "log_prob",
             "mean", "prob", "sample", "stddev", "support", "variance"])
 
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
