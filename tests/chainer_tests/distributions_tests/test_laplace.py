@@ -71,7 +71,8 @@ class TestLaplaceCDF(unittest.TestCase):
 class TestLaplaceICDF(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(size=self.shape).astype(self.dtype)
+        self.x = numpy.random.uniform(
+            low=0.02, high=0.98, size=self.shape).astype(self.dtype)
         self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
