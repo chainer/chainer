@@ -19,9 +19,11 @@ ArrayBody::ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, 
 const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(std::shared_ptr<ArrayNode> array_node) {
     AssertConsistency();
     assert(this == array_node->GetBody().get());
-    assert(std::none_of(nodes_.begin(), nodes_.end(), [&array_node](const std::shared_ptr<ArrayNode>& existing_node) {
-        return existing_node->graph_id() == array_node->graph_id();
-    }));
+    if (std::any_of(nodes_.begin(), nodes_.end(), [&array_node](const std::shared_ptr<ArrayNode>& existing_node) {
+            return existing_node->graph_id() == array_node->graph_id();
+        })) {
+        throw XchainerError{"Duplicate graph registration: '", array_node->graph_id(), "'."};
+    }
 
     nodes_.emplace_back(std::move(array_node));
     grads_.emplace_back(std::make_unique<nonstd::optional<Array>>(nonstd::nullopt));

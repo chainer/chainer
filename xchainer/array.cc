@@ -51,9 +51,6 @@ bool HasArrayNode(const Array& array, const GraphId& graph_id) {
 }
 
 const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id) {
-    if (HasArrayNode(array, graph_id)) {
-        throw XchainerError{"Duplicate graph registration: '", graph_id, "'."};
-    }
     return array.body()->AddNode(std::make_shared<ArrayNode>(array.body(), array.shape(), array.dtype(), array.device(), graph_id));
 }
 
