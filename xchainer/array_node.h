@@ -56,9 +56,6 @@ public:
     // Returns the graph ID.
     const GraphId& graph_id() const { return graph_id_; }
 
-    // Clears the gradient array. This function does nothing if the array body is no longer alive.
-    void ClearGrad() noexcept;
-
     // Returns the array body. It returns nullptr if the array body is no longer alive.
     std::shared_ptr<const internal::ArrayBody> GetBody() const { return body_.lock(); }
 

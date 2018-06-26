@@ -358,7 +358,10 @@ private:
                         output_array_nodes_.end(),
                         [&prev_array_node](const std::shared_ptr<ArrayNode>& out_node) { return &prev_array_node == out_node.get(); }) ==
                 output_array_nodes_.end()) {
-                prev_array_node.ClearGrad();
+                std::shared_ptr<internal::ArrayBody> body = prev_array_node.GetBody();
+                if (body != nullptr) {
+                    body->ClearGrad(prev_array_node.graph_id());
+                }
             }
         }
 
