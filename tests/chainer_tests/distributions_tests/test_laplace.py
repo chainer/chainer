@@ -1,5 +1,10 @@
+import unittest
+
+from chainer.backends import cuda
 from chainer import distributions
+from chainer import gradient_check
 from chainer import testing
+from chainer.testing import attr
 import numpy
 
 
@@ -33,6 +38,33 @@ class TestLaplace(testing.distribution_unittest):
         smp = numpy.random.normal(
             size=self.sample_shape + self.shape).astype(numpy.float32)
         return smp
+
+
+@testing.parameterize(*testing.product({
+    'shape': [(2, 3), ()],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
+class TestLaplaceCDF(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.normal(size=self.shape)
+        self.gy = numpy.random.normal(size=self.shape)
+        self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+
+    def forward(self, x):
+        y, = distributions.laplace.LaplaceCDF().apply((x,))
+        return y
+
+    def check_backward(self, x_data, y_grad):
+        gradient_check.check_backward(
+            self.forward, x_data, y_grad, **self.backward_options)
+
+    def test_backward_cpu(self):
+        self.check_backward(self.x, self.gy)
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.x1), cuda.to_gpu(self.gy))
 
 
 testing.run_module(__name__, __file__)

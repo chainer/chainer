@@ -2,11 +2,26 @@ import chainer
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
-from chainer.functions.math import clip
 from chainer.functions.math import exponential
 from chainer.functions.math import sign
+from chainer import utils
 import math
 import numpy
+
+
+class LaplaceCDF(chainer.function_node.FunctionNode):
+
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        y = 0.5 - 0.5 * xp.sign(x) * xp.expm1(-abs(x))
+        self.retain_outputs((0,))
+        return utils.force_array(y, x.dtype),
+
+    def backward(self, target_input_indexes, grad_outputs):
+        gy, = grad_outputs
+        y, = self.get_retained_outputs()
+        return utils.force_array((0.5 - abs(y - 0.5)) * gy),
 
 
 class Laplace(distribution.Distribution):
@@ -40,10 +55,8 @@ class Laplace(distribution.Distribution):
     def cdf(self, x):
         bl = broadcast.broadcast_to(self.loc, x.shape)
         bs = broadcast.broadcast_to(self.scale, x.shape)
-        return clip.clip(0.5 * exponential.exp(
-            (x - bl) / bs), 0., 0.5) \
-            + clip.clip(0.5 - 0.5 * exponential.exp(
-                -(x - bl) / bs), 0., 0.5)
+        y, = LaplaceCDF().apply(((x - bl) / bs,))
+        return y
 
     @property
     def entropy(self):
