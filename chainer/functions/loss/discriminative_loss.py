@@ -31,14 +31,15 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     By applying discriminative loss function, groups of segmentation instances
     can be moved together.
     This loss function calculates the following three parameters:
-        - Variance Loss:
-            Loss to penalize distances between pixels which are belonging
-            to same instance. (Pull force)
-        - Distance loss:
-            Loss to penalize distances between the centers of instances.
-            (Push force)
-        - Regularization loss:
-            Small regularization loss to penalize weights against overfitting.
+
+    - Variance Loss:
+        Loss to penalize distances between pixels which are belonging
+        to same instance. (Pull force)
+    - Distance loss:
+        Loss to penalize distances between the centers of instances.
+        (Push force)
+    - Regularization loss:
+        Small regularization loss to penalize weights against overfitting.
 
     Args:
         delta_v (float): Minimum distance to start penalizing variance
@@ -311,12 +312,13 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """Applies discriminative margin based clustering loss
 
         Steps are:
-            - Reshape inputs to prepare for loss calculation
-            - Calculate means
-            - Calculate variance term
-            - Calculate distance term
-            - Calculate regularization term
-            - Add weights to all and return loss value
+
+        - Reshape inputs to prepare for loss calculation
+        - Calculate means
+        - Calculate variance term
+        - Calculate distance term
+        - Calculate regularization term
+        - Add weights to all and return loss value
 
         Args:
             prediction(:class:`~chainer.Variable` or \
@@ -383,14 +385,15 @@ def discriminative_margin_based_clustering_loss(
     By applying discriminative loss function, groups of segmentation instances
     can be moved together.
     This loss function calculates the following three parameters:
-        - Variance Loss:
-            Loss to penalize distances between pixels which are belonging
-            to same instance. (Pull force)
-        - Distance loss:
-            Loss to penalize distances between the centers of instances.
-            (Push force)
-        - Regularization loss:
-            Small regularization loss to penalize weights against overfitting.
+
+    - Variance Loss:
+        Loss to penalize distances between pixels which are belonging
+        to same instance. (Pull force)
+    - Distance loss:
+        Loss to penalize distances between the centers of instances.
+        (Push force)
+    - Regularization loss:
+        Small regularization loss to penalize weights against overfitting.
 
     Args:
         prediction(:class:`~chainer.Variable` or \
