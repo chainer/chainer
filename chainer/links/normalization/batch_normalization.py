@@ -148,20 +148,25 @@ class BatchNormalization(link.Link):
             The examples in 1. corresponds to the following, respectively.
 
             >>> bn = chainer.links.BatchNormalization(axis=(0, 2, 3))
-            >>> hasattr(bn, 'avg_mean')
-            False
+            >>> bn.avg_mean
+            None
             >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3,)
 
             >>> bn = chainer.links.BatchNormalization(axis=0)
-            >>> hasattr(bn, 'avg_mean')
-            False
+            >>> bn.avg_mean
+            None
             >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3, 32, 32)
 
     """
+
+    gamma = None
+    beta = None
+    avg_mean = None
+    avg_var = None
 
     def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=numpy.float32,
                  use_gamma=True, use_beta=True,
@@ -202,9 +207,9 @@ class BatchNormalization(link.Link):
         self.register_persistent('avg_mean')
         self.avg_var = numpy.zeros(shape, dtype=self._dtype)
         self.register_persistent('avg_var')
-        if hasattr(self, 'gamma'):
+        if self.gamma is not None:
             self.gamma.initialize(shape)
-        if hasattr(self, 'beta'):
+        if self.beta is not None:
             self.beta.initialize(shape)
 
     def __call__(self, x, **kwargs):
@@ -236,23 +241,21 @@ class BatchNormalization(link.Link):
             test='test argument is not supported anymore. '
                  'Use chainer.using_config')
 
-        if not hasattr(self, 'avg_mean'):
+        if self.avg_mean is None:
             param_shape = tuple([
                 d
                 for i, d in enumerate(x.shape)
                 if i not in self.axis])
             self._initialize_params(param_shape)
 
-        if hasattr(self, 'gamma'):
-            gamma = self.gamma
-        else:
+        gamma = self.gamma
+        if gamma is None:
             with cuda.get_device_from_id(self._device_id):
                 gamma = self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype)
 
-        if hasattr(self, 'beta'):
-            beta = self.beta
-        else:
+        beta = self.beta
+        if beta is None:
             with cuda.get_device_from_id(self._device_id):
                 beta = self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype)
