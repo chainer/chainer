@@ -126,14 +126,18 @@ namespace internal {
 
 struct BackpropMode {
 public:
-    BackpropMode(const nonstd::optional<GraphId>& graph_id, bool allowed) : graph_id_(graph_id), allowed_(allowed) {}
-    BackpropMode(const GraphId& graph_id, bool allowed) : graph_id_(graph_id), allowed_(allowed) {}
-    bool operator==(const BackpropMode& other) const { return allowed_ == other.allowed_ && graph_id_ == other.graph_id_; }
+    BackpropMode(const nonstd::optional<GraphId>& graph_id, bool backprop) : graph_id_(graph_id), backprop_(backprop) {}
+    BackpropMode(const GraphId& graph_id, bool backprop) : graph_id_(graph_id), backprop_(backprop) {}
+
+    const nonstd::optional<GraphId>& graph_id() const { return graph_id_; }
+    bool backprop() const { return backprop_; }
+
+    bool operator==(const BackpropMode& other) const { return backprop_ == other.backprop_ && graph_id_ == other.graph_id_; }
     bool operator!=(const BackpropMode& other) const { return !operator==(other); }
 
 private:
     nonstd::optional<GraphId> graph_id_;
-    bool allowed_;
+    bool backprop_;  // false for NoBackpropMode, and true for ForceBackpropMode
 };
 
 using BackpropModeStack = std::vector<BackpropMode>;
@@ -145,7 +149,7 @@ BackpropModeStack* GetBackpropModeStack(const Context* context = GetDefaultConte
 
 }  // namespace internal
 
-// Scope object that switches the backprop mode by RAII.
+// Make a context which disables back-propagation.
 class NoBackpropModeScope {
 public:
     // No backprop mode for all graphs
@@ -163,7 +167,7 @@ public:
         assert(internal::GetBackpropModeContextStack() != nullptr);
         assert(internal::GetBackpropModeStack(context_) != nullptr);
         internal::GetBackpropModeStack(context_)->pop_back();
-        // Recover thread local variable to nullptr if this scope is the outer-most
+        // Recover thread local variable to nullptr on exiting from the outer-most scope.
         if (is_outer_most()) {
             internal::SetBackpropModeContextStack(nullptr);
         }
@@ -187,7 +191,9 @@ private:
     nonstd::optional<internal::BackpropModeContextStack> context_stack_{};
 };
 
-// Scope object that switches the backprop mode by RAII.
+// Make a context which enables back-propagation.
+//
+// When you want to enable back-propagation in NoBackpropModeScope, use this scope.
 class ForceBackpropModeScope {
 public:
     explicit ForceBackpropModeScope(const GraphId& graph_id) : context_{internal::GetDefaultContextNoExcept()} {
