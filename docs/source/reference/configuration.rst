@@ -141,7 +141,7 @@ Configuration Keys
 * ``cudnn_fast_batch_normalization`` (default: ``False``)
    Flag to configure whether or not to enable use of fast implementation for batch normalization in cuDNN.
 
-   If ``True``, Chainer will try to use the fast implementation for batch normalization in cuDNN by setting cuDNN's batch normalization mode to ``CUDNN_BATCHNORM_SPATIAL_PERSISTENT``. You can change the default value to ``True`` by setting environment variable ``CHAINER_CUDNN_FAST_BATCH_NORMALIZATION`` or ``CHAINER_CUDNN_FAST_BN`` to ``1``.
+   If ``True``, Chainer will try to use the fast implementation for batch normalization in cuDNN by setting cuDNN's batch normalization mode to ``CUDNN_BATCHNORM_SPATIAL_PERSISTENT``. You can change the default value to ``True`` by setting ``CHAINER_CUDNN_FAST_BATCH_NORMALIZATION`` environment variable to ``1``.
 
 
 User-defined Keys
@@ -276,7 +276,7 @@ Here are the environment variables Chainer uses.
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_CUDNN_FAST_BATCH_NORMALIZATION``| Used as the default value for ``chainer.config.cudnn_fast_batch_normalization`` configuration.        |
-| or ``CHAINER_CUDNN_FAST_BN``              | Set ``1`` to enable use of fast implementation for batch normalization in cuDNN.                      |
+|                                           | Set ``1`` to enable use of fast implementation for batch normalization in cuDNN.                      |
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_USE_IDEEP``                     | Used as the default value for ``chainer.config.use_ideep`` configuration.                             |
