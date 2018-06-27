@@ -4,7 +4,7 @@ Variables and Derivatives
 .. include:: ../imports.rst
 
 As described previously, Chainer uses the "Define-by-Run" scheme, so forward computation itself *defines* the network.
-In order to start forward computation, we have to set the input array to a :class:`Variable` object.
+In order to start forward computation, we have to set the input array to a :class:`chainer.Variable` object.
 Here we start with a simple :class:`~numpy.ndarray` with only one element:
 
 .. doctest::
@@ -12,19 +12,25 @@ Here we start with a simple :class:`~numpy.ndarray` with only one element:
    >>> x_data = np.array([5], dtype=np.float32)
    >>> x = Variable(x_data)
 
-A Variable object has basic arithmetic operators.
+A Variable object supports basic arithmetic operators.
 In order to compute :math:`y = x^2 - 2x + 1`, just write:
 
 .. doctest::
 
    >>> y = x**2 - 2 * x + 1
 
-The resulting ``y`` is also a Variable object, whose value can be extracted by accessing the :attr:`~Variable.data` attribute:
+The resulting ``y`` is also a Variable object, whose value can be extracted by accessing the :attr:`~chainer.Variable.array` attribute:
 
 .. doctest::
 
-   >>> y.data
+   >>> y.array
    array([16.], dtype=float32)
+
+.. note::
+
+   :attr:`~chainer.Variable` has two attributes to represent the underlying array: :attr:`~chainer.Variable.array` and :attr:`~chainer.Variable.data`.
+   They are no difference between two; both are exactly the same object.
+   However it is suggested not to use ``.data`` to avoid confusing :class:`~chainer.Variable` with :class:`~numpy.ndarray`, which has ``.data`` attribute.
 
 What ``y`` holds is not only the result value.
 It also holds the history of computation (or computational graph), which enables us to compute its derivative.
@@ -35,7 +41,7 @@ This is done by calling its :meth:`~Variable.backward` method:
    >>> y.backward()
 
 This runs *error backpropagation* (a.k.a. *backprop* or *reverse-mode automatic differentiation*).
-Then, the gradient is computed and stored in the :attr:`~Variable.grad` attribute of the input variable ``x``:
+Then, the gradient is computed and stored in the :attr:`~chainer.Variable.grad` attribute of the input variable ``x``:
 
 .. doctest::
 
@@ -56,7 +62,7 @@ In order to preserve gradient information, pass the ``retain_grad`` argument to 
 
 All these computations are can be generalized to a multi-element array input.
 While single-element arrays are automatically initialized to ``[1]``, to start backward computation from a variable holding a multi-element array, we must set the *initial error* manually.
-This is done simply by setting the :attr:`~Variable.grad` attribute of the output variable:
+This is done simply by setting the :attr:`~chainer.Variable.grad` attribute of the output variable:
 
 .. doctest::
 
@@ -70,6 +76,9 @@ This is done simply by setting the :attr:`~Variable.grad` attribute of the outpu
 
 .. note::
 
-   Many functions taking :class:`Variable` object(s) are defined in the :mod:`~chainer.functions` module.
+   Many functions taking :class:`~chainer.Variable` object(s) are defined in the :mod:`chainer.functions` module.
    You can combine them to realize complicated functions with automatic backward computation.
 
+.. note::
+
+   Instead of using :func:`~chainer.Variable.backward`, you can also calculate gradients of any variables in a computational graph w.r.t. any other variables in the graph using the :func:`chainer.grad` function.
