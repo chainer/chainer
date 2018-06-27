@@ -284,7 +284,6 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
         default:
             XCHAINER_NEVER_REACH();
     }
-    throw DeviceError{"Unsupported pad mode: ", static_cast<std::underlying_type<AveragePoolPadMode>::type>(pad_mode)};
 }
 
 class CudaAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {

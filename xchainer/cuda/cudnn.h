@@ -41,7 +41,6 @@ const void* GetValuePtr(Dtype dtype) {
         default:
             XCHAINER_NEVER_REACH();
     }
-    throw CudnnError{"Unsupported dtype: ", dtype};
 }
 
 class CudnnTensorDescriptor {
