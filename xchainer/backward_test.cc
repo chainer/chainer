@@ -839,25 +839,30 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
     EXPECT_THROW(Backward({y1}, graph_id, DoubleBackpropOption::kDisable), DeviceError);
 }
 
-TEST(BackpropModeScopeTest, NoBackpropModeScopeNoContext) {
+TEST(BackpropModeScopeTest, BackpropModeScopeNoContext) {
     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
         NoBackpropModeScope backprop_mode_scope1{};
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeContextStack()->size());
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         EXPECT_EQ(internal::BackpropMode(nonstd::nullopt, false), internal::GetBackpropModeStack()->back());
         {
             ForceBackpropModeScope backprop_mode_scope2{"default"};
+            EXPECT_EQ(size_t{1}, internal::GetBackpropModeContextStack()->size());
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             EXPECT_EQ(internal::BackpropMode("default", true), internal::GetBackpropModeStack()->back());
             {
                 NoBackpropModeScope backprop_mode_scope3{"default"};
+                EXPECT_EQ(size_t{1}, internal::GetBackpropModeContextStack()->size());
                 EXPECT_EQ(size_t{3}, internal::GetBackpropModeStack()->size());
                 EXPECT_EQ(internal::BackpropMode("default", false), internal::GetBackpropModeStack()->back());
             }
+            EXPECT_EQ(size_t{1}, internal::GetBackpropModeContextStack()->size());
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             EXPECT_EQ(internal::BackpropMode("default", true), internal::GetBackpropModeStack()->back());
         }
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeContextStack()->size());
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         EXPECT_EQ(internal::BackpropMode(nonstd::nullopt, false), internal::GetBackpropModeStack()->back());
     }
@@ -865,43 +870,61 @@ TEST(BackpropModeScopeTest, NoBackpropModeScopeNoContext) {
     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
 }
 
-// TEST(BackpropModeScopeTest, NoBackpropModeScopeMultipleContexts) {
-//    EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
-//    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
-//    {
-//        ContextScope context_scope1{};
-//        EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
-//        EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
-//
-//        NoBackpropModeScope na_backprop_mode_scope;
-//        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
-//        EXPECT_EQ(internal::BackpropMode(nonstd::nullopt, false), internal::GetBackpropModeStack()->back());
-//        {
-//            ForceBackpropModeScope force_backprop_mode_scope{"default"};
-//            EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
-//            EXPECT_EQ(internal::BackpropMode("default", true), internal::GetBackpropModeStack()->back());
-//        }
-//        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
-//        EXPECT_EQ(internal::BackpropMode(nonstd::nullopt, false), internal::GetBackpropModeStack()->back());
-//    }
-//    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
-//    EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
-//}
-
-// It is possible to use in flat scope
-TEST(BackpropModeScopeTest, NoBackpropModeScopeFlatScope) {
+TEST(BackpropModeScopeTest, BackpropModeScopeMultipleContexts) {
     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
-        NoBackpropModeScope na_backprop_mode_scope;
+        Context context1{};
+        ContextScope context_scope1{context1};
+        EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
+        EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+
+        NoBackpropModeScope backprop_mode_scope1;
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeContextStack()->size());
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+        EXPECT_EQ(internal::BackpropMode(nonstd::nullopt, false), internal::GetBackpropModeStack()->back());
+        {
+            Context context2{};
+            ContextScope context_scope2{context2};
+            EXPECT_EQ(size_t{1}, internal::GetBackpropModeContextStack()->size());
+            EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+
+            NoBackpropModeScope backprop_mode_scope1{"default"};
+            // New context stack, and a stack for the context should be created.
+            EXPECT_EQ(size_t{2}, internal::GetBackpropModeContextStack()->size());
+            EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+            EXPECT_EQ(internal::BackpropMode("default", false), internal::GetBackpropModeStack()->back());
+            {
+                ForceBackpropModeScope backprop_mode_scope2{"default"};
+                EXPECT_EQ(size_t{2}, internal::GetBackpropModeContextStack()->size());
+                EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
+                EXPECT_EQ(internal::BackpropMode("default", true), internal::GetBackpropModeStack()->back());
+            }
+            EXPECT_EQ(size_t{2}, internal::GetBackpropModeContextStack()->size());
+            EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+            EXPECT_EQ(internal::BackpropMode("default", false), internal::GetBackpropModeStack()->back());
+        }
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeContextStack()->size());
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+        EXPECT_EQ(internal::BackpropMode(nonstd::nullopt, false), internal::GetBackpropModeStack()->back());
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
+}
+
+// It is possible to use in flat scope because, in C++ spec, dtors are called in reverse order of ctors.
+TEST(BackpropModeScopeTest, BackpropModeScopeFlatScope) {
+    EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    {
+        NoBackpropModeScope backprop_mode_scope1{};
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         EXPECT_EQ(internal::BackpropMode(nonstd::nullopt, false), internal::GetBackpropModeStack()->back());
 
-        ForceBackpropModeScope force_backprop_mode_scope{"default"};
+        ForceBackpropModeScope backprop_mode_scope2{"default"};
         EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
         EXPECT_EQ(internal::BackpropMode("default", true), internal::GetBackpropModeStack()->back());
     }
-    // Note: In C++ spec, dtors are called in reverse order of ctors
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
 }
