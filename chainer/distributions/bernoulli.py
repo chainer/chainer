@@ -95,6 +95,6 @@ class Bernoulli(distribution.Distribution):
 
 @distribution.register_kl(Bernoulli, Bernoulli)
 def _kl_bernoulli_bernoulli(dist1, dist2):
-    return dist1.p * (exponential.log(dist1.p) - exponential.log(dist2.p)) \
-        + (1 - dist1.p) * (exponential.log(1 - dist1.p)
-                           - exponential.log(1 - dist2.p))
+    return (dist1.logit - dist2.logit) * (dist1.p - 1.) \
+        - exponential.log(exponential.exp(-dist1.logit) + 1) \
+        + exponential.log(exponential.exp(-dist2.logit) + 1)
