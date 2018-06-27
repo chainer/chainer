@@ -35,20 +35,6 @@ These functions return a :class:`~chainer.Variable` object or a tuple of multipl
    KEEP EACH LIST IN LEXICOGRAPHICAL ORDER.
 
 
-Arithmetic functions
---------------------
-
-Basic arithmetic operations for :class:`~chainer.Variable`\s are implemented as operators.
-Refer to the Notes section of :class:`~chainer.Variable` for details.
-
-:func:`chainer.functions.add` provides better performance when accumulating three or more :class:`~chainer.Variable`\s at once.
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   chainer.functions.add
-
 Activation functions
 --------------------
 
@@ -201,6 +187,7 @@ Mathematical functions
    :nosignatures:
 
    chainer.functions.absolute
+   chainer.functions.add
    chainer.functions.arccos
    chainer.functions.arcsin
    chainer.functions.arctan
