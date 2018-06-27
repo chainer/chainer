@@ -9,9 +9,11 @@ import numpy
 class Categorical(distribution.Distribution):
 
     """Categorical Distribution.
+
     Args:
         p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Parameter of distribution.
+
     """
 
     def __init__(self, p):
