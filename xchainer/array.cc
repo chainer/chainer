@@ -387,7 +387,7 @@ public:
             if (options_.print_metadata) {
                 std::shared_ptr<const internal::ArrayBody> body = array_node.GetBody();
                 if (body == nullptr) {
-                    os_ << Indent(indent + 2) << "body=(gone)";
+                    os_ << Indent(indent + 2) << "body=(gone)" << std::endl;
                 } else {
                     const nonstd::optional<Array>* grad = body->GetGrad(array_node.graph_id());
                     assert(grad != nullptr);
