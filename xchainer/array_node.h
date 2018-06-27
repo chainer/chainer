@@ -63,7 +63,7 @@ public:
     std::shared_ptr<internal::ArrayBody> GetBody() { return body_.lock(); }
 
 private:
-    const std::weak_ptr<internal::ArrayBody> body_;
+    std::weak_ptr<internal::ArrayBody> body_;
     std::shared_ptr<OpNode> next_op_node_;
     Shape shape_;
     Dtype dtype_;
