@@ -28,13 +28,13 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     the loss value will be same independent from the wrong pixel's location.
     Even though the network gives wrong pixel output, it is desirable
     to have it as close as possible to the original position.
-    By applying discriminative loss function, groups of segmentation instances
+    By applying a discriminative loss function, groups of segmentation instances
     can be moved together.
     This loss function calculates the following three parameters:
 
     - Variance Loss:
         Loss to penalize distances between pixels which are belonging
-        to same instance. (Pull force)
+        to the same instance. (Pull force)
     - Distance loss:
         Loss to penalize distances between the centers of instances.
         (Push force)
@@ -48,7 +48,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         norm (int): Norm to calculate pixels and cluster center distances
         alpha (float): Weight for variance loss      (alpha * variance_loss)
         beta (float): Weight for distance loss       (beta * distance_loss)
-        gamma (float): Weight for regularization loss(gamma * regularizer_loss)
+        gamma (float): Weight for regularization loss (gamma * regularizer_loss)
 
     Returns:
         ~chainer.Variable: Output variable. A
@@ -151,19 +151,24 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         """Function to calculate distance term
 
         Args:
-            means (nd-array): Instance means
+            means (:class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray` : ):
+                Instance means
             delta_d (float): Coefficient to decide 'push force' power
             n_objects (nd-array): Instance count in current input
 
         Returns:
-            float : distance loss
+            :class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray` : distance loss
         """
 
         bs, n_instances, n_filters = means.shape
         m = cast(means, means.dtype)
 
-        module = cuda.get_array_module(means)
-        dd = module.asarray(delta_d, means.dtype)
+        xp = cuda.get_array_module(means)
+        dd = xp.asarray(delta_d, means.dtype)
 
         dist_term = 0.0
         for i in range(bs):
@@ -179,10 +184,10 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             m_2 = transpose(m_1, axes=(1, 0, 2))
 
             nrm = self.norm(m_1 - m_2, axis=2)
-            margin = 2.0 * dd * (1.0 - module.eye(nobj, dtype=means.dtype))
+            margin = 2.0 * dd * (1.0 - xp.eye(nobj, dtype=means.dtype))
 
             _dist_term_sample = c_sum(
-                maximum(module.asarray(0.0, means.dtype), margin - nrm) ** 2)
+                maximum(xp.asarray(0.0, means.dtype), margin - nrm) ** 2)
             _dist_term_sample /= nobj * (nobj - 1)
             dist_term += _dist_term_sample
 
@@ -223,16 +228,16 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             gt (:class:`~chainer.Variable` or \
                 :class:`numpy.ndarray` or \
                 :class:`cupy.ndarray`) : Ground truth output
-            n_objects (int): Instance number in current input
-            max_n_objects (int): Maximum possible instance number
-            gt_idx (tuple / nd-array):
+            n_objects (nd-array): Instance counts in current input
+            max_n_objects (int): Maximum possible instance count
+            gt_idx (tuple or nd-array):
                 Indexes of ground truth instances
 
         Returns:
             tuple :
             (:class:`~chainer.Variable` or \
             :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`)  distance loss
+            :class:`cupy.ndarray`)  means
         """
 
         bs = pred.shape[0]
@@ -248,7 +253,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         g = reshape(gt, (bs, 1, n_instances, n_loc))
 
         p = p * cast(g, p.dtype)
-        module = cuda.get_array_module(p)
+        xp = cuda.get_array_module(p)
 
         means = []
         for i in range(bs):
@@ -263,7 +268,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             n_fill_objects = max_n_objects - n_objects[i]
 
             if n_fill_objects != 0:
-                _fill_sample = module.zeros((n_fill_objects, n_filters),
+                _fill_sample = xp.zeros((n_fill_objects, n_filters),
                                             dtype=_mean_sample.dtype)
                 _mean_sample = concat((_mean_sample, _fill_sample),
                                       axis=0)
@@ -311,7 +316,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     def __call__(self, prediction, labels, n_objects, gt_idx):
         """Applies discriminative margin based clustering loss
 
-        Steps are:
+        The execution steps are:
 
         - Reshape inputs to prepare for loss calculation
         - Calculate means
@@ -341,10 +346,14 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                    :class:`cupy.ndarray`) :
                    indexes of non-zero ground truths
                    (batch size, variable length)
+
         Returns:
             (:class:`~chainer.Variable` or \
             :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`) : Loss value
+            :class:`cupy.ndarray`):
+                (alpha * variance_loss) +
+                (beta * distance_loss) +
+                (gamma * regularizer_loss)
         """
 
         buffer = chainer.config.type_check
