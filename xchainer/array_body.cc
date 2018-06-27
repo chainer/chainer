@@ -81,8 +81,6 @@ void ArrayBody::ClearGrad(const GraphId& graph_id) {
 
 template <typename ThisPtr, typename ReturnType>
 ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const GraphId& graph_id) {
-    this_ptr->AssertConsistency();
-
     nonstd::optional<size_t> i = this_ptr->GetNodeIndex(graph_id);
     if (!i.has_value()) {
         return nullptr;
