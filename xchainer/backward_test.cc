@@ -839,7 +839,7 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
     EXPECT_THROW(Backward({y1}, graph_id, DoubleBackpropOption::kDisable), DeviceError);
 }
 
-TEST(BackpropModeScopeTest, BackpropModeScopeNoContext) {
+TEST(BackpropModeScopeTest, BackpropModeScopeOneContext) {
     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -904,7 +904,7 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleContexts) {
             EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
             EXPECT_EQ(internal::BackpropMode("default", false), internal::GetBackpropModeStack()->back());
         }
-        EXPECT_EQ(size_t{1}, internal::GetBackpropModeContextStack()->size());
+        EXPECT_EQ(size_t{2}, internal::GetBackpropModeContextStack()->size());
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         EXPECT_EQ(internal::BackpropMode(nonstd::nullopt, false), internal::GetBackpropModeStack()->back());
     }

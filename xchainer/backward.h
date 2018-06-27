@@ -159,36 +159,49 @@ public:
     NoBackpropModeScope& operator=(const NoBackpropModeScope&) = delete;
     NoBackpropModeScope& operator=(NoBackpropModeScope&& other) = delete;
 
-    ~NoBackpropModeScope() { SetBackpropModeContextStack(orig_context_stack_); }
-
-private:
-    explicit NoBackpropModeScope(nonstd::optional<GraphId> graph_id) : orig_context_stack_{internal::GetBackpropModeContextStack()} {
-        if (orig_context_stack_ != nullptr) {
-            curr_context_stack_ = *orig_context_stack_;  // copy
+    ~NoBackpropModeScope() {
+        assert(internal::GetBackpropModeContextStack() != nullptr);
+        assert(internal::GetBackpropModeStack(context_) != nullptr);
+        internal::GetBackpropModeStack(context_)->pop_back();
+        // Recover thread local variable to nullptr if this scope is the outer-most
+        if (is_outer_most()) {
+            internal::SetBackpropModeContextStack(nullptr);
         }
-        const Context* context = internal::GetDefaultContextNoExcept();
-        curr_context_stack_[context].emplace_back(internal::BackpropMode{std::move(graph_id), false});
-        internal::SetBackpropModeContextStack(&curr_context_stack_);
     }
 
-    internal::BackpropModeContextStack* orig_context_stack_;  // outer scope should alive and hold the entity
-    internal::BackpropModeContextStack curr_context_stack_{};
+private:
+    explicit NoBackpropModeScope(nonstd::optional<GraphId> graph_id) : context_{internal::GetDefaultContextNoExcept()} {
+        // The outer-most scope creates and holds an instance of BackpropModeContextStack.
+        internal::BackpropModeContextStack* context_stack = internal::GetBackpropModeContextStack();
+        if (context_stack == nullptr) {
+            context_stack_.emplace();  // allocates
+            context_stack = &context_stack_.value();
+            internal::SetBackpropModeContextStack(context_stack);
+        }
+        (*context_stack)[context_].emplace_back(internal::BackpropMode{std::move(graph_id), false});
+    }
+
+    bool is_outer_most() { return context_stack_.has_value(); }
+
+    Context* context_;
+    nonstd::optional<internal::BackpropModeContextStack> context_stack_{};
 };
 
 // Scope object that switches the backprop mode by RAII.
 class ForceBackpropModeScope {
 public:
-    explicit ForceBackpropModeScope(const GraphId& graph_id) : orig_context_stack_{internal::GetBackpropModeContextStack()} {
-        if (orig_context_stack_ != nullptr) {
-            curr_context_stack_ = *orig_context_stack_;  // copy
-        }
-        const Context* context = internal::GetDefaultContextNoExcept();
-        internal::BackpropModeStack& stack = curr_context_stack_[context];
-        if (stack.empty()) {
+    explicit ForceBackpropModeScope(const GraphId& graph_id) : context_{internal::GetDefaultContextNoExcept()} {
+        internal::BackpropModeContextStack* context_stack = internal::GetBackpropModeContextStack();
+        if (context_stack == nullptr) {
             throw XchainerError{"can be called only inside of no backprop mode context"};
         }
-        stack.emplace_back(internal::BackpropMode{graph_id, true});
-        internal::SetBackpropModeContextStack(&curr_context_stack_);
+        (*context_stack)[context_].emplace_back(internal::BackpropMode{std::move(graph_id), true});
+    }
+
+    ~ForceBackpropModeScope() {
+        assert(internal::GetBackpropModeContextStack() != nullptr);
+        assert(internal::GetBackpropModeStack(context_) != nullptr);
+        internal::GetBackpropModeStack(context_)->pop_back();
     }
 
     ForceBackpropModeScope(const ForceBackpropModeScope&) = delete;
@@ -196,11 +209,8 @@ public:
     ForceBackpropModeScope& operator=(const ForceBackpropModeScope&) = delete;
     ForceBackpropModeScope& operator=(ForceBackpropModeScope&& other) = delete;
 
-    ~ForceBackpropModeScope() { SetBackpropModeContextStack(orig_context_stack_); }
-
 private:
-    internal::BackpropModeContextStack* orig_context_stack_;  // outer scope should alive and hold the entity
-    internal::BackpropModeContextStack curr_context_stack_{};
+    Context* context_;
 };
 
 }  // namespace xchainer
