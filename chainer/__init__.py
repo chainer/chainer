@@ -149,9 +149,6 @@ global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))
 global_config.cudnn_fast_batch_normalization = bool(int(
     os.environ.get('CHAINER_CUDNN_FAST_BATCH_NORMALIZATION', '0')))
-if not global_config.cudnn_fast_batch_normalization:
-    global_config.cudnn_fast_batch_normalization = bool(int(
-        os.environ.get('CHAINER_CUDNN_FAST_BN', '0')))
 
 _chainer_dtype = os.environ.get('CHAINER_DTYPE', 'float32')
 if _chainer_dtype not in ('float16', 'float32', 'float64'):
