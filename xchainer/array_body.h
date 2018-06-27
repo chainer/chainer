@@ -76,7 +76,7 @@ private:
     template <typename ThisPtr, typename ReturnType>
     static ReturnType GetGradImpl(ThisPtr this_ptr, const GraphId& graph_id);
 
-    ssize_t GetNodeIndex(const GraphId& graph_id) const;
+    nonstd::optional<size_t> GetNodeIndex(const GraphId& graph_id) const;
 
     Shape shape_;
     Strides strides_;

@@ -50,14 +50,14 @@ void ArrayBody::AssertConsistency() const {
 #endif /* NDEBUG */
 }
 
-ssize_t ArrayBody::GetNodeIndex(const GraphId& graph_id) const {
+nonstd::optional<size_t> ArrayBody::GetNodeIndex(const GraphId& graph_id) const {
     AssertConsistency();
     for (size_t i = 0; i < nodes_.size(); ++i) {
         if (nodes_[i]->graph_id() == graph_id) {
-            return static_cast<ssize_t>(i);
+            return i;
         }
     }
-    return -1;
+    return nonstd::nullopt;
 }
 
 void ArrayBody::SetGrad(Array grad, const GraphId& graph_id) {
@@ -84,12 +84,12 @@ template <typename ThisPtr, typename ReturnType>
 ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const GraphId& graph_id) {
     this_ptr->AssertConsistency();
 
-    ssize_t i = this_ptr->GetNodeIndex(graph_id);
-    if (i == -1) {
+    nonstd::optional<size_t> i = this_ptr->GetNodeIndex(graph_id);
+    if (!i.has_value()) {
         return nullptr;
     }
-    assert(0 <= i && i < static_cast<ssize_t>(this_ptr->grads_.size()));
-    return &*this_ptr->grads_[i];
+    assert(*i < this_ptr->grads_.size());
+    return this_ptr->grads_[*i].get();
 }
 
 template nonstd::optional<Array>* ArrayBody::GetGradImpl<ArrayBody*, nonstd::optional<Array>*>(ArrayBody*, const GraphId&);
