@@ -158,19 +158,10 @@ public:
     NoBackpropModeScope& operator=(const NoBackpropModeScope&) = delete;
     NoBackpropModeScope& operator=(NoBackpropModeScope&& other) = delete;
 
-    ~NoBackpropModeScope() { Exit(); }
-
-    // Explicitly recovers the original scope. It will invalidate the scope object so that dtor will do nothing.
-    void Exit() {
-        if (!exited_) {
-            SetBackpropModeContextStack(orig_context_stack_);
-            exited_ = true;
-        }
-    }
+    ~NoBackpropModeScope() { SetBackpropModeContextStack(orig_context_stack_); }
 
 private:
-    explicit NoBackpropModeScope(nonstd::optional<GraphId> graph_id)
-        : orig_context_stack_{internal::GetBackpropModeContextStack()}, exited_{false} {
+    explicit NoBackpropModeScope(nonstd::optional<GraphId> graph_id) : orig_context_stack_{internal::GetBackpropModeContextStack()} {
         if (orig_context_stack_ != nullptr) {
             curr_context_stack_ = *orig_context_stack_;  // copy
         }
@@ -181,14 +172,12 @@ private:
 
     internal::BackpropModeContextStack* orig_context_stack_;  // outer scope should alive and hold the entity
     internal::BackpropModeContextStack curr_context_stack_{};
-    bool exited_;
 };
 
 // Scope object that switches the backprop mode by RAII.
 class ForceBackpropModeScope {
 public:
-    explicit ForceBackpropModeScope(const GraphId& graph_id)
-        : orig_context_stack_{internal::GetBackpropModeContextStack()}, exited_{false} {
+    explicit ForceBackpropModeScope(const GraphId& graph_id) : orig_context_stack_{internal::GetBackpropModeContextStack()} {
         if (orig_context_stack_ != nullptr) {
             curr_context_stack_ = *orig_context_stack_;  // copy
         }
@@ -206,20 +195,11 @@ public:
     ForceBackpropModeScope& operator=(const ForceBackpropModeScope&) = delete;
     ForceBackpropModeScope& operator=(ForceBackpropModeScope&& other) = delete;
 
-    ~ForceBackpropModeScope() { Exit(); }
-
-    // Explicitly recovers the original scope. It will invalidate the scope object so that dtor will do nothing.
-    void Exit() {
-        if (!exited_) {
-            SetBackpropModeContextStack(orig_context_stack_);
-            exited_ = true;
-        }
-    }
+    ~ForceBackpropModeScope() { SetBackpropModeContextStack(orig_context_stack_); }
 
 private:
     internal::BackpropModeContextStack* orig_context_stack_;  // outer scope should alive and hold the entity
     internal::BackpropModeContextStack curr_context_stack_{};
-    bool exited_;
 };
 
 }  // namespace xchainer
