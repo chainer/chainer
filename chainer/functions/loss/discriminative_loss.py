@@ -49,10 +49,6 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         alpha (float): Weight for variance loss      (alpha * variance_loss)
         beta (float): Weight for distance loss       (beta * distance_loss)
         gamma (float): Weight for regularization loss (gamma * regularizer_loss)
-
-    Returns:
-        ~chainer.Variable: Output variable. A
-        :math:`()`-shaped float array.
     """
 
     def __init__(self, delta_v, delta_d, max_n_clusters, norm=1, alpha=1.0,
@@ -431,7 +427,7 @@ def discriminative_margin_based_clustering_loss(
         norm (int): Norm to calculate pixels and cluster center distances
         alpha (float): Weight for variance loss      (alpha * variance_loss)
         beta (float): Weight for distance loss       (beta * distance_loss)
-        gamma (float): Weight for regularization loss(gamma * regularizer_loss)
+        gamma (float): Weight for regularization loss (gamma * regularizer_loss)
 
     Returns:
         (:class:`~chainer.Variable` or \
