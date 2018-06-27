@@ -22,6 +22,8 @@ class CudaDevice;
 
 namespace internal {
 
+class CudaConvTest;  // for unit-tests
+
 class CudaConv {
 public:
     Array Conv(
@@ -115,6 +117,8 @@ private:
     using FwdAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, AlgoCacheKeyHash>;
     using BwdDataAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::pair<cudnnConvolutionBwdDataAlgo_t, size_t>, AlgoCacheKeyHash>;
     using BwdFilterAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t>, AlgoCacheKeyHash>;
+
+    friend class CudaConvTest;  // for unit-tests
 
     FwdAlgoCacheMap fwd_algo_cache_map_{};
     BwdDataAlgoCacheMap bwd_data_algo_cache_map_{};
