@@ -12,8 +12,9 @@ import numpy
 @testing.with_requires('scipy')
 class TestMultivariateNormal(testing.distribution_unittest):
 
-    def setUp(self):
-        testing.distribution_unittest.setUp(self)
+    scipy_onebyone = True
+
+    def setUp_configure(self):
         from scipy import stats
         self.dist = distributions.MultivariateNormal
         self.scipy_dist = stats.multivariate_normal
@@ -24,7 +25,6 @@ class TestMultivariateNormal(testing.distribution_unittest):
             "batch_shape", "entropy", "event_shape", "log_prob",
             "support"])
 
-    def params_init(self):
         loc = numpy.random.uniform(
             -1, 1, self.shape + (3,)).astype(numpy.float32)
         cov = numpy.random.normal(size=self.shape + (3, 3))
