@@ -87,7 +87,7 @@ def _create_average_pool_args(xp, device, x_shape, ksize, stride, pad, pad_mode,
             elif pad_mode == 'ignore':
                 ret_args['pad_value'] = None
             else:
-                pytest.fail('pad_mode: %s is not supported' % pad_mode)
+                assert False  # should never reach
 
     return ret_args
 
