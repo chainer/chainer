@@ -13,7 +13,7 @@ from chainer.testing import attr
     'sample_shape': [(3, 2), ()],
 }))
 @testing.fix_random()
-@testing.with_requires('scipy')
+@testing.with_requires('scipy>=0.19.0')
 class TestCategorical(testing.distribution_unittest):
 
     scipy_onebyone = True
