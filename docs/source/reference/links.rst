@@ -31,6 +31,7 @@ Learnable connections
    chainer.links.Deconvolution2D
    chainer.links.Deconvolution3D
    chainer.links.DeconvolutionND
+   chainer.links.DeformableConvolution2D
    chainer.links.DepthwiseConvolution2D
    chainer.links.DilatedConvolution2D
    chainer.links.EmbedID
@@ -70,6 +71,7 @@ Activation/loss/normalization functions with parameters
 
    chainer.links.BatchNormalization
    chainer.links.BatchRenormalization
+   chainer.links.GroupNormalization
    chainer.links.LayerNormalization
    chainer.links.BinaryHierarchicalSoftmax
    chainer.links.BlackOut

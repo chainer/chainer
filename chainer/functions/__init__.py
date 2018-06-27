@@ -48,6 +48,7 @@ from chainer.functions.array.copy import copy  # NOQA
 from chainer.functions.array.copy import Copy  # NOQA
 from chainer.functions.array.depth2space import depth2space  # NOQA
 from chainer.functions.array.depth2space import Depth2Space  # NOQA
+from chainer.functions.array.diagonal import diagonal  # NOQA
 from chainer.functions.array.dstack import dstack  # NOQA
 from chainer.functions.array.expand_dims import expand_dims  # NOQA
 from chainer.functions.array.expand_dims import ExpandDims  # NOQA
@@ -113,6 +114,7 @@ from chainer.functions.connection.deconvolution_2d import deconvolution_2d  # NO
 from chainer.functions.connection.deconvolution_nd import deconvolution_1d  # NOQA
 from chainer.functions.connection.deconvolution_nd import deconvolution_3d  # NOQA
 from chainer.functions.connection.deconvolution_nd import deconvolution_nd  # NOQA
+from chainer.functions.connection.deformable_convolution_2d_sampler import deformable_convolution_2d_sampler  # NOQA
 from chainer.functions.connection.depthwise_convolution_2d import depthwise_convolution_2d  # NOQA
 from chainer.functions.connection.dilated_convolution_2d import dilated_convolution_2d  # NOQA
 from chainer.functions.connection.embed_id import embed_id  # NOQA
@@ -257,6 +259,7 @@ from chainer.functions.math.squared_difference import squared_difference  # NOQA
 from chainer.functions.math.squared_difference import SquaredDifference  # NOQA
 from chainer.functions.math.sum import sum  # NOQA
 from chainer.functions.math.sum import Sum  # NOQA
+from chainer.functions.math.sum import sum_to  # NOQA
 from chainer.functions.math.tensordot import tensordot  # NOQA
 from chainer.functions.math.trigonometric import arccos  # NOQA
 from chainer.functions.math.trigonometric import Arccos  # NOQA
@@ -287,6 +290,7 @@ from chainer.functions.normalization.batch_normalization import batch_normalizat
 from chainer.functions.normalization.batch_normalization import fixed_batch_normalization  # NOQA
 from chainer.functions.normalization.batch_renormalization import batch_renormalization  # NOQA
 from chainer.functions.normalization.batch_renormalization import fixed_batch_renormalization  # NOQA
+from chainer.functions.normalization.group_normalization import group_normalization  # NOQA
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.l2_normalization import NormalizeL2  # NOQA
 from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA

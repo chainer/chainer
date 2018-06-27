@@ -63,8 +63,7 @@ class TestProd(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad):
         def f(x):
-            x = functions.prod(x, self.axis, self.keepdims)
-            return x * x
+            return functions.prod(x, self.axis, self.keepdims)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, atol=1e-3, dtype=numpy.float64)

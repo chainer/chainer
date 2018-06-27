@@ -14,6 +14,7 @@ from chainer.links.connection.deconvolution_2d import Deconvolution2D  # NOQA
 from chainer.links.connection.deconvolution_nd import Deconvolution1D  # NOQA
 from chainer.links.connection.deconvolution_nd import Deconvolution3D  # NOQA
 from chainer.links.connection.deconvolution_nd import DeconvolutionND  # NOQA
+from chainer.links.connection.deformable_convolution_2d import DeformableConvolution2D  # NOQA
 from chainer.links.connection.depthwise_convolution_2d import DepthwiseConvolution2D  # NOQA
 from chainer.links.connection.dilated_convolution_2d import DilatedConvolution2D  # NOQA
 from chainer.links.connection.embed_id import EmbedID  # NOQA
@@ -56,5 +57,6 @@ from chainer.links.model.vision.resnet import ResNet50Layers  # NOQA
 from chainer.links.model.vision.vgg import VGG16Layers  # NOQA
 from chainer.links.normalization.batch_normalization import BatchNormalization  # NOQA
 from chainer.links.normalization.batch_renormalization import BatchRenormalization  # NOQA
+from chainer.links.normalization.group_normalization import GroupNormalization  # NOQA
 from chainer.links.normalization.layer_normalization import LayerNormalization  # NOQA
 from chainer.links.theano.theano_function import TheanoFunction  # NOQA

@@ -48,7 +48,7 @@ Configuration Keys
 
    Chainer uses this dtype to construct arrays when the dtype is not specified (e.g. initializers).
 
-   You can change the default value by setting ``CHAINER_DEBUG`` environment variable to ``float16``, ``float32`` or ``float64``.
+   You can change the default value by setting ``CHAINER_DTYPE`` environment variable to ``float16``, ``float32`` or ``float64``.
 
 * ``enable_backprop`` (default: ``True``)
    Flag to enable backpropagation support.
@@ -276,6 +276,10 @@ Here are the environment variables Chainer uses.
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_LAZY_GRAD_SUM``                 | Used as the default value for ``chainer.config.lazy_grad_sum`` configuration.                         |
 |                                           | Set ``1`` to enable batch accumulation of gradients.                                                  |
+|                                           | See :ref:`configuration` for details.                                                                 |
++-------------------------------------------+-------------------------------------------------------------------------------------------------------+
+| ``CHAINER_DTYPE``                         | Used as the default value for ``chainer.config.dtype`` configuration.                                 |
+|                                           | The value must be any of ``'float16'``, ``'float32'`` or ``'float64'``.                               |
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_TYPE_CHECK``                    | Used as the default value for ``chainer.config.type_check`` configuration.                            |
