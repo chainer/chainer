@@ -9,6 +9,7 @@ from chainer import _version
 from chainer import backends  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
+from chainer import distributions  # NOQA
 from chainer import function_hooks  # NOQA
 from chainer import functions  # NOQA
 from chainer import initializers  # NOQA
@@ -27,6 +28,10 @@ from chainer.backends.cuda import should_use_cudnn_tensor_core  # NOQA
 from chainer.configuration import config  # NOQA
 from chainer.configuration import global_config  # NOQA
 from chainer.configuration import using_config  # NOQA
+from chainer.distribution import cross_entropy  # NOQA
+from chainer.distribution import Distribution  # NOQA
+from chainer.distribution import kl_divergence  # NOQA
+from chainer.distribution import register_kl  # NOQA
 from chainer.function import force_backprop_mode  # NOQA
 from chainer.function import Function  # NOQA
 from chainer.function import FunctionAdapter  # NOQA
@@ -142,6 +147,11 @@ global_config.autotune = False
 global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'never')
 global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))
+global_config.cudnn_fast_batch_normalization = bool(int(
+    os.environ.get('CHAINER_CUDNN_FAST_BATCH_NORMALIZATION', '0')))
+if not global_config.cudnn_fast_batch_normalization:
+    global_config.cudnn_fast_batch_normalization = bool(int(
+        os.environ.get('CHAINER_CUDNN_FAST_BN', '0')))
 
 _chainer_dtype = os.environ.get('CHAINER_DTYPE', 'float32')
 if _chainer_dtype not in ('float16', 'float32', 'float64'):
