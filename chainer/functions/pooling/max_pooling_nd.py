@@ -302,7 +302,7 @@ def max_pooling_1d(x, ksize, stride=None, pad=0, cover_all=True,
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 1. But the actual ndim was {}.'.format(
                 len(x.shape[2:])))
-    return max_pooling_nd(x, ksize, stride, pad, cover_all)
+    return max_pooling_nd(x, ksize, stride, pad, cover_all, return_indices)
 
 
 def max_pooling_3d(x, ksize, stride=None, pad=0, cover_all=True,
@@ -325,4 +325,4 @@ def max_pooling_3d(x, ksize, stride=None, pad=0, cover_all=True,
             'The number of dimensions under channel dimension of the input '
             '\'x\' should be 3. But the actual ndim was {}.'.format(
                 len(x.shape[2:])))
-    return max_pooling_nd(x, ksize, stride, pad, cover_all)
+    return max_pooling_nd(x, ksize, stride, pad, cover_all, return_indices)
