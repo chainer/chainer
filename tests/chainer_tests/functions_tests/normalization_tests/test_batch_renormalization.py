@@ -45,12 +45,10 @@ def _naive_batch_renormalization(
 
 
 @testing.parameterize(*(testing.product({
-    'param_shape': [(3, 4), (3, 2, 3)],
     'ndim': [0, 1, 2],
     'eps': [2e-5, 1e-1],
     'dtype': [numpy.float32],
 }) + testing.product({
-    'param_shape': [(3,)],
     'ndim': [1],
     'eps': [2e-5, 1e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
