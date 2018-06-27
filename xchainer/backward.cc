@@ -345,7 +345,11 @@ BackpropModeStack* GetBackpropModeStack(const Context* context) {
     if (t_backprop_mode_context_stack == nullptr) {
         return nullptr;
     }
-    return &t_backprop_mode_context_stack->at(context);  // may throw out_of_range error
+    auto it = t_backprop_mode_context_stack->find(context);
+    if (it == t_backprop_mode_context_stack->end()) {
+        return nullptr;
+    }
+    return &it->second;
 }
 
 }  // namespace internal
