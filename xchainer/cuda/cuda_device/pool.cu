@@ -39,45 +39,25 @@ __global__ void MaxPoolDoubleBackwardKernel(
         Indexer<> x_indexer,
         Indexer<> y_indexer,
         Indexer<> kernel_indexer,
-        int64_t* kernel_size,
         int64_t* stride,
         int64_t* pad) {
-    NdimIndex y_index{y_indexer.ndim()};
     NdimIndex x_index{x_indexer.ndim()};
-    int8_t ndim = x_indexer.ndim() - 2;
+    for (auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it_y; ++it_y) {
+        x_index.index()[0] = it_y.index()[0];  // batch.
+        x_index.index()[1] = it_y.index()[1];  // channel.
 
-    for (auto it = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
-        // Compute the y index (batch, channel, out_1, out_2, ..., out_n) from the raw index.
-        int64_t size = it.raw_index();
-        for (int8_t i = x_indexer.ndim() - 1; i >= 2; --i) {
-            int64_t dim = y_indexer.shape()[i];
-            y_index.index()[i] = size % dim;
-            size /= dim;
-        }
-        int64_t channels = y_indexer.shape()[1];
-        int64_t channel = size % channels;
-        int64_t batch = size / channels % y_indexer.shape()[0];
-
-        y_index.index()[0] = batch;
-        y_index.index()[1] = channel;
-
-        // Use y to find the index of x, then propagate the element from ggx corresponding to that index.
-        T y = y_iarray[y_indexer.At(y_index)];
-
-        x_index.index()[0] = batch;
-        x_index.index()[1] = channel;
+        T y = y_iarray[it_y];
 
         for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
-            for (int8_t i = 0; i < ndim; ++i) {
-                int64_t idx = y_index.index()[2 + i] * stride[i] + it_kernel.index()[i] - pad[i];
+            for (int8_t i = 2; i < x_indexer.ndim(); ++i) {
+                int64_t idx = it_y.index()[i] * stride[i - 2] - pad[i - 2] + it_kernel.index()[i - 2];
                 idx = max(idx, int64_t{0});
-                idx = min(idx, x_indexer.shape()[2 + i] - 1);
-                x_index.index()[2 + i] = idx;
+                idx = min(idx, x_indexer.shape()[i] - 1);
+                x_index.index()[i] = idx;
             }
-
             auto it_x = x_indexer.At(x_index);
             if (y == x_iarray[it_x]) {
-                ggy_iarray[it] = ggx_iarray[it_x];
+                ggy_iarray[it_y] = ggx_iarray[it_x];
                 break;
             }
         }
@@ -201,10 +181,6 @@ public:
             Indexer<> y_indexer{y_.shape()};
             Indexer<> kernel_indexer{Shape{kernel_size_.begin(), kernel_size_.end()}};
 
-            std::shared_ptr<void> kernel_size = device.Allocate(kernel_size_.size() * sizeof(int64_t));
-            CheckCudaError(
-                    cudaMemcpy(kernel_size.get(), kernel_size_.data(), kernel_size_.size() * sizeof(int64_t), cudaMemcpyHostToDevice));
-
             std::shared_ptr<void> stride = device.Allocate(stride_.size() * sizeof(int64_t));
             CheckCudaError(cudaMemcpy(stride.get(), stride_.data(), stride_.size() * sizeof(int64_t), cudaMemcpyHostToDevice));
 
@@ -224,7 +200,6 @@ public:
                     x_indexer,
                     y_indexer,
                     kernel_indexer,
-                    static_cast<int64_t*>(kernel_size.get()),
                     static_cast<int64_t*>(stride.get()),
                     static_cast<int64_t*>(pad.get()));
         });
