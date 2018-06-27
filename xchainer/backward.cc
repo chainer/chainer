@@ -414,7 +414,7 @@ private:
     // This mapping is used to keep previous array nodes alive (referenced from op nodes as weak pointers).
     std::unordered_multimap<const OpNode*, std::shared_ptr<ArrayNode>> previous_array_node_keeper_;
 
-    // Mapping from array nodes to the corresponding gradients. Gradients may be genuine gradients held by array bodies or temporaray
+    // Mapping from array nodes to the corresponding gradients. Gradients may be genuine gradients held by array bodies or temporary
     // gradients which are only valid during backward computation at most.
     std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map_;
 
