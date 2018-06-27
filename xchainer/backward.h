@@ -126,14 +126,14 @@ namespace internal {
 
 class BackpropMode {
 public:
-    BackpropMode(const nonstd::optional<GraphId>& graph_id, bool enabled) : graph_id_(graph_id), enabled_(enabled) {}
-    BackpropMode(const GraphId& graph_id, bool enabled) : graph_id_(graph_id), enabled_(enabled) {}
-    bool operator==(const BackpropMode& other) const { return enabled_ == other.enabled_ && graph_id_ == other.graph_id_; }
+    BackpropMode(const nonstd::optional<GraphId>& graph_id, bool allowed) : graph_id_(graph_id), allowed_(allowed) {}
+    BackpropMode(const GraphId& graph_id, bool allowed) : graph_id_(graph_id), allowed_(allowed) {}
+    bool operator==(const BackpropMode& other) const { return allowed_ == other.allowed_ && graph_id_ == other.graph_id_; }
     bool operator!=(const BackpropMode& other) const { return !operator==(other); }
 
 private:
     nonstd::optional<GraphId> graph_id_;
-    bool enabled_;
+    bool allowed_;
 };
 
 using BackpropModeStack = std::vector<BackpropMode>;
