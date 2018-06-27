@@ -376,7 +376,7 @@ class TestLink(unittest.TestCase):
         orig_p = self.link.p.copy()
 
         l, gs = self._setup_test_copyparams()
-        numpy.testing.assert_array_equal(False, orig_p == l)
+        numpy.testing.assert_array_equal(False, orig_p == l.p)
         self.link.copyparams(l, copy_persistent=False)
 
         self._check_copyparams(l, gs)
