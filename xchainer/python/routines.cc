@@ -546,7 +546,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("ksize"),
           py::arg("stride") = py::none(),
           py::arg("pad") = 0,
-          py::arg("pad_mode") = "zero");
+          py::arg("pad_mode") = "ignore");
 }
 
 }  // namespace internal

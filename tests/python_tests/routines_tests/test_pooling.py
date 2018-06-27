@@ -78,7 +78,11 @@ def _create_average_pool_args(xp, device, x_shape, ksize, stride, pad, pad_mode,
     if pad is not None:
         ret_args['pad'] = pad
 
-    if pad_mode is not None:
+    if pad_mode is None:
+        # xchainer defaults to 'ignore', which is equivalent with pad_value=None in chainer
+        if xp is not xchainer:
+            ret_args['pad_value'] = None
+    else:
         if xp is xchainer:
             ret_args['pad_mode'] = pad_mode
         else:
