@@ -85,8 +85,7 @@ class TestCReLU(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad):
         def f(x):
-            y = chainer.functions.crelu(x, self.axis)
-            return y * y
+            return chainer.functions.crelu(x, self.axis)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,

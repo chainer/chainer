@@ -80,8 +80,7 @@ class TestGetItem(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, ggx_data):
         def f(x):
-            y = functions.get_item(x, self.slices)
-            return y * y
+            return functions.get_item(x, self.slices)
 
         gradient_check.check_double_backward(
             f, (x_data,), y_grad, ggx_data, dtype='d')
@@ -98,13 +97,12 @@ class TestGetItem(unittest.TestCase):
 
 @testing.parameterize(
     {'slices': [], 'sliced_shape': (0, 3, 2)},
-    {'slices': [[]], 'sliced_shape': (0, 3, 2)},
-    {'slices': [[[]]], 'sliced_shape': (1, 0, 3, 2)},
+    {'slices': ([],), 'sliced_shape': (0, 3, 2)},
     {'slices': ([[]],), 'sliced_shape': (1, 0, 3, 2)},
     {'slices': numpy.array([], dtype=numpy.bool),
         'sliced_shape': (0, 3, 2)},
-    {'slices': [1, [1]], 'sliced_shape': (1, 2)},
-    {'slices': [[1], slice(1, 2)], 'sliced_shape': (1, 1, 2)},
+    {'slices': (1, [1]), 'sliced_shape': (1, 2)},
+    {'slices': ([1], slice(1, 2)), 'sliced_shape': (1, 1, 2)},
     {'slices': [1, 0], 'sliced_shape': (2, 3, 2)},
     {'slices': ([1, 0],), 'sliced_shape': (2, 3, 2)},
     {'slices': numpy.array([[1, 0], [2, 3]]),

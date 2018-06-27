@@ -59,12 +59,9 @@ class TestMeanAbsoluteError(unittest.TestCase):
 
     def check_double_backward(self, x0_data, x1_data, gy_data, ggx0_data,
                               ggx1_data):
-        def f(*xs):
-            y = chainer.functions.mean_absolute_error(*xs)
-            return y * y
-
         gradient_check.check_double_backward(
-            f, (x0_data, x1_data), gy_data, (ggx0_data, ggx1_data), eps=1e-2)
+            chainer.functions.mean_absolute_error, (x0_data, x1_data),
+            gy_data, (ggx0_data, ggx1_data), eps=1e-2)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(
