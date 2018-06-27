@@ -124,7 +124,7 @@ void Backward(
 
 namespace internal {
 
-class BackpropMode {
+struct BackpropMode {
 public:
     BackpropMode(const nonstd::optional<GraphId>& graph_id, bool allowed) : graph_id_(graph_id), allowed_(allowed) {}
     BackpropMode(const GraphId& graph_id, bool allowed) : graph_id_(graph_id), allowed_(allowed) {}
@@ -150,6 +150,7 @@ class NoBackpropModeScope {
 public:
     // No backprop mode for all graphs
     NoBackpropModeScope() : NoBackpropModeScope(nonstd::nullopt) {}
+
     // No backprop mode for specified graph
     explicit NoBackpropModeScope(const GraphId& graph_id) : NoBackpropModeScope(std::move(nonstd::optional<GraphId>{graph_id})) {}
 
