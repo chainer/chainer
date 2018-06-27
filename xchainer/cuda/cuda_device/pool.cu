@@ -48,15 +48,15 @@ __global__ void MaxPoolDoubleBackwardKernel(
 
     for (auto it = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
         // Compute the y index (batch, channel, out_1, out_2, ..., out_n) from the raw index.
-        int64_t remainder = it.raw_index();
+        int64_t size = it.raw_index();
         for (int8_t i = x_indexer.ndim() - 1; i >= 2; --i) {
             int64_t dim = y_indexer.shape()[i];
-            y_index.index()[i] = remainder % dim;
-            remainder /= dim;
+            y_index.index()[i] = size % dim;
+            size /= dim;
         }
         int64_t channels = y_indexer.shape()[1];
-        int64_t channel = remainder % channels;
-        int64_t batch = remainder / channels % y_indexer.shape()[0];
+        int64_t channel = size % channels;
+        int64_t batch = size / channels % y_indexer.shape()[0];
 
         y_index.index()[0] = batch;
         y_index.index()[1] = channel;
