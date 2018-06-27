@@ -304,21 +304,27 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     if (!a.IsConstant()) {
         BackwardBuilder bb{"amax", out};
-        bb.Define({a}, [sorted_axis, a, out](BackwardContext& bctx) {
+        bb.Define({a}, [ sorted_axis, a = a.AsConstant(), out = out.AsConstant(), keepdims ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
-            // Add broadcastable dimensions to out and gout
-            // for each one that was reduced in the forward operation
-            Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
-            Array reshaped_gout = gout.Reshape(shape);
-            Array reshaped_out = out.AsConstant(CopyKind::kView).Reshape(shape);
+            Array reshaped_gout{};
+            Array reshaped_out{};
+            if (keepdims) {
+                reshaped_gout = gout;
+                reshaped_out = out;
+            } else {
+                // Add broadcastable dimensions to out and gout
+                // for each one that was reduced in the forward operation
+                Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
+                reshaped_gout = gout.Reshape(shape);
+                reshaped_out = out.Reshape(shape);
+            }
 
             // Compute the gradient
-            Array cond = (bctx.Cut(a) == reshaped_out);
-            Array broadcasted_gout = reshaped_gout.BroadcastTo(cond.shape());
             // TODO(sonots): Use `where` if it becomes available.
-            bctx.input_grad() = broadcasted_gout * cond.AsType(gout.dtype(), false);
+            Array cond = (a == reshaped_out).AsType(gout.dtype(), false);
+            bctx.input_grad() = reshaped_gout * cond;
         });
     }
 
