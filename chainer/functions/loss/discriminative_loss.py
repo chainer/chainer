@@ -28,8 +28,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     the loss value will be same independent from the wrong pixel's location.
     Even though the network gives wrong pixel output, it is desirable
     to have it as close as possible to the original position.
-    By applying a discriminative loss function, groups of segmentation instances
-    can be moved together.
+    By applying a discriminative loss function,
+    groups of segmentation instances can be moved together.
     This loss function calculates the following three parameters:
 
     - Variance Loss:
@@ -48,7 +48,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         norm (int): Norm to calculate pixels and cluster center distances
         alpha (float): Weight for variance loss      (alpha * variance_loss)
         beta (float): Weight for distance loss       (beta * distance_loss)
-        gamma (float): Weight for regularization loss (gamma * regularizer_loss)
+        gamma (float): Weight for regularizer loss (gamma * regularizer_loss)
     """
 
     def __init__(self, delta_v, delta_d, max_n_clusters, norm=1, alpha=1.0,
@@ -268,9 +268,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                                             dtype=_mean_sample.dtype)
                 _mean_sample = concat((_mean_sample, _fill_sample),
                                       axis=0)
-
             means.append(_mean_sample)
-
         means = stack(means)
         return means
 
@@ -427,7 +425,7 @@ def discriminative_margin_based_clustering_loss(
         norm (int): Norm to calculate pixels and cluster center distances
         alpha (float): Weight for variance loss      (alpha * variance_loss)
         beta (float): Weight for distance loss       (beta * distance_loss)
-        gamma (float): Weight for regularization loss (gamma * regularizer_loss)
+        gamma (float): Weight for regularizer loss (gamma * regularizer_loss)
 
     Returns:
         (:class:`~chainer.Variable` or \
