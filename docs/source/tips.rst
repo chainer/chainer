@@ -20,34 +20,6 @@ If your home directory is not suited to caching the kernels (e.g. in case that i
 See `CuPy Overview <https://docs-cupy.chainer.org/en/stable/overview.html>`_ for more details.
 
 
-MNIST example does not converge in CPU mode on Mac OS X
--------------------------------------------------------
-
-.. note::
-
-   Mac OS X is not officially supported.
-   Please use it at your own risk.
-
-Many users have reported that MNIST example does not work correctly
-when using vecLib as NumPy backend on Mac OS X.
-vecLib is the default BLAS library installed on Mac OS X.
-
-We recommend using other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
-
-To use an alternative BLAS library, it is necessary to reinstall NumPy.
-Here is an instruction to install NumPy with OpenBLAS using `Homebrew <https://brew.sh/>`_.
-
-::
-
-   $ brew tap homebrew/science
-   $ brew install openblas
-   $ brew install numpy --with-openblas
-
-If you want to install NumPy with pip, use `site.cfg <https://github.com/numpy/numpy/blob/master/site.cfg.example>`_ file.
-
-For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
-
-
 How do I fix InvalidType error?
 -------------------------------
 

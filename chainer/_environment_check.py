@@ -27,13 +27,7 @@ def _check_osx_numpy_backend():
         extra_link_args = blas_opt_info.get('extra_link_args')
         if extra_link_args and '-Wl,Accelerate' in extra_link_args:
             warnings.warn('''\
-Accelerate has been detected as a NumPy backend library.
-vecLib, which is a part of Accelerate, is known not to work correctly with Chainer.
-We recommend using other BLAS libraries such as OpenBLAS.
-For details of the issue, please see
-https://docs.chainer.org/en/stable/tips.html#mnist-example-does-not-converge-in-cpu-mode-on-mac-os-x.
-
-Also note that Chainer does not officially support Mac OS X.
+Note that Chainer does not officially support Mac OS X.
 Please use it at your own risk.
 ''')  # NOQA
 
