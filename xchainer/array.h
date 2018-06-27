@@ -40,6 +40,10 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
+// Creates a new array node on the specified graph.
+// XchainerError is thrown if an array node is already registered on the graph.
+// The returned reference is only valid until the next call of CreateArrayNode (or ArrayBody::AddNode) on the same ArrayBody
+// instance.
 const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
 std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
