@@ -532,7 +532,7 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._params:
             dst[name].copydata(src[name])
         if copy_persistent:
-            array_types = numpy.ndarray, cuda.ndarray
+            array_types = chainer.get_array_types()
             for name in self._persistent:
                 d = dst[name]
                 s = src[name]
