@@ -531,7 +531,7 @@ void InitXchainerRoutines(pybind11::module& m) {
               } else if (pad_mode == "ignore") {
                   mode = AveragePoolPadMode::kIgnore;
               } else {
-                  throw XchainerError{"pad_mode must be either of 'zero' or 'ignore'"};
+                  throw py::value_error{"pad_mode must be either of 'zero' or 'ignore'"};
               }
 
               return AveragePool(
