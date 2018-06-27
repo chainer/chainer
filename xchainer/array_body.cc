@@ -51,7 +51,6 @@ void ArrayBody::AssertConsistency() const {
 }
 
 nonstd::optional<size_t> ArrayBody::GetNodeIndex(const GraphId& graph_id) const {
-    AssertConsistency();
     for (size_t i = 0; i < nodes_.size(); ++i) {
         if (nodes_[i]->graph_id() == graph_id) {
             return i;
