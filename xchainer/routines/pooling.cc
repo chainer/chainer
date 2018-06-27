@@ -31,7 +31,7 @@ void CheckPoolInputs(
     if (static_cast<int8_t>(pad.size()) != ndim) {
         throw DimensionError{"Wrong numbers of paddings ", pad.size(), " for input with ", x.ndim(), " dimensions."};
     }
-    if (kernel_size.size() < 1) {
+    if (kernel_size.empty()) {
         throw DimensionError{"Pooling operation requires at least one spatial dimension."};
     }
 }
