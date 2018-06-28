@@ -198,6 +198,7 @@ Mathematical functions
    chainer.functions.cumsum
    chainer.functions.det
    chainer.functions.batch_det
+   chainer.functions.digamma
    chainer.functions.erf
    chainer.functions.erfc
    chainer.functions.exp
@@ -209,6 +210,7 @@ Mathematical functions
    chainer.functions.identity
    chainer.functions.ifft
    chainer.functions.inv
+   chainer.functions.lgamma
    chainer.functions.linear_interpolate
    chainer.functions.log
    chainer.functions.log10
@@ -222,6 +224,7 @@ Mathematical functions
    chainer.functions.min
    chainer.functions.minimum
    chainer.functions.prod
+   chainer.functions.polygamma
    chainer.functions.rsqrt
    chainer.functions.scale
    chainer.functions.sin
