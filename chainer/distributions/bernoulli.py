@@ -9,6 +9,25 @@ import numpy
 
 class Bernoulli(distribution.Distribution):
 
+    """Bernoulli Distribution.
+
+    The probability mass function of the distribution is expressed as
+
+    .. math::
+        P(x = 1; p) = p \\\\
+        P(x = 0; p) = 1 - p
+
+    Args:
+        p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing \
+        :math:`p`. Either `p` or `logit` (not both) must have a value.
+        logit(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing \
+        :math:`\\log\\{p/(1-p)\\}`. Either `p` or `logit` (not both) must \
+        have a value.
+
+    """
+
     def __init__(self, p=None, logit=None):
         super(Bernoulli, self).__init__()
         if not (p is None) ^ (logit is None):
