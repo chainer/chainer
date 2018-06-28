@@ -13,18 +13,32 @@ namespace backprop_mode_detail {
 thread_local BackpropModeStack* t_backprop_mode_stack{nullptr};
 
 template <bool kModeFlag>
-BackpropModeScope<kModeFlag>::BackpropModeScope(nonstd::optional<GraphId> graph_id) {
+BackpropModeScope<kModeFlag>::BackpropModeScope(const nonstd::optional<std::vector<GraphId>>& graph_ids) {
     // The outer-most scope creates an instance of BackpropModeStack.
     if (t_backprop_mode_stack == nullptr) {
         t_backprop_mode_stack = new BackpropModeStack{};
     }
-    t_backprop_mode_stack->emplace_back(GetDefaultContext(), std::move(graph_id), kModeFlag);
+
+    if (graph_ids.has_value()) {
+        n_ = graph_ids->size();
+        for (const GraphId& graph_id : *graph_ids) {
+            t_backprop_mode_stack->emplace_back(GetDefaultContext(), graph_id, kModeFlag);
+        }
+    } else {
+        n_ = 1;
+        t_backprop_mode_stack->emplace_back(GetDefaultContext(), nonstd::nullopt, kModeFlag);
+    }
 }
 
 template <bool kModeFlag>
 BackpropModeScope<kModeFlag>::~BackpropModeScope() {
     assert(t_backprop_mode_stack != nullptr);
-    t_backprop_mode_stack->pop_back();
+    assert(t_backprop_mode_stack->size() >= n_);
+
+    for (size_t i = 0; i < n_; ++i) {
+        t_backprop_mode_stack->pop_back();
+    }
+
     // Recover thread local variable to nullptr on exiting from the outer-most scope.
     if (t_backprop_mode_stack->empty()) {
         delete t_backprop_mode_stack;

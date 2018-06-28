@@ -41,8 +41,12 @@ public:
     // Backprop mode for all graphs
     BackpropModeScope() : BackpropModeScope{nonstd::nullopt} {}
 
-    // No backprop mode for specified graph
-    explicit BackpropModeScope(const GraphId& graph_id) : BackpropModeScope{std::move(nonstd::optional<GraphId>{graph_id})} {}
+    // Backprop mode for specified graph
+    explicit BackpropModeScope(GraphId graph_id) : BackpropModeScope{std::vector<GraphId>{std::move(graph_id)}} {}
+
+    // Backprop mode for specified graphs
+    explicit BackpropModeScope(std::vector<GraphId> graph_ids)
+        : BackpropModeScope{nonstd::optional<std::vector<GraphId>>{std::move(graph_ids)}} {}
 
     BackpropModeScope(const BackpropModeScope&) = delete;
     BackpropModeScope(BackpropModeScope&& other) = delete;
@@ -52,7 +56,10 @@ public:
     ~BackpropModeScope();
 
 private:
-    explicit BackpropModeScope(nonstd::optional<GraphId> graph_id);
+    explicit BackpropModeScope(const nonstd::optional<std::vector<GraphId>>& graph_ids);
+
+    // Number of BackpropMode instances pushed to the stack.
+    size_t n_;
 };
 
 template class BackpropModeScope<true>;
