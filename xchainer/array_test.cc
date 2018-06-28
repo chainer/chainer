@@ -670,6 +670,40 @@ TEST_P(ArrayTest, MakeViewDoubleBackward) {
             {eps, eps});
 }
 
+TEST_P(ArrayTest, IsConstant) {
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+
+    EXPECT_TRUE(a.IsConstant());
+
+    a.RequireGrad("testgraph1");
+
+    EXPECT_FALSE(a.IsConstant());
+
+    a.RequireGrad("testgraph2");
+
+    EXPECT_FALSE(a.IsConstant());
+}
+
+TEST_P(ArrayTest, IsConstantAfterStop) {
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{}));
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1"}));
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+
+    a.RequireGrad("testgraph1");
+
+    EXPECT_FALSE(a.IsConstantAfterStop(std::vector<GraphId>{}));
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1"}));
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+
+    a.RequireGrad("testgraph2");
+
+    EXPECT_FALSE(a.IsConstantAfterStop(std::vector<GraphId>{}));
+    EXPECT_FALSE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1"}));
+    EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+}
+
 TEST_P(ArrayTest, AsConstantCopy) {
     // Stop gradients on all graphs
     {
@@ -959,6 +993,20 @@ INSTANTIATE_TEST_CASE_P(
                 std::string{"cuda"},
 #endif  // XCHAINER_ENABLE_CUDA
                 std::string{"native"}));
+
+TEST(ArrayGradTest, ClearGradThrow) {
+    testing::ContextSession context_session{};
+    Array x = testing::BuildArray({2, 1}).WithLinearData<float>();
+
+    EXPECT_THROW(x.ClearGrad(), XchainerError);
+    EXPECT_THROW(x.ClearGrad("testgraph1"), XchainerError);
+
+    x.RequireGrad("testgraph1");
+
+    EXPECT_THROW(x.ClearGrad(), XchainerError);
+    EXPECT_THROW(x.ClearGrad("testgraph2"), XchainerError);
+    x.ClearGrad("testgraph1");  // no throw
+}
 
 TEST(ArrayAtTest, At) {
     using T = int32_t;

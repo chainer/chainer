@@ -5,7 +5,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
-#include "xchainer/array.h"
+#include "xchainer/array_body.h"
 
 namespace xchainer {
 namespace python {

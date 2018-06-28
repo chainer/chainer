@@ -368,6 +368,40 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(graph_id_1));
 }
 
+TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
+    // This test checks cyclic reference is not formed when the input gradient references the input array.
+    // The cycle could happen if input array nodes directly owned their gradients.
+
+    std::weak_ptr<internal::ArrayBody> x_grad_body{};
+
+    {
+        GraphId graph_id = "testgraph";
+
+        auto forward = [](const Array& x, Array& y) {
+            y = x.AsConstant() * x.AsConstant();
+
+            BackwardBuilder bb{"func", y};
+            bb.Define({x}, [x](BackwardContext& bctx) {
+                // Create an input grad which references the input array.
+                bctx.input_grad() = 2 * bctx.Cut(x) * bctx.output_grad();
+            });
+        };
+
+        Array x = testing::BuildArray({1}).WithLinearData<float>();
+        Array y{};
+
+        x.RequireGrad(graph_id);
+        forward(x, y);
+
+        Backward(y, graph_id, DoubleBackpropOption::kEnable);
+
+        x_grad_body = x.GetGrad(graph_id)->body();  // Keep weak pointer to the body of x.grad
+    }
+
+    // The body of x.grad must have been released.
+    EXPECT_EQ(nullptr, x_grad_body.lock());
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         BackpropTest,

@@ -5,16 +5,25 @@
 #include <unordered_map>
 #include <vector>
 
-#include "xchainer/array.h"
 #include "xchainer/constant.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
 
+class Array;
+class ArrayNode;
 class BackwardContext;
 class OpNode;
+
+using ArrayRef = std::reference_wrapper<Array>;
+using ConstArrayRef = std::reference_wrapper<const Array>;
+
+namespace internal {
+class ArrayBody;
+}
 
 enum class DoubleBackpropOption : bool {
     kDisable = false,
@@ -22,6 +31,46 @@ enum class DoubleBackpropOption : bool {
 };
 
 using BackwardFunction = std::function<void(BackwardContext&)>;
+
+namespace internal {
+
+void AccumulateGrad(nonstd::optional<Array>& target_grad, Array partial_grad, const Shape& shape, Dtype dtype, Device& device);
+
+void SetGrad(nonstd::optional<Array>& target_grad, Array grad, const Shape& shape, Dtype dtype, Device& device);
+
+// Reference to the gradient array corresponding to an array node, which is valid during backward computation at most.
+//
+// It points to the original gradient array held by the array node's owner array body if the array body is still alive.
+// Otherwise, it points to a temporary gradient array which is only valid during lifetime of this class (which means until the end of
+// backward computation at most, because BackwardImpl owns instances of this class).
+class GradRef {
+public:
+    explicit GradRef(ArrayNode* array_node);
+
+    GradRef(const GradRef&) = delete;
+    GradRef(GradRef&&) = default;
+    GradRef& operator=(const GradRef&) = delete;
+    GradRef& operator=(GradRef&&) = delete;
+
+    // Returns the reference to the gradient.
+    nonstd::optional<Array>& get();
+
+private:
+    ArrayNode* array_node_;
+
+    // Pointer to the original gradient held by the original input array body.
+    // If the array body is gone, this pointer will be nullptr.
+    nonstd::optional<Array>* original_grad_ptr_{nullptr};
+
+    // The array body which owns the original gradient, if alive.
+    // This is a keeper to prevent the gradient from being released after retrieval of the pointer.
+    std::shared_ptr<internal::ArrayBody> original_grad_owner_body_{nullptr};
+
+    // Temporary gradient instantiated only when the original array body is gone.
+    std::unique_ptr<nonstd::optional<Array>> temporary_grad_;
+};
+
+}  // namespace internal
 
 class BackwardContext {
 public:
@@ -33,8 +82,10 @@ public:
     BackwardContext(
             const OpNode& op_node,
             gsl::span<const std::reference_wrapper<ArrayNode>> prev_array_nodes,
+            gsl::span<internal::GradRef*> prev_grads,
             gsl::span<const GraphId> stop_graph_ids,
             std::vector<Array>& input_grads_storage,
+            const GraphId& graph_id,
             bool next_backward_required);
 
     // Indicates whether the next order of backward is required. It reflects DoubleBackpropOption.
@@ -57,13 +108,10 @@ public:
     }
 
     // Returns the reference to the input gradient.
-    Array& input_grad() {
-        assert(input_grads_storage_.size() == 1);
-        return gsl::at(input_grads_storage_, 0);
-    }
+    Array& input_grad();
 
     // Returns the reference to the input gradient.
-    Array& input_grad(size_t index) { return gsl::at(input_grads_storage_, index); }
+    Array& input_grad(size_t index);
 
     // Given an array, cuts the graphs to stop gradients and returns the resulting array.
     Array Cut(const Array& a) const;
@@ -71,6 +119,7 @@ public:
 private:
     const OpNode& op_node_;
     gsl::span<const std::reference_wrapper<ArrayNode>> prev_array_nodes_;
+    gsl::span<internal::GradRef*> prev_grads_;
     gsl::span<const GraphId> stop_graph_ids_;
 
     // A reference to the storage of input gradient arrays.
@@ -81,6 +130,8 @@ private:
     // Holds zero-filled arrays for outputs without actual gradients.
     // The arrays are allocated on-demand in output_grad.
     mutable std::vector<nonstd::optional<Array>> zero_output_grads_;
+
+    const GraphId& graph_id_;
 
     bool next_backward_required_;
 };
