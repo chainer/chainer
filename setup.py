@@ -165,6 +165,8 @@ setup(
               'chainer.links.model.vision',
               'chainer.links.normalization',
               'chainer.links.theano',
+              'chainer.np',
+              'chainer.np.testing',
               'chainer.optimizers',
               'chainer.optimizer_hooks',
               'chainer.serializers',
