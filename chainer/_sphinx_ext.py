@@ -1,6 +1,16 @@
 import sphinx
 
 
+def qualify_name(attr_name, klass):
+    if klass and not attr_name.startswith('~'):
+        try:
+            q = klass.__qualname__
+        except AttributeError:
+            q = klass.__name__
+        return '~%s.%s' % (q, attr_name)
+    return attr_name
+
+
 def setup(app):
     app.setup_extension('sphinx.ext.napoleon')
 
@@ -9,8 +19,7 @@ def setup(app):
         lines = []
         for _name, _type, _desc in self._consume_fields():
             if self._config.napoleon_use_ivar:
-                if not _name.startswith('~') and self._obj:
-                    _name = '~%s.%s' % (self._obj.__qualname__, _name)
+                _name = qualify_name(_name, self._obj)
                 field = ':ivar %s: ' % _name  # type: unicode
                 lines.extend(self._format_block(field, _desc))
                 if _type:
