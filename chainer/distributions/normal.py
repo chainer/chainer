@@ -32,20 +32,14 @@ class Normal(distribution.Distribution):
         location :math:`\\mu`. This is the mean parameter.
         scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\log(\\sigma^2)`.
+        scale :math:`\\sigma`.
 
     """
 
     def __init__(self, loc, scale):
         super(Normal, self).__init__()
-        if isinstance(loc, chainer.Variable):
-            self.loc = loc
-        else:
-            self.loc = chainer.Variable(loc)
-        if isinstance(scale, chainer.Variable):
-            self.scale = scale
-        else:
-            self.scale = chainer.Variable(scale)
+        self.loc = chainer.as_variable(loc)
+        self.scale = chainer.as_variable(scale)
 
     @property
     def batch_shape(self):

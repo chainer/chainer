@@ -57,6 +57,11 @@ class Rollaxis(function_node.FunctionNode):
 def rollaxis(x, axis, start=0):
     """Roll the axis backwards to the given position.
 
+    This function continues to be supported for backward compatibility,
+    but you should prefer
+    ``chainer.functions.moveaxis(x, source, destination)``.
+    See :func:`chainer.functions.moveaxis`.
+
     Args:
         x (~chainer.Variable): Input variable.
         axis (int): The axis to roll backwards.

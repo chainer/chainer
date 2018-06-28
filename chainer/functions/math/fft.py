@@ -54,7 +54,7 @@ def fft(x):
         the result and ``ri`` is the imaginary part of the result.
 
     .. note::
-       Currently this function supports a tuple as input. It will supports a
+       Currently this function supports a tuple as input. It will support a
        complex numbers directly in the future.
 
     """
@@ -76,7 +76,7 @@ def ifft(x):
         the result and ``ri`` is the imaginary part of the result.
 
     .. note::
-       Currently this function supports a tuple as input. It will supports a
+       Currently this function supports a tuple as input. It will support a
        complex numbers directly in the future.
 
     """

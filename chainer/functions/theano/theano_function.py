@@ -3,14 +3,12 @@ import six
 
 from chainer.backends import cuda
 from chainer import function
-from chainer import utils
 from chainer.utils import type_check
 
 
 class TheanoFunction(function.Function):
 
     def __init__(self, forward_func, backward_func):
-        utils.experimental('chainer.functions.TheanoFunction')
         self.forward_func = forward_func
         self.backward_func = backward_func
 
