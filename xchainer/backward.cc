@@ -443,6 +443,15 @@ namespace backward_detail {
 thread_local BackpropModeStack* t_backprop_mode_stack{nullptr};
 
 template <bool kModeFlag>
+BackpropModeScope<kModeFlag>::BackpropModeScope(nonstd::optional<GraphId> graph_id) {
+    // The outer-most scope creates an instance of BackpropModeStack.
+    if (t_backprop_mode_stack == nullptr) {
+        t_backprop_mode_stack = new BackpropModeStack{};
+    }
+    t_backprop_mode_stack->emplace_back(GetDefaultContext(), std::move(graph_id), kModeFlag);
+}
+
+template <bool kModeFlag>
 BackpropModeScope<kModeFlag>::~BackpropModeScope() {
     assert(t_backprop_mode_stack != nullptr);
     t_backprop_mode_stack->pop_back();
@@ -451,15 +460,6 @@ BackpropModeScope<kModeFlag>::~BackpropModeScope() {
         delete t_backprop_mode_stack;
         t_backprop_mode_stack = nullptr;
     }
-}
-
-template <bool kModeFlag>
-BackpropModeScope<kModeFlag>::BackpropModeScope(nonstd::optional<GraphId> graph_id) {
-    // The outer-most scope creates an instance of BackpropModeStack.
-    if (t_backprop_mode_stack == nullptr) {
-        t_backprop_mode_stack = new BackpropModeStack{};
-    }
-    t_backprop_mode_stack->emplace_back(GetDefaultContext(), std::move(graph_id), kModeFlag);
 }
 
 }  // namespace backward_detail
