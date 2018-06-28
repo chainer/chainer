@@ -416,6 +416,7 @@ Array CudaConv::ConvGradWeight(
     if (ndim < 2) {
         throw DimensionError{"CUDA convolution requires number of spacial dimensions to be greater than or equal to 2"};
     }
+
     assert(x.ndim() == w_shape.ndim());
     assert(stride.size() == static_cast<size_t>(ndim));
     assert(pad.size() == static_cast<size_t>(ndim));
@@ -423,6 +424,22 @@ Array CudaConv::ConvGradWeight(
 
     assert(x.dtype() == w_dtype);
     assert(x.dtype() == gy.dtype());
+
+#ifndef NDEBUG
+    {
+        // w_shape = (out_channels, in_channels, k_1, k_2, ..., k_N)
+        int64_t out_channels = w_shape[0];
+        // x.shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
+        int64_t batch_size = x.shape()[0];
+        // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
+        Shape out_shape{batch_size, out_channels};
+        for (int8_t i = 0; i < ndim; ++i) {
+            out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], w_shape[i + 2], stride[i], pad[i], cover_all));
+            assert(out_shape.back() > 0);
+        }
+        assert(gy.shape() == out_shape);
+    }
+#endif
 
     Array gw = Empty(w_shape, w_dtype, device);
 

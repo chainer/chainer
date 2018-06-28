@@ -215,23 +215,49 @@ public:
             case AveragePoolPadMode::kIgnore: {
                 Device& device = x.device();
                 device.Sum(col, kernel_axes, out);
-                Array widths = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size_, stride_, pad_, x.dtype()).BroadcastTo(out.shape());
-                device.Divide(out, widths, out);
+                width_ignore_ = GetPadModeIgnorePoolingWidths(x.shape(), kernel_size_, stride_, pad_, x.dtype()).BroadcastTo(out.shape());
+                device.Divide(out, width_ignore_, out);
                 break;
             }
             default:
                 XCHAINER_NEVER_REACH();
         }
+        x_ = x.AsConstant();
+        gcol_shape_ = col.shape();
         return out;
     }
 
-    Array Backward(const Array& /*gout*/) override { throw NotImplementedError{}; }
+    Array Backward(const Array& gout) override {
+        Shape reshape_to = gcol_shape_;
+        std::fill(reshape_to.begin() + 2, reshape_to.begin() + x_.ndim(), int64_t{1});
+        Array gx{};
+        switch (pad_mode_) {
+            case AveragePoolPadMode::kZero: {
+                Array gcol = gout.Reshape(reshape_to).BroadcastTo(gcol_shape_);
+                gx = internal::Col2Im(gcol, stride_, pad_, {x_.shape().begin() + 2, x_.shape().end()});
+                int64_t width_zero = std::accumulate(kernel_size_.begin(), kernel_size_.end(), int64_t{1}, std::multiplies<>());
+                gx /= width_zero;
+                break;
+            }
+            case AveragePoolPadMode::kIgnore: {
+                Array gcol = (gout / width_ignore_).Reshape(reshape_to).BroadcastTo(gcol_shape_);
+                gx = internal::Col2Im(gcol, stride_, pad_, {x_.shape().begin() + 2, x_.shape().end()});
+                break;
+            }
+            default:
+                XCHAINER_NEVER_REACH();
+        }
+        return gx;
+    }
 
 private:
     const StackVector<int64_t, kMaxNdim> kernel_size_;
     const StackVector<int64_t, kMaxNdim> stride_;
     const StackVector<int64_t, kMaxNdim> pad_;
     const AveragePoolPadMode pad_mode_;
+    Array x_;
+    Shape gcol_shape_;
+    Array width_ignore_;
 };
 
 }  // namespace
