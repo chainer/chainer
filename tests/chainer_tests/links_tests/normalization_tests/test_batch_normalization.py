@@ -345,22 +345,37 @@ class TestInitialize(unittest.TestCase):
         testing.assert_allclose(self.initial_beta, self.link.beta.data)
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float32, numpy.float16],
+}))
 class TestDefaultInitializer(unittest.TestCase):
 
     def setUp(self):
         self.decay = 0.9
         self.size = 3
-        self.link = links.BatchNormalization(self.size, self.decay)
+        with chainer.using_config('dtype', self.dtype):
+            self.link = links.BatchNormalization(self.size, self.decay)
+        assert self.link.beta.dtype == self.dtype
+        assert self.link.gamma.dtype == self.dtype
+        assert self.link.avg_mean.dtype == self.dtype
+        assert self.link.avg_var.dtype == self.dtype
+
+        self.x = numpy.arange(6, dtype=self.dtype).reshape(2, 3)
+
+    def check_initialize(self):
+        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.array)
+        testing.assert_allclose(numpy.zeros(self.size), self.link.beta.array)
+        y = self.link(self.x)
+        assert y.dtype == self.dtype
 
     def test_initialize_cpu(self):
-        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
-        testing.assert_allclose(numpy.zeros(self.size), self.link.beta.data)
+        self.check_initialize()
 
     @attr.gpu
     def test_initialize_gpu(self):
         self.link.to_gpu()
-        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
-        testing.assert_allclose(numpy.zeros(self.size), self.link.beta.data)
+        self.x = cuda.to_gpu(self.x)
+        self.check_initialize()
 
 
 @testing.parameterize(*testing.product({
