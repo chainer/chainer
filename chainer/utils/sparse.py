@@ -15,14 +15,15 @@ class CooMatrix(object):
             entries.
         shape (tuple of int): The shape of the matrix in dense format.
         order ('C', 'F', 'auto', None): If ``'C'``, the matrix is assumed to be
-            made from row-major format (AKA C-contiguous) array, in other words,
-            the row indices are sorted. If ``'F'``, the matrix is assumed to be
-            made from column-major format (AKA Fortran-contiguous) array, in
-            other words, the column indices are sorted. If ``None``, the matrix
-            is assumed as neither 'C' order nor 'F' order (this is the default).
-            If ``'auto'``, the matrix is automatically checked if it is 'C'
-            order, 'F' order or another. This information will be used by some
-            functions like sparse_matmul as a hint to improve performance.
+            made from row-major format (AKA C-contiguous) array, in other
+            words, the row indices are sorted. If ``'F'``, the matrix is
+            assumed to be made from column-major format (AKA
+            Fortran-contiguous) array, in other words, the column indices are
+            sorted. If ``None``, the matrix is assumed as neither 'C' order nor
+            'F' order (this is the default). If ``'auto'``, the matrix is
+            automatically checked if it is 'C' order, 'F' order or another.
+            This information will be used by some functions like sparse_matmul
+            as a hint to improve performance.
         requires_grad (bool): If ``True``, gradient of this sparse matrix will
             be computed in back-propagation.
 
