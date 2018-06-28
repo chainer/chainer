@@ -12,22 +12,13 @@ _fashion_mnist_labels = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
                          'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
 
 
-def get_fashion_mnist_labels(labels):
-    """Given a list of fashion-MNIST labels, returns name list of those labels.
-
-    Args:
-        labels (list): List of labels of image values, numbers from 0-9.
-
-    Returns:
-        List of string values of English names of the image labels.
+def get_fashion_mnist_labels():
+    """Returns:
+        List of string values of the image labels.
 
     """
 
-    assert isinstance(labels, list)
-    for l in labels:
-        assert range(10).index(l) >= 0
-
-    return [_fashion_mnist_labels[l] for l in labels]
+    return list(_fashion_mnist_labels)
 
 
 def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=None,
