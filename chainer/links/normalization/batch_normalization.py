@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import functions
@@ -148,27 +149,22 @@ class BatchNormalization(link.Link):
             The examples in 1. corresponds to the following, respectively.
 
             >>> bn = chainer.links.BatchNormalization(axis=(0, 2, 3))
-            >>> bn.avg_mean
-            None
+            >>> hasattr(bn, 'avg_mean')
+            False
             >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3,)
 
             >>> bn = chainer.links.BatchNormalization(axis=0)
-            >>> bn.avg_mean
-            None
+            >>> hasattr(bn, 'avg_mean')
+            False
             >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3, 32, 32)
 
     """
 
-    gamma = None
-    beta = None
-    avg_mean = None
-    avg_var = None
-
-    def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=numpy.float32,
+    def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=None,
                  use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None, axis=None):
         super(BatchNormalization, self).__init__()
@@ -182,7 +178,7 @@ class BatchNormalization(link.Link):
         if isinstance(axis, int):
             axis = (axis,)
         self.axis = axis
-        self._dtype = dtype
+        self._dtype = chainer.get_dtype(dtype)
 
         with self.init_scope():
             if use_gamma:
@@ -207,9 +203,9 @@ class BatchNormalization(link.Link):
         self.register_persistent('avg_mean')
         self.avg_var = numpy.zeros(shape, dtype=self._dtype)
         self.register_persistent('avg_var')
-        if self.gamma is not None:
+        if hasattr(self, 'gamma'):
             self.gamma.initialize(shape)
-        if self.beta is not None:
+        if hasattr(self, 'beta'):
             self.beta.initialize(shape)
 
     def __call__(self, x, **kwargs):
@@ -241,21 +237,23 @@ class BatchNormalization(link.Link):
             test='test argument is not supported anymore. '
                  'Use chainer.using_config')
 
-        if self.avg_mean is None:
+        if not hasattr(self, 'avg_mean'):
             param_shape = tuple([
                 d
                 for i, d in enumerate(x.shape)
                 if i not in self.axis])
             self._initialize_params(param_shape)
 
-        gamma = self.gamma
-        if gamma is None:
+        if hasattr(self, 'gamma'):
+            gamma = self.gamma
+        else:
             with cuda.get_device_from_id(self._device_id):
                 gamma = self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype)
 
-        beta = self.beta
-        if beta is None:
+        if hasattr(self, 'beta'):
+            beta = self.beta
+        else:
             with cuda.get_device_from_id(self._device_id):
                 beta = self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype)
