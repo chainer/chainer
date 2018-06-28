@@ -91,7 +91,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             :class:`cupy.ndarray`):
                 Instance means
             delta_v (float): Coefficient to decide 'pull force' power
-            gt_idx (tuple / nd-array): Indexes of ground truth instances
+            gt_idx (tuple or nd-array): Indexes of ground truth instances
 
         Returns:
             :class:`~chainer.Variable` or \
@@ -196,7 +196,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         Args:
             means (nd-array): Instance means
-            gt_idx (tuple / nd-array): Indexes of ground truth instances
+            gt_idx (tuple or nd-array): Indexes of ground truth instances
 
         Returns:
             :class:`~chainer.Variable` or \
