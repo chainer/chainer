@@ -187,13 +187,6 @@ public:
 
     bool backprop() const { return backprop_; }
 
-    // TODO(hvy): Remove these operators since they are only used for tests, at the moment.
-    bool operator==(const BackpropMode& other) const {
-        return &context_ == &other.context_ && backprop_ == other.backprop_ && graph_id_ == other.graph_id_;
-    }
-
-    bool operator!=(const BackpropMode& other) const { return !operator==(other); }
-
 private:
     Context& context_;
     nonstd::optional<GraphId> graph_id_;
