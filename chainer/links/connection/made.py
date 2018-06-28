@@ -1,4 +1,4 @@
-from chainer.functions.activation import sigmoid
+from chainer.functions.activation import relu
 from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
@@ -19,30 +19,26 @@ class MADE(link.Link):
         super(MADE, self).__init__()
         self.hidden_num = hidden_num
 
+        m0 = self.xp.random.permutation(in_size)
+        self.add_persistent('m0', m0)
+        for i in range(hidden_num):
+            min_mm1 = self.get_var('m', i).min()
+            m_ = self.xp.random.randint(min_mm1, in_size-1, hidden_size)
+            self.add_persistent('m%d' % (i + 1), m_)
+
+        for i in range(hidden_num):
+            M_ = self.get_var('m', i + 1).reshape(-1, 1) \
+                >= self.get_var('m', i)
+            self.add_persistent('M%d' % i, M_)
+        M_ = self.m0.reshape(-1, 1) > self.get_var('m', hidden_num - 1)
+        self.add_persistent('M%d' % hidden_num, M_)
+
         with self.init_scope():
-            self.m = []
-            self.m0 = self.xp.random.permutation(in_size)
-            self.m.append(self.m0)
-            for i in range(hidden_num):
-                min_mm1 = self.m[-1].min()
-                m_ = self.xp.random.randint(min_mm1, in_size-1, hidden_size)
-                self.m.append(m_)
-
-            self.M = []
-            for i in range(hidden_num):
-                M_ = self.m[i+1].reshape(-1, 1) >= self.m[i]
-                self.__setattr__('M_%d' % i, M_)
-                self.M.append(M_)
-            M_ = self.m[0].reshape(-1, 1) > self.m[-1]
-            self.M.append(M_)
-
-            self.W = []
-            self.b = []
             W_initializer = initializers._get_initializer(None)
             bias_initializer = initializers._get_initializer(0)
             for i in range(hidden_num + 1):
                 W_ = variable.Parameter(W_initializer)
-                self.__setattr__('W_%d' % i, W_)
+                self.__setattr__('W%d' % i, W_)
                 if i == 0:
                     W_.initialize((hidden_size, in_size))
                 elif i == hidden_num:
@@ -52,21 +48,22 @@ class MADE(link.Link):
 
                 if i == hidden_num:
                     b_ = variable.Parameter(bias_initializer, in_size)
-                    self.__setattr__('b_%d' % i, b_)
+                    self.__setattr__('b%d' % i, b_)
                 else:
                     b_ = variable.Parameter(bias_initializer, hidden_size)
-                    self.__setattr__('b_%d' % i, b_)
+                    self.__setattr__('b%d' % i, b_)
 
-                self.W.append(W_)
-                self.b.append(b_)
+    def get_var(self, var, idx):
+        return self.__dict__['%s%d' % (var, idx)]
 
     def __call__(self, x):
         h = x
         for i in range(self.hidden_num):
-            self.M[i] = self.xp.asarray(self.M[i])
-            h = linear.linear(h, self.M[i]*self.W[i], self.b[i])
-            h = sigmoid.sigmoid(h)
-        self.M[self.hidden_num] = self.xp.asarray(self.M[self.hidden_num])
+            h = linear.linear(
+                h, self.get_var('M', i) * self.get_var('W', i),
+                self.get_var('b', 1))
+            h = relu.relu(h)
         return linear.linear(
-            h, self.M[self.hidden_num]*self.W[self.hidden_num],
-            self.b[self.hidden_num])
+            h, self.get_var('M', self.hidden_num)
+            * self.get_var('W', self.hidden_num),
+            self.get_var('b', self.hidden_num))
