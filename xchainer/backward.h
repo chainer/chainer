@@ -223,28 +223,14 @@ public:
     BackpropModeScope& operator=(const BackpropModeScope&) = delete;
     BackpropModeScope& operator=(BackpropModeScope&& other) = delete;
 
-    ~BackpropModeScope() {
-        internal::BackpropModeStack* stack = internal::GetBackpropModeStack();
-        assert(stack != nullptr);
-        stack->pop_back();
-        // Recover thread local variable to nullptr on exiting from the outer-most scope.
-        if (stack->empty()) {
-            delete stack;
-            internal::SetBackpropModeStack(nullptr);
-        }
-    }
+    ~BackpropModeScope();
 
 private:
-    explicit BackpropModeScope(nonstd::optional<GraphId> graph_id) {
-        // The outer-most scope creates an instance of BackpropModeStack.
-        internal::BackpropModeStack* stack = internal::GetBackpropModeStack();
-        if (stack == nullptr) {
-            stack = new internal::BackpropModeStack{};
-            internal::SetBackpropModeStack(stack);
-        }
-        stack->emplace_back(GetDefaultContext(), std::move(graph_id), kModeFlag);
-    }
+    explicit BackpropModeScope(nonstd::optional<GraphId> graph_id);
 };
+
+template class BackpropModeScope<true>;
+template class BackpropModeScope<false>;
 
 }  // namespace backward_detail
 

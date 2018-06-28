@@ -451,4 +451,31 @@ BackpropModeStack* GetBackpropModeStack() { return t_backprop_mode_stack; }
 
 }  // namespace internal
 
+namespace backward_detail {
+
+template <bool kModeFlag>
+BackpropModeScope<kModeFlag>::~BackpropModeScope() {
+    internal::BackpropModeStack* stack = internal::GetBackpropModeStack();
+    assert(stack != nullptr);
+    stack->pop_back();
+    // Recover thread local variable to nullptr on exiting from the outer-most scope.
+    if (stack->empty()) {
+        delete stack;
+        internal::SetBackpropModeStack(nullptr);
+    }
+}
+
+template <bool kModeFlag>
+BackpropModeScope<kModeFlag>::BackpropModeScope(nonstd::optional<GraphId> graph_id) {
+    // The outer-most scope creates an instance of BackpropModeStack.
+    internal::BackpropModeStack* stack = internal::GetBackpropModeStack();
+    if (stack == nullptr) {
+        stack = new internal::BackpropModeStack{};
+        internal::SetBackpropModeStack(stack);
+    }
+    stack->emplace_back(GetDefaultContext(), std::move(graph_id), kModeFlag);
+}
+
+}  // namespace backward_detail
+
 }  // namespace xchainer
