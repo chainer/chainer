@@ -54,7 +54,7 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleContexts) {
 
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
-        NoBackpropModeScope backprop_mode_scope1;
+        NoBackpropModeScope backprop_mode_scope1{};
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectLastBackpropModeEqual(GetDefaultContext(), nonstd::nullopt, false);
         {
