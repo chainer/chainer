@@ -265,7 +265,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
             if n_fill_objects != 0:
                 _fill_sample = xp.zeros((n_fill_objects, n_filters),
-                                            dtype=_mean_sample.dtype)
+                                        dtype=_mean_sample.dtype)
                 _mean_sample = concat((_mean_sample, _fill_sample),
                                       axis=0)
             means.append(_mean_sample)
@@ -385,13 +385,13 @@ def discriminative_margin_based_clustering_loss(
     the loss value will be same independent from the wrong pixel's location.
     Even though the network gives wrong pixel output, it is desirable
     to have it as close as possible to the original position.
-    By applying discriminative loss function, groups of segmentation instances
-    can be moved together.
+    By applying a discriminative loss function,
+    groups of segmentation instances can be moved together.
     This loss function calculates the following three parameters:
 
     - Variance Loss:
         Loss to penalize distances between pixels which are belonging
-        to same instance. (Pull force)
+        to the same instance. (Pull force)
     - Distance loss:
         Loss to penalize distances between the centers of instances.
         (Push force)
