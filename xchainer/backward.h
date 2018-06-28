@@ -200,14 +200,11 @@ private:
     bool backprop_;  // false for NoBackpropMode, and true for ForceBackpropMode
 };
 
-using BackpropModeStack = std::vector<BackpropMode>;
-
-void SetBackpropModeStack(BackpropModeStack* backprop_mode_stack);
-BackpropModeStack* GetBackpropModeStack();
-
 }  // namespace internal
 
 namespace backward_detail {
+
+using BackpropModeStack = std::vector<internal::BackpropMode>;
 
 template <bool kModeFlag>
 class BackpropModeScope {
@@ -236,5 +233,12 @@ template class BackpropModeScope<false>;
 
 using NoBackpropModeScope = backward_detail::BackpropModeScope<false>;
 using ForceBackpropModeScope = backward_detail::BackpropModeScope<true>;
+
+namespace internal {
+
+// For test
+backward_detail::BackpropModeStack* GetBackpropModeStack();
+
+}  // namespace internal
 
 }  // namespace xchainer

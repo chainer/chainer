@@ -438,44 +438,36 @@ void Backward(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id
     BackwardImpl{outputs, graph_id, double_backprop}.Run();
 }
 
-namespace internal {
-namespace {
+namespace backward_detail {
 
 thread_local BackpropModeStack* t_backprop_mode_stack{nullptr};
 
-}  // namespace
-
-void SetBackpropModeStack(BackpropModeStack* backprop_mode_stack) { t_backprop_mode_stack = backprop_mode_stack; }
-
-BackpropModeStack* GetBackpropModeStack() { return t_backprop_mode_stack; }
-
-}  // namespace internal
-
-namespace backward_detail {
-
 template <bool kModeFlag>
 BackpropModeScope<kModeFlag>::~BackpropModeScope() {
-    internal::BackpropModeStack* stack = internal::GetBackpropModeStack();
-    assert(stack != nullptr);
-    stack->pop_back();
+    assert(t_backprop_mode_stack != nullptr);
+    t_backprop_mode_stack->pop_back();
     // Recover thread local variable to nullptr on exiting from the outer-most scope.
-    if (stack->empty()) {
-        delete stack;
-        internal::SetBackpropModeStack(nullptr);
+    if (t_backprop_mode_stack->empty()) {
+        delete t_backprop_mode_stack;
+        t_backprop_mode_stack = nullptr;
     }
 }
 
 template <bool kModeFlag>
 BackpropModeScope<kModeFlag>::BackpropModeScope(nonstd::optional<GraphId> graph_id) {
     // The outer-most scope creates an instance of BackpropModeStack.
-    internal::BackpropModeStack* stack = internal::GetBackpropModeStack();
-    if (stack == nullptr) {
-        stack = new internal::BackpropModeStack{};
-        internal::SetBackpropModeStack(stack);
+    if (t_backprop_mode_stack == nullptr) {
+        t_backprop_mode_stack = new BackpropModeStack{};
     }
-    stack->emplace_back(GetDefaultContext(), std::move(graph_id), kModeFlag);
+    t_backprop_mode_stack->emplace_back(GetDefaultContext(), std::move(graph_id), kModeFlag);
 }
 
 }  // namespace backward_detail
+
+namespace internal {
+
+backward_detail::BackpropModeStack* GetBackpropModeStack() { return backward_detail::t_backprop_mode_stack; }
+
+}  // namespace internal
 
 }  // namespace xchainer
