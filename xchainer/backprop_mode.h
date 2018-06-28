@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -24,7 +25,9 @@ public:
     bool backprop() const { return backprop_; }
 
 private:
-    Context& context_;
+    // Using reference_wrapper to make this class move assignable because we use vector::erase in BackpropModeScope dtor.
+    std::reference_wrapper<Context> context_;
+
     nonstd::optional<GraphId> graph_id_;
     bool backprop_;  // false for NoBackpropMode, and true for ForceBackpropMode
 };

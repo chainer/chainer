@@ -35,9 +35,7 @@ BackpropModeScope<kModeFlag>::~BackpropModeScope() {
     assert(t_backprop_mode_stack != nullptr);
     assert(t_backprop_mode_stack->size() >= n_);
 
-    for (size_t i = 0; i < n_; ++i) {
-        t_backprop_mode_stack->pop_back();
-    }
+    t_backprop_mode_stack->erase(t_backprop_mode_stack->end() - n_, t_backprop_mode_stack->end());
 
     // Recover thread local variable to nullptr on exiting from the outer-most scope.
     if (t_backprop_mode_stack->empty()) {
