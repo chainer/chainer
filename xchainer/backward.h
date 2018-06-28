@@ -124,10 +124,10 @@ void Backward(
 
 namespace internal {
 
-struct BackpropMode {
+class BackpropMode {
 public:
-    BackpropMode(const nonstd::optional<GraphId>& graph_id, bool backprop) : graph_id_(graph_id), backprop_(backprop) {}
-    BackpropMode(const GraphId& graph_id, bool backprop) : graph_id_(graph_id), backprop_(backprop) {}
+    BackpropMode(const nonstd::optional<GraphId>& graph_id, bool backprop) : graph_id_{graph_id}, backprop_{backprop} {}
+    BackpropMode(const GraphId& graph_id, bool backprop) : graph_id_{graph_id}, backprop_{backprop} {}
 
     const nonstd::optional<GraphId>& graph_id() const { return graph_id_; }
     bool backprop() const { return backprop_; }
@@ -149,21 +149,23 @@ BackpropModeStack* GetBackpropModeStack(const Context* context = GetDefaultConte
 
 }  // namespace internal
 
-// Make a context which disables back-propagation.
-class NoBackpropModeScope {
+namespace backward_detail {
+
+template <bool kModeFlag>
+class BackpropModeScope {
 public:
-    // No backprop mode for all graphs
-    NoBackpropModeScope() : NoBackpropModeScope(nonstd::nullopt) {}
+    // backprop mode for all graphs
+    BackpropModeScope() : BackpropModeScope(nonstd::nullopt) {}
 
     // No backprop mode for specified graph
-    explicit NoBackpropModeScope(const GraphId& graph_id) : NoBackpropModeScope(std::move(nonstd::optional<GraphId>{graph_id})) {}
+    explicit BackpropModeScope(const GraphId& graph_id) : BackpropModeScope(std::move(nonstd::optional<GraphId>{graph_id})) {}
 
-    NoBackpropModeScope(const NoBackpropModeScope&) = delete;
-    NoBackpropModeScope(NoBackpropModeScope&& other) = delete;
-    NoBackpropModeScope& operator=(const NoBackpropModeScope&) = delete;
-    NoBackpropModeScope& operator=(NoBackpropModeScope&& other) = delete;
+    BackpropModeScope(const BackpropModeScope&) = delete;
+    BackpropModeScope(BackpropModeScope&& other) = delete;
+    BackpropModeScope& operator=(const BackpropModeScope&) = delete;
+    BackpropModeScope& operator=(BackpropModeScope&& other) = delete;
 
-    ~NoBackpropModeScope() {
+    ~BackpropModeScope() {
         assert(internal::GetBackpropModeContextStack() != nullptr);
         assert(internal::GetBackpropModeStack(context_) != nullptr);
         internal::GetBackpropModeStack(context_)->pop_back();
@@ -174,7 +176,7 @@ public:
     }
 
 private:
-    explicit NoBackpropModeScope(nonstd::optional<GraphId> graph_id) : context_{internal::GetDefaultContextNoExcept()} {
+    explicit BackpropModeScope(nonstd::optional<GraphId> graph_id) : context_{internal::GetDefaultContextNoExcept()} {
         // The outer-most scope creates and holds an instance of BackpropModeContextStack.
         internal::BackpropModeContextStack* context_stack = internal::GetBackpropModeContextStack();
         if (context_stack == nullptr) {
@@ -182,7 +184,7 @@ private:
             context_stack = &context_stack_.value();
             internal::SetBackpropModeContextStack(context_stack);
         }
-        (*context_stack)[context_].emplace_back(internal::BackpropMode{std::move(graph_id), false});
+        (*context_stack)[context_].emplace_back(internal::BackpropMode{std::move(graph_id), kModeFlag});
     }
 
     bool is_outer_most() { return context_stack_.has_value(); }
@@ -191,32 +193,9 @@ private:
     nonstd::optional<internal::BackpropModeContextStack> context_stack_{};
 };
 
-// Make a context which enables back-propagation.
-//
-// When you want to enable back-propagation in NoBackpropModeScope, use this scope.
-class ForceBackpropModeScope {
-public:
-    explicit ForceBackpropModeScope(const GraphId& graph_id) : context_{internal::GetDefaultContextNoExcept()} {
-        internal::BackpropModeContextStack* context_stack = internal::GetBackpropModeContextStack();
-        if (context_stack == nullptr) {
-            throw XchainerError{"can be called only inside of no backprop mode context"};
-        }
-        (*context_stack)[context_].emplace_back(internal::BackpropMode{std::move(graph_id), true});
-    }
+}  // namespace backward_detail
 
-    ~ForceBackpropModeScope() {
-        assert(internal::GetBackpropModeContextStack() != nullptr);
-        assert(internal::GetBackpropModeStack(context_) != nullptr);
-        internal::GetBackpropModeStack(context_)->pop_back();
-    }
-
-    ForceBackpropModeScope(const ForceBackpropModeScope&) = delete;
-    ForceBackpropModeScope(ForceBackpropModeScope&& other) = delete;
-    ForceBackpropModeScope& operator=(const ForceBackpropModeScope&) = delete;
-    ForceBackpropModeScope& operator=(ForceBackpropModeScope&& other) = delete;
-
-private:
-    Context* context_;
-};
+using NoBackpropModeScope = backward_detail::BackpropModeScope<false>;
+using ForceBackpropModeScope = backward_detail::BackpropModeScope<true>;
 
 }  // namespace xchainer

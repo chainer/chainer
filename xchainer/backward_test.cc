@@ -929,7 +929,7 @@ TEST(BackpropModeScopeTest, BackpropModeScopeFlatScope) {
     EXPECT_EQ(nullptr, internal::GetBackpropModeContextStack());
 }
 
-TEST(BackpropModeScopeTest, ForceBackpropModeScopeHead) { EXPECT_THROW(ForceBackpropModeScope{"default"}, XchainerError); }
+// TODO(niboshi): Write a test where the outermost scope is ForceBackpropMode.
 
 }  // namespace
 }  // namespace xchainer
