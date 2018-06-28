@@ -438,30 +438,16 @@ void Backward(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id
     BackwardImpl{outputs, graph_id, double_backprop}.Run();
 }
 
+namespace internal {
 namespace {
 
-thread_local internal::BackpropModeContextStack* t_backprop_mode_context_stack{nullptr};
+thread_local BackpropModeStack* t_backprop_mode_stack{nullptr};
 
 }  // namespace
 
-namespace internal {
+void SetBackpropModeStack(BackpropModeStack* backprop_mode_stack) { t_backprop_mode_stack = backprop_mode_stack; }
 
-void SetBackpropModeContextStack(BackpropModeContextStack* backprop_mode_context_stack) {
-    t_backprop_mode_context_stack = backprop_mode_context_stack;
-}
-
-BackpropModeContextStack* GetBackpropModeContextStack() { return t_backprop_mode_context_stack; }
-
-BackpropModeStack* GetBackpropModeStack(const Context* context) {
-    if (t_backprop_mode_context_stack == nullptr) {
-        return nullptr;
-    }
-    auto it = t_backprop_mode_context_stack->find(context);
-    if (it == t_backprop_mode_context_stack->end()) {
-        return nullptr;
-    }
-    return &it->second;
-}
+BackpropModeStack* GetBackpropModeStack() { return t_backprop_mode_stack; }
 
 }  // namespace internal
 

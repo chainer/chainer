@@ -177,26 +177,33 @@ namespace internal {
 
 class BackpropMode {
 public:
-    BackpropMode(const nonstd::optional<GraphId>& graph_id, bool backprop) : graph_id_{graph_id}, backprop_{backprop} {}
-    BackpropMode(const GraphId& graph_id, bool backprop) : graph_id_{graph_id}, backprop_{backprop} {}
+    BackpropMode(Context& context, const nonstd::optional<GraphId>& graph_id, bool backprop)
+        : context_{context}, graph_id_{graph_id}, backprop_{backprop} {}
+    BackpropMode(Context& context, const GraphId& graph_id, bool backprop) : context_{context}, graph_id_{graph_id}, backprop_{backprop} {}
+
+    Context& context() const { return context_; }
 
     const nonstd::optional<GraphId>& graph_id() const { return graph_id_; }
+
     bool backprop() const { return backprop_; }
 
-    bool operator==(const BackpropMode& other) const { return backprop_ == other.backprop_ && graph_id_ == other.graph_id_; }
+    // TODO(hvy): Remove these operators since they are only used for tests, at the moment.
+    bool operator==(const BackpropMode& other) const {
+        return &context_ == &other.context_ && backprop_ == other.backprop_ && graph_id_ == other.graph_id_;
+    }
+
     bool operator!=(const BackpropMode& other) const { return !operator==(other); }
 
 private:
+    Context& context_;
     nonstd::optional<GraphId> graph_id_;
     bool backprop_;  // false for NoBackpropMode, and true for ForceBackpropMode
 };
 
 using BackpropModeStack = std::vector<BackpropMode>;
-using BackpropModeContextStack = std::unordered_map<const Context*, BackpropModeStack>;
 
-void SetBackpropModeContextStack(BackpropModeContextStack* backprop_mode_context_stack);
-BackpropModeContextStack* GetBackpropModeContextStack();
-BackpropModeStack* GetBackpropModeStack(const Context* context = GetDefaultContextNoExcept());
+void SetBackpropModeStack(BackpropModeStack* backprop_mode_stack);
+BackpropModeStack* GetBackpropModeStack();
 
 }  // namespace internal
 
@@ -205,11 +212,11 @@ namespace backward_detail {
 template <bool kModeFlag>
 class BackpropModeScope {
 public:
-    // backprop mode for all graphs
-    BackpropModeScope() : BackpropModeScope(nonstd::nullopt) {}
+    // Backprop mode for all graphs
+    BackpropModeScope() : BackpropModeScope{nonstd::nullopt} {}
 
     // No backprop mode for specified graph
-    explicit BackpropModeScope(const GraphId& graph_id) : BackpropModeScope(std::move(nonstd::optional<GraphId>{graph_id})) {}
+    explicit BackpropModeScope(const GraphId& graph_id) : BackpropModeScope{std::move(nonstd::optional<GraphId>{graph_id})} {}
 
     BackpropModeScope(const BackpropModeScope&) = delete;
     BackpropModeScope(BackpropModeScope&& other) = delete;
@@ -217,31 +224,26 @@ public:
     BackpropModeScope& operator=(BackpropModeScope&& other) = delete;
 
     ~BackpropModeScope() {
-        assert(internal::GetBackpropModeContextStack() != nullptr);
-        assert(internal::GetBackpropModeStack(context_) != nullptr);
-        internal::GetBackpropModeStack(context_)->pop_back();
+        internal::BackpropModeStack* stack = internal::GetBackpropModeStack();
+        assert(stack != nullptr);
+        stack->pop_back();
         // Recover thread local variable to nullptr on exiting from the outer-most scope.
-        if (is_outer_most()) {
-            internal::SetBackpropModeContextStack(nullptr);
+        if (stack->empty()) {
+            delete stack;
+            internal::SetBackpropModeStack(nullptr);
         }
     }
 
 private:
-    explicit BackpropModeScope(nonstd::optional<GraphId> graph_id) : context_{internal::GetDefaultContextNoExcept()} {
-        // The outer-most scope creates and holds an instance of BackpropModeContextStack.
-        internal::BackpropModeContextStack* context_stack = internal::GetBackpropModeContextStack();
-        if (context_stack == nullptr) {
-            context_stack_.emplace();  // allocates
-            context_stack = &context_stack_.value();
-            internal::SetBackpropModeContextStack(context_stack);
+    explicit BackpropModeScope(nonstd::optional<GraphId> graph_id) {
+        // The outer-most scope creates an instance of BackpropModeStack.
+        internal::BackpropModeStack* stack = internal::GetBackpropModeStack();
+        if (stack == nullptr) {
+            stack = new internal::BackpropModeStack{};
+            internal::SetBackpropModeStack(stack);
         }
-        (*context_stack)[context_].emplace_back(internal::BackpropMode{std::move(graph_id), kModeFlag});
+        stack->emplace_back(GetDefaultContext(), std::move(graph_id), kModeFlag);
     }
-
-    bool is_outer_most() { return context_stack_.has_value(); }
-
-    Context* context_;
-    nonstd::optional<internal::BackpropModeContextStack> context_stack_{};
 };
 
 }  // namespace backward_detail
