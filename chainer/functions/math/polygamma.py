@@ -51,7 +51,7 @@ def polygamma(n, x):
     """Polygamma function.
 
     .. note::
-       Forward computation can not be done if
+       Forward computation in CPU can not be done if
        `SciPy <https://www.scipy.org/>`_ is not available.
 
     Args:
