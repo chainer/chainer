@@ -199,7 +199,9 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             gt_idx (tuple / nd-array): Indexes of ground truth instances
 
         Returns:
-            float : distance loss
+            :class:`~chainer.Variable` or \
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray` : regularization loss
         """
 
         bs, n_instances, n_filters = means.shape
