@@ -56,7 +56,7 @@ public:
     ~BackpropModeScope();
 
 private:
-    explicit BackpropModeScope(const nonstd::optional<std::vector<GraphId>>& graph_ids);
+    explicit BackpropModeScope(nonstd::optional<std::vector<GraphId>> graph_ids);
 
     // Number of BackpropMode instances pushed to the stack.
     size_t n_;
