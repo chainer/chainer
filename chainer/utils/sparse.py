@@ -14,17 +14,17 @@ class CooMatrix(object):
         col (numpy.ndarray or cupy.ndarray): The column indices of the matrix
             entries.
         shape (tuple of int): The shape of the matrix in dense format.
+        order ('C', 'F', 'auto', None): If ``'C'``, the matrix is assumed to be
+            made from row-major format (AKA C-contiguous) array, in other words,
+            the row indices are sorted. If ``'F'``, the matrix is assumed to be
+            made from column-major format (AKA Fortran-contiguous) array, in
+            other words, the column indices are sorted. If ``None``, the matrix
+            is assumed as neither 'C' order nor 'F' order (this is the default).
+            If ``'auto'``, the matrix is automatically checked if it is 'C'
+            order, 'F' order or another. This information will be used by some
+            functions like sparse_matmul as a hint to improve performance.
         requires_grad (bool): If ``True``, gradient of this sparse matrix will
             be computed in back-propagation.
-        c_contiguous (bool): If ``True``, the matrix is assumed to be made from
-            C-contiguous array, in other words, the row indices are sorted
-            (also known as row-major format). If ``False``, the matrix is
-            assumed to be made from Fortran-contiguous array, in other words,
-            the column indices are sorted (also know as column-major format).
-            If ``None``, the matrix is automatically checked if it is
-            C-contiguous, Fortran-contiguous or another. The default is
-            ``None``. This information is used in some functions like
-            sparse_matmul as a hint to improve performance.
 
     .. seealso::
         See :func:`~chainer.utils.to_coo` for how to construct a COO matrix
@@ -32,8 +32,7 @@ class CooMatrix(object):
 
     """
 
-    def __init__(self, data, row, col, shape, requires_grad=False,
-                 c_contiguous=None):
+    def __init__(self, data, row, col, shape, order=None, requires_grad=False):
         if not (1 <= data.ndim <= 2):
             raise ValueError('ndim of data must be 1 or 2.')
         if not (data.ndim == row.ndim == col.ndim):
@@ -42,16 +41,20 @@ class CooMatrix(object):
             raise ValueError('length of shape must be 2.')
         if not (shape[0] > 0 and shape[1] > 0):
             raise ValueError('numbers in shape must be greater than 0.')
+        if not (order in ('C', 'F', 'auto', None)):
+            raise ValueError('order must be \'C\', \'F\', \'auto\' or None')
         self.data = chainer.Variable(data, requires_grad=requires_grad)
         self.row = row
         self.col = col
         self.shape = shape  # (row, col)
-        self.c_contiguous = c_contiguous
-        if c_contiguous is None:
-            if _is_c_contiguous(row, col):
-                self.c_contiguous = True
-            elif _is_c_contiguous(col, row):
-                self.c_contiguous = False  # means this is F_contiguous
+        self.order = order
+        if order is 'auto':
+            if _is_c_order(row, col):
+                self.order = 'C'
+            elif _is_c_order(col, row):
+                self.order = 'F'
+            else:
+                self.order = None
 
     def to_dense(self):
         """Returns a dense matrix format of this sparse matrix."""
@@ -122,7 +125,13 @@ def to_coo(x, ldnz=None, requires_grad=False):
         row[:nnz] = xp.array(_row).astype(xp.int32)
         col[:nnz] = xp.array(_col).astype(xp.int32)
         shape = x.shape
-        return CooMatrix(data, row, col, shape, requires_grad=requires_grad)
+        order = None
+        if x.flags['C_CONTIGUOUS']:
+            order = 'C'
+        elif x.flags['F_CONTIGUOUS']:
+            order = 'F'
+        return CooMatrix(data, row, col, shape, order=order,
+                         requires_grad=requires_grad)
     elif x.ndim == 3:
         # first axis is batch axis
         nb = x.shape[0]
@@ -139,18 +148,24 @@ def to_coo(x, ldnz=None, requires_grad=False):
             row[i] = coo.row
             col[i] = coo.col
         shape = x.shape[1:]
-        return CooMatrix(data, row, col, shape, requires_grad=requires_grad)
+        order = None
+        if x.flags['C_CONTIGUOUS']:
+            order = 'C'
+        elif x.flags['F_CONTIGUOUS']:
+            order = 'F'
+        return CooMatrix(data, row, col, shape, order=order,
+                         requires_grad=requires_grad)
     else:
         raise ValueError('ndim of x must be 2 or 3.')
 
 
-def _is_c_contiguous(row, col):
-    """Check if a coo matrix with given row and col is c_contiguous"""
+def _is_c_order(row, col):
+    """Check if a coo matrix with given row and col is c_order"""
     if not (row.shape == col.shape):
         raise ValueError('shape of row and col must be the same.')
     if row.ndim != 1:
         for i in range(row.shape[0]):
-            if not _is_c_contiguous(row[i], col[i]):
+            if not _is_c_order(row[i], col[i]):
                 return False
         return True
     if row.shape[0] <= 1:
