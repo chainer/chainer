@@ -17,6 +17,7 @@ install(FILES
     axes.h
     backend.h
     backend_util.h
+    backprop_mode.h
     backward.h
     constant.h
     context.h
@@ -49,6 +50,7 @@ add_library(xchainer SHARED
     array_repr.cc
     axes.cc
     backend.cc
+    backprop_mode.cc
     backward.cc
     check_backward.cc
     context.cc
@@ -86,6 +88,7 @@ if(ENABLE_TEST)
         array_test.cc
         array_to_device_test.cc
         axes_test.cc
+        backprop_mode_test.cc
         backward_test.cc
         check_backward_test.cc
         context_test.cc

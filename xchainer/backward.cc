@@ -14,7 +14,6 @@
 #include "xchainer/array.h"
 #include "xchainer/array_body.h"
 #include "xchainer/array_node.h"
-#include "xchainer/context.h"
 #include "xchainer/error.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
@@ -437,37 +436,5 @@ void Backward(const Array& output, const GraphId& graph_id, DoubleBackpropOption
 void Backward(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id, DoubleBackpropOption double_backprop) {
     BackwardImpl{outputs, graph_id, double_backprop}.Run();
 }
-
-namespace backward_detail {
-
-thread_local BackpropModeStack* t_backprop_mode_stack{nullptr};
-
-template <bool kModeFlag>
-BackpropModeScope<kModeFlag>::BackpropModeScope(nonstd::optional<GraphId> graph_id) {
-    // The outer-most scope creates an instance of BackpropModeStack.
-    if (t_backprop_mode_stack == nullptr) {
-        t_backprop_mode_stack = new BackpropModeStack{};
-    }
-    t_backprop_mode_stack->emplace_back(GetDefaultContext(), std::move(graph_id), kModeFlag);
-}
-
-template <bool kModeFlag>
-BackpropModeScope<kModeFlag>::~BackpropModeScope() {
-    assert(t_backprop_mode_stack != nullptr);
-    t_backprop_mode_stack->pop_back();
-    // Recover thread local variable to nullptr on exiting from the outer-most scope.
-    if (t_backprop_mode_stack->empty()) {
-        delete t_backprop_mode_stack;
-        t_backprop_mode_stack = nullptr;
-    }
-}
-
-}  // namespace backward_detail
-
-namespace internal {
-
-backward_detail::BackpropModeStack* GetBackpropModeStack() { return backward_detail::t_backprop_mode_stack; }
-
-}  // namespace internal
 
 }  // namespace xchainer

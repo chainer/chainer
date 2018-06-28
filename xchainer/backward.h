@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "xchainer/constant.h"
-#include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
@@ -172,66 +171,5 @@ void Backward(
         const std::vector<ConstArrayRef>& outputs,
         const GraphId& graph_id = kDefaultGraphId,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
-
-namespace internal {
-
-class BackpropMode {
-public:
-    BackpropMode(Context& context, const nonstd::optional<GraphId>& graph_id, bool backprop)
-        : context_{context}, graph_id_{graph_id}, backprop_{backprop} {}
-    BackpropMode(Context& context, const GraphId& graph_id, bool backprop) : context_{context}, graph_id_{graph_id}, backprop_{backprop} {}
-
-    Context& context() const { return context_; }
-
-    const nonstd::optional<GraphId>& graph_id() const { return graph_id_; }
-
-    bool backprop() const { return backprop_; }
-
-private:
-    Context& context_;
-    nonstd::optional<GraphId> graph_id_;
-    bool backprop_;  // false for NoBackpropMode, and true for ForceBackpropMode
-};
-
-}  // namespace internal
-
-namespace backward_detail {
-
-using BackpropModeStack = std::vector<internal::BackpropMode>;
-
-template <bool kModeFlag>
-class BackpropModeScope {
-public:
-    // Backprop mode for all graphs
-    BackpropModeScope() : BackpropModeScope{nonstd::nullopt} {}
-
-    // No backprop mode for specified graph
-    explicit BackpropModeScope(const GraphId& graph_id) : BackpropModeScope{std::move(nonstd::optional<GraphId>{graph_id})} {}
-
-    BackpropModeScope(const BackpropModeScope&) = delete;
-    BackpropModeScope(BackpropModeScope&& other) = delete;
-    BackpropModeScope& operator=(const BackpropModeScope&) = delete;
-    BackpropModeScope& operator=(BackpropModeScope&& other) = delete;
-
-    ~BackpropModeScope();
-
-private:
-    explicit BackpropModeScope(nonstd::optional<GraphId> graph_id);
-};
-
-template class BackpropModeScope<true>;
-template class BackpropModeScope<false>;
-
-}  // namespace backward_detail
-
-using NoBackpropModeScope = backward_detail::BackpropModeScope<false>;
-using ForceBackpropModeScope = backward_detail::BackpropModeScope<true>;
-
-namespace internal {
-
-// For test
-backward_detail::BackpropModeStack* GetBackpropModeStack();
-
-}  // namespace internal
 
 }  // namespace xchainer
