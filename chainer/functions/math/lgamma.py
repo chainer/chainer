@@ -4,9 +4,7 @@ from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
 
-
 _lgamma_cpu = None
-_lgamma_kernel = None
 
 
 class LGamma(function_node.FunctionNode):
@@ -32,15 +30,9 @@ class LGamma(function_node.FunctionNode):
         return utils.force_array(_lgamma_cpu(x[0]), dtype=x[0].dtype),
 
     def forward_gpu(self, x):
-        global _lgamma_kernel
         self.retain_inputs((0,))
-        if _lgamma_kernel is None:
-            _lgamma_kernel = cuda.elementwise(
-                'T x', 'T y',
-                'y = lgamma(x)',
-                'elementwise_lgamma',
-            )
-        return _lgamma_kernel(x[0]),
+        return utils.force_array(
+            cuda.cupyx.scipy.special.gammaln(x[0]), dtype=x[0].dtype),
 
     def backward(self, indexes, gy):
         z = self.get_retained_inputs()[0]
