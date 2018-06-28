@@ -24,6 +24,7 @@ from chainer.links.connection.linear import Linear  # NOQA
 from chainer.links.connection.local_convolution_2d import LocalConvolution2D  # NOQA
 from chainer.links.connection.lstm import LSTM  # NOQA
 from chainer.links.connection.lstm import StatelessLSTM  # NOQA
+from chainer.links.connection.made import MADE  # NOQA
 from chainer.links.connection.mgu import StatefulMGU  # NOQA
 from chainer.links.connection.mgu import StatelessMGU  # NOQA
 from chainer.links.connection.mlp_convolution_2d import MLPConvolution2D  # NOQA
