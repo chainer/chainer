@@ -53,9 +53,10 @@ bool IsBackpropRequiredImpl(const GraphId& graph_id, Context& context) {
         // No backprop scopes have been created and backprop is thus always required, per default.
         return true;
     }
-    auto it = std::find_if(t_backprop_mode_stack->rbegin(), t_backprop_mode_stack->rend(), [&](const internal::BackpropMode& bm) {
-        return &context == &bm.context() && (!bm.graph_id().has_value() || graph_id == *bm.graph_id());
-    });
+    auto it = std::find_if(
+            t_backprop_mode_stack->rbegin(), t_backprop_mode_stack->rend(), [&graph_id, &context](const internal::BackpropMode& bm) {
+                return &context == &bm.context() && (!bm.graph_id().has_value() || graph_id == *bm.graph_id());
+            });
     if (it != t_backprop_mode_stack->rend()) {
         return it->backprop();
     }
