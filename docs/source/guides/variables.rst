@@ -91,7 +91,7 @@ Higher-Order Derivatives
 
 Let's see a simple example.
 First calculate the first-order derivative.
-Note that ``enable_double_backprop=True`` is pass to ``y.backward()``.
+Note that ``enable_double_backprop=True`` is passed to ``y.backward()``.
 
 .. doctest::
 
