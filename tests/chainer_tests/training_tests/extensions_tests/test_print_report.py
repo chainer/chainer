@@ -27,7 +27,7 @@ class TestPrintReport(unittest.TestCase):
         self.assertTrue(hasattr(self.stream, 'flush'))
         self.stream.flush.assert_not_called()
         self.report(self.trainer)
-        self.stream.flush.assert_called_once_with()
+        self.stream.flush.assert_called_with()
 
     def test_stream_without_flush_raises_no_exception(self):
         self._setup(delete_flush=True)
