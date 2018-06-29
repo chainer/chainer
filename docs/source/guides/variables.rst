@@ -29,8 +29,8 @@ The resulting ``y`` is also a Variable object, whose value can be extracted by a
 .. note::
 
    :attr:`~chainer.Variable` has two attributes to represent the underlying array: :attr:`~chainer.Variable.array` and :attr:`~chainer.Variable.data`.
-   They are no difference between two; both are exactly the same object.
-   However it is suggested not to use ``.data`` to avoid confusing :class:`~chainer.Variable` with :class:`~numpy.ndarray`, which has ``.data`` attribute.
+   There is no difference between the two; both refer to exactly the same object.
+   However it is not recommended to use ``.data`` because it because it might be confused with :attr:`numpy.ndarray.data` attribute.
 
 What ``y`` holds is not only the result value.
 It also holds the history of computation (or computational graph), which enables us to compute its derivative.
