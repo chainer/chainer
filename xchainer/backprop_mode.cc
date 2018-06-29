@@ -20,14 +20,15 @@ void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(nonstd::optional<std::v
         is_outermost_ = true;
     }
 
+    Context& context = GetDefaultContext();
     if (graph_ids.has_value()) {
         n_ = graph_ids->size();
         for (GraphId& graph_id : *graph_ids) {
-            t_backprop_mode_stack->emplace_back(GetDefaultContext(), std::move(graph_id), kModeFlag);
+            t_backprop_mode_stack->emplace_back(context, std::move(graph_id), kModeFlag);
         }
     } else {
         n_ = 1;
-        t_backprop_mode_stack->emplace_back(GetDefaultContext(), nonstd::nullopt, kModeFlag);
+        t_backprop_mode_stack->emplace_back(context, nonstd::nullopt, kModeFlag);
     }
 }
 
