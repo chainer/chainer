@@ -67,8 +67,7 @@ class TestFlip(unittest.TestCase):
 
     def check_double_backward(self, x_data, axis, y_grad, x_grad_grad):
         def f(x):
-            x = functions.flip(x, axis)
-            return x * x
+            return functions.flip(x, axis)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad,

@@ -67,10 +67,6 @@ class TestSquaredError(unittest.TestCase):
 
     def check_double_backward(self, x0_data, x1_data, y_grad, ggx0_data,
                               ggx1_data):
-        def f(*xs):
-            y = functions.squared_error(*xs)
-            return y * y
-
         gradient_check.check_double_backward(
             functions.squared_error,
             (x0_data, x1_data), y_grad, (ggx0_data, ggx1_data), eps=1e-2)

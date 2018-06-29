@@ -15,6 +15,7 @@ class BackendConfig(object):
         ('cudnn_deterministic', False),
         ('autotune', False),
         ('use_ideep', 'never'),
+        ('cudnn_fast_batch_normalization', False),
     ]
 
     def __init__(self, params):

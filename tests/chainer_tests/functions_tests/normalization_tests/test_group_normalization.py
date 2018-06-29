@@ -99,9 +99,8 @@ class TestGroupNormalization(unittest.TestCase):
 
     def check_double_backward(self, args, y_grad, x_grad_grad):
         def func(*args_):
-            y = functions.group_normalization(
+            return functions.group_normalization(
                 *[args_[0], self.groups, args_[1], args_[2]])
-            return y * y
 
         gradient_check.check_double_backward(
             func, args, y_grad, x_grad_grad,

@@ -10,6 +10,11 @@ def dilated_convolution_2d(x, W, b=None, stride=1, pad=0, dilate=1,
     It takes three variables: the input image ``x``, the filter weight ``W``,
     and the bias vector ``b``.
 
+    .. note::
+       You can also perform dilated convolution by passing ``dilate``
+       argument to :class:`chainer.functions.convolution_2d`.
+       The functionality is the same.
+
     Notation: here is a notation for dimensionalities.
 
     - :math:`n` is the batch size.

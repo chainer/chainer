@@ -205,10 +205,9 @@ class TestUnpoolingND(unittest.TestCase):
                               use_cudnn='always'):
         def f(x):
             outs = self.gy.shape[2:]
-            y = functions.unpooling_nd(
+            return functions.unpooling_nd(
                 x, self.ksize, stride=self.stride, pad=self.pad,
                 outsize=outs, cover_all=self.cover_all)
-            return y * y
 
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(

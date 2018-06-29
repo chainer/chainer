@@ -203,9 +203,8 @@ class TestAveragePoolingND(unittest.TestCase):
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
                               use_cudnn='always'):
         def f(x):
-            y = functions.average_pooling_nd(
+            return functions.average_pooling_nd(
                 x, self.ksize, stride=self.stride, pad=self.pad)
-            return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
                 f, x_data, y_grad, x_grad_grad, **self.check_backward_options)
