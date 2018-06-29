@@ -1,11 +1,8 @@
 #include "xchainer/backprop_mode.h"
 
-#include <cstddef>
 #include <string>
-#include <vector>
 
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "xchainer/constant.h"
 #include "xchainer/context.h"
