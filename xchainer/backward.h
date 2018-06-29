@@ -3,7 +3,6 @@
 #include <functional>
 #include <initializer_list>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "xchainer/constant.h"
