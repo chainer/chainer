@@ -30,7 +30,7 @@ class MADE(link.Link):
             M_ = self.get_var('m', i + 1).reshape(-1, 1) \
                 >= self.get_var('m', i)
             self.add_persistent('M%d' % i, M_)
-        M_ = self.m0.reshape(-1, 1) > self.get_var('m', hidden_num - 1)
+        M_ = self.m0.reshape(-1, 1) > self.get_var('m', hidden_num)
         self.add_persistent('M%d' % hidden_num, M_)
 
         with self.init_scope():
@@ -61,7 +61,7 @@ class MADE(link.Link):
         for i in range(self.hidden_num):
             h = linear.linear(
                 h, self.get_var('M', i) * self.get_var('W', i),
-                self.get_var('b', 1))
+                self.get_var('b', i))
             h = relu.relu(h)
         return linear.linear(
             h, self.get_var('M', self.hidden_num)

@@ -38,6 +38,7 @@ Learnable connections
    chainer.links.Linear
    chainer.links.LocalConvolution2D
    chainer.links.LSTM
+   chainer.links.MADE
    chainer.links.MLPConvolution2D
    chainer.links.NaryTreeLSTM
    chainer.links.NStepBiGRU
