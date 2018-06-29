@@ -41,7 +41,10 @@ private:
 class OpNode {
 public:
     OpNode() = default;
-    explicit OpNode(std::string name, const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes);
+    explicit OpNode(
+            std::string name,
+            const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes,
+            std::vector<internal::ArrayTraits> prev_array_traits);
 
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;
@@ -76,12 +79,21 @@ public:
 
     GraphId graph_id() const { return graph_id_; }
 
+    const internal::ArrayTraits& GetPrevArrayTraits(size_t i) const {
+        assert(i < prev_array_traits_.size());
+        return prev_array_traits_[i];
+    }
+
 private:
     std::string name_;
     GraphId graph_id_;
     int64_t rank_{0};
     std::vector<std::shared_ptr<ArrayNode>> next_array_nodes_;
+
     std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes_;
+
+    // Array traits of previous array nodes. This is used for creating dummy gradients.
+    std::vector<internal::ArrayTraits> prev_array_traits_;
 
     std::vector<internal::OpNodeBackwardEntry> backward_entries_;
 };

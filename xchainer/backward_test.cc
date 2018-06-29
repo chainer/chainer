@@ -25,6 +25,7 @@
 #include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/math.h"
 #include "xchainer/shape.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
@@ -400,6 +401,48 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
 
     // The body of x.grad must have been released.
     EXPECT_EQ(nullptr, x_grad_body.lock());
+}
+
+TEST_P(BackpropTest, OneOfPreviousArrayNodesIsGone) {
+    // This test checks the backward of a multiple-output function where one of the output arrays is gone.
+    //
+    // (x) <- [forward] <- (y1 :=       exp x)
+    //                  <- (y2 := (x-1) exp x) <- [view] <- (z2)
+    //
+    // y2 is kept alive via z2 but y1 is not.
+
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    auto forward = [](const Array& x, Array& y1, Array& y2) {
+        Array x_const = x.AsConstant();
+        y1 = Exp(x_const);
+        y2 = Exp(x_const) * (x_const - 1);
+
+        Array y1_value = y1.AsConstant();
+        Array y2_value = y2.AsConstant();
+
+        BackwardBuilder bb{"func", {y1, y2}};
+        bb.Define({x}, [x](BackwardContext& bctx) {
+            Array x_cut = bctx.Cut(x);
+            Array gy1gx = bctx.output_grad(0) * Exp(x_cut);
+            Array gy2gx = bctx.output_grad(1) * Exp(x_cut) * x_cut;
+            bctx.input_grad() = gy1gx + gy2gx;
+        });
+    };
+
+    Array z2{};
+    Array x_value = testing::BuildArray({2, 3}).WithLinearData<float>();
+    Array x = x_value.MakeView().RequireGrad();
+    {
+        Array y1{};
+        Array y2{};
+        forward(x, y1, y2);
+        z2 = y2.MakeView();
+    }
+    Backward(z2, kDefaultGraphId);
+
+    Array expected_x_grad = x_value * Exp(x_value);
+    testing::ExpectAllClose(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
 }
 
 INSTANTIATE_TEST_CASE_P(
