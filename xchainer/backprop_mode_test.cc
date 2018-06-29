@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
+#include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
@@ -32,7 +33,6 @@ TEST(BackpropModeScopeTest, NoBackpropModeScopeSingle) {
         NoBackpropModeScope scope{};
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
-
         EXPECT_FALSE(internal::IsBackpropRequired());
         EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
     }
@@ -68,24 +68,41 @@ TEST(BackpropModeScopeTest, ForceBackpropModeScopeSingle) {
     testing::ContextSession context_session{};
 
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    EXPECT_TRUE(internal::IsBackpropRequired());
+    EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
     {
         ForceBackpropModeScope scope{};
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, true);
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    EXPECT_TRUE(internal::IsBackpropRequired());
+    EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
+    EXPECT_TRUE(internal::IsBackpropRequired("graph2"));
     {
         ForceBackpropModeScope scope{{"graph1", "graph2"}};
         EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, true);
         ExpectBackpropModeEqual(1, context_session.context(), {"graph2"}, true);
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
+        EXPECT_TRUE(internal::IsBackpropRequired("graph2"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    EXPECT_TRUE(internal::IsBackpropRequired());
+    EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
+    EXPECT_TRUE(internal::IsBackpropRequired("graph2"));
     {
         ForceBackpropModeScope scope{{}};
         EXPECT_EQ(size_t{0}, internal::GetBackpropModeStack()->size());
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    EXPECT_TRUE(internal::IsBackpropRequired());
+    EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
 }
 
 TEST(BackpropModeScopeTest, BackpropModeScopeMultiple) {
@@ -98,9 +115,13 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultiple) {
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, true);
             ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, false);
+            EXPECT_TRUE(internal::IsBackpropRequired());
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, true);
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -110,9 +131,13 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultiple) {
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, true);
             ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, true);
+            EXPECT_TRUE(internal::IsBackpropRequired());
+            EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, true);
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -122,9 +147,13 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultiple) {
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
             ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, false);
+            EXPECT_TRUE(internal::IsBackpropRequired());
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -134,9 +163,13 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultiple) {
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
             ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, true);
+            EXPECT_TRUE(internal::IsBackpropRequired());
+            EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
 }
@@ -151,9 +184,11 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
             ExpectBackpropModeEqual(1, context_session.context(), nonstd::nullopt, false);
+            EXPECT_FALSE(internal::IsBackpropRequired());
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+        EXPECT_FALSE(internal::IsBackpropRequired());
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -162,9 +197,11 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             NoBackpropModeScope scope2{{}};
             EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+            EXPECT_FALSE(internal::IsBackpropRequired());
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+        EXPECT_FALSE(internal::IsBackpropRequired());
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -174,9 +211,13 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
             ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, false);
+            EXPECT_FALSE(internal::IsBackpropRequired());
+            EXPECT_FALSE(internal::IsBackpropRequired("graph"));
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+        EXPECT_FALSE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired("graph"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -185,8 +226,10 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             NoBackpropModeScope scope2{};
             EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+            EXPECT_FALSE(internal::IsBackpropRequired());
         }
         EXPECT_EQ(size_t{0}, internal::GetBackpropModeStack()->size());
+        EXPECT_TRUE(internal::IsBackpropRequired());
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -194,8 +237,10 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
         {
             NoBackpropModeScope scope2{{}};
             EXPECT_EQ(size_t{0}, internal::GetBackpropModeStack()->size());
+            EXPECT_TRUE(internal::IsBackpropRequired());
         }
         EXPECT_EQ(size_t{0}, internal::GetBackpropModeStack()->size());
+        EXPECT_TRUE(internal::IsBackpropRequired());
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -204,8 +249,12 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             NoBackpropModeScope scope2{{"graph1"}};
             EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+            EXPECT_TRUE(internal::IsBackpropRequired());
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
         }
         EXPECT_EQ(size_t{0}, internal::GetBackpropModeStack()->size());
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -215,9 +264,13 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
             ExpectBackpropModeEqual(1, context_session.context(), nonstd::nullopt, false);
+            EXPECT_FALSE(internal::IsBackpropRequired());
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -226,9 +279,13 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             NoBackpropModeScope scope2{{}};
             EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+            EXPECT_TRUE(internal::IsBackpropRequired());
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
     {
@@ -238,9 +295,13 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
             ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, false);
+            EXPECT_TRUE(internal::IsBackpropRequired());
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+        EXPECT_TRUE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
 }
@@ -252,24 +313,42 @@ TEST(BackpropModeScopeTest, BackpropModeScopeOneContext) {
         NoBackpropModeScope scope1{};
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+        EXPECT_FALSE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session.context()));
         {
-            ForceBackpropModeScope scope2{{"default"}};
+            ForceBackpropModeScope scope2{{"graph1"}};
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
-            ExpectBackpropModeEqual(1, context_session.context(), {"default"}, true);
+            ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, true);
+            EXPECT_FALSE(internal::IsBackpropRequired());
+            EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session.context()));
+            EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
+            EXPECT_TRUE(internal::IsBackpropRequired("graph1", context_session.context()));
             {
-                NoBackpropModeScope scope3{{"default"}};
+                NoBackpropModeScope scope3{{"graph1"}};
                 EXPECT_EQ(size_t{3}, internal::GetBackpropModeStack()->size());
                 ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
-                ExpectBackpropModeEqual(1, context_session.context(), {"default"}, true);
-                ExpectBackpropModeEqual(2, context_session.context(), {"default"}, false);
+                ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, true);
+                ExpectBackpropModeEqual(2, context_session.context(), {"graph1"}, false);
+                EXPECT_FALSE(internal::IsBackpropRequired());
+                EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session.context()));
+                EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
+                EXPECT_FALSE(internal::IsBackpropRequired("graph1", context_session.context()));
             }
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
-            ExpectBackpropModeEqual(1, context_session.context(), {"default"}, true);
+            ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, true);
+            EXPECT_FALSE(internal::IsBackpropRequired());
+            EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session.context()));
+            EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
+            EXPECT_TRUE(internal::IsBackpropRequired("graph1", context_session.context()));
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+        EXPECT_FALSE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session.context()));
+        EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
+        EXPECT_FALSE(internal::IsBackpropRequired("graph1", context_session.context()));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
 }
@@ -281,27 +360,52 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleContexts) {
         NoBackpropModeScope scope1{};
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session1.context(), nonstd::nullopt, false);
+        EXPECT_FALSE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session1.context()));
         {
-            testing::ContextSession context_session2{};
-
-            NoBackpropModeScope scope1{{"default"}};
             // New context stack, and a stack for the context should be created.
+            testing::ContextSession context_session2{};
+            EXPECT_TRUE(internal::IsBackpropRequired());
+            EXPECT_TRUE(internal::IsBackpropRequired(kDefaultGraphId, context_session2.context()));
+            EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session1.context()));
+
+            NoBackpropModeScope scope1{{"graph1"}};
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session1.context(), nonstd::nullopt, false);
-            ExpectBackpropModeEqual(1, context_session2.context(), {"default"}, false);
+            ExpectBackpropModeEqual(1, context_session2.context(), {"graph1"}, false);
+            EXPECT_TRUE(internal::IsBackpropRequired());
+            EXPECT_TRUE(internal::IsBackpropRequired(kDefaultGraphId, context_session2.context()));
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1", context_session2.context()));
+            EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session1.context()));
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1", context_session1.context()));
             {
-                ForceBackpropModeScope scope2{{"default"}};
+                ForceBackpropModeScope scope2{{"graph1"}};
                 EXPECT_EQ(size_t{3}, internal::GetBackpropModeStack()->size());
                 ExpectBackpropModeEqual(0, context_session1.context(), nonstd::nullopt, false);
-                ExpectBackpropModeEqual(1, context_session2.context(), {"default"}, false);
-                ExpectBackpropModeEqual(2, context_session2.context(), {"default"}, true);
+                ExpectBackpropModeEqual(1, context_session2.context(), {"graph1"}, false);
+                ExpectBackpropModeEqual(2, context_session2.context(), {"graph1"}, true);
+                EXPECT_TRUE(internal::IsBackpropRequired());
+                EXPECT_TRUE(internal::IsBackpropRequired(kDefaultGraphId, context_session2.context()));
+                EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
+                EXPECT_TRUE(internal::IsBackpropRequired("graph1", context_session2.context()));
+                EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session1.context()));
+                EXPECT_FALSE(internal::IsBackpropRequired("graph1", context_session1.context()));
             }
             EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
             ExpectBackpropModeEqual(0, context_session1.context(), nonstd::nullopt, false);
-            ExpectBackpropModeEqual(1, context_session2.context(), {"default"}, false);
+            ExpectBackpropModeEqual(1, context_session2.context(), {"graph1"}, false);
+            EXPECT_TRUE(internal::IsBackpropRequired());
+            EXPECT_TRUE(internal::IsBackpropRequired(kDefaultGraphId, context_session2.context()));
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1"));
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1", context_session2.context()));
+            EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session1.context()));
+            EXPECT_FALSE(internal::IsBackpropRequired("graph1", context_session1.context()));
         }
         EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
         ExpectBackpropModeEqual(0, context_session1.context(), nonstd::nullopt, false);
+        EXPECT_FALSE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session1.context()));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
 }
@@ -314,10 +418,16 @@ TEST(BackpropModeScopeTest, BackpropModeScopeFlatScope) {
     {
         NoBackpropModeScope scope1{};
         ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+        EXPECT_FALSE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session.context()));
 
-        ForceBackpropModeScope scope2{{"default"}};
+        ForceBackpropModeScope scope2{{"graph1"}};
         ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
-        ExpectBackpropModeEqual(1, context_session.context(), {"default"}, true);
+        ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, true);
+        EXPECT_FALSE(internal::IsBackpropRequired());
+        EXPECT_FALSE(internal::IsBackpropRequired(kDefaultGraphId, context_session.context()));
+        EXPECT_TRUE(internal::IsBackpropRequired("graph1"));
+        EXPECT_TRUE(internal::IsBackpropRequired("graph1", context_session.context()));
     }
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
 }
