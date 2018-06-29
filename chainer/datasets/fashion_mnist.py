@@ -13,11 +13,12 @@ _fashion_mnist_labels = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
 
 
 def get_fashion_mnist_labels():
-    """Returns:
+    """Provide a list of the string value names of the labels.
+
+    Returns:
         List of string values of the image labels.
 
     """
-
     return list(_fashion_mnist_labels)
 
 
