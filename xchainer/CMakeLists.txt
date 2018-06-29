@@ -83,6 +83,7 @@ install(TARGETS xchainer DESTINATION lib)
 if(ENABLE_TEST)
     add_subdirectory(context_testdata)
     set(srcs
+        array_body_leak_detection_test.cc
         array_device_test.cc
         array_repr_test.cc
         array_test.cc
