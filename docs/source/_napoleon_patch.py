@@ -2,7 +2,7 @@ import sphinx
 
 
 def qualify_name(attr_name, klass):
-    if klass and not '.' in attr_name:
+    if klass and '.' not in attr_name:
         if attr_name.startswith('~'):
             attr_name = attr_name[1:]
         try:
