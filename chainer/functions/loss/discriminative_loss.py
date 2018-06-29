@@ -117,7 +117,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         dv = xp.asarray(delta_v, p.dtype)
 
         _var = self.norm((p - m), 2)
-        _var = maximum(xp.asarray(0.0, p.dtype),
+        _var = maximum(xp.zeros_like(_var, dtype=_var.dtype),
                        _var - dv) ** 2  # Suppress inlier distance
         _var = _var * g[:, :, 0, :]
 
@@ -183,7 +183,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             margin = 2.0 * dd * (1.0 - xp.eye(nobj, dtype=means.dtype))
 
             _dist_term_sample = c_sum(
-                maximum(xp.asarray(0.0, means.dtype), margin - nrm) ** 2)
+                maximum(xp.zeros_like(margin, dtype=means.dtype), margin - nrm) ** 2)
             _dist_term_sample /= nobj * (nobj - 1)
             dist_term += _dist_term_sample
 
@@ -249,6 +249,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         # Expand ground truth to match the size but do not broadcast
         g = reshape(gt, (bs, 1, n_instances, n_loc))
+        g = broadcast_to(g, (bs, n_filters, n_instances, n_loc))
 
         p = p * cast(g, p.dtype)
         xp = cuda.get_array_module(p)
@@ -352,9 +353,6 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                 (gamma * regularizer_loss)
         """
 
-        buffer = chainer.config.type_check
-        chainer.config.type_check = False
-
         # Inputs
         prediction, labels = self._prepare_inputs(prediction, labels)
 
@@ -368,7 +366,6 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         l_dist = self._distance_term(c_means, self.delta_d, n_objects)
         l_reg = self._regularization_term(c_means, gt_idx)
 
-        chainer.config.type_check = buffer
         return self.alpha * l_var + self.beta * l_dist + self.gamma * l_reg
 
 
