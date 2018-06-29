@@ -76,9 +76,9 @@ using NoBackpropModeScope = backprop_mode_detail::BackpropModeScope<false>;
 // Make a context which enables back-propagation.
 using ForceBackpropModeScope = backprop_mode_detail::BackpropModeScope<true>;
 
-namespace internal {
-
 bool IsBackpropRequired(const GraphId& graph_id = kDefaultGraphId, Context& context = GetDefaultContext());
+
+namespace internal {
 
 // For test
 backprop_mode_detail::BackpropModeStack* GetBackpropModeStack();
