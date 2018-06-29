@@ -92,8 +92,9 @@ class Unpooling2DGrad(function_node.FunctionNode):
 def unpooling_2d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
     """Inverse operation of pooling for 2d array.
 
-    This function acts similarly to :class:`~functions.Deconvolution2D`, but
-    it spreads input 2d array's value without any parameter instead of
+    This function acts similarly to
+    :class:`~functions.connection.deconvolution_2d.Deconvolution2DFunction`,
+    but it spreads input 2d array's value without any parameter instead of
     computing the inner products.
 
     Args:

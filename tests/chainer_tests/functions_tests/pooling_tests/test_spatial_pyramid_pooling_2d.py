@@ -18,7 +18,6 @@ from chainer.utils import type_check
     ],
     [
         {'pooling': 'max'},
-        {'pooling_class': functions.MaxPooling2D}  # Test deprecated argument
     ],
     [
         {'dtype': numpy.float16},
@@ -47,16 +46,8 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
         self.ggx = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
 
     def func(self, x):
-        if hasattr(self, 'pooling'):
-            y = functions.spatial_pyramid_pooling_2d(
-                x, self.pyramid_height, pooling=self.pooling)
-        elif hasattr(self, 'pooling_class'):
-            with testing.assert_warns(DeprecationWarning):
-                y = functions.spatial_pyramid_pooling_2d(
-                    x, self.pyramid_height, self.pooling_class)
-        else:
-            assert False
-        return y
+        return functions.spatial_pyramid_pooling_2d(
+            x, self.pyramid_height, pooling=self.pooling)
 
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
@@ -116,12 +107,9 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
                               use_cudnn='always'):
-        def f(x):
-            y = self.func(x)
-            return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
-                f, x_data, y_grad, x_grad_grad,
+                self.func, x_data, y_grad, x_grad_grad,
                 dtype=numpy.float64, atol=5e-3, rtol=5e-3)
 
     @condition.retry(3)
@@ -175,25 +163,15 @@ class TestInvalidArguments(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.randn(5, 3, 5, 5)
-        self.v = chainer.Variable(self.x.astype(numpy.int32))
+        self.v = chainer.Variable(self.x.astype(numpy.float32))
 
     def check_ambiguous_poolings(self):
         with self.assertRaises(ValueError):
             functions.spatial_pyramid_pooling_2d(self.v, 3)
 
-        with testing.assert_warns(DeprecationWarning), \
-                self.assertRaises(ValueError):
-            functions.spatial_pyramid_pooling_2d(
-                self.v, 3, pooling_class=functions.MaxPooling2D, pooling='max')
-
     def check_invalid_poolings(self):
         with self.assertRaises(ValueError):
             functions.spatial_pyramid_pooling_2d(self.v, 3, pooling='avg')
-
-        with testing.assert_warns(DeprecationWarning), \
-                self.assertRaises(ValueError):
-            functions.spatial_pyramid_pooling_2d(
-                self.v, 3, pooling_class=functions.AveragePooling2D)
 
     def test_ambiguous_pooling(self):
         self.check_ambiguous_poolings()
@@ -206,6 +184,7 @@ class TestInvalidArguments(unittest.TestCase):
     'use_cudnn': ['always', 'auto', 'never'],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@attr.gpu
 @attr.cudnn
 class TestMaxPooling2DCudnnCall(unittest.TestCase):
 
