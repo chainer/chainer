@@ -78,10 +78,4 @@ using ForceBackpropModeScope = backprop_mode_detail::BackpropModeScope<true>;
 
 bool IsBackpropRequired(const GraphId& graph_id = kDefaultGraphId, Context& context = GetDefaultContext());
 
-namespace internal {
-
-// For test
-backprop_mode_detail::BackpropModeStack* GetBackpropModeStack();
-
-}  // namespace internal
 }  // namespace xchainer

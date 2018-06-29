@@ -65,9 +65,4 @@ bool IsBackpropRequired(const GraphId& graph_id, Context& context) {
     return true;  // Per default.
 }
 
-namespace internal {
-
-backprop_mode_detail::BackpropModeStack* GetBackpropModeStack() { return backprop_mode_detail::t_backprop_mode_stack; }
-
-}  // namespace internal
 }  // namespace xchainer
