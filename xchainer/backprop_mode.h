@@ -69,7 +69,10 @@ template class BackpropModeScope<false>;
 
 }  // namespace backprop_mode_detail
 
+// Make a context which disables back-propagation.
 using NoBackpropModeScope = backprop_mode_detail::BackpropModeScope<false>;
+
+// Make a context which enables back-propagation.
 using ForceBackpropModeScope = backprop_mode_detail::BackpropModeScope<true>;
 
 namespace internal {
