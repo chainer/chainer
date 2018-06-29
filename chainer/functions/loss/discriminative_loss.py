@@ -1,4 +1,3 @@
-import chainer
 from chainer.backends import cuda
 from chainer.functions.array.broadcast import broadcast_to
 from chainer.functions.array.cast import cast
@@ -183,7 +182,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             margin = 2.0 * dd * (1.0 - xp.eye(nobj, dtype=means.dtype))
 
             _dist_term_sample = c_sum(
-                maximum(xp.zeros_like(margin, dtype=means.dtype), margin - nrm) ** 2)
+                maximum(xp.zeros_like(margin, dtype=means.dtype),
+                        margin - nrm) ** 2)
             _dist_term_sample /= nobj * (nobj - 1)
             dist_term += _dist_term_sample
 
