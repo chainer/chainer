@@ -29,7 +29,8 @@ namespace cuda {
 namespace {
 
 // Uses the previously computed y to find the indices for which the upstream gradients should be propagated.
-// It is faster in some cases than looking for the argmax again since we do not have to go though all elements.
+// It is faster than looking for the argmax again since we only have to do a single comparison.
+// TODO(hvy): Make the spatial dimensionality a template parameter to allow unrolling the loops.
 template <typename T>
 __global__ void MaxPoolDoubleBackwardKernel(
         IndexableArray<const T> ggx_iarray,
@@ -40,15 +41,16 @@ __global__ void MaxPoolDoubleBackwardKernel(
         Indexer<> y_indexer,
         Indexer<> kernel_indexer,
         int64_t* stride,
-        int64_t* pad) {
-    NdimIndex x_index{x_indexer.ndim()};
+        int64_t* pad,
+        NdimIndex x_index) {
     for (auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it_y; ++it_y) {
         x_index.index()[0] = it_y.index()[0];  // batch.
         x_index.index()[1] = it_y.index()[1];  // channel.
 
         T y = y_iarray[it_y];
 
-        for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
+        // Iterate over the kernel in the reverse order, since the resulting index should the be first match.
+        for (auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1); it_kernel.raw_index() >= 0; --it_kernel) {
             for (int8_t i = 2; i < x_indexer.ndim(); ++i) {
                 int64_t idx = it_y.index()[i] * stride[i - 2] - pad[i - 2] + it_kernel.index()[i - 2];
                 idx = max(idx, int64_t{0});
@@ -58,7 +60,6 @@ __global__ void MaxPoolDoubleBackwardKernel(
             auto it_x = x_indexer.At(x_index);
             if (y == x_iarray[it_x]) {
                 ggy_iarray[it_y] = ggx_iarray[it_x];
-                break;
             }
         }
     }
@@ -201,7 +202,8 @@ public:
                     y_indexer,
                     kernel_indexer,
                     static_cast<int64_t*>(stride.get()),
-                    static_cast<int64_t*>(pad.get()));
+                    static_cast<int64_t*>(pad.get()),
+                    NdimIndex{x_iarray.ndim()});
         });
 
         return ggy;

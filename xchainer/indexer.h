@@ -16,7 +16,7 @@ class NdimIndex {
 public:
     NdimIndex(const int64_t* index, int8_t ndim) : ndim_{ndim} { std::copy_n(index, ndim, index_); }
 
-    XCHAINER_HOST_DEVICE explicit NdimIndex(int8_t ndim) : ndim_{ndim} {
+    explicit NdimIndex(int8_t ndim) : ndim_{ndim} {
         for (int8_t i = 0; i < ndim; ++i) {
             index_[i] = 0;
         }
