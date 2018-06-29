@@ -104,8 +104,10 @@ class TestConcat(unittest.TestCase):
 class TestConcatInvalidAxisType(unittest.TestCase):
 
     def test_invlaid_axis_type(self):
+        inputs = [numpy.random.rand(3, 4), numpy.random.rand(3, 1)]
+
         with self.assertRaises(TypeError):
-            functions.Concat('a')
+            functions.concat(inputs, 'a')
 
 
 testing.run_module(__name__, __file__)

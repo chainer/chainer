@@ -92,7 +92,7 @@ class TestExp(UnaryFunctionsTestBase):
         self.check_backward_gpu(F.exp)
 
     def test_label(self):
-        self.check_label(F.Exp, 'exp')
+        self.check_label(chainer.functions.math.exponential.Exp, 'exp')
 
     def test_double_backward_cpu(self):
         self.check_double_backward_cpu(F.exp)
@@ -129,7 +129,7 @@ class TestLog(UnaryFunctionsTestBase):
         self.check_backward_gpu(F.log)
 
     def test_label(self):
-        self.check_label(F.Log, 'log')
+        self.check_label(chainer.functions.math.exponential.Log, 'log')
 
     def test_double_backward_cpu(self):
         self.check_double_backward_cpu(F.log)
@@ -166,7 +166,7 @@ class TestLog2(UnaryFunctionsTestBase):
         self.check_backward_gpu(F.log2)
 
     def test_label(self):
-        self.check_label(F.Log2, 'log2')
+        self.check_label(chainer.functions.math.exponential.Log2, 'log2')
 
     def test_double_backward_cpu(self):
         self.check_double_backward_cpu(F.log2)
@@ -203,7 +203,7 @@ class TestLog10(UnaryFunctionsTestBase):
         self.check_backward_gpu(F.log10)
 
     def test_label(self):
-        self.check_label(F.Log10, 'log10')
+        self.check_label(chainer.functions.math.exponential.Log10, 'log10')
 
     def test_double_backward_cpu(self):
         self.check_double_backward_cpu(F.log2)
