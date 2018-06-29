@@ -2,7 +2,9 @@ import sphinx
 
 
 def qualify_name(attr_name, klass):
-    if klass and not attr_name.startswith('~'):
+    if klass and not '.' in attr_name:
+        if attr_name.startswith('~'):
+            attr_name = attr_name[1:]
         try:
             q = klass.__qualname__
         except AttributeError:
@@ -19,7 +21,7 @@ def setup(app):
         lines = []
         for _name, _type, _desc in self._consume_fields():
             if self._config.napoleon_use_ivar:
-                _name = qualify_name(_name, self._obj)
+                _name = qualify_name(_name, self._obj)  # Added this line
                 field = ':ivar %s: ' % _name  # type: unicode
                 lines.extend(self._format_block(field, _desc))
                 if _type:
