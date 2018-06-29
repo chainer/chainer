@@ -1,5 +1,5 @@
 Variables and Derivatives
-~~~~~~~~~~~~~~~~~~~~~~~~~
+=========================
 
 .. include:: ../imports.rst
 
@@ -82,3 +82,40 @@ This is done simply by setting the :attr:`~chainer.Variable.grad` attribute of t
 .. note::
 
    Instead of using :func:`~chainer.Variable.backward`, you can also calculate gradients of any variables in a computational graph w.r.t. any other variables in the graph using the :func:`chainer.grad` function.
+
+
+Higher-Order Derivatives
+------------------------
+
+:class:`~chainer.Variable` also supports higher-order derivatives (a.k.a. double back-propagation).
+
+Let's see a simple example.
+First calculate the first-order derivative.
+Note that ``enable_double_backprop=True`` is specified to ``y.backward()``.
+
+.. doctest::
+
+    >>> x = chainer.Variable(np.array([[0, 2, 3], [4, 5, 6]], dtype=np.float32))
+    >>> y = x ** 3
+    >>> y.grad = np.ones((2, 3), dtype=np.float32)
+    >>> y.backward(enable_double_backprop=True)
+    >>> x.grad_var
+    variable([[  0.,  12.,  27.],
+              [ 48.,  75., 108.]])
+    >>> assert x.grad_var.array is x.grad
+    >>> assert (x.grad == (3 * x**2).array).all()
+
+:attr:`chainer.Variable.grad_var` is a :class:`~chainer.Variable` for :attr:`chainer.Variable.grad` (which is an :class:`~numpy.ndarray`).
+By specifying ``enable_double_backprop=True`` to ``backward()``, a computational graph for the backward calculation is recorded.
+So, you can start backpropagation from ``x.grad_var`` to calculate the second-order derivative.
+
+.. doctest::
+
+    >>> gx = x.grad_var
+    >>> x.cleargrad()
+    >>> gx.grad = np.ones((2, 3), dtype=np.float32)
+    >>> gx.backward()
+    >>> x.grad
+    array([[ 0., 12., 18.],
+           [24., 30., 36.]], dtype=float32)
+    >>> assert (x.grad == (6 * x).array).all()
