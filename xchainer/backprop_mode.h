@@ -6,6 +6,7 @@
 
 #include <nonstd/optional.hpp>
 
+#include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/graph.h"
 
@@ -76,6 +77,8 @@ using NoBackpropModeScope = backprop_mode_detail::BackpropModeScope<false>;
 using ForceBackpropModeScope = backprop_mode_detail::BackpropModeScope<true>;
 
 namespace internal {
+
+bool IsBackpropRequired(const GraphId& graph_id = kDefaultGraphId, Context& context = GetDefaultContext());
 
 // For test
 backprop_mode_detail::BackpropModeStack* GetBackpropModeStack();

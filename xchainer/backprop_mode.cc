@@ -1,5 +1,6 @@
 #include "xchainer/backprop_mode.h"
 
+#include <algorithm>
 #include <utility>
 #include <vector>
 
@@ -47,9 +48,27 @@ BackpropModeScope<kModeFlag>::~BackpropModeScope() {
     }
 }
 
+bool IsBackpropRequiredImpl(const GraphId& graph_id, Context& context) {
+    if (t_backprop_mode_stack == nullptr) {
+        // No backprop scopes have been created and backprop is thus always required, per default.
+        return true;
+    }
+    auto it = std::find_if(t_backprop_mode_stack->rbegin(), t_backprop_mode_stack->rend(), [&](const internal::BackpropMode& bm) {
+        return &context == &bm.context() && (!bm.graph_id().has_value() || graph_id == *bm.graph_id());
+    });
+    if (it != t_backprop_mode_stack->rend()) {
+        return it->backprop();
+    }
+    return true;  // Per default.
+}
+
 }  // namespace backprop_mode_detail
 
 namespace internal {
+
+bool IsBackpropRequired(const GraphId& graph_id, Context& context) {
+    return backprop_mode_detail::IsBackpropRequiredImpl(graph_id, context);
+}
 
 backprop_mode_detail::BackpropModeStack* GetBackpropModeStack() { return backprop_mode_detail::t_backprop_mode_stack; }
 
