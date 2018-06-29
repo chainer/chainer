@@ -18,10 +18,12 @@ TEST(BackpropModeScopeTest, NoBackpropModeScopeSingle) {
 
     EXPECT_TRUE(IsBackpropRequired());
     EXPECT_TRUE(IsBackpropRequired("graph1"));
+    EXPECT_TRUE(IsBackpropRequired("graph2"));
     {
         NoBackpropModeScope scope{};
         EXPECT_FALSE(IsBackpropRequired());
         EXPECT_FALSE(IsBackpropRequired("graph1"));
+        EXPECT_FALSE(IsBackpropRequired("graph2"));
     }
     EXPECT_TRUE(IsBackpropRequired());
     EXPECT_TRUE(IsBackpropRequired("graph1"));
@@ -39,9 +41,11 @@ TEST(BackpropModeScopeTest, NoBackpropModeScopeSingle) {
         NoBackpropModeScope scope{{}};
         EXPECT_TRUE(IsBackpropRequired());
         EXPECT_TRUE(IsBackpropRequired("graph1"));
+        EXPECT_TRUE(IsBackpropRequired("graph2"));
     }
     EXPECT_TRUE(IsBackpropRequired());
     EXPECT_TRUE(IsBackpropRequired("graph1"));
+    EXPECT_TRUE(IsBackpropRequired("graph2"));
 }
 
 TEST(BackpropModeScopeTest, ForceBackpropModeScopeSingle) {
@@ -49,10 +53,12 @@ TEST(BackpropModeScopeTest, ForceBackpropModeScopeSingle) {
 
     EXPECT_TRUE(IsBackpropRequired());
     EXPECT_TRUE(IsBackpropRequired("graph1"));
+    EXPECT_TRUE(IsBackpropRequired("graph2"));
     {
         ForceBackpropModeScope scope{};
         EXPECT_TRUE(IsBackpropRequired());
         EXPECT_TRUE(IsBackpropRequired("graph1"));
+        EXPECT_TRUE(IsBackpropRequired("graph2"));
     }
     EXPECT_TRUE(IsBackpropRequired());
     EXPECT_TRUE(IsBackpropRequired("graph1"));
@@ -70,9 +76,11 @@ TEST(BackpropModeScopeTest, ForceBackpropModeScopeSingle) {
         ForceBackpropModeScope scope{{}};
         EXPECT_TRUE(IsBackpropRequired());
         EXPECT_TRUE(IsBackpropRequired("graph1"));
+        EXPECT_TRUE(IsBackpropRequired("graph2"));
     }
     EXPECT_TRUE(IsBackpropRequired());
     EXPECT_TRUE(IsBackpropRequired("graph1"));
+    EXPECT_TRUE(IsBackpropRequired("graph2"));
 }
 
 TEST(BackpropModeScopeTest, BackpropModeScopeMultiple) {
@@ -278,6 +286,8 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleContexts) {
         }
         EXPECT_FALSE(IsBackpropRequired());
         EXPECT_FALSE(IsBackpropRequired(kDefaultGraphId, context_session1.context()));
+        EXPECT_FALSE(IsBackpropRequired("graph1"));
+        EXPECT_FALSE(IsBackpropRequired("graph1", context_session1.context()));
     }
 }
 
