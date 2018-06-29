@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "xchainer/array.h"
-#include "xchainer/array_body_leak_detection.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backward.h"
 #include "xchainer/error.h"
@@ -144,17 +143,7 @@ void CheckBackwardComputation(
         double atol,
         double rtol,
         const GraphId& graph_id) {
-    // Copies the input arrays, so that computed gradients are released at the end of this function.
-    // This is needed to detect unreleased array bodies using ArrayBodyHook.
-    // Copied input arrays are not connected to the original input arrays, but RequireGrad() is configured to match the original.
-    std::vector<Array> inputs_copy;
-    for (const auto& input : inputs) {
-        Array a = input.AsConstant(CopyKind::kCopy);
-        for (const std::shared_ptr<ArrayNode>& arr_node : input.nodes()) {
-            a.RequireGrad(arr_node->graph_id());
-        }
-        inputs_copy.emplace_back(std::move(a));
-    }
+    std::vector<Array> inputs_copy{inputs};
 
     // Compute backward gradients
     const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, graph_id);
