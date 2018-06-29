@@ -32,10 +32,7 @@ class TestPrintReport(unittest.TestCase):
     def test_stream_without_flush_raises_no_exception(self):
         self._setup(delete_flush=True)
         self.assertFalse(hasattr(self.stream, 'flush'))
-        try:
-            self.report(self.trainer)
-        except Exception as e:
-            self.fail("Unexpected exception: %s `%s'" % (type(e), e))
+        self.report(self.trainer)
 
 
 testing.run_module(__name__, __file__)
