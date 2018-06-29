@@ -14,10 +14,10 @@
 #define XCHAINER_NEVER_REACH() (std::abort())
 #else
 #include <cassert>
-#define XCHAINER_NEVER_REACH() \
-    ({                         \
-        assert(false);         \
-        std::abort();          \
-    })  // NOLINT: cert-dcl03-c
+#define XCHAINER_NEVER_REACH()                    \
+    do {                                          \
+        assert(false); /* NOLINT: cert-dcl03-c */ \
+        std::abort();                             \
+    } while (false)
 #endif  // NDEBUG
 #endif  // XCHAINER_NEVER_REACH
