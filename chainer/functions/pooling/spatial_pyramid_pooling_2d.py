@@ -1,12 +1,10 @@
 import math
 import six
-import warnings
 
 import chainer
 
 
-def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class=None,
-                               pooling=None):
+def spatial_pyramid_pooling_2d(x, pyramid_height, pooling=None):
     """Spatial pyramid pooling function.
 
     It outputs a fixed-length vector regardless of input feature map size.
@@ -39,26 +37,15 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class=None,
         x (~chainer.Variable): Input variable. The shape of ``x`` should be
             ``(batchsize, # of channels, height, width)``.
         pyramid_height (int): Number of pyramid levels
-        pooling_class (MaxPooling2D):
-            *(deprecated since v4.0.0)* Only MaxPooling2D is supported.
-            Please use the ``pooling`` argument instead since this argument is
-            deprecated.
         pooling (str):
             Currently, only ``max`` is supported, which performs a 2d max
-            pooling operation. Replaces the ``pooling_class`` argument.
+            pooling operation.
 
     Returns:
         ~chainer.Variable: Output variable. The shape of the output variable
         will be :math:`(batchsize, c \\sum_{h=0}^{H-1} 2^{2h}, 1, 1)`,
         where :math:`c` is the number of channels of input variable ``x``
         and :math:`H` is the number of pyramid levels.
-
-    .. note::
-
-        This function uses some pooling classes as components to perform
-        spatial pyramid pooling. Currently, it only supports
-        :class:`~functions.MaxPooling2D` as elemental pooling operator so far.
-
     """
 
     bottom_c, bottom_h, bottom_w = x.shape[1:]
@@ -79,23 +66,11 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling_class=None,
         ksize = (ksize_h, ksize_w)
         pad = (pad_h, pad_w)
 
-        if pooling_class is not None:
-            warnings.warn('pooling_class argument is deprecated. Please use '
-                          'the pooling argument.', DeprecationWarning)
+        if pooling != 'max':
+            raise ValueError('Unsupported pooling operation: ', pooling)
 
-        if (pooling_class is None) == (pooling is None):
-            raise ValueError('Specify the pooling operation either using the '
-                             'pooling_class or the pooling argument.')
-
-        if (pooling_class is chainer.functions.MaxPooling2D or
-                pooling == 'max'):
-            pooler = chainer.functions.MaxPooling2D(
-                ksize=ksize, stride=None, pad=pad, cover_all=True)
-        else:
-            pooler = pooling if pooling is not None else pooling_class
-            raise ValueError('Unsupported pooling operation: ', pooler)
-
-        y_var = pooler.apply((x,))[0]
+        y_var = chainer.functions.max_pooling_2d(
+            x, ksize=ksize, stride=None, pad=pad, cover_all=True)
         n, c, h, w = y_var.shape
         ys.append(y_var.reshape((n, c * h * w, 1, 1)))
 

@@ -139,11 +139,13 @@ class SoftmaxCrossEntropyTestBase(object):
     def check_backward(self, x_data, t_data, g_data, class_weight,
                        use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):
-            func = functions.SoftmaxCrossEntropy(
-                cache_score=self.cache_score, class_weight=class_weight,
-                reduce=self.reduce)
+            def f(x, t):
+                return functions.softmax_cross_entropy(
+                    x, t, cache_score=self.cache_score,
+                    class_weight=class_weight, reduce=self.reduce)
+
             gradient_check.check_backward(
-                func, (x_data, t_data), g_data, dtype=numpy.float64,
+                f, (x_data, t_data), g_data, dtype=numpy.float64,
                 **self.check_backward_options)
 
     def test_backward_cpu(self):

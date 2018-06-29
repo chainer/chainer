@@ -74,8 +74,7 @@ class TestScatterAdd(unittest.TestCase):
     def check_double_backward(self, a_data, b_data, y_grad, a_grad_grad,
                               b_grad_grad):
         def f(a, b):
-            y = functions.scatter_add(a, self.slices, b)
-            return y * y
+            return functions.scatter_add(a, self.slices, b)
 
         gradient_check.check_double_backward(
             f, (a_data, b_data), y_grad, (a_grad_grad, b_grad_grad),
