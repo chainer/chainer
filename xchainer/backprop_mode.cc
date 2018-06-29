@@ -17,6 +17,7 @@ void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(nonstd::optional<std::v
     // The outer-most scope creates an instance of BackpropModeStack.
     if (t_backprop_mode_stack == nullptr) {
         t_backprop_mode_stack = new BackpropModeStack{};
+        is_outermost_ = true;
     }
 
     if (graph_ids.has_value()) {
@@ -35,12 +36,13 @@ BackpropModeScope<kModeFlag>::~BackpropModeScope() {
     assert(t_backprop_mode_stack != nullptr);
     assert(t_backprop_mode_stack->size() >= n_);
 
-    t_backprop_mode_stack->erase(t_backprop_mode_stack->end() - n_, t_backprop_mode_stack->end());
-
     // Recover thread local variable to nullptr on exiting from the outer-most scope.
-    if (t_backprop_mode_stack->empty()) {
+    if (is_outermost_) {
+        assert(t_backprop_mode_stack->size() == n_);
         delete t_backprop_mode_stack;
         t_backprop_mode_stack = nullptr;
+    } else {
+        t_backprop_mode_stack->erase(t_backprop_mode_stack->end() - n_, t_backprop_mode_stack->end());
     }
 }
 

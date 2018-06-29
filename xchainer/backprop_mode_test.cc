@@ -123,6 +123,110 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultiple) {
     EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
 }
 
+TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
+    testing::ContextSession context_session{};
+
+    {
+        NoBackpropModeScope scope1{};
+        {
+            NoBackpropModeScope scope2{};
+            EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
+            ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+            ExpectBackpropModeEqual(1, context_session.context(), nonstd::nullopt, false);
+        }
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+        ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    {
+        NoBackpropModeScope scope1{};
+        {
+            NoBackpropModeScope scope2{{}};
+            EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+            ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+        }
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+        ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    {
+        NoBackpropModeScope scope1{};
+        {
+            NoBackpropModeScope scope2{{"graph1"}};
+            EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
+            ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+            ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, false);
+        }
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+        ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    {
+        NoBackpropModeScope scope1{{}};
+        {
+            NoBackpropModeScope scope2{};
+            EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+            ExpectBackpropModeEqual(0, context_session.context(), nonstd::nullopt, false);
+        }
+        EXPECT_EQ(size_t{0}, internal::GetBackpropModeStack()->size());
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    {
+        NoBackpropModeScope scope1{{}};
+        {
+            NoBackpropModeScope scope2{{}};
+            EXPECT_EQ(size_t{0}, internal::GetBackpropModeStack()->size());
+        }
+        EXPECT_EQ(size_t{0}, internal::GetBackpropModeStack()->size());
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    {
+        NoBackpropModeScope scope1{{}};
+        {
+            NoBackpropModeScope scope2{{"graph1"}};
+            EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+            ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+        }
+        EXPECT_EQ(size_t{0}, internal::GetBackpropModeStack()->size());
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    {
+        NoBackpropModeScope scope1{{"graph1"}};
+        {
+            NoBackpropModeScope scope2{};
+            EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
+            ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+            ExpectBackpropModeEqual(1, context_session.context(), nonstd::nullopt, false);
+        }
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+        ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    {
+        NoBackpropModeScope scope1{{"graph1"}};
+        {
+            NoBackpropModeScope scope2{{}};
+            EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+            ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+        }
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+        ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+    {
+        NoBackpropModeScope scope1{{"graph1"}};
+        {
+            NoBackpropModeScope scope2{{"graph1"}};
+            EXPECT_EQ(size_t{2}, internal::GetBackpropModeStack()->size());
+            ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+            ExpectBackpropModeEqual(1, context_session.context(), {"graph1"}, false);
+        }
+        EXPECT_EQ(size_t{1}, internal::GetBackpropModeStack()->size());
+        ExpectBackpropModeEqual(0, context_session.context(), {"graph1"}, false);
+    }
+    EXPECT_EQ(nullptr, internal::GetBackpropModeStack());
+}
+
 TEST(BackpropModeScopeTest, BackpropModeScopeOneContext) {
     testing::ContextSession context_session{};
 

@@ -61,6 +61,7 @@ private:
 
     // Number of BackpropMode instances pushed to the stack.
     size_t n_{};
+    bool is_outermost_{false};
 };
 
 template class BackpropModeScope<true>;
