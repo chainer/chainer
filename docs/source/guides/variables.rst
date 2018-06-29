@@ -87,11 +87,11 @@ This is done simply by setting the :attr:`~chainer.Variable.grad` attribute of t
 Higher-Order Derivatives
 ------------------------
 
-:class:`~chainer.Variable` also supports higher-order derivatives (a.k.a. double back-propagation).
+:class:`~chainer.Variable` also supports higher-order derivatives (a.k.a. double backpropagation).
 
 Let's see a simple example.
 First calculate the first-order derivative.
-Note that ``enable_double_backprop=True`` is specified to ``y.backward()``.
+Note that ``enable_double_backprop=True`` is pass to ``y.backward()``.
 
 .. doctest::
 
@@ -106,7 +106,7 @@ Note that ``enable_double_backprop=True`` is specified to ``y.backward()``.
     >>> assert (x.grad == (3 * x**2).array).all()
 
 :attr:`chainer.Variable.grad_var` is a :class:`~chainer.Variable` for :attr:`chainer.Variable.grad` (which is an :class:`~numpy.ndarray`).
-By specifying ``enable_double_backprop=True`` to ``backward()``, a computational graph for the backward calculation is recorded.
+By passing ``enable_double_backprop=True`` to ``backward()``, a computational graph for the backward calculation is recorded.
 So, you can start backpropagation from ``x.grad_var`` to calculate the second-order derivative.
 
 .. doctest::
