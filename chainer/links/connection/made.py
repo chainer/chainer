@@ -9,10 +9,21 @@ class MADE(link.Link):
 
     """Masked Autoencoder for Distribution Estimation
 
+    This is a link to use a network structure of MADE (Masked Autoencoder for \
+    Distribution Estimation).
+
     Args:
         in_size (int): Dimension of input vectors.
         hidden_num (int): Number of hidden layers.
         hidden_size (int): Number of units in a hidden layer.
+
+    Attributes:
+        W{N} (~chainer.Variable): Weight parameter.
+        b{N} (~chainer.Variable): Bias parameter.
+        m{N} (:class:`numpy.ndarray` or :class:`cupy.ndarray`): Number \
+            related with each unit.
+        M{N} (:class:`numpy.ndarray` or :class:`cupy.ndarray`): Mask \
+            persistent values.
     """
 
     def __init__(self, in_size, hidden_num, hidden_size):
