@@ -132,6 +132,7 @@ class MultithreadIterator(iterator.Iterator):
         self._previous_epoch_detail = serializer(
             'previous_epoch_detail', self._previous_epoch_detail)
         self._next = None
+        self.order_sampler.serialize(serializer['order_sampler'])
 
     @staticmethod
     def _read(args):

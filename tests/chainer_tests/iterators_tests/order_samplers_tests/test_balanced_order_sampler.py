@@ -46,6 +46,7 @@ class DummyDeserializer(serializer.Deserializer):
     'seed': [None, 0],
     'x': [numpy.arange(8)],
     't': [numpy.asarray([0, 0, -1, 1, 1, 2, -1, 1])],
+    'shuffle': [False, True],
     'batch_balancing': [False, True],
     'ignore_labels': [-1]
 }))
@@ -58,7 +59,7 @@ class TestBalancedOrderSampler(unittest.TestCase):
             self.random_state = numpy.random.RandomState(self.seed)
         self.order_sampler = BalancedOrderSampler(
             self.t, random_state=self.random_state,
-            shuffle=True, batch_balancing=self.batch_balancing,
+            shuffle=self.shuffle, batch_balancing=self.batch_balancing,
             ignore_labels=self.ignore_labels)
 
     def test_serialize(self):
@@ -80,7 +81,7 @@ class TestBalancedOrderSampler(unittest.TestCase):
         # deserialize
         sampler = BalancedOrderSampler(
             self.t, random_state=self.random_state,
-            shuffle=True, batch_balancing=self.batch_balancing,
+            shuffle=self.shuffle, batch_balancing=self.batch_balancing,
             ignore_labels=self.ignore_labels)
         sampler.serialize(DummyDeserializer(target))
         for label, index_iterator in sampler.labels_iterator_dict.items():
@@ -113,6 +114,18 @@ class TestBalancedOrderSampler(unittest.TestCase):
                 assert numpy.sum(labels_batch == 0) == 1
                 assert numpy.sum(labels_batch == 1) == 1
                 assert numpy.sum(labels_batch == 2) == 1
+
+
+class TestBalancedOrderSamplerValueError(unittest.TestCase):
+
+    def test_unexpected_labels(self):
+        # 2-dim array is not allowed
+        labels = numpy.array([
+            [0, 0, 1, 0, 1],
+            [0, 1, 1, 0, 0],
+        ])
+        with self.assertRaises(ValueError):
+            BalancedOrderSampler(labels)
 
 
 testing.run_module(__name__, __file__)

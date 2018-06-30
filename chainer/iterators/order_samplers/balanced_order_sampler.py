@@ -12,11 +12,20 @@ class BalancedOrderSampler(OrderSampler):
     This is expected to be used together with Chainer's iterators.
     An order sampler is called by an iterator every epoch.
 
-    The two initializations below create basically the same objects.
+    .. admonition:: Example
 
-    >>> dataset = [(1, 2), (3, 4)]
-    >>> it = chainer.iterators.MultiprocessIterator(
-    ...     dataset, 1, order_sampler=chainer.iterators.BalancedOrderSampler())
+        >>> import numpy
+        >>> import chainer
+        >>> from chainer.iterators.order_samplers.balanced_order_sampler import BalancedOrderSampler  # NOQA
+        >>> x = numpy.arange(8)
+        >>> t = numpy.array([0, 0, -1, 1, 1, 2, -1, 1])
+        >>> dataset = chainer.datasets.TupleDataset(x, t)
+        >>> it = chainer.iterators.SerialIterator(dataset, 6,
+        ...     order_sampler=BalancedOrderSampler(t, ignore_labels=-1,
+        ...     batch_balancing=True))
+        >>> # It contains equal number of class 0, 1, 2 in each minibatch
+        >>> it.next()
+        [(0, 0), (4, 1), (5, 2), (1, 0), (3, 1), (5, 2)]
 
     Args:
         labels (list or numpy.ndarray): 1d array which specifies label feature
@@ -41,12 +50,13 @@ class BalancedOrderSampler(OrderSampler):
             random_state = numpy.random.random.__self__
         self._random = random_state
         # --- Initialize index_iterators ---
-        # assert len(dataset) == len(labels)
         labels = numpy.asarray(labels)
-        # if len(dataset) != labels.size:
-        #     raise ValueError('dataset length {} and labels size {} must be '
-        #                      'same!'.format(len(dataset), labels.size))
-        labels = numpy.ravel(labels)
+        if labels.ndim == 2 and labels.shape[1] == 1:
+            # flatten labels array
+            labels = labels[:, 0]
+        if labels.ndim != 1:
+            raise ValueError('Unexpected shape for labels {}'
+                             .format(labels.shape))
         self.labels = labels
         if ignore_labels is None:
             ignore_labels = []
@@ -96,3 +106,17 @@ class BalancedOrderSampler(OrderSampler):
         for label, index_iterator in self.labels_iterator_dict.items():
             self.labels_iterator_dict[label].serialize(
                 serializer['index_iterator_{}'.format(label)])
+
+    def show_label_stats(self):
+        print('   label    count     rate     status')
+        total = 0
+        for label, index_iterator in self.labels_iterator_dict.items():
+            count = len(index_iterator.index_list)
+            total += count
+
+        for label, index_iterator in self.labels_iterator_dict.items():
+            count = len(index_iterator.index_list)
+            rate = count / len(self.labels)
+            status = 'ignored' if label in self.ignore_labels else 'included'
+            print('{:>8} {:>8} {:>8.4f} {:>10}'
+                  .format(label, count, rate, status))

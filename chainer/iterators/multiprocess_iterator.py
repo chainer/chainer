@@ -194,6 +194,7 @@ class MultiprocessIterator(iterator.Iterator):
             else:
                 self._previous_epoch_detail = -1.
         self._set_prefetch_state()
+        self.order_sampler.serialize(serializer['order_sampler'])
 
     def reset(self):
         if self._finalized:
