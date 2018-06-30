@@ -25,3 +25,6 @@ class OrderSampler(object):
 
         """
         raise NotImplementedError
+
+    def serialize(self, serializer):
+        raise NotImplementedError

@@ -19,7 +19,7 @@ class ShuffleOrderSampler(OrderSampler):
     ...     dataset, 1, order_sampler=chainer.iterators.ShuffleOrderSampler())
 
     Args:
-        random_state (numpy.random.RandomState): Pseudo-random number
+        random_state (numpy.random.RandomState or None): Pseudo-random number
             generator.
 
     """
@@ -31,3 +31,7 @@ class ShuffleOrderSampler(OrderSampler):
 
     def __call__(self, current_order, current_position):
         return self._random.permutation(len(current_order))
+
+    def serialize(self, serializer):
+        # nothing need to be serialized
+        pass

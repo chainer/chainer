@@ -10,7 +10,8 @@ class IndexIterator(iterator.Iterator):
     (e.g., `BalancedOrderSampler`), as each label's index iterator
 
         Args:
-            index_list (list): list of int which represents indices.
+            index_list (list or numpy.ndarray): list of int which represents
+                indices.
             shuffle (bool): shuffle flag. If True, indices specified by
                 `index_list` will be randomly shuffled.
             num (int): number of indices to be extracted when `___next___` is
@@ -20,7 +21,8 @@ class IndexIterator(iterator.Iterator):
 
     def __init__(self, index_list, shuffle=True, num=0):
         self.index_list = numpy.asarray(index_list)
-        assert self.index_list.ndim == 1
+        if self.index_list.ndim != 1:
+            raise ValueError("[ERROR] index_list must be 1-dim list or array")
         self.index_length = len(index_list)
         self.current_index_list = None
         self.current_pos = 0

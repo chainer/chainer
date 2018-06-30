@@ -141,6 +141,7 @@ class SerialIterator(iterator.Iterator):
                     self._previous_epoch_detail, 0.)
             else:
                 self._previous_epoch_detail = -1.
+        self.order_sampler.serialize(serializer['order_sampler'])
 
     def reset(self):
         self.current_position = 0
