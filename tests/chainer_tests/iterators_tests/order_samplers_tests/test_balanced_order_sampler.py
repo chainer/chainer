@@ -89,14 +89,15 @@ class TestBalancedOrderSampler(unittest.TestCase):
             self.assertTrue(numpy.array_equal(
                 index_iterator.current_index_list,
                 current_index_list_orig[ii_label]))
-            self.assertEqual(index_iterator.current_pos, current_pos_orig[ii_label])
+            self.assertEqual(index_iterator.current_pos,
+                             current_pos_orig[ii_label])
 
     def test_call(self):
         # In this case, we have 3 examples of label=1.
-        # When BalancedSerialIterator runs, all label examples are sampled 3 times
-        # in one epoch.
+        # When BalancedSerialIterator runs, all label examples are sampled
+        # 3 times in one epoch.
         # Therefore, number of data is "augmented" as 9
-        # 3 (number of label types) * 3 (number of maximum examples in one label)
+        # 3 (num of label types) * 3 (num of maximum examples in one label)
         expect_N_augmented = 9
         order = self.order_sampler(numpy.arange(8), 7)
         self.assertEqual(len(order), expect_N_augmented)
