@@ -124,7 +124,7 @@ def open_pickle_dataset(path):
     .. seealso: chainer.datasets.PickleDataset
 
     """
-    reader = open(path, 'br')
+    reader = open(path, 'rb')
     try:
         return PickleDataset(reader)
     except Exception:
@@ -154,7 +154,7 @@ def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
     .. seealso: chainer.datasets.PickleDataset
 
     """
-    writer = open(path, 'bw')
+    writer = open(path, 'wb')
     try:
         return PickleDatasetWriter(writer, protocol=protocol)
     except Exception:
