@@ -1,3 +1,5 @@
+import threading
+
 import six.moves.cPickle as pickle
 
 from chainer.dataset import dataset_mixin
@@ -79,12 +81,15 @@ class PickleDataset(dataset_mixin.DatasetMixin):
                 break
             self.positions.append(position)
 
+        self._lock = threading.RLock()
+
     def close(self):
         """Closes a file reader.
 
         After a user calls this method, the dataset is not accessible.
         """
-        self.reader.close()
+        with self._lock():
+            self.reader.close()
 
     def __enter__(self):
         return self
@@ -96,8 +101,9 @@ class PickleDataset(dataset_mixin.DatasetMixin):
         return len(self.positions)
 
     def get_example(self, index):
-        self.reader.seek(self.positions[index])
-        return pickle.load(self.reader)
+        with self._lock:
+            self.reader.seek(self.positions[index])
+            return pickle.load(self.reader)
 
 
 def open_pickle_dataset(path):
