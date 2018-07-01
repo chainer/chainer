@@ -5,10 +5,32 @@ from chainer.dataset import dataset_mixin
 
 class PickleDatasetWriter(object):
 
-    def __init__(self, io, protocol=pickle.HIGHEST_PROTOCOL):
+    """Writer class which makes PickleDataset.
+
+    To make :class:`PickleDataset`, a user need to prepare data using
+    :class:`PickleDatasetWriter`.
+
+    Args:
+        writer: File like object that supports ``write`` and ``tell`` methods.
+        protocol (int): Valid protocol for :mod:`pickle`.
+
+    .. seealso: chainer.datasets.PickleDataset
+
+    """
+
+    def __init__(self, writer, protocol=pickle.HIGHEST_PROTOCOL):
         self.positions = []
-        self.writer = io
+        self.writer = writer
         self.protocol = protocol
+
+    def close(self):
+        self.writer.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def write(self, x):
         position = self.writer.tell()
@@ -20,6 +42,27 @@ class PickleDatasetWriter(object):
 
 
 class PickleDataset(dataset_mixin.DatasetMixin):
+
+    """Dataset stored in a storage using pickle.
+
+    :mod:`pickle` is the default serialization library of Python.
+    This dataset stores any objects in a storage using :mod:`pickle`.
+    Even when a user want to use a large dataset, this dataset can stores all
+    data in a large storage like HDD and each data can be randomly accessible.
+
+    >>> with chainer.datasets.open_pickle_dataset_writer('/path/to/data') as w:
+    ...     w.write((1, 2.0, 'hello'))
+    ...     w.write((2, 3.0, 'good-bye'))
+    ...
+    >>> with chainer.datasets.open_pickle_dataset('/path/to/data') as dataset:
+    ...     print(dataset[1])
+    ...
+    (2, 3.0, 'good-bye')
+
+    Args:
+        reader: File like object. `reader` must support random access.
+
+    """
 
     def __init__(self, reader):
         if not reader.seekable():
@@ -36,9 +79,81 @@ class PickleDataset(dataset_mixin.DatasetMixin):
                 break
             self.positions.append(position)
 
+    def close(self):
+        """Closes a file reader.
+
+        After a user calls this method, the dataset is not accessible.
+        """
+        self.reader.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
     def __len__(self):
         return len(self.positions)
 
     def get_example(self, index):
         self.reader.seek(self.positions[index])
         return pickle.load(self.reader)
+
+
+def open_pickle_dataset(path):
+    """Opens a dataset stored in a given path.
+
+    This is a hepler funciton to open :class:`PickleDataset`. It opens a given
+    file in binary mode, and make :class:`PickleDataset` instance.
+
+    This method does not close the opened file. A user needs to call
+    :func:`PickleDataset.close`.
+
+    Args:
+        path (str): Path to a dataset.
+
+    Returns:
+        chainer.datasets.PickleDataset: Opened dataset.
+
+    .. seealso: chainer.datasets.PickleDataset
+
+    """
+    reader = open(path, 'br')
+    try:
+        return PickleDataset(reader)
+    except Exception as e:
+        try:
+            reader.close()
+        except Exception:
+            pass
+        raise e
+
+
+def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
+    """Opens a writer to make a PickleDataset.
+
+    This is a helper function to open :class:`PickleDatasetWriter`. It opens a
+    given file in binary mode and make :clss:`PickleDatasetWriter` instance.
+
+    This method does not close the opened file. A user needs to call
+    :func:`PickleDatasetWriter.close`.
+
+    Args:
+        path (str): Path to a dataset.
+        protocol (int): Valid protocol for :mod:`pickle`.
+
+    Returns:
+        chainer.datasets.PickleDatasetWriter: Opened writer.
+
+    .. seealso: chainer.datasets.PickleDataset
+
+    """
+    writer = open(path, 'bw')
+    try:
+        return PickleDatasetWriter(writer, protocol=protocol)
+    except Exception as e:
+        try:
+            writer.close()
+        except Exception:
+            pass
+        raise e
