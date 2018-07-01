@@ -169,6 +169,44 @@ class DiagEinSum(EinSum):
 
 
 def einsum(*operands):
+    """Einstein summation
+
+    This function supports two formats of inputs:
+
+    - ``einsum(subscripts, op0, op1, ...)``
+    - ``einsum(op0, sublist0, op1, sublist1, ..., [sublistout])``
+
+    See also :func:`numpy.einsum`
+
+    .. admonition:: Example
+
+        The following example computes a batched application of a bilinear
+        function with weight ``w``.
+
+        >>> x1 = np.arange(12).reshape(3, 4).astype(np.float32)
+        >>> x2 = np.arange(15).reshape(3, 5).astype(np.float32)
+        >>> w = np.arange(120).reshape(4, 5, 6).astype(np.float32)
+        >>> y = F.einsum('ij,ik,jkl->il', x1, x2, w)
+        >>> y.shape
+        (3, 6)
+
+        The batch axes can be denoted by ``...``. If the string of output
+        subscripts is omitted, the summation is taken over the subscript
+        alphabets with two (or more) occurrences.
+
+        >>> y.array == F.einsum('...j,...k,jkl', x1, x2, w).array
+        True
+
+        In the other format:
+
+        >>> y = F.einsum(x1, [0, 1], x2, [0, 2], w, [1, 2, 3], [0, 3])
+        >>> y.shape
+        (3, 6)
+        >>> y = F.einsum(x1, [Ellipsis, 1], x2, [Ellipsis, 2], w, [1, 2, 3])
+        >>> y.shape
+        (3, 6)
+
+    """
     input_subscripts, output_subscript, ioperands = \
         _parse_einsum_input(operands)
     return EinSum(
