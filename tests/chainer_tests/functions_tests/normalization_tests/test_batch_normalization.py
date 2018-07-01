@@ -58,6 +58,7 @@ def _batch_normalization(args):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+        'cudnn_fast_batch_normalization': [True, False],
     }))
 class TestBatchNormalization(unittest.TestCase):
 
@@ -184,9 +185,8 @@ class TestBatchNormalization(unittest.TestCase):
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(*inputs):
-            y = functions.batch_normalization(
+            return functions.batch_normalization(
                 *inputs, **self.bn_options)
-            return y * y,  # make nonlinear against beta
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -220,6 +220,7 @@ class TestBatchNormalization(unittest.TestCase):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+        'cudnn_fast_batch_normalization': [True, False],
     }))
 class TestFixedBatchNormalization(unittest.TestCase):
 
@@ -313,8 +314,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(*inputs):
-            y = functions.fixed_batch_normalization(*inputs, eps=self.eps)
-            return y * y,  # make nonlinear against beta
+            return functions.fixed_batch_normalization(*inputs, eps=self.eps)
 
         with backend_config:
             gradient_check.check_double_backward(
