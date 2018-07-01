@@ -194,7 +194,7 @@ def einsum(*operands):
         subscripts is omitted, the summation is taken over the subscript
         alphabets with two (or more) occurrences.
 
-        >>> y.array == F.einsum('...j,...k,jkl', x1, x2, w).array
+        >>> np.allclose(y.array, F.einsum('...j,...k,jkl', x1, x2, w).array)
         True
 
         In the other format:
