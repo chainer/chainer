@@ -48,10 +48,12 @@ def _naive_batch_renormalization(
     'ndim': [0, 1, 2],
     'eps': [2e-5, 1e-1],
     'dtype': [numpy.float32],
+    'update_statistics': [True, False],
 }) + testing.product({
     'ndim': [1],
     'eps': [2e-5, 1e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'update_statistics': [True, False],
 })))
 class TestBatchRenormalization(unittest.TestCase):
 
@@ -88,13 +90,6 @@ class TestBatchRenormalization(unittest.TestCase):
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args):
-        with chainer.using_config('train',  self.train):
-            y = batch_renormalization.batch_renormalization(
-                *[chainer.Variable(i) for i in args],
-                rmax=self.rmax, dmax=self.dmax, running_mean=self.running_mean,
-                running_var=self.running_var, decay=self.decay, eps=self.eps)
-        self.assertEqual(y.data.dtype, self.dtype)
-
         sigma_batch = numpy.sqrt(self.var)
         running_sigma = numpy.sqrt(self.running_var + self.eps)
         r = numpy.clip(sigma_batch / running_sigma, 1.0 / self.rmax, self.rmax)
@@ -103,6 +98,15 @@ class TestBatchRenormalization(unittest.TestCase):
         y_expect = _batch_renormalization(
             self.expander, self.gamma, self.beta, self.x, self.mean, self.var,
             r[self.expander], d[self.expander])
+
+        with chainer.using_config('train',  self.train):
+            y = batch_renormalization.batch_renormalization(
+                *[chainer.Variable(i) for i in args],
+                rmax=self.rmax, dmax=self.dmax, running_mean=self.running_mean,
+                running_var=self.running_var, decay=self.decay, eps=self.eps,
+                update_statistics=self.update_statistics)
+
+        self.assertEqual(y.data.dtype, self.dtype)
 
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_options)
@@ -129,7 +133,8 @@ class TestBatchRenormalization(unittest.TestCase):
             return batch_renormalization.batch_renormalization(
                 x, gamma, beta, self.rmax, self.dmax,
                 eps=self.eps, running_mean=running_mean,
-                running_var=running_var)
+                running_var=running_var,
+                update_statistics=self.update_statistics)
 
         def f_expected(x, gamma, beta, running_mean, running_var):
             return _naive_batch_renormalization(
