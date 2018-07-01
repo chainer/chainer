@@ -10,6 +10,7 @@ Reference
    variable
    functions
    links
+   distributions
    optimizers
    initializers
    training

@@ -341,7 +341,20 @@ How to Write Tests
 ~~~~~~~~~~~~~~~~~~
 
 There are many examples of unit tests under the :tree:`tests` directory, so reading some of them is a good and recommended way to learn how to write tests for Chainer.
-They simply use the ``unittest`` package of the standard library, while some tests are using utilities from :mod:`chainer.testing`.
+They simply use the :mod:`unittest` package of the standard library, while some tests are using utilities from :mod:`chainer.testing`.
+
+In addition to the :ref:`coding-guide` mentioned above, the following rules are applied to the test code:
+
+* All test classes must inherit from :class:`unittest.TestCase`.
+* Use :mod:`unittest` features to write tests, except for the following cases:
+
+    * Use ``assert`` statement instead of ``self.assert*`` methods (e.g., write ``assert x == 1`` instead of ``self.assertEqual(x, 1)``).
+    * Use ``with pytest.raises(...):`` instead of ``with self.assertRaises(...):``.
+
+.. note::
+
+   We are incrementally applying the above style.
+   Some existing tests may be using the old style (``self.assertRaises``, etc.), but all newly written tests should follow the above style.
 
 Even if your patch includes GPU-related code, your tests should not fail without GPU capability.
 Test functions that require CUDA must be tagged by ``chainer.testing.attr.gpu`` decorator::
@@ -398,3 +411,34 @@ Note that reviewers will test your code without the option to check CUDA-related
 .. note::
    Some of numerically unstable tests might cause errors irrelevant to your changes.
    In such a case, we ignore the failures and go on to the review process, so do not worry about it!
+
+
+Documentation
+-------------
+
+When adding a new feature to the framework, you also need to document it in the reference.
+For example, if you are adding a new function under ``chainer.functions``, you need to add it to the :doc:`reference/functions` page.
+
+.. note::
+
+   If you are unsure about how to fix the documentation, you can submit a pull request without doing so.
+   Reviewers will help you fix the documentation appropriately.
+
+The documentation source is stored under `docs directory <https://github.com/chainer/chainer/tree/master/docs>`_ and written in `reStructuredText <http://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ format.
+
+To build the documentation, you need to install `Sphinx <http://www.sphinx-doc.org/>`_::
+
+  $ pip install sphinx sphinx_rtd_theme
+
+Then you can build the documentation in HTML format locally::
+
+  $ cd docs
+  $ make html
+
+HTML files are generated under ``build/html`` directory.
+Open ``index.html`` with the browser and see if it is rendered as expected.
+
+.. note::
+
+   Docstrings (documentation comments in the source code) are collected from the installed Chainer module.
+   If you modified docstrings, make sure to install the module (e.g., using `pip install -e .`) before building the documentation.
