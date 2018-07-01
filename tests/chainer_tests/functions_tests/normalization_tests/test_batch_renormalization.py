@@ -183,7 +183,6 @@ class TestFixedBatchRenormalization(unittest.TestCase):
         shape = (5, 3) + (2,) * self.ndim
         self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.decay = 0.0
         self.aggr_axes = (0,) + tuple(six.moves.range(2, self.ndim + 2))
 
         self.mean = numpy.random.uniform(-1, 1, (3,)).astype(self.dtype)

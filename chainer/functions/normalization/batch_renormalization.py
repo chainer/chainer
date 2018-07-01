@@ -33,11 +33,9 @@ class BatchRenormalizationFunction(function.Function):
         self.rmax = rmax
         self.dmax = dmax
         self.r = None
-        self.d = None
         self.update_statistics = update_statistics
 
         self.eps = eps
-        self.mean_cache = None
         self.decay = decay
 
     def check_type_forward(self, in_types):
@@ -79,7 +77,7 @@ class BatchRenormalizationFunction(function.Function):
                                 dtype=self.running_mean.dtype)
         self.r = xp.clip(self.std / running_sigma,
                          1.0 / self.rmax, self.rmax)
-        self.d = xp.clip((mean - self.running_mean) / running_sigma,
+        d = xp.clip((mean - self.running_mean) / running_sigma,
                          -self.dmax, self.dmax)
 
         # Update running statistics:
@@ -101,8 +99,7 @@ class BatchRenormalizationFunction(function.Function):
 
         if xp is numpy:
             self.x_hat = _xhat(x, mean, self.std, expander)
-            self.x_hat_renorm = self.x_hat * self.r[expander] + \
-                self.d[expander]
+            self.x_hat_renorm = self.x_hat * self.r[expander] + d[expander]
             y = gamma * self.x_hat_renorm
             y += beta
         else:
@@ -115,7 +112,7 @@ class BatchRenormalizationFunction(function.Function):
                 y = gamma * x_hat_renorm + beta;
                 ''',
                 'bn_fwd')(x, mean[expander], self.std[expander], gamma,
-                          beta, self.r[expander], self.d[expander])
+                          beta, self.r[expander], d[expander])
 
         return y,
 
