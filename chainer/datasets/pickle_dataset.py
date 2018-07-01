@@ -121,12 +121,12 @@ def open_pickle_dataset(path):
     reader = open(path, 'br')
     try:
         return PickleDataset(reader)
-    except Exception as e:
+    except Exception:
         try:
             reader.close()
         except Exception:
             pass
-        raise e
+        raise
 
 
 def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
@@ -151,9 +151,9 @@ def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
     writer = open(path, 'bw')
     try:
         return PickleDatasetWriter(writer, protocol=protocol)
-    except Exception as e:
+    except Exception:
         try:
             writer.close()
         except Exception:
             pass
-        raise e
+        raise
