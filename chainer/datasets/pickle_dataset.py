@@ -21,12 +21,12 @@ class PickleDatasetWriter(object):
     """
 
     def __init__(self, writer, protocol=pickle.HIGHEST_PROTOCOL):
-        self.positions = []
-        self.writer = writer
-        self.protocol = protocol
+        self._positions = []
+        self._writer = writer
+        self._protocol = protocol
 
     def close(self):
-        self.writer.close()
+        self._writer.close()
 
     def __enter__(self):
         return self
@@ -35,12 +35,12 @@ class PickleDatasetWriter(object):
         self.close()
 
     def write(self, x):
-        position = self.writer.tell()
-        pickle.dump(x, self.writer, protocol=self.protocol)
-        self.positions.append(position)
+        position = self._writer.tell()
+        pickle.dump(x, self._writer, protocol=self._protocol)
+        self._positions.append(position)
 
     def flush(self):
-        self.writer.flush()
+        self._writer.flush()
 
 
 class PickleDataset(dataset_mixin.DatasetMixin):
@@ -70,8 +70,8 @@ class PickleDataset(dataset_mixin.DatasetMixin):
         if not reader.seekable():
             raise ValueError('reader must support random access')
 
-        self.reader = reader
-        self.positions = []
+        self._reader = reader
+        self._positions = []
         reader.seek(0)
         while True:
             position = reader.tell()
@@ -79,7 +79,7 @@ class PickleDataset(dataset_mixin.DatasetMixin):
                 pickle.load(reader)
             except EOFError:
                 break
-            self.positions.append(position)
+            self._positions.append(position)
 
         self._lock = threading.RLock()
 
@@ -88,8 +88,8 @@ class PickleDataset(dataset_mixin.DatasetMixin):
 
         After a user calls this method, the dataset is not accessible.
         """
-        with self._lock():
-            self.reader.close()
+        with self._lock:
+            self._reader.close()
 
     def __enter__(self):
         return self
@@ -98,12 +98,12 @@ class PickleDataset(dataset_mixin.DatasetMixin):
         self.close()
 
     def __len__(self):
-        return len(self.positions)
+        return len(self._positions)
 
     def get_example(self, index):
         with self._lock:
-            self.reader.seek(self.positions[index])
-            return pickle.load(self.reader)
+            self._reader.seek(self._positions[index])
+            return pickle.load(self._reader)
 
 
 def open_pickle_dataset(path):
