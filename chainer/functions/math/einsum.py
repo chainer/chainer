@@ -300,4 +300,4 @@ def _parse_einsum_input(operands):
         raise ValueError("Number of einsum subscripts must be equal to the "
                          "number of operands.")
 
-    return (input_subscripts, output_subscript, operands)
+    return input_subscripts, output_subscript, operands
