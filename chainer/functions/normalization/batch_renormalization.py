@@ -185,10 +185,11 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
     .. seealso:: :class:`links.BatchRenormalization`
     .. seealso:: :class:`functions.normalization.batch_normalization.BatchNormalization`  # NOQA
 
-    .. note:: Before v5, this function did not perform in-place update to
-    ``running_mean`` and ``running_var``, contrary to
-    :func:`~chainer.functions.batch_normalization`. If you don't want to
-    update them, set ``update_statistics=False`` or ``decay=0``.
+    .. note::
+        Before v5, this function did not perform in-place update to
+        ``running_mean`` and ``running_var``, contrary to
+        :func:`~chainer.functions.batch_normalization`. If you don't want to
+        update them, set ``update_statistics=False`` or ``decay=0``.
 
     """
     return BatchRenormalizationFunction(
