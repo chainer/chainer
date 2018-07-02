@@ -39,10 +39,10 @@ class BatchRenormalizationFunction(function.Function):
         self.decay = decay
 
     def _warn_accessing_property(self):
-        msg ='''\
+        msg = '''\
 batch_renormalization function updates running statistics by default. The \
 properties of BatchRenormalizationFunction should not be accessed.
-        
+
 Set update_statistics=False to stop updating.'''
         if self.update_statistics:
             warnings.warn(msg, DeprecationWarning)
@@ -96,8 +96,9 @@ Set update_statistics=False to stop updating.'''
                                 dtype=self._running_mean.dtype)
         self.r = xp.clip(self.std / running_sigma,
                          1.0 / self.rmax, self.rmax)
-        d = xp.clip((mean - self._running_mean) / running_sigma,
-                         -self.dmax, self.dmax)
+        d = xp.clip(
+            (mean - self._running_mean) / running_sigma,
+            -self.dmax, self.dmax)
 
         # Update running statistics:
         m = x.size // gamma[expander].size
