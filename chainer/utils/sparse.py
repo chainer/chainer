@@ -22,8 +22,9 @@ class CooMatrix(object):
             sorted. If ``None``, the matrix is assumed as neither 'C' order nor
             'F' order (this is the default). If ``'auto'``, the matrix is
             automatically checked if it is 'C' order, 'F' order or another.
-            This information will be used by some functions like sparse_matmul
-            as a hint to improve performance.
+            This information will be used by some functions like
+            :func:`~chainer.functions.sparse_matmul` as a hint to improve
+            performance.
         requires_grad (bool): If ``True``, gradient of this sparse matrix will
             be computed in back-propagation.
 
@@ -114,6 +115,12 @@ def to_coo(x, ldnz=None, requires_grad=False):
             (2, 3)
     """
     xp = cuda.get_array_module(x)
+    if x.flags.c_contiguous:
+        order = 'C'
+    elif x.flags.f_contiguous:
+        order = 'F'
+    else:
+        order = None
     if x.ndim == 2:
         _row, _col = xp.where(x != 0)
         nnz = len(_row)
@@ -126,11 +133,6 @@ def to_coo(x, ldnz=None, requires_grad=False):
         row[:nnz] = xp.array(_row).astype(xp.int32)
         col[:nnz] = xp.array(_col).astype(xp.int32)
         shape = x.shape
-        order = None
-        if x.flags['C_CONTIGUOUS']:
-            order = 'C'
-        elif x.flags['F_CONTIGUOUS']:
-            order = 'F'
         return CooMatrix(data, row, col, shape, order=order,
                          requires_grad=requires_grad)
     elif x.ndim == 3:
@@ -149,11 +151,6 @@ def to_coo(x, ldnz=None, requires_grad=False):
             row[i] = coo.row
             col[i] = coo.col
         shape = x.shape[1:]
-        order = None
-        if x.flags['C_CONTIGUOUS']:
-            order = 'C'
-        elif x.flags['F_CONTIGUOUS']:
-            order = 'F'
         return CooMatrix(data, row, col, shape, order=order,
                          requires_grad=requires_grad)
     else:
@@ -179,6 +176,4 @@ def _is_c_order(row, col):
     col_diff = xp.zeros(col.shape, dtype=col.dtype)
     col_diff[1:] = col[1:] - col[:-1]
     col_diff[(row_diff > 0)] = 0
-    if xp.amin(col_diff) < 0:
-        return False
-    return True
+    return xp.amin(col_diff) >= 0

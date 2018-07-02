@@ -23,11 +23,12 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_order,
         A_row = sp_col
         A_col = sp_row
         A_shape = (sp_shape[1], sp_shape[0])
-        A_order = sp_order
         if sp_order is 'C':
             A_order = 'F'
         elif sp_order is 'F':
             A_order = 'C'
+        else:
+            A_order = None
     else:
         A_row = sp_row
         A_col = sp_col
@@ -97,13 +98,14 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_order, B, dtype):
         nb = B.shape[0]
         C = cuda.cupy.zeros((nb, _m, _n), dtype=cupy_dtype)
 
-    chunk = 1
     if A_order is 'C':
         # A chunk is the number of non-zero elements handled by a single GPU
         # thread. If contiguous non-zero elemets are related to the same
         # location of the output matrix and they are processed in the same
         # thread, number of atomic-add operations can be reduced.
         chunk = max(ldnz // _m, 1)
+    else:
+        chunk = 1
     nthreads = ((nb * ldnz + chunk - 1) // chunk) * _n
     _cupy_coo_matmul()(nb, _m, _n, _k, ldnz, chunk,
                        A_data, A_row, A_col, B, C,
@@ -450,6 +452,11 @@ def sparse_matmul(a, b, transa=False, transb=False):
     .. seealso::
         See :func:`~chainer.utils.to_coo` for how to construct a COO matrix
         from an array.
+
+    .. note::
+        Performance of this function on GPU can be improved by using the
+        ``order`` argument of :class:`~chainer.utils.CooMatrix` when the sparse
+        matrix is created.
 
     """
     if (isinstance(a, utils.CooMatrix) and
