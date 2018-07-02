@@ -89,37 +89,6 @@ class TestBatchRenormalization(unittest.TestCase):
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
-    def check_forward(self, args):
-        sigma_batch = numpy.sqrt(self.var)
-        running_sigma = numpy.sqrt(self.running_var + self.eps)
-        r = numpy.clip(sigma_batch / running_sigma, 1.0 / self.rmax, self.rmax)
-        d = numpy.clip((self.mean - self.running_mean) / running_sigma,
-                       -self.dmax, self.dmax)
-        y_expect = _batch_renormalization(
-            self.expander, self.gamma, self.beta, self.x, self.mean, self.var,
-            r[self.expander], d[self.expander])
-
-        with chainer.using_config('train',  self.train):
-            y = batch_renormalization.batch_renormalization(
-                *[chainer.Variable(i) for i in args],
-                rmax=self.rmax, dmax=self.dmax, running_mean=self.running_mean,
-                running_var=self.running_var, decay=self.decay, eps=self.eps,
-                update_statistics=self.update_statistics)
-
-        self.assertEqual(y.data.dtype, self.dtype)
-
-        testing.assert_allclose(
-            y_expect, y.data, **self.check_forward_options)
-
-    @condition.retry(3)
-    def test_forward_cpu(self):
-        self.check_forward(self.args)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu(self):
-        self.check_forward([cuda.to_gpu(i) for i in self.args])
-
     def check_compare_naive(self, args, stats, y_grad):
         def compute(f):
             x, gamma, beta = [chainer.Variable(v.copy()) for v in args]
