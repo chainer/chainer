@@ -138,7 +138,7 @@ def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
     """Opens a writer to make a PickleDataset.
 
     This is a helper function to open :class:`PickleDatasetWriter`. It opens a
-    given file in binary mode and make :calss:`PickleDatasetWriter` instance.
+    given file in binary mode and make :class:`PickleDatasetWriter` instance.
 
     This method does not close the opened file. A user needs to call
     :func:`PickleDatasetWriter.close`.
