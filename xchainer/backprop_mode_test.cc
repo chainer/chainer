@@ -144,52 +144,72 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
         {
             NoBackpropModeScope scope2{};
             EXPECT_FALSE(IsBackpropRequired());
+            EXPECT_FALSE(IsBackpropRequired("graph1"));
+            EXPECT_FALSE(IsBackpropRequired("graph2"));
         }
         EXPECT_FALSE(IsBackpropRequired());
+        EXPECT_FALSE(IsBackpropRequired("graph1"));
+        EXPECT_FALSE(IsBackpropRequired("graph2"));
     }
     {
         NoBackpropModeScope scope1{};
         {
             NoBackpropModeScope scope2{{}};
             EXPECT_FALSE(IsBackpropRequired());
+            EXPECT_FALSE(IsBackpropRequired("graph1"));
+            EXPECT_FALSE(IsBackpropRequired("graph2"));
         }
         EXPECT_FALSE(IsBackpropRequired());
+        EXPECT_FALSE(IsBackpropRequired("graph1"));
+        EXPECT_FALSE(IsBackpropRequired("graph2"));
     }
     {
         NoBackpropModeScope scope1{};
         {
             NoBackpropModeScope scope2{{"graph1"}};
             EXPECT_FALSE(IsBackpropRequired());
-            EXPECT_FALSE(IsBackpropRequired("graph"));
+            EXPECT_FALSE(IsBackpropRequired("graph1"));
+            EXPECT_FALSE(IsBackpropRequired("graph2"));
         }
         EXPECT_FALSE(IsBackpropRequired());
-        EXPECT_FALSE(IsBackpropRequired("graph"));
+        EXPECT_FALSE(IsBackpropRequired("graph1"));
+        EXPECT_FALSE(IsBackpropRequired("graph2"));
     }
     {
         NoBackpropModeScope scope1{{}};
         {
             NoBackpropModeScope scope2{};
             EXPECT_FALSE(IsBackpropRequired());
-        }
-        EXPECT_TRUE(IsBackpropRequired());
-    }
-    {
-        NoBackpropModeScope scope1{{}};
-        {
-            NoBackpropModeScope scope2{{}};
-            EXPECT_TRUE(IsBackpropRequired());
-        }
-        EXPECT_TRUE(IsBackpropRequired());
-    }
-    {
-        NoBackpropModeScope scope1{{}};
-        {
-            NoBackpropModeScope scope2{{"graph1"}};
-            EXPECT_TRUE(IsBackpropRequired());
             EXPECT_FALSE(IsBackpropRequired("graph1"));
+            EXPECT_FALSE(IsBackpropRequired("graph2"));
         }
         EXPECT_TRUE(IsBackpropRequired());
         EXPECT_TRUE(IsBackpropRequired("graph1"));
+        EXPECT_TRUE(IsBackpropRequired("graph2"));
+    }
+    {
+        NoBackpropModeScope scope1{{}};
+        {
+            NoBackpropModeScope scope2{{}};
+            EXPECT_TRUE(IsBackpropRequired());
+            EXPECT_TRUE(IsBackpropRequired("graph1"));
+            EXPECT_TRUE(IsBackpropRequired("graph2"));
+        }
+        EXPECT_TRUE(IsBackpropRequired());
+        EXPECT_TRUE(IsBackpropRequired("graph1"));
+        EXPECT_TRUE(IsBackpropRequired("graph2"));
+    }
+    {
+        NoBackpropModeScope scope1{{}};
+        {
+            NoBackpropModeScope scope2{{"graph1"}};
+            EXPECT_TRUE(IsBackpropRequired());
+            EXPECT_FALSE(IsBackpropRequired("graph1"));
+            EXPECT_TRUE(IsBackpropRequired("graph2"));
+        }
+        EXPECT_TRUE(IsBackpropRequired());
+        EXPECT_TRUE(IsBackpropRequired("graph1"));
+        EXPECT_TRUE(IsBackpropRequired("graph2"));
     }
     {
         NoBackpropModeScope scope1{{"graph1"}};
@@ -197,9 +217,11 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             NoBackpropModeScope scope2{};
             EXPECT_FALSE(IsBackpropRequired());
             EXPECT_FALSE(IsBackpropRequired("graph1"));
+            EXPECT_FALSE(IsBackpropRequired("graph2"));
         }
         EXPECT_TRUE(IsBackpropRequired());
         EXPECT_FALSE(IsBackpropRequired("graph1"));
+        EXPECT_TRUE(IsBackpropRequired("graph2"));
     }
     {
         NoBackpropModeScope scope1{{"graph1"}};
@@ -207,9 +229,11 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             NoBackpropModeScope scope2{{}};
             EXPECT_TRUE(IsBackpropRequired());
             EXPECT_FALSE(IsBackpropRequired("graph1"));
+            EXPECT_TRUE(IsBackpropRequired("graph2"));
         }
         EXPECT_TRUE(IsBackpropRequired());
         EXPECT_FALSE(IsBackpropRequired("graph1"));
+        EXPECT_TRUE(IsBackpropRequired("graph2"));
     }
     {
         NoBackpropModeScope scope1{{"graph1"}};
@@ -217,9 +241,11 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
             NoBackpropModeScope scope2{{"graph1"}};
             EXPECT_TRUE(IsBackpropRequired());
             EXPECT_FALSE(IsBackpropRequired("graph1"));
+            EXPECT_TRUE(IsBackpropRequired("graph2"));
         }
         EXPECT_TRUE(IsBackpropRequired());
         EXPECT_FALSE(IsBackpropRequired("graph1"));
+        EXPECT_TRUE(IsBackpropRequired("graph2"));
     }
 }
 
