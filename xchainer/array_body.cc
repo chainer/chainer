@@ -47,7 +47,7 @@ void ArrayBody::AssertConsistency() const {
             assert(&grad->device() == &array_node->device());
         }
     }
-#endif /* NDEBUG */
+#endif  // NDEBUG
 }
 
 nonstd::optional<size_t> ArrayBody::GetNodeIndex(const GraphId& graph_id) const {

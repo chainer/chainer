@@ -65,7 +65,7 @@ XCHAINER_HOST_DEVICE void CombineIterators(IndexIterator<Ndim>& it, IndexSources
     for (int8_t i = 0; i < it.ndim(); ++i) {
         assert(0 <= it.index()[i]);
     }
-#endif
+#endif  // NDEBUG
 }
 
 }  // namespace indexer_detail

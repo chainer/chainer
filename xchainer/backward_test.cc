@@ -218,7 +218,7 @@ TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
         return ret;
     });
 }
-#endif
+#endif  // XCHAINER_ENABLE_CUDA
 
 TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     GraphId graph_x = "graph_x";

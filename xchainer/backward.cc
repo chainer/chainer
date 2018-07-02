@@ -127,7 +127,7 @@ Array BackwardContext::Cut(const Array& a) const {
             assert((prev_grad == nullptr || !prev_grad->has_value() || &**prev_grad != &a) && "Output grads do not have to be cut");
         }
     }
-#endif /*NDEBUG*/
+#endif  // NDEBUG
     return a.AsConstant(stop_graph_ids_);
 }
 
@@ -267,8 +267,12 @@ public:
             {
                 auto range = previous_array_node_keeper_.equal_range(op_node.get());
                 for (auto it = range.first; it != range.second; ++it) {
+#ifndef NDEBUG
                     size_t n_removed = array_node_grad_map_.erase(it->second.get());
                     assert(n_removed > 0);
+#else
+                    array_node_grad_map_.erase(it->second.get());
+#endif  // NDEBUG
                 }
             }
         }
