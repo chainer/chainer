@@ -4,6 +4,7 @@ from chainer import distribution
 from chainer.functions.activation import sigmoid
 from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
+from chainer.functions.math import logarithm_1p
 import numpy
 
 
@@ -40,8 +41,8 @@ class Bernoulli(distribution.Distribution):
                 self.p = sigmoid.sigmoid(self.logit)
             else:
                 self.p = chainer.as_variable(p)
-                self.logit = exponential.log(self.p) - \
-                    exponential.log(1. - self.p)
+                self.logit = exponential.log(self.p) \
+                    - logarithm_1p.log1p(-self.p)
 
     @property
     def batch_shape(self):
@@ -49,9 +50,18 @@ class Bernoulli(distribution.Distribution):
 
     @property
     def entropy(self):
-        return -self.p * exponential.log(self.p) - \
-            (numpy.float32(1.) - self.p) \
-            * exponential.log(numpy.float32(1.) - self.p)
+        p = self.p
+        q = p.dtype.type(1.) - p
+        if self._is_gpu:
+            zero_entropy = cuda.cupy.bitwise_or(
+                self.p.array == 0, self.p.array == 1)
+            not_zero_entropy = cuda.cupy.logical_not(zero_entropy)
+        else:
+            zero_entropy = numpy.bitwise_or(
+                self.p.array == 0, self.p.array == 1)
+            not_zero_entropy = numpy.logical_not(zero_entropy)
+        return - p * exponential.log(p * not_zero_entropy + zero_entropy) \
+            - (q) * exponential.log(q * not_zero_entropy + zero_entropy)
 
     @property
     def event_shape(self):
@@ -59,11 +69,11 @@ class Bernoulli(distribution.Distribution):
 
     @property
     def _is_gpu(self):
-        return isinstance(self.p.data, cuda.ndarray)
+        return isinstance(self.p.array, cuda.ndarray)
 
     def log_prob(self, x):
-        if type(x) == chainer.Variable:
-            x = x.data
+        if isinstance(x, chainer.Variable):
+            x = x.array
         x = x.astype(self.p.dtype)
         if self._is_gpu:
             invalid_inf = cuda.cupy.zeros_like(x)
@@ -83,9 +93,9 @@ class Bernoulli(distribution.Distribution):
     def prob(self, x):
         x = chainer.as_variable(x)
         if self._is_gpu:
-            valid = cuda.cupy.bitwise_or(x.data == 0, x.data == 1)
+            valid = cuda.cupy.bitwise_or(x.array == 0, x.array == 1)
         else:
-            valid = numpy.bitwise_or(x.data == 0, x.data == 1)
+            valid = numpy.bitwise_or(x.array == 0, x.array == 1)
         ret = x * broadcast.broadcast_to(self.p, x.shape) \
             + (1 - x) * (1 - broadcast.broadcast_to(self.p, x.shape))
         return ret * valid
@@ -93,10 +103,10 @@ class Bernoulli(distribution.Distribution):
     def sample_n(self, n):
         if self._is_gpu:
             eps = cuda.cupy.random.binomial(
-                1, self.p.data, size=(n,)+self.p.shape)
+                1, self.p.array, size=(n,)+self.p.shape)
         else:
             eps = numpy.random.binomial(
-                1, self.p.data, size=(n,)+self.p.shape)
+                1, self.p.array, size=(n,)+self.p.shape)
         return chainer.Variable(eps)
 
     @property
@@ -109,7 +119,7 @@ class Bernoulli(distribution.Distribution):
 
     @property
     def variance(self):
-        return (self.p * (1 - self.p))
+        return self.p * (1 - self.p)
 
 
 @distribution.register_kl(Bernoulli, Bernoulli)
