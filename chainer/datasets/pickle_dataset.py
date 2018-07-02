@@ -67,9 +67,8 @@ class PickleDataset(dataset_mixin.DatasetMixin):
     """
 
     def __init__(self, reader):
-        if not reader.seekable():
-            raise ValueError('reader must support random access')
-
+        # TODO(unnonouno): It is better to check seekable(), but the method is
+        # not supported in py2
         self._reader = reader
         self._positions = []
         reader.seek(0)
@@ -139,7 +138,7 @@ def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
     """Opens a writer to make a PickleDataset.
 
     This is a helper function to open :class:`PickleDatasetWriter`. It opens a
-    given file in binary mode and make :clss:`PickleDatasetWriter` instance.
+    given file in binary mode and make :calss:`PickleDatasetWriter` instance.
 
     This method does not close the opened file. A user needs to call
     :func:`PickleDatasetWriter.close`.

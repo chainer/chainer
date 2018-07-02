@@ -26,12 +26,6 @@ class TestPickleDataset(unittest.TestCase):
         assert dataset[2] == 1.5
         assert dataset[1] == 'hello'
 
-    def test_reader_unseekable(self):
-        reader = mock.MagicMock()
-        reader.seekable = mock.MagicMock(return_value=False)
-        with self.assertRaises(ValueError):
-            datasets.PickleDataset(reader)
-
 
 class TestPickleDatasetHelper(unittest.TestCase):
 
