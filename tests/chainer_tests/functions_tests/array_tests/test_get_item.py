@@ -122,13 +122,19 @@ class TestGetItem(unittest.TestCase):
     {'slices': numpy.array([False, False, False, False]),
         'sliced_shape': (0, 3, 2)},
     {'slices': (3, 2, Ellipsis, 1),
-     'sliced_shape': ()},
+        'sliced_shape': ()},
+    {'slices': (numpy.array(False)),
+        'input_shape': (), 'sliced_shape': (0,)},
+    {'slices': (numpy.array(True)),
+        'input_shape': (), 'sliced_shape': (1,)},
 )
 class TestGetItemAdvanced(unittest.TestCase):
 
+    input_shape = (4, 3, 2)
+
     def setUp(self):
         self.x_data = numpy.random.uniform(
-            -1, 1, (4, 3, 2)).astype(numpy.float32)
+            -1, 1, self.input_shape).astype(numpy.float32)
         self.gy_data = numpy.random.uniform(
             -1, 1, self.sliced_shape).astype(numpy.float32)
 
