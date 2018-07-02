@@ -33,7 +33,7 @@ public:
 
 TEST(CudaConvTest, FwdAlgoCache) {
     testing::DeviceSession device_session{DeviceId{"cuda", 0}};
-    auto& device = dynamic_cast<CudaDevice&>(device_session.device());
+    auto& device = static_cast<CudaDevice&>(device_session.device());  // NOLINT
     internal::CudaConv& cuda_conv = internal::CudaConvTest::GetCudaConv(device);
 
     int64_t batch_size = 2;
@@ -79,7 +79,7 @@ TEST(CudaConvTest, FwdAlgoCache) {
 
 TEST(CudaConvTest, BwdDatadAlgoCache) {
     testing::DeviceSession device_session{DeviceId{"cuda", 0}};
-    auto& device = dynamic_cast<CudaDevice&>(device_session.device());
+    auto& device = static_cast<CudaDevice&>(device_session.device());  // NOLINT
     internal::CudaConv& cuda_conv = internal::CudaConvTest::GetCudaConv(device);
 
     int64_t batch_size = 2;
@@ -123,7 +123,7 @@ TEST(CudaConvTest, BwdDatadAlgoCache) {
 
 TEST(CudaConvTest, BwdFilterAlgoCache) {
     testing::DeviceSession device_session{DeviceId{"cuda", 0}};
-    auto& device = dynamic_cast<CudaDevice&>(device_session.device());
+    auto& device = static_cast<CudaDevice&>(device_session.device());  // NOLINT
     internal::CudaConv& cuda_conv = internal::CudaConvTest::GetCudaConv(device);
 
     int64_t batch_size = 2;
