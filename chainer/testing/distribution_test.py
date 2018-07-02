@@ -1,3 +1,4 @@
+import functools
 import unittest
 
 import chainer
@@ -9,6 +10,7 @@ import numpy
 
 def skip_not_in_test_target(test_target):
     def decorator(f):
+        @functools.wraps(f)
         def new_f(self, *args, **kwargs):
             if test_target not in self.test_targets:
                 self.skipTest(
@@ -21,21 +23,31 @@ def skip_not_in_test_target(test_target):
 
 class distribution_unittest(unittest.TestCase):
 
+    scipy_onebyone = False
+
     def setUp(self):
         self.support = 'real'
         self.event_shape = ()
         self.continuous = True
-        self.scipy_onebyone = False
         self.test_targets = set()
 
-        self.params_init()
+        self.setUp_configure()
+
+        targets_not_found = self.test_targets - {
+            "batch_shape", "cdf", "entropy", "event_shape", "icdf", "log_cdf",
+            "log_prob", "log_survival", "mean", "prob", "sample", "stddev",
+            "support", "survival", "variance"}
+        if targets_not_found:
+            raise ValueError(
+                "invalid target(s): {}".format(targets_not_found))
+
         if self.is_variable:
             self.params = {k: chainer.Variable(v)
                            for k, v in self.params.items()}
-        self.scipy_onebyone_params = \
-            {k: v.reshape((numpy.prod(self.shape),)
-                          + v.shape[len(self.shape):])
-             for k, v in self.scipy_params.items()}
+
+    def scipy_onebyone_params_iter(self):
+        for index in numpy.ndindex(self.shape):
+            yield {k: v[index] for k, v in self.scipy_params.items()}
 
     @property
     def cpu_dist(self):
@@ -87,9 +99,7 @@ class distribution_unittest(unittest.TestCase):
             ent1 = self.cpu_dist.entropy.data
         if self.scipy_onebyone:
             ent2 = []
-            for i in range(numpy.prod(self.shape)):
-                one_params = {k: v[i] for k, v
-                              in self.scipy_onebyone_params.items()}
+            for one_params in self.scipy_onebyone_params_iter():
                 ent2.append(self.scipy_dist.entropy(**one_params))
             ent2 = numpy.vstack(ent2).reshape(self.shape)
         else:
@@ -173,10 +183,8 @@ class distribution_unittest(unittest.TestCase):
             onebyone_smp = onebyone_smp.reshape((-1,) + self.sample_shape
                                                 + self.event_shape)
             log_prob2 = []
-            for i in range(numpy.prod(self.shape)):
-                one_params = {k: v[i] for k, v
-                              in self.scipy_onebyone_params.items()}
-                one_smp = onebyone_smp[i]
+            for one_params, one_smp in zip(
+                    self.scipy_onebyone_params_iter(), onebyone_smp):
                 log_prob2.append(scipy_prob(one_smp, **one_params))
             log_prob2 = numpy.vstack(log_prob2)
             log_prob2 = log_prob2.reshape(numpy.prod(self.shape), -1).T
@@ -221,9 +229,7 @@ class distribution_unittest(unittest.TestCase):
 
         if self.scipy_onebyone:
             mean2 = []
-            for i in range(numpy.prod(self.shape)):
-                one_params = {k: v[i] for k, v
-                              in self.scipy_onebyone_params.items()}
+            for one_params in self.scipy_onebyone_params_iter():
                 mean2.append(self.scipy_dist.mean(**one_params))
             mean2 = numpy.vstack(mean2).reshape(
                 self.shape + self.cpu_dist.event_shape)
@@ -271,9 +277,7 @@ class distribution_unittest(unittest.TestCase):
 
         if self.scipy_onebyone:
             smp2 = []
-            for i in range(numpy.prod(self.shape)):
-                one_params = {k: v[i] for k, v
-                              in self.scipy_onebyone_params.items()}
+            for one_params in self.scipy_onebyone_params_iter():
                 smp2.append(self.scipy_dist.rvs(
                     size=(100000,)+self.sample_shape, **one_params))
             smp2 = numpy.vstack(smp2)
@@ -355,9 +359,7 @@ class distribution_unittest(unittest.TestCase):
 
         if self.scipy_onebyone:
             variance2 = []
-            for i in range(numpy.prod(self.shape)):
-                one_params = {k: v[i] for k, v
-                              in self.scipy_onebyone_params.items()}
+            for one_params in self.scipy_onebyone_params_iter():
                 variance2.append(self.scipy_dist.var(**one_params))
             variance2 = numpy.vstack(variance2).reshape(
                 self.shape + self.cpu_dist.event_shape)

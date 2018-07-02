@@ -88,6 +88,7 @@ Array manipulations
    chainer.functions.concat
    chainer.functions.copy
    chainer.functions.depth2space
+   chainer.functions.diagonal
    chainer.functions.dstack
    chainer.functions.expand_dims
    chainer.functions.flatten
@@ -253,6 +254,7 @@ Mathematical functions
    chainer.functions.square
    chainer.functions.squared_difference
    chainer.functions.sum
+   chainer.functions.sum_to
    chainer.functions.tanh
    chainer.functions.tan
    chainer.functions.tensordot
@@ -281,6 +283,7 @@ Normalization functions
    chainer.functions.batch_renormalization
    chainer.functions.fixed_batch_normalization
    chainer.functions.fixed_batch_renormalization
+   chainer.functions.group_normalization
    chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
    chainer.functions.normalize

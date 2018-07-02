@@ -508,21 +508,38 @@ Assign a Parameter object directly to an attribute within a \
         if 0:
             yield
 
-    def copyparams(self, link):
+    def copyparams(self, link, copy_persistent=True):
         """Copies all parameters from given link.
 
         This method copies data arrays of all parameters in the hierarchy. The
         copy is even done across the host and devices. Note that this method
         does not copy the gradient arrays.
 
+        *From v5.0.0:* this method also copies the persistent values (e.g. the
+        moving statistics of :class:`~chainer.links.BatchNormalization`). If
+        the persistent value is an ndarray, the elements are copied. Otherwise,
+        it is copied using :func:`copy.deepcopy`. The old behavior (not copying
+        persistent values) can be reproduced with ``copy_persistent=False``.
+
         Args:
             link (Link): Source link object.
+            copy_persistent (bool): If ``True``, persistent values are also
+                copied. ``True`` by default.
 
         """
         src = link.__dict__
         dst = self.__dict__
         for name in self._params:
             dst[name].copydata(src[name])
+        if copy_persistent:
+            array_types = chainer.get_array_types()
+            for name in self._persistent:
+                d = dst[name]
+                s = src[name]
+                if isinstance(d, array_types) and isinstance(s, array_types):
+                    cuda.copyto(d, s)
+                else:
+                    dst[name] = copy.deepcopy(s)
 
     def cleargrads(self):
         """Clears all gradient arrays.
@@ -933,12 +950,12 @@ Assign a Link object directly to an attribute within a \
         for name in self._children:
             yield d[name]
 
-    def copyparams(self, link):
-        super(Chain, self).copyparams(link)
+    def copyparams(self, link, copy_persistent=True):
+        super(Chain, self).copyparams(link, copy_persistent)
         src = link.__dict__
         dst = self.__dict__
         for name in self._children:
-            dst[name].copyparams(src[name])
+            dst[name].copyparams(src[name], copy_persistent)
 
     def addgrads(self, link):
         super(Chain, self).addgrads(link)
@@ -990,12 +1007,12 @@ class ChainList(Link, collections.MutableSequence):
 
     def __setitem__(self, index, value):
         if isinstance(index, int):
-            self._children[index].name = None
             value.name = str(index)
             self._children[index] = value
         elif isinstance(index, slice):
-            for i, j in enumerate(range(*index.indices(len(self._children)))):
-                self[j] = value[i]
+            self._children[index] = value
+            for i, c in enumerate(self._children):
+                c.name = str(i)
         else:
             raise TypeError(
                 'ChainList indices must be integers or slices, not %s' %
@@ -1014,8 +1031,9 @@ class ChainList(Link, collections.MutableSequence):
         return self._children[index]
 
     def __delitem__(self, index):
-        self._children[index].name = None
         del self._children[index]
+        for i, c in enumerate(self._children):
+            c.name = str(i)
 
     def insert(self, index, link):
         """Insert a child link at the given index.
@@ -1026,9 +1044,13 @@ class ChainList(Link, collections.MutableSequence):
             link (Link): The link to be inserted.
 
         """
-        self._children.insert(index, link)
-        for i in range(index, len(self._children)):
-            self._children[i].name = str(i)
+        if index == len(self._children):
+            self._children.append(link)
+            link.name = str(index)
+        else:
+            self._children.insert(index, link)
+            for i, c in enumerate(self._children):
+                c.name = str(i)
 
     def __iter__(self):
         return iter(self._children)
@@ -1111,10 +1133,10 @@ class ChainList(Link, collections.MutableSequence):
         for child in self._children:
             yield child
 
-    def copyparams(self, link):
-        super(ChainList, self).copyparams(link)
+    def copyparams(self, link, copy_persistent=True):
+        super(ChainList, self).copyparams(link, copy_persistent)
         for idx, child in enumerate(self._children):
-            child.copyparams(link[idx])
+            child.copyparams(link[idx], copy_persistent)
 
     def addgrads(self, link):
         super(ChainList, self).addgrads(link)

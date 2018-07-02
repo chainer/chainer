@@ -48,7 +48,7 @@ Configuration Keys
 
    Chainer uses this dtype to construct arrays when the dtype is not specified (e.g. initializers).
 
-   You can change the default value by setting ``CHAINER_DEBUG`` environment variable to ``float16``, ``float32`` or ``float64``.
+   You can change the default value by setting ``CHAINER_DTYPE`` environment variable to ``float16``, ``float32`` or ``float64``.
 
 * ``enable_backprop`` (default: ``True``)
    Flag to enable backpropagation support.
@@ -137,6 +137,11 @@ Configuration Keys
    Autotune for convolutional networks flag.
 
    If it is ``True``, Chainer uses the cuDNN autotune feature to find the fastest calculation process for :class:`chainer.links.Convolution2D`, :class:`ConvolutionND`, :class:`Deconvolution2D`, or :class:`DeconvolutionND` links.
+
+* ``cudnn_fast_batch_normalization`` (default: ``False``)
+   Flag to configure whether or not to enable use of fast implementation for batch normalization in cuDNN.
+
+   If ``True``, Chainer will try to use the fast implementation for batch normalization in cuDNN by setting cuDNN's batch normalization mode to ``CUDNN_BATCHNORM_SPATIAL_PERSISTENT``. You can change the default value to ``True`` by setting ``CHAINER_CUDNN_FAST_BATCH_NORMALIZATION`` environment variable to ``1``.
 
 
 User-defined Keys
@@ -270,12 +275,20 @@ Here are the environment variables Chainer uses.
 |                                           | If ``CHAINER_CUDNN`` is set to ``0``, this environment variable has no effect.                        |
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
+| ``CHAINER_CUDNN_FAST_BATCH_NORMALIZATION``| Used as the default value for ``chainer.config.cudnn_fast_batch_normalization`` configuration.        |
+|                                           | Set ``1`` to enable use of fast implementation for batch normalization in cuDNN.                      |
+|                                           | See :ref:`configuration` for details.                                                                 |
++-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_USE_IDEEP``                     | Used as the default value for ``chainer.config.use_ideep`` configuration.                             |
 |                                           | The value must be any of ``'always'``, ``'auto'`` or ``'never'``.                                     |
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_LAZY_GRAD_SUM``                 | Used as the default value for ``chainer.config.lazy_grad_sum`` configuration.                         |
 |                                           | Set ``1`` to enable batch accumulation of gradients.                                                  |
+|                                           | See :ref:`configuration` for details.                                                                 |
++-------------------------------------------+-------------------------------------------------------------------------------------------------------+
+| ``CHAINER_DTYPE``                         | Used as the default value for ``chainer.config.dtype`` configuration.                                 |
+|                                           | The value must be any of ``'float16'``, ``'float32'`` or ``'float64'``.                               |
 |                                           | See :ref:`configuration` for details.                                                                 |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_TYPE_CHECK``                    | Used as the default value for ``chainer.config.type_check`` configuration.                            |

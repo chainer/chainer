@@ -5,6 +5,7 @@ import sys
 import threading
 
 import numpy
+import six
 
 import chainer
 from chainer.backends import cuda
@@ -604,3 +605,24 @@ def prod(xs):
         return _prod_impl(xs)
     else:
         return _prod(xs)
+
+
+def expect_broadcast_shapes(*shape_types):
+    """Checks if shapes can be broadcasted together.
+
+    Args:
+        shapes_types: Type-checked shapes of the arrays to broadcast.
+
+    """
+    shapes = [eval(s) for s in shape_types]
+    error = None
+    try:
+        # simulate the shape calculation using zero-sized arrays
+        numpy.broadcast(*[numpy.empty(s + (0,)) for s in shapes])
+    except ValueError:
+        msgs = ['cannot broadcast inputs of the following shapes:']
+        for shape_type, shape in six.moves.zip(shape_types, shapes):
+            msgs.append('{} = {}'.format(shape_type, shape))
+        error = InvalidType('', '', msg='\n'.join(msgs))
+    if error is not None:
+        raise error
