@@ -31,7 +31,9 @@ namespace {
 
 // Struct that allows passing StackVectors to CUDA kernels.
 struct CudaStackVector {
-    CudaStackVector(const StackVector<int64_t, kMaxNdim>& stack_vector) { std::copy_n(stack_vector.begin(), stack_vector.size(), data); }
+    explicit CudaStackVector(const StackVector<int64_t, kMaxNdim>& stack_vector) {
+        std::copy_n(stack_vector.begin(), stack_vector.size(), data);
+    }
     int64_t data[kMaxNdim];
 };
 
