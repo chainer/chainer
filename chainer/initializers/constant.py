@@ -13,8 +13,7 @@ class Identity(initializer.Initializer):
     Note that arrays to be passed must be 2D squared matrices.
 
     Attributes:
-        ~Identity.scale (scalar): A constant to be multiplied to identity
-        matrices.
+        scale (scalar): A constant to be multiplied to identity matrices.
 
     """
 
@@ -61,7 +60,7 @@ class Constant(_Constant):
         ~Constant.fill_value (scalar or numpy.ndarray or cupy.ndarray):
             A constant to be assigned to the initialized array.
             Broadcast is allowed on this assignment.
-        ~Constant.dtype: Data type specifier.
+        dtype: Data type specifier.
 
     """
 
