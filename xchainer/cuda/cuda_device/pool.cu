@@ -1,5 +1,6 @@
 #include "xchainer/cuda/cuda_device.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <memory>
@@ -28,6 +29,12 @@ namespace xchainer {
 namespace cuda {
 namespace {
 
+// Struct that allows passing StackVectors to CUDA kernels.
+struct CudaStackVector {
+    CudaStackVector(const StackVector<int64_t, kMaxNdim>& stack_vector) { std::copy_n(stack_vector.begin(), stack_vector.size(), data); }
+    int64_t data[kMaxNdim];
+};
+
 // Uses the previously computed y to find the indices for which the upstream gradients should be propagated.
 // It is faster than looking for the argmax again since we only have to do a single comparison.
 // TODO(hvy): Make the spatial dimensionality a template parameter to allow unrolling the loops.
@@ -40,8 +47,8 @@ __global__ void MaxPoolDoubleBackwardKernel(
         Indexer<> x_indexer,
         Indexer<> y_indexer,
         Indexer<> kernel_indexer,
-        int64_t* stride,
-        int64_t* pad,
+        CudaStackVector stride,
+        CudaStackVector pad,
         NdimIndex x_index) {
     for (auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it_y; ++it_y) {
         x_index.index()[0] = it_y.index()[0];  // batch.
@@ -52,7 +59,7 @@ __global__ void MaxPoolDoubleBackwardKernel(
         // Iterate over the kernel in the reverse order, since the resulting index should the be first match.
         for (auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1); it_kernel.raw_index() >= 0; --it_kernel) {
             for (int8_t i = 2; i < x_indexer.ndim(); ++i) {
-                int64_t idx = it_y.index()[i] * stride[i - 2] - pad[i - 2] + it_kernel.index()[i - 2];
+                int64_t idx = it_y.index()[i] * stride.data[i - 2] - pad.data[i - 2] + it_kernel.index()[i - 2];
                 idx = max(idx, int64_t{0});
                 idx = min(idx, x_indexer.shape()[i] - 1);
                 x_index.index()[i] = idx;
@@ -182,12 +189,6 @@ public:
             Indexer<> y_indexer{y_.shape()};
             Indexer<> kernel_indexer{Shape{kernel_size_.begin(), kernel_size_.end()}};
 
-            std::shared_ptr<void> stride = device.Allocate(stride_.size() * sizeof(int64_t));
-            CheckCudaError(cudaMemcpy(stride.get(), stride_.data(), stride_.size() * sizeof(int64_t), cudaMemcpyHostToDevice));
-
-            std::shared_ptr<void> pad = device.Allocate(pad_.size() * sizeof(int64_t));
-            CheckCudaError(cudaMemcpy(pad.get(), pad_.data(), pad_.size() * sizeof(int64_t), cudaMemcpyHostToDevice));
-
             static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MaxPoolDoubleBackwardKernel<T>).block_size;
             int64_t total_size = y_indexer.total_size();
             int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
@@ -201,8 +202,8 @@ public:
                     x_indexer,
                     y_indexer,
                     kernel_indexer,
-                    static_cast<int64_t*>(stride.get()),
-                    static_cast<int64_t*>(pad.get()),
+                    CudaStackVector{stride_},
+                    CudaStackVector{pad_},
                     NdimIndex{x_iarray.ndim()});
         });
 
