@@ -4,6 +4,7 @@
 #include "xchainer/python/array.h"
 #include "xchainer/python/array_index.h"
 #include "xchainer/python/backend.h"
+#include "xchainer/python/backprop_mode.h"
 #include "xchainer/python/backward.h"
 #include "xchainer/python/check_backward.h"
 #include "xchainer/python/common.h"
@@ -30,6 +31,7 @@ void InitXchainerModule(pybind11::module& m) {
     InitXchainerContext(m);
     InitXchainerContextScope(m);
     InitXchainerBackend(m);
+    InitXchainerBackpropMode(m);
     InitXchainerDevice(m);
     InitXchainerDeviceScope(m);
     InitXchainerDtype(m);

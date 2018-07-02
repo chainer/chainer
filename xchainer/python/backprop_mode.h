@@ -2,17 +2,13 @@
 
 #include <pybind11/pybind11.h>
 
-#include "xchainer/context.h"
+#include "xchainer/backprop_mode.h"
 
 namespace xchainer {
 namespace python {
 namespace internal {
 
-Context& GetContext(pybind11::handle handle);
-
-void InitXchainerContext(pybind11::module&);
-
-void InitXchainerContextScope(pybind11::module&);
+void InitXchainerBackpropMode(pybind11::module&);
 
 }  // namespace internal
 }  // namespace python
