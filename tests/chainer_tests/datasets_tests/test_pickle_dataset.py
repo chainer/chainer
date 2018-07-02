@@ -6,6 +6,7 @@ import unittest
 import mock
 
 from chainer import datasets
+from chainer import testing
 
 
 class TestPickleDataset(unittest.TestCase):
@@ -53,3 +54,6 @@ class TestPickleDatasetHelper(unittest.TestCase):
                 pass
         # Even in this situation, the opened file needs to be closed
         assert mock.call().close() in m.mock_calls
+
+
+testing.run_module(__name__, __file__)
