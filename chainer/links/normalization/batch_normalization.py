@@ -66,8 +66,8 @@ class BatchNormalization(link.Link):
         avg_var (numpy.ndarray or cupy.ndarray): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
-        ~BatchNormalization.eps (float): Epsilon value for numerical stability.
-            This value is added to the batch variances.
+        eps (float): Epsilon value for numerical stability. This value is added
+            to the batch variances.
 
     .. admonition:: Example
 
@@ -251,14 +251,14 @@ class BatchNormalization(link.Link):
         gamma = self.gamma
         if gamma is None:
             with cuda.get_device_from_id(self._device_id):
-                gamma = variable.Variable(self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype))
+                gamma = self.xp.ones(
+                    self.avg_mean.shape, dtype=x.dtype)
 
         beta = self.beta
         if beta is None:
             with cuda.get_device_from_id(self._device_id):
-                beta = variable.Variable(self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype))
+                beta = self.xp.zeros(
+                    self.avg_mean.shape, dtype=x.dtype)
 
         if configuration.config.train:
             if finetune:
@@ -272,8 +272,8 @@ class BatchNormalization(link.Link):
                 running_var=self.avg_var, decay=decay, axis=self.axis)
         else:
             # Use running average statistics or fine-tuned statistics.
-            mean = variable.Variable(self.avg_mean)
-            var = variable.Variable(self.avg_var)
+            mean = self.avg_mean
+            var = self.avg_var
             ret = functions.fixed_batch_normalization(
                 x, gamma, beta, mean, var, self.eps, axis=self.axis)
         return ret

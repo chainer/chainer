@@ -8,7 +8,7 @@ A :class:`Link` is an object that holds parameters (i.e. optimization targets).
 The most fundamental ones are links that behave like regular functions while replacing some arguments by their parameters.
 We will introduce higher level links, but here think of links as simply functions with parameters.
 
-One of the most frequently used links is the :class:`~functions.Linear` link (a.k.a. *fully-connected layer* or *affine transformation*).
+One of the most frequently used links is the :class:`~functions.connection.linear.Linear` link (a.k.a. *fully-connected layer* or *affine transformation*).
 It represents a mathematical function :math:`f(x) = Wx + b`, where the matrix :math:`W` and the vector :math:`b` are parameters.
 This link corresponds to its pure counterpart :func:`~functions.linear`, which accepts :math:`x, W, b` as arguments.
 A linear link from three-dimensional space to two-dimensional space is defined by the following line:
