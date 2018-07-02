@@ -8,10 +8,14 @@
 namespace xchainer {
 namespace internal {
 
+// Keep track of array body allocation.
+// Used in combination with ArrayBodyLeakDetectionScope to detect leaks.
 class ArrayBodyLeakTracker {
 public:
     void operator()(const std::shared_ptr<internal::ArrayBody>& array_body);
 
+    // Returns the array bodies which are still alive.
+    // It is useful to detect unreleased array bodies, leaking from the scope of ArrayBodyLeakDetectionScope.
     std::vector<std::shared_ptr<ArrayBody>> GetAliveArrayBodies() const;
 
 private:
@@ -20,6 +24,7 @@ private:
 
 // A scope object to detect array body leaks.
 // It tracks newly created array bodies which are being set to arrays within the scope.
+// New array bodies are reported to the tracker specified in the constructor.
 class ArrayBodyLeakDetectionScope {
 public:
     explicit ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& tracker);
