@@ -52,12 +52,12 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Normal(**params)
 
-    def make_normal_dist_ln_var(self, is_gpu=False):
+    def make_normal_dist_log_var(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
-        ln_var = 2 * numpy.log(scale)
-        params = self.encode_params({"loc": loc, "ln_var": ln_var}, is_gpu)
+        log_var = 2 * numpy.log(scale)
+        params = self.encode_params({"loc": loc, "log_var": log_var}, is_gpu)
         return distributions.Normal(**params)
 
     def test_laplace_laplace_cpu(self):
@@ -82,15 +82,15 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_normal_dist(True)
         self.check_kl(dist1, dist2)
 
-    def test_normal_normal_ln_var_cpu(self):
-        dist1 = self.make_normal_dist_ln_var()
-        dist2 = self.make_normal_dist_ln_var()
+    def test_normal_normal_log_var_cpu(self):
+        dist1 = self.make_normal_dist_log_var()
+        dist2 = self.make_normal_dist_log_var()
         self.check_kl(dist1, dist2)
 
     @attr.gpu
-    def test_normal_normal__ln_var_gpu(self):
-        dist1 = self.make_normal_dist_ln_var(True)
-        dist2 = self.make_normal_dist_ln_var(True)
+    def test_normal_normal__log_var_gpu(self):
+        dist1 = self.make_normal_dist_log_var(True)
+        dist2 = self.make_normal_dist_log_var(True)
         self.check_kl(dist1, dist2)
 
 

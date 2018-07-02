@@ -7,7 +7,7 @@ import numpy
     'shape': [(3, 2), (1,)],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
-    'ln_var_option': [True, False],
+    'log_var_option': [True, False],
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
@@ -28,8 +28,8 @@ class TestNormal(testing.distribution_unittest):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
-        if self.ln_var_option:
-            self.params = {"loc": loc, "ln_var": 2. * numpy.log(scale)}
+        if self.log_var_option:
+            self.params = {"loc": loc, "log_var": 2. * numpy.log(scale)}
             self.scipy_params = {"loc": loc, "scale": scale}
         else:
             self.params = {"loc": loc, "scale": scale}
