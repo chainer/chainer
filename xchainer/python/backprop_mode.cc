@@ -40,30 +40,22 @@ private:
 using PyNoBackpropModeScope = PyBackpropModeScope<NoBackpropModeScope>;
 using PyForceBackpropModeScope = PyBackpropModeScope<ForceBackpropModeScope>;
 
-void InitXchainerNoBackpropMode(pybind11::module& m) {
-    py::class_<PyNoBackpropModeScope> c{m, "NoBackpropMode"};
-    c.def("__enter__", &PyNoBackpropModeScope::Enter);
-    c.def("__exit__", &PyNoBackpropModeScope::Exit);
+template <class PyBackpropModeScope>
+void InitXchainerBackpropModeScope(pybind11::module& m, const std::string& class_name, const std::string& function_name) {
+    py::class_<PyBackpropModeScope> c{m, class_name.c_str()};
+    c.def("__enter__", &PyBackpropModeScope::Enter);
+    c.def("__exit__", &PyBackpropModeScope::Exit);
 
-    m.def("no_backprop_mode", []() { return PyNoBackpropModeScope{}; });
-    m.def("no_backprop_mode", [](GraphId graph_id) { return PyNoBackpropModeScope{{std::move(graph_id)}}; });
-    m.def("no_backprop_mode", [](const std::vector<GraphId>& graph_ids) { return PyNoBackpropModeScope{graph_ids}; });
+    m.def(function_name.c_str(), []() { return PyBackpropModeScope{}; });
+    m.def(function_name.c_str(), [](GraphId graph_id) { return PyBackpropModeScope{{std::move(graph_id)}}; });
+    m.def(function_name.c_str(), [](const std::vector<GraphId>& graph_ids) { return PyBackpropModeScope{graph_ids}; });
 }
 
-void InitXchainerForceBackpropMode(pybind11::module& m) {
-    py::class_<PyForceBackpropModeScope> c{m, "ForceBackpropMode"};
-    c.def("__enter__", &PyForceBackpropModeScope::Enter);
-    c.def("__exit__", &PyForceBackpropModeScope::Exit);
-
-    m.def("force_backprop_mode", []() { return PyForceBackpropModeScope{}; });
-    m.def("force_backprop_mode", [](GraphId graph_id) { return PyForceBackpropModeScope{{std::move(graph_id)}}; });
-    m.def("force_backprop_mode", [](const std::vector<GraphId>& graph_ids) { return PyForceBackpropModeScope{graph_ids}; });
-}
 }  // namespace
 
 void InitXchainerBackpropMode(pybind11::module& m) {
-    InitXchainerNoBackpropMode(m);
-    InitXchainerForceBackpropMode(m);
+    InitXchainerBackpropModeScope<PyNoBackpropModeScope>(m, "NoBackpropMode", "no_backprop_mode");
+    InitXchainerBackpropModeScope<PyForceBackpropModeScope>(m, "ForceBackpropMode", "force_backprop_mode");
 
     m.def("is_backprop_required",
           [](const GraphId& graph_id, py::handle context) { return IsBackpropRequired(graph_id, GetContext(context)); },
