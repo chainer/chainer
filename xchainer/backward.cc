@@ -159,8 +159,8 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
     {
         NoBackpropModeScope scope{stop_graph_ids_};
 
-        for (const Array& input : inputs) {  // For each input.
-            for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {  // For each graph.
+        for (const Array& input : inputs) {
+            for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {
                 const GraphId& graph_id = next_array_node->graph_id();
 
                 if (!IsBackpropRequired(graph_id)) {
