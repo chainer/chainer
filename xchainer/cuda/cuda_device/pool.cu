@@ -1,5 +1,6 @@
 #include "xchainer/cuda/cuda_device.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <memory>
@@ -10,9 +11,13 @@
 #include "xchainer/array.h"
 #include "xchainer/backend_util.h"
 #include "xchainer/constant.h"
+#include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/cuda/cudnn.h"
+#include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/indexable_array.h"
+#include "xchainer/indexer.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
@@ -23,6 +28,51 @@
 namespace xchainer {
 namespace cuda {
 namespace {
+
+// Struct that allows passing StackVectors to CUDA kernels.
+struct CudaStackVector {
+    explicit CudaStackVector(const StackVector<int64_t, kMaxNdim>& stack_vector) {
+        std::copy_n(stack_vector.begin(), stack_vector.size(), data);
+    }
+    int64_t data[kMaxNdim];
+};
+
+// Uses the previously computed y to find the indices for which the upstream gradients should be propagated.
+// It is faster than looking for the argmax again since we only have to do a single comparison.
+// TODO(hvy): Make the spatial dimensionality a template parameter to allow unrolling the loops.
+template <typename T>
+__global__ void MaxPoolDoubleBackwardKernel(
+        IndexableArray<const T> ggx_iarray,
+        IndexableArray<const T> x_iarray,
+        IndexableArray<const T> y_iarray,
+        IndexableArray<T> ggy_iarray,
+        Indexer<> x_indexer,
+        Indexer<> y_indexer,
+        Indexer<> kernel_indexer,
+        CudaStackVector stride,
+        CudaStackVector pad,
+        NdimIndex x_index) {
+    for (auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it_y; ++it_y) {
+        x_index.index()[0] = it_y.index()[0];  // batch.
+        x_index.index()[1] = it_y.index()[1];  // channel.
+
+        T y = y_iarray[it_y];
+
+        // Iterate over the kernel in the reverse order, since the resulting index should the be first match.
+        for (auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1); it_kernel.raw_index() >= 0; --it_kernel) {
+            for (int8_t i = 2; i < x_indexer.ndim(); ++i) {
+                int64_t idx = it_y.index()[i] * stride.data[i - 2] - pad.data[i - 2] + it_kernel.index()[i - 2];
+                idx = max(idx, int64_t{0});
+                idx = min(idx, x_indexer.shape()[i] - 1);
+                x_index.index()[i] = idx;
+            }
+            auto it_x = x_indexer.At(x_index);
+            if (y == x_iarray[it_x]) {
+                ggy_iarray[it_y] = ggx_iarray[it_x];
+            }
+        }
+    }
+}
 
 class PoolImpl {
 public:
@@ -125,6 +175,43 @@ public:
         return gx;
     }
 
+    Array DoubleBackward(const Array& ggx) {
+        Device& device = ggx.device();
+        Array ggy = EmptyLike(y_, y_.device());
+
+        VisitDtype(ggy.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+
+            IndexableArray<const T> ggx_iarray{ggx};
+            IndexableArray<const T> x_iarray{x_};
+            IndexableArray<const T> y_iarray{y_};
+            IndexableArray<T> ggy_iarray{ggy};
+
+            Indexer<> x_indexer{x_.shape()};
+            Indexer<> y_indexer{y_.shape()};
+            Indexer<> kernel_indexer{Shape{kernel_size_.begin(), kernel_size_.end()}};
+
+            static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MaxPoolDoubleBackwardKernel<T>).block_size;
+            int64_t total_size = y_indexer.total_size();
+            int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
+            int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
+
+            MaxPoolDoubleBackwardKernel<<<grid_size, block_size>>>(
+                    ggx_iarray,
+                    x_iarray,
+                    y_iarray,
+                    ggy_iarray,
+                    x_indexer,
+                    y_indexer,
+                    kernel_indexer,
+                    CudaStackVector{stride_},
+                    CudaStackVector{pad_},
+                    NdimIndex{x_iarray.ndim()});
+        });
+
+        return ggy;
+    }
+
 private:
     cudnnHandle_t cudnn_handle_;
     const StackVector<int64_t, kMaxNdim> kernel_size_;
@@ -150,8 +237,7 @@ public:
 
     Array Backward(const Array& gout) override { return pool_impl_.Backward(gout); }
 
-    // TODO(hvy): Implement me.
-    Array DoubleBackward(const Array& /*ggx*/) override { return Array{}; }
+    Array DoubleBackward(const Array& ggx) override { return pool_impl_.DoubleBackward(ggx); }
 
 private:
     PoolImpl pool_impl_;

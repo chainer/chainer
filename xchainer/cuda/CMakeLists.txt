@@ -27,7 +27,7 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cuda_device/indexing.cu
     cuda_device/memory.cc
     cuda_device/misc.cu
-    cuda_device/pool.cc
+    cuda_device/pool.cu
     cuda_device/reduction.cu
     cuda_backend.cc
     cuda_runtime.cc

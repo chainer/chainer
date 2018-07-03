@@ -25,6 +25,11 @@ public:
         return *this;
     }
 
+    XCHAINER_HOST_DEVICE IndexIterator<kNdim>& operator--() {
+        Set(raw_index_ - step_);
+        return *this;
+    }
+
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
 
     XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return kNdim; }
@@ -75,6 +80,11 @@ public:
         return *this;
     }
 
+    XCHAINER_HOST_DEVICE IndexIterator<1>& operator--() {
+        raw_index_ -= step_;
+        return *this;
+    }
+
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
 
     XCHAINER_HOST_DEVICE static constexpr int8_t ndim() { return 1; }
@@ -106,6 +116,11 @@ public:
 
     XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim>& operator++() {
         Set(raw_index_ + step_);
+        return *this;
+    }
+
+    XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim>& operator--() {
+        Set(raw_index_ - step_);
         return *this;
     }
 

@@ -15,7 +15,13 @@ TEST(IndexIteratorTest, Rank0) {
     EXPECT_NO_THROW((void)it.index()[0]);  // Value is undefined.
     EXPECT_TRUE(static_cast<bool>(it));
     ++it;
+    EXPECT_EQ(0, it.ndim());
+    EXPECT_EQ(1, it.raw_index());
     EXPECT_FALSE(static_cast<bool>(it));
+    --it;
+    EXPECT_EQ(0, it.ndim());
+    EXPECT_EQ(0, it.raw_index());
+    EXPECT_TRUE(static_cast<bool>(it));
 }
 
 TEST(IndexIteratorTest, Rank1) {
@@ -29,6 +35,14 @@ TEST(IndexIteratorTest, Rank1) {
         ++it;
     }
     EXPECT_FALSE(static_cast<bool>(it));
+    for (int i = 2; i >= 0; --i) {
+        --it;
+        EXPECT_EQ(1, it.ndim());
+        EXPECT_EQ(i, it.raw_index());
+        EXPECT_EQ(i, it.index()[0]);
+        EXPECT_TRUE(static_cast<bool>(it));
+    }
+    EXPECT_TRUE(static_cast<bool>(it));
 }
 
 TEST(IndexIteratorTest, Rank3) {
@@ -44,6 +58,16 @@ TEST(IndexIteratorTest, Rank3) {
         ++it;
     }
     EXPECT_FALSE(static_cast<bool>(it));
+    for (int i = 23; i >= 0; --i) {
+        --it;
+        EXPECT_EQ(3, it.ndim());
+        EXPECT_EQ(i, it.raw_index());
+        EXPECT_EQ((i / 12) % 2, it.index()[0]);
+        EXPECT_EQ((i / 4) % 3, it.index()[1]);
+        EXPECT_EQ(i % 4, it.index()[2]);
+        EXPECT_TRUE(static_cast<bool>(it));
+    }
+    EXPECT_TRUE(static_cast<bool>(it));
 }
 
 TEST(DynamicIndexIteratorTest, Rank0) {
@@ -53,7 +77,15 @@ TEST(DynamicIndexIteratorTest, Rank0) {
     EXPECT_EQ(0, it.index()[0]);
     EXPECT_TRUE(static_cast<bool>(it));
     ++it;
+    EXPECT_EQ(0, it.ndim());
+    EXPECT_EQ(1, it.raw_index());
+    EXPECT_EQ(0, it.index()[0]);
     EXPECT_FALSE(static_cast<bool>(it));
+    --it;
+    EXPECT_EQ(0, it.ndim());
+    EXPECT_EQ(0, it.raw_index());
+    EXPECT_EQ(0, it.index()[0]);
+    EXPECT_TRUE(static_cast<bool>(it));
 }
 
 TEST(DynamicIndexIteratorTest, Rank1) {
@@ -67,6 +99,14 @@ TEST(DynamicIndexIteratorTest, Rank1) {
         ++it;
     }
     EXPECT_FALSE(static_cast<bool>(it));
+    for (int i = 2; i >= 0; --i) {
+        --it;
+        EXPECT_EQ(1, it.ndim());
+        EXPECT_EQ(i, it.raw_index());
+        EXPECT_EQ(i, it.index()[0]);
+        EXPECT_TRUE(static_cast<bool>(it));
+    }
+    EXPECT_TRUE(static_cast<bool>(it));
 }
 
 TEST(DynamicIndexIteratorTest, Rank3) {
@@ -82,6 +122,16 @@ TEST(DynamicIndexIteratorTest, Rank3) {
         ++it;
     }
     EXPECT_FALSE(static_cast<bool>(it));
+    for (int i = 23; i >= 0; --i) {
+        --it;
+        EXPECT_EQ(3, it.ndim());
+        EXPECT_EQ(i, it.raw_index());
+        EXPECT_EQ((i / 12) % 2, it.index()[0]);
+        EXPECT_EQ((i / 4) % 3, it.index()[1]);
+        EXPECT_EQ(i % 4, it.index()[2]);
+        EXPECT_TRUE(static_cast<bool>(it));
+    }
+    EXPECT_TRUE(static_cast<bool>(it));
 }
 
 }  // namespace
