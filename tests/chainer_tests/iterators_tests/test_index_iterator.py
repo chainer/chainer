@@ -101,9 +101,9 @@ def _test_index_iterator_serialization_no_shuffle():
     index_list = [1, 3, 5, 10]
     ii = IndexIterator(index_list, shuffle=False, num=2)
 
-    indices1 = ii.get_next_indices(3)
-    indices2 = ii.get_next_indices(6)
-    indices3 = ii.__next__()
+    ii.get_next_indices(3)
+    ii.get_next_indices(6)
+    ii.__next__()
 
     assert len(ii.current_index_list) == len(index_list)
     assert numpy.array_equal(ii.current_index_list, numpy.asarray(index_list))
@@ -123,9 +123,9 @@ def _test_index_iterator_serialization_with_shuffle():
     index_list = [1, 3, 5, 10]
     ii = IndexIterator(index_list, shuffle=True, num=2)
 
-    indices1 = ii.get_next_indices(3)
-    indices2 = ii.get_next_indices(6)
-    indices3 = ii.__next__()
+    ii.get_next_indices(3)
+    ii.get_next_indices(6)
+    ii.__next__()
 
     assert len(ii.current_index_list) == len(index_list)
     for index in ii.current_index_list:

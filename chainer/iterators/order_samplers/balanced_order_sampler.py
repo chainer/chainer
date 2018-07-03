@@ -1,4 +1,3 @@
-import chainer
 import numpy
 
 from chainer.iterators._index_iterator import IndexIterator  # NOQA

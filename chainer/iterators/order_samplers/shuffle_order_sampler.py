@@ -1,4 +1,3 @@
-import chainer
 import numpy
 
 from chainer.iterators.order_samplers.order_sampler import OrderSampler
