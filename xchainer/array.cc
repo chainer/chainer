@@ -20,6 +20,7 @@
 #include "xchainer/array_repr.h"
 #include "xchainer/axes.h"
 #include "xchainer/backend.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
@@ -323,6 +324,15 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) const {
 }
 
 void Array::ClearGrad(const GraphId& graph_id) const { body_->ClearGrad(graph_id); }
+
+const Array& Array::RequireGrad(const GraphId& graph_id) const {
+    if (IsBackpropRequired(graph_id)) {
+        internal::CreateArrayNode(*this, graph_id);
+    }
+    return *this;
+}
+
+Array& Array::RequireGrad(const GraphId& graph_id) { return const_cast<Array&>(const_cast<const Array*>(this)->RequireGrad(graph_id)); }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
