@@ -20,7 +20,7 @@ template <class BackpropModeScope>
 class PyBackpropModeScope {
 public:
     explicit PyBackpropModeScope() {}
-    explicit PyBackpropModeScope(const std::vector<GraphId>& graph_ids) : graph_ids_(graph_ids) {}
+    explicit PyBackpropModeScope(std::vector<GraphId> graph_ids) : graph_ids_{std::move(graph_ids)} {}
     void Enter() { scope_ = graph_ids_ ? std::make_unique<BackpropModeScope>(*graph_ids_) : std::make_unique<BackpropModeScope>(); }
     void Exit(py::args args) {
         (void)args;  // unused
