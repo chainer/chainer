@@ -24,7 +24,6 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(std::shared_ptr<ArrayNode> 
         return existing_node->graph_id() == array_node->graph_id();
     });
     if (it != nodes_.end()) {
-        AssertConsistency();
         return *it;  // Do nothing and return the existing ArrayNode if found for this graph.
     }
 
