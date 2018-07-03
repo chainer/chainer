@@ -59,6 +59,7 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Normal(**params)
 
+    @testing.with_requires('numpy>=1.11')
     def test_categorical_categorical_cpu(self):
         dist1 = self.make_categorical_dist()
         dist2 = self.make_categorical_dist()
