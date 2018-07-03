@@ -44,11 +44,11 @@ class Categorical(distribution.Distribution):
         if self._is_gpu:
             eps = [cuda.cupy.random.choice(
                 one_p.shape[0], size=(n,), p=one_p) for one_p in onebyone_p]
-            eps = cuda.cupy.stack(eps).T.reshape((n,)+self.batch_shape)
+            eps = cuda.cupy.vstack(eps).T.reshape((n,)+self.batch_shape)
         else:
             eps = [numpy.random.choice(
                 one_p.shape[0], size=(n,), p=one_p) for one_p in onebyone_p]
-            eps = numpy.stack(eps).T.reshape((n,)+self.batch_shape)
+            eps = numpy.vstack(eps).T.reshape((n,)+self.batch_shape)
         noise = chainer.Variable(eps)
         return noise
 
