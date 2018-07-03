@@ -3,7 +3,8 @@ from __future__ import division
 import numpy
 
 from chainer.dataset import iterator
-from chainer.iterators.order_samplers import ShuffleOrderSampler
+from chainer.iterators.order_samplers.order_sampler import OrderSampler  # NOQA
+from chainer.iterators.order_samplers.shuffle_order_sampler import ShuffleOrderSampler  # NOQA
 
 
 class SerialIterator(iterator.Iterator):
@@ -141,7 +142,8 @@ class SerialIterator(iterator.Iterator):
                     self._previous_epoch_detail, 0.)
             else:
                 self._previous_epoch_detail = -1.
-        self.order_sampler.serialize(serializer['order_sampler'])
+        if isinstance(self.order_sampler, OrderSampler):
+            self.order_sampler.serialize(serializer['order_sampler'])
 
     def reset(self):
         self.current_position = 0

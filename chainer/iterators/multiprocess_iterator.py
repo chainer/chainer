@@ -11,7 +11,8 @@ import numpy
 import six
 
 from chainer.dataset import iterator
-from chainer.iterators.order_samplers import ShuffleOrderSampler
+from chainer.iterators.order_samplers.order_sampler import OrderSampler  # NOQA
+from chainer.iterators.order_samplers.shuffle_order_sampler import ShuffleOrderSampler  # NOQA
 
 
 _response_time = 1.
@@ -194,7 +195,8 @@ class MultiprocessIterator(iterator.Iterator):
             else:
                 self._previous_epoch_detail = -1.
         self._set_prefetch_state()
-        self.order_sampler.serialize(serializer['order_sampler'])
+        if isinstance(self.order_sampler, OrderSampler):
+            self.order_sampler.serialize(serializer['order_sampler'])
 
     def reset(self):
         if self._finalized:
