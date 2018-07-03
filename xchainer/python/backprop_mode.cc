@@ -1,6 +1,7 @@
 #include "xchainer/python/backprop_mode.h"
 
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -23,7 +24,7 @@ namespace py = pybind11;  // standard convention
 template <class BackpropModeScope>
 class PyBackpropModeScope {
 public:
-    explicit PyBackpropModeScope() {}
+    PyBackpropModeScope() {}
     explicit PyBackpropModeScope(std::vector<GraphId> graph_ids) : graph_ids_{std::move(graph_ids)} {}
     void Enter() {
         scope_ = graph_ids_.has_value() ? std::make_unique<BackpropModeScope>(*graph_ids_) : std::make_unique<BackpropModeScope>();
