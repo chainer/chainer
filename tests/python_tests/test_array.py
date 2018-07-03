@@ -276,8 +276,9 @@ def test_array_require_grad():
     array.require_grad()
     assert array.is_grad_required()
 
-    with pytest.raises(xchainer.XchainerError):
-        array.require_grad()
+    # Repeated calls should not fail, but do nothing
+    array.require_grad()
+    assert array.is_grad_required()
 
 
 def test_array_require_grad_with_graph_id():
@@ -286,16 +287,20 @@ def test_array_require_grad_with_graph_id():
     assert not array.is_grad_required('graph_1')
     array.require_grad('graph_1')
     assert array.is_grad_required('graph_1')
-    with pytest.raises(xchainer.XchainerError):
-        array.require_grad('graph_1')
+
+    # Repeated calls should not fail, but do nothing
+    array.require_grad('graph_1')
+    assert array.is_grad_required('graph_1')
 
     # keyword arguments
     assert not array.is_grad_required(graph_id='graph_2')
     array.require_grad(graph_id='graph_2')
     assert array.is_grad_required('graph_2')
     assert array.is_grad_required(graph_id='graph_2')
-    with pytest.raises(xchainer.XchainerError):
-        array.require_grad(graph_id='graph_2')
+
+    # Repeated calls should not fail, but do nothing
+    array.require_grad(graph_id='graph_2')
+    assert array.is_grad_required(graph_id='graph_2')
 
     # Raise TypeError if given graph_id is None
     with pytest.raises(TypeError):

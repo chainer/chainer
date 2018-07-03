@@ -1,5 +1,6 @@
 #include "xchainer/array_body.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <memory>
@@ -19,10 +20,12 @@ ArrayBody::ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, 
 const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(std::shared_ptr<ArrayNode> array_node) {
     AssertConsistency();
     assert(this == array_node->GetBody().get());
-    if (std::any_of(nodes_.begin(), nodes_.end(), [&array_node](const std::shared_ptr<ArrayNode>& existing_node) {
-            return existing_node->graph_id() == array_node->graph_id();
-        })) {
-        throw XchainerError{"Duplicate graph registration: '", array_node->graph_id(), "'."};
+    auto it = std::find_if(nodes_.begin(), nodes_.end(), [&array_node](const std::shared_ptr<ArrayNode>& existing_node) {
+        return existing_node->graph_id() == array_node->graph_id();
+    });
+    if (it != nodes_.end()) {
+        AssertConsistency();
+        return *it;  // Do nothing and return the existing ArrayNode if found for this graph.
     }
 
     nodes_.emplace_back(std::move(array_node));

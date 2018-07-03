@@ -36,7 +36,7 @@ public:
     // Adds an array node to the array body.
     // The array node must have been initialized with this array body in advance.
     // Otherwise the behavior is undefined.
-    // It throws XchainerError if an array node with the same graph ID is already registered.
+    // It does nothing if an array node with the same graph ID is already registered.
     // The returned reference is only valid until the next call of AddNode on this instance.
     const std::shared_ptr<ArrayNode>& AddNode(std::shared_ptr<ArrayNode> array_node);
 
