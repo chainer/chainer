@@ -1,5 +1,9 @@
 #include "xchainer/python/backprop_mode.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include <nonstd/optional.hpp>
 
 #include "xchainer/backprop_mode.h"
