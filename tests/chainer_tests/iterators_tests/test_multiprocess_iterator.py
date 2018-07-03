@@ -25,7 +25,9 @@ class DummySerializer(serializer.Serializer):
         self.target = target
 
     def __getitem__(self, key):
-        raise NotImplementedError
+        target_child = dict()
+        self.target[key] = target_child
+        return DummySerializer(target_child)
 
     def __call__(self, key, value):
         self.target[key] = value
@@ -39,7 +41,8 @@ class DummyDeserializer(serializer.Deserializer):
         self.target = target
 
     def __getitem__(self, key):
-        raise NotImplementedError
+        target_child = self.target[key]
+        return DummyDeserializer(target_child)
 
     def __call__(self, key, value):
         if value is None:
