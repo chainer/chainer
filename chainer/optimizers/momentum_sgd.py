@@ -5,7 +5,7 @@ from chainer import optimizer
 
 _default_hyperparam = optimizer.Hyperparameter()
 _default_hyperparam.lr = 0.01
-_default_hyperparam.momentum = 0.
+_default_hyperparam.momentum = 0.9
 
 
 class MomentumSGDRule(optimizer.UpdateRule):
