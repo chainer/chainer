@@ -2,8 +2,9 @@ import unittest
 
 import numpy
 
-from chainer import testing, serializer
 from chainer.iterators.order_samplers.balanced_order_sampler import BalancedOrderSampler  # NOQA
+from chainer import serializer
+from chainer import testing
 
 
 class DummySerializer(serializer.Serializer):

@@ -1,8 +1,8 @@
 import numpy
 
+from chainer.iterators._index_iterator import IndexIterator  # NOQA
 from chainer import serializer
 from chainer import testing
-from chainer.iterators._index_iterator import IndexIterator  # NOQA
 
 
 class DummySerializer(serializer.Serializer):
