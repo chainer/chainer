@@ -139,20 +139,25 @@ class BatchNormalization(link.Link):
             The examples in 1. corresponds to the following, respectively.
 
             >>> bn = chainer.links.BatchNormalization(axis=(0, 2, 3))
-            >>> hasattr(bn, 'avg_mean')
-            False
+            >>> print(bn.avg_mean)
+            None
             >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3,)
 
             >>> bn = chainer.links.BatchNormalization(axis=0)
-            >>> hasattr(bn, 'avg_mean')
-            False
+            >>> print(bn.avg_mean)
+            None
             >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3, 32, 32)
 
     """
+
+    gamma = None
+    beta = None
+    avg_mean = None
+    avg_var = None
 
     def __init__(self, size, decay=0.9, eps=2e-5, dtype=numpy.float32,
                  use_gamma=True, use_beta=True,
@@ -210,16 +215,14 @@ class BatchNormalization(link.Link):
             'Use chainer.using_config')
         finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
 
-        if hasattr(self, 'gamma'):
-            gamma = self.gamma
-        else:
+        gamma = self.gamma
+        if gamma is None:
             with cuda.get_device_from_id(self._device_id):
                 gamma = variable.Variable(self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype))
 
-        if hasattr(self, 'beta'):
-            beta = self.beta
-        else:
+        beta = self.beta
+        if beta is None:
             with cuda.get_device_from_id(self._device_id):
                 beta = variable.Variable(self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype))
