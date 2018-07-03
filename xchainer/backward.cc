@@ -14,6 +14,7 @@
 #include "xchainer/array.h"
 #include "xchainer/array_body.h"
 #include "xchainer/array_node.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/error.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
@@ -133,7 +134,7 @@ Array BackwardContext::Cut(const Array& a) const {
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()}, stop_graph_ids_{stop_graph_ids.begin(), stop_graph_ids.end()} {
-    // Non-const outputs (e.g. in-place ops.) must have been detected and repored before reaching here.
+    // Non-const outputs (e.g. in-place ops.) must have been detected and reported before reaching here.
     assert(std::all_of(outputs.begin(), outputs.end(), [](const Array& output) { return output.IsConstant(); }));
     // All output arrays must have the same device.
     assert(std::all_of(outputs.begin(), outputs.end(), [&outputs](const Array& output) {
@@ -150,22 +151,26 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
     assert(std::all_of(
             inputs.begin(), inputs.end(), [&inputs](const Array& input) { return &input.device() == &(inputs.begin()->get().device()); }));
 
-    // Collect input nodes, grouped by graph
+    // Collect input ArrayNodes, grouped by graph. However, skip the ArrayNodes that belong to graphs for which gradients should be stopped,
+    // by creating a temporary no-backprop scope.
     // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
     using NextArrayNodes = std::vector<std::reference_wrapper<std::shared_ptr<ArrayNode>>>;
     std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes;
-    for (const Array& input : inputs) {
-        for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {
-            const GraphId& graph_id = next_array_node->graph_id();
+    {
+        NoBackpropModeScope scope{stop_graph_ids_};
 
-            // Skip if the node belong to the graphs to stop gradients
-            if (stop_graph_ids_.end() != std::find(stop_graph_ids_.begin(), stop_graph_ids_.end(), graph_id)) {
-                continue;
+        for (const Array& input : inputs) {  // For each input.
+            for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {  // For each graph.
+                const GraphId& graph_id = next_array_node->graph_id();
+
+                if (!IsBackpropRequired(graph_id)) {
+                    continue;
+                }
+
+                // Add the array node to the mapping
+                auto& vec = graph_to_next_array_nodes[graph_id];
+                vec.emplace_back(next_array_node);
             }
-
-            // Add the array node to the mapping
-            auto& vec = graph_to_next_array_nodes[graph_id];
-            vec.emplace_back(next_array_node);
         }
     }
 
