@@ -916,7 +916,7 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
     a.RequireGrad();
 
     EXPECT_TRUE(a.IsGradRequired());
-    EXPECT_THROW(a.RequireGrad(), XchainerError);
+    EXPECT_NO_THROW(a.RequireGrad());
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
@@ -929,20 +929,20 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
     a.RequireGrad(graph_id);
 
     EXPECT_TRUE(a.IsGradRequired(graph_id));
-    EXPECT_THROW(a.RequireGrad(graph_id), XchainerError);
+    EXPECT_NO_THROW(a.RequireGrad(graph_id));
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsCtor) {
     Array a = (*testing::BuildArray({1}).WithData<float>({2.0f})).RequireGrad();
 
     EXPECT_TRUE(a.IsGradRequired());
-    EXPECT_THROW(a.RequireGrad(), XchainerError);
+    EXPECT_NO_THROW(a.RequireGrad());
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsRequireGrad) {
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
-    EXPECT_THROW(a.RequireGrad().RequireGrad(), XchainerError);
+    EXPECT_NO_THROW(a.RequireGrad().RequireGrad());
 }
 
 TEST_P(ArrayTest, MultipleGraphsForward) {
