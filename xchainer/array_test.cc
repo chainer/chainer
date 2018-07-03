@@ -705,132 +705,132 @@ TEST_P(ArrayTest, IsConstantAfterStop) {
     EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
 }
 
-TEST_P(ArrayTest, NeedBackprop) {
+TEST_P(ArrayTest, IsBackpropRequired) {
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
-    EXPECT_FALSE(a.NeedBackprop());
+    EXPECT_FALSE(a.IsBackpropRequired());
 
     a.RequireGrad("testgraph1");
-    EXPECT_TRUE(a.NeedBackprop());
+    EXPECT_TRUE(a.IsBackpropRequired());
     {
         NoBackpropModeScope scope1{};
-        EXPECT_FALSE(a.NeedBackprop());
+        EXPECT_FALSE(a.IsBackpropRequired());
         {
             ForceBackpropModeScope scope2{{"testgraph1"}};
-            EXPECT_TRUE(a.NeedBackprop());
+            EXPECT_TRUE(a.IsBackpropRequired());
         }
     }
 
     a.RequireGrad("testgraph2");
-    EXPECT_TRUE(a.NeedBackprop());
+    EXPECT_TRUE(a.IsBackpropRequired());
     {
         NoBackpropModeScope scope1{{"testgraph1"}};
-        EXPECT_TRUE(a.NeedBackprop());
+        EXPECT_TRUE(a.IsBackpropRequired());
         {
             NoBackpropModeScope scope2{{"testgraph2"}};
-            EXPECT_FALSE(a.NeedBackprop());
+            EXPECT_FALSE(a.IsBackpropRequired());
             {
                 ForceBackpropModeScope scope3{{"testgraph1"}};
-                EXPECT_TRUE(a.NeedBackprop());
+                EXPECT_TRUE(a.IsBackpropRequired());
             }
             {
                 ForceBackpropModeScope scope3{{"testgraph2"}};
-                EXPECT_TRUE(a.NeedBackprop());
+                EXPECT_TRUE(a.IsBackpropRequired());
             }
             {
                 ForceBackpropModeScope scope3{{"foobar"}};
-                EXPECT_FALSE(a.NeedBackprop());
+                EXPECT_FALSE(a.IsBackpropRequired());
             }
         }
     }
     {
         NoBackpropModeScope scope{};
-        EXPECT_FALSE(a.NeedBackprop());
+        EXPECT_FALSE(a.IsBackpropRequired());
     }
     {
         NoBackpropModeScope scope{{"testgraph1", "testgraph2"}};
-        EXPECT_FALSE(a.NeedBackprop());
+        EXPECT_FALSE(a.IsBackpropRequired());
     }
 }
 
-TEST_P(ArrayTest, NeedBackpropAfterStop) {
+TEST_P(ArrayTest, IsBackpropRequiredExcept) {
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
-    EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-    EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-    EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-    EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+    EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+    EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+    EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+    EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
 
     a.RequireGrad("testgraph1");
-    EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-    EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-    EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-    EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+    EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+    EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+    EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+    EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
     {
         NoBackpropModeScope scope1{};
-        EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-        EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-        EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-        EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+        EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+        EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+        EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+        EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
         {
             ForceBackpropModeScope scope2{{"testgraph1"}};
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
         {
             ForceBackpropModeScope scope2{{"foobar"}};
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
     }
 
     a.RequireGrad("testgraph2");
-    EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-    EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-    EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-    EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+    EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+    EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+    EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+    EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
     {
         NoBackpropModeScope scope1{{"testgraph1"}};
-        EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-        EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-        EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-        EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+        EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+        EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+        EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+        EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
         {
             ForceBackpropModeScope scope2{{"testgraph1"}};
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
         {
             ForceBackpropModeScope scope2{{"testgraph2"}};
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
     }
     {
         NoBackpropModeScope scope1{};
-        EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-        EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-        EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-        EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+        EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+        EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+        EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+        EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
         {
             ForceBackpropModeScope scope2{{"testgraph1"}};
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
         {
             ForceBackpropModeScope scope2{{"testgraph2"}};
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{}));
-            EXPECT_TRUE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1"}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph2"}));
-            EXPECT_FALSE(a.NeedBackpropAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{}));
+            EXPECT_TRUE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1"}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph2"}));
+            EXPECT_FALSE(a.IsBackpropRequiredExcept(std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
     }
 }

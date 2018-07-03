@@ -196,10 +196,8 @@ public:
     bool IsGradRequired(const GraphId& graph_id = kDefaultGraphId) const { return internal::HasArrayNode(*this, graph_id); }
 
     // Returns whether the array is constant with regard to any graph.
-    // TODO(sonots): Replace with NeedBackprop
     bool IsConstant() const { return body_->nodes_.empty(); }
 
-    // TODO(sonots): Replace with NeedBackprop
     template <typename Container>
     bool IsConstantAfterStop(Container stop_graph_ids) const {
         const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = nodes();
@@ -209,20 +207,20 @@ public:
     }
 
     // Returns whether the array needs to backprop.
-    bool NeedBackprop() const {
+    bool IsBackpropRequired() const {
         const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = nodes();
         return std::any_of(array_nodes.begin(), array_nodes.end(), [](const std::shared_ptr<const ArrayNode>& array_node) {
-            return IsBackpropRequired(array_node->graph_id());
+            return xchainer::IsBackpropRequired(array_node->graph_id());
         });
     }
 
-    // Returns whether the array needs to backprop after stopping gradient to specified graph.
+    // Returns whether the array needs to backprop for at least one of having graphs except specified graphs.
     template <typename Container>
-    bool NeedBackpropAfterStop(Container stop_graph_ids) const {
+    bool IsBackpropRequiredExcept(Container stop_graph_ids) const {
         const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = nodes();
         return std::any_of(array_nodes.begin(), array_nodes.end(), [&stop_graph_ids](const std::shared_ptr<const ArrayNode>& array_node) {
             if (stop_graph_ids.end() == std::find(stop_graph_ids.begin(), stop_graph_ids.end(), array_node->graph_id())) {
-                return IsBackpropRequired(array_node->graph_id());
+                return xchainer::IsBackpropRequired(array_node->graph_id());
             }
             return false;
         });
