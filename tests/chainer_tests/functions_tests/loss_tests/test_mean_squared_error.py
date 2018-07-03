@@ -58,11 +58,9 @@ class TestMeanSquaredError(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x0), cuda.to_gpu(self.x1))
 
     def check_backward(self, x0_data, x1_data):
-        atol = self.backward_tols['atol']
-        rtol = self.backward_tols['rtol']
         gradient_check.check_backward(
             functions.mean_squared_error,
-            (x0_data, x1_data), None, eps=1e-2, atol=atol, rtol=rtol)
+            (x0_data, x1_data), None, eps=1e-2, **self.backward_tols)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -75,11 +73,9 @@ class TestMeanSquaredError(unittest.TestCase):
 
     def check_double_backward(self, x0_data, x1_data, gy_data,
                               ggx0_data, ggx1_data):
-        atol = self.double_backward_tols['atol']
-        rtol = self.double_backward_tols['rtol']
         gradient_check.check_double_backward(
             functions.mean_squared_error, (x0_data, x1_data), gy_data,
-            (ggx0_data, ggx1_data), eps=1e-2, atol=atol, rtol=rtol)
+            (ggx0_data, ggx1_data), eps=1e-2, **self.double_backward_tols)
 
     @condition.retry(3)
     def test_double_backward_cpu(self):
