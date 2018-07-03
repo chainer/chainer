@@ -69,8 +69,8 @@ class VGG16Layers(link.Chain):
             ``chainer.initializers.Normal(scale=0.01)``.
 
     Attributes:
-        ~VGG16Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``__call__`` and ``extract`` methods.
 
     """
 
