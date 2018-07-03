@@ -146,9 +146,9 @@ class VariableNode(object):
         name (str): Name of the variable node.
 
     Attributes:
-        ~VariableNode.dtype: Data type of the data array.
-        ~VariableNode.shape: Shape of the data array.
-        ~VariableNode.name (str): Name of the variable node.
+        dtype: Data type of the data array.
+        shape: Shape of the data array.
+        name (str): Name of the variable node.
 
     """
 
