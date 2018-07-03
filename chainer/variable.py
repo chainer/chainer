@@ -146,9 +146,9 @@ class VariableNode(object):
         name (str): Name of the variable node.
 
     Attributes:
-        ~VariableNode.dtype: Data type of the data array.
-        ~VariableNode.shape: Shape of the data array.
-        ~VariableNode.name (str): Name of the variable node.
+        dtype: Data type of the data array.
+        shape: Shape of the data array.
+        name (str): Name of the variable node.
 
     """
 
@@ -850,14 +850,7 @@ Actual: {0}'''.format(type(data))
         elif dst is None:
             self.initialize(src.shape)
             dst = self.data
-        src_xp = cuda.get_array_module(src)
-        dst_xp = cuda.get_array_module(dst)
-        if dst_xp is src_xp:
-            dst_xp.copyto(dst, src)
-        elif dst_xp is numpy:
-            dst_xp.copyto(dst, src.get())
-        else:
-            dst.set(src)
+        cuda.copyto(dst, src)
 
     def addgrad(self, var):
         """Accumulates the gradient array from given source variable.

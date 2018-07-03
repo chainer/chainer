@@ -15,9 +15,9 @@ class Uniform(initializer.Initializer):
     independently from uniform distribution :math:`[-scale, scale]`.
 
     Attributes:
-        ~Uniform.scale (float): A constant that determines the
+        scale (float): A constant that determines the
             scale of the uniform distribution.
-        ~Uniform.dtype: Data type specifier.
+        dtype: Data type specifier.
 
     """
 
@@ -46,9 +46,9 @@ class LeCunUniform(initializer.Initializer):
     http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf
 
     Attributes:
-        ~LeCunUniform.scale (float): A constant that determines the
+        scale (float): A constant that determines the
             scale of the uniform distribution.
-        ~LeCunUniform.dtype: Data type specifier.
+        dtype: Data type specifier.
 
     """
 
@@ -73,9 +73,9 @@ class GlorotUniform(initializer.Initializer):
     input and output units, respectively.
 
     Attributes:
-        ~GlorotUniform.scale (float): A constant that determines the
+        scale (float): A constant that determines the
             scale of the uniform distribution.
-        ~GlorotUniform.dtype: Data type specifier.
+        dtype: Data type specifier.
 
     """
 
@@ -101,9 +101,9 @@ class HeUniform(initializer.Initializer):
     Here, :math:`fan_{in}` is the number of input units.
 
     Attributes:
-        ~HeUniform.scale (float): A constant that determines the
+        scale (float): A constant that determines the
             scale of the uniform distribution.
-        ~HeUniform.dtype: Data type specifier.
+        dtype: Data type specifier.
 
     """
 

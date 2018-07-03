@@ -7,6 +7,13 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
+Chainer v5
+==========
+
+FuncionNodes as Implementation Details
+--------------------------------------
+
+When calling a Chainer function such as :func:`~chainer.functions.relu`, a corresponding :class:`~chainer.FunctionNode` is created internally, defining the forward and backward procedures. These classes are no longer a part of the public interface and you are encouraged not to instantiate these objects directly, as their interfaces may change.
 
 Chainer v5
 ==========
