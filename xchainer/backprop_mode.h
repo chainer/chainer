@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <initializer_list>
 #include <utility>
 #include <vector>
 
@@ -46,8 +47,11 @@ public:
     BackpropModeScope() { BackpropModeScopeImpl(nonstd::nullopt); }
 
     // Backprop mode for specified graphs
-    explicit BackpropModeScope(std::vector<GraphId> graph_ids) {
-        BackpropModeScopeImpl(nonstd::optional<std::vector<GraphId>>{std::move(graph_ids)});
+    explicit BackpropModeScope(std::vector<GraphId> graph_ids) { BackpropModeScopeImpl(std::move(graph_ids)); }
+
+    // Backprop mode for specified graphs
+    explicit BackpropModeScope(std::initializer_list<GraphId> graph_ids) {
+        BackpropModeScopeImpl(std::vector<GraphId>{graph_ids.begin(), graph_ids.end()});
     }
 
     BackpropModeScope(const BackpropModeScope&) = delete;
