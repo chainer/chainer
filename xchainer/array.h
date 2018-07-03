@@ -17,7 +17,6 @@
 #include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/axes.h"
-#include "xchainer/backprop_mode.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -207,12 +206,7 @@ public:
     }
 
     // Returns whether the array needs to backprop.
-    bool IsBackpropRequired() const {
-        const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = nodes();
-        return std::any_of(array_nodes.begin(), array_nodes.end(), [](const std::shared_ptr<const ArrayNode>& array_node) {
-            return xchainer::IsBackpropRequired(array_node->graph_id());
-        });
-    }
+    bool IsBackpropRequired() const;
 
     // Creates a new ArrayNode to store the gradient
     const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const {
@@ -271,22 +265,6 @@ inline Array operator+(Scalar lhs, const Array& rhs) { return rhs + lhs; }
 inline Array operator-(Scalar lhs, const Array& rhs) { return -rhs + lhs; }
 inline Array operator*(Scalar lhs, const Array& rhs) { return rhs * lhs; }
 // TODO(hvy): Implement Scalar / Array using e.g. multiplication with reciprocal.
-
-namespace internal {
-
-// Returns whether the array needs to backprop for at least one of having graphs except specified graphs.
-template <typename Container>
-bool IsBackpropRequiredExcept(const Array& array, Container stop_graph_ids) {
-    const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
-    return std::any_of(array_nodes.begin(), array_nodes.end(), [&stop_graph_ids](const std::shared_ptr<const ArrayNode>& array_node) {
-        if (stop_graph_ids.end() == std::find(stop_graph_ids.begin(), stop_graph_ids.end(), array_node->graph_id())) {
-            return xchainer::IsBackpropRequired(array_node->graph_id());
-        }
-        return false;
-    });
-}
-
-}  // namespace internal
 
 void DebugDumpComputationalGraph(
         std::ostream& os,

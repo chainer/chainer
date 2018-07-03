@@ -7,6 +7,8 @@
 
 #include <nonstd/optional.hpp>
 
+#include "xchainer/array.h"
+#include "xchainer/array_node.h"
 #include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/graph.h"
@@ -81,5 +83,29 @@ using NoBackpropModeScope = backprop_mode_detail::BackpropModeScope<false>;
 using ForceBackpropModeScope = backprop_mode_detail::BackpropModeScope<true>;
 
 bool IsBackpropRequired(const GraphId& graph_id = kDefaultGraphId, Context& context = GetDefaultContext());
+
+// Returns whether the array needs to backprop.
+inline bool IsBackpropRequired(const Array& array) {
+    const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
+    return std::any_of(array_nodes.begin(), array_nodes.end(), [](const std::shared_ptr<const ArrayNode>& array_node) {
+        return IsBackpropRequired(array_node->graph_id());
+    });
+}
+
+namespace internal {
+
+// Returns whether the array needs to backprop for at least one of having graphs except specified graphs.
+template <typename Container>
+bool IsBackpropRequiredExcept(const Array& array, Container stop_graph_ids) {
+    const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
+    return std::any_of(array_nodes.begin(), array_nodes.end(), [&stop_graph_ids](const std::shared_ptr<const ArrayNode>& array_node) {
+        if (stop_graph_ids.end() == std::find(stop_graph_ids.begin(), stop_graph_ids.end(), array_node->graph_id())) {
+            return IsBackpropRequired(array_node->graph_id());
+        }
+        return false;
+    });
+}
+
+}  // namespace internal
 
 }  // namespace xchainer
