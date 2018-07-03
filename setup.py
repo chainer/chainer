@@ -34,8 +34,10 @@ requirements = {
         cupy_requirement('cupy'),
     ],
     'stylecheck': [
-        'autopep8',
-        'hacking==1.0.0',
+        'autopep8==1.3.5',
+        'flake8==3.5.0',
+        'pbr==4.0.4',
+        'pycodestyle==2.3.1',
     ],
     'test': [
         'pytest',
