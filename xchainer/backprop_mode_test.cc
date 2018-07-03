@@ -389,7 +389,7 @@ TEST(BackpropModeScopeTest, IsBackpropRequired_Array) {
         NoBackpropModeScope scope1{};
         EXPECT_FALSE(IsBackpropRequired(a));
         {
-            ForceBackpropModeScope scope2{{"testgraph1"}};
+            ForceBackpropModeScope scope2{"testgraph1"};
             EXPECT_TRUE(IsBackpropRequired(a));
         }
     }
@@ -397,17 +397,17 @@ TEST(BackpropModeScopeTest, IsBackpropRequired_Array) {
     a.RequireGrad("testgraph2");
     EXPECT_TRUE(IsBackpropRequired(a));
     {
-        NoBackpropModeScope scope1{{"testgraph1"}};
+        NoBackpropModeScope scope1{"testgraph1"};
         EXPECT_TRUE(IsBackpropRequired(a));
         {
-            NoBackpropModeScope scope2{{"testgraph2"}};
+            NoBackpropModeScope scope2{"testgraph2"};
             EXPECT_FALSE(IsBackpropRequired(a));
             {
-                ForceBackpropModeScope scope3{{"testgraph1"}};
+                ForceBackpropModeScope scope3{"testgraph1"};
                 EXPECT_TRUE(IsBackpropRequired(a));
             }
             {
-                ForceBackpropModeScope scope3{{"testgraph2"}};
+                ForceBackpropModeScope scope3{"testgraph2"};
                 EXPECT_TRUE(IsBackpropRequired(a));
             }
             {
@@ -421,7 +421,7 @@ TEST(BackpropModeScopeTest, IsBackpropRequired_Array) {
         EXPECT_FALSE(IsBackpropRequired(a));
     }
     {
-        NoBackpropModeScope scope{{"testgraph1", "testgraph2"}};
+        NoBackpropModeScope scope{"testgraph1", "testgraph2"};
         EXPECT_FALSE(IsBackpropRequired(a));
     }
 }
@@ -447,14 +447,14 @@ TEST(BackpropModeScopeTest, IsBackpropRequiredExcept_Array) {
         EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph2"}));
         EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1", "testgraph2"}));
         {
-            ForceBackpropModeScope scope2{{"testgraph1"}};
+            ForceBackpropModeScope scope2{"testgraph1"};
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{}));
             EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1"}));
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph2"}));
             EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
         {
-            ForceBackpropModeScope scope2{{"foobar"}};
+            ForceBackpropModeScope scope2{"foobar"};
             EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{}));
             EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1"}));
             EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph2"}));
@@ -468,20 +468,20 @@ TEST(BackpropModeScopeTest, IsBackpropRequiredExcept_Array) {
     EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph2"}));
     EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1", "testgraph2"}));
     {
-        NoBackpropModeScope scope1{{"testgraph1"}};
+        NoBackpropModeScope scope1{"testgraph1"};
         EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{}));
         EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1"}));
         EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph2"}));
         EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1", "testgraph2"}));
         {
-            ForceBackpropModeScope scope2{{"testgraph1"}};
+            ForceBackpropModeScope scope2{"testgraph1"};
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{}));
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1"}));
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph2"}));
             EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
         {
-            ForceBackpropModeScope scope2{{"testgraph2"}};
+            ForceBackpropModeScope scope2{"testgraph2"};
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{}));
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1"}));
             EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph2"}));
@@ -495,14 +495,14 @@ TEST(BackpropModeScopeTest, IsBackpropRequiredExcept_Array) {
         EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph2"}));
         EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1", "testgraph2"}));
         {
-            ForceBackpropModeScope scope2{{"testgraph1"}};
+            ForceBackpropModeScope scope2{"testgraph1"};
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{}));
             EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1"}));
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph2"}));
             EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
         {
-            ForceBackpropModeScope scope2{{"testgraph2"}};
+            ForceBackpropModeScope scope2{"testgraph2"};
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{}));
             EXPECT_TRUE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph1"}));
             EXPECT_FALSE(internal::IsBackpropRequiredExcept(a, std::vector<GraphId>{"testgraph2"}));
