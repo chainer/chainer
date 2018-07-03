@@ -67,7 +67,7 @@ paths = sorted([
     str(path) for path in pathlib.Path(args.dataset).glob('wav48/*/*.wav')])
 preprocess = Preprocess(
     sr=16000, n_fft=1024, hop_length=256, n_mels=128, top_db=20,
-    length=7680, quantize=args.a_channels)
+    length=args.length, quantize=args.a_channels)
 dataset = chainer.datasets.TransformDataset(paths, preprocess)
 train, valid = chainer.datasets.split_dataset_random(
     dataset, int(len(dataset) * 0.9), args.seed)
