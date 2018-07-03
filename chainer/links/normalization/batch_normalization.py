@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import functions
@@ -168,7 +169,7 @@ class BatchNormalization(link.Link):
     avg_mean = None
     avg_var = None
 
-    def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=numpy.float32,
+    def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=None,
                  use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None, axis=None):
         super(BatchNormalization, self).__init__()
@@ -182,7 +183,7 @@ class BatchNormalization(link.Link):
         if isinstance(axis, int):
             axis = (axis,)
         self.axis = axis
-        self._dtype = dtype
+        self._dtype = chainer.get_dtype(dtype)
 
         with self.init_scope():
             if use_gamma:
