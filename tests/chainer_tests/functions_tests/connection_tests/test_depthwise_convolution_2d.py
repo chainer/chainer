@@ -77,8 +77,8 @@ class TestDepthwiseConvolution2DFunction(unittest.TestCase):
             args = args + (b_data,)
 
         gradient_check.check_backward(
-            lambda *x: functions.depthwise_convolution_2d(
-                *x, stride=self.stride, pad=self.pad),
+            lambda *inputs: functions.depthwise_convolution_2d(
+                *inputs, stride=self.stride, pad=self.pad),
             args, y_grad, **self.check_backward_options)
 
     @condition.retry(3)
