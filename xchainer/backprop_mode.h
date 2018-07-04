@@ -85,6 +85,7 @@ using ForceBackpropModeScope = backprop_mode_detail::BackpropModeScope<true>;
 bool IsBackpropRequired(const GraphId& graph_id = kDefaultGraphId, Context& context = GetDefaultContext());
 
 // Returns whether the array needs to backprop.
+// This takes into account NoBackpropModeScope and ForceBackpropModeScope.
 inline bool IsBackpropRequired(const Array& array) {
     const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
     return std::any_of(array_nodes.begin(), array_nodes.end(), [](const std::shared_ptr<const ArrayNode>& array_node) {
@@ -95,6 +96,7 @@ inline bool IsBackpropRequired(const Array& array) {
 namespace internal {
 
 // Returns whether the array needs to backprop for at least one of having graphs except specified graphs.
+// This takes into account NoBackpropModeScope and ForceBackpropModeScope.
 template <typename Container>
 bool IsBackpropRequiredAfterStop(const Array& array, Container stop_graph_ids) {
     const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();

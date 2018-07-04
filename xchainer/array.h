@@ -206,6 +206,7 @@ public:
     }
 
     // Returns whether the array needs to backprop.
+    // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
     bool IsBackpropRequired() const;
 
     // Creates a new ArrayNode to store the gradient
