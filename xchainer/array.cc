@@ -328,7 +328,7 @@ void Array::ClearGrad(const GraphId& graph_id) const { body_->ClearGrad(graph_id
 bool Array::IsBackpropRequired() const { return xchainer::IsBackpropRequired(*this); }
 
 const Array& Array::RequireGrad(const GraphId& graph_id) const {
-    if (IsBackpropRequired(graph_id, device().context())) {
+    if (xchainer::IsBackpropRequired(graph_id, device().context())) {
         internal::CreateArrayNode(*this, graph_id);
     }
     return *this;
