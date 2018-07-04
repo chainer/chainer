@@ -7,6 +7,7 @@ import numpy
     'shape': [(3, 2), (1,)],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
+    'extreme_values': [True, False],
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
@@ -23,7 +24,11 @@ class TestBernoulli(testing.distribution_unittest):
             "batch_shape", "entropy", "log_prob", "mean", "prob", "sample",
             "stddev", "support", "variance"])
 
-        p = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
+        if self.extreme_values:
+            p = numpy.random.randint(0, 2, self.shape).astype(numpy.float32)
+        else:
+            p = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
+
         self.params = {"p": p}
         self.scipy_params = {"p": p}
 

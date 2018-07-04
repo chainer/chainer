@@ -5,7 +5,68 @@ from chainer.functions.activation import sigmoid
 from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
+from chainer import utils
 import numpy
+
+
+class BernoulliLogProb(chainer.function_node.FunctionNode):
+
+    def forward(self, inputs):
+        logit, x = inputs
+        self.retain_inputs((0, 1))
+        xp = cuda.get_array_module(x)
+        y = logit * (x - 1) - xp.log(xp.exp(-logit) + 1)
+
+        self.invalid = xp.bitwise_and(x != 0, x != 1)
+        y[self.invalid] = - xp.inf
+
+        # extreme logit
+        logit_isinf = xp.isinf(logit)
+        self.to_zero = xp.bitwise_and(
+            logit_isinf, xp.sign(x-0.5) == xp.sign(logit))
+        self.to_m_inf = xp.bitwise_and(
+            logit_isinf, xp.sign(x-0.5) != xp.sign(logit))
+        y[self.to_zero] = 0.
+        y[self.to_m_inf] = - xp.inf
+
+        return utils.force_array(y, x.dtype),
+
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        logit, x = self.get_retained_inputs()
+        xp = cuda.get_array_module(x)
+        dlogit = x - 1. / (1. + xp.exp(-logit))
+        dlogit[self.invalid] = xp.nan
+        dlogit[self.to_zero] = xp.nan
+        dlogit[self.to_m_inf] = xp.nan
+        return gy * dlogit, None
+
+
+class ModifiedXLogX(chainer.function_node.FunctionNode):
+
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        self.invalid = (x == 0)
+        self.logx = xp.log(x)
+        y = x * self.logx
+        y[self.invalid] = 0.
+        return y,
+
+    def backward(self, indexes, grad_outputs):
+        gy, = grad_outputs
+        dx = (1 + self.logx)
+        dx[self.invalid] = 0.
+        return gy * dx,
+
+
+def _bernoulli_log_prob(logit, x):
+    y, = BernoulliLogProb().apply((logit, x))
+    return y
+
+
+def _modified_xlogx(x):
+    return ModifiedXLogX().apply((x,))[0]
 
 
 class Bernoulli(distribution.Distribution):
@@ -52,16 +113,7 @@ class Bernoulli(distribution.Distribution):
     def entropy(self):
         p = self.p
         q = p.dtype.type(1.) - p
-        if self._is_gpu:
-            zero_entropy = cuda.cupy.bitwise_or(
-                self.p.array == 0, self.p.array == 1)
-            not_zero_entropy = cuda.cupy.logical_not(zero_entropy)
-        else:
-            zero_entropy = numpy.bitwise_or(
-                self.p.array == 0, self.p.array == 1)
-            not_zero_entropy = numpy.logical_not(zero_entropy)
-        return - p * exponential.log(p * not_zero_entropy + zero_entropy) \
-            - (q) * exponential.log(q * not_zero_entropy + zero_entropy)
+        return - _modified_xlogx(p) - _modified_xlogx(q)
 
     @property
     def event_shape(self):
@@ -75,16 +127,8 @@ class Bernoulli(distribution.Distribution):
         if isinstance(x, chainer.Variable):
             x = x.array
         x = x.astype(self.p.dtype)
-        if self._is_gpu:
-            invalid_inf = cuda.cupy.zeros_like(x)
-            invalid = cuda.cupy.bitwise_and(x != 0, x != 1)
-        else:
-            invalid_inf = numpy.zeros_like(x)
-            invalid = numpy.bitwise_and(x != 0, x != 1)
-        invalid_inf[invalid] = numpy.inf
 
-        bl = broadcast.broadcast_to(self.logit, x.shape)
-        return bl * (x - 1) - exponential.log(exponential.exp(-bl) + 1)
+        return _bernoulli_log_prob(self.logit, x)
 
     @property
     def mean(self):
