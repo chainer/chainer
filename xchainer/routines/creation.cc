@@ -196,7 +196,7 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     Array out = Empty(shape, dt, a.device());
     a.device().AsType(a, out);
 
-    if (!a.IsConstant() && GetKind(dt) == DtypeKind::kFloat) {
+    if (a.IsBackpropRequired() && GetKind(dt) == DtypeKind::kFloat) {
         BackwardBuilder bb{"ascontiguousarray", out};
         bb.Define({a}, [src_dt](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
@@ -239,7 +239,7 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         throw DimensionError{"Input must be 1D or 2D."};
     }
 
-    if (!v.IsConstant()) {
+    if (v.IsBackpropRequired()) {
         BackwardBuilder bb{"diag", out};
         bb.Define({v}, [& device = v.device(), k ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
