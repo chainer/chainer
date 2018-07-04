@@ -244,29 +244,29 @@ Array Array::ToNative() const {
     return ToDevice(native_device);
 }
 
-Array Array::AsGradStopped(CopyKind kind) const {
+namespace {
+
+Array AsGradStoppedAfterBackpropModeScope(const Array& array, CopyKind kind) {
     switch (kind) {
-        case CopyKind::kCopy: {
-            NoBackpropModeScope scope{};
-            return Copy();
-        }
+        case CopyKind::kCopy:
+            return array.Copy();
         case CopyKind::kView:
-            return Array{shape(), strides(), dtype(), device(), body_->data_, offset()};
+            return array.MakeView();
         default:
             XCHAINER_NEVER_REACH();
     }
 }
 
+}  // namespace
+
+Array Array::AsGradStopped(CopyKind kind) const {
+    NoBackpropModeScope scope{device().context()};
+    return AsGradStoppedAfterBackpropModeScope(*this, kind);
+}
+
 Array Array::AsGradStopped(gsl::span<const GraphId> graph_ids, CopyKind kind) const {
-    NoBackpropModeScope scope{std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}};
-    switch (kind) {
-        case CopyKind::kCopy:
-            return Copy();
-        case CopyKind::kView:
-            return MakeView();
-        default:
-            XCHAINER_NEVER_REACH();
-    }
+    NoBackpropModeScope scope{std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}, device().context()};
+    return AsGradStoppedAfterBackpropModeScope(*this, kind);
 }
 
 Array Array::AsType(Dtype dtype, bool copy) const {
