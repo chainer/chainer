@@ -53,7 +53,9 @@ bool HasArrayNode(const Array& array, const GraphId& graph_id) {
 }
 
 const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id) {
-    return array.body()->AddNode(std::make_shared<ArrayNode>(array.body(), array.shape(), array.dtype(), array.device(), graph_id));
+    auto array_node = std::make_shared<ArrayNode>(array.shape(), array.dtype(), array.device(), graph_id);
+    array_node->SetArrayBody(array.body());
+    return array.body()->AddNode(array_node);
 }
 
 std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id) { return GetMutableArrayNode(array, graph_id); }
@@ -391,6 +393,7 @@ public:
                 if (body == nullptr) {
                     os_ << Indent(indent + 2) << "body=(gone)" << std::endl;
                 } else {
+                    os_ << Indent(indent + 2) << "body=" << body.get() << std::endl;
                     const nonstd::optional<Array>* grad = body->GetGrad(array_node.graph_id());
                     assert(grad != nullptr);
                     if (grad->has_value()) {
