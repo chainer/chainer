@@ -8,7 +8,9 @@
 #include "xchainer/context.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
+#include "xchainer/testing/array.h"
 #include "xchainer/testing/context_session.h"
+#include "xchainer/testing/device_session.h"
 
 namespace xchainer {
 namespace {
@@ -373,6 +375,80 @@ TEST(BackpropModeScopeTest, BackpropModeScopeFlatScope) {
 TEST(BackpropModeScopeTest, BackpropModeWithoutContext) {
     EXPECT_THROW({ NoBackpropModeScope{}; }, ContextError);
     EXPECT_THROW({ ForceBackpropModeScope{}; }, ContextError);
+}
+
+TEST(BackpropModeScopeTest, ArrayIsBackpropRequiredNoGraph) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+
+    EXPECT_FALSE(IsBackpropRequired(a));
+}
+
+TEST(BackpropModeScopeTest, ArrayIsBackpropRequiredSingleGraph) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+    a.RequireGrad("testgraph1");
+
+    EXPECT_TRUE(IsBackpropRequired(a));
+    {
+        NoBackpropModeScope scope1{};
+        EXPECT_FALSE(IsBackpropRequired(a));
+        {
+            ForceBackpropModeScope scope2{"testgraph1"};
+            EXPECT_TRUE(IsBackpropRequired(a));
+        }
+    }
+}
+
+TEST(BackpropModeScopeTest, ArrayIsBackpropRequiredMultipleGraphs) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+    a.RequireGrad("testgraph1");
+    a.RequireGrad("testgraph2");
+
+    EXPECT_TRUE(IsBackpropRequired(a));
+    {
+        NoBackpropModeScope scope1{"testgraph1"};
+        EXPECT_TRUE(IsBackpropRequired(a));
+        {
+            NoBackpropModeScope scope2{"testgraph2"};
+            EXPECT_FALSE(IsBackpropRequired(a));
+            {
+                ForceBackpropModeScope scope3{"testgraph1"};
+                EXPECT_TRUE(IsBackpropRequired(a));
+            }
+            {
+                ForceBackpropModeScope scope3{"testgraph2"};
+                EXPECT_TRUE(IsBackpropRequired(a));
+            }
+            {
+                ForceBackpropModeScope scope3{{"foobar"}};
+                EXPECT_FALSE(IsBackpropRequired(a));
+            }
+        }
+    }
+    {
+        NoBackpropModeScope scope{};
+        EXPECT_FALSE(IsBackpropRequired(a));
+    }
+    {
+        NoBackpropModeScope scope{"testgraph1", "testgraph2"};
+        EXPECT_FALSE(IsBackpropRequired(a));
+    }
+}
+
+TEST(BackpropModeScopeTest, ArrayIsBackpropRequiredAnotherContext) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+    a.RequireGrad("testgraph1");
+
+    EXPECT_TRUE(IsBackpropRequired(a));
+    {
+        testing::ContextSession another_context_session{};
+        NoBackpropModeScope scope{};
+        // BackpropModeScope of another context does not reflect.
+        EXPECT_TRUE(IsBackpropRequired(a));
+    }
 }
 
 }  // namespace
