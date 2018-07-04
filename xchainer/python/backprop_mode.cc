@@ -40,25 +40,22 @@ private:
     nonstd::optional<std::vector<GraphId>> graph_ids_{};
 };
 
-using PyNoBackpropModeScope = PyBackpropModeScope<NoBackpropModeScope>;
-using PyForceBackpropModeScope = PyBackpropModeScope<ForceBackpropModeScope>;
-
-template <class PyBackpropModeScope>
+template <class BackpropModeScope>
 void InitXchainerBackpropModeScope(pybind11::module& m, const char* class_name, const char* function_name) {
-    py::class_<PyBackpropModeScope> c{m, class_name};
-    c.def("__enter__", &PyBackpropModeScope::Enter);
-    c.def("__exit__", &PyBackpropModeScope::Exit);
+    py::class_<PyBackpropModeScope<BackpropModeScope>> c{m, class_name};
+    c.def("__enter__", &PyBackpropModeScope<BackpropModeScope>::Enter);
+    c.def("__exit__", &PyBackpropModeScope<BackpropModeScope>::Exit);
 
-    m.def(function_name, []() { return PyBackpropModeScope{}; });
-    m.def(function_name, [](GraphId graph_id) { return PyBackpropModeScope{{std::move(graph_id)}}; });
-    m.def(function_name, [](const std::vector<GraphId>& graph_ids) { return PyBackpropModeScope{graph_ids}; });
+    m.def(function_name, []() { return PyBackpropModeScope<BackpropModeScope>{}; });
+    m.def(function_name, [](GraphId graph_id) { return PyBackpropModeScope<BackpropModeScope>{{std::move(graph_id)}}; });
+    m.def(function_name, [](const std::vector<GraphId>& graph_ids) { return PyBackpropModeScope<BackpropModeScope>{graph_ids}; });
 }
 
 }  // namespace
 
 void InitXchainerBackpropMode(pybind11::module& m) {
-    InitXchainerBackpropModeScope<PyNoBackpropModeScope>(m, "NoBackpropMode", "no_backprop_mode");
-    InitXchainerBackpropModeScope<PyForceBackpropModeScope>(m, "ForceBackpropMode", "force_backprop_mode");
+    InitXchainerBackpropModeScope<NoBackpropModeScope>(m, "NoBackpropMode", "no_backprop_mode");
+    InitXchainerBackpropModeScope<ForceBackpropModeScope>(m, "ForceBackpropMode", "force_backprop_mode");
 
     m.def("is_backprop_required",
           [](const GraphId& graph_id, py::handle context) { return IsBackpropRequired(graph_id, GetContext(context)); },
