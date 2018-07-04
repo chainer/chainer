@@ -17,6 +17,18 @@ namespace internal {
 
 namespace py = pybind11;  // standard convention
 
+Context& GetContext(py::handle handle) {
+    if (handle.is_none()) {
+        return GetDefaultContext();
+    }
+
+    if (py::isinstance<Context&>(handle)) {
+        return py::cast<Context&>(handle);
+    }
+
+    throw py::type_error{"Invalid Context type: " + py::cast<std::string>(py::repr(handle))};
+}
+
 class PyContextScope {
 public:
     explicit PyContextScope(Context& target) : target_(target) {}
