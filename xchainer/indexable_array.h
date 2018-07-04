@@ -34,7 +34,7 @@ static std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
     const uint8_t* base = internal::GetRawOffsetData<const uint8_t>(a);
     return std::tuple<const uint8_t*, const uint8_t*>{base + lower, base + upper};
 }
-#endif
+#endif  // NDEBUG
 
 }  // namespace indexable_array_detail
 
@@ -50,7 +50,7 @@ public:
 
 #ifndef NDEBUG
         std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-#endif
+#endif  // NDEBUG
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -92,7 +92,7 @@ private:
 #ifndef NDEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
-#endif
+#endif  // NDEBUG
     int64_t strides_[kNdim];
 };
 
@@ -109,7 +109,7 @@ public:
 
 #ifndef NDEBUG
         std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-#endif
+#endif  // NDEBUG
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -139,7 +139,7 @@ private:
 #ifndef NDEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
-#endif
+#endif  // NDEBUG
     int64_t stride_{};
 };
 
@@ -158,7 +158,7 @@ public:
 
 #ifndef NDEBUG
         std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-#endif
+#endif  // NDEBUG
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -204,7 +204,7 @@ private:
 #ifndef NDEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
-#endif
+#endif  // NDEBUG
     int64_t strides_[kMaxNdim];
     int8_t ndim_;
 };

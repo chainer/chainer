@@ -19,6 +19,7 @@
 #include "xchainer/array_node.h"
 #include "xchainer/axes.h"
 #include "xchainer/backend.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/context.h"
@@ -704,7 +705,14 @@ TEST_P(ArrayTest, IsConstantAfterStop) {
     EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
 }
 
-TEST_P(ArrayTest, AsConstantCopy) {
+TEST_P(ArrayTest, IsBackpropRequired) {
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+
+    a.RequireGrad("testgraph1");
+    EXPECT_TRUE(a.IsBackpropRequired());
+}
+
+TEST_P(ArrayTest, AsGradStoppedCopy) {
     // Stop gradients on all graphs
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
@@ -712,7 +720,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
-        Array b = a.AsConstant(CopyKind::kCopy);
+        Array b = a.AsGradStopped(CopyKind::kCopy);
 
         EXPECT_EQ(&b.device(), &a.device());
 
@@ -733,7 +741,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         ASSERT_TRUE(a.IsGradRequired("graph_3"));
-        Array b = a.AsConstant({"graph_1", "graph_2"}, CopyKind::kCopy);
+        Array b = a.AsGradStopped({"graph_1", "graph_2"}, CopyKind::kCopy);
 
         EXPECT_EQ(&b.device(), &a.device());
 
@@ -750,13 +758,13 @@ TEST_P(ArrayTest, AsConstantCopy) {
     // Non-contiguous
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false}).WithPadding(4);
-        Array b = a.AsConstant(CopyKind::kCopy);
+        Array b = a.AsGradStopped(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualCopy(a, b);
     }
 }
 
-TEST_P(ArrayTest, AsConstantView) {
+TEST_P(ArrayTest, AsGradStoppedView) {
     // Stop gradients on all graphs
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
@@ -764,7 +772,7 @@ TEST_P(ArrayTest, AsConstantView) {
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
-        Array b = a.AsConstant();
+        Array b = a.AsGradStopped();
 
         testing::ExpectEqualView(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
@@ -783,7 +791,7 @@ TEST_P(ArrayTest, AsConstantView) {
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         ASSERT_TRUE(a.IsGradRequired("graph_3"));
-        Array b = a.AsConstant({"graph_1", "graph_2"});
+        Array b = a.AsGradStopped({"graph_1", "graph_2"});
 
         testing::ExpectEqualView(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
@@ -797,7 +805,7 @@ TEST_P(ArrayTest, AsConstantView) {
     // Non-contiguous
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false}).WithPadding(4);
-        Array b = a.AsConstant(CopyKind::kView);
+        Array b = a.AsGradStopped(CopyKind::kView);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualView(a, b);
     }
@@ -916,7 +924,7 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
     a.RequireGrad();
 
     EXPECT_TRUE(a.IsGradRequired());
-    EXPECT_THROW(a.RequireGrad(), XchainerError);
+    EXPECT_NO_THROW(a.RequireGrad());
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
@@ -929,20 +937,20 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
     a.RequireGrad(graph_id);
 
     EXPECT_TRUE(a.IsGradRequired(graph_id));
-    EXPECT_THROW(a.RequireGrad(graph_id), XchainerError);
+    EXPECT_NO_THROW(a.RequireGrad(graph_id));
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsCtor) {
     Array a = (*testing::BuildArray({1}).WithData<float>({2.0f})).RequireGrad();
 
     EXPECT_TRUE(a.IsGradRequired());
-    EXPECT_THROW(a.RequireGrad(), XchainerError);
+    EXPECT_NO_THROW(a.RequireGrad());
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsRequireGrad) {
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
-    EXPECT_THROW(a.RequireGrad().RequireGrad(), XchainerError);
+    EXPECT_NO_THROW(a.RequireGrad().RequireGrad());
 }
 
 TEST_P(ArrayTest, MultipleGraphsForward) {
@@ -969,6 +977,20 @@ TEST_P(ArrayTest, MultipleGraphsForward) {
     // No unspecified graphs are generated
     EXPECT_FALSE(o.IsGradRequired(kDefaultGraphId));
     EXPECT_FALSE(o.IsGradRequired("graph_3"));
+}
+
+TEST_P(ArrayTest, RequireGradWithBackpropModeScope) {
+    Array a = testing::BuildArray({1}).WithData<float>({2.0f});
+    {
+        NoBackpropModeScope scope{};
+        a.RequireGrad();
+    }
+    EXPECT_FALSE(a.IsGradRequired());
+    {
+        ForceBackpropModeScope scope{};
+        a.RequireGrad();
+    }
+    EXPECT_TRUE(a.IsGradRequired());
 }
 
 TEST_P(ArrayTest, Take) {

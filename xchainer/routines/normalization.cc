@@ -137,8 +137,8 @@ Array BatchNorm(
 Array FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis) {
     PreprocessBatchNormResult result =
-            PreprocessBatchNorm(x, gamma.AsConstant(), beta.AsConstant(), mean.AsConstant(), var.AsConstant(), axis);
-    return x.device().FixedBatchNorm(x.AsConstant(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis);
+            PreprocessBatchNorm(x, gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), axis);
+    return x.device().FixedBatchNorm(x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis);
 }
 
 }  // namespace xchainer

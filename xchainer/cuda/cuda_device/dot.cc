@@ -56,7 +56,7 @@ struct GemmInputLayout {
         // Force C contiguous
         ld = a.shape()[1];
         trans = CUBLAS_OP_N;  // transposed
-        return a.IsContiguous() ? a : a.AsConstant(CopyKind::kCopy);
+        return a.IsContiguous() ? a : a.AsGradStopped(CopyKind::kCopy);
     }
 };
 
@@ -79,9 +79,9 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
 
     if (m == 1 && n == 1) {
         // TODO(beam2d): Write a custom reduction kernel.
-        Array l = a.AsConstant();
-        Array r = b.AsConstant();
-        Array o = out.AsConstant();
+        Array l = a.AsGradStopped();
+        Array r = b.AsGradStopped();
+        Array o = out.AsGradStopped();
         Sum(l.Reshape({k}) * r.Reshape({k}), {0}, o.Reshape({}));
         return;
     }

@@ -169,13 +169,13 @@ public:
 
     // Creates a copy or a view. It will be disconnected from all the graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsConstant(CopyKind kind = CopyKind::kView) const;
+    Array AsGradStopped(CopyKind kind = CopyKind::kView) const;
 
     // Creates a copy or a view. It will be disconnected from the specified graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const;
-    Array AsConstant(std::initializer_list<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const {
-        return AsConstant(gsl::span<const GraphId>{graph_ids.begin(), graph_ids.end()}, kind);
+    Array AsGradStopped(gsl::span<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsGradStopped(std::initializer_list<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const {
+        return AsGradStopped(gsl::span<const GraphId>{graph_ids.begin(), graph_ids.end()}, kind);
     }
 
     // Casts to a specified type.
@@ -197,15 +197,6 @@ public:
     // Returns whether the array is constant with regard to any graph.
     bool IsConstant() const { return body_->nodes_.empty(); }
 
-    // Returns whether the array is constant with regard to specified graph.
-    // TODO(niboshi): Implement
-    bool IsConstant(const GraphId& /*graph_id*/) const { throw NotImplementedError(); }
-
-    // Returns whether the array is constant with regard to all of the specified graphs.
-    // TODO(niboshi): Implement
-    bool IsConstant(gsl::span<const GraphId> /*graph_ids*/) const { throw NotImplementedError(); }
-
-    // TODO(niboshi): The name of this function is temporary. To be reconsidered when nobackprop mode is implemented.
     template <typename Container>
     bool IsConstantAfterStop(Container stop_graph_ids) const {
         const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = nodes();
@@ -214,17 +205,15 @@ public:
         });
     }
 
-    // Creates a new ArrayNode to store the gradient
-    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const {
-        internal::CreateArrayNode(*this, graph_id);
-        return *this;
-    }
+    // Returns whether the array needs to backprop.
+    // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
+    bool IsBackpropRequired() const;
 
-    // Creates a new ArrayNode to store the gradient
-    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) {
-        internal::CreateArrayNode(*this, graph_id);
-        return *this;
-    }
+    // Flags the array to compute the gradient during backprop.
+    // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.
+    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const;
+
+    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId);
 
     int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 

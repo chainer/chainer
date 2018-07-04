@@ -28,18 +28,18 @@ class MLP:
     def update(self, lr):
         for param in self.params:
             # TODO(beam2d): make it easier
-            p = param.as_constant()
-            p -= lr * param.grad.as_constant()  # TODO(beam2d): make grad not have graph by default
+            p = param.as_grad_stopped()
+            p -= lr * param.grad.as_grad_stopped()  # TODO(beam2d): make grad not have graph by default
             param.cleargrad()
 
     def no_grad(self):
         # TODO(beam2d): implement a mode to not create a graph
-        self.W1 = self.W1.as_constant()
-        self.b1 = self.b1.as_constant()
-        self.W2 = self.W2.as_constant()
-        self.b2 = self.b2.as_constant()
-        self.W3 = self.W3.as_constant()
-        self.b3 = self.b3.as_constant()
+        self.W1 = self.W1.as_grad_stopped()
+        self.b1 = self.b1.as_grad_stopped()
+        self.W2 = self.W2.as_grad_stopped()
+        self.b2 = self.b2.as_grad_stopped()
+        self.W3 = self.W3.as_grad_stopped()
+        self.b3 = self.b3.as_grad_stopped()
 
     def require_grad(self):
         for param in self.params:

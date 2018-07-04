@@ -25,6 +25,7 @@
 #include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/math.h"
 #include "xchainer/shape.h"
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
@@ -218,7 +219,7 @@ TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
         return ret;
     });
 }
-#endif
+#endif  // XCHAINER_ENABLE_CUDA
 
 TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     GraphId graph_x = "graph_x";
@@ -378,7 +379,7 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
         GraphId graph_id = "testgraph";
 
         auto forward = [](const Array& x, Array& y) {
-            y = x.AsConstant() * x.AsConstant();
+            y = x.AsGradStopped() * x.AsGradStopped();
 
             BackwardBuilder bb{"func", y};
             bb.Define({x}, [x](BackwardContext& bctx) {
@@ -400,6 +401,54 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
 
     // The body of x.grad must have been released.
     EXPECT_EQ(nullptr, x_grad_body.lock());
+}
+
+TEST_P(BackpropTest, SomeOfPreviousArrayNodesAreGone) {
+    // This test checks the backward of a multiple-output function where one of the output arrays is gone.
+    //
+    // (x) <- [forward] <- (y1 := (x-1) exp x) <- [view] <- (z1)
+    //                  <- (y2 :=     2 exp x)
+    //                  <- (y3 :=     3 exp x)
+    //                  <- (y4 :=     4 exp x)
+    //
+    // y1 is kept alive via z1 but other y's are not.
+
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    auto forward = [](const Array& x, Array& y1, Array& y2, Array& y3, Array& y4) {
+        Array x_const = x.AsGradStopped();
+
+        y1 = Exp(x_const) * (x_const - 1);
+        y2 = Exp(x_const) * 2;
+        y3 = Exp(x_const) * 3;
+        y4 = Exp(x_const) * 4;
+
+        BackwardBuilder bb{"func", {y1, y2, y3, y4}};
+        bb.Define({x}, [x](BackwardContext& bctx) {
+            Array x_cut = bctx.Cut(x);
+            Array gy1gx = bctx.output_grad(0) * Exp(x_cut) * x_cut;
+            Array gy2gx = bctx.output_grad(1) * Exp(x_cut) * 2;
+            Array gy3gx = bctx.output_grad(2) * Exp(x_cut) * 3;
+            Array gy4gx = bctx.output_grad(3) * Exp(x_cut) * 4;
+            bctx.input_grad() = gy1gx + gy2gx + gy3gx + gy4gx;
+        });
+    };
+
+    Array z1{};
+    Array x_value = testing::BuildArray({2, 3}).WithLinearData<float>();
+    Array x = x_value.MakeView().RequireGrad();
+    {
+        Array y1{};
+        Array y2{};
+        Array y3{};
+        Array y4{};
+        forward(x, y1, y2, y3, y4);
+        z1 = y1.MakeView();
+    }
+    Backward(z1, kDefaultGraphId);
+
+    Array expected_x_grad = x_value * Exp(x_value);
+    testing::ExpectAllClose(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -477,7 +526,7 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
 
     auto forward = [gy1_value, double_backprop_opt, &graph_id](const Array& x1, Array& y1) {
         ASSERT_FALSE(x1.IsConstant());
-        y1 = 2 * x1.AsConstant() + 1;
+        y1 = 2 * x1.AsGradStopped() + 1;
         ASSERT_TRUE(y1.IsConstant());
 
         {
@@ -530,8 +579,8 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
 
     auto forward = [gy1_value, gy2_value, double_backprop_opt, &graph_id](const Array& x1, Array& y1, Array& y2) {
         ASSERT_FALSE(x1.IsConstant());
-        y1 = 2 * x1.AsConstant() + 1;
-        y2 = 3 * x1.AsConstant() + 2;
+        y1 = 2 * x1.AsGradStopped() + 1;
+        y2 = 3 * x1.AsGradStopped() + 2;
         ASSERT_TRUE(y1.IsConstant());
         ASSERT_TRUE(y2.IsConstant());
 
@@ -600,7 +649,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
         ASSERT_FALSE(x1.IsConstant());
         ASSERT_FALSE(x2.IsConstant());
         ASSERT_FALSE(x3.IsConstant());
-        y1 = 2 * x1.AsConstant() + 3 * x2.AsConstant() + x3.AsConstant() + 1;
+        y1 = 2 * x1.AsGradStopped() + 3 * x2.AsGradStopped() + x3.AsGradStopped() + 1;
         ASSERT_TRUE(y1.IsConstant());
 
         {
@@ -696,8 +745,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
         ASSERT_FALSE(x1.IsConstant());
         ASSERT_FALSE(x2.IsConstant());
         ASSERT_FALSE(x3.IsConstant());
-        y1 = 2 * x1.AsConstant() + 3 * x2.AsConstant() + 1;
-        y2 = 3 * x1.AsConstant() + 1 * x2.AsConstant() + 2 * x3.AsConstant() + 4;
+        y1 = 2 * x1.AsGradStopped() + 3 * x2.AsGradStopped() + 1;
+        y2 = 3 * x1.AsGradStopped() + 1 * x2.AsGradStopped() + 2 * x3.AsGradStopped() + 4;
         ASSERT_TRUE(y1.IsConstant());
         ASSERT_TRUE(y2.IsConstant());
 
@@ -781,7 +830,7 @@ TEST(BackpropGradValidationTest, InvalidGradShape) {
 
     auto forward = [](const Array& x1, Array& y1) {
         ASSERT_FALSE(x1.IsConstant());
-        y1 = 2 * x1.AsConstant() + 1;
+        y1 = 2 * x1.AsGradStopped() + 1;
         ASSERT_TRUE(y1.IsConstant());
 
         {
@@ -815,7 +864,7 @@ TEST(BackpropGradValidationTest, InvalidGradDtype) {
 
     auto forward = [](const Array& x1, Array& y1) {
         ASSERT_FALSE(x1.IsConstant());
-        y1 = 2 * x1.AsConstant() + 1;
+        y1 = 2 * x1.AsGradStopped() + 1;
         ASSERT_TRUE(y1.IsConstant());
 
         {
@@ -849,7 +898,7 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
 
     auto forward = [](const Array& x1, Array& y1) {
         ASSERT_FALSE(x1.IsConstant());
-        y1 = 2 * x1.AsConstant() + 1;
+        y1 = 2 * x1.AsGradStopped() + 1;
         ASSERT_TRUE(y1.IsConstant());
 
         {

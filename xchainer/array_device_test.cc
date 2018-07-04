@@ -53,7 +53,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
         Array array = create_array_func();
         EXPECT_EQ(&cuda_device, &array.device());
     }
-#endif
+#endif  // XCHAINER_ENABLE_CUDA
 }
 
 // Check that Arrays are created on the specified device, if specified, without taking into account the default device

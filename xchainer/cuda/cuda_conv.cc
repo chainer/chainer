@@ -439,7 +439,7 @@ Array CudaConv::ConvGradWeight(
         }
         assert(gy.shape() == out_shape);
     }
-#endif
+#endif  // NDEBUG
 
     Array gw = Empty(w_shape, w_dtype, device);
 
