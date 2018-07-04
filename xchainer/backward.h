@@ -38,6 +38,12 @@ void AccumulateGrad(nonstd::optional<Array>& target_grad, Array partial_grad, co
 
 void SetGrad(nonstd::optional<Array>& target_grad, Array grad, const Shape& shape, Dtype dtype, Device& device);
 
+struct ArrayProps {
+    Shape shape;
+    Dtype dtype;
+    Device& device;
+};
+
 // Reference to the gradient array corresponding to an array node, which is valid during backward computation at most.
 //
 // It points to the original gradient array held by the array node's owner array body if the array body is still alive.
@@ -45,7 +51,12 @@ void SetGrad(nonstd::optional<Array>& target_grad, Array grad, const Shape& shap
 // backward computation at most, because BackwardImpl owns instances of this class).
 class GradRef {
 public:
-    explicit GradRef(ArrayNode* array_node);
+    // Initialize with alive array node.
+    // The array node may or may not have gradient. If not, a temporary gradient without value will be initialized.
+    explicit GradRef(ArrayNode& array_node);
+
+    // Initialize with a temporary grad without value.
+    explicit GradRef(nonstd::nullopt_t);
 
     GradRef(const GradRef&) = delete;
     GradRef(GradRef&&) = default;
@@ -56,8 +67,6 @@ public:
     nonstd::optional<Array>& get();
 
 private:
-    ArrayNode* array_node_;
-
     // Pointer to the original gradient held by the original input array body.
     // If the array body is gone, this pointer will be nullptr.
     nonstd::optional<Array>* original_grad_ptr_{nullptr};
@@ -81,7 +90,7 @@ public:
     // ordinary functions).
     BackwardContext(
             const OpNode& op_node,
-            gsl::span<const std::reference_wrapper<ArrayNode>> prev_array_nodes,
+            gsl::span<ArrayNode*> prev_array_nodes,
             gsl::span<internal::GradRef*> prev_grads,
             gsl::span<const GraphId> stop_graph_ids,
             std::vector<Array>& input_grads_storage,
@@ -118,7 +127,7 @@ public:
 
 private:
     const OpNode& op_node_;
-    gsl::span<const std::reference_wrapper<ArrayNode>> prev_array_nodes_;
+    gsl::span<ArrayNode*> prev_array_nodes_;
     gsl::span<internal::GradRef*> prev_grads_;
     gsl::span<const GraphId> stop_graph_ids_;
 
@@ -153,6 +162,8 @@ private:
 
     // Output arrays of the op.
     std::vector<ConstArrayRef> outputs_;
+
+    std::vector<internal::ArrayProps> output_array_props_;
 
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.

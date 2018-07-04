@@ -705,6 +705,13 @@ TEST_P(ArrayTest, IsConstantAfterStop) {
     EXPECT_TRUE(a.IsConstantAfterStop(std::vector<GraphId>{"testgraph1", "testgraph2"}));
 }
 
+TEST_P(ArrayTest, IsBackpropRequired) {
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+
+    a.RequireGrad("testgraph1");
+    EXPECT_TRUE(a.IsBackpropRequired());
+}
+
 TEST_P(ArrayTest, AsConstantCopy) {
     // Stop gradients on all graphs
     {
