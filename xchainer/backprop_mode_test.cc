@@ -377,6 +377,37 @@ TEST(BackpropModeScopeTest, BackpropModeWithoutContext) {
     EXPECT_THROW({ ForceBackpropModeScope{}; }, ContextError);
 }
 
+TEST(BackpropModeScopeTest, BackpropModeScopeWithAnotherContext) {
+    testing::ContextSession context_session{};
+
+    Context another_context{};
+    {
+        EXPECT_TRUE(IsBackpropRequired("graph1"));
+        {
+            NoBackpropModeScope scope1{another_context};
+            EXPECT_FALSE(IsBackpropRequired("graph1", another_context));
+            EXPECT_TRUE(IsBackpropRequired("graph1"));
+        }
+    }
+    {
+        EXPECT_TRUE(IsBackpropRequired("graph1"));
+        {
+            NoBackpropModeScope scope1{{"graph1", "graph2"}, another_context};
+            EXPECT_FALSE(IsBackpropRequired("graph1", another_context));
+            EXPECT_TRUE(IsBackpropRequired("graph1"));
+        }
+    }
+    {
+        EXPECT_TRUE(IsBackpropRequired("graph1"));
+        {
+            std::vector<GraphId> graph_ids{"graph1", "graph2"};
+            NoBackpropModeScope scope1{graph_ids, another_context};
+            EXPECT_FALSE(IsBackpropRequired("graph1", another_context));
+            EXPECT_TRUE(IsBackpropRequired("graph1"));
+        }
+    }
+}
+
 TEST(BackpropModeScopeTest, ArrayIsBackpropRequiredNoGraph) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();

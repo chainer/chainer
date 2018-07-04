@@ -6,6 +6,7 @@
 
 #include <nonstd/optional.hpp>
 
+#include "xchainer/context.h"
 #include "xchainer/graph.h"
 
 namespace xchainer {
@@ -14,14 +15,13 @@ namespace backprop_mode_detail {
 thread_local BackpropModeStack* t_backprop_mode_stack{nullptr};
 
 template <bool kModeFlag>
-void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(nonstd::optional<std::vector<GraphId>> graph_ids) {
+void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(nonstd::optional<std::vector<GraphId>> graph_ids, Context& context) {
     // The outer-most scope creates an instance of BackpropModeStack.
     if (t_backprop_mode_stack == nullptr) {
         t_backprop_mode_stack = new BackpropModeStack{};
         is_outermost_ = true;
     }
 
-    Context& context = GetDefaultContext();
     if (graph_ids.has_value()) {
         n_ = graph_ids->size();
         for (GraphId& graph_id : *graph_ids) {
