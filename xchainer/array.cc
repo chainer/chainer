@@ -195,7 +195,7 @@ Array Array::Copy() const { return xchainer::Copy(*this); }
 
 Array Array::MakeView() const {
     Array out{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), data(), offset())};
-    if (!IsConstant()) {
+    if (IsBackpropRequired()) {
         BackwardBuilder bb{"view", out};
         bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
@@ -231,7 +231,7 @@ Array Array::ToDevice(Device& dst_device) const {
     assert(out.body() != nullptr);
 
     // Backward operation is implemented as backward-transfer.
-    if (!IsConstant()) {
+    if (IsBackpropRequired()) {
         BackwardBuilder bb{"transfer", out};
         bb.Define({*this}, [&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
     }
@@ -266,7 +266,7 @@ Array Array::AsGradStopped(gsl::span<const GraphId> graph_ids, CopyKind kind) co
             Array out = EmptyLike(*this, device());
             device().Copy(*this, out);
 
-            if (!IsConstant()) {
+            if (IsBackpropRequired()) {
                 BackwardBuilder bb{"copy", out, graph_ids};
                 bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
             }
@@ -275,12 +275,8 @@ Array Array::AsGradStopped(gsl::span<const GraphId> graph_ids, CopyKind kind) co
             return std::move(out);
         }
         case CopyKind::kView: {
-            Array out{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), data(), offset())};
-            if (!IsConstantAfterStop(graph_ids)) {
-                BackwardBuilder bb{"as_grad_stopped_view", out, graph_ids};
-                bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
-            }
-            return std::move(out);
+            NoBackpropModeScope scope{std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}};
+            return MakeView();
         }
         default:
             XCHAINER_NEVER_REACH();
@@ -296,7 +292,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     Array out = Empty(shape(), dtype, device());
     device().AsType(*this, out);
 
-    if (!IsConstant() && GetKind(dtype) == DtypeKind::kFloat) {
+    if (IsBackpropRequired() && GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", out};
         bb.Define({*this}, [src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
     }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -196,14 +195,6 @@ public:
 
     // Returns whether the array is constant with regard to any graph.
     bool IsConstant() const { return body_->nodes_.empty(); }
-
-    template <typename Container>
-    bool IsConstantAfterStop(Container stop_graph_ids) const {
-        const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = nodes();
-        return std::all_of(array_nodes.begin(), array_nodes.end(), [&stop_graph_ids](const std::shared_ptr<const ArrayNode>& array_node) {
-            return stop_graph_ids.end() != std::find(stop_graph_ids.begin(), stop_graph_ids.end(), array_node->graph_id());
-        });
-    }
 
     // Returns whether the array needs to backprop.
     // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
