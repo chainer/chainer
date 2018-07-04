@@ -1,4 +1,4 @@
-from chainer import functions
+import chainer
 
 
 def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
@@ -67,6 +67,7 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
 
     """
     multiplier, in_channels, kh, kw = W.shape
-    W = functions.transpose(W, (1, 0, 2, 3))
-    W = functions.reshape(W, (multiplier * in_channels, 1, kh, kw))
-    return functions.convolution_2d(x, W, b, stride, pad, groups=in_channels)
+    F = chainer.functions
+    W = F.transpose(W, (1, 0, 2, 3))
+    W = F.reshape(W, (multiplier * in_channels, 1, kh, kw))
+    return F.convolution_2d(x, W, b, stride, pad, groups=in_channels)
