@@ -131,9 +131,9 @@ void GenericBatchNormForwardBackward::SetBackwardResults(Array gout, Array gx, A
 }
 
 Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
-    Array x_const = x.AsConstant();
-    Array gamma_const = gamma.AsConstant();
-    Array beta_const = beta.AsConstant();
+    Array x_const = x.AsGradStopped();
+    Array gamma_const = gamma.AsGradStopped();
+    Array beta_const = beta.AsGradStopped();
 
     Array x_mean = Mean(x_const, axis_, true);
     Array x_var = Var(x_const, x_mean, axis_, true);
@@ -155,7 +155,7 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
 }
 
 std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout) {
-    const Array gout_const = gout.AsConstant();
+    const Array gout_const = gout.AsGradStopped();
 
     // Note: x_inv_std_ has the information of eps.
     const Array& x_const = *x_;
@@ -207,7 +207,7 @@ std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array
 Array Device::FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
     ApplyBatchNormResult result =
-            ApplyBatchNorm(x.AsConstant(), gamma.AsConstant(), beta.AsConstant(), mean.AsConstant(), var.AsConstant(), eps, axis);
+            ApplyBatchNorm(x.AsGradStopped(), gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), eps, axis);
     return std::move(result.out);
 }
 

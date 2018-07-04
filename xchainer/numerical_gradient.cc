@@ -75,7 +75,7 @@ Arrays CalculateNumericalGradient(
     auto eval = [&func, &inputs, graph_id](int i_in, int64_t in_flat_index, Scalar eps_scalar, float multiplier) -> Arrays {
         Arrays xs;
         std::transform(inputs.begin(), inputs.end(), std::back_inserter(xs), [graph_id](const Array& x) {
-            return x.AsConstant(CopyKind::kCopy).RequireGrad(graph_id);
+            return x.AsGradStopped(CopyKind::kCopy).RequireGrad(graph_id);
         });
 
         Set(xs.at(i_in),

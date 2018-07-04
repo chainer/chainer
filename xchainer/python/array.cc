@@ -158,12 +158,12 @@ void InitXchainerArray(pybind11::module& m) {
         Device& device = GetDefaultContext().GetDevice({backend_name, index});
         return Array{self}.ToDevice(device).move_body();
     });
-    c.def("as_constant",
-          [](const ArrayBodyPtr& self, bool copy) { return Array{self}.AsConstant(copy ? CopyKind::kCopy : CopyKind::kView).move_body(); },
+    c.def("as_grad_stopped",
+          [](const ArrayBodyPtr& self, bool copy) { return Array{self}.AsGradStopped(copy ? CopyKind::kCopy : CopyKind::kView).move_body(); },
           py::arg("copy") = false);
-    c.def("as_constant",
+    c.def("as_grad_stopped",
           [](const ArrayBodyPtr& self, const std::vector<GraphId>& graph_ids, bool copy) {
-              return Array{self}.AsConstant(graph_ids, copy ? CopyKind::kCopy : CopyKind::kView).move_body();
+              return Array{self}.AsGradStopped(graph_ids, copy ? CopyKind::kCopy : CopyKind::kView).move_body();
           },
           py::arg().noconvert(),
           py::arg("copy") = false);

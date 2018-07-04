@@ -169,13 +169,13 @@ public:
 
     // Creates a copy or a view. It will be disconnected from all the graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsConstant(CopyKind kind = CopyKind::kView) const;
+    Array AsGradStopped(CopyKind kind = CopyKind::kView) const;
 
     // Creates a copy or a view. It will be disconnected from the specified graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const;
-    Array AsConstant(std::initializer_list<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const {
-        return AsConstant(gsl::span<const GraphId>{graph_ids.begin(), graph_ids.end()}, kind);
+    Array AsGradStopped(gsl::span<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsGradStopped(std::initializer_list<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const {
+        return AsGradStopped(gsl::span<const GraphId>{graph_ids.begin(), graph_ids.end()}, kind);
     }
 
     // Casts to a specified type.

@@ -304,7 +304,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     if (!a.IsConstant()) {
         BackwardBuilder bb{"amax", out};
-        bb.Define({a}, [ sorted_axis, a = a.AsConstant(), out = out.AsConstant(), keepdims ](BackwardContext & bctx) {
+        bb.Define({a}, [ sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
