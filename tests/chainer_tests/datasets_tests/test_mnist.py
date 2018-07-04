@@ -44,10 +44,10 @@ class TestMnist(unittest.TestCase):
         self.check_retrieval_once('train.npz', 'test.npz',
                                   self.mnist_root, get_mnist)
 
-    @attr.slow
     def test_get_fashion_mnist_labels(self):
         self.assertEqual(get_fashion_mnist_labels(), self.fashion_mnist_labels)
 
+    @attr.slow
     def test_get_fashion_mnist(self):
         self.check_retrieval_once('train.npz', 'test.npz',
                                   self.fashion_mnist_root,
