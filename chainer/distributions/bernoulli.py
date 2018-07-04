@@ -38,6 +38,8 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         logit, x = self.get_retained_inputs()
         xp = cuda.get_array_module(x)
         dlogit = x - 1. / (1. + exponential.exp(-logit))
+
+        # extreme logit
         nan_dlogit = xp.zeros_like(dlogit.array)
         if dlogit.array.ndim == 0:
             nan_dlogit = xp.asarray(nan_dlogit).reshape(1)
@@ -47,24 +49,27 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         if dlogit.array.ndim == 0:
             nan_dlogit = nan_dlogit.reshape(())
         dlogit += nan_dlogit
+
         return gy * dlogit, None
 
 
 class ModifiedXLogX(chainer.function_node.FunctionNode):
+    def __init__(self, logx):
+        self._logx = logx
 
     def forward(self, inputs):
         x, = inputs
         xp = cuda.get_array_module(x)
+        if x.ndim == 0:
+            x = xp.asarray(x).reshape(1)
         self.invalid = (x == 0)
-        self.logx = xp.log(x)
-        y = x * self.logx
+        y = x * self._logx.array
         y[self.invalid] = 0.
         return y,
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        dx = (1 + self.logx)
-        dx[self.invalid] = 0.
+        dx = (1 + self._logx) * (1 - self.invalid.reshape(self._logx.shape))
         return gy * dx,
 
 
@@ -74,7 +79,7 @@ def _bernoulli_log_prob(logit, x):
 
 
 def _modified_xlogx(x):
-    return ModifiedXLogX().apply((x,))[0]
+    return ModifiedXLogX(exponential.log(x)).apply((x,))[0]
 
 
 class Bernoulli(distribution.Distribution):
