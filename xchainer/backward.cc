@@ -303,7 +303,9 @@ private:
         // GradRefs of this op node's dead previous nodes.
         // This vector is just a keeper and not used in any other way. prev_grads holds the pointer to it.
         // These GradRefs are only valid in the backward functions of this op node.
+        // Be careful not to cause reallocation in this vector. Otherwise the pointers would be invalidated.
         std::vector<internal::GradRef> dead_prev_grads;
+        dead_prev_grads.reserve(op_node.prev_array_nodes().size());
 
         std::vector<internal::GradRef*> prev_grads;
         for (size_t i = 0; i < op_node.prev_array_nodes().size(); ++i) {

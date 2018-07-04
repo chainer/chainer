@@ -403,43 +403,49 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     EXPECT_EQ(nullptr, x_grad_body.lock());
 }
 
-TEST_P(BackpropTest, OneOfPreviousArrayNodesIsGone) {
+TEST_P(BackpropTest, SomeOfPreviousArrayNodesIsGone) {
     // This test checks the backward of a multiple-output function where one of the output arrays is gone.
     //
-    // (x) <- [forward] <- (y1 :=       exp x)
-    //                  <- (y2 := (x-1) exp x) <- [view] <- (z2)
+    // (x) <- [forward] <- (y1 := (x-1) exp x) <- [view] <- (z1)
+    //                  <- (y2 :=     2 exp x)
+    //                  <- (y3 :=     3 exp x)
+    //                  <- (y4 :=     4 exp x)
     //
-    // y2 is kept alive via z2 but y1 is not.
+    // y1 is kept alive via z1 but other y's are not.
 
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
-    auto forward = [](const Array& x, Array& y1, Array& y2) {
+    auto forward = [](const Array& x, Array& y1, Array& y2, Array& y3, Array& y4) {
         Array x_const = x.AsConstant();
-        y1 = Exp(x_const);
-        y2 = Exp(x_const) * (x_const - 1);
 
-        Array y1_value = y1.AsConstant();
-        Array y2_value = y2.AsConstant();
+        y1 = Exp(x_const) * (x_const - 1);
+        y2 = Exp(x_const) * 2;
+        y3 = Exp(x_const) * 3;
+        y4 = Exp(x_const) * 4;
 
-        BackwardBuilder bb{"func", {y1, y2}};
+        BackwardBuilder bb{"func", {y1, y2, y3, y4}};
         bb.Define({x}, [x](BackwardContext& bctx) {
             Array x_cut = bctx.Cut(x);
-            Array gy1gx = bctx.output_grad(0) * Exp(x_cut);
-            Array gy2gx = bctx.output_grad(1) * Exp(x_cut) * x_cut;
-            bctx.input_grad() = gy1gx + gy2gx;
+            Array gy1gx = bctx.output_grad(0) * Exp(x_cut) * x_cut;
+            Array gy2gx = bctx.output_grad(1) * Exp(x_cut) * 2;
+            Array gy3gx = bctx.output_grad(2) * Exp(x_cut) * 3;
+            Array gy4gx = bctx.output_grad(3) * Exp(x_cut) * 4;
+            bctx.input_grad() = gy1gx + gy2gx + gy3gx + gy4gx;
         });
     };
 
-    Array z2{};
+    Array z1{};
     Array x_value = testing::BuildArray({2, 3}).WithLinearData<float>();
     Array x = x_value.MakeView().RequireGrad();
     {
         Array y1{};
         Array y2{};
-        forward(x, y1, y2);
-        z2 = y2.MakeView();
+        Array y3{};
+        Array y4{};
+        forward(x, y1, y2, y3, y4);
+        z1 = y1.MakeView();
     }
-    Backward(z2, kDefaultGraphId);
+    Backward(z1, kDefaultGraphId);
 
     Array expected_x_grad = x_value * Exp(x_value);
     testing::ExpectAllClose(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
