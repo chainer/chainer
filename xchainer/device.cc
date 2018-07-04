@@ -206,8 +206,8 @@ std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array
 
 Array Device::FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
-    ApplyBatchNormResult result =
-            ApplyBatchNorm(x.AsGradStopped(), gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), eps, axis);
+    ApplyBatchNormResult result = ApplyBatchNorm(
+            x.AsGradStopped(), gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), eps, axis);
     return std::move(result.out);
 }
 

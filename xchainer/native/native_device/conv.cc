@@ -100,7 +100,8 @@ Array NativeDevice::ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& out_size) {
-    Array col = TensorDot(w.AsGradStopped(), x.AsGradStopped(), {0}, {1});  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
+    Array col =
+            TensorDot(w.AsGradStopped(), x.AsGradStopped(), {0}, {1});  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
     col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
 
     Array y = internal::Col2Im(col, stride, pad, out_size);  // shape: batch_size, out_channel, out_size...
