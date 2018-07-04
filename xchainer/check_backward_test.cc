@@ -58,7 +58,7 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
 Arrays ForwardWithIncorrectDoubleBackpropOption(const Arrays& inputs) {
     const Array& a = inputs[0];
 
-    Array out = a.AsConstant() * a.AsConstant();
+    Array out = a.AsGradStopped() * a.AsGradStopped();
 
     if (a.IsBackpropRequired()) {
         BackwardBuilder bb{"incorrect_square", {out}};

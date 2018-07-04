@@ -145,7 +145,7 @@ Array OnesLike(const Array& a, Device& device) { return Ones(a.shape(), a.dtype(
 
 Array Copy(const Array& a) {
     // No graph will be disconnected.
-    Array out = a.AsConstant({}, CopyKind::kCopy);
+    Array out = a.AsGradStopped({}, CopyKind::kCopy);
     assert(out.IsContiguous());
     return out;
 }

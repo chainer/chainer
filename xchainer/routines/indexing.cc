@@ -33,7 +33,7 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
     // TODO(sonots): dtype conversion
     CheckEqual(a.dtype(), b.dtype());
 
-    Array out = a.AsConstant(CopyKind::kCopy);
+    Array out = a.AsGradStopped(CopyKind::kCopy);
     Array out_view = out.At(indices);
 
     // TODO(sonots): broadcasting

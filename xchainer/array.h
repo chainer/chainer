@@ -169,13 +169,13 @@ public:
 
     // Creates a copy or a view. It will be disconnected from all the graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsConstant(CopyKind kind = CopyKind::kView) const;
+    Array AsGradStopped(CopyKind kind = CopyKind::kView) const;
 
     // Creates a copy or a view. It will be disconnected from the specified graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const;
-    Array AsConstant(std::initializer_list<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const {
-        return AsConstant(gsl::span<const GraphId>{graph_ids.begin(), graph_ids.end()}, kind);
+    Array AsGradStopped(gsl::span<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsGradStopped(std::initializer_list<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const {
+        return AsGradStopped(gsl::span<const GraphId>{graph_ids.begin(), graph_ids.end()}, kind);
     }
 
     // Casts to a specified type.
@@ -209,17 +209,11 @@ public:
     // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
     bool IsBackpropRequired() const;
 
-    // Creates a new ArrayNode to store the gradient
-    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const {
-        internal::CreateArrayNode(*this, graph_id);
-        return *this;
-    }
+    // Flags the array to compute the gradient during backprop.
+    // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.
+    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
-    // Creates a new ArrayNode to store the gradient
-    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) {
-        internal::CreateArrayNode(*this, graph_id);
-        return *this;
-    }
+    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId);
 
     int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 
