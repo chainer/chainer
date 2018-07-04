@@ -201,7 +201,7 @@ Array Array::Copy() const { return xchainer::Copy(*this); }
 
 Array Array::MakeView() const {
     Array out{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), data(), offset())};
-    if (IsBackpropRequired()) {
+    if (IsGradRequired()) {
         BackwardBuilder bb{"view", out};
         bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
@@ -237,7 +237,7 @@ Array Array::ToDevice(Device& dst_device) const {
     assert(out.body() != nullptr);
 
     // Backward operation is implemented as backward-transfer.
-    if (IsBackpropRequired()) {
+    if (IsGradRequired()) {
         BackwardBuilder bb{"transfer", out};
         bb.Define({*this}, [&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
     }
@@ -284,7 +284,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     Array out = Empty(shape(), dtype, device());
     device().AsType(*this, out);
 
-    if (IsBackpropRequired() && GetKind(dtype) == DtypeKind::kFloat) {
+    if (IsGradRequired() && GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", out};
         bb.Define({*this}, [src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
     }
@@ -313,7 +313,14 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) const {
 
 void Array::ClearGrad(const GraphId& graph_id) const { body_->ClearGrad(graph_id); }
 
-bool Array::IsBackpropRequired() const { return xchainer::IsBackpropRequired(*this); }
+bool Array::IsGradRequired(const GraphId& graph_id) const {
+    if (graph_id == kAnyGraphId) {
+        return xchainer::IsBackpropRequired(*this);
+    } else if (internal::HasArrayNode(*this, graph_id)) {
+        return xchainer::IsBackpropRequired(graph_id, device().context());
+    }
+    return false;
+}
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const GraphId& graph_id) {

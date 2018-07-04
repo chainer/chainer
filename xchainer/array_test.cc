@@ -685,11 +685,11 @@ TEST_P(ArrayTest, IsConstant) {
     EXPECT_FALSE(a.IsConstant());
 }
 
-TEST_P(ArrayTest, IsBackpropRequired) {
+TEST_P(ArrayTest, IsGradRequired) {
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
 
     a.RequireGrad("testgraph1");
-    EXPECT_TRUE(a.IsBackpropRequired());
+    EXPECT_TRUE(a.IsGradRequired());
 }
 
 TEST_P(ArrayTest, AsGradStoppedCopy) {

@@ -11,4 +11,7 @@ constexpr int8_t kDynamicNdim = -1;
 // Default graph ID to be used if not specified
 constexpr const char* kDefaultGraphId = "default";
 
+// Graph ID to represent any graph.
+constexpr const char* kAnyGraphId = "*";
+
 }  // namespace xchainer
