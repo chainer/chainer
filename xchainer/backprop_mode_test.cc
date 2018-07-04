@@ -377,13 +377,18 @@ TEST(BackpropModeScopeTest, BackpropModeWithoutContext) {
     EXPECT_THROW({ ForceBackpropModeScope{}; }, ContextError);
 }
 
-TEST(BackpropModeScopeTest, IsBackpropRequired_Array) {
+TEST(BackpropModeScopeTest, ArrayIsBackpropRequiredNoGraph) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
-
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
-    EXPECT_FALSE(IsBackpropRequired(a));
 
+    EXPECT_FALSE(IsBackpropRequired(a));
+}
+
+TEST(BackpropModeScopeTest, ArrayIsBackpropRequiredSingleGraph) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
     a.RequireGrad("testgraph1");
+
     EXPECT_TRUE(IsBackpropRequired(a));
     {
         NoBackpropModeScope scope1{};
@@ -393,8 +398,14 @@ TEST(BackpropModeScopeTest, IsBackpropRequired_Array) {
             EXPECT_TRUE(IsBackpropRequired(a));
         }
     }
+}
 
+TEST(BackpropModeScopeTest, ArrayIsBackpropRequiredMultipleGraphs) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+    a.RequireGrad("testgraph1");
     a.RequireGrad("testgraph2");
+
     EXPECT_TRUE(IsBackpropRequired(a));
     {
         NoBackpropModeScope scope1{"testgraph1"};
@@ -426,16 +437,35 @@ TEST(BackpropModeScopeTest, IsBackpropRequired_Array) {
     }
 }
 
-TEST(BackpropModeScopeTest, IsBackpropRequiredAfterStop_Array) {
+TEST(BackpropModeScopeTest, ArrayIsBackpropRequiredAnotherContext) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
-
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+    a.RequireGrad("testgraph1");
+
+    EXPECT_TRUE(IsBackpropRequired(a));
+    {
+        testing::ContextSession another_context_session{};
+        NoBackpropModeScope scope{};
+        // BackpropModeScope of another context does not reflect.
+        EXPECT_TRUE(IsBackpropRequired(a));
+    }
+}
+
+TEST(BackpropModeScopeTest, IsBackpropRequiredAfterStopNoGraph) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+
     EXPECT_FALSE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{}));
     EXPECT_FALSE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{"testgraph1"}));
     EXPECT_FALSE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{"testgraph2"}));
     EXPECT_FALSE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{"testgraph1", "testgraph2"}));
+}
 
+TEST(BackpropModeScopeTest, IsBackpropRequiredAfterStopSingleGraph) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
     a.RequireGrad("testgraph1");
+
     EXPECT_TRUE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{}));
     EXPECT_FALSE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{"testgraph1"}));
     EXPECT_TRUE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{"testgraph2"}));
@@ -461,8 +491,14 @@ TEST(BackpropModeScopeTest, IsBackpropRequiredAfterStop_Array) {
             EXPECT_FALSE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
     }
+}
 
+TEST(BackpropModeScopeTest, IsBackpropRequiredAfterStopMultipleGraphs) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+    a.RequireGrad("testgraph1");
     a.RequireGrad("testgraph2");
+
     EXPECT_TRUE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{}));
     EXPECT_TRUE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{"testgraph1"}));
     EXPECT_TRUE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{"testgraph2"}));
@@ -508,6 +544,20 @@ TEST(BackpropModeScopeTest, IsBackpropRequiredAfterStop_Array) {
             EXPECT_FALSE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{"testgraph2"}));
             EXPECT_FALSE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{"testgraph1", "testgraph2"}));
         }
+    }
+}
+
+TEST(BackpropModeScopeTest, IsBackpropRequiredAfterStopAnotherContext) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+    a.RequireGrad("testgraph1");
+
+    EXPECT_TRUE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{}));
+    {
+        testing::ContextSession another_context_session{};
+        NoBackpropModeScope scope{};
+        // BackpropModeScope of another context does not reflect.
+        EXPECT_TRUE(internal::IsBackpropRequiredAfterStop(a, std::vector<GraphId>{}));
     }
 }
 

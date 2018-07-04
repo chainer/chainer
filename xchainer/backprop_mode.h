@@ -88,8 +88,8 @@ bool IsBackpropRequired(const GraphId& graph_id = kDefaultGraphId, Context& cont
 // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
 inline bool IsBackpropRequired(const Array& array) {
     const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
-    return std::any_of(array_nodes.begin(), array_nodes.end(), [](const std::shared_ptr<const ArrayNode>& array_node) {
-        return IsBackpropRequired(array_node->graph_id());
+    return std::any_of(array_nodes.begin(), array_nodes.end(), [&array](const std::shared_ptr<const ArrayNode>& array_node) {
+        return IsBackpropRequired(array_node->graph_id(), array.device().context());
     });
 }
 
@@ -100,12 +100,13 @@ namespace internal {
 template <typename Container>
 bool IsBackpropRequiredAfterStop(const Array& array, Container stop_graph_ids) {
     const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
-    return std::any_of(array_nodes.begin(), array_nodes.end(), [&stop_graph_ids](const std::shared_ptr<const ArrayNode>& array_node) {
-        if (stop_graph_ids.end() == std::find(stop_graph_ids.begin(), stop_graph_ids.end(), array_node->graph_id())) {
-            return IsBackpropRequired(array_node->graph_id());
-        }
-        return false;
-    });
+    return std::any_of(
+            array_nodes.begin(), array_nodes.end(), [&array, &stop_graph_ids](const std::shared_ptr<const ArrayNode>& array_node) {
+                if (stop_graph_ids.end() == std::find(stop_graph_ids.begin(), stop_graph_ids.end(), array_node->graph_id())) {
+                    return IsBackpropRequired(array_node->graph_id(), array.device().context());
+                }
+                return false;
+            });
 }
 
 }  // namespace internal
