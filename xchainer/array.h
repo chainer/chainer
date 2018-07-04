@@ -209,17 +209,11 @@ public:
     // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
     bool IsBackpropRequired() const;
 
-    // Creates a new ArrayNode to store the gradient
-    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const {
-        internal::CreateArrayNode(*this, graph_id);
-        return *this;
-    }
+    // Flags the array to compute the gradient during backprop.
+    // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.
+    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
-    // Creates a new ArrayNode to store the gradient
-    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) {
-        internal::CreateArrayNode(*this, graph_id);
-        return *this;
-    }
+    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId);
 
     int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 

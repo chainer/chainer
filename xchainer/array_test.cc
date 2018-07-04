@@ -19,6 +19,7 @@
 #include "xchainer/array_node.h"
 #include "xchainer/axes.h"
 #include "xchainer/backend.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/context.h"
@@ -976,6 +977,20 @@ TEST_P(ArrayTest, MultipleGraphsForward) {
     // No unspecified graphs are generated
     EXPECT_FALSE(o.IsGradRequired(kDefaultGraphId));
     EXPECT_FALSE(o.IsGradRequired("graph_3"));
+}
+
+TEST_P(ArrayTest, RequireGradWithBackpropModeScope) {
+    Array a = testing::BuildArray({1}).WithData<float>({2.0f});
+    {
+        NoBackpropModeScope scope{};
+        a.RequireGrad();
+    }
+    EXPECT_FALSE(a.IsGradRequired());
+    {
+        ForceBackpropModeScope scope{};
+        a.RequireGrad();
+    }
+    EXPECT_TRUE(a.IsGradRequired());
 }
 
 TEST_P(ArrayTest, Take) {

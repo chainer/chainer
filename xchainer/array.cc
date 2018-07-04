@@ -327,6 +327,15 @@ void Array::ClearGrad(const GraphId& graph_id) const { body_->ClearGrad(graph_id
 
 bool Array::IsBackpropRequired() const { return xchainer::IsBackpropRequired(*this); }
 
+const Array& Array::RequireGrad(const GraphId& graph_id) const {
+    if (xchainer::IsBackpropRequired(graph_id, device().context())) {
+        internal::CreateArrayNode(*this, graph_id);
+    }
+    return *this;
+}
+
+Array& Array::RequireGrad(const GraphId& graph_id) { return const_cast<Array&>(const_cast<const Array*>(this)->RequireGrad(graph_id)); }
+
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
 namespace {
