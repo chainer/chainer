@@ -15,6 +15,8 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         logit, x = inputs
         self.retain_inputs((0, 1))
         xp = cuda.get_array_module(x)
+        if x.ndim == 0:
+            x = xp.asarray(x).reshape(1)
         y = logit * (x - 1) - xp.log(xp.exp(-logit) + 1)
 
         self.invalid = xp.bitwise_and(x != 0, x != 1)
@@ -35,10 +37,16 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         gy, = grad_outputs
         logit, x = self.get_retained_inputs()
         xp = cuda.get_array_module(x)
-        dlogit = x - 1. / (1. + xp.exp(-logit))
-        dlogit[self.invalid] = xp.nan
-        dlogit[self.to_zero] = xp.nan
-        dlogit[self.to_m_inf] = xp.nan
+        dlogit = x - 1. / (1. + exponential.exp(-logit))
+        nan_dlogit = xp.zeros_like(dlogit.array)
+        if dlogit.array.ndim == 0:
+            nan_dlogit = xp.asarray(nan_dlogit).reshape(1)
+        nan_dlogit[self.invalid] = xp.nan
+        nan_dlogit[self.to_zero] = xp.nan
+        nan_dlogit[self.to_m_inf] = xp.nan
+        if dlogit.array.ndim == 0:
+            nan_dlogit = nan_dlogit.reshape(())
+        dlogit += nan_dlogit
         return gy * dlogit, None
 
 
