@@ -7,6 +7,7 @@ import numpy
 
 from chainer.dataset import download
 from chainer.datasets import get_fashion_mnist
+from chainer.datasets import get_fashion_mnist_labels
 from chainer.datasets import get_mnist
 from chainer.datasets import tuple_dataset
 from chainer import testing
@@ -17,7 +18,10 @@ from chainer.testing import attr
     'withlabel': [True, False],
     'ndim': [1, 3],
     'scale': [1., 255.],
-    'rgb_format': [True, False]
+    'rgb_format': [True, False],
+    'fashion_mnist_labels': ['T-shirt/top', 'Trouser', 'Pullover', 'Dress',
+                             'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag',
+                             'Ankle boot']
 }))
 class TestMnist(unittest.TestCase):
 
@@ -41,6 +45,9 @@ class TestMnist(unittest.TestCase):
                                   self.mnist_root, get_mnist)
 
     @attr.slow
+    def test_get_fashion_mnist_labels(self):
+        self.assertEqual(get_fashion_mnist_labels(), self.fashion_mnist_labels)
+
     def test_get_fashion_mnist(self):
         self.check_retrieval_once('train.npz', 'test.npz',
                                   self.fashion_mnist_root,
