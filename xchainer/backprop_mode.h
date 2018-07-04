@@ -46,14 +46,16 @@ template <bool kModeFlag>
 class BackpropModeScope {
 public:
     // Backprop mode for all graphs
-    BackpropModeScope() { BackpropModeScopeImpl(nonstd::nullopt); }
+    BackpropModeScope(Context& context = GetDefaultContext()) { BackpropModeScopeImpl(nonstd::nullopt, context); }
 
     // Backprop mode for specified graphs
-    explicit BackpropModeScope(std::vector<GraphId> graph_ids) { BackpropModeScopeImpl(std::move(graph_ids)); }
+    explicit BackpropModeScope(std::vector<GraphId> graph_ids, Context& context = GetDefaultContext()) {
+        BackpropModeScopeImpl(std::move(graph_ids), context);
+    }
 
     // Backprop mode for specified graphs
-    explicit BackpropModeScope(std::initializer_list<GraphId> graph_ids) {
-        BackpropModeScopeImpl(std::vector<GraphId>{graph_ids.begin(), graph_ids.end()});
+    explicit BackpropModeScope(std::initializer_list<GraphId> graph_ids, Context& context = GetDefaultContext()) {
+        BackpropModeScopeImpl(std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}, context);
     }
 
     BackpropModeScope(const BackpropModeScope&) = delete;
@@ -64,7 +66,7 @@ public:
     ~BackpropModeScope();
 
 private:
-    void BackpropModeScopeImpl(nonstd::optional<std::vector<GraphId>> graph_ids);
+    void BackpropModeScopeImpl(nonstd::optional<std::vector<GraphId>> graph_ids, Context& context);
 
     // Number of BackpropMode instances pushed to the stack.
     size_t n_{};
