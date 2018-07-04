@@ -12,7 +12,7 @@ import numpy
     'shape': [(3, 2), (1,)],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
-    'extreme_values': [False],
+    'extreme_values': [True, False],
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
@@ -49,7 +49,6 @@ class TestBernoulli(testing.distribution_unittest):
 @testing.parameterize(*testing.product({
     'shape': [(2, 3), ()],
     'dtype': [numpy.float32, numpy.float64],
-    'extreme_values': [False, True],
 }))
 class TestBernoulliLogProb(unittest.TestCase):
 
