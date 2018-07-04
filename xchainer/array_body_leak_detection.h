@@ -32,15 +32,6 @@ public:
 
     ArrayBodyLeakDetectionScope(const ArrayBodyLeakDetectionScope&) = delete;
     ArrayBodyLeakDetectionScope& operator=(const ArrayBodyLeakDetectionScope&) = delete;
-    ArrayBodyLeakDetectionScope(ArrayBodyLeakDetectionScope&& other) {
-        exited_ = other.exited_;
-        other.exited_ = true;
-    }
-    ArrayBodyLeakDetectionScope& operator=(ArrayBodyLeakDetectionScope&& other) {
-        exited_ = other.exited_;
-        other.exited_ = true;
-        return *this;
-    }
 
 private:
     friend class xchainer::Array;
