@@ -246,7 +246,7 @@ Array Array::ToNative() const {
 
 namespace {
 
-Array AsGradStoppedAfterBackpropModeScope(const Array& array, CopyKind kind) {
+Array CopyOrMakeView(const Array& array, CopyKind kind) {
     switch (kind) {
         case CopyKind::kCopy:
             return array.Copy();
@@ -261,12 +261,12 @@ Array AsGradStoppedAfterBackpropModeScope(const Array& array, CopyKind kind) {
 
 Array Array::AsGradStopped(CopyKind kind) const {
     NoBackpropModeScope scope{device().context()};
-    return AsGradStoppedAfterBackpropModeScope(*this, kind);
+    return CopyOrMakeView(*this, kind);
 }
 
 Array Array::AsGradStopped(gsl::span<const GraphId> graph_ids, CopyKind kind) const {
     NoBackpropModeScope scope{std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}, device().context()};
-    return AsGradStoppedAfterBackpropModeScope(*this, kind);
+    return CopyOrMakeView(*this, kind);
 }
 
 Array Array::AsType(Dtype dtype, bool copy) const {
