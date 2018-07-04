@@ -13,15 +13,15 @@ from chainer.datasets import tuple_dataset
 from chainer import testing
 from chainer.testing import attr
 
+_fashion_mnist_labels = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
+                         'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+
 
 @testing.parameterize(*testing.product({
     'withlabel': [True, False],
     'ndim': [1, 3],
     'scale': [1., 255.],
-    'rgb_format': [True, False],
-    'fashion_mnist_labels': ['T-shirt/top', 'Trouser', 'Pullover', 'Dress',
-                             'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag',
-                             'Ankle boot']
+    'rgb_format': [True, False]
 }))
 class TestMnist(unittest.TestCase):
 
@@ -45,7 +45,7 @@ class TestMnist(unittest.TestCase):
                                   self.mnist_root, get_mnist)
 
     def test_get_fashion_mnist_labels(self):
-        self.assertEqual(get_fashion_mnist_labels(), self.fashion_mnist_labels)
+        self.assertEqual(get_fashion_mnist_labels(), _fashion_mnist_labels)
 
     @attr.slow
     def test_get_fashion_mnist(self):
