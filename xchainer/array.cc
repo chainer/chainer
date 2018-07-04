@@ -275,12 +275,8 @@ Array Array::AsConstant(gsl::span<const GraphId> graph_ids, CopyKind kind) const
             return std::move(out);
         }
         case CopyKind::kView: {
-            Array out{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), data(), offset())};
-            if (!IsConstantAfterStop(graph_ids)) {
-                BackwardBuilder bb{"as_constant_view", out, graph_ids};
-                bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
-            }
-            return std::move(out);
+            NoBackpropModeScope scope{std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}};
+            return MakeView();
         }
         default:
             XCHAINER_NEVER_REACH();
