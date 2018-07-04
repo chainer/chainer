@@ -192,9 +192,9 @@ class Trainer(object):
         Args:
             extension: Extension to register.
             name (str): Name of the extension. If it is omitted, the
-                ``name`` attribute of the extension is used or the
-                ``default_name`` attribute of the extension if ''name''
-                is also undefined.
+                :attr:`Extension.name` attribute of the extension is used or
+                the :attr:`Extension.default_name` attribute of the extension
+                if ''name'' is also undefined.
                 Note that the name would be suffixed by an ordinal in case of
                 duplicated names as explained above.
             trigger (tuple or Trigger): Trigger object that determines when to
