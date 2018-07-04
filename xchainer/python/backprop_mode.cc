@@ -44,14 +44,14 @@ using PyNoBackpropModeScope = PyBackpropModeScope<NoBackpropModeScope>;
 using PyForceBackpropModeScope = PyBackpropModeScope<ForceBackpropModeScope>;
 
 template <class PyBackpropModeScope>
-void InitXchainerBackpropModeScope(pybind11::module& m, const std::string& class_name, const std::string& function_name) {
-    py::class_<PyBackpropModeScope> c{m, class_name.c_str()};
+void InitXchainerBackpropModeScope(pybind11::module& m, const char* class_name, const char* function_name) {
+    py::class_<PyBackpropModeScope> c{m, class_name};
     c.def("__enter__", &PyBackpropModeScope::Enter);
     c.def("__exit__", &PyBackpropModeScope::Exit);
 
-    m.def(function_name.c_str(), []() { return PyBackpropModeScope{}; });
-    m.def(function_name.c_str(), [](GraphId graph_id) { return PyBackpropModeScope{{std::move(graph_id)}}; });
-    m.def(function_name.c_str(), [](const std::vector<GraphId>& graph_ids) { return PyBackpropModeScope{graph_ids}; });
+    m.def(function_name, []() { return PyBackpropModeScope{}; });
+    m.def(function_name, [](GraphId graph_id) { return PyBackpropModeScope{{std::move(graph_id)}}; });
+    m.def(function_name, [](const std::vector<GraphId>& graph_ids) { return PyBackpropModeScope{graph_ids}; });
 }
 
 }  // namespace
