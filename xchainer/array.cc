@@ -247,11 +247,8 @@ Array Array::ToNative() const {
 Array Array::AsGradStopped(CopyKind kind) const {
     switch (kind) {
         case CopyKind::kCopy: {
-            Array out = EmptyLike(*this, device());
-            device().Copy(*this, out);
-
-            assert(out.IsContiguous());
-            return std::move(out);
+            NoBackpropModeScope scope{};
+            return Copy();
         }
         case CopyKind::kView:
             return Array{shape(), strides(), dtype(), device(), body_->data_, offset()};
@@ -261,23 +258,12 @@ Array Array::AsGradStopped(CopyKind kind) const {
 }
 
 Array Array::AsGradStopped(gsl::span<const GraphId> graph_ids, CopyKind kind) const {
+    NoBackpropModeScope scope{std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}};
     switch (kind) {
-        case CopyKind::kCopy: {
-            Array out = EmptyLike(*this, device());
-            device().Copy(*this, out);
-
-            if (IsBackpropRequired()) {
-                BackwardBuilder bb{"copy", out, graph_ids};
-                bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
-            }
-
-            assert(out.IsContiguous());
-            return std::move(out);
-        }
-        case CopyKind::kView: {
-            NoBackpropModeScope scope{std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}};
+        case CopyKind::kCopy:
+            return Copy();
+        case CopyKind::kView:
             return MakeView();
-        }
         default:
             XCHAINER_NEVER_REACH();
     }
