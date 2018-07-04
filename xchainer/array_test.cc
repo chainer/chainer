@@ -712,7 +712,7 @@ TEST_P(ArrayTest, IsBackpropRequired) {
     EXPECT_TRUE(a.IsBackpropRequired());
 }
 
-TEST_P(ArrayTest, AsConstantCopy) {
+TEST_P(ArrayTest, AsGradStoppedCopy) {
     // Stop gradients on all graphs
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
@@ -720,7 +720,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
-        Array b = a.AsConstant(CopyKind::kCopy);
+        Array b = a.AsGradStopped(CopyKind::kCopy);
 
         EXPECT_EQ(&b.device(), &a.device());
 
@@ -741,7 +741,7 @@ TEST_P(ArrayTest, AsConstantCopy) {
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         ASSERT_TRUE(a.IsGradRequired("graph_3"));
-        Array b = a.AsConstant({"graph_1", "graph_2"}, CopyKind::kCopy);
+        Array b = a.AsGradStopped({"graph_1", "graph_2"}, CopyKind::kCopy);
 
         EXPECT_EQ(&b.device(), &a.device());
 
@@ -758,13 +758,13 @@ TEST_P(ArrayTest, AsConstantCopy) {
     // Non-contiguous
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false}).WithPadding(4);
-        Array b = a.AsConstant(CopyKind::kCopy);
+        Array b = a.AsGradStopped(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualCopy(a, b);
     }
 }
 
-TEST_P(ArrayTest, AsConstantView) {
+TEST_P(ArrayTest, AsGradStoppedView) {
     // Stop gradients on all graphs
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
@@ -772,7 +772,7 @@ TEST_P(ArrayTest, AsConstantView) {
         a.RequireGrad("graph_2");
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
-        Array b = a.AsConstant();
+        Array b = a.AsGradStopped();
 
         testing::ExpectEqualView(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
@@ -791,7 +791,7 @@ TEST_P(ArrayTest, AsConstantView) {
         ASSERT_TRUE(a.IsGradRequired("graph_1"));
         ASSERT_TRUE(a.IsGradRequired("graph_2"));
         ASSERT_TRUE(a.IsGradRequired("graph_3"));
-        Array b = a.AsConstant({"graph_1", "graph_2"});
+        Array b = a.AsGradStopped({"graph_1", "graph_2"});
 
         testing::ExpectEqualView(a, b);
         EXPECT_FALSE(b.IsGradRequired("graph_1"));
@@ -805,7 +805,7 @@ TEST_P(ArrayTest, AsConstantView) {
     // Non-contiguous
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false}).WithPadding(4);
-        Array b = a.AsConstant(CopyKind::kView);
+        Array b = a.AsGradStopped(CopyKind::kView);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualView(a, b);
     }

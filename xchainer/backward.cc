@@ -134,7 +134,7 @@ Array BackwardContext::Cut(const Array& a) const {
         }
     }
 #endif  // NDEBUG
-    return a.AsConstant(stop_graph_ids_);
+    return a.AsGradStopped(stop_graph_ids_);
 }
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids)
