@@ -144,7 +144,6 @@ Array ZerosLike(const Array& a, Device& device) { return Zeros(a.shape(), a.dtyp
 Array OnesLike(const Array& a, Device& device) { return Ones(a.shape(), a.dtype(), device); }
 
 Array Copy(const Array& a) {
-    // No graph will be disconnected.
     Array out = EmptyLike(a, a.device());
     a.device().Copy(a, out);
 
