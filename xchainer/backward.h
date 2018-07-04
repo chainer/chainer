@@ -38,7 +38,7 @@ void AccumulateGrad(nonstd::optional<Array>& target_grad, Array partial_grad, co
 
 void SetGrad(nonstd::optional<Array>& target_grad, Array grad, const Shape& shape, Dtype dtype, Device& device);
 
-struct ArrayTraits {
+struct ArrayProps {
     Shape shape;
     Dtype dtype;
     Device& device;
@@ -163,7 +163,7 @@ private:
     // Output arrays of the op.
     std::vector<ConstArrayRef> outputs_;
 
-    std::vector<internal::ArrayTraits> output_traits_;
+    std::vector<internal::ArrayProps> output_array_props_;
 
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.

@@ -108,8 +108,8 @@ const Array& BackwardContext::output_grad(int output_index) const {
     }
 
     // Allocate new zero-filled gradient and return it.
-    const internal::ArrayTraits traits = op_node_.GetPrevArrayTraits(output_index);
-    zero_grad = Zeros(traits.shape, traits.dtype, traits.device);
+    const internal::ArrayProps props = op_node_.GetPrevArrayProps(output_index);
+    zero_grad = Zeros(props.shape, props.dtype, props.device);
     return *zero_grad;
 }
 
@@ -144,10 +144,11 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<Cons
     assert(std::all_of(outputs.begin(), outputs.end(), [&outputs](const Array& output) {
         return &outputs.begin()->get().device() == &output.device();
     }));
-    output_traits_.reserve(outputs_.size());
-    std::transform(outputs_.begin(), outputs_.end(), std::back_inserter(output_traits_), [](const Array& output) -> internal::ArrayTraits {
-        return {output.shape(), output.dtype(), output.device()};
-    });
+    output_array_props_.reserve(outputs_.size());
+    std::transform(
+            outputs_.begin(), outputs_.end(), std::back_inserter(output_array_props_), [](const Array& output) -> internal::ArrayProps {
+                return {output.shape(), output.dtype(), output.device()};
+            });
 }
 
 void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const BackwardFunction& backward_func) {
@@ -196,7 +197,7 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
             }
             // Create new op instance with weakrefs to output nodes
             std::shared_ptr<OpNode>& new_op_node = insert_result.first->second =
-                    std::make_shared<OpNode>(op_name_, prev_array_nodes, output_traits_);
+                    std::make_shared<OpNode>(op_name_, prev_array_nodes, output_array_props_);
             // Add edges from the output nodes
             for (std::shared_ptr<ArrayNode>& prev_array_node : prev_array_nodes) {
                 assert(prev_array_node->next_op_node() == nullptr);

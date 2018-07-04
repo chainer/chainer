@@ -22,9 +22,9 @@ OpNodeBackwardEntry::OpNodeBackwardEntry(std::vector<size_t> next_array_node_ind
 OpNode::OpNode(
         std::string name,
         const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes,
-        std::vector<internal::ArrayTraits> prev_array_traits)
-    : name_{std::move(name)}, graph_id_{prev_array_nodes.front()->graph_id()}, prev_array_traits_{std::move(prev_array_traits)} {
-    assert(prev_array_traits_.size() == prev_array_nodes.size());
+        std::vector<internal::ArrayProps> prev_array_props)
+    : name_{std::move(name)}, graph_id_{prev_array_nodes.front()->graph_id()}, prev_array_props_{std::move(prev_array_props)} {
+    assert(prev_array_props_.size() == prev_array_nodes.size());
     // Create weak_ptrs to previous array nodes
     for (const std::shared_ptr<ArrayNode>& prev_array_node : prev_array_nodes) {
         prev_array_nodes_.emplace_back(prev_array_node);

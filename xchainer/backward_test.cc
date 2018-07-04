@@ -403,7 +403,7 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     EXPECT_EQ(nullptr, x_grad_body.lock());
 }
 
-TEST_P(BackpropTest, SomeOfPreviousArrayNodesIsGone) {
+TEST_P(BackpropTest, SomeOfPreviousArrayNodesAreGone) {
     // This test checks the backward of a multiple-output function where one of the output arrays is gone.
     //
     // (x) <- [forward] <- (y1 := (x-1) exp x) <- [view] <- (z1)
