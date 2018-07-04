@@ -96,7 +96,7 @@ namespace internal {
 
 // Returns whether the array needs to backprop for at least one of having graphs except specified graphs.
 template <typename Container>
-bool IsBackpropRequiredExcept(const Array& array, Container stop_graph_ids) {
+bool IsBackpropRequiredAfterStop(const Array& array, Container stop_graph_ids) {
     const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
     return std::any_of(array_nodes.begin(), array_nodes.end(), [&stop_graph_ids](const std::shared_ptr<const ArrayNode>& array_node) {
         if (stop_graph_ids.end() == std::find(stop_graph_ids.begin(), stop_graph_ids.end(), array_node->graph_id())) {
