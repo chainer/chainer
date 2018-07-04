@@ -382,7 +382,7 @@ TEST(BackpropModeScopeTest, BackpropModeScopeWithAnotherContext) {
 
     Context another_context{};
     {
-        EXPECT_TRUE(IsBackpropRequired());
+        EXPECT_TRUE(IsBackpropRequired("graph1"));
         {
             NoBackpropModeScope scope1{another_context};
             EXPECT_FALSE(IsBackpropRequired("graph1", another_context));
