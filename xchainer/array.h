@@ -214,8 +214,8 @@ public:
         });
     }
 
-    // Flags the array to require gradients during backprop.
-    // Depending on the backprop mode, does nothing but returns a reference to itself.
+    // Flags the array to compute the gradient during backprop.
+    // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.
     const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
     Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId);
