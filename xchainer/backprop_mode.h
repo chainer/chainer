@@ -46,7 +46,7 @@ template <bool kModeFlag>
 class BackpropModeScope {
 public:
     // Backprop mode for all graphs
-    BackpropModeScope(Context& context = GetDefaultContext()) { BackpropModeScopeImpl(nonstd::nullopt, context); }
+    explicit BackpropModeScope(Context& context = GetDefaultContext()) { BackpropModeScopeImpl(nonstd::nullopt, context); }
 
     // Backprop mode for specified graphs
     explicit BackpropModeScope(std::vector<GraphId> graph_ids, Context& context = GetDefaultContext()) {
