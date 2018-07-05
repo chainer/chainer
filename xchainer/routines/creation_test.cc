@@ -624,9 +624,7 @@ TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
 
 TEST_P(CreationTest, AsContiguousArrayBackward) {
     CheckBackward(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {AsContiguousArray(xs[0]).Copy()};  // Make a copy to avoid identical output
-            },
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {AsContiguousArray(xs[0])}; },
             {(*testing::BuildArray({2, 3}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 3}).WithLinearData<float>(-2.4f, 0.8f)},
             {Full({2, 3}, 1e-1f)});
