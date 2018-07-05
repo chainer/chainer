@@ -16,7 +16,6 @@
 #include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/axes.h"
-#include "xchainer/backprop_mode.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -203,9 +202,9 @@ public:
 
     // Flags the array to compute the gradient during backprop.
     // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.
-    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const { return RequireGradImpl(*this, graph_id); }
+    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
-    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) { return RequireGradImpl(*this, graph_id); }
+    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId);
 
     int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 
@@ -246,12 +245,7 @@ private:
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
     template <typename T>
-    static auto RequireGradImpl(T& array, const GraphId& graph_id) -> decltype(array.RequireGrad(graph_id)) {
-        if (xchainer::IsBackpropRequired(graph_id, array.device().context())) {
-            internal::CreateArrayNode(array, graph_id);
-        }
-        return array;
-    }
+    static auto RequireGradImpl(T& array, const GraphId& graph_id) -> decltype(array.RequireGrad(graph_id));
 
     std::shared_ptr<internal::ArrayBody> body_;
 };
