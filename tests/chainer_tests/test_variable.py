@@ -987,6 +987,15 @@ class TestUninitializedParameter(unittest.TestCase):
         assert x.data.dtype == np.float64
         assert x.grad.dtype == np.float64
 
+    def test_initialize_by_callable_default_dtype(self):
+        def initializer(array):
+            array.fill(1.0)
+        x = chainer.Parameter(initializer=initializer)
+        with chainer.using_config('dtype', np.float16):
+            x.initialize((3, 2))
+        assert x.data.dtype == np.float16
+        assert x.grad.dtype == np.float16
+
     def test_initialize_node(self):
         initializer = initializers.Zero(np.float64)
         x = chainer.Parameter(initializer=initializer)

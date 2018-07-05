@@ -1331,7 +1331,7 @@ class Parameter(Variable):
             else:
                 # uninitialized parameter
                 super(Parameter, self).__init__(name=name)
-                dtype = getattr(initializer, 'dtype', numpy.float32)
+                dtype = getattr(initializer, 'dtype', None)
                 self._grad_initializer = constant.NaN(dtype)
         else:
             # parameter initialized with a given shape
