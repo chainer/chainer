@@ -51,7 +51,7 @@ GradRef::GradRef(ArrayNode& array_node) : original_grad_owner_body_{array_node.G
     }
 }
 
-GradRef::GradRef(nonstd::nullopt_t) : temporary_grad_{std::make_unique<nonstd::optional<Array>>()} {}
+GradRef::GradRef(nonstd::nullopt_t /*nullopt*/) : temporary_grad_{std::make_unique<nonstd::optional<Array>>()} {}
 
 nonstd::optional<Array>& GradRef::get() {
     if (original_grad_ptr_ == nullptr) {
@@ -315,8 +315,8 @@ private:
         dead_prev_grads.reserve(op_node.prev_array_nodes().size());
 
         std::vector<internal::GradRef*> prev_grads;
-        for (size_t i = 0; i < op_node.prev_array_nodes().size(); ++i) {
-            std::shared_ptr<ArrayNode> prev_array_node = op_node.prev_array_nodes()[i].lock();
+        for (const std::weak_ptr<ArrayNode>& maybe_prev_array_node : op_node.prev_array_nodes()) {
+            std::shared_ptr<ArrayNode> prev_array_node = maybe_prev_array_node.lock();
             prev_array_nodes.emplace_back(prev_array_node.get());
 
             if (prev_array_node != nullptr) {

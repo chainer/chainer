@@ -316,7 +316,9 @@ const Array& Array::RequireGrad(const GraphId& graph_id) const {
     return *this;
 }
 
-Array& Array::RequireGrad(const GraphId& graph_id) { return const_cast<Array&>(const_cast<const Array*>(this)->RequireGrad(graph_id)); }
+Array& Array::RequireGrad(const GraphId& graph_id) {
+    return const_cast<Array&>(const_cast<const Array*>(this)->RequireGrad(graph_id));  // NOLINT
+}
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
