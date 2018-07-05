@@ -1,13 +1,10 @@
 #include "xchainer/array_body_leak_detection.h"
 
 #include <memory>
-#include <sstream>
 #include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/array_body.h"
-#include "xchainer/array_node.h"
-#include "xchainer/graph.h"
 
 namespace xchainer {
 namespace internal {
