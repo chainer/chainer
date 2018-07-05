@@ -314,14 +314,7 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) const {
 
 void Array::ClearGrad(const GraphId& graph_id) const { body_->ClearGrad(graph_id); }
 
-bool Array::IsGradRequired(const GraphId& graph_id) const {
-    if (graph_id == kAnyGraphId) {
-        return xchainer::IsBackpropRequired(*this);
-    } else if (internal::HasArrayNode(*this, graph_id)) {
-        return xchainer::IsBackpropRequired(graph_id, device().context());
-    }
-    return false;
-}
+bool Array::IsGradRequired(const GraphId& graph_id) const { return xchainer::IsBackpropRequired(*this, graph_id); }
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const GraphId& graph_id) {
