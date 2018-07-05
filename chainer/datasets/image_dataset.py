@@ -167,22 +167,23 @@ class LabeledZippedImageDataset(dataset_mixin.DatasetMixin):
 
     """Dataset of zipped image and label pairs.
 
-    This dataset is zip version of `LabeledImageDataset`. It takes a
-    zipfile like `ZippedImageDataset`. The label file shall contain
-    lines like text file used in :class:`LabeledImageDataset`, but a
-    filename in each line of the label file shall match with a file in
-    the zip archive.
+    This dataset is zip version of :class:`LabeledImageDataset`. It
+    takes a zipfile like :class:`ZippedImageDataset`. The label file
+    shall contain lines like text file used in
+    :class:`LabeledImageDataset`, but a filename in each line of the
+    label file shall match with a file in the zip archive.
 
     Args:
         zipfilename (str): Path to a zipfile with images
         labelfilename (str): Path to a label file. ``i``-th line shall
-            contain a filename and an integer label and it corresponds
+            contain a filename and an integer label that corresponds
             to the ``i``-th sample. A filename in the label file shall
             match with a filename in the zip file given with
             `zipfilename`.
         dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
             used by default (see :ref:`configuration`).
         label_dtype: Data type of the labels.
+
     """
     def __init__(self, zipfilename, labelfilename, dtype=None,
                  label_dtype=numpy.int32):
@@ -194,7 +195,7 @@ class LabeledZippedImageDataset(dataset_mixin.DatasetMixin):
                 if len(pair) != 2:
                     raise ValueError(
                         'invalid format at line {} in file {}'.format(
-                            i, pairs_path))
+                            i, pairs_file))
                 pairs.append((pair[0], int(pair[1])))
         self._pairs = pairs
         self._label_dtype = label_dtype
