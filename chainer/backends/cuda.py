@@ -51,6 +51,7 @@ try:
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
     import cupyx  # NOQA
+    import cupyx.scipy.special  # NOQA
 
     from cupy import ndarray  # NOQA
 
