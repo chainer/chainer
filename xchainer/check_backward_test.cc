@@ -14,6 +14,7 @@
 #include "xchainer/array.h"
 #include "xchainer/backward.h"
 #include "xchainer/check_backward.h"
+#include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
@@ -33,7 +34,7 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
     const Array& in = inputs[0];
     Array out = EmptyLike(in);
 
-    if (in.IsGradRequired()) {
+    if (in.IsGradRequired(kAnyGraphId)) {
         BackwardBuilder bb{"incorrect_unary", {out}};
         bb.Define({in}, [](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
@@ -60,7 +61,7 @@ Arrays ForwardWithIncorrectDoubleBackpropOption(const Arrays& inputs) {
 
     Array out = a.AsGradStopped() * a.AsGradStopped();
 
-    if (a.IsGradRequired()) {
+    if (a.IsGradRequired(kAnyGraphId)) {
         BackwardBuilder bb{"incorrect_square", {out}};
         bb.Define({a}, [a](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();

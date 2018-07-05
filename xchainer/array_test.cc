@@ -22,6 +22,7 @@
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/check_backward.h"
+#include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/device_id.h"
@@ -689,7 +690,7 @@ TEST_P(ArrayTest, IsGradRequired) {
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
 
     a.RequireGrad("testgraph1");
-    EXPECT_TRUE(a.IsGradRequired());
+    EXPECT_TRUE(a.IsGradRequired(kAnyGraphId));
 }
 
 TEST_P(ArrayTest, AsGradStoppedCopy) {

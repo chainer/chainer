@@ -23,6 +23,7 @@
 #include "xchainer/backend.h"
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
+#include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -201,7 +202,7 @@ Array Array::Copy() const { return xchainer::Copy(*this); }
 
 Array Array::MakeView() const {
     Array out{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), data(), offset())};
-    if (IsGradRequired()) {
+    if (IsGradRequired(kAnyGraphId)) {
         BackwardBuilder bb{"view", out};
         bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
@@ -237,7 +238,7 @@ Array Array::ToDevice(Device& dst_device) const {
     assert(out.body() != nullptr);
 
     // Backward operation is implemented as backward-transfer.
-    if (IsGradRequired()) {
+    if (IsGradRequired(kAnyGraphId)) {
         BackwardBuilder bb{"transfer", out};
         bb.Define({*this}, [&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
     }
@@ -284,7 +285,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     Array out = Empty(shape(), dtype, device());
     device().AsType(*this, out);
 
-    if (IsGradRequired() && GetKind(dtype) == DtypeKind::kFloat) {
+    if (IsGradRequired(kAnyGraphId) && GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", out};
         bb.Define({*this}, [src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
     }
