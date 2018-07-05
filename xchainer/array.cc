@@ -310,7 +310,7 @@ void Array::ClearGrad(const GraphId& graph_id) const { body_->ClearGrad(graph_id
 bool Array::IsBackpropRequired() const { return xchainer::IsBackpropRequired(*this); }
 
 template <typename T>
-auto Array::RequireGradImpl(T& array, const GraphId& graph_id) -> decltype(array.RequireGrad(graph_id)) {
+T& Array::RequireGradImpl(T& array, const GraphId& graph_id) {
     if (xchainer::IsBackpropRequired(graph_id, array.device().context())) {
         internal::CreateArrayNode(array, graph_id);
     }
@@ -318,12 +318,7 @@ auto Array::RequireGradImpl(T& array, const GraphId& graph_id) -> decltype(array
 }
 
 template const Array& Array::RequireGradImpl<const Array>(const Array& array, const GraphId& graph_id);
-
 template Array& Array::RequireGradImpl<Array>(Array& array, const GraphId& graph_id);
-
-const Array& Array::RequireGrad(const GraphId& graph_id) const { return RequireGradImpl(*this, graph_id); }
-
-Array& Array::RequireGrad(const GraphId& graph_id) { return RequireGradImpl(*this, graph_id); }
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 

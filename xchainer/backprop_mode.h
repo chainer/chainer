@@ -7,14 +7,12 @@
 
 #include <nonstd/optional.hpp>
 
+#include "xchainer/array.h"
 #include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/graph.h"
 
 namespace xchainer {
-
-class Array;
-
 namespace internal {
 
 class BackpropMode {
