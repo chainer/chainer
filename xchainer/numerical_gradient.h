@@ -15,7 +15,7 @@ Arrays CalculateNumericalGradient(
         const Arrays& inputs,
         const Arrays& grad_outputs,
         const Arrays& eps,
-        const GraphId& graph_id = kDefaultGraphId);
+        const GraphId& graph_id = GraphId::kDefault);
 
 }  // namespace numerical_gradient_internal
 

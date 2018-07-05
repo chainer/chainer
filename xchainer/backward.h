@@ -174,12 +174,12 @@ private:
 
 void Backward(
         const Array& output,
-        const GraphId& graph_id = kDefaultGraphId,
+        const GraphId& graph_id = GraphId::kDefault,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
 void Backward(
         const std::vector<ConstArrayRef>& outputs,
-        const GraphId& graph_id = kDefaultGraphId,
+        const GraphId& graph_id = GraphId::kDefault,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
 }  // namespace xchainer
