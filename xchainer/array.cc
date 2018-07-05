@@ -16,6 +16,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array_body.h"
+#include "xchainer/array_body_leak_detection.h"
 #include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/axes.h"
@@ -69,7 +70,12 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
 }  // namespace internal
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
-    : body_{std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)} {}
+    : body_{std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)} {
+    if (internal::ArrayBodyLeakTracker* tracker = internal::ArrayBodyLeakDetectionScope::GetGlobalTracker()) {
+        // TODO(niboshi): Make thread-safe
+        (*tracker)(body_);
+    }
+}
 
 Array Array::operator-() const { return Negative(*this); }
 

@@ -11,6 +11,7 @@ endif()
 install(FILES
     array.h
     array_body.h
+    array_body_leak_detection.h
     array_index.h
     array_node.h
     array_repr.h
@@ -47,6 +48,7 @@ install(FILES
 add_library(xchainer SHARED
     array.cc
     array_body.cc
+    array_body_leak_detection.cc
     array_repr.cc
     axes.cc
     backend.cc
@@ -83,6 +85,7 @@ install(TARGETS xchainer DESTINATION lib)
 if(ENABLE_TEST)
     add_subdirectory(context_testdata)
     set(srcs
+        array_body_leak_detection_test.cc
         array_device_test.cc
         array_repr_test.cc
         array_test.cc

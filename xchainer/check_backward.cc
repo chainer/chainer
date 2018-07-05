@@ -227,6 +227,7 @@ void CheckBackwardComputation(
 
 }  // namespace
 
+// TODO(niboshi): Fix the leaks and enable array body leak detection.
 void CheckBackward(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
@@ -239,6 +240,7 @@ void CheckBackward(
     CheckBackwardComputation(func, inputs, grad_outputs, eps, atol, rtol, graph_id);
 }
 
+// TODO(niboshi): Fix the leaks and enable array body leak detection.
 void CheckDoubleBackwardComputation(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
