@@ -78,13 +78,6 @@ def backprop_step(
     if func.backward_accumulate.__code__ \
             is not chainer.FunctionNode.backward_accumulate.__code__:
         # backward_accumulate is overridden
-
-        # Note (Tokui): when the same variable is passed multiple times as
-        # inputs in the same function (e.g. an expression like f(x, x)), the
-        # current implementation passes None as the current gradient w.r.t.
-        # such an input except for the first one (i.e., it builds gxs like
-        # (gx, None) where gx is the current gradient w.r.t. x). See also the
-        # docstring of ``FunctionNode.backward_accumulate``.
         grad_inputs_tuple = tuple([
             _pop_or_none(grad_inputs[func.inputs[i]])
             for i in target_input_indexes

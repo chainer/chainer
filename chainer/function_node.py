@@ -530,12 +530,15 @@ Use apply() method instead.\
 
         .. note::
 
-           When the same variable is passed to the multiple input arguments of
-           a function, only the first position of ``grad_inputs`` corresponding
-           to these input arguments may contain the gradient variable
-           corresponding to that input variable, and other entries are set to
-           ``None``. This is an implementation-detail convention to avoid the
+           Gradient variables in ``grad_outputs`` are distinct, even if a
+           variable is passed to multiple input arguments of the function.
+           This is an implementation-detail convention to avoid the
            complication of correctly accumulating gradients in such a case.
+
+           Usually, only the first position of ``grad_inputs`` corresponding to
+           these input arguments may contain the gradient variable
+           corresponding to that input variable, and other entries are set to
+           ``None``. This is not the case with the ``lazy_grad_sum`` feature.
            This behavior might be changed in a future version.
 
         """
