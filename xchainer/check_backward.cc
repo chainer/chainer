@@ -8,6 +8,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/error.h"
 #include "xchainer/numeric.h"
@@ -38,7 +39,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
         }
     }
 
-    if (grad_outputs) {
+    if (grad_outputs.has_value()) {
         const std::size_t nout = outputs.size();
         if (nout != grad_outputs->size()) {
             throw GradientCheckError{"BackwardGradients: Size of function outputs: ",
@@ -180,7 +181,7 @@ void CheckBackwardComputation(
     }
 
     // Compute numerical gradients
-    const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps, graph_id);
+    const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
 
     // If you're trapped in any of these asserts, numerical gradiends must be implemented incorrectly.
     assert(numerical_grads.size() == inputs.size());
@@ -280,6 +281,12 @@ void CheckDoubleBackwardComputation(
         std::vector<Array> inputs{inputs_and_grad_outputs.begin(), inputs_and_grad_outputs.begin() + nin};
         std::vector<Array> grad_outputs{inputs_and_grad_outputs.begin() + nin, inputs_and_grad_outputs.end()};
 
+        ForceBackpropModeScope scope{graph_id};
+
+        for (Array& input : inputs) {
+            input.RequireGrad(graph_id);
+        }
+
         // Compute first order gradients
         std::vector<nonstd::optional<Array>> optional_backward_grads = BackwardGradients(func, inputs, grad_outputs, graph_id);
 
@@ -327,7 +334,7 @@ void CheckDoubleBackwardComputation(
 
     // Compute second order numerial gradients w.r.t. the first-order gradients.
     const std::vector<Array> numerical_grads =
-            CalculateNumericalGradient(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, eps, graph_id);
+            CalculateNumericalGradient(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, eps);
     assert(numerical_grads.size() == nin + nout);
 
     // Compute second order backward gradients w.r.t. the first-order gradients.
