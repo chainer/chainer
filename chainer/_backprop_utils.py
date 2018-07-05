@@ -15,6 +15,10 @@ def _pure(grad):
     return [] if grad is None else [grad]
 
 
+def _pop_or_none(grad_list):
+    return grad_list.pop() if grad_list else None
+
+
 class GradTable(object):
 
     """Dict of nodes to references of gradients
@@ -85,8 +89,7 @@ def backprop_step(
         for i in target_input_indexes:
             g_input = grad_inputs[func.inputs[i]]
             grad_inputs_tuple.append(
-                _reduce(g_input))
-            g_input[:] = []
+                _pop_or_none(g_input))
         gxs = func.backward_accumulate(
             target_input_indexes, grad_outputs,
             tuple(grad_inputs_tuple))
