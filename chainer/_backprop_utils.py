@@ -85,17 +85,16 @@ def backprop_step(
         # such an input except for the first one (i.e., it builds gxs like
         # (gx, None) where gx is the current gradient w.r.t. x). See also the
         # docstring of ``FunctionNode.backward_accumulate``.
-        grad_inputs_tuple = []
-        for i in target_input_indexes:
-            g_input = grad_inputs[func.inputs[i]]
-            grad_inputs_tuple.append(
-                _pop_or_none(g_input))
+        grad_inputs_tuple = tuple([
+            _pop_or_none(grad_inputs[func.inputs[i]])
+            for i in target_input_indexes
+        ])
         gxs = func.backward_accumulate(
-            target_input_indexes, grad_outputs,
-            tuple(grad_inputs_tuple))
+            target_input_indexes, grad_outputs, grad_inputs_tuple)
         assert isinstance(gxs, tuple)
     else:  # otherwise, backward should be overridden
-        gxs = func.backward(target_input_indexes, grad_outputs)
+        gxs = func.backward(
+            target_input_indexes, grad_outputs)
         # assert isinstance(gxs, tuple)  # this check is failing
 
         len_gxs = len(gxs)
