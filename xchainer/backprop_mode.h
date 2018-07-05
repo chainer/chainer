@@ -8,7 +8,6 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
-#include "xchainer/array_node.h"
 #include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/graph.h"
@@ -54,9 +53,8 @@ public:
     }
 
     // Backprop mode for specified graphs
-    explicit BackpropModeScope(std::initializer_list<GraphId> graph_ids, Context& context = GetDefaultContext()) {
-        BackpropModeScopeImpl(std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}, context);
-    }
+    explicit BackpropModeScope(std::initializer_list<GraphId> graph_ids, Context& context = GetDefaultContext())
+        : BackpropModeScope({graph_ids.begin(), graph_ids.end()}, context) {}
 
     BackpropModeScope(const BackpropModeScope&) = delete;
     BackpropModeScope(BackpropModeScope&& other) = delete;
@@ -88,11 +86,6 @@ bool IsBackpropRequired(const GraphId& graph_id = kDefaultGraphId, Context& cont
 
 // Returns whether the array needs to backprop.
 // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
-inline bool IsBackpropRequired(const Array& array) {
-    const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
-    return std::any_of(array_nodes.begin(), array_nodes.end(), [&array](const std::shared_ptr<const ArrayNode>& array_node) {
-        return IsBackpropRequired(array_node->graph_id(), array.device().context());
-    });
-}
+bool IsBackpropRequired(const Array& array);
 
 }  // namespace xchainer

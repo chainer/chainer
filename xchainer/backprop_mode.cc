@@ -1,11 +1,14 @@
 #include "xchainer/backprop_mode.h"
 
 #include <algorithm>
+#include <memory>
 #include <utility>
 #include <vector>
 
 #include <nonstd/optional.hpp>
 
+#include "xchainer/array.h"
+#include "xchainer/array_node.h"
 #include "xchainer/context.h"
 #include "xchainer/graph.h"
 
@@ -63,6 +66,13 @@ bool IsBackpropRequired(const GraphId& graph_id, Context& context) {
         return it->backprop();
     }
     return true;  // Per default.
+}
+
+bool IsBackpropRequired(const Array& array) {
+    const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
+    return std::any_of(array_nodes.begin(), array_nodes.end(), [&array](const std::shared_ptr<const ArrayNode>& array_node) {
+        return IsBackpropRequired(array_node->graph_id(), array.device().context());
+    });
 }
 
 }  // namespace xchainer
