@@ -34,12 +34,7 @@ ArrayBodyLeakDetectionScope ::ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& 
     array_body_leak_tracker_ = &tracker;
 }
 
-ArrayBodyLeakDetectionScope ::~ArrayBodyLeakDetectionScope() {
-    if (!exited_) {
-        array_body_leak_tracker_ = nullptr;
-        exited_ = true;
-    }
-}
+ArrayBodyLeakDetectionScope ::~ArrayBodyLeakDetectionScope() { array_body_leak_tracker_ = nullptr; }
 
 }  // namespace internal
 }  // namespace xchainer

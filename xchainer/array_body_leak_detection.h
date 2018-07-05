@@ -42,8 +42,6 @@ private:
 
     // The global array body leak tracker.
     static ArrayBodyLeakTracker* array_body_leak_tracker_;
-
-    bool exited_ = false;
 };
 
 }  // namespace internal
