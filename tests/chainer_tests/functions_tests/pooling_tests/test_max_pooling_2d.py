@@ -154,7 +154,7 @@ class TestMaxPooling2D(unittest.TestCase):
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
     def test_backward_cpu_more_than_once(self):
-        func = functions.MaxPooling2D(
+        func = functions.pooling.max_pooling_2d.MaxPooling2D(
             3, stride=2, pad=1, cover_all=self.cover_all)
         func.apply(self.inputs)
         func.backward((0,), self.grad_outputs)
@@ -172,9 +172,8 @@ class TestMaxPooling2D(unittest.TestCase):
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(x):
-            y = functions.max_pooling_2d(
+            return functions.max_pooling_2d(
                 x, 3, stride=2, pad=1, cover_all=self.cover_all)
-            return y * y
 
         with backend_config:
             gradient_check.check_double_backward(

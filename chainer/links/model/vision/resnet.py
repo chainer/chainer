@@ -79,8 +79,8 @@ class ResNetLayers(link.Chain):
             (Facebook ResNet).
 
     Attributes:
-        ~ResNetLayers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -370,8 +370,8 @@ class ResNet50Layers(ResNetLayers):
             (Facebook ResNet).
 
     Attributes:
-        ~ResNet50Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -430,8 +430,8 @@ class ResNet101Layers(ResNetLayers):
             (Facebook ResNet).
 
     Attributes:
-        ~ResNet101Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``__call__`` and ``extract`` methods.
 
     """
 
@@ -489,8 +489,8 @@ class ResNet152Layers(ResNetLayers):
             (Facebook ResNet).
 
     Attributes:
-        ~ResNet152Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``__call__`` and ``extract`` methods.
 
     """
 

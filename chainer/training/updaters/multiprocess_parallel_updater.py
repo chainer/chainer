@@ -292,7 +292,7 @@ def size_num_grads(link):
 
 
 def _memcpy_gather():
-    return cuda.cupy.ElementwiseKernel(
+    return cuda.elementwise(
         'raw T ptrs, raw X dtypes, raw Y info',
         'raw float32 dst',
         '''
@@ -385,7 +385,7 @@ def gather_params(link):
 
 
 def _memcpy_scatter():
-    return cuda.cupy.ElementwiseKernel(
+    return cuda.elementwise(
         'raw T ptrs, raw X dtypes, raw Y info, raw float32 array',
         '',
         '''
