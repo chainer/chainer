@@ -18,7 +18,7 @@ void ArrayBodyLeakTracker::operator()(const std::shared_ptr<internal::ArrayBody>
 
 std::vector<std::shared_ptr<ArrayBody>> ArrayBodyLeakTracker::GetAliveArrayBodies() const {
     std::vector<std::shared_ptr<ArrayBody>> alive_ptrs;
-    for (const std::weak_ptr<ArrayBody> weak_ptr : weak_ptrs_) {
+    for (const std::weak_ptr<ArrayBody>& weak_ptr : weak_ptrs_) {
         if (std::shared_ptr<ArrayBody> ptr = weak_ptr.lock()) {
             alive_ptrs.emplace_back(ptr);
         }
