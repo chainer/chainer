@@ -60,6 +60,98 @@ class BatchNormalization(link.Link):
         eps (float): Epsilon value for numerical stability. This value is added
             to the batch variances.
 
+    .. admonition:: Example
+
+        >>> x = np.arange(12).reshape(4, 3).astype(np.float32) ** 2
+        >>> x
+        array([[  0.,   1.,   4.],
+               [  9.,  16.,  25.],
+               [ 36.,  49.,  64.],
+               [ 81., 100., 121.]], dtype=float32)
+        >>> bn = chainer.links.BatchNormalization(3)
+        >>> bn(x)
+        variable([[-1.        , -1.0664359 , -1.1117983 ],
+                  [-0.71428573, -0.6714596 , -0.6401263 ],
+                  [ 0.14285715,  0.19748813,  0.23583598],
+                  [ 1.5714287 ,  1.5404074 ,  1.5160885 ]])
+        >>> (x - x.mean(axis=0)) / np.sqrt(x.var(axis=0) + 2e-5)
+        array([[-1.        , -1.0664359 , -1.1117983 ],
+               [-0.71428573, -0.6714596 , -0.6401263 ],
+               [ 0.14285715,  0.19748813,  0.235836  ],
+               [ 1.5714285 ,  1.5404074 ,  1.5160886 ]], dtype=float32)
+
+        There are several ways to make a BatchNormalization link.
+        Consider an input of batched 10 images of 32x32 with 3 channels.
+
+        >>> x = np.random.randn(10, 3, 32, 32).astype(np.float32)
+
+        1. Give the parameter size:
+
+            To normalize for each channel, give the number of channels
+            to ``size``.
+
+            >>> bn = chainer.links.BatchNormalization(3)
+            >>> bn.avg_mean.shape
+            (3,)
+            >>> bn.beta += 2.0
+            >>> bn.gamma *= 5.0
+            >>> list(sorted(bn.namedparams()))  # doctest: +ELLIPSIS
+            [('/beta', variable([2., ...])), ('/gamma', variable([5., ...]))]
+            >>> y = bn(x)
+            >>> y.shape
+            (10, 3, 32, 32)
+            >>> np.testing.assert_allclose(
+            ...     y.array.mean(axis=(0, 2, 3)), bn.beta.array, atol=1e-6)
+            >>> np.testing.assert_allclose(
+            ...     y.array.std(axis=(0, 2, 3)),
+            ...     bn.gamma.array, atol=1e-3)
+
+            To normalize for each channel for each pixel, ``size`` should
+            be the tuple of the dimensions.
+
+            >>> bn = chainer.links.BatchNormalization((3, 32, 32))
+            >>> bn.avg_mean.shape
+            (3, 32, 32)
+            >>> y = bn(x)
+            >>> y.shape
+            (10, 3, 32, 32)
+            >>> np.testing.assert_allclose(
+            ...     y.array.mean(axis=0), bn.beta.array, atol=1e-6)
+            >>> np.testing.assert_allclose(
+            ...     y.array.std(axis=0),
+            ...     bn.gamma.array, atol=1e-3)
+
+            By default, channel axis is (or starts from) the 1st axis of the
+            input shape.
+
+        2. Give the aggregate axes:
+
+            from Chainer v5
+
+            With ``axis`` option, similarly to NumPy, you may specify the
+            aggregate axes, which are treated as the "batch" axes for the
+            batch statistics.
+
+            You can omit ``size`` if ``axis`` is given. In this case, creation
+            of persistent values ``avg_mean``, ``avg_var`` and parameters
+            ``beta``, ``gamma`` is deferred until first forward propagation.
+
+            The examples in 1. corresponds to the following, respectively.
+
+            >>> bn = chainer.links.BatchNormalization(axis=(0, 2, 3))
+            >>> hasattr(bn, 'avg_mean')
+            False
+            >>> y = bn(x)
+            >>> bn.avg_mean.shape
+            (3,)
+
+            >>> bn = chainer.links.BatchNormalization(axis=0)
+            >>> hasattr(bn, 'avg_mean')
+            False
+            >>> y = bn(x)
+            >>> bn.avg_mean.shape
+            (3, 32, 32)
+
     """
 
     def __init__(self, size, decay=0.9, eps=2e-5, dtype=numpy.float32,
