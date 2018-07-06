@@ -23,25 +23,34 @@ class StepShift(extension.Extension):
 
     Args:
         attr (str): Name of the optimizer attribute to adjust.
-        init (float): The initial value of the attribute.
         gamma (float): The multiplier.
         step (int): The interval for the multiplication, i.e., ``k``.
+        init (float): Initial value of the attribute. If it is ``None``, the
+            extension extracts the attribute at the first call and uses it as
+            the initial value.
+        target (float): Target value of the attribute. If the attribute reaches
+            this value, the shift stops.
         optimizer (~chainer.Optimizer): Target optimizer object. If it is None,
             the main optimizer of the trainer is used.
 
     """
 
-    def __init__(self, attr, init, gamma, step, optimizer=None):
+    def __init__(self, attr, gamma, step, init=None, target=None,
+                 optimizer=None):
         self._attr = attr
-        self._init = init
         self._gamma = gamma
         self._step = step
+        self._init = init
+        self._target = target
         self._optimizer = optimizer
         self._t = 0
         self._last_value = None
 
     def initialize(self, trainer):
         optimizer = self._get_optimizer(trainer)
+        # ensure that _init is set
+        if self._init is None:
+            self._init = getattr(optimizer, self._attr)
         if self._last_value is not None:
             value = self._last_value
         else:
@@ -52,6 +61,16 @@ class StepShift(extension.Extension):
         self._t += 1
         optimizer = self._get_optimizer(trainer)
         value = self._init * self._gamma ** numpy.floor(self._t / self._step)
+        if self._target is not None:
+            if self._gamma > 1:
+                # almost same as value = min(value, self._target), but this
+                # line supports negative values, too
+                if value / self._target > 1:
+                    value = self._target
+            else:
+                # ditto
+                if value / self._target < 1:
+                    value = self._target
         self._update_value(optimizer, value)
 
     def serialize(self, serializer):

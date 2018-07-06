@@ -7,19 +7,29 @@ from chainer import training
 from chainer.training import extensions
 
 
+@testing.parameterize(
+    {'init': 2.0, 'gamma': 0.5, 'step': 2, 'target': None,
+     'expect': [2.0, 2.0, 1.0, 1.0, 0.5, 0.5]},
+    {'init': 2.0, 'gamma': 0.5, 'step': 2, 'target': 1.2,
+     'expect': [2.0, 2.0, 1.2, 1.2, 1.2, 1.2]},
+    {'init': -2.0, 'gamma': 0.5, 'step': 2, 'target': -1.2,
+     'expect': [-2.0, -2.0, -1.2, -1.2, -1.2, -1.2]},
+    {'init': 2.0, 'gamma': 2.0, 'step': 2, 'target': None,
+     'expect': [2.0, 2.0, 4.0, 4.0, 8.0, 8.0]},
+    {'init': 2.0, 'gamma': 2.0, 'step': 2, 'target': 3.0,
+     'expect': [2.0, 2.0, 3.0, 3.0, 3.0, 3.0]},
+    {'init': -2.0, 'gamma': 2.0, 'step': 2, 'target': -3.0,
+     'expect': [-2.0, -2.0, -3.0, -3.0, -3.0, -3.0]},
+)
 class TestStepShift(unittest.TestCase):
-
-    init = 1.0
-    gamma = 2.0
-    step = 2
-    expect = [1.0, 1.0, 2.0, 2.0, 4.0, 4.0, 8.0, 8.0, 16.0, 16.0]
 
     def setUp(self):
         self.optimizer = mock.MagicMock()
         self.extension = extensions.StepShift(
-            'x', self.init, self.gamma, self.step)
+            'x', self.gamma, self.step, self.init, self.target, self.optimizer)
 
         self.interval = 1
+        self.expect = [e for e in self.expect for _ in range(self.interval)]
         self.trigger = training.get_trigger((self.interval, 'iteration'))
 
         self.trainer = testing.get_trainer_with_mock_updater(self.trigger)
@@ -42,20 +52,26 @@ class TestStepShift(unittest.TestCase):
     def test_basic(self):
         self.optimizer.x = 0
         extension = extensions.StepShift(
-            'x', self.init, self.gamma, self.step)
+            'x', self.gamma, self.step, init=self.init, target=self.target)
+        self._run_trainer(extension, self.expect)
+
+    def test_without_init(self):
+        self.optimizer.x = self.init
+        extension = extensions.StepShift(
+            'x', self.gamma, self.step, init=self.init, target=self.target)
         self._run_trainer(extension, self.expect)
 
     def test_with_optimizer(self):
         optimizer = mock.Mock()
         optimizer.x = 0
         extension = extensions.StepShift(
-            'x', self.init, self.gamma, self.step, optimizer)
+            'x', self.gamma, self.step, self.init, self.target, optimizer)
         self._run_trainer(extension, self.expect, optimizer)
 
     def test_resume(self):
         new_optimizer = mock.Mock()
         new_extension = extensions.StepShift(
-            'x', self.init, self.gamma, self.step, new_optimizer)
+            'x', self.gamma, self.step, self.init, self.target, new_optimizer)
 
         self.trainer.extend(self.extension)
         self.trainer.run()
