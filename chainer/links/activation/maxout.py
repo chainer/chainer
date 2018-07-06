@@ -1,6 +1,5 @@
 import numpy
 
-import chainer
 from chainer.backends import cuda
 from chainer.functions.activation import maxout
 from chainer import link
@@ -59,19 +58,28 @@ class Maxout(link.Chain):
         super(Maxout, self).__init__()
 
         linear_out_size = out_size * pool_size
-        if initialW is not None:
-            initialW = initialW.reshape(linear_out_size, in_size)
 
-        if initial_bias is not None:
-            if numpy.isscalar(initial_bias):
-                dtype = chainer.get_dtype()
-                initial_bias = numpy.full(
-                    (linear_out_size,), initial_bias, dtype=dtype)
-            elif isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
-                initial_bias = initial_bias.reshape(linear_out_size)
-            else:
-                raise ValueError(
-                    'initial bias must be float, ndarray, or None')
+        if isinstance(initialW, (numpy.ndarray, cuda.ndarray)):
+            initialW = initialW.reshape(linear_out_size, in_size)
+        elif callable(initialW):
+            def make_initialW_wrapper(initialW):
+                def f(array):
+                    array.shape = (out_size, pool_size, in_size)
+                    initialW(array)
+                    array.shape = (linear_out_size, in_size)
+                return f
+            initialW = make_initialW_wrapper(initialW)
+
+        if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
+            initial_bias = initial_bias.reshape(linear_out_size)
+        elif callable(initial_bias):
+            def make_initial_bias_wrapper(initial_bias):
+                def f(array):
+                    array.shape = (out_size, pool_size)
+                    initial_bias(array)
+                    array.shape = linear_out_size,
+                return f
+            initial_bias = make_initial_bias_wrapper(initial_bias)
 
         with self.init_scope():
             self.linear = linear.Linear(
