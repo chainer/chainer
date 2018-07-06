@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer.functions.activation import relu
 from chainer.functions.array import concat
