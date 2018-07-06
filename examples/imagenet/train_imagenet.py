@@ -232,13 +232,13 @@ def main():
     optimizer = chainer.optimizers.MomentumSGD(lr=0.01, momentum=0.9)
     optimizer.setup(model)
 
-    val_interval = (100 if args.test else 100000), 'iteration'
-    log_interval = (10 if args.test else 1000), 'iteration'
-
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=converter, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
+
+    val_interval = (1 if args.test else 100000), 'iteration'
+    log_interval = (1 if args.test else 1000), 'iteration'
 
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=args.gpu), trigger=val_interval)
