@@ -128,9 +128,15 @@ class Classifier(link.Chain):
             t = kwargs[self.label_key]
             del kwargs[self.label_key]
 
+        # The model keeps these variables on its attributes for ease of later
+        # accesses. In such a case, we shall clear the attributes before
+        # running the predictor on another batch. If we didn't, memory
+        # would be doubly allocated, because the variables retain the whole
+        # computation graph on the previous batch.
         self.y = None
         self.loss = None
         self.accuracy = None
+
         self.y = self.predictor(*args, **kwargs)
         self.loss = self.lossfun(self.y, t)
         reporter.report({'loss': self.loss}, self)
