@@ -98,7 +98,6 @@ class AdamRule(optimizer.UpdateRule):
             self.state['v'] = intel64.ideep.array(
                 self.state['v'], itype=intel64.ideep.wgt_array)
 
-
     def update_core_cpu(self, param):
         grad = param.grad
         if grad is None:
@@ -110,18 +109,17 @@ class AdamRule(optimizer.UpdateRule):
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
         m, v = self.state['m'], self.state['v']
-        if (isinstance(m, intel64.mdarray) and
-            isinstance(v, intel64.mdarray)):
+        if (isinstance(m, intel64.mdarray)
+                and isinstance(v, intel64.mdarray)):
             m.inplace_axpby(1.0, 1.0 - hp.beta1, grad - m)
             v.inplace_axpby(1.0, 1.0 - hp.beta2, grad*grad - v)
             if hp.amsgrad:
                 vhat = self.state['vhat']
                 numpy.maximum(vhat, v, out=vhat)
-                param.data.inplace_axpby(1.0 - hp.weight_decay_rate, -hp.eta,
-                                     self.lr * m / (numpy.sqrt(vhat) + hp.eps))
             else:
-                param.data.inplace_axpby(1.0 - hp.weight_decay_rate, -hp.eta,
-                                     self.lr * m / (numpy.sqrt(v) + hp.eps))
+                vhat = v
+            param.data.inplace_axpby(1.0 - hp.weight_decay_rate, -hp.eta,
+                                     self.lr * m / (numpy.sqrt(vhat) + hp.eps))
         else:
             m += (1 - hp.beta1) * (grad - m)
             v += (1 - hp.beta2) * (grad * grad - v)
@@ -131,8 +129,7 @@ class AdamRule(optimizer.UpdateRule):
             else:
                 vhat = v
             param.data -= hp.eta * (self.lr * m / (numpy.sqrt(vhat) + hp.eps) +
-                                hp.weight_decay_rate * param.data)
-
+                                    hp.weight_decay_rate * param.data)
 
     def update_core_gpu(self, param):
         grad = param.grad
