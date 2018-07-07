@@ -8,6 +8,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/dtype.h"
 #include "xchainer/enum.h"
@@ -83,6 +84,11 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
+        NoBackpropModeScope scope{};
+        x1.device().Add(x1, x2, out);
+    }
+
+    {
         BackwardBuilder bb{"add", out};
         if (x1.IsBackpropRequired()) {
             bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
@@ -91,18 +97,20 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
             bb.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
     }
-
-    x1.device().Add(x1, x2, out);
 }
 
 void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().AddAS(x1, x2, out);
+    }
+
     if (x1.IsBackpropRequired()) {
         BackwardBuilder bb{"add_scalar", out};
         bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
-
-    x1.device().AddAS(x1, x2, out);
 }
 
 }  // namespace
@@ -129,6 +137,11 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
+        NoBackpropModeScope scope{};
+        x1.device().Subtract(x1, x2, out);
+    }
+
+    {
         BackwardBuilder bb{"subtract", out};
         if (x1.IsBackpropRequired()) {
             bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
@@ -137,18 +150,20 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
             bb.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad(); });
         }
     }
-
-    x1.device().Subtract(x1, x2, out);
 }
 
 void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().SubtractAS(x1, x2, out);
+    }
+
     if (x1.IsBackpropRequired()) {
         BackwardBuilder bb{"subtract_scalar", out};
         bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
-
-    x1.device().SubtractAS(x1, x2, out);
 }
 
 }  // namespace
@@ -175,6 +190,11 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
+        NoBackpropModeScope scope{};
+        x1.device().Multiply(x1, x2, out);
+    }
+
+    {
         BackwardBuilder bb{"multiply", out};
         if (x1.IsBackpropRequired()) {
             bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
@@ -183,18 +203,20 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
             bb.Define({x2}, [other = x1](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
         }
     }
-
-    x1.device().Multiply(x1, x2, out);
 }
 
 void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().MultiplyAS(x1, x2, out);
+    }
+
     if (x1.IsBackpropRequired()) {
         BackwardBuilder bb{"multiply_scalar", out};
         bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
     }
-
-    x1.device().MultiplyAS(x1, x2, out);
 }
 
 }  // namespace
@@ -222,6 +244,11 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     {
+        NoBackpropModeScope scope{};
+        x1.device().Divide(x1, x2, out);
+    }
+
+    {
         BackwardBuilder bb{"divide", out};
         if (x1.IsBackpropRequired()) {
             bb.Define({x1}, [x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() / bctx.Cut(x2); });
@@ -234,18 +261,20 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
             });
         }
     }
-
-    x1.device().Divide(x1, x2, out);
 }
 
 void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().DivideAS(x1, x2, out);
+    }
+
     if (x1.IsBackpropRequired()) {
         BackwardBuilder bb{"divide_scalar", out};
         bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() / other; });
     }
-
-    x1.device().DivideAS(x1, x2, out);
 }
 
 }  // namespace
@@ -267,7 +296,11 @@ Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Sc
 Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
     Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
-    a.device().Sum(a, sorted_axis, out);
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().Sum(a, sorted_axis, out);
+    }
 
     if (a.IsBackpropRequired()) {
         BackwardBuilder bb{"sum", out};
@@ -300,7 +333,10 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
         }
     }
 
-    a.device().AMax(a, sorted_axis, out);
+    {
+        NoBackpropModeScope scope{};
+        a.device().AMax(a, sorted_axis, out);
+    }
 
     if (a.IsBackpropRequired()) {
         BackwardBuilder bb{"amax", out};
@@ -337,7 +373,11 @@ namespace {
 // Can only differentiate with respect to neg.
 Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
     Array out = EmptyLike(x1, x1.device());
-    x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
+    }
 
     if (neg.IsBackpropRequired()) {
         BackwardBuilder bb{"if_less_else", out};
@@ -360,7 +400,11 @@ Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
 Array Exp(const Array& x) {
     Array out = EmptyLike(x, x.device());
-    x.device().Exp(x, out);
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Exp(x, out);
+    }
 
     if (x.IsBackpropRequired()) {
         BackwardBuilder bb{"exp", out};
@@ -375,7 +419,11 @@ Array Exp(const Array& x) {
 
 Array Log(const Array& x) {
     Array out = EmptyLike(x, x.device());
-    x.device().Log(x, out);
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Log(x, out);
+    }
 
     if (x.IsBackpropRequired()) {
         BackwardBuilder bb{"log", out};

@@ -1,6 +1,7 @@
 #include "xchainer/routines/logic.h"
 
 #include "xchainer/array.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/routines/creation.h"
@@ -14,7 +15,10 @@ Array Equal(const Array& x1, const Array& x2) {
 
     auto func = [](const Array& x1, const Array& x2) {
         Array out = Empty(x1.shape(), Dtype::kBool, x1.device());
-        x1.device().Equal(x1, x2, out);
+        {
+            NoBackpropModeScope scope{};
+            x1.device().Equal(x1, x2, out);
+        }
         return out;
     };
 

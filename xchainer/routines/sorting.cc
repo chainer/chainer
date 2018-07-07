@@ -6,6 +6,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/routines/creation.h"
@@ -39,7 +40,10 @@ Array ArgMax(const Array& a, const OptionalAxes& axis) {
     }
 
     Array out = Empty(out_shape, Dtype::kInt64, a.device());
-    a.device().ArgMax(a, sorted_axis, out);
+    {
+        NoBackpropModeScope scope{};
+        a.device().ArgMax(a, sorted_axis, out);
+    }
     return out;
 }
 
