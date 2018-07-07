@@ -105,7 +105,7 @@ TEST(ShapeTest, CheckEqual) {
     {
         const Shape shape = {2, 3, 4};
         const Shape shape2 = {2, 3, 4};
-        EXPECT_NO_THROW(CheckEqual(shape, shape2));
+        CheckEqual(shape, shape2);
     }
     {
         const Shape shape = {2, 3, 4};

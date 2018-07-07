@@ -291,8 +291,8 @@ TEST(StackVectorTest, Data) {
     {
         StackVector<int, 5> vec{};
         const StackVector<int, 5>& cvec = vec;
-        EXPECT_NO_THROW(vec.data());
-        EXPECT_NO_THROW(cvec.data());
+        vec.data();  // no throw
+        cvec.data();
     }
 }
 

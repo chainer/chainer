@@ -32,6 +32,14 @@ TEST(NativeDeviceTest, Allocate) {
     EXPECT_NE(nullptr, ptr);
 }
 
+TEST(NativeDeviceTest, AllocateZero) {
+    Context ctx;
+    NativeDevice& device = GetNativeDevice(ctx, 0);
+
+    std::shared_ptr<void> ptr = device.Allocate(size_t{0});
+    EXPECT_NE(ptr, nullptr);
+}
+
 TEST(NativeDeviceTest, MakeDataFromForeignPointer) {
     Context ctx;
     NativeDevice& device = GetNativeDevice(ctx, 0);
@@ -59,7 +67,7 @@ TEST(NativeDeviceTest, FromHostMemory) {
 TEST(NativeDeviceTest, Synchronize) {
     Context ctx;
     NativeDevice& device = GetNativeDevice(ctx, 0);
-    EXPECT_NO_THROW(device.Synchronize());
+    device.Synchronize();  // no throw
 }
 
 }  // namespace

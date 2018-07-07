@@ -34,19 +34,23 @@ TEST(CudaDeviceTest, Allocate) {
     Context ctx;
     CudaDevice& device = GetCudaDevice(ctx, 0);
 
-    {
-        size_t bytesize = 3;
-        std::shared_ptr<void> ptr = device.Allocate(bytesize);
+    size_t bytesize = 3;
+    std::shared_ptr<void> ptr = device.Allocate(bytesize);
+    EXPECT_NE(ptr, nullptr);
 
-        cudaPointerAttributes attr = {};
-        CheckCudaError(cudaPointerGetAttributes(&attr, ptr.get()));
-        EXPECT_TRUE(attr.isManaged);
-        EXPECT_EQ(device.index(), attr.device);
-    }
-    {
-        size_t bytesize = 0;
-        EXPECT_NO_THROW(device.Allocate(bytesize));
-    }
+    cudaPointerAttributes attr = {};
+    CheckCudaError(cudaPointerGetAttributes(&attr, ptr.get()));
+    EXPECT_TRUE(attr.isManaged);
+    EXPECT_EQ(device.index(), attr.device);
+}
+
+TEST(CudaDeviceTest, AllocateZero) {
+    Context ctx;
+    CudaDevice& device = GetCudaDevice(ctx, 0);
+
+    std::shared_ptr<void> ptr = device.Allocate(size_t{0});
+    // TODO(niboshi): Enable this check
+    // EXPECT_NE(ptr, nullptr);
 }
 
 TEST(CudaDeviceTest, MakeDataFromForeignPointer) {
@@ -125,7 +129,7 @@ TEST(CudaDeviceTest, DotNonContiguousOut) {
 TEST(CudaDeviceTest, Synchronize) {
     Context ctx;
     CudaDevice& device = GetCudaDevice(ctx, 0);
-    EXPECT_NO_THROW(device.Synchronize());
+    device.Synchronize();  // no throw
 }
 
 }  // namespace
