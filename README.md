@@ -27,6 +27,8 @@ To install the `xchainer` Python package in `Release` mode, run the following at
 $ pip install .
 ```
 
+You could set `MAKEFLAGS=-j8` environment variable (with a number to fit in your environment) to speed up the installation.
+
 Again, if you build xChainer with CUDA backend, xChainer currently requires CuDNN and you need to specify its path. For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run the following commands.
 
 ```shell-session
