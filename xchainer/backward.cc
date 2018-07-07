@@ -137,7 +137,6 @@ BackwardContext::BackwardContext(
       zero_output_grads_{prev_array_nodes_.size()},
       graph_id_{graph_id},
       double_backprop_option_{double_backprop_option} {
-    assert(input_grads_storage_.size() <= op_node->next_array_node_count());
     assert(prev_array_nodes_.size() == prev_grads_.size());
     // Input grads must be initialized with null-body arrays.
     assert(std::all_of(input_grads_storage_.begin(), input_grads_storage_.end(), [](const Array& g) { return g.body() == nullptr; }));
@@ -232,12 +231,16 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
     assert(std::all_of(
             inputs.begin(), inputs.end(), [&inputs](const Array& input) { return &input.device() == &(inputs.begin()->get().device()); }));
 
-    // Collect input ArrayNodes, grouped by graph. However, skip the ArrayNodes that belong to graphs for which gradients should be stopped,
+    // Collect input array nodes, grouped by graph.
+    // However, skip the array nodes that belong to graphs for which gradients should be stopped,
     // by creating a temporary no-backprop scope.
+    // If only a subset of input arrays have array nodes that require grad, nullptrs are assigned in place of other array nodes that do not.
     // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
-    using NextArrayNodes = std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>>;
+    using NextArrayNodes = std::vector<const std::shared_ptr<ArrayNode>*>;
     std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes;
-    for (const Array& input : inputs) {
+    for (size_t i_input = 0; i_input < inputs.size(); ++i_input) {
+        const Array& input = *(inputs.begin() + i_input);
+
         for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {
             const GraphId& graph_id = next_array_node->graph_id();
 
@@ -246,8 +249,14 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
             }
 
             // Add the array node to the mapping
-            auto& vec = graph_to_next_array_nodes[graph_id];
-            vec.emplace_back(next_array_node);
+            auto insert_result = graph_to_next_array_nodes.emplace(graph_id, NextArrayNodes{});
+            auto& vec = insert_result.first->second;
+            if (insert_result.second) {
+                // New array node for a graph. Fill all array nodes with nullptr.
+                vec.resize(inputs.size());
+            }
+            // Assign valid pointer to the array node.
+            vec[i_input] = &next_array_node;
         }
     }
 
@@ -255,8 +264,8 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
     for (auto& pair : graph_to_next_array_nodes) {
         const GraphId& graph_id = pair.first;
         const NextArrayNodes& vec = pair.second;
-        for (const std::shared_ptr<ArrayNode>& array_node : vec) {
-            assert(graph_id == array_node->graph_id());
+        for (const std::shared_ptr<ArrayNode>* array_node : vec) {
+            assert(array_node == nullptr || graph_id == (*array_node)->graph_id());
         }
     }
 #endif  // NDEBUG
@@ -267,7 +276,7 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
     // Create op node for each graph
     for (auto it_graph = graph_to_next_array_nodes.begin(); it_graph != graph_to_next_array_nodes.end(); ++it_graph) {
         const GraphId& graph_id = it_graph->first;
-        NextArrayNodes& next_array_nodes = it_graph->second;
+        const NextArrayNodes& next_array_nodes = it_graph->second;
 
         // Find op node
         auto insert_result = op_node_map_.emplace(graph_id, nullptr);
@@ -306,8 +315,7 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
                 next_array_nodes.begin(),
                 next_array_nodes.end(),
                 std::back_inserter(temp_next_array_nodes),
-                [](const std::shared_ptr<ArrayNode>& array_node) { return array_node; });
-
+                [](const std::shared_ptr<ArrayNode>* array_node) { return array_node == nullptr ? nullptr : *array_node; });
         internal::OpNodeBackwardEntry& backward_entry = op_node->RegisterBackwardFunction(std::move(temp_next_array_nodes), backward_func);
 
         // Add edges to next array nodes of other graphs.
@@ -327,7 +335,7 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
                     exotic_next_array_nodes.begin(),
                     exotic_next_array_nodes.end(),
                     std::back_inserter(temp_array_nodes),
-                    [](const std::shared_ptr<ArrayNode>& array_node) { return array_node; });
+                    [](const std::shared_ptr<ArrayNode>* array_node) { return array_node == nullptr ? nullptr : *array_node; });
             backward_entry.AddExoticNextArrayNode(
                     std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>{exotic_graph_id, std::move(temp_array_nodes)});
         }
@@ -538,9 +546,12 @@ private:
 
             // Accumulate grads from `next_grads_subset`.
             for (size_t i = 0; i < backward_entry.next_array_node_count(); ++i) {
-                size_t i_next_grad = backward_entry.next_array_node_indices()[i];
-                nonstd::optional<Array>& target_grad = next_grads[i_next_grad];
-                const ArrayNode& next_array_node = *op_node->next_array_nodes()[i_next_grad];
+                const nonstd::optional<size_t>& i_next_grad = backward_entry.next_array_node_indices()[i];
+                if (!i_next_grad.has_value()) {
+                    continue;  // grad is not required for this input
+                }
+                nonstd::optional<Array>& target_grad = next_grads[*i_next_grad];
+                const ArrayNode& next_array_node = *op_node->next_array_nodes()[*i_next_grad];
 
                 internal::AccumulateGrad(
                         target_grad,

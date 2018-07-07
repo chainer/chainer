@@ -839,6 +839,49 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
     }
 }
 
+TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
+    // This test checks that even if some of input arrays (x1) do not require the gradients, assignment of the input gradients works fine.
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    using T = double;
+    GraphId graph_id1 = "testgraph1";
+    GraphId graph_id2 = "testgraph2";
+    Shape shape{2};
+    Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
+    Array x2_value = testing::BuildArray(shape).WithData<T>({4, -1});
+    Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
+    Array gx2_value = FullLike(x1_value, 3);
+
+    DoubleBackpropOption double_backprop_opt = GetParam();
+
+    auto forward = [](const Array& x1, const Array& x2, Array& y1) {
+        y1 = 2 * x1.AsGradStopped() + 3 * x2.AsGradStopped() + 1;
+        {
+            BackwardBuilder bb{"func", {y1}};
+            bb.Define({x1, x2}, [](BackwardContext& bctx) {
+                bctx.input_grad(0) = 2 * bctx.output_grad();
+                bctx.input_grad(1) = 3 * bctx.output_grad();
+            });
+        }
+    };
+
+    Array x1 = x1_value.MakeView().RequireGrad(graph_id2);  // Grad not required for graph_id1
+    Array x2 = x2_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
+    Array y1{};
+    forward(x1, x2, y1);
+
+    Backward({y1}, graph_id1, double_backprop_opt);
+
+    testing::ExpectEqual(gx2_value, *x2.GetGrad(graph_id1));
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        // TODO(niboshi): Enable this check
+        // EXPECT_TRUE(x2.GetGrad(graph_id1)->IsGradRequired(graph_id1));
+    } else {
+        EXPECT_FALSE(x2.GetGrad(graph_id1)->IsGradRequired(AnyGraph{}));
+    }
+    EXPECT_THROW({ x1.GetGrad(graph_id1); }, XchainerError);
+}
+
 INSTANTIATE_TEST_CASE_P(Params, BackpropFunctionTest, ::testing::Values(DoubleBackpropOption::kDisable, DoubleBackpropOption::kEnable));
 
 class BackpropRetainOutputTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
