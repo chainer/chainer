@@ -166,9 +166,13 @@ class TestInitialization(unittest.TestCase):
                 initialW=self.initialW, initial_bias=self.initial_bias)
 
     def check_param(self):
-        dtype = self.dtype
         link = self.link
+        if self.initializer == 'callable':
+            linear = link.linear
+            assert linear.W.initializer.__name__ == 'callable_initialW'
+            assert linear.b.initializer.__name__ == 'callable_initial_bias'
 
+        dtype = self.dtype
         assert link.linear.W.dtype == dtype
         assert link.linear.b.dtype == dtype
 

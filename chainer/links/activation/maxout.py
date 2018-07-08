@@ -1,3 +1,4 @@
+import functools
 import numpy
 
 from chainer.backends import cuda
@@ -63,22 +64,24 @@ class Maxout(link.Chain):
             initialW = initialW.reshape(linear_out_size, in_size)
         elif callable(initialW):
             def make_initialW_wrapper(initialW):
-                def f(array):
+                @functools.wraps(initialW)
+                def wrapper(array):
                     array.shape = (out_size, pool_size, in_size)
                     initialW(array)
                     array.shape = (linear_out_size, in_size)
-                return f
+                return wrapper
             initialW = make_initialW_wrapper(initialW)
 
         if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
             initial_bias = initial_bias.reshape(linear_out_size)
         elif callable(initial_bias):
             def make_initial_bias_wrapper(initial_bias):
-                def f(array):
+                @functools.wraps(initial_bias)
+                def wrapper(array):
                     array.shape = (out_size, pool_size)
                     initial_bias(array)
                     array.shape = linear_out_size,
-                return f
+                return wrapper
             initial_bias = make_initial_bias_wrapper(initial_bias)
 
         with self.init_scope():
