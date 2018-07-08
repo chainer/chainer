@@ -50,12 +50,12 @@ void CudaDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
 
 namespace {
 
-template <typename T>
+template <typename In, typename Out>
 struct SumImpl {
-    __device__ T Identity() { return T{0}; }
-    __device__ T MapIn(T in, int64_t /*index*/) { return in; }
-    __device__ void Reduce(T next, T& accum) { accum += next; }
-    __device__ T MapOut(T accum) { return accum; }
+    __device__ Out Identity() { return Out{0}; }
+    __device__ Out MapIn(In in, int64_t /*index*/) { return static_cast<Out>(in); }
+    __device__ void Reduce(Out next, Out& accum) { accum += next; }
+    __device__ Out MapOut(Out accum) { return accum; }
 };
 
 }  // namespace
@@ -64,10 +64,14 @@ void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
-    VisitDtype(out.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), SumImpl<T>{});
-    });
+
+    auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
+        using In = typename decltype(in_pt)::type;
+        using Out = typename decltype(out_pt)::type;
+        Reduce(MakeReductionKernelArg<In, Out>(a, axis, out), SumImpl<In, Out>{});
+    };
+
+    VisitDtype(out.dtype(), [ a_dtype = a.dtype(), &do_sum ](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
 }
 
 namespace {
