@@ -180,6 +180,7 @@ class SLSTMGrad(function.Function):
             gi2[:] = gc_prev * tanh_a2 * _grad_sigmoid(sig_i2)
             gf2[:] = gc_prev * c_prev2 * _grad_sigmoid(sig_f2)
             go2[:] = gh * co * _grad_sigmoid(sig_o)
+            # multiply f here
             gc_prev1 = gc_prev * sig_f1
             gc_prev2 = gc_prev * sig_f2
         else:
