@@ -70,7 +70,7 @@ bool IsBackpropRequired(const GraphId& graph_id, Context& context) {
 }
 
 bool IsBackpropRequired(const Array& array, const GraphId& graph_id) {
-    if (graph_id == GraphId::kAny) {
+    if (graph_id == kAnyGraphId) {
         Context& context = array.device().context();
         const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
         return std::any_of(array_nodes.begin(), array_nodes.end(), [&context](const std::shared_ptr<const ArrayNode>& array_node) {

@@ -690,7 +690,7 @@ TEST_P(ArrayTest, IsGradRequired) {
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
 
     a.RequireGrad("testgraph1");
-    EXPECT_TRUE(a.IsGradRequired(GraphId::kAny));
+    EXPECT_TRUE(a.IsGradRequired(kAnyGraphId));
 }
 
 TEST_P(ArrayTest, AsGradStoppedCopy) {
@@ -956,7 +956,7 @@ TEST_P(ArrayTest, MultipleGraphsForward) {
     EXPECT_TRUE(o.IsGradRequired(graph_id_2));
 
     // No unspecified graphs are generated
-    EXPECT_FALSE(o.IsGradRequired(GraphId::kDefault));
+    EXPECT_FALSE(o.IsGradRequired(kDefaultGraphId));
     EXPECT_FALSE(o.IsGradRequired("graph_3"));
 }
 

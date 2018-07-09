@@ -37,17 +37,17 @@ namespace internal {
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
-bool HasArrayNode(const Array& array, const GraphId& graph_id = GraphId::kDefault);
+bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
 // Creates a new array node on the specified graph.
 // XchainerError is thrown if an array node is already registered on the graph.
 // The returned reference is only valid until the next call of CreateArrayNode (or ArrayBody::AddNode) on the same ArrayBody
 // instance.
-const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id = GraphId::kDefault);
+const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
-std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id = GraphId::kDefault);
+std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
-const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = GraphId::kDefault);
+const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
 }  // namespace internal
 
@@ -184,25 +184,25 @@ public:
 
     void Fill(Scalar value) const;
 
-    const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = GraphId::kDefault) const;
+    const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
-    void SetGrad(Array grad, const GraphId& graph_id = GraphId::kDefault) const;
+    void SetGrad(Array grad, const GraphId& graph_id = kDefaultGraphId) const;
 
     // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
-    void ClearGrad(const GraphId& graph_id = GraphId::kDefault) const;
+    void ClearGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
     // Returns whether the array is constant with regard to any graph.
     bool IsConstant() const { return body_->nodes_.empty(); }
 
     // Returns whether the array needs to backprop.
     // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
-    bool IsGradRequired(const GraphId& graph_id = GraphId::kDefault) const;
+    bool IsGradRequired(const GraphId& graph_id = kDefaultGraphId) const;
 
     // Flags the array to compute the gradient during backprop.
     // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.
-    const Array& RequireGrad(const GraphId& graph_id = GraphId::kDefault) const { return RequireGradImpl(*this, graph_id); }
+    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const { return RequireGradImpl(*this, graph_id); }
 
-    Array& RequireGrad(const GraphId& graph_id = GraphId::kDefault) { return RequireGradImpl(*this, graph_id); }
+    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) { return RequireGradImpl(*this, graph_id); }
 
     int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 

@@ -60,7 +60,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
           py::arg("eps"),
           py::arg("atol") = 1e-5,
           py::arg("rtol") = 1e-4,
-          py::arg("graph_id") = GraphId::kDefault);
+          py::arg("graph_id") = kDefaultGraphId);
 
     m.def("check_double_backward",
           [](py::object func,
@@ -88,7 +88,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
           py::arg("eps"),
           py::arg("atol") = 1e-5,
           py::arg("rtol") = 1e-4,
-          py::arg("graph_id") = GraphId::kDefault);
+          py::arg("graph_id") = kDefaultGraphId);
 }
 
 }  // namespace internal

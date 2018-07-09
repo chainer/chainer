@@ -201,7 +201,7 @@ TEST_P(BackpropTest, BackwardSoleArrayNode) {
 TEST_P(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
-        Backward(z, GraphId::kDefault, DoubleBackpropOption::kEnable);
+        Backward(z, kDefaultGraphId, DoubleBackpropOption::kEnable);
         auto gx = *xs[0].GetGrad();  // 2x + y
         xs[0].ClearGrad();
         return gx;
@@ -445,7 +445,7 @@ TEST_P(BackpropTest, SomeOfPreviousArrayNodesAreGone) {
         forward(x, y1, y2, y3, y4);
         z1 = y1.MakeView();
     }
-    Backward(z1, GraphId::kDefault);
+    Backward(z1, kDefaultGraphId);
 
     Array expected_x_grad = x_value * Exp(x_value);
     testing::ExpectAllClose(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
@@ -468,7 +468,7 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     Array y1 = x1 + x2;
     Array y2 = x1 * x2;
     Array z = y1 * y2;
-    Backward(z, GraphId::kDefault, DoubleBackpropOption::kEnable);
+    Backward(z, kDefaultGraphId, DoubleBackpropOption::kEnable);
 
     std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayNode(z);
     ASSERT_TRUE(z_array_node);

@@ -60,7 +60,7 @@ void InitXchainerBackpropMode(pybind11::module& m) {
 
     m.def("is_backprop_required",
           [](const GraphId& graph_id, py::handle context) { return IsBackpropRequired(graph_id, GetContext(context)); },
-          py::arg("graph_id") = GraphId::kDefault,
+          py::arg("graph_id") = kDefaultGraphId,
           py::arg("context") = py::none());
 }
 

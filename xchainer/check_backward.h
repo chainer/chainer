@@ -24,7 +24,7 @@ void CheckBackward(
         const std::vector<Array>& eps,
         double atol = 1e-5,
         double rtol = 1e-4,
-        const GraphId& graph_id = GraphId::kDefault);
+        const GraphId& graph_id = kDefaultGraphId);
 
 // Tests twice differentiation of a given procedure.
 //
@@ -55,6 +55,6 @@ void CheckDoubleBackwardComputation(
         const std::vector<Array>& eps,
         double atol = 1e-5,
         double rtol = 1e-4,
-        const GraphId& graph_id = GraphId::kDefault);
+        const GraphId& graph_id = kDefaultGraphId);
 
 }  // namespace xchainer

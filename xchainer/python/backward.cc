@@ -27,11 +27,10 @@ void InitXchainerBackward(pybind11::module& m) {
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
               Backward(array, graph_id, double_backprop);
           },
-          py::arg("body"),
-          py::arg("graph_id") = GraphId::kDefault,
+          py::arg(),
+          py::arg("graph_id") = kDefaultGraphId,
           py::arg("enable_double_backprop") = false);
 
-    // TODO(hvy): Currently, xchainer.backward(y) will call this function, instead of the one above, and cause a vector::reserve ValueError.
     m.def("backward",
           [](const std::vector<ArrayBodyPtr>& outputs, const GraphId& graph_id, bool enable_double_backprop) {
               std::vector<Array> arrays;
@@ -41,8 +40,8 @@ void InitXchainerBackward(pybind11::module& m) {
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
               Backward({arrays.begin(), arrays.end()}, graph_id, double_backprop);
           },
-          py::arg("body"),
-          py::arg("graph_id") = GraphId::kDefault,
+          py::arg(),
+          py::arg("graph_id") = kDefaultGraphId,
           py::arg("enable_double_backprop") = false);
 }
 
