@@ -10,6 +10,7 @@
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/graph.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
 
@@ -52,13 +53,13 @@ Array Dot(const Array& a, const Array& b) {
 
     {
         BackwardBuilder bb{"dot", out_matrix};
-        if (a_matrix.IsGradRequired(kAnyGraphId)) {
+        if (a_matrix.IsGradRequired(AnyGraph{})) {
             bb.Define({a_matrix}, [b_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(gout, bctx.Cut(b_matrix).Transpose());
             });
         }
-        if (b_matrix.IsGradRequired(kAnyGraphId)) {
+        if (b_matrix.IsGradRequired(AnyGraph{})) {
             bb.Define({b_matrix}, [a_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(bctx.Cut(a_matrix).Transpose(), gout);

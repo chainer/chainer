@@ -10,6 +10,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/graph.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
@@ -95,7 +96,7 @@ Array BatchNorm(
 
     Array out = fb->Forward(x, result.gamma, result.beta);
 
-    if (x.IsGradRequired(kAnyGraphId) || gamma.IsGradRequired(kAnyGraphId) || beta.IsGradRequired(kAnyGraphId)) {
+    if (x.IsGradRequired(AnyGraph{}) || gamma.IsGradRequired(AnyGraph{}) || beta.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"batch_norm", {out}};
         bb.Define({x, gamma, beta}, [ fb = std::move(fb), x, gamma = result.gamma ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
@@ -111,7 +112,7 @@ Array BatchNorm(
             Array gamma_cut = bctx.Cut(gamma);
 
             if (bctx.next_required() &&
-                (x_cut.IsGradRequired(kAnyGraphId) || gamma_cut.IsGradRequired(kAnyGraphId) || gout.IsGradRequired(kAnyGraphId))) {
+                (x_cut.IsGradRequired(AnyGraph{}) || gamma_cut.IsGradRequired(AnyGraph{}) || gout.IsGradRequired(AnyGraph{}))) {
                 BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
                 bb2.Define({x_cut, gamma_cut, gout}, [fb](BackwardContext& bctx2) {
                     const Array& g2x = bctx2.output_grad(0);

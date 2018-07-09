@@ -28,6 +28,7 @@
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/graph.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/op_node.h"
@@ -690,7 +691,7 @@ TEST_P(ArrayTest, IsGradRequired) {
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
 
     a.RequireGrad("testgraph1");
-    EXPECT_TRUE(a.IsGradRequired(kAnyGraphId));
+    EXPECT_TRUE(a.IsGradRequired(AnyGraph{}));
 }
 
 TEST_P(ArrayTest, AsGradStoppedCopy) {

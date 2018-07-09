@@ -87,5 +87,6 @@ bool IsBackpropRequired(const GraphId& graph_id = kDefaultGraphId, Context& cont
 // Returns whether the array needs to backprop.
 // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
 bool IsBackpropRequired(const Array& array, const GraphId& graph_id = kDefaultGraphId);
+bool IsBackpropRequired(const Array& array, AnyGraph any_graph);
 
 }  // namespace xchainer
