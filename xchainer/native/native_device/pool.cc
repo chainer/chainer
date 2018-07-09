@@ -150,7 +150,7 @@ Array GetPadModeIgnorePoolingWidths(
         int64_t pad_i = pad[i];
 
         Array width = Empty({xchainer::internal::GetConvOutDim(dim_i, kernel_size_i, stride_i, pad_i, false)}, dtype);
-        VisitFloatingPointDtype(dtype, [dim_i, kernel_size_i, stride_i, pad_i, &width](auto pt) {
+        VisitDtype(dtype, [dim_i, kernel_size_i, stride_i, pad_i, &width](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
                 void operator()(int64_t i, T& w) {
