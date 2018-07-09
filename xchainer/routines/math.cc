@@ -9,7 +9,6 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/backward.h"
-#include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/enum.h"
 #include "xchainer/error.h"

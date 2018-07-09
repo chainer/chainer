@@ -14,7 +14,6 @@
 #include "xchainer/array.h"
 #include "xchainer/backward.h"
 #include "xchainer/check_backward.h"
-#include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/graph.h"
 #include "xchainer/indexable_array.h"

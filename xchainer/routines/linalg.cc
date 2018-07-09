@@ -7,7 +7,6 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backward.h"
-#include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"

@@ -23,7 +23,6 @@
 #include "xchainer/backend.h"
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
-#include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
