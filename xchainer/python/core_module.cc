@@ -1,6 +1,5 @@
 #include <pybind11/pybind11.h>
 
-#include "xchainer/constant.h"
 #include "xchainer/python/array.h"
 #include "xchainer/python/array_index.h"
 #include "xchainer/python/backend.h"
@@ -12,6 +11,7 @@
 #include "xchainer/python/device.h"
 #include "xchainer/python/dtype.h"
 #include "xchainer/python/error.h"
+#include "xchainer/python/graph.h"
 #include "xchainer/python/routines.h"
 #include "xchainer/python/scalar.h"
 #include "xchainer/python/testing/testing_module.h"
@@ -25,9 +25,8 @@ void InitXchainerModule(pybind11::module& m) {
     m.doc() = "xChainer";
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
-    m.attr("DEFAULT_GRAPH_ID") = kDefaultGraphId;
-
     // xchainer
+    InitXchainerGraph(m);
     InitXchainerContext(m);
     InitXchainerContextScope(m);
     InitXchainerBackend(m);
