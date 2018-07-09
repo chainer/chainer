@@ -191,9 +191,6 @@ public:
     // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
     void ClearGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
-    // Returns whether the array is constant with regard to any graph.
-    bool IsConstant() const { return body_->nodes_.empty(); }
-
     // Returns whether the array needs to backprop.
     // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
     bool IsGradRequired(const GraphId& graph_id = kDefaultGraphId) const;

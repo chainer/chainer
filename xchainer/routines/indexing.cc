@@ -141,7 +141,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
         }
         if (b.IsGradRequired(AnyGraph{})) {
             bb.Define({b}, [indices, axis](BackwardContext& bctx) {
-                assert(indices.IsConstant());
+                assert(!indices.IsGradRequired(AnyGraph{}));
                 bctx.input_grad() = Take(bctx.output_grad(), indices, axis);
             });
         }
