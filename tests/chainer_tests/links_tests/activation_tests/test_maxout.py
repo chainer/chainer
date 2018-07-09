@@ -152,6 +152,7 @@ class TestInitialization(unittest.TestCase):
                     self.out_size, self.pool_size, self.in_size)
                 array.fill(1.0)
             self.initialW = callable_initialW
+
             def callable_initial_bias(array):
                 assert array.dtype == self.dtype
                 assert array.shape == (self.out_size, self.pool_size)
