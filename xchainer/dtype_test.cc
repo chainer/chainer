@@ -33,7 +33,7 @@ INSTANTIATE_TEST_CASE_P(TestWithAllDtypes, AllDtypeTest, ::testing::ValuesIn(Get
 TEST(DtypeTest, WrongDtypeName) { EXPECT_THROW(GetDtype("wrong"), DtypeError); }
 
 TEST(DtypeTest, CheckEqual) {
-    EXPECT_NO_THROW(CheckEqual(Dtype::kInt8, Dtype::kInt8));
+    CheckEqual(Dtype::kInt8, Dtype::kInt8);
     EXPECT_THROW(CheckEqual(Dtype::kInt8, Dtype::kUInt8), DtypeError);
 }
 

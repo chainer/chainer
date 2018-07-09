@@ -27,6 +27,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/graph.h"
 #include "xchainer/macro.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
@@ -201,7 +202,7 @@ Array Array::Copy() const { return xchainer::Copy(*this); }
 
 Array Array::MakeView() const {
     Array out{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), data(), offset())};
-    if (IsBackpropRequired()) {
+    if (IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"view", out};
         bb.Define({*this}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
@@ -237,7 +238,7 @@ Array Array::ToDevice(Device& dst_device) const {
     assert(out.body() != nullptr);
 
     // Backward operation is implemented as backward-transfer.
-    if (IsBackpropRequired()) {
+    if (IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"transfer", out};
         bb.Define({*this}, [&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
     }
@@ -284,7 +285,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     Array out = Empty(shape(), dtype, device());
     device().AsType(*this, out);
 
-    if (IsBackpropRequired() && GetKind(dtype) == DtypeKind::kFloat) {
+    if (IsGradRequired(AnyGraph{}) && GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", out};
         bb.Define({*this}, [src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
     }
@@ -313,7 +314,9 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) const {
 
 void Array::ClearGrad(const GraphId& graph_id) const { body_->ClearGrad(graph_id); }
 
-bool Array::IsBackpropRequired() const { return xchainer::IsBackpropRequired(*this); }
+bool Array::IsGradRequired(const GraphId& graph_id) const { return xchainer::IsGradRequired(*this, graph_id); }
+
+bool Array::IsGradRequired(AnyGraph any_graph) const { return xchainer::IsGradRequired(*this, any_graph); }
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const GraphId& graph_id) {

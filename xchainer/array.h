@@ -191,14 +191,13 @@ public:
     // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
     void ClearGrad(const GraphId& graph_id = kDefaultGraphId) const;
 
-    bool IsGradRequired(const GraphId& graph_id = kDefaultGraphId) const { return internal::HasArrayNode(*this, graph_id); }
-
     // Returns whether the array is constant with regard to any graph.
     bool IsConstant() const { return body_->nodes_.empty(); }
 
     // Returns whether the array needs to backprop.
     // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
-    bool IsBackpropRequired() const;
+    bool IsGradRequired(const GraphId& graph_id = kDefaultGraphId) const;
+    bool IsGradRequired(AnyGraph any_graph) const;
 
     // Flags the array to compute the gradient during backprop.
     // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.

@@ -22,11 +22,13 @@
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/check_backward.h"
+#include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/graph.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/op_node.h"
@@ -685,11 +687,11 @@ TEST_P(ArrayTest, IsConstant) {
     EXPECT_FALSE(a.IsConstant());
 }
 
-TEST_P(ArrayTest, IsBackpropRequired) {
+TEST_P(ArrayTest, IsGradRequired) {
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
 
     a.RequireGrad("testgraph1");
-    EXPECT_TRUE(a.IsBackpropRequired());
+    EXPECT_TRUE(a.IsGradRequired(AnyGraph{}));
 }
 
 TEST_P(ArrayTest, AsGradStoppedCopy) {
@@ -902,9 +904,10 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
     EXPECT_FALSE(a.IsGradRequired());
 
     a.RequireGrad();
-
     EXPECT_TRUE(a.IsGradRequired());
-    EXPECT_NO_THROW(a.RequireGrad());
+
+    a.RequireGrad();
+    EXPECT_TRUE(a.IsGradRequired());
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
@@ -915,22 +918,26 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
     ASSERT_FALSE(a.IsGradRequired(graph_id));
 
     a.RequireGrad(graph_id);
-
     EXPECT_TRUE(a.IsGradRequired(graph_id));
-    EXPECT_NO_THROW(a.RequireGrad(graph_id));
+
+    a.RequireGrad(graph_id);
+    EXPECT_TRUE(a.IsGradRequired(graph_id));
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsCtor) {
     Array a = (*testing::BuildArray({1}).WithData<float>({2.0f})).RequireGrad();
 
     EXPECT_TRUE(a.IsGradRequired());
-    EXPECT_NO_THROW(a.RequireGrad());
+
+    a.RequireGrad();
+    EXPECT_TRUE(a.IsGradRequired());
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsRequireGrad) {
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
-    EXPECT_NO_THROW(a.RequireGrad().RequireGrad());
+    a.RequireGrad().RequireGrad();
+    EXPECT_TRUE(a.IsGradRequired());
 }
 
 TEST_P(ArrayTest, MultipleGraphsForward) {

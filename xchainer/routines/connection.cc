@@ -11,6 +11,7 @@
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
+#include "xchainer/graph.h"
 #include "xchainer/routines/math.h"
 #include "xchainer/stack_vector.h"
 
@@ -58,7 +59,7 @@ Array ConvGradW(
     {
         BackwardBuilder bb{"conv-grad-weight", {out}};
 
-        if (x.IsBackpropRequired()) {
+        if (x.IsGradRequired(AnyGraph{})) {
             bb.Define({x}, [ x_shape = x.shape(), gy, stride, pad ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
@@ -67,7 +68,7 @@ Array ConvGradW(
             });
         }
 
-        if (gy.IsBackpropRequired()) {
+        if (gy.IsGradRequired(AnyGraph{})) {
             bb.Define({gy}, [x, stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Conv(bctx.Cut(x), gout, nonstd::nullopt, stride, pad, cover_all);
@@ -121,7 +122,7 @@ Array Conv(
     {
         BackwardBuilder bb{"conv", {out}};
 
-        if (x.IsBackpropRequired()) {
+        if (x.IsGradRequired(AnyGraph{})) {
             bb.Define({x}, [ x_shape = x.shape(), w, stride, pad ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
@@ -129,14 +130,14 @@ Array Conv(
             });
         }
 
-        if (w.IsBackpropRequired()) {
+        if (w.IsGradRequired(AnyGraph{})) {
             bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = ConvGradW(w_dtype, w_shape, bctx.Cut(x), gout, stride, pad, cover_all);
             });
         }
 
-        if (b.has_value() && b->IsBackpropRequired()) {
+        if (b.has_value() && b->IsGradRequired(AnyGraph{})) {
             bb.Define({*b}, [](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 Axes axis{0};
@@ -217,7 +218,7 @@ Array ConvTranspose(
     {
         BackwardBuilder bb{"conv_transpose", out};
 
-        if (x.IsBackpropRequired()) {
+        if (x.IsGradRequired(AnyGraph{})) {
             bb.Define({x}, [ x_shape = x.shape(), w, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
@@ -225,14 +226,14 @@ Array ConvTranspose(
             });
         }
 
-        if (w.IsBackpropRequired()) {
+        if (w.IsGradRequired(AnyGraph{})) {
             bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, bctx.Cut(x), stride, pad, cover_all);
             });
         }
 
-        if (b.has_value() && b->IsBackpropRequired()) {
+        if (b.has_value() && b->IsGradRequired(AnyGraph{})) {
             bb.Define({*b}, [](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 Axes axis{0};

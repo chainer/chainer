@@ -12,7 +12,7 @@ TEST(IndexIteratorTest, Rank0) {
     IndexIterator<0> it(nullptr, 1, 0, 1);
     EXPECT_EQ(0, it.ndim());
     EXPECT_EQ(0, it.raw_index());
-    EXPECT_NO_THROW((void)it.index()[0]);  // Value is undefined.
+    (void)it.index()[0];  // no throw
     EXPECT_TRUE(static_cast<bool>(it));
     ++it;
     EXPECT_EQ(0, it.ndim());

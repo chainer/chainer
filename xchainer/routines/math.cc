@@ -13,6 +13,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/enum.h"
 #include "xchainer/error.h"
+#include "xchainer/graph.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/routines_util.h"
@@ -90,10 +91,10 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
 
     {
         BackwardBuilder bb{"add", out};
-        if (x1.IsBackpropRequired()) {
+        if (x1.IsGradRequired(AnyGraph{})) {
             bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
-        if (x2.IsBackpropRequired()) {
+        if (x2.IsGradRequired(AnyGraph{})) {
             bb.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
     }
@@ -107,7 +108,7 @@ void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
         x1.device().AddAS(x1, x2, out);
     }
 
-    if (x1.IsBackpropRequired()) {
+    if (x1.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"add_scalar", out};
         bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
@@ -143,10 +144,10 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
 
     {
         BackwardBuilder bb{"subtract", out};
-        if (x1.IsBackpropRequired()) {
+        if (x1.IsGradRequired(AnyGraph{})) {
             bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
-        if (x2.IsBackpropRequired()) {
+        if (x2.IsGradRequired(AnyGraph{})) {
             bb.Define({x2}, [](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad(); });
         }
     }
@@ -160,7 +161,7 @@ void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
         x1.device().SubtractAS(x1, x2, out);
     }
 
-    if (x1.IsBackpropRequired()) {
+    if (x1.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"subtract_scalar", out};
         bb.Define({x1}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
@@ -196,10 +197,10 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
 
     {
         BackwardBuilder bb{"multiply", out};
-        if (x1.IsBackpropRequired()) {
+        if (x1.IsGradRequired(AnyGraph{})) {
             bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
         }
-        if (x2.IsBackpropRequired()) {
+        if (x2.IsGradRequired(AnyGraph{})) {
             bb.Define({x2}, [other = x1](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
         }
     }
@@ -213,7 +214,7 @@ void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
         x1.device().MultiplyAS(x1, x2, out);
     }
 
-    if (x1.IsBackpropRequired()) {
+    if (x1.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"multiply_scalar", out};
         bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
     }
@@ -250,10 +251,10 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
 
     {
         BackwardBuilder bb{"divide", out};
-        if (x1.IsBackpropRequired()) {
+        if (x1.IsGradRequired(AnyGraph{})) {
             bb.Define({x1}, [x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() / bctx.Cut(x2); });
         }
-        if (x2.IsBackpropRequired()) {
+        if (x2.IsGradRequired(AnyGraph{})) {
             bb.Define({x2}, [x1, x2](BackwardContext& bctx) {
                 Array lhs_const = bctx.Cut(x1);
                 Array rhs_const = bctx.Cut(x2);
@@ -271,7 +272,7 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
         x1.device().DivideAS(x1, x2, out);
     }
 
-    if (x1.IsBackpropRequired()) {
+    if (x1.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"divide_scalar", out};
         bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() / other; });
     }
@@ -295,14 +296,28 @@ Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Sc
 
 Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
 
+    // Decide the output dtype for integral input dtype.
+    Dtype out_dtype{};
+    switch (GetKind(a.dtype())) {
+        case DtypeKind::kBool:
+        case DtypeKind::kInt:  // fallthrough
+            out_dtype = Dtype::kInt64;
+            break;
+        case DtypeKind::kUInt:
+            out_dtype = Dtype::kInt64;  // TODO(niboshi): This should be kUInt64
+            break;
+        default:
+            out_dtype = a.dtype();
+    }
+
+    Array out = internal::EmptyReduced(a.shape(), out_dtype, sorted_axis, keepdims, a.device());
     {
         NoBackpropModeScope scope{};
         a.device().Sum(a, sorted_axis, out);
     }
 
-    if (a.IsBackpropRequired()) {
+    if (a.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"sum", out};
         bb.Define({a}, [ sorted_axis, in_shape = a.shape(), keepdims ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
@@ -338,7 +353,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
         a.device().AMax(a, sorted_axis, out);
     }
 
-    if (a.IsBackpropRequired()) {
+    if (a.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"amax", out};
         bb.Define({a}, [ sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
@@ -379,7 +394,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
         x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
     }
 
-    if (neg.IsBackpropRequired()) {
+    if (neg.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"if_less_else", out};
         bb.Define({neg}, [x1, x2](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
@@ -406,7 +421,7 @@ Array Exp(const Array& x) {
         x.device().Exp(x, out);
     }
 
-    if (x.IsBackpropRequired()) {
+    if (x.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"exp", out};
         bb.Define({x}, [x](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
@@ -425,7 +440,7 @@ Array Log(const Array& x) {
         x.device().Log(x, out);
     }
 
-    if (x.IsBackpropRequired()) {
+    if (x.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"log", out};
         bb.Define({x}, [x](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();

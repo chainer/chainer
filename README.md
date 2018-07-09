@@ -7,34 +7,50 @@
 Build `build/xchainer/libxchainer.so` with the following commands.
 
 ```shell-session
-$ ( mkdir -p build && cd build && cmake .. && make )
+$ mkdir -p build
+$ cd build
+$ cmake ..
+$ make
 ```
 
-If you build xChainer with CUDA backend, xChainer currently requires CuDNN and you need to specify its path. For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run the following commands.
+Note that CUDA support is enabled by default and you need to specify cuDNN path to build with CUDA support.
+Refer to [CUDA support](#cuda-support) for more detail.
+
+To install headers and the library, run:
 
 ```shell-session
-$ ( mkdir -p build && cd build && cmake -DCUDNN_ROOT_DIR=$HOME/.cudnn/active .. && make )
+$ make install
 ```
 
-Install headers and the library with `make install`.
 To specify the installation path, pass `-DCMAKE_INSTALL_PREFIX=<...>` to `cmake`.
 
 ### Build the Python binding
 
-To install the `xchainer` Python package in `Release` mode, run the following at the repository root:
+To install the `xchainer` Python package, run the following at the repository root:
 
 ```shell-session
 $ pip install .
 ```
 
-Again, if you build xChainer with CUDA backend, xChainer currently requires CuDNN and you need to specify its path. For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run the following commands.
-
-```shell-session
-$ env CUDNN_ROOT_DIR=$HOME/.cudnn/active pip install .
-```
+You could set `MAKEFLAGS=-j8` environment variable (with a number to fit in your environment) to speed up the installation.
 
 To build the Python binding as a C++ project, pass `-DBUILD_PYTHON=1` to `cmake`,
 then `make` will automatically build the Python binding.
+
+## CUDA support
+
+CUDA support is enabled by default.
+
+xChainer currently requires cuDNN and you need to specify its path.
+For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run `cmake` like this:
+
+```shell-session
+$ cmake -DCUDNN_ROOT_DIR=$HOME/.cudnn/active ..
+```
+
+For Python binding, set `CUDNN_ROOT_DIR` environment variable.
+
+To disable CUDA support, either set `BUILD_CUDA=0` as environment variable or specify `-DBUILD_CUDA=0` in `cmake`.
 
 ## Information for developers
 
@@ -97,7 +113,11 @@ $ sudo apt-get install clang clang-tidy
 Build C++ project beforehand, then run the lint:
 
 ```
-$ ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 .. && make clang-tidy )
+$ mkdir -p build
+$ cd build
+$ cmake -DBUILD_PYTHON=1 ..
+
+$ make clang-tidy
 ```
 
 ### Run the Python test suite
@@ -112,12 +132,6 @@ To build the `xchainer` Python package in `develop` mode, run the following at t
 
 ```shell-session
 $ pip install -e .
-```
-
-Again, if you build xChainer with CUDA backend, xChainer currently requires CuDNN and you need to specify its path. For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run the following commands.
-
-```shell-session
-$ env CUDNN_ROOT_DIR=$HOME/.cudnn/active pip install -e .
 ```
 
 Run tests with the following command at the repository root:
@@ -154,25 +168,31 @@ Build Python package in `Debug` mode, and build C++ test suite as:
 
 ```
 $ python setup.py build --debug --build-temp ./build --build-lib ./build develop
-$ ( mkdir -p build && cd build && cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE .. && make )
+$ mkdir -p build
+$ cd build
+$ cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE ..
+$ make
 ```
 
 Run both Python and C++ test suite:
 
 ```shell-session
-$ pytest && ( cd build && ctest -V )
+$ pytest
+
+$ cd build
+$ ctest -V
 ```
 
 then find .gcda files:
 
 ```shell-session
-find build -name '*.gcda'
+$ find build -name '*.gcda'
 ```
 
 Use `gcov` command to get coverage:
 
 ```shell-session
-gcov ./build/xchainer/CMakeFiles/xchainer.dir/xchainer.gcda
+$ gcov ./build/xchainer/CMakeFiles/xchainer.dir/xchainer.gcda
 ```
 
 See generated .gcov files.
@@ -180,8 +200,8 @@ See generated .gcov files.
 You can also genearte HTML coverage reports with `lcov`. After running tests:
 
 ```shell-session
-lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
-genhtml build/coverage.info -o build/coverage
+$ lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
+$ genhtml build/coverage.info -o build/coverage
 ```
 
 See `build/coverage/index.html` with any browsers.

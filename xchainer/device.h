@@ -20,6 +20,7 @@ enum class AveragePoolPadMode;
 
 class MaxPoolForwardBackward {
 public:
+    virtual ~MaxPoolForwardBackward() = default;
     virtual Array Forward(const Array& x) = 0;
     virtual Array Backward(const Array& gout) = 0;
     virtual Array DoubleBackward(const Array& ggx) = 0;
@@ -27,12 +28,14 @@ public:
 
 class AveragePoolForwardBackward {
 public:
+    virtual ~AveragePoolForwardBackward() = default;
     virtual Array Forward(const Array& x) = 0;
     virtual Array Backward(const Array& gout) = 0;
 };
 
 class BatchNormForwardBackward {
 public:
+    virtual ~BatchNormForwardBackward() = default;
     virtual Array Forward(const Array& x, const Array& gamma, const Array& beta) = 0;
     virtual std::array<Array, 3> Backward(const Array& gout) = 0;
     virtual std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) = 0;

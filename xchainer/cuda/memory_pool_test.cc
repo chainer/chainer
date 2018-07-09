@@ -39,7 +39,7 @@ TEST(MemoryPoolTest, ZeroByte) {
     MemoryPool memory_pool{0};
     void* ptr = memory_pool.Malloc(0);
     EXPECT_EQ(nullptr, ptr);
-    EXPECT_NO_THROW(memory_pool.Free(ptr));
+    memory_pool.Free(ptr);  // no throw
 }
 
 TEST(MemoryPoolTest, DoubleFree) {

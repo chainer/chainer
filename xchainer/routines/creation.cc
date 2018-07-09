@@ -12,8 +12,10 @@
 #include "xchainer/array.h"
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
+#include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/graph.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
@@ -151,7 +153,7 @@ Array Copy(const Array& a) {
         a.device().Copy(a, out);
     }
 
-    if (a.IsBackpropRequired()) {
+    if (a.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"copy", out};
         bb.Define({a}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
@@ -215,7 +217,7 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
         a.device().AsType(a, out);
     }
 
-    if (a.IsBackpropRequired() && GetKind(dt) == DtypeKind::kFloat) {
+    if (a.IsGradRequired(AnyGraph{}) && GetKind(dt) == DtypeKind::kFloat) {
         BackwardBuilder bb{"ascontiguousarray", out};
         bb.Define({a}, [src_dt](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
@@ -261,7 +263,7 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         throw DimensionError{"Input must be 1D or 2D."};
     }
 
-    if (v.IsBackpropRequired()) {
+    if (v.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"diag", out};
         bb.Define({v}, [& device = v.device(), k ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
