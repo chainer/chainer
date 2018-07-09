@@ -1,5 +1,4 @@
 import collections
-import heapq
 import traceback
 import weakref
 
@@ -744,55 +743,57 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             'grad_inputs must be a tuple or a list or None, not {}.'.format(
                 type(grad_inputs)))
 
-    for v in outputs:
-        # Raise error here if v is created by Function.backward.
-        # In such case, we don't know exact inputs of the creator.
-        v.node._check_old_style_gradient()
-
     # The implementation consists of three steps.
 
     # 1. Backward enumeration: all the nodes reachable backward from the output
     #    nodes are enumerated. The forward direction links are collected in
     #    this step. Note that the variable nodes whose requires_grad is false
     #    are ignored and their creators are not searched.
-    candidate_funcs = [v.creator_node for v in outputs
-                       if v.creator_node is not None]
-    visited_funcs = set()
-    forward_graph = collections.defaultdict(list)
-    while candidate_funcs:
-        func = candidate_funcs.pop()
-        if func in visited_funcs:
+    candidate_vars = [y.node for y in outputs]
+    output_nodes = list(candidate_vars)  # TODO(kataoka): remove this
+    visited_vars = set()
+    forward_var_to_func = collections.defaultdict(list)
+    forward_func_to_var = collections.defaultdict(list)
+    while candidate_vars:
+        y = candidate_vars.pop()
+        if y in visited_vars:
             continue
-        visited_funcs.add(func)
-        for x in func.inputs:
-            # Raise error here if x is created by Function.backward.
-            # In such case, we don't know exact inputs of the creator.
-            x._check_old_style_gradient()
+        visited_vars.add(y)
 
-            if not x.requires_grad:
-                continue
-            forward_graph[x].append(func)
-            creator = x.creator_node
-            if creator is not None and creator not in visited_funcs:
-                candidate_funcs.append(creator)
+        # Raise error here if y is created by Function.backward.
+        # In such case, we don't know exact inputs of the creator.
+        y._check_old_style_gradient()
+
+        func = y.creator_node
+        if func is None:
+            continue
+        if func not in forward_func_to_var:  # func is not visited
+            for x in func.inputs:
+                if x.requires_grad:
+                    candidate_vars.append(x)
+                    forward_var_to_func[x].append(func)
+        # always append to forward graph
+        forward_func_to_var[func].append(y)
 
     # 2. Forward enumeration: all the nodes in the subgraph reachable from the
     #    input nodes are enumerated. The extracted (sub-)subgraph is the union
     #    of all paths that backpropagation will visit.
     candidate_vars = [x.node for x in inputs]
+    visited_vars = set()
     visited_funcs = set()
-    grad_required = set()
     while candidate_vars:
         x = candidate_vars.pop()
-        grad_required.add(x)
-        for func in forward_graph[x]:
+        if x in visited_vars:
+            continue
+        visited_vars.add(x)
+        assert x in forward_var_to_func or x in output_nodes
+        for func in forward_var_to_func[x]:
             if func in visited_funcs:
                 continue
             visited_funcs.add(func)
-            for y_ref in func.outputs:
-                y = y_ref()
-                if y is not None and y in forward_graph:
-                    candidate_vars.append(y)
+            assert func in forward_func_to_var
+            for y in forward_func_to_var[func]:
+                candidate_vars.append(y)
 
     # 3. Backpropagation: the backpropagation is executed along the
     #    (sub-)subgraph. It uses the topological order of the subgraph which is
@@ -822,8 +823,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     # Backprop implementation. It edits grads which will only contain the
     # gradients w.r.t. the inputs.
     with chainer.using_config('enable_backprop', enable_double_backprop):
-        _backprop(outputs, inputs, grad_required, retain_grad, grads,
-                  loss_scale)
+        _backprop(outputs, inputs, visited_funcs, visited_vars,
+                  retain_grad, grads, loss_scale)
 
     # Extract the gradients w.r.t. the inputs and return them.
     ret = [grads.get(x.node, None) for x in inputs]
@@ -834,19 +835,13 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     return ret
 
 
-def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
-    candidate_funcs, push_candidate, pop_candidate = _get_ordered_func_heap()
-
-    for y in outputs:
-        creator = y.creator_node
-        if creator is not None:
-            push_candidate(creator)
+def _backprop(outputs, inputs, subgraph_funcs, subgraph_vars,
+              retain_grad, grads, loss_scale):
 
     input_nodes = set(x.node for x in inputs)
 
-    while candidate_funcs:
-        func = pop_candidate()
-
+    for _, _, func in sorted([(-func.rank, i, func)
+                              for i, func in enumerate(subgraph_funcs)]):
         # Collect the gradients w.r.t. the outputs
         gys = []
         for y_ref in func.outputs:
@@ -870,8 +865,9 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         input_indexes = []
         selected_inputs = set()
         for i, x in enumerate(func.inputs):
-            if x not in grad_required:
+            if x not in subgraph_vars:
                 continue
+            assert x.requires_grad
             input_indexes.append(i)
             if x in selected_inputs:
                 gxs.append(None)
@@ -881,8 +877,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         gxs = tuple(gxs)
         input_indexes = tuple(input_indexes)
 
-        if not input_indexes:
-            continue
+        assert input_indexes
 
         # Do backward
         gys = tuple([gy if not isinstance(gy, tuple) else
@@ -946,26 +941,3 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
                 if v is not None:
                     v.grad_var = g
                     v._loss_scale = loss_scale
-
-            creator = node.creator_node
-            if creator is not None:
-                push_candidate(creator)
-
-
-def _get_ordered_func_heap():
-    heap = []
-    visited_funcs = set()
-
-    def push_heap(func):
-        if func not in visited_funcs:
-            # Negate since heapq is min-heap
-            # The second element is used to make each item unique
-            ordered_func = -func.rank, len(visited_funcs), func
-            visited_funcs.add(func)
-            heapq.heappush(heap, ordered_func)
-
-    def pop_heap():
-        _, _, func = heapq.heappop(heap)
-        return func
-
-    return heap, push_heap, pop_heap
