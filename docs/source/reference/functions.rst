@@ -220,6 +220,7 @@ Mathematical functions
    chainer.functions.det
    chainer.functions.batch_det
    chainer.functions.digamma
+   chainer.functions.einsum
    chainer.functions.erf
    chainer.functions.erfc
    chainer.functions.erfinv
