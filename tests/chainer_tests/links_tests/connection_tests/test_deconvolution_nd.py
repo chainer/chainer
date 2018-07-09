@@ -20,20 +20,20 @@ from chainer.utils import conv
     'dtype': [numpy.float32],
     'use_cudnn': ['always', 'auto', 'never'],
     'used_outsize': ['case1', 'case2', 'None'],
-    'in_channels_none': [True, False],
+    'in_channels': [3, None],
 }) + testing.product({
     'dims': [(4, 3, 2)],
     'nobias': [False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_cudnn': ['always'],
     'used_outsize': ['None'],
-    'in_channels_none': [True, False],
+    'in_channels': [3, None],
 }))
 class TestDeconvolutionND(unittest.TestCase):
 
     def setUp(self):
         N = 2
-        in_channels = 3
+        in_channels = self.in_channels
         out_channels = 2
         ndim = len(self.dims)
         ksize = (3,) * ndim
@@ -63,8 +63,7 @@ class TestDeconvolutionND(unittest.TestCase):
             initial_bias = None
 
         self.link = deconvolution_nd.DeconvolutionND(
-            ndim, None if self.in_channels_none else in_channels,
-            out_channels, ksize, stride=stride, pad=pad,
+            ndim, in_channels, out_channels, ksize, stride=stride, pad=pad,
             outsize=outsize, initial_bias=initial_bias, nobias=self.nobias)
         self.link.cleargrads()
 
