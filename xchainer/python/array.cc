@@ -19,6 +19,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/graph.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
@@ -268,6 +269,9 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("is_grad_required",
           [](const ArrayBodyPtr& self, const GraphId& graph_id) { return Array{self}.IsGradRequired(graph_id); },
           py::arg("graph_id") = kDefaultGraphId);
+    c.def("is_grad_required",
+          [](const ArrayBodyPtr& self, AnyGraph any_graph) { return Array{self}.IsGradRequired(any_graph); },
+          py::arg("graph_id"));
     c.def("get_grad",
           [](const ArrayBodyPtr& self, const GraphId& graph_id) -> ConstArrayBodyPtr {
               const nonstd::optional<Array>& grad = Array{self}.GetGrad(graph_id);

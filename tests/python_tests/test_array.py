@@ -273,12 +273,15 @@ def test_array_require_grad():
     array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
 
     assert not array.is_grad_required()
+    assert not array.is_grad_required(xchainer.anygraph)
     array.require_grad()
     assert array.is_grad_required()
+    assert array.is_grad_required(xchainer.anygraph)
 
     # Repeated calls should not fail, but do nothing
     array.require_grad()
     assert array.is_grad_required()
+    assert array.is_grad_required(xchainer.anygraph)
 
 
 def test_array_require_grad_with_graph_id():
