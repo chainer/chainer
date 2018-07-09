@@ -189,6 +189,7 @@ Concrete Datasets
    :nosignatures:
 
    chainer.datasets.get_mnist
+   chainer.datasets.get_fashion_mnist_labels
    chainer.datasets.get_fashion_mnist
    chainer.datasets.get_cifar10
    chainer.datasets.get_cifar100

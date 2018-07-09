@@ -8,6 +8,20 @@ from chainer.datasets._mnist_helper import make_npz
 from chainer.datasets._mnist_helper import preprocess_mnist
 
 
+_fashion_mnist_labels = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
+                         'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+
+
+def get_fashion_mnist_labels():
+    """Provide a list of the string value names of the labels.
+
+    Returns:
+        List of string values of the image labels.
+
+    """
+    return list(_fashion_mnist_labels)
+
+
 def get_fashion_mnist(withlabel=True, ndim=1, scale=1., dtype=None,
                       label_dtype=numpy.int32, rgb_format=False):
     """Gets the Fashion-MNIST dataset.
