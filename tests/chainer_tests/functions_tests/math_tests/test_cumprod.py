@@ -59,12 +59,10 @@ class TestCumprod(unittest.TestCase):
         testing.assert_allclose(y_expect, y.data,
                                 **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x, self.axis)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), self.axis)
 
@@ -73,12 +71,10 @@ class TestCumprod(unittest.TestCase):
             lambda x: functions.cumprod(x, axis), x_data, y_grad,
             dtype=numpy.float64, **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.x, self.axis, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(
             cuda.to_gpu(self.x), self.axis, cuda.to_gpu(self.gy))
