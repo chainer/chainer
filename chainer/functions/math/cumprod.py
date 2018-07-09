@@ -3,6 +3,7 @@ from chainer import function_node
 from chainer.functions.array import concat
 from chainer.functions.array import flatten
 from chainer.functions.array import flip
+from chainer.functions.array import split_axis
 from chainer.utils import type_check
 
 
@@ -29,7 +30,6 @@ class Cumprod(function_node.FunctionNode):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
         x, = inputs
-        self._in_shape = x.shape
         xp = cuda.get_array_module(x)
         return xp.cumprod(x, axis=self.axis),
 
@@ -45,16 +45,14 @@ class Cumprod(function_node.FunctionNode):
         y, = self.get_retained_outputs()
         gy, = grad_outputs
 
-        expander = (slice(None),) * axis
+        _, x = split_axis.split_axis(x, (1,), axis)
         z, = Cumprodsum(axis).apply((
-            x[expander + (slice(None, 0, -1),)],
+            flip.flip(x, axis),
             flip.flip(gy, axis),
         ))
 
-        y_flip = concat.concat([
-            xp.ones_like(y.array[expander + (slice(0, 1),)]),
-            y[expander + (slice(None, -1),)]
-        ], axis=axis)
+        y, ylast = split_axis.split_axis(y, (-1,), axis)
+        y_flip = concat.concat([xp.ones_like(ylast.array), y], axis=axis)
 
         return flip.flip(z, axis) * y_flip,
 
@@ -99,10 +97,9 @@ class Cumprodsum(function_node.FunctionNode):
             flip.flip(gy, axis),
         ))
         gxadd = flip.flip(z, axis)
-
-        expander = (slice(None),) * axis
-        ix = expander + (slice(1, None),)
-        gxmul = gxadd[ix] * y[expander + (slice(None, -1),)]
+        _, gxmul = split_axis.split_axis(gxadd, (1,), axis)
+        y, _ = split_axis.split_axis(y, (-1,), axis)
+        gxmul *= y
         return gxmul, gxadd
 
 
