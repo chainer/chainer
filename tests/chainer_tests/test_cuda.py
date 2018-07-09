@@ -81,6 +81,11 @@ class TestCuda(unittest.TestCase):
         assert cuda.get_device_from_array(numpy.int64(0)) is cuda.DummyDevice
 
     @attr.gpu
+    def test_get_device_for_empty_array(self):
+        x = cuda.cupy.array([]).reshape((0, 10))
+        assert cuda.get_device_from_array(x) == cuda.Device(0)
+
+    @attr.gpu
     @unittest.skipUnless(
         six.PY3, 'Python2.7 has a bug in catch_warnings, so this test is '
                  'skipped for Python2.7')
