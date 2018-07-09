@@ -937,6 +937,37 @@ TEST_P(MathTest, SumKeepDims) {
     testing::ExpectEqual(e, b);
 }
 
+TEST_P(MathTest, SumSignedInt) {
+    using T = int8_t;
+
+    Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
+    Array b = Sum(a, Axes{2, 1, -1});
+    EXPECT_EQ(Shape{2}, b.shape());
+    Array e = testing::BuildArray({2}).WithData<int64_t>({630, 1926});
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(MathTest, SumUnsignedInt) {
+    // TODO(niboshi): The resulted dtype should be uint64 instead of int64.
+    using T = uint8_t;
+
+    Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
+    Array b = Sum(a, Axes{2, 1, -1});
+    EXPECT_EQ(Shape{2}, b.shape());
+    Array e = testing::BuildArray({2}).WithData<int64_t>({630, 1926});
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(MathTest, SumBool) {
+    using T = bool;
+
+    Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
+    Array b = Sum(a, Axes{2, 1, -1});
+    EXPECT_EQ(Shape{2}, b.shape());
+    Array e = testing::BuildArray({2}).WithData<int64_t>({35, 36});
+    testing::ExpectEqual(e, b);
+}
+
 TEST_P(MathTest, InvalidSumDuplicateAxes) {
     using T = float;
 

@@ -266,7 +266,21 @@ Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Sc
 
 Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
+
+    // Decide the output dtype for integral input dtype.
+    Dtype out_dtype{};
+    switch (GetKind(a.dtype())) {
+        case DtypeKind::kBool:
+        case DtypeKind::kInt:  // fallthrough
+            out_dtype = Dtype::kInt64;
+            break;
+        case DtypeKind::kUInt:
+            out_dtype = Dtype::kInt64;  // TODO(niboshi): This should be kUInt64
+            break;
+        default:
+            out_dtype = a.dtype();
+    }
+    Array out = internal::EmptyReduced(a.shape(), out_dtype, sorted_axis, keepdims, a.device());
     a.device().Sum(a, sorted_axis, out);
 
     if (a.IsBackpropRequired()) {

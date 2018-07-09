@@ -43,16 +43,19 @@ void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
-    VisitDtype(out.dtype(), [&a, &axis, &out](auto pt) {
-        using T = typename decltype(pt)::type;
+    auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
+        using In = typename decltype(in_pt)::type;
+        using Out = typename decltype(out_pt)::type;
         struct Impl {
-            T Identity() { return T{0}; }
-            T MapIn(T in, int64_t /*index*/) { return in; }
-            void Reduce(T next, T& accum) { accum += next; }
-            T MapOut(T accum) { return accum; }
+            Out Identity() { return Out{0}; }
+            Out MapIn(In in, int64_t /*index*/) { return static_cast<Out>(in); }
+            void Reduce(Out next, Out& accum) { accum += next; }
+            Out MapOut(Out accum) { return accum; }
         };
-        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), Impl{});
-    });
+        Reduce(MakeReductionKernelArg<In, Out>(a, axis, out), Impl{});
+    };
+
+    VisitDtype(out.dtype(), [ a_dtype = a.dtype(), &do_sum ](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
 }
 
 void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
