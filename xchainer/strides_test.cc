@@ -112,7 +112,7 @@ TEST(StridesTest, CheckEqual) {
     {
         const Strides strides = {48, 16, 4};
         const Strides strides2 = {48, 16, 4};
-        EXPECT_NO_THROW(CheckEqual(strides, strides2));
+        CheckEqual(strides, strides2);
     }
     {
         const Strides strides = {48, 16, 4};

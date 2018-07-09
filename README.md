@@ -32,6 +32,8 @@ To install the `xchainer` Python package, run the following at the repository ro
 $ pip install .
 ```
 
+You could set `MAKEFLAGS=-j8` environment variable (with a number to fit in your environment) to speed up the installation.
+
 To build the Python binding as a C++ project, pass `-DBUILD_PYTHON=1` to `cmake`,
 then `make` will automatically build the Python binding.
 
