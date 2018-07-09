@@ -8,6 +8,10 @@ from chainer import utils
 from chainer.utils import type_check
 
 
+if cuda.available:
+    _relu_grad2_kernel = cuda.elementwise(
+        'T y, T gy', 'T gx',
+        'gx = y > 0 ? gy : (T)0', 'relu_bwd')
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     _mode = cuda.cuda.cudnn.CUDNN_ACTIVATION_RELU
@@ -98,10 +102,7 @@ class ReLUGrad2(function_node.FunctionNode):
         return utils.force_array(y, dtype=y.dtype),
 
     def forward_gpu(self, inputs):
-        gx = cuda.elementwise(
-            'T y, T gy', 'T gx',
-            'gx = y > 0 ? gy : (T)0',
-            'relu_bwd')(self.b, inputs[0])
+        gx = _relu_grad2_kernel(self.b, inputs[0])
         return gx,
 
     def backward(self, indexes, gy):

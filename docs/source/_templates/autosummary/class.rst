@@ -51,7 +51,7 @@
 {% endblock %}
 
    ..
-      Atributes
+      Attributes
 
 {% block attributes %} {% if attributes %}
 

@@ -118,8 +118,7 @@ class TestAveragePooling2D(unittest.TestCase):
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(x):
-            y = functions.average_pooling_2d(x, 3, 2, 1)
-            return y * y
+            return functions.average_pooling_2d(x, 3, 2, 1)
 
         with backend_config:
             gradient_check.check_double_backward(

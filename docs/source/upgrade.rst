@@ -7,6 +7,32 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
+Chainer v5
+==========
+
+FuncionNodes as Implementation Details
+--------------------------------------
+
+When calling a Chainer function such as :func:`~chainer.functions.relu`, a corresponding :class:`~chainer.FunctionNode` is created internally, defining the forward and backward procedures. These classes are no longer a part of the public interface and you are encouraged not to instantiate these objects directly, as their interfaces may change.
+
+Chainer v5
+==========
+
+Updaters Automatically Call ``Optimizer.new_epoch``
+---------------------------------------------------
+
+This change should affect only a minority of users (who call :meth:`~chainer.Optimizer.new_epoch` while using a trainer, or who implement their own :class:`~chainer.training.Updater` class).
+
+Optimizers provide :meth:`~chainer.Optimizer.new_epoch` method, which can be used to change the behavior of optimizers depending on the current epoch number.
+Prior to Chainer v5, this method was expected to be called by users.
+In Chainer v5, updaters have been changed to call :meth:`~chainer.Optimizer.new_epoch` automatically.
+If you have been calling :meth:`~chainer.Optimizer.new_epoch` method manually while using a trainer (or an updater), you may need any of the following fixes:
+
+* Pass ``auto_new_epoch=False`` to the constructor of the updater (e.g., :class:`~chainer.training.updaters.StandardUpdater`) to stop :meth:`~chainer.Optimizer.new_epoch` from being called automatically by the updater.
+* Avoid calling :meth:`~chainer.Optimizer.new_epoch` method manually.
+
+If you implement your own :class:`~chainer.training.Updater` class, you may need to update your code to automatically call :meth:`~chainer.Optimizer.new_epoch` (you can refer to the changes introduced in `#4608 <https://github.com/chainer/chainer/pull/4608>`__ to understand how to fix your updater).
+
 
 Chainer v4
 ==========
@@ -26,6 +52,15 @@ Namespace Changes for Updaters
 See the discussion in `#2982 <https://github.com/chainer/chainer/pull/2982>`_ for more details.
 
 This change does not break the existing code; you can safely continue to use updater classes directly under ``chainer.training`` but it is now encouraged to use ``chainer.training.updaters`` instead.
+
+Namespace Changes for Optimizer Hooks
+-------------------------------------
+
+:doc:`Optimizer hook functions <reference/optimizers>` are moved from ``chainer.optimizer.*`` to ``chainer.optimizer_hooks.*``.
+For example, ``chainer.optimizer.WeightDecay`` is now located :class:`chainer.optimizer_hooks.WeightDecay`.
+
+If the existing code is using hooks directly under ``chainer.optimizer``, ``DeprecationWarning`` will be shown.
+You are now encouraged to use ``chainer.optimizer_hooks`` instead.
 
 Prohibition of Mixed Use of Arrays on Different Devices in Function Arguments
 -----------------------------------------------------------------------------

@@ -14,6 +14,7 @@ class LinearFunction(function_node.FunctionNode):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
         x_type, w_type = in_types[:2]
+        type_check.argname((x_type, w_type), ('x', 'W'))
 
         type_check.expect(
             x_type.dtype.kind == 'f',
@@ -24,6 +25,7 @@ class LinearFunction(function_node.FunctionNode):
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
+            type_check.argname((b_type,), ('b',))
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 1,
@@ -185,7 +187,7 @@ class LinearGradWeight(function_node.FunctionNode):
         return ret
 
 
-def linear(x, W, b=None):
+def linear(x, W, b=None, n_batch_axes=1):
     """Linear function, or affine transformation.
 
     It accepts two or three arguments: an input minibatch ``x``, a weight
@@ -195,21 +197,25 @@ def linear(x, W, b=None):
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable, which is a :math:`(s_B, s_1, \
-            s_2, ..., s_n)`-shaped float array. Its first dimension
-            :math:`(s_B)` is assumed to be the *minibatch dimension*. The
-            other dimensions are treated as concatenated one dimension whose
-            size must be :math:`(s_1 * ... * s_n = N)`.
+        :class:`cupy.ndarray`): Input variable, which is a :math:`(s_1, s_2, \
+            ..., s_n)`-shaped float array. Its first ``n_batch_axes``
+            dimensions are handled as *minibatch dimensions*. The
+            other dimensions are handled as concatenated one dimension whose
+            size must be :math:`(s_{\\rm n\_batch\_axes} * ... * s_n = N)`.
         W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Weight variable of shape :math:`(M, N)`,
-            where :math:`(N = s_1 * ... * s_n)`.
+            where :math:`(N = s_{\\rm n\_batch\_axes} * ... * s_n)`.
         b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Bias variable (optional) of shape
             :math:`(M,)`.
+        n_batch_axes (int): The number of batch axes. The default is 1. The
+            input variable is reshaped into
+            (:math:`{\\rm n\_batch\_axes} + 1`)-dimensional tensor.
+            This should be greater than 0.
 
     Returns:
         ~chainer.Variable: Output variable. A float array with shape
-        of :math:`(s_B, M)`.
+        of :math:`(s_1, ..., s_{\\rm n\_batch\_axes}, M)`.
 
     .. seealso:: :class:`~chainer.links.Linear`
 
@@ -223,13 +229,20 @@ def linear(x, W, b=None):
         (3, 5)
 
     """
-    if x.ndim > 2:
-        x = x.reshape(len(x), -1)
-
+    if n_batch_axes <= 0:
+        raise ValueError('n_batch_axes should be greater than 0.')
+    if n_batch_axes > 1:
+        batch_shape = x.shape[:n_batch_axes]
+        batch_size = numpy.prod(batch_shape)
+        x = x.reshape(batch_size, -1)
+    elif x.ndim > 2:
+        x = x.reshape(x.shape[0], -1)
     if b is None:
         args = x, W
     else:
         args = x, W, b
 
     y, = LinearFunction().apply(args)
+    if n_batch_axes > 1:
+        y = y.reshape(batch_shape + (-1,))
     return y

@@ -20,6 +20,7 @@ from chainer.utils import type_check
     {'axis': -2, 'start': -2, 'out_shape': (2, 3, 4)},
     {'axis': 0, 'start': 3, 'out_shape': (3, 4, 2)},
     {'axis': 2, 'start': -3, 'out_shape': (4, 2, 3)},
+    {'axis': 0, 'start': 0, 'out_shape': (2, 3, 4)},
 )
 class TestRollaxis(unittest.TestCase):
 
@@ -62,8 +63,7 @@ class TestRollaxis(unittest.TestCase):
 
     def check_double_backward(self, x_data, g_data, gg_data):
         def f(x):
-            y = functions.rollaxis(x, self.axis, self.start)
-            return y * y
+            return functions.rollaxis(x, self.axis, self.start)
 
         gradient_check.check_double_backward(
             f, x_data, g_data, gg_data, dtype='d',
@@ -103,13 +103,16 @@ class TestRollaxisInvalidType(unittest.TestCase):
 
 class TestRollaxisInvalidTypeError(unittest.TestCase):
 
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (2, 3, 4)).astype('f')
+
     def test_invalid_axis(self):
         with self.assertRaises(TypeError):
-            functions.Rollaxis('a', 0)
+            functions.rollaxis(self.x, 'a', start=0)
 
     def test_invalid_start(self):
         with self.assertRaises(TypeError):
-            functions.Rollaxis(0, 'a')
+            functions.rollaxis(self.x, 0, start='a')
 
 
 testing.run_module(__name__, __file__)

@@ -22,15 +22,15 @@ def _check_grad_type(func, x, gx):
         return
     if not chainer.is_arrays_compatible((gx, x.data)):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
-               (type(x.data), type(gx)))
+               (type(gx), type(x.data)))
         typ = TypeError
     elif gx.dtype != x.data.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
-               (x.data.dtype, gx.dtype))
+               (gx.dtype, x.data.dtype))
         typ = TypeError
     elif gx.shape != x.data.shape:
         msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
-               (x.data.shape, gx.shape))
+               (gx.shape, x.data.shape))
         typ = ValueError
     else:
         return
@@ -146,9 +146,9 @@ class VariableNode(object):
         name (str): Name of the variable node.
 
     Attributes:
-        ~VariableNode.dtype: Data type of the data array.
-        ~VariableNode.shape: Shape of the data array.
-        ~VariableNode.name (str): Name of the variable node.
+        dtype: Data type of the data array.
+        shape: Shape of the data array.
+        name (str): Name of the variable node.
 
     """
 
@@ -160,11 +160,12 @@ class VariableNode(object):
     _old_style_grad_generator = None
 
     def __init__(self, variable, name, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs,
-            grad='unexpected keyword argument "grad": '
-                 'pass the gradient to Variable instead'
-        )
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                grad='unexpected keyword argument "grad": '
+                     'pass the gradient to Variable instead'
+            )
         self._variable = weakref.ref(variable)
         self.name = name
         self._requires_grad = variable.requires_grad
@@ -422,8 +423,10 @@ class Variable(object):
     :class:`~chainer.variable.VariableNode` object of
     a computational graph. If the variable is constructed by the user, the node
     is *root* and does not hold any parent. If the variable is constructed by a
-    :class:`~chainer.FunctionNode` object, the node holds a reference to its
-    parent called :attr:`creator_node`.
+    :class:`~chainer.FunctionNode` object (i.e., by calling functions under
+    ``chainer.functions`` or user-defined functions), or by using operators
+    (see the list below), the node holds a reference to its parent called
+    :attr:`creator_node`.
     This reference is used in backpropagation to backtrack the graph.
 
     Users can disable (resp. enable) this chaining behavior by calling
@@ -431,6 +434,24 @@ class Variable(object):
     :func:`~chainer.force_backprop_mode`).
     In the former context, a variable never creates a computational graph,
     whereas in the latter context, it is forced to create.
+
+    .. note::
+
+        The following operators are defined for variable(s).
+
+        * Indexing: ``a[slices]`` (:meth:`__getitem__`)
+        * Addition: ``a + b`` (:meth:`__add__`, :meth:`__radd__`)
+        * Subtraction: ``a - b`` (:meth:`__sub__`, :meth:`__rsub__`)
+        * Multiplication: ``a * b`` (:meth:`__mul__`, :meth:`__rmul__`)
+        * Division: ``a / b`` (:meth:`__div__`, :meth:`__rdiv__`, \
+                               :meth:`__truediv__`, :meth:`__rtruediv__`)
+        * Floor Division: ``a // b`` (:meth:`__floordiv__`, \
+                                      :meth:`__rfloordiv__`)
+        * Exponentiation: ``a ** b`` (:meth:`__pow__`, :meth:`__rpow__`)
+        * Matrix Multiplication: ``a @ b`` (:meth:`__matmul__`, \
+                                            :meth:`__rmatmul__`)
+        * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
+        * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
     .. warning::
 
@@ -447,14 +468,10 @@ class Variable(object):
     """  # NOQA
 
     def __init__(self, data=None, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, volatile='volatile argument is not supported anymore. '
+        name, grad, requires_grad = argument.parse_kwargs(
+            kwargs, ('name', None), ('grad', None), ('requires_grad', True),
+            volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
-        name, grad, requires_grad \
-            = argument.parse_kwargs(
-                kwargs, ('name', None), ('grad', None),
-                ('requires_grad', True))
-
         if (data is not None and
                 not isinstance(data, chainer.get_array_types())):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
@@ -486,6 +503,16 @@ Actual: {0}'''.format(type(data))
 
     def __str__(self):
         return variable_str(self)
+
+    @property
+    def xp(self):
+        """Array module for this variable.
+
+        Depending on which of CPU/GPU this variable is on, this property
+        returns :mod:`numpy` or :mod:`cupy`.
+
+        """
+        return cuda.get_array_module(self)
 
     @property
     def name(self):
@@ -747,22 +774,24 @@ Actual: {0}'''.format(type(data))
         intel64.check_ideep_available()
         data = self.data
         if data is not None:
-            if isinstance(data, numpy.ndarray):
-                # numpy.ndarray to ideep
-                self._data = [
-                    intel64.ideep.array(
-                        data, itype=intel64.ideep.wgt_array)]
-            elif isinstance(data, cuda.ndarray):
-                # cupy.ndarray to ideep
-                self._data = [
-                    intel64.ideep.array(
-                        data.get(), itype=intel64.ideep.wgt_array)]
+            if isinstance(data, cuda.ndarray):
+                # cupy.ndarray to numpy.ndarray
+                data = data.get()
+            if (isinstance(data, numpy.ndarray) and data.ndim in (1, 2, 4)):
+                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
+                # Currently iDeep only supports (1, 2, 4)-dim arrays.
+                # Note that array returned from `ideep.array` may not be an
+                # iDeep mdarray, e.g., when the dtype is not float32.
+                data = intel64.ideep.array(
+                    data, itype=intel64.ideep.wgt_array)
+            self._data = [data]
+
         if self._grad_var is not None:
             self._grad_var.to_intel64()
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node._data is not None:
-                node.retain_data()
+        # ensure that the node tracks the device migration
+        node = self._node
+        if node._data is not None:
+            node.retain_data()
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -821,14 +850,7 @@ Actual: {0}'''.format(type(data))
         elif dst is None:
             self.initialize(src.shape)
             dst = self.data
-        src_xp = cuda.get_array_module(src)
-        dst_xp = cuda.get_array_module(dst)
-        if dst_xp is src_xp:
-            dst_xp.copyto(dst, src)
-        elif dst_xp is numpy:
-            dst_xp.copyto(dst, src.get())
-        else:
-            dst.set(src)
+        cuda.copyto(dst, src)
 
     def addgrad(self, var):
         """Accumulates the gradient array from given source variable.
@@ -1022,7 +1044,7 @@ Actual: {0}'''.format(type(data))
                 hooks.update(func.local_function_hooks)
             hooks = hooks.values()  # avoid six for performance
 
-            cuda.get_device_from_array(*in_data).use()
+            cuda.get_device_from_array(*(in_data + out_grad_data)).use()
             for hook in hooks:
                 hook.backward_preprocess(func, in_data, out_grad_data)
 
@@ -1067,9 +1089,23 @@ Actual: {0}'''.format(type(data))
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:
-                for gx in gxs:
-                    if gx is None:
-                        continue
+                # gxs can be a tuple of tuples of variables (in case of
+                # lazy-grad-sum).
+                # iter_gxs expands it as a sequence of variables.
+                # It also ignores None entries.
+                def iter_gxs(gxs):
+                    for gx in gxs:
+                        if gx is None:
+                            continue
+                        elif isinstance(gx, tuple):
+                            for gx_ in iter_gxs(gx):
+                                yield gx_
+                        elif isinstance(gx, Variable):
+                            yield gx
+                        else:
+                            assert False
+
+                for gx in iter_gxs(gxs):
                     gx_data = gx.data
                     if gx_data.dtype.kind == 'f':
                         cuda.get_device_from_array(gx_data).use()
@@ -1200,27 +1236,35 @@ Actual: {0}'''.format(type(data))
         self._node.data = self._data[0]
 
     def __lt__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __le__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __eq__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __ne__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __gt__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __ge__(self, other):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __nonzero__(self):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     def __bool__(self):
+        """This operator is not defined for Variable."""
         raise NotImplementedError()
 
     __array_priority__ = 200
@@ -1287,7 +1331,6 @@ class Parameter(Variable):
             else:
                 # uninitialized parameter
                 super(Parameter, self).__init__(name=name)
-                self.initializer = initializer
                 dtype = getattr(initializer, 'dtype', numpy.float32)
                 self._grad_initializer = constant.NaN(dtype)
         else:
@@ -1302,6 +1345,7 @@ class Parameter(Variable):
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
         self.update_rule = None
+        self.initializer = initializer
 
     def __copy__(self):
         return self._copy_to(Parameter())
@@ -1384,7 +1428,7 @@ def as_variable(obj):
     transparently from a raw array or a variable.
 
     Note that this function should only be used for type consistency (i.e., to
-    enforce the return value of an API having type :class:`~chainer.Varialbe`).
+    enforce the return value of an API having type :class:`~chainer.Variable`).
     The :class:`~chainer.Variable.requires_grad` flag is kept as is; if ``obj``
     is a raw array, the newly created variable has ``requires_grad = False``.
     In order to make a variable w.r.t. which you want to compute the gradient,

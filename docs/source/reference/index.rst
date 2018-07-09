@@ -8,17 +8,18 @@ Reference
    :maxdepth: 2
 
    variable
-   configuration
-   training
-   debug
-   util
-   check
    functions
    links
+   distributions
    optimizers
-   serializers
    initializers
+   training
    datasets
    iterators
-   caffe
+   serializers
+   util
+   configuration
+   debug
    graph
+   caffe
+   check

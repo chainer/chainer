@@ -15,10 +15,15 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product([
     [
         {'shape': (4, 15), 'axis': 1},
+        {'shape': (4,), 'axis': 0},
         {'shape': (4, 3, 2, 5), 'axis': 0},
         {'shape': (4, 3, 2, 5), 'axis': 1},
         {'shape': (4, 3, 2, 5), 'axis': 2},
         {'shape': (4, 3, 2, 5), 'axis': 3},
+        {'shape': (4, 3, 2), 'axis': (0, 1)},
+        {'shape': (4, 3, 2, 4, 3, 2, 2), 'axis': (1, 4, 3, 6)},
+        {'shape': (0, 2), 'axis': 1},
+        {'shape': (), 'axis': ()},
     ],
     [
         {'eps': 1e-5},
@@ -44,8 +49,9 @@ class TestL2Normalization(unittest.TestCase):
         y_expect = numpy.empty_like(self.x)
         shape = self.x.shape
         indices = []
+        axis_tuple = axis if isinstance(axis, tuple) else (axis,)
         for i in six.moves.range(len(shape)):
-            if i != axis:
+            if i not in axis_tuple:
                 indices.append(six.moves.range(shape[i]))
             else:
                 indices.append([slice(None)])

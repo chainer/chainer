@@ -67,8 +67,7 @@ class TestLeakyReLU(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad):
         def f(x):
-            y = functions.leaky_relu(x, self.slope)
-            return y * y
+            return functions.leaky_relu(x, self.slope)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,

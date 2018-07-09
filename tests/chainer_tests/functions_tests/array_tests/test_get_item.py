@@ -9,7 +9,6 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import parameterize
-from chainer.utils import type_check
 
 
 @parameterize(
@@ -81,8 +80,7 @@ class TestGetItem(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, ggx_data):
         def f(x):
-            y = functions.get_item(x, self.slices)
-            return y * y
+            return functions.get_item(x, self.slices)
 
         gradient_check.check_double_backward(
             f, (x_data,), y_grad, ggx_data, dtype='d')
@@ -99,13 +97,12 @@ class TestGetItem(unittest.TestCase):
 
 @testing.parameterize(
     {'slices': [], 'sliced_shape': (0, 3, 2)},
-    {'slices': [[]], 'sliced_shape': (0, 3, 2)},
-    {'slices': [[[]]], 'sliced_shape': (1, 0, 3, 2)},
+    {'slices': ([],), 'sliced_shape': (0, 3, 2)},
     {'slices': ([[]],), 'sliced_shape': (1, 0, 3, 2)},
     {'slices': numpy.array([], dtype=numpy.bool),
         'sliced_shape': (0, 3, 2)},
-    {'slices': [1, [1]], 'sliced_shape': (1, 2)},
-    {'slices': [[1], slice(1, 2)], 'sliced_shape': (1, 1, 2)},
+    {'slices': (1, [1]), 'sliced_shape': (1, 2)},
+    {'slices': ([1], slice(1, 2)), 'sliced_shape': (1, 1, 2)},
     {'slices': [1, 0], 'sliced_shape': (2, 3, 2)},
     {'slices': ([1, 0],), 'sliced_shape': (2, 3, 2)},
     {'slices': numpy.array([[1, 0], [2, 3]]),
@@ -124,12 +121,20 @@ class TestGetItem(unittest.TestCase):
         'sliced_shape': (4, 2, 2)},
     {'slices': numpy.array([False, False, False, False]),
         'sliced_shape': (0, 3, 2)},
+    {'slices': (3, 2, Ellipsis, 1),
+        'sliced_shape': ()},
+    {'slices': (numpy.array(False)),
+        'input_shape': (), 'sliced_shape': (0,)},
+    {'slices': (numpy.array(True)),
+        'input_shape': (), 'sliced_shape': (1,)},
 )
 class TestGetItemAdvanced(unittest.TestCase):
 
+    input_shape = (4, 3, 2)
+
     def setUp(self):
         self.x_data = numpy.random.uniform(
-            -1, 1, (4, 3, 2)).astype(numpy.float32)
+            -1, 1, self.input_shape).astype(numpy.float32)
         self.gy_data = numpy.random.uniform(
             -1, 1, self.sliced_shape).astype(numpy.float32)
 
@@ -234,10 +239,6 @@ class TestInvalidGetItem(unittest.TestCase):
     def test_multiple_ellipsis(self):
         with self.assertRaises(ValueError):
             functions.get_item(self.x_data, (Ellipsis, Ellipsis))
-
-    def test_too_many_indices(self):
-        with self.assertRaises(type_check.InvalidType):
-            functions.get_item(self.x_data, (0, 0, 0, 0))
 
 
 testing.run_module(__name__, __file__)

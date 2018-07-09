@@ -217,10 +217,10 @@ class LSTMGrad(function.Function):
         gga, ggi, ggf, ggo = _extract_gates(ggx)
         ga, gi, gf, go = _extract_gates(gx)
 
-        gc_prev[:batch], ga[:], gi[:], gf[:], go[:], gc_next[:batch], \
-            ggc[:batch], ggh[:batch] \
-            = lstm_grad_grad(
-                c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo)
+        lstm_grad_grad(
+            c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
+            gc_prev[:batch], ga[:], gi[:], gf[:], go[:], gc_next[:batch],
+            ggc[:batch], ggh[:batch])
         return gc_prev, gx, gc_next, ggc, ggh
 
 
@@ -231,7 +231,8 @@ def _cupy_sigmoid(x):
 
 @cuda.fuse()
 def lstm_grad_grad(
-        c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo):
+        c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
+        gc_prev, ga, gi, gf, go, gc_next, ggc, ggh):
     sig_o = _cupy_sigmoid(o)
     gsig_o = _grad_sigmoid(sig_o)
     ggsig_o = _grad_grad_sigmoid(sig_o)
@@ -250,25 +251,22 @@ def lstm_grad_grad(
 
     gc_bar = gh * sig_o * gtanh_c + gc
 
-    gc_prev = ggf * gc_bar * gsig_f
-    ga = (gga * sig_i * ggtanh_a +
-          ggi * gtanh_a * gsig_i) * gc_bar
-    gi = (gga * gtanh_a * gsig_i +
-          ggi * tanh_a * ggsig_i) * gc_bar
-    gf = (ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f +
-          ggf * gc_bar * c_prev * ggsig_f)
+    gc_prev[:] = ggf * gc_bar * gsig_f
+    ga[:] = (gga * sig_i * ggtanh_a + ggi * gtanh_a * gsig_i) * gc_bar
+    gi[:] = (gga * gtanh_a * gsig_i + ggi * tanh_a * ggsig_i) * gc_bar
+    gf[:] = (ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f +
+             ggf * gc_bar * c_prev * ggsig_f)
 
-    ggc = (
-        ggc_prev * sig_f +
-        gga * sig_i * gtanh_a +
-        ggi * tanh_a * gsig_i +
-        ggf * c_prev * gsig_f)
+    ggc[:] = (ggc_prev * sig_f +
+              gga * sig_i * gtanh_a +
+              ggi * tanh_a * gsig_i +
+              ggf * c_prev * gsig_f)
 
     dgc_do = gh * gsig_o * gtanh_c
-    go = ggc * dgc_do + ggo * gh * tanh_c * ggsig_o
+    go[:] = ggc * dgc_do + ggo * gh * tanh_c * ggsig_o
     dgc_dc = gh * sig_o * ggtanh_c
-    gc_next = ggc * dgc_dc + ggo * gh * gtanh_c * gsig_o
-    ggh = ggc * sig_o * gtanh_c + ggo * tanh_c * gsig_o
+    gc_next[:] = ggc * dgc_dc + ggo * gh * gtanh_c * gsig_o
+    ggh[:] = ggc * sig_o * gtanh_c + ggo * tanh_c * gsig_o
     return gc_prev, ga, gi, gf, go, gc_next, ggc, ggh
 
 
@@ -366,7 +364,8 @@ def lstm(c_prev, x):
             The array which is linear transformed from *incoming signal* and
             the previous outgoing signal. The *input array* contains four
             sources, the sources of cell input, input gate, forget gate and
-            output gate. The input of :class:`chainer.functions.LSTM` is the
+            output gate. The input of
+            :class:`chainer.functions.activation.lstm.LSTM` is the
             *input array*.
 
     """

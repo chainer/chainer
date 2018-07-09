@@ -48,6 +48,58 @@ If you want to install NumPy with pip, use `site.cfg <https://github.com/numpy/n
 For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
 
 
+How do I fix InvalidType error?
+-------------------------------
+
+Chainer raises an ``InvalidType`` exception when invalid inputs are given to :doc:`reference/functions`.
+If you got ``InvalidType``, generally you need to check if ``dtype`` and/or ``shape`` of inputs are valid for the function.
+
+Here are some examples of ``InvalidType`` errors:
+
+.. testcode::
+
+    import chainer.functions as F
+    import numpy as np
+
+    x = np.arange(10) - 5
+    F.relu(x)
+
+.. testoutput::
+
+   Traceback (most recent call last):
+   ...
+   chainer.utils.type_check.InvalidType:
+   Invalid operation is performed in: ReLU (Forward)
+
+   Expect: in_types[0].dtype.kind == f
+   Actual: i != f
+
+In this case, :attr:`~numpy.dtype.kind` of ``in_types[0]`` (which means the first input to the function, ``x``) is expected to be ``f`` (floating-point), whereas the input was ``i`` (signed integer).
+You need to cast the input appropriately before passing to the function (e.g., ``x.astype(np.float32)``).
+
+.. testcode::
+
+    import chainer.functions as F
+    import numpy as np
+
+    x = np.ones((4, 4))
+    y = np.ones((3, 3))
+    F.concat([x, y])
+
+.. testoutput::
+
+   Traceback (most recent call last):
+   ...
+   chainer.utils.type_check.InvalidType:
+   Invalid operation is performed in: Concat (Forward)
+
+   Expect: in_types[0].shape[0] == in_types[1].shape[0]
+   Actual: 4 != 3
+
+In this case, the function expects that ``x.shape[0]`` is equal to ``y.shape[0]``, but actually it was ``4`` and ``3``, respectively.
+
+See :doc:`guides/type_checks` for the detailed behavior of type checking system in Chainer.
+
 How do I accelerate my model using iDeep on Intel CPU?
 ------------------------------------------------------
 
@@ -65,7 +117,7 @@ On recommended systems, you can install iDeep wheel (binary distribution) by:
 
 .. code-block:: console
 
-    $ pip install ideep4py
+    $ pip install 'ideep4py<2'
 
 Enable iDeep Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -105,3 +157,17 @@ Now your model is accelerated by iDeep!
 
 Please note that not all functions and optimizers support iDeep acceleration.
 Also note that iDeep will not be used depending on the shape and data type of the input data.
+
+My training process gets stuck when using MultiprocessIterator
+--------------------------------------------------------------
+
+When you are using OpenCV somewhere in your code and the :class:`~chainer.iterators.MultiprocessIterator` is used in the
+training code, the training loop may get stuck at some point. In such situation, there are several workarounds to
+prevent the process got stuck.
+
+1. Set the environment variable as follows: ``OMP_NUM_THREADS=1``
+2. Add ``cv2.setNumThreads(0)`` right after ``import cv2`` in your training script.
+3. Use :class:`~chainer.iterators.MultithreadIterator` instead of :class:`~chainer.iterators.MultiprocessIterator`.
+
+This problem is originally reported here: `A training loop got stuck in a certain condition with multi-processing updater and opencv <https://github.com/chainer/chainer/issues/2903>`_
+for Chainer and the discussion on related problems is still going here: `OpenCV + Python multiprocessing breaks on OSX <https://github.com/opencv/opencv/issues/5150>`_.

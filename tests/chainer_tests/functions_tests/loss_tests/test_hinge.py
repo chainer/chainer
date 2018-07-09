@@ -65,9 +65,11 @@ class TestHinge(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     def check_backward(self, x_data, t_data):
+        def f(x, t):
+            return functions.hinge(x, t, self.norm)
+
         gradient_check.check_backward(
-            functions.Hinge(self.norm), (x_data, t_data), None,
-            dtype='d',
+            f, (x_data, t_data), None, dtype='d',
             **self.check_backward_options)
 
     def test_backward_cpu(self):
