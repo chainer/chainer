@@ -92,7 +92,6 @@ public:
             const OpNode& op_node,
             gsl::span<ArrayNode*> prev_array_nodes,
             gsl::span<internal::GradRef*> prev_grads,
-            gsl::span<const GraphId> stop_graph_ids,
             std::vector<Array>& input_grads_storage,
             const GraphId& graph_id,
             bool next_backward_required);
@@ -121,9 +120,6 @@ public:
 
     // Returns the reference to the input gradient.
     Array& input_grad(size_t index);
-
-    // Given an array, cuts the graphs to stop gradients and returns the resulting array.
-    Array Cut(const Array& a) const;
 
 private:
     const OpNode& op_node_;

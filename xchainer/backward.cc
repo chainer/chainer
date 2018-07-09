@@ -75,14 +75,12 @@ BackwardContext::BackwardContext(
         const OpNode& op_node,
         gsl::span<ArrayNode*> prev_array_nodes,
         gsl::span<internal::GradRef*> prev_grads,
-        gsl::span<const GraphId> stop_graph_ids,
         std::vector<Array>& input_grads_storage,
         const GraphId& graph_id,
         bool next_backward_required)
     : op_node_{op_node},
       prev_array_nodes_{prev_array_nodes},
       prev_grads_{prev_grads},
-      stop_graph_ids_{stop_graph_ids},
       input_grads_storage_{input_grads_storage},
       zero_output_grads_{prev_array_nodes_.size()},
       graph_id_{graph_id},
@@ -120,22 +118,6 @@ Array& BackwardContext::input_grad() {
 }
 
 Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_storage_, index); }
-
-Array BackwardContext::Cut(const Array& a) const {
-#ifndef NDEBUG
-    for (const ArrayNode* prev_array_node : prev_array_nodes_) {
-        if (prev_array_node == nullptr) {
-            continue;  // Can't check
-        }
-        std::shared_ptr<const internal::ArrayBody> body = prev_array_node->GetBody();
-        if (body != nullptr) {
-            const nonstd::optional<Array>* prev_grad = body->GetGrad(graph_id_);
-            assert((prev_grad == nullptr || !prev_grad->has_value() || &**prev_grad != &a) && "Output grads do not have to be cut");
-        }
-    }
-#endif  // NDEBUG
-    return a.AsGradStopped(stop_graph_ids_);
-}
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()}, stop_graph_ids_{stop_graph_ids.begin(), stop_graph_ids.end()} {
@@ -338,14 +320,12 @@ private:
             next_grads_subset.resize(backward_entry.next_array_node_count());
 
             // Call backward.
-            BackwardContext bctx{op_node,
-                                 prev_array_nodes,
-                                 prev_grads,
-                                 graph_ids_to_stop_gradient,
-                                 next_grads_subset,
-                                 graph_id_,
-                                 double_backprop_ == DoubleBackpropOption::kEnable};
-            backward_entry.backward_func()(bctx);
+            BackwardContext bctx{
+                    op_node, prev_array_nodes, prev_grads, next_grads_subset, graph_id_, double_backprop_ == DoubleBackpropOption::kEnable};
+            {
+                NoBackpropModeScope scope{graph_ids_to_stop_gradient};
+                backward_entry.backward_func()(bctx);
+            }
 
             for (auto it = next_grads_subset.begin(); it != next_grads_subset.end(); ++it) {
                 // TODO(sonots): Allow backward without setting input grads

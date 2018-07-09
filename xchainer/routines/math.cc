@@ -198,10 +198,10 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     {
         BackwardBuilder bb{"multiply", out};
         if (x1.IsGradRequired(AnyGraph{})) {
-            bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
+            bb.Define({x1}, [other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
         }
         if (x2.IsGradRequired(AnyGraph{})) {
-            bb.Define({x2}, [other = x1](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * bctx.Cut(other); });
+            bb.Define({x2}, [other = x1](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
         }
     }
 }
@@ -252,14 +252,10 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     {
         BackwardBuilder bb{"divide", out};
         if (x1.IsGradRequired(AnyGraph{})) {
-            bb.Define({x1}, [x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() / bctx.Cut(x2); });
+            bb.Define({x1}, [x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() / x2; });
         }
         if (x2.IsGradRequired(AnyGraph{})) {
-            bb.Define({x2}, [x1, x2](BackwardContext& bctx) {
-                Array lhs_const = bctx.Cut(x1);
-                Array rhs_const = bctx.Cut(x2);
-                bctx.input_grad() = -bctx.output_grad() * lhs_const / (rhs_const * rhs_const);
-            });
+            bb.Define({x2}, [x1, x2](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad() * x1 / (x2 * x2); });
         }
     }
 }
@@ -398,7 +394,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
         BackwardBuilder bb{"if_less_else", out};
         bb.Define({neg}, [x1, x2](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
-            bctx.input_grad() = IfLessElse(bctx.Cut(x1), x2, Scalar{0, gout.dtype()}, gout);
+            bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, gout.dtype()}, gout);
         });
     }
 
@@ -425,7 +421,7 @@ Array Exp(const Array& x) {
         BackwardBuilder bb{"exp", out};
         bb.Define({x}, [x](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
-            bctx.input_grad() = Exp(bctx.Cut(x)) * gout;
+            bctx.input_grad() = Exp(x) * gout;
         });
     }
 
@@ -444,7 +440,7 @@ Array Log(const Array& x) {
         BackwardBuilder bb{"log", out};
         bb.Define({x}, [x](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
-            bctx.input_grad() = gout / bctx.Cut(x);
+            bctx.input_grad() = gout / x;
         });
     }
 

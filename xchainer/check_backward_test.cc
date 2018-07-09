@@ -56,23 +56,6 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
     return {out};
 }
 
-Arrays ForwardWithIncorrectDoubleBackpropOption(const Arrays& inputs) {
-    const Array& a = inputs[0];
-
-    Array out = a.AsGradStopped() * a.AsGradStopped();
-
-    if (a.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"incorrect_square", {out}};
-        bb.Define({a}, [a](BackwardContext& bctx) {
-            const Array& gout = bctx.output_grad();
-            // `a` would be `bctx.Cut(a)` if implemented correctly
-            bctx.input_grad() = 2 * gout * a;
-        });
-    }
-
-    return {out};
-}
-
 class CheckBackwardTest : public ::testing::TestWithParam<bool> {
 protected:
     void SetUp() override {
@@ -181,15 +164,6 @@ TEST_P(CheckBackwardTest, IncorrectBackward) {
     std::vector<T> grad_output_data{0.f, -2.f, 1.f};
     std::vector<T> eps_data{1e-3f, 1e-3f, 1e-3f};
     CheckCheckBackward(false, &ForwardWithIncorrectBackward, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "graph_1");
-}
-
-TEST_P(CheckBackwardTest, IncorrectDoubleBackpropOption) {
-    using T = float;
-    std::vector<T> input_data{-2.f, 3.f, 1.f};
-    std::vector<T> grad_output_data{0.f, -2.f, 1.f};
-    std::vector<T> eps_data{1e-3f, 1e-3f, 1e-3f};
-    CheckCheckBackward(
-            false, &ForwardWithIncorrectDoubleBackpropOption, {1, 3}, input_data, grad_output_data, eps_data, 1e-4, 1e-3, "graph_1");
 }
 
 TEST_P(CheckBackwardTest, IncorrectBackwardIdenticalInputOutput) {

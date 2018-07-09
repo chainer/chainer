@@ -59,13 +59,13 @@ Array Dot(const Array& a, const Array& b) {
         if (a_matrix.IsGradRequired(AnyGraph{})) {
             bb.Define({a_matrix}, [b_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
-                bctx.input_grad() = Dot(gout, bctx.Cut(b_matrix).Transpose());
+                bctx.input_grad() = Dot(gout, b_matrix.Transpose());
             });
         }
         if (b_matrix.IsGradRequired(AnyGraph{})) {
             bb.Define({b_matrix}, [a_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
-                bctx.input_grad() = Dot(bctx.Cut(a_matrix).Transpose(), gout);
+                bctx.input_grad() = Dot(a_matrix.Transpose(), gout);
             });
         }
     }

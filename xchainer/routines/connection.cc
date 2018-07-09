@@ -64,14 +64,14 @@ Array ConvGradW(
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
                 assert(out_size.size() == stride.size());
-                bctx.input_grad() = ConvTranspose(bctx.Cut(gy), gout, nonstd::nullopt, stride, pad, out_size);
+                bctx.input_grad() = ConvTranspose(gy, gout, nonstd::nullopt, stride, pad, out_size);
             });
         }
 
         if (gy.IsGradRequired(AnyGraph{})) {
             bb.Define({gy}, [x, stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
-                bctx.input_grad() = Conv(bctx.Cut(x), gout, nonstd::nullopt, stride, pad, cover_all);
+                bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, cover_all);
             });
         }
     }
@@ -126,14 +126,14 @@ Array Conv(
             bb.Define({x}, [ x_shape = x.shape(), w, stride, pad ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
-                bctx.input_grad() = ConvTranspose(gout, bctx.Cut(w), nonstd::nullopt, stride, pad, out_size);
+                bctx.input_grad() = ConvTranspose(gout, w, nonstd::nullopt, stride, pad, out_size);
             });
         }
 
         if (w.IsGradRequired(AnyGraph{})) {
             bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
-                bctx.input_grad() = ConvGradW(w_dtype, w_shape, bctx.Cut(x), gout, stride, pad, cover_all);
+                bctx.input_grad() = ConvGradW(w_dtype, w_shape, x, gout, stride, pad, cover_all);
             });
         }
 
@@ -222,14 +222,14 @@ Array ConvTranspose(
             bb.Define({x}, [ x_shape = x.shape(), w, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
-                bctx.input_grad() = Conv(gout, bctx.Cut(w), nonstd::nullopt, stride, pad, cover_all);
+                bctx.input_grad() = Conv(gout, w, nonstd::nullopt, stride, pad, cover_all);
             });
         }
 
         if (w.IsGradRequired(AnyGraph{})) {
             bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
-                bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, bctx.Cut(x), stride, pad, cover_all);
+                bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, x, stride, pad, cover_all);
             });
         }
 

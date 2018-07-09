@@ -116,13 +116,10 @@ Array BatchNorm(
             assert(ggamma.IsConstant());
             assert(gbeta.IsConstant());
 
-            Array x_cut = bctx.Cut(x);
-            Array gamma_cut = bctx.Cut(gamma);
-
             if (bctx.next_required() &&
-                (x_cut.IsGradRequired(AnyGraph{}) || gamma_cut.IsGradRequired(AnyGraph{}) || gout.IsGradRequired(AnyGraph{}))) {
+                (x.IsGradRequired(AnyGraph{}) || gamma.IsGradRequired(AnyGraph{}) || gout.IsGradRequired(AnyGraph{}))) {
                 BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
-                bb2.Define({x_cut, gamma_cut, gout}, [fb](BackwardContext& bctx2) {
+                bb2.Define({x, gamma, gout}, [fb](BackwardContext& bctx2) {
                     const Array& g2x = bctx2.output_grad(0);
                     const Array& g2gamma = bctx2.output_grad(1);
                     const Array& g2beta = bctx2.output_grad(2);
