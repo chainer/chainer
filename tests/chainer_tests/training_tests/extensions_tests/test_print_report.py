@@ -1,10 +1,9 @@
 import sys
 import unittest
 
-from mock import MagicMock
-
 from chainer import testing
 from chainer.training import extensions
+from mock import MagicMock
 
 
 class TestPrintReport(unittest.TestCase):
