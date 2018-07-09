@@ -63,7 +63,8 @@ class Expm1FunctionTest(unittest.TestCase):
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
     def test_expm1(self):
-        self.assertEqual(F.Expm1().label, 'expm1')
+        self.assertEqual(
+            chainer.functions.math.exponential_m1.Expm1().label, 'expm1')
 
 
 testing.run_module(__name__, __file__)

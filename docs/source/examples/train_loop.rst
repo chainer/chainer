@@ -143,7 +143,7 @@ The main steps are twofold:
                     self.l2 = L.Linear(n_mid_units, n_mid_units)
                     self.l3 = L.Linear(n_mid_units, n_out)
 
-            def forward(self, x):
+            def __call__(self, x):
                 h = F.relu(self.l1(x))
                 h = F.relu(self.l2(h))
                 return self.l3(h)
@@ -181,7 +181,7 @@ You can easily try out other optimizers as well. Please test and observe the res
                 self.l2 = L.Linear(n_mid_units, n_mid_units)
                 self.l3 = L.Linear(n_mid_units, n_out)
 
-        def forward(self, x):
+        def __call__(self, x):
             h = F.relu(self.l1(x))
             h = F.relu(self.l2(h))
             return self.l3(h)
@@ -248,7 +248,7 @@ The training loop code is as follows:
         model.cleargrads()
         loss.backward()
 
-        # Update all the trainable parameters
+        # Update all the trainable parameters
         optimizer.update()
         # --------------------- until here ---------------------
 
@@ -335,7 +335,7 @@ Once the model is restored, it can be used to predict image labels on new input 
     # Create an instance of the network you trained
     model = MyNetwork()
 
-    # Load the saved parameters into the instance
+    # Load the saved parameters into the instance
     serializers.load_npz('my_mnist.model', model)
 
     # Get a test image and label
@@ -362,7 +362,7 @@ The saved test image looks like:
     x = x[None, ...]
     print(x.shape)
 
-    # Forward calculation of the model by sending X
+    # Forward calculation of the model by sending X
     y = model(x)
 
     # The result is given as Variable, then we can take a look at the contents by the attribute, .data.

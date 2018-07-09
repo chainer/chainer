@@ -36,7 +36,7 @@ class ImageCaptionModel(chainer.Chain):
         """Single image to resized and normalized image."""
         return self.feat_extractor.prepare(img)
 
-    def forward(self, imgs, captions):
+    def __call__(self, imgs, captions):
         """Batch of images to a single loss."""
         imgs = Variable(imgs)
         if self.finetune_feat_extractor:

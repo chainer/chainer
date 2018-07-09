@@ -42,15 +42,15 @@ class RsqrtGPU(function_node.FunctionNode):
         )
 
     def forward_gpu(self, inputs):
-        self.retain_inputs((0,))
+        self.retain_outputs((0,))
         x, = inputs
         out = cuda.cupyx.rsqrt(x, dtype=x.dtype)
         return utils.force_array(out),
 
     def backward(self, indexes, grad_outputs):
-        x, = self.get_retained_inputs()
+        y, = self.get_retained_outputs()
         gy, = grad_outputs
-        return gy * (x ** -1.5) * -0.5,
+        return gy * (y ** 3) * -0.5,
 
 
 def sqrt(x):

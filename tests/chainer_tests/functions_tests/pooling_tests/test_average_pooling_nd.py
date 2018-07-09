@@ -19,6 +19,7 @@ from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 @testing.parameterize(*testing.product({
     'dims': [(4,), (4, 3), (4, 3, 2), (1, 1, 1, 1)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'pad_value': [None, 0],
 }))
 class TestAveragePoolingND(unittest.TestCase):
 
@@ -52,9 +53,19 @@ class TestAveragePoolingND(unittest.TestCase):
         pad = self.pad
         x = chainer.Variable(x_data)
         with chainer.using_config('use_cudnn', use_cudnn):
-            y = functions.average_pooling_nd(x, ksize, stride, pad)
+            y = functions.average_pooling_nd(
+                x, ksize, stride, pad, self.pad_value)
         self.assertEqual(y.data.dtype, self.dtype)
         y_data = cuda.to_cpu(y.data)
+
+        def denom(idx):
+            if self.pad_value is None:
+                s = 1
+                for slic in idx:
+                    s *= slic.stop - slic.start
+                return s
+            else:
+                return functools.reduce(operator.mul, ksize)
 
         self.assertEqual(self.gy.shape, y_data.shape)
         patches = pooling_nd_helper.pooling_patches(
@@ -62,9 +73,9 @@ class TestAveragePoolingND(unittest.TestCase):
         for k in six.moves.range(2):
             for c in six.moves.range(3):
                 x = self.x[k, c]
-                size = functools.reduce(operator.mul, ksize)
-                expect = numpy.array([x[idx].sum() for idx in patches])
-                expect = expect.reshape(y_data.shape[2:]) / size
+                expect = numpy.array(
+                    [x[idx].sum() / denom(idx) for idx in patches])
+                expect = expect.reshape(y_data.shape[2:])
                 testing.assert_allclose(
                     expect, y_data[k, c], **self.check_forward_options)
 
@@ -89,15 +100,20 @@ class TestAveragePoolingND(unittest.TestCase):
         if len(self.dims) != 2:
             return
 
+        if self.pad_value != 0:
+            # Not supported in average_pooling_2d
+            return
+
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
 
         with chainer.using_config('use_cudnn', use_cudnn):
-            y_nd = functions.average_pooling_nd(x_data, ksize, stride=stride,
-                                                pad=pad)
-            y_2d = functions.average_pooling_2d(x_data, ksize, stride=stride,
-                                                pad=pad)
+            y_nd = functions.average_pooling_nd(
+                x_data, ksize, stride=stride, pad=pad,
+                pad_value=self.pad_value)
+            y_2d = functions.average_pooling_2d(
+                x_data, ksize, stride=stride, pad=pad)
         testing.assert_allclose(y_nd.data, y_2d.data)
 
     def test_forward_consistency_regression_cpu(self):
@@ -115,6 +131,7 @@ class TestAveragePoolingND(unittest.TestCase):
         def f(x):
             return functions.average_pooling_nd(
                 x, self.ksize, stride=self.stride, pad=self.pad)
+
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
                 f, x_data, y_grad, dtype=numpy.float64,
@@ -152,18 +169,18 @@ class TestAveragePoolingND(unittest.TestCase):
         # Backward computation for N-dimensional average pooling layer.
         x_nd = chainer.Variable(xp.array(x_data))
         with chainer.using_config('use_cudnn', use_cudnn):
-            func_nd = functions.AveragePoolingND(self.ndim, ksize,
-                                                 stride=stride, pad=pad)
-            y_nd = func_nd.apply((x_nd,))[0]
+            y_nd = functions.average_pooling_nd(
+                x_nd, ksize, stride=stride, pad=pad)
+
         y_nd.grad = gy_data
         y_nd.backward()
 
         # Backward computation for two-dimensional average pooling layer.
         x_2d = chainer.Variable(xp.array(x_data))
         with chainer.using_config('use_cudnn', use_cudnn):
-            func_2d = functions.AveragePooling2D(ksize, stride=stride, pad=pad,
-                                                 cover_all=False)
-            y_2d = func_2d.apply((x_2d,))[0]
+            y_2d = functions.average_pooling_2d(
+                x_2d, ksize, stride=stride, pad=pad)
+
         y_2d.grad = gy_data
         y_2d.backward()
 
@@ -186,9 +203,8 @@ class TestAveragePoolingND(unittest.TestCase):
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
                               use_cudnn='always'):
         def f(x):
-            y = functions.average_pooling_nd(
+            return functions.average_pooling_nd(
                 x, self.ksize, stride=self.stride, pad=self.pad)
-            return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
                 f, x_data, y_grad, x_grad_grad, **self.check_backward_options)
@@ -263,13 +279,6 @@ class TestAveragePoolingNDCudnnCall(unittest.TestCase):
         with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
-
-
-class TestAveragePoolingNDCoverAllNotSupported(unittest.TestCase):
-
-    def test_cover_all_not_supported(self):
-        with self.assertRaises(ValueError):
-            functions.AveragePoolingND(3, 3, cover_all=True)
 
 
 testing.run_module(__name__, __file__)

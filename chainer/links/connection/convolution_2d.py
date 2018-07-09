@@ -115,13 +115,11 @@ class Convolution2D(link.Link):
                  nobias=False, initialW=None, initial_bias=None, **kwargs):
         super(Convolution2D, self).__init__()
 
-        argument.check_unexpected_kwargs(
-            kwargs, deterministic="deterministic argument is not "
-            "supported anymore. "
+        dilate, groups = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1),
+            deterministic="deterministic argument is not supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        dilate, groups = argument.parse_kwargs(kwargs,
-                                               ('dilate', 1), ('groups', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -158,7 +156,7 @@ class Convolution2D(link.Link):
         W_shape = (self.out_channels, int(in_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
-    def forward(self, x):
+    def __call__(self, x):
         """Applies the convolution layer.
 
         Args:

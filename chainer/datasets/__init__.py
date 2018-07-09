@@ -4,6 +4,7 @@ from chainer.datasets.cifar import get_cifar100  # NOQA
 from chainer.datasets.concatenated_dataset import ConcatenatedDataset  # NOQA
 from chainer.datasets.dict_dataset import DictDataset  # NOQA
 from chainer.datasets.fashion_mnist import get_fashion_mnist  # NOQA
+from chainer.datasets.fashion_mnist import get_fashion_mnist_labels  # NOQA
 from chainer.datasets.image_dataset import ImageDataset  # NOQA
 from chainer.datasets.image_dataset import LabeledImageDataset  # NOQA
 from chainer.datasets.image_dataset import MultiZippedImageDataset  # NOQA
@@ -19,5 +20,6 @@ from chainer.datasets.sub_dataset import split_dataset_n_random  # NOQA
 from chainer.datasets.sub_dataset import split_dataset_random  # NOQA
 from chainer.datasets.sub_dataset import SubDataset  # NOQA
 from chainer.datasets.svhn import get_svhn  # NOQA
+from chainer.datasets.text_dataset import TextDataset  # NOQA
 from chainer.datasets.transform_dataset import TransformDataset  # NOQA
 from chainer.datasets.tuple_dataset import TupleDataset  # NOQA

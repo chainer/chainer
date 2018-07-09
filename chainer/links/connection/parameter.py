@@ -26,7 +26,7 @@ class Parameter(link.Link):
         if isinstance(array, cuda.ndarray):
             self.to_gpu(cuda.get_device_from_array(array))
 
-    def forward(self, volatile='off'):
+    def __call__(self, volatile='off'):
         """Returns the parameter variable.
 
         Args:

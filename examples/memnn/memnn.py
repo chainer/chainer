@@ -171,7 +171,7 @@ class MemNN(chainer.Chain):
         a = self.W(u)
         return a
 
-    def forward(self, sentences, question):
+    def __call__(self, sentences, question):
         self.register_all(sentences)
         a = self.query(question)
         return a

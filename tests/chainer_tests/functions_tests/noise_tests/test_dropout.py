@@ -2,10 +2,12 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
+from chainer.testing import attr
 from chainer.testing import backend
 
 
@@ -24,7 +26,10 @@ from chainer.testing import backend
         'use_ideep': ['never', 'always'],
     })
     # GPU tests
-    + [{'use_cuda': True}])
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
 class TestDropout(unittest.TestCase):
 
     def setUp(self):
@@ -60,13 +65,20 @@ class TestDropout(unittest.TestCase):
         with backend_config:
             y = functions.dropout(*(inputs + [self.ratio]))
 
-        # In the calculation of expected results, the mask used in test forward
-        # computation is reused.
-        mask = y.creator.mask
-        y_expected, = self.forward_cpu(inputs, self.ratio, mask)
+        if backend_config.use_cudnn == 'always':
+            if self.ratio == 0.0:
+                y_expected, = inputs
+                testing.assert_allclose(y_expected, y.data)
+            else:
+                self.assertTrue(cuda.cupy.all(inputs[0] != y.data))
+        else:
+            # In the calculation of expected results,
+            # the mask used in test forward computation is reused.
+            mask = y.creator.mask
+            y_expected, = self.forward_cpu(inputs, self.ratio, mask)
 
-        assert y.data.dtype == self.dtype
-        testing.assert_allclose(y_expected, y.data)
+            assert y.data.dtype == self.dtype
+            testing.assert_allclose(y_expected, y.data)
 
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
@@ -78,7 +90,7 @@ class TestDropout(unittest.TestCase):
 
         # Instantiate the function class directly in order to reuse the mask,
         # because f will be called repeatedly.
-        dropout = functions.Dropout(self.ratio)
+        dropout = functions.noise.dropout.Dropout(self.ratio)
 
         def f(*inputs):
             return dropout.apply(inputs)
@@ -99,11 +111,10 @@ class TestDropout(unittest.TestCase):
 
         # Instantiate the function class directly in order to reuse the mask,
         # because f will be called repeatedly.
-        dropout = functions.Dropout(self.ratio)
+        dropout = functions.noise.dropout.Dropout(self.ratio)
 
         def f(*inputs):
-            y, = dropout.apply(inputs)
-            return y * y,
+            return dropout.apply(inputs)
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -120,13 +131,59 @@ class TestDropout(unittest.TestCase):
             inputs = cuda.to_gpu(inputs)
 
         with backend_config:
-            dropout = functions.Dropout(0.5)
+            dropout = functions.noise.dropout.Dropout(0.5)
             y1, = dropout.apply(inputs)
             y2, = dropout.apply(inputs)
         testing.assert_allclose(y1.data, y2.data)
 
     def test_immutable(self, backend_config):
         self.check_immutable(self.inputs, backend_config)
+
+
+@testing.parameterize(*testing.product({
+    'specify_mask': [True, False],
+    'train': [True, False],
+}))
+class TestDropoutMask(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+        self.mask = (numpy.random.uniform(-1, 1, (2, 3)) > 0).astype(
+            numpy.float32)
+
+    def _check(self):
+        mask = self.mask if self.specify_mask else None
+        with chainer.using_config('train', self.train):
+            out, out_mask = functions.dropout(
+                self.x, 0.5, mask=mask, return_mask=True)
+
+        if self.train:
+            assert isinstance(out_mask, type(out.array))
+            if mask is None:
+                assert out_mask.shape == out.array.shape
+            else:
+                assert out_mask is mask
+        else:
+            assert out_mask is None
+
+        with chainer.using_config('train', self.train):
+            out2 = functions.dropout(self.x, 0.5, mask=out_mask)
+        testing.assert_allclose(out.array, out2.array)
+
+    def test_cpu(self):
+        with chainer.using_config('use_ideep', 'never'):
+            self._check()
+
+    @attr.ideep
+    def test_cpu_ideep(self):
+        with chainer.using_config('use_ideep', 'always'):
+            self._check()
+
+    @attr.gpu
+    def test_gpu(self):
+        self.x = cuda.to_gpu(self.x)
+        self.mask = cuda.to_gpu(self.mask)
+        self._check()
 
 
 testing.run_module(__name__, __file__)

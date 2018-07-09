@@ -361,7 +361,7 @@ class TestLink(unittest.TestCase):
         self.assertEqual(pl[0][0], '/')
         self.assertIs(pl[0][1], self.link)
 
-    def test_copyparams(self):
+    def _setup_test_copyparams(self):
         self.link.x.grad.fill(0)
         self.link.y.grad.fill(1)
         self.link.u.initialize((2, 3))
@@ -386,8 +386,12 @@ class TestLink(unittest.TestCase):
         l.u.grad.fill(7)
         l.v.data.fill(8)
         l.v.grad.fill(9)
+        l.add_persistent('p', numpy.full_like(self.link.p, 10))
 
-        self.link.copyparams(l)
+        return l, (gx, gy, gu)
+
+    def _check_copyparams(self, l, gs):
+        gx, gy, gu = gs
         numpy.testing.assert_array_equal(self.link.x.data, l.x.data)
         numpy.testing.assert_array_equal(self.link.x.grad, gx)
         numpy.testing.assert_array_equal(self.link.y.data, l.y.data)
@@ -396,6 +400,22 @@ class TestLink(unittest.TestCase):
         numpy.testing.assert_array_equal(self.link.u.grad, gu)
         numpy.testing.assert_array_equal(self.link.v.data, l.v.data)
         numpy.testing.assert_array_equal(self.link.v.grad, None)
+
+    def test_copyparams(self):
+        l, gs = self._setup_test_copyparams()
+        self.link.copyparams(l)
+        self._check_copyparams(l, gs)
+        numpy.testing.assert_array_equal(self.link.p, l.p)
+
+    def test_copyparams_no_copy_persistent(self):
+        orig_p = self.link.p.copy()
+
+        l, gs = self._setup_test_copyparams()
+        numpy.testing.assert_array_equal(False, orig_p == l.p)
+        self.link.copyparams(l, copy_persistent=False)
+
+        self._check_copyparams(l, gs)
+        numpy.testing.assert_array_equal(self.link.p, orig_p)
 
     def test_cleargrads(self):
         self.link.cleargrads()
@@ -507,10 +527,9 @@ class TestLink(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.link.count_params()
+            assert self.link.count_params() == 8
         assert len(w) == 2
         assert w[0].category is UserWarning
-        assert self.link.count_params() == 8
 
         self.link.u.initialize((2, 3))
         self.link.v.initialize((2, 3))
@@ -999,12 +1018,13 @@ class TestChain(unittest.TestCase):
         mocks['l2'].assert_called_with('x', self.l2.x.data)
 
     def test_count_params(self):
+        assert self.c1.count_params() == 8
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
         assert len(w) == 1
         assert w[0].category is UserWarning
-        assert self.c1.count_params() == 8
 
         self.c2.l3.x.initialize((3,))
         with warnings.catch_warnings(record=True) as w:
@@ -1115,10 +1135,14 @@ class TestChainList(unittest.TestCase):
         self.l3 = chainer.Link()
         with self.l3.init_scope():
             self.l3.x = chainer.Parameter(shape=3)
+        self.l4 = chainer.Link()
+        self.l5 = chainer.Link()
+        self.l6 = chainer.Link()
         self.c1 = chainer.ChainList(self.l1)
         self.c1.add_link(self.l2)
         self.c2 = chainer.ChainList(self.c1)
         self.c2.append(self.l3)
+        self.c3 = chainer.ChainList(self.l4)
 
     def test_init(self):
         self.assertIs(self.c1[0], self.l1)
@@ -1133,6 +1157,44 @@ class TestChainList(unittest.TestCase):
     def test_append(self):
         self.assertIs(self.c2[1], self.l3)
         self.assertEqual(self.l3.name, '1')
+
+    def test_setitem(self):
+        self.c1[1] = self.l3
+        self.assertEqual(self.l3.name, '1')
+
+    def test_setitem_slice(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[3:0:-1] = [self.l4, self.l5]  # l1 l5 l4
+        self.assertEqual(len(self.c1), 3)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '2')
+        self.assertEqual(self.l5.name, '1')
+
+    def test_setitem_slice_short(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[1:3] = [self.l4]  # l1 l4
+        self.assertEqual(len(self.c1), 2)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '1')
+
+    def test_setitem_slice_long(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[1:3] = [self.l4, self.l5, self.l6]  # l1 l4 l5 l6
+        self.assertEqual(len(self.c1), 4)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '1')
+        self.assertEqual(self.l5.name, '2')
+        self.assertEqual(self.l6.name, '3')
+
+    def test_iadd(self):
+        self.c2 += self.c3
+        self.assertIs(len(self.c2), 3)
+        self.assertEqual(self.l4.name, '2')
+
+    def test_delete_item(self):
+        del self.c2[0]
+        self.assertEqual(len(self.c2), 1)
+        self.assertEqual(self.l3.name, '0')
 
     def test_assign_param_in_init_scope(self):
         p = chainer.Parameter()
@@ -1494,10 +1556,15 @@ class TestChainList(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
+            assert self.c1.count_params() == 8
+        assert len(w) == 1
+        assert w[0].category is UserWarning
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             self.c2.count_params()
         assert len(w) == 1
         assert w[0].category is UserWarning
-        assert self.c1.count_params() == 8
 
         self.c2[0][0].y.initialize((2, 3))
         with warnings.catch_warnings(record=True) as w:
@@ -1749,6 +1816,45 @@ class TestIntel64(unittest.TestCase):
             self.link.register_persistent('no_ideep')
         self.link.to_intel64()
         assert isinstance(self.link.no_ideep, numpy.ndarray)
+
+
+class TestCallMethod(unittest.TestCase):
+
+    def setUp(self):
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+
+        self.model = Model()
+
+    def test_has_forward_no_call(self):
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # model.forward is called
+        self.model.forward.assert_called_once()
+
+    def test_has_call_and_forward(self):
+        self.model.__call__ = mock.MagicMock()
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # Link.__call__ is called
+        self.model.forward.assert_called_with(0)
+        self.model.__call__.assert_not_called()
+
+    def test_has_call_no_forward(self):
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+                self.mock = mock.MagicMock()
+
+            def __call__(self, x):
+                self.mock(x)
+
+        model = Model()
+        model(0)  # model.__call__ is called
+        model.mock.assert_called_with(0)
+
+    def test_no_call_no_forward(self):
+        with self.assertRaises(TypeError):
+            self.model(0)
 
 
 testing.run_module(__name__, __file__)

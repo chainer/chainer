@@ -184,7 +184,7 @@ class Sequential(link.ChainList):
                                  str(type(other))))
         return self
 
-    def forward(self, *x):
+    def __call__(self, *x):
         """Forward pass computation.
 
         This method performs the forward pass computation by giving the input

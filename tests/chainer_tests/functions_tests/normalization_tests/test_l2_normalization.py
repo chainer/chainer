@@ -21,6 +21,9 @@ from chainer.testing import attr
         {'shape': (4, 3, 2, 5), 'axis': 2},
         {'shape': (4, 3, 2, 5), 'axis': 3},
         {'shape': (4, 3, 2), 'axis': (0, 1)},
+        {'shape': (4, 3, 2, 4, 3, 2, 2), 'axis': (1, 4, 3, 6)},
+        {'shape': (0, 2), 'axis': 1},
+        {'shape': (), 'axis': ()},
     ],
     [
         {'eps': 1e-5},

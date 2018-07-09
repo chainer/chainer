@@ -108,11 +108,11 @@ class Link(object):
                       self.b = chainer.Parameter(
                           initializers.Zero(), (n_out,))
 
-              def forward(self, x):
+              def __call__(self, x):
                   return F.linear(x, self.W, self.b)
 
        This example shows that a user can define arbitrary parameters and use
-       them in any methods. Links typically implement the ``forward``
+       them in any methods. Links typically implement the ``__call__``
        operator, although they can also provide other methods to implement the
        forward propagation.
 
@@ -124,8 +124,7 @@ class Link(object):
             is supplied, the default dtype will be used.
 
     Attributes:
-        ~Link.name (str): Name of this link, given by the parent chain (if
-            exists).
+        name (str): Name of this link, given by the parent chain (if exists).
 
     """
 
@@ -141,9 +140,6 @@ class Link(object):
             # Note: deprecation warning will be raised in add_param
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
-
-    def __call__(self, *args, **kwargs):
-        return self.forward(*args, **kwargs)
 
     @property
     def xp(self):
@@ -196,6 +192,15 @@ class Link(object):
             yield
         finally:
             self._within_init_scope = old_flag
+
+    def __call__(self, *args, **kwargs):
+        try:
+            forward = self.forward
+        except AttributeError:
+            raise TypeError(
+                '{} object has neither \'Link.__call__\' method overridden'
+                ' nor \'forward\' method defined.'.format(self))
+        return forward(*args, **kwargs)
 
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
@@ -502,21 +507,38 @@ Assign a Parameter object directly to an attribute within a \
         if 0:
             yield
 
-    def copyparams(self, link):
+    def copyparams(self, link, copy_persistent=True):
         """Copies all parameters from given link.
 
         This method copies data arrays of all parameters in the hierarchy. The
         copy is even done across the host and devices. Note that this method
         does not copy the gradient arrays.
 
+        *From v5.0.0:* this method also copies the persistent values (e.g. the
+        moving statistics of :class:`~chainer.links.BatchNormalization`). If
+        the persistent value is an ndarray, the elements are copied. Otherwise,
+        it is copied using :func:`copy.deepcopy`. The old behavior (not copying
+        persistent values) can be reproduced with ``copy_persistent=False``.
+
         Args:
             link (Link): Source link object.
+            copy_persistent (bool): If ``True``, persistent values are also
+                copied. ``True`` by default.
 
         """
         src = link.__dict__
         dst = self.__dict__
         for name in self._params:
             dst[name].copydata(src[name])
+        if copy_persistent:
+            array_types = chainer.get_array_types()
+            for name in self._persistent:
+                d = dst[name]
+                s = src[name]
+                if isinstance(d, array_types) and isinstance(s, array_types):
+                    cuda.copyto(d, s)
+                else:
+                    dst[name] = copy.deepcopy(s)
 
     def cleargrads(self):
         """Clears all gradient arrays.
@@ -637,7 +659,7 @@ Assign a Parameter object directly to an attribute within a \
                                 None, 64, 3, 1, 1, nobias=True)
                             self.bn = L.BatchNormalization(64)
 
-                    def forward(self, x):
+                    def __call__(self, x):
                         return F.relu(self.bn(self.conv(x)))
 
                 net = ConvBNReLU().repeat(16, mode='init')
@@ -766,7 +788,7 @@ class Chain(Link):
                       self.layer2 = L.Linear(n_hidden, n_hidden)
                       self.layer3 = L.Linear(n_hidden, n_out)
 
-              def forward(self, x):
+              def __call__(self, x):
                   # Forward propagation
                   h1 = F.relu(self.layer1(x))
                   h2 = F.relu(self.layer2(h1))
@@ -774,7 +796,7 @@ class Chain(Link):
 
        Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
-       implemented as the ``forward`` operator as the above example, though
+       implemented as the ``__call__`` operator as the above example, though
        it is not mandatory.
 
     Args:
@@ -927,12 +949,12 @@ Assign a Link object directly to an attribute within a \
         for name in self._children:
             yield d[name]
 
-    def copyparams(self, link):
-        super(Chain, self).copyparams(link)
+    def copyparams(self, link, copy_persistent=True):
+        super(Chain, self).copyparams(link, copy_persistent)
         src = link.__dict__
         dst = self.__dict__
         for name in self._children:
-            dst[name].copyparams(src[name])
+            dst[name].copyparams(src[name], copy_persistent)
 
     def addgrads(self, link):
         super(Chain, self).addgrads(link)
@@ -948,7 +970,7 @@ Assign a Link object directly to an attribute within a \
             d[name].serialize(serializer[name])
 
 
-class ChainList(Link):
+class ChainList(Link, collections.MutableSequence):
 
     """Composable link with list-like interface.
 
@@ -959,7 +981,9 @@ class ChainList(Link):
     the list. It is useful to write a chain with arbitrary number of child
     links, e.g. an arbitrarily deep multi-layer perceptron.
 
-    Note that this class does not implement all methods of :class:`list`.
+    This class inherits the methods `index`, `count`, `append`, `reverse`,
+    `extend`, `pop`, `remove` from `collections.abi.MutableSequence` and
+    can be accessed and assigned by index or slice.
 
     Args:
         links: Initial child links.
@@ -980,6 +1004,19 @@ class ChainList(Link):
                 ' within a "with chainlist.init_scope():" block.')
         super(ChainList, self).__setattr__(name, value)
 
+    def __setitem__(self, index, value):
+        if isinstance(index, int):
+            value.name = str(index)
+            self._children[index] = value
+        elif isinstance(index, slice):
+            self._children[index] = value
+            for i, c in enumerate(self._children):
+                c.name = str(i)
+        else:
+            raise TypeError(
+                'ChainList indices must be integers or slices, not %s' %
+                type(index).__name__)
+
     def __getitem__(self, index):
         """Returns the child at given index.
 
@@ -992,24 +1029,34 @@ class ChainList(Link):
         """
         return self._children[index]
 
+    def __delitem__(self, index):
+        del self._children[index]
+        for i, c in enumerate(self._children):
+            c.name = str(i)
+
+    def insert(self, index, link):
+        """Insert a child link at the given index.
+
+        Args:
+            index (int): The position of the list where the new
+            link is inserted.
+            link (Link): The link to be inserted.
+
+        """
+        if index == len(self._children):
+            self._children.append(link)
+            link.name = str(index)
+        else:
+            self._children.insert(index, link)
+            for i, c in enumerate(self._children):
+                c.name = str(i)
+
     def __iter__(self):
         return iter(self._children)
 
     def __len__(self):
         """Returns the number of children."""
         return len(self._children)
-
-    def append(self, link):
-        """Registers a child link and adds it to the tail of the list.
-
-        This is equivalent to :meth:`add_link`. This method has been added to
-        emulate the ``list`` interface.
-
-        Args:
-            link (Link): The link object to be regsitered.
-
-        """
-        self.add_link(link)
 
     def add_link(self, link):
         """Registers a child link and adds it to the tail of the list.
@@ -1018,10 +1065,10 @@ class ChainList(Link):
             link (Link): The link object to be registered.
 
         """
-        link.name = str(len(self._children))
-        self._children.append(link)
+        self.append(link)
 
     def copy(self, mode='share'):
+        """Returns a deep copy of the chainlist."""
         ret = super(ChainList, self).copy()
         ret._children = list(ret._children)  # copy
         children = ret._children
@@ -1085,10 +1132,10 @@ class ChainList(Link):
         for child in self._children:
             yield child
 
-    def copyparams(self, link):
-        super(ChainList, self).copyparams(link)
+    def copyparams(self, link, copy_persistent=True):
+        super(ChainList, self).copyparams(link, copy_persistent)
         for idx, child in enumerate(self._children):
-            child.copyparams(link[idx])
+            child.copyparams(link[idx], copy_persistent)
 
     def addgrads(self, link):
         super(ChainList, self).addgrads(link)
