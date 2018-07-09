@@ -6,13 +6,17 @@ from mock import MagicMock
 from chainer import testing
 from chainer.training import extensions
 
+
 class TestPrintReport(unittest.TestCase):
-    def _setup(self, delete_flush=False):
+    def _setup(self, stream=None, delete_flush=False):
         self.logreport = MagicMock(spec=extensions.LogReport(
             ['epoch'], trigger=(1, 'iteration'), log_name=None))
-        self.stream = MagicMock()
-        if delete_flush:
-            del self.stream.flush
+        if stream is None:
+            self.stream = MagicMock()
+            if delete_flush:
+                del self.stream.flush
+        else:
+            self.stream = stream
         self.report = extensions.PrintReport(
             ['epoch'], log_report=self.logreport, out=self.stream)
 
@@ -32,6 +36,10 @@ class TestPrintReport(unittest.TestCase):
     def test_stream_without_flush_raises_no_exception(self):
         self._setup(delete_flush=True)
         self.assertFalse(hasattr(self.stream, 'flush'))
+        self.report(self.trainer)
+
+    def test_real_stream_raises_no_exception(self):
+        self._setup(stream=sys.stderr)
         self.report(self.trainer)
 
 
