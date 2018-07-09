@@ -61,6 +61,8 @@ class Maxout(link.Chain):
         linear_out_size = out_size * pool_size
 
         if isinstance(initialW, (numpy.ndarray, cuda.ndarray)):
+            if initialW.ndim != 3:
+                raise ValueError('initialW.ndim should be 3')
             initialW = initialW.reshape(linear_out_size, in_size)
         elif callable(initialW):
             def make_initialW_wrapper(initialW):
@@ -73,6 +75,8 @@ class Maxout(link.Chain):
             initialW = make_initialW_wrapper(initialW)
 
         if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
+            if initial_bias.ndim != 2:
+                raise ValueError('initial_bias.ndim should be 2')
             initial_bias = initial_bias.reshape(linear_out_size)
         elif callable(initial_bias):
             def make_initial_bias_wrapper(initial_bias):

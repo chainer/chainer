@@ -207,4 +207,30 @@ class TestInitialization(unittest.TestCase):
         self.check_param()
 
 
+class TestInvalidInitialization(unittest.TestCase):
+
+    def setUp(self):
+        self.in_size = 2
+        self.out_size = 3
+        self.pool_size = 4
+
+    def test_invalid_initialW_ndarray(self):
+        invalid_dim = 1
+        initialW = numpy.random.uniform(
+            -1, 1, (self.out_size, self.pool_size, self.in_size, invalid_dim)
+        ).astype(numpy.float32)
+        with self.assertRaises(ValueError):
+            links.Maxout(
+                self.in_size, self.out_size, self.pool_size, initialW=initialW)
+
+    def test_invalid_initial_bias_ndarray(self):
+        invalid_dim = 1
+        initial_bias = self.initial_bias = numpy.random.uniform(
+            -1, 1, (self.out_size, self.pool_size, invalid_dim)
+        ).astype(numpy.float32)
+        with self.assertRaises(ValueError):
+            links.Maxout(self.in_size, self.out_size, self.pool_size,
+                         initial_bias=initial_bias)
+
+
 testing.run_module(__name__, __file__)
