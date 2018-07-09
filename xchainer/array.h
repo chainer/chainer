@@ -106,7 +106,6 @@ public:
     Array Transpose(const OptionalAxes& axes = nonstd::nullopt) const;
 
     // Returns a reshaped array.
-    // TODO(niboshi): Support reshape that require a copy.
     // TODO(niboshi): Support shape with dimension -1.
     Array Reshape(const Shape& newshape) const;
 
