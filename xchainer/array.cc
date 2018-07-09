@@ -314,9 +314,9 @@ void Array::SetGrad(Array grad, const GraphId& graph_id) const {
 
 void Array::ClearGrad(const GraphId& graph_id) const { body_->ClearGrad(graph_id); }
 
-bool Array::IsGradRequired(const GraphId& graph_id) const { return xchainer::IsBackpropRequired(*this, graph_id); }
+bool Array::IsGradRequired(const GraphId& graph_id) const { return xchainer::IsGradRequired(*this, graph_id); }
 
-bool Array::IsGradRequired(AnyGraph any_graph) const { return xchainer::IsBackpropRequired(*this, any_graph); }
+bool Array::IsGradRequired(AnyGraph any_graph) const { return xchainer::IsGradRequired(*this, any_graph); }
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const GraphId& graph_id) {

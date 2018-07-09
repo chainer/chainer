@@ -69,14 +69,14 @@ bool IsBackpropRequired(const GraphId& graph_id, Context& context) {
     return true;  // Per default.
 }
 
-bool IsBackpropRequired(const Array& array, const GraphId& graph_id) {
+bool IsGradRequired(const Array& array, const GraphId& graph_id) {
     if (internal::HasArrayNode(array, graph_id)) {
         return IsBackpropRequired(graph_id, array.device().context());
     }
     return false;
 }
 
-bool IsBackpropRequired(const Array& array, AnyGraph /*any_graph*/) {
+bool IsGradRequired(const Array& array, AnyGraph /*any_graph*/) {
     Context& context = array.device().context();
     const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = array.nodes();
     return std::any_of(array_nodes.begin(), array_nodes.end(), [&context](const std::shared_ptr<const ArrayNode>& array_node) {
