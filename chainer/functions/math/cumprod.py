@@ -54,7 +54,7 @@ class Cumprod(function_node.FunctionNode):
 
         y_flip = concat.concat([
             xp.ones_like(y.array[expander + (slice(0, 1),)]),
-            y[expander + (slice(-2, None, -1),)]
+            y[expander + (slice(None, -1),)]
         ], axis=axis)
 
         return z * y_flip,
@@ -102,7 +102,7 @@ class FlipCumprodsum(function_node.FunctionNode):
 
         expander = (slice(None),) * axis
         ix = expander + (slice(1, None),)
-        gxmul = gxadd[ix] * y[ix]
+        gxmul = gxadd[ix] * flip.flip(y[ix], axis)
         return gxmul, gxadd
 
 
