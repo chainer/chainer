@@ -46,8 +46,7 @@ class Cumprod(function_node.FunctionNode):
         gy, = grad_outputs
 
         expander = (slice(None),) * axis
-        z, = FlipCumprodsum(axis).apply((
-            # flip.flip(x, axis),
+        z, = Cumprodsum(axis).apply((
             x[expander + (slice(None, 0, -1),)],
             flip.flip(gy, axis),
         ))
@@ -57,10 +56,10 @@ class Cumprod(function_node.FunctionNode):
             y[expander + (slice(None, -1),)]
         ], axis=axis)
 
-        return z * y_flip,
+        return flip.flip(z, axis) * y_flip,
 
 
-class FlipCumprodsum(function_node.FunctionNode):
+class Cumprodsum(function_node.FunctionNode):
 
     def __init__(self, axis):
         self.axis = axis
@@ -86,7 +85,7 @@ class FlipCumprodsum(function_node.FunctionNode):
             cum *= xmul[ix]
             i += 1
 
-        return xp.flip(y, axis),
+        return y,
 
     def backward(self, indexes, grad_outputs):
         xmul, = self.get_retained_inputs()
@@ -95,14 +94,15 @@ class FlipCumprodsum(function_node.FunctionNode):
         gy, = grad_outputs
         axis = self.axis
 
-        gxadd, = FlipCumprodsum(axis).apply((
+        z, = Cumprodsum(axis).apply((
             flip.flip(xmul, axis),
-            gy,
+            flip.flip(gy, axis),
         ))
+        gxadd = flip.flip(z, axis)
 
         expander = (slice(None),) * axis
         ix = expander + (slice(1, None),)
-        gxmul = gxadd[ix] * flip.flip(y[ix], axis)
+        gxmul = gxadd[ix] * y[expander + (slice(None, -1),)]
         return gxmul, gxadd
 
 
