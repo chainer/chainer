@@ -22,6 +22,7 @@ class MomentumSGDRule(optimizer.UpdateRule):
         momentum (float): Exponential decay rate of the first order moment.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None, momentum=None):
         super(MomentumSGDRule, self).__init__(
@@ -60,14 +61,16 @@ class MomentumSGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        cuda.elementwise(
-            'T grad, T lr, T momentum',
-            'T param, T v',
-            '''v = momentum * v - lr * grad;
-               param += v;''',
-            'momentum_sgd')(
-                grad, self.hyperparam.lr, self.hyperparam.momentum,
-                param.data, self.state['v'])
+        if MomentumSGDRule._kernel is None:
+            MomentumSGDRule._kernel = cuda.elementwise(
+                'T grad, T lr, T momentum',
+                'T param, T v',
+                '''v = momentum * v - lr * grad;
+                   param += v;''',
+                'momentum_sgd')
+        MomentumSGDRule._kernel(
+            grad, self.hyperparam.lr, self.hyperparam.momentum, param.data,
+            self.state['v'])
 
 
 class MomentumSGD(optimizer.GradientMethod):
