@@ -408,7 +408,7 @@ TEST(BackpropModeScopeTest, BackpropModeScopeWithAnotherContext) {
     }
 }
 
-TEST(BackpropModeScopeTest, ArrayIsGradRequiredNoGraph) {
+TEST(BackpropModeScopeTest, IsGradRequiredNoGraph) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
 
@@ -416,7 +416,7 @@ TEST(BackpropModeScopeTest, ArrayIsGradRequiredNoGraph) {
     EXPECT_FALSE(IsGradRequired(a, AnyGraph{}));
 }
 
-TEST(BackpropModeScopeTest, ArrayIsGradRequiredSingleGraph) {
+TEST(BackpropModeScopeTest, IsGradRequiredSingleGraph) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
     a.RequireGrad("testgraph1");
@@ -438,7 +438,7 @@ TEST(BackpropModeScopeTest, ArrayIsGradRequiredSingleGraph) {
     }
 }
 
-TEST(BackpropModeScopeTest, ArrayIsGradRequiredMultipleGraphs) {
+TEST(BackpropModeScopeTest, IsGradRequiredMultipleGraphs) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
     a.RequireGrad("testgraph1");
@@ -491,7 +491,7 @@ TEST(BackpropModeScopeTest, ArrayIsGradRequiredMultipleGraphs) {
     }
 }
 
-TEST(BackpropModeScopeTest, ArrayIsGradRequiredAnotherContext) {
+TEST(BackpropModeScopeTest, IsGradRequiredAnotherContext) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
     a.RequireGrad("testgraph1");
