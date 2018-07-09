@@ -87,7 +87,6 @@ class Cumprodsum(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         xmul, = self.get_retained_inputs()
-        xp = cuda.get_array_module(xmul)
         y, = self.get_retained_outputs()
         gy, = grad_outputs
         axis = self.axis
