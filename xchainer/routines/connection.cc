@@ -84,9 +84,9 @@ void ConvCheckNdim(
     if (w.ndim() != x.ndim()) {
         throw DimensionError{"Mismatched number of dimensions between input ", x.ndim(), " and weights ", w.ndim(), "."};
     }
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
     if (ndim < 0) {
-        throw DimensionError{"Number of spacial dimensions must be greater than or equal to 0"};
+        throw DimensionError{"Number of spatial dimensions must be greater than or equal to 0"};
     }
     if (static_cast<int8_t>(stride.size()) != ndim) {
         throw DimensionError{"Wrong numbers of strides ", stride.size(), " for input with ", x.ndim(), " dimensions."};
@@ -166,7 +166,7 @@ Array ConvTranspose(
     if (b.has_value() && (b->ndim() != 1 || b->shape()[0] != w.shape()[1])) {
         throw DimensionError{"Mismatched bias shape ", b->shape(), " for weights ", w.shape(), "."};
     }
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
     Shape in_dims{x.shape().begin() + 2, x.shape().end()};
     Shape kernel_size{w.shape().begin() + 2, w.shape().end()};
 

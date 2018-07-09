@@ -35,7 +35,7 @@ Array NativeDevice::Conv(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    int8_t ndim = w.ndim() - 2;  // Number of spacial dimensions
+    int8_t ndim = w.ndim() - 2;  // Number of spatial dimensions
 
     // Compute the kernel size from the weight array.
     StackVector<int64_t, kMaxNdim> kernel_size;
@@ -75,7 +75,7 @@ Array NativeDevice::ConvGradWeight(
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
     assert(x.ndim() == w_shape.ndim());
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
 
     // Compute the kernel size
     StackVector<int64_t, kMaxNdim> kernel_size{w_shape.begin() + 2, w_shape.end()};

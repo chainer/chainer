@@ -81,7 +81,7 @@ void CudaConv::AddBias(cudnnHandle_t handle, const internal::CudnnTensorDescript
     assert(&b.device() == &y.device());
     assert(b.dtype() == y.dtype());
 
-    int8_t ndim = y.ndim() - 2;  // Number of spacial dimensions
+    int8_t ndim = y.ndim() - 2;  // Number of spatial dimensions
     assert(ndim > 0);
 
     Shape new_shape{};
@@ -253,9 +253,9 @@ Array CudaConv::Conv(
 
     ConvCheckDtype(x, w, b);
 
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
     if (ndim < 2) {
-        throw DimensionError{"CUDA convolution requires number of spacial dimensions to be greater than or equal to 2"};
+        throw DimensionError{"CUDA convolution requires number of spatial dimensions to be greater than or equal to 2"};
     }
     assert(w.ndim() == x.ndim());
     assert(stride.size() == static_cast<size_t>(ndim));
@@ -333,9 +333,9 @@ Array CudaConv::ConvTranspose(
 
     ConvCheckDtype(x, w, b);
 
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
     if (ndim < 2) {
-        throw DimensionError{"CUDA convolution requires number of spacial dimensions to be greater than or equal to 2"};
+        throw DimensionError{"CUDA convolution requires number of spatial dimensions to be greater than or equal to 2"};
     }
     assert(w.ndim() == x.ndim());
     assert(stride.size() == static_cast<size_t>(ndim));
@@ -412,9 +412,9 @@ Array CudaConv::ConvGradWeight(
 
     device.CheckDevicesCompatible(x, gy);
 
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
     if (ndim < 2) {
-        throw DimensionError{"CUDA convolution requires number of spacial dimensions to be greater than or equal to 2"};
+        throw DimensionError{"CUDA convolution requires number of spatial dimensions to be greater than or equal to 2"};
     }
 
     assert(x.ndim() == w_shape.ndim());
