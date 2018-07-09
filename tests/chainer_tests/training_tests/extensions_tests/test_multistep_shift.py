@@ -8,19 +8,21 @@ from chainer.training import util
 
 
 @testing.parameterize(
-    {'base_lr': 1, 'warmup_start_lr': 0.1,
-     'warmup_iter': 100, 'expect': [0.1, 0.991, 1, 1]},
-    {'base_lr': 0.1, 'warmup_start_lr': 1,
-     'warmup_iter': 10, 'expect': [1, 0.19, 0.1, 0.1]},
-    {'base_lr': 1, 'warmup_start_lr': -1,
-     'warmup_iter': 10, 'expect': [-1, 0.8, 1, 1]},
+    {'init': 2.0, 'gamma': 0.1, 'step_value': [1, 3, 5],
+     'expect': [2.0, 0.2, 0.2, 0.02, 0.02, 0.002]},
+    {'init': -2.0, 'gamma': 0.1, 'step_value': [1, 3, 5],
+     'expect': [-2.0, -0.2, -0.2, -0.02, -0.02, -0.002]},
+    {'init': 2.0, 'gamma': 2, 'step_value': [1, 3, 5],
+     'expect': [2.0, 4.0, 4.0, 8.0, 8.0, 16.0]},
+    {'init': -2.0, 'gamma': 2, 'step_value': [1, 3, 5],
+     'expect': [-2.0, -4.0, -4.0, -8.0, -8.0, -16.0]},
 )
-class TestWarmUp(unittest.TestCase):
+class TestMutistepShift(unittest.TestCase):
 
     def setUp(self):
         self.optimizer = mock.MagicMock()
-        self.extension = extensions.WarmUp(
-            'x', self.warmup_start_lr, self.base_lr, self.optimizer)
+        self.extension = extensions.MultistepShift(
+            'x', self.init, self.gamma, self.step_value, self.optimizer)
 
         self.interval = 1
         self.expect = [e for e in self.expect for _ in range(self.interval)]
@@ -34,37 +36,32 @@ class TestWarmUp(unittest.TestCase):
             optimizer = self.optimizer
         extension.initialize(self.trainer)
         actual = []
-        for _ in range(self.warmup_iter+2):
+        for _ in expect:
             self.trainer.updater.update()
             actual.append(optimizer.x)
             if self.trigger(self.trainer):
                 extension(self.trainer)
 
-        self.assertEqual(actual[0], expect[0])
-        self.assertEqual(actual[self.warmup_iter-1], expect[1])
-        self.assertEqual(actual[self.warmup_iter], expect[2])
-        self.assertEqual(actual[self.warmup_iter+1], expect[3])
+        self.assertEqual([round(x, 6) for x in actual], expect)
 
     def test_basic(self):
         self.optimizer.x = 0
-        extension = extensions.warm_up.WarmUp(
-            'x', self.warmup_start_lr, self.base_lr,
-            self.warmup_iter, self.optimizer)
+        extension = extensions.MultistepShift(
+            'x', self.init, self.gamma, self.step_value, self.optimizer)
         self._run_trainer(extension, self.expect)
 
     def test_without_init(self):
-        self.optimizer.x = self.warmup_start_lr
-        extension = extensions.warm_up.WarmUp(
-            'x', self.warmup_start_lr, self.base_lr,
-            self.warmup_iter, self.optimizer)
+        self.optimizer.x = self.init
+        extension = extensions.MultistepShift(
+            'x', self.init, self.gamma, self.step_value, self.optimizer)
         self._run_trainer(extension, self.expect)
 
     def test_with_optimizer(self):
         optimizer = mock.Mock()
         optimizer.x = 0
-        extension = extensions.warm_up.WarmUp(
-            'x', self.warmup_start_lr, self.base_lr,
-            self.warmup_iter, optimizer)
+        extension = extensions.MultistepShift(
+            'x', self.init, self.gamma, self.step_value, optimizer)
+
         self._run_trainer(extension, self.expect, optimizer)
 
 
