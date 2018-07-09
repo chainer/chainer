@@ -1,5 +1,10 @@
 #include "xchainer/cuda/cuda_device.h"
 
+#include <cstddef>
+#include <memory>
+#include <thread>
+#include <vector>
+
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
@@ -51,6 +56,33 @@ TEST(CudaDeviceTest, AllocateZero) {
     std::shared_ptr<void> ptr = device.Allocate(size_t{0});
     // TODO(niboshi): Enable this check
     // EXPECT_NE(ptr, nullptr);
+}
+
+TEST(CudaDeviceTest, AllocateFreeThreadSafe) {
+    static constexpr size_t kNumThreads = 1024;
+    static constexpr size_t kNumLoopsPerThread = 128;
+    Context ctx;
+    CudaDevice& device = GetCudaDevice(ctx, 0);
+
+    // Allocate-and-free loop
+    auto func = [&device](size_t size) {
+        for (size_t j = 0; j < kNumLoopsPerThread; ++j) {
+            std::shared_ptr<void> ptr = device.Allocate(size);
+            (void)ptr;  // unused
+        }
+    };
+
+    // Launch threads
+    std::vector<std::thread> threads;
+    threads.reserve(kNumThreads);
+    for (size_t i = 0; i < kNumThreads; ++i) {
+        threads.emplace_back(func, i);
+    }
+
+    // Join threads
+    for (size_t i = 0; i < kNumThreads; ++i) {
+        threads[i].join();
+    }
 }
 
 TEST(CudaDeviceTest, MakeDataFromForeignPointer) {

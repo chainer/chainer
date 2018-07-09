@@ -8,6 +8,8 @@ namespace cuda {
 
 constexpr size_t kAllocationUnitSize = 512;
 
+// Memory pool.
+// This class is not thread safe.
 class MemoryPool {
 public:
     explicit MemoryPool(int device_index) : device_index_{device_index} {}
