@@ -11,7 +11,6 @@ from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
-from chainer.utils import experimental
 from chainer.utils import type_check
 from chainer import variable
 
@@ -45,9 +44,9 @@ class FunctionNode(object):
        instance of :class:`FunctionNode` taking only one argument.
        Then the following code
 
-       >>> import numpy, chainer, chainer.functions as F
+       >>> import numpy, chainer
        >>> x = chainer.Variable(numpy.zeros(10))
-       >>> f = F.Identity()
+       >>> f = chainer.functions.math.identity.Identity()
        >>> y = f.apply((x,))[0]
 
        computes a new variable ``y`` and creates backward references. The
@@ -57,7 +56,7 @@ class FunctionNode(object):
 
        If an application of another function ``g`` occurs as
 
-       >>> g = F.Identity()
+       >>> g = chainer.functions.math.identity.Identity()
        >>> z = g.apply((x,))[0]
 
        then the graph grows with a branch::
@@ -308,8 +307,6 @@ Use apply() method instead.\
                 self._retained_output_data = tuple(retained_data)
 
             self.lazy_grad_sum = configuration.config.lazy_grad_sum
-            if self.lazy_grad_sum:
-                experimental('config.lazy_grad_sum')
 
         return ret
 

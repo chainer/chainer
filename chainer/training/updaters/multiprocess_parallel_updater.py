@@ -113,11 +113,15 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         devices: Dictionary or list of devices to which the training data is
             sent. The master device will be the first one in the list or the
             value attached to the key ``'main'``.
+        auto_new_epoch (bool): If ``True``,
+            :meth:`~chainer.Optimizer.new_epoch` of the main optimizer is
+            automatically called when the ``is_new_poch`` attribute of the
+            main iterator is ``True``.
 
     """
 
     def __init__(self, iterators, optimizer, converter=convert.concat_examples,
-                 devices=None):
+                 devices=None, auto_new_epoch=True):
         if not MultiprocessParallelUpdater.available():
             raise Exception(
                 'NCCL is not enabled. MultiprocessParallelUpdater '
@@ -162,7 +166,8 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         super(MultiprocessParallelUpdater, self).__init__(
             iterator=iterators[0],
             optimizer=optimizer,
-            converter=converter
+            converter=converter,
+            auto_new_epoch=auto_new_epoch,
         )
 
         if isinstance(devices, dict):
@@ -225,7 +230,8 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             self._master.cleargrads()
 
             optimizer = self.get_optimizer('main')
-            batch = self.get_iterator('main').next()
+            iterator = self.get_iterator('main')
+            batch = iterator.next()
             batch = self.converter(batch, self._devices[0])
 
             loss = _calc_loss(self._master, batch)
@@ -249,6 +255,9 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
                 nccl_data_type = _get_nccl_data_type(gp.dtype)
                 self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type,
                                 0, null_stream.ptr)
+
+            if self.auto_new_epoch and iterator.is_new_epoch:
+                optimizer.new_epoch(auto=True)
 
     def finalize(self):
         self._send_message(('finalize', None))
@@ -283,7 +292,7 @@ def size_num_grads(link):
 
 
 def _memcpy_gather():
-    return cuda.cupy.ElementwiseKernel(
+    return cuda.elementwise(
         'raw T ptrs, raw X dtypes, raw Y info',
         'raw float32 dst',
         '''
@@ -376,7 +385,7 @@ def gather_params(link):
 
 
 def _memcpy_scatter():
-    return cuda.cupy.ElementwiseKernel(
+    return cuda.elementwise(
         'raw T ptrs, raw X dtypes, raw Y info, raw float32 array',
         '',
         '''

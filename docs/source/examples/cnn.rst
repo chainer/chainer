@@ -30,10 +30,6 @@ probabilities over the target object classes. It also can output a set of
 feature maps that have the corresponding size to the input image for a pixel
 labeling task, etc.
 
-.. note::
-
-    The below example code assumes that some packages are already imported.
-
 .. include:: ../imports.rst
 
 LeNet5
@@ -99,37 +95,39 @@ prediction result by calculating :meth:`~chainer.functions.softmax`.
   training and other modes, it was common that it held an attribute
   that represented its running mode or was provided with the mode
   from outside as an argument. In Chainer v2, it is recommended to use
-  the global configuration `chainer.config.train` to switch the running mode.
+  the global configuration ``chainer.config.train`` to switch the running mode.
 
 If you don't want to write ``conv1`` and the other layers more than once, you
-can also write the model like in this way:
+can also write the same model like in this way:
 
 .. testcode::
+
+    from functools import partial
 
     class LeNet5(Chain):
         def __init__(self):
             super(LeNet5, self).__init__()
             net = [('conv1', L.Convolution2D(1, 6, 5, 1))]
-            net += [('_sigm1', F.Sigmoid())]
-            net += [('_mpool1', F.MaxPooling2D(2, 2))]
+            net += [('_sigm1', F.sigmoid)]
+            net += [('_mpool1', partial(F.max_pooling_2d, ksize=2, stride=2))]
             net += [('conv2', L.Convolution2D(6, 16, 5, 1))]
-            net += [('_sigm2', F.Sigmoid())]
-            net += [('_mpool2', F.MaxPooling2D(2, 2))]
+            net += [('_sigm2', F.sigmoid)]
+            net += [('_mpool2', partial(F.max_pooling_2d, ksize=2, stride=2))]
             net += [('conv3', L.Convolution2D(16, 120, 4, 1))]
-            net += [('_sigm3', F.Sigmoid())]
-            net += [('_mpool3', F.MaxPooling2D(2, 2))]
+            net += [('_sigm3', F.sigmoid)]
+            net += [('_mpool3', partial(F.max_pooling_2d, ksize=2, stride=2))]
             net += [('fc4', L.Linear(None, 84))]
-            net += [('_sigm4', F.Sigmoid())]
+            net += [('_sigm4', F.sigmoid)]
             net += [('fc5', L.Linear(84, 10))]
-            net += [('_sigm5', F.Sigmoid())]
+            net += [('_sigm5', F.sigmoid)]
             with self.init_scope():
                 for n in net:
                     if not n[0].startswith('_'):
                         setattr(self, n[0], n[1])
-            self.forward = net
+            self.layers = net
 
         def forward(self, x):
-            for n, f in self.forward:
+            for n, f in self.layers:
                 if not n.startswith('_'):
                     x = getattr(self, n)(x)
                 else:
@@ -138,19 +136,20 @@ can also write the model like in this way:
                 return x
             return F.softmax(x)
 
-This code creates a list of all :class:`~chainer.Link`\ s and
-:class:`~chainer.FunctionNode`\ s after calling its superclass's constructor.
-Then the elements of the list are registered to this model as
-trainable layers when the name of an element doesn't start with ``_``
-character. This operation can be freely replaced with many other ways because
-those names are just designed to select :class:`~chainer.Link`\ s only from the
-list ``net`` easily. :class:`~chainer.FunctionNode` doesn't have any trainable
-parameters, so that we can't register it to the model, but we want to use
-:class:`~chainer.FunctionNode`\ s for constructing a forward path. The list
-``net`` is stored as an attribute :attr:`forward` to refer it in
+.. note::
+
+    You can also use :class:`~chainer.Sequential` to write the above model
+    more simply. Please note that :class:`~chainer.Sequential` is an
+    experimental feature introduced in Chainer v4 and its interface may be
+    changed in the future versions.
+
+This code creates a list of pairs of component name (e.g., ``conv1``, ``_sigm1``, etc.) and all :class:`~chainer.Link`\ s and functions (e.g., ``F.sigmoid``, which internally invokes :class:`~chainer.FunctionNode`) after calling its superclass's constructor.
+In this case, components whose name start with ``_`` are functions (:class:`~chainer.FunctionNode`), which doesn't have any trainable parameters, so that we don't register (``setattr``) it to the model.
+Others (``conv1``, ``fc4``, etc.) are :class:`~chainer.Link`\ s, which are trainable layers that hold parameters.
+This operation can be freely replaced with many other ways because those component names are just designed to select :class:`~chainer.Link`\ s only from the list ``net`` easily.
+The list ``net`` is stored as an attribute :attr:`layers` to refer it in
 :meth:`forward`. In :meth:`forward`, it retrieves all layers in the network
-from :attr:`self.forward` sequentially regardless of what types of object (
-:class:`~chainer.Link` or :class:`~chainer.FunctionNode`) it is, and gives the
+from :attr:`self.forward` sequentially and gives the
 input variable or the intermediate output from the previous layer to the
 current layer. The last part of the :meth:`forward` to switch its behavior
 by the training/inference mode is the same as the former way.
@@ -162,7 +161,7 @@ When you train the model with label vector ``t``, the loss should be calculated
 using the output from the model. There also are several ways to calculate the
 loss:
 
-.. doctest::
+.. testcode::
 
     model = LeNet5()
 
@@ -191,7 +190,7 @@ Actually, there is already a :class:`~chainer.links.Classifier` class that can
 be used to wrap the model and include the loss computation as well.
 It can be used like this:
 
-.. doctest::
+.. testcode::
 
     model = L.Classifier(LeNet5())
 
@@ -219,7 +218,7 @@ Next, let's write some larger models in Chainer. When you write a large network
 consisting of several building block networks, :class:`~chainer.ChainList` is
 useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
 
-.. doctest::
+.. testcode::
 
 
     class VGG16(chainer.ChainList):
@@ -291,7 +290,7 @@ much deeper model than VGG16, having up to 152 layers. This sounds super
 laborious to build, but it can be implemented in almost same manner as VGG16.
 In the other words, it's easy. One possible way to write ResNet-152 is:
 
-.. doctest::
+.. testcode::
 
     class ResNet152(chainer.Chain):
         def __init__(self, n_blocks=[3, 8, 36, 3]):
@@ -385,7 +384,7 @@ of tasks, including but not limited to image classification. So, Chainer
 provides you with the pre-trained VGG16 and ResNet-50/101/152 models with a
 simple API. You can use these models as follows:
 
-.. doctest::
+.. testcode::
 
     from chainer.links import VGG16Layers
 
@@ -406,11 +405,17 @@ author's web page first, and then place it into the dir
 ``$CHAINER_DATSET_ROOT/pfnet/chainer/models`` or your favorite place. Once
 the preparation is finished, the usage is the same as VGG16:
 
-.. doctest::
+.. testcode::
 
     from chainer.links import ResNet152Layers
 
-    model = ResNet152layers()
+    model = ResNet152Layers()
+
+.. testoutput::
+   :options: -IGNORE_EXCEPTION_DETAIL
+
+   Traceback (most recent call last):
+   OSError: The pre-trained caffemodel does not exist. Please download it from 'https://github.com/KaimingHe/deep-residual-networks', and place it on ...
 
 Please see the details of usage and how to prepare the pre-trained weights for
 ResNet here: :class:`chainer.links.ResNet50Layers`

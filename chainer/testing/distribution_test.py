@@ -1,3 +1,4 @@
+import functools
 import unittest
 
 import chainer
@@ -9,6 +10,7 @@ import numpy
 
 def skip_not_in_test_target(test_target):
     def decorator(f):
+        @functools.wraps(f)
         def new_f(self, *args, **kwargs):
             if test_target not in self.test_targets:
                 self.skipTest(
@@ -21,21 +23,31 @@ def skip_not_in_test_target(test_target):
 
 class distribution_unittest(unittest.TestCase):
 
+    scipy_onebyone = False
+
     def setUp(self):
         self.support = 'real'
         self.event_shape = ()
         self.continuous = True
-        self.scipy_onebyone = False
         self.test_targets = set()
 
-        self.params_init()
+        self.setUp_configure()
+
+        targets_not_found = self.test_targets - {
+            "batch_shape", "cdf", "entropy", "event_shape", "icdf", "log_cdf",
+            "log_prob", "log_survival", "mean", "prob", "sample", "stddev",
+            "support", "survival", "variance"}
+        if targets_not_found:
+            raise ValueError(
+                "invalid target(s): {}".format(targets_not_found))
+
         if self.is_variable:
             self.params = {k: chainer.Variable(v)
                            for k, v in self.params.items()}
-        self.scipy_onebyone_params = \
-            {k: v.reshape((numpy.prod(self.shape),)
-                          + v.shape[len(self.shape):])
-             for k, v in self.scipy_params.items()}
+
+    def scipy_onebyone_params_iter(self):
+        for index in numpy.ndindex(self.shape):
+            yield {k: v[index] for k, v in self.scipy_params.items()}
 
     @property
     def cpu_dist(self):
@@ -57,8 +69,8 @@ class distribution_unittest(unittest.TestCase):
     def test_batch_shape_cpu(self):
         self.assertEqual(self.cpu_dist.batch_shape, self.shape)
 
-    @skip_not_in_test_target('batch_shape')
     @attr.gpu
+    @skip_not_in_test_target('batch_shape')
     def test_batch_shape_gpu(self):
         self.assertEqual(self.gpu_dist.batch_shape, self.shape)
 
@@ -75,8 +87,8 @@ class distribution_unittest(unittest.TestCase):
     def test_cdf_cpu(self):
         self.check_cdf(False)
 
-    @skip_not_in_test_target('cdf')
     @attr.gpu
+    @skip_not_in_test_target('cdf')
     def test_cdf_gpu(self):
         self.check_cdf(True)
 
@@ -87,9 +99,7 @@ class distribution_unittest(unittest.TestCase):
             ent1 = self.cpu_dist.entropy.data
         if self.scipy_onebyone:
             ent2 = []
-            for i in range(numpy.prod(self.shape)):
-                one_params = {k: v[i] for k, v
-                              in self.scipy_onebyone_params.items()}
+            for one_params in self.scipy_onebyone_params_iter():
                 ent2.append(self.scipy_dist.entropy(**one_params))
             ent2 = numpy.vstack(ent2).reshape(self.shape)
         else:
@@ -100,8 +110,8 @@ class distribution_unittest(unittest.TestCase):
     def test_entropy_cpu(self):
         self.check_entropy(False)
 
-    @skip_not_in_test_target('entropy')
     @attr.gpu
+    @skip_not_in_test_target('entropy')
     def test_entropy_gpu(self):
         self.check_entropy(True)
 
@@ -109,8 +119,8 @@ class distribution_unittest(unittest.TestCase):
     def test_event_shape_cpu(self):
         self.assertEqual(self.cpu_dist.event_shape, self.event_shape)
 
-    @skip_not_in_test_target('event_shape')
     @attr.gpu
+    @skip_not_in_test_target('event_shape')
     def test_event_shape_gpu(self):
         self.assertEqual(self.gpu_dist.event_shape, self.event_shape)
 
@@ -129,8 +139,8 @@ class distribution_unittest(unittest.TestCase):
     def test_icdf_cpu(self):
         self.check_icdf(False)
 
-    @skip_not_in_test_target('icdf')
     @attr.gpu
+    @skip_not_in_test_target('icdf')
     def test_icdf_gpu(self):
         self.check_icdf(True)
 
@@ -147,8 +157,8 @@ class distribution_unittest(unittest.TestCase):
     def test_log_cdf_cpu(self):
         self.check_log_cdf(False)
 
-    @skip_not_in_test_target('log_cdf')
     @attr.gpu
+    @skip_not_in_test_target('log_cdf')
     def test_log_cdf_gpu(self):
         self.check_log_cdf(True)
 
@@ -173,10 +183,8 @@ class distribution_unittest(unittest.TestCase):
             onebyone_smp = onebyone_smp.reshape((-1,) + self.sample_shape
                                                 + self.event_shape)
             log_prob2 = []
-            for i in range(numpy.prod(self.shape)):
-                one_params = {k: v[i] for k, v
-                              in self.scipy_onebyone_params.items()}
-                one_smp = onebyone_smp[i]
+            for one_params, one_smp in zip(
+                    self.scipy_onebyone_params_iter(), onebyone_smp):
                 log_prob2.append(scipy_prob(one_smp, **one_params))
             log_prob2 = numpy.vstack(log_prob2)
             log_prob2 = log_prob2.reshape(numpy.prod(self.shape), -1).T
@@ -189,8 +197,8 @@ class distribution_unittest(unittest.TestCase):
     def test_log_prob_cpu(self):
         self.check_log_prob(False)
 
-    @skip_not_in_test_target('log_prob')
     @attr.gpu
+    @skip_not_in_test_target('log_prob')
     def test_log_prob_gpu(self):
         self.check_log_prob(True)
 
@@ -208,8 +216,8 @@ class distribution_unittest(unittest.TestCase):
     def test_log_survival_cpu(self):
         self.check_log_survival(False)
 
-    @skip_not_in_test_target('log_survival')
     @attr.gpu
+    @skip_not_in_test_target('log_survival')
     def test_log_survival_gpu(self):
         self.check_log_survival(True)
 
@@ -221,9 +229,7 @@ class distribution_unittest(unittest.TestCase):
 
         if self.scipy_onebyone:
             mean2 = []
-            for i in range(numpy.prod(self.shape)):
-                one_params = {k: v[i] for k, v
-                              in self.scipy_onebyone_params.items()}
+            for one_params in self.scipy_onebyone_params_iter():
                 mean2.append(self.scipy_dist.mean(**one_params))
             mean2 = numpy.vstack(mean2).reshape(
                 self.shape + self.cpu_dist.event_shape)
@@ -235,8 +241,8 @@ class distribution_unittest(unittest.TestCase):
     def test_mean_cpu(self):
         self.check_mean(False)
 
-    @skip_not_in_test_target('mean')
     @attr.gpu
+    @skip_not_in_test_target('mean')
     def test_mean_gpu(self):
         self.check_mean(True)
 
@@ -256,8 +262,8 @@ class distribution_unittest(unittest.TestCase):
     def test_prob_cpu(self):
         self.check_prob(False)
 
-    @skip_not_in_test_target('prob')
     @attr.gpu
+    @skip_not_in_test_target('prob')
     def test_prob_gpu(self):
         self.check_prob(True)
 
@@ -271,9 +277,7 @@ class distribution_unittest(unittest.TestCase):
 
         if self.scipy_onebyone:
             smp2 = []
-            for i in range(numpy.prod(self.shape)):
-                one_params = {k: v[i] for k, v
-                              in self.scipy_onebyone_params.items()}
+            for one_params in self.scipy_onebyone_params_iter():
                 smp2.append(self.scipy_dist.rvs(
                     size=(100000,)+self.sample_shape, **one_params))
             smp2 = numpy.vstack(smp2)
@@ -297,8 +301,8 @@ class distribution_unittest(unittest.TestCase):
     def test_sample_cpu(self):
         self.check_sample(False)
 
-    @skip_not_in_test_target('sample')
     @attr.gpu
+    @skip_not_in_test_target('sample')
     def test_sample_gpu(self):
         self.check_sample(True)
 
@@ -314,8 +318,8 @@ class distribution_unittest(unittest.TestCase):
     def test_stddev_cpu(self):
         self.check_stddev(False)
 
-    @skip_not_in_test_target('stddev')
     @attr.gpu
+    @skip_not_in_test_target('stddev')
     def test_stddev_gpu(self):
         self.check_stddev(True)
 
@@ -323,8 +327,8 @@ class distribution_unittest(unittest.TestCase):
     def test_support_cpu(self):
         self.assertEqual(self.cpu_dist.support, self.support)
 
-    @skip_not_in_test_target('support')
     @attr.gpu
+    @skip_not_in_test_target('support')
     def test_support_gpu(self):
         self.assertEqual(self.gpu_dist.support, self.support)
 
@@ -342,8 +346,8 @@ class distribution_unittest(unittest.TestCase):
     def test_survival_cpu(self):
         self.check_survival(False)
 
-    @skip_not_in_test_target('survival')
     @attr.gpu
+    @skip_not_in_test_target('survival')
     def test_survival_gpu(self):
         self.check_survival(True)
 
@@ -355,9 +359,7 @@ class distribution_unittest(unittest.TestCase):
 
         if self.scipy_onebyone:
             variance2 = []
-            for i in range(numpy.prod(self.shape)):
-                one_params = {k: v[i] for k, v
-                              in self.scipy_onebyone_params.items()}
+            for one_params in self.scipy_onebyone_params_iter():
                 variance2.append(self.scipy_dist.var(**one_params))
             variance2 = numpy.vstack(variance2).reshape(
                 self.shape + self.cpu_dist.event_shape)
@@ -369,7 +371,7 @@ class distribution_unittest(unittest.TestCase):
     def test_variance_cpu(self):
         self.check_variance(False)
 
-    @skip_not_in_test_target('variance')
     @attr.gpu
+    @skip_not_in_test_target('variance')
     def test_variance_gpu(self):
         self.check_variance(True)
