@@ -6,6 +6,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
@@ -48,7 +49,12 @@ Array ConvGradW(
     assert(gy.ndim() == w_shape.ndim());
     assert(stride.size() == static_cast<size_t>(w_shape.ndim() - 2));
     assert(pad.size() == static_cast<size_t>(w_shape.ndim() - 2));
-    Array out = x.device().ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
+
+    Array out{};
+    {
+        NoBackpropModeScope scope{};
+        out = x.device().ConvGradWeight(w_dtype, w_shape, x, gy, stride, pad, cover_all);
+    }
 
     {
         BackwardBuilder bb{"conv-grad-weight", {out}};
@@ -107,7 +113,11 @@ Array Conv(
         throw DimensionError{"Mismatched bias shape ", b->shape(), " for weights ", w.shape(), "."};
     }
 
-    Array out = x.device().Conv(x, w, b, stride, pad, cover_all);
+    Array out{};
+    {
+        NoBackpropModeScope scope{};
+        out = x.device().Conv(x, w, b, stride, pad, cover_all);
+    }
 
     {
         BackwardBuilder bb{"conv", {out}};
@@ -199,7 +209,11 @@ Array ConvTranspose(
     }
 
     // Compute transposed convolution
-    Array out = x.device().ConvTranspose(x, w, b, stride, pad, real_out_size);
+    Array out{};
+    {
+        NoBackpropModeScope scope{};
+        out = x.device().ConvTranspose(x, w, b, stride, pad, real_out_size);
+    }
 
     {
         BackwardBuilder bb{"conv_transpose", out};

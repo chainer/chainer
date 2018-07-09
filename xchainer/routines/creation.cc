@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
@@ -147,7 +148,10 @@ Array OnesLike(const Array& a, Device& device) { return Ones(a.shape(), a.dtype(
 
 Array Copy(const Array& a) {
     Array out = EmptyLike(a, a.device());
-    a.device().Copy(a, out);
+    {
+        NoBackpropModeScope scope{};
+        a.device().Copy(a, out);
+    }
 
     if (a.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"copy", out};
@@ -165,7 +169,10 @@ Array Identity(int64_t n, Dtype dtype, Device& device) {
     }
 
     Array out = Empty(Shape{n, n}, dtype, device);
-    device.Identity(out);
+    {
+        NoBackpropModeScope scope{};
+        device.Identity(out);
+    }
     return out;
 }
 
@@ -184,7 +191,10 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
     }
 
     Array out = Empty({n, m.value()}, dtype.value(), device);
-    device.Eye(k.value(), out);
+    {
+        NoBackpropModeScope scope{};
+        device.Eye(k.value(), out);
+    }
     return out;
 }
 
@@ -202,7 +212,10 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     const Shape& shape = a.ndim() == 0 ? Shape{1} : a.shape();
 
     Array out = Empty(shape, dt, a.device());
-    a.device().AsType(a, out);
+    {
+        NoBackpropModeScope scope{};
+        a.device().AsType(a, out);
+    }
 
     if (a.IsGradRequired(AnyGraph{}) && GetKind(dt) == DtypeKind::kFloat) {
         BackwardBuilder bb{"ascontiguousarray", out};
@@ -224,7 +237,10 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         // Return a square matrix with filled diagonal.
         int64_t n = v.shape()[0] + std::abs(k);
         out = Empty(Shape{n, n}, v.dtype(), device);
-        device.Diagflat(v, k, out);
+        {
+            NoBackpropModeScope scope{};
+            device.Diagflat(v, k, out);
+        }
     } else if (ndim == 2) {
         // Return the diagonal as a 1D array.
         int64_t rows = v.shape()[0];
@@ -288,7 +304,10 @@ Array Linspace(
         if (!endpoint) {
             stop_value = start_value + (stop_value - start_value) * (num_a - 1) / num_a;
         }
-        device.Linspace(start_value, stop_value, out);
+        {
+            NoBackpropModeScope scope{};
+            device.Linspace(start_value, stop_value, out);
+        }
     }
     return out;
 }

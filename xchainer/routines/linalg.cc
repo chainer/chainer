@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
@@ -48,7 +49,10 @@ Array Dot(const Array& a, const Array& b) {
 
     // Matrix-matrix product
     Array out_matrix = Empty({m, n}, a.dtype(), a.device());
-    a.device().Dot(a_matrix, b_matrix, out_matrix);
+    {
+        NoBackpropModeScope scope{};
+        a.device().Dot(a_matrix, b_matrix, out_matrix);
+    }
 
     {
         BackwardBuilder bb{"dot", out_matrix};

@@ -12,6 +12,7 @@
 #include "xchainer/array.h"
 #include "xchainer/array_index.h"
 #include "xchainer/axes.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
@@ -40,7 +41,10 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
     // TODO(sonots): broadcasting
     CheckEqual(out_view.shape(), b.shape());
 
-    a.device().Add(b, out_view, out_view);
+    {
+        NoBackpropModeScope scope{};
+        a.device().Add(b, out_view, out_view);
+    }
 
     {
         BackwardBuilder bb{"add_at", out};
@@ -125,7 +129,10 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
 
     Array out = EmptyLike(a, a.device());
 
-    a.device().AddAt(a, indices, axis, b, out);
+    {
+        NoBackpropModeScope scope{};
+        a.device().AddAt(a, indices, axis, b, out);
+    }
 
     {
         BackwardBuilder bb{"add_at", out};
@@ -161,7 +168,10 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
     std::copy(a.shape().begin() + (axis_norm + 1), a.shape().end(), std::back_inserter(out_shape));
     Array out = Empty(out_shape, a.dtype(), a.device());
 
-    a.device().Take(a, indices, axis_norm, out);
+    {
+        NoBackpropModeScope scope{};
+        a.device().Take(a, indices, axis_norm, out);
+    }
 
     if (a.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"take", out};

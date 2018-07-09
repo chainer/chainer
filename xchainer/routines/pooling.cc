@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
@@ -47,7 +48,12 @@ Array MaxPool(
         bool cover_all) {
     CheckPoolInputs(x, kernel_size, stride, pad);
     std::unique_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward(kernel_size, stride, pad, cover_all);
-    Array out = fb->Forward(x);
+
+    Array out{};
+    {
+        NoBackpropModeScope scope{};
+        out = fb->Forward(x);
+    }
 
     // Supporting arbitrary number of backwards using a recursive definition.
     // TODO(hvy): Test backward of double backward.
@@ -60,7 +66,11 @@ Array MaxPool(
                 if (gout.IsGradRequired(AnyGraph{})) {
                     bb2.Define({gout}, [this, gout](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
-                        Array ggout = fb->DoubleBackward(ggx);
+                        Array ggout{};
+                        {
+                            NoBackpropModeScope scope{};
+                            ggout = fb->DoubleBackward(ggx);
+                        }
                         // Make ggout further backpropable.
                         {
                             BackwardBuilder bb3{"max_pooling_double_backward", ggout};
@@ -100,13 +110,21 @@ Array AveragePool(
         AveragePoolPadMode pad_mode) {
     CheckPoolInputs(x, kernel_size, stride, pad);
     std::shared_ptr<AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(kernel_size, stride, pad, pad_mode);
-    Array out = fb->Forward(x);
+    Array out{};
+    {
+        NoBackpropModeScope scope{};
+        out = fb->Forward(x);
+    }
     {
         BackwardBuilder bb1{"average_pool", out};
         if (x.IsGradRequired(AnyGraph{})) {
             bb1.Define({x}, [ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
-                Array gx = fb->Backward(gout);
+                Array gx{};
+                {
+                    NoBackpropModeScope scope{};
+                    gx = fb->Backward(gout);
+                }
                 {
                     BackwardBuilder bb2{"average_pool_backward", gx};
                     if (gout.IsGradRequired(AnyGraph{})) {
