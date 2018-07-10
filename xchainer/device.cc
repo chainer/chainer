@@ -125,6 +125,10 @@ void GenericBatchNormForwardBackward::SetBackwardResults(Array gout, Array gx, A
 }
 
 Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
+    assert(!internal::HasAnyArrayNode(x));
+    assert(!internal::HasAnyArrayNode(gamma));
+    assert(!internal::HasAnyArrayNode(beta));
+
     Array x_mean = Mean(x, axis_, true);
     Array x_var = Var(x, x_mean, axis_, true);
 
@@ -145,6 +149,8 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
 }
 
 std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout) {
+    assert(!internal::HasAnyArrayNode(gout));
+
     // Note: x_inv_std_ has the information of eps.
     const Array& x = *x_;
     const Array& gamma = *gamma_;

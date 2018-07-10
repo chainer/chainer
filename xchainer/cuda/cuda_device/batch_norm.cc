@@ -115,6 +115,10 @@ public:
             assert(x.dtype() == beta.dtype());
             assert(x.dtype() == running_mean().dtype());
             assert(x.dtype() == running_var().dtype());
+
+            assert(!xchainer::internal::HasAnyArrayNode(x));
+            assert(!xchainer::internal::HasAnyArrayNode(gamma));
+            assert(!xchainer::internal::HasAnyArrayNode(beta));
         }
 #endif  // NDEBUG
 
@@ -214,6 +218,8 @@ public:
             assert(x_cont.dtype() == gout.dtype());
 
             assert(x_cont.IsContiguous());
+
+            assert(!xchainer::internal::HasAnyArrayNode(gout));
         }
 #endif  // NDEBUG
 
