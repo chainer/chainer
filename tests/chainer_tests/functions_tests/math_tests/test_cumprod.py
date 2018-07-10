@@ -30,7 +30,7 @@ from chainer.utils import type_check
 class TestCumprod(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.x = numpy.random.uniform(-2, 2, self.shape).astype(self.dtype)
         if self.contain_zero:
             index = numpy.random.choice(self.x.size)
             self.x.ravel()[index] = 0
@@ -43,11 +43,12 @@ class TestCumprod(unittest.TestCase):
         self.check_backward_options = {}
         self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-2}
-            self.check_backward_options = {'atol': 1e-2}
-            self.check_double_backward_options = {'atol': 1e-1, 'eps': 0.01}
+            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            self.check_double_backward_options = {
+                'atol': 1e-1, 'rtol': 1e-1, 'eps': 0.01}
         elif self.dtype == numpy.float32:
-            self.check_double_backward_options = {'atol': 1e-3}
+            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
 
     def check_forward(self, x_data, axis):
         xp = cuda.get_array_module(x_data)
