@@ -139,8 +139,8 @@ Array BackwardContext::Cut(const Array& a) const {
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()}, stop_graph_ids_{stop_graph_ids.begin(), stop_graph_ids.end()} {
-    // Non-const outputs (e.g. in-place ops.) must have been detected and reported before reaching here.
-    assert(std::all_of(outputs.begin(), outputs.end(), [](const Array& output) { return output.IsConstant(); }));
+    // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
+    assert(std::all_of(outputs.begin(), outputs.end(), [](const Array& output) { return !internal::HasAnyArrayNode(output); }));
     // All output arrays must have the same device.
     assert(std::all_of(outputs.begin(), outputs.end(), [&outputs](const Array& output) {
         return &outputs.begin()->get().device() == &output.device();

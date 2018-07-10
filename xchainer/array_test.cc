@@ -673,20 +673,6 @@ TEST_P(ArrayTest, MakeViewDoubleBackward) {
             {eps, eps});
 }
 
-TEST_P(ArrayTest, IsConstant) {
-    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
-
-    EXPECT_TRUE(a.IsConstant());
-
-    a.RequireGrad("testgraph1");
-
-    EXPECT_FALSE(a.IsConstant());
-
-    a.RequireGrad("testgraph2");
-
-    EXPECT_FALSE(a.IsConstant());
-}
-
 TEST_P(ArrayTest, IsGradRequired) {
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
 

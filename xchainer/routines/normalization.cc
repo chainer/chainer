@@ -112,9 +112,9 @@ Array BatchNorm(
             const Array& gx = ginputs[0];
             const Array& ggamma = ginputs[1];
             const Array& gbeta = ginputs[2];
-            assert(gx.IsConstant());
-            assert(ggamma.IsConstant());
-            assert(gbeta.IsConstant());
+            assert(!internal::HasAnyArrayNode(gx));
+            assert(!internal::HasAnyArrayNode(ggamma));
+            assert(!internal::HasAnyArrayNode(gbeta));
 
             Array x_cut = bctx.Cut(x);
             Array gamma_cut = bctx.Cut(gamma);
