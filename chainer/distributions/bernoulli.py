@@ -3,10 +3,13 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.activation import sigmoid
 from chainer.functions.array import broadcast
+from chainer.functions.array import reshape
+from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
 from chainer import utils
 import numpy
+import warnings
 
 
 class BernoulliLogProb(chainer.function_node.FunctionNode):
@@ -15,8 +18,6 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         logit, x = inputs
         self.retain_inputs((0, 1))
         xp = cuda.get_array_module(x)
-        if x.ndim == 0:
-            x = xp.asarray(x).reshape(1)
         y = logit * (x - 1) - xp.log(xp.exp(-logit) + 1)
 
         self.invalid = xp.bitwise_and(x != 0, x != 1)
@@ -41,13 +42,9 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
 
         # extreme logit
         nan_dlogit = xp.zeros_like(dlogit.array)
-        if dlogit.array.ndim == 0:
-            nan_dlogit = xp.asarray(nan_dlogit).reshape(1)
         nan_dlogit[self.invalid] = xp.nan
         nan_dlogit[self.to_zero] = xp.nan
         nan_dlogit[self.to_m_inf] = xp.nan
-        if dlogit.array.ndim == 0:
-            nan_dlogit = nan_dlogit.reshape(())
         dlogit += nan_dlogit
 
         return gy * dlogit, None
@@ -59,27 +56,40 @@ class ModifiedXLogX(chainer.function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
-        if x.ndim == 0:
-            x = xp.asarray(x).reshape(1)
-        self.invalid = (x == 0)
+        self.x_zero = (x == 0)
         y = x * self._logx.array
-        y[self.invalid] = 0.
+        y[self.x_zero] = 0.
         return y,
 
     def backward(self, indexes, grad_outputs):
+        if self.x_zero.any():
+            warnings.warn(
+                'cannot calculate gradient for zero input.',
+                RuntimeWarning)
         gy, = grad_outputs
-        dx = (1 + self._logx) * (1 - self.invalid.reshape(self._logx.shape))
+        dx = (1 + self._logx) * (1 - self.x_zero)
         return gy * dx,
 
 
 def _bernoulli_log_prob(logit, x):
+    if x.ndim == 0:
+        x = reshape.reshape(x, (1,))
+    if logit.ndim == 0:
+        logit = reshape.reshape(logit, (1,))
     y, = BernoulliLogProb().apply((logit, x))
     return y
 
 
 def _modified_xlogx(x):
-    return ModifiedXLogX(exponential.log(x)).apply((x,))[0]
+    xp = cuda.get_array_module(x)
+    if x.ndim == 0:
+        x = reshape.reshape(x, (1,))
+    if isinstance(x, chainer.Variable):
+        return ModifiedXLogX(exponential.log(
+            where.where(x.array > 0, x, xp.ones_like(x.array)))).apply((x,))[0]
+    else:
+        return ModifiedXLogX(exponential.log(
+            where.where(x > 0, x, xp.ones_like(x)))).apply((x,))[0]
 
 
 class Bernoulli(distribution.Distribution):
@@ -137,10 +147,6 @@ class Bernoulli(distribution.Distribution):
         return isinstance(self.p.array, cuda.ndarray)
 
     def log_prob(self, x):
-        if isinstance(x, chainer.Variable):
-            x = x.array
-        x = x.astype(self.p.dtype)
-
         return _bernoulli_log_prob(self.logit, x)
 
     @property

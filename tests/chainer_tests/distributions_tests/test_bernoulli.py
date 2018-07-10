@@ -1,5 +1,6 @@
 import unittest
 
+import chainer
 from chainer.backends import cuda
 from chainer import distributions
 from chainer import gradient_check
@@ -56,6 +57,7 @@ class TestBernoulliLogProb(unittest.TestCase):
         self.logit = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.x = numpy.random.randint(0, 2, size=self.shape).astype(self.dtype)
         self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
+        self.ggx = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def check_forward(self, x_data, logit_data):
@@ -68,18 +70,37 @@ class TestBernoulliLogProb(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.logit))
 
-    def check_backward(self, x_data, logit_data, y_grad):
+    def check_backward(self, logit_data, x_data, y_grad):
+        def f(logit):
+            return distributions.bernoulli._bernoulli_log_prob(
+                logit, x_data)
         gradient_check.check_backward(
-            distributions.bernoulli._bernoulli_log_prob,
-            (x_data, logit_data), y_grad, **self.backward_options)
+            f, logit_data, y_grad, **self.backward_options)
 
     def test_backward_cpu(self):
-        self.check_backward(self.x, self.logit, self.gy)
+        self.check_backward(self.logit, self.x, self.gy)
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.logit),
+        self.check_backward(cuda.to_gpu(self.logit), cuda.to_gpu(self.x),
                             cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, logit_data, x_data, y_grad, x_grad_grad):
+        def f(logit):
+            return distributions.bernoulli._bernoulli_log_prob(
+                logit, x_data)
+        gradient_check.check_double_backward(
+            f, logit_data, y_grad, x_grad_grad, dtype=numpy.float64,
+            **self.backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.logit, self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.logit), cuda.to_gpu(self.x),
+            cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
 
 @testing.parameterize(*testing.product({
@@ -90,7 +111,9 @@ class TestModifiedXLogX(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(0, 1, size=self.shape).astype(self.dtype)
+        self.zero_x = numpy.zeros(shape=self.shape).astype(self.dtype)
         self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
+        self.ggx = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def check_forward(self, x_data):
@@ -114,6 +137,33 @@ class TestModifiedXLogX(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad):
+        gradient_check.check_double_backward(
+            distributions.bernoulli._modified_xlogx, x_data, y_grad,
+            x_grad_grad, dtype=numpy.float64, **self.backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(self.x, self.gy, self.ggx)
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
+                                   cuda.to_gpu(self.ggx))
+
+    def check_backward_zero_input(self, x_data):
+        x = chainer.Variable(x_data)
+        y = distributions.bernoulli._modified_xlogx(x)
+        if numpy.prod(y.shape) > 1:
+            y = chainer.functions.sum(y)
+        with testing.assert_warns(RuntimeWarning):
+            y.backward()
+
+    def test_backward_zero_input_cpu(self):
+        self.check_backward_zero_input(self.zero_x)
+
+    def test_backward_zero_input_gpu(self):
+        self.check_backward_zero_input(cuda.to_gpu(self.zero_x))
 
 
 testing.run_module(__name__, __file__)
