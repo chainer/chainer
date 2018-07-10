@@ -263,14 +263,14 @@ void CheckDoubleBackwardComputation(
     // Check all the input arrays require gradients
     for (size_t i = 0; i < nin; ++i) {
         if (!inputs[i].IsGradRequired(graph_id)) {
-            throw XchainerError{"Input array ", i, " / ", nin, " is constant w.r.t. the graph '", graph_id, "'."};
+            throw XchainerError{"Input array ", i, " / ", nin, " is not differentiable w.r.t. the graph '", graph_id, "'."};
         }
     }
 
     // Check all the output gradient arrays require gradients
     for (size_t i = 0; i < nout; ++i) {
         if (!grad_outputs[i].IsGradRequired(graph_id)) {
-            throw XchainerError{"Output gradient array ", i, " / ", nout, " is constant w.r.t. the graph '", graph_id, "'."};
+            throw XchainerError{"Output gradient array ", i, " / ", nout, " is not differentiable w.r.t. the graph '", graph_id, "'."};
         }
     }
 
@@ -300,16 +300,15 @@ void CheckDoubleBackwardComputation(
         }
 
         for (size_t i = 0; i < nin; ++i) {
-            const nonstd::optional<Array>& opt_backward_grad = optional_backward_grads[i];
-            if (!opt_backward_grad.has_value()) {
-                throw GradientCheckError{"First-order input gradient ", i, " / ", nin, " do not exist."};
+            if (!optional_backward_grads[i].has_value()) {
+                throw GradientCheckError{"First-order input gradient ", i, " / ", nin, " does not exist."};
             }
         }
 
-        // Check all the first order gradients are differentiable
         for (size_t i = 0; i < nin; ++i) {
             if (!optional_backward_grads[i]->IsGradRequired(graph_id)) {
-                throw GradientCheckError{"Input gradient ", i, " is not differentiable w.r.t. the graph '", graph_id, "'."};
+                throw GradientCheckError{
+                        "First-order Input gradient ", i, " / ", nin, " is not differentiable w.r.t. the graph '", graph_id, "'."};
             }
         }
 
