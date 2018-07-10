@@ -1,9 +1,6 @@
+import chainer
 from chainer.backends import cuda
 from chainer import function_node
-from chainer.functions.array import concat
-from chainer.functions.array import flatten
-from chainer.functions.array import flip
-from chainer.functions.array import split_axis
 from chainer.utils import type_check
 
 
@@ -21,10 +18,11 @@ class Cumprod(function_node.FunctionNode):
             in_types.size() == 1,
             in_types[0].dtype.kind == 'f',
         )
-        if self.axis >= 0:
-            type_check.expect(self.axis < in_types[0].ndim)
-        else:
-            type_check.expect(-self.axis - 1 < in_types[0].ndim)
+        if self.axis is not None:
+            if self.axis >= 0:
+                type_check.expect(self.axis < in_types[0].ndim)
+            else:
+                type_check.expect(-self.axis - 1 < in_types[0].ndim)
 
     def forward(self, inputs):
         self.retain_inputs((0,))
@@ -35,26 +33,36 @@ class Cumprod(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x, = self.get_retained_inputs()
-        axis = self.axis
-        if x.shape[axis] == 0:
-            return None,
-        if axis < 0:
-            axis += x.ndim
-
         xp = cuda.get_array_module(x)
         y, = self.get_retained_outputs()
         gy, = grad_outputs
+        F = chainer.functions
 
-        _, x = split_axis.split_axis(x, (1,), axis)
+        axis = self.axis
+        if axis is None:
+            axis = 0
+            shape = x.shape
+            x = F.flatten(x)
+        else:
+            shape = None
+        if y.shape[axis] == 0:
+            return None,
+        if axis < 0:
+            axis += y.ndim
+
+        _, x = F.split_axis(x, (1,), axis)
         z, = Cumprodsum(axis).apply((
-            flip.flip(x, axis),
-            flip.flip(gy, axis),
+            F.flip(x, axis),
+            F.flip(gy, axis),
         ))
 
-        y, ylast = split_axis.split_axis(y, (-1,), axis)
-        y_flip = concat.concat([xp.ones_like(ylast.array), y], axis=axis)
+        y, ylast = F.split_axis(y, (-1,), axis)
+        y = F.concat([xp.ones_like(ylast.array), y], axis=axis)
 
-        return flip.flip(z, axis) * y_flip,
+        gx = F.flip(z, axis) * y
+        if shape is not None:
+            gx = F.reshape(gx, shape)
+        return gx,
 
 
 class Cumprodsum(function_node.FunctionNode):
@@ -86,18 +94,19 @@ class Cumprodsum(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, grad_outputs):
+        F = chainer.functions
         xmul, = self.get_retained_inputs()
         y, = self.get_retained_outputs()
         gy, = grad_outputs
         axis = self.axis
 
         z, = Cumprodsum(axis).apply((
-            flip.flip(xmul, axis),
-            flip.flip(gy, axis),
+            F.flip(xmul, axis),
+            F.flip(gy, axis),
         ))
-        gxadd = flip.flip(z, axis)
-        _, gxmul = split_axis.split_axis(gxadd, (1,), axis)
-        y, _ = split_axis.split_axis(y, (-1,), axis)
+        gxadd = F.flip(z, axis)
+        _, gxmul = F.split_axis(gxadd, (1,), axis)
+        y, _ = F.split_axis(y, (-1,), axis)
         gxmul *= y
         return gxmul, gxadd
 
@@ -117,7 +126,4 @@ def cumprod(x, axis=None):
         ~chainer.Variable: Output variable.
 
     """
-    if axis is None:
-        x = flatten.flatten(x)
-        axis = 0
     return Cumprod(axis).apply((x,))[0]
