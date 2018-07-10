@@ -748,7 +748,7 @@ class TestGradV3Compat1(unittest.TestCase):
     def _var(self, val):
         return chainer.Variable(numpy.array(val, numpy.float32))
 
-    def check(self, option, expected):
+    def check(self, option, grads_before, grads_after):
         vs = []
         v = self._var(0.5)
         for _ in range(4):
@@ -761,30 +761,47 @@ class TestGradV3Compat1(unittest.TestCase):
         gx2 = self._var(100.)
         gy1 = self._var(10.)
         gy2 = self._var(1.)
+        for v, g in zip(vs, grads_before):
+            if g is not None:
+                v.grad_var = self._var(g)
         grads = chainer.grad(
             [y1, y2], [x1, x2], [gy1, gy2], [gx1, gx2], **option)
         numpy.testing.assert_allclose(grads[0].array, 1248.)
         numpy.testing.assert_allclose(grads[1].array, 124.)
-        for v, ans in zip(vs, expected):
+        for v, ans in zip(vs, grads_after):
             if ans is None:
                 self.assertIsNone(v.grad)
             else:
                 numpy.testing.assert_allclose(v.grad, ans)
 
     def test_no_option(self):
-        self.check({}, [None] * 8)
+        self.check({}, [None] * 8, [None] * 8)
+        self.check({}, [-1.] * 8, [-1.] * 8)
 
     def test_set_grad(self):
         self.check(
             {'set_grad': True},
+            [None] * 8,
             [None, 1248., None, 124., None, None, None, None])
+        self.check(
+            {'set_grad': True},
+            [-1.] * 8,
+            [-1., 1248., -1., 124., -1., -1., -1., -1.])
 
     def test_retain_grad(self):
         self.check(
             {'retain_grad': True},
+            [None] * 8,
             [None, 1248., 248., 124., 24., 12., 2., 1.]
             # Before v5, the result was
             # [None, 1248., 248., 124., 24., 12., 2., None]
+        )
+        self.check(
+            {'retain_grad': True},
+            [-1.] * 8,
+            [-1., 1248., 248., 124., 24., 12., 2., 1.]
+            # Before v5, the result was
+            # [-1., 1248., 248., 124., 24., 12., 2., -1.]
         )
 
 
