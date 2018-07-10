@@ -55,10 +55,14 @@ class DeconvolutionND(link.Link):
 
     """
 
-    def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, outsize=None, initialW=None, initial_bias=None,
-                 dilate=1, groups=1):
+    def __init__(self, ndim, in_channels, out_channels, ksize=None, stride=1,
+                 pad=0, nobias=False, outsize=None, initialW=None,
+                 initial_bias=None, dilate=1, groups=1):
         super(DeconvolutionND, self).__init__()
+
+        if ksize is None:
+            ndim, out_channels, ksize, in_channels = \
+                ndim, in_channels, out_channels, None
 
         self.out_channels = out_channels
         self.ksize = conv_nd.as_tuple(ksize, ndim)
