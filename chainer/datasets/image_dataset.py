@@ -185,6 +185,7 @@ class LabeledZippedImageDataset(dataset_mixin.DatasetMixin):
         label_dtype: Data type of the labels.
 
     """
+
     def __init__(self, zipfilename, labelfilename, dtype=None,
                  label_dtype=numpy.int32):
         _check_pillow_availability()
