@@ -1,5 +1,6 @@
 #include "xchainer/cuda/memory_pool.h"
 
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
