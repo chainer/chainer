@@ -80,7 +80,7 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
 
         y = model.forward(x)
         total_loss += compute_loss(y, t) * batch_size
-        num_correct += (y.argmax(axis=1).astype(t.dtype) == t).astype(xc.int32).sum()
+        num_correct += (y.argmax(axis=1).astype(t.dtype) == t).astype(xc.int32).sum().astype(xc.int32)
 
     model.require_grad()
 
