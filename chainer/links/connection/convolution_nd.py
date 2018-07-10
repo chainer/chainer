@@ -19,6 +19,8 @@ class ConvolutionND(link.Link):
     Args:
         ndim (int): Number of spatial dimensions.
         in_channels (int): Number of channels of input arrays.
+            If ``None``, parameter initialization will be deferred until the
+            first forward data pass at which time the size will be determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or tuple of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k, ..., k)`` are equivalent.
@@ -55,10 +57,53 @@ class ConvolutionND(link.Link):
         b (~chainer.Variable): Bias parameter. If ``initial_bias`` is ``None``,
             set to ``None``.
 
-    """
+    .. admonition:: Example
+
+        There are several ways to make a ConvolutionND link.
+
+        Let an input vector ``x`` be:
+
+        >>> x = np.arange(2 * 5 * 5 * 5, dtype='f').reshape(1, 2, 5, 5, 5)
+
+        1. Give the first four arguments explicitly:
+
+            >>> l = L.ConvolutionND(3, 2, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2, 2)
+
+        2. Omit ``in_channels`` or fill it with ``None``:
+
+            The below two cases are the same.
+
+            >>> l = L.ConvolutionND(3, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2, 2)
+
+            >>> l = L.ConvolutionND(3, None, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2, 2)
+
+            When you omit the second argument, you need to specify the other
+            subsequent arguments from ``stride`` as keyword auguments. So the
+            below two cases are the same.
+
+            >>> l = L.ConvolutionND(3, 7, 4, stride=1, pad=0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2, 2)
+
+            >>> l = L.ConvolutionND(3, None, 7, 4, 1, 0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2, 2)
+
+    """  # NOQA
 
     def __init__(self, ndim, in_channels, out_channels, ksize=None, stride=1,
-                 pad=0, obias=False, initialW=None, initial_bias=None,
+                 pad=0, nobias=False, initialW=None, initial_bias=None,
                  cover_all=False, dilate=1, groups=1):
         super(ConvolutionND, self).__init__()
 
