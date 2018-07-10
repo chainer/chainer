@@ -95,8 +95,6 @@ public:
     }
 
     Array Forward(const Array& x) {
-        assert(!xchainer::internal::HasAnyArrayNode(x));
-
         int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
         if (ndim != 2 && ndim != 3) {
             throw DimensionError{"XChainer cuDNN pooling supports only 2 and 3 spatial dimensions."};
@@ -138,8 +136,6 @@ public:
     }
 
     Array Backward(const Array& gout) {
-        assert(!xchainer::internal::HasAnyArrayNode(gout));
-
         int8_t ndim = x_.ndim() - 2;  // Number of spacial dimensions
         if (ndim < 2) {
             throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
@@ -180,8 +176,6 @@ public:
     }
 
     Array DoubleBackward(const Array& ggx) {
-        assert(!xchainer::internal::HasAnyArrayNode(ggx));
-
         Device& device = ggx.device();
         Array ggy = EmptyLike(y_, y_.device());
 
