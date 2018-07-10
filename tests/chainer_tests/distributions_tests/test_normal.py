@@ -1,10 +1,11 @@
 from chainer import distributions
 from chainer import testing
+from chainer import utils
 import numpy
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(3, 2), (1,)],
+    'shape': [(2, 3), ()],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
 }))
@@ -24,9 +25,10 @@ class TestNormal(testing.distribution_unittest):
             "log_prob", "log_survival", "mean", "prob", "sample", "stddev",
             "support", "survival", "variance"])
 
-        loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        scale = numpy.exp(
-            numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
+        loc = utils.force_array(
+            numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32))
+        scale = utils.force_array(numpy.exp(
+            numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32))
         self.params = {"loc": loc, "scale": scale}
         self.scipy_params = {"loc": loc, "scale": scale}
 
