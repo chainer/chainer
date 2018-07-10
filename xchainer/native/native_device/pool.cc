@@ -63,7 +63,7 @@ public:
         col_ = internal::Im2Col(x, kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x.dtype()));
         axes_.resize(kernel_size_.size());
         std::iota(axes_.begin(), axes_.end(), 2);
-        x_ = x.AsGradStopped();
+        x_ = x;
         return col_.Max(axes_);
     }
 
@@ -222,7 +222,7 @@ public:
             default:
                 XCHAINER_NEVER_REACH();
         }
-        x_ = x.AsGradStopped();
+        x_ = x;
         gcol_shape_ = col.shape();
         return out;
     }

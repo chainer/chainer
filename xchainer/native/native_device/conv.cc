@@ -52,7 +52,7 @@ Array NativeDevice::Conv(
 
     // Add bias, if given.
     if (b.has_value()) {
-        y += b->AsGradStopped();
+        y += *b;
     }
 
     // Move the out channel axis to the second

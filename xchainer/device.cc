@@ -139,7 +139,7 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
     running_var_ *= decay_;
     running_var_ += inv_decay * (static_cast<double>(n) / std::max(n - 1, int64_t{1})) * x_var;
 
-    SetForwardResults(x.AsGradStopped(), gamma.AsGradStopped(), std::move(x_mean), std::move(x_inv_std));
+    SetForwardResults(x, gamma, std::move(x_mean), std::move(x_inv_std));
 
     return std::move(out);
 }
@@ -157,7 +157,7 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout
     Array gbeta = gout.Sum(axis_);
     Array gx = (gamma * x_inv_std) * (gout - (x_hat * ggamma + gbeta) * inv_n);
 
-    SetBackwardResults(gout.AsGradStopped(), gx, ggamma);
+    SetBackwardResults(gout, gx, ggamma);
 
     return {std::move(gx), std::move(ggamma), std::move(gbeta)};
 }
