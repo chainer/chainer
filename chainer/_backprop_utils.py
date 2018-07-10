@@ -72,6 +72,17 @@ class GradTable(object):
 
 def backprop_step(
         func, target_input_indexes, grad_outputs, grad_inputs):
+    """
+    Args:
+        target_input_indexes (tuple of int): Sorted indices of the input
+            variables w.r.t. which the gradients are required. It is
+            guaranteed that this tuple contains at least one element.
+        grad_outputs (tuple of Variable): Gradients w.r.t. the output
+            variables. If the gradient w.r.t. an output variable is not
+            given, the corresponding element is ``None``.
+        grad_inputs (dict): References of radients w.r.t. the input variables.
+
+    """
     if chainer.is_debug():
         assert isinstance(target_input_indexes, tuple)
         assert target_input_indexes == tuple(sorted(target_input_indexes))
