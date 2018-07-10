@@ -94,21 +94,13 @@ Array BatchNorm(
     std::shared_ptr<BatchNormForwardBackward> fb =
             x.device().GetBatchNormForwardBackward(result.mean, result.var, eps, decay, result.sorted_axis);
 
-    Array out{};
-    {
-        NoBackpropModeScope scope{};
-        out = fb->Forward(x, result.gamma, result.beta);
-    }
+    Array out = fb->Forward(x.AsGradStopped(), result.gamma.AsGradStopped(), result.beta.AsGradStopped());
 
     if (x.IsGradRequired(AnyGraph{}) || gamma.IsGradRequired(AnyGraph{}) || beta.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"batch_norm", {out}};
         bb.Define({x, gamma, beta}, [ fb = std::move(fb), x, gamma = result.gamma ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
-            std::array<Array, 3> ginputs{};
-            {
-                NoBackpropModeScope scope{};
-                ginputs = fb->Backward(gout);
-            }
+            std::array<Array, 3> ginputs = fb->Backward(gout.AsGradStopped());
             const Array& gx = ginputs[0];
             const Array& ggamma = ginputs[1];
             const Array& gbeta = ginputs[2];
@@ -123,11 +115,8 @@ Array BatchNorm(
                     const Array& g2x = bctx2.output_grad(0);
                     const Array& g2gamma = bctx2.output_grad(1);
                     const Array& g2beta = bctx2.output_grad(2);
-                    std::array<Array, 3> ginputs2{};
-                    {
-                        NoBackpropModeScope scope{};
-                        ginputs2 = fb->DoubleBackward(g2x, g2gamma, g2beta);
-                    }
+                    std::array<Array, 3> ginputs2 =
+                            fb->DoubleBackward(g2x.AsGradStopped(), g2gamma.AsGradStopped(), g2beta.AsGradStopped());
                     // TODO(niboshi): Make it further backproppable
                     // TODO(niboshi): Assign at once
                     bctx2.input_grad(0) = ginputs2[0];  // ggx

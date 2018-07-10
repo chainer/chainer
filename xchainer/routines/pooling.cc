@@ -49,28 +49,20 @@ Array MaxPool(
     CheckPoolInputs(x, kernel_size, stride, pad);
     std::unique_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward(kernel_size, stride, pad, cover_all);
 
-    Array out{};
-    {
-        NoBackpropModeScope scope{};
-        out = fb->Forward(x);
-    }
+    Array out = fb->Forward(x.AsGradStopped());
 
     // Supporting arbitrary number of backwards using a recursive definition.
     // TODO(hvy): Test backward of double backward.
     struct MaxPoolBwd {
         void operator()(BackwardContext& bctx1) {
             const Array& gout = bctx1.output_grad();
-            Array gx = fb->Backward(gout);
+            Array gx = fb->Backward(gout.AsGradStopped());
             {
                 BackwardBuilder bb2{"max_pooling_backward", gx};
                 if (gout.IsGradRequired(AnyGraph{})) {
                     bb2.Define({gout}, [this, gout](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
-                        Array ggout{};
-                        {
-                            NoBackpropModeScope scope{};
-                            ggout = fb->DoubleBackward(ggx);
-                        }
+                        Array ggout = fb->DoubleBackward(ggx.AsGradStopped());
                         // Make ggout further backpropable.
                         {
                             BackwardBuilder bb3{"max_pooling_double_backward", ggout};
@@ -110,21 +102,13 @@ Array AveragePool(
         AveragePoolPadMode pad_mode) {
     CheckPoolInputs(x, kernel_size, stride, pad);
     std::shared_ptr<AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(kernel_size, stride, pad, pad_mode);
-    Array out{};
-    {
-        NoBackpropModeScope scope{};
-        out = fb->Forward(x);
-    }
+    Array out = fb->Forward(x.AsGradStopped());
     {
         BackwardBuilder bb1{"average_pool", out};
         if (x.IsGradRequired(AnyGraph{})) {
             bb1.Define({x}, [ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
-                Array gx{};
-                {
-                    NoBackpropModeScope scope{};
-                    gx = fb->Backward(gout);
-                }
+                Array gx = fb->Backward(gout.AsGradStopped());
                 {
                     BackwardBuilder bb2{"average_pool_backward", gx};
                     if (gout.IsGradRequired(AnyGraph{})) {

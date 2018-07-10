@@ -129,8 +129,8 @@ public:
                 *y_desc,
                 xchainer::internal::GetRawOffsetData<void>(y)));
 
-        x_ = x.AsGradStopped();
-        y_ = y.AsGradStopped();
+        x_ = x;
+        y_ = y;
 
         return y;
     }
