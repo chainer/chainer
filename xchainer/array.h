@@ -39,6 +39,8 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 
 bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
 
+bool HasAnyArrayNode(const Array& array);
+
 // Creates a new array node on the specified graph.
 // XchainerError is thrown if an array node is already registered on the graph.
 // The returned reference is only valid until the next call of CreateArrayNode (or ArrayBody::AddNode) on the same ArrayBody
@@ -189,9 +191,6 @@ public:
 
     // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
     void ClearGrad(const GraphId& graph_id = kDefaultGraphId) const;
-
-    // Returns whether the array is constant with regard to any graph.
-    bool IsConstant() const { return body_->nodes_.empty(); }
 
     // Returns whether the array needs to backprop.
     // This takes into account NoBackpropModeScope and ForceBackpropModeScope.

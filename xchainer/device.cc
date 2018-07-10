@@ -102,8 +102,6 @@ ApplyBatchNormResult ApplyBatchNorm(
 
     Array out = (x - mean) * inv_std * gamma + beta;
 
-    assert(out.IsConstant());
-    assert(inv_std.IsConstant());
     return {std::move(out), std::move(inv_std)};
 }
 
@@ -197,7 +195,6 @@ std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array
 Array Device::FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
     ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, mean, var, eps, axis);
-    assert(result.out.IsConstant());
     return std::move(result.out);
 }
 
