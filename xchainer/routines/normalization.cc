@@ -112,9 +112,9 @@ Array BatchNorm(
             const Array& gx = ginputs[0];
             const Array& ggamma = ginputs[1];
             const Array& gbeta = ginputs[2];
-            assert(!gx.IsGradRequired(AnyGraph{}));
-            assert(!ggamma.IsGradRequired(AnyGraph{}));
-            assert(!gbeta.IsGradRequired(AnyGraph{}));
+            assert(gx.IsConstant());
+            assert(ggamma.IsConstant());
+            assert(gbeta.IsConstant());
 
             Array x_cut = bctx.Cut(x);
             Array gamma_cut = bctx.Cut(gamma);
