@@ -30,7 +30,9 @@ class ScheduleInfo(object):
             'func' is called.
         unique_arrays (list of ndarray): The master list of all unique
             ndarrays that appear in the static schedule.
-        func_name (str): An optional name of the static function.
+        func_name (str): An optional name of the static function. This is
+            the name (if any) that was used as a decorater argument to
+            `@static_code(func_name=name)`.
     """
 
     def __init__(self, func, args, kwargs, inputs_hooks, outputs_hooks,
@@ -1103,9 +1105,7 @@ def static_graph(*args, **kwargs):
     method of a Chain instance as corresponding to a static computation
     graph or sub-graph. Such a chain will be referred to as a 'static chain'.
     This allows various "static graph" optimizations to be performed, which
-    can result in significant speedups for some models. It can also
-    potentially support making various tradeoffs between compute
-    efficiency and memory usage.
+    can result in significant speedups for some models.
 
     When this decorator is used, the chain's define-by-run code executes
     during the first iteration as usual. However, while the define-by-run
@@ -1115,66 +1115,62 @@ def static_graph(*args, **kwargs):
     needs to run every iteration. Specifically, this will contain the code
     inside any functions called that were annotated with the `@static_code`
     decorator, which will include all Chainer built-in functions, as well as
-    any user-defined functions that use `@static_codd`. Then, starting
+    any user-defined functions that use `@static_code`. Then, starting
     from the second iteration, when the static chain is called, its
     static schedule code will be executed instead of its define-by-run code.
-
-    This provides the following benefits:
-    - The user-facing API still looks like define-by-run, and still is
-    define-by-run during the first iteration.
-    - Since the define-by-run code is executed during the first iteration, it
-    still supports easy debugging.
-    - Since an optimized static schedule is executed starting from the second
-    iteration, it can potentially provide the speed of a static
-    graph framework.
 
     However, the user must also be careful of the following:
     - The user is responsible for applying this decorator correctly. The
     framework
-    does not check that the define-by-run code actual corresponds to a static
-    graph. It is fine for the graph to be different between training and
+    does not check that the define-by-run code corresponds to a static
+    graph. The graph can be different between training and
     evaluation mode (such as when dropout and/or batch normalization are
     used), but should otherwise be static.
     - When `chainer.config.enable_backprop` is enabled, if a backward pass
     is not performed each iteration, then the user code must call a method
     `chain.schedule_manager.end_forward()`on the static chain each iteration.
-    We are considering ways to automate this in the future.
-    - When this feature is enabled, various tradeoffs between computation
-    and memory usage are possible. The most computation-efficient setting
-    can result in static schedules that use significantly more memory
-    than the default define-by-run code. If this occurs, please change to
-    a more memory-efficient setting and try again.
-    - If the user puts "side effect" code in the chain's `__call__()`, it
-    will only run during the first iteration, which may not be what the
-    user expected. Recall that executing switches to the static schedule
-    starting from the second iteration, and so the define-by-run code is
-    only executed once. The user is responsible for wrapping such
-    "side effect" code inside a function that is decorated with
+    - Static graphs allow tradeoffs between computation and memory usage.
+    For example, the `minimize_cache_size` argument will typically result in
+    higher memory useage when set to `False` because all cached schedules
+    are retained.
+    - When this feature is enabled, only the Chainer function and/or link
+    calls inside the chain's `__call__()` method will be included in the
+    static schedule by default. An other code that the user puts in
+    `__call__()`, such as a print statement or code to increment a counter
+    for example, will not automatically get added. We will refer to such
+    code other than Chainer function/link calls as "side-effect" code.
+    Since side-effect code does not get included in the static schedule
+    by default, this means that it will only every execute once, during
+    the first iteration. There is a way to force side-effect code to be
+    included in the static schedule, however: the user can wrapp such
+    code inside a function that is decorated with
     `@static_code` to ensure that it gets added to the static schedule.
-    - This is still an experimental feature and advanced optimizations such
+    For an example of this, refer to the documentation.
+    - This feature is experimental and advanced optimizations such
     as kernel fusion and various memory optimizations are not implemented
-    yet. Expect performance to improve as this feature is developed further.
+    yet.
 
     Usage:
 
-    The user is responsible for ensuring that this decorator is only appied
+    This decorator should only be applied
     to define-by-run code that actually corresponds to a static subgraph.
-    For the best results, apply this decorator to the chains that
-    correspond to the largest static subgraphs in the model.
-    It is not necessary (and not allowed) to
+    Refer to the documenation for additional details and examples of
+    correct usage.
+    This decorator should be applied to each of the largest static
+    subgraphs in the model; it can also be applied to a static subgraph
+    that is not the largest subgraph, but that could result in reduced
+    performance.
+    It is not currently allowed to
     mark a chain as static if it is contained within
     another chain that is also marked as being static.
     For example, suppose a
     static graph `A` contains a static sub-graph `B`. Then, only the chain
     corresponding to `A` should be marked as static and the chain
     corresponding
-    to `B` should not be marked as static. (this requirement might be relaxed
-    in the future).
+    to `B` should not be marked as static.
 
-    In order to maximize backward compatibility with existing code,
-    we chose to make
-    the behavior of a static chain depend on the training mode flag,
-    `chainer.config.train`. If the it is `True`, then a static chain that is
+    The behavior of a static chain depends on the training mode flag,
+    `chainer.config.train`. If it is `True`, then a static chain that is
     called multiple times will try to use a distinct static schedule object
     (that is, call a distinct instance of a FunctionNode that implements
     that static schedule) on each call. The same schedule instance cannot
@@ -1191,34 +1187,20 @@ def static_graph(*args, **kwargs):
     If test mode is active (`chainer.config.train` is `False`) then it
     is not necessary to inform the chain at the end of each forward pass
     because in test mode, a static chain always attempts to reuse
-    existing static schedule objects whenever possible. It is acceptable
-    to reuse the same static schedule during a single forward pass because
-    we assume that there is no need to compute gradients and hence no
-    need to ever perform a backward pass during test mode.
-    It is also possible to disable static optimzations while in test mode.
+    existing static schedule objects. The same static schedule can be reused
+    during a single forward pass, because it is not necessary to compute
+    gradients.
+    It is also possible to disable static optimzations while in test mode by
+    setting the decorator argument `force_test_define_by_run=True`.
 
     Note: If either 'chainer.config.enable_backprop' or 'chainer.config.train'
     is set to 'False', then cached static schedules will be reused when
-    possible to reduce memory usage. We assume that the user will not need
-    to perform back propagation if either of these flags is 'False', and so
-    it should be safe to reuse the same schedule.
+    possible to reduce memory usage.
 
     Double-backprop:
         Double-backpropagation is not enabled by default. It can be enabled by
         supplying the keyword argument ``enable_double_backprop=True``
         to this decorator. Note: this feature has not been tested yet.
-
-    Notes:
-        There are additional optimizations (to reduce memory usage and increase
-        performance) that are not yet implemented. When using statc graph
-        optimizations, all intermediate activations are currently allocated
-        statically even if they are not needed for backpropagation,
-        which can result in higher memory usage than the
-        corresponding define-by-
-        run code. Also, there is the potential to perform kernel/function
-        fusion to further increase performance. Exporting of static graph
-        to C/C++ and/or an intermediate level graph representations is also
-        possible and may be considered in the future.
 
     Restrictions on input arguments and return values of a static chain:
         Recall that unlike a function, there is no restrictions on the
@@ -1228,14 +1210,14 @@ def static_graph(*args, **kwargs):
         or tuple, the elements are required to be an instance of variable,
         list, or tuple. There can be an arbitrary number of nested lists/
         tuples. No other object types are allowed.
-        In addition to this, it is not allowed to use keyword arguments.
-        The return value of a static chain must also consist of either a
+        In addition, keyword arguments are not allowed.
+        The return value of a static chain must be a
         variable, list, or tuple in which each element of the list or
         tuple is also a variable, list, or tuple.
 
     This decorator can be supplied with the following optional keyword
-    arguments. Note that since this is still an experimental feature,
-    the API and arguments might change in the future.
+    arguments. This is an experimental feature, and the API and arguments
+    might change
 
     Args:
         force_test_define_by_run (bool): If `True`, disable static graph
@@ -1247,9 +1229,11 @@ def static_graph(*args, **kwargs):
             The default is `False`.
 
         minimize_cache_size (bool): If `True`, minimize the number of cached
-            static schedules in order to reduce memory usage. The default
-            value is `False`. todo: Don't enable yet due to memory bug or
-            slow garbage collection?
+            static schedules in order to reduce memory usage. For example,
+            if the mini-batch size changes or the training mode changes,
+            the schedules will need to be recomputed, but memory is also
+            saved by not retaining all cached schedules.
+            The default value is `True`.
 
         verbosity_level (int): Depending on the value, print additional
             information:
@@ -1267,6 +1251,7 @@ def static_graph(*args, **kwargs):
 
     """
 
+    # todo: consider to allow nested use of this decorator.
     force_test_define_by_run = False
     # todo: enable eventually
     minimize_cache_size = False

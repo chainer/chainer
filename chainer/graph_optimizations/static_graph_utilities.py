@@ -41,10 +41,8 @@ def static_code(*dec_args, **dec_kwargs):
     will automatically wrap any `FunctionNode` instances so that the
     code inside their `forward()` and `backward()` methods is added to
     the corresponding forward and backward static schedules, respectively.
-    The user can therefore assume that any built-in Chainer functions and
-    links will already automatically be included in the static schedule.
-    As a result, in most cases, the user will not need to explicitly
-    use this decorator.
+    As a result, any built-in Chainer function and
+    link calls will be automatically included in the static schedule.
 
     However, there are two cases where the user will need to use this
     decorator:
@@ -73,19 +71,19 @@ def static_code(*dec_args, **dec_kwargs):
     the first iteration from the context of the static chain's
     `__call__()` method.
 
-    There are no constraints on the function's
-    arguments, unless the function needs to access, modify, and/or
-    create ndarrays that are used by other functions in the static
-    schedule. In these cases, the following contraints specify how
-    such arrays should be passed into and returned from a function
-    that uses this decorator.
-
     Passing and returing arrays:
 
     If the function needs an array as an input argument that was
     used elsewhere in the static schedule, it must appear as an
     item in list of arrays that is supplied in the `inputs` keyword
-    argument.
+    argument. An example would be the typical case where one layer
+    in the network produces output activations `y` which are then
+    used as the input of the next layer. If the corresponding
+    `FunctionNode` instances wrap their computaions using this decorator,
+    this will result in multiple functions that operate on `y`.
+    The following constraints specify how
+    such arrays should be passed into and returned from a function
+    that uses this decorator.
 
     If the function will return results in one or more arrays, there are
     two options:
@@ -96,10 +94,10 @@ def static_code(*dec_args, **dec_kwargs):
     2. Dynamically allocate the result array(s) inside the function
     and return them inside a tuple.
 
-    Note: Care must be taken for the case where two schedule functions
-    "func_A" and "func_B" operate on the same array `x`. In such cases,
-    `x` must explicitly appear in the `inputs` list, `outputs` list,
-    or returned tuple of both "func_A" and "func_B". For
+    When two schedule functions
+    "func_A" and "func_B" operate on the same array `x`,
+    `x` must explicitly appear as an input argument and/or output
+    of both functions. For
     example, it would be an error to have schedule function "func_A"
     return a dynamically allocated array `x` and then have schedule
     function "func_B" later
@@ -113,23 +111,29 @@ def static_code(*dec_args, **dec_kwargs):
 
     Performance notes:
 
-    It is suggested to have the function return any output arrays in-place
-    into pre-allocated arrays (1. above) when possible since this provides
-    the most flexability to the scheduler to make various tradeoffs
+    The function should return any output arrays in-place
+    into pre-allocated arrays (1. above) when possible since this this allows
+    the scheduler to make tradeoffs
     between computation efficiency and memory usage.
     For example, this allows the use of a
     completely static array allocations (no allocations after the first
-    iteration), if desired. However, if memory reduction is needed, the
-    scheduler may delete the arrays in `inputs` once they are no longer
+    iteration), if desired. If memory reduction is needed, the
+    scheduler may choose to delete the arrays in `inputs` once they are no
+    longer
     needed in an iteration and then reallocate them again in the next
-    iteration just before the function is called. Note, however, that
-    completely static array allocations are of course not possible if
+    iteration just before the function is called. Note that
+    completely static array allocations are not possible if
     any of the schedule functions return a tuple of dynamically allocated
     arrays, as the existing chainer functions do.
 
     The following optional arguments apply to the wrapped function or method.
 
-    Args:
+    Args (of this decorater):
+        func_name (str): An optional descriptive name that will be associated
+            with this function in the static schedule. It is intended
+            for debugging purposes.
+
+    Args (of the wrapped fuction):
         inputs (list of ndarray): An optional keyword argument that
             supplies all arrays needed as input by the function. If the
             function needs an array that is used by another function
