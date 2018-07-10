@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cstddef>
 #include <memory>
-#include <mutex>
 
 #include <cuda_runtime.h>
 
