@@ -11,7 +11,7 @@ from chainer.testing import attr
 from chainer.utils import type_check
 
 
-@testing.parameterize(*testing.product_dict(
+@testing.parameterize(*(testing.product_dict(
     [
         {'shape': (1,), 'axis': 0},
         {'shape': (2, 3, 4), 'axis': 0},
@@ -26,7 +26,12 @@ from chainer.utils import type_check
         'dtype': [numpy.float16, numpy.float32, numpy.float64],
         'contain_zero': [True, False],
     }),
-))
+) + testing.product({
+    'shape': [(0, 3)],
+    'axis': [-2, 1, None],
+    'dtype': [numpy.float64],
+    'contain_zero': [False],
+})))
 class TestCumprod(unittest.TestCase):
 
     def setUp(self):
