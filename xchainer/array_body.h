@@ -34,7 +34,7 @@ public:
     ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
 
     // Adds an array node to the array body.
-    // The array node must not have an associated array body.
+    // The array node must have been initialized with this array body in advance.
     // Otherwise the behavior is undefined.
     // It does nothing if an array node with the same graph ID is already registered.
     // The returned reference is only valid until the next call of AddNode on this instance.
