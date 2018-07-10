@@ -1,10 +1,10 @@
-.. module:: chainer.dataset
-
 Datasets
 ========
 
-Dataset Abstraction
--------------------
+.. module:: chainer.dataset
+
+Dataset Abstraction (``chainer.dataset``)
+-----------------------------------------
 
 Chainer supports a common interface for training and validation of datasets. The dataset support consists of three components: datasets, iterators, and batch conversion functions.
 
@@ -65,12 +65,13 @@ Dataset Management
    chainer.dataset.set_dataset_root
    chainer.dataset.cached_download
    chainer.dataset.cache_or_load_file
+
 .. module:: chainer.datasets
 
 .. _datasets:
 
-Examples
---------
+Dataset Examples (``chainer.datasets``)
+---------------------------------------
 
 The most basic :mod:`~chainer.dataset` implementation is an array.
 Both NumPy and CuPy arrays can be used directly as datasets.
