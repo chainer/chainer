@@ -82,8 +82,8 @@ class TestCuda(unittest.TestCase):
 
     @attr.gpu
     def test_get_device_for_empty_array(self):
-        x = cuda.cupy.array([]).reshape((0, 10))
-        assert cuda.get_device_from_array(x) == cuda.Device(0)
+        x = cuda.get_device_from_array(cuda.cupy.array([]).reshape((0, 10)))
+        assert x == cuda.Device(0) or x == cuda.DummyDevice
 
     @attr.gpu
     @unittest.skipUnless(
