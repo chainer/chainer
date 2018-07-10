@@ -754,21 +754,6 @@ class GradientMethod(Optimizer):
         self.call_hooks('post')
 
     def use_cleargrads(self, use=True):
-        """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
-
-        Args:
-            use (bool): If ``True``, this function enables use of
-                `cleargrads`. If ``False``, disables use of `cleargrads`
-                (`zerograds` is used).
-
-        .. deprecated:: v2.0
-           Note that :meth:`update` calls :meth:`~Link.cleargrads` by default.
-           :meth:`~Link.cleargrads` is more efficient than
-           :meth:`~Link.zerograds`, so one does not have to call
-           :meth:`use_cleargrads`. This method remains for backward
-           compatibility.
-
-        """
         warnings.warn(
             'GradientMethod.use_cleargrads is deprecated.',
             DeprecationWarning)

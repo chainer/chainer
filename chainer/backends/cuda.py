@@ -268,7 +268,7 @@ def get_device(*args):
 
     .. note::
 
-        This API is deprecated. Please use
+        This API is deprecated since v3.0.0. Please use
         :func:`~chainer.backends.cuda.get_device_from_id`
         or :func:`~chainer.backends.cuda.get_device_from_array` instead.
 

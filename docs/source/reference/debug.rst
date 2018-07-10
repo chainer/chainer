@@ -34,13 +34,5 @@ You can check if debug mode is enabled with :func:`chainer.is_debug` function.
 Deprecated interface
 --------------------
 
-As of v2.0.0, it is recommended to turn on the debug mode using ``chainer.config.debug``.
+It is recommended to turn on the debug mode using ``chainer.config.debug``.
 See :ref:`configuration` for the way to use the config object.
-We leave the reference of the conventional way (which has been available since Chainer v1) as follows.
-
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   chainer.DebugMode
