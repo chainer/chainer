@@ -384,7 +384,7 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
             BackwardBuilder bb{"func", y};
             bb.Define({x}, [x](BackwardContext& bctx) {
                 // Create an input grad which references the input array.
-                bctx.input_grad() = 2 * bctx.Cut(x) * bctx.output_grad();
+                bctx.input_grad() = 2 * x * bctx.output_grad();
             });
         };
 
@@ -425,11 +425,10 @@ TEST_P(BackpropTest, SomeOfPreviousArrayNodesAreGone) {
 
         BackwardBuilder bb{"func", {y1, y2, y3, y4}};
         bb.Define({x}, [x](BackwardContext& bctx) {
-            Array x_cut = bctx.Cut(x);
-            Array gy1gx = bctx.output_grad(0) * Exp(x_cut) * x_cut;
-            Array gy2gx = bctx.output_grad(1) * Exp(x_cut) * 2;
-            Array gy3gx = bctx.output_grad(2) * Exp(x_cut) * 3;
-            Array gy4gx = bctx.output_grad(3) * Exp(x_cut) * 4;
+            Array gy1gx = bctx.output_grad(0) * Exp(x) * x;
+            Array gy2gx = bctx.output_grad(1) * Exp(x) * 2;
+            Array gy3gx = bctx.output_grad(2) * Exp(x) * 3;
+            Array gy4gx = bctx.output_grad(3) * Exp(x) * 4;
             bctx.input_grad() = gy1gx + gy2gx + gy3gx + gy4gx;
         });
     };
