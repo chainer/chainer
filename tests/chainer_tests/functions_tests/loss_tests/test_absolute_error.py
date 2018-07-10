@@ -67,12 +67,9 @@ class TestAbsoluteError(unittest.TestCase):
 
     def check_double_backward(self, x0_data, x1_data, y_grad,
                               gx0_grad, gx1_grad):
-        def f(x0, x1):
-            y = functions.absolute_error(x0, x1)
-            return y * y
-
         gradient_check.check_double_backward(
-            f, (x0_data, x1_data), y_grad, (gx0_grad, gx1_grad), eps=1e-2)
+            functions.absolute_error, (x0_data, x1_data), y_grad,
+            (gx0_grad, gx1_grad), eps=1e-2)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(

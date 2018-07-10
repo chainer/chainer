@@ -326,7 +326,6 @@ class NStepBiRNNTanh(NStepRNNBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_cudnn (bool): Use cuDNN.
 
     .. seealso::
         :func:`chainer.functions.n_step_birnn`
