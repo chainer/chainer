@@ -72,9 +72,10 @@ class GradTable(object):
 
 def backprop_step(
         func, target_input_indexes, grad_outputs, grad_inputs):
-    assert isinstance(target_input_indexes, tuple)
-    assert target_input_indexes == tuple(sorted(target_input_indexes))
-    assert isinstance(grad_outputs, tuple)
+    if chainer.is_debug():
+        assert isinstance(target_input_indexes, tuple)
+        assert target_input_indexes == tuple(sorted(target_input_indexes))
+        assert isinstance(grad_outputs, tuple)
     if func.backward_accumulate.__code__ \
             is not chainer.FunctionNode.backward_accumulate.__code__:
         # backward_accumulate is overridden
@@ -84,12 +85,9 @@ def backprop_step(
         ])
         gxs = func.backward_accumulate(
             target_input_indexes, grad_outputs, grad_inputs_tuple)
-        assert isinstance(gxs, tuple)
     else:  # otherwise, backward should be overridden
         gxs = func.backward(
             target_input_indexes, grad_outputs)
-        # assert isinstance(gxs, tuple)  # this check is failing
-
         len_gxs = len(gxs)
         if len_gxs == len(func.inputs):
             gxs = tuple([gxs[i] for i in target_input_indexes])
