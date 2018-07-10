@@ -3,6 +3,7 @@ import numpy
 
 from chainer.backends import cuda
 from chainer.functions.activation import maxout
+from chainer import initializer
 from chainer import link
 from chainer.links.connection import linear
 
@@ -60,10 +61,14 @@ class Maxout(link.Chain):
 
         linear_out_size = out_size * pool_size
 
-        if isinstance(initialW, (numpy.ndarray, cuda.ndarray)):
+        if numpy.isscalar(initialW):
+            pass
+        elif isinstance(initialW, (numpy.ndarray, cuda.ndarray)):
             if initialW.ndim != 3:
                 raise ValueError('initialW.ndim should be 3')
             initialW = initialW.reshape(linear_out_size, in_size)
+        elif isinstance(initialW, initializer.Initializer):
+            pass
         elif callable(initialW):
             def make_initialW_wrapper(initialW):
                 @functools.wraps(initialW)
@@ -73,11 +78,17 @@ class Maxout(link.Chain):
                     array.shape = (linear_out_size, in_size)
                 return wrapper
             initialW = make_initialW_wrapper(initialW)
+        else:
+            pass
 
-        if isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
+        if numpy.isscalar(initial_bias):
+            pass
+        elif isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
             if initial_bias.ndim != 2:
                 raise ValueError('initial_bias.ndim should be 2')
             initial_bias = initial_bias.reshape(linear_out_size)
+        elif isinstance(initial_bias, initializer.Initializer):
+            pass
         elif callable(initial_bias):
             def make_initial_bias_wrapper(initial_bias):
                 @functools.wraps(initial_bias)
@@ -87,6 +98,8 @@ class Maxout(link.Chain):
                     array.shape = linear_out_size,
                 return wrapper
             initial_bias = make_initial_bias_wrapper(initial_bias)
+        else:
+            pass
 
         with self.init_scope():
             self.linear = linear.Linear(
