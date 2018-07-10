@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <cstdlib>
+#include <mutex>
 
 #include <gsl/gsl>
 
