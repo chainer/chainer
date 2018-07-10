@@ -1,8 +1,5 @@
 import os
 import sys
-import warnings
-
-import numpy.distutils.system_info
 
 
 def _check_python_350():
@@ -18,20 +15,5 @@ def _check_python_350():
             raise Exception(msg)
 
 
-def _check_osx_numpy_backend():
-    if sys.platform != 'darwin':
-        return
-
-    blas_opt_info = numpy.distutils.system_info.get_info('blas_opt')
-    if blas_opt_info:
-        extra_link_args = blas_opt_info.get('extra_link_args')
-        if extra_link_args and '-Wl,Accelerate' in extra_link_args:
-            warnings.warn('''\
-Note that Chainer does not officially support Mac OS X.
-Please use it at your own risk.
-''')  # NOQA
-
-
 def check():
     _check_python_350()
-    _check_osx_numpy_backend()
