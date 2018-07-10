@@ -162,6 +162,7 @@ class TestModifiedXLogX(unittest.TestCase):
     def test_backward_zero_input_cpu(self):
         self.check_backward_zero_input(self.zero_x)
 
+    @attr.gpu
     def test_backward_zero_input_gpu(self):
         self.check_backward_zero_input(cuda.to_gpu(self.zero_x))
 
