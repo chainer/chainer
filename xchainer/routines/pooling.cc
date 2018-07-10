@@ -23,7 +23,7 @@ void CheckPoolInputs(
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad) {
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions.
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions.
     if (static_cast<int8_t>(kernel_size.size()) != ndim) {
         throw DimensionError{"Wrong numbers of kernel size dimensions ", kernel_size.size(), " for input with ", x.ndim(), " dimensions."};
     }
