@@ -17,17 +17,8 @@ namespace cuda {
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
     CheckCudaError(cudaSetDevice(index()));
-
-    void* ptr{};
-    {
-        std::lock_guard<std::mutex> lock{memory_pool_mutex_};
-        ptr = memory_pool_.Malloc(bytesize);
-    }
-
-    return std::shared_ptr<void>{ptr, [this](void* ptr) {
-                                     std::lock_guard<std::mutex> lock{memory_pool_mutex_};
-                                     memory_pool_.Free(ptr);
-                                 }};
+    void* ptr = memory_pool_.Malloc(bytesize);
+    return std::shared_ptr<void>{ptr, [this](void* ptr) { memory_pool_.Free(ptr); }};
 }
 
 std::shared_ptr<void> CudaDevice::MakeDataFromForeignPointer(const std::shared_ptr<void>& data) {
