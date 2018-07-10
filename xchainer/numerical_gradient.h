@@ -11,11 +11,7 @@ namespace numerical_gradient_internal {
 using Arrays = std::vector<Array>;
 
 Arrays CalculateNumericalGradient(
-        std::function<Arrays(const Arrays&)> func,
-        const Arrays& inputs,
-        const Arrays& grad_outputs,
-        const Arrays& eps,
-        const GraphId& graph_id = kDefaultGraphId);
+        std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs, const Arrays& eps);
 
 }  // namespace numerical_gradient_internal
 
