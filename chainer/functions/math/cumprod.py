@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
+from chainer.functions.array import flip
 from chainer.utils import type_check
 
 
@@ -51,15 +52,9 @@ class Cumprod(function_node.FunctionNode):
             axis += y.ndim
 
         _, x = F.split_axis(x, (1,), axis)
-        z, = Cumprodsum(axis).apply((
-            F.flip(x, axis),
-            F.flip(gy, axis),
-        ))
-
+        gx = _flipcumprodsum(x, gy, axis)
         y, ylast = F.split_axis(y, (-1,), axis)
-        y = F.concat([xp.ones_like(ylast.array), y], axis=axis)
-
-        gx = F.flip(z, axis) * y
+        gx *= F.concat([xp.ones_like(ylast.array), y], axis=axis)
         if shape is not None:
             gx = F.reshape(gx, shape)
         return gx,
@@ -100,15 +95,16 @@ class Cumprodsum(function_node.FunctionNode):
         gy, = grad_outputs
         axis = self.axis
 
-        z, = Cumprodsum(axis).apply((
-            F.flip(xmul, axis),
-            F.flip(gy, axis),
-        ))
-        gxadd = F.flip(z, axis)
+        gxadd = _flipcumprodsum(xmul, gy, axis)
         _, gxmul = F.split_axis(gxadd, (1,), axis)
         y, _ = F.split_axis(y, (-1,), axis)
         gxmul *= y
         return gxmul, gxadd
+
+
+def _flipcumprodsum(xmul, xadd, axis):
+    z, = Cumprodsum(axis).apply((flip.flip(xmul, axis), flip.flip(xadd, axis)))
+    return flip.flip(z, axis)
 
 
 def cumprod(x, axis=None):
