@@ -32,7 +32,9 @@ class Extension(object):
         ~Extension.priority: Default priority of the extension. It is set to
             ``PRIORITY_READER`` by default.
         ~Extension.name: Name of the extension. It is set to
-            ``None`` by default.
+            ``None`` by default. This value will be overwritten when
+            registering an extension to a trainer. See
+            :meth:`chainer.training.Trainer.extend` for details.
 
     """
     trigger = 1, 'iteration'
