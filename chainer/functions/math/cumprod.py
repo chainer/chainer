@@ -41,20 +41,21 @@ class Cumprod(function_node.FunctionNode):
 
         axis = self.axis
         if axis is None:
-            axis = 0
             shape = x.shape
+            axis = 0
             x = F.flatten(x)
         else:
             shape = None
-        if y.shape[axis] == 0:
-            return None,
-        if axis < 0:
-            axis += y.ndim
+            if axis < 0:
+                axis += y.ndim
 
-        _, x = F.split_axis(x, (1,), axis)
-        gx = _flipcumprodsum(x, gy, axis)
-        y, ylast = F.split_axis(y, (-1,), axis)
-        gx *= F.concat([xp.ones_like(ylast.array), y], axis=axis)
+        if y.shape[axis] <= 1:
+            gx = gy
+        else:
+            _, x = F.split_axis(x, (1,), axis)
+            gx = _flipcumprodsum(x, gy, axis)
+            y, ylast = F.split_axis(y, (-1,), axis)
+            gx *= F.concat([xp.ones_like(ylast.array), y], axis=axis)
         if shape is not None:
             gx = F.reshape(gx, shape)
         return gx,
