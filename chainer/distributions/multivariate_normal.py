@@ -6,17 +6,88 @@ from chainer.functions.array import expand_dims
 from chainer.functions.array import moveaxis
 from chainer.functions.array import repeat
 from chainer.functions.array import squeeze
+from chainer.functions.array import stack
 from chainer.functions.array import swapaxes
+from chainer.functions.array import where
 from chainer.functions.math import basic_math
 from chainer.functions.math import exponential
-from chainer.functions.math import inv
 from chainer.functions.math import matmul
 from chainer.functions.math import sum as sum_mod
+from chainer import utils
+from chainer.utils import type_check
 import math
 import numpy
 
+try:
+    import scipy.linalg
+    available_cpu = True
+except ImportError as e:
+    available_cpu = False
+    _import_error = e
+
 ENTROPYC = 0.5 * math.log(2 * math.pi * math.e)
 LOGPROBC = - 0.5 * math.log(2 * math.pi)
+
+
+class TriangularInv(chainer.function_node.FunctionNode):
+
+    def __init__(self, lower):
+        self._lower = lower
+
+    def check_type_forward(self, in_types):
+        type_check.expect(in_types.size() == 1)
+        a_type, = in_types
+        type_check.expect(a_type.dtype == numpy.float32)
+        # Only 2D array shapes allowed
+        type_check.expect(a_type.ndim == 2)
+        # Matrix inversion only allowed for square matrices
+        type_check.expect(a_type.shape[0] == a_type.shape[1])
+
+    def forward_cpu(self, inputs):
+        self.retain_outputs((0,))
+        if not available_cpu:
+            raise ImportError("SciPy is not available. Forward computation"
+                              " of triangular_inv in CPU can not be done." +
+                              str(_import_error))
+        x, = inputs
+        invx = scipy.linalg.solve_triangular(x, numpy.eye(len(x)),
+                                             lower=self._lower)
+        return utils.force_array(invx, dtype=x[0].dtype),
+
+    def forward_gpu(self, inputs):
+        self.retain_outputs((0,))
+        x, = inputs
+        invx = cuda.cupyx.scipy.linalg.solve_triangular(
+            x, cuda.cupy.eye(len(x)), lower=self._lower)
+        return utils.force_array(invx, dtype=x[0].dtype),
+
+    def backward(self, target_input_indexes, grad_outputs):
+        gy, = grad_outputs
+        xp = cuda.get_array_module(gy)
+        invx, = self.get_retained_outputs()
+        mask = xp.tril(xp.ones((len(invx), len(invx)), dtype=bool))
+        if not self._lower:
+            mask = mask.T
+        # Gradient is - x^-T (dx) x^-T
+        invxT = chainer.functions.transpose(invx)
+        gx = chainer.functions.matmul(
+            chainer.functions.matmul(- invxT, gy), invxT)
+        gx = where.where(mask, gx, xp.zeros_like(gx.array))
+        print(gx)
+        return gx,
+
+
+def _triangular_inv(x, lower=True):
+    y, = TriangularInv(lower).apply((x,))
+    return y
+
+
+def _batch_triangular_inv(x, lower=True):
+    n = len(x)
+    y = []
+    for i in range(n):
+        y.append(_triangular_inv(x[i]))
+    return stack.stack(y)
 
 
 class MultivariateNormal(distribution.Distribution):
@@ -65,8 +136,7 @@ class MultivariateNormal(distribution.Distribution):
 
     def log_prob(self, x):
         scale_tril_inv = \
-            inv.batch_inv(self.scale_tril.reshape(-1, self.d, self.d)).reshape(
-                self.scale_tril.shape)
+            _batch_triangular_inv(self.scale_tril.reshape(-1, self.d, self.d))
         scale_tril_inv = scale_tril_inv.reshape(
             self.batch_shape+(self.d, self.d))
 
@@ -116,7 +186,7 @@ def _kl_multivariatenormal_multivariatenormal(dist1, dist2):
     diag = st[list(range(dist2.d)), list(range(dist2.d))]
     logdet2 = sum_mod.sum(exponential.log(basic_math.absolute(diag)), axis=0)
 
-    scale_tril_inv2 = inv.batch_inv(dist2.scale_tril.reshape(
+    scale_tril_inv2 = _batch_triangular_inv(dist2.scale_tril.reshape(
         -1, dist2.d, dist2.d))
     trace = sum_mod.sum(matmul.matmul(
         scale_tril_inv2, dist1.scale_tril.reshape(-1, dist2.d, dist2.d)) ** 2,
