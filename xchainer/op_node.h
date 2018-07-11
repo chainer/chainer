@@ -77,6 +77,7 @@ public:
     void RegisterExoticPreviousArrayNodes(GraphId other_graph_id, std::vector<std::weak_ptr<ArrayNode>> exotic_prev_array_nodes);
 
     // Clones the op node in another graph.
+    // Used when fabricating array nodes in output array retention.
     std::shared_ptr<OpNode> CloneInOtherGraph(const GraphId& other_graph_id) const;
 
     void Unchain() {
