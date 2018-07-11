@@ -292,11 +292,12 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
             }
         }
 
+        std::shared_ptr<OpNode>& op_node = insert_result.first->second;
+
         // Keep the list of op nodes involved in this backward function
-        op_nodes.emplace_back(insert_result.first->second.get());
+        op_nodes.emplace_back(op_node.get());
 
         // Add edges to the input nodes
-        std::shared_ptr<OpNode>& op_node = insert_result.first->second;
         std::vector<std::shared_ptr<ArrayNode>> temp_next_array_nodes;
         temp_next_array_nodes.reserve(next_array_nodes.size());
         std::transform(
