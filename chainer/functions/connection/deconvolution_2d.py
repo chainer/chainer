@@ -27,18 +27,16 @@ class Deconvolution2DFunction(function_node.FunctionNode):
     cover_all = None
     _use_ideep = False
 
-    def __init__(self, stride=1, pad=0, outsize=None, groups=1, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs,
+    def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
+        dilate, groups = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1),
             deterministic="deterministic argument is not supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) context "
             "where value is either `True` or `False`.",
             requires_x_grad="requires_x_grad argument is not supported "
             "anymore. Just remove the argument. Note that whether to compute "
             "the gradient w.r.t. x is automatically decided during "
-            "backpropagation."
-        )
-        dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
+            "backpropagation.")
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
@@ -110,6 +108,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 raise RuntimeError('Width in the output must be positive.')
 
     def forward_cpu(self, inputs):
+        if ((self.dy == 1 and self.dx == 1)
+                and intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs)):
+            self._use_ideep = True
+
         self.retain_inputs((0, 1))  # only retain x and W
         if len(inputs) == 2:
             (x, W), b = inputs, None
@@ -122,8 +125,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             # Grouped convolution implementation
             return self._forward_grouped_convolution(x, W, b)
 
-        elif ((self.dy == 1 and self.dx == 1)
-              and intel64.should_use_ideep('>=auto')
+        elif (intel64.should_use_ideep('>=auto')
               and intel64.inputs_all_ready(inputs)):
             # iDeep implementation
             self._use_ideep = True
@@ -133,6 +135,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             return self._forward_cpu_core(x, W, b)
 
     def _forward_cpu_core(self, x, W, b):
+        if self._use_ideep:
+            return self._forward_ideep(x, W, b)
+
         gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
         gcol = numpy.rollaxis(gcol, 3)
         y = conv.col2im_cpu(
@@ -140,7 +145,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             dy=self.dy, dx=self.dx)
         # b, k, h, w
         if b is not None:
-            y += b.reshape(1, b.size, 1, 1)
+            y += b.reshape((1, b.size, 1, 1))
         return y,
 
     def _forward_ideep(self, x, W, b):
@@ -166,7 +171,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             param)
 
         if b is not None:
-            y += b.reshape(1, b.size, 1, 1)
+            y += b.reshape((1, b.size, 1, 1))
         return y,
 
     def forward_gpu(self, inputs):
@@ -228,11 +233,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         xp = cuda.get_array_module(x)
 
-        _x = x.reshape(N, G, xCg, xH, xW)
+        _x = x.reshape((N, G, xCg, xH, xW))
         _x = xp.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)
-        _W = W.reshape(G, xCg, yCg, kH, kW)
+        _W = W.reshape((G, xCg, yCg, kH, kW))
         if b is not None:
-            _b = b.reshape(G, yCg)
+            _b = b.reshape((G, yCg))
 
         _ys = []
         for g in six.moves.range(G):
@@ -298,9 +303,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                                           self.pw, d=self.dx))
 
 
-def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, groups=1,
-                     **kwargs):
-    """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None)
+def deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, **kwargs):
+    """deconvolution_2d(x, W, b=None, stride=1, pad=0, outsize=None, *, dilate=1, groups=1)
 
     Two dimensional deconvolution function.
 
@@ -372,6 +376,12 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
             It should be pair of height and width :math:`(h_O, w_O)`.
             Default value is ``None`` and the outsize is estimated by
             input size, stride and pad.
+        dilate (:class:`int` or pair of :class:`int` s):
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (:class:`int`):
+            The number of groups to use grouped deconvolution.
+            The default is one, where grouped deconvolution is not used.
 
     Returns:
         ~chainer.Variable:
@@ -404,13 +414,14 @@ astype(np.float32)
         True
 
 
-    """
+    """  # NOQA
     argument.check_unexpected_kwargs(
         kwargs, deterministic="deterministic argument is not "
         "supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-    dilate, = argument.parse_kwargs(kwargs, ('dilate', 1))
+    dilate, groups = argument.parse_kwargs(kwargs,
+                                           ('dilate', 1), ('groups', 1))
 
     func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate,
                                    groups=groups)

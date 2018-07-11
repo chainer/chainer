@@ -96,7 +96,7 @@ class TestKeepGraphOnReportFlag(unittest.TestCase):
 
     def test_keep_graph_default(self):
         x = chainer.Variable(numpy.array([1], numpy.float32))
-        y, = functions.Sigmoid().apply((x,))
+        y = functions.sigmoid(x)
         reporter = chainer.Reporter()
         with self._scope(None):
             reporter.report({'y': y})
@@ -104,16 +104,15 @@ class TestKeepGraphOnReportFlag(unittest.TestCase):
 
     def test_keep_graph(self):
         x = chainer.Variable(numpy.array([1], numpy.float32))
-        y, = functions.Sigmoid().apply((x,))
+        y = functions.sigmoid(x)
         reporter = chainer.Reporter()
         with self._scope(True):
             reporter.report({'y': y})
-        self.assertIsInstance(reporter.observation['y'].creator,
-                              functions.Sigmoid)
+        assert reporter.observation['y'].creator is not None
 
     def test_not_keep_graph(self):
         x = chainer.Variable(numpy.array([1], numpy.float32))
-        y, = functions.Sigmoid().apply((x,))
+        y = functions.sigmoid(x)
         reporter = chainer.Reporter()
         with self._scope(False):
             reporter.report({'y': y})

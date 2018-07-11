@@ -102,7 +102,7 @@ class RepeatGrad(function_node.FunctionNode):
             for (i, r) in enumerate(repeats):
                 src[-1] = slice(pos, pos + r)
                 dst[-1] = slice(i, i + 1)
-                gx[dst] = gy[src].sum(axis=axis, keepdims=True)
+                gx[tuple(dst)] = gy[tuple(src)].sum(axis=axis, keepdims=True)
                 pos += r
         return gx,
 

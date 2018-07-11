@@ -27,9 +27,9 @@ class Extension(object):
     specifies them in :meth:`Trainer.extend` method.
 
     Attributes:
-        ~Extension.trigger: Default value of trigger for this extension. It
-            is set to ``(1, 'iteration')`` by default.
-        ~Extension.priority: Default priority of the extension. It is set to
+        trigger: Default value of trigger for this extension. It is set to
+            ``(1, 'iteration')`` by default.
+        priority: Default priority of the extension. It is set to
             ``PRIORITY_READER`` by default.
 
     """
@@ -129,10 +129,11 @@ def make_extension(trigger=None, default_name=None, priority=None,
             the beginning of the training loop.
 
     """
-    msg = ('invoke_before_training has been removed since Chainer v2.0.0. '
-           'Use initializer= instead.')
-    argument.check_unexpected_kwargs(kwargs, invoke_before_training=msg)
-    argument.assert_kwargs_empty(kwargs)
+    if kwargs:
+        msg = ('invoke_before_training has been removed since Chainer v2.0.0. '
+               'Use initializer= instead.')
+        argument.check_unexpected_kwargs(kwargs, invoke_before_training=msg)
+        argument.assert_kwargs_empty(kwargs)
 
     if trigger is None:
         trigger = Extension.trigger

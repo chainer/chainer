@@ -12,7 +12,6 @@ You need to install chainer with NCCL to run this example.
 Please see https://github.com/nvidia/nccl#build--run .
 
 """
-from __future__ import print_function
 import argparse
 
 import numpy as np
@@ -75,7 +74,7 @@ def main():
     # Initialize the model to train
     model = archs[args.arch]()
     if args.initmodel:
-        print('Load model from', args.initmodel)
+        print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
 
     # Load the datasets and mean file

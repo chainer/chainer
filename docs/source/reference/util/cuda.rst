@@ -23,6 +23,7 @@ CuPy array allocation and copy
    :nosignatures:
 
    chainer.backends.cuda.copy
+   chainer.backends.cuda.copyto
    chainer.backends.cuda.to_cpu
    chainer.backends.cuda.to_gpu
 

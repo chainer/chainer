@@ -1,4 +1,3 @@
-from __future__ import print_function
 import sys
 import warnings
 
@@ -60,7 +59,7 @@ class PrintHook(function_hook.FunctionHook):
         self.flush = flush
 
     def _print(self, msg):
-        print(msg, end=self.end, file=self.file)
+        self.file.write(msg + self.end)
 
     def _process(self, function, in_data, out_grad=None):
         self._print('function\t{}'.format(function.label))

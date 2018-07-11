@@ -6,7 +6,6 @@ https://github.com/tomsercu/lstm
 
 """
 from __future__ import division
-from __future__ import print_function
 import argparse
 
 import numpy as np
@@ -199,7 +198,7 @@ def main():
     # Load the Penn Tree Bank long word sequence dataset
     train, val, test = chainer.datasets.get_ptb_words()
     n_vocab = max(train) + 1  # train is just an array of integers
-    print('#vocab =', n_vocab)
+    print('#vocab = {}'.format(n_vocab))
 
     if args.test:
         train = train[:100]
@@ -256,7 +255,7 @@ def main():
     eval_rnn.reset_state()
     evaluator = extensions.Evaluator(test_iter, eval_model, device=args.gpu)
     result = evaluator()
-    print('test perplexity:', np.exp(float(result['main/loss'])))
+    print('test perplexity: {}'.format(np.exp(float(result['main/loss']))))
 
     # Serialize the final model
     chainer.serializers.save_npz(args.model, model)

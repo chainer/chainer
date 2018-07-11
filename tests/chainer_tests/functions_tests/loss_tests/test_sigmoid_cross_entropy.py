@@ -190,7 +190,7 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
                 x, t, normalize=normalize, reduce=reduce)
 
         gradient_check.check_double_backward(
-            f, (x_data, t_data), y_grad, (gx_grad, None),
+            f, (x_data, t_data), y_grad, (gx_grad,),
             **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):

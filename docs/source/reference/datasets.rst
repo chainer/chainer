@@ -98,7 +98,8 @@ The second one is :class:`ConcatenatedDataset` and :class:`SubDataset`.
 The third one is :class:`TransformDataset`, which wraps around a dataset by applying a function to data indexed from the underlying dataset.
 It can be used to modify behavior of a dataset that is already prepared.
 
-The last one is a group of domain-specific datasets. Currently, :class:`ImageDataset` and :class:`LabeledImageDataset` are provided for datasets of images.
+The last one is a group of domain-specific datasets.
+Currently, implementations for datasets of images (:class:`ImageDataset`, :class:`LabeledImageDataset`, etc.) and text (:class:`TextDataset`) are provided.
 
 
 DictDataset
@@ -158,6 +159,8 @@ ImageDataset
    :nosignatures:
 
    chainer.datasets.ImageDataset
+   chainer.datasets.ZippedImageDataset
+   chainer.datasets.MultiZippedImageDataset
 
 LabeledImageDataset
 ~~~~~~~~~~~~~~~~~~~
@@ -167,6 +170,15 @@ LabeledImageDataset
    :nosignatures:
 
    chainer.datasets.LabeledImageDataset
+
+TextDataset
+~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.TextDataset
 
 Concrete Datasets
 -----------------

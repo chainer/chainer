@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import collections
 import os
 import sys
@@ -210,11 +208,12 @@ class Trainer(object):
                 instead.
 
         """
-        argument.check_unexpected_kwargs(
-            kwargs,
-            invoke_before_training='invoke_before_training has been removed '
-            'since Chainer v2.0.0. Use initializer= instead.')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                invoke_before_training='invoke_before_training has been '
+                'removed since Chainer v2.0.0. Use initializer= instead.')
+            argument.assert_kwargs_empty(kwargs)
 
         if name is None:
             name = getattr(extension, 'name', None)
@@ -311,12 +310,12 @@ class Trainer(object):
             if show_loop_exception_msg:
                 # Show the exception here, as it will appear as if chainer
                 # hanged in case any finalize method below deadlocks.
-                print('Exception in main training loop: {}'.format(e),
-                      file=sys.stderr)
-                print('Traceback (most recent call last):', file=sys.stderr)
+                f = sys.stderr
+                f.write('Exception in main training loop: {}\n'.format(e))
+                f.write('Traceback (most recent call last):\n')
                 traceback.print_tb(sys.exc_info()[2])
-                print('Will finalize trainer extensions and updater before '
-                      'reraising the exception.', file=sys.stderr)
+                f.write('Will finalize trainer extensions and updater before '
+                        'reraising the exception.\n')
             six.reraise(*sys.exc_info())
         finally:
             for _, entry in extensions:

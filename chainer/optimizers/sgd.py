@@ -20,6 +20,7 @@ class SGDRule(optimizer.UpdateRule):
         lr (float): Learning rate.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None):
         super(SGDRule, self).__init__(
@@ -40,9 +41,11 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        cuda.elementwise('T grad, T lr', 'T param',
-                         'param -= lr * grad',
-                         'sgd')(grad, self.hyperparam.lr, param.data)
+        if SGDRule._kernel is None:
+            SGDRule._kernel = cuda.elementwise(
+                'T grad, T lr', 'T param',
+                'param -= lr * grad', 'sgd')
+        SGDRule._kernel(grad, self.hyperparam.lr, param.data)
 
 
 class SGD(optimizer.GradientMethod):

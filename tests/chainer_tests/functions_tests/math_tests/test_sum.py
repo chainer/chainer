@@ -70,15 +70,15 @@ class TestSumError(unittest.TestCase):
 
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
-            functions.Sum([0])
+            functions.sum(self.x, axis=[0])
 
     def test_invalid_axis_type_in_tuple(self):
         with self.assertRaises(TypeError):
-            functions.Sum((1, 'x'))
+            functions.sum(self.x, axis=(1, 'x'))
 
     def test_duplicate_axis(self):
         with self.assertRaises(ValueError):
-            functions.Sum((0, 0))
+            functions.sum(self.x, axis=(0, 0))
 
     def test_pos_neg_duplicate_axis(self):
         with self.assertRaises(ValueError):
