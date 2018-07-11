@@ -28,7 +28,7 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_order,
         elif sp_order is 'F':
             A_order = 'C'
         else:
-            A_order = None
+            A_order = sp_order
     else:
         A_row = sp_row
         A_col = sp_col
@@ -162,7 +162,7 @@ def _cupy_coo_matmul():
 
 class CooMatMul(function_node.FunctionNode):
 
-    def __init__(self, sp_row, sp_col, sp_shape, sp_order=None,
+    def __init__(self, sp_row, sp_col, sp_shape, sp_order='other',
                  transa=False, transb=False, transc=False, dtype=None):
         if sp_row.ndim != sp_col.ndim:
             raise ValueError('ndim of sp_row and sp_col must be the same.')
@@ -350,7 +350,7 @@ def _cupy_coo_matmul_gradsp():
 
 class CooMatMulGradSP(function_node.FunctionNode):
 
-    def __init__(self, sp_row, sp_col, sp_shape, sp_order=None,
+    def __init__(self, sp_row, sp_col, sp_shape, sp_order='other',
                  transa=False, transb=False, transc=False,
                  dtype=None):
         if sp_row.ndim != sp_col.ndim:
