@@ -50,6 +50,7 @@ class TestMultivariateNormal(testing.distribution_unittest):
     'lower': [True, False],
     'dtype': [numpy.float32],
 }))
+@testing.with_requires('scipy')
 class TestTriangularInv(unittest.TestCase):
 
     def setUp(self):

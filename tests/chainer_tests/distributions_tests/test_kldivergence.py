@@ -85,6 +85,7 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_normal_dist(True)
         self.check_kl(dist1, dist2)
 
+    @testing.with_requires('scipy')
     def test_multivariatenormal_multivariatenormal_cpu(self):
         dist1 = self.make_multivariatenormal_dist()
         dist2 = self.make_multivariatenormal_dist()
