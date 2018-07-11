@@ -112,7 +112,7 @@ class TestFmod(UnaryFunctionsTestBase):
         self.check_double_backward_gpu(F.fmod)
 
     def test_label(self):
-        self.check_label(F.Fmod, 'fmod')
+        self.check_label(chainer.functions.math.fmod.Fmod, 'fmod')
 
 
 testing.run_module(__name__, __file__)

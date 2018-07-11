@@ -90,7 +90,7 @@ class TestDropout(unittest.TestCase):
 
         # Instantiate the function class directly in order to reuse the mask,
         # because f will be called repeatedly.
-        dropout = functions.Dropout(self.ratio)
+        dropout = functions.noise.dropout.Dropout(self.ratio)
 
         def f(*inputs):
             return dropout.apply(inputs)
@@ -111,7 +111,7 @@ class TestDropout(unittest.TestCase):
 
         # Instantiate the function class directly in order to reuse the mask,
         # because f will be called repeatedly.
-        dropout = functions.Dropout(self.ratio)
+        dropout = functions.noise.dropout.Dropout(self.ratio)
 
         def f(*inputs):
             return dropout.apply(inputs)
@@ -131,7 +131,7 @@ class TestDropout(unittest.TestCase):
             inputs = cuda.to_gpu(inputs)
 
         with backend_config:
-            dropout = functions.Dropout(0.5)
+            dropout = functions.noise.dropout.Dropout(0.5)
             y1, = dropout.apply(inputs)
             y2, = dropout.apply(inputs)
         testing.assert_allclose(y1.data, y2.data)

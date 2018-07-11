@@ -58,6 +58,7 @@ def _batch_normalization(args):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+        'cudnn_fast_batch_normalization': [True, False],
     }))
 class TestBatchNormalization(unittest.TestCase):
 
@@ -219,6 +220,7 @@ class TestBatchNormalization(unittest.TestCase):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+        'cudnn_fast_batch_normalization': [True, False],
     }))
 class TestFixedBatchNormalization(unittest.TestCase):
 

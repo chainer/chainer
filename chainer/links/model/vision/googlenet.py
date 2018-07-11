@@ -84,8 +84,8 @@ class GoogLeNet(link.Chain):
             but not GlorotUniform.
 
     Attributes:
-        ~GoogLeNet.available_layers (list of str): The list of available layer
-            names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``__call__`` and ``extract`` methods.
 
     """
 

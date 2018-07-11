@@ -49,7 +49,7 @@ class TestProd(unittest.TestCase):
 
     def check_backward(self, x_data, y_grad):
         def f(x):
-            return functions.prod(x, self.axis, self.keepdims)
+            return functions.prod(x, axis=self.axis, keepdims=self.keepdims)
 
         gradient_check.check_backward(
             f, x_data, y_grad, atol=1e-3, dtype=numpy.float64)
@@ -87,15 +87,15 @@ class TestProdError(unittest.TestCase):
 
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
-            functions.Prod([0])
+            functions.prod(self.x, axis=[0])
 
     def test_invalid_axis_type_in_tuple(self):
         with self.assertRaises(TypeError):
-            functions.Prod((1, 'x'))
+            functions.prod(self.x, axis=(1, 'x'))
 
     def test_duplicate_axis(self):
         with self.assertRaises(ValueError):
-            functions.Prod((0, 0))
+            functions.prod(self.x, axis=(0, 0))
 
     def test_pos_neg_duplicate_axis(self):
         with self.assertRaises(ValueError):

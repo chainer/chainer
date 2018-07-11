@@ -80,7 +80,7 @@ class Upsampling2D(pooling_2d.Pooling2D):
         up_y = up_y.transpose(0, 1, 4, 5, 2, 3)
         n, c, oy, ox, ky, kx = up_y.shape
         indexes = xp.asarray(self.indexes, dtype=numpy.int32)
-        xp.ElementwiseKernel(
+        cuda.elementwise(
             'int32 index, T x, int32 n, int32 c, int32 oy, int32 ox,'
             'int32 ky, int32 kx', 'raw T up_y',
             '''
@@ -140,7 +140,7 @@ class Upsampling2DGrad(function_node.FunctionNode):
         gcol = gcol.reshape((n, c, oy, ox, ky * kx))
         indexes = xp.asarray(self.indexes, dtype=numpy.int32)
         gx = xp.empty((n, c, oy, ox), dtype=self._in_dtype)
-        xp.ElementwiseKernel(
+        cuda.elementwise(
             'int32 indexes, raw T gcol, int32 n, int32 c, int32 oy,'
             'int32 ox, int32 ky, int32 kx',
             'raw T gx',
