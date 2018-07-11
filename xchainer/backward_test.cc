@@ -406,7 +406,7 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
             BackwardBuilder bb{"func", y};
             bb.Define({x}, [x](BackwardContext& bctx) {
                 // Create an input grad which references the input array.
-                bctx.input_grad() = 2 * bctx.Cut(x) * bctx.output_grad();
+                bctx.input_grad() = 2 * x * bctx.output_grad();
             });
         };
 
@@ -447,11 +447,10 @@ TEST_P(BackpropTest, SomeOfPreviousArrayNodesAreGone) {
 
         BackwardBuilder bb{"func", {y1, y2, y3, y4}};
         bb.Define({x}, [x](BackwardContext& bctx) {
-            Array x_cut = bctx.Cut(x);
-            Array gy1gx = bctx.output_grad(0) * Exp(x_cut) * x_cut;
-            Array gy2gx = bctx.output_grad(1) * Exp(x_cut) * 2;
-            Array gy3gx = bctx.output_grad(2) * Exp(x_cut) * 3;
-            Array gy4gx = bctx.output_grad(3) * Exp(x_cut) * 4;
+            Array gy1gx = bctx.output_grad(0) * Exp(x) * x;
+            Array gy2gx = bctx.output_grad(1) * Exp(x) * 2;
+            Array gy3gx = bctx.output_grad(2) * Exp(x) * 3;
+            Array gy4gx = bctx.output_grad(3) * Exp(x) * 4;
             bctx.input_grad() = gy1gx + gy2gx + gy3gx + gy4gx;
         });
     };
@@ -547,9 +546,9 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
     DoubleBackpropOption double_backprop_opt = GetParam();
 
     auto forward = [gy1_value, double_backprop_opt, &graph_id](const Array& x1, Array& y1) {
-        ASSERT_FALSE(x1.IsConstant());
+        ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
         y1 = 2 * x1.AsGradStopped() + 1;
-        ASSERT_TRUE(y1.IsConstant());
+        ASSERT_FALSE(y1.IsGradRequired(AnyGraph{}));
 
         {
             BackwardBuilder bb{"func", y1};
@@ -559,7 +558,7 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(gy1.IsGradRequired(graph_id));
                 } else {
-                    EXPECT_TRUE(gy1.IsConstant());
+                    EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 }
                 bctx.input_grad() = 2 * gy1;  // omit index
             });
@@ -582,7 +581,7 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
         EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
     } else {
-        EXPECT_TRUE(y1.GetGrad(graph_id)->IsConstant());
+        EXPECT_FALSE(y1.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
     }
 }
 
@@ -600,11 +599,11 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
     DoubleBackpropOption double_backprop_opt = GetParam();
 
     auto forward = [gy1_value, gy2_value, double_backprop_opt, &graph_id](const Array& x1, Array& y1, Array& y2) {
-        ASSERT_FALSE(x1.IsConstant());
+        ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
         y1 = 2 * x1.AsGradStopped() + 1;
         y2 = 3 * x1.AsGradStopped() + 2;
-        ASSERT_TRUE(y1.IsConstant());
-        ASSERT_TRUE(y2.IsConstant());
+        ASSERT_FALSE(y1.IsGradRequired(AnyGraph{}));
+        ASSERT_FALSE(y2.IsGradRequired(AnyGraph{}));
 
         {
             BackwardBuilder bb{"func", {y1, y2}};
@@ -617,8 +616,8 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
                     EXPECT_TRUE(gy1.IsGradRequired(graph_id));
                     EXPECT_TRUE(gy2.IsGradRequired(graph_id));
                 } else {
-                    EXPECT_TRUE(gy1.IsConstant());
-                    EXPECT_TRUE(gy2.IsConstant());
+                    EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
+                    EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
                 }
                 bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
             });
@@ -646,8 +645,8 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
         EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
         EXPECT_TRUE(y2.GetGrad(graph_id)->IsGradRequired(graph_id));
     } else {
-        EXPECT_TRUE(y1.GetGrad(graph_id)->IsConstant());
-        EXPECT_TRUE(y2.GetGrad(graph_id)->IsConstant());
+        EXPECT_FALSE(y1.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
+        EXPECT_FALSE(y2.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
     }
 }
 
@@ -668,11 +667,11 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
     DoubleBackpropOption double_backprop_opt = GetParam();
 
     auto forward = [gy1_value, double_backprop_opt, &graph_id](const Array& x1, const Array& x2, const Array& x3, Array& y1) {
-        ASSERT_FALSE(x1.IsConstant());
-        ASSERT_FALSE(x2.IsConstant());
-        ASSERT_FALSE(x3.IsConstant());
+        ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
+        ASSERT_TRUE(x2.IsGradRequired(AnyGraph{}));
+        ASSERT_TRUE(x3.IsGradRequired(AnyGraph{}));
         y1 = 2 * x1.AsGradStopped() + 3 * x2.AsGradStopped() + x3.AsGradStopped() + 1;
-        ASSERT_TRUE(y1.IsConstant());
+        ASSERT_FALSE(y1.IsGradRequired(AnyGraph{}));
 
         {
             BackwardBuilder bb{"func", {y1}};
@@ -682,7 +681,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(gy1.IsGradRequired(graph_id));
                 } else {
-                    EXPECT_TRUE(gy1.IsConstant());
+                    EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 }
 
                 // input_grad has null array
@@ -701,7 +700,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(gy1.IsGradRequired(graph_id));
                 } else {
-                    EXPECT_TRUE(gy1.IsConstant());
+                    EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 }
 
                 // input_grad has null array
@@ -741,7 +740,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
         EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
     } else {
-        EXPECT_TRUE(y1.GetGrad(graph_id)->IsConstant());
+        EXPECT_FALSE(y1.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
     }
 }
 
@@ -764,13 +763,13 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
 
     auto forward = [gy1_value, gy2_value, double_backprop_opt, &graph_id](
                            const Array& x1, const Array& x2, const Array& x3, Array& y1, Array& y2) {
-        ASSERT_FALSE(x1.IsConstant());
-        ASSERT_FALSE(x2.IsConstant());
-        ASSERT_FALSE(x3.IsConstant());
+        ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
+        ASSERT_TRUE(x2.IsGradRequired(AnyGraph{}));
+        ASSERT_TRUE(x3.IsGradRequired(AnyGraph{}));
         y1 = 2 * x1.AsGradStopped() + 3 * x2.AsGradStopped() + 1;
         y2 = 3 * x1.AsGradStopped() + 1 * x2.AsGradStopped() + 2 * x3.AsGradStopped() + 4;
-        ASSERT_TRUE(y1.IsConstant());
-        ASSERT_TRUE(y2.IsConstant());
+        ASSERT_FALSE(y1.IsGradRequired(AnyGraph{}));
+        ASSERT_FALSE(y2.IsGradRequired(AnyGraph{}));
 
         {
             BackwardBuilder bb{"func", {y1, y2}};
@@ -783,8 +782,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                     EXPECT_TRUE(gy1.IsGradRequired(graph_id));
                     EXPECT_TRUE(gy2.IsGradRequired(graph_id));
                 } else {
-                    EXPECT_TRUE(gy1.IsConstant());
-                    EXPECT_TRUE(gy2.IsConstant());
+                    EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
+                    EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
                 }
                 bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
             });
@@ -797,8 +796,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                     EXPECT_TRUE(gy1.IsGradRequired(graph_id));
                     EXPECT_TRUE(gy2.IsGradRequired(graph_id));
                 } else {
-                    EXPECT_TRUE(gy1.IsConstant());
-                    EXPECT_TRUE(gy2.IsConstant());
+                    EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
+                    EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
                 }
 
                 Array gx2 = 3 * gy1 + gy2;
@@ -834,8 +833,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
         EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
         EXPECT_TRUE(y2.GetGrad(graph_id)->IsGradRequired(graph_id));
     } else {
-        EXPECT_TRUE(y1.GetGrad(graph_id)->IsConstant());
-        EXPECT_TRUE(y2.GetGrad(graph_id)->IsConstant());
+        EXPECT_FALSE(y1.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
+        EXPECT_FALSE(y2.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
     }
 }
 
@@ -1247,15 +1246,15 @@ TEST(BackpropGradValidationTest, InvalidGradShape) {
     Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
 
     auto forward = [](const Array& x1, Array& y1) {
-        ASSERT_FALSE(x1.IsConstant());
+        ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
         y1 = 2 * x1.AsGradStopped() + 1;
-        ASSERT_TRUE(y1.IsConstant());
+        ASSERT_FALSE(y1.IsGradRequired(AnyGraph{}));
 
         {
             BackwardBuilder bb{"func", y1};
             bb.Define({x1}, [](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad(0);
-                EXPECT_TRUE(gy1.IsConstant());
+                EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 bctx.input_grad() = gy1.Reshape({2, 1});  // Intentionally set to a wrong shape (2, 1), instead of (2,).
             });
         }
@@ -1281,15 +1280,15 @@ TEST(BackpropGradValidationTest, InvalidGradDtype) {
     Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
 
     auto forward = [](const Array& x1, Array& y1) {
-        ASSERT_FALSE(x1.IsConstant());
+        ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
         y1 = 2 * x1.AsGradStopped() + 1;
-        ASSERT_TRUE(y1.IsConstant());
+        ASSERT_FALSE(y1.IsGradRequired(AnyGraph{}));
 
         {
             BackwardBuilder bb{"func", y1};
             bb.Define({x1}, [](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad(0);
-                EXPECT_TRUE(gy1.IsConstant());
+                EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 bctx.input_grad() = gy1.AsType(Dtype::kFloat32);  // Intentionally set to a wrong dtype float, instead of double.
             });
         }
@@ -1315,15 +1314,15 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
     Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
 
     auto forward = [](const Array& x1, Array& y1) {
-        ASSERT_FALSE(x1.IsConstant());
+        ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
         y1 = 2 * x1.AsGradStopped() + 1;
-        ASSERT_TRUE(y1.IsConstant());
+        ASSERT_FALSE(y1.IsGradRequired(AnyGraph{}));
 
         {
             BackwardBuilder bb{"func", y1};
             bb.Define({x1}, [& device = x1.device()](BackwardContext & bctx) {
                 const Array& gy1 = bctx.output_grad(0);
-                EXPECT_TRUE(gy1.IsConstant());
+                EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 bctx.input_grad() =
                         gy1.ToDevice(device.backend().GetDevice(device.index() + 1));  // Intentionally set to a different device.
             });

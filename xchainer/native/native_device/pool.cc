@@ -59,15 +59,19 @@ public:
         : kernel_size_{std::move(kernel_size)}, stride_{std::move(stride)}, pad_{std::move(pad)}, cover_all_{cover_all} {}
 
     Array Forward(const Array& x) override {
+        assert(!xchainer::internal::HasAnyArrayNode(x));
+
         // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        col_ = internal::Im2Col(x.AsGradStopped(), kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x.dtype()));
+        col_ = internal::Im2Col(x, kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x.dtype()));
         axes_.resize(kernel_size_.size());
         std::iota(axes_.begin(), axes_.end(), 2);
-        x_ = x.AsGradStopped();
+        x_ = x;
         return col_.Max(axes_);
     }
 
     Array Backward(const Array& gout) override {
+        assert(!xchainer::internal::HasAnyArrayNode(gout));
+
         indices_ = col_.ArgMax(axes_);
         assert(indices_.shape() == gout.shape());
 
@@ -78,7 +82,7 @@ public:
         Device& device = x_.device();
         Array gcol = Zeros({out_total_size * kernel_total_size}, x_.dtype(), device);
         offset_ = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices_.dtype(), device);
-        device.AddAt(gcol, indices_.Reshape(out_flat) + offset_, {0}, gout.AsGradStopped().Reshape(out_flat), gcol);
+        device.AddAt(gcol, indices_.Reshape(out_flat) + offset_, {0}, gout.Reshape(out_flat), gcol);
 
         // Reshape col gradients to (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
         Shape out_shape_with_kernel = gout.shape();
@@ -93,7 +97,9 @@ public:
     }
 
     Array DoubleBackward(const Array& ggx) override {
-        Array col = internal::Im2Col(ggx.AsGradStopped(), kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x_.dtype()));
+        assert(!xchainer::internal::HasAnyArrayNode(ggx));
+
+        Array col = internal::Im2Col(ggx, kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x_.dtype()));
         return Take(
                 col.Transpose(GetSwapSpatialDimensionsAxes(kernel_size_.size())).Reshape({col.GetTotalSize()}),
                 indices_ + offset_.Reshape(indices_.shape()),
@@ -199,7 +205,9 @@ public:
         : kernel_size_{std::move(kernel_size)}, stride_{std::move(stride)}, pad_{std::move(pad)}, pad_mode_{pad_mode} {}
 
     Array Forward(const Array& x) override {
-        Array col = internal::Im2Col(x.AsGradStopped(), kernel_size_, stride_, pad_, false, 0);
+        assert(!xchainer::internal::HasAnyArrayNode(x));
+
+        Array col = internal::Im2Col(x, kernel_size_, stride_, pad_, false, 0);
 
         // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
         Axes kernel_axes;
@@ -222,12 +230,14 @@ public:
             default:
                 XCHAINER_NEVER_REACH();
         }
-        x_ = x.AsGradStopped();
+        x_ = x;
         gcol_shape_ = col.shape();
         return out;
     }
 
     Array Backward(const Array& gout) override {
+        assert(!xchainer::internal::HasAnyArrayNode(gout));
+
         Shape reshape_to = gcol_shape_;
         std::fill(reshape_to.begin() + 2, reshape_to.begin() + x_.ndim(), int64_t{1});
         Array gx{};

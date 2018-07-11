@@ -6,6 +6,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_repr.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
@@ -25,7 +26,7 @@ Scalar Norm(const Array& x) {
     return Scalar(std::sqrt(static_cast<double>(s)), x.dtype());
 }
 
-void Set(Array& out, int64_t flat_index, Scalar value) {
+void Set(const Array& out, int64_t flat_index, Scalar value) {
     out.device().Synchronize();
 
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -48,45 +49,45 @@ Scalar Get(const Array& out, int64_t flat_index) {
 }
 
 Arrays CalculateNumericalGradient(
-        std::function<Arrays(const Arrays&)> func,
-        const Arrays& inputs,
-        const Arrays& grad_outputs,
-        const Arrays& eps,
-        const GraphId& graph_id) {
+        std::function<Arrays(const Arrays&)> func, const Arrays& inputs, const Arrays& grad_outputs, const Arrays& eps) {
     // TODO(niboshi): Currently only elementwise functions are supported.
     // TODO(niboshi): Implement arithmetic operations and avoid manual synchronize
+    NoBackpropModeScope scope{};
+
     const int nin = inputs.size();
     const int nout = grad_outputs.size();
+
+    std::vector<Array> xs;
+    xs.reserve(inputs.size());
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(xs), [](const Array& x) { return x.MakeView(); });
 
     if (eps.size() != static_cast<size_t>(nin)) {
         throw XchainerError{"Invalid number of eps arrays where number of inputs: ", nin, ", eps: ", eps.size()};
     }
 
     for (int i = 0; i < nin; ++i) {
-        if (inputs.at(i).shape() != eps.at(i).shape()) {
+        if (xs.at(i).shape() != eps.at(i).shape()) {
             throw XchainerError{"Invalid eps shape"};
         }
-        if (inputs.at(i).dtype() != eps.at(i).dtype()) {
+        if (xs.at(i).dtype() != eps.at(i).dtype()) {
             throw XchainerError{"Invalid eps dtype"};
         }
         // TODO(niboshi): Check: eps must not contain zeros.
     }
 
-    auto eval = [&func, &inputs, graph_id](int i_in, int64_t in_flat_index, Scalar eps_scalar, float multiplier) -> Arrays {
-        Arrays xs;
-        std::transform(inputs.begin(), inputs.end(), std::back_inserter(xs), [graph_id](const Array& x) {
-            return x.AsGradStopped(CopyKind::kCopy).RequireGrad(graph_id);
-        });
-
-        Set(xs.at(i_in),
-            in_flat_index,
-            Get(xs.at(i_in), in_flat_index) + Scalar(static_cast<float>(eps_scalar) * multiplier, eps_scalar.dtype()));
-        return func(xs);
+    auto eval = [&func, &xs](int i_in, int64_t in_flat_index, Scalar eps_scalar, float multiplier) mutable -> Arrays {
+        Arrays xs_copy = xs;  // shallow copy
+        Array& xi = xs_copy.at(i_in);
+        // Only the target array is deeply copied
+        xi = xi.Copy();
+        // Give displacement and evaluate
+        Set(xi, in_flat_index, Get(xi, in_flat_index) + Scalar(static_cast<float>(eps_scalar) * multiplier, eps_scalar.dtype()));
+        return func(xs_copy);
     };
 
     Arrays grads;
     for (int i = 0; i < nin; ++i) {
-        Array grad_i = ZerosLike(inputs.at(i));
+        Array grad_i = ZerosLike(xs.at(i));
         Dtype dtype = grad_i.dtype();
         int64_t size = grad_i.GetTotalSize();
 

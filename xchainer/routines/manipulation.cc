@@ -88,7 +88,7 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
 
     Array out = internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    if (a.IsBackpropRequired()) {
+    if (a.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"transpose", out};
         bb.Define({a}, [real_axes](BackwardContext& bctx) {
             Axes backward_axes;
@@ -202,7 +202,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
 
     Array out = internal::MakeArray(newshape, strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    if (a.IsBackpropRequired()) {
+    if (a.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"reshape", out};
         bb.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
     }
@@ -257,7 +257,7 @@ Array Squeeze(const Array& a, const OptionalAxes& axis) {
                         ? a
                         : internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    if (a.IsBackpropRequired()) {
+    if (a.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"squeeze", out};
         bb.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
     }
@@ -309,7 +309,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
 
     Array out = internal::MakeArray(shape, strides, array.dtype(), array.device(), array.data(), array.offset());
 
-    if (array.IsBackpropRequired()) {
+    if (array.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"broadcast_to", out};
         bb.Define({array}, [in_shape](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();

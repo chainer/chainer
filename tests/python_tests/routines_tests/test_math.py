@@ -261,11 +261,9 @@ def test_itruediv_scalar(xp, scalar, device, shape, numeric_dtype):
     return lhs
 
 
-# TODO(sonots): Fix type compatibility
 # TODO(niboshi): Remove strides_check=False
-@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False, strides_check=False)
+@xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
 @pytest.mark.parametrize('keepdims', [False, True])
-@pytest.mark.parametrize('large_dtype', ['int32', 'int64', 'float32', 'float64'])
 @pytest.mark.parametrize('shape,axis', [
     ((), None),
     ((), ()),
@@ -295,12 +293,17 @@ def test_itruediv_scalar(xp, scalar, device, shape, numeric_dtype):
     ((2, 3, 4), (-2, 2, 0)),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_sum(is_module, xp, device, shape, axis, keepdims, large_dtype):
-    a = array_utils.create_dummy_ndarray(xp, shape, large_dtype)
+def test_sum(is_module, xp, device, shape, axis, keepdims, dtype):
+    a = array_utils.create_dummy_ndarray(xp, shape, dtype)
     if is_module:
-        return xp.sum(a, axis=axis, keepdims=keepdims)
+        out = xp.sum(a, axis=axis, keepdims=keepdims)
     else:
-        return a.sum(axis=axis, keepdims=keepdims)
+        out = a.sum(axis=axis, keepdims=keepdims)
+
+    # TODO(niboshi): Unsigned integer dtypes should result in uint64. Currently xchainer returns int64.
+    if xp is numpy and numpy.dtype(dtype).kind == 'u':
+        out = out.astype(numpy.int64)
+    return out
 
 
 @xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))

@@ -6,9 +6,11 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/graph.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
 
@@ -47,20 +49,23 @@ Array Dot(const Array& a, const Array& b) {
 
     // Matrix-matrix product
     Array out_matrix = Empty({m, n}, a.dtype(), a.device());
-    a.device().Dot(a_matrix, b_matrix, out_matrix);
+    {
+        NoBackpropModeScope scope{};
+        a.device().Dot(a_matrix, b_matrix, out_matrix);
+    }
 
     {
         BackwardBuilder bb{"dot", out_matrix};
-        if (a_matrix.IsBackpropRequired()) {
+        if (a_matrix.IsGradRequired(AnyGraph{})) {
             bb.Define({a_matrix}, [b_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
-                bctx.input_grad() = Dot(gout, bctx.Cut(b_matrix).Transpose());
+                bctx.input_grad() = Dot(gout, b_matrix.Transpose());
             });
         }
-        if (b_matrix.IsBackpropRequired()) {
+        if (b_matrix.IsGradRequired(AnyGraph{})) {
             bb.Define({b_matrix}, [a_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
-                bctx.input_grad() = Dot(bctx.Cut(a_matrix).Transpose(), gout);
+                bctx.input_grad() = Dot(a_matrix.Transpose(), gout);
             });
         }
     }

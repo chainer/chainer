@@ -94,12 +94,6 @@ ApplyBatchNormResult ApplyBatchNorm(
         int64_t reduced_total_size = reduced_shape.GetTotalSize();
         assert(mean.GetTotalSize() == reduced_total_size);
         assert(var.GetTotalSize() == reduced_total_size);
-
-        assert(x.IsConstant());
-        assert(gamma.IsConstant());
-        assert(beta.IsConstant());
-        assert(mean.IsConstant());
-        assert(var.IsConstant());
     }
 #else
     (void)axis;  // unused
@@ -131,43 +125,43 @@ void GenericBatchNormForwardBackward::SetBackwardResults(Array gout, Array gx, A
 }
 
 Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
-    Array x_const = x.AsGradStopped();
-    Array gamma_const = gamma.AsGradStopped();
-    Array beta_const = beta.AsGradStopped();
+    assert(!internal::HasAnyArrayNode(x));
+    assert(!internal::HasAnyArrayNode(gamma));
+    assert(!internal::HasAnyArrayNode(beta));
 
-    Array x_mean = Mean(x_const, axis_, true);
-    Array x_var = Var(x_const, x_mean, axis_, true);
+    Array x_mean = Mean(x, axis_, true);
+    Array x_var = Var(x, x_mean, axis_, true);
 
-    ApplyBatchNormResult result = ApplyBatchNorm(x_const, gamma_const, beta_const, x_mean, x_var, eps_, axis_);
+    ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, x_mean, x_var, eps_, axis_);
     Array& out = result.out;
     Array& x_inv_std = result.inv_std;
 
     Scalar inv_decay = Scalar{1.0 - static_cast<double>(decay_)};
-    int64_t n = x.GetTotalSize() / gamma_const.GetTotalSize();
+    int64_t n = x.GetTotalSize() / gamma.GetTotalSize();
     running_mean_ *= decay_;
     running_mean_ += inv_decay * x_mean;
     running_var_ *= decay_;
     running_var_ += inv_decay * (static_cast<double>(n) / std::max(n - 1, int64_t{1})) * x_var;
 
-    SetForwardResults(std::move(x_const), std::move(gamma_const), std::move(x_mean), std::move(x_inv_std));
+    SetForwardResults(x, gamma, std::move(x_mean), std::move(x_inv_std));
 
     return std::move(out);
 }
 
 std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout) {
-    const Array gout_const = gout.AsGradStopped();
+    assert(!internal::HasAnyArrayNode(gout));
 
     // Note: x_inv_std_ has the information of eps.
-    const Array& x_const = *x_;
-    const Array& gamma_const = *gamma_;
+    const Array& x = *x_;
+    const Array& gamma = *gamma_;
     const Array& x_mean = *x_mean_;
     const Array& x_inv_std = *x_inv_std_;
 
-    double inv_n = 1.0 / (x_const.GetTotalSize() / gamma_const.GetTotalSize());
-    Array x_hat = (x_const - x_mean) * x_inv_std;
-    Array ggamma = (gout_const * x_hat).Sum(axis_);
-    Array gbeta = gout_const.Sum(axis_);
-    Array gx = (gamma_const * x_inv_std) * (gout_const - (x_hat * ggamma + gbeta) * inv_n);
+    double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
+    Array x_hat = (x - x_mean) * x_inv_std;
+    Array ggamma = (gout * x_hat).Sum(axis_);
+    Array gbeta = gout.Sum(axis_);
+    Array gx = (gamma * x_inv_std) * (gout - (x_hat * ggamma + gbeta) * inv_n);
 
     SetBackwardResults(gout, gx, ggamma);
 
@@ -206,8 +200,7 @@ std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array
 
 Array Device::FixedBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
-    ApplyBatchNormResult result = ApplyBatchNorm(
-            x.AsGradStopped(), gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), eps, axis);
+    ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, mean, var, eps, axis);
     return std::move(result.out);
 }
 

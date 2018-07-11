@@ -73,7 +73,7 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
 
     # TODO(beam2d): make xc.array(0, dtype=...) work
     total_loss = xc.zeros((), dtype=xc.float32)
-    num_correct = xc.zeros((), dtype=xc.int32)
+    num_correct = xc.zeros((), dtype=xc.int64)
     for i in range(0, N_test, batch_size):
         x = X_test[i:min(i + batch_size, N_test)]
         t = Y_test[i:min(i + batch_size, N_test)]

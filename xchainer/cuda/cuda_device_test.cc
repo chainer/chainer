@@ -1,5 +1,10 @@
 #include "xchainer/cuda/cuda_device.h"
 
+#include <cstddef>
+#include <memory>
+#include <thread>
+#include <vector>
+
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
@@ -34,18 +39,49 @@ TEST(CudaDeviceTest, Allocate) {
     Context ctx;
     CudaDevice& device = GetCudaDevice(ctx, 0);
 
-    {
-        size_t bytesize = 3;
-        std::shared_ptr<void> ptr = device.Allocate(bytesize);
+    size_t bytesize = 3;
+    std::shared_ptr<void> ptr = device.Allocate(bytesize);
+    EXPECT_NE(ptr, nullptr);
 
-        cudaPointerAttributes attr = {};
-        CheckCudaError(cudaPointerGetAttributes(&attr, ptr.get()));
-        EXPECT_TRUE(attr.isManaged);
-        EXPECT_EQ(device.index(), attr.device);
+    cudaPointerAttributes attr = {};
+    CheckCudaError(cudaPointerGetAttributes(&attr, ptr.get()));
+    EXPECT_TRUE(attr.isManaged);
+    EXPECT_EQ(device.index(), attr.device);
+}
+
+TEST(CudaDeviceTest, AllocateZero) {
+    Context ctx;
+    CudaDevice& device = GetCudaDevice(ctx, 0);
+
+    std::shared_ptr<void> ptr = device.Allocate(size_t{0});
+    // TODO(niboshi): Enable this check
+    // EXPECT_NE(ptr, nullptr);
+}
+
+TEST(CudaDeviceTest, AllocateFreeThreadSafe) {
+    static constexpr size_t kNumThreads = 1024;
+    static constexpr size_t kNumLoopsPerThread = 128;
+    Context ctx;
+    CudaDevice& device = GetCudaDevice(ctx, 0);
+
+    // Allocate-and-free loop
+    auto func = [&device](size_t size) {
+        for (size_t j = 0; j < kNumLoopsPerThread; ++j) {
+            std::shared_ptr<void> ptr = device.Allocate(size);
+            (void)ptr;  // unused
+        }
+    };
+
+    // Launch threads
+    std::vector<std::thread> threads;
+    threads.reserve(kNumThreads);
+    for (size_t i = 0; i < kNumThreads; ++i) {
+        threads.emplace_back(func, i);
     }
-    {
-        size_t bytesize = 0;
-        EXPECT_NO_THROW(device.Allocate(bytesize));
+
+    // Join threads
+    for (size_t i = 0; i < kNumThreads; ++i) {
+        threads[i].join();
     }
 }
 
@@ -125,7 +161,7 @@ TEST(CudaDeviceTest, DotNonContiguousOut) {
 TEST(CudaDeviceTest, Synchronize) {
     Context ctx;
     CudaDevice& device = GetCudaDevice(ctx, 0);
-    EXPECT_NO_THROW(device.Synchronize());
+    device.Synchronize();  // no throw
 }
 
 }  // namespace

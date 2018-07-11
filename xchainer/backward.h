@@ -125,7 +125,6 @@ public:
             const std::shared_ptr<OpNode>& op_node,
             gsl::span<ArrayNode*> prev_array_nodes,
             gsl::span<internal::GradRef*> prev_grads,
-            gsl::span<const GraphId> stop_graph_ids,
             std::vector<Array>& input_grads_storage,
             const GraphId& graph_id,
             DoubleBackpropOption double_backprop_option);
@@ -160,9 +159,6 @@ public:
     // It has the array node of the graph for current backward computation if and only if the double backprop option is enabled, but always
     // retains array nodes for other graphs.
     Array GetRetainedOutput(const RetainedOutputToken& token);
-
-    // Given an array, cuts the graphs to stop gradients and returns the resulting array.
-    Array Cut(const Array& a) const;
 
 private:
     size_t num_outputs() const;

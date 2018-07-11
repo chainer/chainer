@@ -14,7 +14,9 @@
 namespace xchainer {
 namespace {
 
-TEST(ContextTest, Ctor) { EXPECT_NO_THROW(Context()); }
+TEST(ContextTest, Ctor) {
+    Context();  // no throw
+}
 
 TEST(ContextTest, GetBackend) {
     Context ctx;

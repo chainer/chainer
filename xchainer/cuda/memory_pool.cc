@@ -1,5 +1,7 @@
 #include "xchainer/cuda/memory_pool.h"
 
+#include <cassert>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -15,21 +17,31 @@ void* MemoryPool::Malloc(size_t bytesize) {
 
     size_t index = (bytesize - 1) / kAllocationUnitSize;
 
-    if (free_bins_.size() <= index) {
-        free_bins_.resize(index + 1);
-    }
-    std::vector<void*>& free_list = free_bins_[index];
-
     void* ptr = nullptr;
-    if (!free_list.empty()) {
-        ptr = free_list.back();
-        free_list.pop_back();
-    } else {
+    {
+        std::lock_guard<std::mutex> lock{free_bins_mutex_};
+        if (free_bins_.size() <= index) {
+            free_bins_.resize(index + 1);
+        }
+        std::vector<void*>& free_list = free_bins_[index];
+
+        if (!free_list.empty()) {
+            ptr = free_list.back();
+            assert(ptr != nullptr);
+            free_list.pop_back();
+        }
+    }
+
+    if (ptr == nullptr) {
         size_t allocation_size = (index + 1) * kAllocationUnitSize;
         CheckCudaError(cudaSetDevice(device_index_));
         CheckCudaError(cudaMallocManaged(&ptr, allocation_size, cudaMemAttachGlobal));
     }
-    in_use_.emplace(ptr, index);
+
+    {
+        std::lock_guard<std::mutex> lock{in_use_mutex_};
+        in_use_.emplace(ptr, index);
+    }
     return ptr;
 }
 
@@ -37,16 +49,23 @@ void MemoryPool::Free(void* ptr) {
     if (ptr == nullptr) {
         return;
     }
-    auto it = in_use_.find(ptr);
-    if (it == in_use_.end()) {
-        throw XchainerError{"Cannot free out-of-pool memory"};
+    size_t index{};
+
+    {
+        std::lock_guard<std::mutex> lock{in_use_mutex_};
+        auto it = in_use_.find(ptr);
+        if (it == in_use_.end()) {
+            throw XchainerError{"Cannot free out-of-pool memory"};
+        }
+        index = it->second;
+        in_use_.erase(it);
     }
 
-    size_t index = it->second;
-    std::vector<void*>& free_list = free_bins_.at(index);
-    free_list.push_back(ptr);
-
-    in_use_.erase(it);
+    {
+        std::lock_guard<std::mutex> lock{free_bins_mutex_};
+        std::vector<void*>& free_list = free_bins_.at(index);
+        free_list.push_back(ptr);
+    }
 }
 
 }  // namespace cuda

@@ -6,10 +6,12 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
+#include "xchainer/graph.h"
 #include "xchainer/routines/math.h"
 #include "xchainer/stack_vector.h"
 
@@ -21,7 +23,7 @@ void CheckPoolInputs(
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad) {
-    int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions.
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions.
     if (static_cast<int8_t>(kernel_size.size()) != ndim) {
         throw DimensionError{"Wrong numbers of kernel size dimensions ", kernel_size.size(), " for input with ", x.ndim(), " dimensions."};
     }
@@ -46,24 +48,25 @@ Array MaxPool(
         bool cover_all) {
     CheckPoolInputs(x, kernel_size, stride, pad);
     std::unique_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward(kernel_size, stride, pad, cover_all);
-    Array out = fb->Forward(x);
+
+    Array out = fb->Forward(x.AsGradStopped());
 
     // Supporting arbitrary number of backwards using a recursive definition.
     // TODO(hvy): Test backward of double backward.
     struct MaxPoolBwd {
         void operator()(BackwardContext& bctx1) {
             const Array& gout = bctx1.output_grad();
-            Array gx = fb->Backward(gout);
+            Array gx = fb->Backward(gout.AsGradStopped());
             {
                 BackwardBuilder bb2{"max_pooling_backward", gx};
-                if (gout.IsBackpropRequired()) {
+                if (gout.IsGradRequired(AnyGraph{})) {
                     bb2.Define({gout}, [this, gout](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
-                        Array ggout = fb->DoubleBackward(ggx);
+                        Array ggout = fb->DoubleBackward(ggx.AsGradStopped());
                         // Make ggout further backpropable.
                         {
                             BackwardBuilder bb3{"max_pooling_double_backward", ggout};
-                            if (ggx.IsBackpropRequired()) {
+                            if (ggx.IsGradRequired(AnyGraph{})) {
                                 bb3.Define({ggx}, *this);
                             }
                         }
@@ -84,7 +87,7 @@ Array MaxPool(
 
     {
         BackwardBuilder bb1{"max_pooling", out};
-        if (x.IsBackpropRequired()) {
+        if (x.IsGradRequired(AnyGraph{})) {
             bb1.Define({x}, MaxPoolBwd{x, kernel_size, stride, pad, cover_all, std::move(fb)});
         }
     }
@@ -99,16 +102,16 @@ Array AveragePool(
         AveragePoolPadMode pad_mode) {
     CheckPoolInputs(x, kernel_size, stride, pad);
     std::shared_ptr<AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(kernel_size, stride, pad, pad_mode);
-    Array out = fb->Forward(x);
+    Array out = fb->Forward(x.AsGradStopped());
     {
         BackwardBuilder bb1{"average_pool", out};
-        if (x.IsBackpropRequired()) {
+        if (x.IsGradRequired(AnyGraph{})) {
             bb1.Define({x}, [ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
-                Array gx = fb->Backward(gout);
+                Array gx = fb->Backward(gout.AsGradStopped());
                 {
                     BackwardBuilder bb2{"average_pool_backward", gx};
-                    if (gout.IsBackpropRequired()) {
+                    if (gout.IsGradRequired(AnyGraph{})) {
                         bb2.Define({gout}, [kernel_size, stride, pad, pad_mode](BackwardContext& bctx2) {
                             const Array& ggx = bctx2.output_grad();
                             bctx2.input_grad() = AveragePool(ggx, kernel_size, stride, pad, pad_mode);
