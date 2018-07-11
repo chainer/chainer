@@ -39,7 +39,7 @@ class LayerNormalization(link.Link):
     Attributes:
         gamma (~chainer.Parameter): Scaling parameter.
         beta (~chainer.Parameter): Shifting parameter.
-        ~LayerNormalization.eps (float): Epsilon value for numerical stability.
+        eps (float): Epsilon value for numerical stability.
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
     """

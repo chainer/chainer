@@ -7,8 +7,8 @@ class Initializer(object):
     It initializes the given array.
 
     Attributes:
-        ~Initializer.dtype: Data type specifier. It is for type check in
-            ``__call__`` function.
+        dtype: Data type specifier. It is for type check in ``__call__``
+            function.
 
     """
 

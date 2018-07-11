@@ -67,8 +67,7 @@ class TestFlip(unittest.TestCase):
 
     def check_double_backward(self, x_data, axis, y_grad, x_grad_grad):
         def f(x):
-            x = functions.flip(x, axis)
-            return x * x
+            return functions.flip(x, axis)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad,
@@ -107,9 +106,12 @@ class TestFlipInvalidTypeAxis(unittest.TestCase):
 
 class TestFlipInvalidTypeError(unittest.TestCase):
 
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (2, 3, 4)).astype('f')
+
     def test_invalid_axis(self):
         with self.assertRaises(TypeError):
-            functions.Flip('a')
+            functions.flip(self.x, 'a')
 
 
 @testing.parameterize(*testing.product_dict(
