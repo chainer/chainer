@@ -14,13 +14,13 @@ class CooMatrix(object):
         col (numpy.ndarray or cupy.ndarray): The column indices of the matrix
             entries.
         shape (tuple of int): The shape of the matrix in dense format.
-        order ('C', 'F', 'auto', None): If ``'C'``, the matrix is assumed to be
+        order ('C', 'F', None, 'auto'): If ``'C'``, the matrix is assumed to be
             made from row-major format (AKA C-contiguous) array, in other
             words, the row indices are sorted. If ``'F'``, the matrix is
             assumed to be made from column-major format (AKA
             Fortran-contiguous) array, in other words, the column indices are
             sorted. If ``None``, the matrix is assumed as neither 'C' order nor
-            'F' order (this is the default). If ``'auto'``, the matrix is
+            'F' order. If ``'auto'`` (this is the default), the matrix is
             automatically checked if it is 'C' order, 'F' order or another.
             This information will be used by some functions like
             :func:`~chainer.functions.sparse_matmul` as a hint to improve
@@ -34,7 +34,8 @@ class CooMatrix(object):
 
     """
 
-    def __init__(self, data, row, col, shape, order=None, requires_grad=False):
+    def __init__(self, data, row, col, shape, order='auto',
+                 requires_grad=False):
         if not (1 <= data.ndim <= 2):
             raise ValueError('ndim of data must be 1 or 2.')
         if not (data.ndim == row.ndim == col.ndim):
@@ -43,20 +44,15 @@ class CooMatrix(object):
             raise ValueError('length of shape must be 2.')
         if not (shape[0] > 0 and shape[1] > 0):
             raise ValueError('numbers in shape must be greater than 0.')
-        if not order in ('C', 'F', 'auto', None):
-            raise ValueError('order must be \'C\', \'F\', \'auto\' or None')
+        if order not in ('C', 'F', 'auto', None):
+            raise ValueError('order must be \'C\', \'F\', None or \'auto\'.')
         self.data = chainer.Variable(data, requires_grad=requires_grad)
         self.row = row
         self.col = col
         self.shape = shape  # (row, col)
         self.order = order
         if order is 'auto':
-            if _is_c_order(row, col):
-                self.order = 'C'
-            elif _is_c_order(col, row):
-                self.order = 'F'
-            else:
-                self.order = None
+            self.order = get_order(row, col)
 
     def to_dense(self):
         """Returns a dense matrix format of this sparse matrix."""
@@ -155,6 +151,28 @@ def to_coo(x, ldnz=None, requires_grad=False):
                          requires_grad=requires_grad)
     else:
         raise ValueError('ndim of x must be 2 or 3.')
+
+
+def get_order(row, col):
+    """Check if a coo matrix with given row and col is C or F order.
+
+    Args:
+        row (numpy.ndarray or cupy.ndarray): The row indices of the matrix
+            entries.
+        col (numpy.ndarray or cupy.ndarray): The column indices of the matrix
+            entries.
+
+    Returns:
+        Returns ``'C'`` when a coo matrix with given row and column indices is
+        C order, in other words, the row indices are sorted. Returns ``'F'``
+        when it is F order, in other words, the column indices are sorted.
+        Returns ``None`` otherwise.
+    """
+    if _is_c_order(row, col):
+        return 'C'
+    if _is_c_order(col, row):
+        return 'F'
+    return None
 
 
 def _is_c_order(row, col):
