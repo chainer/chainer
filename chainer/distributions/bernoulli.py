@@ -81,15 +81,12 @@ def _bernoulli_log_prob(logit, x):
 
 
 def _modified_xlogx(x):
-    xp = cuda.get_array_module(x)
+    x = chainer.as_variable(x)
+    xp = x.xp
     if x.ndim == 0:
         x = reshape.reshape(x, (1,))
-    if isinstance(x, chainer.Variable):
-        return ModifiedXLogX(exponential.log(
-            where.where(x.array > 0, x, xp.ones_like(x.array)))).apply((x,))[0]
-    else:
-        return ModifiedXLogX(exponential.log(
-            where.where(x > 0, x, xp.ones_like(x)))).apply((x,))[0]
+    return ModifiedXLogX(exponential.log(
+        where.where(x.array > 0, x, xp.ones_like(x.array)))).apply((x,))[0]
 
 
 class Bernoulli(distribution.Distribution):
