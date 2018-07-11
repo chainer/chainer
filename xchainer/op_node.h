@@ -55,8 +55,6 @@ private:
     std::vector<std::shared_ptr<ArrayNode>> GetNextArrayNodes() const;
 };
 
-using PreviousArrayNodesVector = std::vector<std::weak_ptr<ArrayNode>>;
-
 }  // namespace internal
 
 class OpNode {
@@ -64,7 +62,7 @@ public:
     explicit OpNode(
             std::string name,
             GraphId graph_id,
-            internal::PreviousArrayNodesVector prev_array_nodes,
+            std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes,
             std::vector<internal::ArrayProps> prev_array_props);
 
     OpNode(const OpNode&) = delete;
@@ -111,10 +109,10 @@ public:
     }
 
     // Returns the list of prev array nodes (weak pointers) on "this" graph.
-    const internal::PreviousArrayNodesVector& prev_array_nodes() const { return std::get<1>(prev_array_nodes_[0]); }
+    const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes() const { return std::get<1>(prev_array_nodes_[0]); }
 
     // Returns the previous array nodes of all graphs.
-    const std::vector<std::tuple<GraphId, internal::PreviousArrayNodesVector>>& prev_array_nodes_of_all_graphs() const {
+    const std::vector<std::tuple<GraphId, std::vector<std::weak_ptr<ArrayNode>>>>& prev_array_nodes_of_all_graphs() const {
         return prev_array_nodes_;
     }
 
@@ -136,7 +134,7 @@ private:
     // List of prev array nodes (as weak pointers).
     // Each entry is a pair of graph ID and list of previous array nodes.
     // The first entry always corresponds to "this" graph.
-    std::vector<std::tuple<GraphId, internal::PreviousArrayNodesVector>> prev_array_nodes_;
+    std::vector<std::tuple<GraphId, std::vector<std::weak_ptr<ArrayNode>>>> prev_array_nodes_;
 
     // Array props of previous array nodes. This is used for creating dummy gradients.
     std::vector<internal::ArrayProps> prev_array_props_;

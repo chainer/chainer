@@ -37,7 +37,7 @@ void OpNodeBackwardEntry::AddExoticNextArrayNode(std::tuple<GraphId, std::vector
 OpNode::OpNode(
         std::string name,
         GraphId graph_id,
-        internal::PreviousArrayNodesVector prev_array_nodes,
+        std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes,
         std::vector<internal::ArrayProps> prev_array_props)
     : name_{std::move(name)},
       graph_id_{std::move(graph_id)},
@@ -67,7 +67,7 @@ void OpNode::AssertConsistency() const {
     for (size_t i_prev = 0; i_prev < n_prev; ++i_prev) {
         nonstd::optional<internal::ArrayBody*> prev_array_body{};
         for (const auto& tup : prev_array_nodes_) {
-            const internal::PreviousArrayNodesVector& vec = std::get<1>(tup);
+            const std::vector<std::weak_ptr<ArrayNode>>& vec = std::get<1>(tup);
             if (std::shared_ptr<ArrayNode> prev_array_node = vec[i_prev].lock()) {
                 std::shared_ptr<internal::ArrayBody> body = prev_array_node->GetBody();
                 if (!prev_array_body.has_value()) {
@@ -143,13 +143,13 @@ std::shared_ptr<OpNode> OpNode::CloneInOtherGraph(const GraphId& other_graph_id)
     AssertConsistency();
     assert(graph_id_ != other_graph_id);
 
-    const internal::PreviousArrayNodesVector* new_prev_array_nodes{};
-    std::vector<std::tuple<GraphId, internal::PreviousArrayNodesVector>> new_exotic_prev_array_nodes;
+    const std::vector<std::weak_ptr<ArrayNode>>* new_prev_array_nodes{};
+    std::vector<std::tuple<GraphId, std::vector<std::weak_ptr<ArrayNode>>>> new_exotic_prev_array_nodes;
 
     // Copy prev array nodes
-    for (const std::tuple<GraphId, internal::PreviousArrayNodesVector>& pair : prev_array_nodes_) {
+    for (const std::tuple<GraphId, std::vector<std::weak_ptr<ArrayNode>>>& pair : prev_array_nodes_) {
         const GraphId& graph_id = std::get<0>(pair);
-        const internal::PreviousArrayNodesVector& vec = std::get<1>(pair);
+        const std::vector<std::weak_ptr<ArrayNode>>& vec = std::get<1>(pair);
         assert(vec.size() == prev_array_props_.size());
 
         if (graph_id == other_graph_id) {
