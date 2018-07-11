@@ -35,7 +35,7 @@ public:
 
     void AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes);
 
-    // Returns the next array nodes of exotic graphs, mixed altogether.
+    // Returns the next array nodes of exotic graphs.
     const std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& exotic_next_array_nodes() const {
         return exotic_next_array_nodes_;
     }
