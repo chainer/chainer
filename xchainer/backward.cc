@@ -473,27 +473,39 @@ private:
         // Previous array nodes. May be nullptr if the node is gone.
         std::vector<ArrayNode*> prev_array_nodes;
 
-        // GradRefs of this op node's dead previous nodes.
+        // `temp_prev_grads` is a set of temporary GradRefs of this op node's previous array nodes.
+        // This is used for previous array nodes which are either dead at the moment or alive but have not been involved in the preceding
+        // backpropagation.
         // This vector is just a keeper and not used in any other way. prev_grads holds the pointer to it.
         // These GradRefs are only valid in the backward functions of this op node.
         // Be careful not to cause reallocation in this vector. Otherwise the pointers would be invalidated.
-        std::vector<internal::GradRef> dead_prev_grads;
-        dead_prev_grads.reserve(op_node->prev_array_nodes().size());
+        std::vector<internal::GradRef> temp_prev_grads;
+        temp_prev_grads.reserve(op_node->prev_array_nodes().size());
 
         std::vector<internal::GradRef*> prev_grads;
         for (const std::weak_ptr<ArrayNode>& maybe_prev_array_node : op_node->prev_array_nodes()) {
             std::shared_ptr<ArrayNode> prev_array_node = maybe_prev_array_node.lock();
             prev_array_nodes.emplace_back(prev_array_node.get());
 
+            // Get the pointer to the previous gradient.
             if (prev_array_node != nullptr) {
-                // Previous array node is alive
-                // TODO(niboshi): There may be cases where prev_array_node is alive but not in the map.
-                internal::GradRef& grad = array_node_grad_map_.at(prev_array_node.get());
-                prev_grads.emplace_back(&grad);  // keep a pointer to the map
+                // Previous array node is alive.
+                auto it = array_node_grad_map_.find(prev_array_node.get());
+                if (it != array_node_grad_map_.end()) {
+                    // The grad mapping has the gradient for the array node.
+                    // Keep a pointer to the gradient in the map.
+                    prev_grads.emplace_back(&it->second);
+                } else {
+                    // The grad mapping has no entry for the array node.
+                    // Create a new entry in temporary gradients and keep a pointer to it.
+                    temp_prev_grads.emplace_back(internal::GradRef{*prev_array_node});
+                    prev_grads.emplace_back(&temp_prev_grads.back());
+                }
             } else {
-                // Previous array node is dead
-                dead_prev_grads.emplace_back(internal::GradRef{nonstd::nullopt});
-                prev_grads.emplace_back(&dead_prev_grads.back());  // keep a pointer to the local vector
+                // Previous array node is dead.
+                // Keep a pointer to the temporary gradient vector.
+                temp_prev_grads.emplace_back(internal::GradRef{nonstd::nullopt});
+                prev_grads.emplace_back(&temp_prev_grads.back());
             }
         }
 
