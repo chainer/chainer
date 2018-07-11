@@ -484,6 +484,7 @@ private:
 
             if (prev_array_node != nullptr) {
                 // Previous array node is alive
+                // TODO(niboshi): There may be cases where prev_array_node is alive but not in the map.
                 internal::GradRef& grad = array_node_grad_map_.at(prev_array_node.get());
                 prev_grads.emplace_back(&grad);  // keep a pointer to the map
             } else {
