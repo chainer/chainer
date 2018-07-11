@@ -273,20 +273,22 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
         auto insert_result = op_node_map_.emplace(graph_id, nullptr);
         if (insert_result.second) {
             // Create new op instance
-            std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes;
-            std::vector<ArrayNode*> prev_array_node_ptrs;
+            std::vector<std::weak_ptr<ArrayNode>> weak_prev_array_nodes;  // weak pointers to pass to new op node
+            std::vector<ArrayNode*> prev_array_nodes;
+            weak_prev_array_nodes.reserve(outputs_.size());
+            prev_array_nodes.reserve(outputs_.size());
             for (const Array& out : outputs_) {
                 const std::shared_ptr<ArrayNode>& prev_array_node = xchainer::internal::HasArrayNode(out, graph_id)
                                                                             ? xchainer::internal::GetMutableArrayNode(out, graph_id)
                                                                             : xchainer::internal::CreateArrayNode(out, graph_id);
-                prev_array_node_ptrs.emplace_back(prev_array_node.get());
-                prev_array_nodes.emplace_back(prev_array_node);
+                prev_array_nodes.emplace_back(prev_array_node.get());
+                weak_prev_array_nodes.emplace_back(prev_array_node);
             }
             // Create new op instance with weakrefs to output nodes
             std::shared_ptr<OpNode>& new_op_node = insert_result.first->second =
-                    std::make_shared<OpNode>(op_name_, graph_id, prev_array_nodes, output_array_props_);
+                    std::make_shared<OpNode>(op_name_, graph_id, weak_prev_array_nodes, output_array_props_);
             // Add edges from the output nodes
-            for (ArrayNode* prev_array_node : prev_array_node_ptrs) {
+            for (ArrayNode* prev_array_node : prev_array_nodes) {
                 assert(prev_array_node->next_op_node() == nullptr);
                 prev_array_node->set_next_op_node(new_op_node);
             }
