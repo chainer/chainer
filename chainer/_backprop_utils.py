@@ -72,7 +72,11 @@ class GradTable(object):
 
 def backprop_step(
         func, target_input_indexes, grad_outputs, grad_inputs):
-    """
+    """Accumulate gradients of a FunctionNode
+
+    This routine is used by :meth:`chainer.Variable.backward` and
+    :func:`chainer.grad`.
+
     Args:
         target_input_indexes (tuple of int): Sorted indices of the input
             variables w.r.t. which the gradients are required. It is
