@@ -166,7 +166,6 @@ private:
     const std::shared_ptr<OpNode>& op_node_;  // never be nullptr
     gsl::span<ArrayNode*> prev_array_nodes_;
     gsl::span<internal::GradRef*> prev_grads_;
-    gsl::span<const GraphId> stop_graph_ids_;
 
     // A reference to the storage of input gradient arrays.
     // Gradient passed in input_grad() will be put into this storage.
@@ -188,11 +187,8 @@ private:
 
 class BackwardBuilder {
 public:
-    BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids);
-    BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs) : BackwardBuilder{op_name, outputs, {}} {}
-    BackwardBuilder(const char* op_name, const Array& output, gsl::span<const GraphId> stop_graph_ids)
-        : BackwardBuilder{op_name, std::initializer_list<ConstArrayRef>{output}, stop_graph_ids} {}
-    BackwardBuilder(const char* op_name, const Array& output) : BackwardBuilder{op_name, {output}, {}} {}
+    BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs);
+    BackwardBuilder(const char* op_name, const Array& output) : BackwardBuilder{op_name, std::initializer_list<ConstArrayRef>{output}} {}
 
     // Defines a backward function with respect to specified input arrays.
     // For multi-input ops, usually this function is called for each of independent subsets of input arrays.
@@ -229,8 +225,6 @@ private:
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<OpNode>> op_node_map_;
-
-    std::vector<GraphId> stop_graph_ids_;
 };
 
 void Backward(
