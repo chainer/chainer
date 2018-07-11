@@ -75,7 +75,8 @@ nonstd::optional<Array>& GradRef::get() {
 RetainedOutputToken::RetainedOutputToken(std::shared_ptr<internal::ArrayBody> data_array_body, size_t output_index)
     : data_array_body_{std::move(data_array_body)}, output_index_{output_index} {
     assert(data_array_body_ != nullptr);
-    assert(Array{data_array_body_}.nodes().empty());
+    // TODO(niboshi): Could be written as: assert(data_array_body_.nodes().empty())
+    assert(!internal::HasAnyArrayNode(Array{data_array_body_}));
 }
 
 const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedArrayBodyWithNodes(
