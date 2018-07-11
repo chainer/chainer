@@ -38,8 +38,7 @@ public:
     ArrayNode& operator=(ArrayNode&&) = delete;
 
     // Sets the array body to this array node.
-    // Only internal::CreateArrayNode should call this function.
-    void SetArrayBody(std::weak_ptr<internal::ArrayBody> body) {
+    void set_array_body(std::weak_ptr<internal::ArrayBody> body) {
         assert(body_.lock() == nullptr);  // The body must be either unset (the array node is being created normally) or dead (the body
                                           // is being replaced with a fabricated one, as a retained output of backward)
         assert(!internal::IsWeakPtrEmpty(body));

@@ -115,7 +115,7 @@ const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedAr
     // The data array body stored in the token is reused as a base.
     for (const std::shared_ptr<ArrayNode>& prev_array_node : new_prev_array_nodes) {
         assert(prev_array_node->GetBody() == nullptr);
-        prev_array_node->SetArrayBody(data_array_body_);
+        prev_array_node->set_array_body(data_array_body_);
         data_array_body_->AddNode(prev_array_node);
     }
 

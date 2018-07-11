@@ -57,7 +57,7 @@ bool HasAnyArrayNode(const Array& array) { return !array.nodes().empty(); }
 
 const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id) {
     auto array_node = std::make_shared<ArrayNode>(array.shape(), array.dtype(), array.device(), graph_id);
-    array_node->SetArrayBody(array.body());
+    array_node->set_array_body(array.body());
     return array.body()->AddNode(array_node);
 }
 
