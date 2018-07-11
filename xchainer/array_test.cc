@@ -624,6 +624,17 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
     }
 }
 
+TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGradWithNoBackpropMode) {
+    GraphId graph_id = "graph_1";
+    Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
+    Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
+    a.RequireGrad(graph_id);
+    {
+        NoBackpropModeScope scope{};
+        EXPECT_THROW({ a += b; }, XchainerError);
+    }
+}
+
 TEST_P(ArrayTest, Transpose) {
     Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>().WithPadding(0);
     Array b = a.Transpose();
