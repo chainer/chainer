@@ -209,7 +209,7 @@ public:
     //
     // Capturing the output array directly with lambda expression would cause cyclic reference and therefore would lead to memory leak.
     //
-    // The token cannot be reused for higher-order backward functions.
+    // Reusing the token for higher-order backward functions results in undefined behavior.
     //
     // `output` must be one of the arrays specified in the constructor of BackwardBuilder as output arrays.
     // If invalid array is specified, XchainerError will be thrown.
