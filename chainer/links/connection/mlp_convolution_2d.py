@@ -54,10 +54,8 @@ class MLPConvolution2D(link.ChainList):
             a keyword argument.
 
     .. note:
-        From v2, `conv_init` and `bias_init` arguments must be specified as
-        keyword arguments only. We impose this restriction to forbid
-        users to assume the API for v1 and specify `wscale` option,
-        that had been between `activation` and `conv_init` arguments in v1.
+        `conv_init` and `bias_init` arguments must be specified as
+        keyword arguments only.
 
     See: `Network in Network <https://arxiv.org/abs/1312.4400v3>`_.
 

@@ -454,11 +454,6 @@ class Variable(object):
         * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
         * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
-    .. warning::
-
-       ``volatile`` argument is not supported anymore since v2.
-       Instead, use :func:`chainer.no_backprop_mode`.
-
     Args:
         data (numpy.ndarray or cupy.ndarray): Initial data array.
         name (str): Name of the variable.

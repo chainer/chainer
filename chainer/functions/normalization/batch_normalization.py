@@ -858,12 +858,6 @@ def batch_normalization(x, gamma, beta, **kwargs):
     the total batch size will be considered to be the product of all
     input dimensions except the second dimension.
 
-    .. warning::
-
-       ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', train)``.
-       See :func:`chainer.using_config`.
-
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Input variable.

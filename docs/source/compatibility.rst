@@ -41,13 +41,6 @@ The following list shows an example of what we can do to reduce the cost (*Note:
 - When a definition of a link is changed, we try to enable it to deserialize a model dumped with an older version of Chainer.
   In most cases, we cannot guarantee that a model serialized with a newer version of Chainer is loadable by an older version of Chainer.
 
-.. note::
-
-   Since Chainer v2, we have stopped adopting any solid processes to break backward compatibilities (e.g. a solid schedule for deprecating and removing a feature) in order to keep the development fast enough to support the cutting-edge research.
-   **It does not mean we stop taking care of maintainability of user codes.**
-   We are still paying much attention to not breaking user codes.
-
-
 .. module:: chainer.utils
 
 Experimental APIs

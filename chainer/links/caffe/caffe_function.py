@@ -183,12 +183,6 @@ class CaffeFunction(link.Chain):
         bottom blobs are already computed, then emulates the layer and stores
         output blobs as :class:`~chainer.Variable` objects.
 
-        .. warning::
-
-           ``train`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
-           See :func:`chainer.using_config`.
-
         Args:
             inputs (dict): A dictionary whose key-value pairs indicate initial
                 correspondences between blob names and

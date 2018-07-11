@@ -140,7 +140,7 @@ class Reporter(object):
         observer object if given.
 
         .. note::
-           As of v2.0.0, if a value is of type :class:`~chainer.Variable`, the
+           If a value is of type :class:`~chainer.Variable`, the
            variable is copied without preserving the computational graph and
            the new variable object purged from the graph is stored to the
            observer. This behavior can be changed by setting

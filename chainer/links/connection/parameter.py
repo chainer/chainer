@@ -7,10 +7,6 @@ class Parameter(link.Link):
 
     """Link that just holds a parameter and returns it.
 
-    .. deprecated:: v1.5
-       The parameters are stored as variables as of v1.5. Use them directly
-       instead.
-
     Args:
         array: Initial parameter array.
 

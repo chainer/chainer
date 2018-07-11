@@ -171,12 +171,6 @@ class ResNetLayers(link.Chain):
 
         Computes all the feature maps specified by ``layers``.
 
-        .. warning::
-
-           ``test`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
-           See :func:`chainer.using_config`.
-
         Args:
             x (~chainer.Variable): Input variable. It should be prepared by
                 ``prepare`` function.
@@ -234,25 +228,6 @@ class ResNetLayers(link.Chain):
              with chainer.using_config('train', False):
                  with chainer.using_config('enable_backprop', False):
                      feature = model.extract([image])
-
-        .. warning::
-
-           ``test`` and ``volatile`` arguments are not supported
-           anymore since v2. Instead, users should configure
-           training and volatile modes with ``train`` and
-           ``enable_backprop``, respectively.
-
-           Note that default behavior of this method is different
-           between v1 and later versions. Specifically,
-           the default values of ``test`` in v1 were ``True`` (test mode).
-           But that of ``chainer.config.train`` is also ``True``
-           (train mode). Therefore, users need to explicitly switch
-           ``train`` to ``False`` to run the code in test mode and
-           ``enable_backprop`` to ``False`` to turn off
-           coputational graph construction.
-
-           See the `upgrade guide <https://docs.chainer.org/en/stable\
-           /upgrade_v2.html#training-mode-is-configured-by-a-thread-local-flag>`_.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
