@@ -41,11 +41,12 @@ namespace {
     if (!alive_arr_bodies.empty()) {
         // TODO(niboshi): Output only array bodies that are not referenced from other array bodies
         std::ostringstream os;
-        os << "Some array bodies are not freed." << std::endl << "Number of alive array bodies: " << alive_arr_bodies.size() << std::endl;
+        os << "Some array bodies are not freed.\n";
+        os << "Number of alive array bodies: " << alive_arr_bodies.size() << "\n";
         for (const std::shared_ptr<internal::ArrayBody>& array_body : alive_arr_bodies) {
             Array array{array_body};
-            os << "- Unreleased array body: " << array_body.get() << std::endl;
-            os << array << std::endl;
+            os << "- Unreleased array body: " << array_body.get() << "\n";
+            os << array << "\n";
             for (const std::shared_ptr<ArrayNode>& array_node : array.nodes()) {
                 const GraphId& graph_id = array_node->graph_id();
                 DebugDumpComputationalGraph(os, array, graph_id);
