@@ -19,7 +19,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
-    https://arxiv.org/abs/1802.05591
+    https://arxiv.org/abs/1708.02551
 
     In segmentation, one of the biggest problem is to have noise at the output
     of a trained network.
@@ -376,7 +376,7 @@ def discriminative_margin_based_clustering_loss(
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
-    https://arxiv.org/abs/1802.05591
+    https://arxiv.org/abs/1708.02551
 
     In segmentation, one of the biggest problem is to have noise at the output
     of a trained network.
