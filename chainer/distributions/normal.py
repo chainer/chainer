@@ -1,7 +1,6 @@
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
 from chainer.functions.math import erf
@@ -46,9 +45,9 @@ class Normal(distribution.Distribution):
         return self.loc.shape
 
     def cdf(self, x):
-        return 0.5 * (1. + erf.erf((
-            x - broadcast.broadcast_to(self.loc, x.shape))
-            / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape))))
+        return 0.5 * (1. + erf.erf(
+            (x - self.loc)
+            / (2 ** 0.5 * self.scale)))
 
     @property
     def entropy(self):
@@ -59,9 +58,9 @@ class Normal(distribution.Distribution):
         return ()
 
     def icdf(self, x):
-        return erfinv.erfinv(2. * x - 1.) \
-            * (2 ** 0.5) * broadcast.broadcast_to(self.scale, x.shape) \
-            + broadcast.broadcast_to(self.loc, x.shape)
+        return self.loc + (
+            erfinv.erfinv(2. * x - 1.)
+            * (2 ** 0.5 * self.scale))
 
     @property
     def _is_gpu(self):
@@ -71,9 +70,8 @@ class Normal(distribution.Distribution):
         return exponential.log(self.cdf(x))
 
     def log_prob(self, x):
-        return - exponential.log(broadcast.broadcast_to(self.scale, x.shape)) \
-            - 0.5 * (x - broadcast.broadcast_to(self.loc, x.shape)) ** 2 \
-            / broadcast.broadcast_to(self.scale, x.shape) ** 2 + LOGPROBC
+        return LOGPROBC - exponential.log(self.scale) \
+            - 0.5 * (x - self.loc) ** 2 / self.scale ** 2
 
     def log_survival_function(self, x):
         return exponential.log(self.survival_function(x))
@@ -83,10 +81,8 @@ class Normal(distribution.Distribution):
         return self.loc
 
     def prob(self, x):
-        return PROBC / broadcast.broadcast_to(self.scale, x.shape) * \
-            exponential.exp(
-                - 0.5 * (x - broadcast.broadcast_to(self.loc, x.shape)) ** 2
-                / broadcast.broadcast_to(self.scale, x.shape) ** 2)
+        return (PROBC / self.scale) * exponential.exp(
+            - 0.5 * (x - self.loc) ** 2 / self.scale ** 2)
 
     def sample_n(self, n):
         if self._is_gpu:
@@ -112,8 +108,8 @@ class Normal(distribution.Distribution):
 
     def survival_function(self, x):
         return 0.5 * (1. - erf.erf(
-            (x - broadcast.broadcast_to(self.loc, x.shape))
-            / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape))))
+            (x - self.loc)
+            / (2 ** 0.5 * self.scale)))
 
     @property
     def variance(self):
