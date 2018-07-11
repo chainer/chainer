@@ -69,7 +69,10 @@ class TestTriangularInv(unittest.TestCase):
         xp = cuda.get_array_module(x_data)
         y = distributions.multivariate_normal._triangular_inv(
             x_data, lower=self.lower)
-        y_xp = xp.linalg.inv(x_data)
+        if xp == cuda.cupy:
+            y_xp = xp.asarray(numpy.linalg.inv(x_data.get()))
+        else:
+            y_xp = numpy.linalg.inv(x_data)
         testing.assert_allclose(y.array, y_xp)
 
     def test_forward_cpu(self):
