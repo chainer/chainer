@@ -161,7 +161,7 @@ public:
     Array GetRetainedOutput(const RetainedOutputToken& token);
 
 private:
-    size_t num_outputs() const;
+    size_t output_count() const;
 
     const std::shared_ptr<OpNode>& op_node_;  // never be nullptr
     gsl::span<ArrayNode*> prev_array_nodes_;

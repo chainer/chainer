@@ -154,7 +154,7 @@ const Array& BackwardContext::output_grad(size_t output_index) const {
     }
 
     // If there already is a zero-filled gradient allocated, return it.
-    assert(output_index < num_outputs());
+    assert(output_index < output_count());
     nonstd::optional<Array>& zero_grad = zero_output_grads_[output_index];
     if (zero_grad.has_value()) {
         return *zero_grad;
@@ -174,7 +174,7 @@ Array& BackwardContext::input_grad() {
 Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_storage_, index); }
 
 Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
-    assert(token.output_index() < num_outputs());
+    assert(token.output_index() < output_count());
     size_t output_index = token.output_index();
 
     // Retrieve the kept array body for retained output.
@@ -206,7 +206,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
     return Array{kept_body};
 }
 
-size_t BackwardContext::num_outputs() const { return zero_output_grads_.size(); }
+size_t BackwardContext::output_count() const { return zero_output_grads_.size(); }
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()}, stop_graph_ids_{stop_graph_ids.begin(), stop_graph_ids.end()} {
