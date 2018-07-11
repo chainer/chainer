@@ -32,7 +32,7 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         y[self.to_zero] = 0.
         y[self.to_m_inf] = - xp.inf
 
-        return utils.force_array(y, x.dtype),
+        return utils.force_array(y, logit.dtype),
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
