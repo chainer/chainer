@@ -14,17 +14,14 @@ class CooMatrix(object):
         col (numpy.ndarray or cupy.ndarray): The column indices of the matrix
             entries.
         shape (tuple of int): The shape of the matrix in dense format.
-        order ('C', 'F', None, 'auto'): If ``'C'``, the matrix is assumed to be
-            made from row-major format (AKA C-contiguous) array, in other
-            words, the row indices are sorted. If ``'F'``, the matrix is
-            assumed to be made from column-major format (AKA
-            Fortran-contiguous) array, in other words, the column indices are
-            sorted. If ``None``, the matrix is assumed as neither 'C' order nor
-            'F' order. If ``'auto'`` (this is the default), the matrix is
-            automatically checked if it is 'C' order, 'F' order or another.
-            This information will be used by some functions like
-            :func:`~chainer.functions.sparse_matmul` as a hint to improve
-            performance.
+        order ('C', 'F', 'other', None): If ``'C'``, the maxtix is assumed that
+            its row indices are sorted. If ``'F'``, the matrix is assumed that
+            its column indices are sorted. If ``'other'``, the matrix is
+            assumed as neither 'C' order nor 'F' order. If ``None`` (this is
+            the default), the matrix is automatically checked if it is 'C'
+            order, 'F' order or another. This information will be used by some
+            functions like :func:`~chainer.functions.sparse_matmul` as a hint
+            to improve performance.
         requires_grad (bool): If ``True``, gradient of this sparse matrix will
             be computed in back-propagation.
 
@@ -34,7 +31,7 @@ class CooMatrix(object):
 
     """
 
-    def __init__(self, data, row, col, shape, order='auto',
+    def __init__(self, data, row, col, shape, order=None,
                  requires_grad=False):
         if not (1 <= data.ndim <= 2):
             raise ValueError('ndim of data must be 1 or 2.')
@@ -44,14 +41,14 @@ class CooMatrix(object):
             raise ValueError('length of shape must be 2.')
         if not (shape[0] > 0 and shape[1] > 0):
             raise ValueError('numbers in shape must be greater than 0.')
-        if order not in ('C', 'F', 'auto', None):
-            raise ValueError('order must be \'C\', \'F\', None or \'auto\'.')
+        if order not in ('C', 'F', 'other', None):
+            raise ValueError('order must be \'C\', \'F\', \'other\' or None.')
         self.data = chainer.Variable(data, requires_grad=requires_grad)
         self.row = row
         self.col = col
         self.shape = shape  # (row, col)
         self.order = order
-        if order is 'auto':
+        if order is None:
             self.order = get_order(row, col)
 
     def to_dense(self):
@@ -111,12 +108,6 @@ def to_coo(x, ldnz=None, requires_grad=False):
             (2, 3)
     """
     xp = cuda.get_array_module(x)
-    if x.flags.c_contiguous:
-        order = 'C'
-    elif x.flags.f_contiguous:
-        order = 'F'
-    else:
-        order = None
     if x.ndim == 2:
         _row, _col = xp.where(x != 0)
         nnz = len(_row)
@@ -129,7 +120,7 @@ def to_coo(x, ldnz=None, requires_grad=False):
         row[:nnz] = xp.array(_row).astype(xp.int32)
         col[:nnz] = xp.array(_col).astype(xp.int32)
         shape = x.shape
-        return CooMatrix(data, row, col, shape, order=order,
+        return CooMatrix(data, row, col, shape,
                          requires_grad=requires_grad)
     elif x.ndim == 3:
         # first axis is batch axis
@@ -147,7 +138,7 @@ def to_coo(x, ldnz=None, requires_grad=False):
             row[i] = coo.row
             col[i] = coo.col
         shape = x.shape[1:]
-        return CooMatrix(data, row, col, shape, order=order,
+        return CooMatrix(data, row, col, shape,
                          requires_grad=requires_grad)
     else:
         raise ValueError('ndim of x must be 2 or 3.')
@@ -166,13 +157,13 @@ def get_order(row, col):
         Returns ``'C'`` when a coo matrix with given row and column indices is
         C order, in other words, the row indices are sorted. Returns ``'F'``
         when it is F order, in other words, the column indices are sorted.
-        Returns ``None`` otherwise.
+        Returns ``'other'`` otherwise.
     """
     if _is_c_order(row, col):
         return 'C'
     if _is_c_order(col, row):
         return 'F'
-    return None
+    return 'other'
 
 
 def _is_c_order(row, col):
@@ -184,14 +175,18 @@ def _is_c_order(row, col):
             if not _is_c_order(row[i], col[i]):
                 return False
         return True
-    if row.shape[0] <= 1:
-        return True
     xp = cuda.get_array_module(row)
-    row_diff = xp.zeros(row.shape, dtype=row.dtype)
-    row_diff[1:] = row[1:] - row[:-1]
+    _row = row[col >= 0]
+    _col = col[row >= 0]
+    if _row[_row < 0].size > 0 or _col[_col < 0].size:
+        raise ValueError('invalid index combination of row and col.')
+    if _row.shape[0] <= 1:
+        return True
+    row_diff = xp.zeros(_row.shape, dtype=_row.dtype)
+    row_diff[1:] = _row[1:] - _row[:-1]
     if xp.amin(row_diff) < 0:
         return False
-    col_diff = xp.zeros(col.shape, dtype=col.dtype)
-    col_diff[1:] = col[1:] - col[:-1]
+    col_diff = xp.zeros(_col.shape, dtype=_col.dtype)
+    col_diff[1:] = _col[1:] - _col[:-1]
     col_diff[(row_diff > 0)] = 0
     return xp.amin(col_diff) >= 0
