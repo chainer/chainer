@@ -32,9 +32,9 @@ class TestMultivariateNormal(testing.distribution_unittest):
 
         loc = numpy.random.uniform(
             -1, 1, self.shape + (3,)).astype(numpy.float32)
-        cov = numpy.random.normal(size=self.shape + (3, 3))
-        cov = numpy.matmul(
-            cov, numpy.rollaxis(cov, -1, -2)).astype(numpy.float32)
+        cov = numpy.random.normal(size=(numpy.prod(self.shape),) + (3, 3))
+        cov = [cov_.dot(cov_.T) for cov_ in cov]
+        cov = numpy.vstack(cov).reshape(self.shape + (3, 3))
         scale_tril = numpy.linalg.cholesky(cov).astype(numpy.float32)
         self.params = {"loc": loc, "scale_tril": scale_tril}
         self.scipy_params = {"mean": loc, "cov": cov}
@@ -53,7 +53,8 @@ class TestMultivariateNormal(testing.distribution_unittest):
 class TestTriangularInv(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.normal(size=(self.d, self.d)).astype(self.dtype)
+        self.x = numpy.random.normal(
+            0, 10, size=(self.d, self.d)).astype(self.dtype)
         self.x = numpy.tril(self.x)
         if not self.lower:
             self.x = self.x.T

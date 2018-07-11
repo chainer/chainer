@@ -55,9 +55,9 @@ class TestKLDivergence(unittest.TestCase):
     def make_multivariatenormal_dist(self, is_gpu=False):
         loc = numpy.random.uniform(
             -1, 1, self.shape + (3,)).astype(numpy.float32)
-        cov = numpy.random.normal(size=self.shape + (3, 3))
-        cov = numpy.matmul(
-            cov, numpy.rollaxis(cov, -1, -2)).astype(numpy.float32)
+        cov = numpy.random.normal(size=(numpy.prod(self.shape),) + (3, 3))
+        cov = [cov_.dot(cov_.T) for cov_ in cov]
+        cov = numpy.vstack(cov).reshape(self.shape + (3, 3))
         scale_tril = numpy.linalg.cholesky(cov).astype(numpy.float32)
         params = self.encode_params(
             {"loc": loc, "scale_tril": scale_tril}, is_gpu)
