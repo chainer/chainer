@@ -183,6 +183,8 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
 
     if (kept_body == nullptr) {
         // This is the first retrieval of the retained output.
+        // If the original output array body is still alive. Just make a copy of array body with restricted array nodes.
+        // Otherwise, a new array body is fabricated.
 
         // Retrieve the array body of the original output array.
         std::shared_ptr<internal::ArrayBody> array_body{nullptr};
@@ -190,13 +192,12 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
             array_body = prev_array_node->GetBody();
         }
 
-        // If the original output array body is still alive. Just make a copy of array body with restricted array nodes.
-        // Otherwise, a new array body is fabricated.
         if (array_body == nullptr) {
+            // Fabricate a new array body
             array_body = token.GetFabricatedArrayBodyWithNodes(op_node_);
         }
 
-        // Cut the graph
+        // Cut graphs of the array body
         kept_body = Array{std::move(array_body)}.MakeView().move_body();
     }
 
