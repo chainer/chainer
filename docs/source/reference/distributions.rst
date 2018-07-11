@@ -16,6 +16,18 @@ Distributions
    
    chainer.distributions.Normal
    chainer.distributions.Laplace
+   
+   chainer.distributions.TransformedDistribution
+
+
+Bijector
+--------
+
+.. autosummary::
+  :toctree: generated/
+  :nosignatures:
+
+   chainer.distributions.ExpBijector
 
 
 Functionals of distribution
@@ -40,3 +52,4 @@ Base classes
   :nosignatures:
 
   chainer.Distribution
+  chainer.distributions.Bijector
