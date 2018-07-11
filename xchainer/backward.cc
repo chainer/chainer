@@ -196,7 +196,8 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
             array_body = token.GetFabricatedArrayBodyWithNodes(op_node_);
         }
 
-        kept_body = Cut(Array{std::move(array_body)}).move_body();
+        // Cut the graph
+        kept_body = Array{std::move(array_body)}.MakeView().move_body();
     }
 
     assert(kept_body != nullptr);
@@ -515,8 +516,7 @@ private:
             next_grads_subset.resize(backward_entry.next_array_node_count());
 
             // Call backward.
-            BackwardContext bctx{
-                    op_node, prev_array_nodes, prev_grads, next_grads_subset, graph_id_, double_backprop_};
+            BackwardContext bctx{op_node, prev_array_nodes, prev_grads, next_grads_subset, graph_id_, double_backprop_};
             {
                 NoBackpropModeScope scope{graph_ids_to_stop_gradient};
                 backward_entry.backward_func()(bctx);
