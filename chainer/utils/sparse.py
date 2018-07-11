@@ -43,7 +43,7 @@ class CooMatrix(object):
             raise ValueError('length of shape must be 2.')
         if not (shape[0] > 0 and shape[1] > 0):
             raise ValueError('numbers in shape must be greater than 0.')
-        if not (order in ('C', 'F', 'auto', None)):
+        if not order in ('C', 'F', 'auto', None):
             raise ValueError('order must be \'C\', \'F\', \'auto\' or None')
         self.data = chainer.Variable(data, requires_grad=requires_grad)
         self.row = row
