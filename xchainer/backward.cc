@@ -119,8 +119,8 @@ Array& BackwardContext::input_grad() {
 
 Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_storage_, index); }
 
-BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs, gsl::span<const GraphId> stop_graph_ids)
-    : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()}, stop_graph_ids_{stop_graph_ids.begin(), stop_graph_ids.end()} {
+BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs)
+    : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()} {
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
     assert(std::all_of(outputs.begin(), outputs.end(), [](const Array& output) { return !internal::HasAnyArrayNode(output); }));
     // All output arrays must have the same device.
@@ -148,21 +148,17 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
     // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
     using NextArrayNodes = std::vector<std::reference_wrapper<std::shared_ptr<ArrayNode>>>;
     std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes;
-    {
-        NoBackpropModeScope scope{stop_graph_ids_};
+    for (const Array& input : inputs) {
+        for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {
+            const GraphId& graph_id = next_array_node->graph_id();
 
-        for (const Array& input : inputs) {
-            for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {
-                const GraphId& graph_id = next_array_node->graph_id();
-
-                if (!IsBackpropRequired(graph_id)) {
-                    continue;
-                }
-
-                // Add the array node to the mapping
-                auto& vec = graph_to_next_array_nodes[graph_id];
-                vec.emplace_back(next_array_node);
+            if (!IsBackpropRequired(graph_id)) {
+                continue;
             }
+
+            // Add the array node to the mapping
+            auto& vec = graph_to_next_array_nodes[graph_id];
+            vec.emplace_back(next_array_node);
         }
     }
 
@@ -409,8 +405,8 @@ private:
 
     void PushNextOpNode(const std::shared_ptr<ArrayNode>& array_node) {
         // When double backprop is enabled, array_node releases the pointer to the next node here. After this operation, array_node will
-        // look like a leaf node of the graph. Note that this move does not invalidates the array_node object itself; it is guaranteed by
-        // the standard that shared_ptr becomes null after move-assigned to another.
+        // look like a leaf node of the graph. Note that this move does not invalidates the array_node object itself; it is guaranteed
+        // by the standard that shared_ptr becomes null after move-assigned to another.
         std::shared_ptr<OpNode> next_op_node =
                 double_backprop_ == DoubleBackpropOption::kEnable ? array_node->next_op_node() : array_node->move_next_op_node();
 
