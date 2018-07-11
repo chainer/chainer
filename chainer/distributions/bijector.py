@@ -1,8 +1,8 @@
+import chainer
 from chainer.functions.math import exponential
-from chainer.functions.math import identity
 
 
-class Bijector():
+class Bijector(object):
 
     """Interface of Bijector.
 
@@ -14,30 +14,31 @@ class Bijector():
     def __init__(self):
         self.cache_x_y = (None, None)
 
-    def forward(self, x):
+    def forward_(self, x):
         old_x, old_y = self.cache_x_y
-        if id(x) == id(old_x):
+        if x is old_x:
             return old_y
-        y = self._forward(x)
+        y = self.forward(x)
         self.cache_x_y = x, y
         return y
 
-    def inv(self, y):
+    def inv_(self, y):
         old_x, old_y = self.cache_x_y
-        if id(y) == id(old_y):
+        if y is old_y:
             return old_x
-        x = self._inv(y)
+        x = self.inv(y)
         self.cache_x_y = x, y
         return x
 
-    def logdet_jac(self, x):
-        return self._logdet_jac(x)
+    def logdet_jac_(self, x):
+        return self.logdet_jac(x)
 
-    def _forward(self, x):
+    def forward(self, x):
         """Forward computation
 
         Args:
-            x(:class:`~chainer.Variable`): Data points in the domain of the
+            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`): Data points in the domain of the
             based distribution.
 
         Returns:
@@ -46,11 +47,12 @@ class Bijector():
         """
         raise NotImplementedError
 
-    def _inv(self, y):
+    def inv(self, y):
         """Inverse computation
 
         Args:
-            x(:class:`~chainer.Variable`): Data points in the domain of the
+            y(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`): Data points in the domain of the
             transformed distribution.
 
         Returns:
@@ -59,11 +61,12 @@ class Bijector():
         """
         raise NotImplementedError
 
-    def _logdet_jac(self, x):
+    def logdet_jac(self, x):
         """Log-Determinant of Jacobian matrix of transformation
 
         Args:
-            x(:class:`~chainer.Variable`): Data points in the domain of the
+            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`): Data points in the domain of the
             based distribution.
 
         Returns:
@@ -78,11 +81,11 @@ class ExpBijector(Bijector):
 
     """
 
-    def _forward(self, x):
+    def forward(self, x):
         return exponential.exp(x)
 
-    def _inv(self, y):
+    def inv(self, y):
         return exponential.log(y)
 
-    def _logdet_jac(self, x):
-        return identity.identity(x)
+    def logdet_jac(self, x):
+        return x

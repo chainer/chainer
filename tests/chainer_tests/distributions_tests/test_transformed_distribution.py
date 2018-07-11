@@ -10,7 +10,7 @@ import numpy
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
-class TestLogTransformedDistribution(testing.distribution_unittest):
+class TestExpTransformedNormalDistribution(testing.distribution_unittest):
 
     scipy_onebyone = True
 
@@ -24,7 +24,7 @@ class TestLogTransformedDistribution(testing.distribution_unittest):
         self.dist = dist
         self.scipy_dist = stats.lognorm
 
-        self.test_targets = set(["cdf", "log_prob", "sample"])
+        self.test_targets = set(["cdf", "log_prob", "prob", "sample"])
 
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(

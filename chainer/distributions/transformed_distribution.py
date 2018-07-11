@@ -1,4 +1,5 @@
 from chainer import distribution
+from chainer.functions.math import exponential
 
 
 class TransformedDistribution(distribution.Distribution):
@@ -30,12 +31,18 @@ class TransformedDistribution(distribution.Distribution):
         return self.base_distribution.event_shape
 
     def cdf(self, x):
-        return self.base_distribution.cdf(self.bijector.inv(x))
+        return self.base_distribution.cdf(self.bijector.inv_(x))
 
     def log_prob(self, x):
-        return self.base_distribution.log_prob(self.bijector.inv(x)) \
-            - self.bijector.logdet_jac(self.bijector.inv(x))
+        invx = self.bijector.inv_(x)
+        return self.base_distribution.log_prob(invx) \
+            - self.bijector.logdet_jac_(invx)
+
+    def prob(self, x):
+        invx = self.bijector.inv_(x)
+        return self.base_distribution.prob(invx) \
+            / exponential.exp(self.bijector.logdet_jac_(invx))
 
     def sample(self, sample_shape):
         noise = self.base_distribution.sample(sample_shape)
-        return self.bijector.forward(noise)
+        return self.bijector.forward_(noise)
