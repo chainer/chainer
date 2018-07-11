@@ -102,7 +102,7 @@ const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedAr
                 new_op_node = op_node->CloneInOtherGraph(graph_id);
             }
             // Create mocked prev array node which refers to the op node
-            internal::ArrayProps props = op_node->GetPrevArrayProps(output_index_);
+            const internal::ArrayProps& props = op_node->GetPrevArrayProps(output_index_);
             prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, graph_id);
             prev_array_node->set_next_op_node(std::move(new_op_node));
         }
@@ -161,7 +161,7 @@ const Array& BackwardContext::output_grad(size_t output_index) const {
     }
 
     // Allocate new zero-filled gradient and return it.
-    const internal::ArrayProps props = op_node_->GetPrevArrayProps(output_index);
+    const internal::ArrayProps& props = op_node_->GetPrevArrayProps(output_index);
     zero_grad = Zeros(props.shape, props.dtype, props.device);
     return *zero_grad;
 }
