@@ -27,10 +27,13 @@ import resnext50
 
 try:
     from nvidia import dali
-    from nvidia.dali import pipeline
     from nvidia.dali import ops
+    from nvidia.dali import pipeline
     _dali_available = True
 except ImportError:
+    class pipeline(object):
+        Pipeline = object
+        pass
     _dali_available = False
 
 from chainer.backends import cuda
@@ -47,12 +50,14 @@ class ImagenetDaliPipeline(pipeline.Pipeline):
 
     def __init__(self, file_list, file_root, crop_size,
                  batch_size, num_threads, device_id,
-                 random_shuffle=False, seed=-1,
-                 mean=[0.485 * 255, 0.456 * 255, 0.406 * 255],
-                 std=[0.229 * 255, 0.224 * 255, 0.225 * 255]):
+                 random_shuffle=False, seed=-1, mean=None, std=None):
         super(ImagenetDaliPipeline, self).__init__(batch_size, num_threads,
                                                    device_id, seed=seed)
         crop_size = _pair(crop_size)
+        if mean is None:
+            mean = (0.485 * 255, 0.456 * 255, 0.406 * 255)
+        if std is None:
+            std = (0.229 * 255, 0.224 * 255, 0.225 * 255)
         self.loader = ops.FileReader(file_root=file_root, file_list=file_list,
                                      random_shuffle=random_shuffle)
         self.decode = ops.HostDecoder()
