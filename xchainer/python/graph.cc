@@ -12,7 +12,7 @@ namespace internal {
 namespace py = pybind11;  // standard convention
 
 void InitXchainerGraph(pybind11::module& m) {
-    py::class_<AnyGraph>{m, "AnyGraph"};
+    py::class_<AnyGraph>{m, "AnyGraph"};  // NOLINT: misc-unused-raii
 
     m.attr("DEFAULT_GRAPH_ID") = kDefaultGraphId;
     m.attr("anygraph") = AnyGraph{};
