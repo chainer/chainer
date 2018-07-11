@@ -105,7 +105,7 @@ def static_code(*dec_args, **dec_kwargs):
     Note that this would work during the first iteration, but during
     the next iteration when "func_A" is called, it would allocate and
     return a new array for `x` leading to "func_B" reading from the
-    stale reference to `x` from the previous iteration. Actually, such
+    stale reference to `x` from the previous iteration. This
     usage is allowed in some special cases by the framework code, but
     is not allowed for user-defined functions.
 

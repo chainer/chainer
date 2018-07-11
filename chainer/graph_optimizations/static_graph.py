@@ -721,7 +721,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
 
         Args:
             out_vars (list of Variable): The (flattened) list of output
-                variables obtained by performing a defein-by-run
+                variables obtained by performing a define-by-run
                 forward pass (or corresponding backward pass) on the
                 local sub-graph corresponding to the static chain.
         """
