@@ -15,14 +15,18 @@ class DaliIterator(iterator.Iterator):
     """
 
     def __init__(self, pipeline, repeat=True):
-        pipeline.build()
         self.pipeline = pipeline
         self._repeat = repeat
-        self.epoch_size = tuple(pipeline.epoch_size().values())[0]
-
+        self._is_build = False
+        self.epoch_size = 1  # dummy
         self.reset()
 
     def __next__(self):
+        if not self._is_build:
+            self.pipeline.build()
+            self._is_build = True
+            self.epoch_size = tuple(self.pipeline.epoch_size().values())[0]
+
         if not self._repeat and self.epoch > 0:
             raise StopIteration
 
