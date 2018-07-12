@@ -405,7 +405,9 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
             y = x.AsGradStopped() * x.AsGradStopped();
 
             BackwardBuilder bb{"func", y};
-            bb.Define({x}, [x](BackwardContext& bctx) {
+            BackwardBuilder::Target bt = bb.CreateTarget(x);
+            assert(bt);
+            bt.Define([x](BackwardContext& bctx) {
                 // Create an input grad which references the input array.
                 bctx.input_grad() = 2 * x * bctx.output_grad();
             });
@@ -447,7 +449,9 @@ TEST_P(BackpropTest, SomeOfPreviousArrayNodesAreGone) {
         y4 = Exp(x_const) * 4;
 
         BackwardBuilder bb{"func", {y1, y2, y3, y4}};
-        bb.Define({x}, [x](BackwardContext& bctx) {
+        BackwardBuilder::Target bt = bb.CreateTarget(x);
+        assert(bt);
+        bt.Define([x](BackwardContext& bctx) {
             Array gy1gx = bctx.output_grad(0) * Exp(x) * x;
             Array gy2gx = bctx.output_grad(1) * Exp(x) * 2;
             Array gy3gx = bctx.output_grad(2) * Exp(x) * 3;
@@ -553,7 +557,9 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
 
         {
             BackwardBuilder bb{"func", y1};
-            bb.Define({x1}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+            BackwardBuilder::Target bt = bb.CreateTarget(x1);
+            assert(bt);
+            bt.Define([gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad();  // omit index
                 testing::ExpectEqual(gy1_value, gy1);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -608,7 +614,9 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
 
         {
             BackwardBuilder bb{"func", {y1, y2}};
-            bb.Define({x1}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+            BackwardBuilder::Target bt = bb.CreateTarget(x1);
+            assert(bt);
+            bt.Define([gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad(0);  // by index
                 const Array& gy2 = bctx.output_grad(1);
                 testing::ExpectEqual(gy1_value, gy1);
@@ -676,48 +684,56 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
 
         {
             BackwardBuilder bb{"func", {y1}};
-            bb.Define({x1}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
-                const Array& gy1 = bctx.output_grad();  // omit index
-                testing::ExpectEqual(gy1_value, gy1);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
-                } else {
-                    EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
-                }
+            {
+                BackwardBuilder::Target bt = bb.CreateTarget(x1);
+                assert(bt);
+                bt.Define([gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                    const Array& gy1 = bctx.output_grad();  // omit index
+                    testing::ExpectEqual(gy1_value, gy1);
+                    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                        EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                    } else {
+                        EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
+                    }
 
-                // input_grad has null array
-                EXPECT_EQ(nullptr, bctx.input_grad().body());
+                    // input_grad has null array
+                    EXPECT_EQ(nullptr, bctx.input_grad().body());
 
-                // input_grad setter
-                bctx.input_grad() = 2 * gy1;  // omit index
+                    // input_grad setter
+                    bctx.input_grad() = 2 * gy1;  // omit index
 
-                // Check bctx.input_grad() as a getter
-                Array gx1_back = bctx.input_grad();
-                testing::ExpectEqual(2 * gy1, gx1_back);
-            });
-            bb.Define({x2, x3}, [gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
-                const Array& gy1 = bctx.output_grad(0);  // by index
-                testing::ExpectEqual(gy1_value, gy1);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
-                } else {
-                    EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
-                }
+                    // Check bctx.input_grad() as a getter
+                    Array gx1_back = bctx.input_grad();
+                    testing::ExpectEqual(2 * gy1, gx1_back);
+                });
+            }
+            {
+                BackwardBuilder::Target bt = bb.CreateTarget({x2, x3});
+                assert(bt);
+                bt.Define([gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                    const Array& gy1 = bctx.output_grad(0);  // by index
+                    testing::ExpectEqual(gy1_value, gy1);
+                    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                        EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                    } else {
+                        EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
+                    }
 
-                // input_grad has null array
-                EXPECT_EQ(nullptr, bctx.input_grad(0).body());
-                EXPECT_EQ(nullptr, bctx.input_grad(1).body());
+                    // input_grad has null array
+                    EXPECT_EQ(nullptr, bctx.input_grad(0).body());
+                    EXPECT_EQ(nullptr, bctx.input_grad(1).body());
 
-                // input_grad setter
-                bctx.input_grad(0) = 3 * gy1;  // by index
-                bctx.input_grad(1) = 1 * gy1;
+                    // input_grad setter
+                    bctx.input_grad(0) = 3 * gy1;  // by index
+                    bctx.input_grad(1) = 1 * gy1;
 
-                // Check bctx.input_grad() as a getter
-                Array gx2_back = bctx.input_grad(0);
-                Array gx3_back = bctx.input_grad(1);
-                testing::ExpectEqual(3 * gy1, gx2_back);
-                testing::ExpectEqual(1 * gy1, gx3_back);
-            });
+                    // Check bctx.input_grad() as a getter
+                    Array gx2_back = bctx.input_grad(0);
+                    Array gx3_back = bctx.input_grad(1);
+                    testing::ExpectEqual(3 * gy1, gx2_back);
+                    testing::ExpectEqual(1 * gy1, gx3_back);
+                });
+            }
         }
     };
 
@@ -774,38 +790,46 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
 
         {
             BackwardBuilder bb{"func", {y1, y2}};
-            bb.Define({x1}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
-                const Array& gy1 = bctx.output_grad(0);  // by index
-                const Array& gy2 = bctx.output_grad(1);
-                testing::ExpectEqual(gy1_value, gy1);
-                testing::ExpectEqual(gy2_value, gy2);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
-                    EXPECT_TRUE(gy2.IsGradRequired(graph_id));
-                } else {
-                    EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
-                    EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
-                }
-                bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
-            });
-            bb.Define({x2, x3}, [gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
-                const Array& gy1 = bctx.output_grad(0);  // by index
-                const Array& gy2 = bctx.output_grad(1);
-                testing::ExpectEqual(gy1_value, gy1);
-                testing::ExpectEqual(gy2_value, gy2);
-                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
-                    EXPECT_TRUE(gy2.IsGradRequired(graph_id));
-                } else {
-                    EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
-                    EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
-                }
+            {
+                BackwardBuilder::Target bt = bb.CreateTarget(x1);
+                assert(bt);
+                bt.Define([gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                    const Array& gy1 = bctx.output_grad(0);  // by index
+                    const Array& gy2 = bctx.output_grad(1);
+                    testing::ExpectEqual(gy1_value, gy1);
+                    testing::ExpectEqual(gy2_value, gy2);
+                    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                        EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                        EXPECT_TRUE(gy2.IsGradRequired(graph_id));
+                    } else {
+                        EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
+                        EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
+                    }
+                    bctx.input_grad(0) = 2 * gy1 + 3 * gy2;  // by index
+                });
+            }
+            {
+                BackwardBuilder::Target bt = bb.CreateTarget({x2, x3});
+                assert(bt);
+                bt.Define([gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                    const Array& gy1 = bctx.output_grad(0);  // by index
+                    const Array& gy2 = bctx.output_grad(1);
+                    testing::ExpectEqual(gy1_value, gy1);
+                    testing::ExpectEqual(gy2_value, gy2);
+                    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                        EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                        EXPECT_TRUE(gy2.IsGradRequired(graph_id));
+                    } else {
+                        EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
+                        EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
+                    }
 
-                Array gx2 = 3 * gy1 + gy2;
-                Array gx3 = 2 * gy2;
-                bctx.input_grad(0) = gx2;  // by index, from non-temporary
-                bctx.input_grad(1) = gx3;
-            });
+                    Array gx2 = 3 * gy1 + gy2;
+                    Array gx3 = 2 * gy2;
+                    bctx.input_grad(0) = gx2;  // by index, from non-temporary
+                    bctx.input_grad(1) = gx3;
+                });
+            }
         }
     };
 
@@ -858,7 +882,9 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
         y1 = 2 * x1.AsGradStopped() + 3 * x2.AsGradStopped() + 1;
         {
             BackwardBuilder bb{"func", {y1}};
-            bb.Define({x1, x2}, [](BackwardContext& bctx) {
+            BackwardBuilder::Target bt = bb.CreateTarget({x1, x2});
+            assert(bt);
+            bt.Define([](BackwardContext& bctx) {
                 bctx.input_grad(0) = 2 * bctx.output_grad();
                 bctx.input_grad(1) = 3 * bctx.output_grad();
             });
@@ -903,7 +929,9 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
 
         {
             BackwardBuilder bb{"func", {y1, y2}};
-            bb.Define({x1}, [gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+            BackwardBuilder::Target bt = bb.CreateTarget(x1);
+            assert(bt);
+            bt.Define([gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                 EXPECT_FALSE(bctx.HasOutputGrad(0));
                 EXPECT_TRUE(bctx.HasOutputGrad(1));
 
@@ -975,74 +1003,96 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
         // y2 is retrieved with sperarately acquired tokens.
         RetainedOutputToken tok1 = bb.RetainOutput(y1);
 
-        bb.Define(
-                {x1},
-                [ tok1, tok2 = bb.RetainOutput(y2), y1_value, y2_value, &graph_id1, &graph_id2, &y1_body, &y2_body, double_backprop_opt ](
-                        BackwardContext & bctx) {
-                    // Test assumption: the bodies of ys must be still alive.
-                    ASSERT_NE(nullptr, y1_body.lock());
-                    ASSERT_NE(nullptr, y2_body.lock());
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(x1);
+            assert(bt);
+            bt.Define([
+                tok1,
+                tok2 = bb.RetainOutput(y2),
+                y1_value,
+                y2_value,
+                &graph_id1,
+                &graph_id2,
+                &y1_body,
+                &y2_body,
+                double_backprop_opt
+            ](BackwardContext & bctx) {
+                // Test assumption: the bodies of ys must be still alive.
+                ASSERT_NE(nullptr, y1_body.lock());
+                ASSERT_NE(nullptr, y2_body.lock());
 
-                    // Retrieve retained outputs
-                    const Array& y1 = bctx.GetRetainedOutput(tok1);
-                    const Array& y2 = bctx.GetRetainedOutput(tok2);
+                // Retrieve retained outputs
+                const Array& y1 = bctx.GetRetainedOutput(tok1);
+                const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                    testing::ExpectEqual(y1_value, y1);
-                    testing::ExpectEqual(y2_value, y2);
-                    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                        EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                        EXPECT_TRUE(y2.IsGradRequired(graph_id1));
-                    } else {
-                        EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                        EXPECT_FALSE(y2.IsGradRequired(graph_id1));
-                    }
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id2));
+                testing::ExpectEqual(y1_value, y1);
+                testing::ExpectEqual(y2_value, y2);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                } else {
+                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                }
+                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                EXPECT_TRUE(y2.IsGradRequired(graph_id2));
 
-                    // Retrieve retained outputs repeatedly
-                    const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                    const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                    EXPECT_EQ(y1_again.body(), y1.body());
-                    EXPECT_EQ(y2_again.body(), y2.body());
+                // Retrieve retained outputs repeatedly
+                const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                const Array& y2_again = bctx.GetRetainedOutput(tok2);
+                EXPECT_EQ(y1_again.body(), y1.body());
+                EXPECT_EQ(y2_again.body(), y2.body());
 
-                    Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
-                    Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
-                    bctx.input_grad() = gy1gx1 + gy2gx1;
-                });
-        bb.Define(
-                {x2},
-                [ tok1, tok2 = bb.RetainOutput(y2), y1_value, y2_value, &graph_id1, &graph_id2, &y1_body, &y2_body, double_backprop_opt ](
-                        BackwardContext & bctx) {
-                    // Test assumption: the bodies of ys must be still alive.
-                    ASSERT_NE(nullptr, y1_body.lock());
-                    ASSERT_NE(nullptr, y2_body.lock());
+                Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
+                Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
+                bctx.input_grad() = gy1gx1 + gy2gx1;
+            });
+        }
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(x2);
+            assert(bt);
+            bt.Define([
+                tok1,
+                tok2 = bb.RetainOutput(y2),
+                y1_value,
+                y2_value,
+                &graph_id1,
+                &graph_id2,
+                &y1_body,
+                &y2_body,
+                double_backprop_opt
+            ](BackwardContext & bctx) {
+                // Test assumption: the bodies of ys must be still alive.
+                ASSERT_NE(nullptr, y1_body.lock());
+                ASSERT_NE(nullptr, y2_body.lock());
 
-                    // Retrieve retained outputs
-                    const Array& y1 = bctx.GetRetainedOutput(tok1);
-                    const Array& y2 = bctx.GetRetainedOutput(tok2);
+                // Retrieve retained outputs
+                const Array& y1 = bctx.GetRetainedOutput(tok1);
+                const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                    testing::ExpectEqual(y1_value, y1);
-                    testing::ExpectEqual(y2_value, y2);
-                    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                        EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                        EXPECT_TRUE(y2.IsGradRequired(graph_id1));
-                    } else {
-                        EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                        EXPECT_FALSE(y2.IsGradRequired(graph_id1));
-                    }
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id2));
+                testing::ExpectEqual(y1_value, y1);
+                testing::ExpectEqual(y2_value, y2);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                } else {
+                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                }
+                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                EXPECT_TRUE(y2.IsGradRequired(graph_id2));
 
-                    // Retrieve retained outputs repeatedly
-                    const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                    const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                    EXPECT_EQ(y1_again.body(), y1.body());
-                    EXPECT_EQ(y2_again.body(), y2.body());
+                // Retrieve retained outputs repeatedly
+                const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                const Array& y2_again = bctx.GetRetainedOutput(tok2);
+                EXPECT_EQ(y1_again.body(), y1.body());
+                EXPECT_EQ(y2_again.body(), y2.body());
 
-                    Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
-                    Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
-                    bctx.input_grad() = gy1gx2 + gy2gx2;
-                });
+                Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
+                Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
+                bctx.input_grad() = gy1gx2 + gy2gx2;
+            });
+        }
     };
 
     internal::ArrayBodyLeakTracker tracker{};
@@ -1103,74 +1153,96 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
         // y2 is retrieved with sperarately acquired tokens.
         RetainedOutputToken tok1 = bb.RetainOutput(y1);
 
-        bb.Define(
-                {x1},
-                [ tok1, tok2 = bb.RetainOutput(y2), y1_value, y2_value, &graph_id1, &graph_id2, &y1_body, &y2_body, double_backprop_opt ](
-                        BackwardContext & bctx) {
-                    // Test assumption: the bodies of ys must be dead.
-                    ASSERT_EQ(nullptr, y1_body.lock());
-                    ASSERT_EQ(nullptr, y2_body.lock());
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(x1);
+            assert(bt);
+            bt.Define([
+                tok1,
+                tok2 = bb.RetainOutput(y2),
+                y1_value,
+                y2_value,
+                &graph_id1,
+                &graph_id2,
+                &y1_body,
+                &y2_body,
+                double_backprop_opt
+            ](BackwardContext & bctx) {
+                // Test assumption: the bodies of ys must be dead.
+                ASSERT_EQ(nullptr, y1_body.lock());
+                ASSERT_EQ(nullptr, y2_body.lock());
 
-                    // Retrieve retained outputs
-                    const Array& y1 = bctx.GetRetainedOutput(tok1);
-                    const Array& y2 = bctx.GetRetainedOutput(tok2);
+                // Retrieve retained outputs
+                const Array& y1 = bctx.GetRetainedOutput(tok1);
+                const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                    testing::ExpectEqual(y1_value, y1);
-                    testing::ExpectEqual(y2_value, y2);
-                    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                        EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                        EXPECT_TRUE(y2.IsGradRequired(graph_id1));
-                    } else {
-                        EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                        EXPECT_FALSE(y2.IsGradRequired(graph_id1));
-                    }
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id2));
+                testing::ExpectEqual(y1_value, y1);
+                testing::ExpectEqual(y2_value, y2);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                } else {
+                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                }
+                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                EXPECT_TRUE(y2.IsGradRequired(graph_id2));
 
-                    // Retrieve retained outputs repeatedly
-                    const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                    const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                    EXPECT_EQ(y1_again.body(), y1.body());
-                    EXPECT_EQ(y2_again.body(), y2.body());
+                // Retrieve retained outputs repeatedly
+                const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                const Array& y2_again = bctx.GetRetainedOutput(tok2);
+                EXPECT_EQ(y1_again.body(), y1.body());
+                EXPECT_EQ(y2_again.body(), y2.body());
 
-                    Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
-                    Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
-                    bctx.input_grad() = gy1gx1 + gy2gx1;
-                });
-        bb.Define(
-                {x2},
-                [ tok1, tok2 = bb.RetainOutput(y2), y1_value, y2_value, &graph_id1, &graph_id2, &y1_body, &y2_body, double_backprop_opt ](
-                        BackwardContext & bctx) {
-                    // Test assumption: the bodies of ys must be dead.
-                    ASSERT_EQ(nullptr, y1_body.lock());
-                    ASSERT_EQ(nullptr, y2_body.lock());
+                Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
+                Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
+                bctx.input_grad() = gy1gx1 + gy2gx1;
+            });
+        }
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(x2);
+            assert(bt);
+            bt.Define([
+                tok1,
+                tok2 = bb.RetainOutput(y2),
+                y1_value,
+                y2_value,
+                &graph_id1,
+                &graph_id2,
+                &y1_body,
+                &y2_body,
+                double_backprop_opt
+            ](BackwardContext & bctx) {
+                // Test assumption: the bodies of ys must be dead.
+                ASSERT_EQ(nullptr, y1_body.lock());
+                ASSERT_EQ(nullptr, y2_body.lock());
 
-                    // Retrieve retained outputs
-                    const Array& y1 = bctx.GetRetainedOutput(tok1);
-                    const Array& y2 = bctx.GetRetainedOutput(tok2);
+                // Retrieve retained outputs
+                const Array& y1 = bctx.GetRetainedOutput(tok1);
+                const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                    testing::ExpectEqual(y1_value, y1);
-                    testing::ExpectEqual(y2_value, y2);
-                    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                        EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                        EXPECT_TRUE(y2.IsGradRequired(graph_id1));
-                    } else {
-                        EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                        EXPECT_FALSE(y2.IsGradRequired(graph_id1));
-                    }
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id2));
+                testing::ExpectEqual(y1_value, y1);
+                testing::ExpectEqual(y2_value, y2);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                } else {
+                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                }
+                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                EXPECT_TRUE(y2.IsGradRequired(graph_id2));
 
-                    // Retrieve retained outputs repeatedly
-                    const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                    const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                    EXPECT_EQ(y1_again.body(), y1.body());
-                    EXPECT_EQ(y2_again.body(), y2.body());
+                // Retrieve retained outputs repeatedly
+                const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                const Array& y2_again = bctx.GetRetainedOutput(tok2);
+                EXPECT_EQ(y1_again.body(), y1.body());
+                EXPECT_EQ(y2_again.body(), y2.body());
 
-                    Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
-                    Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
-                    bctx.input_grad() = gy1gx2 + gy2gx2;
-                });
+                Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
+                Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
+                bctx.input_grad() = gy1gx2 + gy2gx2;
+            });
+        }
     };
 
     internal::ArrayBodyLeakTracker tracker{};
@@ -1237,74 +1309,96 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToNextArrayNode) {
         // y2 is retrieved with sperarately acquired tokens.
         RetainedOutputToken tok1 = bb.RetainOutput(y1);
 
-        bb.Define(
-                {x1},
-                [ tok1, tok2 = bb.RetainOutput(y2), y1_value, y2_value, &graph_id1, &graph_id2, &y1_body, &y1_node, double_backprop_opt ](
-                        BackwardContext & bctx) {
-                    // Test assumption: the body and node of y1 must be dead.
-                    ASSERT_EQ(nullptr, y1_body.lock());
-                    ASSERT_EQ(nullptr, y1_node.lock());
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(x1);
+            assert(bt);
+            bt.Define([
+                tok1,
+                tok2 = bb.RetainOutput(y2),
+                y1_value,
+                y2_value,
+                &graph_id1,
+                &graph_id2,
+                &y1_body,
+                &y1_node,
+                double_backprop_opt
+            ](BackwardContext & bctx) {
+                // Test assumption: the body and node of y1 must be dead.
+                ASSERT_EQ(nullptr, y1_body.lock());
+                ASSERT_EQ(nullptr, y1_node.lock());
 
-                    // Retrieve retained outputs
-                    const Array& y1 = bctx.GetRetainedOutput(tok1);
-                    const Array& y2 = bctx.GetRetainedOutput(tok2);
+                // Retrieve retained outputs
+                const Array& y1 = bctx.GetRetainedOutput(tok1);
+                const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                    testing::ExpectEqual(y1_value, y1);
-                    testing::ExpectEqual(y2_value, y2);
-                    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                        EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                        EXPECT_TRUE(y2.IsGradRequired(graph_id1));
-                    } else {
-                        EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                        EXPECT_FALSE(y2.IsGradRequired(graph_id1));
-                    }
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id2));
+                testing::ExpectEqual(y1_value, y1);
+                testing::ExpectEqual(y2_value, y2);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                } else {
+                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                }
+                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                EXPECT_TRUE(y2.IsGradRequired(graph_id2));
 
-                    // Retrieve retained outputs repeatedly
-                    const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                    const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                    EXPECT_EQ(y1_again.body(), y1.body());
-                    EXPECT_EQ(y2_again.body(), y2.body());
+                // Retrieve retained outputs repeatedly
+                const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                const Array& y2_again = bctx.GetRetainedOutput(tok2);
+                EXPECT_EQ(y1_again.body(), y1.body());
+                EXPECT_EQ(y2_again.body(), y2.body());
 
-                    Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
-                    Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
-                    bctx.input_grad() = gy1gx1 + gy2gx1;
-                });
-        bb.Define(
-                {x2},
-                [ tok1, tok2 = bb.RetainOutput(y2), y1_value, y2_value, &graph_id1, &graph_id2, &y1_body, &y1_node, double_backprop_opt ](
-                        BackwardContext & bctx) {
-                    // Test assumption: the body and node of y1 must be dead.
-                    ASSERT_EQ(nullptr, y1_body.lock());
-                    ASSERT_EQ(nullptr, y1_node.lock());
+                Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
+                Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
+                bctx.input_grad() = gy1gx1 + gy2gx1;
+            });
+        }
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(x2);
+            assert(bt);
+            bt.Define([
+                tok1,
+                tok2 = bb.RetainOutput(y2),
+                y1_value,
+                y2_value,
+                &graph_id1,
+                &graph_id2,
+                &y1_body,
+                &y1_node,
+                double_backprop_opt
+            ](BackwardContext & bctx) {
+                // Test assumption: the body and node of y1 must be dead.
+                ASSERT_EQ(nullptr, y1_body.lock());
+                ASSERT_EQ(nullptr, y1_node.lock());
 
-                    // Retrieve retained outputs
-                    const Array& y1 = bctx.GetRetainedOutput(tok1);
-                    const Array& y2 = bctx.GetRetainedOutput(tok2);
+                // Retrieve retained outputs
+                const Array& y1 = bctx.GetRetainedOutput(tok1);
+                const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                    testing::ExpectEqual(y1_value, y1);
-                    testing::ExpectEqual(y2_value, y2);
-                    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                        EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                        EXPECT_TRUE(y2.IsGradRequired(graph_id1));
-                    } else {
-                        EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                        EXPECT_FALSE(y2.IsGradRequired(graph_id1));
-                    }
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id2));
+                testing::ExpectEqual(y1_value, y1);
+                testing::ExpectEqual(y2_value, y2);
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                } else {
+                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                }
+                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                EXPECT_TRUE(y2.IsGradRequired(graph_id2));
 
-                    // Retrieve retained outputs repeatedly
-                    const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                    const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                    EXPECT_EQ(y1_again.body(), y1.body());
-                    EXPECT_EQ(y2_again.body(), y2.body());
+                // Retrieve retained outputs repeatedly
+                const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                const Array& y2_again = bctx.GetRetainedOutput(tok2);
+                EXPECT_EQ(y1_again.body(), y1.body());
+                EXPECT_EQ(y2_again.body(), y2.body());
 
-                    Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
-                    Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
-                    bctx.input_grad() = gy1gx2 + gy2gx2;
-                });
+                Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
+                Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
+                bctx.input_grad() = gy1gx2 + gy2gx2;
+            });
+        }
     };
 
     internal::ArrayBodyLeakTracker tracker{};
@@ -1355,7 +1449,9 @@ TEST(BackpropGradValidationTest, InvalidGradShape) {
 
         {
             BackwardBuilder bb{"func", y1};
-            bb.Define({x1}, [](BackwardContext& bctx) {
+            BackwardBuilder::Target bt = bb.CreateTarget(x1);
+            assert(bt);
+            bt.Define([](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad(0);
                 EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 bctx.input_grad() = gy1.Reshape({2, 1});  // Intentionally set to a wrong shape (2, 1), instead of (2,).
@@ -1389,7 +1485,9 @@ TEST(BackpropGradValidationTest, InvalidGradDtype) {
 
         {
             BackwardBuilder bb{"func", y1};
-            bb.Define({x1}, [](BackwardContext& bctx) {
+            BackwardBuilder::Target bt = bb.CreateTarget(x1);
+            assert(bt);
+            bt.Define([](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad(0);
                 EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 bctx.input_grad() = gy1.AsType(Dtype::kFloat32);  // Intentionally set to a wrong dtype float, instead of double.
@@ -1423,7 +1521,9 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
 
         {
             BackwardBuilder bb{"func", y1};
-            bb.Define({x1}, [& device = x1.device()](BackwardContext & bctx) {
+            BackwardBuilder::Target bt = bb.CreateTarget(x1);
+            assert(bt);
+            bt.Define([& device = x1.device()](BackwardContext & bctx) {
                 const Array& gy1 = bctx.output_grad(0);
                 EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 bctx.input_grad() =

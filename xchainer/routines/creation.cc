@@ -153,9 +153,9 @@ Array Copy(const Array& a) {
         a.device().Copy(a, out);
     }
 
-    if (a.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"copy", out};
-        bb.Define({a}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+    BackwardBuilder bb{"copy", out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+        bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
 
     assert(out.IsContiguous());
@@ -217,12 +217,14 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
         a.device().AsType(a, out);
     }
 
-    if (a.IsGradRequired(AnyGraph{}) && GetKind(dt) == DtypeKind::kFloat) {
+    if (GetKind(dt) == DtypeKind::kFloat) {
         BackwardBuilder bb{"ascontiguousarray", out};
-        bb.Define({a}, [src_dt](BackwardContext& bctx) {
-            const Array& gout = bctx.output_grad();
-            bctx.input_grad() = gout.AsType(src_dt, false);
-        });
+        if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+            bt.Define([src_dt](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = gout.AsType(src_dt, false);
+            });
+        }
     }
 
     assert(out.IsContiguous());
@@ -263,9 +265,9 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         throw DimensionError{"Input must be 1D or 2D."};
     }
 
-    if (v.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"diag", out};
-        bb.Define({v}, [& device = v.device(), k ](BackwardContext & bctx) {
+    BackwardBuilder bb{"diag", out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(v)) {
+        bt.Define([& device = v.device(), k ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = Diag(gout, k, device);
         });
