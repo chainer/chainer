@@ -5,6 +5,7 @@ from chainer.backends import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_rnn as rnn
+from chainer import initializers
 from chainer.initializers import normal
 from chainer import link
 from chainer.utils import argument
@@ -27,7 +28,7 @@ def permutate_list(lst, indices, inv):
 
 
 class NStepRNNBase(link.ChainList):
-    """__init__(self, n_layers, in_size, out_size, dropout)
+    """__init__(self, n_layers, in_size, out_size, dropout, initialW, initial_bias)
 
     Base link class for Stacked RNN/BiRNN links.
 
@@ -47,6 +48,12 @@ class NStepRNNBase(link.ChainList):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        initialW (:ref:`initializer <initializer>`): Initializer to initialize
+            the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.links.NStepRNNReLU`
@@ -56,7 +63,8 @@ class NStepRNNBase(link.ChainList):
 
     """  # NOQA
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 initialW, initial_bias, **kwargs):
         if kwargs:
             argument.check_unexpected_kwargs(
                 kwargs,
@@ -65,6 +73,9 @@ class NStepRNNBase(link.ChainList):
                 use_bi_direction='use_bi_direction is not supported anymore',
                 activation='activation is not supported anymore')
             argument.assert_kwargs_empty(kwargs)
+
+        if initial_bias is None:
+            initial_bias = initializers.constant.Zero()
 
         weights = []
         if self.use_bi_direction:
@@ -83,10 +94,11 @@ class NStepRNNBase(link.ChainList):
                             w_in = out_size * direction
                         else:
                             w_in = out_size
-                        w = variable.Parameter(
-                            normal.Normal(numpy.sqrt(1. / w_in)),
-                            (out_size, w_in))
-                        b = variable.Parameter(0, (out_size,))
+                        w_initializer = self._get_weight_initializer(
+                            initialW, w_in)
+                        w = variable.Parameter(w_initializer,
+                                               (out_size, w_in))
+                        b = variable.Parameter(initial_bias, (out_size,))
                         setattr(weight, 'w%d' % j, w)
                         setattr(weight, 'b%d' % j, b)
                 weights.append(weight)
@@ -104,6 +116,9 @@ class NStepRNNBase(link.ChainList):
         self.dropout = dropout
         self.out_size = out_size
         self.direction = direction
+
+    def _get_weight_initializer(self, initialW, w_in):
+        return initializers._get_initializer(initialW)
 
     def init_hx(self, xs):
         shape = (self.n_layers * self.direction, len(xs), self.out_size)
@@ -249,6 +264,12 @@ class NStepRNNTanh(NStepRNNBase):
     n_weights = 2
     use_bi_direction = False
 
+    def _get_weight_initializer(self, initialW, w_in):
+        if initialW is None:
+            return normal.Normal(numpy.sqrt(1. / w_in))
+        else:
+            return initializers._get_initializer(initialW)
+
     def rnn(self, *args):
         return rnn.n_step_rnn(*args, activation='tanh')
 
@@ -291,6 +312,12 @@ class NStepRNNReLU(NStepRNNBase):
 
     n_weights = 2
     use_bi_direction = False
+
+    def _get_weight_initializer(self, initialW, w_in):
+        if initialW is None:
+            return normal.Normal(numpy.sqrt(1. / w_in))
+        else:
+            return initializers._get_initializer(initialW)
 
     def rnn(self, *args):
         return rnn.n_step_rnn(*args, activation='relu')
@@ -335,6 +362,12 @@ class NStepBiRNNTanh(NStepRNNBase):
     n_weights = 2
     use_bi_direction = True
 
+    def _get_weight_initializer(self, initialW, w_in):
+        if initialW is None:
+            return normal.Normal(numpy.sqrt(1. / w_in))
+        else:
+            return initializers._get_initializer(initialW)
+
     def rnn(self, *args):
         return rnn.n_step_birnn(*args, activation='tanh')
 
@@ -377,6 +410,12 @@ class NStepBiRNNReLU(NStepRNNBase):
 
     n_weights = 2
     use_bi_direction = True
+
+    def _get_weight_initializer(self, initialW, w_in):
+        if initialW is None:
+            return normal.Normal(numpy.sqrt(1. / w_in))
+        else:
+            return initializers._get_initializer(initialW)
 
     def rnn(self, *args):
         return rnn.n_step_birnn(*args, activation='relu')
