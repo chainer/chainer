@@ -147,7 +147,7 @@ TEST_P(ArrayTest, MoveAssignment) {
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
         Array b;
-        std::shared_ptr<xchainer::internal::ArrayBody> body = a.body();
+        std::shared_ptr<internal::ArrayBody> body = a.body();
         b = std::move(a);
 
         EXPECT_EQ(body.get(), b.body().get());
@@ -155,7 +155,7 @@ TEST_P(ArrayTest, MoveAssignment) {
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
         Array b = testing::BuildArray({1}).WithData<float>({1.0f});
-        std::shared_ptr<xchainer::internal::ArrayBody> body = a.body();
+        std::shared_ptr<internal::ArrayBody> body = a.body();
         b = std::move(a);
 
         EXPECT_EQ(body.get(), b.body().get());

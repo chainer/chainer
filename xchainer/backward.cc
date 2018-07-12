@@ -177,9 +177,9 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
             // Create new op instance
             std::vector<std::shared_ptr<ArrayNode>> prev_array_nodes;
             for (const Array& out : outputs_) {
-                const std::shared_ptr<ArrayNode>& prev_array_node = xchainer::internal::HasArrayNode(out, graph_id)
-                                                                            ? xchainer::internal::GetMutableArrayNode(out, graph_id)
-                                                                            : xchainer::internal::CreateArrayNode(out, graph_id);
+                const std::shared_ptr<ArrayNode>& prev_array_node = internal::HasArrayNode(out, graph_id)
+                                                                            ? internal::GetMutableArrayNode(out, graph_id)
+                                                                            : internal::CreateArrayNode(out, graph_id);
                 prev_array_nodes.emplace_back(prev_array_node);
             }
             // Create new op instance with weakrefs to output nodes

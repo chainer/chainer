@@ -1,10 +1,14 @@
 #include "xchainer/python/shape.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+
+#include "xchainer/shape.h"
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;
 
@@ -22,6 +26,6 @@ py::tuple ToTuple(const Shape& shape) {
     return ret;
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

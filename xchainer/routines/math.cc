@@ -57,7 +57,7 @@ Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2) {
 // Called from IAdd, ISubtract, IMultiply, IDivide, etc. to handle broadcasting.
 template <typename Impl>
 void BroadcastBinaryInPlace(Impl&& impl, const Array& x1, const Array& x2) {
-    xchainer::internal::CheckNoInplaceWithRequiredGrad(x1, {x1, x2});
+    internal::CheckNoInplaceWithRequiredGrad(x1, {x1, x2});
     if (x1.shape() == x2.shape()) {
         impl(x1, x2, x1);
     } else {
@@ -75,7 +75,7 @@ Array Binary(Impl&& impl, const Array& x1, Scalar x2) {
 
 template <typename Impl>
 void BinaryInPlace(Impl&& impl, const Array& x1, Scalar x2) {
-    xchainer::internal::CheckNoInplaceWithRequiredGrad(x1, {x1});
+    internal::CheckNoInplaceWithRequiredGrad(x1, {x1});
     impl(x1, x2, x1);
 }
 

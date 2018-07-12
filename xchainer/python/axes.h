@@ -10,7 +10,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 Axes ToAxes(const pybind11::tuple& tup);
 
@@ -30,6 +30,6 @@ inline OptionalAxes ToAxes(const nonstd::optional<int8_t>& vec) {
     }
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

@@ -36,7 +36,7 @@ cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
 
 class CudnnBNTensorDescriptor {
 public:
-    CudnnBNTensorDescriptor(const internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) : CudnnBNTensorDescriptor{} {
+    CudnnBNTensorDescriptor(const cuda_internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) : CudnnBNTensorDescriptor{} {
         CheckCudnnError(cudnnDeriveBNTensorDescriptor(desc_, *x_desc, mode));
     }
 
@@ -98,7 +98,7 @@ public:
     Array Forward(const Array& x, const Array& gamma, const Array& beta) override {
 #ifndef NDEBUG
         {
-            Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis(), true);
+            Shape reduced_shape = internal::ReduceShape(x.shape(), axis(), true);
             assert(gamma.shape() == reduced_shape);
             assert(beta.shape() == reduced_shape);
 
@@ -122,7 +122,7 @@ public:
         Dtype dtype = x.dtype();
 
         Array x_cont = AsContiguousArray(x);
-        internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis());
 
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
@@ -143,21 +143,21 @@ public:
         CheckCudnnError(cudnnBatchNormalizationForwardTraining(
                 cudnn_handle_,
                 mode,
-                internal::GetValuePtr<1>(dtype),
-                internal::GetValuePtr<0>(dtype),
+                cuda_internal::GetValuePtr<1>(dtype),
+                cuda_internal::GetValuePtr<0>(dtype),
                 *x_desc,
-                xchainer::internal::GetRawOffsetData<void>(x_cont),
+                internal::GetRawOffsetData<void>(x_cont),
                 *x_desc,
-                xchainer::internal::GetRawOffsetData<void>(out),
+                internal::GetRawOffsetData<void>(out),
                 *gamma_beta_mean_var_desc,
-                xchainer::internal::GetRawOffsetData<void>(gamma_casted_cont),
-                xchainer::internal::GetRawOffsetData<void>(beta_casted_cont),
+                internal::GetRawOffsetData<void>(gamma_casted_cont),
+                internal::GetRawOffsetData<void>(beta_casted_cont),
                 1.0 - static_cast<double>(decay()),
-                xchainer::internal::GetRawOffsetData<void>(running_mean_casted),
-                xchainer::internal::GetRawOffsetData<void>(running_var_casted),
+                internal::GetRawOffsetData<void>(running_mean_casted),
+                internal::GetRawOffsetData<void>(running_var_casted),
                 static_cast<double>(eps()),
-                xchainer::internal::GetRawOffsetData<void>(x_mean),
-                xchainer::internal::GetRawOffsetData<void>(x_inv_std)));
+                internal::GetRawOffsetData<void>(x_mean),
+                internal::GetRawOffsetData<void>(x_inv_std)));
 
         // When data type of prameters is converted, say, from fp16
         // to fp32, the values of fp32 arrays of running_mean and
@@ -175,13 +175,13 @@ public:
             Array running_var_casted_back = running_var_casted.AsType(dtype, false);
 
             device.MemoryCopyFrom(
-                    xchainer::internal::GetRawOffsetData<void>(running_mean()),
-                    xchainer::internal::GetRawOffsetData<void>(running_mean_casted_back),
+                    internal::GetRawOffsetData<void>(running_mean()),
+                    internal::GetRawOffsetData<void>(running_mean_casted_back),
                     running_mean().GetNBytes(),
                     device);
             device.MemoryCopyFrom(
-                    xchainer::internal::GetRawOffsetData<void>(running_var()),
-                    xchainer::internal::GetRawOffsetData<void>(running_var_casted_back),
+                    internal::GetRawOffsetData<void>(running_var()),
+                    internal::GetRawOffsetData<void>(running_var_casted_back),
                     running_var().GetNBytes(),
                     device);
         }
@@ -198,7 +198,7 @@ public:
         const Array& x_inv_std = this->x_inv_std();
 #ifndef NDEBUG
         {
-            Shape reduced_shape = xchainer::internal::ReduceShape(x_cont.shape(), axis(), true);
+            Shape reduced_shape = internal::ReduceShape(x_cont.shape(), axis(), true);
             assert(reduced_shape == gamma.shape());
             assert(x_cont.shape() == gout.shape());
 
@@ -223,12 +223,12 @@ public:
         Array gout_cont = AsContiguousArray(gout);
         Array gx = EmptyLike(x_cont, device);
 
-        internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis());
 
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
-        Shape gamma_beta_mean_var_shape = xchainer::internal::ReduceShape(x_cont.shape(), axis(), false);
+        Shape gamma_beta_mean_var_shape = internal::ReduceShape(x_cont.shape(), axis(), false);
 
         Array gamma_casted_cont = AsContiguousArray(gamma.AsType(gamma_beta_mean_var_dtype, false));
         Array ggamma = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
@@ -241,23 +241,23 @@ public:
         CheckCudnnError(cudnnBatchNormalizationBackward(
                 cudnn_handle_,
                 mode,
-                internal::GetValuePtr<1>(dtype),
-                internal::GetValuePtr<0>(dtype),
-                internal::GetValuePtr<1>(dtype),
-                internal::GetValuePtr<0>(dtype),
+                cuda_internal::GetValuePtr<1>(dtype),
+                cuda_internal::GetValuePtr<0>(dtype),
+                cuda_internal::GetValuePtr<1>(dtype),
+                cuda_internal::GetValuePtr<0>(dtype),
                 *x_desc,
-                xchainer::internal::GetRawOffsetData<void>(x_cont),
+                internal::GetRawOffsetData<void>(x_cont),
                 *x_desc,
-                xchainer::internal::GetRawOffsetData<void>(gout_cont),
+                internal::GetRawOffsetData<void>(gout_cont),
                 *x_desc,
-                xchainer::internal::GetRawOffsetData<void>(gx),
+                internal::GetRawOffsetData<void>(gx),
                 *gamma_beta_mean_var_desc,
-                xchainer::internal::GetRawOffsetData<void>(gamma_casted_cont),
-                xchainer::internal::GetRawOffsetData<void>(ggamma),
-                xchainer::internal::GetRawOffsetData<void>(gbeta),
+                internal::GetRawOffsetData<void>(gamma_casted_cont),
+                internal::GetRawOffsetData<void>(ggamma),
+                internal::GetRawOffsetData<void>(gbeta),
                 static_cast<double>(eps()),
-                xchainer::internal::GetRawOffsetData<void>(x_mean),
-                xchainer::internal::GetRawOffsetData<void>(x_inv_std)));
+                internal::GetRawOffsetData<void>(x_mean),
+                internal::GetRawOffsetData<void>(x_inv_std)));
 
         if (gamma_beta_mean_var_dtype != dtype) {
             Array ggamma_casted = ggamma.AsType(dtype, false);
@@ -288,7 +288,7 @@ Array CudaDevice::FixedBatchNorm(
 
 #ifndef NDEBUG
     {
-        Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis, true);
+        Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
         assert(gamma.shape() == reduced_shape);
         assert(beta.shape() == reduced_shape);
         assert(mean.shape() == reduced_shape);
@@ -307,7 +307,7 @@ Array CudaDevice::FixedBatchNorm(
 #endif  // NDEBUG
 
     Array x_cont = AsContiguousArray(x);
-    internal::CudnnTensorDescriptor x_desc{x_cont};
+    cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
     cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
     CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
@@ -323,17 +323,17 @@ Array CudaDevice::FixedBatchNorm(
     CheckCudnnError(cudnnBatchNormalizationForwardInference(
             cudnn_handle(),
             GetBatchNormMode(axis),
-            internal::GetValuePtr<1>(x.dtype()),
-            internal::GetValuePtr<0>(x.dtype()),
+            cuda_internal::GetValuePtr<1>(x.dtype()),
+            cuda_internal::GetValuePtr<0>(x.dtype()),
             *x_desc,
-            xchainer::internal::GetRawOffsetData<void>(x_cont),
+            internal::GetRawOffsetData<void>(x_cont),
             *x_desc,
-            xchainer::internal::GetRawOffsetData<void>(out),
+            internal::GetRawOffsetData<void>(out),
             *gamma_beta_mean_var_desc,
-            xchainer::internal::GetRawOffsetData<void>(gamma_casted_cont),
-            xchainer::internal::GetRawOffsetData<void>(beta_casted_cont),
-            xchainer::internal::GetRawOffsetData<void>(mean_casted_cont),
-            xchainer::internal::GetRawOffsetData<void>(var_casted_cont),
+            internal::GetRawOffsetData<void>(gamma_casted_cont),
+            internal::GetRawOffsetData<void>(beta_casted_cont),
+            internal::GetRawOffsetData<void>(mean_casted_cont),
+            internal::GetRawOffsetData<void>(var_casted_cont),
             static_cast<double>(eps)));
 
     return out;

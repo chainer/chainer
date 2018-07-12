@@ -18,7 +18,6 @@
 
 namespace xchainer {
 namespace cuda {
-
 namespace {
 
 template <typename T>
@@ -61,7 +60,7 @@ struct SumImpl {
 }  // namespace
 
 void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
 
@@ -96,7 +95,7 @@ struct AMaxImpl {
 }  // namespace
 
 void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {

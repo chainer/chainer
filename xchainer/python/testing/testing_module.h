@@ -5,11 +5,11 @@
 namespace xchainer {
 namespace python {
 namespace testing {
-namespace internal {
+namespace testing_internal {
 
 void InitXchainerTestingModule(pybind11::module&);
 
-}  // namespace internal
+}  // namespace testing_internal
 }  // namespace testing
 }  // namespace python
 }  // namespace xchainer

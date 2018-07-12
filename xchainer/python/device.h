@@ -6,7 +6,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 Device& GetDevice(pybind11::handle handle);
 
@@ -14,6 +14,6 @@ void InitXchainerDevice(pybind11::module&);
 
 void InitXchainerDeviceScope(pybind11::module&);
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

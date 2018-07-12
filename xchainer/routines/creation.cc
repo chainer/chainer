@@ -64,7 +64,7 @@ Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepd
     for (int8_t axis : axes) {
         out_strides[axis] = 0;
     }
-    return internal::Empty(out_shape, dtype, out_strides, device);
+    return Empty(out_shape, dtype, out_strides, device);
 }
 
 }  // namespace internal

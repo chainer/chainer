@@ -42,7 +42,7 @@ Array NativeDevice::Conv(
     std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
 
     // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-    Array col = internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
+    Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
 
     // Compute the tensor dot product of col and w, reducing (channel, k_1, k_2, ..., k_n).
     Axes axes;
@@ -81,7 +81,7 @@ Array NativeDevice::ConvGradWeight(
     StackVector<int64_t, kMaxNdim> kernel_size{w_shape.begin() + 2, w_shape.end()};
 
     // Im2Col
-    Array col = internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
+    Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
 
     // TensorDot
     Axes out_axes{0};
@@ -103,7 +103,7 @@ Array NativeDevice::ConvTranspose(
     Array col = TensorDot(w, x, {0}, {1});  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
     col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
 
-    Array y = internal::Col2Im(col, stride, pad, out_size);  // shape: batch_size, out_channel, out_size...
+    Array y = native_internal::Col2Im(col, stride, pad, out_size);  // shape: batch_size, out_channel, out_size...
 
     // Add bias, if given.
     if (b.has_value()) {

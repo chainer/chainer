@@ -12,8 +12,10 @@
 
 namespace xchainer {
 namespace native {
+
 class NativeBackend;
-}
+
+}  // namespace native
 
 class Context {
 public:

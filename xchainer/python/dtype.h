@@ -9,7 +9,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 void InitXchainerDtype(pybind11::module&);
 
@@ -19,6 +19,6 @@ Dtype GetDtypeFromNumpyDtype(const pybind11::dtype& npdtype);
 
 Dtype GetDtype(pybind11::handle handle);
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

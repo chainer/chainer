@@ -7,7 +7,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -19,6 +19,6 @@ void InitXchainerBackend(pybind11::module& m) {
     c.def_property_readonly("context", &Backend::context, py::return_value_policy::reference);
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

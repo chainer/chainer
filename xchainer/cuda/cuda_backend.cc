@@ -20,11 +20,11 @@ constexpr const char* CudaBackend::kDefaultName;
 constexpr const size_t CudaBackend::kCudnnDefaultMaxWorkspaceSize;
 constexpr const char* CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName;
 
-namespace internal {
+namespace cuda_internal {
 
 CudaDevice* CreateDevice(CudaBackend& backend, int index) { return new CudaDevice{backend, index}; }
 
-}  // namespace internal
+}  // namespace cuda_internal
 
 std::string CudaBackend::GetName() const { return kDefaultName; }
 
@@ -40,7 +40,7 @@ std::unique_ptr<Device> CudaBackend::CreateDevice(int index) {
         throw std::out_of_range{"The index number (= " + std::to_string(index) +
                                 ") is not less than the device count (= " + std::to_string(device_count) + ')'};
     }
-    return std::unique_ptr<CudaDevice>(internal::CreateDevice(*this, index));
+    return std::unique_ptr<CudaDevice>(cuda_internal::CreateDevice(*this, index));
 }
 
 bool CudaBackend::SupportsTransfer(Device& src_device, Device& dst_device) {

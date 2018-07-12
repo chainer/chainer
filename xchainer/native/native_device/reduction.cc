@@ -15,7 +15,7 @@ namespace native {
 
 void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
     assert(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
-    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
@@ -40,7 +40,7 @@ void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
 }
 
 void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
     auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
@@ -59,7 +59,7 @@ void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
 }
 
 void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {

@@ -20,19 +20,16 @@ class OpNode;
 
 using ArrayRef = std::reference_wrapper<Array>;
 using ConstArrayRef = std::reference_wrapper<const Array>;
-
-namespace internal {
-class ArrayBody;
-}
+using BackwardFunction = std::function<void(BackwardContext&)>;
 
 enum class DoubleBackpropOption : bool {
     kDisable = false,
     kEnable = true,
 };
 
-using BackwardFunction = std::function<void(BackwardContext&)>;
-
 namespace internal {
+
+class ArrayBody;
 
 void AccumulateGrad(nonstd::optional<Array>& target_grad, Array partial_grad, const Shape& shape, Dtype dtype, Device& device);
 
@@ -73,7 +70,7 @@ private:
 
     // The array body which owns the original gradient, if alive.
     // This is a keeper to prevent the gradient from being released after retrieval of the pointer.
-    std::shared_ptr<internal::ArrayBody> original_grad_owner_body_{nullptr};
+    std::shared_ptr<ArrayBody> original_grad_owner_body_{nullptr};
 
     // Temporary gradient instantiated only when the original array body is gone.
     std::unique_ptr<nonstd::optional<Array>> temporary_grad_;
