@@ -1425,7 +1425,7 @@ def as_variable(obj):
     """Converts an array or a variable into :class:`~chainer.Variable`.
 
     This is a convenient function to get a :class:`~chainer.Variable` object
-    transparently from a raw array or a scalar or a variable.
+    transparently from a raw array or a variable.
 
     Note that this function should only be used for type consistency (i.e., to
     enforce the return value of an API having type :class:`~chainer.Variable`).
@@ -1436,8 +1436,7 @@ def as_variable(obj):
 
     Args:
         obj (numpy.ndarray or cupy.ndarray or ~chainer.Variable): An array or
-            a scalar or a variable that you want to convert to
-            :class:`~chainer.Variable`.
+            a variable that you want to convert to :class:`~chainer.Variable`.
 
     Returns:
         ~chainer.Variable:
@@ -1449,7 +1448,7 @@ def as_variable(obj):
     """
     if isinstance(obj, Variable):
         return obj
-    return Variable(chainer.utils.force_array(obj), requires_grad=False)
+    return Variable(obj, requires_grad=False)
 
 
 def _recover_parameter(data, name, grad, initializer, update_rule):
