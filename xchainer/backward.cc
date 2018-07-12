@@ -274,6 +274,36 @@ void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
 #endif  // NDEBUG
 }
 
+// Create an op node for a specific graph.
+// Edges from output nodes to the op node are connected.
+std::shared_ptr<OpNode>& BackwardBuilder::Target::FindOrCreateOpNode(const GraphId& graph_id) {
+    // Find op node
+    auto insert_result = op_node_map().emplace(graph_id, nullptr);
+    if (insert_result.second) {
+        // Create new op instance
+        std::vector<std::weak_ptr<ArrayNode>> weak_prev_array_nodes;  // weak pointers to pass to new op node
+        std::vector<ArrayNode*> prev_array_nodes;
+        weak_prev_array_nodes.reserve(outputs().size());
+        prev_array_nodes.reserve(outputs().size());
+        for (const Array& out : outputs()) {
+            const std::shared_ptr<ArrayNode>& prev_array_node = xchainer::internal::HasArrayNode(out, graph_id)
+                                                                        ? xchainer::internal::GetMutableArrayNode(out, graph_id)
+                                                                        : xchainer::internal::CreateArrayNode(out, graph_id);
+            prev_array_nodes.emplace_back(prev_array_node.get());
+            weak_prev_array_nodes.emplace_back(prev_array_node);
+        }
+        // Create new op instance with weakrefs to output nodes
+        std::shared_ptr<OpNode>& new_op_node = insert_result.first->second =
+                std::make_shared<OpNode>(op_name(), graph_id, weak_prev_array_nodes, output_array_props());
+        // Add edges from the output nodes
+        for (ArrayNode* prev_array_node : prev_array_nodes) {
+            assert(prev_array_node->next_op_node() == nullptr);
+            prev_array_node->set_next_op_node(new_op_node);
+        }
+    }
+    return insert_result.first->second;
+}
+
 void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
     // Lazily prepare output_array_props_ for performance
     PrepareOutputArrayProps();
@@ -286,32 +316,7 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
         const GraphId& graph_id = it_graph->first;
         const NextArrayNodes& next_array_nodes = it_graph->second;
 
-        // Find op node
-        auto insert_result = op_node_map().emplace(graph_id, nullptr);
-        if (insert_result.second) {
-            // Create new op instance
-            std::vector<std::weak_ptr<ArrayNode>> weak_prev_array_nodes;  // weak pointers to pass to new op node
-            std::vector<ArrayNode*> prev_array_nodes;
-            weak_prev_array_nodes.reserve(outputs().size());
-            prev_array_nodes.reserve(outputs().size());
-            for (const Array& out : outputs()) {
-                const std::shared_ptr<ArrayNode>& prev_array_node = xchainer::internal::HasArrayNode(out, graph_id)
-                                                                            ? xchainer::internal::GetMutableArrayNode(out, graph_id)
-                                                                            : xchainer::internal::CreateArrayNode(out, graph_id);
-                prev_array_nodes.emplace_back(prev_array_node.get());
-                weak_prev_array_nodes.emplace_back(prev_array_node);
-            }
-            // Create new op instance with weakrefs to output nodes
-            std::shared_ptr<OpNode>& new_op_node = insert_result.first->second =
-                    std::make_shared<OpNode>(op_name(), graph_id, weak_prev_array_nodes, output_array_props());
-            // Add edges from the output nodes
-            for (ArrayNode* prev_array_node : prev_array_nodes) {
-                assert(prev_array_node->next_op_node() == nullptr);
-                prev_array_node->set_next_op_node(new_op_node);
-            }
-        }
-
-        std::shared_ptr<OpNode>& op_node = insert_result.first->second;
+        std::shared_ptr<OpNode>& op_node = FindOrCreateOpNode(graph_id);
 
         // Keep the list of op nodes involved in this backward function
         op_nodes.emplace_back(op_node.get());

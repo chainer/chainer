@@ -218,6 +218,7 @@ public:
         explicit operator bool() const { return IsGradRequired(); }
 
     private:
+        using NextArrayNodes = std::vector<const std::shared_ptr<ArrayNode>*>;
         friend class BackwardBuilder;  // Only BackwardBuilder can create Target
         Target(BackwardBuilder& builder, std::initializer_list<ConstArrayRef> inputs);
 
@@ -233,15 +234,10 @@ public:
 
         void PrepareOutputArrayProps() { builder_.PrepareOutputArrayProps(); }
         void PrepareGraphToNextArrayNodes();
-
-        // Create an op node for a specific graph.
-        // Edges from output nodes to the op node are connected.
         std::shared_ptr<OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
 
         BackwardBuilder& builder_;
         std::vector<ConstArrayRef> inputs_;
-
-        using NextArrayNodes = std::vector<const std::shared_ptr<ArrayNode>*>;
         std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
     };
 
