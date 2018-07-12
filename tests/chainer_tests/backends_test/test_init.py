@@ -4,46 +4,68 @@ import numpy
 
 from chainer import backends
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer.testing import attr
 
 
-class TestCopyTo(unittest.TestCase):
+class _TestCopyToBase(object):
 
-    def test_cpu_to_cpu(self):
-        src = numpy.arange(1, 5, dtype=numpy.float32)
-        dst = numpy.zeros_like(src)
-        backends.copyto(dst, src)
-        numpy.testing.assert_array_equal(dst, src)
+    src_data = numpy.arange(1, 5, dtype=numpy.float32)
+    dst_data = numpy.zeros_like(src_data)
 
-    @attr.gpu
-    def test_cpu_to_gpu(self):
-        src = numpy.arange(1, 5, dtype=numpy.float32)
-        dst = cuda.cupy.zeros_like(src)
-        backends.copyto(dst, src)
-        cuda.cupy.testing.assert_array_equal(dst, src)
+    def _get_dst(self):
+        raise NotImplementedError
 
-    @attr.gpu
-    def test_gpu_to_cpu(self):
-        src = cuda.cupy.arange(1, 5, dtype=numpy.float32)
-        dst = numpy.zeros_like(src.get())
+    def test_from_cpu(self):
+        src = self.src_data
+        dst = self._get_dst()
         backends.copyto(dst, src)
-        cuda.cupy.testing.assert_array_equal(dst, src)
+        numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
 
     @attr.gpu
-    def test_gpu_to_gpu(self):
-        src = cuda.cupy.arange(1, 5, dtype=numpy.float32)
-        dst = cuda.cupy.zeros_like(src)
+    def test_from_gpu(self):
+        src = cuda.cupy.array(self.src_data)
+        dst = self._get_dst()
         backends.copyto(dst, src)
-        cuda.cupy.testing.assert_array_equal(dst, src)
+        numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
+
+    @attr.ideep
+    def test_from_ideep(self):
+        src = intel64.ideep.array(self.src_data)
+        dst = self._get_dst()
+        assert isinstance(src, intel64.mdarray)
+        backends.copyto(dst, src)
+        numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
+
+
+class TestCopyToCPU(_TestCopyToBase, unittest.TestCase):
+    def _get_dst(self):
+        return self.dst_data
+
+
+@attr.gpu
+class TestCopyToGPU(_TestCopyToBase, unittest.TestCase):
+    def _get_dst(self):
+        return cuda.cupy.array(self.dst_data)
 
     @attr.multi_gpu(2)
     def test_gpu_to_another_gpu(self):
-        src = cuda.cupy.arange(1, 5, dtype=numpy.float32)
+        src = cuda.cupy.array(self.src_data)
         with cuda.get_device_from_id(1):
-            dst = cuda.cupy.zeros_like(src)
+            dst = self._get_dst()
         backends.copyto(dst, src)
         cuda.cupy.testing.assert_array_equal(dst, src)
 
+
+@attr.ideep
+class TestCopyToIDeep(_TestCopyToBase, unittest.TestCase):
+    def _get_dst(self):
+        dst = intel64.ideep.array(self.src_data)
+        assert isinstance(dst, intel64.mdarray)
+        return dst
+
+
+class TestCopyToError(unittest.TestCase):
     def test_fail_on_invalid_src(self):
         src = None
         dst = numpy.zeros(1)
