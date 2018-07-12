@@ -16,6 +16,7 @@
 #include "xchainer/array_body.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backprop_mode.h"
+#include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
@@ -215,6 +216,12 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<Cons
     assert(std::all_of(outputs.begin(), outputs.end(), [&outputs](const Array& output) {
         return &outputs.begin()->get().device() == &output.device();
     }));
+}
+
+void BackwardBuilder::PrepareOutputArrayProps() {
+    if (!output_array_props_.empty()) {
+        return;
+    }
     output_array_props_.reserve(outputs_.size());
     std::transform(
             outputs_.begin(), outputs_.end(), std::back_inserter(output_array_props_), [](const Array& output) -> internal::ArrayProps {
@@ -222,38 +229,34 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<Cons
             });
 }
 
-void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const BackwardFunction& backward_func) {
-    // `outputs` may or may not include non-constant arrays, because `BackwardBuilder::Define` may be called repeatedly in a single op.
-    // At the beginning of this function, `op_node_map` holds the op nodes created in the previous calls of `BackwardBuilder::Define`
-    // for this op.
-
+BackwardBuilder::Target::Target(BackwardBuilder& builder, std::initializer_list<ConstArrayRef> inputs)
+    : builder_{builder}, inputs_{inputs.begin(), inputs.end()} {
     // All input arrays must have the same device.
     assert(std::all_of(
             inputs.begin(), inputs.end(), [&inputs](const Array& input) { return &input.device() == &(inputs.begin()->get().device()); }));
 
-    // Collect input array nodes, grouped by graph.
-    // However, skip the array nodes that belong to graphs for which gradients should be stopped,
-    // by creating a temporary no-backprop scope.
-    // If only a subset of input arrays have array nodes that require grad, nullptrs are assigned in place of other array nodes that do not.
+    PrepareGraphToNextArrayNodes();
+}
+
+// Collect input ArrayNodes, grouped by graph considering IsBackpropRequired
+void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
     // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
-    using NextArrayNodes = std::vector<const std::shared_ptr<ArrayNode>*>;
-    std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes;
-    for (size_t i_input = 0; i_input < inputs.size(); ++i_input) {
-        const Array& input = *(inputs.begin() + i_input);
+    for (size_t i_input = 0; i_input < inputs_.size(); ++i_input) {
+        const Array& input = *(inputs_.begin() + i_input);
 
         for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {
             const GraphId& graph_id = next_array_node->graph_id();
 
-            if (!IsBackpropRequired(graph_id)) {
+            if (!IsBackpropRequired(graph_id, input.device().context())) {
                 continue;
             }
 
             // Add the array node to the mapping
-            auto insert_result = graph_to_next_array_nodes.emplace(graph_id, NextArrayNodes{});
+            auto insert_result = graph_to_next_array_nodes_.emplace(graph_id, NextArrayNodes{});
             auto& vec = insert_result.first->second;
             if (insert_result.second) {
                 // New array node for a graph. Fill all array nodes with nullptr.
-                vec.resize(inputs.size());
+                vec.resize(inputs_.size());
             }
             // Assign valid pointer to the array node.
             vec[i_input] = &next_array_node;
@@ -261,7 +264,7 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
     }
 
 #ifndef NDEBUG
-    for (auto& pair : graph_to_next_array_nodes) {
+    for (auto& pair : graph_to_next_array_nodes_) {
         const GraphId& graph_id = pair.first;
         const NextArrayNodes& vec = pair.second;
         for (const std::shared_ptr<ArrayNode>* array_node : vec) {
@@ -269,24 +272,29 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
         }
     }
 #endif  // NDEBUG
+}
+
+void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
+    // Lazily prepare output_array_props_ for performance
+    PrepareOutputArrayProps();
 
     // Pointers to op nodes involved in this backward function
     std::vector<OpNode*> op_nodes;
 
     // Create op node for each graph
-    for (auto it_graph = graph_to_next_array_nodes.begin(); it_graph != graph_to_next_array_nodes.end(); ++it_graph) {
+    for (auto it_graph = graph_to_next_array_nodes_.begin(); it_graph != graph_to_next_array_nodes_.end(); ++it_graph) {
         const GraphId& graph_id = it_graph->first;
         const NextArrayNodes& next_array_nodes = it_graph->second;
 
         // Find op node
-        auto insert_result = op_node_map_.emplace(graph_id, nullptr);
+        auto insert_result = op_node_map().emplace(graph_id, nullptr);
         if (insert_result.second) {
             // Create new op instance
             std::vector<std::weak_ptr<ArrayNode>> weak_prev_array_nodes;  // weak pointers to pass to new op node
             std::vector<ArrayNode*> prev_array_nodes;
-            weak_prev_array_nodes.reserve(outputs_.size());
-            prev_array_nodes.reserve(outputs_.size());
-            for (const Array& out : outputs_) {
+            weak_prev_array_nodes.reserve(outputs().size());
+            prev_array_nodes.reserve(outputs().size());
+            for (const Array& out : outputs()) {
                 const std::shared_ptr<ArrayNode>& prev_array_node = xchainer::internal::HasArrayNode(out, graph_id)
                                                                             ? xchainer::internal::GetMutableArrayNode(out, graph_id)
                                                                             : xchainer::internal::CreateArrayNode(out, graph_id);
@@ -295,7 +303,7 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
             }
             // Create new op instance with weakrefs to output nodes
             std::shared_ptr<OpNode>& new_op_node = insert_result.first->second =
-                    std::make_shared<OpNode>(op_name_, graph_id, weak_prev_array_nodes, output_array_props_);
+                    std::make_shared<OpNode>(op_name(), graph_id, weak_prev_array_nodes, output_array_props());
             // Add edges from the output nodes
             for (ArrayNode* prev_array_node : prev_array_nodes) {
                 assert(prev_array_node->next_op_node() == nullptr);
@@ -320,7 +328,7 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
 
         // Add edges to next array nodes of other graphs.
         // TODO(niboshi): Do this only when BackwardBuilder::RetainOutput() is called.
-        for (auto it_exotic_graph = graph_to_next_array_nodes.begin(); it_exotic_graph != graph_to_next_array_nodes.end();
+        for (auto it_exotic_graph = graph_to_next_array_nodes_.begin(); it_exotic_graph != graph_to_next_array_nodes_.end();
              ++it_exotic_graph) {
             if (it_graph == it_exotic_graph) {
                 continue;
@@ -343,10 +351,10 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
 
     // Add weak ptrs from the op nodes to previous array nodes of other graphs.
     // TODO(niboshi): Do this only when BackwardBuilder::RetainOutput() is called.
-    if (!any_defined_ && op_nodes.size() >= 2) {  // op_nodes.size() is the number of graphs
+    if (!any_defined() && op_nodes.size() >= 2) {  // op_nodes.size() is the number of graphs
         std::unordered_map<GraphId, std::vector<std::shared_ptr<ArrayNode>>> exotic_array_nodes;
 
-        for (const Array& output : outputs_) {
+        for (const Array& output : outputs()) {
             for (const std::shared_ptr<ArrayNode>& output_array_node : output.nodes()) {
                 exotic_array_nodes[output_array_node->graph_id()].emplace_back(output_array_node);
             }
@@ -354,7 +362,7 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
 
         for (OpNode* op_node : op_nodes) {
             for (const auto& tup : exotic_array_nodes) {
-                assert(tup.second.size() == outputs_.size());
+                assert(tup.second.size() == outputs().size());
                 if (tup.first == op_node->graph_id()) {
                     continue;
                 }
@@ -370,8 +378,8 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
         }
     }
 
-    assert(!op_node_map_.empty());
-    any_defined_ = true;
+    assert(!op_node_map().empty());
+    set_any_defined(true);
 }
 
 RetainedOutputToken BackwardBuilder::RetainOutput(const Array& output) {
