@@ -54,7 +54,7 @@ class MultistepShift(extension.Extension):
         self._t += 1
         optimizer = self._optimizer or trainer.updater.get_optimizer('main')
         if (self._current_step < self._stepvalue_size and
-                 self._t >= self._step_value[self._current_step]):
+                self._t >= self._step_value[self._current_step]):
             self._current_step += 1
         value = self._init * pow(self._gamma, self._current_step)
         setattr(optimizer, self._attr, value)
