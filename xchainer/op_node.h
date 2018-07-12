@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <gsl/gsl>
+#include <nonstd/optional.hpp>
 
 #include "xchainer/backward.h"
 #include "xchainer/graph.h"
@@ -25,11 +26,11 @@ namespace internal {
 
 class OpNodeBackwardEntry {
 public:
-    OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> next_array_node_indices, BackwardFunction backward_func);
+    OpNodeBackwardEntry(OpNode& op_node, std::vector<nonstd::optional<size_t>> next_array_node_indices, BackwardFunction backward_func);
 
     size_t next_array_node_count() const { return next_array_node_indices_.size(); }
 
-    gsl::span<const size_t> next_array_node_indices() const { return next_array_node_indices_; }
+    gsl::span<const nonstd::optional<size_t>> next_array_node_indices() const { return next_array_node_indices_; }
 
     const BackwardFunction& backward_func() const { return backward_func_; }
 
@@ -45,7 +46,9 @@ private:
 
     OpNode& op_node_;
 
-    std::vector<size_t> next_array_node_indices_;
+    // The index mapping from local (this backward function) to global (op node).
+    // Can be unset if the input array does not require grad.
+    std::vector<nonstd::optional<size_t>> next_array_node_indices_;
 
     std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> exotic_next_array_nodes_;
 

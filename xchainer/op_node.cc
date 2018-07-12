@@ -15,14 +15,19 @@
 namespace xchainer {
 namespace internal {
 
-OpNodeBackwardEntry::OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> next_array_node_indices, BackwardFunction backward_func)
+OpNodeBackwardEntry::OpNodeBackwardEntry(
+        OpNode& op_node, std::vector<nonstd::optional<size_t>> next_array_node_indices, BackwardFunction backward_func)
     : op_node_{op_node}, next_array_node_indices_{std::move(next_array_node_indices)}, backward_func_{std::move(backward_func)} {}
 
 std::vector<std::shared_ptr<ArrayNode>> OpNodeBackwardEntry::GetNextArrayNodes() const {
     std::vector<std::shared_ptr<ArrayNode>> array_nodes;
     array_nodes.reserve(next_array_node_indices_.size());
-    for (size_t index : next_array_node_indices_) {
-        array_nodes.emplace_back(gsl::at(op_node_.next_array_nodes(), index));
+    for (nonstd::optional<size_t> index : next_array_node_indices_) {
+        if (index.has_value()) {
+            array_nodes.emplace_back(gsl::at(op_node_.next_array_nodes(), *index));
+        } else {
+            array_nodes.emplace_back(nullptr);
+        }
     }
     return array_nodes;
 }
@@ -106,20 +111,27 @@ internal::OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
     AssertConsistency();
     assert(!next_array_nodes.empty());
     assert(std::all_of(next_array_nodes.begin(), next_array_nodes.end(), [this](const std::shared_ptr<ArrayNode>& next_array_node) {
-        return next_array_node != nullptr && next_array_node->graph_id() == graph_id_;
+        // next_array_node could be nullptr, if the corresponding input array does not require grad.
+        return next_array_node == nullptr || next_array_node->graph_id() == graph_id_;
     }));
 
     // Update the rank of op node
     for (const std::shared_ptr<ArrayNode>& next_array_node : next_array_nodes) {
-        rank_ = std::max(rank_, next_array_node->rank() + 1);
+        if (next_array_node != nullptr) {
+            rank_ = std::max(rank_, next_array_node->rank() + 1);
+        }
     }
 
     // Store next nodes and record indices of them
-    std::vector<size_t> next_array_node_indices;
+    std::vector<nonstd::optional<size_t>> next_array_node_indices;
     next_array_node_indices.reserve(next_array_nodes.size());
     for (std::shared_ptr<ArrayNode>& next_array_node : next_array_nodes) {
-        next_array_node_indices.emplace_back(next_array_nodes_.size());
-        next_array_nodes_.emplace_back(std::move(next_array_node));
+        if (next_array_node != nullptr) {
+            next_array_node_indices.emplace_back(next_array_nodes_.size());
+            next_array_nodes_.emplace_back(std::move(next_array_node));
+        } else {
+            next_array_node_indices.emplace_back(nonstd::nullopt);
+        }
     }
 
     // Add backward entry
