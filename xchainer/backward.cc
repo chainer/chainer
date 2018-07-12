@@ -558,7 +558,7 @@ private:
 
             // Accumulate grads from `next_grads_subset`.
             for (size_t i = 0; i < backward_entry.next_array_node_count(); ++i) {
-                const nonstd::optional<size_t>& i_next_grad = backward_entry.next_array_node_indices()[i];
+                nonstd::optional<size_t> i_next_grad = backward_entry.next_array_node_indices()[i];
                 if (!i_next_grad.has_value()) {
                     continue;  // grad is not required for this input
                 }

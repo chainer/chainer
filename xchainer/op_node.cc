@@ -22,7 +22,7 @@ OpNodeBackwardEntry::OpNodeBackwardEntry(
 std::vector<std::shared_ptr<ArrayNode>> OpNodeBackwardEntry::GetNextArrayNodes() const {
     std::vector<std::shared_ptr<ArrayNode>> array_nodes;
     array_nodes.reserve(next_array_node_indices_.size());
-    for (const nonstd::optional<size_t>& index : next_array_node_indices_) {
+    for (nonstd::optional<size_t> index : next_array_node_indices_) {
         if (index.has_value()) {
             array_nodes.emplace_back(gsl::at(op_node_.next_array_nodes(), *index));
         } else {
