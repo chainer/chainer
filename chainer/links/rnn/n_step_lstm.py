@@ -1,4 +1,5 @@
 from chainer.functions.rnn import n_step_lstm as rnn
+from chainer import initializers
 from chainer.links.rnn import n_step_rnn
 
 
@@ -13,6 +14,34 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        lateral_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            It is used for initialization of the lateral connections.
+            May be ``None`` to use default initialization.
+        upward_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            It is used for initialization of the upward connections.
+            May be ``None`` to use default initialization.
+        bias_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value
+            It is used for initialization of the biases of cell input,
+            input gate and output gate.and gates of the upward connection.
+            May be a scalar, in that case, the bias is
+            initialized by this value.
+            If it is ``None``, the cell-input bias is initialized to zero.
+        forget_bias_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value
+            It is used for initialization of the biases of the forget gate of
+            the upward connection.
+            May be a scalar, in that case, the bias is
+            initialized by this value.
+            If it is ``None``, the forget bias is initialized to one.
+
+    .. note::
+
+        In Chainer v7, the default value of `forget_bias_init` will be
+        changed from zero to one to make it consistent with
+        :class:`~chainer.links.LSTM`.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
@@ -20,7 +49,40 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
 
     """
 
+    # Update docstring of subclasses accordingly when modifying docstring.
+
     n_weights = 8
+
+    def __init__(self, *args, **kwargs):
+        lateral_init = kwargs.pop("lateral_init", None)
+        upward_init = kwargs.pop("upward_init", None)
+        bias_init = kwargs.pop("bias_init", None)
+        forget_bias_init = kwargs.pop("forget_bias_init", 1)
+
+        super(NStepLSTMBase, self).__init__(*args, **kwargs)
+
+        if lateral_init is not None:
+            lateral_init = initializers._get_initializer(lateral_init)
+            for w in (self.w4, self.w5, self.w6, self.w7):
+                w.initializer = lateral_init
+
+        if upward_init is not None:
+            upward_init = initializers._get_initializer(upward_init)
+            for w in (self.w0, self.w1, self.w2, self.w3):
+                w.initializer = upward_init
+
+        if bias_init is not None:
+            bias_init = initializers._get_initializer(bias_init)
+            # Leave b{4,6,7} as zero to avoid doubling the effective bias
+            # for each gate.
+            for b in (self.b0, self.b2, self.b3):
+                b.initializer = bias_init
+
+        if forget_bias_init is not None:
+            forget_bias_init = initializers._get_initializer(forget_bias_init)
+            # Leave b5 as zero to avoid doubling the effective bias
+            # for each gate.
+            self.b1.initializer = forget_bias_init
 
     def forward(self, hx, cx, xs, **kwargs):
         """forward(self, hx, cx, xs)
@@ -82,6 +144,34 @@ class NStepLSTM(NStepLSTMBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        lateral_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            It is used for initialization of the lateral connections.
+            May be ``None`` to use default initialization.
+        upward_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            It is used for initialization of the upward connections.
+            May be ``None`` to use default initialization.
+        bias_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value
+            It is used for initialization of the biases of cell input,
+            input gate and output gate.and gates of the upward connection.
+            May be a scalar, in that case, the bias is
+            initialized by this value.
+            If it is ``None``, the cell-input bias is initialized to zero.
+        forget_bias_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value
+            It is used for initialization of the biases of the forget gate of
+            the upward connection.
+            May be a scalar, in that case, the bias is
+            initialized by this value.
+            If it is ``None``, the forget bias is initialized to one.
+
+    .. note::
+
+        In Chainer v7, the default value of `forget_bias_init` will be
+        changed from zero to one to make it consistent with
+        :class:`~chainer.links.LSTM`.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
@@ -152,6 +242,34 @@ class NStepBiLSTM(NStepLSTMBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        lateral_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            It is used for initialization of the lateral connections.
+            May be ``None`` to use default initialization.
+        upward_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value.
+            It is used for initialization of the upward connections.
+            May be ``None`` to use default initialization.
+        bias_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value
+            It is used for initialization of the biases of cell input,
+            input gate and output gate.and gates of the upward connection.
+            May be a scalar, in that case, the bias is
+            initialized by this value.
+            If it is ``None``, the cell-input bias is initialized to zero.
+        forget_bias_init: A callable that takes ``numpy.ndarray`` or
+            ``cupy.ndarray`` and edits its value
+            It is used for initialization of the biases of the forget gate of
+            the upward connection.
+            May be a scalar, in that case, the bias is
+            initialized by this value.
+            If it is ``None``, the forget bias is initialized to one.
+
+    .. note::
+
+        In Chainer v7, the default value of `forget_bias_init` will be
+        changed from zero to one to make it consistent with
+        :class:`~chainer.links.LSTM`.
 
     .. seealso::
         :func:`chainer.functions.n_step_bilstm`
