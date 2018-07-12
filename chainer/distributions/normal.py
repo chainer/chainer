@@ -87,7 +87,7 @@ class Normal(distribution.Distribution):
         return ()
 
     def icdf(self, x):
-        return erfinv.erfinv(2. * x - 1.) \
+        return erfinv.erfinv(2. * chainer.as_variable(x) - 1.) \
             * (2 ** 0.5) * broadcast.broadcast_to(self.scale, x.shape) \
             + broadcast.broadcast_to(self.loc, x.shape)
 

@@ -98,7 +98,7 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype):
 
 
 def _cupy_coo_matmul():
-    return cuda.cupy.ElementwiseKernel(
+    return cuda.elementwise(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, \
          raw A A_data, raw T A_row, raw T A_col, \
          raw B _B, raw C _C',
@@ -279,7 +279,7 @@ def _coo_matmul_gradsp_gpu(A, B, C_row, C_col, dtype):
 
 
 def _cupy_coo_matmul_gradsp():
-    return cuda.cupy.ElementwiseKernel(
+    return cuda.elementwise(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, \
          raw A _A, raw B _B, \
          raw C C_data, raw T C_row, raw T C_col',

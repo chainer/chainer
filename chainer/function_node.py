@@ -44,9 +44,9 @@ class FunctionNode(object):
        instance of :class:`FunctionNode` taking only one argument.
        Then the following code
 
-       >>> import numpy, chainer, chainer.functions as F
+       >>> import numpy, chainer
        >>> x = chainer.Variable(numpy.zeros(10))
-       >>> f = F.Identity()
+       >>> f = chainer.functions.math.identity.Identity()
        >>> y = f.apply((x,))[0]
 
        computes a new variable ``y`` and creates backward references. The
@@ -56,7 +56,7 @@ class FunctionNode(object):
 
        If an application of another function ``g`` occurs as
 
-       >>> g = F.Identity()
+       >>> g = chainer.functions.math.identity.Identity()
        >>> z = g.apply((x,))[0]
 
        then the graph grows with a branch::

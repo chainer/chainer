@@ -239,10 +239,10 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
         This feature is experimental. The interface can change in the future.
 
     This function provides a N-dimensionally generalized version of
-    :func:`~functions.max_pooling_2d`. This acts similarly to
-    :class:`~functions.ConvolutionND`, but it computes the maximum of input
-    spatial patch for each channel without any parameter instead of computing
-    the inner products.
+    :func:`~chainer.functions.max_pooling_2d`. This acts similarly to
+    :func:`~chainer.functions.convolution_nd`, but it computes the maximum of
+    input spatial patch for each channel without any parameter instead of
+    computing the inner products.
 
     Args:
         x (~chainer.Variable): Input variable.

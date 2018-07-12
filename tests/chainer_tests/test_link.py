@@ -361,7 +361,7 @@ class TestLink(unittest.TestCase):
         self.assertEqual(pl[0][0], '/')
         self.assertIs(pl[0][1], self.link)
 
-    def test_copyparams(self):
+    def _setup_test_copyparams(self):
         self.link.x.grad.fill(0)
         self.link.y.grad.fill(1)
         self.link.u.initialize((2, 3))
@@ -386,8 +386,12 @@ class TestLink(unittest.TestCase):
         l.u.grad.fill(7)
         l.v.data.fill(8)
         l.v.grad.fill(9)
+        l.add_persistent('p', numpy.full_like(self.link.p, 10))
 
-        self.link.copyparams(l)
+        return l, (gx, gy, gu)
+
+    def _check_copyparams(self, l, gs):
+        gx, gy, gu = gs
         numpy.testing.assert_array_equal(self.link.x.data, l.x.data)
         numpy.testing.assert_array_equal(self.link.x.grad, gx)
         numpy.testing.assert_array_equal(self.link.y.data, l.y.data)
@@ -396,6 +400,22 @@ class TestLink(unittest.TestCase):
         numpy.testing.assert_array_equal(self.link.u.grad, gu)
         numpy.testing.assert_array_equal(self.link.v.data, l.v.data)
         numpy.testing.assert_array_equal(self.link.v.grad, None)
+
+    def test_copyparams(self):
+        l, gs = self._setup_test_copyparams()
+        self.link.copyparams(l)
+        self._check_copyparams(l, gs)
+        numpy.testing.assert_array_equal(self.link.p, l.p)
+
+    def test_copyparams_no_copy_persistent(self):
+        orig_p = self.link.p.copy()
+
+        l, gs = self._setup_test_copyparams()
+        numpy.testing.assert_array_equal(False, orig_p == l.p)
+        self.link.copyparams(l, copy_persistent=False)
+
+        self._check_copyparams(l, gs)
+        numpy.testing.assert_array_equal(self.link.p, orig_p)
 
     def test_cleargrads(self):
         self.link.cleargrads()
