@@ -885,8 +885,22 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
             BackwardBuilder::Target bt = bb.CreateTarget({x1, x2});
             assert(bt);
             bt.Define([](BackwardContext& bctx) {
-                bctx.input_grad(0) = 2 * bctx.output_grad();
-                bctx.input_grad(1) = 3 * bctx.output_grad();
+                EXPECT_FALSE(bctx.is_input_grad_required(0));
+                EXPECT_TRUE(bctx.is_input_grad_required(1));
+                Array gy1gx1 = 2 * bctx.output_grad();
+                Array gy1gx2 = 3 * bctx.output_grad();
+
+                // Input grad can be assigned even if it's not required.
+                bctx.input_grad(0) = gy1gx1;
+                bctx.input_grad(1) = gy1gx2;
+
+                // The return of `input_grad_required` should not change even after assignment.
+                EXPECT_FALSE(bctx.is_input_grad_required(0));
+                EXPECT_TRUE(bctx.is_input_grad_required(1));
+
+                // The value of `input_grad` should be retained, even if it's not required.
+                testing::ExpectEqual(bctx.input_grad(0), gy1gx1);
+                testing::ExpectEqual(bctx.input_grad(1), gy1gx2);
             });
         }
     };
