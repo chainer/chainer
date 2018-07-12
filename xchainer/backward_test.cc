@@ -882,6 +882,65 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
     EXPECT_THROW({ x1.GetGrad(graph_id1); }, XchainerError);
 }
 
+TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    using T = double;
+    GraphId graph_id = "testgraph";
+    Shape shape{2};
+    Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
+    Array gy2_value = testing::BuildArray(shape).WithData<T>({4, -1});
+    Array gx1_value = 3 * gy2_value;  // gy1 is ignored
+
+    DoubleBackpropOption double_backprop_opt = GetParam();
+
+    auto forward = [gy2_value, double_backprop_opt, &graph_id](const Array& x1, Array& y1, Array& y2) {
+        ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
+        y1 = 2 * x1.AsGradStopped() + 1;
+        y2 = 3 * x1.AsGradStopped() + 2;
+        ASSERT_FALSE(y1.IsGradRequired(AnyGraph{}));
+        ASSERT_FALSE(y2.IsGradRequired(AnyGraph{}));
+
+        {
+            BackwardBuilder bb{"func", {y1, y2}};
+            bb.Define({x1}, [gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                EXPECT_FALSE(bctx.HasOutputGrad(0));
+                EXPECT_TRUE(bctx.HasOutputGrad(1));
+
+                const Array& gy1 = bctx.output_grad(0);
+                const Array& gy2 = bctx.output_grad(1);
+                testing::ExpectEqual(ZerosLike(gy2_value), gy1);
+                testing::ExpectEqual(gy2_value, gy2);
+
+                EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(gy2.IsGradRequired(graph_id));
+                } else {
+                    EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
+                }
+
+                bctx.input_grad() = 2 * gy1 + 3 * gy2;
+            });
+        }
+    };
+
+    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array y1{};
+    Array y2{};
+    forward(x1, y1, y2);
+
+    if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+        y2.SetGrad(gy2_value.MakeView().RequireGrad(graph_id), graph_id);
+    } else {
+        y2.SetGrad(gy2_value, graph_id);
+    }
+    // Start backprop from y2. y1 is ignored.
+    Backward(y2, graph_id, double_backprop_opt);
+
+    testing::ExpectEqual(gy2_value, *y2.GetGrad(graph_id));
+    testing::ExpectEqual(gx1_value, *x1.GetGrad(graph_id));
+}
+
 INSTANTIATE_TEST_CASE_P(Params, BackpropFunctionTest, ::testing::Values(DoubleBackpropOption::kDisable, DoubleBackpropOption::kEnable));
 
 class BackpropRetainOutputTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
