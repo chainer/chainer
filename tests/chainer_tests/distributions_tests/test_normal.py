@@ -30,7 +30,7 @@ class TestNormal(testing.distribution_unittest):
             numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32))
         if self.log_scale_option:
             log_scale = utils.force_array(
-                numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+                numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32))
             scale = numpy.exp(log_scale)
             self.params = {"loc": loc, "log_scale": log_scale}
             self.scipy_params = {"loc": loc, "scale": scale}
