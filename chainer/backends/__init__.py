@@ -1,3 +1,8 @@
+import numpy
+
+from chainer.backends import cuda
+
+
 def copyto(dst, src):
     """Copies the elements of an ndarray to those of another one.
 
@@ -10,15 +15,15 @@ def copyto(dst, src):
 
     """
     if isinstance(dst, numpy.ndarray):
-        numpy.copyto(dst, to_cpu(src))
-    elif isinstance(dst, ndarray):
+        numpy.copyto(dst, cuda.to_cpu(src))
+    elif isinstance(dst, cuda.ndarray):
         if isinstance(src, numpy.ndarray):
             if dst.flags.c_contiguous or dst.flags.f_contiguous:
                 dst.set(src)
             else:
-                cupy.copyto(dst, to_gpu(src, device=dst.device))
-        elif isinstance(src, ndarray):
-            cupy.copyto(dst, src)
+                cuda.cupy.copyto(dst, cuda.to_gpu(src, device=dst.device))
+        elif isinstance(src, cuda.ndarray):
+            cuda.cupy.copyto(dst, src)
         else:
             raise TypeError('cannot copy from non-array object of type {}'
                             .format(type(src)))
