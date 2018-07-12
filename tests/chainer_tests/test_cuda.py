@@ -83,6 +83,8 @@ class TestCuda(unittest.TestCase):
     @attr.gpu
     def test_get_device_for_empty_array(self):
         x = cuda.get_device_from_array(cuda.cupy.array([]).reshape((0, 10)))
+        # TODO(okuta): Only check `assert x == cuda.Device(0)`
+        #              when cupy/cupy#946 is merged
         assert x == cuda.Device(0) or x == cuda.DummyDevice
 
     @attr.gpu
