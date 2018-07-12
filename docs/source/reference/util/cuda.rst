@@ -28,8 +28,8 @@ CuPy array allocation and copy
    :toctree: generated/
    :nosignatures:
 
+   chainer.backends.copyto
    chainer.backends.cuda.copy
-   chainer.backends.cuda.copyto
    chainer.backends.cuda.to_cpu
    chainer.backends.cuda.to_gpu
 
