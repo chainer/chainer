@@ -498,13 +498,13 @@ private:
                 } else {
                     // The grad mapping has no entry for the array node.
                     // Create a new entry in temporary gradients and keep a pointer to it.
-                    temp_prev_grads.emplace_back(internal::GradRef{*prev_array_node});
+                    temp_prev_grads.emplace_back(*prev_array_node);
                     prev_grads.emplace_back(&temp_prev_grads.back());
                 }
             } else {
                 // Previous array node is dead.
                 // Keep a pointer to the temporary gradient vector.
-                temp_prev_grads.emplace_back(internal::GradRef{nonstd::nullopt});
+                temp_prev_grads.emplace_back(nonstd::nullopt);
                 prev_grads.emplace_back(&temp_prev_grads.back());
             }
         }
