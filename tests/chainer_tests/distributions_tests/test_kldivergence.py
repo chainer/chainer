@@ -58,11 +58,13 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Normal(**params)
 
+    @testing.with_requires('scipy')
     def test_beta_beta_cpu(self):
         dist1 = self.make_beta_dist()
         dist2 = self.make_beta_dist()
         self.check_kl(dist1, dist2)
 
+    @testing.with_requires('scipy')
     @attr.gpu
     def test_beta_beta_gpu(self):
         dist1 = self.make_beta_dist(True)
