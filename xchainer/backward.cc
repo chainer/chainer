@@ -219,9 +219,6 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<Cons
 }
 
 void BackwardBuilder::PrepareOutputArrayProps() {
-    if (!output_array_props_.empty()) {
-        return;
-    }
     output_array_props_.reserve(outputs_.size());
     std::transform(
             outputs_.begin(), outputs_.end(), std::back_inserter(output_array_props_), [](const Array& output) -> internal::ArrayProps {
@@ -301,12 +298,46 @@ std::shared_ptr<OpNode>& BackwardBuilder::Target::FindOrCreateOpNode(const Graph
             prev_array_node->set_next_op_node(new_op_node);
         }
     }
+    assert(!op_node_map().empty());
     return insert_result.first->second;
+}
+
+// Add weak ptrs from the op nodes to previous array nodes of other graphs.
+void BackwardBuilder::Target::RegisterExoticPreviousArrayNodes(const std::vector<OpNode*>& op_nodes) {
+    if (op_nodes.size() < 2) {  // op_nodes.size() is the number of graphs
+        return;
+    }
+
+    std::unordered_map<GraphId, std::vector<std::shared_ptr<ArrayNode>>> exotic_array_nodes;
+    for (const Array& output : outputs()) {
+        for (const std::shared_ptr<ArrayNode>& output_array_node : output.nodes()) {
+            exotic_array_nodes[output_array_node->graph_id()].emplace_back(output_array_node);
+        }
+    }
+
+    for (OpNode* op_node : op_nodes) {
+        for (const auto& tup : exotic_array_nodes) {
+            assert(tup.second.size() == outputs().size());
+            if (tup.first == op_node->graph_id()) {
+                continue;
+            }
+            std::vector<std::weak_ptr<ArrayNode>> weak_prev_array_nodes;
+            weak_prev_array_nodes.reserve(tup.second.size());
+            std::transform(
+                    tup.second.begin(),
+                    tup.second.end(),
+                    std::back_inserter(weak_prev_array_nodes),
+                    [](const std::shared_ptr<ArrayNode>& array_node) { return std::weak_ptr<ArrayNode>{array_node}; });
+            op_node->RegisterExoticPreviousArrayNodes(tup.first, std::move(weak_prev_array_nodes));
+        }
+    }
 }
 
 void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
     // Lazily prepare output_array_props_ for performance
-    PrepareOutputArrayProps();
+    if (!any_defined()) {
+        PrepareOutputArrayProps();
+    }
 
     // Pointers to op nodes involved in this backward function
     std::vector<OpNode*> op_nodes;
@@ -354,36 +385,10 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
         }
     }
 
-    // Add weak ptrs from the op nodes to previous array nodes of other graphs.
-    // TODO(niboshi): Do this only when BackwardBuilder::RetainOutput() is called.
-    if (!any_defined() && op_nodes.size() >= 2) {  // op_nodes.size() is the number of graphs
-        std::unordered_map<GraphId, std::vector<std::shared_ptr<ArrayNode>>> exotic_array_nodes;
-
-        for (const Array& output : outputs()) {
-            for (const std::shared_ptr<ArrayNode>& output_array_node : output.nodes()) {
-                exotic_array_nodes[output_array_node->graph_id()].emplace_back(output_array_node);
-            }
-        }
-
-        for (OpNode* op_node : op_nodes) {
-            for (const auto& tup : exotic_array_nodes) {
-                assert(tup.second.size() == outputs().size());
-                if (tup.first == op_node->graph_id()) {
-                    continue;
-                }
-                std::vector<std::weak_ptr<ArrayNode>> weak_prev_array_nodes;
-                weak_prev_array_nodes.reserve(tup.second.size());
-                std::transform(
-                        tup.second.begin(),
-                        tup.second.end(),
-                        std::back_inserter(weak_prev_array_nodes),
-                        [](const std::shared_ptr<ArrayNode>& array_node) { return std::weak_ptr<ArrayNode>{array_node}; });
-                op_node->RegisterExoticPreviousArrayNodes(tup.first, std::move(weak_prev_array_nodes));
-            }
-        }
+    if (!any_defined()) {
+        // TODO(niboshi): Do this only when BackwardBuilder::RetainOutput() is called.
+        RegisterExoticPreviousArrayNodes(op_nodes);
     }
-
-    assert(!op_node_map().empty());
     set_any_defined(true);
 }
 
