@@ -4,6 +4,7 @@
 #include <cassert>
 #include <functional>
 #include <memory>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -71,43 +72,96 @@ nonstd::optional<Array>& GradRef::get() {
 
 }  // namespace internal
 
+RetainedOutputToken::RetainedOutputToken(std::shared_ptr<internal::ArrayBody> data_array_body, size_t output_index)
+    : data_array_body_{std::move(data_array_body)}, output_index_{output_index} {
+    assert(data_array_body_ != nullptr);
+    // TODO(niboshi): Could be written as: assert(data_array_body_.nodes().empty())
+    assert(!internal::HasAnyArrayNode(Array{data_array_body_}));
+}
+
+const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedArrayBodyWithNodes(
+        const std::shared_ptr<OpNode>& op_node) const {
+    assert(op_node != nullptr);
+    std::vector<std::shared_ptr<ArrayNode>> new_prev_array_nodes;
+
+    // Loop over graphs to collect array nodes corresponding to the same output index
+    for (const auto& tup : op_node->prev_array_nodes_of_all_graphs()) {
+        const GraphId& graph_id = std::get<0>(tup);
+        const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes = std::get<1>(tup);
+
+        // If previous array node is alive, add the node to the array body.
+        // Otherwise, create a new array node out of an op node of the corresponding graph.
+        std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[output_index_].lock();
+        if (prev_array_node == nullptr) {
+            std::shared_ptr<OpNode> new_op_node{};
+            if (op_node->graph_id() == graph_id) {
+                // Creating prev array node for "this" graph, based on the current op node
+                new_op_node = op_node;
+            } else {
+                // Creating prev array node for other graph, based on mocked op node in the other graph
+                new_op_node = op_node->CloneInOtherGraph(graph_id);
+            }
+            // Create mocked prev array node which refers to the op node
+            const internal::ArrayProps& props = op_node->GetPrevArrayProps(output_index_);
+            prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, graph_id);
+            prev_array_node->set_next_op_node(std::move(new_op_node));
+        }
+
+        assert(prev_array_node->graph_id() == graph_id);
+        assert(prev_array_node->GetBody() == nullptr);
+        new_prev_array_nodes.emplace_back(std::move(prev_array_node));
+    }
+
+    // Create a new array body with (possibly fabricated) array nodes.
+    // The data array body stored in the token is reused as a base.
+    for (const std::shared_ptr<ArrayNode>& prev_array_node : new_prev_array_nodes) {
+        assert(prev_array_node->GetBody() == nullptr);
+        prev_array_node->set_array_body(data_array_body_);
+        data_array_body_->AddNode(prev_array_node);
+    }
+
+    return data_array_body_;
+}
+
 BackwardContext::BackwardContext(
-        const OpNode& op_node,
+        const std::shared_ptr<OpNode>& op_node,
         gsl::span<ArrayNode*> prev_array_nodes,
         gsl::span<internal::GradRef*> prev_grads,
         std::vector<Array>& input_grads_storage,
         const GraphId& graph_id,
-        bool next_backward_required)
+        DoubleBackpropOption double_backprop_option)
     : op_node_{op_node},
       prev_array_nodes_{prev_array_nodes},
       prev_grads_{prev_grads},
       input_grads_storage_{input_grads_storage},
       zero_output_grads_{prev_array_nodes_.size()},
       graph_id_{graph_id},
-      next_backward_required_{next_backward_required} {
-    assert(input_grads_storage_.size() <= op_node.next_array_node_count());
+      double_backprop_option_{double_backprop_option} {
+    assert(input_grads_storage_.size() <= op_node->next_array_node_count());
     assert(prev_array_nodes_.size() == prev_grads_.size());
     // Input grads must be initialized with null-body arrays.
     assert(std::all_of(input_grads_storage_.begin(), input_grads_storage_.end(), [](const Array& g) { return g.body() == nullptr; }));
+
+    retained_output_array_bodies_.resize(op_node->prev_node_count());  // Fill with nullptr
 };
 
-bool BackwardContext::HasOutputGrad(int output_index) const { return gsl::at(prev_grads_, output_index)->get().has_value(); }
+bool BackwardContext::HasOutputGrad(size_t output_index) const { return gsl::at(prev_grads_, output_index)->get().has_value(); }
 
-const Array& BackwardContext::output_grad(int output_index) const {
+const Array& BackwardContext::output_grad(size_t output_index) const {
     // If the output gradient has a propagated value, return it.
     if (HasOutputGrad(output_index)) {
         return *prev_grads_[output_index]->get();
     }
 
     // If there already is a zero-filled gradient allocated, return it.
-    assert(output_index < static_cast<int>(zero_output_grads_.size()));
+    assert(output_index < output_count());
     nonstd::optional<Array>& zero_grad = zero_output_grads_[output_index];
     if (zero_grad.has_value()) {
         return *zero_grad;
     }
 
     // Allocate new zero-filled gradient and return it.
-    const internal::ArrayProps props = op_node_.GetPrevArrayProps(output_index);
+    const internal::ArrayProps& props = op_node_->GetPrevArrayProps(output_index);
     zero_grad = Zeros(props.shape, props.dtype, props.device);
     return *zero_grad;
 }
@@ -118,6 +172,41 @@ Array& BackwardContext::input_grad() {
 }
 
 Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_storage_, index); }
+
+Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
+    assert(token.output_index() < output_count());
+    size_t output_index = token.output_index();
+
+    // Retrieve the kept array body for retained output.
+    // Note that it's a non-const reference so that the following logic can assign to it to keep it for the repeated retrieval of the
+    // retained array.
+    std::shared_ptr<internal::ArrayBody>& kept_body = retained_output_array_bodies_[output_index];
+
+    if (kept_body == nullptr) {
+        // This is the first retrieval of the retained output.
+        // If the original output array body is still alive. Just make a copy of array body with restricted array nodes.
+        // Otherwise, a new array body is fabricated.
+
+        // Retrieve the array body of the original output array.
+        std::shared_ptr<internal::ArrayBody> array_body{nullptr};
+        if (ArrayNode* prev_array_node = prev_array_nodes_[output_index]) {
+            array_body = prev_array_node->GetBody();
+        }
+
+        if (array_body == nullptr) {
+            // Fabricate a new array body
+            array_body = token.GetFabricatedArrayBodyWithNodes(op_node_);
+        }
+
+        // Cut graphs of the array body
+        kept_body = Array{std::move(array_body)}.MakeView().move_body();
+    }
+
+    assert(kept_body != nullptr);
+    return Array{kept_body};
+}
+
+size_t BackwardContext::output_count() const { return zero_output_grads_.size(); }
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()} {
@@ -146,7 +235,7 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
     // Collect input ArrayNodes, grouped by graph. However, skip the ArrayNodes that belong to graphs for which gradients should be stopped,
     // by creating a temporary no-backprop scope.
     // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
-    using NextArrayNodes = std::vector<std::reference_wrapper<std::shared_ptr<ArrayNode>>>;
+    using NextArrayNodes = std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>>;
     std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes;
     for (const Array& input : inputs) {
         for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {
@@ -162,38 +251,135 @@ void BackwardBuilder::Define(std::initializer_list<ConstArrayRef> inputs, const 
         }
     }
 
-    // Create op node for each graph
+#ifndef NDEBUG
     for (auto& pair : graph_to_next_array_nodes) {
         const GraphId& graph_id = pair.first;
-        NextArrayNodes& next_array_nodes = pair.second;
+        const NextArrayNodes& vec = pair.second;
+        for (const std::shared_ptr<ArrayNode>& array_node : vec) {
+            assert(graph_id == array_node->graph_id());
+        }
+    }
+#endif  // NDEBUG
+
+    // Pointers to op nodes involved in this backward function
+    std::vector<OpNode*> op_nodes;
+
+    // Create op node for each graph
+    for (auto it_graph = graph_to_next_array_nodes.begin(); it_graph != graph_to_next_array_nodes.end(); ++it_graph) {
+        const GraphId& graph_id = it_graph->first;
+        NextArrayNodes& next_array_nodes = it_graph->second;
 
         // Find op node
         auto insert_result = op_node_map_.emplace(graph_id, nullptr);
         if (insert_result.second) {
             // Create new op instance
-            std::vector<std::shared_ptr<ArrayNode>> prev_array_nodes;
+            std::vector<std::weak_ptr<ArrayNode>> weak_prev_array_nodes;  // weak pointers to pass to new op node
+            std::vector<ArrayNode*> prev_array_nodes;
+            weak_prev_array_nodes.reserve(outputs_.size());
+            prev_array_nodes.reserve(outputs_.size());
             for (const Array& out : outputs_) {
                 const std::shared_ptr<ArrayNode>& prev_array_node = xchainer::internal::HasArrayNode(out, graph_id)
                                                                             ? xchainer::internal::GetMutableArrayNode(out, graph_id)
                                                                             : xchainer::internal::CreateArrayNode(out, graph_id);
-                prev_array_nodes.emplace_back(prev_array_node);
+                prev_array_nodes.emplace_back(prev_array_node.get());
+                weak_prev_array_nodes.emplace_back(prev_array_node);
             }
             // Create new op instance with weakrefs to output nodes
             std::shared_ptr<OpNode>& new_op_node = insert_result.first->second =
-                    std::make_shared<OpNode>(op_name_, prev_array_nodes, output_array_props_);
+                    std::make_shared<OpNode>(op_name_, graph_id, weak_prev_array_nodes, output_array_props_);
             // Add edges from the output nodes
-            for (std::shared_ptr<ArrayNode>& prev_array_node : prev_array_nodes) {
+            for (ArrayNode* prev_array_node : prev_array_nodes) {
                 assert(prev_array_node->next_op_node() == nullptr);
                 prev_array_node->set_next_op_node(new_op_node);
             }
         }
 
-        // Add edges to the input nodes
         std::shared_ptr<OpNode>& op_node = insert_result.first->second;
-        op_node->RegisterBackwardFunction(next_array_nodes, backward_func);
+
+        // Keep the list of op nodes involved in this backward function
+        op_nodes.emplace_back(op_node.get());
+
+        // Add edges to the input nodes
+        std::vector<std::shared_ptr<ArrayNode>> temp_next_array_nodes;
+        temp_next_array_nodes.reserve(next_array_nodes.size());
+        std::transform(
+                next_array_nodes.begin(),
+                next_array_nodes.end(),
+                std::back_inserter(temp_next_array_nodes),
+                [](const std::shared_ptr<ArrayNode>& array_node) { return array_node; });
+
+        internal::OpNodeBackwardEntry& backward_entry = op_node->RegisterBackwardFunction(std::move(temp_next_array_nodes), backward_func);
+
+        // Add edges to next array nodes of other graphs.
+        // TODO(niboshi): Do this only when BackwardBuilder::RetainOutput() is called.
+        for (auto it_exotic_graph = graph_to_next_array_nodes.begin(); it_exotic_graph != graph_to_next_array_nodes.end();
+             ++it_exotic_graph) {
+            if (it_graph == it_exotic_graph) {
+                continue;
+            }
+            assert(graph_id != it_exotic_graph->first);
+            const GraphId& exotic_graph_id = it_exotic_graph->first;
+            const NextArrayNodes& exotic_next_array_nodes = it_exotic_graph->second;
+
+            std::vector<std::shared_ptr<ArrayNode>> temp_array_nodes;
+            temp_array_nodes.reserve(exotic_next_array_nodes.size());
+            std::transform(
+                    exotic_next_array_nodes.begin(),
+                    exotic_next_array_nodes.end(),
+                    std::back_inserter(temp_array_nodes),
+                    [](const std::shared_ptr<ArrayNode>& array_node) { return array_node; });
+            backward_entry.AddExoticNextArrayNode(
+                    std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>{exotic_graph_id, std::move(temp_array_nodes)});
+        }
+    }
+
+    // Add weak ptrs from the op nodes to previous array nodes of other graphs.
+    // TODO(niboshi): Do this only when BackwardBuilder::RetainOutput() is called.
+    if (!any_defined_ && op_nodes.size() >= 2) {  // op_nodes.size() is the number of graphs
+        std::unordered_map<GraphId, std::vector<std::shared_ptr<ArrayNode>>> exotic_array_nodes;
+
+        for (const Array& output : outputs_) {
+            for (const std::shared_ptr<ArrayNode>& output_array_node : output.nodes()) {
+                exotic_array_nodes[output_array_node->graph_id()].emplace_back(output_array_node);
+            }
+        }
+
+        for (OpNode* op_node : op_nodes) {
+            for (const auto& tup : exotic_array_nodes) {
+                assert(tup.second.size() == outputs_.size());
+                if (tup.first == op_node->graph_id()) {
+                    continue;
+                }
+                std::vector<std::weak_ptr<ArrayNode>> weak_prev_array_nodes;
+                weak_prev_array_nodes.reserve(tup.second.size());
+                std::transform(
+                        tup.second.begin(),
+                        tup.second.end(),
+                        std::back_inserter(weak_prev_array_nodes),
+                        [](const std::shared_ptr<ArrayNode>& array_node) { return std::weak_ptr<ArrayNode>{array_node}; });
+                op_node->RegisterExoticPreviousArrayNodes(tup.first, std::move(weak_prev_array_nodes));
+            }
+        }
     }
 
     assert(!op_node_map_.empty());
+    any_defined_ = true;
+}
+
+RetainedOutputToken BackwardBuilder::RetainOutput(const Array& output) {
+    // Find the corresponding output index.
+    // If there are more than one array with the same array body in outputs, the first one is always chosen, no matter what array the caller
+    // actually specified. It doesn't matter because the array GetRetainedOutput would return is the same.
+
+    // TODO(niboshi): It may be costly in ops with many output arrays.
+    auto it = std::find_if(outputs_.begin(), outputs_.end(), [&output](const Array& output2) { return output.body() == output2.body(); });
+    if (it == outputs_.end()) {
+        throw XchainerError{"Cannot retain an array which is not any of output arrays."};
+    }
+    size_t output_index = std::distance(outputs_.begin(), it);
+    std::shared_ptr<internal::ArrayBody> data_array_body = output.AsGradStopped().move_body();
+    assert(data_array_body.get() != output.body().get());
+    return {std::move(data_array_body), output_index};
 }
 
 namespace {
@@ -245,7 +431,7 @@ public:
 
             // Backpropagate gradients from the previous array nodes into the next array nodes.
             {
-                std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients(*op_node, graph_id_);
+                std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients(op_node, graph_id_);
                 AccumulateNextGradients(*op_node, std::move(gxs));
             }
 
@@ -271,7 +457,9 @@ public:
     }
 
 private:
-    std::vector<nonstd::optional<Array>> ComputeNextGradients(const OpNode& op_node, const GraphId& graph_id) {
+    std::vector<nonstd::optional<Array>> ComputeNextGradients(const std::shared_ptr<OpNode>& op_node, const GraphId& graph_id) {
+        assert(op_node != nullptr);
+
         // Determine graph IDs to stop gradients
         std::vector<GraphId> graph_ids_to_stop_gradient;
         if (double_backprop_ == DoubleBackpropOption::kDisable) {
@@ -280,7 +468,7 @@ private:
 
         // Run backward functions to compute gradients of next array nodes.
         std::vector<nonstd::optional<Array>> next_grads;
-        next_grads.resize(op_node.next_array_node_count());
+        next_grads.resize(op_node->next_array_node_count());
 
         // Previous array nodes. May be nullptr if the node is gone.
         std::vector<ArrayNode*> prev_array_nodes;
@@ -290,15 +478,16 @@ private:
         // These GradRefs are only valid in the backward functions of this op node.
         // Be careful not to cause reallocation in this vector. Otherwise the pointers would be invalidated.
         std::vector<internal::GradRef> dead_prev_grads;
-        dead_prev_grads.reserve(op_node.prev_array_nodes().size());
+        dead_prev_grads.reserve(op_node->prev_array_nodes().size());
 
         std::vector<internal::GradRef*> prev_grads;
-        for (const std::weak_ptr<ArrayNode>& maybe_prev_array_node : op_node.prev_array_nodes()) {
+        for (const std::weak_ptr<ArrayNode>& maybe_prev_array_node : op_node->prev_array_nodes()) {
             std::shared_ptr<ArrayNode> prev_array_node = maybe_prev_array_node.lock();
             prev_array_nodes.emplace_back(prev_array_node.get());
 
             if (prev_array_node != nullptr) {
                 // Previous array node is alive
+                // TODO(niboshi): There may be cases where prev_array_node is alive but not in the map.
                 internal::GradRef& grad = array_node_grad_map_.at(prev_array_node.get());
                 prev_grads.emplace_back(&grad);  // keep a pointer to the map
             } else {
@@ -308,7 +497,7 @@ private:
             }
         }
 
-        for (const internal::OpNodeBackwardEntry& backward_entry : op_node.backward_entries()) {
+        for (const internal::OpNodeBackwardEntry& backward_entry : op_node->backward_entries()) {
             // `next_grads_subset` stores the next gradients (`next_grads`) of the subset of input arrays of this backward
             // call. `BackwardContext` holds it by reference and assignment to BackwardContext::input_grad() stores the
             // gradients there. It initially holds null-body arrays.
@@ -316,8 +505,7 @@ private:
             next_grads_subset.resize(backward_entry.next_array_node_count());
 
             // Call backward.
-            BackwardContext bctx{
-                    op_node, prev_array_nodes, prev_grads, next_grads_subset, graph_id_, double_backprop_ == DoubleBackpropOption::kEnable};
+            BackwardContext bctx{op_node, prev_array_nodes, prev_grads, next_grads_subset, graph_id_, double_backprop_};
             {
                 NoBackpropModeScope scope{graph_ids_to_stop_gradient};
                 backward_entry.backward_func()(bctx);
@@ -352,7 +540,7 @@ private:
             for (size_t i = 0; i < backward_entry.next_array_node_count(); ++i) {
                 size_t i_next_grad = backward_entry.next_array_node_indices()[i];
                 nonstd::optional<Array>& target_grad = next_grads[i_next_grad];
-                const ArrayNode& next_array_node = *op_node.next_array_nodes()[i_next_grad];
+                const ArrayNode& next_array_node = *op_node->next_array_nodes()[i_next_grad];
 
                 internal::AccumulateGrad(
                         target_grad,
@@ -383,7 +571,7 @@ private:
         }
 
         // Erase processed OpNode from the map
-        previous_array_node_keeper_.erase(&op_node);
+        previous_array_node_keeper_.erase(op_node.get());
 
         return next_grads;
     }

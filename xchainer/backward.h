@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstddef>
 #include <functional>
 #include <initializer_list>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -81,6 +83,37 @@ private:
 
 }  // namespace internal
 
+// An object used by op implementations to bridge between BackwardBuilder::RetainOutput() and BackwardContext::GetRetainedOutput().
+//
+// See BackwardBuilder::RetainOutput() for details.
+class RetainedOutputToken {
+public:
+    RetainedOutputToken(std::shared_ptr<internal::ArrayBody> data_array_body, size_t output_index);
+
+    RetainedOutputToken(const RetainedOutputToken&) = default;
+    RetainedOutputToken(RetainedOutputToken&&) = default;
+    RetainedOutputToken& operator=(const RetainedOutputToken&) = default;
+    RetainedOutputToken& operator=(RetainedOutputToken&&) = default;
+
+private:
+    friend class xchainer::BackwardContext;
+
+    // Returns the output index.
+    // It does not necessarily correspond to the output array specified in RetainOutput(), if there are more than one output arrays with the
+    // same array body.
+    size_t output_index() const { return output_index_; }
+
+    const std::shared_ptr<internal::ArrayBody>& GetFabricatedArrayBodyWithNodes(const std::shared_ptr<OpNode>& op_node) const;
+
+    // Output data array. Initially it does not have any array nodes.
+    // This array is used when retrieving retained output array, in case the array body of the original output array is no longer alive.
+    // Once used, the array body `data_array_body_` points to will have array nodes of the output array for all the graphs, no matter what
+    // the graph backpropagation is running on.
+    std::shared_ptr<internal::ArrayBody> data_array_body_;
+
+    size_t output_index_;
+};
+
 class BackwardContext {
 public:
     // Ctor
@@ -89,24 +122,24 @@ public:
     // Its size must be equal to the number of input arrays whose gradients are to be returned in this single backward function (1 in most
     // ordinary functions).
     BackwardContext(
-            const OpNode& op_node,
+            const std::shared_ptr<OpNode>& op_node,
             gsl::span<ArrayNode*> prev_array_nodes,
             gsl::span<internal::GradRef*> prev_grads,
             std::vector<Array>& input_grads_storage,
             const GraphId& graph_id,
-            bool next_backward_required);
+            DoubleBackpropOption double_backprop_option);
 
     // Indicates whether the next order of backward is required. It reflects DoubleBackpropOption.
-    bool next_required() const { return next_backward_required_; }
+    bool next_required() const { return double_backprop_option_ == DoubleBackpropOption::kEnable; }
 
     // Returns whether the output has a propagated gradient.
     // If there is only one output, the output always has the propagated gradient, therefore you do not have to call this function in that
     // case.
-    bool HasOutputGrad(int output_index) const;
+    bool HasOutputGrad(size_t output_index) const;
 
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
-    const Array& output_grad(int output_index) const;
+    const Array& output_grad(size_t output_index) const;
 
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
@@ -121,8 +154,16 @@ public:
     // Returns the reference to the input gradient.
     Array& input_grad(size_t index);
 
+    // Returns the retained output array.
+    // The resulting array has the same value but different array body as the actual output array.
+    // It has the array node of the graph for current backward computation if and only if the double backprop option is enabled, but always
+    // retains array nodes for other graphs.
+    Array GetRetainedOutput(const RetainedOutputToken& token);
+
 private:
-    const OpNode& op_node_;
+    size_t output_count() const;
+
+    const std::shared_ptr<OpNode>& op_node_;  // never be nullptr
     gsl::span<ArrayNode*> prev_array_nodes_;
     gsl::span<internal::GradRef*> prev_grads_;
 
@@ -135,9 +176,13 @@ private:
     // The arrays are allocated on-demand in output_grad.
     mutable std::vector<nonstd::optional<Array>> zero_output_grads_;
 
+    // Array bodies for retained outputs.
+    // Initialized by nullptrs and populated as queried by calling GetRetainedOutput().
+    std::vector<std::shared_ptr<internal::ArrayBody>> retained_output_array_bodies_;
+
     const GraphId& graph_id_;
 
-    bool next_backward_required_;
+    DoubleBackpropOption double_backprop_option_;
 };
 
 class BackwardBuilder {
@@ -149,8 +194,28 @@ public:
     // For multi-input ops, usually this function is called for each of independent subsets of input arrays.
     void Define(std::initializer_list<ConstArrayRef> inputs, const BackwardFunction& backward_func);
 
+    // Flags an output array to be retained for use in the backward pass.
+    // Op implmentations can use this function in combination with BackwardContext::GetRetainedOutput() to retrieve output arrays in the
+    // backward pass.
+    //
+    // If an op implementation requires the output array of the forward pass in the backward pass, it should call
+    // BackwardBuilder::RetainOutput() in the forward pass and keep its return value (either assign a variable or capture by
+    // value in a lambda expression). In the backward pass, it should call BackwardContext::GetRetainedOutput() with this token to retrieve
+    // the output array.
+    //
+    // Capturing the output array directly with lambda expression would cause cyclic reference and therefore would lead to memory leak.
+    //
+    // Reusing the token for higher-order backward functions results in undefined behavior.
+    //
+    // `output` must be one of the arrays specified in the constructor of BackwardBuilder as output arrays.
+    // If invalid array is specified, XchainerError will be thrown.
+    RetainedOutputToken RetainOutput(const Array& output);
+
 private:
     const char* op_name_;
+
+    // Flag indicating whether the first Define() has been called.
+    bool any_defined_{false};
 
     // Output arrays of the op.
     std::vector<ConstArrayRef> outputs_;

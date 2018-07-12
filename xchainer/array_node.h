@@ -17,17 +17,33 @@ namespace xchainer {
 
 class Array;
 
+namespace internal {
+
+// Returns true if and only if the weak pointer is empty.
+inline bool IsWeakPtrEmpty(const std::weak_ptr<internal::ArrayBody> weak) {
+    using WeakPtr = std::weak_ptr<internal::ArrayBody>;
+    return !weak.owner_before(WeakPtr{}) && !WeakPtr{}.owner_before(weak);
+}
+
+}  // namespace internal
+
 class ArrayNode {
 public:
-    ArrayNode(std::weak_ptr<internal::ArrayBody> body, const Shape& shape, Dtype dtype, Device& device, GraphId graph_id)
-        : body_{std::move(body)}, shape_{shape}, dtype_{dtype}, device_{device}, graph_id_{std::move(graph_id)} {
-        assert(body_.lock() != nullptr);
-    }
+    ArrayNode(const Shape& shape, Dtype dtype, Device& device, GraphId graph_id)
+        : shape_{shape}, dtype_{dtype}, device_{device}, graph_id_{std::move(graph_id)} {}
 
     ArrayNode(const ArrayNode&) = delete;
     ArrayNode(ArrayNode&&) = delete;
     ArrayNode& operator=(const ArrayNode&) = delete;
     ArrayNode& operator=(ArrayNode&&) = delete;
+
+    // Sets the array body to this array node.
+    void set_array_body(std::weak_ptr<internal::ArrayBody> body) {
+        assert(body_.lock() == nullptr);  // The body must be either unset (the array node is being created normally) or dead (the body
+                                          // is being replaced with a fabricated one, as a retained output of backward)
+        assert(!internal::IsWeakPtrEmpty(body));
+        body_ = std::move(body);
+    }
 
     const Shape& shape() const { return shape_; }
 
