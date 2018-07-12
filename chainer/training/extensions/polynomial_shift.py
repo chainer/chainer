@@ -22,9 +22,8 @@ class PolynomialShift(extension.Extension):
 
     Args:
         attr (str): Name of the attribute to shift.
-        (rate, max_count) (float, int): ``rate`` is the the exponent of
-            polynomial shift. ``max_count`` is the number of this extension to
-            be invoked.
+        rate (float): Exponent of polynomial shift.
+        max_count (int): Number of this extension to be invoked.
         init (float): Initial value of the attribute. If it is ``None``, the
             extension extracts the attribute at the first call and uses it as
             the initial value.
