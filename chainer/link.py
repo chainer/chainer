@@ -193,7 +193,7 @@ class Link(object):
         finally:
             self._within_init_scope = old_flag
 
-    def forward(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         return self.forward(*args, **kwargs)
 
     def __setattr__(self, name, value):
