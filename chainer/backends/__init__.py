@@ -1,6 +1,8 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 
 
 def copyto(dst, src):
@@ -15,9 +17,12 @@ def copyto(dst, src):
 
     """
     if isinstance(dst, numpy.ndarray):
-        numpy.copyto(dst, cuda.to_cpu(src))
+        numpy.copyto(dst, numpy.asarray(cuda.to_cpu(src)))
+    elif isinstance(dst, intel64.mdarray):
+        intel64.ideep.basic_copyto(dst, cuda.to_cpu(src))
     elif isinstance(dst, cuda.ndarray):
-        if isinstance(src, numpy.ndarray):
+        if isinstance(src, chainer.get_cpu_array_types()):
+            src = numpy.asarray(src)
             if dst.flags.c_contiguous or dst.flags.f_contiguous:
                 dst.set(src)
             else:
