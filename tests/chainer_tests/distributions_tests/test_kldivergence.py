@@ -38,6 +38,12 @@ class TestKLDivergence(unittest.TestCase):
 
         return params
 
+    def make_beta_dist(self, is_gpu=False):
+        a = numpy.random.uniform(1, 10, self.shape).astype(numpy.float32)
+        b = numpy.random.uniform(1, 10, self.shape).astype(numpy.float32)
+        params = self.encode_params({"a": a, "b": b}, is_gpu)
+        return distributions.Beta(**params)
+
     def make_laplace_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
@@ -51,6 +57,17 @@ class TestKLDivergence(unittest.TestCase):
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
         params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Normal(**params)
+
+    def test_beta_beta_cpu(self):
+        dist1 = self.make_beta_dist()
+        dist2 = self.make_beta_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_beta_beta_gpu(self):
+        dist1 = self.make_beta_dist(True)
+        dist2 = self.make_beta_dist(True)
+        self.check_kl(dist1, dist2)
 
     def test_laplace_laplace_cpu(self):
         dist1 = self.make_laplace_dist()
