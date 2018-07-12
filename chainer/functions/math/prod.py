@@ -76,13 +76,12 @@ class Prod(function_node.FunctionNode):
         n_reduced_elements = 1
         for axis in axes:
             n_reduced_elements *= x.shape[axis]
-        n_output_elements = x.size // n_reduced_elements
         transpose_axes = axes + axes_kept
 
         x = x.transpose(transpose_axes)
         transposed_shape = x.shape
         kept_shape = transposed_shape[len(axes):]
-        x = x.reshape((-1,) + kept_shape)
+        x = x.reshape((n_reduced_elements,) + kept_shape)
 
         F = chainer.functions
 
@@ -95,7 +94,6 @@ class Prod(function_node.FunctionNode):
         gx = cumprod0(x) * F.flip(cumprod0(F.flip(x, 0)), 0)
         gx = gx.reshape(transposed_shape)
         gx = gx.transpose(list(numpy.argsort(transpose_axes)))
-        gy = chainer.functions.broadcast_to(gy, gx.shape)
         gx = gx * gy
         return gx,
 
