@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -18,12 +19,13 @@ class Array;
 class ArrayNode;
 class BackwardContext;
 class Device;
+class OpNode;
 
 namespace internal {
 
 class OpNodeBackwardEntry {
 public:
-    OpNodeBackwardEntry(std::vector<size_t> next_array_node_indices, BackwardFunction backward_func);
+    OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> next_array_node_indices, BackwardFunction backward_func);
 
     size_t next_array_node_count() const { return next_array_node_indices_.size(); }
 
@@ -31,19 +33,36 @@ public:
 
     const BackwardFunction& backward_func() const { return backward_func_; }
 
+    void AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes);
+
+    // Returns the next array nodes of exotic graphs.
+    const std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& exotic_next_array_nodes() const {
+        return exotic_next_array_nodes_;
+    }
+
 private:
+    friend class xchainer::OpNode;
+
+    OpNode& op_node_;
+
     std::vector<size_t> next_array_node_indices_;
+
+    std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> exotic_next_array_nodes_;
+
     BackwardFunction backward_func_;
+
+    // Returns the next array nodes of "this" graph.
+    std::vector<std::shared_ptr<ArrayNode>> GetNextArrayNodes() const;
 };
 
 }  // namespace internal
 
 class OpNode {
 public:
-    OpNode() = default;
     explicit OpNode(
             std::string name,
-            const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes,
+            GraphId graph_id,
+            std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes,
             std::vector<internal::ArrayProps> prev_array_props);
 
     OpNode(const OpNode&) = delete;
@@ -51,12 +70,20 @@ public:
     OpNode& operator=(const OpNode&) = delete;
     OpNode& operator=(OpNode&&) = delete;
 
-    void RegisterBackwardFunction(
-            gsl::span<std::reference_wrapper<std::shared_ptr<ArrayNode>>> next_array_nodes, BackwardFunction backward_func);
+    internal::OpNodeBackwardEntry& RegisterBackwardFunction(
+            std::vector<std::shared_ptr<ArrayNode>> next_array_nodes, BackwardFunction backward_func);
+
+    // Adds links to previous array nodes of other graphs.
+    void RegisterExoticPreviousArrayNodes(GraphId other_graph_id, std::vector<std::weak_ptr<ArrayNode>> exotic_prev_array_nodes);
+
+    // Clones the op node in another graph.
+    // Used when fabricating array nodes in output array retention.
+    std::shared_ptr<OpNode> CloneInOtherGraph(const GraphId& other_graph_id) const;
 
     void Unchain() {
         backward_entries_.clear();
         next_array_nodes_.clear();
+        AssertConsistency();
     }
 
     std::string name() const { return name_; }
@@ -71,9 +98,7 @@ public:
 
     size_t next_array_node_count() const { return next_array_nodes_.size(); }
 
-    size_t prev_node_count() const { return prev_array_nodes_.size(); }
-
-    const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes() const { return prev_array_nodes_; }
+    size_t prev_node_count() const { return prev_array_props_.size(); }
 
     int64_t rank() const { return rank_; }
 
@@ -84,13 +109,33 @@ public:
         return prev_array_props_[i];
     }
 
+    // Returns the list of prev array nodes (weak pointers) on "this" graph.
+    const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes() const { return std::get<1>(prev_array_nodes_[0]); }
+
+    // Returns the previous array nodes of all graphs.
+    const std::vector<std::tuple<GraphId, std::vector<std::weak_ptr<ArrayNode>>>>& prev_array_nodes_of_all_graphs() const {
+        return prev_array_nodes_;
+    }
+
 private:
+    void AssertConsistency() const;
+
     std::string name_;
+
+    // Graph ID.
+    // Graph ID is also held in the first entry of prev_array_nodes_, but the reference to it may be invalidated, whereas this member is
+    // stable during the lifetime of this OpNode instance.
     GraphId graph_id_;
+
     int64_t rank_{0};
+
+    // List of next array nodes.
     std::vector<std::shared_ptr<ArrayNode>> next_array_nodes_;
 
-    std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes_;
+    // List of prev array nodes (as weak pointers).
+    // Each entry is a pair of graph ID and list of previous array nodes.
+    // The first entry always corresponds to "this" graph.
+    std::vector<std::tuple<GraphId, std::vector<std::weak_ptr<ArrayNode>>>> prev_array_nodes_;
 
     // Array props of previous array nodes. This is used for creating dummy gradients.
     std::vector<internal::ArrayProps> prev_array_props_;
