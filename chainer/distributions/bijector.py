@@ -1,4 +1,3 @@
-import chainer
 from chainer.functions.math import exponential
 
 
