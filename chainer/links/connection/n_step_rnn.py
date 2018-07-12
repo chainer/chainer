@@ -64,7 +64,7 @@ class NStepRNNBase(link.ChainList):
     """  # NOQA
 
     def __init__(self, n_layers, in_size, out_size, dropout,
-                 initialW, initial_bias, **kwargs):
+                 initialW=None, initial_bias=None, **kwargs):
         if kwargs:
             argument.check_unexpected_kwargs(
                 kwargs,
