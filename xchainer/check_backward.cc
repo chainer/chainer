@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "xchainer/array.h"
+#include "xchainer/array_body_leak_detection.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
@@ -144,7 +145,17 @@ void CheckBackwardComputation(
         double atol,
         double rtol,
         const GraphId& graph_id) {
-    std::vector<Array> inputs_copy{inputs};
+    // Copies the input arrays, so that computed gradients are released at the end of this function.
+    // This is needed to detect unreleased array bodies using ArrayBodyHook.
+    // Copied input arrays are not connected to the original input arrays, but RequireGrad() is configured to match the original.
+    std::vector<Array> inputs_copy;
+    for (const auto& input : inputs) {
+        Array a = input.AsGradStopped(CopyKind::kCopy);
+        for (const std::shared_ptr<ArrayNode>& arr_node : input.nodes()) {
+            a.RequireGrad(arr_node->graph_id());
+        }
+        inputs_copy.emplace_back(std::move(a));
+    }
 
     // Compute backward gradients
     const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, graph_id);
@@ -228,6 +239,30 @@ void CheckBackwardComputation(
 
 }  // namespace
 
+namespace {
+
+// Asserts all the array bodies are freed in the leak tracker.
+void CheckAllArrayBodiesFreed(internal::ArrayBodyLeakTracker& tracker) {
+    std::vector<std::shared_ptr<internal::ArrayBody>> alive_arr_bodies = tracker.GetAliveArrayBodies();
+    if (!alive_arr_bodies.empty()) {
+        // TODO(niboshi): Output only array bodies that are not referenced from other array bodies
+        std::ostringstream os;
+        os << "Some array bodies are not freed." << std::endl << "Number of alive array bodies: " << alive_arr_bodies.size() << std::endl;
+        for (const std::shared_ptr<internal::ArrayBody>& array_body : alive_arr_bodies) {
+            Array array{array_body};
+            os << "- Unreleased array body: " << array_body.get() << std::endl;
+            os << array << std::endl;
+            for (const std::shared_ptr<ArrayNode>& array_node : array.nodes()) {
+                const GraphId& graph_id = array_node->graph_id();
+                DebugDumpComputationalGraph(os, array, graph_id);
+            }
+        }
+        throw GradientCheckError{os.str()};
+    }
+}
+
+}  // namespace
+
 // TODO(niboshi): Fix the leaks and enable array body leak detection.
 void CheckBackward(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
@@ -238,7 +273,14 @@ void CheckBackward(
         double rtol,
         const GraphId& graph_id) {
     CheckDoubleBackpropOption(func, inputs, graph_id);
-    CheckBackwardComputation(func, inputs, grad_outputs, eps, atol, rtol, graph_id);
+
+    internal::ArrayBodyLeakTracker tracker{};
+    {
+        internal::ArrayBodyLeakDetectionScope scope{tracker};
+
+        CheckBackwardComputation(func, inputs, grad_outputs, eps, atol, rtol, graph_id);
+    }
+    CheckAllArrayBodiesFreed(tracker);
 }
 
 // TODO(niboshi): Fix the leaks and enable array body leak detection.

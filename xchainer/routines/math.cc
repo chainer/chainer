@@ -255,7 +255,10 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
             bb.Define({x1}, [x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() / x2; });
         }
         if (x2.IsGradRequired(AnyGraph{})) {
-            bb.Define({x2}, [x1, x2](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad() * x1 / (x2 * x2); });
+            bb.Define({x2}, [x1, x2](BackwardContext& bctx) {
+                // TODO(niboshi): Avoid view of x2. Use retained input.
+                bctx.input_grad() = -bctx.output_grad() * x1 / (x2.MakeView() * x2.MakeView());
+            });
         }
     }
 }
@@ -420,8 +423,9 @@ Array Exp(const Array& x) {
     if (x.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"exp", out};
         bb.Define({x}, [x](BackwardContext& bctx) {
+            // TODO(niboshi): Avoid view of x. Use retained output.
             const Array& gout = bctx.output_grad();
-            bctx.input_grad() = Exp(x) * gout;
+            bctx.input_grad() = Exp(x.MakeView()) * gout;
         });
     }
 
@@ -439,8 +443,9 @@ Array Log(const Array& x) {
     if (x.IsGradRequired(AnyGraph{})) {
         BackwardBuilder bb{"log", out};
         bb.Define({x}, [x](BackwardContext& bctx) {
+            // TODO(niboshi): Avoid view of x. Use retained input.
             const Array& gout = bctx.output_grad();
-            bctx.input_grad() = gout / x;
+            bctx.input_grad() = gout / x.MakeView();
         });
     }
 

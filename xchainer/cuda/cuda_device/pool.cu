@@ -130,7 +130,7 @@ public:
                 xchainer::internal::GetRawOffsetData<void>(y)));
 
         x_ = x;
-        y_ = y;
+        y_ = y.MakeView();
 
         return y;
     }

@@ -119,8 +119,8 @@ Array BatchNorm(
                             fb->DoubleBackward(g2x.AsGradStopped(), g2gamma.AsGradStopped(), g2beta.AsGradStopped());
                     // TODO(niboshi): Make it further backproppable
                     // TODO(niboshi): Assign at once
-                    bctx2.input_grad(0) = ginputs2[0];  // ggx
-                    bctx2.input_grad(1) = ginputs2[1];  // gggamma
+                    bctx2.input_grad(0) = ginputs2[0];  // gx
+                    bctx2.input_grad(1) = ginputs2[1];  // ggamma
                     bctx2.input_grad(2) = ginputs2[2];  // ggout
                 });
             }
