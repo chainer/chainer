@@ -3,6 +3,7 @@
 import argparse
 import gzip
 import pathlib
+import time
 
 import numpy as np
 
@@ -122,6 +123,7 @@ def main():
     it = 0
     epoch = 0
     is_finished = False
+    start = time.time()
 
     while not is_finished:
         np.random.shuffle(all_indices_np)  # TODO(beam2d): not suupported in xc
@@ -140,16 +142,18 @@ def main():
 
             it += 1
             if args.iteration is not None:
+                elapsed_time = time.time() - start
                 mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
-                print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy}')
+                print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
                 if it >= args.iteration:
                     is_finished = True
                     break
 
         epoch += 1
         if args.iteration is None:  # stop based on epoch, instead of iteration
+            elapsed_time = time.time() - start
             mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
-            print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy}')
+            print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
             if epoch >= args.epoch:
                 is_finished = True
 
