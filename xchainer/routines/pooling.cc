@@ -59,15 +59,15 @@ Array MaxPool(
             Array gx = fb->Backward(gout.AsGradStopped());
             {
                 BackwardBuilder bb2{"max_pooling_backward", gx};
-                if (gout.IsGradRequired(AnyGraph{})) {
-                    bb2.Define({gout}, [this, gout](BackwardContext& bctx2) {
+                if (BackwardBuilder::Target bt2 = bb2.CreateTarget(gout)) {
+                    bt2.Define([this, gout](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
                         Array ggout = fb->DoubleBackward(ggx.AsGradStopped());
                         // Make ggout further backpropable.
                         {
                             BackwardBuilder bb3{"max_pooling_double_backward", ggout};
-                            if (ggx.IsGradRequired(AnyGraph{})) {
-                                bb3.Define({ggx}, *this);
+                            if (BackwardBuilder::Target bt3 = bb3.CreateTarget(ggx)) {
+                                bt3.Define(*this);
                             }
                         }
                         bctx2.input_grad() = ggout;
@@ -87,8 +87,8 @@ Array MaxPool(
 
     {
         BackwardBuilder bb1{"max_pooling", out};
-        if (x.IsGradRequired(AnyGraph{})) {
-            bb1.Define({x}, MaxPoolBwd{x, kernel_size, stride, pad, cover_all, std::move(fb)});
+        if (BackwardBuilder::Target bt1 = bb1.CreateTarget(x)) {
+            bt1.Define(MaxPoolBwd{x, kernel_size, stride, pad, cover_all, std::move(fb)});
         }
     }
     return out;
@@ -105,14 +105,14 @@ Array AveragePool(
     Array out = fb->Forward(x.AsGradStopped());
     {
         BackwardBuilder bb1{"average_pool", out};
-        if (x.IsGradRequired(AnyGraph{})) {
-            bb1.Define({x}, [ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt1 = bb1.CreateTarget(x)) {
+            bt1.Define([ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 Array gx = fb->Backward(gout.AsGradStopped());
                 {
                     BackwardBuilder bb2{"average_pool_backward", gx};
-                    if (gout.IsGradRequired(AnyGraph{})) {
-                        bb2.Define({gout}, [kernel_size, stride, pad, pad_mode](BackwardContext& bctx2) {
+                    if (BackwardBuilder::Target bt2 = bb2.CreateTarget(gout)) {
+                        bt2.Define([kernel_size, stride, pad, pad_mode](BackwardContext& bctx2) {
                             const Array& ggx = bctx2.output_grad();
                             bctx2.input_grad() = AveragePool(ggx, kernel_size, stride, pad, pad_mode);
                         });

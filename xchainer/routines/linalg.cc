@@ -56,14 +56,14 @@ Array Dot(const Array& a, const Array& b) {
 
     {
         BackwardBuilder bb{"dot", out_matrix};
-        if (a_matrix.IsGradRequired(AnyGraph{})) {
-            bb.Define({a_matrix}, [b_matrix](BackwardContext& bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(a_matrix)) {
+            bt.Define([b_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(gout, b_matrix.Transpose());
             });
         }
-        if (b_matrix.IsGradRequired(AnyGraph{})) {
-            bb.Define({b_matrix}, [a_matrix](BackwardContext& bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(b_matrix)) {
+            bt.Define([a_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(a_matrix.Transpose(), gout);
             });

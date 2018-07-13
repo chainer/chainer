@@ -166,6 +166,7 @@ public:
         //
         // TODO(sonots): write tests after we supports fp16
         if (dtype != gamma_beta_mean_var_dtype) {
+            assert(false);  // dead code
             assert(running_mean().IsContiguous());
             assert(running_mean_casted.IsContiguous());
             assert(running_var().IsContiguous());
@@ -259,12 +260,13 @@ public:
                 internal::GetRawOffsetData<void>(x_mean),
                 internal::GetRawOffsetData<void>(x_inv_std)));
 
+        // TODO(niboshi): Write test after fp16 is supported
         if (gamma_beta_mean_var_dtype != dtype) {
-            Array ggamma_casted = ggamma.AsType(dtype, false);
-            Array gbeta_casted = ggamma.AsType(dtype, false);
-            SetBackwardResults(gout_cont, gx, ggamma_casted);
-            return {std::move(gx), std::move(ggamma_casted), std::move(gbeta_casted)};
+            assert(false);  // dead code
+            ggamma = ggamma.AsType(dtype, false);
+            gbeta = gbeta.AsType(dtype, false);
         }
+
         SetBackwardResults(gout_cont, gx, ggamma);
         return {std::move(gx), std::move(ggamma), std::move(gbeta)};
     }
