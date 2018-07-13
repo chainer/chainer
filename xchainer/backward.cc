@@ -219,6 +219,7 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<Cons
 }
 
 void BackwardBuilder::PrepareOutputArrayProps() {
+    assert(output_array_props_.empty());
     output_array_props_.reserve(outputs_.size());
     std::transform(
             outputs_.begin(), outputs_.end(), std::back_inserter(output_array_props_), [](const Array& output) -> internal::ArrayProps {
@@ -237,6 +238,7 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::initializer_list<
 
 // Collect input ArrayNodes, grouped by graph considering IsBackpropRequired
 void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
+    assert(graph_to_next_array_nodes_.empty());
     // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
     for (size_t i_input = 0; i_input < inputs_.size(); ++i_input) {
         const Array& input = *(inputs_.begin() + i_input);
