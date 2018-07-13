@@ -20,7 +20,7 @@ class TestKLDivergence(unittest.TestCase):
         if isinstance(kl, cuda.ndarray):
             kl = kl.get()
 
-        sample = dist1.sample(100000)
+        sample = dist1.sample(300000)
         mc_kl = dist1.log_prob(sample).data - dist2.log_prob(sample).data
         if isinstance(mc_kl, cuda.ndarray):
             mc_kl = mc_kl.get()
@@ -45,11 +45,17 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Laplace(**params)
 
-    def make_normal_dist(self, is_gpu=False):
+    def make_normal_dist(self, is_gpu=False, use_log_scale=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        scale = numpy.exp(
-            numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
-        params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+        if use_log_scale:
+            log_scale = numpy.random.uniform(
+                -1, 1, self.shape).astype(numpy.float32)
+            params = self.encode_params(
+                {"loc": loc, "log_scale": log_scale}, is_gpu)
+        else:
+            scale = numpy.exp(
+                numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
+            params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Normal(**params)
 
     def test_laplace_laplace_cpu(self):
@@ -64,15 +70,21 @@ class TestKLDivergence(unittest.TestCase):
         self.check_kl(dist1, dist2)
 
     def test_normal_normal_cpu(self):
-        dist1 = self.make_normal_dist()
-        dist2 = self.make_normal_dist()
-        self.check_kl(dist1, dist2)
+        for use_log_scale1 in [True, False]:
+            for use_log_scale2 in [True, False]:
+                dist1 = self.make_normal_dist(use_log_scale=use_log_scale1)
+                dist2 = self.make_normal_dist(use_log_scale=use_log_scale2)
+                self.check_kl(dist1, dist2)
 
     @attr.gpu
     def test_normal_normal_gpu(self):
-        dist1 = self.make_normal_dist(True)
-        dist2 = self.make_normal_dist(True)
-        self.check_kl(dist1, dist2)
+        for use_log_scale1 in [True, False]:
+            for use_log_scale2 in [True, False]:
+                dist1 = self.make_normal_dist(
+                    True, use_log_scale=use_log_scale1)
+                dist2 = self.make_normal_dist(
+                    True, use_log_scale=use_log_scale2)
+                self.check_kl(dist1, dist2)
 
 
 testing.run_module(__name__, __file__)

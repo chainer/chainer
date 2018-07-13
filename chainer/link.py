@@ -982,7 +982,7 @@ class ChainList(Link, collections.MutableSequence):
     links, e.g. an arbitrarily deep multi-layer perceptron.
 
     This class inherits the methods `index`, `count`, `append`, `reverse`,
-    `extend`, `pop`, `remove` from `collections.abi.MutableSequence` and
+    `extend`, `pop`, `remove` from `collections.abc.MutableSequence` and
     can be accessed and assigned by index or slice.
 
     Args:
