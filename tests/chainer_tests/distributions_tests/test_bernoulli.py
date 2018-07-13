@@ -114,7 +114,7 @@ class TestModifiedXLogX(unittest.TestCase):
         self.zero_x = numpy.zeros(shape=self.shape).astype(self.dtype)
         self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.ggx = numpy.random.normal(size=self.shape).astype(self.dtype)
-        self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+        self.backward_options = {'atol': 1e-2, 'rtol': 1e-2, 'eps': 1e-5}
 
     def check_forward(self, x_data):
         distributions.bernoulli._modified_xlogx(x_data)
