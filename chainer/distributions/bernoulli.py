@@ -3,7 +3,6 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.activation import sigmoid
 from chainer.functions.array import broadcast
-from chainer.functions.array import reshape
 from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
