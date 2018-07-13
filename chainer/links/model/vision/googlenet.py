@@ -349,7 +349,7 @@ class GoogLeNet(link.Chain):
         return y
 
 
-def prepare(image, size=(224, 224), dtype=None):
+def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for GoogLeNet.
 
     Note that you have to call this method before ``__call__``
@@ -375,7 +375,7 @@ def prepare(image, size=(224, 224), dtype=None):
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
-    dtype = chainer.get_dtype(dtype)
+    dtype = chainer.get_dtype()
     if isinstance(image, numpy.ndarray):
         if image.ndim == 3:
             if image.shape[0] == 1:
