@@ -263,7 +263,6 @@ void CheckAllArrayBodiesFreed(internal::ArrayBodyLeakTracker& tracker) {
 
 }  // namespace
 
-// TODO(niboshi): Fix the leaks and enable array body leak detection.
 void CheckBackward(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
