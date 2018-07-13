@@ -285,9 +285,9 @@ std::shared_ptr<OpNode>& BackwardBuilder::Target::FindOrCreateOpNode(const Graph
         weak_prev_array_nodes.reserve(outputs().size());
         prev_array_nodes.reserve(outputs().size());
         for (const Array& out : outputs()) {
-            const std::shared_ptr<ArrayNode>& prev_array_node = xchainer::internal::HasArrayNode(out, graph_id)
-                                                                        ? xchainer::internal::GetMutableArrayNode(out, graph_id)
-                                                                        : xchainer::internal::CreateArrayNode(out, graph_id);
+            const std::shared_ptr<ArrayNode>& prev_array_node = internal::HasArrayNode(out, graph_id)
+                                                                        ? internal::GetMutableArrayNode(out, graph_id)
+                                                                        : internal::CreateArrayNode(out, graph_id);
             prev_array_nodes.emplace_back(prev_array_node.get());
             weak_prev_array_nodes.emplace_back(prev_array_node);
         }
