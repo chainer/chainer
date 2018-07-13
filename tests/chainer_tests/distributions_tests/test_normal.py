@@ -8,6 +8,7 @@ import numpy
     'shape': [(2, 3), ()],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
+    'log_scale_option': [True, False],
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
@@ -27,10 +28,17 @@ class TestNormal(testing.distribution_unittest):
 
         loc = utils.force_array(
             numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32))
-        scale = utils.force_array(numpy.exp(
-            numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32))
-        self.params = {"loc": loc, "scale": scale}
-        self.scipy_params = {"loc": loc, "scale": scale}
+        if self.log_scale_option:
+            log_scale = utils.force_array(
+                numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32))
+            scale = numpy.exp(log_scale)
+            self.params = {"loc": loc, "log_scale": log_scale}
+            self.scipy_params = {"loc": loc, "scale": scale}
+        else:
+            scale = utils.force_array(numpy.exp(
+                numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32))
+            self.params = {"loc": loc, "scale": scale}
+            self.scipy_params = {"loc": loc, "scale": scale}
 
     def sample_for_test(self):
         smp = numpy.random.normal(
