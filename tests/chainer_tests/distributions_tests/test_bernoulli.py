@@ -110,7 +110,8 @@ class TestBernoulliLogProb(unittest.TestCase):
 class TestModifiedXLogX(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(0, 1, size=self.shape).astype(self.dtype)
+        self.x = numpy.random.uniform(
+          0.1, 1, size=self.shape).astype(self.dtype)
         self.zero_x = numpy.zeros(shape=self.shape).astype(self.dtype)
         self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.ggx = numpy.random.normal(size=self.shape).astype(self.dtype)
