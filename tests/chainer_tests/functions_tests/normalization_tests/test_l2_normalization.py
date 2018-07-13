@@ -26,7 +26,14 @@ def _skip_if(cond, reason):
     return decorator
 
 
-@testing.parameterize(*testing.product([
+def _is_good_param(param):
+    # Check if 'nonzero' param is valid and meaningful. On the latter point,
+    # x should contain at least a zero if 'nonzeros' param is given.
+    return param['nonzeros'] is None \
+        or param['nonzeros'] < numpy.prod(param['shape'])
+
+
+@testing.parameterize(*filter(_is_good_param, testing.product([
     [
         {'shape': (4, 15), 'axis': 1},
         {'shape': (4,), 'axis': 0},
@@ -49,14 +56,12 @@ def _skip_if(cond, reason):
         {'eps': 1e-1, 'nonzeros': 2, 'truezero': True},
         {'eps': 1e-1, 'nonzeros': 2, 'truezero': False},
     ],
-]))
+])))
 class TestL2Normalization(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         if self.nonzeros is not None:
-            if self.nonzeros >= self.x.size:
-                raise unittest.SkipTest('')
             while True:
                 rand = numpy.random.uniform(0, 1, self.shape)
                 mask = rand < numpy.sort(rand.ravel())[self.nonzeros]
