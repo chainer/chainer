@@ -65,13 +65,9 @@ class TestKLDivergence(unittest.TestCase):
 
     @attr.gpu
     def test_laplace_laplace_gpu(self):
-        for use_log_scale1 in [True, False]:
-            for use_log_scale2 in [True, False]:
-                dist1 = self.make_normal_dist(
-                    True, use_log_scale=use_log_scale1)
-                dist2 = self.make_normal_dist(
-                    True, use_log_scale=use_log_scale2)
-                self.check_kl(dist1, dist2)
+        dist1 = self.make_laplace_dist(True)
+        dist2 = self.make_laplace_dist(True)
+        self.check_kl(dist1, dist2)
 
     def test_normal_normal_cpu(self):
         for use_log_scale1 in [True, False]:
@@ -82,9 +78,13 @@ class TestKLDivergence(unittest.TestCase):
 
     @attr.gpu
     def test_normal_normal_gpu(self):
-        dist1 = self.make_normal_dist(True)
-        dist2 = self.make_normal_dist(True)
-        self.check_kl(dist1, dist2)
+        for use_log_scale1 in [True, False]:
+            for use_log_scale2 in [True, False]:
+                dist1 = self.make_normal_dist(
+                    True, use_log_scale=use_log_scale1)
+                dist2 = self.make_normal_dist(
+                    True, use_log_scale=use_log_scale2)
+                self.check_kl(dist1, dist2)
 
 
 testing.run_module(__name__, __file__)
