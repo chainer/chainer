@@ -28,7 +28,7 @@ void CheckArrayRepr(
         Device& device,
         const std::vector<GraphId>& graph_ids = {}) {
     // Copy to a contiguous memory block because std::vector<bool> is not packed as a sequence of bool's.
-    std::shared_ptr<T> data_ptr = std::make_unique<T[]>(data_vec.size());
+    std::shared_ptr<T> data_ptr{new T[data_vec.size()], std::default_delete<T[]>{}};
     std::copy(data_vec.begin(), data_vec.end(), data_ptr.get());
     Array array = internal::FromContiguousHostData(shape, TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data_ptr), device);
     for (const GraphId& graph_id : graph_ids) {
