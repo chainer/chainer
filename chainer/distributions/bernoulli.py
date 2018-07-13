@@ -19,8 +19,9 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         self.retain_inputs((0, 1))
         xp = cuda.get_array_module(x)
         y = logit * (x - 1) - xp.log(xp.exp(-logit) + 1)
+        y = utils.force_array(y)
 
-        self.invalid = xp.bitwise_and(x != 0, x != 1)
+        self.invalid = utils.force_array(xp.bitwise_and(x != 0, x != 1))
         y[self.invalid] = - xp.inf
 
         # extreme logit
@@ -56,8 +57,8 @@ class ModifiedXLogX(chainer.function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        self.x_zero = (x == 0)
-        y = x * self._logx.array
+        self.x_zero = utils.force_array(x == 0)
+        y = utils.force_array(x * self._logx.array)
         y[self.x_zero] = 0.
         return y,
 
@@ -72,10 +73,6 @@ class ModifiedXLogX(chainer.function_node.FunctionNode):
 
 
 def _bernoulli_log_prob(logit, x):
-    if x.ndim == 0:
-        x = reshape.reshape(x, (1,))
-    if logit.ndim == 0:
-        logit = reshape.reshape(logit, (1,))
     y, = BernoulliLogProb().apply((logit, x))
     return y
 
@@ -83,10 +80,9 @@ def _bernoulli_log_prob(logit, x):
 def _modified_xlogx(x):
     x = chainer.as_variable(x)
     xp = x.xp
-    if x.ndim == 0:
-        x = reshape.reshape(x, (1,))
     return ModifiedXLogX(exponential.log(
-        where.where(x.array > 0, x, xp.ones_like(x.array)))).apply((x,))[0]
+        where.where(utils.force_array(x.array > 0),
+                    x, xp.ones_like(x.array)))).apply((x,))[0]
 
 
 class Bernoulli(distribution.Distribution):
