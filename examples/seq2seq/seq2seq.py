@@ -46,6 +46,8 @@ def prepare_attention(variable_list):
     pad_mask = xp.ones((batch, max_len), dtype='f')
     for i, l in enumerate(lengths):
         pad_mask[i, l:] = 0
+    assert variable_concat.shape == (
+        batch, max_len, variable_list[0].shape[-1])
     return variable_concat, pad_mask
 
 
@@ -74,6 +76,15 @@ def split_without_pads(V, lengths):
     return split_V
 
 
+def func_dim3(func, x):
+    assert x.ndim == 3
+    batch, length, units = x.shape
+    x_dim2 = x.reshape(batch * length, units)
+    h_dim2 = func(x)
+    h_dim3 = h_dim2.reshape(batch, length, -1)
+    return h_dim3
+
+
 class AttentionMechanism(chainer.Chain):
     def __init__(self, n_units, n_att_units=None):
         super(AttentionMechanism, self).__init__()
@@ -100,15 +111,11 @@ class AttentionMechanism(chainer.Chain):
         """
         concat_Q, q_pad_mask = prepare_attention(qs)
         batch, q_len, q_units = concat_Q.shape
-        Q = self.W_query(concat_Q.reshape(batch * q_len, q_units))
-        Q = Q.reshape(batch, q_len, self.att_units)
-        assert Q.shape == (batch, q_len, self.att_units)
+        Q = func_dim3(self.W_query, concat_Q)
 
         concat_K, k_pad_mask = prepare_attention(ks)
-        batchsize, k_len, k_units = concat_K.shape
-        K = self.W_key(concat_K.reshape(batch * k_len, k_units))
-        K = K.reshape(batch, k_len, self.att_units)
-        assert K.shape == (batch, k_len, self.att_units)
+        batch, k_len, k_units = concat_Q.shape
+        K = func_dim3(self.W_key, concat_K)
 
         QK_dot = F.batch_matmul(Q, K, transb=True)
         assert QK_dot.shape == (batch, q_len, k_len)
