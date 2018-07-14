@@ -75,10 +75,13 @@ def split_without_pads(V, lengths):
 
 
 class AttentionMechanism(chainer.Chain):
-    def __init__(self, n_units):
+    def __init__(self, n_units, n_att_units=None):
         super(AttentionMechanism, self).__init__()
         self.n_units = n_units
-        self.att_units = min(256, n_units)
+        if n_att_units:
+            self.att_units = n_att_units
+        else:
+            self.att_units = n_units
         with self.init_scope():
             self.W_query = L.Linear(None, self.att_units)
             self.W_key = L.Linear(None, self.att_units)
