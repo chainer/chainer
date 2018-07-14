@@ -467,6 +467,7 @@ def main():
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
+    # Setup model
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit,
                     args.dropout, args.use_attention, args.use_bidirectional)
 
