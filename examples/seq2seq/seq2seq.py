@@ -41,11 +41,12 @@ def prepare_attention(variable_list):
     batch = len(variable_list)
     lengths = [v.shape[0] for v in variable_list]
     max_len = max(lengths)
-    V = F.pad_sequence(variable_list, length=max_len, padding=0.0)
+    variable_concat = F.pad_sequence(
+        variable_list, length=max_len, padding=0.0)
     pad_mask = xp.ones((batch, max_len), dtype='f')
     for i, l in enumerate(lengths):
         pad_mask[i, l:] = 0
-    return V, pad_mask
+    return variable_concat, pad_mask
 
 
 def split_without_pads(V, lengths):
