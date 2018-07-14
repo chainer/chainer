@@ -16,6 +16,8 @@ from chainer.utils import conv
 
 @testing.parameterize(*(testing.product({
     'dims': [(5,), (4, 3), (3, 4, 3)],
+    'dilate': [1, 2],
+    'groups': [1, 2],
     'cover_all': [True, False],
     'c_contiguous': [True],
     'x_dtype': [numpy.float32],
@@ -23,6 +25,8 @@ from chainer.utils import conv
     'autotune': [True, False],
 }) + testing.product({
     'dims': [(4,)],
+    'dilate': [1],
+    'groups': [1],
     'cover_all': [False],
     'c_contiguous': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -32,23 +36,26 @@ from chainer.utils import conv
 class TestConvolutionND(unittest.TestCase):
 
     def setUp(self):
-        in_channels = 3
+        N = 2
+        in_channels = 4
         out_channels = 2
         ndim = len(self.dims)
-        ksize = (3,) * ndim
-        self.stride = (2,) * ndim
+        ksize = (2,) * ndim
+        self.stride = (1,) * ndim
         self.pad = (1,) * ndim
+        self.dilate = (self.dilate,) * ndim
 
         W_scale = numpy.sqrt(1. / functools.reduce(mul, ksize, in_channels))
-        W_shape = (out_channels, in_channels) + ksize
+        W_shape = (out_channels, in_channels // self.groups) + ksize
         self.W = numpy.random.normal(0, W_scale, W_shape).astype(self.W_dtype)
         self.b = numpy.random.uniform(-1, 1, out_channels).astype(self.x_dtype)
 
-        x_shape = (2, 3) + self.dims
+        x_shape = (N, in_channels) + self.dims
         self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.x_dtype)
-        gy_shape = (2, 2) + tuple(
-            conv.get_conv_outsize(d, k, s, p, cover_all=self.cover_all)
-            for (d, k, s, p) in zip(self.dims, ksize, self.stride, self.pad))
+        gy_shape = (N, out_channels) + tuple(
+            conv.get_conv_outsize(d, k, s, p, cover_all=self.cover_all, d=di)
+            for (d, k, s, p, di)
+            in zip(self.dims, ksize, self.stride, self.pad, self.dilate))
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.x_dtype)
 
         self.check_forward_options = {}
@@ -72,7 +79,8 @@ class TestConvolutionND(unittest.TestCase):
         b_cpu = None if nobias else chainer.Variable(self.b)
         y_cpu = F.convolution_nd(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            cover_all=self.cover_all)
+            cover_all=self.cover_all, dilate=self.dilate,
+            groups=self.groups)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
@@ -81,7 +89,8 @@ class TestConvolutionND(unittest.TestCase):
             with chainer.using_config('autotune', self.autotune):
                 y_gpu = F.convolution_nd(
                     x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                    cover_all=self.cover_all)
+                    cover_all=self.cover_all, dilate=self.dilate,
+                    groups=self.groups)
 
         testing.assert_allclose(
             y_cpu.data, y_gpu.data, **self.check_forward_options)
@@ -110,10 +119,12 @@ class TestConvolutionND(unittest.TestCase):
         with chainer.using_config('use_cudnn', 'never'):
             y_nd = F.convolution_nd(
                 x, W, b, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
             y_2d = F.convolution_2d(
                 x, W, b, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
 
         testing.assert_allclose(
             y_nd.data, y_2d.data, **self.check_forward_options)
@@ -151,7 +162,8 @@ class TestConvolutionND(unittest.TestCase):
         def f(*args):
             return F.convolution_nd(
                 *args, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
 
         with chainer.using_config('use_cudnn', use_cudnn):
             with chainer.using_config('autotune', self.autotune):
@@ -228,9 +240,10 @@ class TestConvolutionND(unittest.TestCase):
             grad_grads += (b_grad_grad,)
 
         def f(*args):
-            y = F.convolution_nd(*args, stride=self.stride, pad=self.pad,
-                                 cover_all=self.cover_all)
-            return y * y  # make the function nonlinear
+            return F.convolution_nd(
+                *args, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
 
         with chainer.using_config('use_cudnn', use_cudnn):
             with chainer.using_config('autotune', self.autotune):
@@ -316,7 +329,7 @@ class TestConvolutionNDCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cuda.cudnn.convolutionForward') as func:
+            with testing.patch('cupy.cudnn.convolution_forward') as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
@@ -324,7 +337,7 @@ class TestConvolutionNDCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
+            name = 'cupy.cudnn.convolution_backward_data'
             with testing.patch(name) as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)

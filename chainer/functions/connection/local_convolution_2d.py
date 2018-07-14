@@ -147,7 +147,7 @@ def local_convolution_2d(x, W, b=None, stride=1):
         W (~chainer.Variable): Weight variable of shape
             :math:`(c_O, h_O, w_O, c_I, k_H, k_W)`.
         b (~chainer.Variable):
-            Bias variable of shape :math:`(c_0,h_O,w_O)` (optional).
+            Bias variable of shape :math:`(c_O,h_O,w_O)` (optional).
         stride (int or pair of ints): Stride of filter applications.
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
 

@@ -71,6 +71,10 @@ class NStepGRU(NStepGRUBase):
     def rnn(self, *args):
         return rnn.n_step_gru(*args)
 
+    @property
+    def n_cells(self):
+        return 1
+
 
 class NStepBiGRU(NStepGRUBase):
 
@@ -108,3 +112,7 @@ class NStepBiGRU(NStepGRUBase):
 
     def rnn(self, *args):
         return rnn.n_step_bigru(*args)
+
+    @property
+    def n_cells(self):
+        return 1

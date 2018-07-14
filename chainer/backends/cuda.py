@@ -28,8 +28,12 @@ forward/backward computations, and temporary arrays for consecutive elementwise
 operations.
 """
 
+import binascii
 import functools
+import itertools
 import os
+import threading
+import time
 import warnings
 
 import numpy
@@ -47,6 +51,7 @@ try:
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
     import cupyx  # NOQA
+    import cupyx.scipy.special  # NOQA
 
     from cupy import ndarray  # NOQA
 
@@ -144,12 +149,6 @@ if available:
 
 
 _integer_types = six.integer_types + (numpy.integer,)
-if six.PY2:
-    try:
-        from future.types.newint import newint as _newint
-        _integer_types += (_newint,)
-    except ImportError:
-        pass
 
 
 # ------------------------------------------------------------------------------
@@ -174,8 +173,16 @@ def get_device_from_array(*arrays):
 
     The device on which the given CuPy array reside is returned.
 
+    .. note::
+
+        This method only recognizes :class:`cupy.ndarray`\\ s in arguments.
+        Especially note that, unlike :func:`get_array_module`, this method
+        does not recognize :class:`~chainer.Variable` objects.
+        If you need to get device from the :class:`~chainer.Variable` instance
+        ``v``, you need to use ``get_device_from_array(v.array)``.
+
     Args:
-        array (cupy.ndarray or list of cupy.ndarray):
+        arrays (:class:`cupy.ndarray` or list of :class:`cupy.ndarray`):
             A CuPy array which this function returns the device corresponding
             to. If a list of :class:`cupy.ndarray`\\ s are given, it returns
             the first device object of an array in the list.
@@ -422,6 +429,35 @@ def copy(array, out=None, out_device=None, stream=None):
     return out
 
 
+def copyto(dst, src):
+    """Copies the elements of an ndarray to those of another one.
+
+    This function can copy the CPU/GPU arrays to the destination arrays on
+    another device.
+
+    Args:
+        dst (numpy.ndarray or cupy.ndarray): Destination array.
+        src (numpy.ndarray or cupy.ndarray): Source array.
+
+    """
+    if isinstance(dst, numpy.ndarray):
+        numpy.copyto(dst, to_cpu(src))
+    elif isinstance(dst, ndarray):
+        if isinstance(src, numpy.ndarray):
+            if dst.flags.c_contiguous or dst.flags.f_contiguous:
+                dst.set(src)
+            else:
+                cupy.copyto(dst, to_gpu(src, device=dst.device))
+        elif isinstance(src, ndarray):
+            cupy.copyto(dst, src)
+        else:
+            raise TypeError('cannot copy from non-array object of type {}'
+                            .format(type(src)))
+    else:
+        raise TypeError('cannot copy to non-array object of type {}'.format(
+            type(dst)))
+
+
 # ------------------------------------------------------------------------------
 # Function result memoization
 # ------------------------------------------------------------------------------
@@ -464,7 +500,7 @@ def clear_memo():
 # ------------------------------------------------------------------------------
 # Kernel definition utility
 # ------------------------------------------------------------------------------
-@memoize(for_each_device=True)
+@memoize()
 def elementwise(in_params, out_params, operation, name, **kwargs):
     """Creates an elementwise kernel function.
 
@@ -482,7 +518,7 @@ def elementwise(in_params, out_params, operation, name, **kwargs):
         in_params, out_params, operation, name, **kwargs)
 
 
-@memoize(for_each_device=True)
+@memoize()
 def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
            identity, name,  **kwargs):
     """Creates a global reduction kernel function.
@@ -529,9 +565,6 @@ def get_array_module(*args):
         return numpy
 
 
-_max_workspace_size = 8 * 1024 * 1024
-
-
 def get_max_workspace_size():
     """Gets the workspace size for cuDNN.
 
@@ -541,7 +574,10 @@ def get_max_workspace_size():
         int: The workspace size for cuDNN.
 
     """
-    return _max_workspace_size
+    # To avoid error on no cuDNN environment
+    if cudnn_enabled:
+        return cudnn.get_max_workspace_size()
+    return 0
 
 
 def set_max_workspace_size(size):
@@ -553,8 +589,9 @@ def set_max_workspace_size(size):
         size: The workspace size for cuDNN.
 
     """
-    global _max_workspace_size
-    _max_workspace_size = size
+    # To avoid error on no cuDNN environment
+    if cudnn_enabled:
+        cudnn.set_max_workspace_size(size)
 
 
 def fuse(*args, **kwargs):
@@ -642,3 +679,36 @@ def should_use_cudnn_tensor_core(dtype):
     if use_tensor_core is None:
         use_tensor_core = cudnn.is_tensor_core_available(dtype)
     return use_tensor_core
+
+
+# ------------------------------------------------------------------------------
+# cupy.cudnn utility
+# ------------------------------------------------------------------------------
+
+def get_cudnn_dropout_states():
+    if not cudnn_enabled:
+        raise RuntimeError('cuDNN is not enabled.')
+
+    thread_id = threading.current_thread().ident
+    return get_cudnn_dropout_states_core(thread_id)
+
+
+_dropout_states_count = itertools.count()
+
+
+@memoize(for_each_device=True)
+def get_cudnn_dropout_states_core(thread_id):
+    states_id = next(_dropout_states_count)
+    seed = os.getenv('CHAINER_SEED')
+    if seed is None:
+        try:
+            seed_str = binascii.hexlify(os.urandom(8))
+            seed = numpy.uint64(int(seed_str, 16))
+        except NotImplementedError:
+            seed = numpy.uint64(time.clock() * 1000000)
+    else:
+        seed = numpy.uint64(seed)
+
+    seed += numpy.uint64(states_id)
+    handle = cudnn.get_handle()
+    return cudnn.DropoutStates(handle, seed)

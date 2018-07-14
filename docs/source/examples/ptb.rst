@@ -232,7 +232,7 @@ length of sequence :math:`T` to calculate the loss:
     \hat{P}({\bf x}_{t+1}^{(n)})
     \log P_{\rm model}({\bf x}_{t+1}^{(n)} \mid {\bf x}_t^{(n)})
 
-where :math`\hat{P}({\bf x}_t^n)` is a probability for :math:`n`-th word in the vocabulary at
+where :math:`\hat{P}({\bf x}_t^n)` is a probability for :math:`n`-th word in the vocabulary at
 the position :math:`t` in the training data sequence.
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py

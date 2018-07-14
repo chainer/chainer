@@ -117,24 +117,30 @@ class ConnectionistTemporalClassification(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() > 3)  # TODO(okuta): > 3?
-        l_type = in_types[2]
-        type_check.expect(l_type.dtype == numpy.int32)
-
-        x_basetype = in_types[3]  # TODO(oktua): Check x_basetype size
-
-        for i in six.moves.range(3, len(in_types)):
-            x_type = in_types[i]
-            type_check.expect(
-                x_type.dtype == numpy.float32,
-                x_type.shape == x_basetype.shape,
-            )
+        type_check.expect(in_types.size() == 4)
+        input_length_type, label_length_type, t_type, x_type = in_types
+        type_check.expect(
+            input_length_type.dtype == numpy.int32,
+            input_length_type.ndim == 1,
+            label_length_type.dtype == numpy.int32,
+            label_length_type.ndim == 1,
+            t_type.ndim == 2,
+            t_type.dtype == numpy.int32,
+            x_type.ndim == 3,
+            x_type.dtype == numpy.float32,
+        )
+        n_batch = x_type.shape[1]
+        type_check.expect(
+            t_type.shape[0] == n_batch,
+            input_length_type.shape[0] == n_batch,
+            label_length_type.shape[0] == n_batch,
+        )
 
     def log_matrix(self, x, xp):
         if xp == numpy:
             res = numpy.ma.log(x).filled(fill_value=self.zero_padding)
         else:
-            create_recurrence_relation = cuda.cupy.ElementwiseKernel(
+            create_recurrence_relation = cuda.elementwise(
                 'T x, T e', 'T y',
                 'y = x == 0 ? e : log(x)',
                 'create_recurrence_relation')
@@ -158,7 +164,7 @@ class ConnectionistTemporalClassification(function.Function):
                         multiply_seq[:, b, 0:path_length[b]]
                         [:, target_path == c], axis=1)
         else:
-            cuda.cupy.ElementwiseKernel(
+            cuda.elementwise(
                 'T prob, I path, I path_length, I max_path_length',
                 'raw T cum_prob',
                 '''
@@ -265,25 +271,15 @@ class ConnectionistTemporalClassification(function.Function):
 
     def forward(self, inputs):
         xp = cuda.get_array_module(inputs[0])
-        self.input_length = inputs[0]
-        label_length = inputs[1]
-        t = inputs[2]
-        xs = inputs[3:]
+        self.input_length, label_length, t, xs = inputs
 
         if chainer.is_debug():
-            # Batch size check.
-            assert len(xs[0]) == len(t)
-            assert len(xs[0]) == len(self.input_length)
-            assert len(xs[0]) == len(label_length)
-
-            # Length check.
             assert len(xs) >= xp.max(self.input_length)
-            assert len(t[0]) >= xp.max(label_length)
+            assert t.shape[1] >= xp.max(label_length)
 
         self.path_length = 2 * label_length + 1
 
-        yseq_shape = (len(xs),) + xs[0].shape
-        self.yseq = _softmax(xp.vstack(xs).reshape(yseq_shape), xp)
+        self.yseq = _softmax(xs, xp)
         log_yseq = self.log_matrix(self.yseq, xp)
         self.path = _label_to_path(t, self.blank_symbol, xp)
         self.prob_trans = self.calc_trans(
@@ -311,7 +307,7 @@ class ConnectionistTemporalClassification(function.Function):
         # mask
         self.yseq *= (
             xp.arange(len(self.yseq))[:, None] < self.input_length)[..., None]
-        return (None, None, None) + tuple([y for y in self.yseq])
+        return None, None, None, self.yseq
 
 
 def connectionist_temporal_classification(
@@ -330,23 +326,32 @@ def connectionist_temporal_classification(
 
     Args:
         x (list or tuple of :class:`~chainer.Variable`):
-            RNN output at each time. Each element of ``x``, ``x[i]``
-            is a :class:`~chainer.Variable` representing output of RNN at time
-            ``i``.
+            A list of unnormalized probabilities for labels.
+            Each element of ``x``, ``x[i]`` is a :class:`~chainer.Variable`
+            object, which has shape ``(B, V)``, where ``B``
+            is the batch size and ``V`` is the number of labels.
+            The softmax of ``x[i]`` represents the probabilities of the labels
+            at time ``i``.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            Expected label sequence.
+            A matrix including expected label sequences.
+            Its shape is ``(B, M)``, where ``B`` is the batch size and ``M`` is
+            the maximum length of the label sequences.
+            All elements in ``t`` must be less than ``V``, the number of
+            labels.
         blank_symbol (int): Index of blank_symbol.
             This value must be non-negative.
         input_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Length of valid sequence for each of mini
-            batch ``x`` (optional). If input_length is skipped, It regards that
+        :class:`cupy.ndarray` or ``None``):
+            Length of sequence for each of mini batch ``x`` (optional).
+            Its shape must be ``(B,)``.
+            If the ``input_length`` is omitted or ``None``, it assumes that
             all of ``x`` is valid input.
         label_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Length of valid sequence for each of mini
-            batch ``t`` (optional). If label_length is skipped, It regards that
+        :class:`cupy.ndarray` or ``None``):
+            Length of sequence for each of mini batch ``t`` (optional).
+            Its shape must be ``(B,)``.
+            If the ``label_length`` is omitted or ``None``, it assumes that
             all of ``t`` is valid input.
         reduce (str): Reduction option. Its value must be either
             ``'mean'`` or ``'no'``. Otherwise,
@@ -399,4 +404,4 @@ def connectionist_temporal_classification(
         label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
 
     return ConnectionistTemporalClassification(blank_symbol, reduce)(
-        input_length, label_length, t, *x)
+        input_length, label_length, t, chainer.functions.stack(x))

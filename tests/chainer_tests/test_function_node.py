@@ -337,7 +337,7 @@ class TestFunctionNodeInconsistentBackends(unittest.TestCase):
         x1 = chainer.Variable(x1)
         x2 = chainer.Variable(self.x2)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             f.apply((x1, x2))
 
     @attr.gpu
@@ -353,7 +353,7 @@ class TestFunctionNodeInconsistentBackends(unittest.TestCase):
         x1 = chainer.Variable(self.x1)
         x2 = chainer.Variable(self.x2)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             f.apply((x1, x2))
 
 
@@ -563,12 +563,16 @@ class GradTestBase(object):
     x_names = ()
     y_names = ()
     loss_scale = None
+    extend_graph_x = False
+    extend_graph_y = False
 
     def _init_attrs(self, names):
         ret = []
         for name in names:
             v = chainer.Variable(
                 numpy.random.randint(-4, 6, self.shape).astype('f'), name=name)
+            if self.extend_graph_x:
+                v *= 1.
             ret.append(v)
             setattr(self, name, v)
         return ret
@@ -625,6 +629,8 @@ class GradTestBase(object):
     def check_grad(self):
         self.forward()
         ys = [getattr(self, name) for name in self.y_names]
+        if self.extend_graph_y:
+            self._ys = [v * 1. for v in ys]
         gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
                            loss_scale=self.loss_scale)
 
@@ -704,6 +710,10 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
         return [ggrad]
 
 
+@testing.parameterize(*testing.product({
+    'extend_graph_x': [False, True],
+    'extend_graph_y': [False, True],
+}))
 class TestGradComplex(GradTestBase, unittest.TestCase):
 
     x_names = 'x1', 'x2'
@@ -723,6 +733,46 @@ class TestGradComplex(GradTestBase, unittest.TestCase):
     def expected_double_grad(self):
         dy1_dx = self.gy1 + self.gy2
         return [3 * dy1_dx + 2 * self.gy2, dy1_dx]
+
+
+class ExpPair(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        self.retain_outputs((0, 1))
+        return xp.exp(x), xp.exp(x)
+
+    def backward(self, target_input_indexes, grad_outputs):
+        return sum([
+            g * exp
+            for g, exp in zip(grad_outputs, self.get_retained_outputs())
+            if g is not None
+        ]),
+
+
+def exp_pair(x):
+    return ExpPair().apply((x,))
+
+
+@testing.parameterize(*testing.product({
+    'keep_y2': [False, True],
+}))
+class TestGradDelRetainedOutput(GradTestBase, unittest.TestCase):
+
+    x_names = 'x1',
+    y_names = 'y1',
+
+    def forward(self):
+        self.y1, y2 = exp_pair(self.x1)
+        if self.keep_y2:
+            self.y2 = y2
+
+    def expected_grad(self):
+        return [self.gy1 * self.y1]
+
+    def expected_double_grad(self):
+        return [self.gy1 * self.y1]
 
 
 testing.run_module(__name__, __file__)

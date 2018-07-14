@@ -74,7 +74,7 @@ class TestZoneout(unittest.TestCase):
                     return_value=flag_x) as mock_rand:
                 y = functions.zoneout(h, x, self.ratio)
                 mock_rand.assert_called_once_with(*x.shape)
-            return y * y
+            return y
 
         gradient_check.check_double_backward(
             f, (h_data, x_data), y_grad, (h_grad_grad, x_grad_grad),

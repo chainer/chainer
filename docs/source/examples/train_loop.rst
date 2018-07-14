@@ -45,7 +45,7 @@ The code below shows how to retrieve the MNIST dataset from the server and save 
     train, test = mnist.get_mnist(withlabel=True, ndim=1)
 
     # Display an example from the MNIST dataset.
-    # `x` contains the inpu t image array and `t` contains that target class
+    # `x` contains the input image array and `t` contains that target class
     # label as an integer.
     x, t = train[0]
     plt.imshow(x.reshape(28, 28), cmap='gray')
@@ -149,6 +149,10 @@ The main steps are twofold:
                 return self.l3(h)
 
         model = MyNetwork()
+        
+        gpu_id = 0  # Set to -1 if you use CPU
+        if gpu_id >= 0:
+            model.to_gpu(gpu_id)
 
 :class:`~chainer.Link`, :class:`~chainer.Chain`, :class:`~chainer.ChainList`, and those subclass objects which contain trainable parameters should be registered to the model by assigning it as a property inside the :meth:`~chainer.Chain.init_scope`. For example, a :class:`~chainer.FunctionNode` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, using it as a function in :meth:`~chainer.Chain.__call__` works correctly.
 
@@ -244,7 +248,7 @@ The training loop code is as follows:
         model.cleargrads()
         loss.backward()
 
-        # Update all the trainable paremters
+        # Update all the trainable parameters
         optimizer.update()
         # --------------------- until here ---------------------
 
@@ -331,7 +335,7 @@ Once the model is restored, it can be used to predict image labels on new input 
     # Create an instance of the network you trained
     model = MyNetwork()
 
-    # Load the saved paremeters into the instance
+    # Load the saved parameters into the instance
     serializers.load_npz('my_mnist.model', model)
 
     # Get a test image and label
@@ -358,7 +362,7 @@ The saved test image looks like:
     x = x[None, ...]
     print(x.shape)
 
-    # forward calculation of the model by sending X
+    # Forward calculation of the model by sending X
     y = model(x)
 
     # The result is given as Variable, then we can take a look at the contents by the attribute, .data.

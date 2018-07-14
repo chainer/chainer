@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import imp
 import os
 import pkg_resources
 import sys
@@ -21,7 +20,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 
 
 def cupy_requirement(pkg):
-    return '{}==4.0.0b4'.format(pkg)
+    return '{}==5.0.0b2'.format(pkg)
 
 
 requirements = {
@@ -35,8 +34,10 @@ requirements = {
         cupy_requirement('cupy'),
     ],
     'stylecheck': [
-        'hacking',
-        'autopep8',
+        'autopep8==1.3.5',
+        'flake8==3.5.0',
+        'pbr==4.0.4',
+        'pycodestyle==2.3.1',
     ],
     'test': [
         'pytest',
@@ -53,16 +54,20 @@ requirements = {
     'travis': [
         '-r stylecheck',
         '-r test',
-        'pytest-timeout',
+        '-r docs',
+        # pytest-timeout>=1.3.0 requires pytest>=3.6.
+        # TODO(niboshi): Consider upgrading pytest to >=3.6
+        'pytest-timeout<1.3.0',
         'pytest-cov',
         'theano',
         'h5py',
         'pillow',
     ],
     'appveyor': [
-        '-r stylecheck',
         '-r test',
-        'pytest-timeout',
+        # pytest-timeout>=1.3.0 requires pytest>=3.6.
+        # TODO(niboshi): Consider upgrading pytest to >=3.6
+        'pytest-timeout<1.3.0',
         'pytest-cov',
     ],
 }
@@ -119,13 +124,13 @@ else:
     print('No CuPy installation detected')
 
 here = os.path.abspath(os.path.dirname(__file__))
-__version__ = imp.load_source(
-    '_version', os.path.join(here, 'chainer', '_version.py')).__version__
+# Get __version__ variable
+exec(open(os.path.join(here, 'chainer', '_version.py')).read())
 
 
 setup(
     name='chainer',
-    version=__version__,
+    version=__version__,  # NOQA
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
@@ -135,6 +140,8 @@ setup(
               'chainer.backends',
               'chainer.dataset',
               'chainer.datasets',
+              'chainer.distributions',
+              'chainer.exporters',
               'chainer.functions',
               'chainer.functions.activation',
               'chainer.functions.array',
@@ -161,6 +168,7 @@ setup(
               'chainer.links.normalization',
               'chainer.links.theano',
               'chainer.optimizers',
+              'chainer.optimizer_hooks',
               'chainer.serializers',
               'chainer.testing',
               'chainer.training',

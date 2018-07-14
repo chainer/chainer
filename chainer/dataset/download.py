@@ -1,16 +1,17 @@
-from __future__ import print_function
 import hashlib
 import os
 import shutil
 import sys
-import tempfile
 
 import filelock
 from six.moves.urllib import request
 
+from chainer import utils
 
-_dataset_root = os.environ.get('CHAINER_DATASET_ROOT',
-                               os.path.expanduser('~/.chainer/dataset'))
+
+_dataset_root = os.environ.get(
+    'CHAINER_DATASET_ROOT',
+    os.path.join(os.path.expanduser('~'), '.chainer', 'dataset'))
 
 
 def get_dataset_root():
@@ -101,15 +102,13 @@ def cached_download(url):
         if os.path.exists(cache_path):
             return cache_path
 
-    temp_root = tempfile.mkdtemp(dir=cache_root)
-    try:
+    with utils.tempdir(dir=cache_root) as temp_root:
         temp_path = os.path.join(temp_root, 'dl')
-        print('Downloading from {}...'.format(url), file=sys.stderr)
+        sys.stderr.write('Downloading from {}...\n'.format(url))
+        sys.stderr.flush()
         request.urlretrieve(url, temp_path)
         with filelock.FileLock(lock_path):
             shutil.move(temp_path, cache_path)
-    finally:
-        shutil.rmtree(temp_root)
 
     return cache_path
 
@@ -141,10 +140,6 @@ def cache_or_load_file(path, creator, loader):
     if os.path.exists(path):
         return loader(path)
 
-    file_name = os.path.basename(path)
-    temp_dir = tempfile.mkdtemp()
-    temp_path = os.path.join(temp_dir, file_name)
-
     try:
         os.makedirs(_dataset_root)
     except OSError:
@@ -153,12 +148,12 @@ def cache_or_load_file(path, creator, loader):
 
     lock_path = os.path.join(_dataset_root, '_create_lock')
 
-    try:
+    with utils.tempdir() as temp_dir:
+        file_name = os.path.basename(path)
+        temp_path = os.path.join(temp_dir, file_name)
         content = creator(temp_path)
         with filelock.FileLock(lock_path):
             if not os.path.exists(path):
                 shutil.move(temp_path, path)
-    finally:
-        shutil.rmtree(temp_dir)
 
     return content

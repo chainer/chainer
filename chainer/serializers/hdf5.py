@@ -138,7 +138,7 @@ class HDF5Deserializer(serializer.Deserializer):
         if isinstance(value, numpy.ndarray):
             dataset.read_direct(value)
         elif isinstance(value, cuda.ndarray):
-            value.set(numpy.asarray(dataset))
+            value.set(numpy.asarray(dataset, dtype=value.dtype))
         else:
             value = type(value)(numpy.asarray(dataset))
         return value

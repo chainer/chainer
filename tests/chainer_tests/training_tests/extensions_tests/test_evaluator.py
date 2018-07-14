@@ -4,6 +4,7 @@ import numpy
 
 import chainer
 from chainer import dataset
+from chainer import iterators
 from chainer import testing
 from chainer.training import extensions
 
@@ -220,6 +221,22 @@ class TestEvaluatorWithEvalFunc(unittest.TestCase):
         for i in range(len(self.batches)):
             numpy.testing.assert_array_equal(
                 self.target.args[i], self.batches[i])
+
+
+@testing.parameterize(*testing.product({
+    'repeat': [True, False],
+    'iterator_class': [iterators.SerialIterator,
+                       iterators.MultiprocessIterator,
+                       iterators.MultithreadIterator]
+}))
+class TestEvaluatorRepeat(unittest.TestCase):
+
+    def test_user_warning(self):
+        dataset = numpy.ones((4, 6))
+        iterator = self.iterator_class(dataset, 2, repeat=self.repeat)
+        if self.repeat:
+            with testing.assert_warns(UserWarning):
+                extensions.Evaluator(iterator, {})
 
 
 testing.run_module(__name__, __file__)
