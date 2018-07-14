@@ -80,7 +80,7 @@ def func_dim3(func, x):
     assert x.ndim == 3
     batch, length, units = x.shape
     x_dim2 = x.reshape(batch * length, units)
-    h_dim2 = func(x)
+    h_dim2 = func(x_dim2)
     h_dim3 = h_dim2.reshape(batch, length, -1)
     return h_dim3
 
@@ -114,7 +114,7 @@ class AttentionMechanism(chainer.Chain):
         Q = func_dim3(self.W_query, concat_Q)
 
         concat_K, k_pad_mask = prepare_attention(ks)
-        batch, k_len, k_units = concat_Q.shape
+        batch, k_len, k_units = concat_K.shape
         K = func_dim3(self.W_key, concat_K)
 
         QK_dot = F.batch_matmul(Q, K, transb=True)
