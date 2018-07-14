@@ -3,8 +3,6 @@ import os
 import tempfile
 import unittest
 
-import mock
-
 from chainer import datasets
 from chainer import testing
 
