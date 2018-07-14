@@ -87,6 +87,17 @@ class AttentionMechanism(chainer.Chain):
             self.W_key = L.Linear(None, self.att_units)
 
     def __call__(self, qs, ks):
+        """Applies attention mechanism.
+        Args:
+            qs (~chainer.Variable): Concatenated query vectors
+                Its shape is (batchsize, n_query, query_units).
+            ks (~chainer.Variable): Concatenated key vectors.
+                Its shape is (batchsize, n_key, key_units).
+        Returns:
+            ~chainer.Variable: Weighted sum of `ks`.
+                The weight is computed by a learned function
+                of keys and queries.
+        """
         concat_Q, q_pad_mask = prepare_attention(qs)
         batch, q_len, q_units = concat_Q.shape
         Q = self.W_query(concat_Q.reshape(batch * q_len, q_units))
