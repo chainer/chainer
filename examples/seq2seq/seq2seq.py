@@ -122,6 +122,8 @@ class AttentionMechanism(chainer.Chain):
         # ignore attention weights where padded values are used
         QK_pad_mask = q_pad_mask[:, :, None] * k_pad_mask[:, None, :]
         assert QK_pad_mask.shape == (batch, q_len, k_len)
+        # padded parts are replaced with -1024,
+        # making exp(-1024) = 0 when softmax
         minus_infs = self.xp.full(QK_dot.shape, -1024., dtype='f')
         QK_dot = F.where(QK_pad_mask.astype('bool'),
                          QK_dot,
