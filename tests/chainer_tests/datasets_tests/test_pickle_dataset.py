@@ -44,16 +44,5 @@ class TestPickleDatasetHelper(unittest.TestCase):
         with datasets.open_pickle_dataset(self.path) as dataset:
             assert dataset[0] == 1
 
-    def test_dataset_init_fail(self):
-        m = mock.mock_open(read_data=b'dummy')
-        with mock.patch('chainer.datasets.pickle_dataset.open', m):
-            try:
-                datasets.open_pickle_dataset(self.path)
-            except Exception:
-                # This dummy data causes an error in initializer
-                pass
-        # Even in this situation, the opened file needs to be closed
-        assert mock.call().close() in m.mock_calls
-
 
 testing.run_module(__name__, __file__)
