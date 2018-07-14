@@ -1,6 +1,6 @@
 # Sequence-to-sequnce learning example for machine translation
 
-This is a minimal example of sequence-to-sequence learning with or without the attention mechanism. Sequence-to-sequence is a learning model that converts an input sequence into an output sequence. You can regard many tasks in the natural language processing field as this type of task, such as machine translation, dialogue and summarization.
+This is a minimal example of sequence-to-sequence learning with and without the attention mechanism. Sequence-to-sequence is a learning model that converts an input sequence into an output sequence. You can regard many tasks in the natural language processing field as this type of task, such as machine translation, dialogue and summarization.
 
 In this simple example script, an input sequence is processed by a stacked LSTM-RNN and it is encoded as a fixed-size vector. The output sequence is also processed by another stacked LSTM-RNN. At decoding time, an output sequence is generated using argmax.
 
