@@ -501,7 +501,7 @@ class ResNet152Layers(ResNetLayers):
             pretrained_model, 152, downsample_fb)
 
 
-def prepare(image, size=(224, 224), dtype=None):
+def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for ResNets.
 
     Note that you have to call this method before ``__call__``
@@ -517,8 +517,6 @@ def prepare(image, size=(224, 224), dtype=None):
             the order of the channels must be RGB.
         size (pair of ints): Size of converted images.
             If ``None``, the given image is not resized.
-        dtype (numpy.dtype): Dtype of the output array. If ``None``, the
-            default dtype is used.
 
     Returns:
         numpy.ndarray: The converted output array.
