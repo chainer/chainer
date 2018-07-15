@@ -358,7 +358,9 @@ class TestGoogLeNet(unittest.TestCase):
             self.assertEqual(y3.dtype, self.dtype)
 
     def test_extract_cpu(self):
-        self.check_extract()
+        err = 'ignore' if self.dtype == numpy.float16 else None
+        with numpy.errstate(over=err): # ignore FP16 overflow
+            self.check_extract()
 
     @attr.gpu
     def test_extract_gpu(self):
@@ -380,7 +382,9 @@ class TestGoogLeNet(unittest.TestCase):
             self.assertEqual(y.dtype, self.dtype)
 
     def test_predict_cpu(self):
-        self.check_predict()
+        err = 'ignore' if self.dtype == numpy.float16 else None
+        with numpy.errstate(over=err): # ignore FP16 overflow
+            self.check_predict()
 
     @attr.gpu
     def test_predict_gpu(self):
