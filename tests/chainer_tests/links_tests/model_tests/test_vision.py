@@ -114,7 +114,7 @@ class TestResNetLayers(unittest.TestCase):
 
     def test_extract_cpu(self):
         err = 'ignore' if self.dtype is numpy.float16 else None
-        with numpy.errstate(over=err): # ignore FP16 overflow
+        with numpy.errstate(over=err):  # ignore FP16 overflow
             self.check_extract()
 
     @attr.gpu
@@ -140,7 +140,7 @@ class TestResNetLayers(unittest.TestCase):
 
     def test_predict_cpu(self):
         err = 'ignore' if self.dtype is numpy.float16 else None
-        with numpy.errstate(over=err): # ignore FP16 overflow
+        with numpy.errstate(over=err):  # ignore FP16 overflow
             self.check_predict()
 
     @attr.gpu
