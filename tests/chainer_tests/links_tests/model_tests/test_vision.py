@@ -26,16 +26,27 @@ from chainer.variable import Variable
 class TestResNetLayers(unittest.TestCase):
 
     def setUp(self):
-        with chainer.using_config('dtype', self.dtype):
-            if self.n_layers == 50:
-                self.link = resnet.ResNet50Layers(
-                    pretrained_model=None, downsample_fb=self.downsample_fb)
-            elif self.n_layers == 101:
-                self.link = resnet.ResNet101Layers(
-                    pretrained_model=None, downsample_fb=self.downsample_fb)
-            elif self.n_layers == 152:
-                self.link = resnet.ResNet152Layers(
-                    pretrained_model=None, downsample_fb=self.downsample_fb)
+        self._old_dtype = None
+        config = chainer.config
+        if hasattr(config._local, 'dtype'):
+            self._old_dtype = getattr(config, 'dtype')
+        setattr(config, 'dtype', self.dtype)
+        if self.n_layers == 50:
+            self.link = resnet.ResNet50Layers(
+                pretrained_model=None, downsample_fb=self.downsample_fb)
+        elif self.n_layers == 101:
+            self.link = resnet.ResNet101Layers(
+                pretrained_model=None, downsample_fb=self.downsample_fb)
+        elif self.n_layers == 152:
+            self.link = resnet.ResNet152Layers(
+                pretrained_model=None, downsample_fb=self.downsample_fb)
+
+    def tearDown(self):
+        config = chainer.config
+        if self._old_dtype is None:
+            delattr(config, 'dtype')
+        else:
+            setattr(config, 'dtype', self._old_dtype)
 
     def test_available_layers(self):
         result = self.link.available_layers
@@ -72,30 +83,28 @@ class TestResNetLayers(unittest.TestCase):
         x4 = numpy.random.uniform(0, 255, (1, 160, 120)).astype(self.dtype)
         x5 = numpy.random.uniform(0, 255, (3, 160, 120)).astype(numpy.uint8)
 
-        with chainer.using_config('dtype', self.dtype):
-            y1 = resnet.prepare(x1)
-            self.assertEqual(y1.shape, (3, 224, 224))
-            self.assertEqual(y1.dtype, self.dtype)
-            y2 = resnet.prepare(x2)
-            self.assertEqual(y2.shape, (3, 224, 224))
-            self.assertEqual(y2.dtype, self.dtype)
-            y3 = resnet.prepare(x3, size=None)
-            self.assertEqual(y3.shape, (3, 160, 120))
-            self.assertEqual(y3.dtype, self.dtype)
-            y4 = resnet.prepare(x4)
-            self.assertEqual(y4.shape, (3, 224, 224))
-            self.assertEqual(y4.dtype, self.dtype)
-            y5 = resnet.prepare(x5, size=None)
-            self.assertEqual(y5.shape, (3, 160, 120))
-            self.assertEqual(y5.dtype, self.dtype)
+        y1 = resnet.prepare(x1)
+        self.assertEqual(y1.shape, (3, 224, 224))
+        self.assertEqual(y1.dtype, self.dtype)
+        y2 = resnet.prepare(x2)
+        self.assertEqual(y2.shape, (3, 224, 224))
+        self.assertEqual(y2.dtype, self.dtype)
+        y3 = resnet.prepare(x3, size=None)
+        self.assertEqual(y3.shape, (3, 160, 120))
+        self.assertEqual(y3.dtype, self.dtype)
+        y4 = resnet.prepare(x4)
+        self.assertEqual(y4.shape, (3, 224, 224))
+        self.assertEqual(y4.dtype, self.dtype)
+        y5 = resnet.prepare(x5, size=None)
+        self.assertEqual(y5.shape, (3, 160, 120))
+        self.assertEqual(y5.dtype, self.dtype)
 
     def check_extract(self):
         x1 = numpy.random.uniform(0, 255, (320, 240, 3)).astype(numpy.uint8)
         x2 = numpy.random.uniform(0, 255, (320, 240)).astype(numpy.uint8)
 
         with numpy.errstate(divide='ignore'):
-            with chainer.using_config('dtype', self.dtype):
-                result = self.link.extract([x1, x2], layers=['res3', 'pool5'])
+            result = self.link.extract([x1, x2], layers=['res3', 'pool5'])
             self.assertEqual(len(result), 2)
             y1 = cuda.to_cpu(result['res3'].data)
             self.assertEqual(y1.shape, (2, 512, 28, 28))
@@ -105,8 +114,7 @@ class TestResNetLayers(unittest.TestCase):
             self.assertEqual(y2.dtype, self.dtype)
 
             x3 = numpy.random.uniform(0, 255, (80, 60)).astype(numpy.uint8)
-            with chainer.using_config('dtype', self.dtype):
-                result = self.link.extract([x3], layers=['res2'], size=None)
+            result = self.link.extract([x3], layers=['res2'], size=None)
             self.assertEqual(len(result), 1)
             y3 = cuda.to_cpu(result['res2'].data)
             self.assertEqual(y3.shape, (1, 256, 20, 15))
@@ -127,13 +135,11 @@ class TestResNetLayers(unittest.TestCase):
         x2 = numpy.random.uniform(0, 255, (320, 240)).astype(numpy.uint8)
 
         with numpy.errstate(divide='ignore'):
-            with chainer.using_config('dtype', self.dtype):
-                result = self.link.predict([x1, x2], oversample=False)
+            result = self.link.predict([x1, x2], oversample=False)
             y = cuda.to_cpu(result.data)
             self.assertEqual(y.shape, (2, 1000))
             self.assertEqual(y.dtype, self.dtype)
-            with chainer.using_config('dtype', self.dtype):
-                result = self.link.predict([x1, x2], oversample=True)
+            result = self.link.predict([x1, x2], oversample=True)
             y = cuda.to_cpu(result.data)
             self.assertEqual(y.shape, (2, 1000))
             self.assertEqual(y.dtype, self.dtype)
