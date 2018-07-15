@@ -358,7 +358,7 @@ class TestGoogLeNet(unittest.TestCase):
             self.assertEqual(y3.dtype, self.dtype)
 
     def test_extract_cpu(self):
-        err = 'ignore' if self.dtype == numpy.float16 else None
+        err = 'ignore' if self.dtype is numpy.float16 else None
         with numpy.errstate(over=err): # ignore FP16 overflow
             self.check_extract()
 
@@ -382,7 +382,7 @@ class TestGoogLeNet(unittest.TestCase):
             self.assertEqual(y.dtype, self.dtype)
 
     def test_predict_cpu(self):
-        err = 'ignore' if self.dtype == numpy.float16 else None
+        err = 'ignore' if self.dtype is numpy.float16 else None
         with numpy.errstate(over=err): # ignore FP16 overflow
             self.check_predict()
 
