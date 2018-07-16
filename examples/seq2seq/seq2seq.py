@@ -42,7 +42,7 @@ class Seq2seq(chainer.Chain):
         self.n_layers = n_layers
         self.n_units = n_units
 
-    def __call__(self, xs, ys):
+    def forward(self, xs, ys):
         xs = [x[::-1] for x in xs]
 
         eos = self.xp.array([EOS], numpy.int32)
@@ -136,7 +136,7 @@ class CalculateBleu(chainer.training.Extension):
         self.device = device
         self.max_length = max_length
 
-    def __call__(self, trainer):
+    def forward(self, trainer):
         with chainer.no_backprop_mode():
             references = []
             hypotheses = []

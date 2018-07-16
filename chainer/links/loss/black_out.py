@@ -44,7 +44,7 @@ class BlackOut(link.Link):
             super(BlackOut, self).to_gpu()
             self.sampler.to_gpu()
 
-    def __call__(self, x, t):
+    def forward(self, x, t):
         """Computes the loss value for given input and ground truth labels.
 
         Args:
