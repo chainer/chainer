@@ -34,6 +34,19 @@ class TestLocalConfig(unittest.TestCase):
         with self.assertRaises(AttributeError):
             del self.config.x
 
+    def test_stack_attr(self):
+        self.config.push('y', 'local y2')
+        self.assertEqual(self.config.y, 'local y2')
+
+        self.config.pop('y')
+        self.assertEqual(self.config.y, 'local y')
+
+        self.config.push('y', 'local y2')
+        self.config.y = 'local y3'
+        self.assertEqual(self.config.y, 'local y3')
+        self.config.pop('y')
+        self.assertEqual(self.config.y, 'global y')
+
     def test_multi_thread_attr(self):
         def target():
             self.config.y = 'local y2'
