@@ -65,31 +65,18 @@ def main():
         description='Learning convnet from ILSVRC2012 dataset')
     parser.add_argument('train', help='Path to training image-label list file')
     parser.add_argument('val', help='Path to validation image-label list file')
-    # parser.add_argument('--arch', '-a', choices=archs.keys(), default='nin',
-    #                     help='Convnet architecture')
     parser.add_argument('--batchsize', '-B', type=int, default=32,
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
     parser.add_argument('--iteration', '-I', type=int, default=None,
                         help='Number of iterations to train. Epoch is ignored if specified.')
-    # parser.add_argument('--gpu', '-g', type=int, default=-1,
-    #                     help='GPU ID (negative value indicates CPU')
-    # parser.add_argument('--initmodel',
-    #                     help='Initialize the model from given file')
-    # parser.add_argument('--loaderjob', '-j', type=int,
-    #                     help='Number of parallel data loading processes')
     parser.add_argument('--mean', '-m', default='mean.npy',
                         help='Mean file (computed by compute_mean.py)')
-    # parser.add_argument('--resume', '-r', default='',
-    #                     help='Initialize the trainer from given file')
-    # parser.add_argument('--out', '-o', default='result',
-    #                     help='Output directory')
     parser.add_argument('--root', '-R', default='.',
                         help='Root directory path of image files')
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
-    # parser.add_argument('--test', action='store_true')
     parser.set_defaults(test=False)
     parser.add_argument('--device', '-d', default='native',
                         help='Device to use')
@@ -141,6 +128,7 @@ def main():
                 print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
                 if it >= args.iteration:
                     is_finished = True
+                    break
 
         epoch += 1
         if args.iteration is None:
