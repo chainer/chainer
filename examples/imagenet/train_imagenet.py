@@ -17,8 +17,13 @@ import numpy as np
 
 import xchainer as xc
 
-from image_dataset import get_dataset
+from image_dataset import PreprocessedDataset
 import resnet50
+
+
+def get_imagenet(dataset, indices):
+    x, t = zip(*dataset[indices])
+    return xc.array(np.array(x)), xc.array(np.array(t))
 
 
 def compute_loss(y, t):
@@ -98,13 +103,12 @@ def main():
 
     # Prepare datasets and mean file
     mean = np.load(args.mean)
-    X, Y = get_dataset(args.train, args.root, mean, model.insize)
-    X, Y = xc.array(X), xc.array(Y)
-    X_test, Y_test = get_dataset(args.val, args.root, mean, model.insize, False)
-    X_test, Y_test = xc.array(X_test), xc.array(Y_test)
+    train = PreprocessedDataset(args.train, args.root, mean, model.insize)
+    test = PreprocessedDataset(args.val, args.root, mean, model.insize, False)
 
-    N = X.shape[0]
-    all_indices_np = np.arange(N, dtype=np.int64)
+    N = len(train)
+    train_indices = np.arange(N, dtype=np.int64)
+    test_indices = np.arange(len(test), dtype=np.int64)
     batch_size = args.batchsize
     eval_size = args.val_batchsize
 
@@ -117,13 +121,11 @@ def main():
     start = time.time()
 
     while not is_finished:
-        np.random.shuffle(all_indices_np)
-        all_indices = xc.array(all_indices_np)
+        np.random.shuffle(train_indices)
 
         for i in range(0, N // batch_size):
-            indices = all_indices[i * batch_size: (i + 1) * batch_size]
-            x = X.take(indices, axis=0)
-            t = Y.take(indices, axis=0)
+            indices = train_indices[i * batch_size: (i + 1) * batch_size]
+            x, t = get_imagenet(train, indices)
             y = model(x)
             loss = compute_loss(y, t)
 
@@ -132,16 +134,20 @@ def main():
 
             it += 1
             if args.iteration is not None:
+                np.random.shuffle(test_indices)
+                x_test, t_test = get_imagenet(test, test_indices[:eval_size])
                 elapsed_time = time.time() - start
-                mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
+                mean_loss, accuracy = evaluate(model, x_test, t_test, eval_size, batch_size)
                 print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
                 if it >= args.iteration:
                     is_finished = True
 
         epoch += 1
         if args.iteration is None:
+            np.random.shuffle(test_indices)
+            x_test, t_test = get_imagenet(test, test_indices[:eval_size])
             elapsed_time = time.time() - start
-            mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
+            mean_loss, accuracy = evaluate(model, x_test, t_test, eval_size, batch_size)
             print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
             if epoch >= args.epoch:
                 is_finished = True
