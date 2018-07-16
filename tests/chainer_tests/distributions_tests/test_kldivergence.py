@@ -38,6 +38,11 @@ class TestKLDivergence(unittest.TestCase):
 
         return params
 
+    def make_bernoulli_dist(self, is_gpu=False):
+        p = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
+        params = self.encode_params({"p": p}, is_gpu)
+        return distributions.Bernoulli(**params)
+
     def make_laplace_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
@@ -57,6 +62,17 @@ class TestKLDivergence(unittest.TestCase):
                 numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
             params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Normal(**params)
+
+    def test_bernoulli_bernoulli_cpu(self):
+        dist1 = self.make_bernoulli_dist()
+        dist2 = self.make_bernoulli_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_bernoulli_bernoulli_gpu(self):
+        dist1 = self.make_bernoulli_dist(True)
+        dist2 = self.make_bernoulli_dist(True)
+        self.check_kl(dist1, dist2)
 
     def test_laplace_laplace_cpu(self):
         dist1 = self.make_laplace_dist()
