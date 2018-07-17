@@ -51,15 +51,18 @@ void CheckEqual(const Strides& lhs, const Strides& rhs) {
 std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& strides, size_t item_size) {
     assert(shape.ndim() == strides.ndim());
     int64_t first = 0;
-    int64_t last = 0;
+    int64_t last = item_size;
 
     for (int8_t i = 0; i < shape.ndim(); ++i) {
         auto& first_or_last = strides[i] < 0 ? first : last;
-        first_or_last += shape[i] * strides[i];
+        if (shape[i] == 0) {
+            return std::tuple<int64_t, int64_t>{0, 0};
+        }
+        first_or_last += (shape[i] - 1) * strides[i];
     }
     assert(first <= 0);
-    assert(0 <= last);
-    return std::tuple<int64_t, int64_t>{first, last + item_size};
+    assert(static_cast<int64_t>(item_size) <= last);
+    return std::tuple<int64_t, int64_t>{first, last};
 }
 
 }  // namespace xchainer
