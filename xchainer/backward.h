@@ -123,6 +123,7 @@ public:
             gsl::span<ArrayNode*> prev_array_nodes,
             gsl::span<internal::GradRef*> prev_grads,
             std::vector<Array>& input_grads_storage,
+            const std::vector<bool>& is_input_grads_required,
             const GraphId& graph_id,
             DoubleBackpropOption double_backprop_option);
 
@@ -133,6 +134,9 @@ public:
     // If there is only one output, the output always has the propagated gradient, therefore you do not have to call this function in that
     // case.
     bool HasOutputGrad(size_t output_index) const;
+
+    // Returns whether the input gradient is expected to be computed in the backward function.
+    bool is_input_grad_required(size_t input_index) const;
 
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
@@ -168,6 +172,9 @@ private:
     // Gradient passed in input_grad() will be put into this storage.
     // Unset gradients will have null array body.
     std::vector<Array>& input_grads_storage_;
+
+    // Boolean flags indicating whether the input gradients are required to be set in the backward function.
+    const std::vector<bool>& is_input_grads_required_;
 
     // Holds zero-filled arrays for outputs without actual gradients.
     // The arrays are allocated on-demand in output_grad.
