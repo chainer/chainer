@@ -170,7 +170,7 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout
     Array gbeta = gout.Sum(axis_);
     Array gx = (gamma * x_inv_std) * (gout - (x_hat * ggamma + gbeta) * inv_n);
 
-    SetBackwardResults(gout, gx.MakeView(), ggamma.MakeView());
+    SetBackwardResults(gout, gx, ggamma);
 
     return {std::move(gx), std::move(ggamma), std::move(gbeta)};
 }

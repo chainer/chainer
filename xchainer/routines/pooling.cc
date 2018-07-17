@@ -13,6 +13,7 @@
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
 #include "xchainer/routines/math.h"
+#include "xchainer/routines/routines_util.h"
 #include "xchainer/stack_vector.h"
 
 namespace xchainer {
@@ -50,6 +51,7 @@ Array MaxPool(
     std::unique_ptr<MaxPoolForwardBackward> fb = x.device().GetMaxPoolForwardBackward(kernel_size, stride, pad, cover_all);
 
     Array out = fb->Forward(x.AsGradStopped());
+    internal::MakeViewForForwardBackwardOutput(out);
 
     // Supporting arbitrary number of backwards using a recursive definition.
     // TODO(hvy): Test backward of double backward.
@@ -57,12 +59,14 @@ Array MaxPool(
         void operator()(BackwardContext& bctx1) {
             const Array& gout = bctx1.output_grad();
             Array gx = fb->Backward(gout.AsGradStopped());
+            internal::MakeViewForForwardBackwardOutput(gx);
             {
                 BackwardBuilder bb2{"max_pooling_backward", gx};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget(gout)) {
                     bt2.Define([this, gout](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
                         Array ggout = fb->DoubleBackward(ggx.AsGradStopped());
+                        internal::MakeViewForForwardBackwardOutput(ggout);
                         // Make ggout further backpropable.
                         {
                             BackwardBuilder bb3{"max_pooling_double_backward", ggout};
@@ -103,12 +107,14 @@ Array AveragePool(
     CheckPoolInputs(x, kernel_size, stride, pad);
     std::shared_ptr<AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(kernel_size, stride, pad, pad_mode);
     Array out = fb->Forward(x.AsGradStopped());
+    internal::MakeViewForForwardBackwardOutput(out);
     {
         BackwardBuilder bb1{"average_pool", out};
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(x)) {
             bt1.Define([ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 Array gx = fb->Backward(gout.AsGradStopped());
+                internal::MakeViewForForwardBackwardOutput(gx);
                 {
                     BackwardBuilder bb2{"average_pool_backward", gx};
                     if (BackwardBuilder::Target bt2 = bb2.CreateTarget(gout)) {

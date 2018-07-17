@@ -130,7 +130,7 @@ public:
                 internal::GetRawOffsetData<void>(y)));
 
         x_ = x;
-        y_ = y.MakeView();
+        y_ = y;
 
         return y;
     }

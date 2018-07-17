@@ -267,7 +267,7 @@ public:
             gbeta = gbeta.AsType(dtype, false);
         }
 
-        SetBackwardResults(std::move(gout_cont), gx.MakeView(), ggamma.MakeView());
+        SetBackwardResults(std::move(gout_cont), gx, ggamma);
         return {std::move(gx), std::move(ggamma), std::move(gbeta)};
     }
 
