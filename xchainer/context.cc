@@ -101,6 +101,17 @@ Device& Context::GetDevice(const DeviceId& device_id) {
     return backend.GetDevice(device_id.index());
 }
 
+// TODO(sonots): Create a map to get graph name from sub id
+GraphId Context::MakeNextGraphId(std::string graph_name) {
+    (void)graph_name;  // unused
+    return GraphId{*this, next_graph_sub_id_++};
+}
+
+// TODO(sonots): Release an item of the graph_id from a map
+void Context::ReleaseGraphId(const GraphId& graph_id) {
+    (void)graph_id;  // unused
+}
+
 Context& GetGlobalDefaultContext() {
     Context* context = g_global_default_context;
     if (context == nullptr) {
