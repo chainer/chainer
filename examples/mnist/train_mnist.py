@@ -142,8 +142,8 @@ def main():
 
             it += 1
             if args.iteration is not None:
-                elapsed_time = time.time() - start
                 mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
+                elapsed_time = time.time() - start
                 print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
                 if it >= args.iteration:
                     is_finished = True
@@ -151,8 +151,8 @@ def main():
 
         epoch += 1
         if args.iteration is None:  # stop based on epoch, instead of iteration
-            elapsed_time = time.time() - start
             mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
+            elapsed_time = time.time() - start
             print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
             if epoch >= args.epoch:
                 is_finished = True
