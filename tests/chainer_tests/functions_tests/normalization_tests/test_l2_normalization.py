@@ -48,7 +48,8 @@ def _is_good_param(param):
     ],
     [
         # nonzeros (optional int): max number of nonzero elems in input
-        # truezero (bool): flag whether zero elems are exactly zero
+        # truezero (bool): flag whether zero elems are exactly zero. If false,
+        #     randomly-chosen small values are used.
         {'eps': 1e-5, 'nonzeros': None},
         {'eps': 1e-1, 'nonzeros': None},
         {'eps': 1e-1, 'nonzeros': 0, 'truezero': True},
@@ -62,12 +63,17 @@ class TestL2Normalization(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         if self.nonzeros is not None:
+            # Make self.x have limited number of large values
+
+            # get mask of indices to modify at
             zeros = self.x.size - self.nonzeros
             while True:
                 rand = numpy.random.uniform(0, 1, self.shape)
                 mask = rand <= numpy.sort(rand.ravel())[zeros - 1]
                 if self.x[mask].shape == (zeros,):
                     break
+
+            # set zeros or small values to a part of the input
             if self.truezero:
                 self.x[mask] = 0
             else:
