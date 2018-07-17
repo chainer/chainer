@@ -1,4 +1,8 @@
+import numpy
+
 from chainer.functions.connection import n_step_gru as rnn
+from chainer import initializers
+from chainer.initializers import normal
 from chainer.links.connection import n_step_rnn
 
 
@@ -32,6 +36,12 @@ class NStepGRUBase(n_step_rnn.NStepRNNBase):
     """
 
     n_weights = 6
+
+    def _get_weight_initializer(self, initialW, w_in):
+        if initialW is None:
+            return normal.Normal(numpy.sqrt(1. / w_in))
+        else:
+            return initializers._get_initializer(initialW)
 
 
 class NStepGRU(NStepGRUBase):

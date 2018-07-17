@@ -5,6 +5,7 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import gradient_check
+from chainer import initializers
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
@@ -163,6 +164,39 @@ class TestNStepRNN(unittest.TestCase):
 
     def test_n_cells(self):
         self.assertEqual(self.rnn.n_cells, 1)
+
+
+@testing.parameterize(*testing.product({
+    'hidden_none': [True, False],
+    'activation': ['tanh', 'relu'],
+}))
+class TestNStepRNNInitializer(unittest.TestCase):
+
+    lengths = [3, 1, 2]
+    n_layer = 2
+    in_size = 3
+    out_size = 2
+    dropout = 0.0
+
+    def setUp(self):
+        if self.activation == 'tanh':
+            rnn_link_class = links.NStepRNNTanh
+        elif self.activation == 'relu':
+            rnn_link_class = links.NStepRNNReLU
+        self.rnn = rnn_link_class(
+            self.n_layer, self.in_size, self.out_size, self.dropout,
+            initializers.One(), initializers.Constant(2))
+
+    def test_initializers(self):
+        self.rnn.to_cpu()
+        for path, param in self.rnn.namedparams():
+            name = path.split('/')[-1]
+            if name.startswith('w'):
+                numpy.testing.assert_array_equal(param.array, 1)
+            elif name.startswith('b'):
+                numpy.testing.assert_array_equal(param.array, 2)
+            else:
+                assert False
 
 
 @testing.parameterize(*testing.product({
