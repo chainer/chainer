@@ -147,5 +147,31 @@ TEST(StridesTest, SpanFromStrides) {
     CheckSpanEqual({2, 3, 4}, gsl::make_span(strides));
 }
 
+using GetDataRangeTestType = std::tuple<Shape, Strides, size_t, int64_t, int64_t>;
+class GetDataRangeTest : public ::testing::TestWithParam<GetDataRangeTestType> {};
+INSTANTIATE_TEST_CASE_P(
+        GetDataRangeTest,
+        GetDataRangeTest,
+        ::testing::Values(
+                GetDataRangeTestType{{2, 3, 4}, {96, 32, 8}, 8, 0, 192},
+                GetDataRangeTestType{{10, 12}, {160, 8}, 8, 0, 1536},
+                GetDataRangeTestType{{}, {}, 8, 0, 8},
+                GetDataRangeTestType{{3, 0, 3}, {24, 24, 8}, 8, 0, 0},
+                GetDataRangeTestType{{10, 3, 4}, {-96, 32, 8}, 8, -864, 96},
+                GetDataRangeTestType{{10, 3, 4}, {-96, -32, -8}, 8, -952, 8},
+                GetDataRangeTestType{{3, 4}, {8, 24}, 8, 0, 96},
+                GetDataRangeTestType{{100}, {24}, 8, 0, 2384}));
+
+TEST_P(GetDataRangeTest, GetDataRange) {
+    Shape shape;
+    Strides strides;
+    size_t itemsize;
+    int64_t expected_first, expected_last, actual_first, actual_last;
+    std::tie(shape, strides, itemsize, expected_first, expected_last) = GetParam();
+    std::tie(actual_first, actual_last) = GetDataRange(shape, strides, itemsize);
+    EXPECT_EQ(actual_first, expected_first);
+    EXPECT_EQ(actual_last, expected_last);
+}
+
 }  // namespace
 }  // namespace xchainer
