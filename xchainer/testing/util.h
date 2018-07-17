@@ -16,16 +16,16 @@
 //
 //        // Write your tests here
 //     }
-#define XCHAINER_REQUIRE_DEVICE(backend, required_num)                                         \
-    do {                                                                                       \
-        if (xchainer::testing::internal::SkipIfDeviceUnavailable((backend), (required_num))) { \
-            return;                                                                            \
-        }                                                                                      \
+#define XCHAINER_REQUIRE_DEVICE(backend, required_num)                                                 \
+    do {                                                                                               \
+        if (xchainer::testing::testing_internal::SkipIfDeviceUnavailable((backend), (required_num))) { \
+            return;                                                                                    \
+        }                                                                                              \
     } while (0)
 
 namespace xchainer {
 namespace testing {
-namespace internal {
+namespace testing_internal {
 
 int GetSkippedNativeTestCount();
 
@@ -37,6 +37,6 @@ bool SkipIfDeviceUnavailable(Backend& backend, int required_num);
 
 bool SkipIfDeviceUnavailable(const std::string& backend_name, int required_num);
 
-}  // namespace internal
+}  // namespace testing_internal
 }  // namespace testing
 }  // namespace xchainer

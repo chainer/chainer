@@ -25,7 +25,6 @@
 
 namespace xchainer {
 namespace cuda {
-
 namespace {
 
 void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array>& b) {
@@ -48,7 +47,7 @@ void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array
 
 }  // namespace
 
-namespace internal {
+namespace cuda_internal {
 
 std::size_t CudaConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) const {
     std::size_t seed = 0;
@@ -77,7 +76,7 @@ std::size_t CudaConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) cons
     return seed;
 }
 
-void CudaConv::AddBias(cudnnHandle_t handle, const internal::CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
+void CudaConv::AddBias(cudnnHandle_t handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
     assert(&b.device() == &y.device());
     assert(b.dtype() == y.dtype());
 
@@ -92,15 +91,15 @@ void CudaConv::AddBias(cudnnHandle_t handle, const internal::CudnnTensorDescript
     }
     Array b_cont = AsContiguousArray(b).Reshape(new_shape);
 
-    internal::CudnnTensorDescriptor b_desc{b_cont};
+    CudnnTensorDescriptor b_desc{b_cont};
     CheckCudnnError(cudnnAddTensor(
             handle,
-            internal::GetValuePtr<1>(y.dtype()),
+            GetValuePtr<1>(y.dtype()),
             *b_desc,
-            xchainer::internal::GetRawOffsetData<void>(b_cont),
-            internal::GetValuePtr<1>(y.dtype()),
+            internal::GetRawOffsetData<void>(b_cont),
+            GetValuePtr<1>(y.dtype()),
             *y_desc,
-            xchainer::internal::GetRawOffsetData<void>(y)));
+            internal::GetRawOffsetData<void>(y)));
 }
 
 std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlgorithm(
@@ -130,12 +129,12 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlg
     CheckCudnnError(cudnnFindConvolutionForwardAlgorithmEx(
             handle,
             *x_desc,
-            xchainer::internal::GetRawOffsetData<void>(x),
+            internal::GetRawOffsetData<void>(x),
             *filter_desc,
-            xchainer::internal::GetRawOffsetData<void>(w),
+            internal::GetRawOffsetData<void>(w),
             *conv_desc,
             *y_desc,
-            xchainer::internal::GetRawOffsetData<void>(y),
+            internal::GetRawOffsetData<void>(y),
             1,  // requested algo count,
             &returned_algo_count,
             &perf_result,
@@ -173,12 +172,12 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwa
     CheckCudnnError(cudnnFindConvolutionBackwardDataAlgorithmEx(
             handle,
             *filter_desc,
-            xchainer::internal::GetRawOffsetData<void>(w),
+            internal::GetRawOffsetData<void>(w),
             *x_desc,
-            xchainer::internal::GetRawOffsetData<void>(x),
+            internal::GetRawOffsetData<void>(x),
             *conv_desc,
             *y_desc,
-            xchainer::internal::GetRawOffsetData<void>(y),
+            internal::GetRawOffsetData<void>(y),
             1,  // requested algo count,
             &returned_algo_count,
             &perf_result,
@@ -216,12 +215,12 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBack
     CheckCudnnError(cudnnFindConvolutionBackwardFilterAlgorithmEx(
             handle,
             *x_desc,
-            xchainer::internal::GetRawOffsetData<void>(x),
+            internal::GetRawOffsetData<void>(x),
             *gy_desc,
-            xchainer::internal::GetRawOffsetData<void>(gy),
+            internal::GetRawOffsetData<void>(gy),
             *conv_desc,
             *gw_desc,
-            xchainer::internal::GetRawOffsetData<void>(gw),
+            internal::GetRawOffsetData<void>(gw),
             1,  // requested algo count,
             &returned_algo_count,
             &perf_result,
@@ -269,7 +268,7 @@ Array CudaConv::Conv(
     // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
     Shape out_shape{batch_size, out_channels};
     for (int8_t i = 0; i < ndim; ++i) {
-        out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i], cover_all));
+        out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i], cover_all));
         assert(out_shape.back() > 0);
     }
     Array y = Empty(out_shape, x.dtype(), device);
@@ -279,10 +278,10 @@ Array CudaConv::Conv(
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
 
-    internal::CudnnTensorDescriptor x_desc{x_cont};
-    internal::CudnnTensorDescriptor y_desc{y};
-    internal::CudnnFilterDescriptor filter_desc{w_cont};
-    internal::CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+    CudnnTensorDescriptor x_desc{x_cont};
+    CudnnTensorDescriptor y_desc{y};
+    CudnnFilterDescriptor filter_desc{w_cont};
+    CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
     cudnnHandle_t handle = device.cudnn_handle();
@@ -297,18 +296,18 @@ Array CudaConv::Conv(
 
     CheckCudnnError(cudnnConvolutionForward(
             handle,
-            internal::GetValuePtr<1>(x.dtype()),
+            GetValuePtr<1>(x.dtype()),
             *x_desc,
-            xchainer::internal::GetRawOffsetData<void>(x_cont),
+            internal::GetRawOffsetData<void>(x_cont),
             *filter_desc,
-            xchainer::internal::GetRawOffsetData<void>(w_cont),
+            internal::GetRawOffsetData<void>(w_cont),
             *conv_desc,
             algo,
             workspace.get(),
             workspace_size,
-            internal::GetValuePtr<0>(x.dtype()),
+            GetValuePtr<0>(x.dtype()),
             *y_desc,
-            xchainer::internal::GetRawOffsetData<void>(y)));
+            internal::GetRawOffsetData<void>(y)));
 
     if (b) {
         AddBias(handle, y_desc, y, *b);
@@ -359,10 +358,10 @@ Array CudaConv::ConvTranspose(
     Array x_cont = AsContiguousArray(x);
     Array w_cont = AsContiguousArray(w);
 
-    internal::CudnnTensorDescriptor x_desc{x_cont};
-    internal::CudnnTensorDescriptor y_desc{y};
-    internal::CudnnFilterDescriptor filter_desc{w_cont};
-    internal::CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
+    CudnnTensorDescriptor x_desc{x_cont};
+    CudnnTensorDescriptor y_desc{y};
+    CudnnFilterDescriptor filter_desc{w_cont};
+    CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
     cudnnHandle_t handle = device.cudnn_handle();
@@ -377,18 +376,18 @@ Array CudaConv::ConvTranspose(
 
     CheckCudnnError(cudnnConvolutionBackwardData(
             handle,
-            internal::GetValuePtr<1>(x.dtype()),
+            GetValuePtr<1>(x.dtype()),
             *filter_desc,
-            xchainer::internal::GetRawOffsetData<void>(w_cont),
+            internal::GetRawOffsetData<void>(w_cont),
             *x_desc,
-            xchainer::internal::GetRawOffsetData<void>(x_cont),
+            internal::GetRawOffsetData<void>(x_cont),
             *conv_desc,
             algo,
             workspace.get(),
             workspace_size,
-            internal::GetValuePtr<0>(x.dtype()),
+            GetValuePtr<0>(x.dtype()),
             *y_desc,
-            xchainer::internal::GetRawOffsetData<void>(y)));
+            internal::GetRawOffsetData<void>(y)));
 
     if (b) {
         AddBias(handle, y_desc, y, *b);
@@ -434,7 +433,7 @@ Array CudaConv::ConvGradWeight(
         // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
         Shape out_shape{batch_size, out_channels};
         for (int8_t i = 0; i < ndim; ++i) {
-            out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], w_shape[i + 2], stride[i], pad[i], cover_all));
+            out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], w_shape[i + 2], stride[i], pad[i], cover_all));
             assert(out_shape.back() > 0);
         }
         assert(gy.shape() == out_shape);
@@ -449,10 +448,10 @@ Array CudaConv::ConvGradWeight(
     Array gy_cont = AsContiguousArray(gy);
     Array gw_cont = AsContiguousArray(gw);
 
-    internal::CudnnTensorDescriptor x_desc{x_cont};
-    internal::CudnnTensorDescriptor gy_desc{gy_cont};
-    internal::CudnnFilterDescriptor gw_desc{gw_cont};
-    internal::CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+    CudnnTensorDescriptor x_desc{x_cont};
+    CudnnTensorDescriptor gy_desc{gy_cont};
+    CudnnFilterDescriptor gw_desc{gw_cont};
+    CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
     cudnnHandle_t handle = device.cudnn_handle();
@@ -467,22 +466,22 @@ Array CudaConv::ConvGradWeight(
 
     CheckCudnnError(cudnnConvolutionBackwardFilter(
             handle,
-            internal::GetValuePtr<1>(x.dtype()),
+            GetValuePtr<1>(x.dtype()),
             *x_desc,
-            xchainer::internal::GetRawOffsetData<void>(x_cont),
+            internal::GetRawOffsetData<void>(x_cont),
             *gy_desc,
-            xchainer::internal::GetRawOffsetData<void>(gy_cont),
+            internal::GetRawOffsetData<void>(gy_cont),
             *conv_desc,
             algo,
             workspace.get(),
             workspace_size,
-            internal::GetValuePtr<0>(x.dtype()),
+            GetValuePtr<0>(x.dtype()),
             *gw_desc,
-            xchainer::internal::GetRawOffsetData<void>(gw)));
+            internal::GetRawOffsetData<void>(gw)));
 
     return gw;
 }
 
-}  // namespace internal
+}  // namespace cuda_internal
 }  // namespace cuda
 }  // namespace xchainer

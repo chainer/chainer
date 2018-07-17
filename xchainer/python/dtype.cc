@@ -9,7 +9,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -114,7 +114,7 @@ void InitXchainerDtype(pybind11::module& m) {
         e.value(dtype == Dtype::kBool ? "bool_" : GetDtypeName(dtype), dtype);
     }
     e.export_values();
-    e.def(py::init(&internal::GetDtype));
+    e.def(py::init(&GetDtype));
     e.def_property_readonly("char", [](Dtype self) -> py::str {
         char c = GetCharCode(self);
         return py::str{&c, 1};
@@ -165,6 +165,6 @@ void InitXchainerDtype(pybind11::module& m) {
     e.def("type", [](Dtype self, double value) { return Scalar{value, self}; });
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

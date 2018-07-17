@@ -34,9 +34,9 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
     const Array& in = inputs[0];
     Array out = EmptyLike(in);
 
-    if (in.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"incorrect_unary", {out}};
-        bb.Define({in}, [](BackwardContext& bctx) {
+    BackwardBuilder bb{"incorrect_unary", {out}};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(in)) {
+        bt.Define([](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = gout * gout;
         });

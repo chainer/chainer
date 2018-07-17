@@ -20,7 +20,7 @@
 
 namespace xchainer {
 namespace native {
-namespace internal {
+namespace native_internal {
 
 Array Im2Col(
         const Array& x,
@@ -51,7 +51,7 @@ Array Im2Col(
     // Create the output array.
     StackVector<int64_t, kMaxNdim> out_dims;  // Number of patches along each axis
     for (int8_t i = 0; i < ndim; ++i) {
-        out_dims.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
+        out_dims.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
         assert(out_dims.back() > 0);
     }
 
@@ -98,6 +98,6 @@ Array Im2Col(
     return out;
 }
 
-}  // namespace internal
+}  // namespace native_internal
 }  // namespace native
 }  // namespace xchainer

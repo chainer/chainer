@@ -11,7 +11,7 @@ namespace internal {
 
 ArrayBodyLeakTracker* ArrayBodyLeakDetectionScope::array_body_leak_tracker_ = nullptr;
 
-void ArrayBodyLeakTracker::operator()(const std::shared_ptr<internal::ArrayBody>& array_body) {
+void ArrayBodyLeakTracker::operator()(const std::shared_ptr<ArrayBody>& array_body) {
     // Keep weak pointer
     weak_ptrs_.emplace_back(array_body);
 }

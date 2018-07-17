@@ -9,7 +9,7 @@
 
 namespace xchainer {
 namespace native {
-namespace internal {
+namespace native_internal {
 
 Array Im2Col(
         const Array& x,
@@ -19,6 +19,6 @@ Array Im2Col(
         bool cover_all,
         Scalar pad_value = 0);
 
-}  // namespace internal
+}  // namespace native_internal
 }  // namespace native
 }  // namespace xchainer

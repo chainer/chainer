@@ -4,10 +4,10 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 void InitXchainerBackend(pybind11::module&);
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

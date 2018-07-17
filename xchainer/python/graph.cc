@@ -7,7 +7,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -18,6 +18,6 @@ void InitXchainerGraph(pybind11::module& m) {
     m.attr("anygraph") = AnyGraph{};
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

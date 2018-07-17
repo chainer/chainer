@@ -83,7 +83,7 @@ StackVector<int, kMaxNdim> GetIntArrayStrides(const Strides& strides, int64_t it
 
 }  // namespace
 
-namespace internal {
+namespace cuda_internal {
 
 CudnnTensorDescriptor::CudnnTensorDescriptor() { CheckCudnnError(cudnnCreateTensorDescriptor(&desc_)); }
 
@@ -221,6 +221,6 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
     }
 }
 
-}  // namespace internal
+}  // namespace cuda_internal
 }  // namespace cuda
 }  // namespace xchainer

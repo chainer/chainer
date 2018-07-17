@@ -13,7 +13,6 @@
 
 namespace xchainer {
 namespace cuda {
-
 namespace {
 
 template <typename T>

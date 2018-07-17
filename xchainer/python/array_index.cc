@@ -6,7 +6,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;
 
@@ -20,7 +20,7 @@ ArrayIndex MakeArrayIndex(py::handle handle) {
         return ArrayIndex{py::cast<int64_t>(handle)};
     }
     if (py::slice::check_(handle)) {
-        return ArrayIndex{internal::MakeSlice(py::cast<py::slice>(handle))};
+        return ArrayIndex{MakeSlice(py::cast<py::slice>(handle))};
     }
     throw py::index_error{"only integers, slices (`:`), and xchainer.newaxis (`None`) are valid indices"};
 }
@@ -44,6 +44,6 @@ std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
 
 void InitXchainerArrayIndex(py::module& m) { m.attr("newaxis") = py::none(); }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

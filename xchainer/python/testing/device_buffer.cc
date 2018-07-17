@@ -18,7 +18,7 @@
 namespace xchainer {
 namespace python {
 namespace testing {
-namespace internal {
+namespace testing_internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -49,14 +49,14 @@ private:
 void InitXchainerDeviceBuffer(pybind11::module& m) {
     py::class_<PyDeviceBuffer> c{m, "_DeviceBuffer", py::buffer_protocol()};
     c.def(py::init([](const py::list& list, const py::tuple& shape_tup, const py::handle& dtype_handle, const py::handle& device) {
-              Shape shape = python::internal::ToShape(shape_tup);
+              Shape shape = python_internal::ToShape(shape_tup);
               int64_t total_size = shape.GetTotalSize();
               if (static_cast<size_t>(total_size) != list.size()) {
                   throw DimensionError{"Invalid data length"};
               }
 
               // Copy the Python list to a buffer on the host.
-              Dtype dtype = python::internal::GetDtype(dtype_handle);
+              Dtype dtype = python_internal::GetDtype(dtype_handle);
               int64_t item_size = GetItemSize(dtype);
               int64_t bytes = item_size * total_size;
               std::shared_ptr<void> host_data = std::make_unique<uint8_t[]>(bytes);
@@ -67,7 +67,7 @@ void InitXchainerDeviceBuffer(pybind11::module& m) {
               });
 
               // Copy the data on the host buffer to the target device.
-              std::shared_ptr<void> device_data = python::internal::GetDevice(device).FromHostMemory(host_data, bytes);
+              std::shared_ptr<void> device_data = python_internal::GetDevice(device).FromHostMemory(host_data, bytes);
               return PyDeviceBuffer{device_data, item_size, format, shape.ndim(), shape, Strides{shape, dtype}};
           }),
           py::arg("shape"),
@@ -81,7 +81,7 @@ void InitXchainerDeviceBuffer(pybind11::module& m) {
     });
 }
 
-}  // namespace internal
+}  // namespace testing_internal
 }  // namespace testing
 }  // namespace python
 }  // namespace xchainer

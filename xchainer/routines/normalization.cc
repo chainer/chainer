@@ -96,9 +96,9 @@ Array BatchNorm(
 
     Array out = fb->Forward(x.AsGradStopped(), result.gamma.AsGradStopped(), result.beta.AsGradStopped());
 
-    if (x.IsGradRequired(AnyGraph{}) || gamma.IsGradRequired(AnyGraph{}) || beta.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"batch_norm", {out}};
-        bb.Define({x, gamma, beta}, [ fb = std::move(fb), x, gamma = result.gamma ](BackwardContext & bctx) {
+    BackwardBuilder bb{"batch_norm", {out}};
+    if (BackwardBuilder::Target bt = bb.CreateTarget({x, gamma, beta})) {
+        bt.Define([ fb = std::move(fb), x, gamma = result.gamma ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             std::array<Array, 3> ginputs = fb->Backward(gout.AsGradStopped());
             const Array& gx = ginputs[0];
@@ -108,21 +108,22 @@ Array BatchNorm(
             assert(!internal::HasAnyArrayNode(ggamma));
             assert(!internal::HasAnyArrayNode(gbeta));
 
-            if (bctx.next_required() &&
-                (x.IsGradRequired(AnyGraph{}) || gamma.IsGradRequired(AnyGraph{}) || gout.IsGradRequired(AnyGraph{}))) {
+            if (bctx.next_required()) {
                 BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
-                bb2.Define({x, gamma, gout}, [fb](BackwardContext& bctx2) {
-                    const Array& g2x = bctx2.output_grad(0);
-                    const Array& g2gamma = bctx2.output_grad(1);
-                    const Array& g2beta = bctx2.output_grad(2);
-                    std::array<Array, 3> ginputs2 =
-                            fb->DoubleBackward(g2x.AsGradStopped(), g2gamma.AsGradStopped(), g2beta.AsGradStopped());
-                    // TODO(niboshi): Make it further backproppable
-                    // TODO(niboshi): Assign at once
-                    bctx2.input_grad(0) = ginputs2[0];  // gx
-                    bctx2.input_grad(1) = ginputs2[1];  // ggamma
-                    bctx2.input_grad(2) = ginputs2[2];  // ggout
-                });
+                if (BackwardBuilder::Target bt2 = bb2.CreateTarget({x, gamma, gout})) {
+                    bt2.Define([fb](BackwardContext& bctx2) {
+                            const Array& g2x = bctx2.output_grad(0);
+                            const Array& g2gamma = bctx2.output_grad(1);
+                            const Array& g2beta = bctx2.output_grad(2);
+                            std::array<Array, 3> ginputs2 =
+                                fb->DoubleBackward(g2x.AsGradStopped(), g2gamma.AsGradStopped(), g2beta.AsGradStopped());
+                            // TODO(niboshi): Make it further backproppable
+                            // TODO(niboshi): Assign at once
+                            bctx2.input_grad(0) = ginputs2[0];  // gx
+                            bctx2.input_grad(1) = ginputs2[1];  // ggamma
+                            bctx2.input_grad(2) = ginputs2[2];  // ggout
+                        });
+                }
             }
 
             // TODO(niboshi): Assign at once

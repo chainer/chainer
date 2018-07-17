@@ -13,7 +13,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -59,7 +59,7 @@ void InitXchainerContext(pybind11::module& m) {
 
     m.def("get_backend", &GetBackend, py::return_value_policy::reference);
     m.def("get_device",
-          [](py::handle device) -> Device& { return internal::GetDevice(device); },
+          [](py::handle device) -> Device& { return GetDevice(device); },
           py::arg("device") = nullptr,
           py::return_value_policy::reference);
     m.def("get_device",
@@ -83,6 +83,6 @@ void InitXchainerContextScope(pybind11::module& m) {
     m.def("context_scope", [](Context& device) { return PyContextScope(device); });
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

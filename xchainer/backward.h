@@ -22,19 +22,16 @@ class OpNode;
 
 using ArrayRef = std::reference_wrapper<Array>;
 using ConstArrayRef = std::reference_wrapper<const Array>;
-
-namespace internal {
-class ArrayBody;
-}
+using BackwardFunction = std::function<void(BackwardContext&)>;
 
 enum class DoubleBackpropOption : bool {
     kDisable = false,
     kEnable = true,
 };
 
-using BackwardFunction = std::function<void(BackwardContext&)>;
-
 namespace internal {
+
+class ArrayBody;
 
 void AccumulateGrad(nonstd::optional<Array>& target_grad, Array partial_grad, const Shape& shape, Dtype dtype, Device& device);
 
@@ -75,7 +72,7 @@ private:
 
     // The array body which owns the original gradient, if alive.
     // This is a keeper to prevent the gradient from being released after retrieval of the pointer.
-    std::shared_ptr<internal::ArrayBody> original_grad_owner_body_{nullptr};
+    std::shared_ptr<ArrayBody> original_grad_owner_body_{nullptr};
 
     // Temporary gradient instantiated only when the original array body is gone.
     std::unique_ptr<nonstd::optional<Array>> temporary_grad_;
@@ -190,10 +187,6 @@ public:
     BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs);
     BackwardBuilder(const char* op_name, const Array& output) : BackwardBuilder{op_name, std::initializer_list<ConstArrayRef>{output}} {}
 
-    // Defines a backward function with respect to specified input arrays.
-    // For multi-input ops, usually this function is called for each of independent subsets of input arrays.
-    void Define(std::initializer_list<ConstArrayRef> inputs, const BackwardFunction& backward_func);
-
     // Flags an output array to be retained for use in the backward pass.
     // Op implmentations can use this function in combination with BackwardContext::GetRetainedOutput() to retrieve output arrays in the
     // backward pass.
@@ -211,7 +204,47 @@ public:
     // If invalid array is specified, XchainerError will be thrown.
     RetainedOutputToken RetainOutput(const Array& output);
 
+    // Target is responsible to define edges from OpNode to input ArrayNodes with given BackwardFunction.
+    // Note that Targets built from the same BackwardBuilder share some properties not to compute again.
+    class Target {
+    public:
+        // Defines a backward function with respect to specified input arrays (target).
+        void Define(const BackwardFunction& backward_func);
+
+        bool IsGradRequired() const { return !graph_to_next_array_nodes_.empty(); }
+        explicit operator bool() const { return IsGradRequired(); }
+
+    private:
+        using NextArrayNodes = std::vector<const std::shared_ptr<ArrayNode>*>;
+        friend class BackwardBuilder;  // Only BackwardBuilder can create Target
+        Target(BackwardBuilder& builder, std::initializer_list<ConstArrayRef> inputs);
+
+        const char* op_name() { return builder_.op_name_; }
+        bool any_defined() { return builder_.any_defined_; }
+        void set_any_defined(bool defined) { builder_.any_defined_ = defined; }
+        std::vector<ConstArrayRef>& outputs() { return builder_.outputs_; }
+        std::vector<internal::ArrayProps>& output_array_props() {
+            assert(!builder_.output_array_props_.empty());
+            return builder_.output_array_props_;
+        }
+        std::unordered_map<GraphId, std::shared_ptr<OpNode>>& op_node_map() { return builder_.op_node_map_; }
+
+        void PrepareOutputArrayProps() { builder_.PrepareOutputArrayProps(); }
+        void PrepareGraphToNextArrayNodes();
+        std::shared_ptr<OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
+        void RegisterExoticPreviousArrayNodes(const std::vector<OpNode*>& op_nodes);
+
+        BackwardBuilder& builder_;
+        std::vector<ConstArrayRef> inputs_;
+        std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
+    };
+
+    Target CreateTarget(std::initializer_list<ConstArrayRef> inputs) { return Target{*this, inputs}; }
+    Target CreateTarget(const Array& input) { return Target{*this, {input}}; }
+
 private:
+    void PrepareOutputArrayProps();
+
     const char* op_name_;
 
     // Flag indicating whether the first Define() has been called.

@@ -16,7 +16,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 namespace {
 
 namespace py = pybind11;  // standard convention
@@ -64,6 +64,6 @@ void InitXchainerBackpropMode(pybind11::module& m) {
           py::arg("context") = py::none());
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

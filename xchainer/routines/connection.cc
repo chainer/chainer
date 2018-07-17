@@ -59,8 +59,8 @@ Array ConvGradW(
     {
         BackwardBuilder bb{"conv-grad-weight", {out}};
 
-        if (x.IsGradRequired(AnyGraph{})) {
-            bb.Define({x}, [ x_shape = x.shape(), gy, stride, pad ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
+            bt.Define([ x_shape = x.shape(), gy, stride, pad ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
                 assert(out_size.size() == stride.size());
@@ -68,8 +68,8 @@ Array ConvGradW(
             });
         }
 
-        if (gy.IsGradRequired(AnyGraph{})) {
-            bb.Define({gy}, [x, stride, pad, cover_all](BackwardContext& bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(gy)) {
+            bt.Define([x, stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, cover_all);
             });
@@ -122,30 +122,32 @@ Array Conv(
     {
         BackwardBuilder bb{"conv", {out}};
 
-        if (x.IsGradRequired(AnyGraph{})) {
-            bb.Define({x}, [ x_shape = x.shape(), w, stride, pad ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
+            bt.Define([ x_shape = x.shape(), w, stride, pad ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
                 bctx.input_grad() = ConvTranspose(gout, w, nonstd::nullopt, stride, pad, out_size);
             });
         }
 
-        if (w.IsGradRequired(AnyGraph{})) {
-            bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(w)) {
+            bt.Define([ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = ConvGradW(w_dtype, w_shape, x, gout, stride, pad, cover_all);
             });
         }
 
-        if (b.has_value() && b->IsGradRequired(AnyGraph{})) {
-            bb.Define({*b}, [](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                Axes axis{0};
-                for (int8_t i = 2; i < gout.ndim(); ++i) {
-                    axis.emplace_back(int64_t{i});
-                }
-                bctx.input_grad() = Sum(gout, axis, false);
-            });
+        if (b.has_value()) {
+            if (BackwardBuilder::Target bt = bb.CreateTarget(*b)) {
+                bt.Define([](BackwardContext& bctx) {
+                    const Array& gout = bctx.output_grad();
+                    Axes axis{0};
+                    for (int8_t i = 2; i < gout.ndim(); ++i) {
+                        axis.emplace_back(int64_t{i});
+                    }
+                    bctx.input_grad() = Sum(gout, axis, false);
+                });
+            }
         }
     }
 
@@ -218,30 +220,32 @@ Array ConvTranspose(
     {
         BackwardBuilder bb{"conv_transpose", out};
 
-        if (x.IsGradRequired(AnyGraph{})) {
-            bb.Define({x}, [ x_shape = x.shape(), w, stride, pad, cover_all ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
+            bt.Define([ x_shape = x.shape(), w, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
                 bctx.input_grad() = Conv(gout, w, nonstd::nullopt, stride, pad, cover_all);
             });
         }
 
-        if (w.IsGradRequired(AnyGraph{})) {
-            bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(w)) {
+            bt.Define([ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, x, stride, pad, cover_all);
             });
         }
 
-        if (b.has_value() && b->IsGradRequired(AnyGraph{})) {
-            bb.Define({*b}, [](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                Axes axis{0};
-                for (int8_t i = 2; i < gout.ndim(); ++i) {
-                    axis.emplace_back(int64_t{i});
-                }
-                bctx.input_grad() = Sum(gout, axis, false);
-            });
+        if (b.has_value()) {
+            if (BackwardBuilder::Target bt = bb.CreateTarget(*b)) {
+                bt.Define([](BackwardContext& bctx) {
+                    const Array& gout = bctx.output_grad();
+                    Axes axis{0};
+                    for (int8_t i = 2; i < gout.ndim(); ++i) {
+                        axis.emplace_back(int64_t{i});
+                    }
+                    bctx.input_grad() = Sum(gout, axis, false);
+                });
+            }
         }
     }
 
