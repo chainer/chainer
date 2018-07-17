@@ -701,14 +701,14 @@ private:
 }  // namespace
 
 void Backward(const Array& output, const nonstd::optional<GraphId>& graph_id, DoubleBackpropOption double_backprop) {
-    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : output.context().default_graph_id();
+    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : output.device().context().default_graph_id();
     std::vector<ConstArrayRef> outputs{output};  // Do not inline it; we need to guarantee that the vector is alive until Run() finishes.
     BackwardImpl{outputs, actual_graph_id, double_backprop}.Run();
 }
 
 void Backward(const std::vector<ConstArrayRef>& outputs, const nonstd::optional<GraphId>& graph_id, DoubleBackpropOption double_backprop) {
     assert(!outputs.empty());
-    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : outputs.front().context().default_graph_id();
+    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : outputs.front().get().device().context().default_graph_id();
     BackwardImpl{outputs, actual_graph_id, double_backprop}.Run();
 }
 

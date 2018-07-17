@@ -1,7 +1,9 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <ostream>
 
 #include "xchainer/hash_combine.h"
 
@@ -15,6 +17,11 @@ class GraphId {
 public:
     GraphId(Context& context, GraphSubId sub_id) : context_{context}, sub_id_{sub_id} {}
 
+    GraphId(const GraphId&) = default;
+    GraphId(GraphId&&) = default;
+    GraphId& operator=(const GraphId&) = default;
+    GraphId& operator=(GraphId&&) = default;
+
     bool operator==(const GraphId& other) const { return &context_ == &other.context_ && sub_id_ == other.sub_id_; }
 
     bool operator!=(const GraphId& other) const { return !operator==(other); }
@@ -23,9 +30,13 @@ public:
     GraphSubId sub_id() const { return sub_id_; }
 
 private:
-    Context& context_;
+    // Using reference_wrapper to make this class move assignable
+    std::reference_wrapper<Context> context_;
+
     GraphSubId sub_id_;
 };
+
+std::ostream& operator<<(std::ostream& os, const GraphId& graph_id);
 
 // Used to represent any graph (id).
 class AnyGraph {};

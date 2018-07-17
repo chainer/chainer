@@ -44,7 +44,7 @@ namespace xchainer {
 namespace {
 
 GraphId GetArrayGraphId(const Array& array, const nonstd::optional<GraphId>& graph_id) {
-    return graph_id.has_value() ? *graph_id : array.context().default_graph_id();
+    return graph_id.has_value() ? *graph_id : array.device().context().default_graph_id();
 }
 
 }  // namespace
@@ -351,7 +351,7 @@ bool Array::IsGradRequired(AnyGraph any_graph) const { return xchainer::IsGradRe
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<GraphId>& graph_id) {
-    GraphId actual_graph_id = GetArrayGraphId(*this, graph_id);
+    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
     if (xchainer::IsBackpropRequired(actual_graph_id, array.device().context())) {
         internal::CreateArrayNode(array, actual_graph_id);
     }

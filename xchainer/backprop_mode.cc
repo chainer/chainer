@@ -71,7 +71,7 @@ bool IsBackpropRequired(const nonstd::optional<GraphId>& graph_id, Context& cont
 }
 
 bool IsGradRequired(const Array& array, const nonstd::optional<GraphId>& graph_id) {
-    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : array.context().default_graph_id();
+    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : array.device().context().default_graph_id();
     if (internal::HasArrayNode(array, actual_graph_id)) {
         return IsBackpropRequired(actual_graph_id, array.device().context());
     }

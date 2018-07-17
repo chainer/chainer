@@ -144,7 +144,10 @@ void CheckBackwardComputation(
         const std::vector<Array>& eps,
         double atol,
         double rtol,
-        const GraphId& graph_id) {
+        const nonstd::optional<GraphId>& graph_id) {
+    assert(!inputs.empty());
+    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : inputs.front().device().context().default_graph_id();
+
     // Copies the input arrays, so that computed gradients are released at the end of this function.
     // This is needed to detect unreleased array bodies using array body leak detection.
     // Copied input arrays are not connected to the original input arrays, but RequireGrad() is configured to match the original.
@@ -158,7 +161,7 @@ void CheckBackwardComputation(
     }
 
     // Compute backward gradients
-    const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, graph_id);
+    const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, actual_graph_id);
     if (backward_grads.size() != inputs.size()) {
         throw GradientCheckError{"Number of input gradients does not match the input arrays."};
     }
@@ -221,7 +224,7 @@ void CheckBackwardComputation(
             os << i;
         }
         os << std::endl;
-        os << "Graph: " << graph_id << std::endl;
+        os << "Graph: " << actual_graph_id << std::endl;
         os << "Atol: " << atol << "  Rtol: " << rtol << std::endl;
         for (size_t i : failed_input_indices) {
             os << "Error[" << i << "]:" << std::endl
@@ -279,7 +282,8 @@ void CheckDoubleBackwardComputation(
         const std::vector<Array>& eps,
         double atol,
         double rtol,
-        const GraphId& graph_id) {
+        const nonstd::optional<GraphId>& graph_id) {
+    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : inputs.front().device().context().default_graph_id();
     const std::size_t nin = inputs.size();
     const std::size_t nout = grad_outputs.size();
 
@@ -291,33 +295,34 @@ void CheckDoubleBackwardComputation(
 
     // Check all the input arrays require gradients
     for (size_t i = 0; i < nin; ++i) {
-        if (!inputs[i].IsGradRequired(graph_id)) {
-            throw XchainerError{"Input array ", i, " / ", nin, " is not differentiable w.r.t. the graph '", graph_id, "'."};
+        if (!inputs[i].IsGradRequired(actual_graph_id)) {
+            throw XchainerError{"Input array ", i, " / ", nin, " is not differentiable w.r.t. the graph '", actual_graph_id, "'."};
         }
     }
 
     // Check all the output gradient arrays require gradients
     for (size_t i = 0; i < nout; ++i) {
-        if (!grad_outputs[i].IsGradRequired(graph_id)) {
-            throw XchainerError{"Output gradient array ", i, " / ", nout, " is not differentiable w.r.t. the graph '", graph_id, "'."};
+        if (!grad_outputs[i].IsGradRequired(actual_graph_id)) {
+            throw XchainerError{
+                    "Output gradient array ", i, " / ", nout, " is not differentiable w.r.t. the graph '", actual_graph_id, "'."};
         }
     }
 
     // The "forward" function to return the first order gradients
 
-    auto first_order_grad_func = [&func, nin, nout, &graph_id](const std::vector<Array>& inputs_and_grad_outputs) {
+    auto first_order_grad_func = [&func, nin, nout, &actual_graph_id](const std::vector<Array>& inputs_and_grad_outputs) {
         // Just revert (split) inputs_and_grad_outputs into inputs and grad_outputs
         std::vector<Array> inputs{inputs_and_grad_outputs.begin(), inputs_and_grad_outputs.begin() + nin};
         std::vector<Array> grad_outputs{inputs_and_grad_outputs.begin() + nin, inputs_and_grad_outputs.end()};
 
-        ForceBackpropModeScope scope{graph_id};
+        ForceBackpropModeScope scope{actual_graph_id};
 
         for (Array& input : inputs) {
-            input.RequireGrad(graph_id);
+            input.RequireGrad(actual_graph_id);
         }
 
         // Compute first order gradients
-        std::vector<nonstd::optional<Array>> optional_backward_grads = BackwardGradients(func, inputs, grad_outputs, graph_id);
+        std::vector<nonstd::optional<Array>> optional_backward_grads = BackwardGradients(func, inputs, grad_outputs, actual_graph_id);
 
         // Check all the first order gradients are computed
         if (optional_backward_grads.size() != nin) {
@@ -335,9 +340,9 @@ void CheckDoubleBackwardComputation(
         }
 
         for (size_t i = 0; i < nin; ++i) {
-            if (!optional_backward_grads[i]->IsGradRequired(graph_id)) {
+            if (!optional_backward_grads[i]->IsGradRequired(actual_graph_id)) {
                 throw GradientCheckError{
-                        "First-order Input gradient ", i, " / ", nin, " is not differentiable w.r.t. the graph '", graph_id, "'."};
+                        "First-order Input gradient ", i, " / ", nin, " is not differentiable w.r.t. the graph '", actual_graph_id, "'."};
             }
         }
 
@@ -367,7 +372,7 @@ void CheckDoubleBackwardComputation(
 
     // Compute second order backward gradients w.r.t. the first-order gradients.
     const std::vector<nonstd::optional<Array>> backward_grads =
-            BackwardGradients(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, graph_id);
+            BackwardGradients(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, actual_graph_id);
     assert(backward_grads.size() == nin + nout);
 
     // Check if all the second order gradients exist
@@ -377,7 +382,7 @@ void CheckDoubleBackwardComputation(
         for (size_t i = 0; i < backward_grads.size(); ++i) {
             if (!backward_grads[i].has_value()) {
                 os << "Second order gradient w.r.t. the input gradient " << i << " (Total inputs: " << inputs.size()
-                   << ", outputs: " << nout << ") is missing on the graph '" << graph_id << "'. "
+                   << ", outputs: " << nout << ") is missing on the graph '" << actual_graph_id << "'. "
                    << "Maybe you need additional nonlinearity in the target function.";
                 has_error = true;
             }
@@ -405,7 +410,7 @@ void CheckDoubleBackwardComputation(
             os << i;
         }
         os << std::endl;
-        os << "Graph: " << graph_id << std::endl;
+        os << "Graph: " << actual_graph_id << std::endl;
         os << "Atol: " << atol << "  Rtol: " << rtol << std::endl;
         for (size_t i : failed_input_indices) {
             os << "Error[" << i << "]:" << std::endl

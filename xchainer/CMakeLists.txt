@@ -61,6 +61,7 @@ add_library(xchainer SHARED
     device.cc
     device_id.cc
     dtype.cc
+    graph.cc
     numeric.cc
     numerical_gradient.cc
     op_node.cc
