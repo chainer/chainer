@@ -175,7 +175,7 @@ std::shared_ptr<OpNode> OpNode::CloneInOtherGraph(const GraphId& other_graph_id)
     assert(new_prev_array_nodes != nullptr);
 
     // Create new op node instance
-    auto op_node = std::make_shared<OpNode>(name_, other_graph_id, *new_prev_array_nodes, prev_array_props_);
+    auto op_node = std::make_shared<OpNode>(name_, other_graph_id, *new_prev_array_nodes, prev_array_props_);  // NOLINT
     op_node->rank_ = rank_;
 
     // Add new exotic previous array nodes
