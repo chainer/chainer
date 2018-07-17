@@ -255,7 +255,10 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
             bt.Define([x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() / x2; });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(x2)) {
-            bt.Define([x1, x2](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad() * x1 / (x2 * x2); });
+            bt.Define([x1, x2](BackwardContext& bctx) {
+                // TODO(niboshi): Avoid view of x2. Use retained input.
+                bctx.input_grad() = -bctx.output_grad() * x1 / (x2.MakeView() * x2.MakeView());
+            });
         }
     }
 }
@@ -420,8 +423,9 @@ Array Exp(const Array& x) {
     BackwardBuilder bb{"exp", out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
         bt.Define([x](BackwardContext& bctx) {
+            // TODO(niboshi): Avoid view of x. Use retained output.
             const Array& gout = bctx.output_grad();
-            bctx.input_grad() = Exp(x) * gout;
+            bctx.input_grad() = Exp(x.MakeView()) * gout;
         });
     }
 
@@ -439,8 +443,9 @@ Array Log(const Array& x) {
     BackwardBuilder bb{"log", out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
         bt.Define([x](BackwardContext& bctx) {
+            // TODO(niboshi): Avoid view of x. Use retained input.
             const Array& gout = bctx.output_grad();
-            bctx.input_grad() = gout / x;
+            bctx.input_grad() = gout / x.MakeView();
         });
     }
 

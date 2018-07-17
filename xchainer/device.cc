@@ -112,6 +112,10 @@ GenericBatchNormForwardBackward::GenericBatchNormForwardBackward(
     : running_mean_{running_mean}, running_var_{running_var}, eps_{eps}, decay_{decay}, axis_{std::move(axis)} {}
 
 void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std) {
+    assert(!internal::HasAnyArrayNode(x));
+    assert(!internal::HasAnyArrayNode(gamma));
+    assert(!internal::HasAnyArrayNode(x_mean));
+    assert(!internal::HasAnyArrayNode(x_inv_std));
     x_ = std::make_shared<Array>(std::move(x));
     gamma_ = std::make_shared<Array>(std::move(gamma));
     x_mean_ = std::make_shared<Array>(std::move(x_mean));
@@ -119,6 +123,9 @@ void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Ar
 }
 
 void GenericBatchNormForwardBackward::SetBackwardResults(Array gout, Array gx, Array ggamma) {
+    assert(!internal::HasAnyArrayNode(gout));
+    assert(!internal::HasAnyArrayNode(gx));
+    assert(!internal::HasAnyArrayNode(ggamma));
     gout_ = std::make_shared<Array>(std::move(gout));
     gx_ = std::make_shared<Array>(std::move(gx));
     ggamma_ = std::make_shared<Array>(std::move(ggamma));

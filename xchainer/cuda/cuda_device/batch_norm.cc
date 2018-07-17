@@ -187,7 +187,7 @@ public:
                     device);
         }
 
-        SetForwardResults(x_cont, gamma, x_mean, x_inv_std);
+        SetForwardResults(std::move(x_cont), gamma, std::move(x_mean), std::move(x_inv_std));
 
         return out;
     }
@@ -267,7 +267,7 @@ public:
             gbeta = gbeta.AsType(dtype, false);
         }
 
-        SetBackwardResults(gout_cont, gx, ggamma);
+        SetBackwardResults(std::move(gout_cont), gx, ggamma);
         return {std::move(gx), std::move(ggamma), std::move(gbeta)};
     }
 

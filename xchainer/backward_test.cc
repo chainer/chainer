@@ -37,24 +37,11 @@ namespace {
 
 // Asserts all the array bodies are freed in the leak tracker.
 ::testing::AssertionResult IsAllArrayBodiesFreed(internal::ArrayBodyLeakTracker& tracker) {
-    std::vector<std::shared_ptr<internal::ArrayBody>> alive_arr_bodies = tracker.GetAliveArrayBodies();
-    if (!alive_arr_bodies.empty()) {
-        // TODO(niboshi): Output only array bodies that are not referenced from other array bodies
-        std::ostringstream os;
-        os << "Some array bodies are not freed.\n";
-        os << "Number of alive array bodies: " << alive_arr_bodies.size() << "\n";
-        for (const std::shared_ptr<internal::ArrayBody>& array_body : alive_arr_bodies) {
-            Array array{array_body};
-            os << "- Unreleased array body: " << array_body.get() << "\n";
-            os << array << "\n";
-            for (const std::shared_ptr<ArrayNode>& array_node : array.nodes()) {
-                const GraphId& graph_id = array_node->graph_id();
-                DebugDumpComputationalGraph(os, array, graph_id);
-            }
-        }
-        return ::testing::AssertionFailure() << os.str();
+    std::ostringstream os;
+    if (tracker.IsAllArrayBodiesFreed(os)) {
+        return ::testing::AssertionSuccess();
     }
-    return ::testing::AssertionSuccess();
+    return ::testing::AssertionFailure() << os.str();
 }
 
 class BackpropTest : public ::testing::TestWithParam<std::string> {
