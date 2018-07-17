@@ -28,7 +28,7 @@ void InitXchainerBackward(pybind11::module& m) {
               Backward(array, graph_id, double_backprop);
           },
           py::arg(),
-          py::arg("graph_id") = kDefaultGraphId,
+          py::arg("graph_id") = nullptr,
           py::arg("enable_double_backprop") = false);
 
     m.def("backward",
@@ -41,7 +41,7 @@ void InitXchainerBackward(pybind11::module& m) {
               Backward({arrays.begin(), arrays.end()}, graph_id, double_backprop);
           },
           py::arg(),
-          py::arg("graph_id") = kDefaultGraphId,
+          py::arg("graph_id") = nullptr,
           py::arg("enable_double_backprop") = false);
 }
 

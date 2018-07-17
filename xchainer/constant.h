@@ -9,6 +9,6 @@ constexpr int8_t kMaxNdim = 10;
 constexpr int8_t kDynamicNdim = -1;
 
 // Default graph ID to be used if not specified
-constexpr const char* kDefaultGraphId = "default";
+constexpr const char* kDefaultGraphName = "default";
 
 }  // namespace xchainer

@@ -948,7 +948,7 @@ TEST_P(ArrayTest, MultipleGraphsForward) {
     EXPECT_TRUE(o.IsGradRequired(graph_id_2));
 
     // No unspecified graphs are generated
-    EXPECT_FALSE(o.IsGradRequired(kDefaultGraphId));
+    EXPECT_FALSE(o.IsGradRequired());
     EXPECT_FALSE(o.IsGradRequired("graph_3"));
 }
 

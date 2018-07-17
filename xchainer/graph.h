@@ -4,7 +4,6 @@
 
 namespace xchainer {
 
-using GraphId = std::string;
 using GraphSubId = uint64_t;
 
 class GraphId {
