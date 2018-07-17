@@ -6,7 +6,6 @@ from chainer.functions.math import digamma
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
 from chainer.functions.array import where
-import numpy
 
 
 class Beta(distribution.Distribution):
@@ -65,17 +64,8 @@ class Beta(distribution.Distribution):
         return self.a / (self.a + self.b)
 
     def sample_n(self, n):
-        # TODO: using cupy.random.beta
-        if self._is_gpu:
-            eps = numpy.random.beta(
-                cuda.to_cpu(self.a.data), cuda.to_cpu(self.b.data),
-                size=(n,)+self.a.shape).astype(numpy.float32)
-            eps = cuda.to_gpu(eps, cuda.get_device_from_array(self.a.data).id)
-        else:
-            eps = numpy.random.beta(
-                self.a.data, self.b.data,
-                size=(n,)+self.a.shape).astype(numpy.float32)
-
+        xp = cuda.get_array_module(self.a)
+        eps = xp.random.beta(self.a.data, self.b.data, size=(n,)+self.a.shape)
         noise = chainer.Variable(eps)
         return noise
 
