@@ -146,7 +146,7 @@ void CheckBackwardComputation(
         double rtol,
         const GraphId& graph_id) {
     // Copies the input arrays, so that computed gradients are released at the end of this function.
-    // This is needed to detect unreleased array bodies using ArrayBodyHook.
+    // This is needed to detect unreleased array bodies using array body leak detection.
     // Copied input arrays are not connected to the original input arrays, but RequireGrad() is configured to match the original.
     std::vector<Array> inputs_copy;
     for (const auto& input : inputs) {
@@ -243,20 +243,8 @@ namespace {
 
 // Asserts all the array bodies are freed in the leak tracker.
 void CheckAllArrayBodiesFreed(internal::ArrayBodyLeakTracker& tracker) {
-    std::vector<std::shared_ptr<internal::ArrayBody>> alive_arr_bodies = tracker.GetAliveArrayBodies();
-    if (!alive_arr_bodies.empty()) {
-        // TODO(niboshi): Output only array bodies that are not referenced from other array bodies
-        std::ostringstream os;
-        os << "Some array bodies are not freed." << std::endl << "Number of alive array bodies: " << alive_arr_bodies.size() << std::endl;
-        for (const std::shared_ptr<internal::ArrayBody>& array_body : alive_arr_bodies) {
-            Array array{array_body};
-            os << "- Unreleased array body: " << array_body.get() << std::endl;
-            os << array << std::endl;
-            for (const std::shared_ptr<ArrayNode>& array_node : array.nodes()) {
-                const GraphId& graph_id = array_node->graph_id();
-                DebugDumpComputationalGraph(os, array, graph_id);
-            }
-        }
+    std::ostringstream os;
+    if (!tracker.IsAllArrayBodiesFreed(os)) {
         throw GradientCheckError{os.str()};
     }
 }
