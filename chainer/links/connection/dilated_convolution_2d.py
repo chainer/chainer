@@ -123,7 +123,7 @@ reshape(1, 3, 10, 10)
         W_shape = (self.out_channels, in_channels, kh, kw)
         self.W.initialize(W_shape)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the convolution layer.
 
         Args:

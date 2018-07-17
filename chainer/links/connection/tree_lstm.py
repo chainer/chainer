@@ -61,7 +61,7 @@ class ChildSumTreeLSTM(link.Chain):
         self.in_size = in_size
         self.state_size = out_size
 
-    def __call__(self, *cshsx):
+    def forward(self, *cshsx):
         """Returns new cell state and output of Child-Sum TreeLSTM.
 
         Args:
@@ -198,7 +198,7 @@ class NaryTreeLSTM(link.Chain):
         self.state_size = out_size
         self.n_ary = n_ary
 
-    def __call__(self, *cshsx):
+    def forward(self, *cshsx):
         """Returns new cell state and output of N-ary TreeLSTM.
 
         Args:

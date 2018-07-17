@@ -550,7 +550,7 @@ class TestLinkRepeat(unittest.TestCase):
                     self.x = chainer.Parameter(
                         chainer.initializers.Normal(), shape=(2, 3))
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.link = Layer()
@@ -1042,7 +1042,7 @@ class TestChainRepeat(unittest.TestCase):
                 with self.init_scope():
                     self.link = chainer.Link()
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.chain = ChainForTest()
@@ -1580,7 +1580,7 @@ class TestChainListRepeat(unittest.TestCase):
             def __init__(self):
                 super(ChainListForTest, self).__init__(chainer.Link())
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.chainlist = ChainListForTest()
@@ -1853,7 +1853,7 @@ class TestCallMethod(unittest.TestCase):
         model.mock.assert_called_with(0)
 
     def test_no_call_no_forward(self):
-        with self.assertRaises(TypeError):
+        with self.assertRaises(AttributeError):
             self.model(0)
 
 

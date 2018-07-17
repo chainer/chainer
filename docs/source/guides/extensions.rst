@@ -147,7 +147,7 @@ The learning rate will be dropped according to the curve below with :math:`{\rm 
             if self._init is None:
                 self._init = getattr(optimizer, self._attr)
 
-        def __call__(self, trainer):
+        def forward(self, trainer):
             self._t += 1
 
             optimizer = trainer.updater.get_optimizer('main')
@@ -174,4 +174,4 @@ This extension ``PolynomialShift`` takes five arguments.
 - ``batchsize``: The training mini-batchsize.
 - ``len_dataset``: The length of the dataset, i.e., the number of data in the training dataset.
 
-This extension calculates the number of iterations which will be performed during training by using ``stop_trigger``, ``batchsize``, and ``len_dataset``, then stores it as a property ``_maxiter``. This property will be used in the :meth:`__call__` method to update the learning rate. The :meth:`initialize` method obtains the initial learning rate from the optimizer given to the :class:`~chainer.training.Trainer` object. The :meth:`~chainer.traininig.serialize` method stores or recovers the properties, ``_t`` (number of iterations) and ``_last_value`` (the latest learning rate), belonging to this extension.
+This extension calculates the number of iterations which will be performed during training by using ``stop_trigger``, ``batchsize``, and ``len_dataset``, then stores it as a property ``_maxiter``. This property will be used in the :meth:`forward` method to update the learning rate. The :meth:`initialize` method obtains the initial learning rate from the optimizer given to the :class:`~chainer.training.Trainer` object. The :meth:`~chainer.traininig.serialize` method stores or recovers the properties, ``_t`` (number of iterations) and ``_last_value`` (the latest learning rate), belonging to this extension.

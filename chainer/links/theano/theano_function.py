@@ -97,6 +97,6 @@ Please install theano to activate theano function.
             outputs=grad,
             on_unused_input='ignore')
 
-    def __call__(self, *args):
+    def forward(self, *args):
         return theano_function.theano_function(
             self.forward_func, self.backward_func, *args)
