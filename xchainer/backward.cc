@@ -553,12 +553,12 @@ private:
 
             // Boolean flags indicating whether the next grads are required to be calculated in the backward function.
             std::vector<bool> is_next_grads_required;
-            next_grads_subset.reserve(next_count);
+            is_next_grads_required.reserve(next_count);
             std::transform(
                     backward_entry.next_array_node_indices().begin(),
                     backward_entry.next_array_node_indices().end(),
                     std::back_inserter(is_next_grads_required),
-                    [](const nonstd::optional<size_t>& i_next_grad) { return i_next_grad.has_value(); });
+                    [](nonstd::optional<size_t> i_next_grad) { return i_next_grad.has_value(); });
 
             // Call backward.
             BackwardContext bctx{
