@@ -99,7 +99,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
         out_strides.emplace_back(a.strides()[i]);
     }
 
-    Array out = xchainer::internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), out_offset);
+    Array out = MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), out_offset);
 
     BackwardBuilder bb{"get_item", out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {

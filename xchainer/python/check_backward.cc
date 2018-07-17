@@ -13,11 +13,11 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;
 
-using ArrayBodyPtr = std::shared_ptr<xchainer::internal::ArrayBody>;
+using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
 namespace {
 
@@ -91,6 +91,6 @@ void InitXchainerCheckBackward(pybind11::module& m) {
           py::arg("graph_id") = kDefaultGraphId);
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

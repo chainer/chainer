@@ -12,7 +12,7 @@ namespace native {
 class NativeDevice;
 class NativeBackend;
 
-namespace internal {
+namespace native_internal {
 
 // Creates a device instance.
 // This function is meant to be used from the backend class. Never use it for other purpose.
@@ -20,7 +20,7 @@ namespace internal {
 // class.
 NativeDevice* CreateDevice(NativeBackend& backend, int index);
 
-}  // namespace internal
+}  // namespace native_internal
 
 class NativeBackend : public Backend {
 public:

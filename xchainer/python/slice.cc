@@ -4,7 +4,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;
 
@@ -19,6 +19,6 @@ Slice MakeSlice(const py::slice& slice) {
     return Slice{to_optional(py_slice->start), to_optional(py_slice->stop), to_optional(py_slice->step)};
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

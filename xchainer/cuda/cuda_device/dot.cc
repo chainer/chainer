@@ -18,7 +18,6 @@
 
 namespace xchainer {
 namespace cuda {
-
 namespace {
 
 // Dispatch gemm routines based on the element type T
@@ -99,9 +98,9 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
 
         const T one = 1;
         const T zero = 0;
-        const T* a_ptr = xchainer::internal::GetRawOffsetData<const T>(a_config);
-        const T* b_ptr = xchainer::internal::GetRawOffsetData<const T>(b_config);
-        T* out_ptr = xchainer::internal::GetRawOffsetData<T>(out_contiguous);
+        const T* a_ptr = internal::GetRawOffsetData<const T>(a_config);
+        const T* b_ptr = internal::GetRawOffsetData<const T>(b_config);
+        T* out_ptr = internal::GetRawOffsetData<T>(out_contiguous);
         Gemm<T>{}(
                 cublas_handle(), b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
     };

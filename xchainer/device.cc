@@ -55,7 +55,7 @@ namespace {
 // Differentiable mean.
 // TODO(niboshi): Move to routines
 Array Mean(const Array& a, const Axes& axis, bool keepdims) {
-    return a.Sum(axis, keepdims) / xchainer::internal::CountItemsAlongAxes(a.shape(), axis);
+    return a.Sum(axis, keepdims) / internal::CountItemsAlongAxes(a.shape(), axis);
 }
 
 // Differentiable variance.
@@ -87,7 +87,7 @@ ApplyBatchNormResult ApplyBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
 #ifndef NDEBUG
     {
-        Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis, true);
+        Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
         assert(gamma.shape() == reduced_shape);
         assert(beta.shape() == reduced_shape);
 

@@ -19,7 +19,7 @@
 
 namespace xchainer {
 namespace native {
-namespace internal {
+namespace native_internal {
 
 Array Col2Im(
         const Array& col,
@@ -73,6 +73,6 @@ Array Col2Im(
     return padded_out.At(slice);
 }
 
-}  // namespace internal
+}  // namespace native_internal
 }  // namespace native
 }  // namespace xchainer

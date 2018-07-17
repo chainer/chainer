@@ -14,11 +14,11 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;
 
-using ArrayBodyPtr = std::shared_ptr<xchainer::internal::ArrayBody>;
+using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
 void InitXchainerBackward(pybind11::module& m) {
     m.def("backward",
@@ -45,6 +45,6 @@ void InitXchainerBackward(pybind11::module& m) {
           py::arg("enable_double_backprop") = false);
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

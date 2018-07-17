@@ -39,7 +39,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;
 
@@ -53,7 +53,7 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
         throw XchainerError{"offset must be non-negative and no greater than buffer length (", n_bytes, ")"};
     }
 
-    if (!xchainer::internal::IsContiguous(Shape{info.shape}, Strides{info.strides}, info.itemsize)) {
+    if (!internal::IsContiguous(Shape{info.shape}, Strides{info.strides}, info.itemsize)) {
         throw XchainerError{"ndarray is not C-contiguous"};
     }
 
@@ -70,7 +70,7 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     Shape shape{count};
     std::shared_ptr<void> data{info.ptr, [](void*) {}};
 
-    return xchainer::FromData(shape, internal::GetDtype(dtype), data, nonstd::nullopt, offset, internal::GetDevice(device)).move_body();
+    return xchainer::FromData(shape, GetDtype(dtype), data, nonstd::nullopt, offset, GetDevice(device)).move_body();
 }
 
 }  // namespace
@@ -78,21 +78,19 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
 void InitXchainerRoutines(pybind11::module& m) {
     // creation routines
     m.def("array",
-          [](py::handle object, py::handle dtype, bool copy, py::handle device) {
-              return internal::MakeArray(object, dtype, copy, device);
-          },
+          [](py::handle object, py::handle dtype, bool copy, py::handle device) { return MakeArray(object, dtype, copy, device); },
           py::arg("object"),
           py::arg("dtype") = nullptr,
           py::arg("copy") = true,
           py::arg("device") = nullptr);
     m.def("asarray",
-          [](py::handle object, py::handle dtype, py::handle device) { return internal::MakeArray(object, dtype, false, device); },
+          [](py::handle object, py::handle dtype, py::handle device) { return MakeArray(object, dtype, false, device); },
           py::arg("object"),
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("ascontiguousarray",
           [](py::handle a, py::handle dtype, py::handle device) {
-              Array arr{internal::MakeArray(a, dtype, false, device)};
+              Array arr{MakeArray(a, dtype, false, device)};
               return AsContiguousArray(arr).move_body();
           },
           py::arg("a"),
@@ -100,14 +98,14 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("empty",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return Empty(ToShape(shape), internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
+              return Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)).move_body();
           },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("full",
           [](py::tuple shape, Scalar fill_value, py::handle dtype, py::handle device) {
-              return Full(ToShape(shape), fill_value, internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
+              return Full(ToShape(shape), fill_value, GetDtype(dtype), GetDevice(device)).move_body();
           },
           py::arg("shape"),
           py::arg("fill_value"),
@@ -115,21 +113,21 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("full",
           [](py::tuple shape, Scalar fill_value, py::handle device) {
-              return Full(ToShape(shape), fill_value, internal::GetDevice(device)).move_body();
+              return Full(ToShape(shape), fill_value, GetDevice(device)).move_body();
           },
           py::arg("shape"),
           py::arg("fill_value"),
           py::arg("device") = nullptr);
     m.def("zeros",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return Zeros(ToShape(shape), internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
+              return Zeros(ToShape(shape), GetDtype(dtype), GetDevice(device)).move_body();
           },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("ones",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return Ones(ToShape(shape), internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
+              return Ones(ToShape(shape), GetDtype(dtype), GetDevice(device)).move_body();
           },
           py::arg("shape"),
           py::arg("dtype"),
@@ -150,8 +148,8 @@ void InitXchainerRoutines(pybind11::module& m) {
                   stop = maybe_stop.value();
               }
 
-              return dtype.is_none() ? Arange(start, stop, step, internal::GetDevice(device)).move_body()
-                                     : Arange(start, stop, step, internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
+              return dtype.is_none() ? Arange(start, stop, step, GetDevice(device)).move_body()
+                                     : Arange(start, stop, step, GetDtype(dtype), GetDevice(device)).move_body();
           },
           py::arg("start"),
           py::arg("stop") = nullptr,
@@ -159,22 +157,20 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("empty_like",
-          [](const ArrayBodyPtr& a, py::handle device) { return EmptyLike(Array{a}, internal::GetDevice(device)).move_body(); },
+          [](const ArrayBodyPtr& a, py::handle device) { return EmptyLike(Array{a}, GetDevice(device)).move_body(); },
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("full_like",
-          [](const ArrayBodyPtr& a, Scalar value, py::handle device) {
-              return FullLike(Array{a}, value, internal::GetDevice(device)).move_body();
-          },
+          [](const ArrayBodyPtr& a, Scalar value, py::handle device) { return FullLike(Array{a}, value, GetDevice(device)).move_body(); },
           py::arg("a"),
           py::arg("fill_value"),
           py::arg("device") = nullptr);
     m.def("zeros_like",
-          [](const ArrayBodyPtr& a, py::handle device) { return ZerosLike(Array{a}, internal::GetDevice(device)).move_body(); },
+          [](const ArrayBodyPtr& a, py::handle device) { return ZerosLike(Array{a}, GetDevice(device)).move_body(); },
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("ones_like",
-          [](const ArrayBodyPtr& a, py::handle device) { return OnesLike(Array{a}, internal::GetDevice(device)).move_body(); },
+          [](const ArrayBodyPtr& a, py::handle device) { return OnesLike(Array{a}, GetDevice(device)).move_body(); },
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
@@ -187,7 +183,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("identity",
           [](int64_t n, py::handle dtype, py::handle device) {
-              return Identity(n, dtype.is_none() ? Dtype::kFloat64 : internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
+              return Identity(n, dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)).move_body();
           },
           py::arg("n"),
           py::arg("dtype") = nullptr,
@@ -197,8 +193,7 @@ void InitXchainerRoutines(pybind11::module& m) {
               if (!m.has_value()) {
                   m = n;
               }
-
-              return Eye(n, m.value(), k, internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
+              return Eye(n, m.value(), k, GetDtype(dtype), GetDevice(device)).move_body();
           },
           py::arg("N"),
           py::arg("M") = nullptr,
@@ -206,14 +201,12 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype") = Dtype::kFloat64,
           py::arg("device") = nullptr);
     m.def("diag",
-          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return Diag(Array{v}, k, internal::GetDevice(device)).move_body(); },
+          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return Diag(Array{v}, k, GetDevice(device)).move_body(); },
           py::arg("v"),
           py::arg("k") = 0,
           py::arg("device") = nullptr);
     m.def("diagflat",
-          [](const ArrayBodyPtr& v, int64_t k, py::handle device) {
-              return Diagflat(Array{v}, k, internal::GetDevice(device)).move_body();
-          },
+          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return Diagflat(Array{v}, k, GetDevice(device)).move_body(); },
           py::arg("v"),
           py::arg("k") = 0,
           py::arg("device") = nullptr);
@@ -224,9 +217,8 @@ void InitXchainerRoutines(pybind11::module& m) {
                              stop,
                              num,
                              endpoint,
-                             dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt}
-                                             : nonstd::optional<Dtype>{internal::GetDtype(dtype)},
-                             internal::GetDevice(device))
+                             dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt} : nonstd::optional<Dtype>{GetDtype(dtype)},
+                             GetDevice(device))
                       .move_body();
           },
           py::arg("start"),
@@ -549,6 +541,6 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("pad_mode") = "ignore");
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

@@ -6,7 +6,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 Context& GetContext(pybind11::handle handle);
 
@@ -14,6 +14,6 @@ void InitXchainerContext(pybind11::module&);
 
 void InitXchainerContextScope(pybind11::module&);
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

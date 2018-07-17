@@ -13,7 +13,6 @@
 
 namespace xchainer {
 namespace testing {
-
 namespace {
 
 std::atomic<int> g_skipped_native_test_count{0};
@@ -57,7 +56,7 @@ int GetCudaDeviceLimit(Backend& backend) {
 
 }  // namespace
 
-namespace internal {
+namespace testing_internal {
 
 int GetSkippedNativeTestCount() { return g_skipped_native_test_count; }
 
@@ -94,6 +93,6 @@ bool SkipIfDeviceUnavailable(const std::string& backend_name, int required_num) 
     return SkipIfDeviceUnavailable(GetDefaultContext().GetBackend(backend_name), required_num);
 }
 
-}  // namespace internal
+}  // namespace testing_internal
 }  // namespace testing
 }  // namespace xchainer

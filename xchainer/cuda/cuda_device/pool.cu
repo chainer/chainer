@@ -107,27 +107,27 @@ public:
         // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
         Shape out_shape{x.shape()[0], x.shape()[1]};
         for (int8_t i = 0; i < ndim; ++i) {
-            out_shape.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], kernel_size_[i], stride_[i], pad_[i], cover_all_));
+            out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size_[i], stride_[i], pad_[i], cover_all_));
             assert(out_shape.back() > 0);
         }
 
         Array y = Empty(out_shape, x.dtype(), x.device());
         Array x_cont = AsContiguousArray(x);
 
-        internal::CudnnTensorDescriptor x_desc{x_cont};
-        internal::CudnnTensorDescriptor y_desc{y};
+        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor y_desc{y};
 
-        internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
+        cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
         CheckCudnnError(cudnnPoolingForward(
                 cudnn_handle_,
                 *pool_desc,
-                internal::GetValuePtr<1>(x.dtype()),
+                cuda_internal::GetValuePtr<1>(x.dtype()),
                 *x_desc,
-                xchainer::internal::GetRawOffsetData<void>(x_cont),
-                internal::GetValuePtr<0>(x.dtype()),
+                internal::GetRawOffsetData<void>(x_cont),
+                cuda_internal::GetValuePtr<0>(x.dtype()),
                 *y_desc,
-                xchainer::internal::GetRawOffsetData<void>(y)));
+                internal::GetRawOffsetData<void>(y)));
 
         x_ = x;
         y_ = y;
@@ -151,26 +151,26 @@ public:
         Array gout_cont = AsContiguousArray(gout);
         Array x_cont = AsContiguousArray(x_);
 
-        internal::CudnnTensorDescriptor y_desc{y_cont};
-        internal::CudnnTensorDescriptor gout_desc{gout_cont};
-        internal::CudnnTensorDescriptor x_desc{x_cont};
-        internal::CudnnTensorDescriptor gx_desc{gx};
+        cuda_internal::CudnnTensorDescriptor y_desc{y_cont};
+        cuda_internal::CudnnTensorDescriptor gout_desc{gout_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor gx_desc{gx};
 
-        internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
+        cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
         CheckCudnnError(cudnnPoolingBackward(
                 cudnn_handle_,
                 *pool_desc,
-                internal::GetValuePtr<1>(x_.dtype()),
+                cuda_internal::GetValuePtr<1>(x_.dtype()),
                 *y_desc,
-                xchainer::internal::GetRawOffsetData<void>(y_cont),
+                internal::GetRawOffsetData<void>(y_cont),
                 *gout_desc,
-                xchainer::internal::GetRawOffsetData<void>(gout_cont),
+                internal::GetRawOffsetData<void>(gout_cont),
                 *x_desc,
-                xchainer::internal::GetRawOffsetData<void>(x_cont),
-                internal::GetValuePtr<0>(x_.dtype()),
+                internal::GetRawOffsetData<void>(x_cont),
+                cuda_internal::GetValuePtr<0>(x_.dtype()),
                 *gx_desc,
-                xchainer::internal::GetRawOffsetData<void>(gx)));
+                internal::GetRawOffsetData<void>(gx)));
 
         return gx;
     }

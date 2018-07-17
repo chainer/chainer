@@ -41,13 +41,13 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;
 
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Shape shape{array.shape(), array.shape() + array.ndim()};
-    Dtype dtype = internal::GetDtypeFromNumpyDtype(array.dtype());
+    Dtype dtype = GetDtypeFromNumpyDtype(array.dtype());
     Strides strides{array.strides(), array.strides() + array.ndim()};
 
     // Copy to a newly allocated data
@@ -60,7 +60,7 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     }
 
     // Create and return the array
-    return xchainer::internal::FromHostData(shape, dtype, data, strides, device).move_body();
+    return internal::FromHostData(shape, dtype, data, strides, device).move_body();
 }
 
 namespace {
@@ -80,12 +80,12 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
 
-    return xchainer::internal::FromContiguousHostData(shape, dtype, ptr, device).move_body();
+    return internal::FromContiguousHostData(shape, dtype, ptr, device).move_body();
 }
 
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
     Array array = Array{self}.ToNative();
-    return py::array{py::buffer_info{xchainer::internal::GetRawOffsetData<void>(array),
+    return py::array{py::buffer_info{internal::GetRawOffsetData<void>(array),
                                      array.item_size(),
                                      std::string(1, GetCharCode(array.dtype())),
                                      array.ndim(),
@@ -96,12 +96,12 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
 }  // namespace
 
 ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
-    Device& dev = internal::GetDevice(device);
+    Device& dev = GetDevice(device);
 
     // object is xchainer.ndarray
     if (py::isinstance<ArrayBody>(object)) {
         Array a = Array{py::cast<ArrayBodyPtr>(object)};
-        Dtype dtype_ = dtype.is_none() ? a.dtype() : internal::GetDtype(dtype);
+        Dtype dtype_ = dtype.is_none() ? a.dtype() : GetDtype(dtype);
 
         if (!copy && a.dtype() == dtype_ && &a.device() == &dev) {
             return a.move_body();
@@ -121,7 +121,7 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
     py::object array_func = py::module::import("numpy").attr("array");
     py::object dtype_name = py::none();
     if (!dtype.is_none()) {
-        dtype_name = py::str{GetDtypeName(internal::GetDtype(dtype))};
+        dtype_name = py::str{GetDtypeName(GetDtype(dtype))};
     }
     py::array np_array = array_func(object, py::arg("copy") = copy, py::arg("dtype") = dtype_name);
 
@@ -134,7 +134,7 @@ void InitXchainerArray(pybind11::module& m) {
     // TODO(hvy): Remove list accepting bindings and replace calls with xchainer.array.
     // For multidimensional arrays, nested lists should be passed to xchainer.array.
     c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, py::handle device) {
-              return MakeArray(shape, internal::GetDtype(dtype), list, internal::GetDevice(device));
+              return MakeArray(shape, GetDtype(dtype), list, GetDevice(device));
           }),
           py::arg("shape"),
           py::arg("dtype"),
@@ -142,7 +142,7 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("device") = nullptr);
     // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
     c.def(py::init([](const py::tuple& shape, py::handle dtype, py::handle device) {
-              return Empty(ToShape(shape), internal::GetDtype(dtype), internal::GetDevice(device)).move_body();
+              return Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)).move_body();
           }),
           py::arg("shape"),
           py::arg("dtype"),
@@ -153,8 +153,7 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
     c.def("view", [](const ArrayBodyPtr& self) { return Array{self}.MakeView().move_body(); });
     c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
-    c.def("to_device",
-          [](const ArrayBodyPtr& self, py::handle device) { return Array{self}.ToDevice(internal::GetDevice(device)).move_body(); });
+    c.def("to_device", [](const ArrayBodyPtr& self, py::handle device) { return Array{self}.ToDevice(GetDevice(device)).move_body(); });
     c.def("to_device", [](const ArrayBodyPtr& self, const std::string& backend_name, int index) {
         Device& device = GetDefaultContext().GetDevice({backend_name, index});
         return Array{self}.ToDevice(device).move_body();
@@ -171,15 +170,11 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg().noconvert(),
           py::arg("copy") = false);
     c.def("astype",
-          [](const ArrayBodyPtr& self, py::handle dtype, bool copy) {
-              return Array{self}.AsType(internal::GetDtype(dtype), copy).move_body();
-          },
+          [](const ArrayBodyPtr& self, py::handle dtype, bool copy) { return Array{self}.AsType(GetDtype(dtype), copy).move_body(); },
           py::arg("dtype"),
           py::arg("copy") = true);
     c.def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); });
-    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle handle) {
-        return Array{self}.At(python::internal::MakeArrayIndices(handle)).move_body();
-    });
+    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle handle) { return Array{self}.At(MakeArrayIndices(handle)).move_body(); });
     c.def("take",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
@@ -363,6 +358,6 @@ void InitXchainerArray(pybind11::module& m) {
     });
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

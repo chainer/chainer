@@ -12,14 +12,14 @@ namespace internal {
 // Used in combination with ArrayBodyLeakDetectionScope to detect leaks.
 class ArrayBodyLeakTracker {
 public:
-    void operator()(const std::shared_ptr<internal::ArrayBody>& array_body);
+    void operator()(const std::shared_ptr<ArrayBody>& array_body);
 
     // Returns the array bodies which are still alive.
     // It is useful to detect unreleased array bodies, leaking from the scope of ArrayBodyLeakDetectionScope.
     std::vector<std::shared_ptr<ArrayBody>> GetAliveArrayBodies() const;
 
 private:
-    std::vector<std::weak_ptr<internal::ArrayBody>> weak_ptrs_;
+    std::vector<std::weak_ptr<ArrayBody>> weak_ptrs_;
 };
 
 // A scope object to detect array body leaks.

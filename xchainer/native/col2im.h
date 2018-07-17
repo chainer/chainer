@@ -8,7 +8,7 @@
 
 namespace xchainer {
 namespace native {
-namespace internal {
+namespace native_internal {
 
 Array Col2Im(
         const Array& col,
@@ -16,6 +16,6 @@ Array Col2Im(
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& out_size);
 
-}  // namespace internal
+}  // namespace native_internal
 }  // namespace native
 }  // namespace xchainer

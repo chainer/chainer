@@ -11,7 +11,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -19,7 +19,7 @@ namespace {
 
 template <typename T>
 Scalar MakeScalar(T value, py::handle dtype) {
-    return Scalar{value, internal::GetDtype(dtype)};
+    return Scalar{value, GetDtype(dtype)};
 }
 
 }  // namespace
@@ -63,6 +63,6 @@ void InitXchainerScalar(pybind11::module& m) {
     py::implicitly_convertible<py::float_, Scalar>();
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

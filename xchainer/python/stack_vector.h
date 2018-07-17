@@ -11,7 +11,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 // Returns a StackVector of length size filled with the given item.
 template <typename T>
@@ -43,6 +43,6 @@ StackVector<T, kMaxNdim> ToStackVector(pybind11::handle handle, size_t size) {
     throw py::type_error{"Only int and tuple is allowed."};
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer
