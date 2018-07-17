@@ -28,6 +28,8 @@ install(FILES
     elementwise.h
     error.h
     graph.h
+    graph_scope.h
+    hash_combine.h
     index_iterator.h
     indexable_array.h
     indexer.h

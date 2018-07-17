@@ -350,15 +350,16 @@ bool Array::IsGradRequired(const nonstd::optional<GraphId>& graph_id) const {
 bool Array::IsGradRequired(AnyGraph any_graph) const { return xchainer::IsGradRequired(*this, any_graph); }
 
 template <typename T>
-T& Array::RequireGradImpl(T& array, const GraphId& graph_id) {
-    if (xchainer::IsBackpropRequired(graph_id, array.device().context())) {
-        internal::CreateArrayNode(array, graph_id);
+T& Array::RequireGradImpl(T& array, const nonstd::optional<GraphId>& graph_id) {
+    GraphId actual_graph_id = GetArrayGraphId(*this, graph_id);
+    if (xchainer::IsBackpropRequired(actual_graph_id, array.device().context())) {
+        internal::CreateArrayNode(array, actual_graph_id);
     }
     return array;
 }
 
-template const Array& Array::RequireGradImpl<const Array>(const Array& array, const GraphId& graph_id);
-template Array& Array::RequireGradImpl<Array>(Array& array, const GraphId& graph_id);
+template const Array& Array::RequireGradImpl<const Array>(const Array& array, const nonstd::optional<GraphId>& graph_id);
+template Array& Array::RequireGradImpl<Array>(Array& array, const nonstd::optional<GraphId>& graph_id);
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 

@@ -43,11 +43,16 @@ public:
 
     void ReleaseGraphId(const GraphId& graph_id);
 
+    GraphId default_graph_id() {
+        // 0 is the graph sub id of the default graph.
+        return GraphId{*this, 0};
+    }
+
 private:
     std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
     std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
-    GraphSubId next_graph_sub_id_{1};
+    GraphSubId next_graph_sub_id_{1};  // 1 is the first sub graph id after the default graph whose sub graph sub id is 0.
 };
 
 // Gets/sets the context that used by default when current context is not set.

@@ -242,7 +242,7 @@ private:
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
     template <typename T>
-    static T& RequireGradImpl(T& array, const GraphId& graph_id);
+    static T& RequireGradImpl(T& array, const nonstd::optional<GraphId>& graph_id);
 
     std::shared_ptr<internal::ArrayBody> body_;
 };
