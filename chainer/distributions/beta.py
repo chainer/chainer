@@ -66,7 +66,7 @@ class Beta(distribution.Distribution):
     def sample_n(self, n):
         xp = cuda.get_array_module(self.a)
         eps = xp.random.beta(self.a.data, self.b.data, size=(n,)+self.a.shape)
-        noise = chainer.Variable(eps)
+        noise = chainer.Variable(eps.astype(self.a.dtype))
         return noise
 
     @property
