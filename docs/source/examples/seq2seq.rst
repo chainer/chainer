@@ -292,7 +292,7 @@ depicted in the above figure.
    :caption: seq2seq.py
 
 * In ``Seq2seq``, three functions are defined: the constructor ``__init__``,
-  the function call ``__call__``, and the function for translation ``translate``.
+  the function call ``forward``, and the function for translation ``translate``.
 
 .. literalinclude:: ../../../examples/seq2seq/seq2seq.py
    :language: python
@@ -312,10 +312,10 @@ depicted in the above figure.
 
 .. literalinclude:: ../../../examples/seq2seq/seq2seq.py
    :language: python
-   :pyobject: Seq2seq.__call__
+   :pyobject: Seq2seq.forward
    :caption: seq2seq.py
 
-* The ``__call__`` method takes sequences of source language's word IDs ``xs``
+* The ``forward`` method takes sequences of source language's word IDs ``xs``
   and sequences of target language's word IDs ``ys``. Each sequence represents a
   sentence, and the size of ``xs`` is mini-batch size.
 * Note that the sequences of word IDs ``xs`` and ``ys`` are converted to a
@@ -342,7 +342,7 @@ depicted in the above figure.
     the source sentences are reversed (the target sentences are not reversed).
     By doing so, the LSTM’s test perplexity dropped from 5.8 to 4.7, and the test
     BLEU scores of its decoded translations increased from 25.9 to 30.6.`"
-    So, at the first line in the ``__call__``, the input sentences are reversed
+    So, at the first line in the ``forward``, the input sentences are reversed
     ``xs = [x[::-1] for x in xs]``.
 
 

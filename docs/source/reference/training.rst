@@ -102,6 +102,7 @@ The typical use case is to change the learning rate of the optimizer over time.
    chainer.training.extensions.InverseShift
    chainer.training.extensions.LinearShift
    chainer.training.extensions.PolynomialShift
+   chainer.training.extensions.StepShift
 
 Reporting
 ~~~~~~~~~

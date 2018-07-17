@@ -108,11 +108,11 @@ class Link(object):
                       self.b = chainer.Parameter(
                           initializers.Zero(), (n_out,))
 
-              def __call__(self, x):
+              def forward(self, x):
                   return F.linear(x, self.W, self.b)
 
        This example shows that a user can define arbitrary parameters and use
-       them in any methods. Links typically implement the ``__call__``
+       them in any methods. Links typically implement the ``forward``
        operator, although they can also provide other methods to implement the
        forward propagation.
 
@@ -194,13 +194,7 @@ class Link(object):
             self._within_init_scope = old_flag
 
     def __call__(self, *args, **kwargs):
-        try:
-            forward = self.forward
-        except AttributeError:
-            raise TypeError(
-                '{} object has neither \'Link.__call__\' method overridden'
-                ' nor \'forward\' method defined.'.format(self))
-        return forward(*args, **kwargs)
+        return self.forward(*args, **kwargs)
 
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
@@ -659,7 +653,7 @@ Assign a Parameter object directly to an attribute within a \
                                 None, 64, 3, 1, 1, nobias=True)
                             self.bn = L.BatchNormalization(64)
 
-                    def __call__(self, x):
+                    def forward(self, x):
                         return F.relu(self.bn(self.conv(x)))
 
                 net = ConvBNReLU().repeat(16, mode='init')
@@ -788,7 +782,7 @@ class Chain(Link):
                       self.layer2 = L.Linear(n_hidden, n_hidden)
                       self.layer3 = L.Linear(n_hidden, n_out)
 
-              def __call__(self, x):
+              def forward(self, x):
                   # Forward propagation
                   h1 = F.relu(self.layer1(x))
                   h2 = F.relu(self.layer2(h1))
@@ -796,7 +790,7 @@ class Chain(Link):
 
        Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
-       implemented as the ``__call__`` operator as the above example, though
+       implemented as the ``forward`` operator as the above example, though
        it is not mandatory.
 
     Args:

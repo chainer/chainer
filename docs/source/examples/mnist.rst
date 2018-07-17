@@ -64,7 +64,7 @@ Here, we are going to use the same model as the one defined in :doc:`train_loop`
                 self.l2 = L.Linear(None, n_mid_units)
                 self.l3 = L.Linear(None, n_out)
 
-        def __call__(self, x):
+        def forward(self, x):
             h1 = F.relu(self.l1(x))
             h2 = F.relu(self.l2(h1))
             return self.l3(h2)
@@ -113,7 +113,7 @@ Now let's create the :class:`~chainer.training.Updater` object !
 
     Here, the model defined above is passed to :class:`~chainer.links.Classifier` and changed to a new :class:`~chainer.Chain`. :class:`~chainer.links.Classifier`, which in fact inherits from the :class:`~chainer.Chain` class, keeps the given :class:`~chainer.Chain` model in its :attr:`~chainer.links.Classifier.predictor` attribute. Once you give the input data and the corresponding class labels to the model by the ``()`` operator,
 
-    1. :meth:`~chainer.links.Classifier.__call__` of the model is invoked. The data is then given to :attr:`~chainer.links.Classifier.predictor` to obtain the output ``y``.
+    1. :meth:`~chainer.links.Classifier.forward` of the model is invoked. The data is then given to :attr:`~chainer.links.Classifier.predictor` to obtain the output ``y``.
     2. Next, together with the given labels, the output ``y`` is passed to the loss function which is determined by :attr:`~chainer.links.Classifier.lossfun` argument in the constructor of :class:`~chainer.links.Classifier`.
     3. The loss is returned as a :class:`~chainer.Variable`.
 
