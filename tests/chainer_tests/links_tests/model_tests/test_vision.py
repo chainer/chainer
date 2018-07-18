@@ -29,8 +29,8 @@ class TestResNetLayers(unittest.TestCase):
         self._old_dtype = None
         config = chainer.config
         if hasattr(config._local, 'dtype'):
-            self._old_dtype = getattr(config, 'dtype')
-        setattr(config, 'dtype', self.dtype)
+            self._old_dtype = config.dtype
+        config.dtype = self.dtype
         if self.n_layers == 50:
             self.link = resnet.ResNet50Layers(
                 pretrained_model=None, downsample_fb=self.downsample_fb)
@@ -44,9 +44,9 @@ class TestResNetLayers(unittest.TestCase):
     def tearDown(self):
         config = chainer.config
         if self._old_dtype is None:
-            delattr(config, 'dtype')
+            del config.dtype
         else:
-            setattr(config, 'dtype', self._old_dtype)
+            config.dtype = self._old_dtype
 
     def test_available_layers(self):
         result = self.link.available_layers
