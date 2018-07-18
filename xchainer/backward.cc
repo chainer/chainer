@@ -85,31 +85,27 @@ const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedAr
     assert(op_node != nullptr);
     std::vector<std::shared_ptr<ArrayNode>> new_prev_array_nodes;
 
-    // Loop over graphs to collect array nodes corresponding to the same output index
-    for (const auto& tup : op_node->prev_array_nodes_of_all_graphs()) {
-        const GraphId& graph_id = std::get<0>(tup);
-        const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes = std::get<1>(tup);
+    // Loop over outer graphs to collect array nodes corresponding to the same output index
+    for (const auto& tup : op_node->outer_graphs_prev_array_nodes()) {
+        const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes = std::get<1>(tup);
+        const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes[output_index_];
+        new_prev_array_nodes.emplace_back(prev_array_node);
+    }
 
-        // If previous array node is alive, add the node to the array body.
-        // Otherwise, create a new array node out of an op node of the corresponding graph.
+    // Collect array nodes of this graph.
+    // If previous array node is alive, add the node to the array body.
+    // Otherwise, create a new array node out of an op node of the corresponding graph.
+    {
+        const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes = op_node->prev_array_nodes();
+
         std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[output_index_].lock();
         if (prev_array_node == nullptr) {
-            std::shared_ptr<OpNode> new_op_node{};
-            if (op_node->graph_id() == graph_id) {
-                // Creating prev array node for "this" graph, based on the current op node
-                new_op_node = op_node;
-            } else {
-                // Creating prev array node for other graph, based on mocked op node in the other graph
-                new_op_node = op_node->CloneInOtherGraph(graph_id);
-            }
-            // Create mocked prev array node which refers to the op node
+            // Create mocked prev array node for "this" graph, based on the current op node
             const internal::ArrayProps& props = op_node->GetPrevArrayProps(output_index_);
-            prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, graph_id);
-            prev_array_node->set_next_op_node(std::move(new_op_node));
+            prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node->graph_id());
+            prev_array_node->set_next_op_node(op_node);
         }
 
-        assert(prev_array_node->graph_id() == graph_id);
-        assert(prev_array_node->GetBody() == nullptr);
         new_prev_array_nodes.emplace_back(std::move(prev_array_node));
     }
 
@@ -309,8 +305,8 @@ std::shared_ptr<OpNode>& BackwardBuilder::Target::FindOrCreateOpNode(const Graph
     return insert_result.first->second;
 }
 
-// Add weak ptrs from the op nodes to previous array nodes of other graphs.
-void BackwardBuilder::Target::RegisterExoticPreviousArrayNodes(const std::vector<OpNode*>& op_nodes) {
+// Add shared ptrs from the op nodes to previous array nodes of outer graphs.
+void BackwardBuilder::Target::RegisterOuterGraphsPreviousArrayNodes(const std::vector<OpNode*>& op_nodes) {
     if (op_nodes.size() < 2) {  // op_nodes.size() is the number of graphs
         return;
     }
@@ -328,7 +324,7 @@ void BackwardBuilder::Target::RegisterExoticPreviousArrayNodes(const std::vector
             if (tup.first >= op_node->graph_id()) {
                 continue;
             }
-            op_node->RegisterExoticPreviousArrayNodes(tup.first, tup.second);
+            op_node->RegisterOuterGraphsPreviousArrayNodes(tup.first, tup.second);
         }
     }
 }
@@ -365,7 +361,7 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
 
     if (!any_defined()) {
         // TODO(niboshi): Do this only when BackwardBuilder::RetainOutput() is called.
-        RegisterExoticPreviousArrayNodes(op_nodes);
+        RegisterOuterGraphsPreviousArrayNodes(op_nodes);
     }
     set_any_defined(true);
 }

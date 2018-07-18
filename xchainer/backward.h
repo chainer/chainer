@@ -239,7 +239,7 @@ public:
         void PrepareOutputArrayProps() { builder_.PrepareOutputArrayProps(); }
         void PrepareGraphToNextArrayNodes();
         std::shared_ptr<OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
-        void RegisterExoticPreviousArrayNodes(const std::vector<OpNode*>& op_nodes);
+        void RegisterOuterGraphsPreviousArrayNodes(const std::vector<OpNode*>& op_nodes);
 
         BackwardBuilder& builder_;
         std::vector<ConstArrayRef> inputs_;

@@ -80,10 +80,6 @@ public:
     void RegisterOuterGraphsPreviousArrayNodes(
             GraphId other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes);
 
-    // Clones the op node in another graph.
-    // Used when fabricating array nodes in output array retention.
-    std::shared_ptr<OpNode> CloneInOtherGraph(const GraphId& other_graph_id) const;
-
     void Unchain() {
         backward_entries_.clear();
         next_array_nodes_.clear();
