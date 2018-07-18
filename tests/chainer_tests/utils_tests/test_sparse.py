@@ -77,8 +77,8 @@ class TestGetOrder(unittest.TestCase):
         sp_x = utils.to_coo(x0)
         row = sp_x.row
         col = sp_x.col
-        assert(utils.get_order(row, col) == 'C')
-        assert(utils.get_order(col, row) == 'F')
+        assert utils.get_order(row, col) == 'C'
+        assert utils.get_order(col, row) == 'F'
 
 
 class TestGetOrder2(unittest.TestCase):
@@ -86,14 +86,14 @@ class TestGetOrder2(unittest.TestCase):
     def test_other_order(self):
         row = numpy.array((0, 2, 4, 1, 3), dtype=numpy.int32)
         col = numpy.array((1, 3, 0, 2, 4), dtype=numpy.int32)
-        assert(utils.get_order(row, col) == 'other')
-        assert(utils.get_order(col, row) == 'other')
+        assert utils.get_order(row, col) == 'other'
+        assert utils.get_order(col, row) == 'other'
 
     def test_diag_order(self):
         row = numpy.array((0, 0, 1, 1, 2), dtype=numpy.int32)
         col = numpy.array((0, 1, 1, 2, 2), dtype=numpy.int32)
-        assert(utils.get_order(row, col) == 'C')
-        assert(utils.get_order(col, row) == 'C')
+        assert utils.get_order(row, col) == 'C'
+        assert utils.get_order(col, row) == 'C'
 
     def test_invalid_shape(self):
         row = numpy.array((0, 2, 4, 1), dtype=numpy.int32)
