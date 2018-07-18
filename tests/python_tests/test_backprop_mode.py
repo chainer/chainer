@@ -5,7 +5,7 @@ import xchainer
 
 def test_no_backprop_mode():
     with xchainer.graph_scope('graph1') as graph1, \
-         xchainer.graph_scope('graph2') as graph2:
+            xchainer.graph_scope('graph2') as graph2:
         assert xchainer.is_backprop_required()
         assert xchainer.is_backprop_required(graph1)
         assert xchainer.is_backprop_required(graph2)
@@ -37,7 +37,7 @@ def test_no_backprop_mode():
 
 def test_force_backprop_mode():
     with xchainer.graph_scope('graph1') as graph1, \
-         xchainer.graph_scope('graph2') as graph2:
+            xchainer.graph_scope('graph2') as graph2:
         with xchainer.no_backprop_mode():
             assert not xchainer.is_backprop_required()
             assert not xchainer.is_backprop_required(graph1)
@@ -78,7 +78,7 @@ def test_is_backprop_required():
     another_context = xchainer.Context()
 
     with xchainer.graph_scope('graph1') as graph1, \
-         xchainer.graph_scope('graph2') as graph2:
+            xchainer.graph_scope('graph2') as graph2:
         with xchainer.no_backprop_mode():
             with xchainer.force_backprop_mode(graph1):
                 assert not xchainer.is_backprop_required()

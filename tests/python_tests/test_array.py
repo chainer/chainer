@@ -182,8 +182,8 @@ def test_as_grad_stopped_copy(shape, dtype):
 
     # Stop gradients on all graphs
     with xchainer.graph_scope('graph_1') as graph_1, \
-         xchainer.graph_scope('graph_2') as graph_2, \
-         xchainer.graph_scope('graph_3') as graph_3:
+            xchainer.graph_scope('graph_2') as graph_2, \
+            xchainer.graph_scope('graph_3') as graph_3:
 
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
         a.require_grad(graph_1)
@@ -222,8 +222,8 @@ def test_as_grad_stopped_copy(shape, dtype):
 def test_as_grad_stopped_view(shape, dtype):
     # Stop gradients on all graphs
     with xchainer.graph_scope('graph_1') as graph_1, \
-         xchainer.graph_scope('graph_2') as graph_2, \
-         xchainer.graph_scope('graph_3') as graph_3:
+            xchainer.graph_scope('graph_2') as graph_2, \
+            xchainer.graph_scope('graph_3') as graph_3:
 
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
         a.require_grad(graph_1)
@@ -453,8 +453,8 @@ def test_array_require_grad_multiple_graphs_forward():
     x2 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
 
     with xchainer.graph_scope('graph_1') as graph_1, \
-         xchainer.graph_scope('graph_2') as graph_2, \
-         xchainer.graph_scope('graph_3') as graph_3:
+            xchainer.graph_scope('graph_2') as graph_2, \
+            xchainer.graph_scope('graph_3') as graph_3:
 
         x1.require_grad(graph_1)
         x2.require_grad(graph_2)
