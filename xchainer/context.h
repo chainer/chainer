@@ -52,7 +52,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
     std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
-    GraphSubId next_graph_sub_id_{1};  // 1 is the first sub graph id after the default graph whose sub graph sub id is 0.
+    GraphSubId next_graph_sub_id_{1};  // 1 is the first graph sub id after the default graph whose graph sub id is 0.
 };
 
 // Gets/sets the context that used by default when current context is not set.

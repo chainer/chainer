@@ -12,6 +12,8 @@
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/device_id.h"
+#include "xchainer/graph.h"
+#include "xchainer/graph_scope.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/native/native_device.h"
 #include "xchainer/routines/creation.h"
@@ -198,28 +200,63 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
             "array([[[[3.25]]]], shape=(1, 1, 1, 1), dtype=float64, device='native:0')", {3.25}, Shape({1, 1, 1, 1}), device);
 
     // 0-sized
-    CheckArrayRepr<int32_t>(
-            "array([], shape=(0, 1, 2), dtype=int32, device='native:0', graph_ids=['graph_1'])", {}, Shape({0, 1, 2}), device, {"graph_1"});
+    {
+        GraphScope graph_scope{"graph_1"};
+        GraphId graph_id = graph_scope.graph_id();
+
+        CheckArrayRepr<int32_t>(
+                "array([], shape=(0, 1, 2), dtype=int32, device='native:0', graph_ids=['graph_1'])",
+                {},
+                Shape({0, 1, 2}),
+                device,
+                {graph_id});
+    }
 
     // Single graph
-    CheckArrayRepr<int32_t>(
-            "array([-2], shape=(1,), dtype=int32, device='native:0', graph_ids=['graph_1'])", {-2}, Shape({1}), device, {"graph_1"});
+    {
+        GraphScope graph_scope{"graph_1"};
+        GraphId graph_id = graph_scope.graph_id();
+
+        CheckArrayRepr<int32_t>(
+                "array([-2], shape=(1,), dtype=int32, device='native:0', graph_ids=['graph_1'])", {-2}, Shape({1}), device, {graph_id});
+    }
 
     // Two graphs
-    CheckArrayRepr<int32_t>(
-            "array([1], shape=(1,), dtype=int32, device='native:0', graph_ids=['graph_1', 'graph_2'])",
-            {1},
-            Shape({1}),
-            device,
-            {"graph_1", "graph_2"});
+    {
+        GraphScope graph_scope1{"graph_1"};
+        GraphScope graph_scope2{"graph_2"};
+        GraphId graph_id1 = graph_scope1.graph_id();
+        GraphId graph_id2 = graph_scope2.graph_id();
+
+        CheckArrayRepr<int32_t>(
+                "array([1], shape=(1,), dtype=int32, device='native:0', graph_ids=['graph_1', 'graph_2'])",
+                {1},
+                Shape({1}),
+                device,
+                {graph_id1, graph_id2});
+    }
 
     // Multiple graphs
-    CheckArrayRepr<int32_t>(
-            "array([-9], shape=(1,), dtype=int32, device='native:0', graph_ids=['graph_1', 'graph_2', 'graph_3', 'graph_4', 'graph_5'])",
-            {-9},
-            Shape({1}),
-            device,
-            {"graph_1", "graph_2", "graph_3", "graph_4", "graph_5"});
+    {
+        GraphScope graph_scope1{"graph_1"};
+        GraphScope graph_scope2{"graph_2"};
+        GraphScope graph_scope3{"graph_3"};
+        GraphScope graph_scope4{"graph_4"};
+        GraphScope graph_scope5{"graph_5"};
+        GraphId graph_id1 = graph_scope1.graph_id();
+        GraphId graph_id2 = graph_scope2.graph_id();
+        GraphId graph_id3 = graph_scope3.graph_id();
+        GraphId graph_id4 = graph_scope4.graph_id();
+        GraphId graph_id5 = graph_scope5.graph_id();
+
+        CheckArrayRepr<int32_t>(
+                "array([-9], shape=(1,), dtype=int32, device='native:0', graph_ids=['graph_1', 'graph_2', 'graph_3', 'graph_4', "
+                "'graph_5'])",
+                {-9},
+                Shape({1}),
+                device,
+                {graph_id1, graph_id2, graph_id3, graph_id4, graph_id5});
+    }
 }
 
 }  // namespace
