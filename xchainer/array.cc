@@ -41,33 +41,47 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
+namespace {
+
+GraphId GetArrayGraphId(const Array& array, const nonstd::optional<GraphId>& graph_id) {
+    return graph_id.has_value() ? *graph_id : array.device().context().default_graph_id();
+}
+
+}  // namespace
+
 namespace internal {
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset) {
     return Array{shape, strides, dtype, device, std::move(data), offset};
 }
 
-bool HasArrayNode(const Array& array, const GraphId& graph_id) {
-    return std::find_if(array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& array_node) {
-               return graph_id == array_node->graph_id();
+bool HasArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
+    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
+    return std::find_if(array.nodes().begin(), array.nodes().end(), [&actual_graph_id](const auto& array_node) {
+               return actual_graph_id == array_node->graph_id();
            }) != array.nodes().end();
 }
 
 bool HasAnyArrayNode(const Array& array) { return !array.nodes().empty(); }
 
-const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id) {
-    auto array_node = std::make_shared<ArrayNode>(array.shape(), array.dtype(), array.device(), graph_id);
+const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
+    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
+    auto array_node = std::make_shared<ArrayNode>(array.shape(), array.dtype(), array.device(), actual_graph_id);
     array_node->set_array_body(array.body());
     return array.body()->AddNode(array_node);
 }
 
-std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id) { return GetMutableArrayNode(array, graph_id); }
+std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
+    return GetMutableArrayNode(array, graph_id);
+}
 
-const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id) {
-    auto it = std::find_if(
-            array.nodes().begin(), array.nodes().end(), [&graph_id](const auto& node) { return graph_id == node->graph_id(); });
+const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
+    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
+    auto it = std::find_if(array.nodes().begin(), array.nodes().end(), [&actual_graph_id](const auto& node) {
+        return actual_graph_id == node->graph_id();
+    });
     if (it == array.nodes().end()) {
-        throw XchainerError{"Array does not belong to the graph: '", graph_id, "'."};
+        throw XchainerError{"Array does not belong to the graph: '", actual_graph_id, "'."};
     }
     return *it;
 }
@@ -305,38 +319,47 @@ Array Array::AsType(Dtype dtype, bool copy) const {
 
 void Array::Fill(Scalar value) const { device().Fill(*this, value); }
 
-const nonstd::optional<Array>& Array::GetGrad(const GraphId& graph_id) const {
-    const nonstd::optional<Array>* grad = body_->GetGrad(graph_id);
+const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<GraphId>& graph_id) const {
+    GraphId actual_graph_id = GetArrayGraphId(*this, graph_id);
+    const nonstd::optional<Array>* grad = body_->GetGrad(actual_graph_id);
     if (grad == nullptr) {
-        throw XchainerError{"Array does not belong to the graph: '", graph_id, "'."};
+        throw XchainerError{"Array does not belong to the graph: '", actual_graph_id, "'."};
     }
     return *grad;
 }
 
-void Array::SetGrad(Array grad, const GraphId& graph_id) const {
-    nonstd::optional<Array>* target_grad = body_->GetGrad(graph_id);
+void Array::SetGrad(Array grad, const nonstd::optional<GraphId>& graph_id) const {
+    GraphId actual_graph_id = GetArrayGraphId(*this, graph_id);
+    nonstd::optional<Array>* target_grad = body_->GetGrad(actual_graph_id);
     if (target_grad == nullptr) {
-        throw XchainerError{"Array does not belong to the graph: '", graph_id, "'."};
+        throw XchainerError{"Array does not belong to the graph: '", actual_graph_id, "'."};
     }
     internal::SetGrad(*target_grad, std::move(grad), shape(), dtype(), device());
 }
 
-void Array::ClearGrad(const GraphId& graph_id) const { body_->ClearGrad(graph_id); }
+void Array::ClearGrad(const nonstd::optional<GraphId>& graph_id) const {
+    GraphId actual_graph_id = GetArrayGraphId(*this, graph_id);
+    body_->ClearGrad(actual_graph_id);
+}
 
-bool Array::IsGradRequired(const GraphId& graph_id) const { return xchainer::IsGradRequired(*this, graph_id); }
+bool Array::IsGradRequired(const nonstd::optional<GraphId>& graph_id) const {
+    GraphId actual_graph_id = GetArrayGraphId(*this, graph_id);
+    return xchainer::IsGradRequired(*this, actual_graph_id);
+}
 
 bool Array::IsGradRequired(AnyGraph any_graph) const { return xchainer::IsGradRequired(*this, any_graph); }
 
 template <typename T>
-T& Array::RequireGradImpl(T& array, const GraphId& graph_id) {
-    if (xchainer::IsBackpropRequired(graph_id, array.device().context())) {
-        internal::CreateArrayNode(array, graph_id);
+T& Array::RequireGradImpl(T& array, const nonstd::optional<GraphId>& graph_id) {
+    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
+    if (xchainer::IsBackpropRequired(actual_graph_id, array.device().context())) {
+        internal::CreateArrayNode(array, actual_graph_id);
     }
     return array;
 }
 
-template const Array& Array::RequireGradImpl<const Array>(const Array& array, const GraphId& graph_id);
-template Array& Array::RequireGradImpl<Array>(Array& array, const GraphId& graph_id);
+template const Array& Array::RequireGradImpl<const Array>(const Array& array, const nonstd::optional<GraphId>& graph_id);
+template Array& Array::RequireGradImpl<Array>(Array& array, const nonstd::optional<GraphId>& graph_id);
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
@@ -438,18 +461,19 @@ private:
 void DebugDumpComputationalGraph(
         std::ostream& os,
         const Array& array,
-        const GraphId& graph_id,
+        const nonstd::optional<GraphId>& graph_id,
         int indent,
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map) {
     PrintComputationalGraphImpl impl{os};
+    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
     for (const auto& pair : array_name_map) {
         for (const std::shared_ptr<ArrayNode>& array_node : pair.first.get().nodes()) {
-            if (array_node->graph_id() == graph_id) {
+            if (array_node->graph_id() == actual_graph_id) {
                 impl.SetArrayName(*array_node, pair.second);
             }
         }
     }
-    impl.Run(*internal::GetArrayNode(array, graph_id), indent);
+    impl.Run(*internal::GetArrayNode(array, actual_graph_id), indent);
 }
 
 }  // namespace xchainer

@@ -14,10 +14,10 @@
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_device.h"
 #include "xchainer/cuda/cudnn.h"
-#include "xchainer/cuda/hash_combine.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/hash_combine.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
@@ -51,28 +51,28 @@ namespace cuda_internal {
 
 std::size_t CudaConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) const {
     std::size_t seed = 0;
-    HashCombine(seed, std::hash<int8_t>()(key.x_shape.ndim()));
+    internal::HashCombine(seed, std::hash<int8_t>()(key.x_shape.ndim()));
     for (int64_t v : key.x_shape) {
-        HashCombine(seed, std::hash<int64_t>()(v));
+        internal::HashCombine(seed, std::hash<int64_t>()(v));
     }
-    HashCombine(seed, std::hash<int8_t>()(key.w_shape.ndim()));
+    internal::HashCombine(seed, std::hash<int8_t>()(key.w_shape.ndim()));
     for (int64_t v : key.w_shape) {
-        HashCombine(seed, std::hash<int64_t>()(v));
+        internal::HashCombine(seed, std::hash<int64_t>()(v));
     }
-    HashCombine(seed, std::hash<int8_t>()(key.y_shape.ndim()));
+    internal::HashCombine(seed, std::hash<int8_t>()(key.y_shape.ndim()));
     for (int64_t v : key.y_shape) {
-        HashCombine(seed, std::hash<int64_t>()(v));
+        internal::HashCombine(seed, std::hash<int64_t>()(v));
     }
-    HashCombine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.pad.size())));
+    internal::HashCombine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.pad.size())));
     for (int64_t v : key.pad) {
-        HashCombine(seed, std::hash<int64_t>()(v));
+        internal::HashCombine(seed, std::hash<int64_t>()(v));
     }
-    HashCombine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.stride.size())));
+    internal::HashCombine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.stride.size())));
     for (int64_t v : key.stride) {
-        HashCombine(seed, std::hash<int64_t>()(v));
+        internal::HashCombine(seed, std::hash<int64_t>()(v));
     }
-    HashCombine(seed, std::hash<std::underlying_type_t<Dtype>>()(static_cast<std::underlying_type_t<Dtype>>(key.dtype)));
-    HashCombine(seed, std::hash<size_t>()(key.max_workspace_size));
+    internal::HashCombine(seed, std::hash<std::underlying_type_t<Dtype>>()(static_cast<std::underlying_type_t<Dtype>>(key.dtype)));
+    internal::HashCombine(seed, std::hash<size_t>()(key.max_workspace_size));
     return seed;
 }
 

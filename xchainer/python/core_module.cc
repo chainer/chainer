@@ -26,9 +26,10 @@ void InitXchainerModule(pybind11::module& m) {
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
     // xchainer
-    InitXchainerGraph(m);
     InitXchainerContext(m);
     InitXchainerContextScope(m);
+    InitXchainerGraph(m);
+    InitXchainerGraphScope(m);
     InitXchainerBackend(m);
     InitXchainerBackpropMode(m);
     InitXchainerDevice(m);

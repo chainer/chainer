@@ -82,11 +82,11 @@ using NoBackpropModeScope = backprop_mode_detail::BackpropModeScope<false>;
 // Make a context which enables back-propagation.
 using ForceBackpropModeScope = backprop_mode_detail::BackpropModeScope<true>;
 
-bool IsBackpropRequired(const GraphId& graph_id = kDefaultGraphId, Context& context = GetDefaultContext());
+bool IsBackpropRequired(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt, Context& context = GetDefaultContext());
 
 // Returns whether the array needs to backprop.
 // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
-bool IsGradRequired(const Array& array, const GraphId& graph_id = kDefaultGraphId);
+bool IsGradRequired(const Array& array, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
 bool IsGradRequired(const Array& array, AnyGraph any_graph);
 
 }  // namespace xchainer

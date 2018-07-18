@@ -3,6 +3,8 @@
 #include <functional>
 #include <vector>
 
+#include <nonstd/optional.hpp>
+
 #include "xchainer/array.h"
 #include "xchainer/constant.h"
 
@@ -24,7 +26,7 @@ void CheckBackward(
         const std::vector<Array>& eps,
         double atol = 1e-5,
         double rtol = 1e-4,
-        const GraphId& graph_id = kDefaultGraphId);
+        const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
 
 // Tests twice differentiation of a given procedure.
 //
@@ -55,6 +57,6 @@ void CheckDoubleBackwardComputation(
         const std::vector<Array>& eps,
         double atol = 1e-5,
         double rtol = 1e-4,
-        const GraphId& graph_id = kDefaultGraphId);
+        const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
 
 }  // namespace xchainer

@@ -44,7 +44,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const GraphId& graph_id) {
+             const nonstd::optional<GraphId>& graph_id) {
               CheckBackward(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
@@ -60,7 +60,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
           py::arg("eps"),
           py::arg("atol") = 1e-5,
           py::arg("rtol") = 1e-4,
-          py::arg("graph_id") = kDefaultGraphId);
+          py::arg("graph_id") = nullptr);
 
     m.def("check_double_backward",
           [](py::object func,
@@ -70,7 +70,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const GraphId& graph_id) {
+             const nonstd::optional<GraphId>& graph_id) {
               CheckDoubleBackwardComputation(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
@@ -88,7 +88,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
           py::arg("eps"),
           py::arg("atol") = 1e-5,
           py::arg("rtol") = 1e-4,
-          py::arg("graph_id") = kDefaultGraphId);
+          py::arg("graph_id") = nullptr);
 }
 
 }  // namespace python_internal
