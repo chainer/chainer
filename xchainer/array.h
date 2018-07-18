@@ -255,7 +255,7 @@ inline Array operator*(Scalar lhs, const Array& rhs) { return rhs * lhs; }
 void DebugDumpComputationalGraph(
         std::ostream& os,
         const Array& array,
-        const GraphId& graph_id,
+        const nonstd::optional<GraphId>& graph_id,
         int indent = 0,
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map = {});
 

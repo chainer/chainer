@@ -461,18 +461,19 @@ private:
 void DebugDumpComputationalGraph(
         std::ostream& os,
         const Array& array,
-        const GraphId& graph_id,
+        const nonstd::optional<GraphId>& graph_id,
         int indent,
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map) {
     PrintComputationalGraphImpl impl{os};
+    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
     for (const auto& pair : array_name_map) {
         for (const std::shared_ptr<ArrayNode>& array_node : pair.first.get().nodes()) {
-            if (array_node->graph_id() == graph_id) {
+            if (array_node->graph_id() == actual_graph_id) {
                 impl.SetArrayName(*array_node, pair.second);
             }
         }
     }
-    impl.Run(*internal::GetArrayNode(array, graph_id), indent);
+    impl.Run(*internal::GetArrayNode(array, actual_graph_id), indent);
 }
 
 }  // namespace xchainer
