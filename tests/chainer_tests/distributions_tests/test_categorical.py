@@ -4,13 +4,13 @@ from chainer import testing
 from chainer.testing import array
 import numpy
 
-from chainer.testing import attr
-
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), (1,)],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
+    'extreme_values': [True, False],
+    'logit_option': [True, False]
 }))
 @testing.fix_random()
 @testing.with_requires('scipy>=0.19.0')
@@ -24,13 +24,33 @@ class TestCategorical(testing.distribution_unittest):
         self.scipy_dist = stats.multinomial
 
         self.test_targets = set([
-            "batch_shape", "event_shape"])
+            "batch_shape", "event_shape", "entropy", "log_prob", "sample"])
 
-        p = numpy.random.normal(size=self.shape+(3,)).astype(numpy.float32)
-        p = numpy.exp(p)
-        p /= numpy.expand_dims(p.sum(axis=-1), axis=-1)
+        if self.logit_option:
+            if self.extreme_values:
+                logit = -numpy.inf \
+                    * numpy.ones((3,)+self.shape).astype(numpy.float32)
+                logit[0] = 0.
+                logit = numpy.rollaxis(logit, 0, logit.ndim)
+            else:
+                logit = numpy.random.normal(
+                    size=self.shape+(3,)).astype(numpy.float32)
+            p = numpy.exp(logit)
+            p /= numpy.expand_dims(p.sum(axis=-1), axis=-1)
+            self.params = {"logit": logit}
+        else:
+            if self.extreme_values:
+                p = numpy.zeros((3,)+self.shape).astype(numpy.float32)
+                p[0] = 1.
+                p = numpy.rollaxis(p, 0, p.ndim)
+            else:
+                logit = numpy.random.normal(
+                    size=self.shape+(3,)).astype(numpy.float32)
+                p = numpy.exp(logit)
+                p /= numpy.expand_dims(p.sum(axis=-1), axis=-1)
+            self.params = {"p": p}
+
         n = numpy.ones(self.shape)
-        self.params = {"p": p}
         self.scipy_params = {"n": n, "p": p}
 
         self.continuous = False
@@ -67,13 +87,6 @@ class TestCategorical(testing.distribution_unittest):
         log_prob2 = log_prob2.reshape(self.sample_shape + self.shape)
         array.assert_allclose(log_prob1, log_prob2)
 
-    def test_log_prob_cpu(self):
-        self.check_log_prob(False)
-
-    @attr.gpu
-    def test_log_prob_gpu(self):
-        self.check_log_prob(True)
-
     def check_sample(self, is_gpu):
         if is_gpu:
             smp1 = self.gpu_dist.sample(
@@ -99,13 +112,6 @@ class TestCategorical(testing.distribution_unittest):
                               atol=3e-2, rtol=3e-2)
         array.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),
                               atol=3e-2, rtol=3e-2)
-
-    def test_sample_cpu(self):
-        self.check_sample(False)
-
-    @attr.gpu
-    def test_sample_gpu(self):
-        self.check_sample(True)
 
 
 testing.run_module(__name__, __file__)

@@ -1,8 +1,9 @@
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.functions.activation import softmax
+from chainer.functions.array import expand_dims
 from chainer.functions.math import exponential
+from chainer.functions.math import logsumexp
 from chainer.functions.math import sum as sum_mod
 from chainer.utils import argument
 import numpy
@@ -38,11 +39,21 @@ class Categorical(distribution.Distribution):
 
         with chainer.using_config('enable_backprop', True):
             if p is None:
-                self.logit = chainer.as_variable(logit)
-                self.p = softmax.softmax(self.logit)
+                logit = chainer.as_variable(logit)
+                self.__log_p = logit - expand_dims.expand_dims(
+                    logsumexp.logsumexp(logit, axis=-1), axis=-1)
+                self.__p = exponential.exp(self.__log_p)
             else:
-                self.p = chainer.as_variable(p)
-                self.logit = exponential.log(self.p)
+                self.__p = chainer.as_variable(p)
+                self.__log_p = exponential.log(self.__p)
+
+    @property
+    def p(self):
+        return self.__p
+
+    @property
+    def log_p(self):
+        return self.__log_p
 
     @property
     def batch_shape(self):
@@ -52,13 +63,19 @@ class Categorical(distribution.Distribution):
     def event_shape(self):
         return ()
 
+    @property
+    def entropy(self):
+        print(self.p)
+        return - sum_mod.sum(
+            chainer.distributions.utils._modified_xlogx(self.p), axis=-1)
+
     def log_prob(self, x):
         mg = numpy.meshgrid(
             *tuple(range(i) for i in self.batch_shape), indexing='ij')
         if isinstance(x, chainer.Variable):
-            return exponential.log(self.p)[mg + [x.data.astype(numpy.int32)]]
+            return self.log_p[mg + [x.data.astype(numpy.int32)]]
         else:
-            return exponential.log(self.p)[mg + [x.astype(numpy.int32)]]
+            return self.log_p[mg + [x.astype(numpy.int32)]]
 
     def sample_n(self, n):
         xp = cuda.get_array_module(self.p)
