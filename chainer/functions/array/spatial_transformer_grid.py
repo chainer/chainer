@@ -16,6 +16,7 @@ class SpatialTransformerGrid(function.Function):
 
     def __init__(self, output_shape):
         self.output_shape = output_shape
+        self._dtype = chainer.get_dtype()
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -23,7 +24,7 @@ class SpatialTransformerGrid(function.Function):
 
         theta_type = in_types[0]
         type_check.expect(
-            theta_type.dtype.char == 'f',
+            theta_type.dtype == self._dtype,
             theta_type.ndim == 3,
             theta_type.shape[1] == 2,
             theta_type.shape[2] == 3,
@@ -62,13 +63,13 @@ class SpatialTransformerGrid(function.Function):
         xp = cuda.get_array_module(theta)
 
         ys, xs = xp.meshgrid(
-            xp.linspace(-1, 1, H, dtype=numpy.float32),
-            xp.linspace(-1, 1, W, dtype=numpy.float32), indexing='ij',
+            xp.linspace(-1, 1, H, dtype=self._dtype),
+            xp.linspace(-1, 1, W, dtype=self._dtype), indexing='ij',
             copy=False
         )
 
         coords = xp.concatenate(
-            [xs[None], ys[None], xp.ones((1, H, W), dtype=numpy.float32)],
+            [xs[None], ys[None], xp.ones((1, H, W), dtype=self._dtype)],
             axis=0)
         grid = theta.dot(coords.reshape(3, H * W)).reshape(B, 2, H, W)
         return grid,
@@ -98,13 +99,13 @@ class SpatialTransformerGrid(function.Function):
         xp = cuda.get_array_module(theta)
 
         ys, xs = xp.meshgrid(
-            xp.linspace(-1, 1, H, dtype=numpy.float32),
-            xp.linspace(-1, 1, W, dtype=numpy.float32), indexing='ij',
+            xp.linspace(-1, 1, H, dtype=self._dtype),
+            xp.linspace(-1, 1, W, dtype=self._dtype), indexing='ij',
             copy=False
         )
 
         coords = xp.concatenate(
-            [xs[None], ys[None], xp.ones((1, H, W), dtype=numpy.float32)],
+            [xs[None], ys[None], xp.ones((1, H, W), dtype=self._dtype)],
             axis=0)
         coords_T = coords.reshape(3, H * W).transpose(1, 0)
         ggrid = ggrid.reshape(B, 2, H * W)
