@@ -22,7 +22,7 @@ public:
     GraphId& operator=(const GraphId&) = default;
     GraphId& operator=(GraphId&&) = default;
 
-    bool operator==(const GraphId& other) const { return &context_ == &other.context_ && sub_id_ == other.sub_id_; }
+    bool operator==(const GraphId& other) const { return &context_.get() == &other.context_.get() && sub_id_ == other.sub_id_; }
 
     bool operator!=(const GraphId& other) const { return !operator==(other); }
 
