@@ -46,18 +46,15 @@ OpNode::OpNode(
         std::vector<internal::ArrayProps> prev_array_props)
     : name_{std::move(name)},
       graph_id_{std::move(graph_id)},
-      prev_array_nodes_{std::make_tuple(graph_id_, std::move(prev_array_nodes))},
+      prev_array_nodes_{std::move(prev_array_nodes)},
       prev_array_props_{std::move(prev_array_props)} {
-    assert(prev_array_props_.size() == std::get<1>(prev_array_nodes_[0]).size());
+    assert(prev_array_props_.size() == prev_array_nodes_.size());
     AssertConsistency();
 }
 
 void OpNode::AssertConsistency() const {
 #ifndef NDEBUG
     assert(!prev_array_nodes_.empty());
-
-    // The first entry corresponds to "this" graph.
-    assert(std::get<0>(prev_array_nodes_[0]) == graph_id_);
 
     // No pair of entries may have the same graph ID.
     assert(std::all_of(prev_array_nodes_.begin(), prev_array_nodes_.end(), [this](const auto& tup1) {
@@ -72,14 +69,13 @@ void OpNode::AssertConsistency() const {
     for (size_t i_prev = 0; i_prev < n_prev; ++i_prev) {
         nonstd::optional<internal::ArrayBody*> prev_array_body{};
         for (const auto& tup : prev_array_nodes_) {
-            const std::vector<std::weak_ptr<ArrayNode>>& vec = std::get<1>(tup);
-            if (std::shared_ptr<ArrayNode> prev_array_node = vec[i_prev].lock()) {
-                std::shared_ptr<internal::ArrayBody> body = prev_array_node->GetBody();
-                if (!prev_array_body.has_value()) {
-                    prev_array_body = body.get();
-                } else {
-                    assert(*prev_array_body == body.get());
-                }
+            const std::vector<std::shared_ptr<ArrayNode>>& vec = std::get<1>(tup);
+            const std::shared_ptr<ArrayNode>& prev_array_node = vec[i_prev];
+            std::shared_ptr<internal::ArrayBody> body = prev_array_node->GetBody();
+            if (!prev_array_body.has_value()) {
+                prev_array_body = body.get();
+            } else {
+                assert(*prev_array_body == body.get());
             }
         }
     }
@@ -141,12 +137,13 @@ internal::OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
     return backward_entries_.back();
 }
 
-void OpNode::RegisterExoticPreviousArrayNodes(GraphId other_graph_id, std::vector<std::weak_ptr<ArrayNode>> exotic_prev_array_nodes) {
+void OpNode::RegisterOuterGraphsPreviousArrayNodes(
+        GraphId other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes) {
     AssertConsistency();
     assert(other_graph_id != graph_id_);
-    assert(exotic_prev_array_nodes.size() == prev_array_props_.size());
+    assert(outer_graphs_prev_array_nodes.size() == prev_array_props_.size());
 
-    prev_array_nodes_.emplace_back(std::move(other_graph_id), std::move(exotic_prev_array_nodes));
+    prev_array_nodes_.emplace_back(std::move(other_graph_id), std::move(outer_graphs_prev_array_nodes));
 
     AssertConsistency();
 }

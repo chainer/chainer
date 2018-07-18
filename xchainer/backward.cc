@@ -315,27 +315,20 @@ void BackwardBuilder::Target::RegisterExoticPreviousArrayNodes(const std::vector
         return;
     }
 
-    std::unordered_map<GraphId, std::vector<std::shared_ptr<ArrayNode>>> exotic_array_nodes;
+    std::unordered_map<GraphId, std::vector<std::shared_ptr<ArrayNode>>> prev_array_node_all_graphs;
     for (const Array& output : outputs()) {
         for (const std::shared_ptr<ArrayNode>& output_array_node : output.nodes()) {
-            exotic_array_nodes[output_array_node->graph_id()].emplace_back(output_array_node);
+            prev_array_node_all_graphs[output_array_node->graph_id()].emplace_back(output_array_node);
         }
     }
 
     for (OpNode* op_node : op_nodes) {
-        for (const auto& tup : exotic_array_nodes) {
+        for (const auto& tup : prev_array_node_all_graphs) {
             assert(tup.second.size() == outputs().size());
-            if (tup.first == op_node->graph_id()) {
+            if (tup.first >= op_node->graph_id()) {
                 continue;
             }
-            std::vector<std::weak_ptr<ArrayNode>> weak_prev_array_nodes;
-            weak_prev_array_nodes.reserve(tup.second.size());
-            std::transform(
-                    tup.second.begin(),
-                    tup.second.end(),
-                    std::back_inserter(weak_prev_array_nodes),
-                    [](const std::shared_ptr<ArrayNode>& array_node) { return std::weak_ptr<ArrayNode>{array_node}; });
-            op_node->RegisterExoticPreviousArrayNodes(tup.first, std::move(weak_prev_array_nodes));
+            op_node->RegisterExoticPreviousArrayNodes(tup.first, tup.second);
         }
     }
 }
@@ -368,28 +361,6 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
                 std::back_inserter(temp_next_array_nodes),
                 [](const std::shared_ptr<ArrayNode>* array_node) { return array_node == nullptr ? nullptr : *array_node; });
         internal::OpNodeBackwardEntry& backward_entry = op_node->RegisterBackwardFunction(std::move(temp_next_array_nodes), backward_func);
-
-        // Add edges to next array nodes of other graphs.
-        // TODO(niboshi): Do this only when BackwardBuilder::RetainOutput() is called.
-        for (auto it_exotic_graph = graph_to_next_array_nodes_.begin(); it_exotic_graph != graph_to_next_array_nodes_.end();
-             ++it_exotic_graph) {
-            if (it_graph == it_exotic_graph) {
-                continue;
-            }
-            assert(graph_id != it_exotic_graph->first);
-            const GraphId& exotic_graph_id = it_exotic_graph->first;
-            const NextArrayNodes& exotic_next_array_nodes = it_exotic_graph->second;
-
-            std::vector<std::shared_ptr<ArrayNode>> temp_array_nodes;
-            temp_array_nodes.reserve(exotic_next_array_nodes.size());
-            std::transform(
-                    exotic_next_array_nodes.begin(),
-                    exotic_next_array_nodes.end(),
-                    std::back_inserter(temp_array_nodes),
-                    [](const std::shared_ptr<ArrayNode>* array_node) { return array_node == nullptr ? nullptr : *array_node; });
-            backward_entry.AddExoticNextArrayNode(
-                    std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>{exotic_graph_id, std::move(temp_array_nodes)});
-        }
     }
 
     if (!any_defined()) {

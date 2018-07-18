@@ -77,7 +77,8 @@ public:
             std::vector<std::shared_ptr<ArrayNode>> next_array_nodes, BackwardFunction backward_func);
 
     // Adds links to previous array nodes of other graphs.
-    void RegisterExoticPreviousArrayNodes(GraphId other_graph_id, std::vector<std::weak_ptr<ArrayNode>> exotic_prev_array_nodes);
+    void RegisterOuterGraphsPreviousArrayNodes(
+            GraphId other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes);
 
     // Clones the op node in another graph.
     // Used when fabricating array nodes in output array retention.
@@ -112,12 +113,12 @@ public:
         return prev_array_props_[i];
     }
 
-    // Returns the list of prev array nodes (weak pointers) on "this" graph.
-    const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes() const { return std::get<1>(prev_array_nodes_[0]); }
+    // Returns the list of prev array nodes on "this" graph.
+    const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes() const { return prev_array_nodes_; }
 
     // Returns the previous array nodes of all graphs.
-    const std::vector<std::tuple<GraphId, std::vector<std::weak_ptr<ArrayNode>>>>& prev_array_nodes_of_all_graphs() const {
-        return prev_array_nodes_;
+    const std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_prev_array_nodes() const {
+        return outer_graphs_prev_array_nodes_;
     }
 
 private:
@@ -135,10 +136,13 @@ private:
     // List of next array nodes.
     std::vector<std::shared_ptr<ArrayNode>> next_array_nodes_;
 
-    // List of prev array nodes (as weak pointers).
+    // List of previous array nodes of this graph.
+    std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes_;
+
+    // List of prev array nodes of outer graphs.
+    // Outer graphs refer to graphs with lower sub ids.
     // Each entry is a pair of graph ID and list of previous array nodes.
-    // The first entry always corresponds to "this" graph.
-    std::vector<std::tuple<GraphId, std::vector<std::weak_ptr<ArrayNode>>>> prev_array_nodes_;
+    std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_prev_array_nodes_;
 
     // Array props of previous array nodes. This is used for creating dummy gradients.
     std::vector<internal::ArrayProps> prev_array_props_;

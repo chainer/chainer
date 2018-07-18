@@ -5,8 +5,8 @@
 #include <functional>
 #include <ostream>
 
-#include "xchainer/hash_combine.h"
 #include "xchainer/error.h"
+#include "xchainer/hash_combine.h"
 
 namespace xchainer {
 
