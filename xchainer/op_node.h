@@ -30,7 +30,7 @@ public:
 
     size_t next_array_node_count() const { return next_array_node_indices_.size(); }
 
-    gsl::span<const nonstd::optional<size_t>> next_array_node_indices() const { return next_array_node_indices_; }
+    const std::vector<nonstd::optional<size_t>>& next_array_node_indices() const { return next_array_node_indices_; }
 
     const BackwardFunction& backward_func() const { return backward_func_; }
 
@@ -91,9 +91,9 @@ public:
 
     std::string name() const { return name_; }
 
-    gsl::span<std::shared_ptr<ArrayNode>> next_array_nodes();
+    std::vector<std::shared_ptr<ArrayNode>>& next_array_nodes();
 
-    gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes() const;
+    const std::vector<std::shared_ptr<ArrayNode>>& next_array_nodes() const;
 
     gsl::span<internal::OpNodeBackwardEntry> backward_entries() { return backward_entries_; }
 
