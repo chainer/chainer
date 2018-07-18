@@ -261,8 +261,11 @@ void CheckBackward(
         const std::vector<Array>& eps,
         double atol,
         double rtol,
-        const GraphId& graph_id) {
-    CheckDoubleBackpropOption(func, inputs, graph_id);
+        const nonstd::optional<GraphId>& graph_id) {
+    assert(!inputs.empty());
+    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : inputs.front().device().context().default_graph_id();
+
+    CheckDoubleBackpropOption(func, inputs, actual_graph_id);
 
     internal::ArrayBodyLeakTracker tracker{};
     {
