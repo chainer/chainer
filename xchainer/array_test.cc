@@ -1028,12 +1028,12 @@ INSTANTIATE_TEST_CASE_P(
                 std::string{"native"}));
 
 TEST(ArrayGradTest, ClearGradThrow) {
+    testing::ContextSession context_session{};
     GraphScope graph_scope1{"testgraph1"};
     GraphScope graph_scope2{"testgraph2"};
     GraphId graph_id1 = graph_scope1.graph_id();
     GraphId graph_id2 = graph_scope2.graph_id();
 
-    testing::ContextSession context_session{};
     Array x = testing::BuildArray({2, 1}).WithLinearData<float>();
 
     EXPECT_THROW(x.ClearGrad(), XchainerError);

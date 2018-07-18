@@ -81,7 +81,7 @@ const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const 
         return actual_graph_id == node->graph_id();
     });
     if (it == array.nodes().end()) {
-        throw XchainerError{"Array does not belong to the graph: '", *graph_id, "'."};
+        throw XchainerError{"Array does not belong to the graph: '", actual_graph_id, "'."};
     }
     return *it;
 }

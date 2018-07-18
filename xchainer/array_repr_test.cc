@@ -205,11 +205,7 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         GraphId graph_id = graph_scope.graph_id();
 
         CheckArrayRepr<int32_t>(
-                "array([], shape=(0, 1, 2), dtype=int32, device='native:0', graph_ids=['graph_1'])",
-                {},
-                Shape({0, 1, 2}),
-                device,
-                {graph_id});
+                "array([], shape=(0, 1, 2), dtype=int32, device='native:0', graph_ids=['1'])", {}, Shape({0, 1, 2}), device, {graph_id});
     }
 
     // Single graph
@@ -218,7 +214,7 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         GraphId graph_id = graph_scope.graph_id();
 
         CheckArrayRepr<int32_t>(
-                "array([-2], shape=(1,), dtype=int32, device='native:0', graph_ids=['graph_1'])", {-2}, Shape({1}), device, {graph_id});
+                "array([-2], shape=(1,), dtype=int32, device='native:0', graph_ids=['2'])", {-2}, Shape({1}), device, {graph_id});
     }
 
     // Two graphs
@@ -229,7 +225,7 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         GraphId graph_id2 = graph_scope2.graph_id();
 
         CheckArrayRepr<int32_t>(
-                "array([1], shape=(1,), dtype=int32, device='native:0', graph_ids=['graph_1', 'graph_2'])",
+                "array([1], shape=(1,), dtype=int32, device='native:0', graph_ids=['3', '4'])",
                 {1},
                 Shape({1}),
                 device,
@@ -250,8 +246,7 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         GraphId graph_id5 = graph_scope5.graph_id();
 
         CheckArrayRepr<int32_t>(
-                "array([-9], shape=(1,), dtype=int32, device='native:0', graph_ids=['graph_1', 'graph_2', 'graph_3', 'graph_4', "
-                "'graph_5'])",
+                "array([-9], shape=(1,), dtype=int32, device='native:0', graph_ids=['5', '6', '7', '8', '9'])",
                 {-9},
                 Shape({1}),
                 device,
