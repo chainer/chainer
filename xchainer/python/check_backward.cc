@@ -44,7 +44,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const GraphId& graph_id) {
+             const nonstd::optional<GraphId>& graph_id) {
               CheckBackward(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
@@ -70,7 +70,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const GraphId& graph_id) {
+             const nonstd::optional<GraphId>& graph_id) {
               CheckDoubleBackwardComputation(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
