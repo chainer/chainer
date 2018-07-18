@@ -142,8 +142,9 @@ void InitXchainerDtype(pybind11::module& m) {
             s += "|";  // "not applicable"
         } else {
             static const uint16_t kNum16 = 0xff00U;
-            if (reinterpret_cast<const uint8_t*>(&kNum16)[0] ==
-                0x00U) {  // NOLINT(readability/nolint), NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+            // NOLINTNEXTLINE(readability/nolint)
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+            if (reinterpret_cast<const uint8_t*>(&kNum16)[0] == 0x00U) {
                 s += "<";  // little endian
             } else {
                 s += ">";  // big endian

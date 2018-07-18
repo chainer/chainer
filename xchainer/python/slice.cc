@@ -9,8 +9,9 @@ namespace python_internal {
 namespace py = pybind11;
 
 Slice MakeSlice(const py::slice& slice) {
-    const auto* py_slice = reinterpret_cast<const PySliceObject*>(
-            slice.ptr());  // NOLINT(readability/nolint), NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(readability/nolint)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    const auto* py_slice = reinterpret_cast<const PySliceObject*>(slice.ptr());
     auto to_optional = [](PyObject* var) -> nonstd::optional<int64_t> {
         if (var == Py_None) {
             return nonstd::nullopt;
