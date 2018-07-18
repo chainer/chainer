@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import functions
@@ -66,8 +67,8 @@ class BatchNormalization(link.Link):
         avg_var (numpy.ndarray or cupy.ndarray): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
-        ~BatchNormalization.eps (float): Epsilon value for numerical stability.
-            This value is added to the batch variances.
+        eps (float): Epsilon value for numerical stability. This value is added
+            to the batch variances.
 
     .. admonition:: Example
 
@@ -148,22 +149,27 @@ class BatchNormalization(link.Link):
             The examples in 1. corresponds to the following, respectively.
 
             >>> bn = chainer.links.BatchNormalization(axis=(0, 2, 3))
-            >>> hasattr(bn, 'avg_mean')
-            False
+            >>> print(bn.avg_mean)
+            None
             >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3,)
 
             >>> bn = chainer.links.BatchNormalization(axis=0)
-            >>> hasattr(bn, 'avg_mean')
-            False
+            >>> print(bn.avg_mean)
+            None
             >>> y = bn(x)
             >>> bn.avg_mean.shape
             (3, 32, 32)
 
     """
 
-    def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=numpy.float32,
+    gamma = None
+    beta = None
+    avg_mean = None
+    avg_var = None
+
+    def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=None,
                  use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None, axis=None):
         super(BatchNormalization, self).__init__()
@@ -177,7 +183,7 @@ class BatchNormalization(link.Link):
         if isinstance(axis, int):
             axis = (axis,)
         self.axis = axis
-        self._dtype = dtype
+        self._dtype = chainer.get_dtype(dtype)
 
         with self.init_scope():
             if use_gamma:
@@ -202,13 +208,13 @@ class BatchNormalization(link.Link):
         self.register_persistent('avg_mean')
         self.avg_var = numpy.zeros(shape, dtype=self._dtype)
         self.register_persistent('avg_var')
-        if hasattr(self, 'gamma'):
+        if self.gamma is not None:
             self.gamma.initialize(shape)
-        if hasattr(self, 'beta'):
+        if self.beta is not None:
             self.beta.initialize(shape)
 
-    def __call__(self, x, **kwargs):
-        """__call__(self, x, finetune=False)
+    def forward(self, x, **kwargs):
+        """forward(self, x, finetune=False)
 
         Invokes the forward propagation of BatchNormalization.
 
@@ -236,26 +242,24 @@ class BatchNormalization(link.Link):
             test='test argument is not supported anymore. '
                  'Use chainer.using_config')
 
-        if not hasattr(self, 'avg_mean'):
+        if self.avg_mean is None:
             param_shape = tuple([
                 d
                 for i, d in enumerate(x.shape)
                 if i not in self.axis])
             self._initialize_params(param_shape)
 
-        if hasattr(self, 'gamma'):
-            gamma = self.gamma
-        else:
+        gamma = self.gamma
+        if gamma is None:
             with cuda.get_device_from_id(self._device_id):
-                gamma = variable.Variable(self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype))
+                gamma = self.xp.ones(
+                    self.avg_mean.shape, dtype=x.dtype)
 
-        if hasattr(self, 'beta'):
-            beta = self.beta
-        else:
+        beta = self.beta
+        if beta is None:
             with cuda.get_device_from_id(self._device_id):
-                beta = variable.Variable(self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype))
+                beta = self.xp.zeros(
+                    self.avg_mean.shape, dtype=x.dtype)
 
         if configuration.config.train:
             if finetune:
@@ -269,8 +273,8 @@ class BatchNormalization(link.Link):
                 running_var=self.avg_var, decay=decay, axis=self.axis)
         else:
             # Use running average statistics or fine-tuned statistics.
-            mean = variable.Variable(self.avg_mean)
-            var = variable.Variable(self.avg_var)
+            mean = self.avg_mean
+            var = self.avg_var
             ret = functions.fixed_batch_normalization(
                 x, gamma, beta, mean, var, self.eps, axis=self.axis)
         return ret

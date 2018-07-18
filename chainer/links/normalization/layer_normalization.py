@@ -39,7 +39,7 @@ class LayerNormalization(link.Link):
     Attributes:
         gamma (~chainer.Parameter): Scaling parameter.
         beta (~chainer.Parameter): Shifting parameter.
-        ~LayerNormalization.eps (float): Epsilon value for numerical stability.
+        eps (float): Epsilon value for numerical stability.
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
     """
@@ -64,7 +64,7 @@ class LayerNormalization(link.Link):
         self.gamma.initialize(size)
         self.beta.initialize(size)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Apply layer normalization to given input.
 
         Args:

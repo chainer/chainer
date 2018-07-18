@@ -14,7 +14,7 @@ class SimpleNetChild(chainer.Chain):
         with self.init_scope():
             self.conv = chainer.links.Convolution2D(2, 2, 3)
 
-    def __call__(self, x):
+    def forward(self, x):
 
         h = chainer.functions.relu(self.conv(x))
 
@@ -36,7 +36,7 @@ class SimpleNetChildReporter(chainer.Chain):
     def clear(self):
         self.loss = None
 
-    def __call__(self, x, t):
+    def forward(self, x, t):
 
         self.call_called += 1
 

@@ -27,7 +27,7 @@ class Block(chainer.Chain):
                                         nobias=True)
             self.bn = L.BatchNormalization(out_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         h = self.conv(x)
         h = self.bn(h)
         return F.relu(h)
@@ -77,7 +77,7 @@ class VGG(chainer.Chain):
             self.bn_fc1 = L.BatchNormalization(512)
             self.fc2 = L.Linear(None, class_labels, nobias=True)
 
-    def __call__(self, x):
+    def forward(self, x):
         # 64 channel blocks:
         h = self.block1_1(x)
         h = F.dropout(h, ratio=0.3)

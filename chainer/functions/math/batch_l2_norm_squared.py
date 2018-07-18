@@ -27,7 +27,7 @@ class BatchL2NormSquared(function_node.FunctionNode):
     def forward_gpu(self, inputs):
         self.retain_inputs((0,))
         x = inputs[0].reshape(len(inputs[0]), -1)
-        l2normsquared_kernel = cuda.cupy.ReductionKernel(
+        l2normsquared_kernel = cuda.reduce(
             'T x', 'T y', 'x * x', 'a + b', 'y = a', '0', 'l2normsquared'
         )
         return l2normsquared_kernel(x, axis=1),

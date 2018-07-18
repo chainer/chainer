@@ -181,13 +181,13 @@ the above figure.
 * You can access all the parameters in those layers by calling ``self.params()``.
 * In the constructor, it initializes all parameters with values sampled from a
   uniform distribution :math:`U(-1, 1)`.
-* The ``__call__`` method takes an word ID ``x``, and calculates the word
+* The ``forward`` method takes an word ID ``x``, and calculates the word
   probability vector for the next word by forwarding it through the network,
   and returns the output.
 * Note that the word ID ``x`` is automatically converted to a
   :math:`|\mathcal{V}|`-dimensional one-hot vector and then multiplied with the
   input embedding matrix in ``self.embed(x)`` to obtain an embed vector ``h0``
-  at the first line of ``__call__``.
+  at the first line of ``forward``.
 
 2.2.4 Load the Penn Tree Bank Long Word Sequence Dataset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

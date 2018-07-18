@@ -32,7 +32,7 @@ class GoogLeNet(chainer.Chain):
             self.loss2_fc1 = L.Linear(None, 1024)
             self.loss2_fc2 = L.Linear(None, 1000)
 
-    def __call__(self, x, t):
+    def forward(self, x, t):
         h = F.relu(self.conv1(x))
         h = F.local_response_normalization(
             F.max_pooling_2d(h, 3, stride=2), n=5)

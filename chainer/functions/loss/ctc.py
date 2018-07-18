@@ -140,7 +140,7 @@ class ConnectionistTemporalClassification(function.Function):
         if xp == numpy:
             res = numpy.ma.log(x).filled(fill_value=self.zero_padding)
         else:
-            create_recurrence_relation = cuda.cupy.ElementwiseKernel(
+            create_recurrence_relation = cuda.elementwise(
                 'T x, T e', 'T y',
                 'y = x == 0 ? e : log(x)',
                 'create_recurrence_relation')
@@ -164,7 +164,7 @@ class ConnectionistTemporalClassification(function.Function):
                         multiply_seq[:, b, 0:path_length[b]]
                         [:, target_path == c], axis=1)
         else:
-            cuda.cupy.ElementwiseKernel(
+            cuda.elementwise(
                 'T prob, I path, I path_length, I max_path_length',
                 'raw T cum_prob',
                 '''

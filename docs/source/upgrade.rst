@@ -7,9 +7,26 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
-
 Chainer v5
 ==========
+
+Persistent Values are Copied in ``Link.copyparams``
+---------------------------------------------------
+
+:meth:`chainer.Link.copyparams` is a method to copy all parameters of the link to another link.
+This method can be used, for example, to copy parameters between two chains that partially share the same network structure to reuse pretrained weights.
+
+Prior to Chainer v5, only parameters are copied between links.
+In Chainer v5, in addition to parameters, persistent values (see :doc:`guides/serializers` for details) are also copied between links.
+This is especially beneficial when copying parameters of :class:`~chainer.links.BatchNormalization`, as it uses persistent values to record running statistics.
+
+You can skip copying persistent values by passing newly introduced ``copy_persistent=False`` option to :meth:`~chainer.Link.copyparams` so that it behaves as in Chainer v4.
+
+FuncionNodes as Implementation Details
+--------------------------------------
+
+When calling a Chainer function such as :func:`~chainer.functions.relu`, a corresponding :class:`~chainer.FunctionNode` is created internally, defining the forward and backward procedures.
+These classes are no longer a part of the public interface and you are encouraged not to instantiate these objects directly, as their interfaces may change.
 
 Updaters Automatically Call ``Optimizer.new_epoch``
 ---------------------------------------------------

@@ -362,7 +362,7 @@ class TestVariable(unittest.TestCase):
         self.check_double_backprop(True)
 
     def test_backward_no_grad_required(self):
-        class DummyId(F.Identity):
+        class DummyId(chainer.functions.math.identity.Identity):
 
             def backward(self, a, b):
                 raise Exception('backward should not be called on inputs that '
@@ -986,6 +986,15 @@ class TestUninitializedParameter(unittest.TestCase):
         x.initialize((2, 3))
         assert x.data.dtype == np.float64
         assert x.grad.dtype == np.float64
+
+    def test_initialize_by_callable_default_dtype(self):
+        def initializer(array):
+            array.fill(1.0)
+        x = chainer.Parameter(initializer=initializer)
+        with chainer.using_config('dtype', np.float16):
+            x.initialize((3, 2))
+        assert x.data.dtype == np.float16
+        assert x.grad.dtype == np.float16
 
     def test_initialize_node(self):
         initializer = initializers.Zero(np.float64)
