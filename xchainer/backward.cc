@@ -707,7 +707,9 @@ void Backward(const Array& output, const nonstd::optional<GraphId>& graph_id, Do
 }
 
 void Backward(const std::vector<ConstArrayRef>& outputs, const nonstd::optional<GraphId>& graph_id, DoubleBackpropOption double_backprop) {
-    assert(!outputs.empty());
+    if (outputs.empty()) {
+        return;
+    }
     GraphId actual_graph_id = graph_id.has_value() ? *graph_id : outputs.front().get().device().context().default_graph_id();
     BackwardImpl{outputs, actual_graph_id, double_backprop}.Run();
 }
