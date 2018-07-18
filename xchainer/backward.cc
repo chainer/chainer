@@ -606,11 +606,10 @@ private:
 
                 // Accumulate grads.
                 {
-                    nonstd::optional<size_t> i_next_grad = backward_entry.next_array_node_indices()[i_next];
-                    assert(i_next_grad.has_value());
+                    size_t i_next_grad = *backward_entry.next_array_node_indices()[i_next];
 
-                    nonstd::optional<Array>& target_grad = next_grads[*i_next_grad];
-                    const ArrayNode& next_array_node = *op_node->next_array_nodes()[*i_next_grad];
+                    nonstd::optional<Array>& target_grad = next_grads[i_next_grad];
+                    const ArrayNode& next_array_node = *op_node->next_array_nodes()[i_next_grad];
 
                     internal::AccumulateGrad(
                             target_grad, next_grad, next_array_node.shape(), next_array_node.dtype(), next_array_node.device());
