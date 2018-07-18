@@ -53,10 +53,10 @@ void InitXchainerGraph(pybind11::module& m) {
 
     py::class_<GraphId> c{m, "GraphId"};
     c.def("__repr__", [](const GraphId& graph_id) {
-            std::ostringstream stream;
-            stream << graph_id;
-            return stream.str();
-        });
+        std::ostringstream stream;
+        stream << graph_id;
+        return stream.str();
+    });
     c.def_property_readonly("context", &GraphId::context);
 }
 
