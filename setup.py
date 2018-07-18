@@ -20,7 +20,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 
 
 def cupy_requirement(pkg):
-    return '{} >=4.2.0, <5.0.0'.format(pkg)
+    return '{} >=4.3.0, <5.0.0'.format(pkg)
 
 
 requirements = {
