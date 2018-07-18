@@ -5,6 +5,7 @@
 #include <functional>
 #include <ostream>
 
+#include "xchainer/error.h"
 #include "xchainer/hash_combine.h"
 
 namespace xchainer {
@@ -26,10 +27,26 @@ public:
 
     bool operator!=(const GraphId& other) const { return !operator==(other); }
 
+    bool operator<(const GraphId& other) const { return CompareImpl<std::less<GraphSubId>>(other); }
+
+    bool operator<=(const GraphId& other) const { return CompareImpl<std::less_equal<GraphSubId>>(other); }
+
+    bool operator>(const GraphId& other) const { return CompareImpl<std::greater<GraphSubId>>(other); }
+
+    bool operator>=(const GraphId& other) const { return CompareImpl<std::greater_equal<GraphSubId>>(other); }
+
     Context& context() const { return context_; }
     GraphSubId sub_id() const { return sub_id_; }
 
 private:
+    template <typename Compare>
+    bool CompareImpl(const GraphId& other) const {
+        if (&context_.get() != &other.context_.get()) {
+            throw ContextError{"Cannot compare graph ids with different contexts."};
+        }
+        return Compare{}(sub_id_, other.sub_id_);
+    }
+
     // Using reference_wrapper to make this class move assignable
     std::reference_wrapper<Context> context_;
 
