@@ -9,6 +9,7 @@ add_library(xchainer_routines STATIC
     normalization.cc
     pooling.cc
     sorting.cc
+    statistics.cc
 )
 
 install(FILES
@@ -23,6 +24,7 @@ install(FILES
     pooling.h
     routines_util.h
     sorting.h
+    statistics.h
     DESTINATION include/xchainer/routines
     )
 

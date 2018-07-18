@@ -56,6 +56,9 @@ Array Divide(const Array& x1, const Array& x2);
 Array Divide(const Array& x1, Scalar x2);
 Array Divide(Scalar x1, const Array& x2);
 
+// TODO(hvy): Write tests for this function.
+Array Reciprocal(const Array& x);
+
 Array Sum(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 // TODO(niboshi): Move to statistics routines
 Array AMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
@@ -73,5 +76,8 @@ Array LogSumExp(const Array& x, const OptionalAxes& axis = nonstd::nullopt, bool
 // Returns the logarithm of the softmax of x along the specified axes.
 // If no axes are specified, the softmax is applied on the second axis.
 Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
+
+// TODO(hvy): Write tests for this function.
+Array Sqrt(const Array& x);
 
 }  // namespace xchainer

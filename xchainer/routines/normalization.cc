@@ -120,10 +120,39 @@ Array BatchNorm(
                 const Array& gamma_reshaped = bctx.GetRetainedInput(gamma_tok);
                 BackwardBuilder bb2{"batch_norm_backward", {x, gamma_reshaped, gout}, {gx, ggamma, gbeta}};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget({0, 1, 2})) {
-                    bt2.Define([fb](BackwardContext& bctx2) {
+                    bt2.Define([fb, x, gamma](BackwardContext& bctx2) {
                         const Array& g2x = bctx2.output_grad(0);
                         const Array& g2gamma = bctx2.output_grad(1);
                         const Array& g2beta = bctx2.output_grad(2);
+
+                        // const Array& x = *x_;
+                        // const Array& gamma = *gamma_;
+                        const Array& x_mean = *x_mean_;
+                        const Array& x_inv_std = *x_inv_std_;
+
+                        const Array& gout = *gout_;
+                        const Array& gx = *gx_;
+                        const Array& ggamma = *ggamma_;
+
+                        // Auxiliary values
+                        double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
+                        Array r = (gx * ggx).Sum(axis_);
+                        Array coeff = gamma * x_inv_std;
+                        Array coeff_m = coeff * inv_n;
+                        Array x_hat = (x - x_mean) * x_inv_std;
+
+                        Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(axis_);
+                        Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(axis_);
+
+                        Array gx_hat2 = gggamma2 * gout - coeff_m * ggamma * ggx;
+                        Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(axis_));
+                        Array gmean2 = -x_inv_std * gx_hat2.Sum(axis_);
+                        Array gx2 = x_inv_std * gx_hat2 + inv_n * (gmean2 + x_hat * gstd2);
+                        Array ggy2 = gggamma2 * x_hat + ggbeta2 + coeff * ggx;
+
+                        Array ggamma2 = r / gamma;
+
+                        return {std::move(gx2), std::move(ggamma2), std::move(ggy2)};
                         std::array<Array, 3> ginputs2 =
                                 fb->DoubleBackward(g2x.AsGradStopped(), g2gamma.AsGradStopped(), g2beta.AsGradStopped());
                         internal::MakeViewForForwardBackwardOutput(ginputs2);
