@@ -1,8 +1,10 @@
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
+from chainer.functions.activation import softmax
 from chainer.functions.math import exponential
 from chainer.functions.math import sum as sum_mod
+from chainer.utils import argument
 import numpy
 
 
@@ -10,14 +12,37 @@ class Categorical(distribution.Distribution):
 
     """Categorical Distribution.
 
+    The probability mass function of the distribution is expressed as
+
+    .. math::
+        P(x = i; p) = p_i
+
     Args:
         p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Parameter of distribution.
+        logit(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing \
+        :math:`\\log\\{p\\} + C`. Either `p` or `logit` (not both) must \
+        have a value.
 
     """
 
-    def __init__(self, p):
-        self.p = chainer.as_variable(p)
+    def __init__(self, p=None, **kwargs):
+        logit = None
+        if kwargs:
+            logit, = argument.parse_kwargs(
+                kwargs, ('logit', logit))
+        if not (p is None) ^ (logit is None):
+            raise ValueError(
+                "Either `p` or `logit` (not both) must have a value.")
+
+        with chainer.using_config('enable_backprop', True):
+            if p is None:
+                self.logit = chainer.as_variable(logit)
+                self.p = softmax.softmax(self.logit)
+            else:
+                self.p = chainer.as_variable(p)
+                self.logit = exponential.log(self.p)
 
     @property
     def batch_shape(self):
@@ -26,10 +51,6 @@ class Categorical(distribution.Distribution):
     @property
     def event_shape(self):
         return ()
-
-    @property
-    def _is_gpu(self):
-        return isinstance(self.p.data, cuda.ndarray)
 
     def log_prob(self, x):
         mg = numpy.meshgrid(
@@ -40,15 +61,11 @@ class Categorical(distribution.Distribution):
             return exponential.log(self.p)[mg + [x.astype(numpy.int32)]]
 
     def sample_n(self, n):
+        xp = cuda.get_array_module(self.p)
         onebyone_p = self.p.data.reshape(-1, self.p.shape[-1])
-        if self._is_gpu:
-            eps = [cuda.cupy.random.choice(
-                one_p.shape[0], size=(n,), p=one_p) for one_p in onebyone_p]
-            eps = cuda.cupy.vstack(eps).T.reshape((n,)+self.batch_shape)
-        else:
-            eps = [numpy.random.choice(
-                one_p.shape[0], size=(n,), p=one_p) for one_p in onebyone_p]
-            eps = numpy.vstack(eps).T.reshape((n,)+self.batch_shape)
+        eps = [xp.random.choice(
+            one_p.shape[0], size=(n,), p=one_p) for one_p in onebyone_p]
+        eps = xp.vstack(eps).T.reshape((n,)+self.batch_shape)
         noise = chainer.Variable(eps)
         return noise
 
