@@ -25,7 +25,7 @@ class DumpModel(chainer.Chain):
         with self.init_scope():
             self.base_model = archs[arch_name]()
 
-    def __call__(self, img):
+    def forward(self, img):
         return self.base_model(img, layers=['prob'])['prob']
 
 

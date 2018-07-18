@@ -364,7 +364,8 @@ def lstm(c_prev, x):
             The array which is linear transformed from *incoming signal* and
             the previous outgoing signal. The *input array* contains four
             sources, the sources of cell input, input gate, forget gate and
-            output gate. The input of :class:`chainer.functions.LSTM` is the
+            output gate. The input of
+            :class:`chainer.functions.activation.lstm.LSTM` is the
             *input array*.
 
     """

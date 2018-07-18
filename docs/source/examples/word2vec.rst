@@ -197,7 +197,7 @@ Next, let's define a network for Skip-gram.
 
     * The weight matrix ``self.embed.W`` is the embedding matrix for input vector
       ``x``.
-    * The function call ``__call__`` takes the word ID of a center word ``x`` and
+    * The function call ``forward`` takes the word ID of a center word ``x`` and
       word IDs of context words contexts as inputs, and outputs the error calculated
       by the loss function ``loss_func`` s.t. ``SoftmaxCrossEntropyLoss``.
     * Note that the initial shape of ``x`` and contexts are ``(batch_size,)``

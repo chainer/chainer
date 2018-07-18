@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer.functions.activation import maxout
 from chainer import link
@@ -63,8 +64,9 @@ class Maxout(link.Chain):
 
         if initial_bias is not None:
             if numpy.isscalar(initial_bias):
+                dtype = chainer.get_dtype()
                 initial_bias = numpy.full(
-                    (linear_out_size,), initial_bias, dtype=numpy.float32)
+                    (linear_out_size,), initial_bias, dtype=dtype)
             elif isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
                 initial_bias = initial_bias.reshape(linear_out_size)
             else:
@@ -80,7 +82,7 @@ class Maxout(link.Chain):
         self.out_size = out_size
         self.pool_size = pool_size
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the maxout layer.
 
         Args:

@@ -24,8 +24,9 @@ def with_requires(*requirements):
 
        This test case runs only when `numpy>=1.10` is installed.
 
+       >>> import unittest
        >>> from chainer import testing
-       ... class Test(unittest.TestCase):
+       >>> class Test(unittest.TestCase):
        ...     @testing.with_requires('numpy>=1.10')
        ...     def test_for_numpy_1_10(self):
        ...         pass

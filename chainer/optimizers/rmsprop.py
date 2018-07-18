@@ -25,6 +25,7 @@ class RMSpropRule(optimizer.UpdateRule):
         eps (float): Small value for the numerical stability.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None, alpha=None, eps=None):
         super(RMSpropRule, self).__init__(
@@ -67,13 +68,15 @@ class RMSpropRule(optimizer.UpdateRule):
             raise ValueError(
                 'eps of RMSprop optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
-        cuda.elementwise(
-            'T grad, T lr, T alpha, T eps',
-            'T param, T ms',
-            '''ms = alpha * ms + (1 - alpha) * grad * grad;
-               param -= lr * grad / (sqrt(ms) + eps);''',
-            'rmsprop')(grad, hp.lr, hp.alpha,
-                       eps, param.data, self.state['ms'])
+        if RMSpropRule._kernel is None:
+            RMSpropRule._kernel = cuda.elementwise(
+                'T grad, T lr, T alpha, T eps',
+                'T param, T ms',
+                '''ms = alpha * ms + (1 - alpha) * grad * grad;
+                   param -= lr * grad / (sqrt(ms) + eps);''',
+                'rmsprop')
+        RMSpropRule._kernel(grad, self.hyperparam.lr, self.hyperparam.alpha,
+                            eps, param.data, self.state['ms'])
 
 
 class RMSprop(optimizer.GradientMethod):
