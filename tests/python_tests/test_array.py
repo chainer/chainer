@@ -277,18 +277,19 @@ def test_array_repr():
             "       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, device='native:0')") == str(array)
 
 
-def test_array_require_grad():
+@pytest.mark.parametrize('graph_args', [(None,), ()])
+def test_array_require_grad_without_graph_id(graph_args):
     array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
 
-    assert not array.is_grad_required()
+    assert not array.is_grad_required(*graph_args)
     assert not array.is_grad_required(xchainer.anygraph)
-    array.require_grad()
-    assert array.is_grad_required()
+    array.require_grad(*graph_args)
+    assert array.is_grad_required(*graph_args)
     assert array.is_grad_required(xchainer.anygraph)
 
     # Repeated calls should not fail, but do nothing
-    array.require_grad()
-    assert array.is_grad_required()
+    array.require_grad(*graph_args)
+    assert array.is_grad_required(*graph_args)
     assert array.is_grad_required(xchainer.anygraph)
 
 
@@ -316,39 +317,40 @@ def test_array_require_grad_with_graph_id():
         assert array.is_grad_required(graph_id=graph_2)
 
 
-def test_array_grad():
+@pytest.mark.parametrize('graph_args', [(None,), ()])
+def test_array_grad_without_graph_id(graph_args):
     array = xchainer.ndarray((3, 1), xchainer.float32, [1., 1., 1.])
     grad = xchainer.ndarray((3, 1), xchainer.float32, [0.5, 0.5, 0.5])
 
     with pytest.raises(xchainer.XchainerError):
-        array.get_grad()
+        array.get_grad(*graph_args)
     with pytest.raises(xchainer.XchainerError):
-        array.set_grad(grad)
+        array.set_grad(grad, *graph_args)
     with pytest.raises(xchainer.XchainerError):
-        array.cleargrad()
+        array.cleargrad(*graph_args)
 
     # Gradient methods
-    array.require_grad().set_grad(grad)
-    assert array.get_grad() is not None
-    assert array.get_grad()._debug_flat_data == grad._debug_flat_data
+    array.require_grad().set_grad(grad, *graph_args)
+    assert array.get_grad(*graph_args) is not None
+    assert array.get_grad(*graph_args)._debug_flat_data == grad._debug_flat_data
 
-    array.cleargrad()  # clear
-    assert array.get_grad() is None
+    array.cleargrad(*graph_args)  # clear
+    assert array.get_grad(*graph_args) is None
 
-    array.set_grad(grad)
-    assert array.get_grad() is not None
-    assert array.get_grad()._debug_flat_data == grad._debug_flat_data
+    array.set_grad(grad, *graph_args)
+    assert array.get_grad(*graph_args) is not None
+    assert array.get_grad(*graph_args)._debug_flat_data == grad._debug_flat_data
 
-    array.set_grad(None)  # clear
-    assert array.get_grad() is None
+    array.set_grad(None, *graph_args)  # clear
+    assert array.get_grad(*graph_args) is None
 
     # Gradient attributes
     array.grad = grad
-    assert array.get_grad() is not None
-    assert array.get_grad() is array.grad
+    assert array.get_grad(*graph_args) is not None
+    assert array.get_grad(*graph_args) is array.grad
 
     array.grad = None  # clear
-    assert array.get_grad() is None
+    assert array.get_grad(*graph_args) is None
 
 
 def test_array_grad_with_graph_id():
@@ -388,11 +390,6 @@ def test_array_grad_with_graph_id():
         array.cleargrad(graph_id=graph_2)  # clear
         assert array.get_grad(graph_2) is None
         assert array.get_grad(graph_id=graph_2) is None
-
-        with pytest.raises(xchainer.XchainerError):
-            array.get_grad(None)
-        with pytest.raises(xchainer.XchainerError):
-            array.set_grad(grad, None)
 
 
 def test_array_grad_no_deepcopy():
@@ -506,7 +503,6 @@ def test_array_backward():
         x2 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1]).require_grad(graph_id=graph_1)
         y = x1 * x2
 
-        print(y)
         y.backward(graph_id=graph_1, enable_double_backprop=True)
         gx1 = x1.get_grad(graph_id=graph_1)
         x1.set_grad(None, graph_id=graph_1)
