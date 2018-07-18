@@ -1,4 +1,4 @@
-import numpy
+import copy
 
 from chainer import backend
 from chainer.backends import cuda
@@ -21,6 +21,34 @@ if types.TYPE_CHECKING:
 _default_hyperparam = optimizer.Hyperparameter()  # type: AdaDeltaHyperparameter # NOQA
 _default_hyperparam.rho = 0.95
 _default_hyperparam.eps = 1e-6
+
+
+class AdaDeltaKernel(object):
+    def __init__(self, hp):
+        self.hp = copy.copy(hp)
+
+        @cuda.fuse(kernel_name='adadelta')
+        def kernel(rho, eps, grad, param, msg, msdx):
+            xp = cuda.get_array_module(grad)
+            msg *= rho
+            msg += (1 - rho) * grad * grad
+            dx = xp.sqrt((msdx + eps) / (msg + eps)) * grad
+            msdx *= rho
+            msdx += (1 - rho) * dx * dx
+            param -= dx
+
+        @cuda.fuse(kernel_name='adadelta')
+        def kernel_const_hp(*args):
+            kernel(hp.rho, hp.eps, *args)
+
+        self.kernel_nonconst_hp = kernel
+        self.kernel_const_hp = kernel_const_hp
+
+    def __call__(self, hp, grad, param, msg, msdx):
+        if hp.get_dict() == self.hp:
+            self.kernel_const_hp(grad, param, msg, msdx)
+        else:
+            self.kernel_nonconst_hp(hp.rho, hp.eps, grad, param, msg, msdx)
 
 
 class AdaDeltaRule(optimizer.UpdateRule):
@@ -47,6 +75,7 @@ class AdaDeltaRule(optimizer.UpdateRule):
             self.hyperparam.rho = rho
         if eps is not None:
             self.hyperparam.eps = eps
+        self.kernel = AdaDeltaKernel(self.hyperparam)
 
     def init_state(self, param):
         xp = backend.get_array_module(param.data)
@@ -58,33 +87,11 @@ class AdaDeltaRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        msg, msdx = self.state['msg'], self.state['msdx']
-        rho = self.hyperparam.rho
-        eps = self.hyperparam.eps
-
-        msg *= rho
-        msg += (1 - rho) * grad * grad
-        dx = numpy.sqrt((msdx + eps) / (msg + eps)) * grad
-        msdx *= rho
-        msdx += (1 - rho) * dx * dx
-        param.data -= dx
+        self.kernel(self.hyperparam, grad, param.data,
+                    self.state['msg'], self.state['msdx'])
 
     def update_core_gpu(self, param):
-        grad = param.grad
-        if grad is None:
-            return
-        if AdaDeltaRule._kernel is None:
-            AdaDeltaRule._kernel = cuda.elementwise(
-                'T grad, T one_minus_rho, T eps',
-                'T param, T msg, T msdx',
-                '''msg   = msg + one_minus_rho * (grad * grad - msg);
-                   T dx  = sqrt((msdx + eps) / (msg + eps)) * grad;
-                   msdx  += one_minus_rho * (dx * dx - msdx);
-                   param -= dx;''',
-                'adadelta')
-        AdaDeltaRule._kernel(
-            grad, 1 - self.hyperparam.rho, self.hyperparam.eps, param.data,
-            self.state['msg'], self.state['msdx'])
+        self.update_core_cpu(param)
 
 
 class AdaDelta(optimizer.GradientMethod):
