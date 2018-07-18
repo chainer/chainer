@@ -10,7 +10,7 @@ namespace xchainer {
 
 class GraphScope {
 public:
-    GraphScope(std::string graph_name, Context& context = GetDefaultContext())
+    explicit GraphScope(std::string graph_name, Context& context = GetDefaultContext())
         : graph_id_{context.MakeNextGraphId(std::move(graph_name))} {}
 
     GraphScope(const GraphScope&) = delete;
