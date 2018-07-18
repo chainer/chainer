@@ -80,7 +80,7 @@ void InitXchainerContextScope(pybind11::module& m) {
     c.def("__enter__", &PyContextScope::Enter);
     c.def("__exit__", &PyContextScope::Exit);
 
-    m.def("context_scope", [](Context& device) { return PyContextScope(device); });
+    m.def("context_scope", [](Context& context) { return PyContextScope(context); });
 }
 
 }  // namespace python_internal
