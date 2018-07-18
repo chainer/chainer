@@ -1,6 +1,6 @@
 #include "xchainer/cuda/cuda_backend.h"
 
-#include <stdlib.h>  // NOLINT(modernize-deprecated-headers), clang-tidy recommends to use cstdlib, but setenv is not included in cstdlib
+#include <stdlib.h>  // NOLINT(readability/nolint), NOLINT(modernize-deprecated-headers), clang-tidy recommends to use cstdlib, but setenv is not included in cstdlib
 
 #include <tuple>
 
