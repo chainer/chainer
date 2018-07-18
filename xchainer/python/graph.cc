@@ -1,6 +1,7 @@
 #include "xchainer/python/graph.h"
 
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -21,7 +22,7 @@ namespace py = pybind11;  // standard convention
 class PyGraphScope {
 public:
     explicit PyGraphScope(std::string graph_name, Context& context) : graph_name_{std::move(graph_name)}, context_{context} {}
-    void Enter() {
+    GraphId Enter() {
         if (scope_ != nullptr) {
             throw XchainerError{"Graph scope cannot be nested."};
         }
@@ -29,6 +30,7 @@ public:
             throw XchainerError{"Exited graph scope cannot be reused."};
         }
         scope_ = std::make_unique<GraphScope>(graph_name_, context_);
+        return scope_->graph_id();
     }
     void Exit(py::args args) {
         (void)args;  // unused
@@ -48,6 +50,14 @@ void InitXchainerGraph(pybind11::module& m) {
 
     // TODO(imanishi): Add module function to retrieve default graph id.
     m.attr("anygraph") = AnyGraph{};
+
+    py::class_<GraphId> c{m, "GraphId"};
+    c.def("__repr__", [](const GraphId& graph_id) {
+            std::ostringstream stream;
+            stream << graph_id;
+            return stream.str();
+        });
+    c.def_property_readonly("context", &GraphId::context);
 }
 
 void InitXchainerGraphScope(pybind11::module& m) {
