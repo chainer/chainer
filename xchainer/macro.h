@@ -16,7 +16,7 @@
 #include <cassert>
 #define XCHAINER_NEVER_REACH()                    \
     do {                                          \
-        assert(false); /* NOLINT: cert-dcl03-c */ \
+        assert(false); /* NOLINT(cert-dcl03-c) */ \
         std::abort();                             \
     } while (false)
 #endif  // NDEBUG

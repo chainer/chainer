@@ -654,7 +654,7 @@ private:
     // Be careful that references require the referred objects alive (it should be guaranteed by Backward()).
     const std::vector<ConstArrayRef>& outputs_;
     std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>> output_array_nodes_;
-    const GraphId& graph_id_;  // NOLINT: intentionally holding a reference
+    const GraphId& graph_id_;  // NOLINT(google-runtime-member-string-references), intentionally holding a reference
     DoubleBackpropOption double_backprop_;
 };
 
