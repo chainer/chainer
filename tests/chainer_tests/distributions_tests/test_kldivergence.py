@@ -63,6 +63,15 @@ class TestKLDivergence(unittest.TestCase):
             params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Normal(**params)
 
+    def make_uniform_dist(self, is_gpu=False, low=None, high=None):
+        if low is None:
+            low = numpy.random.uniform(-3, 0, self.shape).astype(numpy.float32)
+        if high is None:
+            high = numpy.random.uniform(
+                low, low + 5, self.shape).astype(numpy.float32)
+        params = self.encode_params({"low": low, "high": high}, is_gpu)
+        return distributions.Uniform(**params)
+
     def test_bernoulli_bernoulli_cpu(self):
         dist1 = self.make_bernoulli_dist()
         dist2 = self.make_bernoulli_dist()
@@ -101,6 +110,17 @@ class TestKLDivergence(unittest.TestCase):
                 dist2 = self.make_normal_dist(
                     True, use_log_scale=use_log_scale2)
                 self.check_kl(dist1, dist2)
+
+    def test_uniform_uniform_cpu(self):
+        dist1 = self.make_uniform_dist()
+        dist2 = self.make_uniform_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_uniform_uniform_gpu(self):
+        dist1 = self.make_uniform_dist(True)
+        dist2 = self.make_uniform_dist(True)
+        self.check_kl(dist1, dist2)
 
 
 testing.run_module(__name__, __file__)

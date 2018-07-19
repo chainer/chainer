@@ -17,6 +17,7 @@ Distributions
    chainer.distributions.Bernoulli
    chainer.distributions.Normal
    chainer.distributions.Laplace
+   chainer.distributions.Uniform
 
 
 Functionals of distribution
