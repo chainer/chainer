@@ -332,9 +332,9 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
     std::vector<OpNode*> op_nodes;
 
     // Create op node for each graph
-    for (const auto& graph_array_nodes : graph_to_next_array_nodes_) {
-        const GraphId& graph_id = graph_array_nodes.first;
-        const NextArrayNodes& next_array_nodes = graph_array_nodes.second;
+    for (const auto& pair : graph_to_next_array_nodes_) {
+        const GraphId& graph_id = pair.first;
+        const NextArrayNodes& next_array_nodes = pair.second;
 
         std::shared_ptr<OpNode>& op_node = FindOrCreateOpNode(graph_id);
 

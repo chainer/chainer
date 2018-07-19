@@ -27,7 +27,7 @@ void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(nonstd::optional<std::v
 
     if (graph_ids.has_value()) {
         n_ = graph_ids->size();
-        for (GraphId& graph_id : *graph_ids) {
+        for (const GraphId& graph_id : *graph_ids) {
             t_backprop_mode_stack->emplace_back(context, graph_id, kModeFlag);
         }
     } else {

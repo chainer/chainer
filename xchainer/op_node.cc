@@ -135,7 +135,7 @@ internal::OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
 }
 
 void OpNode::RegisterOuterGraphsPreviousArrayNodes(
-        GraphId other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes) {
+        const GraphId& other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes) {
     AssertConsistency();
     assert(other_graph_id != graph_id_);
     assert(outer_graphs_prev_array_nodes.size() == prev_array_props_.size());
