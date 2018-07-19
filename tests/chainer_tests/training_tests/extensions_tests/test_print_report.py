@@ -1,4 +1,5 @@
 import sys
+import tempfile
 import unittest
 
 import mock
@@ -39,8 +40,9 @@ class TestPrintReport(unittest.TestCase):
         self.report(self.trainer)
 
     def test_real_stream_raises_no_exception(self):
-        self._setup(stream=sys.stderr)
-        self.report(self.trainer)
+        with tempfile.TemporaryFile(mode='w') as stream:
+            self._setup(stream=stream)
+            self.report(self.trainer)
 
 
 testing.run_module(__name__, __file__)
