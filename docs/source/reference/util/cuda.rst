@@ -68,9 +68,10 @@ iDeep
 -----
 
 `iDeep <https://github.com/intel/ideep>`__ is a module that provides NumPy-like API and DNN acceleration using MKL-DNN for Intel CPUs.
-See :doc:`../tips` and :doc:`../performance` for details.
+See :doc:`../../tips` and :doc:`../../performance` for details.
 
 .. module:: chainer.backends.intel64
+.. currentmodule:: chainer
 
 .. autosummary::
    :toctree: generated/
