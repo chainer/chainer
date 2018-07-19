@@ -1062,7 +1062,6 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                     EXPECT_FALSE(y1.IsGradRequired(graph_id1));
                     EXPECT_FALSE(y2.IsGradRequired(graph_id1));
                 }
-                // TODO(niboshi): Enable these checks
                 EXPECT_FALSE(y1.IsGradRequired(graph_id2));
                 EXPECT_FALSE(y2.IsGradRequired(graph_id2));
 
@@ -1108,7 +1107,6 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                     EXPECT_FALSE(y1.IsGradRequired(graph_id1));
                     EXPECT_FALSE(y2.IsGradRequired(graph_id1));
                 }
-                // TODO(niboshi): Enable these checks
                 EXPECT_FALSE(y1.IsGradRequired(graph_id2));
                 EXPECT_FALSE(y2.IsGradRequired(graph_id2));
 
