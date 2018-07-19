@@ -88,8 +88,7 @@ class TestLeakyReLU(unittest.TestCase):
 
         def f(x):
             with backend_config:
-                y = functions.leaky_relu(x, self.slope)
-                return y
+                return functions.leaky_relu(x, self.slope)
 
         with backend_config:
             gradient_check.check_double_backward(
