@@ -50,6 +50,13 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Laplace(**params)
 
+    def make_log_normal_dist(self, is_gpu=False):
+        loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        scale = numpy.exp(
+            numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
+        params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+        return distributions.LogNormal(**params)
+
     def make_normal_dist(self, is_gpu=False, use_log_scale=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         if use_log_scale:
@@ -83,6 +90,17 @@ class TestKLDivergence(unittest.TestCase):
     def test_laplace_laplace_gpu(self):
         dist1 = self.make_laplace_dist(True)
         dist2 = self.make_laplace_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_log_normal_log_normal_cpu(self):
+        dist1 = self.make_log_normal_dist()
+        dist2 = self.make_log_normal_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_log_normal_log_normal_gpu(self):
+        dist1 = self.make_log_normal_dist(True)
+        dist2 = self.make_log_normal_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_normal_normal_cpu(self):
