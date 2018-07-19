@@ -10,7 +10,6 @@ ImageDataLayer).
 """
 
 import argparse
-import six
 import time
 
 import numpy as np

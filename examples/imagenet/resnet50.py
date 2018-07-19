@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import argparse
-
 import numpy as np
 
 import xchainer as xc
