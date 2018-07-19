@@ -20,7 +20,7 @@ from chainer.testing import attr
      {'dtype': numpy.float64,
       'forward_options': {},
       'backward_options': {}},
-    ],
+     ],
     [{'use_cudnn': 'always'},
      {'use_cudnn': 'never'}]
 ))
