@@ -16,8 +16,6 @@ class Context;
 
 class GraphId {
 public:
-    GraphId(Context& context, GraphSubId sub_id) : context_{context}, sub_id_{sub_id} {}
-
     GraphId(const GraphId&) = default;
     GraphId(GraphId&&) = default;
     GraphId& operator=(const GraphId&) = default;
@@ -39,6 +37,11 @@ public:
     GraphSubId sub_id() const { return sub_id_; }
 
 private:
+    // A GraphId is always constructed by a Context.
+    friend class Context;
+
+    GraphId(Context& context, GraphSubId sub_id) : context_{context}, sub_id_{sub_id} {}
+
     template <typename Compare>
     bool CompareImpl(const GraphId& other) const {
         if (&context_.get() != &other.context_.get()) {
