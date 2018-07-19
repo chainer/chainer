@@ -77,3 +77,6 @@ class TestCopyToError(unittest.TestCase):
         dst = None
         with self.assertRaises(TypeError):
             backends.copyto(dst, src)
+
+
+testing.run_module(__name__, __file__)
