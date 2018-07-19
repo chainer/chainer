@@ -84,7 +84,8 @@ class Dirichlet(distribution.Distribution):
             eps = [xp.random.dirichlet(
                 one_alpha, size=(n, self.k)).astype(numpy.float32)
                 for one_alpha in obo_alpha]
-        eps = xp.swapaxes(xp.stack(eps), 0, 1)
+        eps = [xp.expand_dims(eps_, 0) for eps_ in eps]
+        eps = xp.swapaxes(xp.vstack(eps), 0, 1)
         eps = eps.reshape((n,) + self.alpha.shape)
         noise = chainer.Variable(eps)
         return noise
