@@ -98,7 +98,13 @@ const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedAr
     {
         const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes = op_node->prev_array_nodes();
         std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[output_index_].lock();
-        assert(prev_array_node != nullptr);  // previous array node must be alive thanks to BackwardImpl::previous_array_node_keeper_.
+        if (prev_array_node == nullptr) {
+            // Create mocked prev array node for "this" graph, based on the current op node
+            const internal::ArrayProps& props = op_node->GetPrevArrayProps(output_index_);
+            prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node->graph_id());
+            prev_array_node->set_next_op_node(op_node);
+        }
+
         new_prev_array_nodes.emplace_back(std::move(prev_array_node));
     }
 
