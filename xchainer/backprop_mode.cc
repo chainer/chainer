@@ -18,7 +18,7 @@ namespace backprop_mode_detail {
 thread_local BackpropModeStack* t_backprop_mode_stack{nullptr};
 
 template <bool kModeFlag>
-void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(nonstd::optional<std::vector<GraphId>> graph_ids, Context& context) {
+void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(const nonstd::optional<std::vector<GraphId>>& graph_ids, Context& context) {
     // The outer-most scope creates an instance of BackpropModeStack.
     if (t_backprop_mode_stack == nullptr) {
         t_backprop_mode_stack = new BackpropModeStack{};
