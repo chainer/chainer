@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <memory>
-#include <utility>
 #include <vector>
 
 #include <nonstd/optional.hpp>
@@ -29,7 +28,7 @@ void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(nonstd::optional<std::v
     if (graph_ids.has_value()) {
         n_ = graph_ids->size();
         for (GraphId& graph_id : *graph_ids) {
-            t_backprop_mode_stack->emplace_back(context, std::move(graph_id), kModeFlag);
+            t_backprop_mode_stack->emplace_back(context, graph_id, kModeFlag);
         }
     } else {
         n_ = 1;
