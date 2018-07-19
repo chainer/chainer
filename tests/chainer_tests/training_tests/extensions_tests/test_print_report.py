@@ -1,17 +1,18 @@
 import sys
 import unittest
 
+import mock
+
 from chainer import testing
 from chainer.training import extensions
-from mock import MagicMock
 
 
 class TestPrintReport(unittest.TestCase):
     def _setup(self, stream=None, delete_flush=False):
-        self.logreport = MagicMock(spec=extensions.LogReport(
+        self.logreport = mock.MagicMock(spec=extensions.LogReport(
             ['epoch'], trigger=(1, 'iteration'), log_name=None))
         if stream is None:
-            self.stream = MagicMock()
+            self.stream = mock.MagicMock()
             if delete_flush:
                 del self.stream.flush
         else:
