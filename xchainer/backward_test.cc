@@ -391,6 +391,11 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(graph_id_1));
 }
 
+TEST_P(BackpropTest, BackwardOrderMatters) {
+    // TODO(hvy): Test that backward order matters between multiple graphs.
+}
+
+
 TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     // This test checks cyclic reference is not formed when the input gradient references the input array.
     // The cycle could happen if input array nodes directly owned their gradients.
@@ -1058,8 +1063,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                     EXPECT_FALSE(y2.IsGradRequired(graph_id1));
                 }
                 // TODO(niboshi): Enable these checks
-                // EXPECT_FALSE(y1.IsGradRequired(graph_id2));
-                // EXPECT_FALSE(y2.IsGradRequired(graph_id2));
+                EXPECT_FALSE(y1.IsGradRequired(graph_id2));
+                EXPECT_FALSE(y2.IsGradRequired(graph_id2));
 
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
@@ -1104,8 +1109,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                     EXPECT_FALSE(y2.IsGradRequired(graph_id1));
                 }
                 // TODO(niboshi): Enable these checks
-                // EXPECT_FALSE(y1.IsGradRequired(graph_id2));
-                // EXPECT_FALSE(y2.IsGradRequired(graph_id2));
+                EXPECT_FALSE(y1.IsGradRequired(graph_id2));
+                EXPECT_FALSE(y2.IsGradRequired(graph_id2));
 
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);

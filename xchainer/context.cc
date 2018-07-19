@@ -5,8 +5,11 @@
 #include <atomic>
 #include <cstdlib>
 #include <mutex>
+#include <stack>
+#include <vector>
 
 #include <gsl/gsl>
+#include <nonstd/optional.hpp>
 
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"
@@ -105,12 +108,31 @@ Device& Context::GetDevice(const DeviceId& device_id) {
 // TODO(sonots): Create a map to get graph name from sub id
 GraphId Context::MakeNextGraphId(std::string graph_name) {
     (void)graph_name;  // unused
+    graph_sub_ids_.emplace(next_graph_sub_id_);
     return GraphId{*this, next_graph_sub_id_++};
 }
 
-// TODO(sonots): Release an item of the graph_id from a map
 void Context::ReleaseGraphId(const GraphId& graph_id) {
-    (void)graph_id;  // unused
+    // Clear all graphs from the stack which were created after the given graph.
+    while (!graph_sub_ids_.empty() && graph_id.sub_id() >= graph_sub_ids_.top()) {
+        graph_sub_ids_.pop();
+    }
+    if (graph_sub_ids_.empty()) {
+        outermost_graph_id_.reset();
+    }
+}
+
+std::vector<GraphId> Context::InnerGraphIds(GraphId graph_id) {
+    // TODO(hvy): A stack is not appropriate if it is only popped during graph scope exit.
+    std::vector<GraphId> inner_graph_ids;
+    while (!graph_sub_ids_.empty() && graph_id.sub_id() < graph_sub_ids_.top()) {
+        inner_graph_ids.emplace_back(*this, graph_sub_ids_.top());
+        graph_sub_ids_.pop();
+    }
+    for (auto it = inner_graph_ids.rbegin(); it != inner_graph_ids.rend(); ++it) {
+        graph_sub_ids_.emplace(it->sub_id());
+    }
+    return inner_graph_ids;
 }
 
 Context& GetGlobalDefaultContext() {

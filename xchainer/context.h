@@ -2,9 +2,12 @@
 
 #include <memory>
 #include <mutex>
+#include <stack>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include <nonstd/optional.hpp>
 
 #include "xchainer/backend.h"
 #include "xchainer/device.h"
@@ -43,6 +46,13 @@ public:
 
     void ReleaseGraphId(const GraphId& graph_id);
 
+    // TODO(hvy): Make const.
+    std::vector<GraphId> InnerGraphIds(GraphId graph_id);
+
+    const nonstd::optional<GraphId>& outermost_graph_id() const { return outermost_graph_id_; }
+
+    void set_outermost_graph_id(const nonstd::optional<GraphId>& graph_id) { outermost_graph_id_ = graph_id; }
+
     GraphId default_graph_id() {
         // 0 is the graph sub id of the default graph.
         return GraphId{*this, 0};
@@ -52,7 +62,10 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
     std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
+
     GraphSubId next_graph_sub_id_{1};  // 1 is the first graph sub id after the default graph whose graph sub id is 0.
+    std::stack<GraphSubId> graph_sub_ids_{};
+    nonstd::optional<GraphId> outermost_graph_id_{nonstd::nullopt};
 };
 
 // Gets/sets the context that used by default when current context is not set.
