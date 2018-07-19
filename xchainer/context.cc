@@ -113,7 +113,7 @@ GraphId Context::MakeNextGraphId(std::string graph_name) {
 }
 
 void Context::ReleaseGraphId(const GraphId& graph_id) {
-    // Clear all graphs from the stack which were created after the given graph.
+    // Pop all graphs from the stack that were created after the given graph and then the given graph itself.
     while (!graph_sub_ids_.empty() && graph_id.sub_id() >= graph_sub_ids_.top()) {
         graph_sub_ids_.pop();
     }
