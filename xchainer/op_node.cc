@@ -145,15 +145,19 @@ void OpNode::RegisterOuterGraphsPreviousArrayNodes(
     AssertConsistency();
 }
 
-std::shared_ptr<ArrayNode> OpNode::CreatePrevArrayNode(size_t prev_array_node_index) {
-    assert(prev_array_node_index < prev_array_nodes_.size());
-    assert(prev_array_nodes_[prev_array_node_index].expired());
+namespace internal {
 
-    const internal::ArrayProps& props = prev_array_props_[prev_array_node_index];
-    auto prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, graph_id_);
-    prev_array_node->set_next_op_node(*this);
-    prev_array_nodes_[prev_array_node_index] = prev_array_node;
+std::shared_ptr<ArrayNode> CreatePrevArrayNode(std::shared_ptr<OpNode> op_node, size_t prev_array_node_index) {
+    assert(prev_array_node_index < op_node->prev_node_count());
+    assert(op_node->prev_array_nodes()[prev_array_node_index].expired());
+
+    const internal::ArrayProps& props = op_node->GetPrevArrayProps(prev_array_node_index);
+    auto prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node->graph_id());
+    prev_array_node->set_next_op_node(std::move(op_node));
+    op_node->prev_array_nodes()[prev_array_node_index] = prev_array_node;
 
     return prev_array_node;
 }
+
+}  // namespace internal
 }  // namespace xchainer

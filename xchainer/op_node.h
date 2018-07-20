@@ -90,10 +90,6 @@ public:
     void RegisterOuterGraphsPreviousArrayNodes(
             const GraphId& other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes);
 
-    // Creates a prev array node at the specified index
-    // Undefined behavior if the prev array node already exists.
-    std::shared_ptr<ArrayNode> CreatePrevArrayNode(size_t prev_array_node_index);
-
     void Unchain() {
         backward_entries_.clear();
         next_array_nodes_.clear();
@@ -163,4 +159,11 @@ private:
     std::vector<internal::OpNodeBackwardEntry> backward_entries_;
 };
 
+namespace internal {
+
+// Creates a prev array node at the specified index and adds edges between the prev array node and the op node.
+// Undefined behavior if the prev array node already exists.
+std::shared_ptr<ArrayNode> CreatePrevArrayNode(std::shared_ptr<OpNode> op_node, size_t prev_array_node_index);
+
+}  // namespace internal
 }  // namespace xchainer
