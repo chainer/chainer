@@ -45,7 +45,7 @@ OpNode::OpNode(
         std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes,
         std::vector<internal::ArrayProps> prev_array_props)
     : name_{std::move(name)},
-      graph_id_{std::move(graph_id)},
+      graph_id_{graph_id},
       prev_array_nodes_{std::move(prev_array_nodes)},
       prev_array_props_{std::move(prev_array_props)} {
     assert(prev_array_props_.size() == prev_array_nodes_.size());
@@ -135,12 +135,12 @@ internal::OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
 }
 
 void OpNode::RegisterOuterGraphsPreviousArrayNodes(
-        GraphId other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes) {
+        const GraphId& other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes) {
     AssertConsistency();
     assert(other_graph_id != graph_id_);
     assert(outer_graphs_prev_array_nodes.size() == prev_array_props_.size());
 
-    outer_graphs_prev_array_nodes_.emplace_back(std::move(other_graph_id), std::move(outer_graphs_prev_array_nodes));
+    outer_graphs_prev_array_nodes_.emplace_back(other_graph_id, std::move(outer_graphs_prev_array_nodes));
 
     AssertConsistency();
 }

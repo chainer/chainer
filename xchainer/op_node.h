@@ -78,7 +78,7 @@ public:
 
     // Adds links to previous array nodes of other graphs.
     void RegisterOuterGraphsPreviousArrayNodes(
-            GraphId other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes);
+            const GraphId& other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes);
 
     void Unchain() {
         backward_entries_.clear();

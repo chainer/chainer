@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <memory>
-#include <utility>
 #include <vector>
 
 #include <nonstd/optional.hpp>
@@ -19,7 +18,7 @@ namespace backprop_mode_detail {
 thread_local BackpropModeStack* t_backprop_mode_stack{nullptr};
 
 template <bool kModeFlag>
-void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(nonstd::optional<std::vector<GraphId>> graph_ids, Context& context) {
+void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(const nonstd::optional<std::vector<GraphId>>& graph_ids, Context& context) {
     // The outer-most scope creates an instance of BackpropModeStack.
     if (t_backprop_mode_stack == nullptr) {
         t_backprop_mode_stack = new BackpropModeStack{};
@@ -28,8 +27,8 @@ void BackpropModeScope<kModeFlag>::BackpropModeScopeImpl(nonstd::optional<std::v
 
     if (graph_ids.has_value()) {
         n_ = graph_ids->size();
-        for (GraphId& graph_id : *graph_ids) {
-            t_backprop_mode_stack->emplace_back(context, std::move(graph_id), kModeFlag);
+        for (const GraphId& graph_id : *graph_ids) {
+            t_backprop_mode_stack->emplace_back(context, graph_id, kModeFlag);
         }
     } else {
         n_ = 1;

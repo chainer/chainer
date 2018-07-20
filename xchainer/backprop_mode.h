@@ -48,8 +48,8 @@ public:
     explicit BackpropModeScope(Context& context = GetDefaultContext()) { BackpropModeScopeImpl(nonstd::nullopt, context); }
 
     // Backprop mode for specified graphs
-    explicit BackpropModeScope(std::vector<GraphId> graph_ids, Context& context = GetDefaultContext()) {
-        BackpropModeScopeImpl(std::move(graph_ids), context);
+    explicit BackpropModeScope(const std::vector<GraphId>& graph_ids, Context& context = GetDefaultContext()) {
+        BackpropModeScopeImpl(graph_ids, context);
     }
 
     // Backprop mode for specified graphs
@@ -64,7 +64,7 @@ public:
     ~BackpropModeScope();
 
 private:
-    void BackpropModeScopeImpl(nonstd::optional<std::vector<GraphId>> graph_ids, Context& context);
+    void BackpropModeScopeImpl(const nonstd::optional<std::vector<GraphId>>& graph_ids, Context& context);
 
     // Number of BackpropMode instances pushed to the stack.
     size_t n_{};

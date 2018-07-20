@@ -48,7 +48,7 @@ void InitXchainerBackpropModeScope(pybind11::module& m, const char* class_name, 
     c.def("__exit__", &PyBackpropModeScope<BackpropModeScope>::Exit);
 
     m.def(function_name, []() { return PyBackpropModeScope<BackpropModeScope>{}; });
-    m.def(function_name, [](GraphId graph_id) { return PyBackpropModeScope<BackpropModeScope>{{std::move(graph_id)}}; });
+    m.def(function_name, [](const GraphId& graph_id) { return PyBackpropModeScope<BackpropModeScope>{{graph_id}}; });
     m.def(function_name, [](const std::vector<GraphId>& graph_ids) { return PyBackpropModeScope<BackpropModeScope>{graph_ids}; });
 }
 
