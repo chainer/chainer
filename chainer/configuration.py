@@ -42,11 +42,25 @@ class LocalConfig(object):
 
     def __getattr__(self, name):
         if hasattr(self._local, name):
-            return getattr(self._local, name)
+            return getattr(self._local, name)[-1]
         return getattr(self._global, name)
 
     def __setattr__(self, name, value):
-        setattr(self._local, name, value)
+        setattr(self._local, name, [value])
+
+    def push(self, name, value):
+        if hasattr(self._local, name):
+            getattr(self._local, name).append(value)
+        else:
+            setattr(self._local, name, [value])
+
+    def pop(self, name):
+        if hasattr(self._local, name):
+            if len(getattr(self._local, name)) > 1:
+                getattr(self._local, name).pop()
+            else:
+                assert getattr(self._local, name) != []
+                delattr(self._local, name)
 
     def show(self, file=sys.stdout):
         """show(file=sys.stdout)
@@ -114,16 +128,8 @@ def using_config(name, value, config=config):
         :ref:`configuration`
 
     """
-    if hasattr(config._local, name):
-        old_value = getattr(config, name)
-        setattr(config, name, value)
-        try:
-            yield
-        finally:
-            setattr(config, name, old_value)
-    else:
-        setattr(config, name, value)
-        try:
-            yield
-        finally:
-            delattr(config, name)
+    config.push(name, value)
+    try:
+        yield
+    finally:
+        config.pop(name)
