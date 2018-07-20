@@ -12,6 +12,7 @@ ImageDataLayer).
 import argparse
 import time
 
+import chainer.iterators
 import numpy as np
 
 import xchainer as xc
@@ -20,8 +21,8 @@ from image_dataset import PreprocessedDataset
 import resnet50
 
 
-def get_imagenet(dataset, indices):
-    x, t = zip(*dataset[indices])
+def get_imagenet(dataset_iter):
+    x, t = zip(*next(dataset_iter))
     return xc.array(np.array(x)), xc.array(np.array(t))
 
 
@@ -70,6 +71,8 @@ def main():
                         help='Number of epochs to train')
     parser.add_argument('--iteration', '-I', type=int, default=None,
                         help='Number of iterations to train. Epoch is ignored if specified.')
+    parser.add_argument('--loaderjob', '-j', type=int,
+                        help='Number of parallel data loading processes')
     parser.add_argument('--mean', '-m', default='mean.npy',
                         help='Mean file (computed by compute_mean.py)')
     parser.add_argument('--root', '-R', default='.',
@@ -83,6 +86,8 @@ def main():
     args = parser.parse_args()
 
     xc.set_default_device(args.device)
+    batch_size = args.batchsize
+    eval_size = args.val_batchsize
 
     # Prepare model
     model = resnet50.ResNet50()
@@ -91,12 +96,12 @@ def main():
     mean = np.load(args.mean)
     train = PreprocessedDataset(args.train, args.root, mean, model.insize)
     test = PreprocessedDataset(args.val, args.root, mean, model.insize, False)
+    train_iter = chainer.iterators.MultiprocessIterator(
+        train, batch_size, n_processes=args.loaderjob)
+    test_iter = chainer.iterators.MultiprocessIterator(
+        test, eval_size, n_processes=args.loaderjob)
 
     N = len(train)
-    train_indices = np.arange(N, dtype=np.int64)
-    test_indices = np.arange(len(test), dtype=np.int64)
-    batch_size = args.batchsize
-    eval_size = args.val_batchsize
 
     # Train
     model.require_grad()
@@ -107,11 +112,9 @@ def main():
     start = time.time()
 
     while not is_finished:
-        np.random.shuffle(train_indices)
 
         for i in range(0, N // batch_size):
-            indices = train_indices[i * batch_size: (i + 1) * batch_size]
-            x, t = get_imagenet(train, indices)
+            x, t = get_imagenet(train_iter)
             y = model(x)
             loss = compute_loss(y, t)
 
@@ -120,8 +123,7 @@ def main():
 
             it += 1
             if args.iteration is not None:
-                np.random.shuffle(test_indices)
-                x_test, t_test = get_imagenet(test, test_indices[:eval_size])
+                x_test, t_test = get_imagenet(test_iter)
                 elapsed_time = time.time() - start
                 mean_loss, accuracy = evaluate(model, x_test, t_test, eval_size, batch_size)
                 print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
@@ -131,8 +133,7 @@ def main():
 
         epoch += 1
         if args.iteration is None:
-            np.random.shuffle(test_indices)
-            x_test, t_test = get_imagenet(test, test_indices[:eval_size])
+            x_test, t_test = get_imagenet(test_iter)
             elapsed_time = time.time() - start
             mean_loss, accuracy = evaluate(model, x_test, t_test, eval_size, batch_size)
             print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
