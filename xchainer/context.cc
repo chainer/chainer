@@ -123,7 +123,7 @@ void Context::ReleaseGraphId(const GraphId& graph_id) {
 
 std::vector<GraphId> Context::InnerGraphIds(GraphId graph_id) {
     std::vector<GraphId> inner_graph_ids;
-    for (auto it = graph_sub_ids_.rbegin(); it != graph_sub_ids_.rend() && *it > graph_id.sub_id(); ++it) {
+    for (auto it = graph_sub_ids_.rbegin(); it != graph_sub_ids_.rend() && *it > graph_id.sub_id(); ++it) {  // Exclude the queried graph.
         inner_graph_ids.emplace_back(*this, *it);
     }
     return inner_graph_ids;

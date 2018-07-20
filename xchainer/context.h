@@ -45,7 +45,9 @@ public:
 
     void ReleaseGraphId(const GraphId& graph_id);
 
-    // TODO(hvy): Make const.
+    // Returns all graph ids created after the queried graph.
+    // In many cases, these are also the graphs created in inner scopes.
+    // The queried graph is excluded from the returned container.
     std::vector<GraphId> InnerGraphIds(GraphId graph_id);
 
     const nonstd::optional<GraphId>& outermost_graph_id() const { return outermost_graph_id_; }
