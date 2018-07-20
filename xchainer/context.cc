@@ -5,7 +5,6 @@
 #include <atomic>
 #include <cstdlib>
 #include <mutex>
-#include <stack>
 #include <vector>
 
 #include <gsl/gsl>
@@ -108,14 +107,14 @@ Device& Context::GetDevice(const DeviceId& device_id) {
 // TODO(sonots): Create a map to get graph name from sub id
 GraphId Context::MakeNextGraphId(std::string graph_name) {
     (void)graph_name;  // unused
-    graph_sub_ids_.emplace(next_graph_sub_id_);
+    graph_sub_ids_.emplace_back(next_graph_sub_id_);
     return GraphId{*this, next_graph_sub_id_++};
 }
 
 void Context::ReleaseGraphId(const GraphId& graph_id) {
-    // Pop all graphs from the stack that were created after the given graph and then the given graph itself.
-    while (!graph_sub_ids_.empty() && graph_id.sub_id() >= graph_sub_ids_.top()) {
-        graph_sub_ids_.pop();
+    // Pop all graphs from the "stack" that were created after the given graph and then the given graph itself.
+    while (!graph_sub_ids_.empty() && graph_id.sub_id() >= graph_sub_ids_.back()) {
+        graph_sub_ids_.pop_back();
     }
     if (graph_sub_ids_.empty()) {
         outermost_graph_id_.reset();
@@ -123,14 +122,9 @@ void Context::ReleaseGraphId(const GraphId& graph_id) {
 }
 
 std::vector<GraphId> Context::InnerGraphIds(GraphId graph_id) {
-    // TODO(hvy): A stack is not appropriate if it is only popped during graph scope exit.
     std::vector<GraphId> inner_graph_ids;
-    while (!graph_sub_ids_.empty() && graph_id.sub_id() < graph_sub_ids_.top()) {
-        inner_graph_ids.emplace_back(*this, graph_sub_ids_.top());
-        graph_sub_ids_.pop();
-    }
-    for (auto it = inner_graph_ids.rbegin(); it != inner_graph_ids.rend(); ++it) {
-        graph_sub_ids_.emplace(it->sub_id());
+    for (auto it = graph_sub_ids_.rbegin(); it != graph_sub_ids_.rend() && *it > graph_id.sub_id(); ++it) {
+        inner_graph_ids.emplace_back(*this, *it);
     }
     return inner_graph_ids;
 }

@@ -2,7 +2,6 @@
 
 #include <memory>
 #include <mutex>
-#include <stack>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -64,7 +63,7 @@ private:
     mutable std::mutex mutex_;
 
     GraphSubId next_graph_sub_id_{1};  // 1 is the first graph sub id after the default graph whose graph sub id is 0.
-    std::stack<GraphSubId> graph_sub_ids_{};
+    std::vector<GraphSubId> graph_sub_ids_{};
     nonstd::optional<GraphId> outermost_graph_id_{nonstd::nullopt};
 };
 

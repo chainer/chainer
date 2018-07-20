@@ -395,7 +395,6 @@ TEST_P(BackpropTest, BackwardOrderMatters) {
     // TODO(hvy): Test that backward order matters between multiple graphs.
 }
 
-
 TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     // This test checks cyclic reference is not formed when the input gradient references the input array.
     // The cycle could happen if input array nodes directly owned their gradients.
