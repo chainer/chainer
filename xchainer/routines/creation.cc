@@ -39,14 +39,15 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_
     return n_bytes;
 }
 
-Array FromHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device) {
+Array FromHostData(
+        const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, int64_t offset, Device& device) {
     auto bytesize = GetRequiredBytes(shape, strides, GetItemSize(dtype));
     std::shared_ptr<void> device_data = device.FromHostMemory(data, bytesize);
-    return MakeArray(shape, strides, dtype, device, device_data);
+    return MakeArray(shape, strides, dtype, device, device_data, offset);
 }
 
 Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
-    return FromHostData(shape, dtype, data, {shape, dtype}, device);
+    return FromHostData(shape, dtype, data, {shape, dtype}, 0, device);
 }
 
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device) {

@@ -56,16 +56,18 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Strides strides{array.strides(), array.strides() + array.ndim()};
 
     // Copy to a newly allocated data
-    std::tuple<int64_t, int64_t> range = GetDataRange(shape, strides, array.itemsize());
-    auto bytesize = static_cast<size_t>(std::get<1>(range) - std::get<0>(range));
+    int64_t first{};
+    int64_t last{};
+    std::tie(first, last) = GetDataRange(shape, strides, array.itemsize());
+    auto bytesize = static_cast<size_t>(last - first);
     std::shared_ptr<void> data = std::make_unique<uint8_t[]>(bytesize);
     {
         py::buffer_info info = array.request();
-        std::memcpy(data.get(), info.ptr, bytesize);
+        std::memcpy(data.get(), static_cast<char*>(info.ptr) + first, bytesize);
     }
 
     // Create and return the array
-    return MoveArrayBody(internal::FromHostData(shape, dtype, data, strides, device));
+    return MoveArrayBody(internal::FromHostData(shape, dtype, data, strides, -first, device));
 }
 
 namespace {
