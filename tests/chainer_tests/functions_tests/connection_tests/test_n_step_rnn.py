@@ -34,7 +34,7 @@ def _to_gpu(x):
 
 def _shaped_random(shape, dtype='f'):
     if isinstance(shape, list):
-        return [_shaped_random(s) for s in shape]
+        return [_shaped_random(s, dtype=dtype) for s in shape]
     else:
         return numpy.random.uniform(-1, 1, shape).astype(dtype)
 
@@ -46,9 +46,21 @@ def _wrap_variable(x):
         return chainer.Variable(x)
 
 
-@testing.parameterize(*testing.product({
-    'activation': ['tanh', 'relu']
-}))
+@testing.parameterize(*testing.product_dict(
+    [{'dtype': numpy.float16,
+      'forward_options': {'atol': 5e-3, 'rtol': 5e-3},
+      'backward_options': {'atol': 1e0, 'rtol': 1e0}},
+     {'dtype': numpy.float32,
+      'forward_options': {'atol': 1e-4, 'rtol': 1e-4},
+      'backward_options': {'atol': 1e-2, 'rtol': 5e-2}},
+     {'dtype': numpy.float64,
+      'forward_options': {'atol': 1e-4, 'rtol': 1e-4},
+      'backward_options': {'atol': 1e-2, 'rtol': 5e-2}},
+     ],
+    [{'activation': 'tanh'},
+     {'activation': 'relu'},
+     ],
+))
 class TestNStepRNN(unittest.TestCase):
 
     batches = [3, 2, 1]
@@ -59,23 +71,36 @@ class TestNStepRNN(unittest.TestCase):
     dropout = 0.0
 
     def setUp(self):
-        self.xs = _shaped_random([(b, self.in_size) for b in self.batches])
+        config = chainer.config
+        self._old_dtype = getattr(config._local, 'dtype', None)
+        config.dtype = self.dtype
+
+        self.xs = _shaped_random(
+            [(b, self.in_size) for b in self.batches], dtype=self.dtype)
         h_shape = (self.n_layers, self.batches[0], self.out_size)
-        self.hx = _shaped_random(h_shape)
+        self.hx = _shaped_random(h_shape, dtype=self.dtype)
 
         o = self.out_size
         i = self.in_size
         self.ws = []
         self.bs = []
         # The first layer has the different shape
-        self.ws.append(_shaped_random([(o, i), (o, o)]))
-        self.bs.append(_shaped_random([o, o]))
+        self.ws.append(_shaped_random([(o, i), (o, o)], dtype=self.dtype))
+        self.bs.append(_shaped_random([o, o], dtype=self.dtype))
         for _ in range(self.n_layers - 1):
-            self.ws.append(_shaped_random([(o, o), (o, o)]))
-            self.bs.append(_shaped_random([o, o]))
+            self.ws.append(_shaped_random([(o, o), (o, o)], dtype=self.dtype))
+            self.bs.append(_shaped_random([o, o], dtype=self.dtype))
 
-        self.dys = _shaped_random([(b, self.out_size) for b in self.batches])
-        self.dhy = _shaped_random(h_shape)
+        self.dys = _shaped_random(
+            [(b, self.out_size) for b in self.batches], dtype=self.dtype)
+        self.dhy = _shaped_random(h_shape, dtype=self.dtype)
+
+    def tearDown(self):
+        config = chainer.config
+        if self._old_dtype is None:
+            del config.dtype
+        else:
+            config.dtype = self._old_dtype
 
     def check_forward(
             self, h_data, xs_data, ws_data, bs_data):
@@ -106,10 +131,9 @@ class TestNStepRNN(unittest.TestCase):
 
                 x = e_h
 
-            testing.assert_allclose(
-                ys[ind].data, x, rtol=1e-4, atol=1e-4)
+            testing.assert_allclose(ys[ind].data, x, **self.forward_options)
 
-        testing.assert_allclose(hy.data, e_hy, rtol=1e-4, atol=1e-4)
+        testing.assert_allclose(hy.data, e_hy, **self.forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.hx, self.xs, self.ws, self.bs)
@@ -152,8 +176,7 @@ class TestNStepRNN(unittest.TestCase):
                 activation=self.activation)
             return (hy, ) + ys
 
-        gradient_check.check_backward(
-            f, args, grads, rtol=1e-2, atol=5e-2)
+        gradient_check.check_backward(f, args, grads, **self.backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
