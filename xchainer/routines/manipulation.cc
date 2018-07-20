@@ -33,8 +33,7 @@ Scalar AsScalar(const Array& a) {
     return VisitDtype(a.dtype(), [&native_copy](auto pt) -> Scalar {
         using T = typename decltype(pt)::type;
         const uint8_t* ptr = static_cast<const uint8_t*>(native_copy.data().get()) + native_copy.offset();
-        auto typed_ptr =
-                reinterpret_cast<const T*>(ptr);  // NOLINT(readability/nolint), NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        auto typed_ptr = reinterpret_cast<const T*>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         return Scalar{*typed_ptr};
     });
 }

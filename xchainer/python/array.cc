@@ -337,7 +337,7 @@ void InitXchainerArray(pybind11::module& m) {
             "_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
             [](const ArrayBodyPtr& self) -> intptr_t {
                 const void* ptr = Array{self}.data().get();
-                return reinterpret_cast<intptr_t>(ptr);  // NOLINT(readability/nolint), NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                return reinterpret_cast<intptr_t>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
             });
     c.def_property_readonly("_debug_flat_data", [](const ArrayBodyPtr& self) {
         py::list list;

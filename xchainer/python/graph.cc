@@ -46,7 +46,7 @@ private:
 };
 
 void InitXchainerGraph(pybind11::module& m) {
-    py::class_<AnyGraph>{m, "AnyGraph"};  // NOLINT(readability/nolint), NOLINT(misc-unused-raii)
+    py::class_<AnyGraph>{m, "AnyGraph"};  // NOLINT(misc-unused-raii)
 
     // TODO(imanishi): Add module function to retrieve default graph id.
     m.attr("anygraph") = AnyGraph{};

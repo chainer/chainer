@@ -80,7 +80,6 @@ Backend& Context::GetBackend(const std::string& backend_name) {
 
         // Create backend
         void* ptr = ::dlsym(handle, "CreateBackend");
-        // NOLINTNEXTLINE(readability/nolint)
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         auto create_backend = reinterpret_cast<std::unique_ptr<Backend> (*)(Context&)>(ptr);
         if (create_backend == nullptr) {
