@@ -268,10 +268,8 @@ class TestVGG16Layers(unittest.TestCase):
 class TestGoogLeNet(unittest.TestCase):
 
     def setUp(self):
-        self._old_dtype = None
         config = chainer.config
-        if hasattr(config._local, 'dtype'):
-            self._old_dtype = config.dtype
+        self._old_dtype = hasattr(config._local, 'dtype', None)
         config.dtype = self.dtype
         self.link = googlenet.GoogLeNet(pretrained_model=None)
 
