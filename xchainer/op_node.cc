@@ -153,8 +153,8 @@ std::shared_ptr<ArrayNode> CreatePrevArrayNode(std::shared_ptr<OpNode> op_node, 
 
     const internal::ArrayProps& props = op_node->GetPrevArrayProps(prev_array_node_index);
     auto prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node->graph_id());
-    prev_array_node->set_next_op_node(std::move(op_node));
     op_node->prev_array_nodes()[prev_array_node_index] = prev_array_node;
+    prev_array_node->set_next_op_node(std::move(op_node));
 
     return prev_array_node;
 }
