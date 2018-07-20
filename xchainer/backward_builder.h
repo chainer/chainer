@@ -39,7 +39,7 @@ private:
     // same array body.
     size_t output_index() const { return output_index_; }
 
-    const std::shared_ptr<internal::ArrayBody>& GetFabricatedArrayBodyWithNodes(const std::shared_ptr<OpNode>& op_node) const;
+    const std::shared_ptr<internal::ArrayBody>& data_array_body() const { return data_array_body_; }
 
     // Output data array. Initially it does not have any array nodes.
     // This array is used when retrieving retained output array, in case the array body of the original output array is no longer alive.

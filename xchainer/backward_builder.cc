@@ -29,46 +29,6 @@ RetainedOutputToken::RetainedOutputToken(std::shared_ptr<internal::ArrayBody> da
     assert(!internal::HasAnyArrayNode(Array{data_array_body_}));
 }
 
-const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedArrayBodyWithNodes(
-        const std::shared_ptr<OpNode>& op_node) const {
-    assert(op_node != nullptr);
-    std::vector<std::shared_ptr<ArrayNode>> new_prev_array_nodes;
-
-    // Loop over outer graphs to collect array nodes corresponding to the same output index
-    for (const auto& tup : op_node->outer_graphs_prev_array_nodes()) {
-        const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes = std::get<1>(tup);
-        const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes[output_index_];
-        assert(prev_array_node->GetBody() == nullptr);
-        new_prev_array_nodes.emplace_back(prev_array_node);
-    }
-
-    // Collect array node of this graph.
-    // If the previous array node is alive, add the node to the array body.
-    // Otherwise, create a new array node out of the op node.
-    {
-        const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes = op_node->prev_array_nodes();
-        std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[output_index_].lock();
-        if (prev_array_node == nullptr) {
-            // Create mocked prev array node for "this" graph, based on the current op node
-            const internal::ArrayProps& props = op_node->GetPrevArrayProps(output_index_);
-            prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node->graph_id());
-            prev_array_node->set_next_op_node(op_node);
-        }
-
-        new_prev_array_nodes.emplace_back(std::move(prev_array_node));
-    }
-
-    // Create a new array body with (possibly fabricated) array nodes.
-    // The data array body stored in the token is reused as a base.
-    for (const std::shared_ptr<ArrayNode>& prev_array_node : new_prev_array_nodes) {
-        assert(prev_array_node->GetBody() == nullptr);
-        prev_array_node->set_array_body(data_array_body_);
-        data_array_body_->AddNode(prev_array_node);
-    }
-
-    return data_array_body_;
-}
-
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()} {
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
