@@ -27,7 +27,7 @@ class TestResNetLayers(unittest.TestCase):
 
     def setUp(self):
         config = chainer.config
-        self._old_dtype = hasattr(config._local, 'dtype', None)
+        self._old_dtype = getattr(config._local, 'dtype', None)
         config.dtype = self.dtype
         if self.n_layers == 50:
             self.link = resnet.ResNet50Layers(
