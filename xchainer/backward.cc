@@ -89,16 +89,23 @@ const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedAr
     for (const auto& tup : op_node->outer_graphs_prev_array_nodes()) {
         const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes = std::get<1>(tup);
         const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes[output_index_];
+        assert(prev_array_node->GetBody() == nullptr);
         new_prev_array_nodes.emplace_back(prev_array_node);
     }
 
-    // Collect array nodes of this graph.
-    // If previous array node is alive, add the node to the array body.
-    // Otherwise, create a new array node out of an op node of the corresponding graph.
+    // Collect array node of this graph.
+    // If the previous array node is alive, add the node to the array body.
+    // Otherwise, create a new array node out of the op node.
     {
         const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes = op_node->prev_array_nodes();
         std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[output_index_].lock();
-        assert(prev_array_node != nullptr);  // previous array node must be alive thanks to BackwardImpl::previous_array_node_keeper_.
+        if (prev_array_node == nullptr) {
+            // Create mocked prev array node for "this" graph, based on the current op node
+            const internal::ArrayProps& props = op_node->GetPrevArrayProps(output_index_);
+            prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node->graph_id());
+            prev_array_node->set_next_op_node(op_node);
+        }
+
         new_prev_array_nodes.emplace_back(std::move(prev_array_node));
     }
 
@@ -185,13 +192,23 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
 
         // Retrieve the array body of the original output array.
         std::shared_ptr<internal::ArrayBody> array_body{nullptr};
-        if (ArrayNode* prev_array_node = prev_array_nodes_[output_index]) {
+        ArrayNode* prev_array_node = prev_array_nodes_[output_index];
+        if (prev_array_node != nullptr) {
+            // array node is alive
             array_body = prev_array_node->GetBody();
         }
 
         if (array_body == nullptr) {
             // Fabricate a new array body
             array_body = token.GetFabricatedArrayBodyWithNodes(op_node_);
+        }
+
+        // If the weak ptr to old previous array node was dead, replenish it with the fabricated one.
+        if (prev_array_node == nullptr) {
+            // TODO(niboshi): Avoid temporary array
+            const std::shared_ptr<ArrayNode>& array_node = internal::GetMutableArrayNode(Array{array_body}, op_node_->graph_id());
+            op_node_->prev_array_nodes()[output_index] = array_node;
+            prev_array_nodes_[output_index] = array_node.get();
         }
 
         // Cut graphs of the array body

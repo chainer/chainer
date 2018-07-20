@@ -112,6 +112,9 @@ public:
     // Returns the list of prev array nodes on "this" graph.
     const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes() const { return prev_array_nodes_; }
 
+    // Returns the list of prev array nodes on "this" graph.
+    std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes() { return prev_array_nodes_; }
+
     // Returns the previous array nodes of all graphs.
     const std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_prev_array_nodes() const {
         return outer_graphs_prev_array_nodes_;

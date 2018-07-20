@@ -165,7 +165,11 @@ private:
     size_t output_count() const;
 
     const std::shared_ptr<OpNode>& op_node_;  // never be nullptr
+
+    // Previous array nodes of the op node.
+    // Null if the array node is gone (the weak pointer is dead).
     gsl::span<ArrayNode*> prev_array_nodes_;
+
     gsl::span<internal::GradRef*> prev_grads_;
 
     // A reference to the storage of input gradient arrays.
