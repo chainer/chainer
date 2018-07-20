@@ -26,9 +26,9 @@ from chainer.variable import Variable
 class TestResNetLayers(unittest.TestCase):
 
     def setUp(self):
-        config = chainer.config
-        self._old_dtype = getattr(config._local, 'dtype', None)
-        config.dtype = self.dtype
+        self._config_user = chainer.using_config('dtype', self.dtype)
+        self._config_user.__enter__()
+
         if self.n_layers == 50:
             self.link = resnet.ResNet50Layers(
                 pretrained_model=None, downsample_fb=self.downsample_fb)
@@ -40,11 +40,7 @@ class TestResNetLayers(unittest.TestCase):
                 pretrained_model=None, downsample_fb=self.downsample_fb)
 
     def tearDown(self):
-        config = chainer.config
-        if self._old_dtype is None:
-            del config.dtype
-        else:
-            config.dtype = self._old_dtype
+        self._config_user.__exit__(None, None, None)
 
     def test_available_layers(self):
         result = self.link.available_layers
