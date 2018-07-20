@@ -269,7 +269,7 @@ class TestGoogLeNet(unittest.TestCase):
 
     def setUp(self):
         config = chainer.config
-        self._old_dtype = hasattr(config._local, 'dtype', None)
+        self._old_dtype = getattr(config._local, 'dtype', None)
         config.dtype = self.dtype
         self.link = googlenet.GoogLeNet(pretrained_model=None)
 
