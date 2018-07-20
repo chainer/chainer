@@ -156,10 +156,8 @@ class TestResNetLayers(unittest.TestCase):
 class TestVGG16Layers(unittest.TestCase):
 
     def setUp(self):
-        self._old_dtype = None
         config = chainer.config
-        if hasattr(config._local, 'dtype'):
-            self._old_dtype = config.dtype
+        self._old_dtype = getattr(config._local, 'dtype', None)
         config.dtype = self.dtype
         self.link = vgg.VGG16Layers(pretrained_model=None)
 
