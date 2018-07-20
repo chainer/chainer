@@ -268,17 +268,12 @@ class TestVGG16Layers(unittest.TestCase):
 class TestGoogLeNet(unittest.TestCase):
 
     def setUp(self):
-        config = chainer.config
-        self._old_dtype = getattr(config._local, 'dtype', None)
-        config.dtype = self.dtype
+        self._config_user = chainer.using_config('dtype', self.dtype)
+        self._config_user.__enter__()
         self.link = googlenet.GoogLeNet(pretrained_model=None)
 
     def tearDown(self):
-        config = chainer.config
-        if self._old_dtype is None:
-            del config.dtype
-        else:
-            config.dtype = self._old_dtype
+        self._config_user.__exit__(None, None, None)
 
     def test_available_layers(self):
         result = self.link.available_layers
