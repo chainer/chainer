@@ -49,7 +49,7 @@ public:
 
     // Backprop mode for specified graphs
     explicit BackpropModeScope(const std::vector<GraphId>& graph_ids, Context& context = GetDefaultContext()) {
-        BackpropModeScopeImpl(std::move(graph_ids), context);
+        BackpropModeScopeImpl(graph_ids, context);
     }
 
     // Backprop mode for specified graphs
