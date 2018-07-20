@@ -190,7 +190,7 @@ const std::shared_ptr<internal::ArrayBody>& BackwardContext::GetFabricatedArrayB
         std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[token.output_index()].lock();
         if (prev_array_node == nullptr) {
             // Create mocked prev array node for "this" graph, based on the current op node
-            prev_array_node = internal::CreatePrevArrayNode(op_node_, token.output_index());
+            prev_array_node = internal::FabricatePrevArrayNode(op_node_, token.output_index());
         }
 
         new_prev_array_nodes.emplace_back(std::move(prev_array_node));

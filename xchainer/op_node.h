@@ -11,6 +11,7 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
+#include "xchainer/array_fwd.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
@@ -18,7 +19,6 @@
 
 namespace xchainer {
 
-class Array;
 class ArrayNode;
 class BackwardContext;
 class Device;
@@ -29,6 +29,9 @@ using BackwardFunction = std::function<void(BackwardContext&)>;
 namespace internal {
 
 struct ArrayProps {
+    explicit ArrayProps(const Array& array);
+    explicit ArrayProps(const ArrayNode& array_node);
+
     Shape shape;
     Dtype dtype;
     Device& device;
@@ -68,15 +71,16 @@ private:
     std::vector<std::shared_ptr<ArrayNode>> GetNextArrayNodes() const;
 };
 
+// Creates a prev array node at the specified index and adds edges between the prev array node and the op node.
+// Undefined behavior if the prev array node already exists.
+std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_node, size_t prev_array_node_index);
+
 }  // namespace internal
 
 class OpNode {
 public:
-    explicit OpNode(
-            std::string name,
-            GraphId graph_id,
-            std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes,
-            std::vector<internal::ArrayProps> prev_array_props);
+    // Creates a new op node that has prev array nodes corresponding to the given outputs.
+    static std::shared_ptr<OpNode> Create(std::string name, GraphId graph_id, const std::vector<ConstArrayRef>& outputs);
 
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;
@@ -131,6 +135,8 @@ public:
     }
 
 private:
+    OpNode(std::string name, GraphId graph_id);
+
     void AssertConsistency() const;
 
     std::string name_;
@@ -159,11 +165,4 @@ private:
     std::vector<internal::OpNodeBackwardEntry> backward_entries_;
 };
 
-namespace internal {
-
-// Creates a prev array node at the specified index and adds edges between the prev array node and the op node.
-// Undefined behavior if the prev array node already exists.
-std::shared_ptr<ArrayNode> CreatePrevArrayNode(std::shared_ptr<OpNode> op_node, size_t prev_array_node_index);
-
-}  // namespace internal
 }  // namespace xchainer
