@@ -11,6 +11,7 @@
 #include "xchainer/array_node.h"
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
+#include "xchainer/backward_builder.h"
 #include "xchainer/error.h"
 #include "xchainer/numeric.h"
 #include "xchainer/numerical_gradient.h"

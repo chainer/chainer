@@ -11,8 +11,10 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/backward.h"
+#include "xchainer/device.h"
+#include "xchainer/dtype.h"
 #include "xchainer/graph.h"
+#include "xchainer/shape.h"
 
 namespace xchainer {
 
@@ -22,7 +24,15 @@ class BackwardContext;
 class Device;
 class OpNode;
 
+using BackwardFunction = std::function<void(BackwardContext&)>;
+
 namespace internal {
+
+struct ArrayProps {
+    Shape shape;
+    Dtype dtype;
+    Device& device;
+};
 
 class OpNodeBackwardEntry {
 public:

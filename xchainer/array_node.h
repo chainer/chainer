@@ -7,6 +7,7 @@
 
 #include <nonstd/optional.hpp>
 
+#include "xchainer/array_body.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
