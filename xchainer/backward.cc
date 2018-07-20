@@ -89,12 +89,13 @@ const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedAr
     for (const auto& tup : op_node->outer_graphs_prev_array_nodes()) {
         const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes = std::get<1>(tup);
         const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes[output_index_];
+        assert(prev_array_node->GetBody() == nullptr);
         new_prev_array_nodes.emplace_back(prev_array_node);
     }
 
-    // Collect array nodes of this graph.
-    // If previous array node is alive, add the node to the array body.
-    // Otherwise, create a new array node out of an op node of the corresponding graph.
+    // Collect array node of this graph.
+    // If the previous array node is alive, add the node to the array body.
+    // Otherwise, create a new array node out of the op node.
     {
         const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes = op_node->prev_array_nodes();
         std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[output_index_].lock();
@@ -120,7 +121,7 @@ const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedAr
 }
 
 BackwardContext::BackwardContext(
-        const std::shared_ptr<OpNode>& op_node,
+        std::shared_ptr<OpNode>& op_node,
         gsl::span<ArrayNode*> prev_array_nodes,
         gsl::span<internal::GradRef*> prev_grads,
         std::vector<Array>& input_grads_storage,
@@ -191,13 +192,23 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
 
         // Retrieve the array body of the original output array.
         std::shared_ptr<internal::ArrayBody> array_body{nullptr};
-        if (ArrayNode* prev_array_node = prev_array_nodes_[output_index]) {
+        ArrayNode* prev_array_node = prev_array_nodes_[output_index];
+        if (prev_array_node != nullptr) {
+            // array node is alive
             array_body = prev_array_node->GetBody();
         }
 
         if (array_body == nullptr) {
             // Fabricate a new array body
             array_body = token.GetFabricatedArrayBodyWithNodes(op_node_);
+        }
+
+        // If the weak ptr to old previous array node was dead, replenish it with the fabricated one.
+        if (prev_array_node == nullptr) {
+            // TODO(niboshi): Avoid temporary array
+            const std::shared_ptr<ArrayNode>& array_node = internal::GetMutableArrayNode(Array{array_body}, op_node_->graph_id());
+            op_node_->prev_array_nodes()[output_index] = array_node;
+            prev_array_nodes_[output_index] = array_node.get();
         }
 
         // Cut graphs of the array body
@@ -456,7 +467,7 @@ public:
     }
 
 private:
-    std::vector<nonstd::optional<Array>> ComputeNextGradients(const std::shared_ptr<OpNode>& op_node, const GraphId& graph_id) {
+    std::vector<nonstd::optional<Array>> ComputeNextGradients(std::shared_ptr<OpNode>& op_node, const GraphId& graph_id) {
         assert(op_node != nullptr);
 
         // Determine graph IDs to stop gradients

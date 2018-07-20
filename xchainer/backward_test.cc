@@ -1302,9 +1302,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
 
-TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToNextArrayNode) {
+TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIsDead) {
     // This test checks retained output arrays can be retrieved, where their array bodies (yn) are gone at the moment of retrieval, and
-    // their array nodes are also gone. In that case the next array nodes are used to fabricate the retained outputs.
+    // their array nodes are also gone. In that case new mocked previous array nodes are created.
     //
     // (x1) <- [forward] <- (y1 := exp(x1 + 2 x2) + exp(2 x1 + x2))
     // (x2) <-           <- (y2 := exp(x1 + 2 x2) - exp(2 x1 + x2)) <- [view] <- (z2)
@@ -1361,15 +1361,15 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToNextArrayNode) {
 
                 testing::ExpectEqual(y1_value, y1);
                 testing::ExpectEqual(y2_value, y2);
+                EXPECT_TRUE(y1.IsGradRequired(graph_id1));
+                EXPECT_TRUE(y2.IsGradRequired(graph_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(y2.IsGradRequired(graph_id2));
                 } else {
-                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y1.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(y2.IsGradRequired(graph_id2));
                 }
-                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                EXPECT_TRUE(y2.IsGradRequired(graph_id2));
 
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
@@ -1406,15 +1406,15 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToNextArrayNode) {
 
                 testing::ExpectEqual(y1_value, y1);
                 testing::ExpectEqual(y2_value, y2);
+                EXPECT_TRUE(y1.IsGradRequired(graph_id1));
+                EXPECT_TRUE(y2.IsGradRequired(graph_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(y2.IsGradRequired(graph_id2));
                 } else {
-                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y1.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(y2.IsGradRequired(graph_id2));
                 }
-                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                EXPECT_TRUE(y2.IsGradRequired(graph_id2));
 
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
@@ -1447,14 +1447,14 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToNextArrayNode) {
 
             // Keep weak reference to y1.body() and y1's node to check if it is actually gone
             y1_body = y1.body();
-            y1_node = internal::GetArrayNode(y1, graph_id1);
+            y1_node = internal::GetArrayNode(y1, graph_id2);
             // Only z2 is kept. y1 (and therefore y1's node) will be released.
             z2 = y2.MakeView();
         }
         // Only z2 is alive here
-        Backward({z2}, graph_id1, double_backprop_opt);
-        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(graph_id1));
-        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(graph_id1));
+        Backward({z2}, graph_id2, double_backprop_opt);
+        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(graph_id2));
+        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(graph_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
