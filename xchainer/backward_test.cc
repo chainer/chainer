@@ -235,10 +235,10 @@ TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
 #endif  // XCHAINER_ENABLE_CUDA
 
 TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
-    GraphScope graph_scope1{"graph_x"};
-    GraphScope graph_scope2{"graph_y"};
-    GraphId graph_x = graph_scope1.graph_id();
-    GraphId graph_y = graph_scope2.graph_id();
+    GraphScope graph_scope_y{"graph_y"};
+    GraphScope graph_scope_x{"graph_x"};
+    GraphId graph_x = graph_scope_x.graph_id();
+    GraphId graph_y = graph_scope_y.graph_id();
 
     auto x = Full({1}, 2.0f);
     x.RequireGrad(graph_x);
@@ -356,39 +356,39 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     GraphId graph_id_1 = graph_scope1.graph_id();
     GraphId graph_id_2 = graph_scope2.graph_id();
 
-    x1.RequireGrad(graph_id_1);
-    x2.RequireGrad(graph_id_2);
-
-    Array y1 = x1 * x2;
-    Backward(y1, graph_id_1);
-
-    Array expected_1 = MakeFullArray({1}, {5.0f});
-    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_1));
-    EXPECT_FALSE(x2.GetGrad(graph_id_2));
-
-    x1.ClearGrad(graph_id_1);
-    x2.ClearGrad(graph_id_2);
-
-    Array y2 = x1 * x2;
-    Backward(y2, graph_id_2);
-
-    Array expected_2 = MakeFullArray({1}, {2.0f});
-    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_2));
-    EXPECT_FALSE(x1.GetGrad(graph_id_1));
-
-    x1.ClearGrad(graph_id_1);
-    x2.ClearGrad(graph_id_2);
-
     x1.RequireGrad(graph_id_2);
     x2.RequireGrad(graph_id_1);
 
-    Array y3 = x1 * x2;
-    Backward(y3, graph_id_2);
+    Array y1 = x1 * x2;
+    Backward(y1, graph_id_2);
 
+    Array expected_1 = MakeFullArray({1}, {5.0f});
     ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_2));
-    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_2));
-    EXPECT_FALSE(x1.GetGrad(graph_id_1));
     EXPECT_FALSE(x2.GetGrad(graph_id_1));
+
+    x1.ClearGrad(graph_id_2);
+    x2.ClearGrad(graph_id_1);
+
+    Array y2 = x1 * x2;
+    Backward(y2, graph_id_1);
+
+    Array expected_2 = MakeFullArray({1}, {2.0f});
+    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_1));
+    EXPECT_FALSE(x1.GetGrad(graph_id_2));
+
+    x1.ClearGrad(graph_id_2);
+    x2.ClearGrad(graph_id_1);
+
+    x1.RequireGrad(graph_id_1);
+    x2.RequireGrad(graph_id_2);
+
+    Array y3 = x1 * x2;
+    Backward(y3, graph_id_1);
+
+    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_1));
+    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_1));
+    EXPECT_FALSE(x1.GetGrad(graph_id_2));
+    EXPECT_FALSE(x2.GetGrad(graph_id_2));
 }
 
 TEST_P(BackpropTest, BackwardOrderMatters) {
