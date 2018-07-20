@@ -121,7 +121,7 @@ const std::shared_ptr<internal::ArrayBody>& RetainedOutputToken::GetFabricatedAr
 }
 
 BackwardContext::BackwardContext(
-        std::shared_ptr<OpNode>& op_node,
+        const std::shared_ptr<OpNode>& op_node,
         gsl::span<ArrayNode*> prev_array_nodes,
         gsl::span<internal::GradRef*> prev_grads,
         std::vector<Array>& input_grads_storage,
@@ -467,7 +467,7 @@ public:
     }
 
 private:
-    std::vector<nonstd::optional<Array>> ComputeNextGradients(std::shared_ptr<OpNode>& op_node, const GraphId& graph_id) {
+    std::vector<nonstd::optional<Array>> ComputeNextGradients(const std::shared_ptr<OpNode>& op_node, const GraphId& graph_id) {
         assert(op_node != nullptr);
 
         // Determine graph IDs to stop gradients

@@ -119,7 +119,7 @@ public:
     // Its size must be equal to the number of input arrays whose gradients are to be returned in this single backward function (1 in most
     // ordinary functions).
     BackwardContext(
-            std::shared_ptr<OpNode>& op_node,
+            const std::shared_ptr<OpNode>& op_node,
             gsl::span<ArrayNode*> prev_array_nodes,
             gsl::span<internal::GradRef*> prev_grads,
             std::vector<Array>& input_grads_storage,
@@ -164,7 +164,7 @@ public:
 private:
     size_t output_count() const;
 
-    std::shared_ptr<OpNode>& op_node_;  // never be nullptr
+    const std::shared_ptr<OpNode>& op_node_;  // never be nullptr
 
     // Previous array nodes of the op node.
     // Null if the array node is gone (the weak pointer is dead).
