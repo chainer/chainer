@@ -90,6 +90,10 @@ public:
     void RegisterOuterGraphsPreviousArrayNodes(
             const GraphId& other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes);
 
+    // Creates a prev array node at the specified index
+    // Undefined behavior if the prev array node already exists.
+    std::shared_ptr<ArrayNode> CreatePrevArrayNode(size_t prev_array_node_index);
+
     void Unchain() {
         backward_entries_.clear();
         next_array_nodes_.clear();

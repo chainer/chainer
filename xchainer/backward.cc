@@ -160,7 +160,6 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
         if (prev_array_node == nullptr) {
             // TODO(niboshi): Avoid temporary array
             const std::shared_ptr<ArrayNode>& array_node = internal::GetMutableArrayNode(Array{array_body}, op_node_->graph_id());
-            op_node_->prev_array_nodes()[output_index] = array_node;
             prev_array_nodes_[output_index] = array_node.get();
         }
 
@@ -191,9 +190,7 @@ const std::shared_ptr<internal::ArrayBody>& BackwardContext::GetFabricatedArrayB
         std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[token.output_index()].lock();
         if (prev_array_node == nullptr) {
             // Create mocked prev array node for "this" graph, based on the current op node
-            const internal::ArrayProps& props = op_node_->GetPrevArrayProps(token.output_index());
-            prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node_->graph_id());
-            prev_array_node->set_next_op_node(op_node_);
+            prev_array_node = op_node_->CreatePrevArrayNode(token.output_index());
         }
 
         new_prev_array_nodes.emplace_back(std::move(prev_array_node));

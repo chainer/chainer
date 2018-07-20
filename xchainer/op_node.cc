@@ -145,4 +145,15 @@ void OpNode::RegisterOuterGraphsPreviousArrayNodes(
     AssertConsistency();
 }
 
+std::shared_ptr<ArrayNode> OpNode::CreatePrevArrayNode(size_t prev_array_node_index) {
+    assert(prev_array_node_index < prev_array_nodes_.size());
+    assert(prev_array_nodes_[prev_array_node_index].expired());
+
+    const internal::ArrayProps& props = prev_array_props_[prev_array_node_index];
+    auto prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, graph_id_);
+    prev_array_node->set_next_op_node(*this);
+    prev_array_nodes_[prev_array_node_index] = prev_array_node;
+
+    return prev_array_node;
+}
 }  // namespace xchainer
