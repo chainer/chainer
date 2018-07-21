@@ -51,7 +51,8 @@ def _make_tensor_descriptor_array(xs):
 
 
 def _get_cudnn_data_type(dtype):
-    """Return a cudnnDataType_t value corresponding to the numpy float dtype."""
+    """Return a cudnnDataType_t value corresponding to the numpy float dtype.
+    """
     if dtype is numpy.float32:
         return libcudnn.CUDNN_DATA_FLOAT
     elif dtype is numpy.float16:
@@ -181,7 +182,8 @@ class CudnnRNNWeightConcat(function.Function):
         weights_size = libcudnn.getRNNParamsSize(
             handle, rnn_desc.value, x_desc.value, cudnn_data_type)
         byte_size = self._dtype.itemsize
-        w = cuda.cupy.empty((weights_size // byte_size, 1, 1), dtype=self._dtype)
+        w = cuda.cupy.empty(
+            (weights_size // byte_size, 1, 1), dtype=self._dtype)
         w_desc = cudnn.create_filter_descriptor(w)
 
         for layer in six.moves.range(self.n_layers):
