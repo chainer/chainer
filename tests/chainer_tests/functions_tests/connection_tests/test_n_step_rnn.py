@@ -269,7 +269,7 @@ class TestNStepRNN(unittest.TestCase):
 @testing.parameterize(*testing.product_dict(
     [{'dtype': numpy.float16,
       'forward_options': {'atol': 5e-3, 'rtol': 5e-3},
-      'backward_options': {'atol': 1e0, 'rtol': 1e0}},
+      'backward_options': {'atol': 3e0, 'rtol': 3e0}},
      {'dtype': numpy.float32,
       'forward_options': {'atol': 1e-4, 'rtol': 1e-4},
       'backward_options': {'atol': 1e-2, 'rtol': 5e-2}},
