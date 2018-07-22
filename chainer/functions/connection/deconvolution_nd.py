@@ -60,8 +60,8 @@ class DeconvolutionND(function_node.FunctionNode):
 
     def _use_cudnn(self, x, W):
         if ((cuda._cudnn_version < 6000
-           or configuration.config.cudnn_deterministic)
-           and any(d != 1 for d in self.dilate)):
+             or configuration.config.cudnn_deterministic)
+                and any(d != 1 for d in self.dilate)):
             # cuDNN < 6.0 and deterministic algorithms
             # does not support dilated convolutions
             return False
