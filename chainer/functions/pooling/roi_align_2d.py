@@ -184,7 +184,7 @@ class ROIAlign2D(function.Function):
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
-                                    self.outw), dtype=numpy.float32)
+                                    self.outw), dtype=bottom_data.dtype)
         cuda.cupy.ElementwiseKernel(
             '''
             raw float32 bottom_data, float32 spatial_scale, int32 channels,
