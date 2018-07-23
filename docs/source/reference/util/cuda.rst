@@ -37,6 +37,7 @@ Kernel definition utilities
    chainer.backends.cuda.memoize
    chainer.backends.cuda.clear_memo
    chainer.backends.cuda.elementwise
+   chainer.backends.cuda.raw
    chainer.backends.cuda.reduce
 
 CPU/GPU generic code support
