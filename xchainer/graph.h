@@ -34,6 +34,7 @@ public:
     bool operator>=(const GraphId& other) const { return CompareImpl<std::greater_equal<GraphSubId>>(other); }
 
     Context& context() const { return context_; }
+
     GraphSubId sub_id() const { return sub_id_; }
 
 private:

@@ -229,13 +229,12 @@ public:
 
         // Check if backward is possible for the given graph, in this context.
         // It is not possible if a graph from an outer scope has already been backpropped.
-        const nonstd::optional<GraphId>& outermost_backpropped_graph_id = graph_id.context().outermost_backpropped_graph_id();
-        if (outermost_backpropped_graph_id.has_value() && *outermost_backpropped_graph_id < graph_id) {
-            throw XchainerError{"Cannot backward for graph ", graph_id, " after ", *outermost_backpropped_graph_id};
-        }
+        graph_id.context().CheckBackpropAllowed(graph_id);
     }
 
     void Run() {
+        Context& context = graph_id_.context();
+
         // Push initial output array nodes
         for (size_t i = 0; i < outputs_.size(); ++i) {
             const Array& output = outputs_[i];
@@ -259,7 +258,7 @@ public:
         if (double_backprop_ == DoubleBackpropOption::kDisable) {
             graph_ids_to_stop_gradient.emplace_back(graph_id_);
         }
-        std::vector<GraphId> inner_graph_ids = graph_id_.context().GetInnerGraphIds(graph_id_);
+        std::vector<GraphId> inner_graph_ids = context.GetInnerGraphIds(graph_id_);
         std::copy(inner_graph_ids.begin(), inner_graph_ids.end(), std::back_inserter(graph_ids_to_stop_gradient));
 
         // Backpropagation
@@ -301,7 +300,7 @@ public:
         }
 
         // Register this graph as backpropped.
-        graph_id_.context().set_outermost_backpropped_graph_id(graph_id_);
+        context.SetBackpropDone(graph_id_);
     }
 
 private:

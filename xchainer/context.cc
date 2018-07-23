@@ -107,26 +107,38 @@ Device& Context::GetDevice(const DeviceId& device_id) {
 
 // TODO(sonots): Create a map to get graph name from sub id
 GraphId Context::MakeNextGraphId(std::string graph_name) {
-    (void)graph_name;  // unused
-    graph_sub_ids_.emplace_back(next_graph_sub_id_);
+    graph_stack_.emplace_back(next_graph_sub_id_, std::move(graph_name));
     return GraphId{*this, next_graph_sub_id_++};
 }
 
 void Context::ReleaseGraphId(const GraphId& graph_id) {
     // Graph IDs must be released in the reverse order of creation
-    assert(&graph_id.context() == this && graph_id.sub_id() == graph_sub_ids_.back());
+    assert(&graph_id.context() == this && graph_id.sub_id() == graph_stack_.back().sub_id);
 
-    graph_sub_ids_.pop_back();
+    graph_stack_.pop_back();
+}
 
-    if (graph_sub_ids_.empty()) {
-        outermost_backpropped_graph_id_.reset();
+void Context::CheckBackpropAllowed(const GraphId& graph_id) {
+    // TODO(hvy): Check that graph_id exists in the stack or that it is the default graph id.
+    for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend(); ++it) {
+        if (it->last_backpropped_sub_id.has_value() && *it->last_backpropped_sub_id < graph_id.sub_id()) {
+            throw XchainerError{"Cannot backward for graph ", graph_id, " after ", GraphId{*this, *it->last_backpropped_sub_id}};
+        }
+    }
+}
+
+void Context::SetBackpropDone(const GraphId& graph_id) {
+    for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend(); ++it) {
+        assert(!(it->last_backpropped_sub_id.has_value() && *it->last_backpropped_sub_id < graph_id.sub_id()));
+        it->last_backpropped_sub_id = graph_id.sub_id();
     }
 }
 
 std::vector<GraphId> Context::GetInnerGraphIds(GraphId graph_id) {
     std::vector<GraphId> inner_graph_ids;
-    for (auto it = graph_sub_ids_.rbegin(); it != graph_sub_ids_.rend() && *it > graph_id.sub_id(); ++it) {  // Exclude the queried graph.
-        inner_graph_ids.emplace_back(GraphId{*this, *it});
+    inner_graph_ids.reserve(graph_stack_.size());
+    for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend() && it->sub_id > graph_id.sub_id(); ++it) {
+        inner_graph_ids.emplace_back(GraphId{*this, it->sub_id});
     }
     return inner_graph_ids;
 }
