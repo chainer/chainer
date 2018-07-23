@@ -12,7 +12,7 @@ from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
-    'sampling_ratio': [0, 1, 2],
+    'sampling_ratio': [0, 1, 2, (1, 2)],
 }))
 class TestROIAlign2D(unittest.TestCase):
 
