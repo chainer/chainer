@@ -447,7 +447,6 @@ TEST(BackpropModeScopeTest, BackpropModeScopeWithAnotherContext) {
     }
 }
 
-#if 0
 TEST(BackpropModeScopeTest, IsGradRequiredNoGraph) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
@@ -564,7 +563,6 @@ TEST(BackpropModeScopeTest, IsGradRequiredAnotherContext) {
         EXPECT_TRUE(IsGradRequired(a, AnyGraph{}));
     }
 }
-#endif
 
 }  // namespace
 }  // namespace xchainer
