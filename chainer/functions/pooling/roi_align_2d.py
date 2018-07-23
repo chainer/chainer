@@ -187,12 +187,12 @@ class ROIAlign2D(function.Function):
                                     self.outw), dtype=bottom_data.dtype)
         cuda.cupy.ElementwiseKernel(
             '''
-            raw float32 bottom_data, float32 spatial_scale, int32 channels,
+            raw T bottom_data, T spatial_scale, int32 channels,
             int32 height, int32 width, int32 pooled_height, int32 pooled_width,
             int32 sampling_ratio_h, int32 sampling_ratio_w,
-            raw float32 bottom_rois
+            raw T bottom_rois
             ''',
-            'float32 top_data',
+            'T top_data',
             '''
             int pw = i % pooled_width;
             int ph = (i / pooled_width) % pooled_height;
@@ -414,14 +414,14 @@ class ROIAlign2D(function.Function):
         bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, numpy.float32)
         cuda.cupy.ElementwiseKernel(
             '''
-            raw float32 top_diff,
-            int32 num_rois, float32 spatial_scale,
+            raw T top_diff,
+            int32 num_rois, T spatial_scale,
             int32 channels, int32 height, int32 width,
             int32 pooled_height, int32 pooled_width,
             int32 sampling_ratio_h, int32 sampling_ratio_w,
-            raw float32 bottom_rois
+            raw T bottom_rois
             ''',
-            'raw float32 bottom_diff',
+            'raw T bottom_diff',
             '''
             // (n, c, h, w) coords in bottom data
             int pw = i % pooled_width;
