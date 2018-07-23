@@ -278,6 +278,14 @@ class ROIAlign2D(function.Function):
                     T lx = x - x_low;
                     T hy = 1. - ly;
                     T hx = 1. - lx;
+
+                    T w1 = hy * hx;
+                    T w2 = hy * lx;
+                    T w3 = ly * hx;
+                    T w4 = ly * lx;
+
+                    // }}
+
                     // do bilinear interpolation
                     T v1 = bottom_data[bottom_data_offset +
                                        y_low * width + x_low];
@@ -287,12 +295,6 @@ class ROIAlign2D(function.Function):
                                        y_high * width + x_low];
                     T v4 = bottom_data[bottom_data_offset +
                                        y_high * width + x_high];
-                    T w1 = hy * hx;
-                    T w2 = hy * lx;
-                    T w3 = ly * hx;
-                    T w4 = ly * lx;
-
-                    // }}
 
                     output_val += (w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4);
                 }
@@ -471,9 +473,6 @@ class ROIAlign2D(function.Function):
                         static_cast<T>(ix + .5f) * bin_size_w /
                             static_cast<T>(roi_bin_grid_w);
 
-                    T w1, w2, w3, w4;
-                    int x_low, x_high, y_low, y_high;
-
                     // bilinear_interpolation_gradient {{
 
                     // deal with cases that inverse elements are
@@ -490,8 +489,10 @@ class ROIAlign2D(function.Function):
                         x = 0;
                     }
 
-                    y_low = (int)y;
-                    x_low = (int)x;
+                    int y_low = (int)y;
+                    int x_low = (int)x;
+                    int y_high;
+                    int x_high;
 
                     if (y_low >= height - 1) {
                         y_high = y_low = height - 1;
@@ -512,10 +513,10 @@ class ROIAlign2D(function.Function):
                     T hy = 1. - ly;
                     T hx = 1. - lx;
 
-                    w1 = hy * hx;
-                    w2 = hy * lx;
-                    w3 = ly * hx;
-                    w4 = ly * lx;
+                    T w1 = hy * hx;
+                    T w2 = hy * lx;
+                    T w3 = ly * hx;
+                    T w4 = ly * lx;
 
                     // }}
 
