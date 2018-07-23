@@ -408,43 +408,46 @@ TEST(BackpropModeScopeTest, BackpropModeWithoutContext) {
     EXPECT_THROW({ ForceBackpropModeScope{}; }, ContextError);
 }
 
-#if 0
 TEST(BackpropModeScopeTest, BackpropModeScopeWithAnotherContext) {
-    testing::ContextSession context_session{};
-
+    testing::ContextSession context_session1{};
     GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
     GraphId graph_id1 = graph_scope1.graph_id();
+
+    testing::ContextSession context_session2{};
+    GraphScope graph_scope2{"graph1"};
     GraphId graph_id2 = graph_scope2.graph_id();
 
-    Context another_context{};
     {
         EXPECT_TRUE(IsBackpropRequired(graph_id1));
+        EXPECT_TRUE(IsBackpropRequired(graph_id2));
         {
-            NoBackpropModeScope scope1{another_context};
-            EXPECT_FALSE(IsBackpropRequired(graph_id1, another_context));
+            NoBackpropModeScope scope{context_session2.context()};
             EXPECT_TRUE(IsBackpropRequired(graph_id1));
+            EXPECT_FALSE(IsBackpropRequired(graph_id2));
         }
     }
     {
         EXPECT_TRUE(IsBackpropRequired(graph_id1));
+        EXPECT_TRUE(IsBackpropRequired(graph_id2));
         {
-            NoBackpropModeScope scope1{{graph_id1, graph_id2}, another_context};
-            EXPECT_FALSE(IsBackpropRequired(graph_id1, another_context));
-            EXPECT_TRUE(IsBackpropRequired(graph_id1));
+            NoBackpropModeScope scope{{graph_id1, graph_id2}};
+            EXPECT_FALSE(IsBackpropRequired(graph_id1));
+            EXPECT_FALSE(IsBackpropRequired(graph_id2));
         }
     }
     {
         EXPECT_TRUE(IsBackpropRequired(graph_id1));
+        EXPECT_TRUE(IsBackpropRequired(graph_id2));
         {
             std::vector<GraphId> graph_ids{graph_id1, graph_id2};
-            NoBackpropModeScope scope1{graph_ids, another_context};
-            EXPECT_FALSE(IsBackpropRequired(graph_id1, another_context));
-            EXPECT_TRUE(IsBackpropRequired(graph_id1));
+            NoBackpropModeScope scope{graph_ids};
+            EXPECT_FALSE(IsBackpropRequired(graph_id1));
+            EXPECT_FALSE(IsBackpropRequired(graph_id2));
         }
     }
 }
 
+#if 0
 TEST(BackpropModeScopeTest, IsGradRequiredNoGraph) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();

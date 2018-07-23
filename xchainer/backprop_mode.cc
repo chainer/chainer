@@ -29,6 +29,7 @@ void BackpropModeScope<kModeFlag>::InitializeBackpropModeStack() {
 template <bool kModeFlag>
 BackpropModeScope<kModeFlag>::BackpropModeScope(Context& context) {
     InitializeBackpropModeStack();
+
     n_ = 1;
     t_backprop_mode_stack->emplace_back(context, kModeFlag);
 }
@@ -38,15 +39,7 @@ BackpropModeScope<kModeFlag>::BackpropModeScope(const std::vector<GraphId>& grap
     InitializeBackpropModeStack();
 
     n_ = graph_ids.size();
-    if (n_ <= 0) {
-        return;
-    }
-
-    Context& context = graph_ids[0].context();
     for (const GraphId& graph_id : graph_ids) {
-        if (&context != &graph_id.context()) {
-            throw ContextError{"All graph ids must belong to the identical context."};
-        }
         t_backprop_mode_stack->emplace_back(graph_id, kModeFlag);
     }
 }
