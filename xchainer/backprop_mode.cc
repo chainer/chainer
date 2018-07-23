@@ -27,18 +27,14 @@ void BackpropModeScope<kModeFlag>::InitializeBackpropModeStack() {
 }
 
 template <bool kModeFlag>
-BackpropModeScope<kModeFlag>::BackpropModeScope(Context& context) {
+BackpropModeScope<kModeFlag>::BackpropModeScope(Context& context) : n_{1} {
     InitializeBackpropModeStack();
-
-    n_ = 1;
     t_backprop_mode_stack->emplace_back(context, kModeFlag);
 }
 
 template <bool kModeFlag>
-BackpropModeScope<kModeFlag>::BackpropModeScope(const std::vector<GraphId>& graph_ids) {
+BackpropModeScope<kModeFlag>::BackpropModeScope(const std::vector<GraphId>& graph_ids) : n_{graph_ids.size()} {
     InitializeBackpropModeStack();
-
-    n_ = graph_ids.size();
     for (const GraphId& graph_id : graph_ids) {
         t_backprop_mode_stack->emplace_back(graph_id, kModeFlag);
     }
