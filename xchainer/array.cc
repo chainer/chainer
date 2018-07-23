@@ -41,15 +41,12 @@
 #include "xchainer/scalar.h"
 
 namespace xchainer {
-namespace {
+
+namespace internal {
 
 GraphId GetArrayGraphId(const Array& array, const nonstd::optional<GraphId>& graph_id) {
     return graph_id.has_value() ? *graph_id : array.device().context().default_graph_id();
 }
-
-}  // namespace
-
-namespace internal {
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset) {
     return Array{shape, strides, dtype, device, std::move(data), offset};
@@ -257,7 +254,7 @@ Array Array::AsGradStopped(CopyKind kind) const {
 }
 
 Array Array::AsGradStopped(gsl::span<const GraphId> graph_ids, CopyKind kind) const {
-    NoBackpropModeScope scope{std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}, device().context()};
+    NoBackpropModeScope scope{std::vector<GraphId>{graph_ids.begin(), graph_ids.end()}};
     return CopyOrMakeView(*this, kind);
 }
 
@@ -284,7 +281,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
 void Array::Fill(Scalar value) const { device().Fill(*this, value); }
 
 const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<GraphId>& graph_id) const {
-    GraphId actual_graph_id = GetArrayGraphId(*this, graph_id);
+    GraphId actual_graph_id = internal::GetArrayGraphId(*this, graph_id);
     const nonstd::optional<Array>* grad = body_->GetGrad(actual_graph_id);
     if (grad == nullptr) {
         throw XchainerError{"Array does not belong to the graph: '", actual_graph_id, "'."};
@@ -293,7 +290,7 @@ const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<GraphId>& g
 }
 
 void Array::SetGrad(Array grad, const nonstd::optional<GraphId>& graph_id) const {
-    GraphId actual_graph_id = GetArrayGraphId(*this, graph_id);
+    GraphId actual_graph_id = internal::GetArrayGraphId(*this, graph_id);
     nonstd::optional<Array>* target_grad = body_->GetGrad(actual_graph_id);
     if (target_grad == nullptr) {
         throw XchainerError{"Array does not belong to the graph: '", actual_graph_id, "'."};
@@ -302,12 +299,12 @@ void Array::SetGrad(Array grad, const nonstd::optional<GraphId>& graph_id) const
 }
 
 void Array::ClearGrad(const nonstd::optional<GraphId>& graph_id) const {
-    GraphId actual_graph_id = GetArrayGraphId(*this, graph_id);
+    GraphId actual_graph_id = internal::GetArrayGraphId(*this, graph_id);
     body_->ClearGrad(actual_graph_id);
 }
 
 bool Array::IsGradRequired(const nonstd::optional<GraphId>& graph_id) const {
-    GraphId actual_graph_id = GetArrayGraphId(*this, graph_id);
+    GraphId actual_graph_id = internal::GetArrayGraphId(*this, graph_id);
     return xchainer::IsGradRequired(*this, actual_graph_id);
 }
 
@@ -315,8 +312,8 @@ bool Array::IsGradRequired(AnyGraph any_graph) const { return xchainer::IsGradRe
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<GraphId>& graph_id) {
-    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
-    if (xchainer::IsBackpropRequired(actual_graph_id, array.device().context())) {
+    GraphId actual_graph_id = internal::GetArrayGraphId(array, graph_id);
+    if (xchainer::IsBackpropRequired(actual_graph_id)) {
         internal::ArrayBody::CreateArrayNode(internal::GetArrayBody(array), actual_graph_id);
     }
     return array;
@@ -432,7 +429,7 @@ void DebugDumpComputationalGraph(
         int indent,
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map) {
     PrintComputationalGraphImpl impl{os};
-    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
+    GraphId actual_graph_id = internal::GetArrayGraphId(array, graph_id);
     for (const auto& pair : array_name_map) {
         for (const std::shared_ptr<ArrayNode>& array_node : internal::GetArrayBody(pair.first.get())->nodes()) {
             if (array_node->graph_id() == actual_graph_id) {

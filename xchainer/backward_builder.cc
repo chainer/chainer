@@ -59,7 +59,7 @@ void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
         const Array& input = *(inputs_.begin() + i_input);
         for (std::shared_ptr<ArrayNode>& next_array_node : internal::GetArrayBody(input)->nodes()) {
             const GraphId& graph_id = next_array_node->graph_id();
-            if (!IsBackpropRequired(graph_id, input.device().context())) {
+            if (!IsBackpropRequired(graph_id)) {
                 continue;
             }
 
