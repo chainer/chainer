@@ -80,7 +80,7 @@ public:
     // ordinary functions).
     BackwardContext(
             const std::shared_ptr<OpNode>& op_node,
-            gsl::span<ArrayNode*> prev_array_nodes,
+            gsl::span<std::shared_ptr<ArrayNode>> prev_array_nodes,
             gsl::span<internal::GradRef*> prev_grads,
             std::vector<Array>& input_grads_storage,
             const std::vector<bool>& is_input_grads_required,
@@ -121,7 +121,7 @@ public:
     // retains array nodes for other graphs.
     Array GetRetainedOutput(const RetainedOutputToken& token);
 
-    const std::shared_ptr<internal::ArrayBody>& GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const;
+    std::shared_ptr<internal::ArrayBody> GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const;
 
 private:
     size_t output_count() const;
@@ -130,7 +130,7 @@ private:
 
     // Previous array nodes of the op node.
     // Null if the array node is gone (the weak pointer is dead).
-    gsl::span<ArrayNode*> prev_array_nodes_;
+    gsl::span<std::shared_ptr<ArrayNode>> prev_array_nodes_;
 
     gsl::span<internal::GradRef*> prev_grads_;
 

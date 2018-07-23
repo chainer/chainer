@@ -39,13 +39,9 @@ private:
     // same array body.
     size_t output_index() const { return output_index_; }
 
-    const std::shared_ptr<internal::ArrayBody>& data_array_body() const { return data_array_body_; }
+    const internal::ArrayBody::Params& output_array_params() const { return output_array_params_; }
 
-    // Output data array. Initially it does not have any array nodes.
-    // This array is used when retrieving retained output array, in case the array body of the original output array is no longer alive.
-    // Once used, the array body `data_array_body_` points to will have array nodes of the output array for all the graphs, no matter what
-    // the graph backpropagation is running on.
-    std::shared_ptr<internal::ArrayBody> data_array_body_;
+    internal::ArrayBody::Params output_array_params_;
 
     size_t output_index_;
 };

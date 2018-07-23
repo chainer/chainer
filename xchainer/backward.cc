@@ -75,7 +75,7 @@ nonstd::optional<Array>& GradRef::get() {
 
 BackwardContext::BackwardContext(
         const std::shared_ptr<OpNode>& op_node,
-        gsl::span<ArrayNode*> prev_array_nodes,
+        gsl::span<std::shared_ptr<ArrayNode>> prev_array_nodes,
         gsl::span<internal::GradRef*> prev_grads,
         std::vector<Array>& input_grads_storage,
         const std::vector<bool>& is_input_grads_required,
@@ -145,7 +145,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
 
         // Retrieve the array body of the original output array.
         std::shared_ptr<internal::ArrayBody> array_body{nullptr};
-        ArrayNode* prev_array_node = prev_array_nodes_[output_index];
+        const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes_[output_index];
         if (prev_array_node != nullptr) {
             // array node is alive
             array_body = prev_array_node->GetBody();
@@ -159,8 +159,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
         // If the weak ptr to old previous array node was dead, replenish it with the fabricated one.
         if (prev_array_node == nullptr) {
             // TODO(niboshi): Avoid temporary array
-            const std::shared_ptr<ArrayNode>& array_node = internal::GetMutableArrayNode(Array{array_body}, op_node_->graph_id());
-            prev_array_nodes_[output_index] = array_node.get();
+            prev_array_nodes_[output_index] = internal::GetMutableArrayNode(Array{array_body}, op_node_->graph_id());
         }
 
         // Cut graphs of the array body
@@ -171,7 +170,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
     return Array{kept_body};
 }
 
-const std::shared_ptr<internal::ArrayBody>& BackwardContext::GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const {
+std::shared_ptr<internal::ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const {
     std::vector<std::shared_ptr<ArrayNode>> new_prev_array_nodes;
 
     // Loop over outer graphs to collect array nodes corresponding to the same output index
@@ -197,14 +196,15 @@ const std::shared_ptr<internal::ArrayBody>& BackwardContext::GetFabricatedArrayB
     }
 
     // Create a new array body with (possibly fabricated) array nodes.
-    // The data array body stored in the token is reused as a base.
+    // TODO(niboshi): Avoid unnecessary copy of array body params.
+    auto fabricated_array_body = std::make_shared<internal::ArrayBody>(token.output_array_params());
     for (const std::shared_ptr<ArrayNode>& prev_array_node : new_prev_array_nodes) {
         assert(prev_array_node->GetBody() == nullptr);
-        prev_array_node->set_array_body(token.data_array_body());
-        token.data_array_body()->AddNode(prev_array_node);
+        prev_array_node->set_array_body(fabricated_array_body);
+        fabricated_array_body->AddNode(prev_array_node);
     }
 
-    return token.data_array_body();
+    return fabricated_array_body;
 }
 
 size_t BackwardContext::output_count() const { return zero_output_grads_.size(); }
@@ -298,7 +298,7 @@ private:
         next_grads.resize(op_node->next_array_node_count());
 
         // Previous array nodes. May be nullptr if the node is gone.
-        std::vector<ArrayNode*> prev_array_nodes;
+        std::vector<std::shared_ptr<ArrayNode>> prev_array_nodes;
 
         // `temp_prev_grads` is a set of temporary GradRefs of this op node's previous array nodes.
         // This is used for previous array nodes which are either dead at the moment or alive but have not been involved in the preceding
@@ -312,7 +312,6 @@ private:
         std::vector<internal::GradRef*> prev_grads;
         for (const std::weak_ptr<ArrayNode>& maybe_prev_array_node : op_node->prev_array_nodes()) {
             std::shared_ptr<ArrayNode> prev_array_node = maybe_prev_array_node.lock();
-            prev_array_nodes.emplace_back(prev_array_node.get());
 
             // Get the pointer to the previous gradient.
             if (prev_array_node != nullptr) {
@@ -334,6 +333,8 @@ private:
                 temp_prev_grads.emplace_back(nonstd::nullopt);
                 prev_grads.emplace_back(&temp_prev_grads.back());
             }
+
+            prev_array_nodes.emplace_back(std::move(prev_array_node));
         }
 
         for (const internal::OpNodeBackwardEntry& backward_entry : op_node->backward_entries()) {
@@ -379,7 +380,7 @@ private:
                 if (std::any_of(
                             prev_array_nodes.begin(),
                             prev_array_nodes.end(),
-                            [&next_grad, this](const ArrayNode* prev_array_node) {
+                            [&next_grad, this](const std::shared_ptr<ArrayNode>& prev_array_node) {
                                 if (prev_array_node == nullptr) {
                                     return false;
                                 }
@@ -413,14 +414,14 @@ private:
         }
 
         // If previous array nodes are not output nodes of backward, clear their gradients
-        for (ArrayNode* prev_array_node : prev_array_nodes) {
+        for (const std::shared_ptr<ArrayNode>& prev_array_node : prev_array_nodes) {
             if (prev_array_node == nullptr) {
                 continue;
             }
             if (std::find_if(
                         output_array_nodes_.begin(),
                         output_array_nodes_.end(),
-                        [prev_array_node](const std::shared_ptr<ArrayNode>& out_node) { return prev_array_node == out_node.get(); }) ==
+                        [prev_array_node](const std::shared_ptr<ArrayNode>& out_node) { return prev_array_node == out_node; }) ==
                 output_array_nodes_.end()) {
                 if (prev_array_node != nullptr) {
                     std::shared_ptr<internal::ArrayBody> body = prev_array_node->GetBody();

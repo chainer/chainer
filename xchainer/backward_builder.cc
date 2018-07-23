@@ -23,11 +23,7 @@
 namespace xchainer {
 
 RetainedOutputToken::RetainedOutputToken(std::shared_ptr<internal::ArrayBody> data_array_body, size_t output_index)
-    : data_array_body_{std::move(data_array_body)}, output_index_{output_index} {
-    assert(data_array_body_ != nullptr);
-    // TODO(niboshi): Could be written as: assert(data_array_body_.nodes().empty())
-    assert(!internal::HasAnyArrayNode(Array{data_array_body_}));
-}
+    : output_array_params_{data_array_body->GetParams()}, output_index_{output_index} {}
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()} {
@@ -176,9 +172,7 @@ RetainedOutputToken BackwardBuilder::RetainOutput(const Array& output) {
         throw XchainerError{"Cannot retain an array which is not any of output arrays."};
     }
     size_t output_index = std::distance(outputs_.begin(), it);
-    std::shared_ptr<internal::ArrayBody> data_array_body = output.AsGradStopped().move_body();
-    assert(data_array_body.get() != output.body().get());
-    return {std::move(data_array_body), output_index};
+    return {output.body(), output_index};
 }
 
 }  // namespace xchainer

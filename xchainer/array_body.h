@@ -31,7 +31,20 @@ namespace internal {
 // the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
 public:
+    struct Params {
+        Shape shape;
+        Strides strides;
+        Dtype dtype;
+        Device& device;
+        std::shared_ptr<void> data;
+        int64_t offset;
+    };
+
     ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+
+    explicit ArrayBody(Params params);
+
+    Params GetParams() const { return {shape_, strides_, dtype_, device_, data_, offset_}; }
 
     // Adds an array node to the array body.
     // The array node must have been initialized with this array body in advance.
