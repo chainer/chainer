@@ -3,6 +3,7 @@
 #include <dlfcn.h>
 
 #include <atomic>
+#include <cassert>
 #include <cstdlib>
 #include <mutex>
 #include <vector>
@@ -112,10 +113,11 @@ GraphId Context::MakeNextGraphId(std::string graph_name) {
 }
 
 void Context::ReleaseGraphId(const GraphId& graph_id) {
-    // Pop all graphs from the "stack" that were created after the given graph and then the given graph itself.
-    while (!graph_sub_ids_.empty() && graph_id.sub_id() >= graph_sub_ids_.back()) {
-        graph_sub_ids_.pop_back();
-    }
+    // Graph IDs must be released in the reverse order of creation
+    assert(&graph_id.context() == this && graph_id.sub_id() == graph_sub_ids_.back());
+
+    graph_sub_ids_.pop_back();
+
     if (graph_sub_ids_.empty()) {
         outermost_backpropped_graph_id_.reset();
     }
