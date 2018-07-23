@@ -86,8 +86,8 @@ class ROIAlign2D(function.Function):
 
             roi_width = max(roi_end_w - roi_start_w, 1.)
             roi_height = max(roi_end_h - roi_start_h, 1.)
-            bin_size_h = 1. * roi_height / pooled_height
-            bin_size_w = 1. * roi_width / pooled_width
+            bin_size_h = roi_height / pooled_height
+            bin_size_w = roi_width / pooled_width
 
             if self.sampling_ratio > 0:
                 roi_bin_grid_h = self.sampling_ratio
@@ -314,8 +314,8 @@ class ROIAlign2D(function.Function):
 
             roi_width = max(roi_end_w - roi_start_w, 1.)
             roi_height = max(roi_end_h - roi_start_h, 1.)
-            bin_size_h = 1. * roi_height / pooled_height
-            bin_size_w = 1. * roi_width / pooled_width
+            bin_size_h = roi_height / pooled_height
+            bin_size_w = roi_width / pooled_width
 
             top_diff_this_bin = top_diff[n, c, ph, pw]
 
