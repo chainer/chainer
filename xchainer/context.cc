@@ -117,14 +117,14 @@ void Context::ReleaseGraphId(const GraphId& graph_id) {
         graph_sub_ids_.pop_back();
     }
     if (graph_sub_ids_.empty()) {
-        outermost_graph_id_.reset();
+        outermost_backpropped_graph_id_.reset();
     }
 }
 
-std::vector<GraphId> Context::InnerGraphIds(GraphId graph_id) {
+std::vector<GraphId> Context::GetInnerGraphIds(GraphId graph_id) {
     std::vector<GraphId> inner_graph_ids;
     for (auto it = graph_sub_ids_.rbegin(); it != graph_sub_ids_.rend() && *it > graph_id.sub_id(); ++it) {  // Exclude the queried graph.
-        inner_graph_ids.emplace_back(*this, *it);
+        inner_graph_ids.emplace_back(GraphId{*this, *it});
     }
     return inner_graph_ids;
 }

@@ -48,11 +48,11 @@ public:
     // Returns all graph ids created after the queried graph.
     // In many cases, these are also the graphs created in inner scopes.
     // The queried graph is excluded from the returned container.
-    std::vector<GraphId> InnerGraphIds(GraphId graph_id);
+    std::vector<GraphId> GetInnerGraphIds(GraphId graph_id);
 
-    const nonstd::optional<GraphId>& outermost_graph_id() const { return outermost_graph_id_; }
+    const nonstd::optional<GraphId>& outermost_backpropped_graph_id() const { return outermost_backpropped_graph_id_; }
 
-    void set_outermost_graph_id(const nonstd::optional<GraphId>& graph_id) { outermost_graph_id_ = graph_id; }
+    void set_outermost_backpropped_graph_id(const nonstd::optional<GraphId>& graph_id) { outermost_backpropped_graph_id_ = graph_id; }
 
     GraphId default_graph_id() {
         // 0 is the graph sub id of the default graph.
@@ -66,7 +66,10 @@ private:
 
     GraphSubId next_graph_sub_id_{1};  // 1 is the first graph sub id after the default graph whose graph sub id is 0.
     std::vector<GraphSubId> graph_sub_ids_{};
-    nonstd::optional<GraphId> outermost_graph_id_{nonstd::nullopt};
+
+    // The outermost graph ID which has been backpropped.
+    // Used to detect and forbid running backprop on inner graphs.
+    nonstd::optional<GraphId> outermost_backpropped_graph_id_{nonstd::nullopt};
 };
 
 // Gets/sets the context that used by default when current context is not set.
