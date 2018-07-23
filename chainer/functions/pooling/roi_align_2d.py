@@ -201,18 +201,18 @@ class ROIAlign2D(function.Function):
 
             int roi_batch_ind = bottom_rois[n * 5 + 0];
 
-            float roi_start_w = bottom_rois[n * 5 + 1] * spatial_scale;
-            float roi_start_h = bottom_rois[n * 5 + 2] * spatial_scale;
-            float roi_end_w = bottom_rois[n * 5 + 3] * spatial_scale;
-            float roi_end_h = bottom_rois[n * 5 + 4] * spatial_scale;
+            T roi_start_w = bottom_rois[n * 5 + 1] * spatial_scale;
+            T roi_start_h = bottom_rois[n * 5 + 2] * spatial_scale;
+            T roi_end_w = bottom_rois[n * 5 + 3] * spatial_scale;
+            T roi_end_h = bottom_rois[n * 5 + 4] * spatial_scale;
 
             // Force malformed ROIs to be 1x1
-            float roi_width = max(roi_end_w - roi_start_w, (float)1.);
-            float roi_height = max(roi_end_h - roi_start_h, (float)1.);
-            float bin_size_h = static_cast<float>(roi_height)
-                               / static_cast<float>(pooled_height);
-            float bin_size_w = static_cast<float>(roi_width)
-                               / static_cast<float>(pooled_width);
+            T roi_width = max(roi_end_w - roi_start_w, (T)1.);
+            T roi_height = max(roi_end_h - roi_start_h, (T)1.);
+            T bin_size_h = static_cast<T>(roi_height)
+                            / static_cast<T>(pooled_height);
+            T bin_size_w = static_cast<T>(roi_width)
+                            / static_cast<T>(pooled_width);
 
             int bottom_data_offset =
                 (roi_batch_ind * channels + c) * height * width;
@@ -226,18 +226,18 @@ class ROIAlign2D(function.Function):
                 : ceil(roi_width / pooled_width);
 
             // We do average (integral) pooling inside a bin
-            float count = roi_bin_grid_h * roi_bin_grid_w;  // e.g. = 4
+            T count = roi_bin_grid_h * roi_bin_grid_w;  // e.g. = 4
 
-            float output_val = 0.;
+            T output_val = 0.;
             for (int iy = 0; iy < roi_bin_grid_h; iy++)  // e.g. iy = 0, 1
             {
-                float y = roi_start_h + ph * bin_size_h +
-                    static_cast<float>(iy + .5f) * bin_size_h /
-                        static_cast<float>(roi_bin_grid_h);  // e.g. 0.5, 1.5
+                T y = roi_start_h + ph * bin_size_h +
+                    static_cast<T>(iy + .5f) * bin_size_h /
+                        static_cast<T>(roi_bin_grid_h);  // e.g. 0.5, 1.5
                 for (int ix = 0; ix < roi_bin_grid_w; ix++) {
-                    float x = roi_start_w + pw * bin_size_w +
-                        static_cast<float>(ix + .5f) * bin_size_w /
-                            static_cast<float>(roi_bin_grid_w);
+                    T x = roi_start_w + pw * bin_size_w +
+                        static_cast<T>(ix + .5f) * bin_size_w /
+                            static_cast<T>(roi_bin_grid_w);
 
                     // bilinear_interpolation {{
 
@@ -262,35 +262,35 @@ class ROIAlign2D(function.Function):
 
                     if (y_low >= height - 1) {
                         y_high = y_low = height - 1;
-                        y = (float)y_low;
+                        y = (T)y_low;
                     } else {
                         y_high = y_low + 1;
                     }
 
                     if (x_low >= width - 1) {
                         x_high = x_low = width - 1;
-                        x = (float)x_low;
+                        x = (T)x_low;
                     } else {
                         x_high = x_low + 1;
                     }
 
-                    float ly = y - y_low;
-                    float lx = x - x_low;
-                    float hy = 1. - ly;
-                    float hx = 1. - lx;
+                    T ly = y - y_low;
+                    T lx = x - x_low;
+                    T hy = 1. - ly;
+                    T hx = 1. - lx;
                     // do bilinear interpolation
-                    float v1 = bottom_data[bottom_data_offset +
-                                           y_low * width + x_low];
-                    float v2 = bottom_data[bottom_data_offset +
-                                           y_low * width + x_high];
-                    float v3 = bottom_data[bottom_data_offset +
-                                           y_high * width + x_low];
-                    float v4 = bottom_data[bottom_data_offset +
-                                           y_high * width + x_high];
-                    float w1 = hy * hx;
-                    float w2 = hy * lx;
-                    float w3 = ly * hx;
-                    float w4 = ly * lx;
+                    T v1 = bottom_data[bottom_data_offset +
+                                       y_low * width + x_low];
+                    T v2 = bottom_data[bottom_data_offset +
+                                       y_low * width + x_high];
+                    T v3 = bottom_data[bottom_data_offset +
+                                       y_high * width + x_low];
+                    T v4 = bottom_data[bottom_data_offset +
+                                       y_high * width + x_high];
+                    T w1 = hy * hx;
+                    T w2 = hy * lx;
+                    T w3 = ly * hx;
+                    T w4 = ly * lx;
 
                     // }}
 
@@ -431,24 +431,24 @@ class ROIAlign2D(function.Function):
 
             // Do not using rounding; this implementation detail is critical
             int roi_batch_ind = bottom_rois[n * 5 + 0];
-            float roi_start_w = bottom_rois[n * 5 + 1] * spatial_scale;
-            float roi_start_h = bottom_rois[n * 5 + 2] * spatial_scale;
-            float roi_end_w = bottom_rois[n * 5 + 3] * spatial_scale;
-            float roi_end_h = bottom_rois[n * 5 + 4] * spatial_scale;
+            T roi_start_w = bottom_rois[n * 5 + 1] * spatial_scale;
+            T roi_start_h = bottom_rois[n * 5 + 2] * spatial_scale;
+            T roi_end_w = bottom_rois[n * 5 + 3] * spatial_scale;
+            T roi_end_h = bottom_rois[n * 5 + 4] * spatial_scale;
 
             // Force malformed ROIs to be 1x1
-            float roi_width = max(roi_end_w - roi_start_w, (float)1.);
-            float roi_height = max(roi_end_h - roi_start_h, (float)1.);
-            float bin_size_h = static_cast<float>(roi_height) /
-                static_cast<float>(pooled_height);
-            float bin_size_w = static_cast<float>(roi_width) /
-                static_cast<float>(pooled_width);
+            T roi_width = max(roi_end_w - roi_start_w, (T)1.);
+            T roi_height = max(roi_end_h - roi_start_h, (T)1.);
+            T bin_size_h = static_cast<T>(roi_height) /
+                static_cast<T>(pooled_height);
+            T bin_size_w = static_cast<T>(roi_width) /
+                static_cast<T>(pooled_width);
 
             int bottom_diff_offset =
                 (roi_batch_ind * channels + c) * height * width;
 
             int top_offset = (n * channels + c) * pooled_height * pooled_width;
-            float top_diff_this_bin =
+            T top_diff_this_bin =
                 top_diff[top_offset + ph * pooled_width + pw];
 
             // We use roi_bin_grid to sample the grid and mimic integral
@@ -460,18 +460,18 @@ class ROIAlign2D(function.Function):
                 : ceil(roi_width / pooled_width);
 
             // We do average (integral) pooling inside a bin
-            float count = roi_bin_grid_h * roi_bin_grid_w;  // e.g. = 4
+            T count = roi_bin_grid_h * roi_bin_grid_w;  // e.g. = 4
 
             for (int iy = 0; iy < roi_bin_grid_h; iy++) {
-                float y = roi_start_h + ph * bin_size_h +
-                    static_cast<float>(iy + .5f) * bin_size_h /
-                        static_cast<float>(roi_bin_grid_h);  // e.g. 0.5, 1.5
+                T y = roi_start_h + ph * bin_size_h +
+                    static_cast<T>(iy + .5f) * bin_size_h /
+                        static_cast<T>(roi_bin_grid_h);  // e.g. 0.5, 1.5
                 for (int ix = 0; ix < roi_bin_grid_w; ix++) {
-                    float x = roi_start_w + pw * bin_size_w +
-                        static_cast<float>(ix + .5f) * bin_size_w /
-                            static_cast<float>(roi_bin_grid_w);
+                    T x = roi_start_w + pw * bin_size_w +
+                        static_cast<T>(ix + .5f) * bin_size_w /
+                            static_cast<T>(roi_bin_grid_w);
 
-                    float w1, w2, w3, w4;
+                    T w1, w2, w3, w4;
                     int x_low, x_high, y_low, y_high;
 
                     // bilinear_interpolation_gradient {{
@@ -495,22 +495,22 @@ class ROIAlign2D(function.Function):
 
                     if (y_low >= height - 1) {
                         y_high = y_low = height - 1;
-                        y = (float)y_low;
+                        y = (T)y_low;
                     } else {
                         y_high = y_low + 1;
                     }
 
                     if (x_low >= width - 1) {
                         x_high = x_low = width - 1;
-                        x = (float)x_low;
+                        x = (T)x_low;
                     } else {
                         x_high = x_low + 1;
                     }
 
-                    float ly = y - y_low;
-                    float lx = x - x_low;
-                    float hy = 1. - ly;
-                    float hx = 1. - lx;
+                    T ly = y - y_low;
+                    T lx = x - x_low;
+                    T hy = 1. - ly;
+                    T hx = 1. - lx;
 
                     w1 = hy * hx;
                     w2 = hy * lx;
@@ -519,10 +519,10 @@ class ROIAlign2D(function.Function):
 
                     // }}
 
-                    float g1 = top_diff_this_bin * w1 / count;
-                    float g2 = top_diff_this_bin * w2 / count;
-                    float g3 = top_diff_this_bin * w3 / count;
-                    float g4 = top_diff_this_bin * w4 / count;
+                    T g1 = top_diff_this_bin * w1 / count;
+                    T g2 = top_diff_this_bin * w2 / count;
+                    T g3 = top_diff_this_bin * w3 / count;
+                    T g4 = top_diff_this_bin * w4 / count;
 
                     if (x_low >= 0 && x_high >= 0 &&
                             y_low >= 0 && y_high >= 0) {
