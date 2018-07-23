@@ -10,6 +10,7 @@
 #include "xchainer/axes.h"
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
+#include "xchainer/backward_builder.h"
 #include "xchainer/dtype.h"
 #include "xchainer/enum.h"
 #include "xchainer/error.h"

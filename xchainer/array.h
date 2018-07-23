@@ -12,6 +12,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array_body.h"
+#include "xchainer/array_fwd.h"
 #include "xchainer/array_index.h"
 #include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
@@ -27,11 +28,6 @@
 #include "xchainer/strides.h"
 
 namespace xchainer {
-
-class Array;
-
-using ArrayRef = std::reference_wrapper<Array>;
-using ConstArrayRef = std::reference_wrapper<const Array>;
 
 namespace internal {
 

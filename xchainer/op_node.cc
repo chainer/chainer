@@ -8,12 +8,16 @@
 #include <utility>
 #include <vector>
 
+#include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backward.h"
 #include "xchainer/graph.h"
 
 namespace xchainer {
 namespace internal {
+
+ArrayProps::ArrayProps(const Array& array) : shape{array.shape()}, dtype{array.dtype()}, device{array.device()} {}
+ArrayProps::ArrayProps(const ArrayNode& array_node) : shape{array_node.shape()}, dtype{array_node.dtype()}, device{array_node.device()} {}
 
 OpNodeBackwardEntry::OpNodeBackwardEntry(
         OpNode& op_node, std::vector<nonstd::optional<size_t>> next_array_node_indices, BackwardFunction backward_func)
@@ -37,20 +41,41 @@ void OpNodeBackwardEntry::AddExoticNextArrayNode(std::tuple<GraphId, std::vector
     exotic_next_array_nodes_.emplace_back(std::move(next_array_nodes));
 }
 
+std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_node, size_t prev_array_node_index) {
+    assert(prev_array_node_index < op_node->prev_node_count());
+    assert(op_node->prev_array_nodes()[prev_array_node_index].expired());
+
+    const internal::ArrayProps& props = op_node->GetPrevArrayProps(prev_array_node_index);
+    auto prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node->graph_id());
+
+    op_node->prev_array_nodes()[prev_array_node_index] = prev_array_node;
+    prev_array_node->set_next_op_node(std::move(op_node));
+
+    return prev_array_node;
+}
+
 }  // namespace internal
 
-OpNode::OpNode(
-        std::string name,
-        GraphId graph_id,
-        std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes,
-        std::vector<internal::ArrayProps> prev_array_props)
-    : name_{std::move(name)},
-      graph_id_{graph_id},
-      prev_array_nodes_{std::move(prev_array_nodes)},
-      prev_array_props_{std::move(prev_array_props)} {
-    assert(prev_array_props_.size() == prev_array_nodes_.size());
-    AssertConsistency();
+// static
+std::shared_ptr<OpNode> OpNode::CreateWithPrevArrayNodes(std::string name, GraphId graph_id, const std::vector<ConstArrayRef>& outputs) {
+    // Trick to use make_shared with private ctor
+    struct OpNodeWithPublicCtor : OpNode {
+        OpNodeWithPublicCtor(std::string name, GraphId graph_id) : OpNode{std::move(name), graph_id} {}
+    };
+    std::shared_ptr<OpNode> op_node = std::make_shared<OpNodeWithPublicCtor>(std::move(name), graph_id);
+
+    for (const Array& out : outputs) {
+        assert(!internal::HasArrayNode(out, graph_id));
+        const std::shared_ptr<ArrayNode>& prev_array_node = internal::CreateArrayNode(out, graph_id);
+        op_node->prev_array_props_.emplace_back(*prev_array_node);
+        op_node->prev_array_nodes_.emplace_back(prev_array_node);
+        prev_array_node->set_next_op_node(op_node);
+    }
+    op_node->AssertConsistency();
+    return op_node;
 }
+
+OpNode::OpNode(std::string name, GraphId graph_id) : name_{std::move(name)}, graph_id_{graph_id} {}
 
 void OpNode::AssertConsistency() const {
 #ifndef NDEBUG

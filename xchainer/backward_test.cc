@@ -14,6 +14,7 @@
 #include "xchainer/array_body_leak_detection.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
+#include "xchainer/backward_builder.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/context.h"
 #ifdef XCHAINER_ENABLE_CUDA

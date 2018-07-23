@@ -17,21 +17,32 @@ namespace internal {
 ArrayBody::ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
     : shape_{std::move(shape)}, strides_{std::move(strides)}, dtype_{dtype}, device_{device}, data_{std::move(data)}, offset_{offset} {}
 
-const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(std::shared_ptr<ArrayNode> array_node) {
-    AssertConsistency();
-    assert(this == array_node->GetBody().get());
-    auto it = std::find_if(nodes_.begin(), nodes_.end(), [&array_node](const std::shared_ptr<ArrayNode>& existing_node) {
+ArrayBody::ArrayBody(Params params)
+    : ArrayBody{params.shape, params.strides, params.dtype, params.device, std::move(params.data), params.offset} {}
+
+const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<ArrayBody>& body, std::shared_ptr<ArrayNode> array_node) {
+    body->AssertConsistency();
+
+    assert(array_node->GetBody() == nullptr);
+
+    auto it = std::find_if(body->nodes_.begin(), body->nodes_.end(), [&array_node](const std::shared_ptr<ArrayNode>& existing_node) {
         return existing_node->graph_id() == array_node->graph_id();
     });
-    if (it != nodes_.end()) {
+    if (it != body->nodes_.end()) {
         return *it;  // Do nothing and return the existing ArrayNode if found for this graph.
     }
 
-    nodes_.emplace_back(std::move(array_node));
-    grads_.emplace_back(std::make_unique<nonstd::optional<Array>>(nonstd::nullopt));
+    // The body must be either unset (the array node is being created normally) or dead (the body is being replaced with a fabricated one,
+    // as a retained output of backward)
+    assert(array_node->body_.lock() == nullptr);
 
-    AssertConsistency();
-    return nodes_.back();
+    array_node->body_ = body;
+
+    body->nodes_.emplace_back(std::move(array_node));
+    body->grads_.emplace_back(std::make_unique<nonstd::optional<Array>>(nonstd::nullopt));
+
+    body->AssertConsistency();
+    return body->nodes_.back();
 }
 
 void ArrayBody::AssertConsistency() const {

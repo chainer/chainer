@@ -31,14 +31,30 @@ namespace internal {
 // the code is made simple and we can use inline access to each member from member accessor functions of Array.
 class ArrayBody {
 public:
+    struct Params {
+        Shape shape;
+        Strides strides;
+        Dtype dtype;
+        Device& device;
+        std::shared_ptr<void> data;
+        int64_t offset;
+    };
+
     ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+
+    explicit ArrayBody(Params params);
+
+    ArrayBody(const ArrayBody&) = delete;
+    ArrayBody& operator=(const ArrayBody&) = delete;
 
     // Adds an array node to the array body.
     // The array node must have been initialized with this array body in advance.
     // Otherwise the behavior is undefined.
     // It does nothing if an array node with the same graph ID is already registered.
     // The returned reference is only valid until the next call of AddNode on this instance.
-    const std::shared_ptr<ArrayNode>& AddNode(std::shared_ptr<ArrayNode> array_node);
+    static const std::shared_ptr<ArrayNode>& AddNode(const std::shared_ptr<ArrayBody>& body, std::shared_ptr<ArrayNode> array_node);
+
+    Params GetParams() const { return {shape_, strides_, dtype_, device_, data_, offset_}; }
 
     // Returns a gradient array.
     // Returns nullptr if the array does not belong to the specified graph.
@@ -61,9 +77,6 @@ public:
     // Clears a gradient array.
     // XchainerError is thrown if there is no array node for the specified graph.
     void ClearGrad(const GraphId& graph_id);
-
-    ArrayBody(const ArrayBody&) = delete;
-    ArrayBody& operator=(const ArrayBody&) = delete;
 
 private:
     friend class ::xchainer::Array;

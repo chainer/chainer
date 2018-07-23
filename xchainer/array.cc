@@ -23,6 +23,7 @@
 #include "xchainer/backend.h"
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
+#include "xchainer/backward_builder.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -67,8 +68,7 @@ bool HasAnyArrayNode(const Array& array) { return !array.nodes().empty(); }
 const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
     GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
     auto array_node = std::make_shared<ArrayNode>(array.shape(), array.dtype(), array.device(), actual_graph_id);
-    array_node->set_array_body(array.body());
-    return array.body()->AddNode(array_node);
+    return internal::ArrayBody::AddNode(array.body(), array_node);
 }
 
 std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
