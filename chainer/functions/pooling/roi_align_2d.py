@@ -31,6 +31,44 @@ def _pair(x):
     return x, x
 
 
+def _get_bilinear_interp_params(y, x, height, width):
+    if y < -1 or y > height or x < -1 or x > width:
+        # out of range, so it is empty
+        return (None,) * 8
+
+    if y <= 0:
+        y = 0
+    if x <= 0:
+        x = 0
+
+    y_low = int(y)
+    x_low = int(x)
+
+    if y_low >= height - 1:
+        y_high = y_low = height - 1
+        y = float(y_low)
+    else:
+        y_high = y_low + 1
+
+    if x_low >= width - 1:
+        x_high = x_low = width - 1
+        x = float(x_low)
+    else:
+        x_high = x_low + 1
+
+    ly = y - y_low
+    lx = x - x_low
+    hy = 1. - ly
+    hx = 1. - lx
+
+    w1 = hy * hx
+    w2 = hy * lx
+    w3 = ly * hx
+    w4 = ly * lx
+
+    return y_low, x_low, y_high, x_high, w1, w2, w3, w4
+
+
 class ROIAlign2D(function.Function):
 
     """ROI align over a set of 2d planes."""
@@ -125,44 +163,16 @@ class ROIAlign2D(function.Function):
                         (ix + .5) * bin_size_w / roi_bin_grid_w
 
                     # bilinear interpolation {{
-                    if y < -1 or y > height or x < -1 or x > width:
-                        # empty
+
+                    y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
+                        _get_bilinear_interp_params(y, x, height, width)
+                    if y_low is None:
                         continue
-
-                    if y <= 0:
-                        y = 0
-                    if x <= 0:
-                        x = 0
-
-                    y_low = int(y)
-                    x_low = int(x)
-
-                    if y_low >= height - 1:
-                        y_high = y_low = height - 1
-                        y = float(y_low)
-                    else:
-                        y_high = y_low + 1
-
-                    if x_low >= width - 1:
-                        x_high = x_low = width - 1
-                        x = float(x_low)
-                    else:
-                        x_high = x_low + 1
-
-                    ly = y - y_low
-                    lx = x - x_low
-                    hy = 1. - ly
-                    hx = 1. - lx
 
                     v1 = bottom_data[roi_batch_ind, c, y_low, x_low]
                     v2 = bottom_data[roi_batch_ind, c, y_low, x_high]
                     v3 = bottom_data[roi_batch_ind, c, y_high, x_low]
                     v4 = bottom_data[roi_batch_ind, c, y_high, x_high]
-
-                    w1 = hy * hx
-                    w2 = hy * lx
-                    w3 = ly * hx
-                    w4 = ly * lx
 
                     output_val += w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4
 
@@ -359,40 +369,11 @@ class ROIAlign2D(function.Function):
                         (ix + .5) * bin_size_w / roi_bin_grid_w
 
                     # bilinear_interpolation_gradient {{
-                    if y < -1 or y > height or x < -1 or x > width:
-                        # empty
+
+                    y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
+                        _get_bilinear_interp_params(y, x, height, width)
+                    if y_low is None:
                         continue
-
-                    if y <= 0:
-                        y = 0
-                    if x <= 0:
-                        x = 0
-
-                    y_low = int(y)
-                    x_low = int(x)
-
-                    if y_low >= height - 1:
-                        y_high = y_low = height - 1
-                        y = float(y_low)
-                    else:
-                        y_high = y_low + 1
-
-                    if x_low >= width - 1:
-                        x_high = x_low = width - 1
-                        x = float(x_low)
-                    else:
-                        x_high = x_low + 1
-
-                    ly = y - y_low
-                    lx = x - x_low
-                    hy = 1. - ly
-                    hx = 1. - lx
-
-                    w1 = hy * hx
-                    w2 = hy * lx
-                    w3 = ly * hx
-                    w4 = ly * lx
-                    # }}
 
                     g1 = top_diff_this_bin * w1 / count
                     g2 = top_diff_this_bin * w2 / count
@@ -405,6 +386,9 @@ class ROIAlign2D(function.Function):
                         bottom_diff[roi_batch_ind, c, y_low, x_high] += g2
                         bottom_diff[roi_batch_ind, c, y_high, x_low] += g3
                         bottom_diff[roi_batch_ind, c, y_high, x_high] += g4
+
+                    # }}
+
                     ix += 1
                 iy += 1
 
