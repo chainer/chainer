@@ -384,7 +384,6 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleContexts) {
     }
 }
 
-#if 0
 // It is possible to use in flat scope because, in C++ spec, dtors are called in reverse order of ctors.
 TEST(BackpropModeScopeTest, BackpropModeScopeFlatScope) {
     testing::ContextSession context_session{};
@@ -395,13 +394,12 @@ TEST(BackpropModeScopeTest, BackpropModeScopeFlatScope) {
     {
         NoBackpropModeScope scope1{};
         EXPECT_FALSE(IsBackpropRequired());
-        EXPECT_FALSE(IsBackpropRequired(nonstd::nullopt, context_session.context()));
+        EXPECT_FALSE(IsBackpropRequired(context_session.context()));
 
         ForceBackpropModeScope scope2{graph_id1};
         EXPECT_FALSE(IsBackpropRequired());
-        EXPECT_FALSE(IsBackpropRequired(nonstd::nullopt, context_session.context()));
+        EXPECT_FALSE(IsBackpropRequired(context_session.context()));
         EXPECT_TRUE(IsBackpropRequired(graph_id1));
-        EXPECT_TRUE(IsBackpropRequired(graph_id1, context_session.context()));
     }
 }
 
@@ -410,6 +408,7 @@ TEST(BackpropModeScopeTest, BackpropModeWithoutContext) {
     EXPECT_THROW({ ForceBackpropModeScope{}; }, ContextError);
 }
 
+#if 0
 TEST(BackpropModeScopeTest, BackpropModeScopeWithAnotherContext) {
     testing::ContextSession context_session{};
 
