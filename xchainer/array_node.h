@@ -16,18 +16,6 @@
 
 namespace xchainer {
 
-class Array;
-
-namespace internal {
-
-// Returns true if and only if the weak pointer is empty.
-inline bool IsWeakPtrEmpty(const std::weak_ptr<internal::ArrayBody> weak) {
-    using WeakPtr = std::weak_ptr<internal::ArrayBody>;
-    return !weak.owner_before(WeakPtr{}) && !WeakPtr{}.owner_before(weak);
-}
-
-}  // namespace internal
-
 class ArrayNode {
 public:
     ArrayNode(const Shape& shape, Dtype dtype, Device& device, GraphId graph_id)
