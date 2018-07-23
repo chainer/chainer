@@ -67,7 +67,7 @@ class ROIAlign2D(function.Function):
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
         top_data = numpy.empty((n_rois, channels, self.outh,
-                                self.outw), dtype=numpy.float32)
+                                self.outw), dtype=bottom_data.dtype)
 
         pooled_width, pooled_height = self.outw, self.outh
         spatial_scale = self.spatial_scale
