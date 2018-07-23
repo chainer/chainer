@@ -314,29 +314,25 @@ TEST(BackpropModeScopeTest, BackpropModeScopeOneContext) {
     {
         NoBackpropModeScope scope1{};
         EXPECT_FALSE(IsBackpropRequired());
-        EXPECT_FALSE(IsBackpropRequired(nonstd::nullopt, context_session.context()));
+        EXPECT_FALSE(IsBackpropRequired(context_session.context()));
         {
             ForceBackpropModeScope scope2{graph_id1};
             EXPECT_FALSE(IsBackpropRequired());
-            EXPECT_FALSE(IsBackpropRequired(nonstd::nullopt, context_session.context()));
+            EXPECT_FALSE(IsBackpropRequired(context_session.context()));
             EXPECT_TRUE(IsBackpropRequired(graph_id1));
-            EXPECT_TRUE(IsBackpropRequired(graph_id1, context_session.context()));
             {
                 NoBackpropModeScope scope3{graph_id1};
                 EXPECT_FALSE(IsBackpropRequired());
-                EXPECT_FALSE(IsBackpropRequired(nonstd::nullopt, context_session.context()));
+                EXPECT_FALSE(IsBackpropRequired(context_session.context()));
                 EXPECT_FALSE(IsBackpropRequired(graph_id1));
-                EXPECT_FALSE(IsBackpropRequired(graph_id1, context_session.context()));
             }
             EXPECT_FALSE(IsBackpropRequired());
-            EXPECT_FALSE(IsBackpropRequired(nonstd::nullopt, context_session.context()));
+            EXPECT_FALSE(IsBackpropRequired(context_session.context()));
             EXPECT_TRUE(IsBackpropRequired(graph_id1));
-            EXPECT_TRUE(IsBackpropRequired(graph_id1, context_session.context()));
         }
         EXPECT_FALSE(IsBackpropRequired());
-        EXPECT_FALSE(IsBackpropRequired(nonstd::nullopt, context_session.context()));
+        EXPECT_FALSE(IsBackpropRequired(context_session.context()));
         EXPECT_FALSE(IsBackpropRequired(graph_id1));
-        EXPECT_FALSE(IsBackpropRequired(graph_id1, context_session.context()));
     }
 }
 
