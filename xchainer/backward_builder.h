@@ -72,15 +72,18 @@ public:
     // Note that Targets built from the same BackwardBuilder share some properties not to compute again.
     class Target {
     public:
+        explicit operator bool() const { return IsGradRequired(); }
+
         // Defines a backward function with respect to specified input arrays (target).
         void Define(const BackwardFunction& backward_func);
 
         bool IsGradRequired() const { return !graph_to_next_array_nodes_.empty(); }
-        explicit operator bool() const { return IsGradRequired(); }
 
     private:
-        using NextArrayNodes = std::vector<const std::shared_ptr<ArrayNode>*>;
         friend class BackwardBuilder;  // Only BackwardBuilder can create Target
+
+        using NextArrayNodes = std::vector<const std::shared_ptr<ArrayNode>*>;
+
         Target(BackwardBuilder& builder, std::initializer_list<ConstArrayRef> inputs);
 
         const char* op_name() { return builder_.op_name_; }
