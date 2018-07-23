@@ -310,7 +310,7 @@ class ROIAlign2D(function.Function):
     def backward_cpu(self, inputs, gy):
         bottom_rois = inputs[1]
         channels, height, width = self._bottom_data_shape[1:]
-        bottom_diff = numpy.zeros(self._bottom_data_shape, numpy.float32)
+        bottom_diff = numpy.zeros(self._bottom_data_shape, gy[0].dtype)
 
         spatial_scale = self.spatial_scale
         pooled_height = self.outh
@@ -411,7 +411,7 @@ class ROIAlign2D(function.Function):
     def backward_gpu(self, inputs, gy):
         bottom_rois = inputs[1]
         channels, height, width = self._bottom_data_shape[1:]
-        bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, numpy.float32)
+        bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, gy[0].dtype)
         cuda.cupy.ElementwiseKernel(
             '''
             raw T top_diff,
