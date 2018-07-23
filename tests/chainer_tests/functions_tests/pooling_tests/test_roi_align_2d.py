@@ -28,7 +28,8 @@ class TestROIAlign2D(unittest.TestCase):
             [0, 1, 1, 6, 6],
             [2, 6, 2, 7, 11],
             [1, 3, 1, 5, 10],
-            [0, 3, 3, 3, 3]
+            [0, 3, 3, 3, 3],
+            [2, 1.1, 2.2, 3.3, 4.4],
         ], dtype=numpy.float32)
         n_rois = self.rois.shape[0]
         self.outh, self.outw = 5, 7
