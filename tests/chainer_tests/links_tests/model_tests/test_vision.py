@@ -152,7 +152,9 @@ class TestResNetLayers(unittest.TestCase):
         copied = self.link.copy()
 
         self.assertIs(copied.conv1, copied.functions['conv1'][0])
-        self.assertIs(copied.res2.a, copied.res2.forward[0])
+        self.assertIs(
+            copied.res2.a,
+            getattr(copied.res2, copied.res2._forward[0]))
 
     def test_copy_cpu(self):
         self.check_copy()
