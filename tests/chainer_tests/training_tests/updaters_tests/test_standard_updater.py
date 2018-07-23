@@ -43,7 +43,9 @@ class DummyOptimizer(chainer.Optimizer):
 
 class DummySerializer(chainer.Serializer):
 
-    def __init__(self, path=[]):
+    def __init__(self, path=None):
+        if path is None:
+            path = []
         self.path = path
         self.called = []
 
@@ -88,7 +90,11 @@ class TestUpdater(unittest.TestCase):
     def test_update(self):
         self.updater.update()
         self.assertEqual(self.updater.iteration, 1)
+        self.assertEqual(self.optimizer.epoch, 1)
         self.assertEqual(self.iterator.next_called, 1)
+
+    def test_use_auto_new_epoch(self):
+        self.assertTrue(self.optimizer.use_auto_new_epoch)
 
     def test_finalizer(self):
         self.updater.finalize()

@@ -29,6 +29,7 @@ if _error is None:
     _gpu_limit = int(os.getenv('CHAINER_TEST_GPU_LIMIT', '-1'))
 
     cudnn = pytest.mark.cudnn
+    ideep = pytest.mark.ideep
     slow = pytest.mark.slow
 
 else:
@@ -37,6 +38,7 @@ else:
         assert False  # Not reachable
 
     cudnn = _dummy_callable
+    ideep = _dummy_callable
     slow = _dummy_callable
 
 
@@ -51,9 +53,14 @@ def multi_gpu(gpu_num):
     """
 
     check_available()
-    return unittest.skipIf(
-        0 <= _gpu_limit and _gpu_limit < gpu_num,
-        reason='{} GPUs required'.format(gpu_num))
+
+    def deco(f):
+        return unittest.skipIf(
+            0 <= _gpu_limit < gpu_num,
+            reason='{} GPUs required'.format(gpu_num)
+        )(pytest.mark.gpu(f))
+
+    return deco
 
 
 def gpu(f):
@@ -63,5 +70,4 @@ def gpu(f):
     declare that one GPU is required to run.
     """
 
-    check_available()
-    return multi_gpu(1)(pytest.mark.gpu(f))
+    return multi_gpu(1)(f)

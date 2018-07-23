@@ -3,20 +3,25 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
-from chainer.utils import array
 from chainer.utils import type_check
+
+
+def _as_mat(x):
+    if x.ndim == 2:
+        return x
+    return x.reshape(len(x), -1)
 
 
 def _ij_ik_il_to_jkl(a, b, c):
     ab = chainer.functions.matmul(a[:, :, None], b[:, None, :])  # ijk
-    return chainer.functions.matmul(array.as_mat(ab).T, c).reshape(
+    return chainer.functions.matmul(_as_mat(ab).T, c).reshape(
         a.shape[1], b.shape[1], c.shape[1])
 
 
 def _ij_ik_jkl_to_il(a, b, c):
     ab = chainer.functions.matmul(a[:, :, None], b[:, None, :])  # ijk
     c = c.reshape(-1, c.shape[-1])  # [jk]l
-    return chainer.functions.matmul(array.as_mat(ab), c)
+    return chainer.functions.matmul(_as_mat(ab), c)
 
 
 def _ij_il_jkl_to_ik(a, b, c):
@@ -28,7 +33,6 @@ def _ik_il_jkl_to_ij(a, b, c):
 
 
 class BilinearFunction(function_node.FunctionNode):
-
     def check_type_forward(self, in_types):
         n_in = type_check.eval(in_types.size())
         if n_in != 3 and n_in != 6:
@@ -71,17 +75,25 @@ class BilinearFunction(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs(tuple(range(len(inputs))))
 
-        e1 = array.as_mat(inputs[0])
-        e2 = array.as_mat(inputs[1])
+        e1 = _as_mat(inputs[0])
+        e2 = _as_mat(inputs[1])
         W = inputs[2]
 
-        if not type_check.same_types(*inputs):
-            raise ValueError('numpy and cupy must not be used together\n'
-                             'type(W): {0}, type(e1): {1}, type(e2): {2}'
-                             .format(type(W), type(e1), type(e2)))
-
         xp = cuda.get_array_module(*inputs)
-        y = xp.einsum('ij,ik,jkl->il', e1, e2, W)
+        if xp is numpy:
+            # optimize: y = numpy.einsum('ij,ik,jkl->il', e1, e2, W)
+            y = numpy.tensordot(numpy.einsum('ij,ik->ijk', e1, e2), W, axes=2)
+        else:
+            i_len, j_len = e1.shape
+            k_len = e2.shape[1]
+            # 'ij,ik->ijk'
+            e1e2 = e1[:, :, None] * e2[:, None, :]
+            # ijk->i[jk]
+            e1e2 = e1e2.reshape(i_len, j_len * k_len)
+            # jkl->[jk]l
+            W_mat = W.reshape(-1, W.shape[2])
+            # 'i[jk],[jk]l->il'
+            y = e1e2.dot(W_mat)
 
         if len(inputs) == 6:
             V1, V2, b = inputs[3:]
@@ -106,14 +118,33 @@ class BilinearFunctionGrad(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs(tuple(range(len(inputs))))
 
-        e1 = array.as_mat(inputs[0])
-        e2 = array.as_mat(inputs[1])
+        e1 = _as_mat(inputs[0])
+        e2 = _as_mat(inputs[1])
         W, gy = inputs[2], inputs[-1]
 
         xp = cuda.get_array_module(*inputs)
-        ge1 = xp.einsum('ik,jkl,il->ij', e2, W, gy)
-        ge2 = xp.einsum('ij,jkl,il->ik', e1, W, gy)
-        gW = xp.einsum('ij,ik,il->jkl', e1, e2, gy)
+        if xp is numpy:
+            # optimize: gW = numpy.einsum('ij,ik,il->jkl', e1, e2, gy)
+            gW = numpy.einsum('ij,ik->jki', e1, e2).dot(gy)
+
+            gy_W = numpy.tensordot(gy, W, axes=(1, 2))  # 'il,jkl->ijk'
+            # optimize: ge1 = numpy.einsum('ik,jkl,il->ij', e2, W, gy)
+            ge1 = numpy.einsum('ik,ijk->ij', e2, gy_W)
+            # optimize: ge2 = numpy.einsum('ij,jkl,il->ik', e1, W, gy)
+            ge2 = numpy.einsum('ij,ijk->ik', e1, gy_W)
+        else:
+            kern = cuda.reduce('T in0, T in1, T in2', 'T out',
+                               'in0 * in1 * in2', 'a + b', 'out = a', 0,
+                               'bilinear_product')
+
+            e1_b = e1[:, :, None, None]  # ij
+            e2_b = e2[:, None, :, None]  # ik
+            gy_b = gy[:, None, None, :]  # il
+            W_b = W[None, :, :, :]  # jkl
+
+            gW = kern(e1_b, e2_b, gy_b, axis=0)  # 'ij,ik,il->jkl'
+            ge1 = kern(e2_b, W_b, gy_b, axis=(2, 3))  # 'ik,jkl,il->ij'
+            ge2 = kern(e1_b, W_b, gy_b, axis=(1, 3))  # 'ij,jkl,il->ik'
 
         ret = ge1.reshape(inputs[0].shape), ge2.reshape(inputs[1].shape), gW
 
@@ -131,12 +162,12 @@ class BilinearFunctionGrad(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         inputs = self.get_retained_inputs()
 
-        e1 = array.as_mat(inputs[0])
-        e2 = array.as_mat(inputs[1])
+        e1 = _as_mat(inputs[0])
+        e2 = _as_mat(inputs[1])
         W, gy = inputs[2], inputs[-1]
 
-        gge1 = array.as_mat(grad_outputs[0])
-        gge2 = array.as_mat(grad_outputs[1])
+        gge1 = _as_mat(grad_outputs[0])
+        gge2 = _as_mat(grad_outputs[1])
         ggW = grad_outputs[2]
 
         dge1_de2 = _ij_il_jkl_to_ik(gge1, gy, W)
@@ -232,7 +263,7 @@ def bilinear(e1, e2, W, V1=None, V2=None, b=None):
 
     See:
         `Reasoning With Neural Tensor Networks for Knowledge Base Completion
-        <http://papers.nips.cc/paper/5028-reasoning-with-neural-tensor-
+        <https://papers.nips.cc/paper/5028-reasoning-with-neural-tensor-
         networks-for-knowledge-base-completion>`_ [Socher+, NIPS2013].
 
     """

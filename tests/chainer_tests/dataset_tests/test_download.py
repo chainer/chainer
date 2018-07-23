@@ -122,14 +122,14 @@ class TestCachedDownload(unittest.TestCase):
         with mock.patch('os.makedirs') as f:
             f.side_effect = OSError()
             with self.assertRaises(OSError):
-                dataset.cached_download('http://example.com')
+                dataset.cached_download('https://example.com')
 
     def test_file_exists(self):
         # Make an empty file which has the same name as the cache directory
         with open(os.path.join(self.temp_dir, '_dl_cache'), 'w'):
             pass
         with self.assertRaises(OSError):
-            dataset.cached_download('http://example.com')
+            dataset.cached_download('https://example.com')
 
     def test_cached_download(self):
         with mock.patch('six.moves.urllib.request.urlretrieve') as f:
@@ -138,14 +138,14 @@ class TestCachedDownload(unittest.TestCase):
                     f.write('test')
             f.side_effect = download
 
-            cache_path = dataset.cached_download('http://example.com')
+            cache_path = dataset.cached_download('https://example.com')
 
         self.assertEqual(f.call_count, 1)
         args, kwargs = f.call_args
         self.assertEqual(kwargs, {})
         self.assertEqual(len(args), 2)
         # The second argument is a temporary path, and it is removed
-        self.assertEqual(args[0], 'http://example.com')
+        self.assertEqual(args[0], 'https://example.com')
 
         self.assertTrue(os.path.exists(cache_path))
         with open(cache_path) as f:

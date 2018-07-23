@@ -24,9 +24,9 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         self.count = None
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
-
+        type_check.argname(in_types, ('x', 't'))
         x_type, t_type = in_types
+
         type_check.expect(
             x_type.dtype == numpy.float32,
             t_type.dtype.kind == 'i',
@@ -60,8 +60,9 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
     def backward(self, inputs, grad_outputs):
         x, t = self.get_retained_inputs()
         gy, = grad_outputs
-        return SigmoidCrossEntropyGrad(
+        gx, = SigmoidCrossEntropyGrad(
             self.reduce, self.count, self.ignore_mask, t.data).apply((x, gy))
+        return gx, None
 
 
 class SigmoidCrossEntropyGrad(function_node.FunctionNode):
@@ -88,10 +89,10 @@ class SigmoidCrossEntropyGrad(function_node.FunctionNode):
         else:
             gx = (gy * self.ignore_mask * (y - self.t)).astype(y.dtype)
 
-        return gx, None
+        return gx,
 
     def backward(self, indexes, grad_outputs):
-        ggx, _ = grad_outputs
+        ggx, = grad_outputs
         x, gy = self.get_retained_inputs()
         y = chainer.functions.sigmoid(x)
         yp = y * (1 - y)
@@ -145,23 +146,24 @@ def sigmoid_cross_entropy(x, t, normalize=True, reduce='mean'):
 
     .. admonition:: Example
 
-        >>> x = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
+        >>> x = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).\
+astype(np.float32)
         >>> x
         array([[-2. ,  3. ,  0.5],
                [ 5. ,  2. , -0.5]], dtype=float32)
-        >>> t = np.array([[0, 1, 0], [1, 1, -1]]).astype('i')
+        >>> t = np.array([[0, 1, 0], [1, 1, -1]]).astype(np.int32)
         >>> t
         array([[ 0,  1,  0],
                [ 1,  1, -1]], dtype=int32)
         >>> F.sigmoid_cross_entropy(x, t)
-        variable(0.25664713978767395)
+        variable(0.25664714)
         >>> F.sigmoid_cross_entropy(x, t, normalize=False)
-        variable(0.6416178345680237)
+        variable(0.64161783)
         >>> y = F.sigmoid_cross_entropy(x, t, reduce='no')
         >>> y.shape
         (2, 3)
         >>> y.data
-        array([[ 0.126928  ,  0.04858735,  0.97407699],
+        array([[ 0.126928  ,  0.04858735,  0.974077  ],
                [ 0.00671535,  0.126928  , -0.        ]], dtype=float32)
 
     """

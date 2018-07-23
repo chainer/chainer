@@ -6,7 +6,9 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import initializers
 from chainer import variable
 
@@ -106,11 +108,11 @@ class Link(object):
                       self.b = chainer.Parameter(
                           initializers.Zero(), (n_out,))
 
-              def __call__(self, x):
+              def forward(self, x):
                   return F.linear(x, self.W, self.b)
 
        This example shows that a user can define arbitrary parameters and use
-       them in any methods. Links typically implement the ``__call__``
+       them in any methods. Links typically implement the ``forward``
        operator, although they can also provide other methods to implement the
        forward propagation.
 
@@ -122,8 +124,7 @@ class Link(object):
             is supplied, the default dtype will be used.
 
     Attributes:
-        ~Link.name (str): Name of this link, given by the parent chain (if
-            exists).
+        name (str): Name of this link, given by the parent chain (if exists).
 
     """
 
@@ -191,6 +192,9 @@ class Link(object):
             yield
         finally:
             self._within_init_scope = old_flag
+
+    def __call__(self, *args, **kwargs):
+        return self.forward(*args, **kwargs)
 
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
@@ -298,31 +302,57 @@ Assign a Parameter object directly to an attribute within a \
         self._persistent.add(name)
         self._params.discard(name)
 
-    def copy(self):
+    def copy(self, mode='share'):
         """Copies the link hierarchy to new one.
 
-        The whole hierarchy rooted by this link is copied. The copy is
-        basically shallow, except that the parameter variables are also
-        shallowly copied. It means that the parameter variables of copied one
-        are different from ones of original link, while they share the data and
-        gradient arrays.
+        The whole hierarchy rooted by this link is copied. There are three
+        modes to perform copy. Please see the document for the argument
+        ``mode`` below.
 
         The name of the link is reset on the copy, since the copied instance
         does not belong to the original parent chain (even if exists).
+
+        Args:
+            mode (str): It should be either ``init``, ``copy``, or ``share``.
+                ``init`` means parameter variables under the returned link
+                object is re-initialized by calling their
+                :meth:`~chainer.Parameter.initialize` method, so that all the
+                parameters may have different initial values from the original
+                link.
+                ``copy`` means that the link object is deeply copied, so that
+                its parameters are not re-initialized but are also deeply
+                copied. Thus, all parameters have same initial values but can
+                be changed independently.
+                ``share`` means that the link is shallowly copied, so that its
+                parameters' arrays are shared with the original one. Thus,
+                their values are changed synchronously. The default ``mode``
+                is ``share``.
 
         Returns:
             Link: Copied link object.
 
         """
-        ret = copy.copy(self)
-        ret._params = set(self._params)
-        ret._persistent = set(self._persistent)
-        ret.name = None
-        d = ret.__dict__
-        for name in ret._params:
-            d[name] = copy.copy(d[name])
-            d[name].grad = None
-        return ret
+        if mode == 'share':
+            ret = copy.copy(self)
+            ret._params = set(self._params)
+            ret._persistent = set(self._persistent)
+            ret.name = None
+            d = ret.__dict__
+            for name in ret._params:
+                d[name] = copy.copy(d[name])
+                d[name].grad = None
+            return ret
+        elif mode == 'copy':
+            return copy.deepcopy(self)
+        elif mode == 'init':
+            ret = copy.deepcopy(self)
+            for param in ret.params(include_uninit=False):
+                param.initialize(param.shape)
+            return ret
+        else:
+            raise ValueError(
+                'The \'mode\' argument should be either \'init\','
+                '\'copy\', or \'share\'. But {} was given.'.format(mode))
 
     def to_cpu(self):
         """Copies parameter variables and persistent values to CPU.
@@ -334,8 +364,6 @@ Assign a Parameter object directly to an attribute within a \
         Returns: self
 
         """
-        if self._cpu:
-            return self
         d = self.__dict__
         for name in self._params:
             d[name].to_cpu()
@@ -343,6 +371,8 @@ Assign a Parameter object directly to an attribute within a \
             value = d[name]
             if isinstance(value, cuda.ndarray):
                 d[name] = value.get()
+            elif isinstance(value, intel64.mdarray):
+                d[name] = numpy.array(value)
         self._cpu = True
         self._device_id = None
         return self
@@ -370,10 +400,34 @@ Assign a Parameter object directly to an attribute within a \
                 d[name].to_gpu()
             for name in self._persistent:
                 value = d[name]
+                if isinstance(value, intel64.mdarray):
+                    value = numpy.array(value)
                 if isinstance(value, numpy.ndarray):
                     d[name] = cuda.to_gpu(value)
             self._device_id = cuda.cupy.cuda.get_device_id()
         self._cpu = False
+        return self
+
+    def to_intel64(self):
+        """Copies parameter variables and persistent values to CPU."""
+        intel64.check_ideep_available()
+        d = self.__dict__
+        for name in self._params:
+            d[name].to_intel64()
+        for name in self._persistent:
+            value = d[name]
+            if isinstance(value, cuda.ndarray):
+                value = value.get()  # to numpy.ndarray
+            if (isinstance(value, numpy.ndarray) and value.ndim in (1, 2, 4)):
+                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
+                # Currently iDeep only supports (1, 2, 4)-dim arrays.
+                # Note that array returned from `ideep.array` may not be an
+                # iDeep mdarray, e.g., when the dtype is not float32.
+                value = intel64.ideep.array(
+                    value, itype=intel64.ideep.wgt_array)
+            d[name] = value
+        self._cpu = True
+        self._device_id = None
         return self
 
     def params(self, include_uninit=True):
@@ -447,21 +501,38 @@ Assign a Parameter object directly to an attribute within a \
         if 0:
             yield
 
-    def copyparams(self, link):
+    def copyparams(self, link, copy_persistent=True):
         """Copies all parameters from given link.
 
         This method copies data arrays of all parameters in the hierarchy. The
         copy is even done across the host and devices. Note that this method
         does not copy the gradient arrays.
 
+        *From v5.0.0:* this method also copies the persistent values (e.g. the
+        moving statistics of :class:`~chainer.links.BatchNormalization`). If
+        the persistent value is an ndarray, the elements are copied. Otherwise,
+        it is copied using :func:`copy.deepcopy`. The old behavior (not copying
+        persistent values) can be reproduced with ``copy_persistent=False``.
+
         Args:
             link (Link): Source link object.
+            copy_persistent (bool): If ``True``, persistent values are also
+                copied. ``True`` by default.
 
         """
         src = link.__dict__
         dst = self.__dict__
         for name in self._params:
             dst[name].copydata(src[name])
+        if copy_persistent:
+            array_types = chainer.get_array_types()
+            for name in self._persistent:
+                d = dst[name]
+                s = src[name]
+                if isinstance(d, array_types) and isinstance(s, array_types):
+                    cuda.copyto(d, s)
+                else:
+                    dst[name] = copy.deepcopy(s)
 
     def cleargrads(self):
         """Clears all gradient arrays.
@@ -559,6 +630,97 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 
+    def repeat(self, n_repeat, mode='init'):
+        """Repeats this link multiple times to make a :class:`~chainer.Sequential`.
+
+        This method returns a :class:`~chainer.Sequential` object which has
+        the same :class:`~chainer.Link` multiple times repeatedly. The ``mode``
+        argument means how to copy this link to repeat.
+
+        .. admonition:: Example
+
+            You can repeat the same link multiple times to create a longer
+            :class:`~chainer.Sequential` block like this:
+
+            .. testcode::
+
+                class ConvBNReLU(chainer.Chain):
+
+                    def __init__(self):
+                        super(ConvBNReLU, self).__init__()
+                        with self.init_scope():
+                            self.conv = L.Convolution2D(
+                                None, 64, 3, 1, 1, nobias=True)
+                            self.bn = L.BatchNormalization(64)
+
+                    def forward(self, x):
+                        return F.relu(self.bn(self.conv(x)))
+
+                net = ConvBNReLU().repeat(16, mode='init')
+
+            The ``net`` object contains 16 blocks, each of which is
+            ``ConvBNReLU``. And the ``mode`` was ``init``, so each block
+            is re-initialized with different parameters. If you give
+            ``copy`` to this argument, each block has same values for its
+            parameters but its object ID is different from others. If it is
+            ``share``, each block is same to others in terms of not only
+            parameters but also the object IDs because they are shallow-copied,
+            so that when the parameter of one block is changed, all the
+            parameters in the others also change.
+
+        Args:
+            n_repeat (int): Number of times to repeat.
+            mode (str): It should be either ``init``, ``copy``, or ``share``.
+                ``init`` means parameters of each repeated element in the
+                returned :class:`~chainer.Sequential` will be re-initialized,
+                so that all elements have different initial parameters.
+                ``copy`` means that the parameters will not be re-initialized
+                but object itself will be deep-copied, so that all elements
+                have same initial parameters but can be changed independently.
+                ``share`` means all the elements which consist the resulting
+                :class:`~chainer.Sequential` object are same object because
+                they are shallow-copied, so that all parameters of elements
+                are shared with each other.
+
+        """
+        ret = chainer.Sequential()
+        if n_repeat <= 0:
+            return ret
+        if mode not in ['init', 'copy', 'share']:
+            raise ValueError(
+                'The \'mode\' argument should be either \'init\','
+                '\'copy\', or \'share\'. But {} was given.'.format(mode))
+        link = self
+        for _ in range(n_repeat):
+            ret.append(link.copy(mode))
+        return ret
+
+    def count_params(self):
+        """Counts the total number of parameters.
+
+        This method counts the total number of scalar values included in all
+        the :class:`~chainer.Parameter`\\ s held by this link and its
+        descendants.
+
+        If the link containts uninitialized parameters, this method raises a
+        warning.
+
+        Returns:
+            The total size of parameters (int)
+
+        """
+
+        size = 0
+        for name, param in self.namedparams():
+            if param.array is None:
+                warnings.warn(
+                    'Parameter \'{}\' has not been initialized, so the '
+                    'resulting count will not include the number of parameters'
+                    ' in it.'.format(name))
+                continue
+            size += param.size
+        return size
+
 
 class Chain(Link):
 
@@ -620,7 +782,7 @@ class Chain(Link):
                       self.layer2 = L.Linear(n_hidden, n_hidden)
                       self.layer3 = L.Linear(n_hidden, n_out)
 
-              def __call__(self, x):
+              def forward(self, x):
                   # Forward propagation
                   h1 = F.relu(self.layer1(x))
                   h2 = F.relu(self.layer2(h1))
@@ -628,7 +790,7 @@ class Chain(Link):
 
        Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
-       implemented as the ``__call__`` operator as the above example, though
+       implemented as the ``forward`` operator as the above example, though
        it is not mandatory.
 
     Args:
@@ -707,13 +869,13 @@ Assign a Link object directly to an attribute within a \
         with self.init_scope():
             setattr(self, name, link)
 
-    def copy(self):
+    def copy(self, mode='share'):
         ret = super(Chain, self).copy()
         ret._children = set(ret._children)
         d = ret.__dict__
         for name in ret._children:
             # copy child links recursively
-            copied = d[name].copy()
+            copied = d[name].copy(mode)
             copied.name = name
             d[name] = copied
         return ret
@@ -731,6 +893,13 @@ Assign a Link object directly to an attribute within a \
             d = self.__dict__
             for name in self._children:
                 d[name].to_gpu()
+        return self
+
+    def to_intel64(self):
+        super(Chain, self).to_intel64()
+        d = self.__dict__
+        for name in self._children:
+            d[name].to_intel64()
         return self
 
     def params(self, include_uninit=True):
@@ -774,12 +943,12 @@ Assign a Link object directly to an attribute within a \
         for name in self._children:
             yield d[name]
 
-    def copyparams(self, link):
-        super(Chain, self).copyparams(link)
+    def copyparams(self, link, copy_persistent=True):
+        super(Chain, self).copyparams(link, copy_persistent)
         src = link.__dict__
         dst = self.__dict__
         for name in self._children:
-            dst[name].copyparams(src[name])
+            dst[name].copyparams(src[name], copy_persistent)
 
     def addgrads(self, link):
         super(Chain, self).addgrads(link)
@@ -795,7 +964,7 @@ Assign a Link object directly to an attribute within a \
             d[name].serialize(serializer[name])
 
 
-class ChainList(Link):
+class ChainList(Link, collections.MutableSequence):
 
     """Composable link with list-like interface.
 
@@ -806,7 +975,9 @@ class ChainList(Link):
     the list. It is useful to write a chain with arbitrary number of child
     links, e.g. an arbitrarily deep multi-layer perceptron.
 
-    Note that this class does not implement all methods of :class:`list`.
+    This class inherits the methods `index`, `count`, `append`, `reverse`,
+    `extend`, `pop`, `remove` from `collections.abc.MutableSequence` and
+    can be accessed and assigned by index or slice.
 
     Args:
         links: Initial child links.
@@ -827,6 +998,19 @@ class ChainList(Link):
                 ' within a "with chainlist.init_scope():" block.')
         super(ChainList, self).__setattr__(name, value)
 
+    def __setitem__(self, index, value):
+        if isinstance(index, int):
+            value.name = str(index)
+            self._children[index] = value
+        elif isinstance(index, slice):
+            self._children[index] = value
+            for i, c in enumerate(self._children):
+                c.name = str(i)
+        else:
+            raise TypeError(
+                'ChainList indices must be integers or slices, not %s' %
+                type(index).__name__)
+
     def __getitem__(self, index):
         """Returns the child at given index.
 
@@ -839,24 +1023,34 @@ class ChainList(Link):
         """
         return self._children[index]
 
+    def __delitem__(self, index):
+        del self._children[index]
+        for i, c in enumerate(self._children):
+            c.name = str(i)
+
+    def insert(self, index, link):
+        """Insert a child link at the given index.
+
+        Args:
+            index (int): The position of the list where the new
+            link is inserted.
+            link (Link): The link to be inserted.
+
+        """
+        if index == len(self._children):
+            self._children.append(link)
+            link.name = str(index)
+        else:
+            self._children.insert(index, link)
+            for i, c in enumerate(self._children):
+                c.name = str(i)
+
     def __iter__(self):
         return iter(self._children)
 
     def __len__(self):
         """Returns the number of children."""
         return len(self._children)
-
-    def append(self, link):
-        """Registers a child link and adds it to the tail of the list.
-
-        This is equivalent to :meth:`add_link`. This method has been added to
-        emulate the ``list`` interface.
-
-        Args:
-            link (Link): The link object to be regsitered.
-
-        """
-        self.add_link(link)
 
     def add_link(self, link):
         """Registers a child link and adds it to the tail of the list.
@@ -865,15 +1059,15 @@ class ChainList(Link):
             link (Link): The link object to be registered.
 
         """
-        link.name = str(len(self._children))
-        self._children.append(link)
+        self.append(link)
 
-    def copy(self):
+    def copy(self, mode='share'):
+        """Returns a deep copy of the chainlist."""
         ret = super(ChainList, self).copy()
         ret._children = list(ret._children)  # copy
         children = ret._children
         for i, child in enumerate(children):
-            child = child.copy()
+            child = child.copy(mode)
             child.name = str(i)
             children[i] = child
         return ret
@@ -889,6 +1083,12 @@ class ChainList(Link):
             super(ChainList, self).to_gpu()
             for link in self._children:
                 link.to_gpu()
+        return self
+
+    def to_intel64(self):
+        super(ChainList, self).to_intel64()
+        for link in self._children:
+            link.to_intel64()
         return self
 
     def params(self, include_uninit=True):
@@ -926,10 +1126,10 @@ class ChainList(Link):
         for child in self._children:
             yield child
 
-    def copyparams(self, link):
-        super(ChainList, self).copyparams(link)
+    def copyparams(self, link, copy_persistent=True):
+        super(ChainList, self).copyparams(link, copy_persistent)
         for idx, child in enumerate(self._children):
-            child.copyparams(link[idx])
+            child.copyparams(link[idx], copy_persistent)
 
     def addgrads(self, link):
         super(ChainList, self).addgrads(link)

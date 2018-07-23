@@ -128,7 +128,8 @@ class TestTrigger(unittest.TestCase):
             np.savez(f, dummy=0)
 
             trigger = training.triggers.ManualScheduleTrigger(*self.schedule)
-            serializers.load_npz(f.name, trigger)
+            with testing.assert_warns(UserWarning):
+                serializers.load_npz(f.name, trigger)
             for expected in self.expected[self.resume:]:
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)

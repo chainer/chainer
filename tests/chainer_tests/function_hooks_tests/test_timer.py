@@ -5,7 +5,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_hooks
 from chainer import functions
 from chainer.functions.math import basic_math
@@ -14,8 +14,8 @@ from chainer.testing import attr
 
 
 def check_history(self, t, function_type, return_type):
-    func = getattr(t[0], 'function', t[0])
-    self.assertIsInstance(func, function_type)
+    func_name = t[0]
+    assert func_name == function_type.__name__
     self.assertIsInstance(t[1], return_type)
 
 
@@ -28,7 +28,7 @@ class SimpleLink(chainer.Link):
                 numpy.float32)
             self.w = chainer.Parameter(init_w)
 
-    def __call__(self, x):
+    def forward(self, x):
         return self.w * x
 
 
@@ -66,7 +66,7 @@ class TestTimerHookToLink(unittest.TestCase):
         # It includes forward of + that accumulates gradients to W and b
         self.assertEqual(3, len(self.h.call_history), self.h.call_history)
         for entry in self.h.call_history:
-            if entry[0].label == '_ + _':
+            if entry[0] == 'Add':
                 continue
             check_history(self, entry, basic_math.Mul, float)
 
@@ -83,7 +83,7 @@ class TestTimerHookToFunction(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.TimerHook()
-        self.f = functions.Exp()
+        self.f = functions.math.exponential.Exp()
         self.f.add_hook(self.h)
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
@@ -91,7 +91,8 @@ class TestTimerHookToFunction(unittest.TestCase):
     def check_forward(self, x):
         self.f.apply((chainer.Variable(x),))
         self.assertEqual(1, len(self.h.call_history))
-        check_history(self, self.h.call_history[0], functions.Exp, float)
+        check_history(self, self.h.call_history[0],
+                      functions.math.exponential.Exp, float)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -106,7 +107,8 @@ class TestTimerHookToFunction(unittest.TestCase):
         y.grad = gy
         y.backward()
         self.assertEqual(2, len(self.h.call_history))
-        check_history(self, self.h.call_history[1], functions.Exp, float)
+        check_history(self, self.h.call_history[1],
+                      functions.math.exponential.Exp, float)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
@@ -118,7 +120,8 @@ class TestTimerHookToFunction(unittest.TestCase):
     def test_reentrant(self):
         # In/grad data are random; these do not simulate the actually possible
         # cases.
-        g = functions.Identity()  # any function other than Exp is ok
+        # any function other than Exp is ok
+        g = functions.math.identity.Identity()
 
         self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
         t1 = time.time()
@@ -130,15 +133,15 @@ class TestTimerHookToFunction(unittest.TestCase):
 
         history = dict(self.h.call_history)
         self.assertEqual(len(history), 2)
-        self.assertIn(self.f, history)
-        self.assertIn(g, history)
-        f_time = history[self.f]
-        g_time = history[g]
+        self.assertIn(self.f._impl_name, history)
+        self.assertIn(g._impl_name, history)
+        f_time = history[self.f._impl_name]
+        g_time = history[g._impl_name]
         self.assertLessEqual(g_time, t2 - t1)
         self.assertGreaterEqual(f_time, t2 - t1)
 
     def test_reentrant_total_time(self):
-        g = functions.Identity()
+        g = functions.math.identity.Identity()
 
         t0 = time.time()
         self.h.backward_preprocess(self.f, (self.x,), (self.gy,))
@@ -158,7 +161,7 @@ class TestTimerPrintReport(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.TimerHook()
-        self.f = functions.Exp()
+        self.f = functions.math.exponential.Exp()
         self.f.add_hook(self.h)
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
 

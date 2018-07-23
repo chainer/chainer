@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
@@ -150,6 +150,17 @@ class TestInitialization(unittest.TestCase):
     def test_param_gpu(self):
         self.link.to_gpu()
         self.check_param()
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float32, numpy.float16],
+}))
+class TestScalarInitialBias(unittest.TestCase):
+
+    def test_scalar_initial_bias(self):
+        with chainer.using_config('dtype', self.dtype):
+            link = links.Maxout(2, 3, 4, initial_bias=0)
+        assert link.linear.b.dtype == self.dtype
 
 
 testing.run_module(__name__, __file__)

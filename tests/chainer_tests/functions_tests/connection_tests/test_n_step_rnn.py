@@ -1,10 +1,9 @@
 import unittest
 
-import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -33,6 +32,13 @@ def _to_gpu(x):
         return cuda.to_gpu(x)
 
 
+def _shaped_random(shape, dtype='f'):
+    if isinstance(shape, list):
+        return [_shaped_random(s) for s in shape]
+    else:
+        return numpy.random.uniform(-1, 1, shape).astype(dtype)
+
+
 def _wrap_variable(x):
     if isinstance(x, list):
         return [_wrap_variable(xi) for xi in x]
@@ -53,32 +59,23 @@ class TestNStepRNN(unittest.TestCase):
     dropout = 0.0
 
     def setUp(self):
-        self.xs = [numpy.random.uniform(-1, 1, (b, self.in_size)).astype('f')
-                   for b in self.batches]
+        self.xs = _shaped_random([(b, self.in_size) for b in self.batches])
         h_shape = (self.n_layers, self.batches[0], self.out_size)
-        self.hx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.hx = _shaped_random(h_shape)
 
+        o = self.out_size
+        i = self.in_size
         self.ws = []
         self.bs = []
-        for i in range(self.n_layers):
-            weights = []
-            biases = []
-            for j in range(2):
-                if i == 0 and j < 1:
-                    w_in = self.in_size
-                else:
-                    w_in = self.out_size
+        # The first layer has the different shape
+        self.ws.append(_shaped_random([(o, i), (o, o)]))
+        self.bs.append(_shaped_random([o, o]))
+        for _ in range(self.n_layers - 1):
+            self.ws.append(_shaped_random([(o, o), (o, o)]))
+            self.bs.append(_shaped_random([o, o]))
 
-                weights.append(numpy.random.uniform(
-                    -1, 1, (self.out_size, w_in)).astype('f'))
-                biases.append(numpy.random.uniform(
-                    -1, 1, (self.out_size,)).astype('f'))
-            self.ws.append(weights)
-            self.bs.append(biases)
-
-        self.dys = [numpy.random.uniform(-1, 1, (b, self.out_size)).astype('f')
-                    for b in self.batches]
-        self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.dys = _shaped_random([(b, self.out_size) for b in self.batches])
+        self.dhy = _shaped_random(h_shape)
 
     def check_forward(
             self, h_data, xs_data, ws_data, bs_data):
@@ -163,6 +160,12 @@ class TestNStepRNN(unittest.TestCase):
         self.check_backward(self.hx, self.xs, self.ws, self.bs,
                             self.dhy, self.dys)
 
+    @condition.retry(3)
+    def test_backward_partially_none_cpu(self):
+        self.dys[1] = None
+        self.check_backward(self.hx, self.xs, self.ws, self.bs,
+                            None, self.dys)
+
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
@@ -173,6 +176,19 @@ class TestNStepRNN(unittest.TestCase):
                 _to_gpu(self.ws),
                 _to_gpu(self.bs),
                 _to_gpu(self.dhy),
+                _to_gpu(self.dys))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_partially_none_gpu(self):
+        self.dys[1] = None
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_backward(
+                _to_gpu(self.hx),
+                _to_gpu(self.xs),
+                _to_gpu(self.ws),
+                _to_gpu(self.bs),
+                None,
                 _to_gpu(self.dys))
 
     def call_forward(self, train):
@@ -188,7 +204,7 @@ class TestNStepRNN(unittest.TestCase):
     def check_call_cudnn_forward_training(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
                 self.call_forward(True)
             assert func.called == expect
 
@@ -201,7 +217,7 @@ class TestNStepRNN(unittest.TestCase):
     def check_call_cudnn_forward_inference(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
                 self.call_forward(False)
             assert func.called == expect
 
@@ -216,7 +232,7 @@ class TestNStepRNN(unittest.TestCase):
             expect = chainer.should_use_cudnn('>=auto', 5000)
             hy, ys = self.call_forward(True)
             hy.grad = _to_gpu(self.dhy)
-            with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
                 hy.backward()
             assert func.called == expect
 
@@ -240,36 +256,27 @@ class TestNStepBiRNN(unittest.TestCase):
     dropout = 0.0
 
     def setUp(self):
-        self.xs = [numpy.random.uniform(-1, 1, (b, self.in_size)).astype('f')
-                   for b in self.batches]
+        self.xs = _shaped_random([(b, self.in_size) for b in self.batches])
         h_shape = (self.n_layers * 2, self.batches[0], self.out_size)
-        self.hx = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.hx = _shaped_random(h_shape)
 
+        i = self.in_size
+        o = self.out_size
         self.ws = []
         self.bs = []
-        for i in range(self.n_layers):
-            for di in [0, 1]:
-                weights = []
-                biases = []
-                for j in range(2):
-                    if i == 0 and j < 1:
-                        w_in = self.in_size
-                    elif i > 0 and j < 1:
-                        w_in = self.out_size * 2
-                    else:
-                        w_in = self.out_size
+        # First layer has the different shape
+        for di in range(2):
+            self.ws.append(_shaped_random([(o, i), (o, o)]))
+            self.bs.append(_shaped_random([o, o]))
+        # Rest layers
+        for _ in range(self.n_layers - 1):
+            for di in range(2):
+                self.ws.append(_shaped_random([(o, o * 2), (o, o)]))
+                self.bs.append(_shaped_random([o, o]))
 
-                    weights.append(numpy.random.uniform(
-                        -1, 1, (self.out_size, w_in)).astype('f'))
-                    biases.append(numpy.random.uniform(
-                        -1, 1, (self.out_size,)).astype('f'))
-                self.ws.append(weights)
-                self.bs.append(biases)
-
-        self.dys = [numpy.random.uniform(-1, 1,
-                                         (b, self.out_size * 2)).astype('f')
-                    for b in self.batches]
-        self.dhy = numpy.random.uniform(-1, 1, h_shape).astype(numpy.float32)
+        self.dys = _shaped_random(
+            [(b, self.out_size * 2) for b in self.batches])
+        self.dhy = _shaped_random(h_shape)
 
     def check_forward(
             self, h_data, xs_data, ws_data, bs_data):
@@ -381,6 +388,12 @@ class TestNStepBiRNN(unittest.TestCase):
         self.check_backward(self.hx, self.xs, self.ws, self.bs,
                             self.dhy, self.dys)
 
+    @condition.retry(3)
+    def test_backward_partially_none_cpu(self):
+        self.dys[1] = None
+        self.check_backward(self.hx, self.xs, self.ws, self.bs,
+                            None, self.dys)
+
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
@@ -391,6 +404,19 @@ class TestNStepBiRNN(unittest.TestCase):
                 _to_gpu(self.ws),
                 _to_gpu(self.bs),
                 _to_gpu(self.dhy),
+                _to_gpu(self.dys))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_partially_none_gpu(self):
+        self.dys[1] = None
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_backward(
+                _to_gpu(self.hx),
+                _to_gpu(self.xs),
+                _to_gpu(self.ws),
+                _to_gpu(self.bs),
+                None,
                 _to_gpu(self.dys))
 
     def call_forward(self, train):
@@ -406,7 +432,7 @@ class TestNStepBiRNN(unittest.TestCase):
     def check_call_cudnn_forward_training(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
                 self.call_forward(True)
             assert func.called == expect
 
@@ -419,7 +445,7 @@ class TestNStepBiRNN(unittest.TestCase):
     def check_call_cudnn_forward_inference(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
                 self.call_forward(False)
             assert func.called == expect
 
@@ -434,7 +460,7 @@ class TestNStepBiRNN(unittest.TestCase):
             expect = chainer.should_use_cudnn('>=auto', 5000)
             hy, ys = self.call_forward(True)
             hy.grad = _to_gpu(self.dhy)
-            with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
                 hy.backward()
             assert func.called == expect
 

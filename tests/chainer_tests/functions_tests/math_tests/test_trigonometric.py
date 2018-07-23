@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
@@ -23,7 +23,8 @@ class TrigonometricFunctionsTest(unittest.TestCase):
         self.ggx = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
         self.func = getattr(F, self.func_name)
         camel_name = self.func_name[0].upper() + self.func_name[1:]
-        self.func_class = getattr(F, camel_name)
+        self.func_class = getattr(
+            chainer.functions.math.trigonometric, camel_name)
         self.np_func = getattr(numpy, self.func_name)
 
         if self.dtype == numpy.float16:

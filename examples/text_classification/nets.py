@@ -86,7 +86,7 @@ class TextClassifier(chainer.Chain):
             self.output = L.Linear(encoder.out_units, n_class)
         self.dropout = dropout
 
-    def __call__(self, xs, ys):
+    def forward(self, xs, ys):
         concat_outputs = self.predict(xs)
         concat_truths = F.concat(ys, axis=0)
 
@@ -122,16 +122,17 @@ class RNNEncoder(chainer.Chain):
     """
 
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
-        super(RNNEncoder, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units,
-                            initialW=embed_init),
-            encoder=L.NStepLSTM(n_layers, n_units, n_units, dropout),
-        )
+        super(RNNEncoder, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units,
+                                   initialW=embed_init)
+            self.encoder = L.NStepLSTM(n_layers, n_units, n_units, dropout)
+
         self.n_layers = n_layers
         self.out_units = n_units
         self.dropout = dropout
 
-    def __call__(self, xs):
+    def forward(self, xs):
         exs = sequence_embed(self.embed, xs, self.dropout)
         last_h, last_c, ys = self.encoder(None, None, exs)
         assert(last_h.shape == (self.n_layers, len(xs), self.out_units))
@@ -158,24 +159,25 @@ class CNNEncoder(chainer.Chain):
 
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
         out_units = n_units // 3
-        super(CNNEncoder, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units, ignore_label=-1,
-                            initialW=embed_init),
-            cnn_w3=L.Convolution2D(
+        super(CNNEncoder, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units, ignore_label=-1,
+                                   initialW=embed_init)
+            self.cnn_w3 = L.Convolution2D(
                 n_units, out_units, ksize=(3, 1), stride=1, pad=(2, 0),
-                nobias=True),
-            cnn_w4=L.Convolution2D(
+                nobias=True)
+            self.cnn_w4 = L.Convolution2D(
                 n_units, out_units, ksize=(4, 1), stride=1, pad=(3, 0),
-                nobias=True),
-            cnn_w5=L.Convolution2D(
+                nobias=True)
+            self.cnn_w5 = L.Convolution2D(
                 n_units, out_units, ksize=(5, 1), stride=1, pad=(4, 0),
-                nobias=True),
-            mlp=MLP(n_layers, out_units * 3, dropout)
-        )
+                nobias=True)
+            self.mlp = MLP(n_layers, out_units * 3, dropout)
+
         self.out_units = out_units * 3
         self.dropout = dropout
 
-    def __call__(self, xs):
+    def forward(self, xs):
         x_block = chainer.dataset.convert.concat_examples(xs, padding=-1)
         ex_block = block_embed(self.embed, x_block, self.dropout)
         h_w3 = F.max(self.cnn_w3(ex_block), axis=2)
@@ -206,7 +208,7 @@ class MLP(chainer.ChainList):
         self.dropout = dropout
         self.out_units = n_units
 
-    def __call__(self, x):
+    def forward(self, x):
         for i, link in enumerate(self.children()):
             x = F.dropout(x, ratio=self.dropout)
             x = F.relu(link(x))
@@ -227,17 +229,18 @@ class BOWEncoder(chainer.Chain):
     """
 
     def __init__(self, n_vocab, n_units, dropout=0.1):
-        super(BOWEncoder, self).__init__(
-            embed=L.EmbedID(n_vocab, n_units, ignore_label=-1,
-                            initialW=embed_init),
-        )
+        super(BOWEncoder, self).__init__()
+        with self.init_scope():
+            self.embed = L.EmbedID(n_vocab, n_units, ignore_label=-1,
+                                   initialW=embed_init)
+
         self.out_units = n_units
         self.dropout = dropout
 
-    def __call__(self, xs):
+    def forward(self, xs):
         x_block = chainer.dataset.convert.concat_examples(xs, padding=-1)
         ex_block = block_embed(self.embed, x_block)
-        x_len = self.xp.array([len(x) for x in xs], 'i')[:, None, None]
+        x_len = self.xp.array([len(x) for x in xs], numpy.int32)[:, None, None]
         h = F.sum(ex_block, axis=2) / x_len
         return h
 
@@ -258,13 +261,14 @@ class BOWMLPEncoder(chainer.Chain):
     """
 
     def __init__(self, n_layers, n_vocab, n_units, dropout=0.1):
-        super(BOWMLPEncoder, self).__init__(
-            bow_encoder=BOWEncoder(n_vocab, n_units, dropout),
-            mlp_encoder=MLP(n_layers, n_units, dropout)
-        )
+        super(BOWMLPEncoder, self).__init__()
+        with self.init_scope():
+            self.bow_encoder = BOWEncoder(n_vocab, n_units, dropout)
+            self.mlp_encoder = MLP(n_layers, n_units, dropout)
+
         self.out_units = n_units
 
-    def __call__(self, xs):
+    def forward(self, xs):
         h = self.bow_encoder(xs)
         h = self.mlp_encoder(h)
         return h

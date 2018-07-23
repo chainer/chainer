@@ -6,7 +6,7 @@ import six
 
 from chainer.backends import cuda
 from chainer import configuration
-from chainer.functions.math import identity
+from chainer import FunctionNode
 from chainer import testing
 from chainer import variable
 
@@ -33,7 +33,7 @@ def numerical_grad(
     ``eps``.
 
     Args:
-        f (function): Python function with no arguments that runs forward
+        f (callable): Python function with no arguments that runs forward
             computation and returns the result.
         inputs (tuple of arrays): Tuple of arrays that should be treated as
             inputs. Each element of them is slightly modified to realize
@@ -314,18 +314,18 @@ def check_backward(
     to ensure that the computed gradients are approximately correct.
     For example, assuming you've defined a :class:`~chainer.FunctionNode` class
     ``MyFunc``, that takes two arguments and returns one value, you can wrap
-    it in a ordinary function and check its gradient computations as follows::
+    it in a ordinary function and check its gradient computations as follows:
 
-    >> def test_my_func(self):
-    >>
-    >>     def func(xs):
-    >>         y, = MyFunc().apply(xs)
-    >>         return y
-    >>
-    >>   x1_data = xp.array(...)
-    >>   x2_data = xp.array(...)
-    >>   gy_data = xp.array(...)
-    >>   check_backward(func, (x1_data, x2_data), gy_data)
+    .. code-block:: python
+
+        def func(xs):
+            y, = MyFunc().apply(xs)
+            return y
+
+        x1_data = xp.array(...)
+        x2_data = xp.array(...)
+        gy_data = xp.array(...)
+        check_backward(func, (x1_data, x2_data), gy_data)
 
     This method creates :class:`~chainer.Variable` objects with ``x_data``
     and calls ``func`` with the :class:`~chainer.Variable`\\ s to get its
@@ -355,40 +355,57 @@ def check_backward(
     If :math:`r` is chosen from uniform distribution, we can conclude with
     high probability that the gradient of :math:`f` itself is correct.
 
-    If input objects (``x1_data`` or/and ``x2_data`` in this example) represent
-    integer variables, their gradients are ignored.
+    If the function is non-differentiable with respect to some input objects,
+    we can check its backprop to such objects by ``no_grads`` argument.
+    ``gradient_check`` computes numerical backward to inputs that correspond to
+    ``False`` in ``no_grads``. It also asserts that the backprop leaves
+    gradients ``None`` for inputs that correspond to ``True`` in ``no_grads``.
+    The default of ``no_grads`` argument is the tuple of truth values whether
+    input objects (``x1_data`` or/and ``x2_data`` in this example) represent
+    integer variables.
 
-    You can simplify a test when ``MyFunc`` gets only one argument::
+    You can simplify a test when ``MyFunc`` gets only one argument:
 
-    >>   check_backward(func, x1_data, gy_data)
+    .. code-block:: python
+
+        check_backward(func, x1_data, gy_data)
 
     If ``MyFunc`` is a loss function which returns a zero-dimensional
     array, pass ``None`` to ``gy_data``. In this case, it sets ``1`` to
-    ``grad`` attribute of the result::
+    ``grad`` attribute of the result:
 
-    >>   check_backward(my_loss_func, (x1_data, x2_data), None)
+    .. code-block:: python
+
+        check_backward(my_loss_func,
+                       (x1_data, x2_data), None)
 
     If ``MyFunc`` returns multiple outputs, pass all gradients for outputs
-    as a tuple::
+    as a tuple:
 
-    >>   gy1_data = xp.array(...)
-    >>   gy2_data = xp.array(...)
-    >>   check_backward(func, x1_data, (gy1_data, gy2_data))
+    .. code-block:: python
+
+        gy1_data = xp.array(...)
+        gy2_data = xp.array(...)
+        check_backward(func, x1_data, (gy1_data, gy2_data))
 
     You can also test a :class:`~chainer.Link`.
     To check gradients of parameters of the link, set a tuple of the parameters
-    to ``params`` arguments::
+    to ``params`` arguments:
 
-    >>   check_backward(my_link, (x1_data, x2_data), gy_data,
-    >>                  (my_link.W, my_link.b))
+    .. code-block:: python
+
+        check_backward(my_link, (x1_data, x2_data), gy_data,
+                       (my_link.W, my_link.b))
 
     Note that ``params`` are not ``ndarray``\\ s,
     but :class:`~chainer.Variables`\\ s.
 
-    Function objects are acceptable as ``func`` argument::
+    Function objects are acceptable as ``func`` argument:
 
-    >>   check_backward(lambda x1, x2: f(x1, x2),
-    >>                  (x1_data, x2_data), gy_data)
+    .. code-block:: python
+
+        check_backward(lambda x1, x2: f(x1, x2),
+                       (x1_data, x2_data), gy_data)
 
     .. note::
 
@@ -452,12 +469,11 @@ def check_backward(
 
     # All creators of `y` need to be the same because we only call
     # `y[0].backward` to call `backward` method of the creator.
-    # To do so we need to insert a dummy function `Ident` to the
+    # To do so we need to insert a dummy function `_GradientSetter` to the
     # computational graph.
     # Note that `func` may not be a `Function` object.
-    y = identity.Identity().apply(y)
 
-    y_grad = _set_y_grad(y, y_grad)
+    y, y_grad = _set_y_grad(y, y_grad)
 
     # Clear gradients which may exist if func calls backward inside of itself.
     _clear_grads(xs)
@@ -465,7 +481,7 @@ def check_backward(
 
     # We only need to call `backward` for one result `Variable`.
     # `Variable.backward` method calls `Function.backward` of its creator.
-    y[0].backward()
+    y.backward()
 
     if no_grads is None:
         no_grads = [x.dtype.kind != 'f' for x in xs]
@@ -476,14 +492,9 @@ def check_backward(
                 'Actual: {0} != {1}'.format(len(no_grads), len(xs)))
 
     for skip, x in six.moves.zip(no_grads, xs):
-        if skip:
-            if x.grad is not None:
-                raise RuntimeError(
-                    'gradient of int variable must be None')
-        else:
-            if x.grad is None:
-                raise RuntimeError(
-                    'gradients of some arguments are not calculated')
+        if skip and x.grad is not None:
+            raise RuntimeError(
+                'gradient of int variable must be None')
 
     if len(xs) - no_grads.count(True) + len(params) == 0:
         # When there is no float variables, we need not to check gradient
@@ -508,7 +519,12 @@ def check_backward(
 
     xp = cuda.get_array_module(*xs)
     directions = [xp.random.normal(size=x.shape) for x in variables]
-    # Use unit vector
+    # The direction vector is normalized in order to keep the scale of
+    # differentiation error invariant with respect to the number of input
+    # dimensions. Ideally, the scale of the curvature with respect to each
+    # input dimension should be taken into account, but we ignore the
+    # differences and assume that the curvature is uniform with respect to all
+    # the input dimentions.
     norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
     if norm != 0:
         # norm could be zero if input arrays are 0-sized.
@@ -547,7 +563,8 @@ def check_backward(
         center_outputs=y0_data)
     gx_accum = 0
     for g, direction in six.moves.zip(grads, directions):
-        gx_accum += (g.astype('d') * direction).sum()
+        if g is not None:
+            gx_accum += (g.astype('d') * direction).sum()
 
     try:
         testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
@@ -561,6 +578,9 @@ def check_backward(
         for i, gy_ in enumerate(y_grad):
             f.write('grad_outputs[{}]:\n'.format(i))
             f.write('{}\n'.format(gy_))
+        for i, d_ in enumerate(directions):
+            f.write('directions[{}]:\n'.format(i))
+            f.write('{}\n'.format(d_))
         f.write('gradients (numeric):  {}\n'.format(gx))
         f.write('gradients (backward): {}\n'.format(gx_accum))
         f.write('\n')
@@ -609,19 +629,33 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     params_grad_grad = _as_tuple(params_grad_grad)
     n_x = len(x_data)
 
+    first_order_no_grads = [x.dtype.kind != 'f' for x in x_data]
+
     def first_order_grad(*inputs):
         xs = inputs[:n_x]
         gys = inputs[n_x:]
 
         y = _as_tuple(func(*xs))
+
         # Let all elements of y share the same creator.
         # See the comment in check_backward.
-        y = identity.Identity().apply(y)
+        y, _ = _set_y_grad(y, gys)
 
-        _set_y_grad(y, gys)
-        y[0].backward(enable_double_backprop=True)
+        y.backward(enable_double_backprop=True)
 
-        return tuple([x.grad_var for x in xs] + [p.grad_var for p in params])
+        gxs = []
+        for skip, x in six.moves.zip(first_order_no_grads, xs):
+            if skip:
+                if x.grad is not None:
+                    raise RuntimeError(
+                        'gradient of int variable must be None')
+            else:
+                if x.grad is None:
+                    raise RuntimeError(
+                        'gradients of some arguments are not calculated')
+                gxs.append(x.grad_var)
+
+        return tuple(gxs + [p.grad_var for p in params])
 
     inputs = x_data + y_grad
     grad_grad = x_grad_grad + params_grad_grad
@@ -651,6 +685,31 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         raise AssertionError(f.getvalue())
 
 
+class _GradientSetter(FunctionNode):
+    def __init__(self, grad):
+        self.grad = grad
+
+    def forward(self, inputs):
+        xp = cuda.get_array_module(inputs[0])
+
+        if self.grad is None:
+            y0, = inputs
+            gy0 = xp.ones_like(y0)
+            assert gy0.size == 1
+
+            self.grad = (gy0,)
+
+        # output a 0-sized 1-dim array like inputs
+        return xp.empty((0,), dtype=inputs[0].dtype),
+
+    def backward(self, inputs, grad_outputs):
+        grad = self.grad
+
+        return tuple(
+            None if g is None else variable.as_variable(g)
+            for g in grad)
+
+
 def _set_y_grad(y, y_grad):
     if y_grad is not None:
         if len(y) != len(y_grad):
@@ -658,19 +717,16 @@ def _set_y_grad(y, y_grad):
                 'Upstream gradients must contain equally many elements as '
                 'number of output elements.\n'
                 'Actual: {} != {}'.format(len(y), len(y_grad)))
-        for iy, igy in six.moves.zip(y, y_grad):
-            if isinstance(igy, variable.Variable):
-                iy.grad_var = igy
-            else:
-                iy.grad = igy
+        y, = _GradientSetter(y_grad).apply(y)
     else:
         if len(y) != 1:
             raise ValueError(
                 'Function must return a zero-dimensional array of length 1 '
                 'if the upstream gradient is `None`.\n'
                 'Actual: {} != 1'.format(len(y)))
+        y, = _GradientSetter(None).apply(y)
         y_grad = (1,)
-    return y_grad
+    return y, y_grad
 
 
 def _clear_grads(xs):

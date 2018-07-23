@@ -390,7 +390,7 @@ class Arctan2Grad(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x1, x2, gy = self.get_retained_inputs()
-        g1, g2 = grad_outputs
+        ggx1, ggx2 = grad_outputs
         x1_sq = x1 ** 2
         x2_sq = x2 ** 2
         sqnorm = x1_sq + x2_sq
@@ -398,12 +398,14 @@ class Arctan2Grad(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             ret.append(
-                (- g1 * 2 * x1 * x2 + g2 * (x1_sq - x2_sq)) * gy / sqnorm ** 2)
+                (- ggx1 * 2 * x1 * x2 + ggx2 * (x1_sq - x2_sq)) * gy /
+                sqnorm ** 2)
         if 1 in indexes:
             ret.append(
-                (g1 * (x1_sq - x2_sq) + g2 * (2 * x1 * x2)) * gy / sqnorm ** 2)
+                (ggx1 * (x1_sq - x2_sq) + ggx2 * (2 * x1 * x2)) * gy /
+                sqnorm ** 2)
         if 2 in indexes:
-            ret.append((g1 * x2 - g2 * x1) / sqnorm)
+            ret.append((ggx1 * x2 - ggx2 * x1) / sqnorm)
         return ret
 
 

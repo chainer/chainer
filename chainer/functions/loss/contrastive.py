@@ -1,11 +1,12 @@
 import numpy
 
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
+import chainer.functions
 from chainer.utils import type_check
 
 
-class Contrastive(function.Function):
+class Contrastive(function_node.FunctionNode):
 
     """Contrastive loss function."""
 
@@ -38,37 +39,50 @@ class Contrastive(function.Function):
 
     def forward(self, inputs):
         xp = cuda.get_array_module(*inputs)
+        self.retain_inputs((0, 1, 2))
         x0, x1, y = inputs
 
-        self.diff = x0 - x1
-        self.dist_sq = xp.sum(self.diff ** 2, axis=1)
-        self.dist = xp.sqrt(self.dist_sq)
-        self.mdist = self.margin - self.dist
-        dist = xp.maximum(self.mdist, 0)
-        loss = (y * self.dist_sq + (1 - y) * dist * dist) * .5
+        diff = x0 - x1
+        dist_sq = xp.sum(diff ** 2, axis=1)
+        dist = xp.sqrt(dist_sq)
+        mdist = self.margin - dist
+        dist = xp.maximum(mdist, 0)
+        loss = (y * dist_sq + (1 - y) * dist * dist) * .5
         if self.reduce == 'mean':
             loss = xp.sum(loss) / x0.shape[0]
         return xp.array(loss, dtype=xp.float32),
 
-    def backward(self, inputs, gy):
-        xp = cuda.get_array_module(*inputs)
-        x0, x1, y = inputs
+    def backward(self, indexes, grad_outputs):
+        x0, x1, y = self.get_retained_inputs()
+        gy, = grad_outputs
+        xp = cuda.get_array_module(gy.data)
 
+        # Recompute intermediate variables as in forward.
+        diff = x0 - x1
+        dist_sq = chainer.functions.sum(diff ** 2, axis=1)
+        dist = chainer.functions.sqrt(dist_sq)
+        mdist = self.margin - dist
+
+        y = y.data
         x_dim = x0.shape[1]
         y = xp.repeat(y[:, None], x_dim, axis=1)
         if self.reduce == 'mean':
-            alpha = gy[0] / y.shape[0]
+            alpha = gy / y.shape[0]
         else:
-            alpha = gy[0][:, None]
-        dist = xp.repeat(self.dist[:, None], x_dim, axis=1)
+            alpha = gy[:, None]
+        alpha = chainer.functions.broadcast_to(alpha, y.shape)
+        dist = chainer.functions.repeat(dist[:, None], x_dim, axis=1)
         # avoid division by zero
-        dist = xp.maximum(dist, 1e-8)
+        dist = chainer.functions.maximum(
+            dist, xp.full(dist.shape, 1e-8, dtype=dist.dtype))
         # similar pair
-        gx0 = alpha * y * self.diff
+        gx0 = alpha * y.astype(alpha.dtype) * diff
         # dissimilar pair
-        mdist = xp.maximum(xp.repeat(self.mdist[:, None], x_dim, axis=1), 0)
-        gx0 += alpha * (1 - y) * mdist * -(self.diff / dist)
-        gx0 = gx0.astype(xp.float32)
+        d = chainer.functions.repeat(mdist[:, None], x_dim, axis=1)
+        mdist = chainer.functions.maximum(
+            d, xp.zeros(shape=d.shape, dtype=d.dtype))
+        gx0 += alpha * (1 - y) * mdist * -(diff / dist)
+        gx0 = chainer.functions.cast(gx0, xp.float32)
 
         return gx0, -gx0, None
 
@@ -130,18 +144,20 @@ def contrastive(x0, x1, y, margin=1, reduce='mean'):
 
     .. admonition:: Example
 
-        >>> x0 = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
-        >>> x1 = np.array([[-1.0, 3.0, 1.0], [3.5, 0.5, -2.0]]).astype('f')
-        >>> y = np.array([1, 0]).astype('i')
+        >>> x0 = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).\
+astype(np.float32)
+        >>> x1 = np.array([[-1.0, 3.0, 1.0], [3.5, 0.5, -2.0]]).\
+astype(np.float32)
+        >>> y = np.array([1, 0]).astype(np.int32)
         >>> F.contrastive(x0, x1, y)
         variable(0.3125)
         >>> F.contrastive(x0, x1, y, margin=3.0)  # harder penalty
-        variable(0.3528856933116913)
+        variable(0.3528857)
         >>> z = F.contrastive(x0, x1, y, reduce='no')
         >>> z.shape
         (2,)
         >>> z.data
-        array([ 0.625,  0.   ], dtype=float32)
+        array([0.625, 0.   ], dtype=float32)
 
     """
-    return Contrastive(margin, reduce)(x0, x1, y)
+    return Contrastive(margin, reduce).apply((x0, x1, y))[0]

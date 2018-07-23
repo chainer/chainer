@@ -66,7 +66,7 @@ class SoftmaxCrossEntropy(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -355,16 +355,16 @@ def softmax_cross_entropy(
 
     .. admonition:: Example
 
-        >>> x = np.array([[-1, 0, 1, 2], [2, 0, 1, -1]]).astype('f')
+        >>> x = np.array([[-1, 0, 1, 2], [2, 0, 1, -1]]).astype(np.float32)
         >>> x
         array([[-1.,  0.,  1.,  2.],
                [ 2.,  0.,  1., -1.]], dtype=float32)
-        >>> t = np.array([3, 0]).astype('i')
+        >>> t = np.array([3, 0]).astype(np.int32)
         >>> t
         array([3, 0], dtype=int32)
         >>> y = F.softmax_cross_entropy(x, t)
         >>> y
-        variable(0.4401897192001343)
+        variable(0.44018972)
         >>> log_softmax = -F.log_softmax(x)
         >>> expected_loss = np.mean([log_softmax[row, column].data \
 for row, column in enumerate(t)])

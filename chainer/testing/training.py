@@ -27,7 +27,7 @@ def get_error():
 
 
 def get_trainer_with_mock_updater(
-        stop_trigger=(10, 'iteration'), iter_per_epoch=10, extensions=[]):
+        stop_trigger=(10, 'iteration'), iter_per_epoch=10, extensions=None):
     """Returns a :class:`~chainer.training.Trainer` object with mock updater.
 
     The returned trainer can be used for testing the trainer itself and the
@@ -44,6 +44,8 @@ def get_trainer_with_mock_updater(
         Trainer object with a mock updater.
 
     """
+    if extensions is None:
+        extensions = []
     check_available()
     updater = mock.Mock()
     updater.get_all_optimizers.return_value = {}

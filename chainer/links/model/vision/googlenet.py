@@ -1,6 +1,6 @@
-from __future__ import print_function
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -84,12 +84,14 @@ class GoogLeNet(link.Chain):
             but not GlorotUniform.
 
     Attributes:
-        ~GoogLeNet.available_layers (list of str): The list of available layer
-            names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``forward`` and ``extract`` methods.
 
     """
 
     def __init__(self, pretrained_model='auto'):
+        super(GoogLeNet, self).__init__()
+
         if pretrained_model:
             # As a sampling process is time-consuming,
             # we employ a zero initializer for faster computation.
@@ -98,29 +100,30 @@ class GoogLeNet(link.Chain):
             # employ default initializers used in BVLC. For more detail, see
             # https://github.com/chainer/chainer/pull/2424#discussion_r109642209
             kwargs = {'initialW': uniform.LeCunUniform(scale=1.0)}
-        super(GoogLeNet, self).__init__(
-            conv1=Convolution2D(3, 64, 7, stride=2, pad=3, **kwargs),
-            conv2_reduce=Convolution2D(64, 64, 1, **kwargs),
-            conv2=Convolution2D(64, 192, 3, stride=1, pad=1, **kwargs),
-            inc3a=Inception(192, 64, 96, 128, 16, 32, 32),
-            inc3b=Inception(256, 128, 128, 192, 32, 96, 64),
-            inc4a=Inception(480, 192, 96, 208, 16, 48, 64),
-            inc4b=Inception(512, 160, 112, 224, 24, 64, 64),
-            inc4c=Inception(512, 128, 128, 256, 24, 64, 64),
-            inc4d=Inception(512, 112, 144, 288, 32, 64, 64),
-            inc4e=Inception(528, 256, 160, 320, 32, 128, 128),
-            inc5a=Inception(832, 256, 160, 320, 32, 128, 128),
-            inc5b=Inception(832, 384, 192, 384, 48, 128, 128),
-            loss3_fc=Linear(1024, 1000, **kwargs),
 
-            loss1_conv=Convolution2D(512, 128, 1, **kwargs),
-            loss1_fc1=Linear(2048, 1024, **kwargs),
-            loss1_fc2=Linear(1024, 1000, **kwargs),
+        with self.init_scope():
+            self.conv1 = Convolution2D(3, 64, 7, stride=2, pad=3, **kwargs)
+            self.conv2_reduce = Convolution2D(64, 64, 1, **kwargs)
+            self.conv2 = Convolution2D(64, 192, 3, stride=1, pad=1, **kwargs)
+            self.inc3a = Inception(192, 64, 96, 128, 16, 32, 32)
+            self.inc3b = Inception(256, 128, 128, 192, 32, 96, 64)
+            self.inc4a = Inception(480, 192, 96, 208, 16, 48, 64)
+            self.inc4b = Inception(512, 160, 112, 224, 24, 64, 64)
+            self.inc4c = Inception(512, 128, 128, 256, 24, 64, 64)
+            self.inc4d = Inception(512, 112, 144, 288, 32, 64, 64)
+            self.inc4e = Inception(528, 256, 160, 320, 32, 128, 128)
+            self.inc5a = Inception(832, 256, 160, 320, 32, 128, 128)
+            self.inc5b = Inception(832, 384, 192, 384, 48, 128, 128)
+            self.loss3_fc = Linear(1024, 1000, **kwargs)
 
-            loss2_conv=Convolution2D(528, 128, 1, **kwargs),
-            loss2_fc1=Linear(2048, 1024, **kwargs),
-            loss2_fc2=Linear(1024, 1000, **kwargs)
-        )
+            self.loss1_conv = Convolution2D(512, 128, 1, **kwargs)
+            self.loss1_fc1 = Linear(2048, 1024, **kwargs)
+            self.loss1_fc2 = Linear(1024, 1000, **kwargs)
+
+            self.loss2_conv = Convolution2D(528, 128, 1, **kwargs)
+            self.loss2_fc1 = Linear(2048, 1024, **kwargs)
+            self.loss2_fc2 = Linear(1024, 1000, **kwargs)
+
         if pretrained_model == 'auto':
             _retrieve(
                 'bvlc_googlenet.npz',
@@ -180,8 +183,8 @@ class GoogLeNet(link.Chain):
         _transfer_googlenet(caffemodel, chainermodel)
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], **kwargs):
-        """__call__(self, x, layers=['prob'])
+    def forward(self, x, layers=None, **kwargs):
+        """forward(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
 
@@ -203,10 +206,14 @@ class GoogLeNet(link.Chain):
 
         """
 
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if layers is None:
+            layers = ['prob']
+
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         h = x
         activations = {}
@@ -235,25 +242,48 @@ class GoogLeNet(link.Chain):
 
         return activations
 
-    def extract(self, images, layers=['pool5'], size=(224, 224), **kwargs):
+    def extract(self, images, layers=None, size=(224, 224), **kwargs):
         """extract(self, images, layers=['pool5'], size=(224, 224))
 
         Extracts all the feature maps of given images.
 
-        The difference of directly executing ``__call__`` is that
+        The difference of directly executing ``forward`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
-        ``prepare`` and ``__call__`` functions.
+        ``prepare`` and ``forward`` functions.
+
+        Unlike ``predict`` method, this method does not override
+        ``chainer.config.train`` and ``chainer.config.enable_backprop``
+        configuration. If you want to extract features without updating
+        model parameters, you need to manually set configuration when
+        calling this method as follows:
+
+         .. code-block:: python
+
+             # model is an instance of `GoogLeNet`
+             with chainer.using_config('train', False):
+                 with chainer.using_config('enable_backprop', False):
+                     feature = model.extract([image])
 
         .. warning::
 
-           ``train`` and ``volatile`` arguments are not supported anymore since
-           v2.
-           Instead, use ``chainer.using_config('train', train)`` and
-           ``chainer.using_config('enable_backprop', not volatile)``
-           respectively.
-           See :func:`chainer.using_config`.
+           ``train`` and ``volatile`` arguments are not supported
+           anymore since v2. Instead, users should configure
+           training and volatile modes with ``train`` and
+           ``enable_backprop``, respectively.
+
+           Note that default behavior of this method is different
+           between v1 and later versions. Specifically,
+           the default values of ``train`` arguments in v1 were
+           ``False`` and ``OFF``, while that of
+           ``chainer.config.train`` are ``True``.
+           Therefore, users need to explicitly switch ``train``
+           to ``False`` to run the code in test mode to turn off
+           coputational graph construction.
+
+           See the `upgrade guide <https://docs.chainer.org/en/stable\
+           /upgrade_v2.html#training-mode-is-configured-by-a-thread-local-flag>`_.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -270,12 +300,16 @@ class GoogLeNet(link.Chain):
 
         """
 
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config',
-            volatile='volatile argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if layers is None:
+            layers = ['pool5']
+
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config',
+                volatile='volatile argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x))
@@ -318,7 +352,7 @@ class GoogLeNet(link.Chain):
 def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for GoogLeNet.
 
-    Note that you have to call this method before ``__call__``
+    Note that you have to call this method before ``forward``
     because the pre-trained GoogLeNet model requires to resize the given
     image, covert the RGB to the BGR, subtract the mean,
     and permute the dimensions before calling.
@@ -341,6 +375,7 @@ def prepare(image, size=(224, 224)):
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
+    dtype = chainer.get_dtype()
     if isinstance(image, numpy.ndarray):
         if image.ndim == 3:
             if image.shape[0] == 1:
@@ -351,9 +386,9 @@ def prepare(image, size=(224, 224)):
     image = image.convert('RGB')
     if size:
         image = image.resize(size)
-    image = numpy.asarray(image, dtype=numpy.float32)
+    image = numpy.asarray(image, dtype=dtype)
     image = image[:, :, ::-1]
-    image -= numpy.array([104.0, 117.0, 123.0], dtype=numpy.float32)  # BGR
+    image -= numpy.array([104.0, 117.0, 123.0], dtype=dtype)  # BGR
     image = image.transpose((2, 0, 1))
     return image
 
@@ -433,7 +468,9 @@ def _dropout(x):
 
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     GoogLeNet.convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model

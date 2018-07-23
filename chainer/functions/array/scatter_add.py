@@ -44,7 +44,7 @@ class ScatterAdd(function_node.FunctionNode):
         if xp is numpy:
             numpy.add.at(y, self.slices, b),
         else:
-            xp.scatter_add(y, self.slices, b),
+            cuda.cupyx.scatter_add(y, self.slices, b),
         return y,
 
     def backward(self, indexes, grad_outputs):
@@ -94,7 +94,7 @@ def scatter_add(a, slices, b):
 
     .. seealso::
         :func:`numpy.add.at` and
-        :func:`cupy.scatter_add`.
+        :func:`cupyx.scatter_add`.
 
     """
     y, = ScatterAdd(slices).apply((a, b))

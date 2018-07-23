@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.array import separate
 from chainer import gradient_check
 from chainer import testing
@@ -16,6 +16,7 @@ from chainer.testing import attr
         {'shape': (2, 3, 4), 'axis': 1},
         {'shape': (2, 3, 4), 'axis': 2},
         {'shape': (2, 3, 4), 'axis': -1},
+        {'shape': (2, 3, 4), 'axis': -3},
         {'shape': (2,), 'axis': 0},
         {'shape': (2,), 'axis': -1},
     ],

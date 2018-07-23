@@ -1,5 +1,6 @@
-import chainer
 import warnings
+
+import chainer
 
 
 def experimental(api_name):

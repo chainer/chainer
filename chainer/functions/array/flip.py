@@ -1,13 +1,14 @@
+import six
+
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
-import six
 
 
 def _flip(array, axis):
     indices = [slice(None)] * array.ndim
     indices[axis] = slice(None, None, -1)
-    return array[indices]
+    return array[tuple(indices)]
 
 
 class Flip(function_node.FunctionNode):

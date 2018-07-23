@@ -37,6 +37,12 @@ class ConvolutionND(link.Link):
         cover_all (bool): If ``True``, all spatial locations are convoluted
             into some output pixels. It may make the output size larger.
             ``cover_all`` needs to be ``False`` if you want to use cuDNN.
+        dilate (:class:`int` or :class:`tuple` of :class:`int` s):
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (:class:`int`):
+            The number of groups to use grouped convolution.
+            The default is one, where grouped convolution is not used.
 
     .. seealso::
         See :func:`~chainer.functions.convolution_nd` for the definition of
@@ -53,13 +59,15 @@ class ConvolutionND(link.Link):
 
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
                  nobias=False, initialW=None, initial_bias=None,
-                 cover_all=False):
+                 cover_all=False, dilate=1, groups=1):
         super(ConvolutionND, self).__init__()
 
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
         self.cover_all = cover_all
+        self.dilate = conv_nd.as_tuple(dilate, ndim)
+        self.groups = int(groups)
 
         with self.init_scope():
             W_shape = (out_channels, in_channels) + ksize
@@ -74,7 +82,7 @@ class ConvolutionND(link.Link):
                 initial_bias = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(initial_bias, out_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies N-dimensional convolution layer.
 
         Args:
@@ -85,4 +93,5 @@ class ConvolutionND(link.Link):
 
         """
         return convolution_nd.convolution_nd(
-            x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all)
+            x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all,
+            dilate=self.dilate, groups=self.groups)

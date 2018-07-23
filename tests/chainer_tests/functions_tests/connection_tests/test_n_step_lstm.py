@@ -1,10 +1,9 @@
 import unittest
 
-import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -192,7 +191,7 @@ class TestNStepLSTM(unittest.TestCase):
     def check_call_cudnn_forward_training(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
                 self.call_forward(True)
             assert func.called == expect
 
@@ -205,7 +204,7 @@ class TestNStepLSTM(unittest.TestCase):
     def check_call_cudnn_forward_inference(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
                 self.call_forward(False)
             assert func.called == expect
 
@@ -220,7 +219,7 @@ class TestNStepLSTM(unittest.TestCase):
             expect = chainer.should_use_cudnn('>=auto', 5000)
             hy, cy, ys = self.call_forward(True)
             hy.grad = _to_gpu(self.dhy)
-            with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
                 hy.backward()
             assert func.called == expect
 
@@ -422,7 +421,7 @@ class TestNStepBiLSTM(unittest.TestCase):
     def check_call_cudnn_forward_training(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
                 self.call_forward(True)
             assert func.called == expect
 
@@ -435,7 +434,7 @@ class TestNStepBiLSTM(unittest.TestCase):
     def check_call_cudnn_forward_inference(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
                 self.call_forward(False)
             assert func.called == expect
 
@@ -450,7 +449,7 @@ class TestNStepBiLSTM(unittest.TestCase):
             expect = chainer.should_use_cudnn('>=auto', 5000)
             hy, cy, ys = self.call_forward(True)
             hy.grad = _to_gpu(self.dhy)
-            with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
                 hy.backward()
             assert func.called == expect
 

@@ -41,7 +41,7 @@ class SimplifiedDropconnect(link.Link):
         Li, W., Matthew Z., Sixin Z., Yann L., Rob F. (2013).
         Regularization of Neural Network using DropConnect.
         International Conference on Machine Learning.
-        `URL <http://cs.nyu.edu/~wanli/dropc/>`_
+        `URL <https://cs.nyu.edu/~wanli/dropc/>`_
     """
 
     def __init__(self, in_size, out_size, ratio=.5, nobias=False,
@@ -71,7 +71,7 @@ class SimplifiedDropconnect(link.Link):
     def _initialize_params(self, in_size):
         self.W.initialize((self.out_size, in_size))
 
-    def __call__(self, x, train=True, mask=None, use_batchwise_mask=True):
+    def forward(self, x, train=True, mask=None, use_batchwise_mask=True):
         """Applies the simplified dropconnect layer.
 
         Args:

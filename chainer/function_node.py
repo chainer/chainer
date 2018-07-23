@@ -7,6 +7,7 @@ import numpy
 import six
 
 import chainer
+from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
@@ -43,9 +44,9 @@ class FunctionNode(object):
        instance of :class:`FunctionNode` taking only one argument.
        Then the following code
 
-       >>> import numpy, chainer, chainer.functions as F
+       >>> import numpy, chainer
        >>> x = chainer.Variable(numpy.zeros(10))
-       >>> f = F.Identity()
+       >>> f = chainer.functions.math.identity.Identity()
        >>> y = f.apply((x,))[0]
 
        computes a new variable ``y`` and creates backward references. The
@@ -55,7 +56,7 @@ class FunctionNode(object):
 
        If an application of another function ``g`` occurs as
 
-       >>> g = F.Identity()
+       >>> g = chainer.functions.math.identity.Identity()
        >>> z = g.apply((x,))[0]
 
        then the graph grows with a branch::
@@ -126,6 +127,7 @@ class FunctionNode(object):
     _output_indexes_to_retain = None
     _retained_output_data = None
     _local_function_hooks = None
+    lazy_grad_sum = False
 
     @property
     def local_function_hooks(self):
@@ -223,13 +225,11 @@ Use apply() method instead.\
         requires_grad = any([x.requires_grad for x in input_vars])
 
         # Check for input array types
-        xp = cuda.get_array_module(*in_data)
-        if not all([x is None or isinstance(x, xp.ndarray)
-                    for x in in_data]):
-            raise ValueError(
-                'numpy and cupy arrays are mixed in the forward input '
+        if not chainer.is_arrays_compatible(in_data):
+            raise TypeError(
+                'incompatible array types are mixed in the forward input '
                 '({}).\n'
-                '{}'.format(
+                'Actual: {}'.format(
                     self.label,
                     ', '.join(str(type(x)) for x in in_data)))
 
@@ -262,13 +262,11 @@ Use apply() method instead.\
                 'forward output must be a tuple ({})\n'
                 'Actual: {}'.format(self.label, type(outputs)))
 
-        xp = cuda.get_array_module(*outputs)
-        if not all([x is None or isinstance(x, xp.ndarray)
-                    for x in outputs]):
-            raise ValueError(
-                'numpy and cupy arrays are mixed in the forward output '
+        if not chainer.is_arrays_compatible(outputs):
+            raise TypeError(
+                'incompatible array types are mixed in the forward output '
                 '({}).\n'
-                '{}'.format(
+                'Actual: {}'.format(
                     self.label,
                     ', '.join(str(type(x)) for x in outputs)))
 
@@ -307,6 +305,8 @@ Use apply() method instead.\
                     ret[index].retain_data()
                     retained_data.append(outputs[index])
                 self._retained_output_data = tuple(retained_data)
+
+            self.lazy_grad_sum = configuration.config.lazy_grad_sum
 
         return ret
 
@@ -536,6 +536,10 @@ Use apply() method instead.\
            This behavior might be changed in a future version.
 
         """
+        assert isinstance(target_input_indexes, tuple)
+        assert isinstance(grad_outputs, tuple)
+        assert isinstance(grad_inputs, tuple)
+
         # The default implementation uses backward(). You can override this
         # method without using backward().
         gxs = self.backward(target_input_indexes, grad_outputs)
@@ -548,10 +552,21 @@ Use apply() method instead.\
                 'number of gradients returned by %s (%s) is incorrect.'
                 % (self._impl_name, self.label))
 
-        return tuple([gx if g_input is None else
-                      g_input if gx is None else
-                      gx + g_input
-                      for gx, g_input in six.moves.zip(gxs, grad_inputs)])
+        if self.lazy_grad_sum:
+            gxs_output = ()
+            for i, (gx, g_input) in enumerate(six.moves.zip(gxs, grad_inputs)):
+                sum_gx = _backprop_utils.concat_variable(gx, g_input)
+                j = target_input_indexes[i]
+                if self.inputs[j].creator is None and \
+                        isinstance(sum_gx, tuple):
+                    sum_gx = chainer.functions.add(*sum_gx)
+                gxs_output += sum_gx,
+            return gxs_output
+        else:
+            return tuple([gx if g_input is None else
+                          g_input if gx is None else
+                          gx + g_input
+                          for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
@@ -652,7 +667,7 @@ Use apply() method instead.\
 
 
 def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
-         retain_grad=False, enable_double_backprop=False):
+         retain_grad=False, enable_double_backprop=False, loss_scale=None):
     """Computes the gradient of output variables w.r.t.\\  the input variables.
 
     This function implements the backpropagation algorithm. While
@@ -701,6 +716,14 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             the memory consumption (and possibly the computational time) to
             remember the intermediate gradient values for the second
             backpropagation.
+        loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+            technique to mitigate vanishing gradient issue that tends to happen
+            when low precision data type like float16 is used during training.
+            If you set loss scaling factor, gradients of loss values are to be
+            multiplied by the factor before backprop starts. The factor is
+            propagated to whole gradients in a computational graph along the
+            backprop. The gradients of parameters are divided by the factor
+            just before the parameters are to be updated.
 
     Returns:
         A list of gradient variables w.r.t. the inputs.
@@ -720,6 +743,12 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         raise TypeError(
             'grad_inputs must be a tuple or a list or None, not {}.'.format(
                 type(grad_inputs)))
+
+    for v in outputs:
+        # Raise error here if v is created by Function.backward.
+        # In such case, we don't know exact inputs of the creator.
+        v.node._check_old_style_gradient()
+
     # The implementation consists of three steps.
 
     # 1. Backward enumeration: all the nodes reachable backward from the output
@@ -736,6 +765,10 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             continue
         visited_funcs.add(func)
         for x in func.inputs:
+            # Raise error here if x is created by Function.backward.
+            # In such case, we don't know exact inputs of the creator.
+            x._check_old_style_gradient()
+
             if not x.requires_grad:
                 continue
             forward_graph[x].append(func)
@@ -777,6 +810,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                 else:
                     gy_data = cuda.cupy.ones_like(y.data)
                 gy = variable.Variable(gy_data, requires_grad=False)
+            if loss_scale is not None:
+                gy.data *= loss_scale
         grads[y.node] = gy
 
     if grad_inputs is not None:
@@ -787,7 +822,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     # Backprop implementation. It edits grads which will only contain the
     # gradients w.r.t. the inputs.
     with chainer.using_config('enable_backprop', enable_double_backprop):
-        _backprop(outputs, inputs, grad_required, retain_grad, grads)
+        _backprop(outputs, inputs, grad_required, retain_grad, grads,
+                  loss_scale)
 
     # Extract the gradients w.r.t. the inputs and return them.
     ret = [grads.get(x.node, None) for x in inputs]
@@ -798,7 +834,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     return ret
 
 
-def _backprop(outputs, inputs, grad_required, retain_grad, grads):
+def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
     candidate_funcs, push_candidate, pop_candidate = _get_ordered_func_heap()
 
     for y in outputs:
@@ -821,6 +857,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 gys.append(None)
                 continue
             gys.append(grads.get(y, None))
+        gys = tuple(gys)
 
         # Collect the gradients w.r.t. the inputs
         #
@@ -841,12 +878,37 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
             else:
                 gxs.append(grads.get(x, None))
                 selected_inputs.add(x)
+        gxs = tuple(gxs)
+        input_indexes = tuple(input_indexes)
 
         if not input_indexes:
             continue
 
         # Do backward
+        gys = tuple([gy if not isinstance(gy, tuple) else
+                     chainer.functions.add(*gy)
+                     for gy in gys])
+
+        # Call pre-backward hooks
+        hooks = chainer.get_function_hooks()
+        if func._n_local_function_hooks != 0:
+            hooks = collections.OrderedDict(hooks)
+            hooks.update(func.local_function_hooks)
+        hooks = hooks.values()  # avoid six for performance
+
+        in_data = tuple([x.data for x in func.inputs])
+        out_grad_data = tuple(
+            [None if g is None else g.data for g in gys])
+        cuda.get_device_from_array(*in_data).use()
+
+        for hook in hooks:
+            hook.backward_preprocess(func, in_data, out_grad_data)
+
         new_gxs = func.backward_accumulate(input_indexes, gys, gxs)
+
+        # Call post-backward hooks
+        for hook in hooks:
+            hook.backward_postprocess(func, in_data, out_grad_data)
 
         # Delete output gradients that are not required to return
         for y_ref in func.outputs:
@@ -865,7 +927,15 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 # Accumulate the duplicated gradients here
                 cur_gx = grads.get(node, None)
                 if cur_gx is not None:
-                    g = g + cur_gx
+                    if func.lazy_grad_sum:
+                        if x.creator is None:
+                            g = _backprop_utils.add(g, cur_gx)
+                        else:
+                            g = _backprop_utils.concat_variable(g, cur_gx)
+                    # cur_gx can't be tuple, the lazy_grad_sum can't
+                    # be enabled in its sibling node.
+                    else:
+                        g = g + cur_gx
             else:
                 selected_inputs.add(node)
 
@@ -875,6 +945,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads):
                 v = node.get_variable_or_none()
                 if v is not None:
                     v.grad_var = g
+                    v._loss_scale = loss_scale
 
             creator = node.creator_node
             if creator is not None:

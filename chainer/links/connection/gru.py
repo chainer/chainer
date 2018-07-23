@@ -70,7 +70,7 @@ class StatelessGRU(GRUBase):
 
     See:
         - `On the Properties of Neural Machine Translation: Encoder-Decoder
-          Approaches <http://www.aclweb.org/anthology/W14-4012>`_
+          Approaches <https://www.aclweb.org/anthology/W14-4012>`_
           [Cho+, SSST2014].
         - `Empirical Evaluation of Gated Recurrent Neural Networks on Sequence
           Modeling <https://arxiv.org/abs/1412.3555>`_
@@ -86,8 +86,8 @@ class StatelessGRU(GRUBase):
 
         >>> in_size = 10
         >>> out_size = 20
-        >>> x = np.zeros((1, in_size), dtype='f')
-        >>> h = np.zeros((1, out_size), dtype='f')
+        >>> x = np.zeros((1, in_size), dtype=np.float32)
+        >>> h = np.zeros((1, out_size), dtype=np.float32)
 
         1. Give both  ``in_size`` and ``out_size`` arguments:
 
@@ -105,7 +105,7 @@ class StatelessGRU(GRUBase):
 
     """
 
-    def __call__(self, h, x):
+    def forward(self, h, x):
         r = sigmoid.sigmoid(self.W_r(x) + self.U_r(h))
         z = sigmoid.sigmoid(self.W_z(x) + self.U_z(h))
         h_bar = tanh.tanh(self.W(x) + self.U(r * h))
@@ -172,7 +172,7 @@ class StatefulGRU(GRUBase):
 
         >>> in_size = 10
         >>> out_size = 20
-        >>> x = np.zeros((1, in_size), dtype='f')
+        >>> x = np.zeros((1, in_size), dtype=np.float32)
 
         1. Give only ``in_size`` and ``out_size`` arguments:
 
@@ -183,9 +183,9 @@ class StatefulGRU(GRUBase):
 
         2. Give all optional arguments:
 
-            >>> init = np.zeros((out_size, in_size), dtype='f')
-            >>> inner_init = np.zeros((out_size, out_size), dtype='f')
-            >>> bias = np.zeros((1, out_size), dtype='f')
+            >>> init = np.zeros((out_size, in_size), dtype=np.float32)
+            >>> inner_init = np.zeros((out_size, out_size), dtype=np.float32)
+            >>> bias = np.zeros((1, out_size), dtype=np.float32)
             >>> l = L.StatefulGRU(in_size, out_size, init=init,
             ...     inner_init=inner_init, bias_init=bias)
             >>> h_new = l(x)
@@ -223,7 +223,7 @@ class StatefulGRU(GRUBase):
     def reset_state(self):
         self.h = None
 
-    def __call__(self, x):
+    def forward(self, x):
         z = self.W_z(x)
         h_bar = self.W(x)
         if self.h is not None:
@@ -261,15 +261,15 @@ class GRU(StatefulGRU):
 
     """
 
-    def __call__(self, *args):
-        """__call__(self, x)
+    def forward(self, *args):
+        """forward(self, x)
 
         Does forward propagation.
 
         """
 
         n_args = len(args)
-        msg = ("Invalid argument. The length of GRU.__call__ must be 1. "
+        msg = ("Invalid argument. The length of GRU.forward must be 1. "
                "But %d is given. " % n_args)
 
         if n_args == 0 or n_args >= 3:
@@ -281,4 +281,4 @@ class GRU(StatefulGRU):
                     "Use chainer.links.StatelessGRU instead.")
             raise ValueError(msg)
 
-        return super(GRU, self).__call__(args[0])
+        return super(GRU, self).forward(args[0])

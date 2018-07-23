@@ -30,19 +30,19 @@ class EmbedID(link.Link):
 
         >>> W = np.array([[0, 0, 0],
         ...               [1, 1, 1],
-        ...               [2, 2, 2]]).astype('f')
+        ...               [2, 2, 2]]).astype(np.float32)
         >>> W
-        array([[ 0.,  0.,  0.],
-               [ 1.,  1.,  1.],
-               [ 2.,  2.,  2.]], dtype=float32)
+        array([[0., 0., 0.],
+               [1., 1., 1.],
+               [2., 2., 2.]], dtype=float32)
         >>> l = L.EmbedID(W.shape[0], W.shape[1], initialW=W)
-        >>> x = np.array([2, 1]).astype('i')
+        >>> x = np.array([2, 1]).astype(np.int32)
         >>> x
         array([2, 1], dtype=int32)
         >>> y = l(x)
         >>> y.data
-        array([[ 2.,  2.,  2.],
-               [ 1.,  1.,  1.]], dtype=float32)
+        array([[2., 2., 2.],
+               [1., 1., 1.]], dtype=float32)
 
     """
 
@@ -57,7 +57,7 @@ class EmbedID(link.Link):
                 initialW = normal.Normal(1.0)
             self.W = variable.Parameter(initialW, (in_size, out_size))
 
-    def __call__(self, x):
+    def forward(self, x):
         """Extracts the word embedding of given IDs.
 
         Args:

@@ -3,13 +3,12 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
-from chainer.utils import array
 
 
 def _check_forward(e1, e2, f, y_expect):
@@ -34,6 +33,10 @@ def _batch_to_gpu(*xs):
 
 def _uniform(*shape):
     return numpy.random.uniform(-1, 1, shape).astype(numpy.float32)
+
+
+def _as_mat(x):
+    return x.reshape(len(x), -1)
 
 
 class TestBilinear(unittest.TestCase):
@@ -100,8 +103,8 @@ class TestBilinear2(TestBilinear):
         self.e2 = _uniform(self.batch_size, self.in_shape[1] // 2, 2)
         self.gy = _uniform(self.batch_size, self.out_size)
 
-        e1 = array.as_mat(self.e1)
-        e2 = array.as_mat(self.e2)
+        e1 = _as_mat(self.e1)
+        e2 = _as_mat(self.e2)
 
         self.y = (
             numpy.einsum('ij,ik,jkl->il', e1, e2, self.W) +
@@ -185,10 +188,8 @@ class TestBilinearWOBias2(TestBilinearWOBias):
         self.e2 = _uniform(self.batch_size, 2, self.in_shape[1] // 2)
         self.gy = _uniform(self.batch_size, self.out_size)
 
-        e1 = array.as_mat(self.e1)
-        e2 = array.as_mat(self.e2)
-
-        self.y = numpy.einsum('ij,ik,jkl->il', e1, e2, self.W)
+        self.y = numpy.einsum(
+            'ij,ik,jkl->il', _as_mat(self.e1), _as_mat(self.e2), self.W)
 
 
 class TestBilinearWOBias3(TestBilinearWOBias):

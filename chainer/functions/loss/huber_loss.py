@@ -1,19 +1,21 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
-class HuberLoss(function.Function):
+class HuberLoss(function_node.FunctionNode):
 
     def __init__(self, delta, reduce='sum_along_second_axis'):
         self.delta = delta
 
         if reduce not in ('sum_along_second_axis', 'no'):
             raise ValueError(
-                "only 'sum_along_second_axis' and 'no' are valid "
+                "Only 'sum_along_second_axis' and 'no' are valid "
                 "for 'reduce', but '%s' is given" % reduce)
+
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
@@ -25,27 +27,37 @@ class HuberLoss(function.Function):
         )
 
     def forward(self, inputs):
+        self.retain_inputs((0, 1))
         xp = cuda.get_array_module(*inputs)
         x0, x1 = inputs
-        self.diff = x0 - x1
-        y = xp.square(self.diff)
-        mask = y > (self.delta ** 2)
-        y -= mask * xp.square(abs(self.diff) - self.delta)
+        diff = x0 - x1
+        delta = diff.dtype.type(self.delta)
+
+        xp.abs(diff, out=diff)
+        y = xp.square(diff)
+        diff -= delta
+        xp.maximum(diff, 0, dtype=diff.dtype, out=diff)
+        xp.square(diff, out=diff)
+        y -= diff
         y *= 0.5
+
         if self.reduce == 'sum_along_second_axis':
             return y.sum(axis=1),
         else:
             return y,
 
-    def backward(self, inputs, gy):
-        xp = cuda.get_array_module(*inputs)
-        mask = xp.abs(self.diff) <= self.delta
+    def backward(self, indexes, grad_outputs):
+        x0, x1 = self.get_retained_inputs()
+        gy, = grad_outputs
+        diff = x0 - x1
+        # `functions.clip` only accepts float value.
+        delta = float(self.delta)
 
-        gx = xp.where(mask, self.diff, self.delta * xp.sign(self.diff))
-        gy_ = gy[0]
+        gx = chainer.functions.clip(diff, -delta, delta)
+
         if self.reduce == 'sum_along_second_axis':
-            gy_ = gy_.reshape(gy[0].shape + (1,) * (self.diff.ndim - 1))
-        gx = gy_ * gx
+            gy = gy.reshape(gy.shape + (1,) * (diff.ndim - 1))
+        gx = chainer.functions.broadcast_to(gy, gx.shape) * gx
         return gx, -gx
 
 
@@ -101,18 +113,20 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
 
         >>> import numpy as np
         >>> from chainer import functions as F
-        >>> x = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).astype('f')
+        >>> x = np.array([[-2.0, 3.0, 0.5], [5.0, 2.0, -0.5]]).\
+astype(np.float32)
         >>> x.shape
         (2, 3)
-        >>> t = np.array([[-2.0, 3.0, 0.0], [10.0, 2.0, -0.5]]).astype('f')
+        >>> t = np.array([[-2.0, 3.0, 0.0], [10.0, 2.0, -0.5]]).\
+astype(np.float32)
         >>> t.shape
         (2, 3)
         >>> y = F.huber_loss(x, t, delta=1.0, reduce='no')
         >>> y.shape
         (2, 3)
         >>> y
-        variable([[ 0.   ,  0.   ,  0.125],
-                  [ 4.5  ,  0.   ,  0.   ]])
+        variable([[0.   , 0.   , 0.125],
+                  [4.5  , 0.   , 0.   ]])
 
         Example with reduction along the second axis.
 
@@ -120,7 +134,7 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
         >>> y.shape
         (2,)
         >>> y
-        variable([ 0.125,  4.5  ])
+        variable([0.125, 4.5  ])
 
     """
-    return HuberLoss(delta=delta, reduce=reduce)(x, t)
+    return HuberLoss(delta=delta, reduce=reduce).apply((x, t))[0]

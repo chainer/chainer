@@ -22,24 +22,16 @@ class Space2Depth(function_node.FunctionNode):
         X, = inputs
         xp = cuda.get_array_module(X)
         bsize, c, a, b = X.shape
-        X = xp.transpose(X, (0, 2, 3, 1))
         X = xp.reshape(
-            X, (bsize, a // self.r, self.r, b // self.r, self.r, c))
-        X = xp.transpose(X, (0, 1, 3, 2, 4, 5))
+            X, (bsize, c, a // self.r, self.r, b // self.r, self.r))
+        X = xp.transpose(X, (0, 3, 5, 1, 2, 4))
         X = xp.reshape(
-            X, (bsize, a // self.r, b // self.r, self.r ** 2 * c))
-        X = xp.transpose(X, (0, 3, 1, 2))
+            X, (bsize, self.r ** 2 * c, a // self.r, b // self.r))
         return X,
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        bsize, c, a, b = gy.shape
-        c //= self.r ** 2
-        gy = chainer.functions.transpose(gy, (0, 2, 3, 1))
-        gy = chainer.functions.reshape(gy, (bsize, a, b, self.r, self.r, c))
-        gy = chainer.functions.transpose(gy, (0, 1, 3, 2, 4, 5))
-        gy = chainer.functions.reshape(gy, (bsize, a * self.r, b * self.r, c))
-        gy = chainer.functions.transpose(gy, (0, 3, 1, 2))
+        gy = chainer.functions.depth2space(gy, self.r)
         return gy,
 
 
@@ -66,29 +58,29 @@ def space2depth(X, r):
 
     .. admonition:: Example
 
-        >>> X = np.arange(24).reshape(1, 1, 4, 6).astype('f')
+        >>> X = np.arange(24).reshape(1, 1, 4, 6).astype(np.float32)
         >>> X.shape
         (1, 1, 4, 6)
         >>> X
-        array([[[[  0.,   1.,   2.,   3.,   4.,   5.],
-                 [  6.,   7.,   8.,   9.,  10.,  11.],
-                 [ 12.,  13.,  14.,  15.,  16.,  17.],
-                 [ 18.,  19.,  20.,  21.,  22.,  23.]]]], dtype=float32)
+        array([[[[ 0.,  1.,  2.,  3.,  4.,  5.],
+                 [ 6.,  7.,  8.,  9., 10., 11.],
+                 [12., 13., 14., 15., 16., 17.],
+                 [18., 19., 20., 21., 22., 23.]]]], dtype=float32)
         >>> y = F.space2depth(X, 2)
         >>> y.shape
         (1, 4, 2, 3)
         >>> y.data
-        array([[[[  0.,   2.,   4.],
-                 [ 12.,  14.,  16.]],
+        array([[[[ 0.,  2.,  4.],
+                 [12., 14., 16.]],
         <BLANKLINE>
-                [[  1.,   3.,   5.],
-                 [ 13.,  15.,  17.]],
+                [[ 1.,  3.,  5.],
+                 [13., 15., 17.]],
         <BLANKLINE>
-                [[  6.,   8.,  10.],
-                 [ 18.,  20.,  22.]],
+                [[ 6.,  8., 10.],
+                 [18., 20., 22.]],
         <BLANKLINE>
-                [[  7.,   9.,  11.],
-                 [ 19.,  21.,  23.]]]], dtype=float32)
+                [[ 7.,  9., 11.],
+                 [19., 21., 23.]]]], dtype=float32)
 
     """
     return Space2Depth(r).apply((X,))[0]

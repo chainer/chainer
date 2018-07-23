@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -73,8 +73,7 @@ class TestSelectItem(unittest.TestCase):
 
     def check_double_backward(self, x_data, t_data, gy_data, ggx_data):
         def f(x):
-            y = functions.select_item(x, t_data)
-            return y * y
+            return functions.select_item(x, t_data)
 
         gradient_check.check_double_backward(
             f, x_data, gy_data, ggx_data, eps=0.01, dtype='d',

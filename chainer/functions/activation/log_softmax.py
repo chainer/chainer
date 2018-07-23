@@ -154,13 +154,13 @@ def log_softmax(x):
 
     .. admonition:: Example
 
-        >>> x = np.array([[0, 1, 2], [0, 2, 4]], 'f')
+        >>> x = np.array([[0, 1, 2], [0, 2, 4]], np.float32)
         >>> x
-        array([[ 0.,  1.,  2.],
-               [ 0.,  2.,  4.]], dtype=float32)
+        array([[0., 1., 2.],
+               [0., 2., 4.]], dtype=float32)
         >>> F.log_softmax(x).data
-        array([[-2.40760589, -1.40760589, -0.40760589],
-               [-4.14293146, -2.14293146, -0.14293146]], dtype=float32)
+        array([[-2.407606  , -1.4076059 , -0.4076059 ],
+               [-4.1429315 , -2.1429315 , -0.14293146]], dtype=float32)
         >>> np.allclose(F.log_softmax(x).data, F.log(F.softmax(x)).data)
         True
 

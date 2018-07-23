@@ -1,7 +1,9 @@
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function
 from chainer import function_node
 from chainer.utils import type_check
@@ -82,15 +84,19 @@ class LSTM(function_node.FunctionNode):
         a, i, f, o = _extract_gates(x)
         batch = len(x)
 
-        if isinstance(x, numpy.ndarray):
-            a = numpy.tanh(a)
-            i = _sigmoid(i)
-            f = _sigmoid(f)
-            o = _sigmoid(o)
+        if isinstance(x, chainer.get_cpu_array_types()):
+            if intel64.should_use_ideep('>=auto'):
+                xp = intel64.ideep.get_array_module(x)
+            else:
+                xp = numpy
+            a = xp.tanh(a)
+            i = _sigmoid(i, xp)
+            f = _sigmoid(f, xp)
+            o = _sigmoid(o, xp)
 
             c_next = numpy.empty_like(c_prev)
             c_next[:batch] = a * i + f * c_prev[:batch]
-            h = o * numpy.tanh(c_next[:batch])
+            h = o * xp.tanh(c_next[:batch])
         else:
             c_next = cuda.cupy.empty_like(c_prev)
             h = cuda.cupy.empty_like(c_next[:batch])
@@ -136,12 +142,14 @@ class LSTMGrad(function.Function):
 
         a, i, f, o = _extract_gates(x)
         if xp is numpy:
+            if intel64.should_use_ideep('>=auto'):
+                xp = intel64.ideep.get_array_module(x)
             tanh_a = xp.tanh(a)
-            sig_i = _sigmoid(i)
-            sig_f = _sigmoid(f)
-            sig_o = _sigmoid(o)
+            sig_i = _sigmoid(i, xp)
+            sig_f = _sigmoid(f, xp)
+            sig_o = _sigmoid(o, xp)
 
-            co = numpy.tanh(c_next[:batch])
+            co = xp.tanh(c_next[:batch])
             gc_prev = numpy.empty_like(c_prev)
             # multiply f later
             gc_prev[:batch] = gh * sig_o * _grad_tanh(co) + gc_update
@@ -179,6 +187,14 @@ class LSTMGrad(function.Function):
 
         c_prev, x, c, gc, gh = inputs
         ggc_prev, ggx = grads
+        batch = len(x)
+
+        if gc is None:
+            gc = xp.zeros_like(c)
+        if gh is None:
+            gh = xp.zeros_like(c[:batch])
+        if ggc_prev is None:
+            ggc_prev = xp.zeros_like(c_prev)
 
         gc_prev = xp.empty_like(c_prev)
         gx = xp.empty_like(x)
@@ -186,7 +202,6 @@ class LSTMGrad(function.Function):
         ggc = xp.empty_like(ggc_prev)
         ggh = xp.empty_like(gh)
 
-        batch = len(x)
         gc_prev[batch:] = 0
         gc_next[batch:] = 0
         ggc[batch:] = ggc_prev[batch:]
@@ -202,10 +217,10 @@ class LSTMGrad(function.Function):
         gga, ggi, ggf, ggo = _extract_gates(ggx)
         ga, gi, gf, go = _extract_gates(gx)
 
-        gc_prev[:batch], ga[:], gi[:], gf[:], go[:], gc_next[:batch], \
-            ggc[:batch], ggh[:batch] \
-            = lstm_grad_grad(
-                c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo)
+        lstm_grad_grad(
+            c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
+            gc_prev[:batch], ga[:], gi[:], gf[:], go[:], gc_next[:batch],
+            ggc[:batch], ggh[:batch])
         return gc_prev, gx, gc_next, ggc, ggh
 
 
@@ -216,7 +231,8 @@ def _cupy_sigmoid(x):
 
 @cuda.fuse()
 def lstm_grad_grad(
-        c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo):
+        c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
+        gc_prev, ga, gi, gf, go, gc_next, ggc, ggh):
     sig_o = _cupy_sigmoid(o)
     gsig_o = _grad_sigmoid(sig_o)
     ggsig_o = _grad_grad_sigmoid(sig_o)
@@ -235,25 +251,22 @@ def lstm_grad_grad(
 
     gc_bar = gh * sig_o * gtanh_c + gc
 
-    gc_prev = ggf * gc_bar * gsig_f
-    ga = (gga * sig_i * ggtanh_a +
-          ggi * gtanh_a * gsig_i) * gc_bar
-    gi = (gga * gtanh_a * gsig_i +
-          ggi * tanh_a * ggsig_i) * gc_bar
-    gf = (ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f +
-          ggf * gc_bar * c_prev * ggsig_f)
+    gc_prev[:] = ggf * gc_bar * gsig_f
+    ga[:] = (gga * sig_i * ggtanh_a + ggi * gtanh_a * gsig_i) * gc_bar
+    gi[:] = (gga * gtanh_a * gsig_i + ggi * tanh_a * ggsig_i) * gc_bar
+    gf[:] = (ggc_prev * (gh * sig_o * gtanh_c + gc) * gsig_f +
+             ggf * gc_bar * c_prev * ggsig_f)
 
-    ggc = (
-        ggc_prev * sig_f +
-        gga * sig_i * gtanh_a +
-        ggi * tanh_a * gsig_i +
-        ggf * c_prev * gsig_f)
+    ggc[:] = (ggc_prev * sig_f +
+              gga * sig_i * gtanh_a +
+              ggi * tanh_a * gsig_i +
+              ggf * c_prev * gsig_f)
 
     dgc_do = gh * gsig_o * gtanh_c
-    go = ggc * dgc_do + ggo * gh * tanh_c * ggsig_o
+    go[:] = ggc * dgc_do + ggo * gh * tanh_c * ggsig_o
     dgc_dc = gh * sig_o * ggtanh_c
-    gc_next = ggc * dgc_dc + ggo * gh * gtanh_c * gsig_o
-    ggh = ggc * sig_o * gtanh_c + ggo * tanh_c * gsig_o
+    gc_next[:] = ggc * dgc_dc + ggo * gh * gtanh_c * gsig_o
+    ggh[:] = ggc * sig_o * gtanh_c + ggo * tanh_c * gsig_o
     return gc_prev, ga, gi, gf, go, gc_next, ggc, ggh
 
 
@@ -324,9 +337,9 @@ def lstm(c_prev, x):
         Most typical preparation of ``x`` is:
 
         >>> n_units = 100
-        >>> y = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> h = chainer.Variable(np.zeros((1, n_units), 'f'))
-        >>> c = chainer.Variable(np.zeros((1, n_units), 'f'))
+        >>> y = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> h = chainer.Variable(np.zeros((1, n_units), np.float32))
+        >>> c = chainer.Variable(np.zeros((1, n_units), np.float32))
         >>> model = chainer.Chain()
         >>> with model.init_scope():
         ...   model.w = L.Linear(n_units, 4 * n_units)
@@ -351,7 +364,8 @@ def lstm(c_prev, x):
             The array which is linear transformed from *incoming signal* and
             the previous outgoing signal. The *input array* contains four
             sources, the sources of cell input, input gate, forget gate and
-            output gate. The input of :class:`chainer.functions.LSTM` is the
+            output gate. The input of
+            :class:`chainer.functions.activation.lstm.LSTM` is the
             *input array*.
 
     """

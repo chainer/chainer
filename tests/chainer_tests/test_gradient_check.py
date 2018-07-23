@@ -6,7 +6,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -577,11 +577,17 @@ class TestCheckBackward(unittest.TestCase):
         g1 = numpy.array([1], dtype='f')
 
         def f(x, y):
-            s = Ident()(x)
+            s = x + y.array
             return s,
 
-        self.assertRaises(RuntimeError, gradient_check.check_backward,
-                          f, (x1, x2), g1, no_grads=[False, False])
+        self.assertRaises(
+            RuntimeError,  # backward computes x1.grad
+            gradient_check.check_backward,
+            f, (x1, x2), g1, no_grads=[True, True])
+        self.assertRaises(
+            AssertionError,  # numerical backward to x2 is nonzero
+            gradient_check.check_backward,
+            f, (x1, x2), g1, no_grads=[False, False])
         gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
 
     def test_no_grads_option_with_dtype(self):
@@ -602,6 +608,45 @@ class TestCheckBackward(unittest.TestCase):
 
         gradient_check.check_backward(f, (x1, x2), g1, eps=eps,
                                       no_grads=[False, True], dtype=self.dtype)
+
+
+class IdentNoneIsZero(chainer.Function):
+    """Identity function but following None-grad convention for RNNs"""
+
+    def forward(self, inputs):
+        return inputs
+
+    def backward(self, inputs, grads):
+        return tuple(
+            numpy.zeros_like(x) if g is None else g
+            for x, g in zip(inputs, grads)
+        )
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [None, numpy.float32, numpy.float64],
+    'size': [3, 1]
+}))
+class TestCheckBackwardNoneConvention(unittest.TestCase):
+    dtype = numpy.float64
+
+    def test_multiple_output(self):
+        size = self.size
+        x1 = numpy.arange(size).astype('f')
+        x2 = numpy.arange(size).astype('f')
+        g1 = numpy.ones(size, dtype='f')
+        g2 = numpy.ones(size, dtype='f')
+
+        def f(x, y):
+            s, t = IdentNoneIsZero()(x, y)
+            return s, t
+
+        gradient_check.check_backward(
+            f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+        gradient_check.check_backward(
+            f, (x1, x2), (g1, None), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+        gradient_check.check_backward(
+            f, (x1, x2), (None, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
 
 
 class TestCheckBackwardFailure(unittest.TestCase):

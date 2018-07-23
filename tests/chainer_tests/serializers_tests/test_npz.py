@@ -7,7 +7,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import link
 from chainer import links
 from chainer import optimizers
@@ -151,6 +151,20 @@ class TestNpzDeserializer(unittest.TestCase):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(cuda.to_gpu(y), '/y')
 
+    def test_deserialize_different_dtype_cpu(self):
+        y = numpy.empty((2, 3), dtype=numpy.float16)
+        ret = self.deserializer('y', y)
+        numpy.testing.assert_array_equal(y, self.data.astype(numpy.float16))
+        self.assertIs(ret, y)
+
+    @attr.gpu
+    def test_deserialize_different_dtype_gpu(self):
+        y = cuda.cupy.empty((2, 3), dtype=numpy.float16)
+        ret = self.deserializer('y', y)
+        numpy.testing.assert_array_equal(
+            y.get(), self.data.astype(numpy.float16))
+        self.assertIs(ret, y)
+
     def test_deserialize_scalar(self):
         z = 5
         ret = self.deserializer('z', z)
@@ -221,6 +235,39 @@ class TestNpzDeserializerIgnoreNames(unittest.TestCase):
         yy = numpy.ones((2, 1), dtype=numpy.float32)
         ret = self.deserializer('yy', yy)
         self.assertIs(ret, yy)
+
+
+@testing.parameterize(
+    {'ignore_names': 'yy'},
+    {'ignore_names': ['yy']},
+    {'ignore_names': lambda key: key == 'yy'},
+    {'ignore_names': [lambda key: key == 'yy']},
+)
+class TestLoadNpzIgnoreNames(unittest.TestCase):
+
+    def setUp(self):
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        self.temp_file_path = path
+        self.x = numpy.asarray(10, dtype=numpy.float32)
+        self.yy = numpy.ones((2, 3), dtype=numpy.float32)
+        with open(path, 'wb') as f:
+            numpy.savez(
+                f, **{'x': self.x, 'yy': self.yy})
+
+    def tearDown(self):
+        if hasattr(self, 'temp_file_path'):
+            os.remove(self.temp_file_path)
+
+    def test_load_npz_ignore_names(self):
+        chain = link.Chain()
+        with chain.init_scope():
+            chain.x = chainer.variable.Parameter(shape=())
+            chain.yy = chainer.variable.Parameter(shape=(2, 3))
+        npz.load_npz(
+            self.temp_file_path, chain, ignore_names=self.ignore_names)
+        self.assertEqual(chain.x.data, self.x)
+        self.assertFalse(numpy.all(chain.yy.data == self.yy))
 
 
 @testing.parameterize(*testing.product({'file_type': ['filename', 'bytesio']}))
@@ -512,10 +559,13 @@ class TestGroupHierachy(unittest.TestCase):
         self.assertSetEqual(set(npzfile.keys()), {prefix + x for x in keys})
 
     def _check_optimizer_group(self, npzfile, state, prefix=''):
-        keys = ('child/linear/W/msg',
+        keys = ('child/linear/W/t',
+                'child/linear/W/msg',
                 'child/linear/W/msdx',
+                'child/linear/b/t',
                 'child/linear/b/msg',
                 'child/linear/b/msdx',
+                'child/Wc/t',
                 'child/Wc/msg',
                 'child/Wc/msdx') + state
         self.assertEqual(set(npzfile.keys()),
@@ -536,7 +586,7 @@ class TestGroupHierachy(unittest.TestCase):
 
         with numpy.load(self.file) as npzfile:
             self._check_optimizer_group(
-                npzfile, ('Wp/msg', 'Wp/msdx', 'epoch', 't'), 'test/')
+                npzfile, ('Wp/t', 'Wp/msg', 'Wp/msdx', 'epoch', 't'), 'test/')
 
     def test_save_chain2(self):
         self._save_npz(self.file, self.parent, self.compress)
@@ -547,7 +597,7 @@ class TestGroupHierachy(unittest.TestCase):
         self._save_npz(self.file, self.optimizer, self.compress)
         with numpy.load(self.file) as npzfile:
             self._check_optimizer_group(
-                npzfile, ('Wp/msg', 'Wp/msdx', 'epoch', 't'))
+                npzfile, ('Wp/t', 'Wp/msg', 'Wp/msdx', 'epoch', 't'))
 
     def test_load_optimizer_with_strict(self):
         for param in self.parent.params():

@@ -3,7 +3,7 @@ import unittest
 import numpy
 from six import moves
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -148,10 +148,9 @@ class TestIm2Col(unittest.TestCase):
     def check_double_backward(self, x, ksize, stride, pad, cover_all, dilate,
                               gy, ggx):
         def f(x):
-            y = functions.im2col(
+            return functions.im2col(
                 x, ksize, stride=stride, pad=pad, cover_all=cover_all,
                 dilate=dilate)
-            return y * y
 
         gradient_check.check_double_backward(
             f, x, gy, ggx, dtype=numpy.float64,

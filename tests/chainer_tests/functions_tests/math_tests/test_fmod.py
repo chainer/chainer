@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
@@ -47,12 +47,8 @@ class UnaryFunctionsTestBase(unittest.TestCase):
             self.divisor), cuda.to_gpu(self.gy))
 
     def check_double_backward(self, op, x_data, divisor, y_grad, ggx, ggd):
-        def f(*args):
-            y = op(*args)
-            return y * y
-
         gradient_check.check_double_backward(
-            f, (x_data, divisor), y_grad, (ggx, ggd), dtype=numpy.float64,
+            op, (x_data, divisor), y_grad, (ggx, ggd), dtype=numpy.float64,
             atol=1e-3, rtol=1e-2)
 
     def check_double_backward_cpu(self, op):
@@ -116,7 +112,7 @@ class TestFmod(UnaryFunctionsTestBase):
         self.check_double_backward_gpu(F.fmod)
 
     def test_label(self):
-        self.check_label(F.Fmod, 'fmod')
+        self.check_label(chainer.functions.math.fmod.Fmod, 'fmod')
 
 
 testing.run_module(__name__, __file__)

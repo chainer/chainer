@@ -1,4 +1,5 @@
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import optimizer
 
 
@@ -21,6 +22,7 @@ class MomentumSGDRule(optimizer.UpdateRule):
         momentum (float): Exponential decay rate of the first order moment.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None, momentum=None):
         super(MomentumSGDRule, self).__init__(
@@ -35,27 +37,40 @@ class MomentumSGDRule(optimizer.UpdateRule):
         with cuda.get_device_from_array(param.data):
             self.state['v'] = xp.zeros_like(param.data)
 
+        # For iDeep
+        if (isinstance(param.data, intel64.mdarray) and
+                intel64.inputs_all_ready((self.state['v'],))):
+            self.state['v'] = intel64.ideep.array(
+                self.state['v'], itype=intel64.ideep.wgt_array)
+
     def update_core_cpu(self, param):
         grad = param.grad
         if grad is None:
             return
         v = self.state['v']
-        v *= self.hyperparam.momentum
-        v -= self.hyperparam.lr * grad
-        param.data += v
+        if isinstance(v, intel64.mdarray):
+            v.inplace_axpby(self.hyperparam.momentum, -
+                            self.hyperparam.lr, grad)
+            param.data += v
+        else:
+            v *= self.hyperparam.momentum
+            v -= self.hyperparam.lr * grad
+            param.data += v
 
     def update_core_gpu(self, param):
         grad = param.grad
         if grad is None:
             return
-        cuda.elementwise(
-            'T grad, T lr, T momentum',
-            'T param, T v',
-            '''v = momentum * v - lr * grad;
-               param += v;''',
-            'momentum_sgd')(
-                grad, self.hyperparam.lr, self.hyperparam.momentum,
-                param.data, self.state['v'])
+        if MomentumSGDRule._kernel is None:
+            MomentumSGDRule._kernel = cuda.elementwise(
+                'T grad, T lr, T momentum',
+                'T param, T v',
+                '''v = momentum * v - lr * grad;
+                   param += v;''',
+                'momentum_sgd')
+        MomentumSGDRule._kernel(
+            grad, self.hyperparam.lr, self.hyperparam.momentum, param.data,
+            self.state['v'])
 
 
 class MomentumSGD(optimizer.GradientMethod):
@@ -69,8 +84,8 @@ class MomentumSGD(optimizer.GradientMethod):
     """
 
     def __init__(self, lr=_default_hyperparam.lr,
-                 momentum=_default_hyperparam.momentum, model=None):
-        super(MomentumSGD, self).__init__(model)
+                 momentum=_default_hyperparam.momentum):
+        super(MomentumSGD, self).__init__()
         self.hyperparam.lr = lr
         self.hyperparam.momentum = momentum
 

@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -129,30 +129,44 @@ class TestBilinearFunction(unittest.TestCase):
              cuda.to_gpu(self.ggW)), **self.check_backward_options)
 
     def test_full_double_backward_cpu(self):
-        def f(*inputs):
-            y = functions.bilinear(*inputs)
-            return y * y
-
         gradient_check.check_double_backward(
-            f, (self.e1, self.e2, self.W, self.V1, self.V2, self.b),
+            functions.bilinear,
+            (self.e1, self.e2, self.W, self.V1, self.V2, self.b),
             self.gy,
             (self.gge1, self.gge2, self.ggW, self.ggV1, self.ggV2, self.ggb),
             **self.check_double_backward_options)
 
     @attr.gpu
     def test_full_double_backward_gpu(self):
-        def f(*inputs):
-            y = functions.bilinear(*inputs)
-            return y * y
-
         gradient_check.check_double_backward(
-            f,
+            functions.bilinear,
             (cuda.to_gpu(self.e1), cuda.to_gpu(self.e2), cuda.to_gpu(self.W),
              cuda.to_gpu(self.V1), cuda.to_gpu(self.V2), cuda.to_gpu(self.b)),
             cuda.to_gpu(self.gy),
             (cuda.to_gpu(self.gge1), cuda.to_gpu(self.gge2),
              cuda.to_gpu(self.ggW), cuda.to_gpu(self.V1), cuda.to_gpu(self.V2),
              cuda.to_gpu(self.ggb)), **self.check_double_backward_options)
+
+
+@attr.slow
+class TestBilinearFunctionLarge(unittest.TestCase):
+
+    def setUp(self):
+        self.e1 = _uniform(256, 256)
+        self.e2 = _uniform(256, 256)
+        self.w = _uniform(256, 256, 256)
+        self.v1 = _uniform(256, 256)
+        self.v2 = _uniform(256, 256)
+        self.b = _uniform(256)
+
+    def test_cpu(self):
+        chainer.functions.bilinear(
+            self.e1, self.e2, self.w, self.v1, self.v2, self.b)
+
+    @attr.gpu
+    def test_gpu(self):
+        chainer.functions.bilinear(*map(cuda.to_gpu, (
+            self.e1, self.e2, self.w, self.v1, self.v2, self.b)))
 
 
 class TestBilinearFunctionInvalidArgument(unittest.TestCase):

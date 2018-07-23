@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function_hooks
 from chainer import functions
 from chainer.functions.math import basic_math
@@ -14,8 +14,8 @@ from chainer.testing import attr
 
 def check_history(self, t, function_type, used_bytes_type,
                   acquired_bytes_type):
-    func = getattr(t[0], 'function', t[0])
-    self.assertIsInstance(func, function_type)
+    func_name = t[0]
+    assert func_name == function_type.__name__
     self.assertIsInstance(t[1], used_bytes_type)
     self.assertIsInstance(t[2], acquired_bytes_type)
 
@@ -29,7 +29,7 @@ class SimpleLink(chainer.Link):
                 numpy.float32)
             self.w = chainer.Parameter(init_w)
 
-    def __call__(self, x):
+    def forward(self, x):
         return self.w * x
 
 
@@ -65,7 +65,7 @@ class TestCupyMemoryProfileHookToLink(unittest.TestCase):
         # It includes forward of + that accumulates gradients to W and b
         self.assertEqual(3, len(self.h.call_history))
         for entry in self.h.call_history:
-            if entry[0].label == '_ + _':
+            if entry[0] == 'Add':
                 continue
             check_history(self, entry,
                           basic_math.Mul, int, int)
@@ -80,7 +80,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.CupyMemoryProfileHook()
-        self.f = functions.Exp()
+        self.f = functions.math.exponential.Exp()
         self.f.add_hook(self.h)
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
@@ -92,7 +92,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         self.f.apply((chainer.Variable(x),))
         self.assertEqual(1, len(self.h.call_history))
         check_history(self, self.h.call_history[0],
-                      functions.Exp, int, int)
+                      functions.math.exponential.Exp, int, int)
 
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
@@ -104,7 +104,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         y.backward()
         self.assertEqual(2, len(self.h.call_history))
         check_history(self, self.h.call_history[1],
-                      functions.Exp, int, int)
+                      functions.math.exponential.Exp, int, int)
 
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
@@ -113,7 +113,8 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         # In/grad data are random; these do not simulate the actually possible
         # cases.
         f = self.f
-        g = functions.Identity()  # any function other than f: Exp is ok
+        # any function other than f: Exp is ok
+        g = functions.math.identity.Identity()
 
         self.h.backward_preprocess(f, (self.x,), (self.gy,))
         self.h.forward_preprocess(g, (self.x,))
@@ -126,10 +127,10 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
 
         history = {f: (u, a, d) for (f, u, a, d) in self.h.call_history}
         self.assertEqual(len(history), 2)
-        self.assertIn(f, history)
-        self.assertIn(g, history)
-        f_used_bytes, f_acquired_bytes, f_depth = history[f]
-        g_used_bytes, g_acquired_bytes, g_depth = history[g]
+        self.assertIn(f._impl_name, history)
+        self.assertIn(g._impl_name, history)
+        f_used_bytes, f_acquired_bytes, f_depth = history[f._impl_name]
+        g_used_bytes, g_acquired_bytes, g_depth = history[g._impl_name]
         self.assertEqual(f_depth, 0)
         self.assertEqual(g_depth, 1)
         self.assertGreater(f_used_bytes, g_used_bytes)
@@ -137,7 +138,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
 
     def test_reentrant_total_bytes(self):
         f = self.f
-        g = functions.Identity()
+        g = functions.math.identity.Identity()
 
         self.h.backward_preprocess(f, (self.x,), (self.gy,))
         self.h.forward_preprocess(g, (self.x,))
@@ -158,8 +159,8 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
     def setUp(self):
         cuda.memory_pool.free_all_blocks()
         self.h = function_hooks.CupyMemoryProfileHook()
-        self.f1 = functions.Exp()
-        self.f2 = functions.ReLU()
+        self.f1 = functions.math.exponential.Exp()
+        self.f2 = functions.activation.relu.ReLU()
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         x = cuda.to_gpu(self.x)
         with self.h:

@@ -55,7 +55,7 @@ class FunctionHook(object):
         ...     return F.exp(self.l(x1))
         >>> model1 = Model()
         >>> model2 = Model()
-        >>> x = chainer.Variable(np.zeros((1, 10), 'f'))
+        >>> x = chainer.Variable(np.zeros((1, 10), np.float32))
         >>> with chainer.function_hooks.TimerHook() as m:
         ...   _ = model1(x)
         ...   y = model2(x)
@@ -65,9 +65,7 @@ class FunctionHook(object):
         Total time : ...
 
         In this example, we measure the elapsed times for each forward
-        propagation of all functions in ``model1`` and ``model2``
-        (specifically, :class:`~chainer.functions.LinearFunction` and
-        :class:`~chainer.functions.Exp` of ``model1`` and ``model2``).
+        propagation of all functions in ``model1`` and ``model2``.
         Note that ``model3`` is not a target of measurement
         as :class:`~chainer.function_hooks.TimerHook` is unregistered
         before forward propagation of ``model3``.

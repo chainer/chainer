@@ -1,4 +1,5 @@
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import optimizer
 
 
@@ -19,6 +20,7 @@ class SGDRule(optimizer.UpdateRule):
         lr (float): Learning rate.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None):
         super(SGDRule, self).__init__(
@@ -30,15 +32,20 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        param.data -= self.hyperparam.lr * grad
+        if isinstance(param.data, intel64.mdarray):
+            param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
+        else:
+            param.data -= self.hyperparam.lr * grad
 
     def update_core_gpu(self, param):
         grad = param.grad
         if grad is None:
             return
-        cuda.elementwise('T grad, T lr', 'T param',
-                         'param -= lr * grad',
-                         'sgd')(grad, self.hyperparam.lr, param.data)
+        if SGDRule._kernel is None:
+            SGDRule._kernel = cuda.elementwise(
+                'T grad, T lr', 'T param',
+                'param -= lr * grad', 'sgd')
+        SGDRule._kernel(grad, self.hyperparam.lr, param.data)
 
 
 class SGD(optimizer.GradientMethod):
@@ -50,8 +57,8 @@ class SGD(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr, model=None):
-        super(SGD, self).__init__(model)
+    def __init__(self, lr=_default_hyperparam.lr):
+        super(SGD, self).__init__()
         self.hyperparam.lr = lr
 
     lr = optimizer.HyperparameterProxy('lr')

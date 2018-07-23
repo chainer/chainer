@@ -1,4 +1,3 @@
-from __future__ import print_function
 import contextlib
 import sys
 import threading
@@ -79,7 +78,7 @@ def _print_attrs(obj, keys, file):
     max_len = max(len(key) for key in keys)
     for key in keys:
         spacer = ' ' * (max_len - len(key))
-        print(u'{} {}{}'.format(key, spacer, getattr(obj, key)), file=file)
+        file.write(u'{} {}{}\n'.format(key, spacer, getattr(obj, key)))
 
 
 global_config = GlobalConfig()

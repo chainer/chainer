@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -76,8 +76,7 @@ class TestVstack(unittest.TestCase):
 
     def check_double_backward(self, xs_data, y_grad, xs_grad_grad):
         def func(*xs):
-            y = functions.vstack(xs)
-            return y * y
+            return functions.vstack(xs)
 
         gradient_check.check_double_backward(
             func, xs_data, y_grad, xs_grad_grad, eps=2.0 ** -2, dtype='d',

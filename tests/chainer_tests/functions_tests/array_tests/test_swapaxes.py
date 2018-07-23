@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -60,8 +60,7 @@ class TestSwapaxes(unittest.TestCase):
     @condition.retry(3)
     def check_double_backward(self, x_data, g_data, gg_data):
         def f(x):
-            y = functions.swapaxes(x, self.axis1, self.axis2)
-            return y * y
+            return functions.swapaxes(x, self.axis1, self.axis2)
 
         gradient_check.check_double_backward(
             f, x_data, g_data, gg_data, dtype=numpy.float64,

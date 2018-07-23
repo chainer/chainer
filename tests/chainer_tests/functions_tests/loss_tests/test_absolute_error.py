@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -67,12 +67,9 @@ class TestAbsoluteError(unittest.TestCase):
 
     def check_double_backward(self, x0_data, x1_data, y_grad,
                               gx0_grad, gx1_grad):
-        def f(x0, x1):
-            y = functions.absolute_error(x0, x1)
-            return y * y
-
         gradient_check.check_double_backward(
-            f, (x0_data, x1_data), y_grad, (gx0_grad, gx1_grad), eps=1e-2)
+            functions.absolute_error, (x0_data, x1_data), y_grad,
+            (gx0_grad, gx1_grad), eps=1e-2)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(
@@ -83,6 +80,17 @@ class TestAbsoluteError(unittest.TestCase):
         self.check_double_backward(
             cuda.to_gpu(self.x0), cuda.to_gpu(self.x1), cuda.to_gpu(self.gy),
             cuda.to_gpu(self.ggx0), cuda.to_gpu(self.ggx1))
+
+    # test for #4669
+    @attr.multi_gpu(2)
+    def test_backward_non_default_gpu(self):
+        x0 = chainer.Variable(cuda.to_gpu(self.x0, 1))
+        x1 = chainer.Variable(cuda.to_gpu(self.x1, 1))
+        gy = cuda.to_gpu(self.gy, 1)
+        with cuda.get_device_from_id(0):
+            y = functions.absolute_error(x0, x1)
+            y.grad = gy
+            y.backward()
 
 
 testing.run_module(__name__, __file__)

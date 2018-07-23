@@ -23,6 +23,7 @@ class SMORMS3Rule(optimizer.UpdateRule):
         eps (float): Small value for the numerical stability.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None, eps=None):
         super(SMORMS3Rule, self).__init__(
@@ -59,20 +60,22 @@ class SMORMS3Rule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        cuda.elementwise(
-            'T grad, T lr, T eps',
-            'T param, T mem, T g, T g2',
-            '''T r, x;
-               r = 1 / (mem + 1);
-               g = (1 - r) * g + r * grad;
-               g2 = (1 - r) * g2 + r * grad * grad;
-               x = g * g / (g2 + eps);
-               param -= grad * min(lr, x) / (sqrt(g2) + eps);
-               mem = 1 + mem * (1 - x)
-               ''',
-            'smorms3')(grad, self.hyperparam.lr, self.hyperparam.eps,
-                       param.data, self.state['mem'], self.state['g'],
-                       self.state['g2'])
+        if SMORMS3Rule._kernel is None:
+            SMORMS3Rule._kernel = cuda.elementwise(
+                'T grad, T lr, T eps',
+                'T param, T mem, T g, T g2',
+                '''T r, x;
+                   r = 1 / (mem + 1);
+                   g = (1 - r) * g + r * grad;
+                   g2 = (1 - r) * g2 + r * grad * grad;
+                   x = g * g / (g2 + eps);
+                   param -= grad * min(lr, x) / (sqrt(g2) + eps);
+                   mem = 1 + mem * (1 - x)
+                   ''',
+                'smorms3')
+        SMORMS3Rule._kernel(
+            grad, self.hyperparam.lr, self.hyperparam.eps, param.data,
+            self.state['mem'], self.state['g'], self.state['g2'])
 
 
 class SMORMS3(optimizer.GradientMethod):
@@ -87,9 +90,8 @@ class SMORMS3(optimizer.GradientMethod):
 
     """
 
-    def __init__(self, lr=_default_hyperparam.lr,
-                 eps=_default_hyperparam.eps, model=None):
-        super(SMORMS3, self).__init__(model)
+    def __init__(self, lr=_default_hyperparam.lr, eps=_default_hyperparam.eps):
+        super(SMORMS3, self).__init__()
         self.hyperparam.lr = lr
         self.hyperparam.eps = eps
 

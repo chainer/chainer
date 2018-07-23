@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
@@ -99,7 +99,7 @@ class TestCosh(UnaryFunctionsTestBase):
         self.check_double_backward_gpu(F.cosh)
 
     def test_label(self):
-        self.check_label(F.Cosh, 'cosh')
+        self.check_label(chainer.functions.math.hyperbolic.Cosh, 'cosh')
 
 
 @testing.parameterize(*testing.product({
@@ -136,7 +136,7 @@ class TestSinh(UnaryFunctionsTestBase):
         self.check_double_backward_gpu(F.cosh)
 
     def test_label(self):
-        self.check_label(F.Sinh, 'sinh')
+        self.check_label(chainer.functions.math.hyperbolic.Sinh, 'sinh')
 
 
 testing.run_module(__name__, __file__)
