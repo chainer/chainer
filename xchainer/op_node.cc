@@ -57,10 +57,10 @@ std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_nod
 }  // namespace internal
 
 // static
-std::shared_ptr<OpNode> OpNode::Create(std::string name, GraphId graph_id, const std::vector<ConstArrayRef>& outputs) {
+std::shared_ptr<OpNode> OpNode::CreateWithPrevArrayNodes(std::string name, GraphId graph_id, const std::vector<ConstArrayRef>& outputs) {
     // Trick to use make_shared with private ctor
     struct OpNodeWithPublicCtor : OpNode {
-        OpNodeWithPublicCtor(std::string name, GraphId graph_id) : OpNode(std::move(name), graph_id) {}
+        OpNodeWithPublicCtor(std::string name, GraphId graph_id) : OpNode{std::move(name), graph_id} {}
     };
     std::shared_ptr<OpNode> op_node = std::make_shared<OpNodeWithPublicCtor>(std::move(name), graph_id);
 
@@ -75,7 +75,7 @@ std::shared_ptr<OpNode> OpNode::Create(std::string name, GraphId graph_id, const
     return op_node;
 }
 
-OpNode::OpNode(std::string name, GraphId graph_id) : name_(std::move(name)), graph_id_(graph_id) {}
+OpNode::OpNode(std::string name, GraphId graph_id) : name_{std::move(name)}, graph_id_{graph_id} {}
 
 void OpNode::AssertConsistency() const {
 #ifndef NDEBUG

@@ -98,7 +98,7 @@ std::shared_ptr<OpNode>& BackwardBuilder::Target::FindOrCreateOpNode(const Graph
     // Find op node
     auto insert_result = op_node_map().emplace(graph_id, nullptr);
     if (insert_result.second) {
-        insert_result.first->second = OpNode::Create(op_name(), graph_id, outputs());
+        insert_result.first->second = OpNode::CreateWithPrevArrayNodes(op_name(), graph_id, outputs());
     }
     assert(!op_node_map().empty());
     return insert_result.first->second;

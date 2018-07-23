@@ -73,6 +73,7 @@ private:
 
 // Creates a prev array node at the specified index and adds edges between the prev array node and the op node.
 // Undefined behavior if the prev array node already exists.
+// This function is used by BackwardContext::GetRetainedOutput().
 std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_node, size_t prev_array_node_index);
 
 }  // namespace internal
@@ -80,7 +81,7 @@ std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_nod
 class OpNode {
 public:
     // Creates a new op node that has prev array nodes corresponding to the given outputs.
-    static std::shared_ptr<OpNode> Create(std::string name, GraphId graph_id, const std::vector<ConstArrayRef>& outputs);
+    static std::shared_ptr<OpNode> CreateWithPrevArrayNodes(std::string name, GraphId graph_id, const std::vector<ConstArrayRef>& outputs);
 
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;
