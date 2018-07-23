@@ -143,7 +143,7 @@ You can also use :func:`chainer.using_config` to change the configuration.
 
 .. testoutput::
 
-    <class 'ideep4py.mdarray'>
+    <class 'ideep4py.mdarray'>  # doctest: +SKIP
 
 Convert Your Model to iDeep
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
