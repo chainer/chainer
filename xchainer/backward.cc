@@ -202,8 +202,7 @@ std::shared_ptr<internal::ArrayBody> BackwardContext::GetFabricatedArrayBodyWith
     auto fabricated_array_body = std::make_shared<internal::ArrayBody>(token.output_array_params());
     for (const std::shared_ptr<ArrayNode>& prev_array_node : new_prev_array_nodes) {
         assert(prev_array_node->GetBody() == nullptr);
-        prev_array_node->set_array_body(fabricated_array_body);
-        fabricated_array_body->AddNode(prev_array_node);
+        internal::ArrayBody::AddNode(fabricated_array_body, prev_array_node);
     }
 
     return fabricated_array_body;

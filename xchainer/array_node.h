@@ -38,14 +38,6 @@ public:
     ArrayNode& operator=(const ArrayNode&) = delete;
     ArrayNode& operator=(ArrayNode&&) = delete;
 
-    // Sets the array body to this array node.
-    void set_array_body(std::weak_ptr<internal::ArrayBody> body) {
-        assert(body_.lock() == nullptr);  // The body must be either unset (the array node is being created normally) or dead (the body
-                                          // is being replaced with a fabricated one, as a retained output of backward)
-        assert(!internal::IsWeakPtrEmpty(body));
-        body_ = std::move(body);
-    }
-
     const Shape& shape() const { return shape_; }
 
     Dtype dtype() const { return dtype_; }
@@ -80,6 +72,9 @@ public:
     std::shared_ptr<internal::ArrayBody> GetBody() { return body_.lock(); }
 
 private:
+    // body_ is set by this function.
+    friend const std::shared_ptr<ArrayNode>& internal::ArrayBody::AddNode(const std::shared_ptr<ArrayBody>&, std::shared_ptr<ArrayNode>);
+
     std::weak_ptr<internal::ArrayBody> body_;
     std::shared_ptr<OpNode> next_op_node_;
     Shape shape_;
