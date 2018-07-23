@@ -80,7 +80,8 @@ Backend& Context::GetBackend(const std::string& backend_name) {
 
         // Create backend
         void* ptr = ::dlsym(handle, "CreateBackend");
-        auto create_backend = reinterpret_cast<std::unique_ptr<Backend> (*)(Context&)>(ptr);  // NOLINT: reinterpret_cast
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        auto create_backend = reinterpret_cast<std::unique_ptr<Backend> (*)(Context&)>(ptr);
         if (create_backend == nullptr) {
             throw BackendError{"Invalid backend plugin: CreateBackend is not found in '", so_file_path, "'."};
         }

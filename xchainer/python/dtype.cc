@@ -85,13 +85,13 @@ Dtype GetDtype(py::handle handle) {
     }
 
     // From Python types
-    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyBool_Type)) {  // NOLINT: reinterpret_cast
+    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyBool_Type)) {  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         return Dtype::kBool;
     }
-    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyLong_Type)) {  // NOLINT: reinterpret_cast
+    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyLong_Type)) {  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         return Dtype::kInt64;
     }
-    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyFloat_Type)) {  // NOLINT: reinterpret_cast
+    if (handle.ptr() == reinterpret_cast<PyObject*>(&PyFloat_Type)) {  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         return Dtype::kFloat64;
     }
 
@@ -139,7 +139,7 @@ void InitXchainerDtype(pybind11::module& m) {
             s += "|";  // "not applicable"
         } else {
             static const uint16_t kNum16 = 0xff00U;
-            if (reinterpret_cast<const uint8_t*>(&kNum16)[0] == 0x00U) {  // NOLINT: reinterpret_cast
+            if (reinterpret_cast<const uint8_t*>(&kNum16)[0] == 0x00U) {  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
                 s += "<";  // little endian
             } else {
                 s += ">";  // big endian
