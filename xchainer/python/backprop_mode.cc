@@ -58,10 +58,10 @@ void InitXchainerBackpropMode(pybind11::module& m) {
     InitXchainerBackpropModeScope<NoBackpropModeScope>(m, "NoBackpropMode", "no_backprop_mode");
     InitXchainerBackpropModeScope<ForceBackpropModeScope>(m, "ForceBackpropMode", "force_backprop_mode");
 
+    m.def("is_backprop_required", [](const GraphId& graph_id) { return IsBackpropRequired(graph_id); }, py::arg("graph_id"));
     m.def("is_backprop_required",
           [](py::handle context) { return IsBackpropRequired(GetContext(context)); },
           py::arg("context") = py::none());
-    m.def("is_backprop_required", [](const GraphId& graph_id) { return IsBackpropRequired(graph_id); }, py::arg("graph_id"));
 }
 
 }  // namespace python_internal

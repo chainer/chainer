@@ -84,14 +84,8 @@ def test_is_backprop_required():
                 assert not xchainer.is_backprop_required()
                 assert xchainer.is_backprop_required(graph1)
                 assert not xchainer.is_backprop_required(graph2)
-
                 assert not xchainer.is_backprop_required(context=current_context)
-                assert xchainer.is_backprop_required(graph1, context=current_context)
-                assert not xchainer.is_backprop_required(graph2, context=current_context)
-
                 assert xchainer.is_backprop_required(context=another_context)
-                assert xchainer.is_backprop_required(graph1, context=another_context)
-                assert xchainer.is_backprop_required(graph2, context=another_context)
 
         with pytest.raises(TypeError):
             xchainer.is_backprop_required(context='foo')
