@@ -203,8 +203,8 @@ public:
             assert(reduced_shape == gamma.shape());
             assert(x_cont.shape() == gout.shape());
 
-            assert(x_mean.body() != nullptr);
-            assert(x_inv_std.body() != nullptr);
+            assert(internal::GetArrayBody(x_mean) != nullptr);
+            assert(internal::GetArrayBody(x_inv_std) != nullptr);
 
             assert(&x_cont.device() == &gamma.device());
             assert(&x_cont.device() == &gout.device());

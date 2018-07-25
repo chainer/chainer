@@ -585,7 +585,7 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
 
         Backward(y, graph_id, DoubleBackpropOption::kEnable);
 
-        x_grad_body = x.GetGrad(graph_id)->body();  // Keep weak pointer to the body of x.grad
+        x_grad_body = internal::GetArrayBody(*x.GetGrad(graph_id));  // Keep weak pointer to the body of x.grad
     }
 
     // The body of x.grad must have been released.
@@ -866,7 +866,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                     }
 
                     // input_grad has null array
-                    EXPECT_EQ(nullptr, bctx.input_grad().body());
+                    EXPECT_EQ(nullptr, internal::GetArrayBody(bctx.input_grad()));
 
                     // input_grad setter
                     bctx.input_grad() = 2 * gy1;  // omit index
@@ -889,8 +889,8 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                     }
 
                     // input_grad has null array
-                    EXPECT_EQ(nullptr, bctx.input_grad(0).body());
-                    EXPECT_EQ(nullptr, bctx.input_grad(1).body());
+                    EXPECT_EQ(nullptr, internal::GetArrayBody(bctx.input_grad(0)));
+                    EXPECT_EQ(nullptr, internal::GetArrayBody(bctx.input_grad(1)));
 
                     // input_grad setter
                     bctx.input_grad(0) = 3 * gy1;  // by index
@@ -1229,8 +1229,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
                 const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                EXPECT_EQ(y1_again.body(), y1.body());
-                EXPECT_EQ(y2_again.body(), y2.body());
+                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
                 Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
                 Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
@@ -1274,8 +1274,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
                 const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                EXPECT_EQ(y1_again.body(), y1.body());
-                EXPECT_EQ(y2_again.body(), y2.body());
+                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
                 Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
                 Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
@@ -1300,8 +1300,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
             forward(x1, x2, y1, y2);
 
             // Keep weak references to y's to check if they are actually kept alive.
-            y1_body = y1.body();
-            y2_body = y2.body();
+            y1_body = internal::GetArrayBody(y1);
+            y2_body = internal::GetArrayBody(y2);
         }
         // y's are alive here
         Backward({y1, y2}, graph_id1, double_backprop_opt);
@@ -1381,8 +1381,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
                 const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                EXPECT_EQ(y1_again.body(), y1.body());
-                EXPECT_EQ(y2_again.body(), y2.body());
+                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
                 Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
                 Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
@@ -1426,8 +1426,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
                 const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                EXPECT_EQ(y1_again.body(), y1.body());
-                EXPECT_EQ(y2_again.body(), y2.body());
+                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
                 Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
                 Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
@@ -1454,8 +1454,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
             forward(x1, x2, y1, y2);
 
             // Keep weak references to y's to check if they are actually dead.
-            y1_body = y1.body();
-            y2_body = y2.body();
+            y1_body = internal::GetArrayBody(y1);
+            y2_body = internal::GetArrayBody(y2);
             z1 = y1.MakeView();
             z2 = y2.MakeView();
         }
@@ -1539,8 +1539,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
                 const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                EXPECT_EQ(y1_again.body(), y1.body());
-                EXPECT_EQ(y2_again.body(), y2.body());
+                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
                 Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
                 Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
@@ -1584,8 +1584,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
                 const Array& y2_again = bctx.GetRetainedOutput(tok2);
-                EXPECT_EQ(y1_again.body(), y1.body());
-                EXPECT_EQ(y2_again.body(), y2.body());
+                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
                 Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
                 Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
@@ -1611,7 +1611,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
             forward(x1, x2, y1, y2);
 
             // Keep weak reference to y1.body() and y1's node to check if it is actually gone
-            y1_body = y1.body();
+            y1_body = internal::GetArrayBody(y1);
             y1_node = internal::GetArrayBody(y1)->GetArrayNode(graph_id2);
             // Only z2 is kept. y1 (and therefore y1's node) will be released.
             z2 = y2.MakeView();

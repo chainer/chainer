@@ -56,7 +56,7 @@ void ArrayBody::AssertConsistency() const {
         assert(array_node != nullptr);
         assert(this == array_node->weak_body().lock().get());
         if (grad.has_value()) {
-            assert(grad->body() != nullptr);
+            assert(internal::GetArrayBody(*grad) != nullptr);
             assert(grad->shape() == array_node->shape());
             assert(grad->dtype() == array_node->dtype());
             assert(&grad->device() == &array_node->device());

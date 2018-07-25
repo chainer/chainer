@@ -227,7 +227,7 @@ Array Array::ToDevice(Device& dst_device) const {
         out = Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data)};
     }
 
-    assert(out.body() != nullptr);
+    assert(internal::GetArrayBody(out) != nullptr);
 
     // Backward operation is implemented as backward-transfer.
     BackwardBuilder bb{"transfer", out};
