@@ -393,9 +393,9 @@ private:
                                 return prev_grad != nullptr && prev_grad->has_value() && input_grad.body() == (*prev_grad)->body();
                             }) ||
                     std::any_of(
-                            input_grads_subset.begin(), input_grads_subset.begin() + i_input, [&input_grad](const Array& another_input_grad) {
-                                return another_input_grad.body() == input_grad.body();
-                            })) {
+                            input_grads_subset.begin(),
+                            input_grads_subset.begin() + i_input,
+                            [&input_grad](const Array& another_input_grad) { return another_input_grad.body() == input_grad.body(); })) {
                     // TODO(niboshi): View is needed to make new nodes. Come up with a solution to avoid extra backward insertion.
                     input_grad = input_grad.MakeView();
                 }
