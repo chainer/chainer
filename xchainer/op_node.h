@@ -113,7 +113,7 @@ public:
 
     size_t next_array_node_count() const { return next_array_nodes_.size(); }
 
-    size_t prev_node_count() const { return prev_array_props_.size(); }
+    size_t prev_array_node_count() const { return prev_array_props_.size(); }
 
     int64_t rank() const { return rank_; }
 

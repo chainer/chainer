@@ -42,7 +42,7 @@ void OpNodeBackwardEntry::AddExoticNextArrayNode(std::tuple<GraphId, std::vector
 }
 
 std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_node, size_t prev_array_node_index) {
-    assert(prev_array_node_index < op_node->prev_node_count());
+    assert(prev_array_node_index < op_node->prev_array_node_count());
     assert(op_node->prev_array_nodes()[prev_array_node_index].expired());
 
     const internal::ArrayProps& props = op_node->GetPrevArrayProps(prev_array_node_index);
@@ -88,7 +88,7 @@ void OpNode::AssertConsistency() const {
 
     // Corresponding previous array nodes across graphs (corresponding to the same output array) should have the same array body, if it's
     // alive.
-    for (size_t i_prev = 0; i_prev < prev_node_count(); ++i_prev) {
+    for (size_t i_prev = 0; i_prev < prev_array_node_count(); ++i_prev) {
         nonstd::optional<internal::ArrayBody*> prev_array_body{};
         for (const auto& tup : outer_graphs_prev_array_nodes_) {
             const std::vector<std::shared_ptr<ArrayNode>>& vec = std::get<1>(tup);

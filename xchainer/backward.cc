@@ -93,7 +93,7 @@ BackwardContext::BackwardContext(
     // Input grads must be initialized with null-body arrays.
     assert(std::all_of(input_grads_.begin(), input_grads_.end(), [](const Array& g) { return g.body() == nullptr; }));
 
-    retained_output_array_bodies_.resize(op_node->prev_node_count());  // Fill with nullptr
+    retained_output_array_bodies_.resize(op_node->prev_array_node_count());  // Fill with nullptr
 };
 
 bool BackwardContext::HasOutputGrad(size_t output_index) const { return gsl::at(output_grads_, output_index)->get().has_value(); }
