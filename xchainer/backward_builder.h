@@ -90,13 +90,8 @@ public:
         bool any_defined() { return builder_.any_defined_; }
         void set_any_defined(bool defined) { builder_.any_defined_ = defined; }
         std::vector<ConstArrayRef>& outputs() { return builder_.outputs_; }
-        std::vector<internal::ArrayProps>& output_array_props() {
-            assert(!builder_.output_array_props_.empty());
-            return builder_.output_array_props_;
-        }
         std::unordered_map<GraphId, std::shared_ptr<OpNode>>& op_node_map() { return builder_.op_node_map_; }
 
-        void PrepareOutputArrayProps() { builder_.PrepareOutputArrayProps(); }
         void PrepareGraphToNextArrayNodes();
         std::shared_ptr<OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
         void RegisterOuterGraphsPreviousArrayNodes(const std::vector<OpNode*>& op_nodes);
@@ -110,8 +105,6 @@ public:
     Target CreateTarget(const Array& input) { return Target{*this, {input}}; }
 
 private:
-    void PrepareOutputArrayProps();
-
     const char* op_name_;
 
     // Flag indicating whether the first Define() has been called.
@@ -119,8 +112,6 @@ private:
 
     // Output arrays of the op.
     std::vector<ConstArrayRef> outputs_;
-
-    std::vector<internal::ArrayProps> output_array_props_;
 
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.

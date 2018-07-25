@@ -121,10 +121,10 @@ public:
     // retains array nodes for other graphs.
     Array GetRetainedOutput(const RetainedOutputToken& token);
 
-    std::shared_ptr<internal::ArrayBody> GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const;
-
 private:
     size_t output_count() const;
+
+    std::shared_ptr<internal::ArrayBody> GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const;
 
     const std::shared_ptr<OpNode>& op_node_;  // never be nullptr
 
@@ -132,12 +132,12 @@ private:
     // Null if the array node is gone (the weak pointer is dead).
     gsl::span<std::shared_ptr<ArrayNode>> prev_array_nodes_;
 
-    gsl::span<internal::GradRef*> prev_grads_;
+    gsl::span<internal::GradRef*> output_grads_;
 
     // A reference to the storage of input gradient arrays.
     // Gradient passed in input_grad() will be put into this storage.
     // Unset gradients will have null array body.
-    std::vector<Array>& input_grads_storage_;
+    std::vector<Array>& input_grads_;
 
     // Boolean flags indicating whether the input gradients are required to be set in the backward function.
     const std::vector<bool>& is_input_grads_required_;
