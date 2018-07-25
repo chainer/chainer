@@ -20,6 +20,8 @@ class NativeBackend;
 
 }  // namespace native
 
+// TODO(sonots): Hide GraphId-related functions from users.
+// TODO(sonots): Move implementations of GraphId-releated functions into another class.
 class Context {
 public:
     Context() = default;
