@@ -121,16 +121,21 @@ void Context::ReleaseGraphId(const GraphId& graph_id) {
 void Context::CheckBackpropAllowed(const GraphId& graph_id) {
     // TODO(hvy): Check that graph_id exists in the stack or that it is the default graph id.
     for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend(); ++it) {
-        if (it->last_backpropped_sub_id.has_value() && *it->last_backpropped_sub_id < graph_id.sub_id()) {
-            throw XchainerError{"Cannot backward for graph ", graph_id, " after ", GraphId{*this, *it->last_backpropped_sub_id}};
+        if (it->sub_id == graph_id.sub_id()) {
+            if (it->is_outer_graph_backpropped) {
+                throw XchainerError{"Cannot backward for graph ", graph_id, " after outer graph"};
+            }
+            break;
         }
     }
 }
 
 void Context::SetBackpropDone(const GraphId& graph_id) {
     for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend(); ++it) {
-        assert(!(it->last_backpropped_sub_id.has_value() && *it->last_backpropped_sub_id < graph_id.sub_id()));
-        it->last_backpropped_sub_id = graph_id.sub_id();
+        if (it->sub_id == graph_id.sub_id()) {
+            break;
+        }
+        it->is_outer_graph_backpropped = true;
     }
 }
 

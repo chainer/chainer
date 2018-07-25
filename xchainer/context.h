@@ -73,9 +73,8 @@ private:
         GraphSubId sub_id;
         std::string name;
 
-        // The outermost graph ID which has been backpropped within the scope of this graph.
-        // Used to detect and forbid running backprop on inner graphs.
-        nonstd::optional<GraphSubId> last_backpropped_sub_id{nonstd::nullopt};
+        // Indicates whether Backward on any outer graphs (note that this graph is not included) has been called.
+        bool is_outer_graph_backpropped{false};
     };
 
     std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
