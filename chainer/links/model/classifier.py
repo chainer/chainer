@@ -107,6 +107,14 @@ class Classifier(link.Chain):
         It feeds features to the predictor and compare the result
         with ground truth labels.
 
+        .. note::
+            We set ``None`` to the attributes ``y``, ``loss`` and ``accuracy``
+            each time before running the predictor, to avoid unnecessary memory
+            consumption. Note that the variables set on those attributes hold
+            the whole computation graph when they are computed. The graph
+            stores interim values on memory required for back-propagation.
+            We need to clear the attributes to free those values.
+
         Returns:
             ~chainer.Variable: Loss value.
 
@@ -128,11 +136,6 @@ class Classifier(link.Chain):
             t = kwargs[self.label_key]
             del kwargs[self.label_key]
 
-        # The model keeps these variables on its attributes for ease of later
-        # accesses. In such a case, we shall clear the attributes before
-        # running the predictor on another batch. If we didn't, memory
-        # would be doubly allocated, because the variables retain the whole
-        # computation graph on the previous batch.
         self.y = None
         self.loss = None
         self.accuracy = None
