@@ -123,8 +123,8 @@ TEST_P(ArrayTest, ArrayBodyCtor) {
     EXPECT_EQ(a.IsContiguous(), b.IsContiguous());
     EXPECT_EQ(a.offset(), b.offset());
     EXPECT_EQ(a.data(), b.data());
-    EXPECT_THROW(internal::GetArrayNode(a), XchainerError);
-    EXPECT_THROW(internal::GetArrayNode(b), XchainerError);
+    EXPECT_TRUE(internal::GetArrayBody(a)->nodes().empty());
+    EXPECT_TRUE(internal::GetArrayBody(b)->nodes().empty());
 }
 
 TEST_P(ArrayTest, CopyAssignment) {
@@ -547,8 +547,8 @@ TEST_P(ArrayTest, ComputationalGraph) {
     b.RequireGrad(graph_id);
 
     {
-        auto a_array_node = internal::GetArrayNode(a, graph_id);
-        auto b_array_node = internal::GetArrayNode(b, graph_id);
+        auto a_array_node = internal::GetArrayBody(a)->GetArrayNode(graph_id);
+        auto b_array_node = internal::GetArrayBody(b)->GetArrayNode(graph_id);
         EXPECT_NE(a_array_node, nullptr);
         EXPECT_NE(b_array_node, nullptr);
         auto a_op_node = a_array_node->next_op_node();
@@ -559,9 +559,9 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array c = a + b;
     {
-        auto a_array_node = internal::GetArrayNode(a, graph_id);
-        auto b_array_node = internal::GetArrayNode(b, graph_id);
-        auto c_array_node = internal::GetArrayNode(c, graph_id);
+        auto a_array_node = internal::GetArrayBody(a)->GetArrayNode(graph_id);
+        auto b_array_node = internal::GetArrayBody(b)->GetArrayNode(graph_id);
+        auto c_array_node = internal::GetArrayBody(c)->GetArrayNode(graph_id);
         EXPECT_NE(a_array_node, nullptr);
         EXPECT_NE(b_array_node, nullptr);
         EXPECT_NE(c_array_node, nullptr);
@@ -576,10 +576,10 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array o = a * c;
     {
-        auto a_array_node = internal::GetArrayNode(a, graph_id);
-        auto b_array_node = internal::GetArrayNode(b, graph_id);
-        auto c_array_node = internal::GetArrayNode(c, graph_id);
-        auto o_array_node = internal::GetArrayNode(o, graph_id);
+        auto a_array_node = internal::GetArrayBody(a)->GetArrayNode(graph_id);
+        auto b_array_node = internal::GetArrayBody(b)->GetArrayNode(graph_id);
+        auto c_array_node = internal::GetArrayBody(c)->GetArrayNode(graph_id);
+        auto o_array_node = internal::GetArrayBody(o)->GetArrayNode(graph_id);
         EXPECT_NE(a_array_node, nullptr);
         EXPECT_NE(b_array_node, nullptr);
         EXPECT_NE(c_array_node, nullptr);

@@ -58,27 +58,6 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 
 const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array) { return array.body_; }
 
-const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
-    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
-    auto array_node = std::make_shared<ArrayNode>(array.shape(), array.dtype(), array.device(), actual_graph_id);
-    return internal::ArrayBody::AddNode(array.body(), array_node);
-}
-
-std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
-    return GetMutableArrayNode(array, graph_id);
-}
-
-const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
-    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
-    const auto& nodes = internal::GetArrayBody(array)->nodes();
-    auto it =
-            std::find_if(nodes.begin(), nodes.end(), [&actual_graph_id](const auto& node) { return actual_graph_id == node->graph_id(); });
-    if (it == nodes.end()) {
-        throw XchainerError{"Array does not belong to the graph: '", actual_graph_id, "'."};
-    }
-    return *it;
-}
-
 }  // namespace internal
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
@@ -346,7 +325,7 @@ template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<GraphId>& graph_id) {
     GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
     if (xchainer::IsBackpropRequired(actual_graph_id, array.device().context())) {
-        internal::CreateArrayNode(array, actual_graph_id);
+        internal::ArrayBody::CreateArrayNode(internal::GetArrayBody(array), actual_graph_id);
     }
     return array;
 }
@@ -466,7 +445,7 @@ void DebugDumpComputationalGraph(
             }
         }
     }
-    impl.Run(*internal::GetArrayNode(array, actual_graph_id), indent);
+    impl.Run(*internal::GetArrayBody(array)->GetArrayNode(actual_graph_id), indent);
 }
 
 }  // namespace xchainer

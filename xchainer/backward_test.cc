@@ -660,7 +660,8 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     Array z = y1 * y2;
     Backward(z, nonstd::nullopt, DoubleBackpropOption::kEnable);
 
-    std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayNode(z);
+    GraphId default_graph_id = GetDefaultContext().default_graph_id();
+    std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayBody(z)->GetArrayNode(default_graph_id);
     ASSERT_TRUE(z_array_node);
 
     std::shared_ptr<const OpNode> z_op_node = z_array_node->next_op_node();
@@ -686,7 +687,8 @@ TEST(BackpropEnableDoubleBackpropTest, Disabled) {
     Array y1 = x1 + x2;
     Array y2 = x1 * x2;
     Array z = y1 * y2;
-    std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayNode(z);
+    GraphId default_graph_id = GetDefaultContext().default_graph_id();
+    std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayBody(z)->GetArrayNode(default_graph_id);
     ASSERT_TRUE(z_array_node);
     std::shared_ptr<const OpNode> z_op_node = z_array_node->next_op_node();
     ASSERT_TRUE(z_op_node);
@@ -1610,7 +1612,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
 
             // Keep weak reference to y1.body() and y1's node to check if it is actually gone
             y1_body = y1.body();
-            y1_node = internal::GetArrayNode(y1, graph_id2);
+            y1_node = internal::GetArrayBody(y1)->GetArrayNode(graph_id2);
             // Only z2 is kept. y1 (and therefore y1's node) will be released.
             z2 = y2.MakeView();
         }

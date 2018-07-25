@@ -65,8 +65,9 @@ std::shared_ptr<OpNode> OpNode::CreateWithPrevArrayNodes(std::string name, Graph
     std::shared_ptr<OpNode> op_node = std::make_shared<OpNodeWithPublicCtor>(std::move(name), graph_id);
 
     for (const Array& out : outputs) {
-        assert(!internal::GetArrayBody(out)->HasArrayNode(graph_id));
-        const std::shared_ptr<ArrayNode>& prev_array_node = internal::CreateArrayNode(out, graph_id);
+        const std::shared_ptr<internal::ArrayBody>& out_body = internal::GetArrayBody(out);
+        assert(!out_body->HasArrayNode(graph_id));
+        const std::shared_ptr<ArrayNode>& prev_array_node = internal::ArrayBody::CreateArrayNode(out_body, graph_id);
         op_node->prev_array_props_.emplace_back(*prev_array_node);
         op_node->prev_array_nodes_.emplace_back(prev_array_node);
         prev_array_node->set_next_op_node(op_node);

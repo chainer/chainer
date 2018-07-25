@@ -35,16 +35,6 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 
 const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array);
 
-// Creates a new array node on the specified graph.
-// XchainerError is thrown if an array node is already registered on the graph.
-// The returned reference is only valid until the next call of CreateArrayNode (or ArrayBody::AddNode) on the same ArrayBody
-// instance.
-const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
-
-std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
-
-const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
-
 }  // namespace internal
 
 // The main data structure of multi-dimensional array.
@@ -205,6 +195,7 @@ public:
 
     std::string ToString() const;
 
+    // TODO(hvy): Remove accessor and replace usage with interna::GetArrayBody
     const std::shared_ptr<internal::ArrayBody>& body() const { return body_; }
 
     std::shared_ptr<internal::ArrayBody>&& move_body() { return std::move(body_); }
