@@ -21,18 +21,6 @@ class NativeBackend;
 }  // namespace native
 
 class Context {
-private:
-    struct GraphStackItem {
-        GraphStackItem(GraphSubId sub_id, std::string name) : sub_id{sub_id}, name{std::move(name)} {}
-
-        GraphSubId sub_id;
-        std::string name;
-
-        // The outermost graph ID which has been backpropped within the scope of this graph.
-        // Used to detect and forbid running backprop on inner graphs.
-        nonstd::optional<GraphSubId> last_backpropped_sub_id{nonstd::nullopt};
-    };
-
 public:
     Context() = default;
     ~Context();
@@ -76,6 +64,18 @@ public:
     }
 
 private:
+    // TODO(niboshi): Support multi-thread usage
+    struct GraphStackItem {
+        GraphStackItem(GraphSubId sub_id, std::string name) : sub_id{sub_id}, name{std::move(name)} {}
+
+        GraphSubId sub_id;
+        std::string name;
+
+        // The outermost graph ID which has been backpropped within the scope of this graph.
+        // Used to detect and forbid running backprop on inner graphs.
+        nonstd::optional<GraphSubId> last_backpropped_sub_id{nonstd::nullopt};
+    };
+
     std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
     std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
