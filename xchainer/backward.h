@@ -121,10 +121,10 @@ public:
     // retains array nodes for other graphs.
     Array GetRetainedOutput(const RetainedOutputToken& token);
 
-    std::shared_ptr<internal::ArrayBody> GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const;
-
 private:
     size_t output_count() const;
+
+    std::shared_ptr<internal::ArrayBody> GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const;
 
     const std::shared_ptr<OpNode>& op_node_;  // never be nullptr
 
