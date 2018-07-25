@@ -444,9 +444,12 @@ TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
 
     x.RequireGrad(graph_id);
 
-    Array y = -x;
+    Array y = x * x;
 
     Backward(y, graph_id);
+
+    EXPECT_TRUE(x.GetGrad(graph_id)->IsGradRequired());
+
     Backward(y);  // no throw
 }
 
@@ -459,9 +462,12 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
 
     x.RequireGrad(graph_id);
 
-    Array y = -x;
+    Array y = x * x;
 
     Backward(y);
+
+    EXPECT_FALSE(x.GetGrad()->IsGradRequired(graph_id));
+
     EXPECT_THROW(Backward(y, graph_id), XchainerError);
 }
 
@@ -476,9 +482,12 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
     x.RequireGrad(graph_id_outer);
     x.RequireGrad(graph_id_inner);
 
-    Array y = -x;
+    Array y = x * x;
 
     Backward(y, graph_id_outer);
+
+    EXPECT_FALSE(x.GetGrad(graph_id_outer)->IsGradRequired(graph_id_inner));
+
     EXPECT_THROW(Backward(y, graph_id_inner), XchainerError);
 }
 
@@ -496,11 +505,19 @@ TEST_P(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
         x.RequireGrad(graph_id_1);
         x.RequireGrad(graph_id_2);
 
-        y = -x;
+        y = x * x;
 
         Backward(y, graph_id_2);
+
+        EXPECT_TRUE(x.GetGrad(graph_id_2)->IsGradRequired());
+        EXPECT_TRUE(x.GetGrad(graph_id_2)->IsGradRequired(graph_id_1));
+
         Backward(y);
+
+        EXPECT_FALSE(x.GetGrad()->IsGradRequired(graph_id_1));
+        EXPECT_FALSE(x.GetGrad()->IsGradRequired(graph_id_2));
     }
+
     // Default graph backward is already finished in a deeper scope.
     EXPECT_THROW(Backward(y, graph_id_1), XchainerError);
 }
@@ -521,11 +538,19 @@ TEST_P(BackpropTest, BackwardThreeGraphs) {
         x.RequireGrad(graph_id_2);
         x.RequireGrad(graph_id_3);
 
-        y = -x;
+        y = x * x;
 
         Backward(y, graph_id_3);
+
+        EXPECT_TRUE(x.GetGrad(graph_id_3)->IsGradRequired(graph_id_1));
+        EXPECT_TRUE(x.GetGrad(graph_id_3)->IsGradRequired(graph_id_2));
+
         Backward(y, graph_id_1);
+
+        EXPECT_FALSE(x.GetGrad(graph_id_1)->IsGradRequired(graph_id_2));
+        EXPECT_FALSE(x.GetGrad(graph_id_1)->IsGradRequired(graph_id_3));
     }
+
     // Outer scope graph backward is already finished in a deeper scope.
     EXPECT_THROW(Backward(y, graph_id_2), XchainerError);
 }
