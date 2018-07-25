@@ -93,7 +93,7 @@ void OpNode::AssertConsistency() const {
         for (const auto& tup : outer_graphs_prev_array_nodes_) {
             const std::vector<std::shared_ptr<ArrayNode>>& vec = std::get<1>(tup);
             const std::shared_ptr<ArrayNode>& prev_array_node = vec[i_prev];
-            std::shared_ptr<internal::ArrayBody> body = prev_array_node->GetBody();
+            std::shared_ptr<internal::ArrayBody> body = prev_array_node->weak_body().lock();
             if (!prev_array_body.has_value()) {
                 prev_array_body = body.get();
             } else {

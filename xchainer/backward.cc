@@ -47,7 +47,7 @@ void SetGrad(nonstd::optional<Array>& target_grad, Array grad, const Shape& shap
     target_grad = std::move(grad);
 }
 
-GradRef::GradRef(ArrayNode& array_node) : original_grad_owner_body_{array_node.GetBody()} {
+GradRef::GradRef(ArrayNode& array_node) : original_grad_owner_body_{array_node.weak_body().lock()} {
     if (original_grad_owner_body_ != nullptr) {
         original_grad_ptr_ = original_grad_owner_body_->GetGrad(array_node.graph_id());
     }
@@ -148,7 +148,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
         const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes_[output_index];
         if (prev_array_node != nullptr) {
             // array node is alive
-            array_body = prev_array_node->GetBody();
+            array_body = prev_array_node->weak_body().lock();
         }
 
         if (array_body == nullptr) {
@@ -179,7 +179,7 @@ std::shared_ptr<internal::ArrayBody> BackwardContext::GetFabricatedArrayBodyWith
     for (const auto& tup : op_node_->outer_graphs_prev_array_nodes()) {
         const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes = std::get<1>(tup);
         const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes[token.output_index()];
-        assert(prev_array_node->GetBody() == nullptr);
+        assert(prev_array_node->weak_body().expired());
         new_prev_array_nodes.emplace_back(prev_array_node);
     }
 
@@ -201,7 +201,7 @@ std::shared_ptr<internal::ArrayBody> BackwardContext::GetFabricatedArrayBodyWith
     // TODO(niboshi): Avoid unnecessary copy of array body params.
     auto fabricated_array_body = std::make_shared<internal::ArrayBody>(token.output_array_params());
     for (const std::shared_ptr<ArrayNode>& prev_array_node : new_prev_array_nodes) {
-        assert(prev_array_node->GetBody() == nullptr);
+        assert(prev_array_node->weak_body().expired());
         internal::ArrayBody::AddNode(fabricated_array_body, prev_array_node);
     }
 
@@ -385,7 +385,7 @@ private:
                                 if (prev_array_node == nullptr) {
                                     return false;
                                 }
-                                std::shared_ptr<const internal::ArrayBody> body = prev_array_node->GetBody();
+                                std::shared_ptr<internal::ArrayBody> body = prev_array_node->weak_body().lock();
                                 if (body == nullptr) {
                                     return false;
                                 }
@@ -425,7 +425,7 @@ private:
                         [prev_array_node](const std::shared_ptr<ArrayNode>& out_node) { return prev_array_node == out_node; }) ==
                 output_array_nodes_.end()) {
                 if (prev_array_node != nullptr) {
-                    std::shared_ptr<internal::ArrayBody> body = prev_array_node->GetBody();
+                    std::shared_ptr<internal::ArrayBody> body = prev_array_node->weak_body().lock();
                     if (body != nullptr) {
                         body->ClearGrad(prev_array_node->graph_id());
                     }

@@ -422,7 +422,7 @@ public:
             visited_array_nodes.insert(&array_node);
 
             if (options_.print_metadata) {
-                std::shared_ptr<const internal::ArrayBody> body = array_node.GetBody();
+                std::shared_ptr<internal::ArrayBody> body = array_node.weak_body().lock();
                 if (body == nullptr) {
                     os_ << Indent(indent + 2) << "body=(gone)" << std::endl;
                 } else {

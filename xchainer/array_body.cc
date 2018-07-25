@@ -23,7 +23,9 @@ ArrayBody::ArrayBody(Params params)
 const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<ArrayBody>& body, std::shared_ptr<ArrayNode> array_node) {
     body->AssertConsistency();
 
-    assert(array_node->GetBody() == nullptr);
+    // The body must be either unset (the array node is being created normally) or dead (the body is being replaced with a fabricated one,
+    // as a retained output of backward)
+    assert(array_node->weak_body().expired());
 
     auto it = std::find_if(body->nodes_.begin(), body->nodes_.end(), [&array_node](const std::shared_ptr<ArrayNode>& existing_node) {
         return existing_node->graph_id() == array_node->graph_id();
@@ -32,11 +34,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
         return *it;  // Do nothing and return the existing ArrayNode if found for this graph.
     }
 
-    // The body must be either unset (the array node is being created normally) or dead (the body is being replaced with a fabricated one,
-    // as a retained output of backward)
-    assert(array_node->body_.lock() == nullptr);
-
-    array_node->body_ = body;
+    array_node->weak_body_ = body;
 
     body->nodes_.emplace_back(std::move(array_node));
     body->grads_.emplace_back(std::make_unique<nonstd::optional<Array>>(nonstd::nullopt));
@@ -52,7 +50,7 @@ void ArrayBody::AssertConsistency() const {
         const std::shared_ptr<ArrayNode>& array_node = nodes_[i];
         const nonstd::optional<Array>& grad = *grads_[i];
         assert(array_node != nullptr);
-        assert(this == array_node->GetBody().get());
+        assert(this == array_node->weak_body().lock().get());
         if (grad.has_value()) {
             assert(grad->body() != nullptr);
             assert(grad->shape() == array_node->shape());
