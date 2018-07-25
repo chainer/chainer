@@ -10,34 +10,40 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(
-    {'shape': (4, 3)},
-    {'shape': (4, 3, 2)},
-    {'shape': (4,)},
-    {'shape': ()},
-    {'shape': (1,)},
-    {'shape': (1, 1)},
-)
+@testing.parameterize(*testing.product_dict(
+    [{'dtype': numpy.float16,
+      'double_backward_options': {'atol': 3e-1, 'rtol': 3e-1}},
+     {'dtype': numpy.float32,
+      'double_backward_options': {}},
+     {'dtype': numpy.float64,
+      'double_backward_options': {}},
+     ],
+    [{'shape': (4, 3)},
+     {'shape': (4, 3, 2)},
+     {'shape': (4,)},
+     {'shape': ()},
+     {'shape': (1,)},
+     {'shape': (1, 1)},
+     ]
+))
 class TestAbsoluteError(unittest.TestCase):
 
     def setUp(self):
-        self.x0 = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.x0 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         # Add sufficient margin to prevent computational error
-        diff = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        diff[abs(diff) < 0.01] = 0.5
+        diff = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        diff[abs(diff) < 0.02] = 0.5
         self.x1 = numpy.asarray(self.x0 + diff)
-        self.gy = numpy.random.random(self.shape).astype(numpy.float32)
-        self.ggx0 = numpy.random.uniform(
-            -1, 1, self.shape).astype(numpy.float32)
-        self.ggx1 = numpy.random.uniform(
-            -1, 1, self.shape).astype(numpy.float32)
+        self.gy = numpy.random.random(self.shape).astype(self.dtype)
+        self.ggx0 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, x0_data, x1_data):
         x0 = chainer.Variable(x0_data)
         x1 = chainer.Variable(x1_data)
         loss = functions.absolute_error(x0, x1)
         loss_value = cuda.to_cpu(loss.data)
-        assert loss_value.dtype == numpy.float32
+        assert loss_value.dtype == self.dtype
         assert loss_value.shape == x0_data.shape
 
         for i in numpy.ndindex(self.x0.shape):
@@ -69,7 +75,7 @@ class TestAbsoluteError(unittest.TestCase):
                               gx0_grad, gx1_grad):
         gradient_check.check_double_backward(
             functions.absolute_error, (x0_data, x1_data), y_grad,
-            (gx0_grad, gx1_grad), eps=1e-2)
+            (gx0_grad, gx1_grad), eps=1e-2, **self.double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(
