@@ -194,9 +194,12 @@ class Link(object):
             self._within_init_scope = old_flag
 
     def __call__(self, *args, **kwargs):
-        try:
-            forward = self.forward
-        except AttributeError:
+        # (See #5078) super().__call__ is used when the method is injected by a
+        # mixin class. To keep backward compatibility, the injected one is
+        # prioritized over forward().
+        forward = getattr(super(Link, self), '__call__',
+                          getattr(self, 'forward', None))
+        if forward is None:
             raise TypeError(
                 '{} object has neither \'Link.__call__\' method overridden'
                 ' nor \'forward\' method defined.'.format(self))
