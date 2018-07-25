@@ -188,8 +188,8 @@ def test_double_backprop():
 
 
 def test_multiple_graphs_double_backprop():
-    with xchainer.graph_scope('graph_x') as graph_x, \
-            xchainer.graph_scope('graph_y') as graph_y:
+    with xchainer.graph_scope('graph_y') as graph_y, \
+            xchainer.graph_scope('graph_x') as graph_x:
 
         x = xchainer.full((1,), 2, xchainer.float32)
         x.require_grad(graph_id=graph_x)
@@ -367,8 +367,8 @@ def test_backward_multiple_graphs_reuse():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    with xchainer.graph_scope('graph_1') as graph_id1, \
-            xchainer.graph_scope('graph_2') as graph_id2:
+    with xchainer.graph_scope('graph_2') as graph_id2, \
+            xchainer.graph_scope('graph_1') as graph_id1:
 
         x1.require_grad(graph_id1)
         x2.require_grad(graph_id2)

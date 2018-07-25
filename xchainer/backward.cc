@@ -226,9 +226,15 @@ public:
             }
             output_array_nodes_.emplace_back(internal::GetMutableArrayNode(output, graph_id));
         }
+
+        // Check if backward is possible for the given graph, in this context.
+        // It is not possible if a graph from an outer scope has already been backpropped.
+        graph_id.context().CheckBackpropAllowed(graph_id);
     }
 
     void Run() {
+        Context& context = graph_id_.context();
+
         // Push initial output array nodes
         for (size_t i = 0; i < outputs_.size(); ++i) {
             const Array& output = outputs_[i];
@@ -245,6 +251,14 @@ public:
             PushNextOpNode(array_node);
         }
 
+        // Graphs for which gradients will be stopped.
+        // These include the current graph that is being backpropped depending on the double backprop option, as well as all graphs
+        // belonging to inner scopes, i.e. graphs with higher graph sub ids.
+        std::vector<GraphId> graph_ids_to_stop_gradient = context.GetInnerGraphIds(graph_id_);
+        if (double_backprop_ == DoubleBackpropOption::kDisable) {
+            graph_ids_to_stop_gradient.emplace_back(graph_id_);
+        }
+
         // Backpropagation
         while (!candidate_op_nodes_.empty()) {
             std::pop_heap(candidate_op_nodes_.begin(), candidate_op_nodes_.end(), OpNodeComparator{});
@@ -259,7 +273,7 @@ public:
 
             // Backpropagate gradients from the previous array nodes into the next array nodes.
             {
-                std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients(op_node, graph_id_);
+                std::vector<nonstd::optional<Array>> gxs = ComputeNextGradients(op_node, graph_ids_to_stop_gradient);
                 AccumulateNextGradients(*op_node, std::move(gxs));
             }
 
@@ -282,17 +296,15 @@ public:
                 }
             }
         }
+
+        // Register this graph as backpropped.
+        context.SetBackpropDone(graph_id_);
     }
 
 private:
-    std::vector<nonstd::optional<Array>> ComputeNextGradients(const std::shared_ptr<OpNode>& op_node, const GraphId& graph_id) {
+    std::vector<nonstd::optional<Array>> ComputeNextGradients(
+            const std::shared_ptr<OpNode>& op_node, const std::vector<GraphId>& graph_ids_to_stop_gradient) {
         assert(op_node != nullptr);
-
-        // Determine graph IDs to stop gradients
-        std::vector<GraphId> graph_ids_to_stop_gradient;
-        if (double_backprop_ == DoubleBackpropOption::kDisable) {
-            graph_ids_to_stop_gradient.emplace_back(graph_id);
-        }
 
         // Run backward functions to compute gradients of next array nodes.
         std::vector<nonstd::optional<Array>> next_grads;
