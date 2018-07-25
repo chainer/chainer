@@ -83,5 +83,3 @@ class PrintReport(extension.Extension):
             else:
                 out.write(empty)
         out.write('\n')
-        if hasattr(out, 'flush'):
-            out.flush()
