@@ -56,16 +56,7 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
     return Array{shape, strides, dtype, device, std::move(data), offset};
 }
 
-std::shared_ptr<ArrayBody> GetArrayBody(const Array& array) { return array.body_; }
-
-bool HasArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
-    GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
-    return std::find_if(array.nodes().begin(), array.nodes().end(), [&actual_graph_id](const auto& array_node) {
-               return actual_graph_id == array_node->graph_id();
-           }) != array.nodes().end();
-}
-
-bool HasAnyArrayNode(const Array& array) { return !array.nodes().empty(); }
+const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array) { return array.body_; }
 
 const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
     GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
@@ -79,10 +70,10 @@ std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const nonstd::
 
 const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
     GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
-    auto it = std::find_if(array.nodes().begin(), array.nodes().end(), [&actual_graph_id](const auto& node) {
-        return actual_graph_id == node->graph_id();
-    });
-    if (it == array.nodes().end()) {
+    const auto& nodes = internal::GetArrayBody(array)->nodes();
+    auto it =
+            std::find_if(nodes.begin(), nodes.end(), [&actual_graph_id](const auto& node) { return actual_graph_id == node->graph_id(); });
+    if (it == nodes.end()) {
         throw XchainerError{"Array does not belong to the graph: '", actual_graph_id, "'."};
     }
     return *it;
@@ -469,7 +460,7 @@ void DebugDumpComputationalGraph(
     PrintComputationalGraphImpl impl{os};
     GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
     for (const auto& pair : array_name_map) {
-        for (const std::shared_ptr<ArrayNode>& array_node : pair.first.get().nodes()) {
+        for (const std::shared_ptr<ArrayNode>& array_node : internal::GetArrayBody(pair.first.get())->nodes()) {
             if (array_node->graph_id() == actual_graph_id) {
                 impl.SetArrayName(*array_node, pair.second);
             }

@@ -47,6 +47,13 @@ public:
     ArrayBody(const ArrayBody&) = delete;
     ArrayBody& operator=(const ArrayBody&) = delete;
 
+    const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return nodes_; }
+
+    // TODO(niboshi): Remove this function and add another to assign an array node at a specified index.
+    std::vector<std::shared_ptr<ArrayNode>>& nodes() { return nodes_; }
+
+    bool HasArrayNode(const GraphId& graph_id) const { return GetNodeIndex(graph_id).has_value(); }
+
     // Adds an array node to the array body.
     // The array node must have been initialized with this array body in advance.
     // Otherwise the behavior is undefined.

@@ -28,7 +28,8 @@ RetainedOutputToken::RetainedOutputToken(std::shared_ptr<internal::ArrayBody> da
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()} {
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
-    assert(std::all_of(outputs.begin(), outputs.end(), [](const Array& output) { return !internal::HasAnyArrayNode(output); }));
+    assert(std::all_of(
+            outputs.begin(), outputs.end(), [](const Array& output) { return internal::GetArrayBody(output)->nodes().empty(); }));
     // All output arrays must have the same device.
     assert(std::all_of(outputs.begin(), outputs.end(), [&outputs](const Array& output) {
         return &outputs.begin()->get().device() == &output.device();
@@ -50,7 +51,7 @@ void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
     // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
     for (size_t i_input = 0; i_input < inputs_.size(); ++i_input) {
         const Array& input = *(inputs_.begin() + i_input);
-        for (std::shared_ptr<ArrayNode>& next_array_node : input.nodes()) {
+        for (std::shared_ptr<ArrayNode>& next_array_node : internal::GetArrayBody(input)->nodes()) {
             const GraphId& graph_id = next_array_node->graph_id();
             if (!IsBackpropRequired(graph_id, input.device().context())) {
                 continue;
@@ -99,7 +100,7 @@ void BackwardBuilder::Target::RegisterOuterGraphsPreviousArrayNodes(const std::v
 
     std::unordered_map<GraphId, std::vector<std::shared_ptr<ArrayNode>>> prev_array_node_all_graphs;
     for (const Array& output : outputs()) {
-        for (const std::shared_ptr<ArrayNode>& output_array_node : output.nodes()) {
+        for (const std::shared_ptr<ArrayNode>& output_array_node : internal::GetArrayBody(output)->nodes()) {
             prev_array_node_all_graphs[output_array_node->graph_id()].emplace_back(output_array_node);
         }
     }

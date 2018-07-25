@@ -59,7 +59,7 @@ public:
         : kernel_size_{std::move(kernel_size)}, stride_{std::move(stride)}, pad_{std::move(pad)}, cover_all_{cover_all} {}
 
     Array Forward(const Array& x) override {
-        assert(!internal::HasAnyArrayNode(x));
+        assert(internal::GetArrayBody(x)->nodes().empty());
 
         // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
         col_ = native_internal::Im2Col(x, kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x.dtype()));
@@ -70,7 +70,7 @@ public:
     }
 
     Array Backward(const Array& gout) override {
-        assert(!internal::HasAnyArrayNode(gout));
+        assert(internal::GetArrayBody(gout)->nodes().empty());
 
         indices_ = col_.ArgMax(axes_);
         assert(indices_.shape() == gout.shape());
@@ -97,7 +97,7 @@ public:
     }
 
     Array DoubleBackward(const Array& ggx) override {
-        assert(!internal::HasAnyArrayNode(ggx));
+        assert(internal::GetArrayBody(ggx)->nodes().empty());
 
         Array col = native_internal::Im2Col(ggx, kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x_.dtype()));
         return Take(
@@ -205,7 +205,7 @@ public:
         : kernel_size_{std::move(kernel_size)}, stride_{std::move(stride)}, pad_{std::move(pad)}, pad_mode_{pad_mode} {}
 
     Array Forward(const Array& x) override {
-        assert(!internal::HasAnyArrayNode(x));
+        assert(internal::GetArrayBody(x)->nodes().empty());
 
         Array col = native_internal::Im2Col(x, kernel_size_, stride_, pad_, false, 0);
 
@@ -236,7 +236,7 @@ public:
     }
 
     Array Backward(const Array& gout) override {
-        assert(!internal::HasAnyArrayNode(gout));
+        assert(internal::GetArrayBody(gout)->nodes().empty());
 
         Shape reshape_to = gcol_shape_;
         std::fill(reshape_to.begin() + 2, reshape_to.begin() + x_.ndim(), int64_t{1});

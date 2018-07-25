@@ -26,7 +26,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
         const GraphId& graph_id,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kEnable) {
     for (const auto& input : inputs) {
-        if (internal::HasArrayNode(input, graph_id) && internal::GetArrayNode(input, graph_id)->next_op_node()) {
+        if (internal::GetArrayBody(input)->HasArrayNode(graph_id) && internal::GetArrayNode(input, graph_id)->next_op_node()) {
             throw GradientCheckError{"BackwardGradients: All inputs must be leaf nodes of computational graph"};
         }
     }
@@ -155,7 +155,7 @@ void CheckBackwardComputation(
     std::vector<Array> inputs_copy;
     for (const auto& input : inputs) {
         Array a = input.AsGradStopped(CopyKind::kCopy);
-        for (const std::shared_ptr<ArrayNode>& arr_node : input.nodes()) {
+        for (const std::shared_ptr<ArrayNode>& arr_node : internal::GetArrayBody(input)->nodes()) {
             a.RequireGrad(arr_node->graph_id());
         }
         inputs_copy.emplace_back(std::move(a));

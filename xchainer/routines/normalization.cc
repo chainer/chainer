@@ -108,9 +108,9 @@ Array BatchNorm(
             const Array& gx = ginputs[0];
             const Array& ggamma = ginputs[1];
             const Array& gbeta = ginputs[2];
-            assert(!internal::HasAnyArrayNode(gx));
-            assert(!internal::HasAnyArrayNode(ggamma));
-            assert(!internal::HasAnyArrayNode(gbeta));
+            assert(internal::GetArrayBody(gx)->nodes().empty());
+            assert(internal::GetArrayBody(ggamma)->nodes().empty());
+            assert(internal::GetArrayBody(gbeta)->nodes().empty());
 
             if (bctx.next_required()) {
                 BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};

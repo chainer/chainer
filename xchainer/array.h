@@ -33,11 +33,7 @@ namespace internal {
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
-std::shared_ptr<ArrayBody> GetArrayBody(const Array& array);
-
-bool HasArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
-
-bool HasAnyArrayNode(const Array& array);
+const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array);
 
 // Creates a new array node on the specified graph.
 // XchainerError is thrown if an array node is already registered on the graph.
@@ -231,11 +227,10 @@ public:
 
     int64_t offset() const { return body_->offset_; }
 
-    std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return body_->nodes_; }
-
 private:
     friend Array internal::MakeArray(
             const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+    friend const std::shared_ptr<internal::ArrayBody>& internal::GetArrayBody(const Array& array);
 
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
