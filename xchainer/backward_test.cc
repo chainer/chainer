@@ -47,6 +47,8 @@ namespace {
     return ::testing::AssertionFailure() << os.str();
 }
 
+// TODO(hvy): Separate tests of graph stack manipulation into another test class/fixture and parameterize the outermost graph over the
+// default graph and an explicitly scoped graph. Some tests will become redundant. Remove them.
 class BackpropTest : public ::testing::TestWithParam<std::string> {
 protected:
     void SetUp() override {
@@ -347,6 +349,48 @@ TEST_P(BackpropTest, MultipleGraphsNonExisting) {
     EXPECT_THROW(Backward(y1, graph_id_2), XchainerError);
 }
 
+TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
+    Array x1 = MakeFullArray({1}, {2.0f});
+    Array x2 = MakeFullArray({1}, {5.0f});
+
+    GraphScope graph_scope{"graph"};
+    GraphId graph_id = graph_scope.graph_id();
+
+    x1.RequireGrad(graph_id);
+    x2.RequireGrad();
+
+    Array y1 = x1 * x2;
+    Backward(y1, graph_id);
+
+    Array expected_1 = MakeFullArray({1}, {5.0f});
+    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id));
+    EXPECT_FALSE(x2.GetGrad());
+
+    x1.ClearGrad(graph_id);
+    x2.ClearGrad();
+
+    Array y2 = x1 * x2;
+    Backward(y2);
+
+    Array expected_2 = MakeFullArray({1}, {2.0f});
+    ExpectEqual<float>(expected_2, *x2.GetGrad());
+    EXPECT_FALSE(x1.GetGrad(graph_id));
+
+    x1.ClearGrad(graph_id);
+    x2.ClearGrad();
+
+    x1.RequireGrad();
+    x2.RequireGrad(graph_id);
+
+    Array y3 = x1 * x2;
+    Backward(y3);
+
+    ExpectEqual<float>(expected_1, *x1.GetGrad());
+    ExpectEqual<float>(expected_2, *x2.GetGrad());
+    EXPECT_FALSE(x1.GetGrad(graph_id));
+    EXPECT_FALSE(x2.GetGrad(graph_id));
+}
+
 TEST_P(BackpropTest, MultipleGraphsReuse) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
@@ -391,8 +435,99 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(graph_id_inner));
 }
 
-TEST_P(BackpropTest, BackwardOrderMatters) {
-    // TODO(hvy): Test that backward order matters between multiple graphs.
+TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
+    Array x = MakeFullArray({1}, {2.0f});
+    x.RequireGrad();
+
+    GraphScope graph_scope{"graph"};
+    GraphId graph_id = graph_scope.graph_id();
+
+    x.RequireGrad(graph_id);
+
+    Array y = -x;
+
+    Backward(y, graph_id);
+    Backward(y);  // no throw
+}
+
+TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
+    Array x = MakeFullArray({1}, {2.0f});
+    x.RequireGrad();
+
+    GraphScope graph_scope{"graph"};
+    GraphId graph_id = graph_scope.graph_id();
+
+    x.RequireGrad(graph_id);
+
+    Array y = -x;
+
+    Backward(y);
+    EXPECT_THROW(Backward(y, graph_id), XchainerError);
+}
+
+TEST_P(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
+    Array x = MakeFullArray({1}, {2.0f});
+
+    GraphScope graph_scope_outer{"graph_outer"};
+    GraphScope graph_scope_inner{"graph_inner"};
+    GraphId graph_id_outer = graph_scope_outer.graph_id();
+    GraphId graph_id_inner = graph_scope_inner.graph_id();
+
+    x.RequireGrad(graph_id_outer);
+    x.RequireGrad(graph_id_inner);
+
+    Array y = -x;
+
+    Backward(y, graph_id_outer);
+    EXPECT_THROW(Backward(y, graph_id_inner), XchainerError);
+}
+
+TEST_P(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
+    Array x = MakeFullArray({1}, {2.0f});
+    Array y;
+
+    GraphScope graph_scope_1{"graph_1"};
+    GraphId graph_id_1 = graph_scope_1.graph_id();
+    {
+        GraphScope graph_scope_2{"graph_2"};
+        GraphId graph_id_2 = graph_scope_2.graph_id();
+
+        x.RequireGrad();
+        x.RequireGrad(graph_id_1);
+        x.RequireGrad(graph_id_2);
+
+        y = -x;
+
+        Backward(y, graph_id_2);
+        Backward(y);
+    }
+    // Default graph backward is already finished in a deeper scope.
+    EXPECT_THROW(Backward(y, graph_id_1), XchainerError);
+}
+
+TEST_P(BackpropTest, BackwardThreeGraphs) {
+    Array x = MakeFullArray({1}, {2.0f});
+    Array y;
+
+    GraphScope graph_scope_1{"graph_1"};
+    GraphScope graph_scope_2{"graph_2"};
+    GraphId graph_id_1 = graph_scope_1.graph_id();
+    GraphId graph_id_2 = graph_scope_2.graph_id();
+    {
+        GraphScope graph_scope_3{"graph_3"};
+        GraphId graph_id_3 = graph_scope_3.graph_id();
+
+        x.RequireGrad(graph_id_1);
+        x.RequireGrad(graph_id_2);
+        x.RequireGrad(graph_id_3);
+
+        y = -x;
+
+        Backward(y, graph_id_3);
+        Backward(y, graph_id_1);
+    }
+    // Outer scope graph backward is already finished in a deeper scope.
+    EXPECT_THROW(Backward(y, graph_id_2), XchainerError);
 }
 
 TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
