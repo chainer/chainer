@@ -351,44 +351,44 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id_1 = graph_scope1.graph_id();
-    GraphId graph_id_2 = graph_scope2.graph_id();
+    GraphScope graph_scope_outer{"graph_outer"};
+    GraphScope graph_scope_inner{"graph_inner"};
+    GraphId graph_id_outer = graph_scope_outer.graph_id();
+    GraphId graph_id_inner = graph_scope_inner.graph_id();
 
-    x1.RequireGrad(graph_id_2);
-    x2.RequireGrad(graph_id_1);
+    x1.RequireGrad(graph_id_inner);
+    x2.RequireGrad(graph_id_outer);
 
     Array y1 = x1 * x2;
-    Backward(y1, graph_id_2);
+    Backward(y1, graph_id_inner);
 
     Array expected_1 = MakeFullArray({1}, {5.0f});
-    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_2));
-    EXPECT_FALSE(x2.GetGrad(graph_id_1));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_inner));
+    EXPECT_FALSE(x2.GetGrad(graph_id_outer));
 
-    x1.ClearGrad(graph_id_2);
-    x2.ClearGrad(graph_id_1);
+    x1.ClearGrad(graph_id_inner);
+    x2.ClearGrad(graph_id_outer);
 
     Array y2 = x1 * x2;
-    Backward(y2, graph_id_1);
+    Backward(y2, graph_id_outer);
 
     Array expected_2 = MakeFullArray({1}, {2.0f});
-    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_1));
-    EXPECT_FALSE(x1.GetGrad(graph_id_2));
+    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_outer));
+    EXPECT_FALSE(x1.GetGrad(graph_id_inner));
 
-    x1.ClearGrad(graph_id_2);
-    x2.ClearGrad(graph_id_1);
+    x1.ClearGrad(graph_id_inner);
+    x2.ClearGrad(graph_id_outer);
 
-    x1.RequireGrad(graph_id_1);
-    x2.RequireGrad(graph_id_2);
+    x1.RequireGrad(graph_id_outer);
+    x2.RequireGrad(graph_id_inner);
 
     Array y3 = x1 * x2;
-    Backward(y3, graph_id_1);
+    Backward(y3, graph_id_outer);
 
-    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_1));
-    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_1));
-    EXPECT_FALSE(x1.GetGrad(graph_id_2));
-    EXPECT_FALSE(x2.GetGrad(graph_id_2));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_outer));
+    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_outer));
+    EXPECT_FALSE(x1.GetGrad(graph_id_inner));
+    EXPECT_FALSE(x2.GetGrad(graph_id_inner));
 }
 
 TEST_P(BackpropTest, BackwardOrderMatters) {
