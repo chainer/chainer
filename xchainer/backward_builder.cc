@@ -35,15 +35,6 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<Cons
     }));
 }
 
-void BackwardBuilder::PrepareOutputArrayProps() {
-    assert(output_array_props_.empty());
-    output_array_props_.reserve(outputs_.size());
-    std::transform(
-            outputs_.begin(), outputs_.end(), std::back_inserter(output_array_props_), [](const Array& output) -> internal::ArrayProps {
-                return internal::ArrayProps{output};
-            });
-}
-
 BackwardBuilder::Target::Target(BackwardBuilder& builder, std::initializer_list<ConstArrayRef> inputs)
     : builder_{builder}, inputs_{inputs.begin(), inputs.end()} {
     // All input arrays must have the same device.
@@ -125,11 +116,6 @@ void BackwardBuilder::Target::RegisterOuterGraphsPreviousArrayNodes(const std::v
 }
 
 void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
-    // Lazily prepare output_array_props_ for performance
-    if (!any_defined()) {
-        PrepareOutputArrayProps();
-    }
-
     // Pointers to op nodes involved in this backward function
     std::vector<OpNode*> op_nodes;
 
