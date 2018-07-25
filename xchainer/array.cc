@@ -56,6 +56,8 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
     return Array{shape, strides, dtype, device, std::move(data), offset};
 }
 
+std::shared_ptr<ArrayBody> GetArrayBody(const Array& array) { return array.body_; }
+
 bool HasArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id) {
     GraphId actual_graph_id = GetArrayGraphId(array, graph_id);
     return std::find_if(array.nodes().begin(), array.nodes().end(), [&actual_graph_id](const auto& array_node) {
