@@ -70,7 +70,7 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     Shape shape{count};
     std::shared_ptr<void> data{info.ptr, [](void*) {}};
 
-    return xchainer::FromData(shape, GetDtype(dtype), data, nonstd::nullopt, offset, GetDevice(device)).move_body();
+    return internal::MoveArrayBody(xchainer::FromData(shape, GetDtype(dtype), data, nonstd::nullopt, offset, GetDevice(device)));
 }
 
 }  // namespace
@@ -91,21 +91,21 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("ascontiguousarray",
           [](py::handle a, py::handle dtype, py::handle device) {
               Array arr{MakeArray(a, dtype, false, device)};
-              return AsContiguousArray(arr).move_body();
+              return internal::MoveArrayBody(AsContiguousArray(arr));
           },
           py::arg("a"),
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("empty",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)).move_body();
+              return internal::MoveArrayBody(Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("full",
           [](py::tuple shape, Scalar fill_value, py::handle dtype, py::handle device) {
-              return Full(ToShape(shape), fill_value, GetDtype(dtype), GetDevice(device)).move_body();
+              return internal::MoveArrayBody(Full(ToShape(shape), fill_value, GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("fill_value"),
@@ -113,21 +113,21 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("full",
           [](py::tuple shape, Scalar fill_value, py::handle device) {
-              return Full(ToShape(shape), fill_value, GetDevice(device)).move_body();
+              return internal::MoveArrayBody(Full(ToShape(shape), fill_value, GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("fill_value"),
           py::arg("device") = nullptr);
     m.def("zeros",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return Zeros(ToShape(shape), GetDtype(dtype), GetDevice(device)).move_body();
+              return internal::MoveArrayBody(Zeros(ToShape(shape), GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("ones",
           [](py::tuple shape, py::handle dtype, py::handle device) {
-              return Ones(ToShape(shape), GetDtype(dtype), GetDevice(device)).move_body();
+              return internal::MoveArrayBody(Ones(ToShape(shape), GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype"),
@@ -148,8 +148,8 @@ void InitXchainerRoutines(pybind11::module& m) {
                   stop = maybe_stop.value();
               }
 
-              return dtype.is_none() ? Arange(start, stop, step, GetDevice(device)).move_body()
-                                     : Arange(start, stop, step, GetDtype(dtype), GetDevice(device)).move_body();
+              return dtype.is_none() ? internal::MoveArrayBody(Arange(start, stop, step, GetDevice(device)))
+                                     : internal::MoveArrayBody(Arange(start, stop, step, GetDtype(dtype), GetDevice(device)));
           },
           py::arg("start"),
           py::arg("stop") = nullptr,
@@ -157,23 +157,25 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("empty_like",
-          [](const ArrayBodyPtr& a, py::handle device) { return EmptyLike(Array{a}, GetDevice(device)).move_body(); },
+          [](const ArrayBodyPtr& a, py::handle device) { return internal::MoveArrayBody(EmptyLike(Array{a}, GetDevice(device))); },
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("full_like",
-          [](const ArrayBodyPtr& a, Scalar value, py::handle device) { return FullLike(Array{a}, value, GetDevice(device)).move_body(); },
+          [](const ArrayBodyPtr& a, Scalar value, py::handle device) {
+              return internal::MoveArrayBody(FullLike(Array{a}, value, GetDevice(device)));
+          },
           py::arg("a"),
           py::arg("fill_value"),
           py::arg("device") = nullptr);
     m.def("zeros_like",
-          [](const ArrayBodyPtr& a, py::handle device) { return ZerosLike(Array{a}, GetDevice(device)).move_body(); },
+          [](const ArrayBodyPtr& a, py::handle device) { return internal::MoveArrayBody(ZerosLike(Array{a}, GetDevice(device))); },
           py::arg("a"),
           py::arg("device") = nullptr);
     m.def("ones_like",
-          [](const ArrayBodyPtr& a, py::handle device) { return OnesLike(Array{a}, GetDevice(device)).move_body(); },
+          [](const ArrayBodyPtr& a, py::handle device) { return internal::MoveArrayBody(OnesLike(Array{a}, GetDevice(device))); },
           py::arg("a"),
           py::arg("device") = nullptr);
-    m.def("copy", [](const ArrayBodyPtr& a) { return Copy(Array{a}).move_body(); }, py::arg("a"));
+    m.def("copy", [](const ArrayBodyPtr& a) { return internal::MoveArrayBody(Copy(Array{a})); }, py::arg("a"));
     m.def("frombuffer",
           &MakeArrayFromBuffer,
           py::arg("buffer"),
@@ -183,7 +185,7 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("identity",
           [](int64_t n, py::handle dtype, py::handle device) {
-              return Identity(n, dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)).move_body();
+              return internal::MoveArrayBody(Identity(n, dtype.is_none() ? Dtype::kFloat64 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("n"),
           py::arg("dtype") = nullptr,
@@ -193,7 +195,7 @@ void InitXchainerRoutines(pybind11::module& m) {
               if (!m.has_value()) {
                   m = n;
               }
-              return Eye(n, m.value(), k, GetDtype(dtype), GetDevice(device)).move_body();
+              return internal::MoveArrayBody(Eye(n, m.value(), k, GetDtype(dtype), GetDevice(device)));
           },
           py::arg("N"),
           py::arg("M") = nullptr,
@@ -201,25 +203,26 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("dtype") = Dtype::kFloat64,
           py::arg("device") = nullptr);
     m.def("diag",
-          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return Diag(Array{v}, k, GetDevice(device)).move_body(); },
+          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return internal::MoveArrayBody(Diag(Array{v}, k, GetDevice(device))); },
           py::arg("v"),
           py::arg("k") = 0,
           py::arg("device") = nullptr);
     m.def("diagflat",
-          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return Diagflat(Array{v}, k, GetDevice(device)).move_body(); },
+          [](const ArrayBodyPtr& v, int64_t k, py::handle device) {
+              return internal::MoveArrayBody(Diagflat(Array{v}, k, GetDevice(device)));
+          },
           py::arg("v"),
           py::arg("k") = 0,
           py::arg("device") = nullptr);
     m.def("linspace",
           [](Scalar start, Scalar stop, int64_t num, bool endpoint, py::handle dtype, py::handle device) {
-              return Linspace(
-                             start,
-                             stop,
-                             num,
-                             endpoint,
-                             dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt} : nonstd::optional<Dtype>{GetDtype(dtype)},
-                             GetDevice(device))
-                      .move_body();
+              return internal::MoveArrayBody(Linspace(
+                      start,
+                      stop,
+                      num,
+                      endpoint,
+                      dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt} : nonstd::optional<Dtype>{GetDtype(dtype)},
+                      GetDevice(device)));
           },
           py::arg("start"),
           py::arg("stop"),
@@ -234,7 +237,7 @@ void InitXchainerRoutines(pybind11::module& m) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for xchainer.take."};
               }
-              return Take(Array{a}, Array{indices}, axis.value()).move_body();
+              return internal::MoveArrayBody(Take(Array{a}, Array{indices}, axis.value()));
           },
           py::arg("a"),
           py::arg("indices"),
@@ -242,13 +245,13 @@ void InitXchainerRoutines(pybind11::module& m) {
 
     // linalg routines
     m.def("dot",
-          [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return Dot(Array{a}, Array{b}).move_body(); },
+          [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return internal::MoveArrayBody(Dot(Array{a}, Array{b})); },
           py::arg("a"),
           py::arg("b"));
 
     // logic routines
     m.def("equal",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return Equal(Array{x1}, Array{x2}).move_body(); },
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return internal::MoveArrayBody(Equal(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
 
@@ -272,21 +275,21 @@ void InitXchainerRoutines(pybind11::module& m) {
           py::arg("a"));
     m.def("transpose",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axes) {
-              return Transpose(Array{a}, ToAxes(axes)).move_body();
+              return internal::MoveArrayBody(Transpose(Array{a}, ToAxes(axes)));
           },
           py::arg("a"),
           py::arg("axes") = nullptr);
     m.def("transpose",
-          [](const ArrayBodyPtr& a, int8_t axes) { return Transpose(Array{a}, {axes}).move_body(); },
+          [](const ArrayBodyPtr& a, int8_t axes) { return internal::MoveArrayBody(Transpose(Array{a}, {axes})); },
           py::arg("a"),
           py::arg("axes") = nullptr);
     m.def("reshape",
-          [](const ArrayBodyPtr& a, py::tuple newshape) { return Reshape(Array{a}, ToShape(newshape)).move_body(); },
+          [](const ArrayBodyPtr& a, py::tuple newshape) { return internal::MoveArrayBody(Reshape(Array{a}, ToShape(newshape))); },
           py::arg("a"),
           py::arg("newshape"));
     m.def("reshape",
           [](const ArrayBodyPtr& a, const std::vector<int64_t>& newshape) {
-              return Reshape(Array{a}, {newshape.begin(), newshape.end()}).move_body();
+              return internal::MoveArrayBody(Reshape(Array{a}, {newshape.begin(), newshape.end()}));
           },
           py::arg("a"),
           py::arg("newshape"));
@@ -295,108 +298,142 @@ void InitXchainerRoutines(pybind11::module& m) {
               if (args.size() == 0) {
                   throw XchainerError("Reshape is missing shape argument.");
               }
-              return Reshape(Array{a}, ToShape(args)).move_body();
+              return internal::MoveArrayBody(Reshape(Array{a}, ToShape(args)));
           },
           py::arg("a"));
     m.def("squeeze",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) {
-              return Squeeze(Array{a}, ToAxes(axis)).move_body();
+              return internal::MoveArrayBody(Squeeze(Array{a}, ToAxes(axis)));
           },
           py::arg("a"),
           py::arg("axis") = nullptr);
     m.def("squeeze",
-          [](const ArrayBodyPtr& a, int8_t axis) { return Squeeze(Array{a}, Axes{axis}).move_body(); },
+          [](const ArrayBodyPtr& a, int8_t axis) { return internal::MoveArrayBody(Squeeze(Array{a}, Axes{axis})); },
           py::arg("a"),
           py::arg("axis"));
     m.def("broadcast_to",
-          [](const ArrayBodyPtr& array, py::tuple shape) { return Array{array}.BroadcastTo(ToShape(shape)).move_body(); },
+          [](const ArrayBodyPtr& array, py::tuple shape) { return internal::MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
           py::arg("shape"));
     m.def("broadcast_to",
-          [](const ArrayBodyPtr& array, py::tuple shape) { return Array{array}.BroadcastTo(ToShape(shape)).move_body(); },
+          [](const ArrayBodyPtr& array, py::tuple shape) { return internal::MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
           py::arg("shape"));
 
     // math routines
-    m.def("negative", [](const ArrayBodyPtr& x) { return Negative(Array{x}).move_body(); }, py::arg("x"));
+    m.def("negative", [](const ArrayBodyPtr& x) { return internal::MoveArrayBody(Negative(Array{x})); }, py::arg("x"));
     m.def("add",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} + Array{x2}).move_body(); },
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return internal::MoveArrayBody(Array{x1} + Array{x2}); },
           py::arg("x1"),
           py::arg("x2"));
-    m.def("add", [](const ArrayBodyPtr& x1, Scalar x2) { return Add(Array{x1}, x2).move_body(); }, py::arg("x1"), py::arg("x2"));
-    m.def("add", [](Scalar x1, const ArrayBodyPtr& x2) { return Add(x1, Array{x2}).move_body(); }, py::arg("x1"), py::arg("x2"));
+    m.def("add",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return internal::MoveArrayBody(Add(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("add",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return internal::MoveArrayBody(Add(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("subtract",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} - Array{x2}).move_body(); },
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return internal::MoveArrayBody(Array{x1} - Array{x2}); },
           py::arg("x1"),
           py::arg("x2"));
-    m.def("subtract", [](const ArrayBodyPtr& x1, Scalar x2) { return Subtract(Array{x1}, x2).move_body(); }, py::arg("x1"), py::arg("x2"));
-    m.def("subtract", [](Scalar x1, const ArrayBodyPtr& x2) { return Subtract(x1, Array{x2}).move_body(); }, py::arg("x1"), py::arg("x2"));
+    m.def("subtract",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return internal::MoveArrayBody(Subtract(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("subtract",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return internal::MoveArrayBody(Subtract(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("multiply",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} * Array{x2}).move_body(); },
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return internal::MoveArrayBody(Array{x1} * Array{x2}); },
           py::arg("x1"),
           py::arg("x2"));
-    m.def("multiply", [](const ArrayBodyPtr& x1, Scalar x2) { return Multiply(Array{x1}, x2).move_body(); }, py::arg("x1"), py::arg("x2"));
-    m.def("multiply", [](Scalar x1, const ArrayBodyPtr& x2) { return Multiply(x1, Array{x2}).move_body(); }, py::arg("x1"), py::arg("x2"));
+    m.def("multiply",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return internal::MoveArrayBody(Multiply(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("multiply",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return internal::MoveArrayBody(Multiply(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("divide",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return (Array{x1} / Array{x2}).move_body(); },
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return internal::MoveArrayBody(Array{x1} / Array{x2}); },
           py::arg("x1"),
           py::arg("x2"));
-    m.def("divide", [](const ArrayBodyPtr& x1, Scalar x2) { return Divide(Array{x1}, x2).move_body(); }, py::arg("x1"), py::arg("x2"));
-    m.def("divide", [](Scalar x1, const ArrayBodyPtr& x2) { return Divide(x1, Array{x2}).move_body(); }, py::arg("x1"), py::arg("x2"));
+    m.def("divide",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return internal::MoveArrayBody(Divide(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("divide",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return internal::MoveArrayBody(Divide(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("sum",
-          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return Sum(Array{a}, Axes{axis}, keepdims).move_body(); },
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return internal::MoveArrayBody(Sum(Array{a}, Axes{axis}, keepdims)); },
           py::arg("a"),
           py::arg("axis"),
           py::arg("keepdims") = false);
     m.def("sum",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-              return Sum(Array{a}, ToAxes(axis), keepdims).move_body();
+              return internal::MoveArrayBody(Sum(Array{a}, ToAxes(axis), keepdims));
           },
           py::arg("a"),
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
-    m.def("maximum", [](const ArrayBodyPtr& x1, Scalar x2) { return Maximum(Array{x1}, x2).move_body(); }, py::arg("x1"), py::arg("x2"));
-    m.def("maximum", [](Scalar x1, const ArrayBodyPtr& x2) { return Maximum(x1, Array{x2}).move_body(); }, py::arg("x1"), py::arg("x2"));
-    m.def("exp", [](const ArrayBodyPtr& x) { return Exp(Array{x}).move_body(); }, py::arg("x"));
-    m.def("log", [](const ArrayBodyPtr& x) { return Log(Array{x}).move_body(); }, py::arg("x"));
+    m.def("maximum",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return internal::MoveArrayBody(Maximum(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("maximum",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return internal::MoveArrayBody(Maximum(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("exp", [](const ArrayBodyPtr& x) { return internal::MoveArrayBody(Exp(Array{x})); }, py::arg("x"));
+    m.def("log", [](const ArrayBodyPtr& x) { return internal::MoveArrayBody(Log(Array{x})); }, py::arg("x"));
     m.def("logsumexp",
-          [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) { return LogSumExp(Array{x}, Axes{axis}, keepdims).move_body(); },
+          [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) {
+              return internal::MoveArrayBody(LogSumExp(Array{x}, Axes{axis}, keepdims));
+          },
           py::arg("x"),
           py::arg("axis"),
           py::arg("keepdims") = false);
     m.def("logsumexp",
           [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-              return LogSumExp(Array{x}, ToAxes(axis), keepdims).move_body();
+              return internal::MoveArrayBody(LogSumExp(Array{x}, ToAxes(axis), keepdims));
           },
           py::arg("x"),
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     m.def("log_softmax",
-          [](const ArrayBodyPtr& x, int8_t axis) { return LogSoftmax(Array{x}, Axes{axis}).move_body(); },
+          [](const ArrayBodyPtr& x, int8_t axis) { return internal::MoveArrayBody(LogSoftmax(Array{x}, Axes{axis})); },
           py::arg("x"),
           py::arg("axis"));
     m.def("log_softmax",
           [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis) {
-              return LogSoftmax(Array{x}, ToAxes(axis)).move_body();
+              return internal::MoveArrayBody(LogSoftmax(Array{x}, ToAxes(axis)));
           },
           py::arg("x"),
           py::arg("axis") = nullptr);
 
     // sorting routines
     m.def("argmax",
-          [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) { return ArgMax(Array{a}, ToAxes(axis)).move_body(); },
+          [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) {
+              return internal::MoveArrayBody(ArgMax(Array{a}, ToAxes(axis)));
+          },
           py::arg("a"),
           py::arg("axis") = nullptr);
 
     // statistics routines
     m.def("amax",
-          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return AMax(Array{a}, Axes{axis}, keepdims).move_body(); },
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return internal::MoveArrayBody(AMax(Array{a}, Axes{axis}, keepdims)); },
           py::arg("a"),
           py::arg("axis"),
           py::arg("keepdims") = false);
     m.def("amax",
           [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-              return AMax(Array{a}, ToAxes(axis), keepdims).move_body();
+              return internal::MoveArrayBody(AMax(Array{a}, ToAxes(axis), keepdims));
           },
           py::arg("a"),
           py::arg("axis") = nullptr,
@@ -414,13 +451,13 @@ void InitXchainerRoutines(pybind11::module& m) {
               // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
-              return Conv(x_array,
-                          Array{w},
-                          b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
-                          ToStackVector<int64_t>(stride, ndim),
-                          ToStackVector<int64_t>(pad, ndim),
-                          cover_all)
-                      .move_body();
+              return internal::MoveArrayBody(
+                      Conv(x_array,
+                           Array{w},
+                           b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
+                           ToStackVector<int64_t>(stride, ndim),
+                           ToStackVector<int64_t>(pad, ndim),
+                           cover_all));
           },
           py::arg("x"),
           py::arg("w"),
@@ -438,15 +475,14 @@ void InitXchainerRoutines(pybind11::module& m) {
               // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
-              return ConvTranspose(
-                             x_array,
-                             Array{w},
-                             b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
-                             ToStackVector<int64_t>(stride, ndim),
-                             ToStackVector<int64_t>(pad, ndim),
-                             outsize.has_value() ? nonstd::optional<StackVector<int64_t, kMaxNdim>>{ToStackVector<int64_t>(*outsize, ndim)}
-                                                 : nonstd::nullopt)
-                      .move_body();
+              return internal::MoveArrayBody(ConvTranspose(
+                      x_array,
+                      Array{w},
+                      b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
+                      ToStackVector<int64_t>(stride, ndim),
+                      ToStackVector<int64_t>(pad, ndim),
+                      outsize.has_value() ? nonstd::optional<StackVector<int64_t, kMaxNdim>>{ToStackVector<int64_t>(*outsize, ndim)}
+                                          : nonstd::nullopt));
           },
           py::arg("x"),
           py::arg("w"),
@@ -465,8 +501,8 @@ void InitXchainerRoutines(pybind11::module& m) {
              Scalar eps,
              Scalar decay,
              const nonstd::optional<std::vector<int8_t>>& axis) {
-              return BatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{running_mean}, Array{running_var}, eps, decay, ToAxes(axis))
-                      .move_body();
+              return internal::MoveArrayBody(
+                      BatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{running_mean}, Array{running_var}, eps, decay, ToAxes(axis)));
           },
           py::arg("x"),
           py::arg("gamma"),
@@ -484,7 +520,8 @@ void InitXchainerRoutines(pybind11::module& m) {
              const ArrayBodyPtr& var,
              Scalar eps,
              const nonstd::optional<std::vector<int8_t>>& axis) {
-              return FixedBatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{mean}, Array{var}, eps, ToAxes(axis)).move_body();
+              return internal::MoveArrayBody(
+                      FixedBatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{mean}, Array{var}, eps, ToAxes(axis)));
           },
           py::arg("x"),
           py::arg("gamma"),
@@ -500,12 +537,12 @@ void InitXchainerRoutines(pybind11::module& m) {
           [](const ArrayBodyPtr& x, py::handle ksize, py::handle stride, py::handle pad, bool cover_all) {
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
-              return MaxPool(x_array,
-                             ToStackVector<int64_t>(ksize, ndim),
-                             stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
-                             ToStackVector<int64_t>(pad, ndim),
-                             cover_all)
-                      .move_body();
+              return internal::MoveArrayBody(
+                      MaxPool(x_array,
+                              ToStackVector<int64_t>(ksize, ndim),
+                              stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
+                              ToStackVector<int64_t>(pad, ndim),
+                              cover_all));
           },
           py::arg("x"),
           py::arg("ksize"),
@@ -526,13 +563,12 @@ void InitXchainerRoutines(pybind11::module& m) {
                   throw py::value_error{"pad_mode must be either of 'zero' or 'ignore'"};
               }
 
-              return AveragePool(
-                             x_array,
-                             ToStackVector<int64_t>(ksize, ndim),
-                             stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
-                             ToStackVector<int64_t>(pad, ndim),
-                             mode)
-                      .move_body();
+              return internal::MoveArrayBody(AveragePool(
+                      x_array,
+                      ToStackVector<int64_t>(ksize, ndim),
+                      stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
+                      ToStackVector<int64_t>(pad, ndim),
+                      mode));
           },
           py::arg("x"),
           py::arg("ksize"),

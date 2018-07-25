@@ -60,7 +60,7 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     }
 
     // Create and return the array
-    return internal::FromHostData(shape, dtype, data, strides, device).move_body();
+    return internal::MoveArrayBody(internal::FromHostData(shape, dtype, data, strides, device));
 }
 
 namespace {
@@ -80,7 +80,7 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
 
-    return internal::FromContiguousHostData(shape, dtype, ptr, device).move_body();
+    return internal::MoveArrayBody(internal::FromContiguousHostData(shape, dtype, ptr, device));
 }
 
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
@@ -104,16 +104,16 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
         Dtype dtype_ = dtype.is_none() ? a.dtype() : GetDtype(dtype);
 
         if (!copy && a.dtype() == dtype_ && &a.device() == &dev) {
-            return a.move_body();
+            return internal::MoveArrayBody(std::move(a));
         }
         // Note that the graph is connected.
         if (&a.device() != &dev) {
-            return a.ToDevice(dev).AsType(dtype_, false).move_body();
+            return internal::MoveArrayBody(a.ToDevice(dev).AsType(dtype_, false));
         }
         if (a.dtype() != dtype_) {
-            return a.AsType(dtype_, true).move_body();
+            return internal::MoveArrayBody(a.AsType(dtype_, true));
         }
-        return a.Copy().move_body();
+        return internal::MoveArrayBody(a.Copy());
     }
 
     // Convert object to NumPy array using numpy.array()
@@ -142,7 +142,7 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("device") = nullptr);
     // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
     c.def(py::init([](const py::tuple& shape, py::handle dtype, py::handle device) {
-              return Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)).move_body();
+              return internal::MoveArrayBody(Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)));
           }),
           py::arg("shape"),
           py::arg("dtype"),
@@ -151,106 +151,128 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
-    c.def("view", [](const ArrayBodyPtr& self) { return Array{self}.MakeView().move_body(); });
+    c.def("view", [](const ArrayBodyPtr& self) { return internal::MoveArrayBody(Array{self}.MakeView()); });
     c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
-    c.def("to_device", [](const ArrayBodyPtr& self, py::handle device) { return Array{self}.ToDevice(GetDevice(device)).move_body(); });
+    c.def("to_device",
+          [](const ArrayBodyPtr& self, py::handle device) { return internal::MoveArrayBody(Array{self}.ToDevice(GetDevice(device))); });
     c.def("to_device", [](const ArrayBodyPtr& self, const std::string& backend_name, int index) {
         Device& device = GetDefaultContext().GetDevice({backend_name, index});
-        return Array{self}.ToDevice(device).move_body();
+        return internal::MoveArrayBody(Array{self}.ToDevice(device));
     });
     c.def("as_grad_stopped",
           [](const ArrayBodyPtr& self, bool copy) {
-              return Array{self}.AsGradStopped(copy ? CopyKind::kCopy : CopyKind::kView).move_body();
+              return internal::MoveArrayBody(Array{self}.AsGradStopped(copy ? CopyKind::kCopy : CopyKind::kView));
           },
           py::arg("copy") = false);
     c.def("as_grad_stopped",
           [](const ArrayBodyPtr& self, const std::vector<GraphId>& graph_ids, bool copy) {
-              return Array{self}.AsGradStopped(graph_ids, copy ? CopyKind::kCopy : CopyKind::kView).move_body();
+              return internal::MoveArrayBody(Array{self}.AsGradStopped(graph_ids, copy ? CopyKind::kCopy : CopyKind::kView));
           },
           py::arg().noconvert(),
           py::arg("copy") = false);
     c.def("astype",
-          [](const ArrayBodyPtr& self, py::handle dtype, bool copy) { return Array{self}.AsType(GetDtype(dtype), copy).move_body(); },
+          [](const ArrayBodyPtr& self, py::handle dtype, bool copy) {
+              return internal::MoveArrayBody(Array{self}.AsType(GetDtype(dtype), copy));
+          },
           py::arg("dtype"),
           py::arg("copy") = true);
-    c.def("copy", [](const ArrayBodyPtr& self) { return Array{self}.Copy().move_body(); });
-    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle handle) { return Array{self}.At(MakeArrayIndices(handle)).move_body(); });
+    c.def("copy", [](const ArrayBodyPtr& self) { return internal::MoveArrayBody(Array{self}.Copy()); });
+    c.def("__getitem__",
+          [](const ArrayBodyPtr& self, py::handle handle) { return internal::MoveArrayBody(Array{self}.At(MakeArrayIndices(handle))); });
     c.def("take",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for xchainer.ndarray.take."};
               }
-              return Array{self}.Take(Array{indices}, axis.value()).move_body();
+              return internal::MoveArrayBody(Array{self}.Take(Array{indices}, axis.value()));
           },
           py::arg("indices"),
           py::arg("axis") = nullptr);
     c.def("transpose",
           [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axes) {
-              return Array{self}.Transpose(ToAxes(axes)).move_body();
+              return internal::MoveArrayBody(Array{self}.Transpose(ToAxes(axes)));
           },
           py::arg("axes") = nullptr);
-    c.def("transpose", [](const ArrayBodyPtr& self, py::args args) { return Array{self}.Transpose(ToAxes(args)).move_body(); });
-    c.def("reshape", [](const ArrayBodyPtr& self, py::tuple shape) { return Array{self}.Reshape(ToShape(shape)).move_body(); });
+    c.def("transpose",
+          [](const ArrayBodyPtr& self, py::args args) { return internal::MoveArrayBody(Array{self}.Transpose(ToAxes(args))); });
+    c.def("reshape",
+          [](const ArrayBodyPtr& self, py::tuple shape) { return internal::MoveArrayBody(Array{self}.Reshape(ToShape(shape))); });
     c.def("reshape", [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
-        return Array{self}.Reshape({shape.begin(), shape.end()}).move_body();
+        return internal::MoveArrayBody(Array{self}.Reshape({shape.begin(), shape.end()}));
     });
     c.def("reshape", [](const ArrayBodyPtr& self, py::args args) {
         if (args.size() == 0) {
             throw XchainerError("Reshape takes exactly 1 argument (0 given).");
         }
-        return Array{self}.Reshape(ToShape(args)).move_body();
+        return internal::MoveArrayBody(Array{self}.Reshape(ToShape(args)));
     });
     c.def("squeeze",
           [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis) {
-              return Array{self}.Squeeze(ToAxes(axis)).move_body();
+              return internal::MoveArrayBody(Array{self}.Squeeze(ToAxes(axis)));
           },
           py::arg("axis") = nullptr);
-    c.def("squeeze", [](const ArrayBodyPtr& self, int8_t axis) { return Array{self}.Squeeze(Axes{axis}).move_body(); }, py::arg("axis"));
-    c.def("__eq__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} == Array{rhs}).move_body(); });
-    c.def("__neg__", [](const ArrayBodyPtr& self) { return (-Array{self}).move_body(); });
-    c.def("__iadd__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} += Array{rhs}).move_body(); });
-    c.def("__iadd__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} += rhs).move_body(); });
-    c.def("__isub__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} -= Array{rhs}).move_body(); });
-    c.def("__isub__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} -= rhs).move_body(); });
-    c.def("__imul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} *= Array{rhs}).move_body(); });
-    c.def("__imul__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} *= rhs).move_body(); });
-    c.def("__itruediv__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} /= Array{rhs}).move_body(); });
-    c.def("__itruediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} /= rhs).move_body(); });
-    c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} + Array{rhs}).move_body(); });
-    c.def("__add__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} + rhs).move_body(); });
-    c.def("__radd__", [](const ArrayBodyPtr& self, Scalar lhs) { return (lhs + Array{self}).move_body(); });
-    c.def("__sub__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} - Array{rhs}).move_body(); });
-    c.def("__sub__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} - rhs).move_body(); });
-    c.def("__rsub__", [](const ArrayBodyPtr& self, Scalar lhs) { return (lhs - Array{self}).move_body(); });
-    c.def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} * Array{rhs}).move_body(); });
-    c.def("__mul__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} * rhs).move_body(); });
-    c.def("__rmul__", [](const ArrayBodyPtr& self, Scalar lhs) { return (lhs * Array{self}).move_body(); });
-    c.def("__truediv__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return (Array{self} / Array{rhs}).move_body(); });
-    c.def("__truediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return (Array{self} / rhs).move_body(); });
+    c.def("squeeze",
+          [](const ArrayBodyPtr& self, int8_t axis) { return internal::MoveArrayBody(Array{self}.Squeeze(Axes{axis})); },
+          py::arg("axis"));
+    c.def("__eq__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return internal::MoveArrayBody(Array{self} == Array{rhs}); });
+    c.def("__neg__", [](const ArrayBodyPtr& self) { return internal::MoveArrayBody(-Array{self}); });
+    c.def("__iadd__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return internal::MoveArrayBody(std::move(Array{self} += Array{rhs})); });
+    c.def("__iadd__", [](const ArrayBodyPtr& self, Scalar rhs) { return internal::MoveArrayBody(std::move(Array{self} += rhs)); });
+    c.def("__isub__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return internal::MoveArrayBody(std::move(Array{self} -= Array{rhs})); });
+    c.def("__isub__", [](const ArrayBodyPtr& self, Scalar rhs) { return internal::MoveArrayBody(std::move(Array{self} -= rhs)); });
+    c.def("__imul__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return internal::MoveArrayBody(std::move(Array{self} *= Array{rhs})); });
+    c.def("__imul__", [](const ArrayBodyPtr& self, Scalar rhs) { return internal::MoveArrayBody(std::move(Array{self} *= rhs)); });
+    c.def("__itruediv__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return internal::MoveArrayBody(std::move(Array{self} /= Array{rhs})); });
+    c.def("__itruediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return internal::MoveArrayBody(std::move(Array{self} /= rhs)); });
+    c.def("__add__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return internal::MoveArrayBody(std::move(Array{self} + Array{rhs})); });
+    c.def("__add__", [](const ArrayBodyPtr& self, Scalar rhs) { return internal::MoveArrayBody(std::move(Array{self} + rhs)); });
+    c.def("__radd__", [](const ArrayBodyPtr& self, Scalar lhs) { return internal::MoveArrayBody(lhs + Array{self}); });
+    c.def("__sub__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return internal::MoveArrayBody(Array{self} - Array{rhs}); });
+    c.def("__sub__", [](const ArrayBodyPtr& self, Scalar rhs) { return internal::MoveArrayBody(Array{self} - rhs); });
+    c.def("__rsub__", [](const ArrayBodyPtr& self, Scalar lhs) { return internal::MoveArrayBody(lhs - Array{self}); });
+    c.def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return internal::MoveArrayBody(Array{self} * Array{rhs}); });
+    c.def("__mul__", [](const ArrayBodyPtr& self, Scalar rhs) { return internal::MoveArrayBody(Array{self} * rhs); });
+    c.def("__rmul__", [](const ArrayBodyPtr& self, Scalar lhs) { return internal::MoveArrayBody(lhs * Array{self}); });
+    c.def("__truediv__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return internal::MoveArrayBody(Array{self} / Array{rhs}); });
+    c.def("__truediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return internal::MoveArrayBody(Array{self} / rhs); });
     c.def("sum",
-          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return Array{self}.Sum(Axes{axis}, keepdims).move_body(); },
+          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) {
+              return internal::MoveArrayBody(Array{self}.Sum(Axes{axis}, keepdims));
+          },
           py::arg("axis"),
           py::arg("keepdims") = false);
     c.def("sum",
           [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-              return Array{self}.Sum(ToAxes(axis), keepdims).move_body();
+              return internal::MoveArrayBody(Array{self}.Sum(ToAxes(axis), keepdims));
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     c.def("max",
-          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return Array{self}.Max(Axes{axis}, keepdims).move_body(); },
+          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) {
+              return internal::MoveArrayBody(Array{self}.Max(Axes{axis}, keepdims));
+          },
           py::arg("axis"),
           py::arg("keepdims") = false);
     c.def("max",
           [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
-              return Array{self}.Max(ToAxes(axis), keepdims).move_body();
+              return internal::MoveArrayBody(Array{self}.Max(ToAxes(axis), keepdims));
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     c.def("argmax",
-          [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) { return ArgMax(Array{self}, ToAxes(axis)).move_body(); },
+          [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) {
+              return internal::MoveArrayBody(ArgMax(Array{self}, ToAxes(axis)));
+          },
           py::arg("axis") = nullptr);
-    c.def("dot", [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return Array{self}.Dot(Array{b}).move_body(); }, py::arg("b"));
+    c.def("dot",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return internal::MoveArrayBody(Array{self}.Dot(Array{b})); },
+          py::arg("b"));
     c.def("fill",
           [](const ArrayBodyPtr& self, Scalar value) {
               Array{self}.Fill(value);
@@ -259,7 +281,9 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("value"));
 
     c.def("require_grad",
-          [](const ArrayBodyPtr& self, const nonstd::optional<GraphId>& graph_id) { return Array{self}.RequireGrad(graph_id).move_body(); },
+          [](const ArrayBodyPtr& self, const nonstd::optional<GraphId>& graph_id) {
+              return internal::MoveArrayBody(std::move(Array{self}.RequireGrad(graph_id)));
+          },
           py::arg("graph_id") = nullptr);
     c.def("is_grad_required",
           [](const ArrayBodyPtr& self, const nonstd::optional<GraphId>& graph_id) { return Array{self}.IsGradRequired(graph_id); },
@@ -332,7 +356,7 @@ void InitXchainerArray(pybind11::module& m) {
     c.def_property_readonly("strides", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.strides()); });
     c.def_property_readonly("nbytes", [](const ArrayBodyPtr& self) { return Array{self}.GetNBytes(); });
     c.def_property_readonly("size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); });
-    c.def_property_readonly("T", [](const ArrayBodyPtr& self) { return Array{self}.Transpose().move_body(); });
+    c.def_property_readonly("T", [](const ArrayBodyPtr& self) { return internal::MoveArrayBody(Array{self}.Transpose()); });
     c.def_property_readonly(
             "_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
             [](const ArrayBodyPtr& self) -> intptr_t {

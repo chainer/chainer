@@ -35,6 +35,8 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 
 const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array);
 
+std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array);
+
 }  // namespace internal
 
 // The main data structure of multi-dimensional array.
@@ -198,8 +200,6 @@ public:
     // TODO(hvy): Remove accessor and replace usage with interna::GetArrayBody
     const std::shared_ptr<internal::ArrayBody>& body() const { return body_; }
 
-    std::shared_ptr<internal::ArrayBody>&& move_body() { return std::move(body_); }
-
     Dtype dtype() const { return body_->dtype_; }
 
     Device& device() const { return body_->device_; }
@@ -222,6 +222,7 @@ private:
     friend Array internal::MakeArray(
             const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
     friend const std::shared_ptr<internal::ArrayBody>& internal::GetArrayBody(const Array& array);
+    friend std::shared_ptr<internal::ArrayBody>&& internal::MoveArrayBody(Array&& array);
 
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 

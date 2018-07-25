@@ -27,7 +27,8 @@ struct ForwardInPython {
     std::vector<Array> operator()(const std::vector<Array>& xs_array) const {
         std::vector<ArrayBodyPtr> xs;
         xs.reserve(xs_array.size());
-        std::transform(xs_array.begin(), xs_array.end(), std::back_inserter(xs), [](Array a) { return a.move_body(); });
+        std::transform(
+                xs_array.begin(), xs_array.end(), std::back_inserter(xs), [](Array a) { return internal::MoveArrayBody(std::move(a)); });
 
         auto ys = py::cast<std::vector<ArrayBodyPtr>>(func(xs));
         return {ys.begin(), ys.end()};
