@@ -142,7 +142,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(b)) {
             bt.Define([indices, axis](BackwardContext& bctx) {
-                assert(!internal::HasAnyArrayNode(indices));
+                assert(internal::GetArrayBody(indices)->nodes().empty());
                 bctx.input_grad() = Take(bctx.output_grad(), indices, axis);
             });
         }

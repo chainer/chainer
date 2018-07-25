@@ -47,12 +47,32 @@ public:
     ArrayBody(const ArrayBody&) = delete;
     ArrayBody& operator=(const ArrayBody&) = delete;
 
+    const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return nodes_; }
+
+    // TODO(niboshi): Remove this function and add another to assign an array node at a specified index.
+    std::vector<std::shared_ptr<ArrayNode>>& nodes() { return nodes_; }
+
+    const std::shared_ptr<ArrayNode>& GetArrayNode(const GraphId& graph_id) const {
+        nonstd::optional<size_t> index = GetNodeIndex(graph_id);
+        if (!index.has_value()) {
+            throw XchainerError{"Array does not belong to the graph: '", graph_id, "'."};
+        }
+        return nodes_[*index];
+    }
+
+    bool HasArrayNode(const GraphId& graph_id) const { return GetNodeIndex(graph_id).has_value(); }
+
     // Adds an array node to the array body.
     // The array node must have been initialized with this array body in advance.
     // Otherwise the behavior is undefined.
     // It does nothing if an array node with the same graph ID is already registered.
     // The returned reference is only valid until the next call of AddNode on this instance.
     static const std::shared_ptr<ArrayNode>& AddNode(const std::shared_ptr<ArrayBody>& body, std::shared_ptr<ArrayNode> array_node);
+
+    // Creates a new array node on the specified graph.
+    // XchainerError is thrown if an array node is already registered on the graph.
+    // The returned reference is only valid until the next call of CreateArrayNode (or AddNode) on the same ArrayBody instance.
+    static const std::shared_ptr<ArrayNode>& CreateArrayNode(const std::shared_ptr<ArrayBody>& body, const GraphId& graph_id);
 
     Params GetParams() const { return {shape_, strides_, dtype_, device_, data_, offset_}; }
 

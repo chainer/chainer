@@ -158,8 +158,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
 
         // If the weak ptr to old previous array node was dead, replenish it with the fabricated one.
         if (prev_array_node == nullptr) {
-            // TODO(niboshi): Avoid temporary array
-            prev_array_nodes_[output_index] = internal::GetMutableArrayNode(Array{array_body}, op_node_->graph_id());
+            prev_array_nodes_[output_index] = array_body->GetArrayNode(op_node_->graph_id());
         }
 
         // Cut graphs of the array body
@@ -224,7 +223,7 @@ public:
             if (!output.IsGradRequired(graph_id)) {
                 throw XchainerError{"Cannot start backprop from an array whose gradient is not required (on graph '", graph_id, "')"};
             }
-            output_array_nodes_.emplace_back(internal::GetMutableArrayNode(output, graph_id));
+            output_array_nodes_.emplace_back(internal::GetArrayBody(output)->GetArrayNode(graph_id));
         }
 
         // Check if backward is possible for the given graph, in this context.

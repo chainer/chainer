@@ -43,6 +43,10 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
     return body->nodes_.back();
 }
 
+const std::shared_ptr<ArrayNode>& ArrayBody::CreateArrayNode(const std::shared_ptr<ArrayBody>& body, const GraphId& graph_id) {
+    return AddNode(body, std::make_shared<ArrayNode>(body->shape_, body->dtype_, body->device_, graph_id));
+}
+
 void ArrayBody::AssertConsistency() const {
 #ifndef NDEBUG
     assert(nodes_.size() == grads_.size());

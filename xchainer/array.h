@@ -33,19 +33,7 @@ namespace internal {
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
-bool HasArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
-
-bool HasAnyArrayNode(const Array& array);
-
-// Creates a new array node on the specified graph.
-// XchainerError is thrown if an array node is already registered on the graph.
-// The returned reference is only valid until the next call of CreateArrayNode (or ArrayBody::AddNode) on the same ArrayBody
-// instance.
-const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
-
-std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
-
-const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
+const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array);
 
 }  // namespace internal
 
@@ -207,6 +195,7 @@ public:
 
     std::string ToString() const;
 
+    // TODO(hvy): Remove accessor and replace usage with interna::GetArrayBody
     const std::shared_ptr<internal::ArrayBody>& body() const { return body_; }
 
     std::shared_ptr<internal::ArrayBody>&& move_body() { return std::move(body_); }
@@ -229,11 +218,10 @@ public:
 
     int64_t offset() const { return body_->offset_; }
 
-    std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return body_->nodes_; }
-
 private:
     friend Array internal::MakeArray(
             const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+    friend const std::shared_ptr<internal::ArrayBody>& internal::GetArrayBody(const Array& array);
 
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
