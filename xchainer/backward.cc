@@ -254,12 +254,10 @@ public:
         // Graphs for which gradients will be stopped.
         // These include the current graph that is being backpropped depending on the double backprop option, as well as all graphs
         // belonging to inner scopes, i.e. graphs with higher graph sub ids.
-        std::vector<GraphId> graph_ids_to_stop_gradient;
+        std::vector<GraphId> graph_ids_to_stop_gradient = context.GetInnerGraphIds(graph_id_);
         if (double_backprop_ == DoubleBackpropOption::kDisable) {
             graph_ids_to_stop_gradient.emplace_back(graph_id_);
         }
-        std::vector<GraphId> inner_graph_ids = context.GetInnerGraphIds(graph_id_);
-        std::copy(inner_graph_ids.begin(), inner_graph_ids.end(), std::back_inserter(graph_ids_to_stop_gradient));
 
         // Backpropagation
         while (!candidate_op_nodes_.empty()) {
