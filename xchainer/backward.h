@@ -18,7 +18,6 @@
 
 namespace xchainer {
 
-class ArrayNode;
 class BackwardContext;
 
 enum class DoubleBackpropOption : bool {
@@ -29,6 +28,7 @@ enum class DoubleBackpropOption : bool {
 namespace internal {
 
 class ArrayBody;
+class ArrayNode;
 
 void AccumulateGrad(nonstd::optional<Array>& target_grad, Array partial_grad, const Shape& shape, Dtype dtype, Device& device);
 
@@ -79,8 +79,8 @@ public:
     // Its size must be equal to the number of input arrays whose gradients are to be returned in this single backward function (1 in most
     // ordinary functions).
     BackwardContext(
-            const std::shared_ptr<OpNode>& op_node,
-            gsl::span<std::shared_ptr<ArrayNode>> prev_array_nodes,
+            const std::shared_ptr<internal::OpNode>& op_node,
+            gsl::span<std::shared_ptr<internal::ArrayNode>> prev_array_nodes,
             gsl::span<internal::GradRef*> prev_grads,
             std::vector<Array>& input_grads_storage,
             const std::vector<bool>& is_input_grads_required,
@@ -126,11 +126,11 @@ private:
 
     std::shared_ptr<internal::ArrayBody> GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const;
 
-    const std::shared_ptr<OpNode>& op_node_;  // never be nullptr
+    const std::shared_ptr<internal::OpNode>& op_node_;  // never be nullptr
 
     // Previous array nodes of the op node.
     // Null if the array node is gone (the weak pointer is dead).
-    gsl::span<std::shared_ptr<ArrayNode>> prev_array_nodes_;
+    gsl::span<std::shared_ptr<internal::ArrayNode>> prev_array_nodes_;
 
     gsl::span<internal::GradRef*> output_grads_;
 

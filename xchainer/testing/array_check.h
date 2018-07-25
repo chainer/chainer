@@ -46,8 +46,8 @@ inline void ExpectEqualView(const Array& expected, const Array& actual) {
     EXPECT_NE(expected.body(), actual.body());
 
     // No array nodes should be shared.
-    for (const std::shared_ptr<ArrayNode>& array_node_e : internal::GetArrayBody(expected)->nodes()) {
-        for (const std::shared_ptr<ArrayNode>& array_node_a : internal::GetArrayBody(actual)->nodes()) {
+    for (const std::shared_ptr<internal::ArrayNode>& array_node_e : internal::GetArrayBody(expected)->nodes()) {
+        for (const std::shared_ptr<internal::ArrayNode>& array_node_a : internal::GetArrayBody(actual)->nodes()) {
             EXPECT_NE(array_node_e, array_node_a);
         }
     }

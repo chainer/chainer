@@ -217,7 +217,7 @@ struct ArrayReprImpl {
         os << ", shape=" << array.shape();
         os << ", dtype=" << array.dtype();
         os << ", device='" << array.device().name() << "'";
-        const std::vector<std::shared_ptr<ArrayNode>>& array_nodes = internal::GetArrayBody(array)->nodes();
+        const std::vector<std::shared_ptr<internal::ArrayNode>>& array_nodes = internal::GetArrayBody(array)->nodes();
         if (!array_nodes.empty()) {
             os << ", graph_ids=[";
             for (size_t i = 0; i < array_nodes.size(); ++i) {

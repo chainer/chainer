@@ -82,7 +82,7 @@ public:
     private:
         friend class BackwardBuilder;  // Only BackwardBuilder can create Target
 
-        using NextArrayNodes = std::vector<const std::shared_ptr<ArrayNode>*>;
+        using NextArrayNodes = std::vector<const std::shared_ptr<internal::ArrayNode>*>;
 
         Target(BackwardBuilder& builder, std::initializer_list<ConstArrayRef> inputs);
 
@@ -90,11 +90,11 @@ public:
         bool any_defined() { return builder_.any_defined_; }
         void set_any_defined(bool defined) { builder_.any_defined_ = defined; }
         std::vector<ConstArrayRef>& outputs() { return builder_.outputs_; }
-        std::unordered_map<GraphId, std::shared_ptr<OpNode>>& op_node_map() { return builder_.op_node_map_; }
+        std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>>& op_node_map() { return builder_.op_node_map_; }
 
         void PrepareGraphToNextArrayNodes();
-        std::shared_ptr<OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
-        void RegisterOuterGraphsPreviousArrayNodes(const std::vector<OpNode*>& op_nodes);
+        std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
+        void RegisterOuterGraphsPreviousArrayNodes(const std::vector<internal::OpNode*>& op_nodes);
 
         BackwardBuilder& builder_;
         std::vector<ConstArrayRef> inputs_;
@@ -115,7 +115,7 @@ private:
 
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
-    std::unordered_map<GraphId, std::shared_ptr<OpNode>> op_node_map_;
+    std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
 };
 
 }  // namespace xchainer

@@ -22,6 +22,13 @@
 #include "xchainer/routines/creation.h"
 
 namespace xchainer {
+namespace {
+
+using internal::ArrayNode;
+using internal::OpNode;
+
+}  // namespace
+
 namespace internal {
 namespace {
 

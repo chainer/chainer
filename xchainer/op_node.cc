@@ -45,7 +45,7 @@ std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_nod
     assert(prev_array_node_index < op_node->prev_array_node_count());
     assert(op_node->prev_array_nodes()[prev_array_node_index].expired());
 
-    const internal::ArrayProps& props = op_node->GetPrevArrayProps(prev_array_node_index);
+    const ArrayProps& props = op_node->GetPrevArrayProps(prev_array_node_index);
     auto prev_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node->graph_id());
 
     op_node->prev_array_nodes()[prev_array_node_index] = prev_array_node;
@@ -53,8 +53,6 @@ std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_nod
 
     return prev_array_node;
 }
-
-}  // namespace internal
 
 // static
 std::shared_ptr<OpNode> OpNode::CreateWithPrevArrayNodes(std::string name, GraphId graph_id, const std::vector<ConstArrayRef>& outputs) {
@@ -65,9 +63,9 @@ std::shared_ptr<OpNode> OpNode::CreateWithPrevArrayNodes(std::string name, Graph
     std::shared_ptr<OpNode> op_node = std::make_shared<OpNodeWithPublicCtor>(std::move(name), graph_id);
 
     for (const Array& out : outputs) {
-        const std::shared_ptr<internal::ArrayBody>& out_body = internal::GetArrayBody(out);
+        const std::shared_ptr<ArrayBody>& out_body = GetArrayBody(out);
         assert(!out_body->HasArrayNode(graph_id));
-        const std::shared_ptr<ArrayNode>& prev_array_node = internal::ArrayBody::CreateArrayNode(out_body, graph_id);
+        const std::shared_ptr<ArrayNode>& prev_array_node = ArrayBody::CreateArrayNode(out_body, graph_id);
         op_node->prev_array_props_.emplace_back(*prev_array_node);
         op_node->prev_array_nodes_.emplace_back(prev_array_node);
         prev_array_node->set_next_op_node(op_node);
@@ -90,11 +88,11 @@ void OpNode::AssertConsistency() const {
     // Corresponding previous array nodes across graphs (corresponding to the same output array) should have the same array body, if it's
     // alive.
     for (size_t i_prev = 0; i_prev < prev_array_node_count(); ++i_prev) {
-        nonstd::optional<internal::ArrayBody*> prev_array_body{};
+        nonstd::optional<ArrayBody*> prev_array_body{};
         for (const auto& tup : outer_graphs_prev_array_nodes_) {
             const std::vector<std::shared_ptr<ArrayNode>>& vec = std::get<1>(tup);
             const std::shared_ptr<ArrayNode>& prev_array_node = vec[i_prev];
-            std::shared_ptr<internal::ArrayBody> body = prev_array_node->weak_body().lock();
+            std::shared_ptr<ArrayBody> body = prev_array_node->weak_body().lock();
             if (!prev_array_body.has_value()) {
                 prev_array_body = body.get();
             } else {
@@ -125,7 +123,7 @@ const std::vector<std::shared_ptr<ArrayNode>>& OpNode::next_array_nodes() const 
     return next_array_nodes_;
 }
 
-internal::OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
+OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
         std::vector<std::shared_ptr<ArrayNode>> next_array_nodes, BackwardFunction backward_func) {
     AssertConsistency();
     assert(!next_array_nodes.empty());
@@ -171,4 +169,5 @@ void OpNode::RegisterOuterGraphsPreviousArrayNodes(
     AssertConsistency();
 }
 
+}  // namespace internal
 }  // namespace xchainer
