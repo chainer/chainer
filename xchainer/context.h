@@ -56,7 +56,7 @@ public:
     // Returns all graph IDs created after the queried graph.
     // In many cases, these are also the graphs created in inner scopes.
     // The queried graph is excluded from the returned container.
-    std::vector<GraphId> GetInnerGraphIds(GraphId graph_id);
+    std::vector<GraphId> GetInnerGraphIds(const GraphId& graph_id);
 
     GraphId default_graph_id() {
         // 0 is the graph sub id of the default graph.

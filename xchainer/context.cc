@@ -134,7 +134,7 @@ void Context::SetBackpropDone(const GraphId& graph_id) {
     }
 }
 
-std::vector<GraphId> Context::GetInnerGraphIds(GraphId graph_id) {
+std::vector<GraphId> Context::GetInnerGraphIds(const GraphId& graph_id) {
     std::vector<GraphId> inner_graph_ids;
     inner_graph_ids.reserve(graph_stack_.size());
     for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend() && it->sub_id > graph_id.sub_id(); ++it) {
