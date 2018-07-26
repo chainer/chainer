@@ -38,7 +38,9 @@ inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array);
 
 }  // namespace internal
 
-// The main data structure of multi-dimensional array.
+// The user interface of multi-dimensional arrays.
+//
+// This wraps an ArrayBody, providing accessors, an interface for graph operations and differentiable operations.
 class Array {
 public:
     Array() = default;

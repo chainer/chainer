@@ -20,16 +20,8 @@ namespace internal {
 
 class ArrayNode;
 
-// Data holder of Array.
-//
-// C++ Array and Python bindings both share ArrayBody through shared_ptr. C++ Array provides the value-based semantics of Array in C++,
-// while Python Array provides the reference-based semantics, which is more natural in Python.
-//
-// The current design requires a subtle overhead on converting between C++ Array and Python Array (due to reference counting), which is
-// currently considered to be ignorable compared to other Python operations.
-//
-// NOTE: This class should not be instantiated by any functions except those defined in array.cc. This class is still defined here so that
-// the code is made simple and we can use inline access to each member from member accessor functions of Array.
+// This class is an internal data structure which holds array data/metadata (shape, dtype, ...) and backprop graph nodes and corresponding
+// gradients.
 class ArrayBody {
 public:
     struct Params {
