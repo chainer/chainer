@@ -48,7 +48,7 @@ class Convolution2D:
 
 class BatchNormalization:
 
-    def __init__(self, batches, dtype=np.float32):
+    def __init__(self, batches, dtype=xc.float32):
         self.avg_mean = None
         self.avg_var = None
         self.gamma = None
@@ -59,10 +59,10 @@ class BatchNormalization:
         if self.gamma is None:
             shape = x.shape[1:]
             dtype = self.dtype
-            self.avg_mean = xc.array(np.zeros(shape, dtype))
-            self.avg_var = xc.array(np.zeros(shape, dtype))
-            self.gamma = xc.array(np.ones(shape, dtype))
-            self.beta = xc.array(np.zeros(shape, dtype))
+            self.avg_mean = xc.zeros(shape, dtype)
+            self.avg_var = xc.zeros(shape, dtype)
+            self.gamma = xc.ones(shape, dtype)
+            self.beta = xc.zeros(shape, dtype)
             self.gamma.require_grad()
             self.beta.require_grad()
 
