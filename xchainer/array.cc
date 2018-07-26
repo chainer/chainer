@@ -56,10 +56,6 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
     return Array{shape, strides, dtype, device, std::move(data), offset};
 }
 
-const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array) { return array.body_; }
-
-std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array) { return std::move(array.body_); }
-
 }  // namespace internal
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
