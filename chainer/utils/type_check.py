@@ -5,6 +5,7 @@ import sys
 import threading
 
 import numpy
+import six
 
 import chainer
 from chainer.backends import cuda
@@ -503,6 +504,27 @@ Invalid operation is performed in: {0} (Forward)
         self.actual = actual
 
 
+def argname(in_types, names):
+    """Assigns user friendly names for the input types.
+
+    This function also asserts that lenghts of in_types and names are the
+    same.
+
+    Args:
+        in_types (tuple of TypeInfoTuple): Tuple of type information to assign
+            name to.
+        names (tuple of str): Human-readabel names of ``in_types``.
+    """
+    if len(in_types) != len(names):
+        raise InvalidType(
+            '{} argument(s)'.format(str(len(names))),
+            '{} argument(s)'.format(str(len(in_types))),
+            'Invalid number of arguments')
+    for in_type, name in zip(in_types, names):
+        if isinstance(in_type, Variable):
+            in_type.name = name
+
+
 def expect(*bool_exprs):
     """Evaluates and tests all given expressions.
 
@@ -583,3 +605,24 @@ def prod(xs):
         return _prod_impl(xs)
     else:
         return _prod(xs)
+
+
+def expect_broadcast_shapes(*shape_types):
+    """Checks if shapes can be broadcasted together.
+
+    Args:
+        shapes_types: Type-checked shapes of the arrays to broadcast.
+
+    """
+    shapes = [eval(s) for s in shape_types]
+    error = None
+    try:
+        # simulate the shape calculation using zero-sized arrays
+        numpy.broadcast(*[numpy.empty(s + (0,)) for s in shapes])
+    except ValueError:
+        msgs = ['cannot broadcast inputs of the following shapes:']
+        for shape_type, shape in six.moves.zip(shape_types, shapes):
+            msgs.append('{} = {}'.format(shape_type, shape))
+        error = InvalidType('', '', msg='\n'.join(msgs))
+    if error is not None:
+        raise error

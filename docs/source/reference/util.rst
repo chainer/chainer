@@ -8,4 +8,5 @@ Utilities
    util/cuda
    util/algorithm
    util/reporter
+   util/sparse
    util/experimental

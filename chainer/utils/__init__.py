@@ -5,9 +5,12 @@ import tempfile
 import numpy
 
 # import classes and functions
+from chainer.utils.array import sum_to  # NOQA
 from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
 from chainer.utils.experimental import experimental  # NOQA
+from chainer.utils.sparse import CooMatrix  # NOQA
+from chainer.utils.sparse import to_coo  # NOQA
 from chainer.utils.walker_alias import WalkerAlias  # NOQA
 
 

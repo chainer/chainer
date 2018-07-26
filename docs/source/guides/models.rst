@@ -55,7 +55,7 @@ It means we can define more complex chains that hold ``MyChain`` objects as thei
 
 .. note::
 
-   We often define a single forward method of a link by the ``__call__`` operator.
+   We often define a single forward method of a link by the ``forward`` operator.
    Such links and chains are callable and behave like regular functions of Variables.
 
 .. note::

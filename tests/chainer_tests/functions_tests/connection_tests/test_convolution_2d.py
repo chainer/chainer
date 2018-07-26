@@ -205,10 +205,10 @@ class TestConvolution2DFunction(unittest.TestCase):
             grad_grads = grad_grads + (b_grad_grad,)
 
         def f(*args):
-            y = F.convolution_2d(*args, stride=self.stride, pad=self.pad,
-                                 cover_all=self.cover_all, dilate=self.dilate,
-                                 groups=self.groups)
-            return y * y  # make the function nonlinear
+            return F.convolution_2d(
+                *args, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
 
         with backend_config:
             gradient_check.check_double_backward(

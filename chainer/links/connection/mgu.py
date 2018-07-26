@@ -61,8 +61,9 @@ class StatefulMGU(MGUBase):
     def forward(self, x):
         if self.h is None:
             n_batch = x.shape[0]
+            dtype = chainer.get_dtype()
             h_data = self.xp.zeros(
-                (n_batch, self._state_size), dtype=numpy.float32)
+                (n_batch, self._state_size), dtype=dtype)
             h = chainer.Variable(h_data)
         else:
             h = self.h

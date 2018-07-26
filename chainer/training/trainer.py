@@ -192,7 +192,9 @@ class Trainer(object):
         Args:
             extension: Extension to register.
             name (str): Name of the extension. If it is omitted, the
-                ``default_name`` attribute of the extension is used instead.
+                :attr:`Extension.name` attribute of the extension is used or
+                the :attr:`Extension.default_name` attribute of the extension
+                if `name` is is set to `None` or is undefined.
                 Note that the name would be suffixed by an ordinal in case of
                 duplicated names as explained above.
             trigger (tuple or Trigger): Trigger object that determines when to
@@ -208,11 +210,12 @@ class Trainer(object):
                 instead.
 
         """
-        argument.check_unexpected_kwargs(
-            kwargs,
-            invoke_before_training='invoke_before_training has been removed '
-            'since Chainer v2.0.0. Use initializer= instead.')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                invoke_before_training='invoke_before_training has been '
+                'removed since Chainer v2.0.0. Use initializer= instead.')
+            argument.assert_kwargs_empty(kwargs)
 
         if name is None:
             name = getattr(extension, 'name', None)
