@@ -124,8 +124,8 @@ def main():
             it += 1
             if args.iteration is not None:
                 x_test, t_test = get_imagenet(test_iter)
-                elapsed_time = time.time() - start
                 mean_loss, accuracy = evaluate(model, x_test, t_test, eval_size, batch_size)
+                elapsed_time = time.time() - start
                 print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
                 if it >= args.iteration:
                     is_finished = True
@@ -134,8 +134,8 @@ def main():
         epoch += 1
         if args.iteration is None:
             x_test, t_test = get_imagenet(test_iter)
-            elapsed_time = time.time() - start
             mean_loss, accuracy = evaluate(model, x_test, t_test, eval_size, batch_size)
+            elapsed_time = time.time() - start
             print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
             if epoch >= args.epoch:
                 is_finished = True
