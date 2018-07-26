@@ -12,12 +12,17 @@ from chainer.utils import type_check
 
 def _split_and_fix_shape(xp, x, indices_or_sections, axis):
     ret = xp.split(x, indices_or_sections, axis)
-    for i, r in enumerate(ret):
+    if all(r.ndim == x.ndim for r in ret):
+        return ret
+    # Make the output compatible with np.split of numpy >= 1.11
+    tmp = [len(t) for t in xp.split(
+        xp.empty(x.shape[axis], dtype=numpy.int8), indices_or_sections, 0)]
+    shape = list(x.shape)
+    for i, t in enumerate(tmp):
+        r = ret[i]
         if r.ndim != x.ndim:
-            # Make the output compatible with np.split of numpy >= 1.11
             assert r.size == 0
-            shape = list(x.shape)
-            shape[axis] = 0
+            shape[axis] = t
             ret[i] = r.reshape(shape)
     return ret
 
