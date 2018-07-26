@@ -16,7 +16,6 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array_body.h"
-#include "xchainer/array_body_leak_detection.h"
 #include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
 #include "xchainer/axes.h"
@@ -59,12 +58,7 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 }  // namespace internal
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
-    : body_{std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)} {
-    if (internal::ArrayBodyLeakTracker* tracker = internal::ArrayBodyLeakDetectionScope::GetGlobalTracker()) {
-        // TODO(niboshi): Make thread-safe
-        (*tracker)(body_);
-    }
-}
+    : body_{internal::CreateArrayBody(shape, strides, dtype, device, std::move(data), offset)} {}
 
 Array Array::operator-() const { return Negative(*this); }
 
@@ -189,7 +183,7 @@ Array Array::Take(const Array& indices, int8_t axis) const { return xchainer::Ta
 Array Array::Copy() const { return xchainer::Copy(*this); }
 
 Array Array::MakeView() const {
-    Array out{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), data(), offset())};
+    Array out{shape(), strides(), dtype(), device(), data(), offset()};
 
     BackwardBuilder bb{"view", out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(*this)) {
@@ -200,7 +194,7 @@ Array Array::MakeView() const {
 }
 
 Array Array::ToDevice(Device& dst_device) const {
-    Device& src_device = body_->device_;
+    Device& src_device = body_->device();
     Array out;
 
     // TODO(sonots): Avoid copying data between native devices, e.g., from native:0 to native:1 for performance.

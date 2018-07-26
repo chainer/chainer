@@ -20,16 +20,8 @@ namespace internal {
 
 class ArrayNode;
 
-// Data holder of Array.
-//
-// C++ Array and Python bindings both share ArrayBody through shared_ptr. C++ Array provides the value-based semantics of Array in C++,
-// while Python Array provides the reference-based semantics, which is more natural in Python.
-//
-// The current design requires a subtle overhead on converting between C++ Array and Python Array (due to reference counting), which is
-// currently considered to be ignorable compared to other Python operations.
-//
-// NOTE: This class should not be instantiated by any functions except those defined in array.cc. This class is still defined here so that
-// the code is made simple and we can use inline access to each member from member accessor functions of Array.
+// This class is an internal data structure which holds array data/metadata (shape, dtype, ...) and backprop graph nodes and corresponding
+// gradients.
 class ArrayBody {
 public:
     struct Params {
@@ -41,12 +33,20 @@ public:
         int64_t offset;
     };
 
-    ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
-
-    explicit ArrayBody(Params params);
-
     ArrayBody(const ArrayBody&) = delete;
     ArrayBody& operator=(const ArrayBody&) = delete;
+
+    const Shape& shape() const { return shape_; }
+
+    const Strides& strides() const { return strides_; }
+
+    Dtype dtype() const { return dtype_; }
+
+    Device& device() const { return device_; }
+
+    const std::shared_ptr<void>& data() const { return data_; }
+
+    int64_t offset() const { return offset_; }
 
     const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return nodes_; }
 
@@ -100,7 +100,14 @@ public:
     void ClearGrad(const GraphId& graph_id);
 
 private:
-    friend class ::xchainer::Array;
+    friend std::shared_ptr<ArrayBody> CreateArrayBody(
+            const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+
+    friend std::shared_ptr<ArrayBody> CreateArrayBody(Params params);
+
+    ArrayBody(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+
+    explicit ArrayBody(Params params);
 
     // Asserts consistency of this instance.
     //
@@ -122,6 +129,11 @@ private:
     std::vector<std::shared_ptr<ArrayNode>> nodes_;
     std::vector<std::unique_ptr<nonstd::optional<Array>>> grads_;
 };
+
+std::shared_ptr<ArrayBody> CreateArrayBody(
+        const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+
+std::shared_ptr<ArrayBody> CreateArrayBody(ArrayBody::Params params);
 
 }  // namespace internal
 }  // namespace xchainer
