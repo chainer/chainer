@@ -164,7 +164,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
         // Cut graphs of the array body
         // TODO(hvy): Avoid temporary array
         // TODO(hvy): Avoid view
-        kept_body = Array{std::move(array_body)}.MakeView().move_body();
+        kept_body = internal::MoveArrayBody(Array{std::move(array_body)}.MakeView());
     }
 
     assert(kept_body != nullptr);

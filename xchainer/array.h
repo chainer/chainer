@@ -28,12 +28,13 @@
 #include "xchainer/strides.h"
 
 namespace xchainer {
-
 namespace internal {
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
-const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array);
+inline const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array);
+
+inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array);
 
 }  // namespace internal
 
@@ -195,8 +196,6 @@ public:
 
     std::string ToString() const;
 
-    std::shared_ptr<internal::ArrayBody>&& move_body() { return std::move(body_); }
-
     Dtype dtype() const { return body_->dtype_; }
 
     Device& device() const { return body_->device_; }
@@ -219,6 +218,7 @@ private:
     friend Array internal::MakeArray(
             const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
     friend const std::shared_ptr<internal::ArrayBody>& internal::GetArrayBody(const Array& array);
+    friend std::shared_ptr<internal::ArrayBody>&& internal::MoveArrayBody(Array&& array);
 
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
@@ -232,6 +232,14 @@ inline Array operator+(Scalar lhs, const Array& rhs) { return rhs + lhs; }
 inline Array operator-(Scalar lhs, const Array& rhs) { return -rhs + lhs; }
 inline Array operator*(Scalar lhs, const Array& rhs) { return rhs * lhs; }
 // TODO(hvy): Implement Scalar / Array using e.g. multiplication with reciprocal.
+
+namespace internal {
+
+inline const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array) { return array.body_; }
+
+inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array) { return std::move(array.body_); }
+
+}  // namespace internal
 
 void DebugDumpComputationalGraph(
         std::ostream& os,
