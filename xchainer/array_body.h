@@ -15,9 +15,10 @@
 namespace xchainer {
 
 class Array;
-class ArrayNode;
 
 namespace internal {
+
+class ArrayNode;
 
 // Data holder of Array.
 //

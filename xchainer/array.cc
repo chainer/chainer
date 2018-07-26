@@ -335,6 +335,9 @@ std::string Array::ToString() const { return ArrayRepr(*this); }
 
 namespace {
 
+using internal::ArrayNode;
+using internal::OpNode;
+
 class PrintComputationalGraphImpl {
 private:
     using VisitedArrayNodeSet = std::unordered_set<const ArrayNode*>;

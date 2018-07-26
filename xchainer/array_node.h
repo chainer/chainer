@@ -15,6 +15,7 @@
 #include "xchainer/shape.h"
 
 namespace xchainer {
+namespace internal {
 
 class ArrayNode {
 public:
@@ -53,13 +54,13 @@ public:
     // Returns the graph ID.
     const GraphId& graph_id() const { return graph_id_; }
 
-    const std::weak_ptr<internal::ArrayBody>& weak_body() const { return weak_body_; }
+    const std::weak_ptr<ArrayBody>& weak_body() const { return weak_body_; }
 
 private:
     // weak_body_ is set by this function.
-    friend const std::shared_ptr<ArrayNode>& internal::ArrayBody::AddNode(const std::shared_ptr<ArrayBody>&, std::shared_ptr<ArrayNode>);
+    friend const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<ArrayBody>&, std::shared_ptr<ArrayNode>);
 
-    std::weak_ptr<internal::ArrayBody> weak_body_;
+    std::weak_ptr<ArrayBody> weak_body_;
     std::shared_ptr<OpNode> next_op_node_;
     Shape shape_;
     Dtype dtype_;
@@ -67,4 +68,5 @@ private:
     GraphId graph_id_;
 };
 
+}  // namespace internal
 }  // namespace xchainer

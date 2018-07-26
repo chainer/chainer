@@ -661,18 +661,18 @@ TEST(BackpropEnableDoubleBackpropTest, Enabled) {
     Backward(z, nonstd::nullopt, DoubleBackpropOption::kEnable);
 
     GraphId default_graph_id = GetDefaultContext().default_graph_id();
-    std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayBody(z)->GetArrayNode(default_graph_id);
+    std::shared_ptr<const internal::ArrayNode> z_array_node = internal::GetArrayBody(z)->GetArrayNode(default_graph_id);
     ASSERT_TRUE(z_array_node);
 
-    std::shared_ptr<const OpNode> z_op_node = z_array_node->next_op_node();
+    std::shared_ptr<const internal::OpNode> z_op_node = z_array_node->next_op_node();
     ASSERT_TRUE(z_op_node);
 
     auto y_array_nodes = z_op_node->next_array_nodes();
     ASSERT_EQ(2u, y_array_nodes.size());
     EXPECT_EQ(2u, z_op_node->backward_entries().size());
 
-    for (const std::shared_ptr<ArrayNode>& y_array_node : y_array_nodes) {
-        std::shared_ptr<const OpNode> y_op_node = y_array_node->next_op_node();
+    for (const std::shared_ptr<internal::ArrayNode>& y_array_node : y_array_nodes) {
+        std::shared_ptr<const internal::OpNode> y_op_node = y_array_node->next_op_node();
         ASSERT_TRUE(y_op_node);
         ASSERT_EQ(1u, y_op_node->next_array_nodes().size());
         EXPECT_EQ(1u, y_op_node->backward_entries().size());
@@ -688,9 +688,9 @@ TEST(BackpropEnableDoubleBackpropTest, Disabled) {
     Array y2 = x1 * x2;
     Array z = y1 * y2;
     GraphId default_graph_id = GetDefaultContext().default_graph_id();
-    std::shared_ptr<const ArrayNode> z_array_node = internal::GetArrayBody(z)->GetArrayNode(default_graph_id);
+    std::shared_ptr<const internal::ArrayNode> z_array_node = internal::GetArrayBody(z)->GetArrayNode(default_graph_id);
     ASSERT_TRUE(z_array_node);
-    std::shared_ptr<const OpNode> z_op_node = z_array_node->next_op_node();
+    std::shared_ptr<const internal::OpNode> z_op_node = z_array_node->next_op_node();
     ASSERT_TRUE(z_op_node);
 
     Backward(z);
@@ -1484,7 +1484,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
     GraphId graph_id2 = graph_scope2.graph_id();
 
     std::weak_ptr<internal::ArrayBody> y1_body{};
-    std::weak_ptr<const ArrayNode> y1_node{};
+    std::weak_ptr<const internal::ArrayNode> y1_node{};
 
     auto forward = [&graph_id1, &graph_id2, &y1_body, &y1_node, double_backprop_opt](
                            const Array& x1, const Array& x2, Array& y1, Array& y2) {

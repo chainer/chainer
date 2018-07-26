@@ -21,6 +21,12 @@
 #include "xchainer/op_node.h"
 
 namespace xchainer {
+namespace {
+
+using internal::ArrayNode;
+using internal::OpNode;
+
+}  // namespace
 
 RetainedOutputToken::RetainedOutputToken(std::shared_ptr<internal::ArrayBody> data_array_body, size_t output_index)
     : output_array_params_{data_array_body->GetParams()}, output_index_{output_index} {}

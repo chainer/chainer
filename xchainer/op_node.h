@@ -19,14 +19,15 @@
 
 namespace xchainer {
 
-class ArrayNode;
 class BackwardContext;
 class Device;
-class OpNode;
 
 using BackwardFunction = std::function<void(BackwardContext&)>;
 
 namespace internal {
+
+class ArrayNode;
+class OpNode;
 
 struct ArrayProps {
     explicit ArrayProps(const Array& array);
@@ -55,7 +56,7 @@ public:
     }
 
 private:
-    friend class xchainer::OpNode;
+    friend class OpNode;
 
     OpNode& op_node_;
 
@@ -76,8 +77,6 @@ private:
 // This function is used by BackwardContext::GetRetainedOutput().
 std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_node, size_t prev_array_node_index);
 
-}  // namespace internal
-
 class OpNode {
 public:
     // Creates a new op node that has prev array nodes corresponding to the given outputs.
@@ -88,8 +87,7 @@ public:
     OpNode& operator=(const OpNode&) = delete;
     OpNode& operator=(OpNode&&) = delete;
 
-    internal::OpNodeBackwardEntry& RegisterBackwardFunction(
-            std::vector<std::shared_ptr<ArrayNode>> next_array_nodes, BackwardFunction backward_func);
+    OpNodeBackwardEntry& RegisterBackwardFunction(std::vector<std::shared_ptr<ArrayNode>> next_array_nodes, BackwardFunction backward_func);
 
     // Adds links to previous array nodes of other graphs.
     void RegisterOuterGraphsPreviousArrayNodes(
@@ -107,9 +105,9 @@ public:
 
     const std::vector<std::shared_ptr<ArrayNode>>& next_array_nodes() const;
 
-    gsl::span<internal::OpNodeBackwardEntry> backward_entries() { return backward_entries_; }
+    gsl::span<OpNodeBackwardEntry> backward_entries() { return backward_entries_; }
 
-    gsl::span<const internal::OpNodeBackwardEntry> backward_entries() const { return backward_entries_; }
+    gsl::span<const OpNodeBackwardEntry> backward_entries() const { return backward_entries_; }
 
     size_t next_array_node_count() const { return next_array_nodes_.size(); }
 
@@ -119,7 +117,7 @@ public:
 
     GraphId graph_id() const { return graph_id_; }
 
-    const internal::ArrayProps& GetPrevArrayProps(size_t i) const {
+    const ArrayProps& GetPrevArrayProps(size_t i) const {
         assert(i < prev_array_props_.size());
         return prev_array_props_[i];
     }
@@ -161,9 +159,10 @@ private:
     std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_prev_array_nodes_;
 
     // Array props of previous array nodes. This is used for creating dummy gradients.
-    std::vector<internal::ArrayProps> prev_array_props_;
+    std::vector<ArrayProps> prev_array_props_;
 
-    std::vector<internal::OpNodeBackwardEntry> backward_entries_;
+    std::vector<OpNodeBackwardEntry> backward_entries_;
 };
 
+}  // namespace internal
 }  // namespace xchainer

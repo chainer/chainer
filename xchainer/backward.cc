@@ -22,6 +22,14 @@
 #include "xchainer/routines/creation.h"
 
 namespace xchainer {
+namespace {
+
+using internal::ArrayBody;
+using internal::ArrayNode;
+using internal::OpNode;
+
+}  // namespace
+
 namespace internal {
 namespace {
 
@@ -136,7 +144,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
     // Retrieve the kept array body for retained output.
     // Note that it's a non-const reference so that the following logic can assign to it to keep it for the repeated retrieval of the
     // retained array.
-    std::shared_ptr<internal::ArrayBody>& kept_body = retained_output_array_bodies_[output_index];
+    std::shared_ptr<ArrayBody>& kept_body = retained_output_array_bodies_[output_index];
 
     if (kept_body == nullptr) {
         // This is the first retrieval of the retained output.
@@ -144,7 +152,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
         // Otherwise, a new array body is fabricated.
 
         // Retrieve the array body of the original output array.
-        std::shared_ptr<internal::ArrayBody> array_body{nullptr};
+        std::shared_ptr<ArrayBody> array_body{nullptr};
         const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes_[output_index];
         if (prev_array_node != nullptr) {
             // array node is alive
@@ -171,7 +179,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
     return Array{kept_body};
 }
 
-std::shared_ptr<internal::ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const {
+std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const {
     std::vector<std::shared_ptr<ArrayNode>> new_prev_array_nodes;
 
     // Loop over outer graphs to collect array nodes corresponding to the same output index
@@ -198,10 +206,10 @@ std::shared_ptr<internal::ArrayBody> BackwardContext::GetFabricatedArrayBodyWith
 
     // Create a new array body with (possibly fabricated) array nodes.
     // TODO(niboshi): Avoid unnecessary copy of array body params.
-    auto fabricated_array_body = std::make_shared<internal::ArrayBody>(token.output_array_params());
+    auto fabricated_array_body = std::make_shared<ArrayBody>(token.output_array_params());
     for (const std::shared_ptr<ArrayNode>& prev_array_node : new_prev_array_nodes) {
         assert(prev_array_node->weak_body().expired());
-        internal::ArrayBody::AddNode(fabricated_array_body, prev_array_node);
+        ArrayBody::AddNode(fabricated_array_body, prev_array_node);
     }
 
     return fabricated_array_body;
@@ -396,7 +404,7 @@ private:
                                 if (prev_array_node == nullptr) {
                                     return false;
                                 }
-                                std::shared_ptr<internal::ArrayBody> body = prev_array_node->weak_body().lock();
+                                std::shared_ptr<ArrayBody> body = prev_array_node->weak_body().lock();
                                 if (body == nullptr) {
                                     return false;
                                 }
@@ -439,7 +447,7 @@ private:
                         [prev_array_node](const std::shared_ptr<ArrayNode>& out_node) { return prev_array_node == out_node; }) ==
                 output_array_nodes_.end()) {
                 if (prev_array_node != nullptr) {
-                    std::shared_ptr<internal::ArrayBody> body = prev_array_node->weak_body().lock();
+                    std::shared_ptr<ArrayBody> body = prev_array_node->weak_body().lock();
                     if (body != nullptr) {
                         body->ClearGrad(prev_array_node->graph_id());
                     }
