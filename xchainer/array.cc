@@ -337,8 +337,8 @@ std::string Array::ToString() const { return ArrayRepr(*this); }
 
 namespace {
 
-using ArrayNode = internal::ArrayNode;
-using OpNode = internal::OpNode;
+using internal::ArrayNode;
+using internal::OpNode;
 
 class PrintComputationalGraphImpl {
 private:
