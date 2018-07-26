@@ -48,6 +48,18 @@ public:
     ArrayBody(const ArrayBody&) = delete;
     ArrayBody& operator=(const ArrayBody&) = delete;
 
+    const Shape& shape() const { return shape_; }
+
+    const Strides& strides() const { return strides_; }
+
+    Dtype dtype() const { return dtype_; }
+
+    Device& device() const { return device_; }
+
+    const std::shared_ptr<void>& data() const { return data_; }
+
+    int64_t offset() const { return offset_; }
+
     const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return nodes_; }
 
     // TODO(niboshi): Remove this function and add another to assign an array node at a specified index.
@@ -100,8 +112,6 @@ public:
     void ClearGrad(const GraphId& graph_id);
 
 private:
-    friend class ::xchainer::Array;
-
     // Asserts consistency of this instance.
     //
     // This function is no-op if NDEBUG is defined.

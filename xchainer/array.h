@@ -196,23 +196,23 @@ public:
 
     std::string ToString() const;
 
-    Dtype dtype() const { return body_->dtype_; }
+    Dtype dtype() const { return body_->dtype(); }
 
-    Device& device() const { return body_->device_; }
+    Device& device() const { return body_->device(); }
 
     int8_t ndim() const { return shape().ndim(); }
 
-    const Shape& shape() const { return body_->shape_; }
+    const Shape& shape() const { return body_->shape(); }
 
-    const Strides& strides() const { return body_->strides_; }
+    const Strides& strides() const { return body_->strides(); }
 
     int64_t item_size() const { return GetItemSize(dtype()); }
 
-    const std::shared_ptr<void>& data() const { return body_->data_; }
+    const std::shared_ptr<void>& data() const { return body_->data(); }
 
-    void* raw_data() const { return body_->data_.get(); }
+    void* raw_data() const { return body_->data().get(); }
 
-    int64_t offset() const { return body_->offset_; }
+    int64_t offset() const { return body_->offset(); }
 
 private:
     friend Array internal::MakeArray(

@@ -200,7 +200,7 @@ Array Array::MakeView() const {
 }
 
 Array Array::ToDevice(Device& dst_device) const {
-    Device& src_device = body_->device_;
+    Device& src_device = body_->device();
     Array out;
 
     // TODO(sonots): Avoid copying data between native devices, e.g., from native:0 to native:1 for performance.
