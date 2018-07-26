@@ -366,8 +366,17 @@ private:
                     CallBackwardForSubsetOfNextGradients(op_node, backward_entry, prev_array_nodes, output_grads);
 
             // Set the gradients at the appropriate indices.
-            SetSubsetOfNextGradients(
-                    op_node, backward_entry.next_array_node_indices(), std::move(input_grads_subset), prev_array_nodes, input_grads);
+            SetSubsetOfNextGradients(op_node, backward_entry.next_array_node_indices(), std::move(input_grads_subset), input_grads);
+        }
+
+        // Make a view if the next gradient whose array body is identical to one of other prev or next gradients.
+        // Otherwise modifying operations such as requiring grad on one gradient would be transferred to other gradients.
+        // TODO(niboshi): View is needed to make new nodes. Come up with a solution to avoid extra backward insertion.
+        for (auto it = input_grads.begin(); it != input_grads.end(); ++it) {
+            if (it->has_value() &&
+                IsGradientIdenticalToAnyOfOtherGradients(**it, prev_array_nodes, gsl::make_span(&*input_grads.begin(), &*it))) {
+                **it = (*it)->MakeView();
+            }
         }
 
         // If previous array nodes are not output nodes of backward, clear their gradients
@@ -435,7 +444,6 @@ private:
             const std::shared_ptr<internal::OpNode>& op_node,
             const std::vector<nonstd::optional<size_t>>& next_indices,
             std::vector<Array> input_grads_subset,
-            std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes,
             std::vector<nonstd::optional<Array>>& input_grads) {
         for (size_t i_input = 0; i_input < input_grads_subset.size(); ++i_input) {
             if (!next_indices[i_input].has_value()) {
@@ -449,31 +457,6 @@ private:
                 continue;
             }
 
-            // Make a view if the next gradient is identical to one of other prev or next gradients.
-            // TODO(niboshi): Check node identity instead of body identity.
-            if (std::any_of(
-                        prev_array_nodes.begin(),
-                        prev_array_nodes.end(),
-                        [&input_grad, this](const std::shared_ptr<ArrayNode>& prev_array_node) {
-                            if (prev_array_node == nullptr) {
-                                return false;
-                            }
-                            std::shared_ptr<ArrayBody> body = prev_array_node->weak_body().lock();
-                            if (body == nullptr) {
-                                return false;
-                            }
-                            const nonstd::optional<Array>* prev_grad = body->GetGrad(graph_id_);
-                            return prev_grad != nullptr && prev_grad->has_value() &&
-                                   internal::GetArrayBody(input_grad) == internal::GetArrayBody(**prev_grad);
-                        }) ||
-                std::any_of(
-                        input_grads_subset.begin(), input_grads_subset.begin() + i_input, [&input_grad](const Array& another_input_grad) {
-                            return internal::GetArrayBody(another_input_grad) == internal::GetArrayBody(input_grad);
-                        })) {
-                // TODO(niboshi): View is needed to make new nodes. Come up with a solution to avoid extra backward insertion.
-                input_grad = input_grad.MakeView();
-            }
-
             // Set grads at the appropriate index in the vector containing all the next grads of the op node.
             {
                 nonstd::optional<size_t> i_input_grad = next_indices[i_input];
@@ -485,6 +468,34 @@ private:
                 internal::SetGrad(target_grad, input_grad, next_array_node.shape(), next_array_node.dtype(), next_array_node.device());
             }
         }
+    }
+
+    // Returns whether the specified input gradient is identical to any of the other input gradients or previous gradients.
+    bool IsGradientIdenticalToAnyOfOtherGradients(
+            const Array& input_grad,
+            const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes,
+            gsl::span<nonstd::optional<Array>> other_input_grads) {
+        // TODO(niboshi): Check node identity instead of body identity.
+        return std::any_of(
+                       prev_array_nodes.begin(),
+                       prev_array_nodes.end(),
+                       [&input_grad, this](const std::shared_ptr<ArrayNode>& prev_array_node) {
+                           if (prev_array_node == nullptr) {
+                               return false;
+                           }
+                           std::shared_ptr<ArrayBody> body = prev_array_node->weak_body().lock();
+                           if (body == nullptr) {
+                               return false;
+                           }
+                           const nonstd::optional<Array>* prev_grad = body->GetGrad(graph_id_);
+                           return prev_grad != nullptr && prev_grad->has_value() &&
+                                  internal::GetArrayBody(input_grad) == internal::GetArrayBody(**prev_grad);
+                       }) ||
+               std::any_of(
+                       other_input_grads.begin(), other_input_grads.end(), [&input_grad](const nonstd::optional<Array>& other_input_grad) {
+                           return other_input_grad.has_value() &&
+                                  internal::GetArrayBody(*other_input_grad) == internal::GetArrayBody(input_grad);
+                       });
     }
 
     void AccumulateNextGradients(const OpNode& op_node, std::vector<nonstd::optional<Array>> gxs) {
