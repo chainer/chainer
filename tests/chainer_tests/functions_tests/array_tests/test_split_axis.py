@@ -31,6 +31,8 @@ def inject_backend_tests(method_names):
              (slice(None), slice(5, None))]},
         {'shape': (7, 3), 'axis': 0, 'ys_section': [2, 5],
          'slices': [slice(None, 2), slice(2, 5), slice(5, None)]},
+        {'shape': (7, 0), 'axis': 0, 'ys_section': [2, 5],
+         'slices': [slice(None, 2), slice(2, 5), slice(5, None)]},
         {'shape': (2, 9, 3), 'axis': 1, 'ys_section': 3,
          'slices': [
              (slice(None), slice(None, 3)),
