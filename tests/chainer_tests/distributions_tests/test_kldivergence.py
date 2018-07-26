@@ -39,8 +39,8 @@ class TestKLDivergence(unittest.TestCase):
         return params
 
     def make_beta_dist(self, is_gpu=False):
-        a = numpy.random.uniform(1, 10, self.shape).astype(numpy.float32)
-        b = numpy.random.uniform(1, 10, self.shape).astype(numpy.float32)
+        a = numpy.random.uniform(0.5, 10, self.shape).astype(numpy.float32)
+        b = numpy.random.uniform(0.5, 10, self.shape).astype(numpy.float32)
         params = self.encode_params({"a": a, "b": b}, is_gpu)
         return distributions.Beta(**params)
 

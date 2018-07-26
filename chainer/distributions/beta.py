@@ -4,8 +4,47 @@ from chainer import distribution
 from chainer.functions.array import broadcast
 from chainer.functions.math import digamma
 from chainer.functions.math import exponential
-from chainer.functions.math import lgamma
 from chainer.functions.array import where
+from chainer import utils
+
+_lgamma_cpu = None
+
+
+class LBeta(chainer.function_node.FunctionNode):
+
+    def forward_cpu(self, inputs):
+        a, b = inputs
+        global _lgamma_cpu
+        if _lgamma_cpu is None:
+            try:
+                from scipy import special
+                _lgamma_cpu = special.gammaln
+            except ImportError:
+                raise ImportError("SciPy is not available. Forward computation"
+                                  " of lgamma can not be done.")
+        self.retain_inputs((0, 1))
+        y = _lgamma_cpu(a) + _lgamma_cpu(b) - _lgamma_cpu(a + b)
+        return utils.force_array(y, dtype=a.dtype),
+
+    def forward_gpu(self, inputs):
+        a, b = inputs
+        self.retain_inputs((0, 1))
+        y = cuda.cupyx.scipy.special.gammaln(a) \
+            + cuda.cupyx.scipy.special.gammaln(b) \
+            - cuda.cupyx.scipy.special.gammaln(a + b)
+        return utils.force_array(y, dtype=a.dtype),
+
+    def backward(self, target_input_indexes, grad_outputs):
+        gy, = grad_outputs
+        a, b = self.get_retained_inputs()
+        digamma_apb = chainer.functions.digamma(a + b)
+        return (gy * (chainer.functions.digamma(a) - digamma_apb),
+                gy * (chainer.functions.digamma(b) - digamma_apb))
+
+
+def _lbeta(a, b):
+    y, = LBeta().apply((a, b))
+    return y
 
 
 class Beta(distribution.Distribution):
@@ -30,8 +69,7 @@ class Beta(distribution.Distribution):
     @property
     def entropy(self):
         apb = self.a + self.b
-        return lgamma.lgamma(self.a) + lgamma.lgamma(self.b) \
-            - lgamma.lgamma(apb) \
+        return _lbeta(self.a, self.b) \
             - (self.a - 1) * digamma.digamma(self.a) \
             - (self.b - 1) * digamma.digamma(self.b) \
             + (apb - 2) * digamma.digamma(apb)
@@ -53,11 +91,11 @@ class Beta(distribution.Distribution):
 
         logp = (ba - 1) * exponential.log(x) \
             + (bb - 1) * exponential.log(1 - x) \
-            - lgamma.lgamma(ba) - lgamma.lgamma(bb) \
-            + lgamma.lgamma(ba + bb)
+            - _lbeta(ba, bb)
 
         inf = xp.ones_like(ba.data) * xp.inf
-        return where.where(xp.bitwise_and(x.data >= 0, x.data < 1), logp, -inf)
+        return where.where(xp.bitwise_and(x.data >= 0, x.data <= 1),
+                           logp, -inf)
 
     @property
     def mean(self):
@@ -76,17 +114,14 @@ class Beta(distribution.Distribution):
     @property
     def variance(self):
         apb = self.a + self.b
-        return (self.a * self.b) / (apb) ** 2 / (apb + 1)
+        return self.a * self.b / apb ** 2 / (apb + 1)
 
 
 @distribution.register_kl(Beta, Beta)
 def _kl_beta_beta(dist1, dist2):
     dist1_apb = dist1.a + dist1.b
     dist2_apb = dist2.a + dist2.b
-    return - (lgamma.lgamma(dist1.a) + lgamma.lgamma(dist1.b)
-              - lgamma.lgamma(dist1_apb)) \
-        + (lgamma.lgamma(dist2.a) + lgamma.lgamma(dist2.b)
-           - lgamma.lgamma(dist2_apb)) \
+    return - _lbeta(dist1.a, dist1.b) + _lbeta(dist2.a, dist2.b)\
         + (dist1.a - dist2.a) * digamma.digamma(dist1.a) \
         + (dist1.b - dist2.b) * digamma.digamma(dist1.b) \
         + (dist2_apb - dist1_apb) * digamma.digamma(dist1_apb)
