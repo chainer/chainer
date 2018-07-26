@@ -188,11 +188,6 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
         When ``force_tuple`` is ``True``, returned value is always a tuple
         regardless of the number of outputs.
 
-    .. note::
-        This function raises :class:`ValueError` if at least
-        one of the outputs is split to zero-size
-        (i.e. ``axis``-th value of its shape is zero).
-
     """
     res = SplitAxis(indices_or_sections, axis).apply((x,))
     if force_tuple or len(res) != 1:
