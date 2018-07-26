@@ -10,6 +10,18 @@ from chainer import function_node
 from chainer.utils import type_check
 
 
+def _split_and_fix_shape(xp, x, indices_or_sections, axis):
+    ret = xp.split(x, indices_or_sections, axis)
+    for i, r in enumerate(ret):
+        if r.ndim != x.ndim:
+            # Make the output compatible with np.split of numpy >= 1.11
+            assert r.size == 0
+            shape = list(x.shape)
+            shape[axis] = 0
+            ret[i] = r.reshape(shape)
+    return ret
+
+
 def _get_indices_or_sections(indices_or_sections):
     """Checks and convert ``indices_or_sections`` argument
 
@@ -93,9 +105,9 @@ class SplitAxis(function_node.FunctionNode):
             indices_or_sections = self.indices
         else:
             indices_or_sections = self.sections
-        ret = tuple(self._xp.split(x, indices_or_sections, self.axis))
+        ret = _split_and_fix_shape(self._xp, x, indices_or_sections, self.axis)
         self._shapes = [r.shape for r in ret]
-        return ret
+        return tuple(ret)
 
     def _ideep_is_supported(self, inputs):
         # Returns True if iDeep supports current configuration of inputs and

@@ -128,7 +128,6 @@ def inject_backend_tests(method_names):
         {'dtype': numpy.float64},
     ],
 ))
-@testing.with_requires('numpy>=1.11')
 @inject_backend_tests(['test_forward', 'test_backward'])
 class TestSplitAxis(unittest.TestCase):
 
