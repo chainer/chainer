@@ -12,8 +12,8 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
-#include "xchainer/backward.h"
 #include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"

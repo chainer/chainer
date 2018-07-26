@@ -15,6 +15,7 @@
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
 #include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
