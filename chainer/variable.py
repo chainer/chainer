@@ -146,9 +146,9 @@ class VariableNode(object):
         name (str): Name of the variable node.
 
     Attributes:
-        ~VariableNode.dtype: Data type of the data array.
-        ~VariableNode.shape: Shape of the data array.
-        ~VariableNode.name (str): Name of the variable node.
+        dtype: Data type of the data array.
+        shape: Shape of the data array.
+        name (str): Name of the variable node.
 
     """
 
@@ -1331,7 +1331,7 @@ class Parameter(Variable):
             else:
                 # uninitialized parameter
                 super(Parameter, self).__init__(name=name)
-                dtype = getattr(initializer, 'dtype', numpy.float32)
+                dtype = getattr(initializer, 'dtype', None)
                 self._grad_initializer = constant.NaN(dtype)
         else:
             # parameter initialized with a given shape

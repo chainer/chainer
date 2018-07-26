@@ -51,6 +51,7 @@ try:
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
     import cupyx  # NOQA
+    import cupyx.scipy.special  # NOQA
 
     from cupy import ndarray  # NOQA
 
@@ -499,7 +500,7 @@ def clear_memo():
 # ------------------------------------------------------------------------------
 # Kernel definition utility
 # ------------------------------------------------------------------------------
-@memoize(for_each_device=True)
+@memoize()
 def elementwise(in_params, out_params, operation, name, **kwargs):
     """Creates an elementwise kernel function.
 
@@ -517,7 +518,7 @@ def elementwise(in_params, out_params, operation, name, **kwargs):
         in_params, out_params, operation, name, **kwargs)
 
 
-@memoize(for_each_device=True)
+@memoize()
 def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
            identity, name,  **kwargs):
     """Creates a global reduction kernel function.
@@ -535,6 +536,21 @@ def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
     return cupy.ReductionKernel(
         in_params, out_params, map_expr, reduce_expr, post_map_expr,
         identity, name, **kwargs)
+
+
+@memoize()
+def raw(code, name, *args, **kwargs):
+    """Creates a raw kernel function.
+
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the
+    resulting kernel object, i.e. the resulting kernel object is cached for
+    each argument combination and CUDA device.
+
+    The arguments are the same as those for :class:`cupy.RawKernel`.
+
+    """
+    check_cuda_available()
+    return cupy.RawKernel(code, name, *args, **kwargs)
 
 
 # ------------------------------------------------------------------------------

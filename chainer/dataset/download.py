@@ -9,8 +9,9 @@ from six.moves.urllib import request
 from chainer import utils
 
 
-_dataset_root = os.environ.get('CHAINER_DATASET_ROOT',
-                               os.path.expanduser('~/.chainer/dataset'))
+_dataset_root = os.environ.get(
+    'CHAINER_DATASET_ROOT',
+    os.path.join(os.path.expanduser('~'), '.chainer', 'dataset'))
 
 
 def get_dataset_root():

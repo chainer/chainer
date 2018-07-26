@@ -121,6 +121,8 @@ from chainer.functions.math.clip import clip  # NOQA
 from chainer.functions.math.cumsum import cumsum  # NOQA
 from chainer.functions.math.det import batch_det  # NOQA
 from chainer.functions.math.det import det  # NOQA
+from chainer.functions.math.digamma import digamma  # NOQA
+from chainer.functions.math.einsum import einsum  # NOQA
 from chainer.functions.math.erf import erf  # NOQA
 from chainer.functions.math.erfc import erfc  # NOQA
 from chainer.functions.math.erfinv import erfinv  # NOQA
@@ -139,6 +141,7 @@ from chainer.functions.math.hyperbolic import sinh  # NOQA
 from chainer.functions.math.identity import identity  # NOQA
 from chainer.functions.math.inv import batch_inv  # NOQA
 from chainer.functions.math.inv import inv  # NOQA
+from chainer.functions.math.lgamma import lgamma  # NOQA
 from chainer.functions.math.linear_interpolate import linear_interpolate  # NOQA
 from chainer.functions.math.logarithm_1p import log1p  # NOQA
 from chainer.functions.math.logsumexp import logsumexp  # NOQA
@@ -150,6 +153,7 @@ from chainer.functions.math.minmax import argmax  # NOQA
 from chainer.functions.math.minmax import argmin  # NOQA
 from chainer.functions.math.minmax import max  # NOQA
 from chainer.functions.math.minmax import min  # NOQA
+from chainer.functions.math.polygamma import polygamma  # NOQA
 from chainer.functions.math.prod import prod  # NOQA
 from chainer.functions.math.scale import scale  # NOQA
 from chainer.functions.math.sign import sign  # NOQA

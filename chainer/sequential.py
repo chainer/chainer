@@ -19,7 +19,7 @@ class Sequential(link.ChainList):
     :class:`~Link` object as input to their constructor, this
     :class:`~Sequential` can take arbitrary number of any callable objects for
     the forward pass computation. A :class:`~Sequential` calls the given
-    callable objects sequentially inside of the :meth:`~Sequential.__call__`
+    callable objects sequentially inside of the :meth:`~Sequential.forward`
     method in the same order as the given argments.
     Therefore, you do not need to write the forward pass computation
     explicitly.
@@ -34,7 +34,7 @@ class Sequential(link.ChainList):
           import link.Links as L
           from chainer import Sequential
 
-          # Model definition without writing __call__ function
+          # Model definition without writing forward function
           model = Sequential(
               L.Linear(n_in, n_hidden),
               F.relu,
@@ -184,7 +184,7 @@ class Sequential(link.ChainList):
                                  str(type(other))))
         return self
 
-    def __call__(self, *x):
+    def forward(self, *x):
         """Forward pass computation.
 
         This method performs the forward pass computation by giving the input
