@@ -285,7 +285,7 @@ void InitXchainerArray(pybind11::module& m) {
               if (!grad.has_value()) {
                   return nullptr;
               }
-              return grad->body();
+              return internal::GetArrayBody(*grad);
           },
           py::arg("graph_id") = nullptr);
     c.def("set_grad",
@@ -320,7 +320,7 @@ void InitXchainerArray(pybind11::module& m) {
                 if (!grad.has_value()) {
                     return nullptr;
                 }
-                return grad->body();
+                return internal::GetArrayBody(*grad);
             },
             [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
                 auto array = Array{self};

@@ -91,7 +91,7 @@ BackwardContext::BackwardContext(
       double_backprop_option_{double_backprop_option} {
     assert(prev_array_nodes_.size() == output_grads_.size());
     // Input grads must be initialized with null-body arrays.
-    assert(std::all_of(input_grads_.begin(), input_grads_.end(), [](const Array& g) { return g.body() == nullptr; }));
+    assert(std::all_of(input_grads_.begin(), input_grads_.end(), [](const Array& g) { return internal::GetArrayBody(g) == nullptr; }));
 
     retained_output_array_bodies_.resize(op_node->prev_array_node_count());  // Fill with nullptr
 };
@@ -382,7 +382,7 @@ private:
                 }
 
                 Array& input_grad = gsl::at(input_grads_subset, i_input);
-                if (input_grad.body() == nullptr) {
+                if (internal::GetArrayBody(input_grad) == nullptr) {
                     // Input grad is not set by backward function
                     continue;
                 }
@@ -401,12 +401,15 @@ private:
                                     return false;
                                 }
                                 const nonstd::optional<Array>* prev_grad = body->GetGrad(graph_id_);
-                                return prev_grad != nullptr && prev_grad->has_value() && input_grad.body() == (*prev_grad)->body();
+                                return prev_grad != nullptr && prev_grad->has_value() &&
+                                       internal::GetArrayBody(input_grad) == internal::GetArrayBody(**prev_grad);
                             }) ||
                     std::any_of(
                             input_grads_subset.begin(),
                             input_grads_subset.begin() + i_input,
-                            [&input_grad](const Array& another_input_grad) { return another_input_grad.body() == input_grad.body(); })) {
+                            [&input_grad](const Array& another_input_grad) {
+                                return internal::GetArrayBody(another_input_grad) == internal::GetArrayBody(input_grad);
+                            })) {
                     // TODO(niboshi): View is needed to make new nodes. Come up with a solution to avoid extra backward insertion.
                     input_grad = input_grad.MakeView();
                 }

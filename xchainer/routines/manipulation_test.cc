@@ -269,7 +269,7 @@ TEST_P(ManipulationTest, SqueezeNoSqueezableAxes) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
     Array e = Squeeze(a);
     testing::ExpectEqual(e, a);
-    EXPECT_EQ(e.body(), a.body());
+    EXPECT_EQ(internal::GetArrayBody(e), internal::GetArrayBody(a));
 }
 
 TEST_P(ManipulationTest, InvalidSqueezeNonUnitLengthAxis) {

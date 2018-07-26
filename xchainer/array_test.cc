@@ -74,7 +74,7 @@ private:
 
 TEST_P(ArrayTest, DefaultCtor) {
     Array a;
-    EXPECT_EQ(nullptr, a.body().get());
+    EXPECT_EQ(nullptr, internal::GetArrayBody(a));
 }
 
 TEST_P(ArrayTest, CopyCtor) {
@@ -82,7 +82,7 @@ TEST_P(ArrayTest, CopyCtor) {
     Array b = a;  // NOLINT
 
     // A copy-constructed instance must share the same body.
-    EXPECT_EQ(a.body().get(), b.body().get());
+    EXPECT_EQ(internal::GetArrayBody(a), internal::GetArrayBody(b));
 }
 
 TEST_P(ArrayTest, ArrayMoveCtor) {
@@ -107,17 +107,17 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
     // Array body must be transferred by move
     {
         Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
-        auto body = a.body();
+        std::shared_ptr<internal::ArrayBody> body = internal::GetArrayBody(a);
         Array c = std::move(a);
-        EXPECT_EQ(body, c.body());
+        EXPECT_EQ(body, internal::GetArrayBody(c));
     }
 }
 
 TEST_P(ArrayTest, ArrayBodyCtor) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
-    auto body = a.body();
+    std::shared_ptr<internal::ArrayBody> body = internal::GetArrayBody(a);
     Array b{body};
-    EXPECT_EQ(body, b.body());
+    EXPECT_EQ(body, internal::GetArrayBody(b));
     EXPECT_EQ(a.dtype(), b.dtype());
     EXPECT_EQ(a.shape(), b.shape());
     EXPECT_EQ(a.IsContiguous(), b.IsContiguous());
@@ -133,14 +133,14 @@ TEST_P(ArrayTest, CopyAssignment) {
         Array b;
         b = a;
 
-        EXPECT_EQ(a.body().get(), b.body().get());
+        EXPECT_EQ(internal::GetArrayBody(a), internal::GetArrayBody(b));
     }
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
         Array b = testing::BuildArray({1}).WithData<float>({1.0f});
         b = a;
 
-        EXPECT_EQ(a.body().get(), b.body().get());
+        EXPECT_EQ(internal::GetArrayBody(a), internal::GetArrayBody(b));
     }
 }
 
@@ -148,18 +148,18 @@ TEST_P(ArrayTest, MoveAssignment) {
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
         Array b;
-        std::shared_ptr<internal::ArrayBody> body = a.body();
+        std::shared_ptr<internal::ArrayBody> body = internal::GetArrayBody(a);
         b = std::move(a);
 
-        EXPECT_EQ(body.get(), b.body().get());
+        EXPECT_EQ(body, internal::GetArrayBody(b));
     }
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, true, true});
         Array b = testing::BuildArray({1}).WithData<float>({1.0f});
-        std::shared_ptr<internal::ArrayBody> body = a.body();
+        std::shared_ptr<internal::ArrayBody> body = internal::GetArrayBody(a);
         b = std::move(a);
 
-        EXPECT_EQ(body.get(), b.body().get());
+        EXPECT_EQ(body, internal::GetArrayBody(b));
     }
 }
 
@@ -836,7 +836,8 @@ TEST_P(ArrayTest, AsTypeBoolToFloat) {
 TEST_P(ArrayTest, AsTypeCopyFalse) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kFloat32, false);
-    EXPECT_EQ(a.body(), o.body()) << "Bodies must be same in order for the reference to be preserved in Python";
+    EXPECT_EQ(internal::GetArrayBody(a), internal::GetArrayBody(o))
+            << "Bodies must be same in order for the reference to be preserved in Python";
 }
 
 TEST_P(ArrayTest, AsTypeCopyFalseButDifferentType) {
@@ -893,7 +894,7 @@ TEST_P(ArrayTest, ToNative) {
     Array b = a.ToNative();
     EXPECT_EQ("native:0", b.device().name());
     EXPECT_EQ(&a.device().backend().context(), &b.device().backend().context());
-    EXPECT_NE(a.body().get(), b.body().get());
+    EXPECT_NE(internal::GetArrayBody(a), internal::GetArrayBody(b));
 
     EXPECT_EQ(a.dtype(), b.dtype());
     EXPECT_EQ(a.shape(), b.shape());

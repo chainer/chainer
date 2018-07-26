@@ -197,9 +197,6 @@ public:
 
     std::string ToString() const;
 
-    // TODO(hvy): Remove accessor and replace usage with interna::GetArrayBody
-    const std::shared_ptr<internal::ArrayBody>& body() const { return body_; }
-
     Dtype dtype() const { return body_->dtype_; }
 
     Device& device() const { return body_->device_; }

@@ -153,12 +153,14 @@ RetainedOutputToken BackwardBuilder::RetainOutput(const Array& output) {
     // If there are more than one array with the same array body in outputs, the first one is always chosen, no matter what array the caller
     // actually specified. It doesn't matter because the array GetRetainedOutput would return is the same.
     // TODO(niboshi): It may be costly in ops with many output arrays.
-    auto it = std::find_if(outputs_.begin(), outputs_.end(), [&output](const Array& output2) { return output.body() == output2.body(); });
+    auto it = std::find_if(outputs_.begin(), outputs_.end(), [&output](const Array& output2) {
+        return internal::GetArrayBody(output) == internal::GetArrayBody(output2);
+    });
     if (it == outputs_.end()) {
         throw XchainerError{"Cannot retain an array which is not any of output arrays."};
     }
     size_t output_index = std::distance(outputs_.begin(), it);
-    return {output.body(), output_index};
+    return {internal::GetArrayBody(output), output_index};
 }
 
 }  // namespace xchainer
