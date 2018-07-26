@@ -529,3 +529,29 @@ def test_fill_with_scalar(xp, device, shape, dtype, value):
         value = xchainer.Scalar(value, dtype)
     a.fill(value)
     return a
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('slice1', [(0, 30, 1), (30, 0, -1), (10, 40, 7), (40, 10, -7)])
+@pytest.mark.parametrize('slice2', [(0, 50, 1), (50, 0, -1), (10, 40, 7), (40, 10, -7)])
+def test_array_tonumpy_identity(device, slice1, slice2):
+    start1, end1, step1 = slice1
+    start2, end2, step2 = slice2
+    x = numpy.arange(1500).reshape((30, 50))[start1:end1:step1, start2:end2:step2]
+    y = xchainer.array(x)
+    z = xchainer.tonumpy(y)
+    xchainer.testing.assert_array_equal_ex(x, y, strides_check=False)
+    xchainer.testing.assert_array_equal_ex(x, z, strides_check=False)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('slice1', [(0, 30, 1), (30, 0, -1), (10, 40, 7), (40, 10, -7)])
+@pytest.mark.parametrize('slice2', [(0, 50, 1), (50, 0, -1), (10, 40, 7), (40, 10, -7)])
+def test_asarray_tonumpy_identity(device, slice1, slice2):
+    start1, end1, step1 = slice1
+    start2, end2, step2 = slice2
+    x = numpy.arange(1500).reshape((30, 50))[start1:end1:step1, start2:end2:step2]
+    y = xchainer.asarray(x)
+    z = xchainer.tonumpy(y)
+    xchainer.testing.assert_array_equal_ex(x, y)
+    xchainer.testing.assert_array_equal_ex(x, z, strides_check=False)
