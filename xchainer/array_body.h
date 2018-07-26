@@ -41,10 +41,6 @@ public:
         int64_t offset;
     };
 
-    ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
-
-    explicit ArrayBody(Params params);
-
     ArrayBody(const ArrayBody&) = delete;
     ArrayBody& operator=(const ArrayBody&) = delete;
 
@@ -112,6 +108,15 @@ public:
     void ClearGrad(const GraphId& graph_id);
 
 private:
+    friend std::shared_ptr<ArrayBody> CreateArrayBody(
+            const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+
+    friend std::shared_ptr<ArrayBody> CreateArrayBody(Params params);
+
+    ArrayBody(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+
+    explicit ArrayBody(Params params);
+
     // Asserts consistency of this instance.
     //
     // This function is no-op if NDEBUG is defined.
@@ -132,6 +137,11 @@ private:
     std::vector<std::shared_ptr<ArrayNode>> nodes_;
     std::vector<std::unique_ptr<nonstd::optional<Array>>> grads_;
 };
+
+std::shared_ptr<ArrayBody> CreateArrayBody(
+        const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+
+std::shared_ptr<ArrayBody> CreateArrayBody(ArrayBody::Params params);
 
 }  // namespace internal
 }  // namespace xchainer

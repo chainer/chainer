@@ -206,7 +206,7 @@ std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(cons
 
     // Create a new array body with (possibly fabricated) array nodes.
     // TODO(niboshi): Avoid unnecessary copy of array body params.
-    auto fabricated_array_body = std::make_shared<ArrayBody>(token.output_array_params());
+    std::shared_ptr<ArrayBody> fabricated_array_body = internal::CreateArrayBody(token.output_array_params());
     for (const std::shared_ptr<ArrayNode>& prev_array_node : new_prev_array_nodes) {
         assert(prev_array_node->weak_body().expired());
         ArrayBody::AddNode(fabricated_array_body, prev_array_node);

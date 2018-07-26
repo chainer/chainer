@@ -14,8 +14,23 @@
 namespace xchainer {
 namespace internal {
 
-ArrayBody::ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
-    : shape_{std::move(shape)}, strides_{std::move(strides)}, dtype_{dtype}, device_{device}, data_{std::move(data)}, offset_{offset} {}
+std::shared_ptr<ArrayBody> CreateArrayBody(
+        const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset) {
+    // Trick to use make_shared with private ctor
+    struct ArrayBodyWithPublicCtor : ArrayBody {
+        ArrayBodyWithPublicCtor(
+                const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
+            : ArrayBody{shape, strides, dtype, device, std::move(data), offset} {}
+    };
+    return std::make_shared<ArrayBodyWithPublicCtor>(shape, strides, dtype, device, std::move(data), offset);
+}
+
+std::shared_ptr<ArrayBody> CreateArrayBody(ArrayBody::Params params) {
+    return CreateArrayBody(params.shape, params.strides, params.dtype, params.device, std::move(params.data), params.offset);
+}
+
+ArrayBody::ArrayBody(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
+    : shape_{shape}, strides_{strides}, dtype_{dtype}, device_{device}, data_{std::move(data)}, offset_{offset} {}
 
 ArrayBody::ArrayBody(Params params)
     : ArrayBody{params.shape, params.strides, params.dtype, params.device, std::move(params.data), params.offset} {}

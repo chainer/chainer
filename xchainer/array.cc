@@ -59,7 +59,7 @@ Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device&
 }  // namespace internal
 
 Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
-    : body_{std::make_shared<internal::ArrayBody>(shape, strides, dtype, device, std::move(data), offset)} {
+    : body_{internal::CreateArrayBody(shape, strides, dtype, device, std::move(data), offset)} {
     if (internal::ArrayBodyLeakTracker* tracker = internal::ArrayBodyLeakDetectionScope::GetGlobalTracker()) {
         // TODO(niboshi): Make thread-safe
         (*tracker)(body_);
@@ -189,7 +189,7 @@ Array Array::Take(const Array& indices, int8_t axis) const { return xchainer::Ta
 Array Array::Copy() const { return xchainer::Copy(*this); }
 
 Array Array::MakeView() const {
-    Array out{std::make_shared<internal::ArrayBody>(shape(), strides(), dtype(), device(), data(), offset())};
+    Array out{shape(), strides(), dtype(), device(), data(), offset()};
 
     BackwardBuilder bb{"view", out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(*this)) {
