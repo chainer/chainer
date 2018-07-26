@@ -41,10 +41,10 @@ def _cross_covariance(y, z, dtype=numpy.float32):
       'forward_options': {'rtol': 1e-4, 'atol': 1e-4},
       'backward_options': {'rtol': 1e-4, 'atol': 1e-4},
       'double_backward_options': {'rtol': 1e-4, 'atol': 1e-4}},
-    ],
+     ],
     [{'reduce': 'half_squared_sum'},
      {'reduce': 'no'},
-    ]
+     ]
 ))
 class TestCrossCovariance(unittest.TestCase):
 
