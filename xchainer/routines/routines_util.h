@@ -18,7 +18,7 @@ inline void CheckNoInplaceWithRequiredGrad(const Array& out, std::initializer_li
     bool any_inplace = false;
     for (const Array& input : inputs) {
         any_grad_required |= input.IsGradRequired(AnyGraph{});
-        any_inplace |= (out.body() == input.body());
+        any_inplace |= (internal::GetArrayBody(out) == internal::GetArrayBody(input));
     }
 
     if (any_grad_required && any_inplace) {
