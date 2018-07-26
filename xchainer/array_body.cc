@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "xchainer/array.h"
+#include "xchainer/array_body_leak_detection.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backward.h"
 #include "xchainer/error.h"
@@ -22,7 +23,16 @@ std::shared_ptr<ArrayBody> CreateArrayBody(
                 const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
             : ArrayBody{shape, strides, dtype, device, std::move(data), offset} {}
     };
-    return std::make_shared<ArrayBodyWithPublicCtor>(shape, strides, dtype, device, std::move(data), offset);
+
+    std::shared_ptr<ArrayBody> array_body =
+            std::make_shared<ArrayBodyWithPublicCtor>(shape, strides, dtype, device, std::move(data), offset);
+
+    if (internal::ArrayBodyLeakTracker* tracker = internal::ArrayBodyLeakDetectionScope::GetGlobalTracker()) {
+        // TODO(niboshi): Make thread-safe
+        (*tracker)(array_body);
+    }
+
+    return array_body;
 }
 
 std::shared_ptr<ArrayBody> CreateArrayBody(ArrayBody::Params params) {

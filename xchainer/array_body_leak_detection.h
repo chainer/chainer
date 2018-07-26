@@ -39,11 +39,9 @@ public:
     ArrayBodyLeakDetectionScope(ArrayBodyLeakDetectionScope&& other) = delete;
     ArrayBodyLeakDetectionScope& operator=(ArrayBodyLeakDetectionScope&& other) = delete;
 
-private:
-    friend class xchainer::Array;
-
     static ArrayBodyLeakTracker* GetGlobalTracker() { return array_body_leak_tracker_; }
 
+private:
     // The global array body leak tracker.
     static ArrayBodyLeakTracker* array_body_leak_tracker_;
 };
