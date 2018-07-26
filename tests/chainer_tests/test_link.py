@@ -79,6 +79,22 @@ class TestLink(unittest.TestCase):
             self.link.p = p
         self.assertTrue(all(p is not param for param in self.link.params()))
 
+    def test_call_injected_with_mixin(self):
+        call = mock.MagicMock()
+        call.return_value = 3
+
+        class CallMixin(object):
+            __call__ = call
+
+        class InjectedLink(chainer.Link, CallMixin):
+            pass
+
+        link = InjectedLink()
+        ret = link(1, a=2)
+
+        call.assert_called_once_with(1, a=2)
+        assert ret == call.return_value
+
     def test_add_param(self):
         with testing.assert_warns(DeprecationWarning):
             self.link.add_param('z', (2, 3))
