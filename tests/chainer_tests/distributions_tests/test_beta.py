@@ -45,6 +45,7 @@ class TestBeta(testing.distribution_unittest):
     'shape': [(2, 3), ()],
     'dtype': [numpy.float32, numpy.float64],
 }))
+@testing.with_requires('scipy')
 class TestLBeta(unittest.TestCase):
 
     def setUp(self):
