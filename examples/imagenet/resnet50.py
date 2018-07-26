@@ -48,24 +48,14 @@ class Convolution2D:
 
 class BatchNormalization:
 
-    def __init__(self, batches, dtype=xc.float32):
-        self.avg_mean = None
-        self.avg_var = None
-        self.gamma = None
-        self.beta = None
-        self.dtype = dtype
+    def __init__(self, size, dtype=xc.float32):
+        shape = size,
+        self.avg_mean = xc.zeros(shape, dtype)
+        self.avg_var = xc.zeros(shape, dtype)
+        self.gamma = xc.ones(shape, dtype)
+        self.beta = xc.zeros(shape, dtype)
 
     def __call__(self, x):
-        if self.gamma is None:
-            shape = x.shape[1:]
-            dtype = self.dtype
-            self.avg_mean = xc.zeros(shape, dtype)
-            self.avg_var = xc.zeros(shape, dtype)
-            self.gamma = xc.ones(shape, dtype)
-            self.beta = xc.zeros(shape, dtype)
-            self.gamma.require_grad()
-            self.beta.require_grad()
-
         return xc.batch_norm(x, self.gamma, self.beta,
                              running_mean=self.avg_mean,
                              running_var=self.avg_var)
@@ -75,21 +65,18 @@ class BatchNormalization:
         return self.gamma, self.beta
 
     def no_grad(self):
-        if self.gamma is not None:
-            self.gamma = self.gamma.as_grad_stopped()
-            self.beta = self.beta.as_grad_stopped()
+        self.gamma = self.gamma.as_grad_stopped()
+        self.beta = self.beta.as_grad_stopped()
 
     def require_grad(self):
         for param in self.params:
-            if param is not None:
-                param.require_grad()
+            param.require_grad()
 
     def update(self, lr):
         for param in self.params:
-            if param is not None:
-                p = param.as_grad_stopped()
-                p -= lr * param.grad.as_grad_stopped()
-                param.cleargrad()
+            p = param.as_grad_stopped()
+            p -= lr * param.grad.as_grad_stopped()
+            param.cleargrad()
 
 
 class Linear:
