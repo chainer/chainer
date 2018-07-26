@@ -40,14 +40,14 @@ class BatchRenormalization(BatchNormalization):
         self.d = None
 
     def __call__(self, x, finetune=False):
-        if hasattr(self, 'gamma'):
+        if self.gamma is not None:
             gamma = self.gamma
         else:
             with cuda.get_device_from_id(self._device_id):
                 gamma = self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype)
 
-        if hasattr(self, 'beta'):
+        if self.beta is not None:
             beta = self.beta
         else:
             with cuda.get_device_from_id(self._device_id):
