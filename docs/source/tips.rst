@@ -141,7 +141,7 @@ You can also use :func:`chainer.using_config` to change the configuration.
         y = chainer.functions.relu(x)
     print(type(y.data))
 
-.. code-block:: console
+.. code-block:: none
 
     <class 'ideep4py.mdarray'>
 
