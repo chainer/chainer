@@ -37,7 +37,7 @@ class BatchRenormalization(BatchNormalization):
         self.r = None
         self.d = None
 
-    def __call__(self, x, finetune=False):
+    def forward(self, x, finetune=False):
         if self.gamma is not None:
             gamma = self.gamma
         else:

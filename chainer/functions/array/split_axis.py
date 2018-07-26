@@ -10,6 +10,23 @@ from chainer import function_node
 from chainer.utils import type_check
 
 
+def _split_and_fix_shape(xp, x, indices_or_sections, axis):
+    ret = xp.split(x, indices_or_sections, axis)
+    if all(r.ndim == x.ndim for r in ret):
+        return ret
+    # Make the output compatible with np.split of numpy >= 1.11
+    tmp = [len(t) for t in xp.split(
+        xp.empty(x.shape[axis], dtype=numpy.int8), indices_or_sections, 0)]
+    shape = list(x.shape)
+    for i, t in enumerate(tmp):
+        r = ret[i]
+        if r.ndim != x.ndim:
+            assert r.size == 0
+            shape[axis] = t
+            ret[i] = r.reshape(shape)
+    return ret
+
+
 def _get_indices_or_sections(indices_or_sections):
     """Checks and convert ``indices_or_sections`` argument
 
@@ -93,9 +110,9 @@ class SplitAxis(function_node.FunctionNode):
             indices_or_sections = self.indices
         else:
             indices_or_sections = self.sections
-        ret = tuple(self._xp.split(x, indices_or_sections, self.axis))
+        ret = _split_and_fix_shape(self._xp, x, indices_or_sections, self.axis)
         self._shapes = [r.shape for r in ret]
-        return ret
+        return tuple(ret)
 
     def _ideep_is_supported(self, inputs):
         # Returns True if iDeep supports current configuration of inputs and
@@ -175,11 +192,6 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
         :class:`~chainer.Variable` otherwise.
         When ``force_tuple`` is ``True``, returned value is always a tuple
         regardless of the number of outputs.
-
-    .. note::
-        This function raises :class:`ValueError` if at least
-        one of the outputs is split to zero-size
-        (i.e. ``axis``-th value of its shape is zero).
 
     """
     res = SplitAxis(indices_or_sections, axis).apply((x,))

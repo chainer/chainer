@@ -5,79 +5,72 @@ import numpy
 from chainer.training import extension
 
 
-class PolynomialShift(extension.Extension):
+class StepShift(extension.Extension):
 
-    """Trainer extension to polynomially shift an optimizer attribute.
+    """Trainer extension to shift an optimizer attribute in "steps".
 
-    This extension polynomially decreases the specified attribute of the
-    optimizer. The typical use case is a polynomial decay of the
-    learning rate at each iteration.
+    This extension multiplies the specified attribute of the optimizer in
+    "steps". The typical use case is to scale the attribute at every ``k``\ th
+    iteration.
 
-    For example, suppose that this extension is invoke at every iteration.
-    Then this extension will set the corresponding attribute to
-    ``init_value * (1 - i / max_iter) ^ rate`` at the ``i``-th iteration, where
-    the ``max_iter`` is the number of iterations to be running.
+    For example, suppose that this extension is invoked at every iteration,
+    then given ``k``, a multiplier ``gamma`` and an initial value
+    ``init``, the optimizer attribute is set to
+    ``init * gamma ^ (floor(i / k))``, where ``i`` represents the index of the
+    current iteration.
 
     This extension is also called before the training loop starts by default.
 
     Args:
-        attr (str): Name of the attribute to shift.
-        rate (float): Exponent of polynomial shift.
-        max_count (int): Number of this extension to be invoked.
+        attr (str): Name of the optimizer attribute to adjust.
+        gamma (float): The multiplier.
+        step (int): The interval for the multiplication, i.e., ``k``.
         init (float): Initial value of the attribute. If it is ``None``, the
             extension extracts the attribute at the first call and uses it as
             the initial value.
         target (float): Target value of the attribute. If the attribute reaches
             this value, the shift stops.
-        optimizer (~chainer.Optimizer): Target optimizer to adjust the
-            attribute. If it is ``None``, the main optimizer of the updater is
-            used.
+        optimizer (~chainer.Optimizer): Target optimizer object. If it is None,
+            the main optimizer of the trainer is used.
 
     """
-    invoke_before_training = True
 
-    def __init__(self, attr, rate, max_count, init=None, target=None,
+    def __init__(self, attr, gamma, step, init=None, target=None,
                  optimizer=None):
         self._attr = attr
-        self._rate = rate
+        self._gamma = gamma
+        self._step = step
         self._init = init
         self._target = target
         self._optimizer = optimizer
         self._t = 0
-        self._max_count = max_count
         self._last_value = None
 
     def initialize(self, trainer):
         optimizer = self._get_optimizer(trainer)
-
         # ensure that _init is set
         if self._init is None:
             self._init = getattr(optimizer, self._attr)
-
-        if self._last_value is not None:  # resuming from a snapshot
-            self._update_value(optimizer, self._last_value)
+        if self._last_value is not None:
+            value = self._last_value
         else:
-            self._update_value(optimizer, self._init)
+            value = self._init
+        self._update_value(optimizer, value)
 
     def __call__(self, trainer):
         self._t += 1
-
         optimizer = self._get_optimizer(trainer)
-
-        decay = max(1 - self._t / self._max_count, 0)
-        value = self._init * decay ** self._rate
-
+        value = self._init * self._gamma ** numpy.floor(self._t / self._step)
         if self._target is not None:
-            if self._rate > 0:
+            if self._gamma > 1:
                 # almost same as value = min(value, self._target), but this
                 # line supports negative values, too
-                if self._target / value > 1:
+                if value / self._target > 1:
                     value = self._target
             else:
                 # ditto
-                if self._target / value < 1:
+                if value / self._target < 1:
                     value = self._target
-
         self._update_value(optimizer, value)
 
     def serialize(self, serializer):

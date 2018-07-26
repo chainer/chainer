@@ -164,7 +164,7 @@ class DiagEinSum(EinSum):
                 diag_y.setflags(write=True)
             diag_y[...] = _einsum(
                 xp, dtype, self.in_subs, ''.join(direct_sub), *inputs
-            )[expander]
+            )[tuple(expander)]
         return y,
 
 
