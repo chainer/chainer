@@ -8,9 +8,9 @@ from chainer.dataset import dataset_mixin
 
 class PickleDatasetWriter(object):
 
-    """Writer class which makes PickleDataset.
+    """Writer class that makes PickleDataset.
 
-    To make :class:`PickleDataset`, a user need to prepare data using
+    To make :class:`PickleDataset`, a user needs to prepare data using
     :class:`PickleDatasetWriter`.
 
     Args:
@@ -50,7 +50,7 @@ class PickleDataset(dataset_mixin.DatasetMixin):
 
     :mod:`pickle` is the default serialization library of Python.
     This dataset stores any objects in a storage using :mod:`pickle`.
-    Even when a user want to use a large dataset, this dataset can stores all
+    Even when a user wants to use a large dataset, this dataset can stores all
     data in a large storage like HDD and each data can be randomly accessible.
 
     >>> with chainer.datasets.open_pickle_dataset_writer('/path/to/data') as w:
@@ -87,7 +87,8 @@ class PickleDataset(dataset_mixin.DatasetMixin):
     def close(self):
         """Closes a file reader.
 
-        After a user calls this method, the dataset is not accessible.
+        After a user calls this method, the dataset will no longer be
+        accessible..
         """
         with self._lock:
             self._reader.close()
@@ -111,10 +112,11 @@ def open_pickle_dataset(path):
     """Opens a dataset stored in a given path.
 
     This is a hepler funciton to open :class:`PickleDataset`. It opens a given
-    file in binary mode, and make :class:`PickleDataset` instance.
+    file in binary mode, and creates a :class:`PickleDataset` instance.
 
     This method does not close the opened file. A user needs to call
     :func:`PickleDataset.close`.
+
 
     Args:
         path (str): Path to a dataset.
@@ -133,7 +135,8 @@ def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
     """Opens a writer to make a PickleDataset.
 
     This is a helper function to open :class:`PickleDatasetWriter`. It opens a
-    given file in binary mode and make :class:`PickleDatasetWriter` instance.
+    given file in binary mode and creates a :class:`PickleDatasetWriter`
+    instance.
 
     This method does not close the opened file. A user needs to call
     :func:`PickleDatasetWriter.close`.
