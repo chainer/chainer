@@ -865,6 +865,49 @@ TEST_P(MathTest, ChainedInplaceMath) {
     testing::ExpectEqual(e, a);
 }
 
+TEST_P(MathTest, Reciprocal) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, -.2f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({-1.f / 1.f, 1.f / 2.f, -1.f / .2f});
+    Array b = Reciprocal(a);
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(MathTest, ReciprocalZero) {
+    Array a = testing::BuildArray({1}).WithData<float>({0.f});
+    Array e = testing::BuildArray({1}).WithData<float>({std::numeric_limits<float>::infinity()});
+    Array b = Reciprocal(a);
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(MathTest, ReciprocalBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1.).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Reciprocal(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, ReciprocalDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1.).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                auto y = Reciprocal(xs[0]);
+                return {y * y};  // to make it nonlinear
+            },
+            {a},
+            {go},
+            {ggi},
+            {eps, eps});
+}
+
 TEST_P(MathTest, Sum) {
     using T = float;
 
