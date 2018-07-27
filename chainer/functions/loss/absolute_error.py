@@ -1,5 +1,3 @@
-import numpy
-
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
@@ -13,8 +11,8 @@ class AbsoluteError(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
         type_check.expect(
-            in_types[0].dtype == numpy.float32,
-            in_types[1].dtype == numpy.float32,
+            in_types[0].dtype.kind == 'f',
+            in_types[0].dtype == in_types[1].dtype,
             in_types[0].shape == in_types[1].shape
         )
 
