@@ -56,7 +56,7 @@ class TestLBeta(unittest.TestCase):
         self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.gga = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.ggb = numpy.random.normal(size=self.shape).astype(self.dtype)
-        self.backward_options = {'atol': 1e-2, 'rtol': 1e-2, 'eps': 1e-5}
+        self.backward_options = {'atol': 1e-2, 'rtol': 1e-2, 'eps': 1e-4}
 
     def check_forward(self, a_data, b_data):
         y = distributions.beta._lbeta(a_data, b_data)
