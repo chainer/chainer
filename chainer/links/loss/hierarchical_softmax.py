@@ -29,15 +29,28 @@ class TreeParser(object):
         return self.next_id
 
     def get_paths(self):
+        # Its key is a node id of a leaf node, and its value is an array
+        # storing a path from the root node to the leaf node.
+        # The path is a list of internal node ids.
         return self.paths
 
     def get_codes(self):
+        # Its key is a node id of a leaf node, and its value is an array
+        # storing 1 or -1. 1 represents "left node" and -1 represents "right
+        # node".
         return self.codes
 
     def get_parent2child(self):
+        # Its key is a node id of a parent node, and its value is a pair of ids
+        # of a left child and a right child.
+        # If a child is a leaf node, its value is LEAF_NODE_ID.
         return self.parent2child
 
     def get_node2word(self):
+        # Its key is a node id of a leaf node, and its value is a word id that
+        # is given in `parse` method.
+        # If a node is not a leaf but an internal node, its value is
+        # INTERNAL_NODE_WORD_ID.
         return self.node2word
 
     def parse(self, tree):
