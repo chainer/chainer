@@ -105,7 +105,7 @@ private:
 
     friend std::shared_ptr<ArrayBody> CreateArrayBody(Params params);
 
-    ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+    ArrayBody(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
 
     explicit ArrayBody(Params params);
 

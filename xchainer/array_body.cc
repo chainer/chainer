@@ -40,8 +40,14 @@ std::shared_ptr<ArrayBody> CreateArrayBody(ArrayBody::Params params) {
     return CreateArrayBody(params.shape, params.strides, params.dtype, params.device, std::move(params.data), params.offset);
 }
 
-ArrayBody::ArrayBody(Shape shape, Strides strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset)
-    : shape_{std::move(shape)}, strides_{std::move(strides)}, dtype_{dtype}, device_{device}, data_{std::move(data)}, offset_{offset} {}
+ArrayBody::ArrayBody(
+        const Shape& shape,  // NOLINT(modernize-pass-by-value)
+        const Strides& strides,  // NOLINT(modernize-pass-by-value)
+        Dtype dtype,
+        Device& device,
+        std::shared_ptr<void> data,
+        int64_t offset)
+    : shape_{shape}, strides_{strides}, dtype_{dtype}, device_{device}, data_{std::move(data)}, offset_{offset} {}
 
 ArrayBody::ArrayBody(Params params)
     : ArrayBody{params.shape, params.strides, params.dtype, params.device, std::move(params.data), params.offset} {}
