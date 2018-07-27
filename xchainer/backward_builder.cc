@@ -28,8 +28,8 @@ using internal::OpNode;
 
 }  // namespace
 
-RetainedOutputToken::RetainedOutputToken(internal::ArrayBody::Params data_array_body_params, size_t output_index)
-    : output_array_params_{std::move(data_array_body_params)}, output_index_{output_index} {}
+RetainedOutputToken::RetainedOutputToken(internal::ArrayBody::Params output_array_params, size_t output_index)
+    : output_array_params_{std::move(output_array_params)}, output_index_{output_index} {}
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()} {
