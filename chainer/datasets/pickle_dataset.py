@@ -1,5 +1,6 @@
 import threading
 
+import six
 import six.moves.cPickle as pickle
 
 from chainer.dataset import dataset_mixin
@@ -67,8 +68,9 @@ class PickleDataset(dataset_mixin.DatasetMixin):
     """
 
     def __init__(self, reader):
-        # TODO(unnonouno): It is better to check seekable(), but the method is
-        # not supported in py2
+        # Only py3 supports `seekable` method
+        if six.PY3 and not reader.seekable():
+            raise ValueError('reader must support random access')
         self._reader = reader
         self._positions = []
         reader.seek(0)
