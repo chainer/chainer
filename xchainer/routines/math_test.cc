@@ -1403,6 +1403,35 @@ TEST_P(MathTest, LogSoftmaxDoubleBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {LogSoftmax(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
+TEST_P(MathTest, Sqrt) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, 0.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({std::sqrt(-1.f), std::sqrt(2.f), std::sqrt(0.f)});
+    Array b = Sqrt(a);
+    testing::ExpectEqual(e, b);
+}
+
+TEST_P(MathTest, SqrtBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Sqrt(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, SqrtDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Sqrt(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         MathTest,
