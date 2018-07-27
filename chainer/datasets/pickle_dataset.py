@@ -115,7 +115,10 @@ def open_pickle_dataset(path):
     file in binary mode, and creates a :class:`PickleDataset` instance.
 
     This method does not close the opened file. A user needs to call
-    :func:`PickleDataset.close`.
+    :func:`PickleDataset.close` or use `with`:
+
+    >>> with chainer.datasets.open_pickle_dataset('path') as dataset:
+    ...    # use dataset
 
 
     Args:
@@ -139,7 +142,10 @@ def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
     instance.
 
     This method does not close the opened file. A user needs to call
-    :func:`PickleDatasetWriter.close`.
+    :func:`PickleDatasetWriter.close` or use `with`:
+
+    >>> with chainer.datasets.open_pickle_dataset_writer('path') as writer:
+    ...    # use writer
 
     Args:
         path (str): Path to a dataset.
