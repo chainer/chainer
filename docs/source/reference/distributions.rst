@@ -15,6 +15,7 @@ Distributions
    :nosignatures:
    
    chainer.distributions.Bernoulli
+   chainer.distributions.Binomial
    chainer.distributions.Normal
    chainer.distributions.Laplace
 

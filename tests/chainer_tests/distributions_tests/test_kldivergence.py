@@ -43,6 +43,14 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"p": p}, is_gpu)
         return distributions.Bernoulli(**params)
 
+    def make_binomial_dist(self, is_gpu=False, n=None, p=None):
+        if n is None:
+            n = numpy.random.randint(5, 10, self.shape).astype(numpy.int32)
+        if p is None:
+            p = numpy.random.uniform(0, 1, self.shape).astype(numpy.float32)
+        params = self.encode_params({"n": n, "p": p}, is_gpu)
+        return distributions.Binomial(**params)
+
     def make_laplace_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
@@ -73,6 +81,29 @@ class TestKLDivergence(unittest.TestCase):
         dist1 = self.make_bernoulli_dist(True)
         dist2 = self.make_bernoulli_dist(True)
         self.check_kl(dist1, dist2)
+
+    def test_binomial_binomial_cpu(self):
+        n1 = numpy.random.randint(5, 10, self.shape).astype(numpy.int32)
+        n2 = n1 - numpy.random.randint(0, 2, self.shape).astype(numpy.int32)
+        dist1 = self.make_binomial_dist(n=n1)
+        dist2 = self.make_binomial_dist(n=n2)
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_binomial_binomial_gpu(self):
+        n1 = numpy.random.randint(5, 10, self.shape).astype(numpy.int32)
+        n2 = n1 - numpy.random.randint(0, 2, self.shape).astype(numpy.int32)
+        dist1 = self.make_binomial_dist(True, n=n1)
+        dist2 = self.make_binomial_dist(True, n=n2)
+        self.check_kl(dist1, dist2)
+
+    def test_binomial_binomial_error_cpu(self):
+        n1 = numpy.random.randint(5, 10, self.shape).astype(numpy.int32)
+        n2 = n1 + numpy.random.randint(1, 3, self.shape).astype(numpy.int32)
+        dist1 = self.make_binomial_dist(n=n1)
+        dist2 = self.make_binomial_dist(n=n2)
+        with self.assertRaises(NotImplementedError):
+            self.check_kl(dist1, dist2)
 
     def test_laplace_laplace_cpu(self):
         dist1 = self.make_laplace_dist()
