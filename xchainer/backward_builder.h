@@ -24,7 +24,7 @@ namespace xchainer {
 // See BackwardBuilder::RetainOutput() for details.
 class RetainedOutputToken {
 public:
-    RetainedOutputToken(std::shared_ptr<internal::ArrayBody> data_array_body, size_t output_index);
+    RetainedOutputToken(const std::shared_ptr<internal::ArrayBody>& data_array_body, size_t output_index);
 
     RetainedOutputToken(const RetainedOutputToken&) = default;
     RetainedOutputToken(RetainedOutputToken&&) = default;
