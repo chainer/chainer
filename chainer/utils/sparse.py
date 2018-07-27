@@ -14,9 +14,9 @@ class CooMatrix(object):
         col (numpy.ndarray or cupy.ndarray): The column indices of the matrix
             entries.
         shape (tuple of int): The shape of the matrix in dense format.
-        order ('C', 'F', 'other', None): If ``'C'``, the maxtix is assumed that
-            its row indices are sorted. If ``'F'``, the matrix is assumed that
-            its column indices are sorted. If ``'other'``, the matrix is
+        order ('C', 'F', 'other' or None): If ``'C'``, the maxtix is assumed
+            that its row indices are sorted. If ``'F'``, the matrix is assumed
+            that its column indices are sorted. If ``'other'``, the matrix is
             assumed as neither 'C' order nor 'F' order. If ``None`` (this is
             the default), the matrix is automatically checked if it is 'C'
             order, 'F' order or another. This information will be used by some

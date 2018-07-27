@@ -106,7 +106,7 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_order, B, dtype):
         chunk = max(ldnz // _m, 1)
     else:
         chunk = 1
-    nthreads = ((nb * ldnz + chunk - 1) // chunk) * _n
+    nthreads = (nb * ldnz + chunk - 1) // chunk * _n
     _cupy_coo_matmul()(nb, _m, _n, _k, ldnz, chunk,
                        A_data, A_row, A_col, B, C,
                        size=nthreads)
