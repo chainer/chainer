@@ -104,7 +104,7 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
     assert(internal::GetArrayBody(beta)->nodes().empty());
 
     Array x_mean = Mean(x, axis_, true);
-    Array x_var = Var(x, x_mean, axis_, true);
+    Array x_var = Var(x, axis_, true);
 
     ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, x_mean, x_var, eps_, axis_);
     Array& out = result.out;

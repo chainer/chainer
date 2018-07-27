@@ -12,7 +12,9 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
+#include "xchainer/routines/math.h"
 #include "xchainer/routines/routines_util.h"
+#include "xchainer/routines/statistics.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
@@ -104,7 +106,8 @@ Array BatchNorm(
 
     BackwardBuilder bb{"batch_norm", {x, gamma_reshaped, beta_reshaped}, {out}};
     if (BackwardBuilder::Target bt = bb.CreateTarget({0, 1, 2})) {
-        bt.Define([ fb = std::move(fb), x_tok = bb.RetainInput(0), gamma_tok = bb.RetainInput(1) ](BackwardContext & bctx) {
+        bt.Define([ fb = std::move(fb), x_tok = bb.RetainInput(0), gamma_tok = bb.RetainInput(1), eps, sorted_axis = result.sorted_axis ](
+                BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             std::array<Array, 3> ginputs = fb->Backward(gout.AsGradStopped());
             internal::MakeViewForForwardBackwardOutput(ginputs);
@@ -120,47 +123,52 @@ Array BatchNorm(
                 const Array& gamma_reshaped = bctx.GetRetainedInput(gamma_tok);
                 BackwardBuilder bb2{"batch_norm_backward", {x, gamma_reshaped, gout}, {gx, ggamma, gbeta}};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget({0, 1, 2})) {
-                    bt2.Define([fb, x, gamma](BackwardContext& bctx2) {
-                        const Array& g2x = bctx2.output_grad(0);
-                        const Array& g2gamma = bctx2.output_grad(1);
-                        const Array& g2beta = bctx2.output_grad(2);
+                    bt2.Define([
+                        x_orig = x,
+                        gamma_orig = gamma,
+                        gout_orig = gout,
+                        eps,
+                        sorted_axis,
+                        gx_tok = bb2.RetainOutput(gx),
+                        ggamma_tok = bb2.RetainOutput(ggamma)
+                    ](BackwardContext & bctx2) {
+                        // TODO(hvy): Avoid view of x, gamma, gout. Use retained input.
+                        const Array& x = x_orig.MakeView();
+                        const Array& gamma = gamma_orig.MakeView();
+                        const Array& gout = gout_orig.MakeView();
 
-                        // const Array& x = *x_;
-                        // const Array& gamma = *gamma_;
-                        const Array& x_mean = *x_mean_;
-                        const Array& x_inv_std = *x_inv_std_;
+                        const Array& ggx = bctx2.output_grad(0);
+                        const Array& gggamma = bctx2.output_grad(1);
+                        const Array& ggbeta = bctx2.output_grad(2);
 
-                        const Array& gout = *gout_;
-                        const Array& gx = *gx_;
-                        const Array& ggamma = *ggamma_;
+                        const Array& x_mean = Mean(x, sorted_axis, true);
+                        const Array& x_var = Var(x, sorted_axis, true);
+                        const Array& x_inv_std = Reciprocal(Sqrt(x_var + eps));
+
+                        const Array& gx = bctx2.GetRetainedOutput(gx_tok);
+                        const Array& ggamma = bctx2.GetRetainedOutput(ggamma_tok);
 
                         // Auxiliary values
                         double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
-                        Array r = (gx * ggx).Sum(axis_);
+                        Array r = (gx * ggx).Sum(sorted_axis);
                         Array coeff = gamma * x_inv_std;
                         Array coeff_m = coeff * inv_n;
                         Array x_hat = (x - x_mean) * x_inv_std;
 
-                        Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(axis_);
-                        Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(axis_);
+                        Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(sorted_axis);
+                        Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(sorted_axis);
 
                         Array gx_hat2 = gggamma2 * gout - coeff_m * ggamma * ggx;
-                        Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(axis_));
-                        Array gmean2 = -x_inv_std * gx_hat2.Sum(axis_);
+                        Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(sorted_axis));
+                        Array gmean2 = -x_inv_std * gx_hat2.Sum(sorted_axis);
                         Array gx2 = x_inv_std * gx_hat2 + inv_n * (gmean2 + x_hat * gstd2);
-                        Array ggy2 = gggamma2 * x_hat + ggbeta2 + coeff * ggx;
+                        Array ggout2 = gggamma2 * x_hat + ggbeta2 + coeff * ggx;
 
                         Array ggamma2 = r / gamma;
 
-                        return {std::move(gx2), std::move(ggamma2), std::move(ggy2)};
-                        std::array<Array, 3> ginputs2 =
-                                fb->DoubleBackward(g2x.AsGradStopped(), g2gamma.AsGradStopped(), g2beta.AsGradStopped());
-                        internal::MakeViewForForwardBackwardOutput(ginputs2);
-                        // TODO(niboshi): Make it further backproppable
-                        // TODO(niboshi): Assign at once
-                        bctx2.input_grad(0) = ginputs2[0];  // gx
-                        bctx2.input_grad(1) = ginputs2[1];  // ggamma
-                        bctx2.input_grad(2) = ginputs2[2];  // ggout
+                        bctx2.input_grad(0) = gx2;
+                        bctx2.input_grad(1) = ggamma2;
+                        bctx2.input_grad(2) = ggout2;
                     });
                 }
                 assert(bb2.is_complete());

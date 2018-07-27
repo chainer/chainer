@@ -169,7 +169,7 @@ void CheckBackwardComputation(
 
     // Compute backward gradients
     std::vector<Array> inputs_disconnected = DisconnectInputArrays(inputs);
-    const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_disconnected, grad_outputs, actual_graph_id);
+    const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_disconnected, grad_outputs, actual_graph_id, DoubleBackpropOption::kDisable);
     if (backward_grads.size() != inputs.size()) {
         throw GradientCheckError{"Number of input gradients does not match the input arrays."};
     }
