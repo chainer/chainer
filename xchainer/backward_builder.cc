@@ -28,8 +28,8 @@ using internal::OpNode;
 
 }  // namespace
 
-RetainedOutputToken::RetainedOutputToken(const std::shared_ptr<internal::ArrayBody>& data_array_body, size_t output_index)
-    : output_array_params_{data_array_body->GetParams()}, output_index_{output_index} {}
+RetainedOutputToken::RetainedOutputToken(internal::ArrayBody::Params data_array_body_params, size_t output_index)
+    : output_array_params_{std::move(data_array_body_params)}, output_index_{output_index} {}
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs)
     : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()} {
@@ -166,7 +166,7 @@ RetainedOutputToken BackwardBuilder::RetainOutput(const Array& output) {
         throw XchainerError{"Cannot retain an array which is not any of output arrays."};
     }
     size_t output_index = std::distance(outputs_.begin(), it);
-    return {internal::GetArrayBody(output), output_index};
+    return {internal::GetArrayBody(output)->GetParams(), output_index};
 }
 
 }  // namespace xchainer
