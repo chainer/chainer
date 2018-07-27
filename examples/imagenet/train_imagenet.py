@@ -46,31 +46,83 @@ def _pair(x):
     return x, x
 
 
-class ImagenetDaliPipeline(pipeline.Pipeline):
+class DaliPipelineTrain(pipeline.Pipeline):
 
     def __init__(self, file_list, file_root, crop_size,
                  batch_size, num_threads, device_id,
-                 random_shuffle=False, seed=-1, mean=None, std=None):
-        super(ImagenetDaliPipeline, self).__init__(batch_size, num_threads,
-                                                   device_id, seed=seed)
+                 random_shuffle=True, seed=-1, mean=None, std=None,
+                 num_samples=None):
+        super(DaliPipelineTrain, self).__init__(batch_size, num_threads,
+                                                device_id, seed=seed)
         crop_size = _pair(crop_size)
         if mean is None:
             mean = (0.485 * 255, 0.456 * 255, 0.406 * 255)
         if std is None:
             std = (0.229 * 255, 0.224 * 255, 0.225 * 255)
+        if num_samples is None:
+            initial_fill = 4096
+        else:
+            initial_fill = min(4096, num_samples)
         self.loader = ops.FileReader(file_root=file_root, file_list=file_list,
-                                     random_shuffle=random_shuffle)
+                                     random_shuffle=random_shuffle,
+                                     initial_fill=initial_fill)
         self.decode = ops.HostDecoder()
-        self.rrcrop = ops.RandomResizedCrop(device="gpu", size=crop_size)
-        self.cmnorm = ops.CropMirrorNormalize(
-            device="gpu", crop=crop_size, mean=mean, std=std)
+        self.resize = ops.Resize(device="gpu", resize_a=256, resize_b=256)
+        # self.hue = ops.Hue(device="gpu")
+        # self.bright = ops.Brightness(device="gpu")
+        # self.cntrst = ops.Contrast(device="gpu")
+        # self.rotate = ops.Rotate(device="gpu")
+        self.rrcrop = ops.RandomResizedCrop(device="gpu", size=crop_size,
+                                            random_aspect_ratio=(0.875, 1.14286))
+        # self.jitter = ops.Jitter(device="gpu")
+        self.cmnorm = ops.CropMirrorNormalize(device="gpu", crop=crop_size,
+                                              mean=mean, std=std)
         self.coin = ops.CoinFlip(probability=0.5)
 
     def define_graph(self):
         jpegs, labels = self.loader()
         images = self.decode(jpegs)
-        images = self.rrcrop(images.gpu())
+        images = self.resize(images.gpu())
+        # images = self.hue(images, hue=ops.Uniform(range=(-3.0, 3.0))())
+        # images = self.bright(images, brightness=ops.Uniform(range=(0.9, 1.1))())
+        # images = self.cntrst(images, contrast=ops.Uniform(range=(0.9, 1.1))())
+        # images = self.rotate(images, angle=ops.Uniform(range=(-5.0, 5.0))())
+        images = self.rrcrop(images)
+        # images = self.jitter(images)
         images = self.cmnorm(images, mirror=self.coin())
+        return [images, labels]
+
+
+class DaliPipelineVal(pipeline.Pipeline):
+
+    def __init__(self, file_list, file_root, crop_size,
+                 batch_size, num_threads, device_id,
+                 random_shuffle=False, seed=-1, mean=None, std=None,
+                 num_samples=None):
+        super(DaliPipelineVal, self).__init__(batch_size, num_threads,
+                                              device_id, seed=seed)
+        crop_size = _pair(crop_size)
+        if mean is None:
+            mean = (0.485 * 255, 0.456 * 255, 0.406 * 255)
+        if std is None:
+            std = (0.229 * 255, 0.224 * 255, 0.225 * 255)
+        if num_samples is None:
+            initial_fill = 512
+        else:
+            initial_fill = min(512, num_samples)
+        self.loader = ops.FileReader(file_root=file_root, file_list=file_list,
+                                     random_shuffle=random_shuffle,
+                                     initial_fill=initial_fill)
+        self.decode = ops.HostDecoder()
+        self.resize = ops.Resize(device="gpu", resize_a=256, resize_b=256)
+        self.cmnorm = ops.CropMirrorNormalize(
+            device="gpu", crop=crop_size, mean=mean, std=std)
+
+    def define_graph(self):
+        jpegs, labels = self.loader()
+        images = self.decode(jpegs)
+        images = self.resize(images.gpu())
+        images = self.cmnorm(images)
         return [images, labels]
 
 
@@ -206,17 +258,17 @@ def main():
         num_threads = args.loaderjob
         if num_threads is None or num_threads <= 0:
             num_threads = 1
-        mean_ave = np.average(mean, axis=(1, 2))
-        mean_std = np.std(mean, axis=(1, 2))
+        ch_mean = np.average(mean, axis=(1, 2))
+        ch_std = (255.0, 255.0, 255.0)
         # Setup DALI pipelines
-        train_pipe = ImagenetDaliPipeline(
+        train_pipe = DaliPipelineTrain(
             args.train, args.root, model.insize, args.batchsize,
             num_threads, args.gpu, random_shuffle=True,
-            mean=mean_ave, std=mean_std)
-        val_pipe = ImagenetDaliPipeline(
+            mean=ch_mean, std=ch_std)
+        val_pipe = DaliPipelineVal(
             args.val, args.root, model.insize, args.val_batchsize,
             num_threads, args.gpu, random_shuffle=False,
-            mean=mean_ave, std=mean_std)
+            mean=ch_mean_, std=ch_std)
         train_iter = chainer.iterators.DaliIterator(train_pipe)
         val_iter = chainer.iterators.DaliIterator(val_pipe, repeat=False)
         converter = dali_converter
