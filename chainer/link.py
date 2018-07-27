@@ -194,7 +194,13 @@ class Link(object):
             self._within_init_scope = old_flag
 
     def __call__(self, *args, **kwargs):
-        return self.forward(*args, **kwargs)
+        # (See #5078) super().__call__ is used when the method is injected by a
+        # mixin class. To keep backward compatibility, the injected one is
+        # prioritized over forward().
+        forward = getattr(super(Link, self), '__call__', None)
+        if forward is None:
+            forward = self.forward
+        return forward(*args, **kwargs)
 
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
