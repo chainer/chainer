@@ -82,6 +82,7 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_bernoulli_dist(True)
         self.check_kl(dist1, dist2)
 
+    @testing.with_requires('scipy')
     def test_binomial_binomial_cpu(self):
         n1 = numpy.random.randint(5, 10, self.shape).astype(numpy.int32)
         n2 = n1 - numpy.random.randint(0, 2, self.shape).astype(numpy.int32)
@@ -97,6 +98,7 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_binomial_dist(True, n=n2)
         self.check_kl(dist1, dist2)
 
+    @testing.with_requires('scipy')
     def test_binomial_binomial_error_cpu(self):
         n1 = numpy.random.randint(5, 10, self.shape).astype(numpy.int32)
         n2 = n1 + numpy.random.randint(1, 3, self.shape).astype(numpy.int32)
