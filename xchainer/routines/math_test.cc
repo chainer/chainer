@@ -898,14 +898,7 @@ TEST_P(MathTest, ReciprocalDoubleBackward) {
     Array eps = Full(shape, 1e-3);
 
     CheckDoubleBackwardComputation(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                auto y = Reciprocal(xs[0]);
-                return {y * y};  // to make it nonlinear
-            },
-            {a},
-            {go},
-            {ggi},
-            {eps, eps});
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Reciprocal(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
 TEST_P(MathTest, Sum) {
