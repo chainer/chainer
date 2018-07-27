@@ -25,13 +25,15 @@ template <class BackpropModeScope>
 class PyBackpropModeScope {
 public:
     explicit PyBackpropModeScope(std::vector<GraphId> graph_ids) : graph_ids_{std::move(graph_ids)} {}
-    explicit PyBackpropModeScope(py::object context) : context_{context} {}
+    explicit PyBackpropModeScope(Context& context) : context_{&context} {}
 
     void Enter() {
         if (graph_ids_.has_value()) {
             scope_ = std::make_unique<BackpropModeScope>(*graph_ids_);
+        } else if (context_ != nullptr) {
+            scope_ = std::make_unique<BackpropModeScope>(*context_);
         } else {
-            scope_ = std::make_unique<BackpropModeScope>(GetContext(context_));
+            XCHAINER_NEVER_REACH();
         }
     }
     void Exit(py::args args) {
@@ -42,7 +44,7 @@ public:
 private:
     // optional requires having copy ctor, so use unique_ptr instead
     std::unique_ptr<BackpropModeScope> scope_;
-    py::object context_{};  // py::object does reference counting
+    Context* context_{nullptr};
     nonstd::optional<std::vector<GraphId>> graph_ids_{};
 };
 
@@ -55,7 +57,7 @@ void InitXchainerBackpropModeScope(pybind11::module& m, const char* class_name, 
     m.def(function_name, [](const GraphId& graph_id) { return PyBackpropModeScope<BackpropModeScope>{{graph_id}}; });
     m.def(function_name, [](const std::vector<GraphId>& graph_ids) { return PyBackpropModeScope<BackpropModeScope>{graph_ids}; });
     m.def(function_name,
-          [](py::object context) { return PyBackpropModeScope<BackpropModeScope>{context}; },
+          [](py::object context) { return PyBackpropModeScope<BackpropModeScope>{GetContext(context)}; },
           py::arg("context") = py::none());
 }
 
