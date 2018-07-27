@@ -3,7 +3,7 @@ import unittest
 import chainer
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -79,16 +79,10 @@ class TestMaximum(unittest.TestCase):
         gy = cuda.to_gpu(self.gy)
         self.check_backward(x1, x2, gy)
 
-    def check_double_backward(
-            self, x1_data, x2_data, y_grad, x1_grad, x2_grad):
-        x = (x1_data, x2_data)
-        x_grad_grad = (x1_grad, x2_grad)
-
-        def func(x1, x2):
-            y = functions.maximum(x1, x2)
-            return y * y
+    def check_double_backward(self, x1, x2, gy, ggx1, ggx2):
         gradient_check.check_double_backward(
-            func, x, y_grad, x_grad_grad, **self.check_double_backward_options)
+            functions.maximum, (x1, x2), gy, (ggx1, ggx2),
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(

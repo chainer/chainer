@@ -6,10 +6,10 @@ models without using the Trainer class in chainer and instead write a
 training loop that manually computes the loss of minibatches and
 applies an optimizer to update the model.
 """
-from __future__ import print_function
 import argparse
 
 import chainer
+from chainer import configuration
 from chainer.dataset import convert
 import chainer.links as L
 from chainer import serializers
@@ -69,7 +69,7 @@ def main():
     model = L.Classifier(models.VGG.VGG(class_labels))
     if args.gpu >= 0:
         # Make a specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()  # Copy the model to the GPU
 
     optimizer = chainer.optimizers.MomentumSGD(args.learnrate)
@@ -80,7 +80,7 @@ def main():
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
-    sum_accuracy = 0
+    sum_acc = 0
     sum_loss = 0
 
     while train_iter.epoch < args.epoch:
@@ -88,36 +88,37 @@ def main():
         # Reduce learning rate by 0.5 every 25 epochs.
         if train_iter.epoch % 25 == 0 and train_iter.is_new_epoch:
             optimizer.lr *= 0.5
-            print('Reducing learning rate to: ', optimizer.lr)
+            print('Reducing learning rate to: {}'.format(optimizer.lr))
 
         x_array, t_array = convert.concat_examples(batch, args.gpu)
         x = chainer.Variable(x_array)
         t = chainer.Variable(t_array)
         optimizer.update(model, x, t)
         sum_loss += float(model.loss.data) * len(t.data)
-        sum_accuracy += float(model.accuracy.data) * len(t.data)
+        sum_acc += float(model.accuracy.data) * len(t.data)
 
         if train_iter.is_new_epoch:
-            print('epoch: ', train_iter.epoch)
+            print('epoch: {}'.format(train_iter.epoch))
             print('train mean loss: {}, accuracy: {}'.format(
-                sum_loss / train_count, sum_accuracy / train_count))
-            # evaluation
-            sum_accuracy = 0
+                sum_loss / train_count, sum_acc / train_count))
+            sum_acc = 0
             sum_loss = 0
-            model.predictor.train = False
-            for batch in test_iter:
-                x_array, t_array = convert.concat_examples(batch, args.gpu)
-                x = chainer.Variable(x_array)
-                t = chainer.Variable(t_array)
-                loss = model(x, t)
-                sum_loss += float(loss.data) * len(t.data)
-                sum_accuracy += float(model.accuracy.data) * len(t.data)
+            # Enable evaluation mode.
+            with configuration.using_config('train', False):
+                # This is optional but can reduce computational overhead.
+                with chainer.using_config('enable_backprop', False):
+                    for batch in test_iter:
+                        x, t = convert.concat_examples(batch, args.gpu)
+                        x = chainer.Variable(x)
+                        t = chainer.Variable(t)
+                        loss = model(x, t)
+                        sum_loss += float(loss.data) * len(t.data)
+                        sum_acc += float(model.accuracy.data) * len(t.data)
 
             test_iter.reset()
-            model.predictor.train = True
             print('test mean  loss: {}, accuracy: {}'.format(
-                sum_loss / test_count, sum_accuracy / test_count))
-            sum_accuracy = 0
+                sum_loss / test_count, sum_acc / test_count))
+            sum_acc = 0
             sum_loss = 0
 
     # Save the model and the optimizer

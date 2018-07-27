@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -51,10 +51,12 @@ class TestSpatialTransformerGrid(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.theta), self.output_shape)
 
     def check_backward(self, theta, output_shape, grads):
+        def f(theta):
+            return functions.spatial_transformer_grid(theta, output_shape)
+
         with chainer.using_config('use_cudnn', self.use_cudnn):
             gradient_check.check_backward(
-                functions.SpatialTransformerGrid(output_shape),
-                (theta,), (grads,), dtype=numpy.float64,
+                f, (theta,), (grads,), dtype=numpy.float64,
                 **self.check_backward_options)
 
     def test_backward_cpu(self):

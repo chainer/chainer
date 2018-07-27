@@ -60,7 +60,7 @@ def main():
         vocab_size, dropout_ratio=args.dropout_ratio, rnn=args.rnn)
 
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
 
     def transform(in_data):

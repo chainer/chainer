@@ -1,10 +1,9 @@
 import unittest
 
-import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -103,16 +102,12 @@ class TestReLU(unittest.TestCase):
             grad_outputs = _to_noncontiguous(grad_outputs)
             grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
 
-        def f(x):
-            x = functions.relu(x)
-            return x * x
-
         x, = inputs
         gy, = grad_outputs
         ggx, = grad_grad_inputs
         with backend_config:
             gradient_check.check_double_backward(
-                f, x, gy, ggx, dtype=numpy.float64,
+                functions.relu, x, gy, ggx, dtype=numpy.float64,
                 **self.check_double_backward_options)
 
     def test_double_backward(self, backend_config):
@@ -141,7 +136,7 @@ class TestReLUCudnnCall(unittest.TestCase):
     def test_call_cudnn_forward(self):
         default_func = cuda.cupy.cudnn.activation_forward
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cudnn.activation_forward') as func:
+            with testing.patch('cupy.cudnn.activation_forward') as func:
                 func.side_effect = default_func
                 self.forward()
                 self.assertEqual(func.called, self.expect)
@@ -151,7 +146,7 @@ class TestReLUCudnnCall(unittest.TestCase):
             y = self.forward()
             y.grad = self.gy
             default_func = cuda.cupy.cudnn.activation_backward
-            with mock.patch('cupy.cudnn.activation_backward') as func:
+            with testing.patch('cupy.cudnn.activation_backward') as func:
                 func.side_effect = default_func
                 y.backward()
                 self.assertEqual(func.called, self.expect)

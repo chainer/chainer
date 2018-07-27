@@ -36,18 +36,63 @@ def _label_to_path(labels, blank_symbol, xp):
     return path
 
 
-def _move_label_to_back(path, path_length, xp):
-    s1 = path.shape[1]  # TODO(okuta): Change name
-    index = (xp.arange(0, path.size, s1, dtype=numpy.int32)[:, None] +
-             (xp.arange(s1) + path_length[:, None])[:, ::-1] % s1)
-    return xp.take(path, index)
+def _flip_path(path, path_length, xp):
+    """Flips label sequence.
+
+    This function rotates a label sequence and flips it.
+    ``path[b, t]`` stores a label at time ``t`` in ``b``-th batch.
+    The rotated matrix ``r`` is defined as
+    ``r[b, t] = path[b, t + path_length[b]]``
+
+    .. ::
+
+       a b c d .     . a b c d    d c b a .
+       e f . . .  -> . . . e f -> f e . . .
+       g h i j k     g h i j k    k j i h g
+
+    """
+    n_batch, n_label = path.shape
+    rotate = (xp.arange(n_label) + path_length[:, None]) % n_label
+    return path[xp.arange(n_batch, dtype='i')[:, None],
+                rotate][:, ::-1]
 
 
-def _move_inputs(prob, input_length, xp):
-    seq, batch, ch = prob.shape
-    rotate = (xp.arange(seq)[:, None] + input_length) % seq
-    index = rotate * batch + xp.arange(batch)
-    return xp.take(prob.reshape(seq * batch, ch), index, axis=0)
+def _flip_label_probability(y, input_length, xp):
+    """Flips a label probability matrix.
+
+    This function rotates a label probability matrix and flips it.
+    ``y[i, b, l]`` stores log probability of label ``l`` at ``i``-th
+    input in ``b``-th batch.
+    The rotated matrix ``r`` is defined as
+    ``r[i, b, l] = y[i + input_length[b], b, l]``
+
+    """
+    seq, n_batch, n_vocab = y.shape
+    rotate = (xp.arange(seq, dtype='i')[:, None] + input_length) % seq
+    return y[
+        rotate[:, :, None],
+        xp.arange(n_batch, dtype='i')[None, :, None],
+        xp.arange(n_vocab, dtype='i')[None, None, :]][::-1]
+
+
+def _flip_path_probability(prob, input_length, path_length, xp):
+    """Flips a path probability matrix.
+
+    This function returns a path probability matrix and flips it.
+    ``prob[i, b, t]`` stores log probability at ``i``-th input and
+    at time ``t`` in a output sequence in ``b``-th batch.
+    The rotated matrix ``r`` is defined as
+    ``r[i, j, k] = prob[i + input_length[j], j, k + path_length[j]]``
+
+    """
+    seq, n_batch, n_label = prob.shape
+    rotate_input = (xp.arange(seq, dtype='i')[:, None] + input_length) % seq
+    rotate_label = (
+        xp.arange(n_label, dtype='i') + path_length[:, None]) % n_label
+    return prob[
+        rotate_input[:, :, None],
+        xp.arange(n_batch, dtype='i')[None, :, None],
+        rotate_label][::-1, :, ::-1]
 
 
 class ConnectionistTemporalClassification(function.Function):
@@ -72,24 +117,30 @@ class ConnectionistTemporalClassification(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() > 3)  # TODO(okuta): > 3?
-        l_type = in_types[2]
-        type_check.expect(l_type.dtype == numpy.int32)
-
-        x_basetype = in_types[3]  # TODO(oktua): Check x_basetype size
-
-        for i in six.moves.range(3, len(in_types)):
-            x_type = in_types[i]
-            type_check.expect(
-                x_type.dtype == numpy.float32,
-                x_type.shape == x_basetype.shape,
-            )
+        type_check.expect(in_types.size() == 4)
+        input_length_type, label_length_type, t_type, x_type = in_types
+        type_check.expect(
+            input_length_type.dtype == numpy.int32,
+            input_length_type.ndim == 1,
+            label_length_type.dtype == numpy.int32,
+            label_length_type.ndim == 1,
+            t_type.ndim == 2,
+            t_type.dtype == numpy.int32,
+            x_type.ndim == 3,
+            x_type.dtype == numpy.float32,
+        )
+        n_batch = x_type.shape[1]
+        type_check.expect(
+            t_type.shape[0] == n_batch,
+            input_length_type.shape[0] == n_batch,
+            label_length_type.shape[0] == n_batch,
+        )
 
     def log_matrix(self, x, xp):
         if xp == numpy:
             res = numpy.ma.log(x).filled(fill_value=self.zero_padding)
         else:
-            create_recurrence_relation = cuda.cupy.ElementwiseKernel(
+            create_recurrence_relation = cuda.elementwise(
                 'T x, T e', 'T y',
                 'y = x == 0 ? e : log(x)',
                 'create_recurrence_relation')
@@ -113,7 +164,7 @@ class ConnectionistTemporalClassification(function.Function):
                         multiply_seq[:, b, 0:path_length[b]]
                         [:, target_path == c], axis=1)
         else:
-            cuda.cupy.ElementwiseKernel(
+            cuda.elementwise(
                 'T prob, I path, I path_length, I max_path_length',
                 'raw T cum_prob',
                 '''
@@ -130,7 +181,8 @@ class ConnectionistTemporalClassification(function.Function):
             )(multiply_seq, path, path_length[:, None], path.shape[1], ret)
         return ret
 
-    def _computes_transition(self, prev_prob, path, path_length):
+    def _computes_transition(
+            self, prev_prob, path, path_length, cum_prob, y):
         xp = cuda.get_array_module(prev_prob)
 
         if xp == numpy:
@@ -147,17 +199,21 @@ class ConnectionistTemporalClassification(function.Function):
             prob = _logsumexp(mat, xp, axis=0)
             outside = xp.arange(max_path_length) >= path_length[:, None]
             prob[outside] = self.zero_padding
+            cum_prob += prob
+            batch_index = xp.arange(n_batch, dtype='i')
+            prob += y[batch_index[:, None], path]
         else:
-            prev_prob, path, path_length = xp.broadcast_arrays(
-                prev_prob, path, path_length[:, None])
-            prob = cuda.elementwise(
-                'raw T prob, raw I path, I path_length, T zero', 'T z',
+            prob = xp.empty_like(prev_prob)
+            cuda.elementwise(
+                'raw T prob, raw I path, I path_length, T zero, raw T y',
+                'T z, T cum_prob',
                 '''
                 int length = prob.shape()[1];
                 int b = i / length;
                 int t = i - b * length;
                 if (t >= path_length) {
                   z = zero;
+                  cum_prob += zero;
                   return;
                 }
                 int ind1[] = {b, t};
@@ -171,8 +227,14 @@ class ConnectionistTemporalClassification(function.Function):
                 // calculates log-sum-exp
                 float m = max(f1, max(f2, f3));
                 z = m + log(exp(f1 - m) + exp(f2 - m) + exp(f3 - m));
+
+                cum_prob += z;
+
+                int y_ind[] = {b, path[ind1]};
+                z += y[y_ind];
                 ''', 'ctc_transition'
-            )(prev_prob, path, path_length, self.zero_padding)
+            )(prev_prob, path, path_length[:, None], self.zero_padding, y,
+              prob, cum_prob)
         return prob
 
     def calc_trans(self, yseq, input_length,
@@ -183,70 +245,41 @@ class ConnectionistTemporalClassification(function.Function):
         assert label.shape == (n_batch, max_label_length), label.shape
         assert path.shape == (n_batch, max_label_length * 2 + 1)
 
-        forward_prob = self.log_matrix(
-            xp.eye(1, max_path_length, dtype='f'), xp)
+        forward_prob = xp.full(
+            (n_batch, max_path_length), self.zero_padding, dtype='f')
+        forward_prob[:, 0] = 0
         backward_prob = forward_prob
-        offset = xp.arange(
-            0, n_batch * n_unit, n_unit, dtype=path.dtype)[:, None]
 
-        # prob[i] := forward[i] + backward[-i-1]
-        index = offset + path
-        prob = xp.empty(
-            (max_input_length, n_batch, max_path_length), dtype='f')
+        batch_index = xp.arange(n_batch, dtype='i')
+        seq_index = xp.arange(len(yseq), dtype='i')
+        prob = yseq[seq_index[:, None, None], batch_index[:, None], path]
         # forward computation.
         for i, y in enumerate(yseq):
-            # calc forward probability in log scale
             forward_prob = self._computes_transition(
-                forward_prob, path, path_length)
-            forward_prob += xp.take(y, index)
-            prob[i] = forward_prob
+                forward_prob, path, path_length, prob[i], y)
 
-        r_path = _move_label_to_back(path, path_length, xp)
-        r_index = offset + r_path
+        r_path = _flip_path(path, path_length, xp)
 
-        # rotate yseq with path_length
-        yseq_inv = _move_inputs(yseq, input_length, xp)[::-1]
-        # move to back.
-        prob = _move_inputs(prob, input_length, xp)
-
-        # backward computation.
-        backward_prob_index = (
-            xp.arange(0, path.size, max_path_length, dtype='i')[:, None] +
-            (xp.arange(max_path_length) - path_length[:, None])
-            % max_path_length)
+        yseq_inv = _flip_label_probability(yseq, input_length, xp)
+        prob = _flip_path_probability(prob, input_length, path_length, xp)
 
         for i, y_inv in enumerate(yseq_inv):
-            # calc backward probability
             backward_prob = self._computes_transition(
-                backward_prob, r_path, path_length)
-            prob[-i - 1] += xp.take(
-                backward_prob[:, ::-1], backward_prob_index)
-            backward_prob += xp.take(y_inv, r_index)
+                backward_prob, r_path, path_length, prob[i], y_inv)
 
-        # move to front.
-        return _move_inputs(prob, -self.input_length, xp)
+        return _flip_path_probability(prob, input_length, path_length, xp)
 
     def forward(self, inputs):
         xp = cuda.get_array_module(inputs[0])
-        self.input_length = inputs[0]
-        label_length = inputs[1]
-        t = inputs[2]
-        xs = inputs[3:]
+        self.input_length, label_length, t, xs = inputs
 
         if chainer.is_debug():
-            # Batch size check.
-            assert len(xs[0]) == len(t)
-            assert len(xs[0]) == len(self.input_length)
-            assert len(xs[0]) == len(label_length)
-
-            # Length check.
             assert len(xs) >= xp.max(self.input_length)
-            assert len(t[0]) >= xp.max(label_length)
+            assert t.shape[1] >= xp.max(label_length)
 
         self.path_length = 2 * label_length + 1
 
-        yseq_shape = (len(xs),) + xs[0].shape
-        self.yseq = _softmax(xp.vstack(xs).reshape(yseq_shape), xp)
+        self.yseq = _softmax(xs, xp)
         log_yseq = self.log_matrix(self.yseq, xp)
         self.path = _label_to_path(t, self.blank_symbol, xp)
         self.prob_trans = self.calc_trans(
@@ -274,7 +307,7 @@ class ConnectionistTemporalClassification(function.Function):
         # mask
         self.yseq *= (
             xp.arange(len(self.yseq))[:, None] < self.input_length)[..., None]
-        return (None, None, None) + tuple([y for y in self.yseq])
+        return None, None, None, self.yseq
 
 
 def connectionist_temporal_classification(
@@ -293,23 +326,32 @@ def connectionist_temporal_classification(
 
     Args:
         x (list or tuple of :class:`~chainer.Variable`):
-            RNN output at each time. Each element of ``x``, ``x[i]``
-            is a :class:`~chainer.Variable` representing output of RNN at time
-            ``i``.
+            A list of unnormalized probabilities for labels.
+            Each element of ``x``, ``x[i]`` is a :class:`~chainer.Variable`
+            object, which has shape ``(B, V)``, where ``B``
+            is the batch size and ``V`` is the number of labels.
+            The softmax of ``x[i]`` represents the probabilities of the labels
+            at time ``i``.
         t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`):
-            Expected label sequence.
+            A matrix including expected label sequences.
+            Its shape is ``(B, M)``, where ``B`` is the batch size and ``M`` is
+            the maximum length of the label sequences.
+            All elements in ``t`` must be less than ``V``, the number of
+            labels.
         blank_symbol (int): Index of blank_symbol.
             This value must be non-negative.
         input_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Length of valid sequence for each of mini
-            batch ``x`` (optional). If input_length is skipped, It regards that
+        :class:`cupy.ndarray` or ``None``):
+            Length of sequence for each of mini batch ``x`` (optional).
+            Its shape must be ``(B,)``.
+            If the ``input_length`` is omitted or ``None``, it assumes that
             all of ``x`` is valid input.
         label_length (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
-            Length of valid sequence for each of mini
-            batch ``t`` (optional). If label_length is skipped, It regards that
+        :class:`cupy.ndarray` or ``None``):
+            Length of sequence for each of mini batch ``t`` (optional).
+            Its shape must be ``(B,)``.
+            If the ``label_length`` is omitted or ``None``, it assumes that
             all of ``t`` is valid input.
         reduce (str): Reduction option. Its value must be either
             ``'mean'`` or ``'no'``. Otherwise,
@@ -362,4 +404,4 @@ def connectionist_temporal_classification(
         label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
 
     return ConnectionistTemporalClassification(blank_symbol, reduce)(
-        input_length, label_length, t, *x)
+        input_length, label_length, t, chainer.functions.stack(x))

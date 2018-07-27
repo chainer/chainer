@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -70,11 +70,13 @@ class TestROIPooling2D(unittest.TestCase):
         testing.assert_allclose(y_cpu.data, cuda.to_cpu(y_gpu.data))
 
     def check_backward(self, x_data, roi_data, y_grad):
+        def f(x, rois):
+            return functions.roi_pooling_2d(
+                x, rois, outh=self.outh, outw=self.outw,
+                spatial_scale=self.spatial_scale)
+
         gradient_check.check_backward(
-            functions.ROIPooling2D(outh=self.outh,
-                                   outw=self.outw,
-                                   spatial_scale=self.spatial_scale),
-            (x_data, roi_data), y_grad, no_grads=[False, True],
+            f, (x_data, roi_data), y_grad, no_grads=[False, True],
             **self.check_backward_options)
 
     def test_backward_cpu(self):

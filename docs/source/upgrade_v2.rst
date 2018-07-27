@@ -749,7 +749,7 @@ Instead, the :meth:`Extension.initialize <training.Extension.initialize>` method
 This method is called by :meth:`Trainer.run <training.Trainer.run>` before entering the training loop.
 
 In Chainer v1, the extension is just called before entering the training loop when ``invoke_before_training`` is ``True``.
-**If you have a custom extension that has** ``invoke_before_training=True``**, you have to update the code.**
+**If you have a custom extension that has** ``invoke_before_training=True`` **, you have to update the code.**
 What you have to do is to remove the ``invoke_before_training`` flag and override :meth:`~training.Extension.initialize` method.
 If you are using the :func:`~training.make_extension` decorator, you can set the ``initialize`` function by passing the ``initializer`` argument to :func:`~training.make_extension`.
 

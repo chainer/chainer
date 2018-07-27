@@ -46,7 +46,7 @@ def copy(x, dst):
 
     .. admonition:: Example
 
-        >>> import chainer.cuda as cuda
+        >>> import chainer.backends.cuda as cuda
         >>> x = np.random.uniform(-1, 1, (5, 10))
         >>> cuda.get_device_from_array(x).id
         -1

@@ -488,7 +488,7 @@ class BinaryHierarchicalSoftmax(link.Link):
 
         return sampled_word_ids
 
-    def __call__(self, x, t):
+    def forward(self, x, t):
         """Computes the loss value for given input and ground truth labels.
 
         Args:

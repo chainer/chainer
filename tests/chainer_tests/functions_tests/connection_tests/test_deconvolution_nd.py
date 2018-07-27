@@ -1,12 +1,11 @@
 import unittest
 
 import functools
-import mock
 import numpy
 from operator import mul
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
@@ -19,6 +18,8 @@ from chainer.utils import type_check
 
 @parameterize(*testing.product({
     'dims': [(4, 3, 2), (2,)],
+    'dilate': [1, 2],
+    'groups': [1, 2],
     'nobias': [False],
     'test_outsize': [False],
     'c_contiguous': [True],
@@ -27,6 +28,8 @@ from chainer.utils import type_check
     'autotune': [True, False],
 }) + testing.product({
     'dims': [(3, 2)],
+    'dilate': [1, 2],
+    'groups': [1],
     'nobias': [False],
     'test_outsize': [False],
     'c_contiguous': [True],
@@ -35,6 +38,8 @@ from chainer.utils import type_check
     'autotune': [False],
 }) + testing.product({
     'dims': [(3, 2)],
+    'dilate': [1, 2],
+    'groups': [1],
     'nobias': [True, False],
     'test_outsize': [True, False],
     'c_contiguous': [True, False],
@@ -45,27 +50,30 @@ from chainer.utils import type_check
 class TestDeconvolutionND(unittest.TestCase):
 
     def setUp(self):
-        in_channels = 3
+        N = 2
+        in_channels = 4
         out_channels = 2
         ndim = len(self.dims)
         ksize = (3,) * ndim
         self.stride = (2,) * ndim
         self.pad = (1,) * ndim
+        self.dilate = (self.dilate,) * ndim
 
         W_scale = numpy.sqrt(1. / functools.reduce(mul, ksize, in_channels))
-        W_shape = (in_channels, out_channels) + ksize
+        W_shape = (in_channels, out_channels // self.groups) + ksize
         self.W = numpy.random.normal(0, W_scale, W_shape).astype(self.W_dtype)
         self.b = numpy.random.uniform(-1, 1, out_channels).astype(self.x_dtype)
         self.check_double_backward_options = {
             'dtype': numpy.float64, 'atol': 5e-3, 'rtol': 5e-2}
 
         outs = tuple(
-            conv.get_deconv_outsize(d, k, s, p)
-            for (d, k, s, p) in zip(self.dims, ksize, self.stride, self.pad))
+            conv.get_deconv_outsize(d, k, s, p, d=di)
+            for (d, k, s, p, di)
+            in zip(self.dims, ksize, self.stride, self.pad, self.dilate))
         self.outsize = outs if self.test_outsize else None
-        x_shape = (2, in_channels) + self.dims
+        x_shape = (N, in_channels) + self.dims
         self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.x_dtype)
-        gy_shape = (2, out_channels) + outs
+        gy_shape = (N, out_channels) + outs
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.x_dtype)
 
         self.ggx = numpy.random.uniform(
@@ -89,7 +97,8 @@ class TestDeconvolutionND(unittest.TestCase):
         b_cpu = None if self.nobias else chainer.Variable(self.b)
         y_cpu = F.deconvolution_nd(
             x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            outsize=self.outsize)
+            outsize=self.outsize, dilate=self.dilate,
+            groups=self.groups)
 
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         W_gpu = chainer.Variable(cuda.to_gpu(self.W))
@@ -98,7 +107,8 @@ class TestDeconvolutionND(unittest.TestCase):
             with chainer.using_config('autotune', self.autotune):
                 y_gpu = F.deconvolution_nd(
                     x_gpu, W_gpu, b_gpu, stride=self.stride, pad=self.pad,
-                    outsize=self.outsize)
+                    outsize=self.outsize, dilate=self.dilate,
+                    groups=self.groups)
 
         self.assertEqual(y_cpu.data.dtype, self.x_dtype)
         self.assertEqual(y_gpu.data.dtype, self.x_dtype)
@@ -121,9 +131,11 @@ class TestDeconvolutionND(unittest.TestCase):
 
         with chainer.using_config('use_cudnn', use_cudnn):
             y_nd = F.deconvolution_nd(x, W, b, stride=self.stride,
-                                      pad=self.pad, outsize=self.outsize)
+                                      pad=self.pad, outsize=self.outsize,
+                                      dilate=self.dilate)
             y_2d = F.deconvolution_2d(x, W, b, stride=self.stride,
-                                      pad=self.pad, outsize=self.outsize)
+                                      pad=self.pad, outsize=self.outsize,
+                                      dilate=self.dilate)
 
         testing.assert_allclose(
             y_nd.data, y_2d.data, **self.test_forward_options)
@@ -171,7 +183,8 @@ class TestDeconvolutionND(unittest.TestCase):
 
         def f(*args):
             return F.deconvolution_nd(*args, stride=self.stride, pad=self.pad,
-                                      outsize=self.outsize)
+                                      outsize=self.outsize, dilate=self.dilate,
+                                      groups=self.groups)
 
         with chainer.using_config('use_cudnn', use_cudnn):
             with chainer.using_config('autotune', self.autotune):
@@ -234,9 +247,9 @@ class TestDeconvolutionND(unittest.TestCase):
             grad_grads += (b_grad_grad,)
 
         def f(*args):
-            y = F.deconvolution_nd(
-                *args, stride=self.stride, pad=self.pad, outsize=self.outsize)
-            return y * y  # make the function nonlinear
+            return F.deconvolution_nd(
+                *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
+                dilate=self.dilate, groups=self.groups)
 
         with chainer.using_config('use_cudnn', use_cudnn):
             with chainer.using_config('autotune', self.autotune):
@@ -309,9 +322,9 @@ class TestDeconvolutionNDCudnnCall(unittest.TestCase):
         return F.deconvolution_nd(x, W, None, stride=1, pad=1)
 
     def test_call_cudnn_forward(self):
-        name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
+        name = 'cupy.cudnn.convolution_backward_data'
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch(name) as func:
+            with testing.patch(name) as func:
                 self.forward()
                 self.assertEqual(func.called, self.expected)
 
@@ -319,7 +332,7 @@ class TestDeconvolutionNDCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with mock.patch('cupy.cuda.cudnn.convolutionForward') as func:
+            with testing.patch('cupy.cudnn.convolution_forward') as func:
                 y.backward()
                 self.assertEqual(func.called, self.expected)
 
@@ -418,13 +431,6 @@ class TestDeconvolutionNDTypeCheck(unittest.TestCase):
         x = numpy.random.uniform(-1, 1, (2, 3, 4)).astype(numpy.float32)
         W = numpy.random.uniform(-1, 1, (3, 2, 2)).astype(numpy.float32)
         b = numpy.random.uniform(-1, 1, (2, 2)).astype(numpy.float32)
-        with self.assertRaises(type_check.InvalidType):
-            F.deconvolution_nd(x, W, b=b)
-
-        # shape
-        x = numpy.random.uniform(-1, 1, (2, 3, 4)).astype(numpy.float32)
-        W = numpy.random.uniform(-1, 1, (3, 2, 2)).astype(numpy.float32)
-        b = numpy.random.uniform(-1, 1, (3,)).astype(numpy.float32)
         with self.assertRaises(type_check.InvalidType):
             F.deconvolution_nd(x, W, b=b)
 

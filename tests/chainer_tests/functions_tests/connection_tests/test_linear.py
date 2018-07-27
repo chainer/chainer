@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -18,6 +18,8 @@ def _to_noncontiguous(arrays):
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'x_shape': [{'n_batch_axes': 1, 'data_shape': (3,)},
+                {'n_batch_axes': 3, 'data_shape': (3, 5)}],
     'c_contiguous': [True, False],
     'nobias': [True, False],
 }))
@@ -35,15 +37,20 @@ def _to_noncontiguous(arrays):
 class TestNonparameterizedLinear(unittest.TestCase):
 
     def setUp(self):
-        W = numpy.random.uniform(
-            -1, 1, (2, 3)).astype(self.W_dtype)
+        self.n_batch_axes = self.x_shape['n_batch_axes']
+        data_shape = self.x_shape['data_shape']
+        input_size = numpy.prod(data_shape)
+        W = numpy.random.uniform(-1, 1, (2, input_size)).astype(self.W_dtype)
         if self.nobias:
             b = None
         else:
             b = numpy.random.uniform(-1, 1, 2).astype(self.x_dtype)
 
-        x = numpy.random.uniform(-1, 1, (4, 3)).astype(self.x_dtype)
-        gy = numpy.random.uniform(-1, 1, (4, 2)).astype(self.x_dtype)
+        batch_shape = (4,) + (2,) * (self.n_batch_axes - 1)
+        x = numpy.random.uniform(
+            -1, 1, batch_shape + data_shape).astype(self.x_dtype)
+        gy = numpy.random.uniform(
+            -1, 1, batch_shape + (2,)).astype(self.x_dtype)
         ggx = numpy.random.uniform(-1, 1, x.shape).astype(self.x_dtype)
         ggW = numpy.random.uniform(-1, 1, W.shape).astype(self.W_dtype)
         if self.nobias:
@@ -68,24 +75,30 @@ class TestNonparameterizedLinear(unittest.TestCase):
         else:
             self.check_forward_options = {}
             self.check_backward_options = {
-                'atol': 1e-3, 'rtol': 1e-3}
+                'atol': 1e-2, 'rtol': 1e-2}
             self.check_double_backward_options = {
-                'atol': 1e-3, 'rtol': 1e-3}
+                'atol': 1e-2, 'rtol': 1e-2}
 
     def forward_cpu(self, inputs):
         x, W, b = inputs
+        if self.n_batch_axes > 1:
+            batch_shape = x.shape[:self.n_batch_axes]
+            batch_size = numpy.prod(batch_shape)
+            x = x.reshape(batch_size, -1)
         y = x.dot(W.T)
         if b is not None:
             y += b
+        if self.n_batch_axes > 1:
+            y = y.reshape(batch_shape + (-1,))
         return y,
 
     def forward(self, *inputs):
         if len(inputs) == 3:
             x, W, b = inputs
-            y = functions.linear(x, W, b)
+            y = functions.linear(x, W, b, n_batch_axes=self.n_batch_axes)
         else:
             x, W = inputs
-            y = functions.linear(x, W)
+            y = functions.linear(x, W, n_batch_axes=self.n_batch_axes)
         return y,
 
     def check_forward(self, inputs, backend_config):
@@ -144,14 +157,9 @@ class TestNonparameterizedLinear(unittest.TestCase):
             inputs = inputs[:-1]
             grad_grad_inputs = grad_grad_inputs[:-1]
 
-        # non-linear function for testing
-        def nonlinear(*args):
-            y, = self.forward(*args)
-            return y * y
-
         with backend_config:
             gradient_check.check_double_backward(
-                nonlinear, inputs, grad_outputs, grad_grad_inputs,
+                self.forward, inputs, grad_outputs, grad_grad_inputs,
                 **self.check_double_backward_options)
 
     def test_double_backward(self, backend_config):
@@ -180,6 +188,25 @@ class TestLinearBackwardNoncontiguousGradOutputs(unittest.TestCase):
             y = functions.linear(chainer.Variable(x), w)
             z = functions.sum(y)
             z.backward()
+
+
+class TestLinearNBatchAxesBoundaryCondition(unittest.TestCase):
+
+    def setUp(self):
+        self.W = numpy.random.uniform(
+            -1, 1, (2, 15)).astype(numpy.float32)
+        self.x = numpy.random.uniform(
+            -1, 1, (3, 3, 5)).astype(numpy.float32)
+
+    def test_negative(self):
+        n_batch_axes = -1
+        with self.assertRaises(ValueError):
+            functions.linear(self.x, self.W, n_batch_axes=n_batch_axes)
+
+    def test_zero(self):
+        n_batch_axes = 0
+        with self.assertRaises(ValueError):
+            functions.linear(self.x, self.W, n_batch_axes=n_batch_axes)
 
 
 testing.run_module(__name__, __file__)

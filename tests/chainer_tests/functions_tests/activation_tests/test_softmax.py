@@ -1,10 +1,9 @@
 import unittest
 
-import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -143,7 +142,7 @@ class TestSoftmaxCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cuda.cudnn.softmaxForward') as func:
+            with testing.patch('cupy.cuda.cudnn.softmaxForward') as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)
 
@@ -151,7 +150,7 @@ class TestSoftmaxCudnnCall(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             y.grad = self.gy
-            with mock.patch('cupy.cuda.cudnn.softmaxBackward') as func:
+            with testing.patch('cupy.cuda.cudnn.softmaxBackward') as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 

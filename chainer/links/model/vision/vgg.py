@@ -1,6 +1,6 @@
-from __future__ import print_function
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -68,8 +68,8 @@ class VGG16Layers(link.Chain):
             ``chainer.initializers.Normal(scale=0.01)``.
 
     Attributes:
-        ~VGG16Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -160,8 +160,8 @@ class VGG16Layers(link.Chain):
         caffemodel = CaffeFunction(path_caffemodel)
         npz.save_npz(path_npz, caffemodel, compression=False)
 
-    def __call__(self, x, layers=['prob'], **kwargs):
-        """__call__(self, x, layers=['prob'])
+    def forward(self, x, layers=None, **kwargs):
+        """forward(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
 
@@ -183,10 +183,14 @@ class VGG16Layers(link.Chain):
 
         """
 
-        argument.check_unexpected_kwargs(
-            kwargs, test='test argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if layers is None:
+            layers = ['prob']
+
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, test='test argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         h = x
         activations = {}
@@ -201,25 +205,48 @@ class VGG16Layers(link.Chain):
                 target_layers.remove(key)
         return activations
 
-    def extract(self, images, layers=['fc7'], size=(224, 224), **kwargs):
+    def extract(self, images, layers=None, size=(224, 224), **kwargs):
         """extract(self, images, layers=['fc7'], size=(224, 224))
 
         Extracts all the feature maps of given images.
 
-        The difference of directly executing ``__call__`` is that
+        The difference of directly executing ``forward`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
-        ``prepare`` and ``__call__`` functions.
+        ``prepare`` and ``forward`` functions.
+
+        Unlike ``predict`` method, this method does not override
+        ``chainer.config.train`` and ``chainer.config.enable_backprop``
+        configuration. If you want to extract features without updating
+        model parameters, you need to manually set configuration when
+        calling this method as follows:
+
+         .. code-block:: python
+
+             # model is an instance of VGG16Layers
+             with chainer.using_config('train', False):
+                 with chainer.using_config('enable_backprop', False):
+                     feature = model.extract([image])
 
         .. warning::
 
-           ``test`` and ``volatile`` arguments are not supported anymore since
-           v2.
-           Instead, use ``chainer.using_config('train', train)`` and
-           ``chainer.using_config('enable_backprop', not volatile)``
-           respectively.
-           See :func:`chainer.using_config`.
+           ``test`` and ``volatile`` arguments are not supported
+           anymore since v2. Instead, users should configure
+           training and volatile modes with ``train`` and
+           ``enable_backprop``, respectively.
+
+           Note that default behavior of this method is different
+           between v1 and later versions. Specifically,
+           the default values of ``test`` in v1 were ``True`` (test mode).
+           But that of ``chainer.config.train`` is also ``True``
+           (train mode). Therefore, users need to explicitly switch
+           ``train`` to ``False`` to run the code in test mode and
+           ``enable_backprop`` to ``False`` to turn off
+           coputational graph construction.
+
+           See the `upgrade guide <https://docs.chainer.org/en/stable\
+           /upgrade_v2.html#training-mode-is-configured-by-a-thread-local-flag>`_.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -236,12 +263,16 @@ class VGG16Layers(link.Chain):
 
         """
 
-        argument.check_unexpected_kwargs(
-            kwargs, test='test argument is not supported anymore. '
-            'Use chainer.using_config',
-            volatile='volatile argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if layers is None:
+            layers = ['fc7']
+
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, test='test argument is not supported anymore. '
+                'Use chainer.using_config',
+                volatile='volatile argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x))
@@ -284,7 +315,7 @@ class VGG16Layers(link.Chain):
 def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for VGG models.
 
-    Note that you have to call this method before ``__call__``
+    Note that you have to call this method before ``forward``
     because the pre-trained vgg model requires to resize the given image,
     covert the RGB to the BGR, subtract the mean,
     and permute the dimensions before calling.
@@ -307,6 +338,7 @@ def prepare(image, size=(224, 224)):
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
+    dtype = chainer.get_dtype()
     if isinstance(image, numpy.ndarray):
         if image.ndim == 3:
             if image.shape[0] == 1:
@@ -317,10 +349,10 @@ def prepare(image, size=(224, 224)):
     image = image.convert('RGB')
     if size:
         image = image.resize(size)
-    image = numpy.asarray(image, dtype=numpy.float32)
+    image = numpy.asarray(image, dtype=dtype)
     image = image[:, :, ::-1]
     image -= numpy.array(
-        [103.939, 116.779, 123.68], dtype=numpy.float32)
+        [103.939, 116.779, 123.68], dtype=dtype)
     image = image.transpose((2, 0, 1))
     return image
 
@@ -331,7 +363,9 @@ def _max_pooling_2d(x):
 
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     VGG16Layers.convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model

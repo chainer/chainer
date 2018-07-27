@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
@@ -20,7 +20,9 @@ class TestSign(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.no_grads = (True,)  # Always assert that gradients are `None`
+
+        # Avoid non-differentiable point
+        self.x[(abs(self.x) < 1e-2)] = 1
 
     def check_forward(self, x_data, xp):
         x = chainer.Variable(x_data)
@@ -53,9 +55,9 @@ class TestSign(unittest.TestCase):
     def test_forward_ndarray_gpu(self):
         self.check_forward_ndarray(cuda.to_gpu(self.x), cuda.cupy)
 
-    def check_backward(self, x_data, y_grad, no_grads):
+    def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
-            F.sign, x_data, y_grad, no_grads=no_grads)
+            F.sign, x_data, y_grad)
 
         # Explicitly check that gradients are `None`
         x = chainer.Variable(x_data)
@@ -63,12 +65,12 @@ class TestSign(unittest.TestCase):
         assert x.grad is None
 
     def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy, self.no_grads)
+        self.check_backward(self.x, self.gy)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), self.no_grads)
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
 testing.run_module(__name__, __file__)

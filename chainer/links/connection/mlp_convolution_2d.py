@@ -33,7 +33,18 @@ class MLPConvolution2D(link.ChainList):
         pad (int or pair of ints): Spatial padding width for input arrays at
             the first convolution layer. ``pad=p`` and ``pad=(p, p)`` are
             equivalent.
-        activation (function): Activation function for internal hidden units.
+        activation (callable):
+            Activation function for internal hidden units.
+            You can specify one of activation functions from
+            :doc:`built-in activation functions </reference/functions>` or
+            your own function.
+            It should not be an
+            :doc:`activation functions with parameters </reference/links>`
+            (i.e., :class:`~chainer.Link` instance).
+            The function must accept one argument (the output from each child
+            link), and return a value.
+            Returned value must be a Variable derived from the input Variable
+            to perform backpropagation on the variable.
             Note that this function is not applied to the output of this link.
         conv_init: An initializer of weight matrices
             passed to the convolution layers. This option must be specified as
@@ -51,7 +62,9 @@ class MLPConvolution2D(link.ChainList):
     See: `Network in Network <https://arxiv.org/abs/1312.4400v3>`_.
 
     Attributes:
-        activation (function): Activation function.
+        activation (callable):
+            Activation function.
+            See the description in the arguments for details.
 
     """  # NOQA
 
@@ -84,7 +97,7 @@ class MLPConvolution2D(link.ChainList):
         super(MLPConvolution2D, self).__init__(*convs)
         self.activation = activation
 
-    def __call__(self, x):
+    def forward(self, x):
         """Computes the output of the mlpconv layer.
 
         Args:

@@ -1,10 +1,9 @@
 import unittest
 
-import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -161,6 +160,12 @@ class TestNStepRNN(unittest.TestCase):
         self.check_backward(self.hx, self.xs, self.ws, self.bs,
                             self.dhy, self.dys)
 
+    @condition.retry(3)
+    def test_backward_partially_none_cpu(self):
+        self.dys[1] = None
+        self.check_backward(self.hx, self.xs, self.ws, self.bs,
+                            None, self.dys)
+
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
@@ -171,6 +176,19 @@ class TestNStepRNN(unittest.TestCase):
                 _to_gpu(self.ws),
                 _to_gpu(self.bs),
                 _to_gpu(self.dhy),
+                _to_gpu(self.dys))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_partially_none_gpu(self):
+        self.dys[1] = None
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_backward(
+                _to_gpu(self.hx),
+                _to_gpu(self.xs),
+                _to_gpu(self.ws),
+                _to_gpu(self.bs),
+                None,
                 _to_gpu(self.dys))
 
     def call_forward(self, train):
@@ -186,7 +204,7 @@ class TestNStepRNN(unittest.TestCase):
     def check_call_cudnn_forward_training(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
                 self.call_forward(True)
             assert func.called == expect
 
@@ -199,7 +217,7 @@ class TestNStepRNN(unittest.TestCase):
     def check_call_cudnn_forward_inference(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
                 self.call_forward(False)
             assert func.called == expect
 
@@ -214,7 +232,7 @@ class TestNStepRNN(unittest.TestCase):
             expect = chainer.should_use_cudnn('>=auto', 5000)
             hy, ys = self.call_forward(True)
             hy.grad = _to_gpu(self.dhy)
-            with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
                 hy.backward()
             assert func.called == expect
 
@@ -370,6 +388,12 @@ class TestNStepBiRNN(unittest.TestCase):
         self.check_backward(self.hx, self.xs, self.ws, self.bs,
                             self.dhy, self.dys)
 
+    @condition.retry(3)
+    def test_backward_partially_none_cpu(self):
+        self.dys[1] = None
+        self.check_backward(self.hx, self.xs, self.ws, self.bs,
+                            None, self.dys)
+
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
@@ -380,6 +404,19 @@ class TestNStepBiRNN(unittest.TestCase):
                 _to_gpu(self.ws),
                 _to_gpu(self.bs),
                 _to_gpu(self.dhy),
+                _to_gpu(self.dys))
+
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_partially_none_gpu(self):
+        self.dys[1] = None
+        with chainer.using_config('use_cudnn', 'always'):
+            self.check_backward(
+                _to_gpu(self.hx),
+                _to_gpu(self.xs),
+                _to_gpu(self.ws),
+                _to_gpu(self.bs),
+                None,
                 _to_gpu(self.dys))
 
     def call_forward(self, train):
@@ -395,7 +432,7 @@ class TestNStepBiRNN(unittest.TestCase):
     def check_call_cudnn_forward_training(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
                 self.call_forward(True)
             assert func.called == expect
 
@@ -408,7 +445,7 @@ class TestNStepBiRNN(unittest.TestCase):
     def check_call_cudnn_forward_inference(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with mock.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
                 self.call_forward(False)
             assert func.called == expect
 
@@ -423,7 +460,7 @@ class TestNStepBiRNN(unittest.TestCase):
             expect = chainer.should_use_cudnn('>=auto', 5000)
             hy, ys = self.call_forward(True)
             hy.grad = _to_gpu(self.dhy)
-            with mock.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+            with testing.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
                 hy.backward()
             assert func.called == expect
 

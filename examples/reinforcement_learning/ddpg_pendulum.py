@@ -3,7 +3,6 @@
 
 For DDPG, see: https://arxiv.org/abs/1509.02971
 """
-from __future__ import print_function
 from __future__ import division
 import argparse
 import collections
@@ -30,7 +29,7 @@ class QFunction(chainer.Chain):
             self.l2 = L.Linear(n_units, 1,
                                initialW=chainer.initializers.HeNormal(1e-3))
 
-    def __call__(self, obs, action):
+    def forward(self, obs, action):
         """Compute Q-values for given state-action pairs."""
         x = F.concat((obs, action), axis=1)
         h = F.relu(self.l0(x))
@@ -59,7 +58,7 @@ class Policy(chainer.Chain):
             self.l2 = L.Linear(n_units, action_size,
                                initialW=chainer.initializers.HeNormal(1e-3))
 
-    def __call__(self, x):
+    def forward(self, x):
         """Compute actions for given observations."""
         h = F.relu(self.l0(x))
         h = F.relu(self.l1(h))
@@ -73,7 +72,7 @@ def get_action(policy, obs):
     obs = policy.xp.asarray(obs[None], dtype=np.float32)
     with chainer.no_backprop_mode():
         action = policy(obs).data[0]
-    return chainer.cuda.to_cpu(action)
+    return chainer.backends.cuda.to_cpu(action)
 
 
 def update(Q, target_Q, policy, target_policy, opt_Q, opt_policy,
@@ -182,7 +181,7 @@ def main():
                     env.action_space.low, env.action_space.high,
                     n_units=args.unit)
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         Q.to_gpu(args.gpu)
         policy.to_gpu(args.gpu)
     target_Q = copy.deepcopy(Q)

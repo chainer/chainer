@@ -7,6 +7,42 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
+Chainer v5
+==========
+
+Persistent Values are Copied in ``Link.copyparams``
+---------------------------------------------------
+
+:meth:`chainer.Link.copyparams` is a method to copy all parameters of the link to another link.
+This method can be used, for example, to copy parameters between two chains that partially share the same network structure to reuse pretrained weights.
+
+Prior to Chainer v5, only parameters are copied between links.
+In Chainer v5, in addition to parameters, persistent values (see :doc:`guides/serializers` for details) are also copied between links.
+This is especially beneficial when copying parameters of :class:`~chainer.links.BatchNormalization`, as it uses persistent values to record running statistics.
+
+You can skip copying persistent values by passing newly introduced ``copy_persistent=False`` option to :meth:`~chainer.Link.copyparams` so that it behaves as in Chainer v4.
+
+FuncionNodes as Implementation Details
+--------------------------------------
+
+When calling a Chainer function such as :func:`~chainer.functions.relu`, a corresponding :class:`~chainer.FunctionNode` is created internally, defining the forward and backward procedures.
+These classes are no longer a part of the public interface and you are encouraged not to instantiate these objects directly, as their interfaces may change.
+
+Updaters Automatically Call ``Optimizer.new_epoch``
+---------------------------------------------------
+
+This change should affect only a minority of users (who call :meth:`~chainer.Optimizer.new_epoch` while using a trainer, or who implement their own :class:`~chainer.training.Updater` class).
+
+Optimizers provide :meth:`~chainer.Optimizer.new_epoch` method, which can be used to change the behavior of optimizers depending on the current epoch number.
+Prior to Chainer v5, this method was expected to be called by users.
+In Chainer v5, updaters have been changed to call :meth:`~chainer.Optimizer.new_epoch` automatically.
+If you have been calling :meth:`~chainer.Optimizer.new_epoch` method manually while using a trainer (or an updater), you may need any of the following fixes:
+
+* Pass ``auto_new_epoch=False`` to the constructor of the updater (e.g., :class:`~chainer.training.updaters.StandardUpdater`) to stop :meth:`~chainer.Optimizer.new_epoch` from being called automatically by the updater.
+* Avoid calling :meth:`~chainer.Optimizer.new_epoch` method manually.
+
+If you implement your own :class:`~chainer.training.Updater` class, you may need to update your code to automatically call :meth:`~chainer.Optimizer.new_epoch` (you can refer to the changes introduced in `#4608 <https://github.com/chainer/chainer/pull/4608>`__ to understand how to fix your updater).
+
 
 Chainer v4
 ==========
@@ -27,6 +63,15 @@ See the discussion in `#2982 <https://github.com/chainer/chainer/pull/2982>`_ fo
 
 This change does not break the existing code; you can safely continue to use updater classes directly under ``chainer.training`` but it is now encouraged to use ``chainer.training.updaters`` instead.
 
+Namespace Changes for Optimizer Hooks
+-------------------------------------
+
+:doc:`Optimizer hook functions <reference/optimizers>` are moved from ``chainer.optimizer.*`` to ``chainer.optimizer_hooks.*``.
+For example, ``chainer.optimizer.WeightDecay`` is now located :class:`chainer.optimizer_hooks.WeightDecay`.
+
+If the existing code is using hooks directly under ``chainer.optimizer``, ``DeprecationWarning`` will be shown.
+You are now encouraged to use ``chainer.optimizer_hooks`` instead.
+
 Prohibition of Mixed Use of Arrays on Different Devices in Function Arguments
 -----------------------------------------------------------------------------
 
@@ -42,7 +87,7 @@ Suppose the following code:
    F.maximum(v1, v2)
 
 Prior to v4, the above code raises an exception like ``ValueError: object __array__ method not producing an array``, which was difficult to understand.
-In v4, the error message would become ``ValueError: incompatible array types are mixed in the forward input (Maximum)``.
+In v4, the error message would become ``TypeError: incompatible array types are mixed in the forward input (Maximum)``.
 This kind of error usually occurs by mistake (for example, not performing ``to_gpu`` for some variables).
 
 .. attention::
@@ -70,6 +115,13 @@ This change was introduced because CUDA 7.5 does not support NVIDIA Pascal GPUs.
 
 To use these images, you may need to upgrade the NVIDIA driver on your host.
 See `Requirements of nvidia-docker <https://github.com/NVIDIA/nvidia-docker/wiki/CUDA#requirements>`_ for details.
+
+CuPy v4
+-------
+
+Chainer v4 requires CuPy v4 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v4 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v4>`_ for details.
+
 
 Chainer v3
 ==========
@@ -117,6 +169,12 @@ See the discussion in `#2955 <https://github.com/chainer/chainer/pull/2955>`_ fo
    The existing code using ``use_cudnn`` argument of :func:`chainer.functions.spatial_transformer_grid` and :func:`chainer.functions.spatial_transformer_sampler` require modification to work with Chainer v3.
    Please use the configuration context (e.g., ``with chainer.using_config('use_cudnn', 'auto'):``) to enable or disable use of cuDNN.
    See :ref:`configuration` for details.
+
+CuPy v2
+-------
+
+Chainer v3 requires CuPy v2 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v2 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v2>`_ for details.
 
 
 Chainer v2

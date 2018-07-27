@@ -1,5 +1,4 @@
 import numpy
-
 import six
 
 from chainer.backends import cuda
@@ -149,13 +148,13 @@ class NpzDeserializer(serializer.Deserializer):
         elif isinstance(value, numpy.ndarray):
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):
-            value.set(numpy.asarray(dataset))
+            value.set(numpy.asarray(dataset, dtype=value.dtype))
         else:
             value = type(value)(numpy.asarray(dataset))
         return value
 
 
-def load_npz(file, obj, path='', strict=True):
+def load_npz(file, obj, path='', strict=True, ignore_names=None):
     """Loads an object from the file in NPZ format.
 
     This is a short-cut function to load from an `.npz` file that contains only
@@ -170,11 +169,19 @@ def load_npz(file, obj, path='', strict=True):
         strict (bool): If ``True``, the deserializer raises an error when an
             expected value is not found in the given NPZ file. Otherwise,
             it ignores the value and skip deserialization.
+        ignore_names (string, callable or list of them):
+            If callable, it is a function that takes a name of a parameter
+            and a persistent and returns ``True`` when it needs to be skipped.
+            If string, this is a name of a parameter or persistent that are
+            going to be skipped.
+            This can also be a list of callables and strings that behave as
+            described above.
 
     .. seealso::
         :func:`chainer.serializers.save_npz`
 
     """
     with numpy.load(file) as f:
-        d = NpzDeserializer(f, path=path, strict=strict)
+        d = NpzDeserializer(
+            f, path=path, strict=strict, ignore_names=ignore_names)
         d.load(obj)

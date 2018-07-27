@@ -5,7 +5,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -104,9 +104,8 @@ class TestPadSequence(unittest.TestCase):
             return
 
         def f(*xs):
-            y = functions.pad_sequence(
+            return functions.pad_sequence(
                 xs, length=self.length, padding=self.pad)
-            return y * y
 
         gradient_check.check_double_backward(
             f, xs, gy, ggxs, dtype=numpy.float64,

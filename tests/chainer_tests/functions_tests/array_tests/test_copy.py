@@ -4,7 +4,7 @@ import numpy
 
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -101,8 +101,7 @@ class TestCopy(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad):
         def f(x):
-            y = functions.copy(x, -1)
-            return y * y
+            return functions.copy(x, -1)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,

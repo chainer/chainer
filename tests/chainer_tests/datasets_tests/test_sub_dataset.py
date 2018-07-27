@@ -54,6 +54,11 @@ class TestSplitDataset(unittest.TestCase):
         with self.assertRaises(ValueError):
             datasets.split_dataset(original, 5)
 
+    def test_split_dataset_invalid_type(self):
+        original = [1, 2, 3, 4, 5]
+        with self.assertRaises(TypeError):
+            datasets.split_dataset(original, 3.5)
+
     def test_permuted_split_dataset(self):
         original = [1, 2, 3, 4, 5]
         subset1, subset2 = datasets.split_dataset(original, 2, [2, 0, 3, 1, 4])

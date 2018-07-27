@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -60,12 +60,9 @@ class TestHardSigmoid(unittest.TestCase):
                             cuda.to_gpu(self.gy))
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad):
-        def f(x):
-            y = functions.hard_sigmoid(x)
-            return y * y
-
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
+            functions.hard_sigmoid, x_data, y_grad, x_grad_grad,
+            dtype=numpy.float64,
             **self.check_backward_option)
 
     def test_double_backward_cpu(self):

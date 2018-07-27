@@ -1,25 +1,33 @@
 from __future__ import division
 import os
-import six
 import warnings
 
 import numpy
+import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
 
 
 try:
     import matplotlib
-    _plot_color = matplotlib.colors.to_rgba('#1f77b4')  # C0 color
-    _plot_color_trans = _plot_color[:3] + (0.2,)  # apply alpha
-    _plot_common_kwargs = {
-        'alpha': 0.2, 'linewidth': 0, 'color': _plot_color_trans}
     _available = True
 except ImportError:
     _available = False
+
+
+if _available:
+    if hasattr(matplotlib.colors, 'to_rgba'):
+        _to_rgba = matplotlib.colors.to_rgba
+    else:
+        # For matplotlib 1.x
+        _to_rgba = matplotlib.colors.ColorConverter().to_rgba
+    _plot_color = _to_rgba('#1f77b4')  # C0 color
+    _plot_color_trans = _plot_color[:3] + (0.2,)  # apply alpha
+    _plot_common_kwargs = {
+        'alpha': 0.2, 'linewidth': 0, 'color': _plot_color_trans}
 
 
 def _check_available():

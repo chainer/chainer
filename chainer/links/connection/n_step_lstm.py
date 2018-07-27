@@ -15,12 +15,6 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
-        initial_bias (:ref:`initializer <initializer>`): Initializer to
-            initialize the bias. If ``None``, the bias will be initialized to
-            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
         use_bi_direction (bool): if ``True``, use Bi-directional LSTM.
 
     .. seealso::
@@ -31,8 +25,8 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
 
     n_weights = 8
 
-    def __call__(self, hx, cx, xs, **kwargs):
-        """__call__(self, hx, cx, xs)
+    def forward(self, hx, cx, xs, **kwargs):
+        """forward(self, hx, cx, xs)
 
         Calculate all hidden states and cell states.
 
@@ -44,12 +38,34 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
 
         Args:
             hx (~chainer.Variable or None): Initial hidden states. If ``None``
-                is specified zero-vector is used.
+                is specified zero-vector is used. Its shape is ``(S, B, N)``
+                for uni-directional LSTM and ``(2S, B, N)`` for
+                bi-directional LSTM where ``S`` is the number of layers
+                and is equal to ``n_layers``, ``B`` is the mini-batch size,
+                and ``N`` is the dimension of the hidden units.
             cx (~chainer.Variable or None): Initial cell states. If ``None``
                 is specified zero-vector is used.
+                It has the same shape as ``hx``.
             xs (list of ~chainer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
-                a sequence.
+                a sequence. Its shape is ``(L_t, I)``, where ``L_t`` is the
+                length of a sequence for time ``t``, and ``I`` is the size of
+                the input and is equal to ``in_size``.
+
+        Returns:
+            tuple: This function returns a tuple containing three elements,
+            ``hy``, ``cy`` and ``ys``.
+
+            - ``hy`` is an updated hidden states whose shape is the same as
+              ``hx``.
+            - ``cy`` is an updated cell states whose shape is the same as
+              ``cx``.
+            - ``ys`` is a list of :class:`~chainer.Variable` . Each element
+              ``ys[t]`` holds hidden states of the last layer corresponding
+              to an input ``xs[t]``. Its shape is ``(L_t, N)`` for
+              uni-directional LSTM and ``(L_t, 2N)`` for bi-directional LSTM
+              where ``L_t`` is the length of a sequence for time ``t``,
+              and ``N`` is size of hidden units.
         """
         (hy, cy), ys = self._call([hx, cx], xs, **kwargs)
         return hy, cy, ys
@@ -80,12 +96,6 @@ class NStepLSTM(NStepLSTMBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
-        initial_bias (:ref:`initializer <initializer>`): Initializer to
-            initialize the bias. If ``None``, the bias will be initialized to
-            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
@@ -96,6 +106,10 @@ class NStepLSTM(NStepLSTMBase):
 
     def rnn(self, *args):
         return rnn.n_step_lstm(*args)
+
+    @property
+    def n_cells(self):
+        return 2
 
 
 class NStepBiLSTM(NStepLSTMBase):
@@ -123,12 +137,6 @@ class NStepBiLSTM(NStepLSTMBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
-        initial_bias (:ref:`initializer <initializer>`): Initializer to
-            initialize the bias. If ``None``, the bias will be initialized to
-            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.functions.n_step_bilstm`
@@ -139,3 +147,7 @@ class NStepBiLSTM(NStepLSTMBase):
 
     def rnn(self, *args):
         return rnn.n_step_bilstm(*args)
+
+    @property
+    def n_cells(self):
+        return 2

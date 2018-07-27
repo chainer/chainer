@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
@@ -58,7 +58,8 @@ class Log1pFunctionTest(unittest.TestCase):
             cuda.to_gpu(self.ggx))
 
     def test_log1p(self):
-        self.assertEqual(F.Log1p().label, 'log1p')
+        self.assertEqual(
+            chainer.functions.math.logarithm_1p.Log1p().label, 'log1p')
 
 
 testing.run_module(__name__, __file__)

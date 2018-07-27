@@ -1,19 +1,12 @@
-import itertools
-
 import numpy
-import six
 
 import chainer
 from chainer.backends import cuda
 from chainer.functions.activation import lstm
-from chainer.functions.array import concat
 from chainer.functions.array import reshape
-from chainer.functions.array import split_axis
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
 from chainer.functions.connection import n_step_rnn
-from chainer.functions.connection.n_step_rnn import get_random_state
-from chainer.functions.noise import dropout
 from chainer.utils import argument
 
 
@@ -121,7 +114,7 @@ def n_step_lstm(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is the same as
@@ -288,7 +281,7 @@ def n_step_bilstm(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is the same as
@@ -399,7 +392,7 @@ def n_step_lstm_base(
             LSTM.
 
     Returns:
-        tuple: This functions returns a tuple concaining three elements,
+        tuple: This function returns a tuple containing three elements,
         ``hy``, ``cy`` and ``ys``.
 
             - ``hy`` is an updated hidden states whose shape is the same as
@@ -418,111 +411,47 @@ def n_step_lstm_base(
        :func:`chainer.functions.n_step_bilstm`
 
     """
-
-    argument.check_unexpected_kwargs(
-        kwargs, train='train argument is not supported anymore. '
-        'Use chainer.using_config',
-        use_cudnn='use_cudnn argument is not supported anymore. '
-        'Use chainer.using_config')
-    argument.assert_kwargs_empty(kwargs)
+    if kwargs:
+        argument.check_unexpected_kwargs(
+            kwargs, train='train argument is not supported anymore. '
+            'Use chainer.using_config',
+            use_cudnn='use_cudnn argument is not supported anymore. '
+            'Use chainer.using_config')
+        argument.assert_kwargs_empty(kwargs)
 
     xp = cuda.get_array_module(hx, hx.data)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
-        states = get_random_state().create_dropout_states(dropout_ratio)
+        handle = cudnn.get_handle()
+        states = cuda.get_cudnn_dropout_states()
+        cudnn.set_dropout_descriptor(states._desc, handle, dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
-        # flatten all input variables
-        inputs = tuple(itertools.chain(
-            (hx, cx),
-            itertools.chain.from_iterable(ws),
-            itertools.chain.from_iterable(bs),
-            (xs,)))
+
+        w = n_step_rnn.cudnn_rnn_weight_concat(
+            n_layers, states, use_bi_direction, 'lstm', ws, bs)
+
         if use_bi_direction:
             rnn = NStepBiLSTM
         else:
             rnn = NStepLSTM
 
-        hy, cy, ys = rnn(n_layers, states, lengths)(*inputs)
+        hy, cy, ys = rnn(n_layers, states, lengths)(hx, cx, w, xs)
         sections = numpy.cumsum(lengths[:-1])
         ys = chainer.functions.split_axis(ys, sections, 0)
         return hy, cy, ys
 
     else:
-        direction = 2 if use_bi_direction else 1
-        split_size = n_layers * direction
-        hx = split_axis.split_axis(hx, split_size, axis=0, force_tuple=True)
-        hx = [reshape.reshape(h, h.shape[1:]) for h in hx]
-        cx = split_axis.split_axis(cx, split_size, axis=0, force_tuple=True)
-        cx = [reshape.reshape(c, c.shape[1:]) for c in cx]
+        return n_step_rnn.n_step_rnn_impl(
+            _lstm, n_layers, dropout_ratio, hx, cx, ws, bs, xs,
+            use_bi_direction)
 
-        xws = [_stack_weight([w[2], w[0], w[1], w[3]]) for w in ws]
-        hws = [_stack_weight([w[6], w[4], w[5], w[7]]) for w in ws]
-        xbs = [_stack_weight([b[2], b[0], b[1], b[3]]) for b in bs]
-        hbs = [_stack_weight([b[6], b[4], b[5], b[7]]) for b in bs]
 
-        xs_next = xs
-        hy = []
-        cy = []
-        for layer in six.moves.range(n_layers):
-
-            def _one_directional_loop(di):
-                # di=0, forward LSTM
-                # di=1, backward LSTM
-                h_list = []
-                c_list = []
-                layer_idx = direction * layer + di
-                h = hx[layer_idx]
-                c = cx[layer_idx]
-                if di == 0:
-                    xs_list = xs_next
-                else:
-                    xs_list = reversed(xs_next)
-                for x in xs_list:
-                    batch = x.shape[0]
-                    if h.shape[0] > batch:
-                        h, h_rest = split_axis.split_axis(h, [batch], axis=0)
-                        c, c_rest = split_axis.split_axis(c, [batch], axis=0)
-                    else:
-                        h_rest = None
-                        c_rest = None
-
-                    if layer != 0:
-                        x = dropout.dropout(x, ratio=dropout_ratio)
-                    lstm_in = linear.linear(x, xws[layer_idx],
-                                            xbs[layer_idx]) + \
-                        linear.linear(h, hws[layer_idx], hbs[layer_idx])
-
-                    c_bar, h_bar = lstm.lstm(c, lstm_in)
-                    if h_rest is not None:
-                        h = concat.concat([h_bar, h_rest], axis=0)
-                        c = concat.concat([c_bar, c_rest], axis=0)
-                    else:
-                        h = h_bar
-                        c = c_bar
-                    h_list.append(h_bar)
-                    c_list.append(c_bar)
-                return h, c, h_list, c_list
-
-            h, c, h_forward, c_forward = _one_directional_loop(di=0)
-            hy.append(h)
-            cy.append(c)
-
-            if use_bi_direction:
-                # BiLSTM
-                h, c, h_backward, c_backward = _one_directional_loop(di=1)
-                hy.append(h)
-                cy.append(c)
-
-                h_backward.reverse()
-                # concat
-                xs_next = [concat.concat([hfi, hbi], axis=1) for (hfi, hbi) in
-                           zip(h_forward, h_backward)]
-            else:
-                # Uni-directional RNN
-                xs_next = h_forward
-
-        ys = xs_next
-        hy = stack.stack(hy)
-        cy = stack.stack(cy)
-        return hy, cy, tuple(ys)
+def _lstm(x, h, c, w, b):
+    xw = _stack_weight([w[2], w[0], w[1], w[3]])
+    hw = _stack_weight([w[6], w[4], w[5], w[7]])
+    xb = _stack_weight([b[2], b[0], b[1], b[3]])
+    hb = _stack_weight([b[6], b[4], b[5], b[7]])
+    lstm_in = linear.linear(x, xw, xb) + linear.linear(h, hw, hb)
+    c_bar, h_bar = lstm.lstm(c, lstm_in)
+    return h_bar, c_bar

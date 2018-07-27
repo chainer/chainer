@@ -1,6 +1,6 @@
 from __future__ import division
 
-import numpy as np
+import numpy
 
 from chainer.training import extension
 
@@ -57,8 +57,8 @@ class LinearShift(extension.Extension):
     def serialize(self, serializer):
         self._t = serializer('_t', self._t)
         self._last_value = serializer('_last_value', self._last_value)
-        if isinstance(self._last_value, np.ndarray):
-            self._last_value = np.asscalar(self._last_value)
+        if isinstance(self._last_value, numpy.ndarray):
+            self._last_value = numpy.asscalar(self._last_value)
 
     def _get_optimizer(self, trainer):
         return self._optimizer or trainer.updater.get_optimizer('main')
