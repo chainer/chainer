@@ -40,6 +40,7 @@ if(${ENABLE_TEST})
       normalization_test.cc
       pooling_test.cc
       sorting_test.cc
+      statistics_test.cc
   )
   target_link_libraries(xchainer_routines_test
       xchainer
