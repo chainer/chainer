@@ -1,5 +1,11 @@
-CUDA utilities
---------------
+CUDA and Backend Utilities
+==========================
+
+.. module:: chainer.backends
+
+CUDA
+----
+
 .. automodule:: chainer.backends.cuda
 
 .. currentmodule:: /
@@ -56,3 +62,18 @@ cuDNN support
 
    chainer.backends.cuda.set_max_workspace_size
    chainer.backends.cuda.get_max_workspace_size
+
+iDeep
+-----
+
+`iDeep <https://github.com/intel/ideep>`__ is a module that provides NumPy-like API and DNN acceleration using MKL-DNN for Intel CPUs.
+See :doc:`../../tips` and :doc:`../../performance` for details.
+
+.. module:: chainer.backends.intel64
+.. currentmodule:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.backends.intel64.is_ideep_available
