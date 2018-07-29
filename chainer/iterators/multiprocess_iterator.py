@@ -80,7 +80,7 @@ class MultiprocessIterator(iterator.Iterator):
         self.n_processes = n_processes or multiprocessing.cpu_count()
         self.n_prefetch = max(n_prefetch, 1)
         self.shared_mem = shared_mem
-        self.maxtasksperchild = maxtasksperchild
+        self._maxtasksperchild = maxtasksperchild
 
         if self.shuffle is not None:
             if order_sampler is not None:
@@ -103,7 +103,7 @@ class MultiprocessIterator(iterator.Iterator):
             self.dataset, self.batch_size, self.repeat,
             self.n_processes, self.n_prefetch, self.shared_mem,
             self._comm, self.order_sampler,
-            self._interruption_testing, self.maxtasksperchild)
+            self._interruption_testing, self._maxtasksperchild)
         # defer launching prefetch thread until creating the worker pool,
         # not to leave a background thread in forked processes.
         self._thread = None
