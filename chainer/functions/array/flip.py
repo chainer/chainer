@@ -8,7 +8,7 @@ from chainer.utils import type_check
 def _flip(array, axis):
     indices = [slice(None)] * array.ndim
     indices[axis] = slice(None, None, -1)
-    return array[indices]
+    return array[tuple(indices)]
 
 
 class Flip(function_node.FunctionNode):

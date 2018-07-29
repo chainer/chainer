@@ -8,10 +8,14 @@ from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
 
+if cuda.cudnn_enabled:
+    cudnn = cuda.cudnn
+
 
 class Dropout(function_node.FunctionNode):
 
     """Dropout regularization."""
+    _use_cudnn = False
 
     def __init__(self, dropout_ratio, mask=None):
         if not 0.0 <= dropout_ratio < 1.0:
@@ -23,7 +27,7 @@ class Dropout(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
 
-    def forward(self, x):
+    def forward_cpu(self, x):
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(x)
                 and self.mask is None):
@@ -33,13 +37,34 @@ class Dropout(function_node.FunctionNode):
             y = x[0] * self.mask
         else:
             scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
-            xp = cuda.get_array_module(*x)
-            if xp == numpy:
-                flag = xp.random.rand(*x[0].shape) >= self.dropout_ratio
-                self.mask = scale * flag
+            flag = numpy.random.rand(*x[0].shape) >= self.dropout_ratio
+            self.mask = scale * flag
+            y = x[0] * self.mask
+        return y,
+
+    def forward_gpu(self, x):
+        if (chainer.should_use_cudnn('==always', 5000)
+                and x[0].flags.c_contiguous
+                and self.mask is None):
+            self._use_cudnn = True
+
+            handle = cudnn.get_handle()
+
+            if hasattr(self, 'states'):
+                # if we already have a dropout mask,
+                # the forward operation is equal to backward.
+                return cuda.get_cudnn_dropout_states().backward(
+                    handle, x[0], self.dropout_ratio, self.states),
+
+            self.states, y = cuda.get_cudnn_dropout_states().forward(
+                handle, x[0], self.dropout_ratio)
+            return y,
+        else:
+            if self.mask is not None:
                 y = x[0] * self.mask
             else:
-                rand = xp.random.rand(*x[0].shape, dtype=numpy.float32)
+                rand = cuda.cupy.random.rand(*x[0].shape, dtype=numpy.float32)
+                scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
                 self.mask, y = cuda.elementwise(
                     'T x, R r, T scale, T ratio', 'T mask, T y',
                     '''
@@ -48,7 +73,7 @@ class Dropout(function_node.FunctionNode):
                     ''',
                     'dropout_fwd',
                 )(x[0], rand, scale, self.dropout_ratio)
-        return y,
+            return y,
 
     def _forward_ideep(self, x):
         mask, y = intel64.ideep.dropout.Forward(
@@ -58,7 +83,10 @@ class Dropout(function_node.FunctionNode):
         return y,
 
     def backward(self, x, gy):
-        return DropoutGrad(self.mask).apply(gy)
+        if chainer.should_use_cudnn('==always', 5000) and self._use_cudnn:
+            return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
+        else:
+            return DropoutGrad(self.mask).apply(gy)
 
 
 class DropoutGrad(function_node.FunctionNode):
@@ -82,6 +110,22 @@ class DropoutGrad(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         return DropoutGrad(self.mask).apply(gy)
+
+
+class DropoutGradCuDNN(function_node.FunctionNode):
+    """Computes the gradient of the Dropout function with cuDNN support."""
+
+    def __init__(self, states, dropout_ratio):
+        self.states = states
+        self.dropout_ratio = dropout_ratio
+
+    def forward(self, inputs):
+        handle = cudnn.get_handle()
+        return cuda.get_cudnn_dropout_states().backward(
+            handle, inputs[0], self.dropout_ratio, self.states),
+
+    def backward(self, indexes, gy):
+        return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
 
 
 def dropout(x, ratio=.5, **kwargs):
@@ -115,8 +159,8 @@ def dropout(x, ratio=.5, **kwargs):
             If ``mask`` is specified, ``ratio`` will be ignored.
             The shape and dtype must be the same as ``x`` and should be on the
             same device.
-            Note that iDeep will not be used for this function if mask is
-            specified, as iDeep does not support it.
+            Note that iDeep and cuDNN will not be used for this function if
+            mask is specified, as iDeep and cuDNN do not support it.
         return_mask (bool):
             If ``True``, the mask used for dropout is returned together with
             the output variable.

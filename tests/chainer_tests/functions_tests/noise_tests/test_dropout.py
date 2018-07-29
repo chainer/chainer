@@ -26,7 +26,10 @@ from chainer.testing import backend
         'use_ideep': ['never', 'always'],
     })
     # GPU tests
-    + [{'use_cuda': True}])
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
 class TestDropout(unittest.TestCase):
 
     def setUp(self):
@@ -62,13 +65,20 @@ class TestDropout(unittest.TestCase):
         with backend_config:
             y = functions.dropout(*(inputs + [self.ratio]))
 
-        # In the calculation of expected results, the mask used in test forward
-        # computation is reused.
-        mask = y.creator.mask
-        y_expected, = self.forward_cpu(inputs, self.ratio, mask)
+        if backend_config.use_cudnn == 'always':
+            if self.ratio == 0.0:
+                y_expected, = inputs
+                testing.assert_allclose(y_expected, y.data)
+            else:
+                self.assertTrue(cuda.cupy.all(inputs[0] != y.data))
+        else:
+            # In the calculation of expected results,
+            # the mask used in test forward computation is reused.
+            mask = y.creator.mask
+            y_expected, = self.forward_cpu(inputs, self.ratio, mask)
 
-        assert y.data.dtype == self.dtype
-        testing.assert_allclose(y_expected, y.data)
+            assert y.data.dtype == self.dtype
+            testing.assert_allclose(y_expected, y.data)
 
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
@@ -80,7 +90,7 @@ class TestDropout(unittest.TestCase):
 
         # Instantiate the function class directly in order to reuse the mask,
         # because f will be called repeatedly.
-        dropout = functions.Dropout(self.ratio)
+        dropout = functions.noise.dropout.Dropout(self.ratio)
 
         def f(*inputs):
             return dropout.apply(inputs)
@@ -101,11 +111,10 @@ class TestDropout(unittest.TestCase):
 
         # Instantiate the function class directly in order to reuse the mask,
         # because f will be called repeatedly.
-        dropout = functions.Dropout(self.ratio)
+        dropout = functions.noise.dropout.Dropout(self.ratio)
 
         def f(*inputs):
-            y, = dropout.apply(inputs)
-            return y * y,
+            return dropout.apply(inputs)
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -122,7 +131,7 @@ class TestDropout(unittest.TestCase):
             inputs = cuda.to_gpu(inputs)
 
         with backend_config:
-            dropout = functions.Dropout(0.5)
+            dropout = functions.noise.dropout.Dropout(0.5)
             y1, = dropout.apply(inputs)
             y2, = dropout.apply(inputs)
         testing.assert_allclose(y1.data, y2.data)

@@ -16,7 +16,7 @@ class MLP(chainer.Chain):
 
         self.add_persistent('persistent', np.random.rand(10, 10))
 
-    def __call__(self, x):
+    def forward(self, x):
         h1 = F.relu(self.l1(x))
         h2 = F.relu(self.l2(h1))
         return self.l3(h2)

@@ -27,14 +27,19 @@ class Extension(object):
     specifies them in :meth:`Trainer.extend` method.
 
     Attributes:
-        ~Extension.trigger: Default value of trigger for this extension. It
-            is set to ``(1, 'iteration')`` by default.
-        ~Extension.priority: Default priority of the extension. It is set to
+        trigger: Default value of trigger for this extension. It is set to
+            ``(1, 'iteration')`` by default.
+        priority: Default priority of the extension. It is set to
             ``PRIORITY_READER`` by default.
+        ~Extension.name: Name of the extension. It is set to
+            ``None`` by default. This value will be overwritten when
+            registering an extension to a trainer. See
+            :meth:`chainer.training.Trainer.extend` for details.
 
     """
     trigger = 1, 'iteration'
     priority = PRIORITY_READER
+    name = None
 
     @property
     def default_name(self):

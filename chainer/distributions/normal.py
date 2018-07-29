@@ -7,6 +7,7 @@ from chainer.functions.array import repeat
 from chainer.functions.math import erf
 from chainer.functions.math import erfinv
 from chainer.functions.math import exponential
+from chainer.utils import argument
 import math
 import numpy
 
@@ -32,20 +33,41 @@ class Normal(distribution.Distribution):
         location :math:`\\mu`. This is the mean parameter.
         scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\sigma`.
+        scale :math:`\\sigma`. Either `scale` or `log_scale` (not both) must \
+        have a value.
+        log_scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing the \
+        scale :math:`\\log(\\sigma)`. Either `scale` or `log_scale` (not \
+        both) must have a value.
 
     """
 
-    def __init__(self, loc, scale):
+    def __init__(self, loc, scale=None, **kwargs):
         super(Normal, self).__init__()
-        if isinstance(loc, chainer.Variable):
-            self.loc = loc
-        else:
-            self.loc = chainer.Variable(loc)
-        if isinstance(scale, chainer.Variable):
-            self.scale = scale
-        else:
-            self.scale = chainer.Variable(scale)
+        log_scale = None
+        if kwargs:
+            log_scale, = argument.parse_kwargs(
+                kwargs, ('log_scale', log_scale))
+        if not (scale is None) ^ (log_scale is None):
+            raise ValueError(
+                "Either `scale` or `log_scale` (not both) must have a value.")
+        self.loc = chainer.as_variable(loc)
+
+        with chainer.using_config('enable_backprop', True):
+            if scale is None:
+                self.__log_scale = chainer.as_variable(log_scale)
+                self.__scale = exponential.exp(self.log_scale)
+            else:
+                self.__scale = chainer.as_variable(scale)
+                self.__log_scale = exponential.log(self.scale)
+
+    @property
+    def scale(self):
+        return self.__scale
+
+    @property
+    def log_scale(self):
+        return self.__log_scale
 
     @property
     def batch_shape(self):
@@ -58,14 +80,14 @@ class Normal(distribution.Distribution):
 
     @property
     def entropy(self):
-        return exponential.log(self.scale) + ENTROPYC
+        return self.log_scale + ENTROPYC
 
     @property
     def event_shape(self):
         return ()
 
     def icdf(self, x):
-        return erfinv.erfinv(2. * x - 1.) \
+        return erfinv.erfinv(2. * chainer.as_variable(x) - 1.) \
             * (2 ** 0.5) * broadcast.broadcast_to(self.scale, x.shape) \
             + broadcast.broadcast_to(self.loc, x.shape)
 
@@ -77,7 +99,7 @@ class Normal(distribution.Distribution):
         return exponential.log(self.cdf(x))
 
     def log_prob(self, x):
-        return - exponential.log(broadcast.broadcast_to(self.scale, x.shape)) \
+        return - broadcast.broadcast_to(self.log_scale, x.shape) \
             - 0.5 * (x - broadcast.broadcast_to(self.loc, x.shape)) ** 2 \
             / broadcast.broadcast_to(self.scale, x.shape) ** 2 + LOGPROBC
 
@@ -128,6 +150,6 @@ class Normal(distribution.Distribution):
 
 @distribution.register_kl(Normal, Normal)
 def _kl_normal_normal(dist1, dist2):
-    return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
+    return dist2.log_scale - dist1.log_scale \
         + 0.5 * (dist1.scale ** 2 + (dist1.loc - dist2.loc) ** 2) \
         / dist2.scale ** 2 - 0.5

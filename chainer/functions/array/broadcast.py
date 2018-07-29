@@ -13,15 +13,8 @@ class Broadcast(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
 
-        shapes = [type_check.eval(t).shape for t in in_types]
-        r_shapes = [s[::-1] for s in shapes]
-        r_filled = six.moves.zip_longest(*r_shapes, fillvalue=1)
-        for ss in r_filled:
-            d = max(ss)
-            if not all(s == d or s == 1 for s in ss):
-                expect = 'each dimension has the same size or is 1'
-                actual = 'shapes: ' + ', '.join(map(str, shapes))
-                raise type_check.InvalidType(expect, actual)
+        shapes = [t.shape for t in in_types]
+        type_check.expect_broadcast_shapes(*shapes)
 
     def forward(self, inputs):
         self._xp = cuda.get_array_module(*inputs)

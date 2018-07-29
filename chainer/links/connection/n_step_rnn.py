@@ -126,8 +126,8 @@ class NStepRNNBase(link.ChainList):
         """
         return NotImplementedError
 
-    def __call__(self, hx, xs, **kwargs):
-        """__call__(self, hx, xs)
+    def forward(self, hx, xs, **kwargs):
+        """forward(self, hx, xs)
 
         Calculate all hidden states and cell states.
 
@@ -326,7 +326,6 @@ class NStepBiRNNTanh(NStepRNNBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_cudnn (bool): Use cuDNN.
 
     .. seealso::
         :func:`chainer.functions.n_step_birnn`

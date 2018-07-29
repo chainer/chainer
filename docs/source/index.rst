@@ -12,6 +12,7 @@ Chainer -- A flexible framework of neural networks
    :maxdepth: 2
    :caption: Chainer Documents
 
+   glance
    install
    guides/index
    examples/index

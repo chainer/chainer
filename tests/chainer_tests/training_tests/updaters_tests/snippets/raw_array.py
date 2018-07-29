@@ -20,7 +20,7 @@ class SimpleNetRawArray(chainer.Chain):
         self.loss = None
         self.accuracy = None
 
-    def __call__(self, x, t):
+    def forward(self, x, t):
         assert not isinstance(x, chainer.Variable)
         assert not isinstance(t, chainer.Variable)
 

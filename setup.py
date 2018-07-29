@@ -20,7 +20,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 
 
 def cupy_requirement(pkg):
-    return '{}==5.0.0b1'.format(pkg)
+    return '{}==5.0.0b3'.format(pkg)
 
 
 requirements = {
@@ -34,8 +34,10 @@ requirements = {
         cupy_requirement('cupy'),
     ],
     'stylecheck': [
-        'autopep8',
-        'hacking==1.0.0',
+        'autopep8==1.3.5',
+        'flake8==3.5.0',
+        'pbr==4.0.4',
+        'pycodestyle==2.3.1',
     ],
     'test': [
         'pytest',
@@ -109,6 +111,7 @@ def find_any_distribution(pkgs):
 # Currently cupy provides source package (cupy) and binary wheel packages
 # (cupy-cudaXX). Chainer can use any one of these packages.
 cupy_pkg = find_any_distribution([
+    'cupy-cuda92',
     'cupy-cuda91',
     'cupy-cuda90',
     'cupy-cuda80',
