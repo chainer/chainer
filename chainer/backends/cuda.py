@@ -59,12 +59,9 @@ try:
     from cupy.cuda import Event  # NOQA
     from cupy.cuda import Stream  # NOQA
 
-    from . import cuda_fusion as fusion  # NOQA
-
     available = True
 except Exception as e:
     _resolution_error = e
-    fusion = numpy
 
     class ndarray(object):
         pass  # for type testing
