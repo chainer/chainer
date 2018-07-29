@@ -10,21 +10,23 @@ from chainer import function_node
 from chainer.utils import type_check
 
 
-def _split_and_fix_shape(xp, x, indices_or_sections, axis):
-    ret = xp.split(x, indices_or_sections, axis)
-    if all(r.ndim == x.ndim for r in ret):
-        return ret
-    # Make the output compatible with np.split of numpy >= 1.11
-    tmp = [len(t) for t in xp.split(
-        xp.empty(x.shape[axis], dtype=numpy.int8), indices_or_sections, 0)]
+_numpy_split_ok = numpy.lib.NumpyVersion(numpy.__version__) >= '1.11.0'
+
+
+def _fix_numpy_split(ys, x, indices_or_sections, axis):
+    """Make the output of np.split compatible with numpy >= 1.11"""
+    if all(y.ndim == x.ndim for y in ys):
+        return ys
+    tmp = [len(t) for t in numpy.split(
+        numpy.empty(x.shape[axis], dtype=numpy.int8), indices_or_sections, 0)]
     shape = list(x.shape)
     for i, t in enumerate(tmp):
-        r = ret[i]
-        if r.ndim != x.ndim:
-            assert r.size == 0
+        y = ys[i]
+        if y.ndim != x.ndim:
+            assert y.size == 0
             shape[axis] = t
-            ret[i] = r.reshape(shape)
-    return ret
+            ys[i] = y.reshape(shape)
+    return ys
 
 
 def _get_indices_or_sections(indices_or_sections):
@@ -110,7 +112,9 @@ class SplitAxis(function_node.FunctionNode):
             indices_or_sections = self.indices
         else:
             indices_or_sections = self.sections
-        ret = _split_and_fix_shape(self._xp, x, indices_or_sections, self.axis)
+        ret = self._xp.split(x, indices_or_sections, self.axis)
+        if self._xp == numpy and not _numpy_split_ok:
+            ret = _fix_numpy_split(ret, x, indices_or_sections, self.axis)
         self._shapes = [r.shape for r in ret]
         return tuple(ret)
 
