@@ -59,7 +59,7 @@ class TestCumprod(unittest.TestCase):
         xp = cuda.get_array_module(x_data)
         x = chainer.Variable(x_data)
         y = functions.cumprod(x, axis=axis)
-        self.assertEqual(y.data.dtype, self.dtype)
+        assert y.data.dtype == self.dtype
         y_expect = xp.asarray(numpy.cumprod(self.x, axis=axis))
         testing.assert_allclose(y_expect, y.data,
                                 **self.check_forward_options)
