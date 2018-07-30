@@ -104,20 +104,14 @@ void OpNode::AssertConsistency() const {
 
 std::vector<std::shared_ptr<ArrayNode>>& OpNode::next_array_nodes() {
     assert(std::all_of(next_array_nodes_.begin(), next_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
-        return arr_node != nullptr;
-    }));
-    assert(std::all_of(next_array_nodes_.begin(), next_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
-        return arr_node->graph_id() == graph_id_;
+        return arr_node == nullptr || arr_node->graph_id() == graph_id_;
     }));
     return next_array_nodes_;
 }
 
 const std::vector<std::shared_ptr<ArrayNode>>& OpNode::next_array_nodes() const {
     assert(std::all_of(next_array_nodes_.begin(), next_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
-        return arr_node != nullptr;
-    }));
-    assert(std::all_of(next_array_nodes_.begin(), next_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
-        return arr_node->graph_id() == graph_id_;
+        return arr_node == nullptr || arr_node->graph_id() == graph_id_;
     }));
     return next_array_nodes_;
 }
@@ -147,6 +141,7 @@ OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
             next_array_nodes_.emplace_back(std::move(next_array_node));
         } else {
             next_array_node_indices.emplace_back(nonstd::nullopt);
+            next_array_nodes_.emplace_back(nullptr);
         }
     }
 

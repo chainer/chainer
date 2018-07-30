@@ -409,7 +409,11 @@ public:
                 os_ << Indent(indent + 1) << "Op<" << op->name() << " " << op.get() << " rank=" << op->rank() << ">" << std::endl;
                 for (const std::shared_ptr<ArrayNode>& next_array_node : op->next_array_nodes()) {
                     state.indent += 2;
-                    RunImpl(state, *next_array_node);
+                    if (next_array_node != nullptr) {
+                        RunImpl(state, *next_array_node);
+                    } else {
+                        os_ << Indent(state.indent) << "(null)" << std::endl;
+                    }
                     state.indent -= 2;
                 }
             }

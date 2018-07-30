@@ -119,8 +119,9 @@ public:
 
             // Add GradRef for next array nodes
             for (const std::shared_ptr<ArrayNode>& next_array_node : op_node->next_array_nodes()) {
-                assert(next_array_node != nullptr);
-                array_node_grad_map_.emplace(next_array_node.get(), internal::GradRef{*next_array_node});
+                if (next_array_node != nullptr) {
+                    array_node_grad_map_.emplace(next_array_node.get(), internal::GradRef{*next_array_node});
+                }
             }
 
             // Backpropagate gradients from the previous array nodes into the next array nodes.
@@ -131,7 +132,9 @@ public:
 
             // Push the next op nodes into the queue
             for (const auto& next_array_node : op_node->next_array_nodes()) {
-                PushNextOpNode(next_array_node);
+                if (next_array_node != nullptr) {
+                    PushNextOpNode(next_array_node);
+                }
             }
 
             if (double_backprop_ == DoubleBackpropOption::kDisable) {
@@ -343,9 +346,9 @@ private:
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node.next_array_nodes();
         assert(next_array_nodes.size() == gxs.size());
         for (size_t i = 0; i < next_array_nodes.size(); ++i) {
-            const ArrayNode& next_array_node = *next_array_nodes[i];
             nonstd::optional<Array>& gx = gxs[i];
             if (gx.has_value()) {
+                const ArrayNode& next_array_node = *next_array_nodes[i];
                 // Retrieve the pointer to the next gradient.
                 internal::GradRef& input_grad = array_node_grad_map_.at(next_array_nodes[i].get());
                 internal::AccumulateGrad(
