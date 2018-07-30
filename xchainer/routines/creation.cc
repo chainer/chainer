@@ -154,10 +154,11 @@ Array Copy(const Array& a) {
         a.device().Copy(a, out);
     }
 
-    BackwardBuilder bb{"copy", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+    BackwardBuilder bb{"copy", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
+    assert(bb.is_complete());
 
     assert(out.IsContiguous());
     return out;
@@ -219,13 +220,14 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     }
 
     if (GetKind(dt) == DtypeKind::kFloat) {
-        BackwardBuilder bb{"ascontiguousarray", out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+        BackwardBuilder bb{"ascontiguousarray", a, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([src_dt](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = gout.AsType(src_dt, false);
             });
         }
+        assert(bb.is_complete());
     }
 
     assert(out.IsContiguous());
@@ -266,13 +268,14 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         throw DimensionError{"Input must be 1D or 2D."};
     }
 
-    BackwardBuilder bb{"diag", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(v)) {
+    BackwardBuilder bb{"diag", v, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([& device = v.device(), k ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = Diag(gout, k, device);
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }

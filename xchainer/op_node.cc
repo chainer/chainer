@@ -59,12 +59,13 @@ std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_nod
 }
 
 // static
-std::shared_ptr<OpNode> OpNode::CreateWithPrevArrayNodes(std::string name, GraphId graph_id, const std::vector<ConstArrayRef>& outputs) {
+std::shared_ptr<OpNode> OpNode::CreateWithPrevArrayNodes(
+        std::string name, GraphId graph_id, size_t input_count, const std::vector<ConstArrayRef>& outputs) {
     // Trick to use make_shared with private ctor
     struct OpNodeWithPublicCtor : OpNode {
-        OpNodeWithPublicCtor(std::string name, GraphId graph_id) : OpNode{std::move(name), graph_id} {}
+        OpNodeWithPublicCtor(std::string name, GraphId graph_id, size_t input_count) : OpNode{std::move(name), graph_id, input_count} {}
     };
-    std::shared_ptr<OpNode> op_node = std::make_shared<OpNodeWithPublicCtor>(std::move(name), graph_id);
+    std::shared_ptr<OpNode> op_node = std::make_shared<OpNodeWithPublicCtor>(std::move(name), graph_id, input_count);
 
     for (const Array& out : outputs) {
         const std::shared_ptr<ArrayBody>& out_body = GetArrayBody(out);
@@ -78,7 +79,11 @@ std::shared_ptr<OpNode> OpNode::CreateWithPrevArrayNodes(std::string name, Graph
     return op_node;
 }
 
-OpNode::OpNode(std::string name, GraphId graph_id) : name_{std::move(name)}, graph_id_{graph_id} {}
+OpNode::OpNode(std::string name, GraphId graph_id, size_t next_array_node_count)
+    : name_{std::move(name)},
+      graph_id_{graph_id},
+      next_array_nodes_{next_array_node_count}  // Initialize with nullptrs
+{}
 
 void OpNode::AssertConsistency() const {
 #ifndef NDEBUG
@@ -122,16 +127,18 @@ const std::vector<std::shared_ptr<ArrayNode>>& OpNode::next_array_nodes() const 
 }
 
 OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
-        std::vector<std::shared_ptr<ArrayNode>> next_array_nodes, BackwardFunction backward_func) {
+        std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> next_array_nodes, BackwardFunction backward_func) {
     AssertConsistency();
     assert(!next_array_nodes.empty());
-    assert(std::all_of(next_array_nodes.begin(), next_array_nodes.end(), [this](const std::shared_ptr<ArrayNode>& next_array_node) {
+    assert(std::all_of(next_array_nodes.begin(), next_array_nodes.end(), [this](const auto& tup) {
+        const std::shared_ptr<ArrayNode>& next_array_node = std::get<1>(tup);
         // next_array_node could be nullptr, if the corresponding input array does not require grad.
         return next_array_node == nullptr || next_array_node->graph_id() == graph_id_;
     }));
 
     // Update the rank of op node
-    for (const std::shared_ptr<ArrayNode>& next_array_node : next_array_nodes) {
+    for (const auto& tup : next_array_nodes) {
+        const std::shared_ptr<ArrayNode>& next_array_node = std::get<1>(tup);
         if (next_array_node != nullptr) {
             rank_ = std::max(rank_, next_array_node->rank() + 1);
         }
@@ -140,12 +147,14 @@ OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
     // Store next nodes and record indices of them
     std::vector<size_t> next_array_node_indices;
     next_array_node_indices.reserve(next_array_nodes.size());
-    for (std::shared_ptr<ArrayNode>& next_array_node : next_array_nodes) {
-        next_array_node_indices.emplace_back(next_array_nodes_.size());
+    for (auto& tup : next_array_nodes) {
+        size_t next_index = std::get<0>(tup);
+        std::shared_ptr<ArrayNode>& next_array_node = std::get<1>(tup);
+
+        next_array_node_indices.emplace_back(next_index);
         if (next_array_node != nullptr) {
-            next_array_nodes_.emplace_back(std::move(next_array_node));
-        } else {
-            next_array_nodes_.emplace_back(nullptr);
+            assert(gsl::at(next_array_nodes_, next_index) == nullptr);
+            gsl::at(next_array_nodes_, next_index) = std::move(next_array_node);
         }
     }
 

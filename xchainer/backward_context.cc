@@ -78,7 +78,8 @@ BackwardContext::BackwardContext(
     assert(prev_array_nodes_.size() == output_grads_.size());
     // Input grads must be initialized with null-body arrays.
     assert(std::all_of(input_grads_.begin(), input_grads_.end(), [](const Array& g) { return internal::GetArrayBody(g) == nullptr; }));
-
+    size_t input_count = op_node->next_array_node_count();  // Total number of input arrays including those that do not require grads.
+    retained_input_array_bodies_.resize(input_count);
     retained_output_array_bodies_.resize(op_node->prev_array_node_count());  // Fill with nullptr
 };
 
@@ -112,6 +113,70 @@ Array& BackwardContext::input_grad() {
 
 Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_, index); }
 
+Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
+    assert(token.input_index() < op_node_->next_array_node_count());
+    size_t input_index = token.input_index();
+
+    // Retrieve the kept array body for retained output.
+    // Note that it's a non-const reference so that the following logic can assign to it to keep it for the repeated retrieval of the
+    // retained array.
+    std::shared_ptr<ArrayBody>& kept_body = gsl::at(retained_input_array_bodies_, input_index);
+
+    if (kept_body == nullptr) {
+        // Collect the pointers to array nodes of all graphs, in the input array corresponding to input_index.
+        // Never null.
+        std::vector<const std::shared_ptr<ArrayNode>*> next_array_nodes;
+        next_array_nodes.emplace_back(&gsl::at(op_node_->next_array_nodes(), input_index));
+
+        for (const auto& tup : op_node_->outer_graphs_prev_array_nodes()) {
+            const std::vector<std::shared_ptr<ArrayNode>>& outer_prev_array_nodes = std::get<1>(tup);
+            assert(!outer_prev_array_nodes.empty());
+
+            const std::shared_ptr<ArrayNode>& prev_array_node = outer_prev_array_nodes.front();
+            assert(prev_array_node != nullptr);
+            assert(prev_array_node->next_op_node() != nullptr);
+
+            const std::shared_ptr<ArrayNode>& next_array_node = gsl::at(prev_array_node->next_op_node()->next_array_nodes(), input_index);
+            assert(next_array_node != nullptr);
+
+            next_array_nodes.emplace_back(&next_array_node);
+        }
+
+        assert(!next_array_nodes.empty());
+        assert(std::all_of(next_array_nodes.begin(), next_array_nodes.end(), [](const std::shared_ptr<ArrayNode>* next_array_node) {
+            return next_array_node != nullptr;
+        }));
+
+        // If the input array body is alive, use it.
+        // Otherwise, create a new array body and put the nodes into it.
+        std::shared_ptr<ArrayBody> array_body{};
+        auto it = std::find_if(next_array_nodes.begin(), next_array_nodes.end(), [](const std::shared_ptr<ArrayNode>* next_array_node) {
+            return *next_array_node != nullptr;
+        });
+        if (it != next_array_nodes.end()) {
+            array_body = (**it)->weak_body().lock();
+        }
+        if (array_body == nullptr) {
+            array_body = internal::CreateArrayBody(token.input_array_params());
+
+            for (const std::shared_ptr<ArrayNode>* next_array_node : next_array_nodes) {
+                if (*next_array_node != nullptr) {
+                    ArrayBody::AddNode(array_body, *next_array_node);
+                }
+            }
+        }
+
+        assert(array_body != nullptr);
+        // Cut graphs of the array body
+        // TODO(hvy): Avoid temporary array
+        // TODO(hvy): Avoid view
+        kept_body = internal::MoveArrayBody(Array{std::move(array_body)}.MakeView());
+    }
+
+    assert(kept_body != nullptr);
+    return Array{kept_body};
+}
+
 Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
     assert(token.output_index() < output_count());
     size_t output_index = token.output_index();
@@ -119,7 +184,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
     // Retrieve the kept array body for retained output.
     // Note that it's a non-const reference so that the following logic can assign to it to keep it for the repeated retrieval of the
     // retained array.
-    std::shared_ptr<ArrayBody>& kept_body = retained_output_array_bodies_[output_index];
+    std::shared_ptr<ArrayBody>& kept_body = gsl::at(retained_output_array_bodies_, output_index);
 
     if (kept_body == nullptr) {
         // This is the first retrieval of the retained output.
