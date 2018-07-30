@@ -40,20 +40,26 @@ struct ArrayProps {
 
 class OpNodeBackwardEntry {
 public:
-    OpNodeBackwardEntry(OpNode& op_node, std::vector<nonstd::optional<size_t>> next_array_node_indices, BackwardFunction backward_func);
+    OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> next_array_node_indices, BackwardFunction backward_func);
+
+    OpNode& op_node() const { return op_node_; }
 
     size_t next_array_node_count() const { return next_array_node_indices_.size(); }
 
-    const std::vector<nonstd::optional<size_t>>& next_array_node_indices() const { return next_array_node_indices_; }
-
-    const BackwardFunction& backward_func() const { return backward_func_; }
-
-    void AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes);
+    const std::vector<size_t>& next_array_node_indices() const { return next_array_node_indices_; }
 
     // Returns the next array nodes of exotic graphs.
     const std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& exotic_next_array_nodes() const {
         return exotic_next_array_nodes_;
     }
+
+    const BackwardFunction& backward_func() const { return backward_func_; }
+
+    const std::shared_ptr<ArrayNode>& GetNextArrayNode(size_t next_index) const;
+
+    bool IsGradRequired(size_t next_index) const;
+
+    void AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes);
 
 private:
     friend class OpNode;
@@ -62,7 +68,7 @@ private:
 
     // The index mapping from local (this backward function) to global (op node).
     // Can be unset if the input array does not require grad.
-    std::vector<nonstd::optional<size_t>> next_array_node_indices_;
+    std::vector<size_t> next_array_node_indices_;
 
     std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> exotic_next_array_nodes_;
 

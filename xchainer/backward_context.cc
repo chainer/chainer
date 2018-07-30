@@ -60,20 +60,21 @@ nonstd::optional<Array>& GradRef::get() {
 
 BackwardContext::BackwardContext(
         const std::shared_ptr<OpNode>& op_node,
+        const internal::OpNodeBackwardEntry& backward_entry,
         gsl::span<std::shared_ptr<ArrayNode>> prev_array_nodes,
         gsl::span<internal::GradRef*> output_grads,
         std::vector<Array>& input_grads,
-        const std::vector<nonstd::optional<size_t>>& next_array_node_indices,
         const GraphId& graph_id,
         DoubleBackpropOption double_backprop_option)
     : op_node_{op_node},
+      backward_entry_{backward_entry},
       prev_array_nodes_{prev_array_nodes},
       output_grads_{output_grads},
       input_grads_{input_grads},
-      next_array_node_indices_{next_array_node_indices},
       zero_output_grads_{prev_array_nodes_.size()},
       graph_id_{graph_id},
       double_backprop_option_{double_backprop_option} {
+    assert(op_node.get() == &backward_entry.op_node());
     assert(prev_array_nodes_.size() == output_grads_.size());
     // Input grads must be initialized with null-body arrays.
     assert(std::all_of(input_grads_.begin(), input_grads_.end(), [](const Array& g) { return internal::GetArrayBody(g) == nullptr; }));
@@ -83,10 +84,7 @@ BackwardContext::BackwardContext(
 
 bool BackwardContext::HasOutputGrad(size_t output_index) const { return gsl::at(output_grads_, output_index)->get().has_value(); }
 
-bool BackwardContext::is_input_grad_required(size_t input_index) const {
-    assert(input_index < next_array_node_indices_.size());
-    return next_array_node_indices_[input_index].has_value();
-}
+bool BackwardContext::is_input_grad_required(size_t input_index) const { return backward_entry_.IsGradRequired(input_index); }
 
 const Array& BackwardContext::output_grad(size_t output_index) const {
     // If the output gradient has a propagated value, return it.
