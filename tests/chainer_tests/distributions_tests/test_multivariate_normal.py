@@ -12,6 +12,7 @@ import numpy
     'shape': [(3, 2), (1,)],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
+    'event_shape': [(3,)],
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
@@ -24,24 +25,26 @@ class TestMultivariateNormal(testing.distribution_unittest):
         self.dist = distributions.MultivariateNormal
         self.scipy_dist = stats.multivariate_normal
         self.scipy_onebyone = True
-        self.event_shape = (3,)
+        self.d, = self.event_shape
 
         self.test_targets = set([
             "batch_shape", "entropy", "event_shape", "log_prob",
             "support"])
 
         loc = numpy.random.uniform(
-            -1, 1, self.shape + (3,)).astype(numpy.float32)
-        cov = numpy.random.normal(size=(numpy.prod(self.shape),) + (3, 3))
+            -1, 1, self.shape + (self.d,)).astype(numpy.float32)
+        cov = numpy.random.normal(
+            size=(numpy.prod(self.shape),) + (self.d, self.d))
         cov = [cov_.dot(cov_.T) for cov_ in cov]
-        cov = numpy.vstack(cov).reshape(self.shape + (3, 3))
+        cov = numpy.vstack(cov).reshape(self.shape + (self.d, self.d))
         scale_tril = numpy.linalg.cholesky(cov).astype(numpy.float32)
         self.params = {"loc": loc, "scale_tril": scale_tril}
         self.scipy_params = {"mean": loc, "cov": cov}
 
     def sample_for_test(self):
         smp = numpy.random.normal(
-            size=self.sample_shape + self.shape + (3,)).astype(numpy.float32)
+            size=self.sample_shape + self.shape + (self.d,)
+            ).astype(numpy.float32)
         return smp
 
 
@@ -69,10 +72,7 @@ class TestTriangularInv(unittest.TestCase):
         xp = cuda.get_array_module(x_data)
         y = distributions.multivariate_normal._triangular_inv(
             x_data, lower=self.lower)
-        if xp == cuda.cupy:
-            y_xp = xp.asarray(numpy.linalg.inv(x_data.get()))
-        else:
-            y_xp = numpy.linalg.inv(x_data)
+        y_xp = xp.linalg.inv(x_data)
         testing.assert_allclose(y.array, y_xp)
 
     def test_forward_cpu(self):
@@ -111,6 +111,29 @@ class TestTriangularInv(unittest.TestCase):
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggy))
+
+
+@testing.parameterize(*testing.product({
+    'd': [3, 5],
+    'lower': [True, False],
+    'dtype': [numpy.float32],
+}))
+@testing.without_requires('scipy')
+class TestTriangularInvExceptions(unittest.TestCase):
+    def setUp(self):
+        self.x = numpy.random.normal(
+            0, 10, size=(self.d, self.d)).astype(self.dtype)
+        self.x = numpy.tril(self.x)
+        if not self.lower:
+            self.x = self.x.T
+
+    def check_forward(self, x_data):
+        with self.assertRaises(ImportError):
+            distributions.multivariate_normal._triangular_inv(
+                x_data, lower=self.lower)
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
 
 
 testing.run_module(__name__, __file__)
