@@ -308,7 +308,7 @@ class TestLazyGetItem(unittest.TestCase):
         self.t = T.Constant(0)
 
     def test_evaluate_size(self):
-        # __getitem__, __getattr__ and __call__ only make syntax trees, but
+        # __getitem__, __getattr__ and forward only make syntax trees, but
         # they are not evalated yet
         self.assertIsInstance(self.t[1], T.Expr)
         self.assertIsInstance(self.t.x, T.Expr)

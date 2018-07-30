@@ -171,6 +171,7 @@ LabeledImageDataset
    :nosignatures:
 
    chainer.datasets.LabeledImageDataset
+   chainer.datasets.LabeledZippedImageDataset
 
 TextDataset
 ~~~~~~~~~~~

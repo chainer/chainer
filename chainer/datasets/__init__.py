@@ -7,6 +7,7 @@ from chainer.datasets.fashion_mnist import get_fashion_mnist  # NOQA
 from chainer.datasets.fashion_mnist import get_fashion_mnist_labels  # NOQA
 from chainer.datasets.image_dataset import ImageDataset  # NOQA
 from chainer.datasets.image_dataset import LabeledImageDataset  # NOQA
+from chainer.datasets.image_dataset import LabeledZippedImageDataset  # NOQA
 from chainer.datasets.image_dataset import MultiZippedImageDataset  # NOQA
 from chainer.datasets.image_dataset import ZippedImageDataset  # NOQA
 from chainer.datasets.mnist import get_mnist  # NOQA

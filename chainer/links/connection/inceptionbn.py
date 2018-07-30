@@ -92,7 +92,7 @@ class InceptionBN(link.Chain):
                 self.poolpn = batch_normalization.BatchNormalization(
                     proj_pool, dtype=dtype)
 
-    def __call__(self, x):
+    def forward(self, x):
         outs = []
 
         if self.out1 > 0:

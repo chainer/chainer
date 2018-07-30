@@ -80,7 +80,7 @@ class ResNetLayers(link.Chain):
 
     Attributes:
         available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+            used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -166,8 +166,8 @@ class ResNetLayers(link.Chain):
                              ' or 152, but {} was given.'.format(n_layers))
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=None, **kwargs):
-        """__call__(self, x, layers=['prob'])
+    def forward(self, x, layers=None, **kwargs):
+        """forward(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
 
@@ -216,11 +216,11 @@ class ResNetLayers(link.Chain):
 
         Extracts all the feature maps of given images.
 
-        The difference of directly executing ``__call__`` is that
+        The difference of directly executing ``forward`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
-        ``prepare`` and ``__call__`` functions.
+        ``prepare`` and ``forward`` functions.
 
         Unlike ``predict`` method, this method does not override
         ``chainer.config.train`` and ``chainer.config.enable_backprop``
@@ -371,7 +371,7 @@ class ResNet50Layers(ResNetLayers):
 
     Attributes:
         available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+            used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -431,7 +431,7 @@ class ResNet101Layers(ResNetLayers):
 
     Attributes:
         available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+            used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -490,7 +490,7 @@ class ResNet152Layers(ResNetLayers):
 
     Attributes:
         available_layers (list of str): The list of available layer names
-            used by ``__call__`` and ``extract`` methods.
+            used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -504,7 +504,7 @@ class ResNet152Layers(ResNetLayers):
 def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for ResNets.
 
-    Note that you have to call this method before ``__call__``
+    Note that you have to call this method before ``forward``
     because the pre-trained resnet model requires to resize the given
     image, covert the RGB to the BGR, subtract the mean,
     and permute the dimensions before calling.
@@ -527,6 +527,7 @@ def prepare(image, size=(224, 224)):
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
+    dtype = chainer.get_dtype()
     if isinstance(image, numpy.ndarray):
         if image.ndim == 3:
             if image.shape[0] == 1:
@@ -537,14 +538,14 @@ def prepare(image, size=(224, 224)):
     image = image.convert('RGB')
     if size:
         image = image.resize(size)
-    image = numpy.asarray(image, dtype=numpy.float32)
+    image = numpy.asarray(image, dtype=dtype)
     image = image[:, :, ::-1]
     # NOTE: in the original paper they subtract a fixed mean image,
     #       however, in order to support arbitrary size we instead use the
     #       mean pixel (rather than mean image) as with VGG team. The mean
     #       value used in ResNet is slightly different from that of VGG16.
     image -= numpy.array(
-        [103.063,  115.903,  123.152], dtype=numpy.float32)
+        [103.063,  115.903,  123.152], dtype=dtype)
     image = image.transpose((2, 0, 1))
     return image
 
@@ -583,15 +584,11 @@ class BuildingBlock(link.Chain):
                 setattr(self, name, bottleneck)
                 self._forward.append(name)
 
-    def __call__(self, x):
+    def forward(self, x):
         for name in self._forward:
             l = getattr(self, name)
             x = l(x)
         return x
-
-    @property
-    def forward(self):
-        return [getattr(self, name) for name in self._forward]
 
 
 class BottleneckA(link.Chain):
@@ -638,7 +635,7 @@ class BottleneckA(link.Chain):
                 nobias=True)
             self.bn4 = BatchNormalization(out_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         h1 = relu(self.bn1(self.conv1(x)))
         h1 = relu(self.bn2(self.conv2(h1)))
         h1 = self.bn3(self.conv3(h1))
@@ -673,7 +670,7 @@ class BottleneckB(link.Chain):
                 nobias=True)
             self.bn3 = BatchNormalization(in_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         h = relu(self.bn1(self.conv1(x)))
         h = relu(self.bn2(self.conv2(h)))
         h = self.bn3(self.conv3(h))
