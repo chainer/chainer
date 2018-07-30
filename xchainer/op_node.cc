@@ -10,7 +10,6 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
-#include "xchainer/backward.h"
 #include "xchainer/graph.h"
 
 namespace xchainer {

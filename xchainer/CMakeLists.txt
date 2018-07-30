@@ -22,6 +22,8 @@ install(FILES
     backprop_mode.h
     backward.h
     backward_builder.h
+    backward_context.h
+    backward_fwd.h
     constant.h
     context.h
     device.h
@@ -59,6 +61,7 @@ add_library(xchainer SHARED
     backprop_mode.cc
     backward.cc
     backward_builder.cc
+    backward_context.cc
     check_backward.cc
     context.cc
     device.cc
