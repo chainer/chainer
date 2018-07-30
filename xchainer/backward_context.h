@@ -67,8 +67,8 @@ public:
     BackwardContext(
             const std::shared_ptr<internal::OpNode>& op_node,
             gsl::span<std::shared_ptr<internal::ArrayNode>> prev_array_nodes,
-            gsl::span<internal::GradRef*> prev_grads,
-            std::vector<Array>& input_grads_storage,
+            gsl::span<internal::GradRef*> output_grads,
+            std::vector<Array>& input_grads,
             const std::vector<nonstd::optional<size_t>>& next_array_node_indices,
             const GraphId& graph_id,
             DoubleBackpropOption double_backprop_option);
