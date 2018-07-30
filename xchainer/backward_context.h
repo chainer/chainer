@@ -69,7 +69,7 @@ public:
             gsl::span<std::shared_ptr<internal::ArrayNode>> prev_array_nodes,
             gsl::span<internal::GradRef*> prev_grads,
             std::vector<Array>& input_grads_storage,
-            const std::vector<bool>& is_input_grads_required,
+            const std::vector<nonstd::optional<size_t>>& next_array_node_indices,
             const GraphId& graph_id,
             DoubleBackpropOption double_backprop_option);
 
@@ -125,8 +125,8 @@ private:
     // Unset gradients will have null array body.
     std::vector<Array>& input_grads_;
 
-    // Boolean flags indicating whether the input gradients are required to be set in the backward function.
-    const std::vector<bool>& is_input_grads_required_;
+    // Optional next array node indices. Used to determine whether the input gradients are required to be set in the backward function.
+    const std::vector<nonstd::optional<size_t>>& next_array_node_indices_;
 
     // Holds zero-filled arrays for outputs without actual gradients.
     // The arrays are allocated on-demand in output_grad.

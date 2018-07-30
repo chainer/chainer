@@ -263,18 +263,14 @@ private:
         std::vector<Array> input_grads_subset;
         input_grads_subset.resize(input_count);
 
-        // Boolean flags indicating whether the next grads are required to be calculated in the backward function.
-        std::vector<bool> is_input_grads_required;
-        is_input_grads_required.reserve(input_count);
-        std::transform(
-                backward_entry.next_array_node_indices().begin(),
-                backward_entry.next_array_node_indices().end(),
-                std::back_inserter(is_input_grads_required),
-                [](nonstd::optional<size_t> i_input_grad) { return i_input_grad.has_value(); });
-
         // Call backward.
-        BackwardContext bctx{
-                op_node, prev_array_nodes, output_grads, input_grads_subset, is_input_grads_required, graph_id_, double_backprop_};
+        BackwardContext bctx{op_node,
+                             prev_array_nodes,
+                             output_grads,
+                             input_grads_subset,
+                             backward_entry.next_array_node_indices(),
+                             graph_id_,
+                             double_backprop_};
         {
             NoBackpropModeScope scope{graph_ids_to_stop_gradient_};
             backward_entry.backward_func()(bctx);

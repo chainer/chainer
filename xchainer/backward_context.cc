@@ -63,14 +63,14 @@ BackwardContext::BackwardContext(
         gsl::span<std::shared_ptr<ArrayNode>> prev_array_nodes,
         gsl::span<internal::GradRef*> output_grads,
         std::vector<Array>& input_grads,
-        const std::vector<bool>& is_input_grads_required,
+        const std::vector<nonstd::optional<size_t>>& next_array_node_indices,
         const GraphId& graph_id,
         DoubleBackpropOption double_backprop_option)
     : op_node_{op_node},
       prev_array_nodes_{prev_array_nodes},
       output_grads_{output_grads},
       input_grads_{input_grads},
-      is_input_grads_required_{is_input_grads_required},
+      next_array_node_indices_{next_array_node_indices},
       zero_output_grads_{prev_array_nodes_.size()},
       graph_id_{graph_id},
       double_backprop_option_{double_backprop_option} {
@@ -84,8 +84,8 @@ BackwardContext::BackwardContext(
 bool BackwardContext::HasOutputGrad(size_t output_index) const { return gsl::at(output_grads_, output_index)->get().has_value(); }
 
 bool BackwardContext::is_input_grad_required(size_t input_index) const {
-    assert(input_index < is_input_grads_required_.size());
-    return is_input_grads_required_[input_index];
+    assert(input_index < next_array_node_indices_.size());
+    return next_array_node_indices_[input_index].has_value();
 }
 
 const Array& BackwardContext::output_grad(size_t output_index) const {
