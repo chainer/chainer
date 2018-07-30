@@ -11,7 +11,7 @@ from chainer import testing
 from chainer.testing import attr
 
 
-def _cross_covariance(y, z, dtype=numpy.float32):
+def _cross_covariance(y, z, dtype):
     row = y.shape[1]
     col = z.shape[1]
     y, z = cuda.to_cpu(y), cuda.to_cpu(z)
