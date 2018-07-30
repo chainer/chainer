@@ -214,11 +214,12 @@ def get_dtype(dtype=None):
 
     Returns:
         If ``dtype`` is not ``None``, it returns the dtype as is. Otherwise, it
-        returns ``chainer.config.dtype`` (see :ref:`configuration`).
+        returns ``chainer.config.dtype`` (see :ref:`configuration`) normalized
+        to a dtype object.
 
     """
     if dtype is None:
-        return config.dtype
+        return numpy.dtype(config.dtype)
     return dtype
 
 
