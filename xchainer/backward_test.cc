@@ -524,6 +524,31 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(graph_id_inner));
 }
 
+TEST_P(BackpropTest, MultipleGraphsNoLinks) {
+    GraphScope graph_scope_outer{"graph_outer"};
+    GraphScope graph_scope_inner{"graph_inner"};
+    GraphId graph_id_outer = graph_scope_outer.graph_id();
+    GraphId graph_id_inner = graph_scope_inner.graph_id();
+
+    Array y1_grad_stopped;
+    std::weak_ptr<internal::ArrayNode> x1_array_node;
+
+    {
+        Array x1 = MakeFullArray({1}, {2.0f});
+        Array x2 = MakeFullArray({1}, {5.0f});
+
+        x1.RequireGrad(graph_id_outer);
+        x2.RequireGrad(graph_id_inner);
+
+        Array y1 = x1 + x2;
+        y1_grad_stopped = y1.AsGradStopped(graph_id_outer);
+
+        x1_array_node = internal::GetArrayBody(x1)->GetArrayNode(graph_id_outer);
+    }
+
+    EXPECT_TRUE(x1_array_node.expired());
+}
+
 TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
     Array x = MakeFullArray({1}, {2.0f});
     x.RequireGrad();
