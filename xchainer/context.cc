@@ -114,6 +114,7 @@ GraphId Context::MakeNextGraphId(std::string graph_name) {
 void Context::ReleaseGraphId(const GraphId& graph_id) {
     // Graph IDs must be released in the reverse order of creation
     assert(&graph_id.context() == this && graph_id.sub_id() == graph_stack_.back().sub_id);
+    (void)graph_id;  // unused
 
     graph_stack_.pop_back();
 }
