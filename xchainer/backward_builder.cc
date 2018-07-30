@@ -53,7 +53,6 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> in
 
 // Collect input ArrayNodes, grouped by graph considering IsBackpropRequired
 void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
-    assert(graph_to_next_array_nodes_.empty());
     // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
     for (size_t input_index : input_indices_) {
         const Array& input = gsl::at(builder_.inputs_, input_index);
@@ -63,8 +62,10 @@ void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
                 continue;
             }
 
+            is_grad_required_ = true;
+
             // Add the array node to the mapping
-            auto insert_result = graph_to_next_array_nodes_.emplace(graph_id, NextArrayNodes{});
+            auto insert_result = builder_.graph_to_next_array_nodes_.emplace(graph_id, NextArrayNodes{});
             auto& vec = insert_result.first->second;
             if (insert_result.second) {
                 // New array node for a graph. Fill all array nodes with nullptr.
@@ -76,7 +77,7 @@ void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
     }
 
 #ifndef NDEBUG
-    for (auto& pair : graph_to_next_array_nodes_) {
+    for (auto& pair : builder_.graph_to_next_array_nodes_) {
         const GraphId& graph_id = pair.first;
         const NextArrayNodes& vec = pair.second;
         for (const std::shared_ptr<ArrayNode>* array_node : vec) {
@@ -129,7 +130,7 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
     std::vector<OpNode*> op_nodes;
 
     // Create op node for each graph
-    for (const auto& pair : graph_to_next_array_nodes_) {
+    for (const auto& pair : builder_.graph_to_next_array_nodes_) {
         const GraphId& graph_id = pair.first;
         const NextArrayNodes& next_array_nodes = pair.second;
 

@@ -146,6 +146,8 @@ private:
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
+
+    std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
 };
 
 }  // namespace xchainer
