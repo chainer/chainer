@@ -43,7 +43,7 @@ void CudaDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(a.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Reduce(MakeReductionKernelArg<T, int64_t>(a, axis, out), ArgMaxImpl<T>{});
+        LaunchReductionKernel<T, int64_t>(a, axis, out, ArgMaxImpl<T>{});
     });
 }
 
@@ -67,7 +67,7 @@ void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
         using In = typename decltype(in_pt)::type;
         using Out = typename decltype(out_pt)::type;
-        Reduce(MakeReductionKernelArg<In, Out>(a, axis, out), SumImpl<In, Out>{});
+        LaunchReductionKernel<In, Out>(a, axis, out, SumImpl<In, Out>{});
     };
 
     VisitDtype(out.dtype(), [ a_dtype = a.dtype(), &do_sum ](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
@@ -100,7 +100,7 @@ void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), AMaxImpl<T>{});
+        LaunchReductionKernel<T, T>(a, axis, out, AMaxImpl<T>{});
     });
 }
 

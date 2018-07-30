@@ -81,7 +81,7 @@ public:
         assert(axes.size() == static_cast<size_t>(kNdim));
         int64_t c[kNdim]{};
         std::copy(std::begin(strides_), std::end(strides_), c);
-        for (size_t i = 0; i < axes.size(); ++i) {
+        for (size_t i = 0; i < kNdim; ++i) {
             strides_[i] = c[axes[i]];
         }
         return *this;
@@ -180,7 +180,7 @@ public:
 
     XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<1>& it) const { return operator[](it.index()); }
 
-    IndexableArray<T, kDynamicNdim>& Permute(const Axes& axes) {
+    IndexableArray<T, 1>& Permute(const Axes& axes) {
         // NOOP for 1-dimensional array.
         return *this;
     }
