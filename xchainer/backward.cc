@@ -340,6 +340,7 @@ private:
         for (size_t i = 0; i < next_array_nodes.size(); ++i) {
             nonstd::optional<Array>& gx = gxs[i];
             if (gx.has_value()) {
+                assert(next_array_nodes[i] != nullptr);
                 const ArrayNode& next_array_node = *next_array_nodes[i];
                 // Retrieve the pointer to the next gradient.
                 internal::GradRef& input_grad = array_node_grad_map_.at(next_array_nodes[i].get());
