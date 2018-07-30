@@ -119,8 +119,9 @@ public:
 
             // Add GradRef for next array nodes
             for (const std::shared_ptr<ArrayNode>& next_array_node : op_node->next_array_nodes()) {
-                assert(next_array_node != nullptr);
-                array_node_grad_map_.emplace(next_array_node.get(), internal::GradRef{*next_array_node});
+                if (next_array_node != nullptr) {
+                    array_node_grad_map_.emplace(next_array_node.get(), internal::GradRef{*next_array_node});
+                }
             }
 
             // Backpropagate gradients from the previous array nodes into the next array nodes.
@@ -131,7 +132,9 @@ public:
 
             // Push the next op nodes into the queue
             for (const auto& next_array_node : op_node->next_array_nodes()) {
-                PushNextOpNode(next_array_node);
+                if (next_array_node != nullptr) {
+                    PushNextOpNode(next_array_node);
+                }
             }
 
             if (double_backprop_ == DoubleBackpropOption::kDisable) {
@@ -211,7 +214,7 @@ private:
                     CallBackwardForSubsetOfNextGradients(op_node, backward_entry, prev_array_nodes, output_grads);
 
             // Set the gradients at the appropriate indices.
-            SetSubsetOfNextGradients(op_node, backward_entry.next_array_node_indices(), std::move(input_grads_subset), input_grads);
+            SetSubsetOfNextGradients(backward_entry, std::move(input_grads_subset), input_grads);
         }
 
         // Make a view if the next gradient whose array body is identical to one of other prev or next gradients.
@@ -264,13 +267,7 @@ private:
         input_grads_subset.resize(input_count);
 
         // Call backward.
-        BackwardContext bctx{op_node,
-                             prev_array_nodes,
-                             output_grads,
-                             input_grads_subset,
-                             backward_entry.next_array_node_indices(),
-                             graph_id_,
-                             double_backprop_};
+        BackwardContext bctx{op_node, backward_entry, prev_array_nodes, output_grads, input_grads_subset, graph_id_, double_backprop_};
         {
             NoBackpropModeScope scope{graph_ids_to_stop_gradient_};
             backward_entry.backward_func()(bctx);
@@ -282,12 +279,11 @@ private:
     // Inserts a subset of the next gradients for a single backward function, into their corresponding indices in the gradient storage of
     // the op node.
     void SetSubsetOfNextGradients(
-            const std::shared_ptr<internal::OpNode>& op_node,
-            const std::vector<nonstd::optional<size_t>>& next_indices,
+            const internal::OpNodeBackwardEntry& backward_entry,
             std::vector<Array> input_grads_subset,
             std::vector<nonstd::optional<Array>>& input_grads) {
         for (size_t i_input = 0; i_input < input_grads_subset.size(); ++i_input) {
-            if (!next_indices[i_input].has_value()) {
+            if (!backward_entry.IsGradRequired(i_input)) {
                 // Input grad is not required
                 continue;
             }
@@ -300,13 +296,12 @@ private:
 
             // Set grads at the appropriate index in the vector containing all the next grads of the op node.
             {
-                nonstd::optional<size_t> i_input_grad = next_indices[i_input];
-                assert(i_input_grad.has_value());
+                size_t i_input_grad = backward_entry.next_array_node_indices()[i_input];
+                const std::shared_ptr<ArrayNode>& next_array_node = backward_entry.GetNextArrayNode(i_input);
+                assert(next_array_node != nullptr);
+                nonstd::optional<Array>& target_grad = input_grads[i_input_grad];
 
-                nonstd::optional<Array>& target_grad = input_grads[*i_input_grad];
-                const ArrayNode& next_array_node = *op_node->next_array_nodes()[*i_input_grad];
-
-                internal::SetGrad(target_grad, input_grad, next_array_node.shape(), next_array_node.dtype(), next_array_node.device());
+                internal::SetGrad(target_grad, input_grad, next_array_node->shape(), next_array_node->dtype(), next_array_node->device());
             }
         }
     }
@@ -343,9 +338,10 @@ private:
         gsl::span<const std::shared_ptr<ArrayNode>> next_array_nodes = op_node.next_array_nodes();
         assert(next_array_nodes.size() == gxs.size());
         for (size_t i = 0; i < next_array_nodes.size(); ++i) {
-            const ArrayNode& next_array_node = *next_array_nodes[i];
             nonstd::optional<Array>& gx = gxs[i];
             if (gx.has_value()) {
+                assert(next_array_nodes[i] != nullptr);
+                const ArrayNode& next_array_node = *next_array_nodes[i];
                 // Retrieve the pointer to the next gradient.
                 internal::GradRef& input_grad = array_node_grad_map_.at(next_array_nodes[i].get());
                 internal::AccumulateGrad(

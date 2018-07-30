@@ -18,8 +18,7 @@ namespace internal {
 ArrayProps::ArrayProps(const Array& array) : shape{array.shape()}, dtype{array.dtype()}, device{array.device()} {}
 ArrayProps::ArrayProps(const ArrayNode& array_node) : shape{array_node.shape()}, dtype{array_node.dtype()}, device{array_node.device()} {}
 
-OpNodeBackwardEntry::OpNodeBackwardEntry(
-        OpNode& op_node, std::vector<nonstd::optional<size_t>> next_array_node_indices, BackwardFunction backward_func)
+OpNodeBackwardEntry::OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> next_array_node_indices, BackwardFunction backward_func)
     : op_node_{op_node}, next_array_node_indices_{std::move(next_array_node_indices)}, backward_func_{std::move(backward_func)} {}
 
 std::vector<std::shared_ptr<ArrayNode>> OpNodeBackwardEntry::GetNextArrayNodes() const {
@@ -34,6 +33,12 @@ std::vector<std::shared_ptr<ArrayNode>> OpNodeBackwardEntry::GetNextArrayNodes()
     }
     return array_nodes;
 }
+
+const std::shared_ptr<ArrayNode>& OpNodeBackwardEntry::GetNextArrayNode(size_t next_index) const {
+    return op_node_.next_array_nodes()[next_array_node_indices_[next_index]];
+}
+
+bool OpNodeBackwardEntry::IsGradRequired(size_t next_index) const { return GetNextArrayNode(next_index) != nullptr; }
 
 void OpNodeBackwardEntry::AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes) {
     assert(std::get<0>(next_array_nodes) != op_node_.graph_id());
@@ -104,20 +109,14 @@ void OpNode::AssertConsistency() const {
 
 std::vector<std::shared_ptr<ArrayNode>>& OpNode::next_array_nodes() {
     assert(std::all_of(next_array_nodes_.begin(), next_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
-        return arr_node != nullptr;
-    }));
-    assert(std::all_of(next_array_nodes_.begin(), next_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
-        return arr_node->graph_id() == graph_id_;
+        return arr_node == nullptr || arr_node->graph_id() == graph_id_;
     }));
     return next_array_nodes_;
 }
 
 const std::vector<std::shared_ptr<ArrayNode>>& OpNode::next_array_nodes() const {
     assert(std::all_of(next_array_nodes_.begin(), next_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
-        return arr_node != nullptr;
-    }));
-    assert(std::all_of(next_array_nodes_.begin(), next_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
-        return arr_node->graph_id() == graph_id_;
+        return arr_node == nullptr || arr_node->graph_id() == graph_id_;
     }));
     return next_array_nodes_;
 }
@@ -139,14 +138,14 @@ OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
     }
 
     // Store next nodes and record indices of them
-    std::vector<nonstd::optional<size_t>> next_array_node_indices;
+    std::vector<size_t> next_array_node_indices;
     next_array_node_indices.reserve(next_array_nodes.size());
     for (std::shared_ptr<ArrayNode>& next_array_node : next_array_nodes) {
+        next_array_node_indices.emplace_back(next_array_nodes_.size());
         if (next_array_node != nullptr) {
-            next_array_node_indices.emplace_back(next_array_nodes_.size());
             next_array_nodes_.emplace_back(std::move(next_array_node));
         } else {
-            next_array_node_indices.emplace_back(nonstd::nullopt);
+            next_array_nodes_.emplace_back(nullptr);
         }
     }
 

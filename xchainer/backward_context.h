@@ -66,10 +66,10 @@ public:
     // ordinary functions).
     BackwardContext(
             const std::shared_ptr<internal::OpNode>& op_node,
+            const internal::OpNodeBackwardEntry& backward_entry,
             gsl::span<std::shared_ptr<internal::ArrayNode>> prev_array_nodes,
             gsl::span<internal::GradRef*> output_grads,
             std::vector<Array>& input_grads,
-            const std::vector<nonstd::optional<size_t>>& next_array_node_indices,
             const GraphId& graph_id,
             DoubleBackpropOption double_backprop_option);
 
@@ -114,6 +114,8 @@ private:
 
     const std::shared_ptr<internal::OpNode>& op_node_;  // never be nullptr
 
+    const internal::OpNodeBackwardEntry& backward_entry_;
+
     // Previous array nodes of the op node.
     // Null if the array node is gone (the weak pointer is dead).
     gsl::span<std::shared_ptr<internal::ArrayNode>> prev_array_nodes_;
@@ -124,9 +126,6 @@ private:
     // Gradient passed in input_grad() will be put into this storage.
     // Unset gradients will have null array body.
     std::vector<Array>& input_grads_;
-
-    // Optional next array node indices. Used to determine whether the input gradients are required to be set in the backward function.
-    const std::vector<nonstd::optional<size_t>>& next_array_node_indices_;
 
     // Holds zero-filled arrays for outputs without actual gradients.
     // The arrays are allocated on-demand in output_grad.
