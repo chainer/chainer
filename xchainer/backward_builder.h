@@ -19,8 +19,6 @@
 
 namespace xchainer {
 
-class BackwardContext;
-
 // An object used by op implementations to bridge between BackwardBuilder::RetainOutput() and BackwardContext::GetRetainedOutput().
 //
 // See BackwardBuilder::RetainOutput() for details.
