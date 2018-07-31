@@ -136,8 +136,8 @@ private:
     std::vector<ConstArrayRef> inputs_;
 
     // Flags indicating whether CreateTarget has been called for each of the input arrays.
-    // All of these flags must be true after all the backward definitions have done for a BackwardBuilder.
-    // This can be check by calling is_complete();
+    // All of these flags must be true after all the backwards have been defined for a BackwardBuilder.
+    // This can be checked by calling is_complete();
     std::vector<bool> inputs_target_created_;
 
     // Output arrays of the op.
