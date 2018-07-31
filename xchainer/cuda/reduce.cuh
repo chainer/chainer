@@ -166,15 +166,60 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
     int64_t grid_size = total_reduce_blocks;
     size_t shared_mem_size = sizeof(decltype(impl.Identity())) * reduce_block_size;
 
-    if (arg.in_strides.ndim() == 1 && arg.out_strides.ndim() == 0) {
-        reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
-        return;
-    }
-    if (arg.in_strides.ndim() == 2 && arg.out_strides.ndim() == 1) {
-        reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
-        return;
+    // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
+    switch (arg.in_strides.ndim()) {
+        case 1:
+            switch (arg.out_strides.ndim()) {
+                case 0:
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
+                    return;
+            }
+        case 2:
+            switch (arg.out_strides.ndim()) {
+                case 0:
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 2, 0, 2>(arg), reduce_block_size, impl);
+                    return;
+                case 1:
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
+                    return;
+            }
+        case 3:
+            switch (arg.out_strides.ndim()) {
+                case 0:
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 3, 0, 3>(arg), reduce_block_size, impl);
+                    return;
+                case 1:
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 3, 1, 2>(arg), reduce_block_size, impl);
+                    return;
+                case 2:
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 3, 2, 1>(arg), reduce_block_size, impl);
+                    return;
+            }
+        case 4:
+            switch (arg.out_strides.ndim()) {
+                case 0:
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 4, 0, 4>(arg), reduce_block_size, impl);
+                    return;
+                case 1:
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 4, 1, 3>(arg), reduce_block_size, impl);
+                    return;
+                case 2:
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 4, 2, 2>(arg), reduce_block_size, impl);
+                    return;
+                case 3:
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 4, 3, 1>(arg), reduce_block_size, impl);
+                    return;
+            }
     }
 
     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
