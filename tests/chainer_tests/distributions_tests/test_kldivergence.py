@@ -74,7 +74,7 @@ class TestKLDivergence(unittest.TestCase):
             {"loc": loc, "scale_tril": scale_tril}, is_gpu)
         return distributions.MultivariateNormal(**params)
 
-      def test_bernoulli_bernoulli_cpu(self):
+    def test_bernoulli_bernoulli_cpu(self):
         dist1 = self.make_bernoulli_dist()
         dist2 = self.make_bernoulli_dist()
         self.check_kl(dist1, dist2)

@@ -44,7 +44,7 @@ class TestMultivariateNormal(testing.distribution_unittest):
     def sample_for_test(self):
         smp = numpy.random.normal(
             size=self.sample_shape + self.shape + (self.d,)
-            ).astype(numpy.float32)
+        ).astype(numpy.float32)
         return smp
 
 
