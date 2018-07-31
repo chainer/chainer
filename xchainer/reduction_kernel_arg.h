@@ -44,6 +44,7 @@ ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> MakeReductionKernelArg(
             Indexer<ReduceNdim>{Shape{gsl::make_span(arg.reduce_indexer.shape(), arg.reduce_indexer.ndim())}}};
 }
 
+// TODO(sonots): Squash dimensions to optimize performance
 template <typename In, typename Out>
 ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const Axes& axis, const Array& out) {
     // True if some axes are reduced but kept in output as 1-dim axes.

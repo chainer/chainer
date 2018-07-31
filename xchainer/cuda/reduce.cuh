@@ -169,6 +169,11 @@ void Reduce(ReductionKernelArg<In, Out> arg, ReductionImpl&& impl) {
                 MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
         return;
     }
+    if (arg.in.ndim() == 2 && arg.out.ndim() == 1) {
+        reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
+        return;
+    }
 
     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(arg, reduce_block_size, impl);
 }
