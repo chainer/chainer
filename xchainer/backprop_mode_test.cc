@@ -409,40 +409,30 @@ TEST(BackpropModeScopeTest, BackpropModeWithoutContext) {
 }
 
 TEST(BackpropModeScopeTest, BackpropModeScopeWithAnotherContext) {
-    testing::ContextSession context_session1{};
-    GraphScope graph_scope1{"graph1"};
-    GraphId graph_id1 = graph_scope1.graph_id();
+    testing::ContextSession context_session{};
+    GraphScope graph_scope{"graph1"};
+    GraphId graph_id = graph_scope.graph_id();
 
-    testing::ContextSession context_session2{};
-    GraphScope graph_scope2{"graph1"};
-    GraphId graph_id2 = graph_scope2.graph_id();
+    Context another_context{};
+    GraphScope another_graph_scope{"another_graph", another_context};
+    GraphId another_graph_id = another_graph_scope.graph_id();
 
     {
-        EXPECT_TRUE(IsBackpropRequired(graph_id1));
-        EXPECT_TRUE(IsBackpropRequired(graph_id2));
+        EXPECT_TRUE(IsBackpropRequired(graph_id));
+        EXPECT_TRUE(IsBackpropRequired(another_graph_id));
         {
-            NoBackpropModeScope scope{context_session2.context()};
-            EXPECT_TRUE(IsBackpropRequired(graph_id1));
-            EXPECT_FALSE(IsBackpropRequired(graph_id2));
+            NoBackpropModeScope scope{another_context};
+            EXPECT_TRUE(IsBackpropRequired(graph_id));
+            EXPECT_FALSE(IsBackpropRequired(another_graph_id));
         }
     }
     {
-        EXPECT_TRUE(IsBackpropRequired(graph_id1));
-        EXPECT_TRUE(IsBackpropRequired(graph_id2));
+        EXPECT_TRUE(IsBackpropRequired(graph_id));
+        EXPECT_TRUE(IsBackpropRequired(another_graph_id));
         {
-            NoBackpropModeScope scope{{graph_id1, graph_id2}};
-            EXPECT_FALSE(IsBackpropRequired(graph_id1));
-            EXPECT_FALSE(IsBackpropRequired(graph_id2));
-        }
-    }
-    {
-        EXPECT_TRUE(IsBackpropRequired(graph_id1));
-        EXPECT_TRUE(IsBackpropRequired(graph_id2));
-        {
-            std::vector<GraphId> graph_ids{graph_id1, graph_id2};
-            NoBackpropModeScope scope{graph_ids};
-            EXPECT_FALSE(IsBackpropRequired(graph_id1));
-            EXPECT_FALSE(IsBackpropRequired(graph_id2));
+            NoBackpropModeScope scope{another_graph_id};
+            EXPECT_TRUE(IsBackpropRequired(graph_id));
+            EXPECT_FALSE(IsBackpropRequired(another_graph_id));
         }
     }
 }
