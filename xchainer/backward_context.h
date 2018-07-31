@@ -101,6 +101,7 @@ public:
     // Returns the reference to the input gradient.
     Array& input_grad(size_t index);
 
+    // TODO(hvy): Write comment.
     Array GetRetainedInput(const RetainedInputToken& token);
 
     // Returns the retained output array.
