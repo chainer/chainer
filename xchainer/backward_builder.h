@@ -70,6 +70,7 @@ public:
         return std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; });
     }
 
+    // TODO(hvy): Write comment.
     RetainedInputToken RetainInput(size_t input_index);
 
     // Flags an output array to be retained for use in the backward pass.
