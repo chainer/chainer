@@ -74,6 +74,17 @@ public:
 
     // span
     gsl::span<const int64_t> span() const { return {*this}; }
+
+    // Rearranges strides in the order specified by the axes.
+    // New strides are composed of only strides of specified axes.
+    Strides Permute(const Axes& axes) const {
+        assert(size() >= axes.size());
+        Strides new_strides{};
+        for (int8_t axe : axes) {
+            new_strides.emplace_back(operator[](axe));
+        }
+        return new_strides;
+    }
 };
 
 std::ostream& operator<<(std::ostream&, const Strides&);

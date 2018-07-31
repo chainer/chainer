@@ -31,7 +31,8 @@ template <
         int8_t InNdim = kDynamicNdim,
         int8_t OutNdim = kDynamicNdim,
         int8_t ReduceNdim = kDynamicNdim>
-__global__ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> arg, int reduce_block_size, ReductionImpl impl) {
+__global__ void ReductionKernel(
+        ReductionKernelIndexableArg<In, Out, InNdim, OutNdim, ReduceNdim> arg, int reduce_block_size, ReductionImpl impl) {
     using T = decltype(impl.Identity());
 
     extern __shared__ __align__(8) uint8_t work_bytes[];
@@ -158,24 +159,24 @@ void Reduce(ReductionKernelArg<In, Out> arg, ReductionImpl&& impl) {
 
     int reduce_block_size = static_cast<int>(std::min(
             static_cast<int64_t>(reduce_detail::kMaxReductionBlockSize),
-            reduce_detail::RoundUpToPowerOf2(std::max(int64_t{1}, arg.reduce_indexer.total_size()))));
+            reduce_detail::RoundUpToPowerOf2(std::max(int64_t{1}, arg.reduce_shape.GetTotalSize()))));
     int block_size = std::min(kMaxBlockSize, reduce_block_size);
-    int64_t total_reduce_blocks = arg.out_indexer.total_size();
+    int64_t total_reduce_blocks = arg.out_shape.GetTotalSize();
     int64_t grid_size = total_reduce_blocks;
     size_t shared_mem_size = sizeof(decltype(impl.Identity())) * reduce_block_size;
 
-    if (arg.in.ndim() == 1 && arg.out.ndim() == 0) {
+    if (arg.in_strides.ndim() == 1 && arg.out_strides.ndim() == 0) {
         reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
+                MakeReductionKernelIndexableArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
         return;
     }
-    if (arg.in.ndim() == 2 && arg.out.ndim() == 1) {
+    if (arg.in_strides.ndim() == 2 && arg.out_strides.ndim() == 1) {
         reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
+                MakeReductionKernelIndexableArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
         return;
     }
-
-    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(arg, reduce_block_size, impl);
+    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+            MakeReductionKernelIndexableArg<In, Out, kDynamicNdim, kDynamicNdim, kDynamicNdim>(arg), reduce_block_size, impl);
 }
 
 }  // namespace cuda

@@ -8,6 +8,8 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
+#include "xchainer/shape.h"
+#include "xchainer/strides.h"
 
 namespace xchainer {
 
@@ -25,7 +27,7 @@ namespace xchainer {
 //
 // Any instance of this struct can be passed directly to a kernel function (including CUDA __global__ function).
 template <typename In, typename Out, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim, int8_t ReduceNdim = kDynamicNdim>
-struct ReductionKernelArg {
+struct ReductionKernelIndexableArg {
     IndexableArray<const In, InNdim> in;
     IndexableArray<Out, OutNdim> out;
     Indexer<InNdim> in_indexer;
@@ -33,15 +35,24 @@ struct ReductionKernelArg {
     Indexer<ReduceNdim> reduce_indexer;
 };
 
-template <typename In, typename Out, int8_t InNdim, int8_t OutNdim, int8_t ReduceNdim>
-ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> MakeReductionKernelArg(const ReductionKernelArg<In, Out>& arg) {
-    // TODO(sonots): Reduce # of copies by avoiding creation of Strides and Shape.
-    return ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim>{
-            IndexableArray<const In, InNdim>{arg.in.data(), Strides{gsl::make_span(arg.in.strides(), arg.in.ndim())}},
-            IndexableArray<Out, OutNdim>{arg.out.data(), Strides{gsl::make_span(arg.out.strides(), arg.out.ndim())}},
-            Indexer<InNdim>{Shape{gsl::make_span(arg.in_indexer.shape(), arg.in_indexer.ndim())}},
-            Indexer<OutNdim>{Shape{gsl::make_span(arg.out_indexer.shape(), arg.out_indexer.ndim())}},
-            Indexer<ReduceNdim>{Shape{gsl::make_span(arg.reduce_indexer.shape(), arg.reduce_indexer.ndim())}}};
+template <typename In, typename Out>
+struct ReductionKernelArg {
+    In* in_data;
+    Out* out_data;
+    Strides in_strides;
+    Strides out_strides;
+    Shape in_shape;
+    Shape out_shape;
+    Shape reduce_shape;
+};
+
+template <typename In, typename Out, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim, int8_t ReduceNdim = kDynamicNdim>
+ReductionKernelIndexableArg<In, Out, InNdim, OutNdim, ReduceNdim> MakeReductionKernelIndexableArg(const ReductionKernelArg<In, Out>& arg) {
+    return ReductionKernelIndexableArg<In, Out, InNdim, OutNdim, ReduceNdim>{IndexableArray<const In, InNdim>{arg.in_data, arg.in_strides},
+                                                                             IndexableArray<Out, OutNdim>{arg.out_data, arg.out_strides},
+                                                                             Indexer<InNdim>{arg.in_shape},
+                                                                             Indexer<OutNdim>{arg.out_shape},
+                                                                             Indexer<ReduceNdim>{arg.reduce_shape}};
 }
 
 // TODO(sonots): Squash dimensions to optimize performance
@@ -139,11 +150,13 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const Axes& 
     assert(std::find(new_in_shape.begin(), new_in_shape.end(), 1) == new_in_shape.end());
     assert(std::find(new_out_shape.begin(), new_out_shape.end(), 1) == new_out_shape.end());
 
-    return ReductionKernelArg<In, Out>{IndexableArray<const In>{in}.Permute(axis_permutes),
-                                       IndexableArray<Out>{out}.Permute(out_axis_map),
-                                       Indexer<>{new_in_shape},
-                                       Indexer<>{new_out_shape},
-                                       Indexer<>{reduce_shape}};
+    return ReductionKernelArg<In, Out>{internal::GetRawOffsetData<In>(in),
+                                       internal::GetRawOffsetData<Out>(out),
+                                       in.strides().Permute(axis_permutes),
+                                       out.strides().Permute(out_axis_map),
+                                       std::move(new_in_shape),
+                                       std::move(new_out_shape),
+                                       std::move(reduce_shape)};
 }
 
 }  // namespace xchainer
