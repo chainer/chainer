@@ -1694,6 +1694,135 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
 
+TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
+    // This test checks that input array retention works when the input array body is dead.
+    //
+    // (x1) <- [forward] <- (y1 := x1 ^ 2 * x2 ^ 2)
+    // (x2) <-           <- (y2 := x1 ^ 3 * x2 ^ 3)
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    DoubleBackpropOption double_backprop_opt = GetParam();
+    GraphScope graph_scope1{"graph1"};
+    GraphScope graph_scope2{"graph2"};
+    GraphId graph_id1 = graph_scope1.graph_id();
+    GraphId graph_id2 = graph_scope2.graph_id();
+
+    std::weak_ptr<internal::ArrayBody> x1_body{};
+    std::weak_ptr<internal::ArrayBody> x2_body{};
+
+    auto forward = [&graph_id1, &graph_id2, &x1_body, &x2_body, double_backprop_opt](
+                           const Array& x1, const Array& x2, Array& y1, Array& y2) {
+        Array x1_c = x1.AsGradStopped();
+        Array x2_c = x2.AsGradStopped();
+        y1 = x1_c * x1_c * x2_c * x2_c;
+        y2 = x1_c * x1_c * x1_c * x2_c * x2_c * x2_c;
+
+        Array y1_value = y1.MakeView();
+        Array y2_value = y2.MakeView();
+
+        BackwardBuilder bb{"func", {x1, x2}, {y1, y2}};
+
+        // x1 is retrieved with copied tokens.
+        // x2 is retrieved with sperarately acquired tokens.
+        RetainedInputToken tok1 = bb.RetainInput(0);
+
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(0);
+            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &graph_id1, &graph_id2, &x1_body, &x2_body, double_backprop_opt ](
+                    BackwardContext & bctx) {
+                // Test assumption: the array bodies must be gone.
+                EXPECT_EQ(x1_body.lock(), nullptr);
+                EXPECT_EQ(x2_body.lock(), nullptr);
+
+                // Retrieve retained inputs
+                const Array& x1 = bctx.GetRetainedInput(tok1);
+                const Array& x2 = bctx.GetRetainedInput(tok2);
+
+                testing::ExpectEqual(x1_c, x1);
+                testing::ExpectEqual(x2_c, x2);
+                EXPECT_TRUE(x1.IsGradRequired(graph_id1));
+                EXPECT_TRUE(x2.IsGradRequired(graph_id1));
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(x1.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(x2.IsGradRequired(graph_id2));
+                } else {
+                    EXPECT_FALSE(x1.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(x2.IsGradRequired(graph_id2));
+                }
+
+                // Retrieve retained inputs repeatedly
+                const Array& x1_again = bctx.GetRetainedInput(tok1);
+                const Array& x2_again = bctx.GetRetainedInput(tok2);
+                EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
+                EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
+
+                Array gy1gx1 = bctx.output_grad(0) * 2 * x1 * x2 * x2;
+                Array gy2gx1 = bctx.output_grad(1) * 3 * x1 * x1 * x2 * x2 * x2;
+                bctx.input_grad() = gy1gx1 + gy2gx1;
+            });
+        }
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(1);
+            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &graph_id1, &graph_id2, &x1_body, &x2_body, double_backprop_opt ](
+                    BackwardContext & bctx) {
+                // Test assumption: the array bodies must be gone.
+                EXPECT_EQ(x1_body.lock(), nullptr);
+                EXPECT_EQ(x2_body.lock(), nullptr);
+
+                // Retrieve retained outputs
+                const Array& x1 = bctx.GetRetainedInput(tok1);
+                const Array& x2 = bctx.GetRetainedInput(tok2);
+
+                testing::ExpectEqual(x1_c, x1);
+                testing::ExpectEqual(x2_c, x2);
+                EXPECT_TRUE(x1.IsGradRequired(graph_id1));
+                EXPECT_TRUE(x2.IsGradRequired(graph_id1));
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(x1.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(x2.IsGradRequired(graph_id2));
+                } else {
+                    EXPECT_FALSE(x1.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(x2.IsGradRequired(graph_id2));
+                }
+
+                // Retrieve retained outputs repeatedly
+                const Array& x1_again = bctx.GetRetainedInput(tok1);
+                const Array& x2_again = bctx.GetRetainedInput(tok2);
+                EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
+                EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
+
+                Array gy1gx2 = bctx.output_grad(0) * x1 * x1 * 2 * x2;
+                Array gy2gx2 = bctx.output_grad(1) * x1 * x1 * x1 * 3 * x2 * x2;
+                bctx.input_grad() = gy1gx2 + gy2gx2;
+            });
+        }
+    };
+
+    internal::ArrayBodyLeakTracker tracker{};
+    {
+        internal::ArrayBodyLeakDetectionScope scope{tracker};
+
+        Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
+        Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
+
+        Array y1{};
+        Array y2{};
+
+        {
+            Array x1 = x1_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
+            Array x2 = x2_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
+
+            forward(x1, x2, y1, y2);
+
+            x1_body = internal::GetArrayBody(x1);
+            x2_body = internal::GetArrayBody(x2);
+        }
+
+        Backward({y1, y2}, graph_id2, double_backprop_opt);
+    }
+    EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
+}
+
 TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
     // (x1) <- [forward] <- (y1 := x1 ^ 2 * x2 ^ 2)
     // (x2) <-           <- (y2 := x1 ^ 3 * x2 ^ 3)
