@@ -31,8 +31,7 @@ template <
         int8_t InNdim = kDynamicNdim,
         int8_t OutNdim = kDynamicNdim,
         int8_t ReduceNdim = kDynamicNdim>
-__global__ void ReductionKernel(
-        ReductionKernelIndexableArg<In, Out, InNdim, OutNdim, ReduceNdim> arg, int reduce_block_size, ReductionImpl impl) {
+__global__ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> arg, int reduce_block_size, ReductionImpl impl) {
     using T = decltype(impl.Identity());
 
     extern __shared__ __align__(8) uint8_t work_bytes[];
@@ -152,9 +151,11 @@ __global__ void ReductionKernel(
 //             __device__ float MapOut(float accum) { return accum; }
 //         };
 //
-//     Then, it can be passed to Reduce like: Reduce(MakeReductionKernelArg(input, axis, output), SumImpl{});
+//     Then, it can be passed to Reduce like: Reduce(input, axis, output, SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
-void Reduce(ReductionKernelArg<In, Out> arg, ReductionImpl&& impl) {
+void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&& impl) {
+    ReductionArg<In, Out> arg = MakeReductionArg<In, Out>(in, axis, out);
+
     static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&reduce_detail::ReductionKernel<In, Out, ReductionImpl>).block_size;
 
     int reduce_block_size = static_cast<int>(std::min(
@@ -167,16 +168,17 @@ void Reduce(ReductionKernelArg<In, Out> arg, ReductionImpl&& impl) {
 
     if (arg.in_strides.ndim() == 1 && arg.out_strides.ndim() == 0) {
         reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                MakeReductionKernelIndexableArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
+                MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
         return;
     }
     if (arg.in_strides.ndim() == 2 && arg.out_strides.ndim() == 1) {
         reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                MakeReductionKernelIndexableArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
+                MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
         return;
     }
+
     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-            MakeReductionKernelIndexableArg<In, Out, kDynamicNdim, kDynamicNdim, kDynamicNdim>(arg), reduce_block_size, impl);
+            MakeReductionKernelArg<In, Out>(arg), reduce_block_size, impl);
 }
 
 }  // namespace cuda

@@ -16,7 +16,7 @@ template <
         int8_t InNdim = kDynamicNdim,
         int8_t OutNdim = kDynamicNdim,
         int8_t ReduceNdim = kDynamicNdim>
-void ReductionKernel(ReductionKernelIndexableArg<In, Out, InNdim, OutNdim, ReduceNdim> arg, ReductionImpl&& impl) {
+void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> arg, ReductionImpl&& impl) {
     auto it_in = arg.in_indexer.It(0);
 
     // Iterate over output dimensions
@@ -67,18 +67,21 @@ void ReductionKernel(ReductionKernelIndexableArg<In, Out, InNdim, OutNdim, Reduc
 //             float MapOut(float accum) { return accum; }
 //         };
 //
-//     Then, it can be passed to Reduce like: Reduce(MakeReductionKernelArg(input, axis, output), SumImpl{});
+//     Then, it can be passed to Reduce like: Reduce(input, axis, output, SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
-void Reduce(ReductionKernelArg<In, Out> arg, ReductionImpl&& impl) {
+void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&& impl) {
+    ReductionArg<In, Out> arg = MakeReductionArg<In, Out>(in, axis, out);
+
     if (arg.in_strides.ndim() == 1 && arg.out_strides.ndim() == 0) {
-        reduce_detail::ReductionKernel(MakeReductionKernelIndexableArg<In, Out, 1, 0, 1>(arg), impl);
+        reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), impl);
         return;
     }
     if (arg.in_strides.ndim() == 2 && arg.out_strides.ndim() == 1) {
-        reduce_detail::ReductionKernel(MakeReductionKernelIndexableArg<In, Out, 2, 1, 1>(arg), impl);
+        reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), impl);
         return;
     }
-    reduce_detail::ReductionKernel(MakeReductionKernelIndexableArg<In, Out>(arg), impl);
+
+    reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out>(arg), impl);
 }
 
 }  // namespace native
