@@ -59,6 +59,47 @@ private:
     int64_t index_[kNdim];
 };
 
+// Static 0-dimensional specialization.
+template <>
+class IndexIterator<0> {
+public:
+    explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
+        : IndexIterator<0>{start, step} {
+        (void)shape;  // unused
+        (void)total_size;  // unused
+        assert(total_size == 1);
+    }
+
+    explicit XCHAINER_HOST_DEVICE IndexIterator(int64_t start, int64_t step) : raw_index_{start} {
+        (void)step;  // unused
+        assert(start >= 0);
+        assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
+    }
+
+    XCHAINER_HOST_DEVICE IndexIterator<0>& operator++() {
+        raw_index_ += 1;
+        return *this;
+    }
+
+    XCHAINER_HOST_DEVICE IndexIterator<0>& operator--() {
+        raw_index_ -= 1;
+        return *this;
+    }
+
+    XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < 1; }
+
+    XCHAINER_HOST_DEVICE static constexpr int8_t ndim() { return 0; }
+
+    XCHAINER_HOST_DEVICE int64_t raw_index() const { return raw_index_; }
+
+    XCHAINER_HOST_DEVICE int64_t* index() { return &raw_index_; }
+
+    XCHAINER_HOST_DEVICE const int64_t* index() const { return &raw_index_; }
+
+private:
+    int64_t raw_index_{0};
+};
+
 // Static 1-dimensional specialization.
 template <>
 class IndexIterator<1> {

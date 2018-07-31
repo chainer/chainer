@@ -96,6 +96,57 @@ private:
     int64_t strides_[kNdim];
 };
 
+// Static 0-dimensional specialization.
+template <typename T>
+class IndexableArray<T, 0> {
+public:
+    using ElementType = T;
+
+    IndexableArray(T* data, const Strides& strides) : data_{data} {
+        (void)strides;  // unused
+        assert(0 == strides.ndim());
+    }
+
+    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
+        assert(TypeToDtype<T> == array.dtype());
+
+#ifndef NDEBUG
+        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
+#endif  // NDEBUG
+    }
+
+    explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
+
+    XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return 0; }
+
+    XCHAINER_HOST_DEVICE constexpr const int64_t* strides() const { return nullptr; }
+
+    XCHAINER_HOST_DEVICE T* data() const { return data_; }
+
+    XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
+        (void)index;  // unused
+        assert(index == nullptr || index[0] == 0);
+        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_);
+        assert(first_ == nullptr || first_ <= data_ptr);
+        assert(last_ == nullptr || data_ptr <= last_ - sizeof(T));
+        return *reinterpret_cast<T*>(data_ptr);
+    }
+
+    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<0>& it) const { return operator[](it.index()); }
+
+    IndexableArray<T, 0>& Permute(const Axes& axes) {
+        // NOOP for 1-dimensional array.
+        return *this;
+    }
+
+private:
+    T* data_;
+#ifndef NDEBUG
+    const uint8_t* first_{nullptr};
+    const uint8_t* last_{nullptr};
+#endif  // NDEBUG
+};
+
 // Static 1-dimensional specialization.
 template <typename T>
 class IndexableArray<T, 1> {
