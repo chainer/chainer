@@ -147,10 +147,14 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
         // Add edges to the input nodes
         std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> temp_next_array_nodes;
         temp_next_array_nodes.reserve(next_array_nodes.size());
-        for (size_t input_index : input_indices_) {
-            const std::shared_ptr<ArrayNode>* array_node = next_array_nodes[input_index];
-            temp_next_array_nodes.emplace_back(input_index, array_node == nullptr ? nullptr : *array_node);
-        }
+        std::transform(
+                input_indices_.begin(),
+                input_indices_.end(),
+                std::back_inserter(temp_next_array_nodes),
+                [&next_array_nodes](size_t input_index) {
+                    const std::shared_ptr<ArrayNode>* array_node = next_array_nodes[input_index];
+                    return std::tuple<size_t, std::shared_ptr<ArrayNode>>{input_index, array_node == nullptr ? nullptr : *array_node};
+                });
         op_node->RegisterBackwardFunction(std::move(temp_next_array_nodes), backward_func);
     }
 
