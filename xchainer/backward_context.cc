@@ -76,11 +76,14 @@ BackwardContext::BackwardContext(
       double_backprop_option_{double_backprop_option} {
     assert(op_node.get() == &backward_entry.op_node());
     assert(prev_array_nodes_.size() == output_grads_.size());
+
     // Input grads must be initialized with null-body arrays.
     assert(std::all_of(input_grads_.begin(), input_grads_.end(), [](const Array& g) { return internal::GetArrayBody(g) == nullptr; }));
-    size_t input_count = op_node->next_array_node_count();  // Total number of input arrays including those that do not require grads.
-    retained_input_array_bodies_.resize(input_count);
-    retained_output_array_bodies_.resize(op_node->prev_array_node_count());  // Fill with nullptr
+
+    // Total number of input arrays including those that do not require grads.
+    retained_input_array_bodies_.resize(op_node->next_array_node_count());
+
+    retained_output_array_bodies_.resize(op_node->prev_array_node_count());
 };
 
 bool BackwardContext::HasOutputGrad(size_t output_index) const { return gsl::at(output_grads_, output_index)->get().has_value(); }
