@@ -120,7 +120,11 @@ public:
         void RegisterOuterGraphsPreviousArrayNodes(const std::shared_ptr<internal::OpNode>& op_nodes);
 
         BackwardBuilder& builder_;
+<<<<<<< HEAD
         std::vector<size_t> input_indices_;
+=======
+        std::vector<ConstArrayRef> inputs_;
+>>>>>>> 80ee7b9... Revert "wip: Let BackwardBuilder hold intermediate state of backward definition"
         std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
     };
 
@@ -146,8 +150,6 @@ private:
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
-
-    std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
 
     std::unordered_map<GraphId, PrevArrayNodes> prev_array_node_all_graphs_;
 };
