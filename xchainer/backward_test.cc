@@ -649,58 +649,6 @@ INSTANTIATE_TEST_CASE_P(
 #endif  // XCHAINER_ENABLE_CUDA
                 std::string{"native"}));
 
-TEST(BackpropEnableDoubleBackpropTest, Enabled) {
-    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
-
-    Array x1 = Full({2}, 1.f).RequireGrad();
-    Array x2 = Full({2}, 2.f);
-    Array y1 = x1 + x2;
-    Array y2 = x1 * x2;
-    Array z = y1 * y2;
-    Backward(z, nonstd::nullopt, DoubleBackpropOption::kEnable);
-
-    GraphId default_graph_id = GetDefaultContext().default_graph_id();
-    std::shared_ptr<const internal::ArrayNode> z_array_node = internal::GetArrayBody(z)->GetArrayNode(default_graph_id);
-    ASSERT_TRUE(z_array_node);
-
-    std::shared_ptr<const internal::OpNode> z_op_node = z_array_node->next_op_node();
-    ASSERT_TRUE(z_op_node);
-
-    auto y_array_nodes = z_op_node->next_array_nodes();
-    ASSERT_EQ(2u, y_array_nodes.size());
-    EXPECT_EQ(2u, z_op_node->backward_entries().size());
-
-    for (const std::shared_ptr<internal::ArrayNode>& y_array_node : y_array_nodes) {
-        std::shared_ptr<const internal::OpNode> y_op_node = y_array_node->next_op_node();
-        ASSERT_TRUE(y_op_node);
-        //ASSERT_EQ(1u, y_op_node->next_array_nodes().size());
-        //EXPECT_EQ(1u, y_op_node->backward_entries().size());
-    }
-}
-
-TEST(BackpropEnableDoubleBackpropTest, Disabled) {
-    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
-
-    Array x1 = Full({2}, 1.f).RequireGrad();
-    Array x2 = Full({2}, 2.f);
-    Array y1 = x1 + x2;
-    Array y2 = x1 * x2;
-    Array z = y1 * y2;
-    GraphId default_graph_id = GetDefaultContext().default_graph_id();
-    std::shared_ptr<const internal::ArrayNode> z_array_node = internal::GetArrayBody(z)->GetArrayNode(default_graph_id);
-    ASSERT_TRUE(z_array_node);
-    std::shared_ptr<const internal::OpNode> z_op_node = z_array_node->next_op_node();
-    ASSERT_TRUE(z_op_node);
-
-    Backward(z);
-
-    ASSERT_TRUE(z_array_node);
-    EXPECT_FALSE(z_array_node->next_op_node());
-
-    //EXPECT_EQ(0u, z_op_node->next_array_nodes().size());
-    //EXPECT_EQ(0u, z_op_node->backward_entries().size());
-}
-
 class BackpropFunctionTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
 
 TEST_P(BackpropFunctionTest, OneToOneFunc) {
