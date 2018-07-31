@@ -39,7 +39,7 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
     assert(std::all_of(
             outputs_.begin(), outputs_.end(), [](const Array& output) { return internal::GetArrayBody(output)->nodes().empty(); }));
-    // Arrays must have on the same device within inputs / outputs respectively.
+    // Arrays must be on the same device within inputs / outputs respectively.
     assert(std::all_of(outputs_.begin(), outputs_.end(), [this](const Array& output) {
         return &outputs_.begin()->get().device() == &output.device();
     }));
