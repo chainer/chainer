@@ -105,6 +105,10 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const Axes& 
     assert(out_axis_map.size() == new_out_shape.size());
 
     // Calculate source axis permutation
+    // - in.shape():      (12, 13, 14, 15, 16)
+    // - axis:             (1, 3)
+    // - axis_permutes:    (0, 2, 4, 1, 3)
+    // - new_in_shape:     (12, 14, 16, 13, 15)
     Axes axis_permutes{};
     {
         size_t i_reduce = 0;
