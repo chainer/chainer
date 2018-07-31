@@ -28,12 +28,6 @@ using internal::OpNode;
 
 }  // namespace
 
-RetainedInputToken::RetainedInputToken(internal::ArrayBody::Params input_array_params, size_t input_index)
-    : input_array_params_{std::move(input_array_params)}, input_index_{input_index} {}
-
-RetainedOutputToken::RetainedOutputToken(internal::ArrayBody::Params output_array_params, size_t output_index)
-    : output_array_params_{std::move(output_array_params)}, output_index_{output_index} {}
-
 BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs)
     : op_name_{op_name}, inputs_{std::move(inputs)}, outputs_{std::move(outputs)} {
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.

@@ -18,60 +18,42 @@
 #include "xchainer/shape.h"
 
 namespace xchainer {
+namespace backward_builder_detail {
+
+template <typename Tag>
+class RetainedArrayToken {
+public:
+    RetainedArrayToken(internal::ArrayBody::Params array_params, size_t index) : array_params_{std::move(array_params)}, index_{index} {}
+
+    RetainedArrayToken(const RetainedArrayToken&) = default;
+    RetainedArrayToken(RetainedArrayToken&&) = default;
+    RetainedArrayToken& operator=(const RetainedArrayToken&) = default;
+    RetainedArrayToken& operator=(RetainedArrayToken&&) = default;
+
+private:
+    friend class xchainer::BackwardContext;
+
+    // Returns the array index.
+    size_t index() const { return index_; }
+
+    const internal::ArrayBody::Params& array_params() const { return array_params_; }
+
+    internal::ArrayBody::Params array_params_;
+
+    size_t index_;
+};
+
+}  // namespace backward_builder_detail
 
 // An object used by op implementations to bridge between BackwardBuilder::RetainInput() and BackwardContext::GetRetainedInput().
 //
 // See BackwardBuilder::RetainInput() for details.
-class RetainedInputToken {
-public:
-    RetainedInputToken(internal::ArrayBody::Params input_array_params, size_t input_index);
-
-    RetainedInputToken(const RetainedInputToken&) = default;
-    RetainedInputToken(RetainedInputToken&&) = default;
-    RetainedInputToken& operator=(const RetainedInputToken&) = default;
-    RetainedInputToken& operator=(RetainedInputToken&&) = default;
-
-private:
-    friend class xchainer::BackwardContext;
-
-    // Returns the input index.
-    // It does not necessarily correspond to the input array specified in RetainInput(), if there are more than one input arrays with the
-    // same array body.
-    size_t input_index() const { return input_index_; }
-
-    const internal::ArrayBody::Params& input_array_params() const { return input_array_params_; }
-
-    internal::ArrayBody::Params input_array_params_;
-
-    size_t input_index_;
-};
+using RetainedInputToken = backward_builder_detail::RetainedArrayToken<struct InputTag>;
 
 // An object used by op implementations to bridge between BackwardBuilder::RetainOutput() and BackwardContext::GetRetainedOutput().
 //
 // See BackwardBuilder::RetainOutput() for details.
-class RetainedOutputToken {
-public:
-    RetainedOutputToken(internal::ArrayBody::Params output_array_params, size_t output_index);
-
-    RetainedOutputToken(const RetainedOutputToken&) = default;
-    RetainedOutputToken(RetainedOutputToken&&) = default;
-    RetainedOutputToken& operator=(const RetainedOutputToken&) = default;
-    RetainedOutputToken& operator=(RetainedOutputToken&&) = default;
-
-private:
-    friend class xchainer::BackwardContext;
-
-    // Returns the output index.
-    // It does not necessarily correspond to the output array specified in RetainOutput(), if there are more than one output arrays with the
-    // same array body.
-    size_t output_index() const { return output_index_; }
-
-    const internal::ArrayBody::Params& output_array_params() const { return output_array_params_; }
-
-    internal::ArrayBody::Params output_array_params_;
-
-    size_t output_index_;
-};
+using RetainedOutputToken = backward_builder_detail::RetainedArrayToken<struct OutputTag>;
 
 class BackwardBuilder {
 public:

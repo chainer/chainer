@@ -114,8 +114,8 @@ Array& BackwardContext::input_grad() {
 Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_, index); }
 
 Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
-    assert(token.input_index() < op_node_->next_array_node_count());
-    size_t input_index = token.input_index();
+    assert(token.index() < op_node_->next_array_node_count());
+    size_t input_index = token.index();
 
     // Retrieve the kept array body for retained output.
     // Note that it's a non-const reference so that the following logic can assign to it to keep it for the repeated retrieval of the
@@ -157,7 +157,7 @@ Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
             array_body = (**it)->weak_body().lock();
         }
         if (array_body == nullptr) {
-            array_body = internal::CreateArrayBody(token.input_array_params());
+            array_body = internal::CreateArrayBody(token.array_params());
 
             for (const std::shared_ptr<ArrayNode>* next_array_node : next_array_nodes) {
                 if (*next_array_node != nullptr) {
@@ -178,8 +178,8 @@ Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
 }
 
 Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
-    assert(token.output_index() < output_count());
-    size_t output_index = token.output_index();
+    assert(token.index() < output_count());
+    size_t output_index = token.index();
 
     // Retrieve the kept array body for retained output.
     // Note that it's a non-const reference so that the following logic can assign to it to keep it for the repeated retrieval of the
@@ -225,7 +225,7 @@ std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(cons
     // Loop over outer graphs to collect array nodes corresponding to the same output index
     for (const auto& tup : op_node_->outer_graphs_prev_array_nodes()) {
         const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes = std::get<1>(tup);
-        const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes[token.output_index()];
+        const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes[token.index()];
         assert(prev_array_node->weak_body().expired());
         new_prev_array_nodes.emplace_back(prev_array_node);
     }
@@ -235,10 +235,10 @@ std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(cons
     // Otherwise, create a new array node out of the op node.
     {
         const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes = op_node_->prev_array_nodes();
-        std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[token.output_index()].lock();
+        std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[token.index()].lock();
         if (prev_array_node == nullptr) {
             // Create mocked prev array node for "this" graph, based on the current op node
-            prev_array_node = internal::FabricatePrevArrayNode(op_node_, token.output_index());
+            prev_array_node = internal::FabricatePrevArrayNode(op_node_, token.index());
         }
 
         new_prev_array_nodes.emplace_back(std::move(prev_array_node));
@@ -246,7 +246,7 @@ std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(cons
 
     // Create a new array body with (possibly fabricated) array nodes.
     // TODO(niboshi): Avoid unnecessary copy of array body params.
-    std::shared_ptr<ArrayBody> fabricated_array_body = internal::CreateArrayBody(token.output_array_params());
+    std::shared_ptr<ArrayBody> fabricated_array_body = internal::CreateArrayBody(token.array_params());
     for (const std::shared_ptr<ArrayNode>& prev_array_node : new_prev_array_nodes) {
         assert(prev_array_node->weak_body().expired());
         ArrayBody::AddNode(fabricated_array_body, prev_array_node);
