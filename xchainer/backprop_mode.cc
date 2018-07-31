@@ -34,6 +34,12 @@ BackpropModeScope<kModeFlag>::BackpropModeScope(Context& context) : n_{1} {
 
 template <bool kModeFlag>
 BackpropModeScope<kModeFlag>::BackpropModeScope(const std::vector<GraphId>& graph_ids) : n_{graph_ids.size()} {
+    // Need to throw before initializing because thowing error at ctor does not call the dtor.
+    for (const GraphId& graph_id : graph_ids) {
+        if (&graph_ids.front().context() != &graph_id.context()) {
+            throw ContextError{"Cannot specify graph ids with different contexts together."};
+        }
+    }
     InitializeBackpropModeStack();
     for (const GraphId& graph_id : graph_ids) {
         t_backprop_mode_stack->emplace_back(graph_id, kModeFlag);

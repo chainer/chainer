@@ -435,6 +435,7 @@ TEST(BackpropModeScopeTest, BackpropModeScopeWithAnotherContext) {
             EXPECT_FALSE(IsBackpropRequired(another_graph_id));
         }
     }
+    EXPECT_THROW(NoBackpropModeScope({graph_id, another_graph_id}), ContextError);
 }
 
 TEST(BackpropModeScopeTest, IsGradRequiredNoGraph) {
