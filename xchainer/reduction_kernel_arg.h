@@ -24,14 +24,25 @@ namespace xchainer {
 // Input and output arrays are transposed so that the reduction axes come last. Axes of length 1 are also removed.
 //
 // Any instance of this struct can be passed directly to a kernel function (including CUDA __global__ function).
-template <typename In, typename Out>
+template <typename In, typename Out, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim, int8_t ReduceNdim = kDynamicNdim>
 struct ReductionKernelArg {
-    IndexableArray<const In> in;
-    IndexableArray<Out> out;
-    Indexer<> in_indexer;
-    Indexer<> out_indexer;
-    Indexer<> reduce_indexer;
+    IndexableArray<const In, InNdim> in;
+    IndexableArray<Out, OutNdim> out;
+    Indexer<InNdim> in_indexer;
+    Indexer<OutNdim> out_indexer;
+    Indexer<ReduceNdim> reduce_indexer;
 };
+
+template <typename In, typename Out, int8_t InNdim, int8_t OutNdim, int8_t ReduceNdim>
+ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> MakeReductionKernelArg(const ReductionKernelArg<In, Out>& arg) {
+    // TODO(sonots): Reduce # of copies by avoiding creation of Strides and Shape.
+    return ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim>{
+            IndexableArray<const In, InNdim>{arg.in.data(), Strides{gsl::make_span(arg.in.strides(), arg.in.ndim())}},
+            IndexableArray<Out, OutNdim>{arg.out.data(), Strides{gsl::make_span(arg.out.strides(), arg.out.ndim())}},
+            Indexer<InNdim>{Shape{gsl::make_span(arg.in_indexer.shape(), arg.in_indexer.ndim())}},
+            Indexer<OutNdim>{Shape{gsl::make_span(arg.out_indexer.shape(), arg.out_indexer.ndim())}},
+            Indexer<ReduceNdim>{Shape{gsl::make_span(arg.reduce_indexer.shape(), arg.reduce_indexer.ndim())}}};
+}
 
 template <typename In, typename Out>
 ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const Axes& axis, const Array& out) {
