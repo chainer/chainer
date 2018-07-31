@@ -50,6 +50,7 @@ from chainer.functions.array.rollaxis import rollaxis  # NOQA
 from chainer.functions.array.scatter_add import scatter_add  # NOQA
 from chainer.functions.array.select_item import select_item  # NOQA
 from chainer.functions.array.separate import separate  # NOQA
+from chainer.functions.array.set_item import copied_set_item  # NOQA
 from chainer.functions.array.space2depth import space2depth  # NOQA
 from chainer.functions.array.spatial_transformer_grid import spatial_transformer_grid  # NOQA
 from chainer.functions.array.spatial_transformer_sampler import spatial_transformer_sampler  # NOQA

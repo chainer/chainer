@@ -86,6 +86,7 @@ Array manipulations
    chainer.functions.broadcast_to
    chainer.functions.cast
    chainer.functions.concat
+   chainer.functions.copied_set_item
    chainer.functions.copy
    chainer.functions.depth2space
    chainer.functions.diagonal
