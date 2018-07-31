@@ -30,10 +30,9 @@ public:
     void Enter() {
         if (graph_ids_.has_value()) {
             scope_ = std::make_unique<BackpropModeScope>(*graph_ids_);
-        } else if (context_ != nullptr) {
-            scope_ = std::make_unique<BackpropModeScope>(*context_);
         } else {
-            XCHAINER_NEVER_REACH();
+            assert(context_ != nullptr);
+            scope_ = std::make_unique<BackpropModeScope>(*context_);
         }
     }
     void Exit(py::args args) {
