@@ -129,7 +129,7 @@ void BackwardBuilder::Target::RegisterOuterGraphsPreviousArrayNodes(const std::v
 }
 
 void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
-    assert(IsGradRequired());
+    assert(is_definition_required());
 
     // Pointers to op nodes involved in this backward function
     std::vector<OpNode*> op_nodes;

@@ -672,7 +672,7 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
         {
             BackwardBuilder bb{"func", x1, y1};
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            EXPECT_TRUE(bt.IsGradRequired());
+            EXPECT_TRUE(bt.is_definition_required());
             EXPECT_TRUE(static_cast<bool>(bt));
             bt.Define([gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad();  // omit index
@@ -732,7 +732,7 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
         {
             BackwardBuilder bb{"func", x1, {y1, y2}};
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            EXPECT_TRUE(bt.IsGradRequired());
+            EXPECT_TRUE(bt.is_definition_required());
             EXPECT_TRUE(static_cast<bool>(bt));
             bt.Define([gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad(0);  // by index
@@ -806,7 +806,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
             BackwardBuilder bb{"func", {x1, x2, x3}, y1};
             {
                 BackwardBuilder::Target bt = bb.CreateTarget(0);
-                EXPECT_TRUE(bt.IsGradRequired());
+                EXPECT_TRUE(bt.is_definition_required());
                 EXPECT_TRUE(static_cast<bool>(bt));
                 bt.Define([gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad();  // omit index
@@ -830,7 +830,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
             }
             {
                 BackwardBuilder::Target bt = bb.CreateTarget({1, 2});
-                EXPECT_TRUE(bt.IsGradRequired());
+                EXPECT_TRUE(bt.is_definition_required());
                 EXPECT_TRUE(static_cast<bool>(bt));
                 bt.Define([gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
@@ -916,7 +916,7 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
             BackwardBuilder bb{"func", {x1, x2, x3}, {y1, y2}};
             {
                 BackwardBuilder::Target bt = bb.CreateTarget(0);
-                EXPECT_TRUE(bt.IsGradRequired());
+                EXPECT_TRUE(bt.is_definition_required());
                 EXPECT_TRUE(static_cast<bool>(bt));
                 bt.Define([gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
@@ -935,7 +935,7 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
             }
             {
                 BackwardBuilder::Target bt = bb.CreateTarget({1, 2});
-                EXPECT_TRUE(bt.IsGradRequired());
+                EXPECT_TRUE(bt.is_definition_required());
                 EXPECT_TRUE(static_cast<bool>(bt));
                 bt.Define([gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
@@ -1012,7 +1012,7 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
         {
             BackwardBuilder bb{"func", {x1, x2}, y1};
             BackwardBuilder::Target bt = bb.CreateTarget({0, 1});
-            EXPECT_TRUE(bt.IsGradRequired());
+            EXPECT_TRUE(bt.is_definition_required());
             EXPECT_TRUE(static_cast<bool>(bt));
             bt.Define([](BackwardContext& bctx) {
                 EXPECT_FALSE(bctx.is_input_grad_required(0));
@@ -1076,7 +1076,7 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
         {
             BackwardBuilder bb{"func", x1, {y1, y2}};
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            EXPECT_TRUE(bt.IsGradRequired());
+            EXPECT_TRUE(bt.is_definition_required());
             EXPECT_TRUE(static_cast<bool>(bt));
             bt.Define([gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
                 EXPECT_FALSE(bctx.HasOutputGrad(0));

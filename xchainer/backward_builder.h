@@ -111,12 +111,12 @@ public:
     // Note that Targets built from the same BackwardBuilder share some properties not to compute again.
     class Target {
     public:
-        explicit operator bool() const { return IsGradRequired(); }
+        explicit operator bool() const { return is_definition_required(); }
 
         // Defines a backward function with respect to specified input arrays (target).
         void Define(const BackwardFunction& backward_func);
 
-        bool IsGradRequired() const { return !graph_to_next_array_nodes_.empty(); }
+        bool is_definition_required() const { return !graph_to_next_array_nodes_.empty(); }
 
     private:
         friend class BackwardBuilder;  // Only BackwardBuilder can create Target
