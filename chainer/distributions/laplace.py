@@ -1,11 +1,13 @@
+import math
+
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 from chainer import utils
-import math
-import numpy
 
 
 class LaplaceCDF(chainer.function_node.FunctionNode):

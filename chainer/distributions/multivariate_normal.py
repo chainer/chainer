@@ -1,3 +1,7 @@
+import math
+
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
@@ -13,10 +17,8 @@ from chainer.functions.math import basic_math
 from chainer.functions.math import exponential
 from chainer.functions.math import matmul
 from chainer.functions.math import sum as sum_mod
-from chainer import utils
+from chainer.utils import argument
 from chainer.utils import type_check
-import math
-import numpy
 
 try:
     import scipy.linalg
@@ -50,16 +52,16 @@ class TriangularInv(chainer.function_node.FunctionNode):
                               " of triangular_inv in CPU can not be done." +
                               str(_import_error))
         x, = inputs
-        invx = scipy.linalg.solve_triangular(x, numpy.eye(len(x)),
-                                             lower=self._lower)
-        return utils.force_array(invx, dtype=x[0].dtype),
+        invx = scipy.linalg.solve_triangular(
+            x, numpy.eye(len(x), dtype=x[0].dtype), lower=self._lower)
+        return invx,
 
     def forward_gpu(self, inputs):
         self.retain_outputs((0,))
         x, = inputs
         invx = cuda.cupyx.scipy.linalg.solve_triangular(
-            x, cuda.cupy.eye(len(x)), lower=self._lower)
-        return utils.force_array(invx, dtype=x[0].dtype),
+            x, cuda.cupy.eye(len(x), dtype=x[0].dtype), lower=self._lower)
+        return invx,
 
     def backward(self, target_input_indexes, grad_outputs):
         gy, = grad_outputs
@@ -73,7 +75,6 @@ class TriangularInv(chainer.function_node.FunctionNode):
         gx = chainer.functions.matmul(
             chainer.functions.matmul(- invxT, gy), invxT)
         gx = where.where(mask, gx, xp.zeros_like(gx.array))
-        print(gx)
         return gx,
 
 
@@ -103,7 +104,13 @@ class MultivariateNormal(distribution.Distribution):
         scale :math:`L`.
     """
 
-    def __init__(self, loc, scale_tril):
+    def __init__(self, loc, **kwargs):
+        scale_tril = None
+        if kwargs:
+            scale_tril, = argument.parse_kwargs(
+                kwargs, ('scale_tril', scale_tril))
+        if scale_tril is None:
+            raise ValueError("`scale_tril` must have a value.")
         self.loc = chainer.as_variable(loc)
         self.scale_tril = chainer.as_variable(scale_tril)
         self.d = self.scale_tril.shape[-1]

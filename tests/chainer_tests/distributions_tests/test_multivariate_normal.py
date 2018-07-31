@@ -41,6 +41,10 @@ class TestMultivariateNormal(testing.distribution_unittest):
         self.params = {"loc": loc, "scale_tril": scale_tril}
         self.scipy_params = {"mean": loc, "cov": cov}
 
+    def test_value_error(self):
+        with self.assertRaises(ValueError):
+            self.dist(loc=self.params["loc"])
+
     def sample_for_test(self):
         smp = numpy.random.normal(
             size=self.sample_shape + self.shape + (self.d,)
