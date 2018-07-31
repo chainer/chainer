@@ -56,6 +56,9 @@ using RetainedInputToken = backward_builder_detail::RetainedArrayToken<struct In
 using RetainedOutputToken = backward_builder_detail::RetainedArrayToken<struct OutputTag>;
 
 class BackwardBuilder {
+private:
+    using PrevArrayNodes = std::vector<std::shared_ptr<internal::ArrayNode>>;
+
 public:
     BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs);
     BackwardBuilder(const char* op_name, const Array& input, std::vector<ConstArrayRef> outputs)
@@ -109,14 +112,12 @@ public:
         Target(BackwardBuilder& builder, std::vector<size_t> input_indices);
 
         const char* op_name() { return builder_.op_name_; }
-        bool any_defined() { return builder_.any_defined_; }
-        void set_any_defined(bool defined) { builder_.any_defined_ = defined; }
         std::vector<ConstArrayRef>& outputs() { return builder_.outputs_; }
         std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>>& op_node_map() { return builder_.op_node_map_; }
 
         void PrepareGraphToNextArrayNodes();
         std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
-        void RegisterOuterGraphsPreviousArrayNodes(const std::vector<internal::OpNode*>& op_nodes);
+        void RegisterOuterGraphsPreviousArrayNodes(const std::shared_ptr<internal::OpNode>& op_nodes);
 
         BackwardBuilder& builder_;
         std::vector<size_t> input_indices_;
@@ -127,10 +128,9 @@ public:
     Target CreateTarget(size_t input_index) { return Target{*this, {input_index}}; }
 
 private:
-    const char* op_name_;
+    std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> prev_array_node_all_graphs();
 
-    // Flag indicating whether the first Define() has been called.
-    bool any_defined_{false};
+    const char* op_name_;
 
     // Input arrays of the op.
     std::vector<ConstArrayRef> inputs_;
@@ -148,6 +148,8 @@ private:
     std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
 
     std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
+
+    std::unordered_map<GraphId, PrevArrayNodes> prev_array_node_all_graphs_;
 };
 
 }  // namespace xchainer

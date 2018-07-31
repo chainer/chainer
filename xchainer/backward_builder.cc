@@ -90,35 +90,32 @@ void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
 // Create an op node for a specific graph.
 // Edges from output nodes to the op node are connected.
 std::shared_ptr<OpNode>& BackwardBuilder::Target::FindOrCreateOpNode(const GraphId& graph_id) {
-    // Find op node
+    // Try to find an existing op node for the given graph.
     auto insert_result = op_node_map().emplace(graph_id, nullptr);
+
+    // If not found, create a new one.
     if (insert_result.second) {
         insert_result.first->second = OpNode::CreateWithPrevArrayNodes(op_name(), graph_id, builder_.inputs_.size(), outputs());
+
+        RegisterOuterGraphsPreviousArrayNodes(insert_result.first->second);
     }
+
     assert(!op_node_map().empty());
+
     return insert_result.first->second;
 }
 
-// Add shared ptrs from the op nodes to previous array nodes of outer graphs.
-void BackwardBuilder::Target::RegisterOuterGraphsPreviousArrayNodes(const std::vector<OpNode*>& op_nodes) {
-    if (op_nodes.size() < 2) {  // op_nodes.size() is the number of graphs
-        return;
-    }
+// Add shared ptrs from the op node to previous array nodes of outer graphs.
+// These references are required to restore retained outputs.
+void BackwardBuilder::Target::RegisterOuterGraphsPreviousArrayNodes(const std::shared_ptr<internal::OpNode>& op_node) {
+    for (const auto& tup : builder_.prev_array_node_all_graphs()) {
+        const GraphId& graph_id = tup.first;
+        const PrevArrayNodes& prev_array_nodes = tup.second;
 
-    std::unordered_map<GraphId, std::vector<std::shared_ptr<ArrayNode>>> prev_array_node_all_graphs;
-    for (const Array& output : outputs()) {
-        for (const std::shared_ptr<ArrayNode>& output_array_node : internal::GetArrayBody(output)->nodes()) {
-            prev_array_node_all_graphs[output_array_node->graph_id()].emplace_back(output_array_node);
-        }
-    }
+        assert(prev_array_nodes.size() == outputs().size());
 
-    for (OpNode* op_node : op_nodes) {
-        for (const auto& tup : prev_array_node_all_graphs) {
-            assert(tup.second.size() == outputs().size());
-            if (tup.first >= op_node->graph_id()) {
-                continue;
-            }
-            op_node->RegisterOuterGraphsPreviousArrayNodes(tup.first, tup.second);
+        if (graph_id < op_node->graph_id()) {
+            op_node->RegisterOuterGraphsPreviousArrayNodes(graph_id, prev_array_nodes);
         }
     }
 }
@@ -152,12 +149,6 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
                 });
         op_node->RegisterBackwardFunction(std::move(temp_next_array_nodes), backward_func);
     }
-
-    if (!any_defined()) {
-        // TODO(niboshi): Do this only when BackwardBuilder::RetainOutput() is called.
-        RegisterOuterGraphsPreviousArrayNodes(op_nodes);
-    }
-    set_any_defined(true);
 }
 
 RetainedInputToken BackwardBuilder::RetainInput(size_t input_index) {
@@ -178,6 +169,19 @@ RetainedOutputToken BackwardBuilder::RetainOutput(const Array& output) {
     }
     size_t output_index = std::distance(outputs_.begin(), it);
     return {internal::GetArrayBody(output)->GetParams(), output_index};
+}
+
+std::unordered_map<GraphId, BackwardBuilder::PrevArrayNodes> BackwardBuilder::prev_array_node_all_graphs() {
+    // Lazy initialization.
+    if (prev_array_node_all_graphs_.empty()) {
+        for (const Array& output : outputs_) {
+            for (std::shared_ptr<ArrayNode> output_array_node : internal::GetArrayBody(output)->nodes()) {
+                prev_array_node_all_graphs_[output_array_node->graph_id()].emplace_back(std::move(output_array_node));
+            }
+        }
+    }
+
+    return prev_array_node_all_graphs_;
 }
 
 }  // namespace xchainer
