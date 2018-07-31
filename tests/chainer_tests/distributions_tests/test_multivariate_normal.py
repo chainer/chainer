@@ -84,7 +84,7 @@ class TestTriangularInv(unittest.TestCase):
 
     @attr.gpu
     @unittest.skipUnless(
-        cuda.cupy.cuda.cusolver_enabled,
+        hasattr(cuda.cupy, 'cuda') and cuda.cupy.cuda.cusolver_enabled,
         'Only cusolver in CUDA 8.0 is supported')
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
