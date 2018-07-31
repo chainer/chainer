@@ -28,25 +28,25 @@ using internal::OpNode;
 
 }  // namespace
 
-RetainedOutputToken::RetainedOutputToken(internal::ArrayBody::Params output_array_params, size_t output_index)
-    : output_array_params_{std::move(output_array_params)}, output_index_{output_index} {}
-
-BackwardBuilder::BackwardBuilder(const char* op_name, std::initializer_list<ConstArrayRef> outputs)
-    : op_name_{op_name}, outputs_{outputs.begin(), outputs.end()} {
+BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs)
+    : op_name_{op_name}, inputs_{std::move(inputs)}, outputs_{std::move(outputs)} {
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
     assert(std::all_of(
-            outputs.begin(), outputs.end(), [](const Array& output) { return internal::GetArrayBody(output)->nodes().empty(); }));
-    // All output arrays must have the same device.
-    assert(std::all_of(outputs.begin(), outputs.end(), [&outputs](const Array& output) {
-        return &outputs.begin()->get().device() == &output.device();
+            outputs_.begin(), outputs_.end(), [](const Array& output) { return internal::GetArrayBody(output)->nodes().empty(); }));
+    // Arrays must be on the same device within inputs / outputs respectively.
+    assert(std::all_of(outputs_.begin(), outputs_.end(), [this](const Array& output) {
+        return &outputs_.begin()->get().device() == &output.device();
     }));
+    assert(std::all_of(
+            inputs_.begin(), inputs_.end(), [this](const Array& input) { return &inputs_.begin()->get().device() == &input.device(); }));
 }
 
-BackwardBuilder::Target::Target(BackwardBuilder& builder, std::initializer_list<ConstArrayRef> inputs)
-    : builder_{builder}, inputs_{inputs.begin(), inputs.end()} {
+BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> input_indices)
+    : builder_{builder}, input_indices_{std::move(input_indices)} {
     // All input arrays must have the same device.
-    assert(std::all_of(
-            inputs.begin(), inputs.end(), [&inputs](const Array& input) { return &input.device() == &(inputs.begin()->get().device()); }));
+    assert(std::all_of(input_indices.begin(), input_indices.end(), [this](size_t input_index) {
+        return &gsl::at(builder_.inputs_, input_index).get().device() == &(builder_.inputs_.front().get().device());
+    }));
 
     PrepareGraphToNextArrayNodes();
 }
@@ -55,8 +55,8 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::initializer_list<
 void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
     assert(graph_to_next_array_nodes_.empty());
     // TODO(niboshi): Probably linear search with a simple vector is faster than hash table.
-    for (size_t i_input = 0; i_input < inputs_.size(); ++i_input) {
-        const Array& input = *(inputs_.begin() + i_input);
+    for (size_t input_index : input_indices_) {
+        const Array& input = gsl::at(builder_.inputs_, input_index);
         for (std::shared_ptr<ArrayNode>& next_array_node : internal::GetArrayBody(input)->nodes()) {
             const GraphId& graph_id = next_array_node->graph_id();
             if (!IsBackpropRequired(graph_id, input.device().context())) {
@@ -68,10 +68,10 @@ void BackwardBuilder::Target::PrepareGraphToNextArrayNodes() {
             auto& vec = insert_result.first->second;
             if (insert_result.second) {
                 // New array node for a graph. Fill all array nodes with nullptr.
-                vec.resize(inputs_.size());
+                vec.resize(builder_.inputs_.size());
             }
             // Assign valid pointer to the array node.
-            vec[i_input] = &next_array_node;
+            vec[input_index] = &next_array_node;
         }
     }
 
@@ -92,7 +92,7 @@ std::shared_ptr<OpNode>& BackwardBuilder::Target::FindOrCreateOpNode(const Graph
     // Find op node
     auto insert_result = op_node_map().emplace(graph_id, nullptr);
     if (insert_result.second) {
-        insert_result.first->second = OpNode::CreateWithPrevArrayNodes(op_name(), graph_id, outputs());
+        insert_result.first->second = OpNode::CreateWithPrevArrayNodes(op_name(), graph_id, builder_.inputs_.size(), outputs());
     }
     assert(!op_node_map().empty());
     return insert_result.first->second;
@@ -123,6 +123,8 @@ void BackwardBuilder::Target::RegisterOuterGraphsPreviousArrayNodes(const std::v
 }
 
 void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
+    assert(is_definition_required());
+
     // Pointers to op nodes involved in this backward function
     std::vector<OpNode*> op_nodes;
 
@@ -137,13 +139,16 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
         op_nodes.emplace_back(op_node.get());
 
         // Add edges to the input nodes
-        std::vector<std::shared_ptr<ArrayNode>> temp_next_array_nodes;
+        std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> temp_next_array_nodes;
         temp_next_array_nodes.reserve(next_array_nodes.size());
         std::transform(
-                next_array_nodes.begin(),
-                next_array_nodes.end(),
+                input_indices_.begin(),
+                input_indices_.end(),
                 std::back_inserter(temp_next_array_nodes),
-                [](const std::shared_ptr<ArrayNode>* array_node) { return array_node == nullptr ? nullptr : *array_node; });
+                [&next_array_nodes](size_t input_index) {
+                    const std::shared_ptr<ArrayNode>* array_node = next_array_nodes[input_index];
+                    return std::tuple<size_t, std::shared_ptr<ArrayNode>>{input_index, array_node == nullptr ? nullptr : *array_node};
+                });
         op_node->RegisterBackwardFunction(std::move(temp_next_array_nodes), backward_func);
     }
 
@@ -152,6 +157,11 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
         RegisterOuterGraphsPreviousArrayNodes(op_nodes);
     }
     set_any_defined(true);
+}
+
+RetainedInputToken BackwardBuilder::RetainInput(size_t input_index) {
+    assert(input_index < inputs_.size());
+    return {internal::GetArrayBody(gsl::at(inputs_, input_index))->GetParams(), input_index};
 }
 
 RetainedOutputToken BackwardBuilder::RetainOutput(const Array& output) {

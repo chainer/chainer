@@ -58,9 +58,9 @@ Array ConvGradW(
     }
 
     {
-        BackwardBuilder bb{"conv-grad-weight", {out}};
+        BackwardBuilder bb{"conv-grad-weight", {x, gy}, out};
 
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([ x_shape = x.shape(), gy, stride, pad ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
@@ -69,12 +69,13 @@ Array ConvGradW(
             });
         }
 
-        if (BackwardBuilder::Target bt = bb.CreateTarget(gy)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([x, stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, cover_all);
             });
         }
+        assert(bb.is_complete());
     }
 
     return out;
@@ -121,9 +122,16 @@ Array Conv(
     }
 
     {
-        BackwardBuilder bb{"conv", {out}};
+        // TODO(niboshi): Improve interface of BackwardBuilder for accepting optional input arrays.
+        std::vector<ConstArrayRef> inputs{};
+        if (b.has_value()) {
+            inputs = {x, w, *b};
+        } else {
+            inputs = {x, w};
+        }
+        BackwardBuilder bb{"conv", std::move(inputs), out};
 
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([ x_shape = x.shape(), w, stride, pad ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
@@ -131,7 +139,7 @@ Array Conv(
             });
         }
 
-        if (BackwardBuilder::Target bt = bb.CreateTarget(w)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = ConvGradW(w_dtype, w_shape, x, gout, stride, pad, cover_all);
@@ -139,7 +147,7 @@ Array Conv(
         }
 
         if (b.has_value()) {
-            if (BackwardBuilder::Target bt = bb.CreateTarget(*b)) {
+            if (BackwardBuilder::Target bt = bb.CreateTarget(2)) {
                 bt.Define([](BackwardContext& bctx) {
                     const Array& gout = bctx.output_grad();
                     Axes axis{0};
@@ -150,6 +158,7 @@ Array Conv(
                 });
             }
         }
+        assert(bb.is_complete());
     }
 
     return out;
@@ -219,9 +228,16 @@ Array ConvTranspose(
     }
 
     {
-        BackwardBuilder bb{"conv_transpose", out};
+        // TODO(niboshi): Improve interface of BackwardBuilder for accepting optional input arrays.
+        std::vector<ConstArrayRef> inputs{};
+        if (b.has_value()) {
+            inputs = {x, w, *b};
+        } else {
+            inputs = {x, w};
+        }
+        BackwardBuilder bb{"conv_transpose", std::move(inputs), out};
 
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([ x_shape = x.shape(), w, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
@@ -229,7 +245,7 @@ Array ConvTranspose(
             });
         }
 
-        if (BackwardBuilder::Target bt = bb.CreateTarget(w)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, x, stride, pad, cover_all);
@@ -237,7 +253,7 @@ Array ConvTranspose(
         }
 
         if (b.has_value()) {
-            if (BackwardBuilder::Target bt = bb.CreateTarget(*b)) {
+            if (BackwardBuilder::Target bt = bb.CreateTarget(2)) {
                 bt.Define([](BackwardContext& bctx) {
                     const Array& gout = bctx.output_grad();
                     Axes axis{0};
@@ -248,6 +264,7 @@ Array ConvTranspose(
                 });
             }
         }
+        assert(bb.is_complete());
     }
 
     return out;

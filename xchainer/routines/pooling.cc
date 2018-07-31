@@ -62,22 +62,24 @@ Array MaxPool(
             Array gx = fb->Backward(gout.AsGradStopped());
             internal::MakeViewForForwardBackwardOutput(gx);
             {
-                BackwardBuilder bb2{"max_pooling_backward", gx};
-                if (BackwardBuilder::Target bt2 = bb2.CreateTarget(gout)) {
+                BackwardBuilder bb2{"max_pooling_backward", gout, gx};
+                if (BackwardBuilder::Target bt2 = bb2.CreateTarget(0)) {
                     bt2.Define([this, gout](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
                         Array ggout = fb->DoubleBackward(ggx.AsGradStopped());
                         internal::MakeViewForForwardBackwardOutput(ggout);
                         // Make ggout further backpropable.
                         {
-                            BackwardBuilder bb3{"max_pooling_double_backward", ggout};
-                            if (BackwardBuilder::Target bt3 = bb3.CreateTarget(ggx)) {
+                            BackwardBuilder bb3{"max_pooling_double_backward", ggx, ggout};
+                            if (BackwardBuilder::Target bt3 = bb3.CreateTarget(0)) {
                                 bt3.Define(*this);
                             }
+                            assert(bb3.is_complete());
                         }
                         bctx2.input_grad() = ggout;
                     });
                 }
+                assert(bb2.is_complete());
             }
             bctx1.input_grad() = gx;
         }
@@ -91,10 +93,11 @@ Array MaxPool(
     };
 
     {
-        BackwardBuilder bb1{"max_pooling", out};
-        if (BackwardBuilder::Target bt1 = bb1.CreateTarget(x)) {
+        BackwardBuilder bb1{"max_pooling", x, out};
+        if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
             bt1.Define(MaxPoolBwd{x, kernel_size, stride, pad, cover_all, std::move(fb)});
         }
+        assert(bb1.is_complete());
     }
     return out;
 }
@@ -110,24 +113,26 @@ Array AveragePool(
     Array out = fb->Forward(x.AsGradStopped());
     internal::MakeViewForForwardBackwardOutput(out);
     {
-        BackwardBuilder bb1{"average_pool", out};
-        if (BackwardBuilder::Target bt1 = bb1.CreateTarget(x)) {
+        BackwardBuilder bb1{"average_pool", x, out};
+        if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
             bt1.Define([ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 Array gx = fb->Backward(gout.AsGradStopped());
                 internal::MakeViewForForwardBackwardOutput(gx);
                 {
-                    BackwardBuilder bb2{"average_pool_backward", gx};
-                    if (BackwardBuilder::Target bt2 = bb2.CreateTarget(gout)) {
+                    BackwardBuilder bb2{"average_pool_backward", gout, gx};
+                    if (BackwardBuilder::Target bt2 = bb2.CreateTarget(0)) {
                         bt2.Define([kernel_size, stride, pad, pad_mode](BackwardContext& bctx2) {
                             const Array& ggx = bctx2.output_grad();
                             bctx2.input_grad() = AveragePool(ggx, kernel_size, stride, pad, pad_mode);
                         });
                     }
+                    assert(bb2.is_complete());
                 }
                 bctx.input_grad() = gx;
             });
         }
+        assert(bb1.is_complete());
     }
     return out;
 }

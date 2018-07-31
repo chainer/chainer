@@ -186,10 +186,11 @@ Array Array::Copy() const { return xchainer::Copy(*this); }
 Array Array::MakeView() const {
     Array out{shape(), strides(), dtype(), device(), data(), offset()};
 
-    BackwardBuilder bb{"view", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(*this)) {
+    BackwardBuilder bb{"view", *this, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -223,10 +224,11 @@ Array Array::ToDevice(Device& dst_device) const {
     assert(internal::GetArrayBody(out) != nullptr);
 
     // Backward operation is implemented as backward-transfer.
-    BackwardBuilder bb{"transfer", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(*this)) {
+    BackwardBuilder bb{"transfer", *this, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -272,10 +274,11 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     device().AsType(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
-        BackwardBuilder bb{"astype", out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(*this)) {
+        BackwardBuilder bb{"astype", *this, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
         }
+        assert(bb.is_complete());
     }
 
     assert(out.IsContiguous());

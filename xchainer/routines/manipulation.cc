@@ -89,8 +89,8 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
 
     Array out = internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    BackwardBuilder bb{"transpose", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+    BackwardBuilder bb{"transpose", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([real_axes](BackwardContext& bctx) {
             Axes backward_axes;
             backward_axes.resize(real_axes.ndim());
@@ -100,6 +100,7 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
             bctx.input_grad() = bctx.output_grad().Transpose(backward_axes);
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -203,10 +204,11 @@ Array Reshape(const Array& a, const Shape& newshape) {
 
     Array out = internal::MakeArray(newshape, strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    BackwardBuilder bb{"reshape", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+    BackwardBuilder bb{"reshape", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
     }
+    assert(bb.is_complete());
 
     assert(out.shape() == newshape);
     assert(out.strides().size() == newshape.size());
@@ -258,10 +260,11 @@ Array Squeeze(const Array& a, const OptionalAxes& axis) {
                         ? a
                         : internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    BackwardBuilder bb{"squeeze", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+    BackwardBuilder bb{"squeeze", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -310,8 +313,8 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
 
     Array out = internal::MakeArray(shape, strides, array.dtype(), array.device(), array.data(), array.offset());
 
-    BackwardBuilder bb{"broadcast_to", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(array)) {
+    BackwardBuilder bb{"broadcast_to", array, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([in_shape](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
             if (gout.shape() == in_shape) {
@@ -340,6 +343,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
             }
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }

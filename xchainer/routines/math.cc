@@ -91,13 +91,14 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
     }
 
     {
-        BackwardBuilder bb{"add", out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x1)) {
+        BackwardBuilder bb{"add", {x1, x2}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x2)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
+        assert(bb.is_complete());
     }
 }
 
@@ -109,10 +110,11 @@ void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
         x1.device().AddAS(x1, x2, out);
     }
 
-    BackwardBuilder bb{"add_scalar", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(x1)) {
+    BackwardBuilder bb{"add_scalar", x1, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
+    assert(bb.is_complete());
 }
 
 }  // namespace
@@ -144,13 +146,14 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     }
 
     {
-        BackwardBuilder bb{"subtract", out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x1)) {
+        BackwardBuilder bb{"subtract", {x1, x2}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x2)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad(); });
         }
+        assert(bb.is_complete());
     }
 }
 
@@ -162,10 +165,11 @@ void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
         x1.device().SubtractAS(x1, x2, out);
     }
 
-    BackwardBuilder bb{"subtract_scalar", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(x1)) {
+    BackwardBuilder bb{"subtract_scalar", x1, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
+    assert(bb.is_complete());
 }
 
 }  // namespace
@@ -197,13 +201,14 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
     }
 
     {
-        BackwardBuilder bb{"multiply", out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x1)) {
+        BackwardBuilder bb{"multiply", {x1, x2}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
         }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x2)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([other = x1](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
         }
+        assert(bb.is_complete());
     }
 }
 
@@ -215,10 +220,11 @@ void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
         x1.device().MultiplyAS(x1, x2, out);
     }
 
-    BackwardBuilder bb{"multiply_scalar", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(x1)) {
+    BackwardBuilder bb{"multiply_scalar", x1, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() * other; });
     }
+    assert(bb.is_complete());
 }
 
 }  // namespace
@@ -251,16 +257,17 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
     }
 
     {
-        BackwardBuilder bb{"divide", out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x1)) {
+        BackwardBuilder bb{"divide", {x1, x2}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() / x2; });
         }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(x2)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([x1, x2](BackwardContext& bctx) {
                 // TODO(niboshi): Avoid view of x2. Use retained input.
                 bctx.input_grad() = -bctx.output_grad() * x1 / (x2.MakeView() * x2.MakeView());
             });
         }
+        assert(bb.is_complete());
     }
 }
 
@@ -272,10 +279,11 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
         x1.device().DivideAS(x1, x2, out);
     }
 
-    BackwardBuilder bb{"divide_scalar", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(x1)) {
+    BackwardBuilder bb{"divide_scalar", x1, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() / other; });
     }
+    assert(bb.is_complete());
 }
 
 }  // namespace
@@ -317,8 +325,8 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
         a.device().Sum(a, sorted_axis, out);
     }
 
-    BackwardBuilder bb{"sum", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+    BackwardBuilder bb{"sum", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([ sorted_axis, in_shape = a.shape(), keepdims ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
@@ -334,6 +342,7 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
             }
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -353,8 +362,8 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
         a.device().AMax(a, sorted_axis, out);
     }
 
-    BackwardBuilder bb{"amax", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+    BackwardBuilder bb{"amax", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([ sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
@@ -378,6 +387,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
             bctx.input_grad() = reshaped_gout * cond;
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -394,13 +404,14 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
         x1.device().IfLessElseASSA(x1, x2, pos, neg, out);
     }
 
-    BackwardBuilder bb{"if_less_else", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(neg)) {
+    BackwardBuilder bb{"if_less_else", neg, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x1, x2](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, gout.dtype()}, gout);
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -421,14 +432,15 @@ Array Exp(const Array& x) {
         x.device().Exp(x, out);
     }
 
-    BackwardBuilder bb{"exp", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
+    BackwardBuilder bb{"exp", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x](BackwardContext& bctx) {
             // TODO(niboshi): Avoid view of x. Use retained output.
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = Exp(x.MakeView()) * gout;
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -441,14 +453,15 @@ Array Log(const Array& x) {
         x.device().Log(x, out);
     }
 
-    BackwardBuilder bb{"log", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
+    BackwardBuilder bb{"log", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x](BackwardContext& bctx) {
             // TODO(niboshi): Avoid view of x. Use retained input.
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = gout / x.MakeView();
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }

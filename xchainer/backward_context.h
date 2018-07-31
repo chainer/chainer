@@ -101,6 +101,9 @@ public:
     // Returns the reference to the input gradient.
     Array& input_grad(size_t index);
 
+    // TODO(hvy): Write comment.
+    Array GetRetainedInput(const RetainedInputToken& token);
+
     // Returns the retained output array.
     // The resulting array has the same value but different array body as the actual output array.
     // It has the array node of the graph for current backward computation if and only if the double backprop option is enabled, but always
@@ -130,6 +133,8 @@ private:
     // Holds zero-filled arrays for outputs without actual gradients.
     // The arrays are allocated on-demand in output_grad.
     mutable std::vector<nonstd::optional<Array>> zero_output_grads_;
+
+    std::vector<std::shared_ptr<internal::ArrayBody>> retained_input_array_bodies_;
 
     // Array bodies for retained outputs.
     // Initialized by nullptrs and populated as queried by calling GetRetainedOutput().

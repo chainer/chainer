@@ -86,14 +86,16 @@ std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_nod
 class OpNode {
 public:
     // Creates a new op node that has prev array nodes corresponding to the given outputs.
-    static std::shared_ptr<OpNode> CreateWithPrevArrayNodes(std::string name, GraphId graph_id, const std::vector<ConstArrayRef>& outputs);
+    static std::shared_ptr<OpNode> CreateWithPrevArrayNodes(
+            std::string name, GraphId graph_id, size_t index_count, const std::vector<ConstArrayRef>& outputs);
 
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;
     OpNode& operator=(const OpNode&) = delete;
     OpNode& operator=(OpNode&&) = delete;
 
-    OpNodeBackwardEntry& RegisterBackwardFunction(std::vector<std::shared_ptr<ArrayNode>> next_array_nodes, BackwardFunction backward_func);
+    OpNodeBackwardEntry& RegisterBackwardFunction(
+            std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> next_array_nodes, BackwardFunction backward_func);
 
     // Adds links to previous array nodes of other graphs.
     void RegisterOuterGraphsPreviousArrayNodes(
@@ -101,7 +103,7 @@ public:
 
     void Unchain() {
         backward_entries_.clear();
-        next_array_nodes_.clear();
+        std::fill(next_array_nodes_.begin(), next_array_nodes_.end(), std::shared_ptr<ArrayNode>{});
         AssertConsistency();
     }
 
@@ -140,7 +142,7 @@ public:
     }
 
 private:
-    OpNode(std::string name, GraphId graph_id);
+    OpNode(std::string name, GraphId graph_id, size_t next_array_node_count);
 
     void AssertConsistency() const;
 

@@ -48,13 +48,14 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
     }
 
     {
-        BackwardBuilder bb{"add_at", out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+        BackwardBuilder bb{"add_at", {a, b}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(b)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([indices](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().At(indices); });
         }
+        assert(bb.is_complete());
     }
 
     return out;
@@ -102,13 +103,14 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
     Array out = MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), out_offset);
 
-    BackwardBuilder bb{"get_item", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+    BackwardBuilder bb{"get_item", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([ indices, a_shape = a.shape(), a_dtype = a.dtype() ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             Array gin = Zeros(a_shape, a_dtype, gout.device());
             bctx.input_grad() = AddAt(gin, indices, gout);
         });
+        assert(bb.is_complete());
     }
 
     return out;
@@ -136,16 +138,17 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
     }
 
     {
-        BackwardBuilder bb{"add_at", out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+        BackwardBuilder bb{"add_at", {a, b}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(b)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([indices, axis](BackwardContext& bctx) {
                 assert(internal::GetArrayBody(indices)->nodes().empty());
                 bctx.input_grad() = Take(bctx.output_grad(), indices, axis);
             });
         }
+        assert(bb.is_complete());
     }
 
     return out;
@@ -174,13 +177,14 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
         a.device().Take(a, indices, axis_norm, out);
     }
 
-    BackwardBuilder bb{"take", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+    BackwardBuilder bb{"take", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([ indices, axis_norm, a_shape = a.shape() ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }

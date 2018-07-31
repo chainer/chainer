@@ -99,8 +99,8 @@ Array BatchNorm(
     Array out = fb->Forward(x.AsGradStopped(), result.gamma.AsGradStopped(), result.beta.AsGradStopped());
     internal::MakeViewForForwardBackwardOutput(out);
 
-    BackwardBuilder bb{"batch_norm", {out}};
-    if (BackwardBuilder::Target bt = bb.CreateTarget({x, gamma, beta})) {
+    BackwardBuilder bb{"batch_norm", {x, gamma, beta}, {out}};
+    if (BackwardBuilder::Target bt = bb.CreateTarget({0, 1, 2})) {
         bt.Define([ fb = std::move(fb), x, gamma = result.gamma ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             std::array<Array, 3> ginputs = fb->Backward(gout.AsGradStopped());
@@ -113,8 +113,8 @@ Array BatchNorm(
             assert(internal::GetArrayBody(gbeta)->nodes().empty());
 
             if (bctx.next_required()) {
-                BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
-                if (BackwardBuilder::Target bt2 = bb2.CreateTarget({x, gamma, gout})) {
+                BackwardBuilder bb2{"batch_norm_backward", {x, gamma, gout}, {gx, ggamma, gbeta}};
+                if (BackwardBuilder::Target bt2 = bb2.CreateTarget({0, 1, 2})) {
                     bt2.Define([fb](BackwardContext& bctx2) {
                         const Array& g2x = bctx2.output_grad(0);
                         const Array& g2gamma = bctx2.output_grad(1);
@@ -129,6 +129,7 @@ Array BatchNorm(
                         bctx2.input_grad(2) = ginputs2[2];  // ggout
                     });
                 }
+                assert(bb2.is_complete());
             }
 
             // TODO(niboshi): Assign at once
@@ -137,6 +138,7 @@ Array BatchNorm(
             bctx.input_grad(2) = gbeta;
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }
