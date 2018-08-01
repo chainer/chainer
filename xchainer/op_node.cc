@@ -70,7 +70,7 @@ std::shared_ptr<OpNode> OpNode::CreateWithPrevArrayNodes(
     for (const Array& out : outputs) {
         const std::shared_ptr<ArrayBody>& out_body = GetArrayBody(out);
         assert(!out_body->HasArrayNode(graph_id));
-        const std::shared_ptr<ArrayNode>& prev_array_node = ArrayBody::CreateArrayNode(out_body, graph_id);  // Inplace registration.
+        const std::shared_ptr<ArrayNode>& prev_array_node = ArrayBody::CreateArrayNode(out_body, graph_id);
         op_node->prev_array_props_.emplace_back(*prev_array_node);
         op_node->prev_array_nodes_.emplace_back(prev_array_node);
         prev_array_node->set_next_op_node(op_node);

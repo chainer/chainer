@@ -34,10 +34,10 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> in
         return &gsl::at(builder_.inputs_, input_index).get().device() == &(builder_.inputs_.front().get().device());
     }));
 
-    RegisterDefinitionRequiredGraphsAndArrayNodes();
+    KeepGraphsAndArrayNodesThatRequireDefinition();
 }
 
-void BackwardBuilder::Target::RegisterDefinitionRequiredGraphsAndArrayNodes() {
+void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
     assert(graph_to_next_array_nodes_.empty());
     for (size_t input_index : input_indices_) {
         // Need to access the input array via the builder.
@@ -111,18 +111,6 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
             inputs_.begin(), inputs_.end(), [this](const Array& input) { return &inputs_.begin()->get().device() == &input.device(); }));
 }
 
-std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> BackwardBuilder::graph_to_prev_array_nodes() {
-    // Lazy initialization.
-    if (graph_to_prev_array_nodes_.empty()) {
-        for (const Array& output : outputs_) {
-            for (std::shared_ptr<ArrayNode> output_array_node : internal::GetArrayBody(output)->nodes()) {
-                graph_to_prev_array_nodes_[output_array_node->graph_id()].emplace_back(std::move(output_array_node));
-            }
-        }
-    }
-    return graph_to_prev_array_nodes_;
-}
-
 std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const GraphId& graph_id) {
     // Try to find an existing op node for the given graph.
     auto insert_result = op_node_map_.emplace(graph_id, nullptr);
@@ -140,9 +128,18 @@ std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const GraphId& grap
 void BackwardBuilder::RegisterOuterGraphsPreviousArrayNodes(const std::shared_ptr<internal::OpNode>& op_node) {
     const GraphId& graph_id = op_node->graph_id();
 
+    // Lazily initialize graph to prev array node mappings.
+    if (graph_to_prev_array_nodes_.empty()) {
+        for (const Array& output : outputs_) {
+            for (std::shared_ptr<ArrayNode> output_array_node : internal::GetArrayBody(output)->nodes()) {
+                graph_to_prev_array_nodes_[output_array_node->graph_id()].emplace_back(std::move(output_array_node));
+            }
+        }
+    }
+
     // Compare the order (outer/inner) between the graph of given op node and all graphs involved in this builder.
     // Then create references to outer graphs as necessary.
-    for (const auto& tup : graph_to_prev_array_nodes()) {
+    for (const auto& tup : graph_to_prev_array_nodes_) {
         const GraphId& other_graph_id = tup.first;
 
         if (other_graph_id < graph_id) {
@@ -165,6 +162,8 @@ void BackwardBuilder::RegisterOuterGraphsPreviousArrayNodes(const std::shared_pt
                         return prev.lock();
                     });
             op_node_map_[other_graph_id]->RegisterOuterGraphsPreviousArrayNodes(graph_id, std::move(temp_prev_array_nodes));
+        } else {
+            // Do nothing.
         }
     }
 }

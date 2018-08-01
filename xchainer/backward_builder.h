@@ -77,10 +77,12 @@ public:
 
         // Collect input ArrayNodes, grouped by graph considering IsBackpropRequired.
         // This functions is only called once in the constructor.
-        void RegisterDefinitionRequiredGraphsAndArrayNodes();
+        void KeepGraphsAndArrayNodesThatRequireDefinition();
 
         BackwardBuilder& builder_;
         std::vector<size_t> input_indices_;
+
+        // TODO(hvy): Consider using linear search since elements are usually few.
         std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
     };
 
@@ -91,6 +93,11 @@ public:
         : BackwardBuilder{op_name, std::move(inputs), std::vector<ConstArrayRef>{output}} {}
     BackwardBuilder(const char* op_name, const Array& input, const Array& output)
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
+
+    // Returns whether the backward definitions to cover all the input arrays have finished.
+    bool is_complete() const {
+        return std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; });
+    }
 
     Target CreateTarget(std::vector<size_t> input_indices) { return Target{*this, std::move(input_indices)}; }
 
@@ -116,14 +123,7 @@ public:
     // If invalid array is specified, XchainerError will be thrown.
     RetainedOutputToken RetainOutput(const Array& output);
 
-    // Returns whether the backward definitions to cover all the input arrays have finished.
-    bool is_complete() const {
-        return std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; });
-    }
-
 private:
-    std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> graph_to_prev_array_nodes();
-
     // Create an op node for a specific graph.
     // Edges from output nodes to the op node are connected.
     std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
@@ -150,6 +150,7 @@ private:
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
 
+    // TODO(hvy): Consider using linear search since elements are usually few.
     std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> graph_to_prev_array_nodes_;
 };
 
