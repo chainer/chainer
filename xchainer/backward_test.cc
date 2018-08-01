@@ -1683,6 +1683,229 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
 
+TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysManyInputs) {
+    // This test checks that retained output arrays can be retrieved when some of the inputs does not belong to a certain graph.
+    //
+    // (x1) <- [forward] <- (y1 := x1 * x2 * x3) <- [view] <- (z1)
+    // (x2) <-
+    // (x3) <-
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    DoubleBackpropOption double_backprop_opt = GetParam();
+    GraphScope graph_scope1{"graph1"};
+    GraphScope graph_scope2{"graph2"};
+    GraphScope graph_scope3{"graph2"};
+    GraphId graph_id1 = graph_scope1.graph_id();
+    GraphId graph_id2 = graph_scope2.graph_id();
+    GraphId graph_id3 = graph_scope3.graph_id();
+
+    std::weak_ptr<internal::ArrayBody> y1_body{};
+
+    auto forward = [&graph_id1, &graph_id2, &graph_id3, &y1_body, double_backprop_opt](
+                           const Array& x1, const Array& x2, const Array& x3, Array& y1) {
+        Array x1_c = x1.AsGradStopped();
+        Array x2_c = x2.AsGradStopped();
+        Array x3_c = x3.AsGradStopped();
+        y1 = x1_c * x2_c * x3_c;
+
+        Array y1_value = y1.MakeView();
+
+        BackwardBuilder bb{"func", {x1, x2, x3}, y1};
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(0);
+            assert(bt);
+            bt.Define([ x2_tok = bb.RetainInput(1), x3_tok = bb.RetainInput(2) ](BackwardContext & bctx) {
+                // This code is not executed in this test.
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+                const Array& x3 = bctx.GetRetainedInput(x3_tok);
+                bctx.input_grad() = bctx.output_grad(0) * x2 * x3;
+            });
+        }
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(1);
+            assert(bt);
+            bt.Define([ x1_tok = bb.RetainInput(0), x3_tok = bb.RetainInput(2) ](BackwardContext & bctx) {
+                // This code is not executed in this test.
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x3 = bctx.GetRetainedInput(x3_tok);
+                bctx.input_grad() = bctx.output_grad(0) * x1 * x3;
+            });
+        }
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(2);
+            assert(bt);
+            bt.Define([
+                x1_tok = bb.RetainInput(0),
+                x2_tok = bb.RetainInput(1),
+                y1_tok = bb.RetainOutput(0),
+                y1_value,
+                &graph_id1,
+                &graph_id2,
+                &graph_id3,
+                &y1_body,
+                double_backprop_opt
+            ](BackwardContext & bctx) {
+                // Test assumption: the bodies of ys must be dead.
+                ASSERT_EQ(nullptr, y1_body.lock());
+
+                // Retrieve retained outputs
+                const Array& y1 = bctx.GetRetainedOutput(y1_tok);
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+
+                testing::ExpectEqual(y1_value, y1);
+                EXPECT_TRUE(y1.IsGradRequired(graph_id1));
+                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(y1.IsGradRequired(graph_id3));
+                } else {
+                    EXPECT_FALSE(y1.IsGradRequired(graph_id3));
+                }
+
+                bctx.input_grad() = bctx.output_grad(0) * x1 * x2;
+            });
+        }
+    };
+
+    internal::ArrayBodyLeakTracker tracker{};
+    {
+        internal::ArrayBodyLeakDetectionScope scope{tracker};
+
+        Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
+        Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
+        Array x3_value = testing::BuildArray({1}).WithLinearData<double>(4);
+        Array x1 = x1_value.MakeView().RequireGrad(graph_id1);
+        Array x2 = x2_value.MakeView().RequireGrad(graph_id2);
+        Array x3 = x2_value.MakeView().RequireGrad(graph_id3);
+        Array expected_x3_grad = x1_value * x2_value;
+        Array z1{};
+        {
+            Array y1{};
+            forward(x1, x2, x3, y1);
+
+            // Keep weak references to y's to check if they are actually dead.
+            y1_body = internal::GetArrayBody(y1);
+            z1 = y1.MakeView();
+        }
+        // y's are dead here
+        Backward({z1}, graph_id3, double_backprop_opt);
+        testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(graph_id3));
+    }
+    EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
+}
+
+TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysManyInputsReversedDefineOrder) {
+    // This test checks that retained output arrays can be retrieved when some of the inputs does not belong to a certain graph.
+    // Even when the order of backward definitions are not in the order the inputs are given to the builder.
+    //
+    // (x1) <- [forward] <- (y1 := x1 * x2 * x3) <- [view] <- (z1)
+    // (x2) <-
+    // (x3) <-
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    DoubleBackpropOption double_backprop_opt = GetParam();
+    GraphScope graph_scope1{"graph1"};
+    GraphScope graph_scope2{"graph2"};
+    GraphScope graph_scope3{"graph2"};
+    GraphId graph_id1 = graph_scope1.graph_id();
+    GraphId graph_id2 = graph_scope2.graph_id();
+    GraphId graph_id3 = graph_scope3.graph_id();
+
+    std::weak_ptr<internal::ArrayBody> y1_body{};
+
+    auto forward = [&graph_id1, &graph_id2, &graph_id3, &y1_body, double_backprop_opt](
+                           const Array& x1, const Array& x2, const Array& x3, Array& y1) {
+        Array x1_c = x1.AsGradStopped();
+        Array x2_c = x2.AsGradStopped();
+        Array x3_c = x3.AsGradStopped();
+        y1 = x1_c * x2_c * x3_c;
+
+        Array y1_value = y1.MakeView();
+
+        BackwardBuilder bb{"func", {x1, x2, x3}, y1};
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(2);
+            assert(bt);
+            bt.Define([
+                x1_tok = bb.RetainInput(0),
+                x2_tok = bb.RetainInput(1),
+                y1_tok = bb.RetainOutput(0),
+                y1_value,
+                &graph_id1,
+                &graph_id2,
+                &graph_id3,
+                &y1_body,
+                double_backprop_opt
+            ](BackwardContext & bctx) {
+                // Test assumption: the bodies of ys must be dead.
+                ASSERT_EQ(nullptr, y1_body.lock());
+
+                // Retrieve retained outputs
+                const Array& y1 = bctx.GetRetainedOutput(y1_tok);
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+
+                testing::ExpectEqual(y1_value, y1);
+                EXPECT_TRUE(y1.IsGradRequired(graph_id1));
+                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(y1.IsGradRequired(graph_id3));
+                } else {
+                    EXPECT_FALSE(y1.IsGradRequired(graph_id3));
+                }
+
+                bctx.input_grad() = bctx.output_grad(0) * x1 * x2;
+            });
+        }
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(1);
+            assert(bt);
+            bt.Define([ x1_tok = bb.RetainInput(0), x3_tok = bb.RetainInput(2) ](BackwardContext & bctx) {
+                // This code is not executed in this test.
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x3 = bctx.GetRetainedInput(x3_tok);
+                bctx.input_grad() = bctx.output_grad(0) * x1 * x3;
+            });
+        }
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(0);
+            assert(bt);
+            bt.Define([ x2_tok = bb.RetainInput(1), x3_tok = bb.RetainInput(2) ](BackwardContext & bctx) {
+                // This code is not executed in this test.
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+                const Array& x3 = bctx.GetRetainedInput(x3_tok);
+                bctx.input_grad() = bctx.output_grad(0) * x2 * x3;
+            });
+        }
+    };
+
+    internal::ArrayBodyLeakTracker tracker{};
+    {
+        internal::ArrayBodyLeakDetectionScope scope{tracker};
+
+        Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
+        Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
+        Array x3_value = testing::BuildArray({1}).WithLinearData<double>(4);
+        Array x1 = x1_value.MakeView().RequireGrad(graph_id1);
+        Array x2 = x2_value.MakeView().RequireGrad(graph_id2);
+        Array x3 = x2_value.MakeView().RequireGrad(graph_id3);
+        Array expected_x3_grad = x1_value * x2_value;
+        Array z1{};
+        {
+            Array y1{};
+            forward(x1, x2, x3, y1);
+
+            // Keep weak references to y's to check if they are actually dead.
+            y1_body = internal::GetArrayBody(y1);
+            z1 = y1.MakeView();
+        }
+        // y's are dead here
+        Backward({z1}, graph_id3, double_backprop_opt);
+        testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(graph_id3));
+    }
+    EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
+}
+
 INSTANTIATE_TEST_CASE_P(Params, BackpropRetainOutputTest, ::testing::Values(DoubleBackpropOption::kDisable, DoubleBackpropOption::kEnable));
 
 class BackpropRetainInputTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
