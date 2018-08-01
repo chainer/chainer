@@ -124,7 +124,7 @@ class MultivariateNormal(distribution.Distribution):
     def _logdet(self, x):
         diag = diagonal.diagonal(x, axis1=-2, axis2=-1)
         logdet = sum_mod.sum(
-            exponential.log(basic_math.absolute(diag)), axis=-1)
+            exponential.log(abs(diag)), axis=-1)
         return logdet
 
     @property
@@ -188,10 +188,10 @@ class MultivariateNormal(distribution.Distribution):
 @distribution.register_kl(MultivariateNormal, MultivariateNormal)
 def _kl_multivariatenormal_multivariatenormal(dist1, dist2):
     diag = diagonal.diagonal(dist1.scale_tril, axis1=-2, axis2=-1)
-    logdet1 = sum_mod.sum(exponential.log(basic_math.absolute(diag)), axis=-1)
+    logdet1 = sum_mod.sum(exponential.log(abs(diag)), axis=-1)
 
     diag = diagonal.diagonal(dist2.scale_tril, axis1=-2, axis2=-1)
-    logdet2 = sum_mod.sum(exponential.log(basic_math.absolute(diag)), axis=-1)
+    logdet2 = sum_mod.sum(exponential.log(abs(diag)), axis=-1)
 
     scale_tril_inv2 = _batch_triangular_inv(dist2.scale_tril.reshape(
         -1, dist2.d, dist2.d))
