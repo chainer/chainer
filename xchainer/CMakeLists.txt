@@ -72,6 +72,7 @@ add_library(xchainer SHARED
     numeric.cc
     numerical_gradient.cc
     op_node.cc
+    reduction_kernel_arg.cc
     scalar.cc
     shape.cc
     strides.cc

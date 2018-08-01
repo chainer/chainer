@@ -5,6 +5,8 @@
 #include <cstdint>
 
 #include "xchainer/array.h"
+// TODO(sonots): rename elementwise.h
+#include "xchainer/elementwise.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
@@ -61,7 +63,20 @@ ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> MakeReductionKernelArg(
                                                                     Indexer<ReduceNdim>{arg.reduce_shape}};
 }
 
-// TODO(sonots): Squash dimensions to optimize performance
+namespace internal {
+
+struct SquashReductionArg {
+    Strides in_strides;
+    Strides out_strides;
+    Shape in_shape;
+    Shape out_shape;
+    Shape reduce_shape;
+};
+
+SquashReductionArg SquashReductionShapeAndStrides(const SquashReductionArg& arg);
+
+}  // namespace internal
+
 template <typename In, typename Out>
 ReductionArg<In, Out> MakeReductionArg(const Array& in, const Axes& axis, const Array& out) {
     // True if some axes are reduced but kept in output as 1-dim axes.
@@ -156,13 +171,24 @@ ReductionArg<In, Out> MakeReductionArg(const Array& in, const Axes& axis, const 
     assert(std::find(new_in_shape.begin(), new_in_shape.end(), 1) == new_in_shape.end());
     assert(std::find(new_out_shape.begin(), new_out_shape.end(), 1) == new_out_shape.end());
 
+    Strides new_in_strides = in.strides().Permute(axis_permutes);
+    Strides new_out_strides = out.strides().Permute(out_axis_map);
+
+    // Squash dimensions
+    internal::SquashReductionArg squashed_arg =
+            internal::SquashReductionShapeAndStrides(internal::SquashReductionArg{std::move(new_in_strides),
+                                                                                  std::move(new_out_strides),
+                                                                                  std::move(new_in_shape),
+                                                                                  std::move(new_out_shape),
+                                                                                  std::move(reduce_shape)});
+
     return ReductionArg<In, Out>{internal::GetRawOffsetData<In>(in),
                                  internal::GetRawOffsetData<Out>(out),
-                                 in.strides().Permute(axis_permutes),
-                                 out.strides().Permute(out_axis_map),
-                                 std::move(new_in_shape),
-                                 std::move(new_out_shape),
-                                 std::move(reduce_shape)};
+                                 std::move(squashed_arg.in_strides),
+                                 std::move(squashed_arg.out_strides),
+                                 std::move(squashed_arg.in_shape),
+                                 std::move(squashed_arg.out_shape),
+                                 std::move(squashed_arg.reduce_shape)};
 }
 
 }  // namespace xchainer
