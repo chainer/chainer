@@ -33,9 +33,9 @@ from chainer.testing import parameterize
             ([1, 0],),
             numpy.array([[1, 0], [2, 3]]),
             ([1, 0], [1, 1]),
-            # ([1, 0], slice(None), [[1, 1], [1, 1]]),
+            ([1, 0], slice(None), [[1, 1], [0, 0]]),
             ([1, 0], slice(1, 2), [0, 0]),
-            # ([[1, 1], [1, 0]], slice(1, 2), 1),
+            ([[1, 2], [3, 0]], slice(1, 2), 1),
             numpy.array([True] * 18 + [False] * 6).reshape(4, 3, 2),
             numpy.array([True, False, False, True]),
             (slice(None), numpy.array([True, False, True])),
@@ -56,7 +56,11 @@ class TestCopiedSetItem(unittest.TestCase):
 
     def setUp(self):
         self.x0_data = numpy.random.uniform(-1, 1, self.shape)
-        sliced_shape = self.x0_data[self.slices].shape
+        try:
+            sliced_shape = self.x0_data[self.slices].shape
+        except IndexError as e:
+            self.skipTest(
+                "not supported in this version of numpy ({})".format(e))
         assert 0 <= self.batch_ndim <= len(sliced_shape)
         rhs_shape = sliced_shape[self.batch_ndim:]
         self.x1_data = numpy.random.uniform(-1, 1, rhs_shape)
