@@ -29,7 +29,6 @@ install(FILES
     device.h
     device_id.h
     dtype.h
-    elementwise.h
     enum.h
     error.h
     graph.h
@@ -46,6 +45,7 @@ install(FILES
     scalar.h
     shape.h
     slice.h
+    squash_dim.h
     stack_vector.h
     strides.h
     xchainer.h
@@ -108,7 +108,6 @@ if(ENABLE_TEST)
         context_test.cc
         device_test.cc
         dtype_test.cc
-        elementwise_test.cc
         index_iterator_test.cc
         indexable_array_test.cc
         indexer_test.cc
@@ -118,6 +117,7 @@ if(ENABLE_TEST)
         optional_container_arg_test.cc
         scalar_test.cc
         shape_test.cc
+        squash_dim_test.cc
         stack_vector_test.cc
         strides_test.cc
         )

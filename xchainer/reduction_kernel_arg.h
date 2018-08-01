@@ -5,12 +5,11 @@
 #include <cstdint>
 
 #include "xchainer/array.h"
-// TODO(sonots): rename elementwise.h
-#include "xchainer/elementwise.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
 #include "xchainer/shape.h"
+#include "xchainer/squash_dim.h"
 #include "xchainer/strides.h"
 
 namespace xchainer {

@@ -11,7 +11,7 @@
 #include "xchainer/strides.h"
 
 namespace xchainer {
-namespace elementwise_detail {
+namespace squash_dim_detail {
 
 // Returns true if dimension i can be squashed for all strides, false otherwise.
 template <typename... PackedStrides>
@@ -21,7 +21,7 @@ inline bool IsSquashableDimension(size_t i, const Shape& shape, const PackedStri
     return !static_cast<bool>(std::max({(strides[i] * shape[i] != strides[i - 1])...}));
 }
 
-}  // namespace elementwise_detail
+}  // namespace squash_dim_detail
 
 // Returns a subset of strides with elements corresponding to the given axes that were kept after squashing a shape with SquashShape.
 // It should therefore be called with the resulting keep axes from SquashShape and the strides from the same arrays.
@@ -50,7 +50,7 @@ std::tuple<Shape, Axes> SquashShape(const Shape& shape, const PackedStrides&... 
             for (int8_t i = 1; i < ndim; ++i) {
                 if (compressed[i - 1] == 1) {
                     // Do nothing.
-                } else if (elementwise_detail::IsSquashableDimension(i, compressed, strides...)) {
+                } else if (squash_dim_detail::IsSquashableDimension(i, compressed, strides...)) {
                     compressed[i] *= compressed[i - 1];
                     compressed[i - 1] = 1;
                 } else {

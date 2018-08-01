@@ -7,11 +7,11 @@
 
 #include "xchainer/constant.h"
 #include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/elementwise.h"
 #include "xchainer/index_iterator.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/shape.h"
+#include "xchainer/squash_dim.h"
 
 namespace xchainer {
 namespace cuda {
