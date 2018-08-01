@@ -53,14 +53,14 @@ class TriangularInv(chainer.function_node.FunctionNode):
                               str(_import_error))
         x, = inputs
         invx = scipy.linalg.solve_triangular(
-            x, numpy.eye(len(x), dtype=x[0].dtype), lower=self._lower)
+            x, numpy.eye(len(x), dtype=x.dtype), lower=self._lower)
         return invx,
 
     def forward_gpu(self, inputs):
         self.retain_outputs((0,))
         x, = inputs
         invx = cuda.cupyx.scipy.linalg.solve_triangular(
-            x, cuda.cupy.eye(len(x), dtype=x[0].dtype), lower=self._lower)
+            x, cuda.cupy.eye(len(x), dtype=x.dtype), lower=self._lower)
         return invx,
 
     def backward(self, target_input_indexes, grad_outputs):

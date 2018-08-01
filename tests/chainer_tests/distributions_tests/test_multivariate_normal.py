@@ -53,7 +53,7 @@ class TestMultivariateNormal(testing.distribution_unittest):
 
 
 @testing.parameterize(*testing.product({
-    'd': [3, 5],
+    'd': [3, 1, 0],
     'lower': [True, False],
     'dtype': [numpy.float32],
 }))
