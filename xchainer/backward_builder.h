@@ -122,7 +122,7 @@ public:
     }
 
 private:
-    std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> prev_array_node_all_graphs();
+    std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> graph_to_prev_array_nodes();
 
     // Create an op node for a specific graph.
     // Edges from output nodes to the op node are connected.
@@ -150,7 +150,7 @@ private:
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
 
-    std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> prev_array_node_all_graphs_;
+    std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> graph_to_prev_array_nodes_;
 };
 
 }  // namespace xchainer
