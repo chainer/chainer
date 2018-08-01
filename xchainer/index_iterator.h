@@ -77,12 +77,12 @@ public:
     }
 
     XCHAINER_HOST_DEVICE IndexIterator<0>& operator++() {
-        raw_index_ += 1;
+        ++raw_index_;
         return *this;
     }
 
     XCHAINER_HOST_DEVICE IndexIterator<0>& operator--() {
-        raw_index_ -= 1;
+        --raw_index_;
         return *this;
     }
 
