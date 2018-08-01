@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "xchainer/array.h"
+#include "xchainer/macro.h"
 #include "xchainer/reduction_kernel_arg.h"
 
 namespace xchainer {
@@ -70,52 +71,71 @@ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> ar
 //     Then, it can be passed to Reduce like: Reduce(input, axis, output, SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
 void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&& impl) {
+    if (in.ndim() == out.ndim()) {
+        in.device().AsType(in, out);
+        return;
+    }
+
     ReductionArg<In, Out> arg = MakeReductionArg<In, Out>(in, axis, out);
 
     // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
-    switch (arg.in_strides.ndim()) {
+    switch (arg.in_shape.ndim()) {
         case 1:
-            switch (arg.out_strides.ndim()) {
+            switch (arg.out_shape.ndim()) {
                 case 0:
+                    assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), impl);
                     return;
             }
+            XCHAINER_NEVER_REACH();
         case 2:
-            switch (arg.out_strides.ndim()) {
+            switch (arg.out_shape.ndim()) {
                 case 0:
+                    assert(arg.reduce_shape.ndim() == 2);
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 2, 0, 2>(arg), impl);
                     return;
                 case 1:
+                    assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), impl);
                     return;
             }
+            XCHAINER_NEVER_REACH();
         case 3:
-            switch (arg.out_strides.ndim()) {
+            switch (arg.out_shape.ndim()) {
                 case 0:
+                    assert(arg.reduce_shape.ndim() == 3);
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 3, 0, 3>(arg), impl);
                     return;
                 case 1:
+                    assert(arg.reduce_shape.ndim() == 2);
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 3, 1, 2>(arg), impl);
                     return;
                 case 2:
+                    assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 3, 2, 1>(arg), impl);
                     return;
             }
+            XCHAINER_NEVER_REACH();
         case 4:
-            switch (arg.out_strides.ndim()) {
+            switch (arg.out_shape.ndim()) {
                 case 0:
+                    assert(arg.reduce_shape.ndim() == 4);
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 4, 0, 4>(arg), impl);
                     return;
                 case 1:
+                    assert(arg.reduce_shape.ndim() == 3);
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 4, 1, 3>(arg), impl);
                     return;
                 case 2:
+                    assert(arg.reduce_shape.ndim() == 2);
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 4, 2, 2>(arg), impl);
                     return;
                 case 3:
+                    assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 4, 3, 1>(arg), impl);
                     return;
             }
+            XCHAINER_NEVER_REACH();
     }
 
     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out>(arg), impl);

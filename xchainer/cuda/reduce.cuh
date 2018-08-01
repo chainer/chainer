@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/macro.h"
 #include "xchainer/reduction_kernel_arg.h"
 
 namespace xchainer {
@@ -154,6 +155,11 @@ __global__ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim, Red
 //     Then, it can be passed to Reduce like: Reduce(input, axis, output, SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
 void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&& impl) {
+    if (axis.ndim() == 0) {
+        in.device().AsType(in, out);
+        return;
+    }
+
     ReductionArg<In, Out> arg = MakeReductionArg<In, Out>(in, axis, out);
 
     static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&reduce_detail::ReductionKernel<In, Out, ReductionImpl>).block_size;
@@ -171,55 +177,69 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
         case 1:
             switch (arg.out_strides.ndim()) {
                 case 0:
+                    assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
                     return;
             }
+            XCHAINER_NEVER_REACH();
         case 2:
             switch (arg.out_strides.ndim()) {
                 case 0:
+                    assert(arg.reduce_shape.ndim() == 2);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 2, 0, 2>(arg), reduce_block_size, impl);
                     return;
                 case 1:
+                    assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
                     return;
             }
+            XCHAINER_NEVER_REACH();
         case 3:
             switch (arg.out_strides.ndim()) {
                 case 0:
+                    assert(arg.reduce_shape.ndim() == 3);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 3, 0, 3>(arg), reduce_block_size, impl);
                     return;
                 case 1:
+                    assert(arg.reduce_shape.ndim() == 2);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 3, 1, 2>(arg), reduce_block_size, impl);
                     return;
                 case 2:
+                    assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 3, 2, 1>(arg), reduce_block_size, impl);
                     return;
             }
+            XCHAINER_NEVER_REACH();
         case 4:
             switch (arg.out_strides.ndim()) {
                 case 0:
+                    assert(arg.reduce_shape.ndim() == 4);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 0, 4>(arg), reduce_block_size, impl);
                     return;
                 case 1:
+                    assert(arg.reduce_shape.ndim() == 3);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 1, 3>(arg), reduce_block_size, impl);
                     return;
                 case 2:
+                    assert(arg.reduce_shape.ndim() == 2);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 2, 2>(arg), reduce_block_size, impl);
                     return;
                 case 3:
+                    assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 3, 1>(arg), reduce_block_size, impl);
                     return;
             }
+            XCHAINER_NEVER_REACH();
     }
 
     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
