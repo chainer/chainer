@@ -74,6 +74,7 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
     ReductionArg<In, Out> arg = MakeReductionArg<In, Out>(in, axis, out);
 
     // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
+    assert(arg.in_shape.ndim() == arg.out_shape.ndim() + arg.reduce_shape.ndim());
     switch (arg.in_shape.ndim()) {
         case 1:
             switch (arg.out_shape.ndim()) {
