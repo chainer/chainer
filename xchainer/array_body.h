@@ -63,8 +63,6 @@ public:
 
     bool HasArrayNode(const GraphId& graph_id) const { return GetNodeIndex(graph_id).has_value(); }
 
-    bool has_any_array_node() const { return !nodes_.empty(); };
-
     // Adds an array node to the array body.
     // The array node must have been initialized with this array body in advance.
     // Otherwise the behavior is undefined.
