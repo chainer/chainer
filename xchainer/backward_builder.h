@@ -147,7 +147,6 @@ private:
 
     const char* op_name_;
 
-<<<<<<< HEAD
     // Input arrays of the op.
     std::vector<ConstArrayRef> inputs_;
 
@@ -155,11 +154,6 @@ private:
     // All of these flags must be true after all the backwards have been defined for a BackwardBuilder.
     // This can be checked by calling is_complete();
     std::vector<bool> inputs_target_created_;
-=======
-    bool is_links_between_graphs_created_{false};
-
-    bool is_any_output_retained_{false};
->>>>>>> c207013... wip
 
     // Output arrays of the op.
     std::vector<ConstArrayRef> outputs_;
