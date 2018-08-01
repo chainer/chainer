@@ -121,7 +121,7 @@ public:
     //
     // `output` must be one of the arrays specified in the constructor of BackwardBuilder as output arrays.
     // If invalid array is specified, XchainerError will be thrown.
-    RetainedOutputToken RetainOutput(const Array& output);
+    RetainedOutputToken RetainOutput(size_t output_index);
 
 private:
     // Create an op node for a specific graph.

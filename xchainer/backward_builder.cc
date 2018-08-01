@@ -15,7 +15,6 @@
 #include "xchainer/array_node.h"
 #include "xchainer/backprop_mode.h"
 #include "xchainer/device.h"
-#include "xchainer/error.h"
 #include "xchainer/graph.h"
 #include "xchainer/op_node.h"
 
@@ -173,19 +172,9 @@ RetainedInputToken BackwardBuilder::RetainInput(size_t input_index) {
     return {internal::GetArrayBody(gsl::at(inputs_, input_index))->GetParams(), input_index};
 }
 
-RetainedOutputToken BackwardBuilder::RetainOutput(const Array& output) {
-    // Find the corresponding output index.
-    // If there are more than one array with the same array body in outputs, the first one is always chosen, no matter what array the caller
-    // actually specified. It doesn't matter because the array GetRetainedOutput would return is the same.
-    // TODO(niboshi): It may be costly in ops with many output arrays.
-    auto it = std::find_if(outputs_.begin(), outputs_.end(), [&output](const Array& output2) {
-        return internal::GetArrayBody(output) == internal::GetArrayBody(output2);
-    });
-    if (it == outputs_.end()) {
-        throw XchainerError{"Cannot retain an array which is not any of output arrays."};
-    }
-    size_t output_index = std::distance(outputs_.begin(), it);
-    return {internal::GetArrayBody(output)->GetParams(), output_index};
+RetainedOutputToken BackwardBuilder::RetainOutput(size_t output_index) {
+    assert(output_index < outputs_.size());
+    return {internal::GetArrayBody(gsl::at(outputs_, output_index))->GetParams(), output_index};
 }
 
 }  // namespace xchainer
