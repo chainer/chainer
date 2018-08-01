@@ -11,15 +11,53 @@ from chainer.testing import attr
 from chainer.testing import parameterize
 
 
-@parameterize(
-    {'shape': (4, 3, 2), 'slices': (1, -1), 'batch_ndim': 0},
+@parameterize(*(testing.product(
+    {
+        'shape': [(4, 3, 2)],
+        'batch_ndim': [0],
+        'slices': [
+            # from test_get_item.TestGetItem
+            (1, -1, 0),
+            (1, -1),
+            (1, Ellipsis, -1),
+            (1, None, Ellipsis, None, -1),
+
+            # from test_get_item.TestGetItemAdvanced
+            [],
+            ([],),
+            ([[]],),
+            numpy.array([], dtype=numpy.bool),
+            (1, [1]),
+            ([1], slice(1, 2)),
+            [1, 0],
+            ([1, 0],),
+            numpy.array([[1, 0], [2, 3]]),
+            ([1, 0], [1, 1]),
+            # ([1, 0], slice(None), [[1, 1], [1, 1]]),
+            ([1, 0], slice(1, 2), [0, 0]),
+            # ([[1, 1], [1, 0]], slice(1, 2), 1),
+            numpy.array([True] * 18 + [False] * 6).reshape(4, 3, 2),
+            numpy.array([True, False, False, True]),
+            (slice(None), numpy.array([True, False, True])),
+            numpy.array([False, False, False, False]),
+            (3, 2, Ellipsis, 1),
+            (numpy.array(False)),
+            (numpy.array(True)),
+        ],
+    },
+) + [
     {'shape': (4, 3, 2), 'slices': (1, -1), 'batch_ndim': 1},
-)
-class TestSetItem(unittest.TestCase):
+    {'shape': (4, 3, 2), 'slices': (Ellipsis, 1), 'batch_ndim': 2},
+    {'shape': (), 'slices': (), 'batch_ndim': 0},
+    {'shape': (), 'slices': None, 'batch_ndim': 0},
+    {'shape': (), 'slices': None, 'batch_ndim': 1},
+]))
+class TestCopiedSetItem(unittest.TestCase):
 
     def setUp(self):
         self.x0_data = numpy.random.uniform(-1, 1, self.shape)
         sliced_shape = self.x0_data[self.slices].shape
+        assert 0 <= self.batch_ndim <= len(sliced_shape)
         rhs_shape = sliced_shape[self.batch_ndim:]
         self.x1_data = numpy.random.uniform(-1, 1, rhs_shape)
         self.gy_data = numpy.random.uniform(-1, 1, self.shape)

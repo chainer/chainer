@@ -1,15 +1,6 @@
-import numpy
-
 import chainer
-from chainer.backends import cuda
 from chainer import function_node
-from chainer import utils
 from chainer.utils import type_check
-from chainer import variable
-
-
-_numpy_supports_0d_bool_index = \
-    numpy.lib.NumpyVersion(numpy.__version__) >= '1.13.0'
 
 
 class CopiedSetItem(function_node.FunctionNode):
@@ -43,7 +34,7 @@ class CopiedSetItem(function_node.FunctionNode):
         y = lhs.copy()
         y[self.slices] = rhs
         self.rhs_shape = rhs.shape
-        return utils.force_array(y),
+        return y,
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
