@@ -1,4 +1,3 @@
-import collections
 import contextlib
 import copy
 import warnings
@@ -11,12 +10,13 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer import variable
+from chainer.utils import collections_abc
 
 
 def _is_shape(value):
     if value is None:
         return True
-    elif isinstance(value, collections.Sequence):
+    elif isinstance(value, collections_abc.Sequence):
         try:
             return all(int(x) for x in value)
         except TypeError:
@@ -970,7 +970,7 @@ Assign a Link object directly to an attribute within a \
             d[name].serialize(serializer[name])
 
 
-class ChainList(Link, collections.MutableSequence):
+class ChainList(Link, collections_abc.MutableSequence):
 
     """Composable link with list-like interface.
 
