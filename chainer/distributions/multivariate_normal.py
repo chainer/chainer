@@ -52,6 +52,9 @@ class TriangularInv(chainer.function_node.FunctionNode):
                               " of triangular_inv in CPU can not be done." +
                               str(_import_error))
         x, = inputs
+        if len(x) == 0:
+            # scipy.linalg.solve_triangular crashes
+            return x,
         invx = scipy.linalg.solve_triangular(
             x, numpy.eye(len(x), dtype=x.dtype), lower=self._lower)
         return invx,
