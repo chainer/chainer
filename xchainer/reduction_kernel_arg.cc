@@ -19,8 +19,6 @@ namespace internal {
 // - in_squashed_shape: (24, 30)
 // - out_squashed_shape: (24)
 // - reduce_squashed_shape: (30)
-//
-// TODO(sonots): squash input and output dimensions individually to achieve best performance
 SquashReductionArg SquashReductionShapeAndStrides(const SquashReductionArg& arg) {
 #ifndef NDEBUG
     assert(arg.in_shape.ndim() == arg.out_shape.ndim() + arg.reduce_shape.ndim());
@@ -35,20 +33,20 @@ SquashReductionArg SquashReductionShapeAndStrides(const SquashReductionArg& arg)
     }
 #endif
 
-    // Skip squashing for apparent cases:
-    // if (in_shape.ndim() == 0) {
-    //     assert(out_shape.ndim() == 0 && reduce_shape.ndim() == 0);
-    //     return std::make_tuple(in_shape, in_strides, reduce_shape);
-    // } else if (in_shape.ndim() == 1) {
-    //     assert((out_shape.ndim() == 1 && reduce_shape.ndim() == 0) || (out.shape.ndim() == 0 && reduce_shape.ndim == 1));
-    //     return std::make_tuple(in_shape, in_strides, reduce_shape);
-    // } else if (in_shape.ndim() == 2 && out_shape.ndim() == 1) {
-    //     assert(reduce_shape.ndim() == 1);
-    //     return std::make_tuple(in_shape, in_strides, reduce_shape);
-    // }
+    // Some cases we can not squash further
+    if (arg.in_shape.ndim() == 0) {
+        assert(arg.out_shape.ndim() == 0 && arg.reduce_shape.ndim() == 0);
+        return arg;
+    } else if (arg.in_shape.ndim() == 1) {
+        assert((arg.out_shape.ndim() == 1 && arg.reduce_shape.ndim() == 0) || (arg.out_shape.ndim() == 0 && arg.reduce_shape.ndim() == 1));
+        return arg;
+    } else if (arg.in_shape.ndim() == 2 && arg.out_shape.ndim() == 1) {
+        assert(arg.reduce_shape.ndim() == 1);
+        return arg;
+    }
 
     // Squash out
-    // Only out_shape.ndim() elements in in_strides are seen in SquashShape
+    // Note that only out_shape.ndim() elements in in_strides are seen in SquashShape, thus we can skip copying former parts of in_strides
     std::tuple<Shape, Axes> out_squashed_result = SquashShape(arg.out_shape, arg.in_strides, arg.out_strides);
     const Shape& out_squashed_shape = std::get<0>(out_squashed_result);
     const Axes& out_keep_axes = std::get<1>(out_squashed_result);
