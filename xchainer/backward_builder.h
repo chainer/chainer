@@ -56,10 +56,34 @@ using RetainedInputToken = backward_builder_detail::RetainedArrayToken<struct In
 using RetainedOutputToken = backward_builder_detail::RetainedArrayToken<struct OutputTag>;
 
 class BackwardBuilder {
-private:
-    using PrevArrayNodes = std::vector<std::shared_ptr<internal::ArrayNode>>;
-
 public:
+    // Target is responsible to define edges from OpNode to input ArrayNodes with given BackwardFunction.
+    // Note that Targets built from the same BackwardBuilder share some properties not to compute again.
+    class Target {
+    public:
+        explicit operator bool() const { return is_definition_required(); }
+
+        // Defines a backward function with respect to specified input arrays (target).
+        void Define(const BackwardFunction& backward_func);
+
+        bool is_definition_required() const { return !graph_to_next_array_nodes_.empty(); }
+
+    private:
+        friend class BackwardBuilder;  // Only BackwardBuilder can create Target
+
+        using NextArrayNodes = std::vector<const std::shared_ptr<internal::ArrayNode>*>;
+
+        Target(BackwardBuilder& builder, std::vector<size_t> input_indices);
+
+        // Collect input ArrayNodes, grouped by graph considering IsBackpropRequired.
+        // This functions is only called once in the constructor.
+        void RegisterDefinitionRequiredGraphsAndArrayNodes();
+
+        BackwardBuilder& builder_;
+        std::vector<size_t> input_indices_;
+        std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
+    };
+
     BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs);
     BackwardBuilder(const char* op_name, const Array& input, std::vector<ConstArrayRef> outputs)
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::move(outputs)} {}
@@ -68,10 +92,9 @@ public:
     BackwardBuilder(const char* op_name, const Array& input, const Array& output)
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
 
-    // Returns whether the backward definitions to cover all the input arrays have finished.
-    bool is_complete() const {
-        return std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; });
-    }
+    Target CreateTarget(std::vector<size_t> input_indices) { return Target{*this, std::move(input_indices)}; }
+
+    Target CreateTarget(size_t input_index) { return Target{*this, {input_index}}; }
 
     // TODO(hvy): Write comment.
     RetainedInputToken RetainInput(size_t input_index);
@@ -93,46 +116,22 @@ public:
     // If invalid array is specified, XchainerError will be thrown.
     RetainedOutputToken RetainOutput(const Array& output);
 
-    // Target is responsible to define edges from OpNode to input ArrayNodes with given BackwardFunction.
-    // Note that Targets built from the same BackwardBuilder share some properties not to compute again.
-    class Target {
-    public:
-        explicit operator bool() const { return is_definition_required(); }
-
-        // Defines a backward function with respect to specified input arrays (target).
-        void Define(const BackwardFunction& backward_func);
-
-        bool is_definition_required() const { return !graph_to_next_array_nodes_.empty(); }
-
-    private:
-        friend class BackwardBuilder;  // Only BackwardBuilder can create Target
-
-        using NextArrayNodes = std::vector<const std::shared_ptr<internal::ArrayNode>*>;
-
-        Target(BackwardBuilder& builder, std::vector<size_t> input_indices);
-
-        const char* op_name() { return builder_.op_name_; }
-        std::vector<ConstArrayRef>& outputs() { return builder_.outputs_; }
-        std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>>& op_node_map() { return builder_.op_node_map_; }
-
-        void PrepareGraphToNextArrayNodes();
-        std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
-        void RegisterOuterGraphsPreviousArrayNodes(const std::shared_ptr<internal::OpNode>& op_nodes);
-
-        BackwardBuilder& builder_;
-<<<<<<< HEAD
-        std::vector<size_t> input_indices_;
-=======
-        std::vector<ConstArrayRef> inputs_;
->>>>>>> 80ee7b9... Revert "wip: Let BackwardBuilder hold intermediate state of backward definition"
-        std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
-    };
-
-    Target CreateTarget(std::vector<size_t> input_indices) { return Target{*this, std::move(input_indices)}; }
-    Target CreateTarget(size_t input_index) { return Target{*this, {input_index}}; }
+    // Returns whether the backward definitions to cover all the input arrays have finished.
+    bool is_complete() const {
+        return std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; });
+    }
 
 private:
     std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> prev_array_node_all_graphs();
+
+    // Create an op node for a specific graph.
+    // Edges from output nodes to the op node are connected.
+    std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
+
+    // Add shared ptrs between op nodes and array nodes belonging to outer graphs.
+    // This functions is called once when the given op node is encountered for the first time.
+    // These references are required to restore retained inputs/outputs.
+    void RegisterOuterGraphsPreviousArrayNodes(const std::shared_ptr<internal::OpNode>& op_node);
 
     const char* op_name_;
 
@@ -151,7 +150,7 @@ private:
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
 
-    std::unordered_map<GraphId, PrevArrayNodes> prev_array_node_all_graphs_;
+    std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> prev_array_node_all_graphs_;
 };
 
 }  // namespace xchainer

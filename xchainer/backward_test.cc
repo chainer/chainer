@@ -1603,9 +1603,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
 
         Array y1_value = y1.MakeView();
 
-        BackwardBuilder bb{"func", {y1}};
+        BackwardBuilder bb{"func", {x1, x2}, y1};
         {
-            BackwardBuilder::Target bt = bb.CreateTarget(x1);
+            BackwardBuilder::Target bt = bb.CreateTarget(0);
             assert(bt);
             bt.Define([ tok1 = bb.RetainOutput(y1), y1_value, &graph_id1, &graph_id2, &y1_body, double_backprop_opt ](
                     BackwardContext & bctx) {
@@ -1631,7 +1631,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
             });
         }
         {
-            BackwardBuilder::Target bt = bb.CreateTarget(x2);
+            BackwardBuilder::Target bt = bb.CreateTarget(1);
             assert(bt);
             bt.Define([ tok1 = bb.RetainOutput(y1), y1_value, &graph_id1, &graph_id2, &y1_body, double_backprop_opt ](
                     BackwardContext & bctx) {
