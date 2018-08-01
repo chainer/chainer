@@ -100,7 +100,7 @@ public:
     RetainedInputToken RetainInput(size_t input_index);
 
     // Flags an output array to be retained for use in the backward pass.
-    // Op implmentations can use this function in combination with BackwardContext::GetRetainedOutput() to retrieve output arrays in the
+    // Op implementations can use this function in combination with BackwardContext::GetRetainedOutput() to retrieve output arrays in the
     // backward pass.
     //
     // If an op implementation requires the output array of the forward pass in the backward pass, it should call
