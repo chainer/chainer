@@ -6,8 +6,8 @@ import chainer
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
+from chainer.functions.array import diagonal
 from chainer.functions.array import expand_dims
-from chainer.functions.array import moveaxis
 from chainer.functions.array import repeat
 from chainer.functions.array import squeeze
 from chainer.functions.array import stack
@@ -122,10 +122,9 @@ class MultivariateNormal(distribution.Distribution):
         return self._copy_to(MultivariateNormal(self.loc, self.scale_tril))
 
     def _logdet(self, x):
-        st = moveaxis.moveaxis(x, (-2, -1), (0, 1))
-        diag = st[list(range(self.d)), list(range(self.d))]
+        diag = diagonal.diagonal(x, axis1=-2, axis2=-1)
         logdet = sum_mod.sum(
-            exponential.log(basic_math.absolute(diag)), axis=0)
+            exponential.log(basic_math.absolute(diag)), axis=-1)
         return logdet
 
     @property
@@ -188,13 +187,11 @@ class MultivariateNormal(distribution.Distribution):
 
 @distribution.register_kl(MultivariateNormal, MultivariateNormal)
 def _kl_multivariatenormal_multivariatenormal(dist1, dist2):
-    st = moveaxis.moveaxis(dist1.scale_tril, (-2, -1), (0, 1))
-    diag = st[list(range(dist1.d)), list(range(dist1.d))]
-    logdet1 = sum_mod.sum(exponential.log(basic_math.absolute(diag)), axis=0)
+    diag = diagonal.diagonal(dist1.scale_tril, axis1=-2, axis2=-1)
+    logdet1 = sum_mod.sum(exponential.log(basic_math.absolute(diag)), axis=-1)
 
-    st = moveaxis.moveaxis(dist2.scale_tril, (-2, -1), (0, 1))
-    diag = st[list(range(dist2.d)), list(range(dist2.d))]
-    logdet2 = sum_mod.sum(exponential.log(basic_math.absolute(diag)), axis=0)
+    diag = diagonal.diagonal(dist2.scale_tril, axis1=-2, axis2=-1)
+    logdet2 = sum_mod.sum(exponential.log(basic_math.absolute(diag)), axis=-1)
 
     scale_tril_inv2 = _batch_triangular_inv(dist2.scale_tril.reshape(
         -1, dist2.d, dist2.d))
