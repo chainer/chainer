@@ -109,10 +109,6 @@ public:
 
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
         assert(TypeToDtype<T> == array.dtype());
-
-#ifndef NDEBUG
-        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-#endif  // NDEBUG
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -126,10 +122,7 @@ public:
     XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
         (void)index;  // unused
         assert(index == nullptr || index[0] == 0);
-        auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_);
-        assert(first_ == nullptr || first_ <= data_ptr);
-        assert(last_ == nullptr || data_ptr <= last_ - sizeof(T));
-        return *reinterpret_cast<T*>(data_ptr);
+        return *data_;
     }
 
     XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<0>& it) const { return operator[](it.index()); }
@@ -141,10 +134,6 @@ public:
 
 private:
     T* data_;
-#ifndef NDEBUG
-    const uint8_t* first_{nullptr};
-    const uint8_t* last_{nullptr};
-#endif  // NDEBUG
 };
 
 // Static 1-dimensional specialization.
