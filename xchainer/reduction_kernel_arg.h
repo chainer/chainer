@@ -35,7 +35,9 @@ struct ReductionKernelArg {
     Indexer<ReduceNdim> reduce_indexer;
 };
 
-// Reduction argument to be converted to the reduction kernel argument with (probably) optimized ndim indexer.
+// A structure to represent argument of Reduce function.
+//
+// This structure is used to make a reduction kernel argument having indexers with dynamic ndim or statically optmized ndim.
 //
 // Input and output arrays are transposed so that the reduction axes come last. Axes of length 1 are also removed.
 template <typename In, typename Out>
