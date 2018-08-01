@@ -11,6 +11,7 @@
 
 #include <gsl/gsl>
 
+#include "xchainer/axes.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
