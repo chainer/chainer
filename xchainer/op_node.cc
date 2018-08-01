@@ -94,6 +94,11 @@ void OpNode::AssertConsistency() const {
         });
     }));
 
+    // All the outer graphs linked from this op node must be outer (lower graph sub ID).
+    assert(std::all_of(outer_graphs_prev_array_nodes_.begin(), outer_graphs_prev_array_nodes_.end(), [this](const auto& tup) {
+        return std::get<0>(tup) < graph_id_;
+    }));
+
     // Corresponding previous array nodes across graphs (corresponding to the same output array) should have the same array body, if it's
     // alive.
     for (size_t i_prev = 0; i_prev < prev_array_node_count(); ++i_prev) {

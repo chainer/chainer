@@ -64,7 +64,7 @@ Array MaxPool(
             {
                 BackwardBuilder bb2{"max_pooling_backward", gout, gx};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget(0)) {
-                    bt2.Define([this, gout](BackwardContext& bctx2) {
+                    bt2.Define([this](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
                         Array ggout = fb->DoubleBackward(ggx.AsGradStopped());
                         internal::MakeViewForForwardBackwardOutput(ggout);
@@ -84,7 +84,6 @@ Array MaxPool(
             bctx1.input_grad() = gx;
         }
 
-        Array x;
         StackVector<int64_t, kMaxNdim> kernel_size;
         StackVector<int64_t, kMaxNdim> stride;
         StackVector<int64_t, kMaxNdim> pad;
@@ -95,7 +94,7 @@ Array MaxPool(
     {
         BackwardBuilder bb1{"max_pooling", x, out};
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
-            bt1.Define(MaxPoolBwd{x, kernel_size, stride, pad, cover_all, std::move(fb)});
+            bt1.Define(MaxPoolBwd{kernel_size, stride, pad, cover_all, std::move(fb)});
         }
         assert(bb1.is_complete());
     }
@@ -115,7 +114,7 @@ Array AveragePool(
     {
         BackwardBuilder bb1{"average_pool", x, out};
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
-            bt1.Define([ fb = std::move(fb), x, kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
+            bt1.Define([ fb = std::move(fb), kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
                 const Array& gout = bctx.output_grad();
                 Array gx = fb->Backward(gout.AsGradStopped());
                 internal::MakeViewForForwardBackwardOutput(gx);

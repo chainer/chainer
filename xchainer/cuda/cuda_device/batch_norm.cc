@@ -229,7 +229,7 @@ public:
 
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
-        Shape gamma_beta_mean_var_shape = internal::ReduceShape(x_cont.shape(), axis(), false);
+        Shape gamma_beta_mean_var_shape = internal::ReduceShape(x_cont.shape(), axis(), true);
 
         Array gamma_casted_cont = AsContiguousArray(gamma.AsType(gamma_beta_mean_var_dtype, false));
         Array ggamma = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);

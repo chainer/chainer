@@ -96,12 +96,15 @@ Array BatchNorm(
     std::shared_ptr<BatchNormForwardBackward> fb =
             x.device().GetBatchNormForwardBackward(result.mean, result.var, eps, decay, result.sorted_axis);
 
-    Array out = fb->Forward(x.AsGradStopped(), result.gamma.AsGradStopped(), result.beta.AsGradStopped());
+    const Array& gamma_reshaped = result.gamma;
+    const Array& beta_reshaped = result.beta;
+
+    Array out = fb->Forward(x.AsGradStopped(), gamma_reshaped.AsGradStopped(), beta_reshaped.AsGradStopped());
     internal::MakeViewForForwardBackwardOutput(out);
 
-    BackwardBuilder bb{"batch_norm", {x, gamma, beta}, {out}};
+    BackwardBuilder bb{"batch_norm", {x, gamma_reshaped, beta_reshaped}, {out}};
     if (BackwardBuilder::Target bt = bb.CreateTarget({0, 1, 2})) {
-        bt.Define([ fb = std::move(fb), x, gamma = result.gamma ](BackwardContext & bctx) {
+        bt.Define([ fb = std::move(fb), x, gamma_tok = bb.RetainInput(1) ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             std::array<Array, 3> ginputs = fb->Backward(gout.AsGradStopped());
             internal::MakeViewForForwardBackwardOutput(ginputs);
@@ -113,7 +116,8 @@ Array BatchNorm(
             assert(internal::GetArrayBody(gbeta)->nodes().empty());
 
             if (bctx.next_required()) {
-                BackwardBuilder bb2{"batch_norm_backward", {x, gamma, gout}, {gx, ggamma, gbeta}};
+                const Array& gamma_reshaped = bctx.GetRetainedInput(gamma_tok);
+                BackwardBuilder bb2{"batch_norm_backward", {x, gamma_reshaped, gout}, {gx, ggamma, gbeta}};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget({0, 1, 2})) {
                     bt2.Define([fb](BackwardContext& bctx2) {
                         const Array& g2x = bctx2.output_grad(0);
