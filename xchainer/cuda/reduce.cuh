@@ -181,6 +181,11 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
                     return;
+                case 1:
+                    assert(arg.reduce_shape.ndim() == 0);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 1, 1, 0>(arg), reduce_block_size, impl);
+                    return;
             }
             XCHAINER_NEVER_REACH();
         case 2:
@@ -194,6 +199,11 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
+                    return;
+                case 2:
+                    assert(arg.reduce_shape.ndim() == 0);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 2, 2, 0>(arg), reduce_block_size, impl);
                     return;
             }
             XCHAINER_NEVER_REACH();
@@ -213,6 +223,11 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 3, 2, 1>(arg), reduce_block_size, impl);
+                    return;
+                case 3:
+                    assert(arg.reduce_shape.ndim() == 0);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 3, 3, 0>(arg), reduce_block_size, impl);
                     return;
             }
             XCHAINER_NEVER_REACH();
@@ -237,6 +252,11 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     assert(arg.reduce_shape.ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 3, 1>(arg), reduce_block_size, impl);
+                    return;
+                case 4:
+                    assert(arg.reduce_shape.ndim() == 0);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 4, 4, 0>(arg), reduce_block_size, impl);
                     return;
             }
             XCHAINER_NEVER_REACH();
