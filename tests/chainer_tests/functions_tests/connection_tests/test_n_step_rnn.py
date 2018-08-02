@@ -71,9 +71,8 @@ class TestNStepRNN(unittest.TestCase):
     dropout = 0.0
 
     def setUp(self):
-        config = chainer.config
-        self._old_dtype = getattr(config._local, 'dtype', None)
-        config.dtype = self.dtype
+        self._config_user = chainer.using_config('dtype', self.dtype)
+        self._config_user.__enter__()
 
         self.xs = _shaped_random(
             [(b, self.in_size) for b in self.batches], dtype=self.dtype)
@@ -96,11 +95,7 @@ class TestNStepRNN(unittest.TestCase):
         self.dhy = _shaped_random(h_shape, dtype=self.dtype)
 
     def tearDown(self):
-        config = chainer.config
-        if self._old_dtype is None:
-            del config.dtype
-        else:
-            config.dtype = self._old_dtype
+        self._config_user.__exit__(None, None, None)
 
     def check_forward(
             self, h_data, xs_data, ws_data, bs_data):
