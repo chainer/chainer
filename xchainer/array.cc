@@ -23,6 +23,7 @@
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -182,10 +183,11 @@ Array Array::Copy() const { return xchainer::Copy(*this); }
 Array Array::MakeView() const {
     Array out{shape(), strides(), dtype(), device(), data(), offset()};
 
-    BackwardBuilder bb{"view", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(*this)) {
+    BackwardBuilder bb{"view", *this, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -219,10 +221,11 @@ Array Array::ToDevice(Device& dst_device) const {
     assert(internal::GetArrayBody(out) != nullptr);
 
     // Backward operation is implemented as backward-transfer.
-    BackwardBuilder bb{"transfer", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(*this)) {
+    BackwardBuilder bb{"transfer", *this, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -268,10 +271,11 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     device().AsType(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
-        BackwardBuilder bb{"astype", out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(*this)) {
+        BackwardBuilder bb{"astype", *this, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
         }
+        assert(bb.is_complete());
     }
 
     assert(out.IsContiguous());
@@ -405,7 +409,11 @@ public:
                 os_ << Indent(indent + 1) << "Op<" << op->name() << " " << op.get() << " rank=" << op->rank() << ">" << std::endl;
                 for (const std::shared_ptr<ArrayNode>& next_array_node : op->next_array_nodes()) {
                     state.indent += 2;
-                    RunImpl(state, *next_array_node);
+                    if (next_array_node != nullptr) {
+                        RunImpl(state, *next_array_node);
+                    } else {
+                        os_ << Indent(state.indent) << "(null)" << std::endl;
+                    }
                     state.indent -= 2;
                 }
             }

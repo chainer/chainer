@@ -7,8 +7,8 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backprop_mode.h"
-#include "xchainer/backward.h"
 #include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
@@ -56,19 +56,20 @@ Array Dot(const Array& a, const Array& b) {
     }
 
     {
-        BackwardBuilder bb{"dot", out_matrix};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(a_matrix)) {
+        BackwardBuilder bb{"dot", {a_matrix, b_matrix}, out_matrix};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([b_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(gout, b_matrix.Transpose());
             });
         }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(b_matrix)) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([a_matrix](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(a_matrix.Transpose(), gout);
             });
         }
+        assert(bb.is_complete());
     }
 
     return out_matrix.Reshape(out_shape);

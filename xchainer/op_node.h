@@ -40,20 +40,26 @@ struct ArrayProps {
 
 class OpNodeBackwardEntry {
 public:
-    OpNodeBackwardEntry(OpNode& op_node, std::vector<nonstd::optional<size_t>> next_array_node_indices, BackwardFunction backward_func);
+    OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> next_array_node_indices, BackwardFunction backward_func);
+
+    OpNode& op_node() const { return op_node_; }
 
     size_t next_array_node_count() const { return next_array_node_indices_.size(); }
 
-    const std::vector<nonstd::optional<size_t>>& next_array_node_indices() const { return next_array_node_indices_; }
-
-    const BackwardFunction& backward_func() const { return backward_func_; }
-
-    void AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes);
+    const std::vector<size_t>& next_array_node_indices() const { return next_array_node_indices_; }
 
     // Returns the next array nodes of exotic graphs.
     const std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& exotic_next_array_nodes() const {
         return exotic_next_array_nodes_;
     }
+
+    const BackwardFunction& backward_func() const { return backward_func_; }
+
+    const std::shared_ptr<ArrayNode>& GetNextArrayNode(size_t next_index) const;
+
+    bool IsGradRequired(size_t next_index) const;
+
+    void AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes);
 
 private:
     friend class OpNode;
@@ -62,7 +68,7 @@ private:
 
     // The index mapping from local (this backward function) to global (op node).
     // Can be unset if the input array does not require grad.
-    std::vector<nonstd::optional<size_t>> next_array_node_indices_;
+    std::vector<size_t> next_array_node_indices_;
 
     std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> exotic_next_array_nodes_;
 
@@ -80,14 +86,16 @@ std::shared_ptr<ArrayNode> FabricatePrevArrayNode(std::shared_ptr<OpNode> op_nod
 class OpNode {
 public:
     // Creates a new op node that has prev array nodes corresponding to the given outputs.
-    static std::shared_ptr<OpNode> CreateWithPrevArrayNodes(std::string name, GraphId graph_id, const std::vector<ConstArrayRef>& outputs);
+    static std::shared_ptr<OpNode> CreateWithPrevArrayNodes(
+            std::string name, GraphId graph_id, size_t index_count, const std::vector<ConstArrayRef>& outputs);
 
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;
     OpNode& operator=(const OpNode&) = delete;
     OpNode& operator=(OpNode&&) = delete;
 
-    OpNodeBackwardEntry& RegisterBackwardFunction(std::vector<std::shared_ptr<ArrayNode>> next_array_nodes, BackwardFunction backward_func);
+    OpNodeBackwardEntry& RegisterBackwardFunction(
+            std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> next_array_nodes, BackwardFunction backward_func);
 
     // Adds links to previous array nodes of other graphs.
     void RegisterOuterGraphsPreviousArrayNodes(
@@ -95,7 +103,7 @@ public:
 
     void Unchain() {
         backward_entries_.clear();
-        next_array_nodes_.clear();
+        std::fill(next_array_nodes_.begin(), next_array_nodes_.end(), std::shared_ptr<ArrayNode>{});
         AssertConsistency();
     }
 
@@ -134,7 +142,7 @@ public:
     }
 
 private:
-    OpNode(std::string name, GraphId graph_id);
+    OpNode(std::string name, GraphId graph_id, size_t next_array_node_count);
 
     void AssertConsistency() const;
 
