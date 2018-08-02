@@ -50,19 +50,6 @@ def _make_tensor_descriptor_array(xs):
     return PointerArray([d.value for d in descs], descs)
 
 
-def _get_cudnn_data_type(dtype):
-    """Return a cudnnDataType_t value corresponding to the numpy float dtype.
-    """
-    if dtype is numpy.float32:
-        return libcudnn.CUDNN_DATA_FLOAT
-    elif dtype is numpy.float16:
-        return libcudnn.CUDNN_DATA_HALF
-    elif dtype is numpy.float64:
-        return libcudnn.CUDNN_DATA_DOUBLE
-    else:
-        raise TypeError('Dtype {} is not supported in cuDNN'.format(dtype))
-
-
 if cuda.cudnn_enabled and _cudnn_version >= 5000:
     # Define RNN parameters using dict.
     _rnn_dirs = {
@@ -167,7 +154,7 @@ class CudnnRNNWeightConcat(function.Function):
         bs = inputs[ws_size:]
         out_size = ws[0].shape[0]
         in_size = ws[0].shape[1]
-        cudnn_data_type = _get_cudnn_data_type(self._dtype)
+        cudnn_data_type = cudnn.get_data_type(self._dtype)
 
         # TODO(unno): Make a wrapper method to avoid access _desc directly
         rnn_desc = cudnn.create_rnn_descriptor(
@@ -344,7 +331,7 @@ class BaseNStepRNN(function.Function):
 
         handle = cudnn.get_handle()
         self.handle = handle
-        cudnn_data_type = _get_cudnn_data_type(self._dtype)
+        cudnn_data_type = cudnn.get_data_type(self._dtype)
 
         # TODO(unno): Make a wrapper method to avoid access _desc directly
         rnn_desc = cudnn.create_rnn_descriptor(
