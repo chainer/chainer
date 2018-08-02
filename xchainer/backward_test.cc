@@ -1686,7 +1686,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
 TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysManyInputs) {
     // This test checks that retained output arrays can be retrieved when some of the inputs does not belong to a certain graph.
     //
-    // (x1) <- [forward] <- (y1 := x1 * x2 * x3) <- [view] <- (z1)
+    // (x1) <- [forward] <- (y1 := Exp(x1 + x2 + x3)) <- [view] <- (z1)
     // (x2) <-
     // (x3) <-
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
@@ -1706,52 +1706,28 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         Array x3_c = x3.AsGradStopped();
-        y1 = x1_c * x2_c * x3_c;
+        y1 = Exp(x1_c + x2_c + x3_c);
 
         Array y1_value = y1.MakeView();
 
         BackwardBuilder bb{"func", {x1, x2, x3}, y1};
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            assert(bt);
-            bt.Define([ x2_tok = bb.RetainInput(1), x3_tok = bb.RetainInput(2) ](BackwardContext & bctx) {
-                // This code is not executed in this test.
-                const Array& x2 = bctx.GetRetainedInput(x2_tok);
-                const Array& x3 = bctx.GetRetainedInput(x3_tok);
-                bctx.input_grad() = bctx.output_grad(0) * x2 * x3;
-            });
+            bt.Define([](BackwardContext& /*bctx*/) { FAIL() << "This code should not be executed in this test"; });
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            assert(bt);
-            bt.Define([ x1_tok = bb.RetainInput(0), x3_tok = bb.RetainInput(2) ](BackwardContext & bctx) {
-                // This code is not executed in this test.
-                const Array& x1 = bctx.GetRetainedInput(x1_tok);
-                const Array& x3 = bctx.GetRetainedInput(x3_tok);
-                bctx.input_grad() = bctx.output_grad(0) * x1 * x3;
-            });
+            bt.Define([](BackwardContext& /*bctx*/) { FAIL() << "This code should not be executed in this test"; });
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(2);
-            assert(bt);
-            bt.Define([
-                x1_tok = bb.RetainInput(0),
-                x2_tok = bb.RetainInput(1),
-                y1_tok = bb.RetainOutput(0),
-                y1_value,
-                &graph_id1,
-                &graph_id2,
-                &graph_id3,
-                &y1_body,
-                double_backprop_opt
-            ](BackwardContext & bctx) {
+            bt.Define([ y1_tok = bb.RetainOutput(0), y1_value, &graph_id1, &graph_id2, &graph_id3, &y1_body, double_backprop_opt ](
+                    BackwardContext & bctx) {
                 // Test assumption: the bodies of ys must be dead.
                 ASSERT_EQ(nullptr, y1_body.lock());
 
                 // Retrieve retained outputs
                 const Array& y1 = bctx.GetRetainedOutput(y1_tok);
-                const Array& x1 = bctx.GetRetainedInput(x1_tok);
-                const Array& x2 = bctx.GetRetainedInput(x2_tok);
 
                 testing::ExpectEqual(y1_value, y1);
                 EXPECT_TRUE(y1.IsGradRequired(graph_id1));
@@ -1762,7 +1738,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
                     EXPECT_FALSE(y1.IsGradRequired(graph_id3));
                 }
 
-                bctx.input_grad() = bctx.output_grad(0) * x1 * x2;
+                bctx.input_grad() = bctx.output_grad(0) * y1;
             });
         }
     };
@@ -1776,8 +1752,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         Array x3_value = testing::BuildArray({1}).WithLinearData<double>(4);
         Array x1 = x1_value.MakeView().RequireGrad(graph_id1);
         Array x2 = x2_value.MakeView().RequireGrad(graph_id2);
-        Array x3 = x2_value.MakeView().RequireGrad(graph_id3);
-        Array expected_x3_grad = x1_value * x2_value;
+        Array x3 = x3_value.MakeView().RequireGrad(graph_id3);
+        Array expected_x3_grad = Exp(x1_value + x2_value + x3_value);
         Array z1{};
         {
             Array y1{};
@@ -1798,7 +1774,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
     // This test checks that retained output arrays can be retrieved when some of the inputs does not belong to a certain graph.
     // Even when the order of backward definitions are not in the order the inputs are given to the builder.
     //
-    // (x1) <- [forward] <- (y1 := x1 * x2 * x3) <- [view] <- (z1)
+    // (x1) <- [forward] <- (y1 := Exp(x1 + x2 + x3)) <- [view] <- (z1)
     // (x2) <-
     // (x3) <-
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
@@ -1818,32 +1794,20 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         Array x3_c = x3.AsGradStopped();
-        y1 = x1_c * x2_c * x3_c;
+        y1 = Exp(x1_c + x2_c + x3_c);
 
         Array y1_value = y1.MakeView();
 
         BackwardBuilder bb{"func", {x1, x2, x3}, y1};
         {
             BackwardBuilder::Target bt = bb.CreateTarget(2);
-            assert(bt);
-            bt.Define([
-                x1_tok = bb.RetainInput(0),
-                x2_tok = bb.RetainInput(1),
-                y1_tok = bb.RetainOutput(0),
-                y1_value,
-                &graph_id1,
-                &graph_id2,
-                &graph_id3,
-                &y1_body,
-                double_backprop_opt
-            ](BackwardContext & bctx) {
+            bt.Define([ y1_tok = bb.RetainOutput(0), y1_value, &graph_id1, &graph_id2, &graph_id3, &y1_body, double_backprop_opt ](
+                    BackwardContext & bctx) {
                 // Test assumption: the bodies of ys must be dead.
                 ASSERT_EQ(nullptr, y1_body.lock());
 
                 // Retrieve retained outputs
                 const Array& y1 = bctx.GetRetainedOutput(y1_tok);
-                const Array& x1 = bctx.GetRetainedInput(x1_tok);
-                const Array& x2 = bctx.GetRetainedInput(x2_tok);
 
                 testing::ExpectEqual(y1_value, y1);
                 EXPECT_TRUE(y1.IsGradRequired(graph_id1));
@@ -1854,28 +1818,16 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
                     EXPECT_FALSE(y1.IsGradRequired(graph_id3));
                 }
 
-                bctx.input_grad() = bctx.output_grad(0) * x1 * x2;
+                bctx.input_grad() = bctx.output_grad(0) * y1;
             });
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            assert(bt);
-            bt.Define([ x1_tok = bb.RetainInput(0), x3_tok = bb.RetainInput(2) ](BackwardContext & bctx) {
-                // This code is not executed in this test.
-                const Array& x1 = bctx.GetRetainedInput(x1_tok);
-                const Array& x3 = bctx.GetRetainedInput(x3_tok);
-                bctx.input_grad() = bctx.output_grad(0) * x1 * x3;
-            });
+            bt.Define([](BackwardContext& /*bctx*/) { FAIL() << "This code should not be executed in this test"; });
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            assert(bt);
-            bt.Define([ x2_tok = bb.RetainInput(1), x3_tok = bb.RetainInput(2) ](BackwardContext & bctx) {
-                // This code is not executed in this test.
-                const Array& x2 = bctx.GetRetainedInput(x2_tok);
-                const Array& x3 = bctx.GetRetainedInput(x3_tok);
-                bctx.input_grad() = bctx.output_grad(0) * x2 * x3;
-            });
+            bt.Define([](BackwardContext& /*bctx*/) { FAIL() << "This code should not be executed in this test"; });
         }
     };
 
@@ -1888,8 +1840,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         Array x3_value = testing::BuildArray({1}).WithLinearData<double>(4);
         Array x1 = x1_value.MakeView().RequireGrad(graph_id1);
         Array x2 = x2_value.MakeView().RequireGrad(graph_id2);
-        Array x3 = x2_value.MakeView().RequireGrad(graph_id3);
-        Array expected_x3_grad = x1_value * x2_value;
+        Array x3 = x3_value.MakeView().RequireGrad(graph_id3);
+        Array expected_x3_grad = Exp(x1_value + x2_value + x3_value);
         Array z1{};
         {
             Array y1{};
