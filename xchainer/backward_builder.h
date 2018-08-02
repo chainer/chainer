@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cassert>
 #include <cstddef>
 #include <functional>
 #include <initializer_list>
 #include <memory>
+#include <set>
 #include <unordered_map>
 #include <vector>
 
@@ -99,9 +101,19 @@ public:
         return std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; });
     }
 
-    Target CreateTarget(std::vector<size_t> input_indices) { return Target{*this, std::move(input_indices)}; }
+    Target CreateTarget(std::vector<size_t> input_indices) {
+        // input_indices shouldn't have duplicates.
+        assert((std::set<size_t>{input_indices.begin(), input_indices.end()}.size() == input_indices.size()));
 
-    Target CreateTarget(size_t input_index) { return Target{*this, {input_index}}; }
+        for (size_t input_index : input_indices) {
+            assert(input_index < inputs_target_created_.size());
+            assert(!inputs_target_created_[input_index]);
+            inputs_target_created_[input_index] = true;
+        }
+        return Target{*this, std::move(input_indices)};
+    }
+
+    Target CreateTarget(size_t input_index) { return CreateTarget(std::vector<size_t>{input_index}); }
 
     // TODO(hvy): Write comment.
     RetainedInputToken RetainInput(size_t input_index);

@@ -97,7 +97,10 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
 }
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs)
-    : op_name_{op_name}, inputs_{std::move(inputs)}, outputs_{std::move(outputs)} {
+    : op_name_{op_name}, inputs_{std::move(inputs)}, inputs_target_created_(inputs_.size()), outputs_{std::move(outputs)} {
+    assert(!inputs_.empty());
+    assert(!outputs_.empty());
+    assert(inputs_.size() == inputs_target_created_.size());
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
     assert(std::all_of(
             outputs_.begin(), outputs_.end(), [](const Array& output) { return internal::GetArrayBody(output)->nodes().empty(); }));
