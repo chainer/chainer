@@ -55,8 +55,6 @@ public:
 
     const BackwardFunction& backward_func() const { return backward_func_; }
 
-    const std::shared_ptr<ArrayNode>& GetNextArrayNode(size_t next_index) const;
-
     void AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes);
 
 private:
@@ -71,9 +69,6 @@ private:
     std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> exotic_next_array_nodes_;
 
     BackwardFunction backward_func_;
-
-    // Returns the next array nodes of "this" graph.
-    std::vector<std::shared_ptr<ArrayNode>> GetNextArrayNodes() const;
 };
 
 // Creates a prev array node at the specified index and adds edges between the prev array node and the op node.

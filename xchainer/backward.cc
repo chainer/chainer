@@ -255,8 +255,6 @@ private:
             std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes,
             std::vector<nonstd::optional<Array>>& input_grads,
             std::vector<internal::GradRef*>& output_grads) {
-        size_t input_count = backward_entry.next_array_node_count();
-
         // `computed_input_grads` holds the storage of gradients of all the inputs of the op node.
         // The given backward entry will compute and store a subset of those gradients.
         // The backward entry may compute and store the gradients of other inputs as well, which will be ignored.
@@ -269,9 +267,8 @@ private:
             NoBackpropModeScope scope{graph_ids_to_stop_gradient_};
             backward_entry.backward_func()(bctx);
         }
-        for (size_t i_input = 0; i_input < input_count; ++i_input) {
-            size_t i_input_grad = backward_entry.next_array_node_indices()[i_input];
 
+        for (size_t i_input_grad : backward_entry.next_array_node_indices()) {
             if (!op_node->HasNextArrayNode(i_input_grad)) {
                 // Input grad is not required
                 continue;
@@ -285,7 +282,7 @@ private:
 
             // Set grads at the appropriate index in the vector containing all the next grads of the op node.
             {
-                const std::shared_ptr<ArrayNode>& next_array_node = backward_entry.GetNextArrayNode(i_input);
+                const std::shared_ptr<ArrayNode>& next_array_node = gsl::at(op_node->next_array_nodes(), i_input_grad);
                 assert(next_array_node != nullptr);
                 nonstd::optional<Array>& input_grad = input_grads[i_input_grad];
 
