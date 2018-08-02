@@ -76,9 +76,14 @@ BackwardContext::BackwardContext(
       double_backprop_option_{double_backprop_option} {
     assert(op_node.get() == &backward_entry.op_node());
     assert(prev_array_nodes_.size() == output_grads_.size());
+    assert(input_grads_.size() == op_node->next_array_node_count());
 
     // Input grads must be initialized with null-body arrays.
-    assert(std::all_of(input_grads_.begin(), input_grads_.end(), [](const Array& g) { return internal::GetArrayBody(g) == nullptr; }));
+    const std::vector<size_t>& input_grad_indices = backward_entry.next_array_node_indices();
+    (void)input_grad_indices;  // maybe unused
+    assert(std::all_of(input_grad_indices.begin(), input_grad_indices.end(), [&](const size_t& index) {
+        return internal::GetArrayBody(gsl::at(input_grads_, index)) == nullptr;
+    }));
 
     // Total number of input arrays including those that do not require grads.
     retained_input_array_bodies_.resize(op_node->next_array_node_count());
@@ -88,7 +93,13 @@ BackwardContext::BackwardContext(
 
 bool BackwardContext::HasOutputGrad(size_t output_index) const { return gsl::at(output_grads_, output_index)->get().has_value(); }
 
-bool BackwardContext::is_input_grad_required(size_t input_index) const { return backward_entry_.IsGradRequired(input_index); }
+bool BackwardContext::is_input_grad_required(size_t input_index) const {
+    const std::vector<size_t>& input_grad_indices = backward_entry_.next_array_node_indices();
+    (void)input_grad_indices;  // maybe unused
+    assert(std::find(input_grad_indices.begin(), input_grad_indices.end(), input_index) != input_grad_indices.end());
+
+    return op_node_->HasNextArrayNode(input_index);
+}
 
 const Array& BackwardContext::output_grad(size_t output_index) const {
     // If the output gradient has a propagated value, return it.
@@ -110,8 +121,9 @@ const Array& BackwardContext::output_grad(size_t output_index) const {
 }
 
 Array& BackwardContext::input_grad() {
-    assert(input_grads_.size() == 1);
-    return input_grad(0);
+    const std::vector<size_t>& input_grad_indices = backward_entry_.next_array_node_indices();
+    assert(input_grad_indices.size() == 1);
+    return input_grad(input_grad_indices.front());
 }
 
 Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_, index); }

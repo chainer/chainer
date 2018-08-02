@@ -21,25 +21,6 @@ ArrayProps::ArrayProps(const ArrayNode& array_node) : shape{array_node.shape()},
 OpNodeBackwardEntry::OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> next_array_node_indices, BackwardFunction backward_func)
     : op_node_{op_node}, next_array_node_indices_{std::move(next_array_node_indices)}, backward_func_{std::move(backward_func)} {}
 
-std::vector<std::shared_ptr<ArrayNode>> OpNodeBackwardEntry::GetNextArrayNodes() const {
-    std::vector<std::shared_ptr<ArrayNode>> array_nodes;
-    array_nodes.reserve(next_array_node_indices_.size());
-    for (nonstd::optional<size_t> index : next_array_node_indices_) {
-        if (index.has_value()) {
-            array_nodes.emplace_back(gsl::at(op_node_.next_array_nodes(), *index));
-        } else {
-            array_nodes.emplace_back(nullptr);
-        }
-    }
-    return array_nodes;
-}
-
-const std::shared_ptr<ArrayNode>& OpNodeBackwardEntry::GetNextArrayNode(size_t next_index) const {
-    return op_node_.next_array_nodes()[next_array_node_indices_[next_index]];
-}
-
-bool OpNodeBackwardEntry::IsGradRequired(size_t next_index) const { return GetNextArrayNode(next_index) != nullptr; }
-
 void OpNodeBackwardEntry::AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes) {
     assert(std::get<0>(next_array_nodes) != op_node_.graph_id());
     exotic_next_array_nodes_.emplace_back(std::move(next_array_nodes));

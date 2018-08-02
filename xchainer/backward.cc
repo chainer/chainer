@@ -209,12 +209,8 @@ private:
         input_grads.resize(op_node->next_array_node_count());
 
         for (const internal::OpNodeBackwardEntry& backward_entry : op_node->backward_entries()) {
-            // Compute a subset of the gradients.
-            std::vector<Array> input_grads_subset =
-                    CallBackwardForSubsetOfNextGradients(op_node, backward_entry, prev_array_nodes, output_grads);
-
-            // Set the gradients at the appropriate indices.
-            SetSubsetOfNextGradients(backward_entry, std::move(input_grads_subset), input_grads);
+            // Compute and set gradients at the appropriate indices.
+            CallBackwardForSubsetOfNextGradients(op_node, backward_entry, prev_array_nodes, input_grads, output_grads);
         }
 
         // Make a view if the next gradient whose array body is identical to one of other prev or next gradients.
@@ -253,55 +249,45 @@ private:
     }
 
     // Calls a single backward function that computes a subset of the gradients and returns the result.
-    std::vector<Array> CallBackwardForSubsetOfNextGradients(
+    void CallBackwardForSubsetOfNextGradients(
             const std::shared_ptr<internal::OpNode>& op_node,
             const internal::OpNodeBackwardEntry& backward_entry,
             std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes,
+            std::vector<nonstd::optional<Array>>& input_grads,
             std::vector<internal::GradRef*>& output_grads) {
-        size_t input_count = backward_entry.next_array_node_count();
+        // `computed_input_grads` holds the storage of gradients of all the inputs of the op node.
+        // The given backward entry will compute and store a subset of those gradients.
+        // The backward entry may compute and store the gradients of other inputs as well, which will be ignored.
 
-        // `input_grads_subset` stores the next gradients (`input_grads`) of the subset of input arrays of this backward
-        // call. `BackwardContext` holds it by reference and assignment to BackwardContext::input_grad() stores the
-        // gradients there. It initially holds null-body arrays.
-        std::vector<Array> input_grads_subset;
-        input_grads_subset.resize(input_count);
+        std::vector<Array> computed_input_grads(input_grads.size());
 
         // Call backward.
-        BackwardContext bctx{op_node, backward_entry, prev_array_nodes, output_grads, input_grads_subset, graph_id_, double_backprop_};
+        BackwardContext bctx{op_node, backward_entry, prev_array_nodes, output_grads, computed_input_grads, graph_id_, double_backprop_};
         {
             NoBackpropModeScope scope{graph_ids_to_stop_gradient_};
             backward_entry.backward_func()(bctx);
         }
 
-        return input_grads_subset;
-    }
-
-    // Inserts a subset of the next gradients for a single backward function, into their corresponding indices in the gradient storage of
-    // the op node.
-    void SetSubsetOfNextGradients(
-            const internal::OpNodeBackwardEntry& backward_entry,
-            std::vector<Array> input_grads_subset,
-            std::vector<nonstd::optional<Array>>& input_grads) {
-        for (size_t i_input = 0; i_input < input_grads_subset.size(); ++i_input) {
-            if (!backward_entry.IsGradRequired(i_input)) {
+        for (size_t i_input_grad : backward_entry.next_array_node_indices()) {
+            if (!op_node->HasNextArrayNode(i_input_grad)) {
                 // Input grad is not required
                 continue;
             }
 
-            Array& input_grad = gsl::at(input_grads_subset, i_input);
-            if (internal::GetArrayBody(input_grad) == nullptr) {
+            Array& computed_input_grad = gsl::at(computed_input_grads, i_input_grad);
+            if (internal::GetArrayBody(computed_input_grad) == nullptr) {
                 // Input grad is not set by backward function
                 continue;
             }
 
             // Set grads at the appropriate index in the vector containing all the next grads of the op node.
             {
-                size_t i_input_grad = backward_entry.next_array_node_indices()[i_input];
-                const std::shared_ptr<ArrayNode>& next_array_node = backward_entry.GetNextArrayNode(i_input);
+                const std::shared_ptr<ArrayNode>& next_array_node = gsl::at(op_node->next_array_nodes(), i_input_grad);
                 assert(next_array_node != nullptr);
-                nonstd::optional<Array>& target_grad = input_grads[i_input_grad];
+                nonstd::optional<Array>& input_grad = input_grads[i_input_grad];
 
-                internal::SetGrad(target_grad, input_grad, next_array_node->shape(), next_array_node->dtype(), next_array_node->device());
+                internal::SetGrad(
+                        input_grad, computed_input_grad, next_array_node->shape(), next_array_node->dtype(), next_array_node->device());
             }
         }
     }
