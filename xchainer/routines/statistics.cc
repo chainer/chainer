@@ -6,6 +6,7 @@
 #include "xchainer/backprop_mode.h"
 #include "xchainer/backward.h"
 #include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/routines/creation.h"
 
 namespace xchainer {
@@ -21,8 +22,8 @@ Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
         a.device().DivideAS(out, n, out);
     }
 
-    BackwardBuilder bb{"mean", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(a)) {
+    BackwardBuilder bb{"mean", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([ n, sorted_axis, in_shape = a.shape(), keepdims ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));

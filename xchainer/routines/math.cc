@@ -494,9 +494,9 @@ Array Sqrt(const Array& x) {
         x.device().Sqrt(x, out);
     }
 
-    BackwardBuilder bb{"sqrt", out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(x)) {
-        bt.Define([out_tok = bb.RetainOutput(out)](BackwardContext & bctx) {
+    BackwardBuilder bb{"sqrt", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             const Array& out = bctx.GetRetainedOutput(out_tok);
             bctx.input_grad() = gout / (2 * out);

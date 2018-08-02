@@ -129,8 +129,8 @@ Array BatchNorm(
                         gout_orig = gout,
                         eps,
                         sorted_axis,
-                        gx_tok = bb2.RetainOutput(gx),
-                        ggamma_tok = bb2.RetainOutput(ggamma)
+                        gx_tok = bb2.RetainOutput(0),
+                        ggamma_tok = bb2.RetainOutput(1)
                     ](BackwardContext & bctx2) {
                         // TODO(hvy): Avoid view of x, gamma, gout. Use retained input.
                         const Array& x = x_orig.MakeView();
