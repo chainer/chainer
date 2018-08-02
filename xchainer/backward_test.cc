@@ -290,7 +290,7 @@ TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     Backward(w, graph_y, DoubleBackpropOption::kDisable);
 
     Array gy = *y.GetGrad(graph_y);
-    EXPECT_TRUE(gy.IsGradRequired(graph_x));
+    EXPECT_FALSE(gy.IsGradRequired(graph_x));  // False because graph_x is inner
     EXPECT_FALSE(gy.IsGradRequired(graph_y));
     ExpectEqual<float>(x_value, gy);  // x
 }
