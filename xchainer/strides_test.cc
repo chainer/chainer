@@ -156,5 +156,33 @@ TEST(StridesTest, Permute) {
     EXPECT_THROW(strides.Permute(Axes{-1}), DimensionError);
 }
 
+struct GetDataRangeTestParams {
+    Shape shape;
+    Strides strides;
+    size_t itemsize;
+    int64_t first;
+    int64_t last;
+};
+
+class GetDataRangeTest : public ::testing::TestWithParam<GetDataRangeTestParams> {};
+INSTANTIATE_TEST_CASE_P(
+        GetDataRangeTest,
+        GetDataRangeTest,
+        ::testing::Values(
+                GetDataRangeTestParams{{2, 3, 4}, {96, 32, 8}, 8, 0, 192},
+                GetDataRangeTestParams{{10, 12}, {160, 8}, 8, 0, 1536},
+                GetDataRangeTestParams{{}, {}, 8, 0, 8},
+                GetDataRangeTestParams{{3, 0, 3}, {24, 24, 8}, 8, 0, 0},
+                GetDataRangeTestParams{{10, 3, 4}, {-96, 32, 8}, 8, -864, 96},
+                GetDataRangeTestParams{{10, 3, 4}, {-96, -32, -8}, 8, -952, 8},
+                GetDataRangeTestParams{{3, 4}, {8, 24}, 8, 0, 96},
+                GetDataRangeTestParams{{100}, {24}, 8, 0, 2384}));
+
+TEST_P(GetDataRangeTest, GetDataRange) {
+    GetDataRangeTestParams param = GetParam();
+    std::tuple<int64_t, int64_t> actual = GetDataRange(param.shape, param.strides, param.itemsize);
+    EXPECT_EQ(actual, std::make_tuple(param.first, param.last));
+}
+
 }  // namespace
 }  // namespace xchainer

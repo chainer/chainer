@@ -57,39 +57,6 @@ using RetainedOutputToken = backward_builder_detail::RetainedArrayToken<struct O
 
 class BackwardBuilder {
 public:
-    BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs);
-    BackwardBuilder(const char* op_name, const Array& input, std::vector<ConstArrayRef> outputs)
-        : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::move(outputs)} {}
-    BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, const Array& output)
-        : BackwardBuilder{op_name, std::move(inputs), std::vector<ConstArrayRef>{output}} {}
-    BackwardBuilder(const char* op_name, const Array& input, const Array& output)
-        : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
-
-    // Returns whether the backward definitions to cover all the input arrays have finished.
-    bool is_complete() const {
-        return std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; });
-    }
-
-    // TODO(hvy): Write comment.
-    RetainedInputToken RetainInput(size_t input_index);
-
-    // Flags an output array to be retained for use in the backward pass.
-    // Op implmentations can use this function in combination with BackwardContext::GetRetainedOutput() to retrieve output arrays in the
-    // backward pass.
-    //
-    // If an op implementation requires the output array of the forward pass in the backward pass, it should call
-    // BackwardBuilder::RetainOutput() in the forward pass and keep its return value (either assign a variable or capture by
-    // value in a lambda expression). In the backward pass, it should call BackwardContext::GetRetainedOutput() with this token to retrieve
-    // the output array.
-    //
-    // Capturing the output array directly with lambda expression would cause cyclic reference and therefore would lead to memory leak.
-    //
-    // Reusing the token for higher-order backward functions results in undefined behavior.
-    //
-    // `output` must be one of the arrays specified in the constructor of BackwardBuilder as output arrays.
-    // If invalid array is specified, XchainerError will be thrown.
-    RetainedOutputToken RetainOutput(const Array& output);
-
     // Target is responsible to define edges from OpNode to input ArrayNodes with given BackwardFunction.
     // Note that Targets built from the same BackwardBuilder share some properties not to compute again.
     class Target {
@@ -108,29 +75,65 @@ public:
 
         Target(BackwardBuilder& builder, std::vector<size_t> input_indices);
 
-        const char* op_name() { return builder_.op_name_; }
-        bool any_defined() { return builder_.any_defined_; }
-        void set_any_defined(bool defined) { builder_.any_defined_ = defined; }
-        std::vector<ConstArrayRef>& outputs() { return builder_.outputs_; }
-        std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>>& op_node_map() { return builder_.op_node_map_; }
-
-        void PrepareGraphToNextArrayNodes();
-        std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
-        void RegisterOuterGraphsPreviousArrayNodes(const std::vector<internal::OpNode*>& op_nodes);
+        // Collect input ArrayNodes, grouped by graph considering IsBackpropRequired.
+        // This functions is only called once in the constructor.
+        void KeepGraphsAndArrayNodesThatRequireDefinition();
 
         BackwardBuilder& builder_;
         std::vector<size_t> input_indices_;
+
+        // TODO(hvy): Consider using linear search since elements are usually few.
         std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
     };
 
+    BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs);
+    BackwardBuilder(const char* op_name, const Array& input, std::vector<ConstArrayRef> outputs)
+        : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::move(outputs)} {}
+    BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, const Array& output)
+        : BackwardBuilder{op_name, std::move(inputs), std::vector<ConstArrayRef>{output}} {}
+    BackwardBuilder(const char* op_name, const Array& input, const Array& output)
+        : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
+
+    // Returns whether the backward definitions to cover all the input arrays have finished.
+    bool is_complete() const {
+        return std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; });
+    }
+
     Target CreateTarget(std::vector<size_t> input_indices) { return Target{*this, std::move(input_indices)}; }
+
     Target CreateTarget(size_t input_index) { return Target{*this, {input_index}}; }
 
-private:
-    const char* op_name_;
+    // TODO(hvy): Write comment.
+    RetainedInputToken RetainInput(size_t input_index);
 
-    // Flag indicating whether the first Define() has been called.
-    bool any_defined_{false};
+    // Flags an output array to be retained for use in the backward pass.
+    // Op implementations can use this function in combination with BackwardContext::GetRetainedOutput() to retrieve output arrays in the
+    // backward pass.
+    //
+    // If an op implementation requires the output array of the forward pass in the backward pass, it should call
+    // BackwardBuilder::RetainOutput() in the forward pass and keep its return value (either assign a variable or capture by
+    // value in a lambda expression). In the backward pass, it should call BackwardContext::GetRetainedOutput() with this token to retrieve
+    // the output array.
+    //
+    // Capturing the output array directly with lambda expression would cause cyclic reference and therefore would lead to memory leak.
+    //
+    // Reusing the token for higher-order backward functions results in undefined behavior.
+    //
+    // `output` must be one of the arrays specified in the constructor of BackwardBuilder as output arrays.
+    // If invalid array is specified, XchainerError will be thrown.
+    RetainedOutputToken RetainOutput(size_t output_index);
+
+private:
+    // Create an op node for a specific graph.
+    // Edges from output nodes to the op node are connected.
+    std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
+
+    // Add shared ptrs between op nodes and array nodes belonging to outer graphs.
+    // This functions is called once when the given op node is encountered for the first time.
+    // These references are required to restore retained inputs/outputs.
+    void RegisterOuterGraphsPreviousArrayNodes(const std::shared_ptr<internal::OpNode>& op_node);
+
+    const char* op_name_;
 
     // Input arrays of the op.
     std::vector<ConstArrayRef> inputs_;
@@ -146,6 +149,9 @@ private:
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
+
+    // TODO(hvy): Consider using linear search since elements are usually few.
+    std::unordered_map<GraphId, std::vector<std::shared_ptr<internal::ArrayNode>>> graph_to_prev_array_nodes_;
 };
 
 }  // namespace xchainer
