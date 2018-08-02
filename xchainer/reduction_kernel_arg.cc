@@ -21,6 +21,13 @@ namespace {
 // - in_squashed_shape: (24, 30)
 // - out_squashed_shape: (24)
 // - reduce_squashed_shape: (30)
+//
+// Following equality always consists:
+// in_squashed_shape.ndim() == out_squashed_shape.ndim() + reduce_squashed_shape.ndim()
+//
+// TODO(sonots): To achieve best performance optimization, squash dimensions of input and output individually, that is,
+// in_squashed_shape.ndim() != out_squashed_shape.ndim() + reduce_squashed_shape.ndim()
+// To do it, we have to revise implementation of ReductionKernel.
 ReductionArg SquashReductionShapeAndStrides(const ReductionArg& arg) {
 #ifndef NDEBUG
     assert(arg.in_shape.ndim() == arg.out_shape.ndim() + arg.reduce_shape.ndim());
