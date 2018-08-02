@@ -262,26 +262,21 @@ private:
         // gradients there. It initially holds null-body arrays.
 
         std::vector<Array> input_grads(target_grads.size());
-        std::vector<size_t> input_grad_indices;
-        input_grad_indices.reserve(input_count);
-        for (size_t i_input = 0; i_input < input_count; ++i_input) {
-            input_grad_indices.push_back(backward_entry.next_array_node_indices()[i_input]);
-        }
 
         // Call backward.
-        BackwardContext bctx{
-                op_node, backward_entry, prev_array_nodes, output_grads, input_grads, input_grad_indices, graph_id_, double_backprop_};
+        BackwardContext bctx{op_node, backward_entry, prev_array_nodes, output_grads, input_grads, graph_id_, double_backprop_};
         {
             NoBackpropModeScope scope{graph_ids_to_stop_gradient_};
             backward_entry.backward_func()(bctx);
         }
         for (size_t i_input = 0; i_input < input_count; ++i_input) {
-            if (!backward_entry.IsGradRequired(i_input)) {
+            size_t i_input_grad = backward_entry.next_array_node_indices()[i_input];
+
+            if (!op_node->HasNextArrayNode(i_input_grad)) {
                 // Input grad is not required
                 continue;
             }
 
-            size_t i_input_grad = input_grad_indices[i_input];
             Array& input_grad = gsl::at(input_grads, i_input_grad);
             if (internal::GetArrayBody(input_grad) == nullptr) {
                 // Input grad is not set by backward function
@@ -383,7 +378,7 @@ private:
     DoubleBackpropOption double_backprop_;
 
     std::vector<GraphId> graph_ids_to_stop_gradient_;
-};
+};  // namespace
 
 }  // namespace
 

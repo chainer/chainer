@@ -57,8 +57,6 @@ public:
 
     const std::shared_ptr<ArrayNode>& GetNextArrayNode(size_t next_index) const;
 
-    bool IsGradRequired(size_t next_index) const;
-
     void AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes);
 
 private:
@@ -106,6 +104,8 @@ public:
         std::fill(next_array_nodes_.begin(), next_array_nodes_.end(), std::shared_ptr<ArrayNode>{});
         AssertConsistency();
     }
+
+    bool HasNextArrayNode(size_t next_index) const { return next_array_nodes_[next_index] != nullptr; }
 
     std::string name() const { return name_; }
 

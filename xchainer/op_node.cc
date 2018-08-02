@@ -38,8 +38,6 @@ const std::shared_ptr<ArrayNode>& OpNodeBackwardEntry::GetNextArrayNode(size_t n
     return op_node_.next_array_nodes()[next_array_node_indices_[next_index]];
 }
 
-bool OpNodeBackwardEntry::IsGradRequired(size_t next_index) const { return GetNextArrayNode(next_index) != nullptr; }
-
 void OpNodeBackwardEntry::AddExoticNextArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> next_array_nodes) {
     assert(std::get<0>(next_array_nodes) != op_node_.graph_id());
     exotic_next_array_nodes_.emplace_back(std::move(next_array_nodes));

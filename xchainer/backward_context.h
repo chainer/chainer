@@ -70,7 +70,6 @@ public:
             gsl::span<std::shared_ptr<internal::ArrayNode>> prev_array_nodes,
             gsl::span<internal::GradRef*> output_grads,
             std::vector<Array>& input_grads,
-            std::vector<size_t>& input_grad_indices,
             const GraphId& graph_id,
             DoubleBackpropOption double_backprop_option);
 
@@ -130,8 +129,6 @@ private:
     // Gradient passed in input_grad() will be put into this storage.
     // Unset gradients will have null array body.
     std::vector<Array>& input_grads_;
-
-    std::vector<size_t>& input_grad_indices_;
 
     // Holds zero-filled arrays for outputs without actual gradients.
     // The arrays are allocated on-demand in output_grad.
