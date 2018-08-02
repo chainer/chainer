@@ -155,7 +155,7 @@ __global__ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim, Red
 //     Then, it can be passed to Reduce like: Reduce(input, axis, output, SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
 void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&& impl) {
-    ReductionArg<In, Out> arg = MakeReductionArg<In, Out>(in, axis, out);
+    ReductionArg arg = MakeReductionArg(in, axis, out);
 
     static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&reduce_detail::ReductionKernel<In, Out, ReductionImpl>).block_size;
 
