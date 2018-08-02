@@ -64,6 +64,7 @@ BackwardContext::BackwardContext(
         gsl::span<std::shared_ptr<ArrayNode>> prev_array_nodes,
         gsl::span<internal::GradRef*> output_grads,
         std::vector<Array>& input_grads,
+        std::vector<size_t>& input_grad_indices,
         const GraphId& graph_id,
         DoubleBackpropOption double_backprop_option)
     : op_node_{op_node},
@@ -71,6 +72,7 @@ BackwardContext::BackwardContext(
       prev_array_nodes_{prev_array_nodes},
       output_grads_{output_grads},
       input_grads_{input_grads},
+      input_grad_indices_{input_grad_indices},
       zero_output_grads_{prev_array_nodes_.size()},
       graph_id_{graph_id},
       double_backprop_option_{double_backprop_option} {
@@ -78,7 +80,9 @@ BackwardContext::BackwardContext(
     assert(prev_array_nodes_.size() == output_grads_.size());
 
     // Input grads must be initialized with null-body arrays.
-    assert(std::all_of(input_grads_.begin(), input_grads_.end(), [](const Array& g) { return internal::GetArrayBody(g) == nullptr; }));
+    assert(std::all_of(input_grad_indices_.begin(), input_grad_indices_.end(), [&](const size_t& index) {
+        return internal::GetArrayBody(gsl::at(input_grads_, index)) == nullptr;
+    }));
 
     // Total number of input arrays including those that do not require grads.
     retained_input_array_bodies_.resize(op_node->next_array_node_count());
@@ -110,11 +114,16 @@ const Array& BackwardContext::output_grad(size_t output_index) const {
 }
 
 Array& BackwardContext::input_grad() {
-    assert(input_grads_.size() == 1);
-    return input_grad(0);
+    assert(input_grad_indices_.size() == 1);
+    // return input_grad(0);
+    return input_grad(input_grad_indices_.front());
 }
 
-Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_, index); }
+Array& BackwardContext::input_grad(size_t index) {
+    // return gsl::at(input_grads_, input_grad_indices_[index]);
+    return gsl::at(input_grads_, index);
+}
+// Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_, index); }
 
 Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
     assert(token.index() < op_node_->next_array_node_count());
