@@ -71,7 +71,7 @@ Array Dot(const Array& a, const Array& b) {
                 bctx.input_grad() = Dot(a_matrix.Transpose(), gout);
             });
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 
     return out_matrix.Reshape(out_shape);

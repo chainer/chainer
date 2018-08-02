@@ -98,7 +98,7 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 }
 
@@ -114,7 +114,7 @@ void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 }
 
 }  // namespace
@@ -153,7 +153,7 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = -bctx.output_grad(); });
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 }
 
@@ -169,7 +169,7 @@ void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 }
 
 }  // namespace
@@ -214,7 +214,7 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
                 bctx.input_grad() = bctx.output_grad() * x1;
             });
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 }
 
@@ -230,7 +230,7 @@ void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([x2](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad() * x2; });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 }
 
 }  // namespace
@@ -277,7 +277,7 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
                 bctx.input_grad() = -bctx.output_grad() * x1 / (x2 * x2);
             });
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 }
 
@@ -293,7 +293,7 @@ void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([other = x2](BackwardContext & bctx) { bctx.input_grad() = bctx.output_grad() / other; });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 }
 
 }  // namespace
@@ -352,8 +352,7 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
             }
         });
     }
-    assert(bb.is_complete());
-
+    bb.Finalize();
     return out;
 }
 
@@ -398,8 +397,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
             bctx.input_grad() = reshaped_gout * cond;
         });
     }
-    assert(bb.is_complete());
-
+    bb.Finalize();
     return out;
 }
 
@@ -422,7 +420,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
             bctx.input_grad() = IfLessElse(x1, x2, Scalar{0, gout.dtype()}, gout);
         });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }
@@ -450,7 +448,7 @@ Array Exp(const Array& x) {
             bctx.input_grad() = bctx.output_grad() * out;
         });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }
@@ -470,7 +468,7 @@ Array Log(const Array& x) {
             bctx.input_grad() = bctx.output_grad() / x;
         });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }

@@ -74,12 +74,12 @@ Array MaxPool(
                             if (BackwardBuilder::Target bt3 = bb3.CreateTarget(0)) {
                                 bt3.Define(*this);
                             }
-                            assert(bb3.is_complete());
+                            bb3.Finalize();
                         }
                         bctx2.input_grad() = ggout;
                     });
                 }
-                assert(bb2.is_complete());
+                bb2.Finalize();
             }
             bctx1.input_grad() = gx;
         }
@@ -96,7 +96,7 @@ Array MaxPool(
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
             bt1.Define(MaxPoolBwd{kernel_size, stride, pad, cover_all, std::move(fb)});
         }
-        assert(bb1.is_complete());
+        bb1.Finalize();
     }
     return out;
 }
@@ -126,12 +126,12 @@ Array AveragePool(
                             bctx2.input_grad() = AveragePool(ggx, kernel_size, stride, pad, pad_mode);
                         });
                     }
-                    assert(bb2.is_complete());
+                    bb2.Finalize();
                 }
                 bctx.input_grad() = gx;
             });
         }
-        assert(bb1.is_complete());
+        bb1.Finalize();
     }
     return out;
 }

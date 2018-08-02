@@ -133,7 +133,7 @@ Array BatchNorm(
                         bctx2.input_grad(2) = ginputs2[2];  // ggout
                     });
                 }
-                assert(bb2.is_complete());
+                bb2.Finalize();
             }
 
             // TODO(niboshi): Assign at once
@@ -142,7 +142,7 @@ Array BatchNorm(
             bctx.input_grad(2) = gbeta;
         });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }
