@@ -1,5 +1,3 @@
-import numpy
-
 from chainer.backends import cuda
 from chainer import function
 from chainer import utils
