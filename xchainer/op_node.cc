@@ -165,13 +165,17 @@ OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
     return backward_entries_.back();
 }
 
-void OpNode::RegisterOuterGraphsPreviousArrayNodes(
-        const GraphId& other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes) {
+void OpNode::AddEdgesToPreviousArrayNodesOfOuterGraph(
+        const GraphId& outer_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes) {
     AssertConsistency();
-    assert(other_graph_id != graph_id_);
+    assert(outer_graph_id < graph_id_);
     assert(outer_graphs_prev_array_nodes.size() == prev_array_props_.size());
+    assert(std::all_of(
+            outer_graphs_prev_array_nodes.begin(),
+            outer_graphs_prev_array_nodes.end(),
+            [&outer_graph_id](const std::shared_ptr<ArrayNode>& prev) { return prev->graph_id() == outer_graph_id; }));
 
-    outer_graphs_prev_array_nodes_.emplace_back(other_graph_id, std::move(outer_graphs_prev_array_nodes));
+    outer_graphs_prev_array_nodes_.emplace_back(outer_graph_id, std::move(outer_graphs_prev_array_nodes));
 
     AssertConsistency();
 }

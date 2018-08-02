@@ -116,50 +116,46 @@ std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const GraphId& grap
     // If not found, create a new one.
     if (insert_result.second) {
         insert_result.first->second = OpNode::CreateWithPrevArrayNodes(op_name_, graph_id, inputs_.size(), outputs_);
-        RegisterOuterGraphsPreviousArrayNodes(insert_result.first->second);
+        AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs(insert_result.first->second);
     }
 
     assert(!op_node_map_.empty());
     return insert_result.first->second;
 }
 
-void BackwardBuilder::RegisterOuterGraphsPreviousArrayNodes(const std::shared_ptr<internal::OpNode>& op_node) {
+namespace {
+
+void AddEdgesToPreviousArrayNodesOfOuterGraph(const OpNode& outer_op_node, OpNode& inner_op_node) {
+    // Outer graphs must be registered using shared_ptr but op nodes only have weak_ptr to their previous array nodes.
+    // Therefore, first convert the weak_ptr to shared_ptr, assuming that they have not expired.
+    const std::vector<std::weak_ptr<ArrayNode>>& weak_outer_prev_array_nodes = outer_op_node.prev_array_nodes();
+    std::vector<std::shared_ptr<internal::ArrayNode>> outer_prev_array_nodes;
+    outer_prev_array_nodes.reserve(weak_outer_prev_array_nodes.size());
+    std::transform(
+            weak_outer_prev_array_nodes.begin(),
+            weak_outer_prev_array_nodes.end(),
+            std::back_inserter(outer_prev_array_nodes),
+            [](const std::weak_ptr<ArrayNode>& prev) {
+                assert(!prev.expired());
+                return prev.lock();
+            });
+
+    inner_op_node.AddEdgesToPreviousArrayNodesOfOuterGraph(outer_op_node.graph_id(), outer_prev_array_nodes);
+}
+
+}  // namespace
+
+void BackwardBuilder::AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs(const std::shared_ptr<internal::OpNode>& op_node) {
+    // Compare the order (outer/inner) between the graph of given op node and all graphs involved in this builder to create references to
+    // outer graphs as necessary.
     const GraphId& graph_id = op_node->graph_id();
-
-    // Lazily initialize graph to prev array node mappings.
-    if (graph_to_prev_array_nodes_.empty()) {
-        for (const Array& output : outputs_) {
-            for (std::shared_ptr<ArrayNode> output_array_node : internal::GetArrayBody(output)->nodes()) {
-                graph_to_prev_array_nodes_[output_array_node->graph_id()].emplace_back(std::move(output_array_node));
-            }
-        }
-    }
-
-    // Compare the order (outer/inner) between the graph of given op node and all graphs involved in this builder.
-    // Then create references to outer graphs as necessary.
-    for (const auto& tup : graph_to_prev_array_nodes_) {
+    for (const auto& tup : op_node_map_) {
         const GraphId& other_graph_id = tup.first;
-
-        if (other_graph_id < graph_id) {
-            // Create reference from given (inner) to other (outer).
-            const std::vector<std::shared_ptr<internal::ArrayNode>>& prev_array_nodes = tup.second;
-            assert(prev_array_nodes.size() == outputs_.size());
-            op_node->RegisterOuterGraphsPreviousArrayNodes(other_graph_id, prev_array_nodes);
-        } else if (other_graph_id > graph_id) {
-            // Create reference from other (inner) to given (outer).
-            const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes = op_node->prev_array_nodes();
-            assert(prev_array_nodes.size() == outputs_.size());
-            std::vector<std::shared_ptr<internal::ArrayNode>> temp_prev_array_nodes;
-            temp_prev_array_nodes.reserve(prev_array_nodes.size());
-            std::transform(
-                    prev_array_nodes.begin(),
-                    prev_array_nodes.end(),
-                    std::back_inserter(temp_prev_array_nodes),
-                    [](const std::weak_ptr<ArrayNode>& prev) {
-                        assert(!prev.expired());
-                        return prev.lock();
-                    });
-            op_node_map_[other_graph_id]->RegisterOuterGraphsPreviousArrayNodes(graph_id, std::move(temp_prev_array_nodes));
+        const std::shared_ptr<OpNode>& other_op_node = tup.second;
+        if (other_graph_id < graph_id) {  // Create reference from given (inner) to other (outer).
+            AddEdgesToPreviousArrayNodesOfOuterGraph(*other_op_node, *op_node);
+        } else if (other_graph_id > graph_id) {  // Create reference from other (inner) to given (outer).
+            AddEdgesToPreviousArrayNodesOfOuterGraph(*op_node, *other_op_node);
         } else {
             // Do nothing.
         }

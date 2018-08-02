@@ -87,7 +87,7 @@ class OpNode {
 public:
     // Creates a new op node that has prev array nodes corresponding to the given outputs.
     static std::shared_ptr<OpNode> CreateWithPrevArrayNodes(
-            std::string name, GraphId graph_id, size_t index_count, const std::vector<ConstArrayRef>& outputs);
+            std::string name, GraphId graph_id, size_t input_count, const std::vector<ConstArrayRef>& outputs);
 
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;
@@ -98,8 +98,8 @@ public:
             std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> next_array_nodes, BackwardFunction backward_func);
 
     // Adds links to previous array nodes of other graphs.
-    void RegisterOuterGraphsPreviousArrayNodes(
-            const GraphId& other_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes);
+    void AddEdgesToPreviousArrayNodesOfOuterGraph(
+            const GraphId& outer_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes);
 
     void Unchain() {
         backward_entries_.clear();

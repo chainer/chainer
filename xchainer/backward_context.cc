@@ -141,7 +141,6 @@ Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
             assert(prev_array_node->next_op_node() != nullptr);
 
             const std::shared_ptr<ArrayNode>& next_array_node = gsl::at(prev_array_node->next_op_node()->next_array_nodes(), input_index);
-            assert(next_array_node != nullptr);
 
             next_array_nodes.emplace_back(&next_array_node);
         }
