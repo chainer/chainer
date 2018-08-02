@@ -1,7 +1,9 @@
 install(FILES
     array.h
+    array_check.h
     context_session.h
     device_session.h
+    util.h
     DESTINATION include/xchainer/testing
     )
 
