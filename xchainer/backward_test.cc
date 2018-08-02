@@ -48,6 +48,62 @@ namespace {
     return ::testing::AssertionFailure() << os.str();
 }
 
+TEST(BackwardContextTest, InputGrad) {
+    // This test checks if BackwardContext::is_input_grad_required and BackwardContext::input_grad work correctly.
+    //
+    // (x1) <- [forward] <- (y1 := x1 + x2 + x3)
+    // (x2) <-
+    // (x3) <-
+    testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
+
+    GraphScope graph_scope1{"graph1"};
+    GraphScope graph_scope2{"graph2"};
+    GraphId graph_id1 = graph_scope1.graph_id();
+    GraphId graph_id2 = graph_scope2.graph_id();
+
+    auto forward = [](const Array& x1, const Array& x2, const Array& x3, Array& y1) {
+        Array x1_c = x1.AsGradStopped();
+        Array x2_c = x2.AsGradStopped();
+        Array x3_c = x3.AsGradStopped();
+        y1 = x1_c + x2_c + x3_c;
+
+        BackwardBuilder bb{"func", {x1, x2, x3}, y1};
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget(0);
+            bt.Define([](BackwardContext& /*bctx*/) { FAIL(); });
+        }
+        {
+            BackwardBuilder::Target bt = bb.CreateTarget({1, 2});
+            bt.Define([x1_c](BackwardContext& bctx) {
+                EXPECT_FALSE(bctx.is_input_grad_required(1));
+                EXPECT_TRUE(bctx.is_input_grad_required(2));
+
+                // input_grad() should hold the given value even if the input does not require gradient.
+                Array dummy1 = FullLike(x1_c, 10);
+                Array dummy2 = FullLike(x1_c, 20);
+                bctx.input_grad(1) = dummy1;
+                EXPECT_EQ(internal::GetArrayBody(dummy1), internal::GetArrayBody(bctx.input_grad(1)));
+
+                bctx.input_grad(2) = dummy2;
+                EXPECT_EQ(internal::GetArrayBody(dummy2), internal::GetArrayBody(bctx.input_grad(2)));
+
+                // bctx.input_grad(1) is omitted as it's irrelevant to the test.
+                bctx.input_grad(2) = bctx.output_grad(0);
+            });
+        }
+    };
+
+    Array x_value = testing::BuildArray({1}).WithLinearData<double>(3);
+    Array x1 = x_value.MakeView().RequireGrad(graph_id1);
+    Array x2 = x_value.MakeView().RequireGrad(graph_id1);
+    Array x3 = x_value.MakeView().RequireGrad(graph_id2);
+    Array expected_x3_grad = OnesLike(x_value, x_value.device());
+    Array y1{};
+    forward(x1, x2, x3, y1);
+    Backward({y1}, graph_id2);
+    testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(graph_id2));
+}
+
 // TODO(hvy): Separate tests of graph stack manipulation into another test class/fixture and parameterize the outermost graph over the
 // default graph and an explicitly scoped graph. Some tests will become redundant. Remove them.
 class BackpropTest : public ::testing::TestWithParam<std::string> {
