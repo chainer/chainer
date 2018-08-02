@@ -126,28 +126,6 @@ std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const GraphId& grap
     return insert_result.first->second;
 }
 
-namespace {
-
-void AddEdgesToPreviousArrayNodesOfOuterGraph(const OpNode& outer_op_node, OpNode& inner_op_node) {
-    // Outer graphs must be registered using shared_ptr but op nodes only have weak_ptr to their previous array nodes.
-    // Therefore, first convert the weak_ptr to shared_ptr, assuming that they have not expired.
-    const std::vector<std::weak_ptr<ArrayNode>>& weak_outer_prev_array_nodes = outer_op_node.prev_array_nodes();
-    std::vector<std::shared_ptr<internal::ArrayNode>> outer_prev_array_nodes;
-    outer_prev_array_nodes.reserve(weak_outer_prev_array_nodes.size());
-    std::transform(
-            weak_outer_prev_array_nodes.begin(),
-            weak_outer_prev_array_nodes.end(),
-            std::back_inserter(outer_prev_array_nodes),
-            [](const std::weak_ptr<ArrayNode>& prev) {
-                assert(!prev.expired());
-                return prev.lock();
-            });
-
-    inner_op_node.AddEdgesToPreviousArrayNodesOfOuterGraph(outer_op_node.graph_id(), outer_prev_array_nodes);
-}
-
-}  // namespace
-
 RetainedInputToken BackwardBuilder::RetainInput(size_t input_index) {
     if (!retainment_record_.is_any_output_recorded()) {
         // Record the input retainment, only if no output has been retained yet.
@@ -170,6 +148,28 @@ void BackwardBuilder::Finalize() {
     assert(is_complete());
     AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs();
 }
+
+namespace {
+
+void AddEdgesToPreviousArrayNodesOfOuterGraph(const OpNode& outer_op_node, OpNode& inner_op_node) {
+    // Outer graphs must be registered using shared_ptr but op nodes only have weak_ptr to their previous array nodes.
+    // Therefore, first convert the weak_ptr to shared_ptr, assuming that they have not expired.
+    const std::vector<std::weak_ptr<ArrayNode>>& weak_outer_prev_array_nodes = outer_op_node.prev_array_nodes();
+    std::vector<std::shared_ptr<internal::ArrayNode>> outer_prev_array_nodes;
+    outer_prev_array_nodes.reserve(weak_outer_prev_array_nodes.size());
+    std::transform(
+            weak_outer_prev_array_nodes.begin(),
+            weak_outer_prev_array_nodes.end(),
+            std::back_inserter(outer_prev_array_nodes),
+            [](const std::weak_ptr<ArrayNode>& prev) {
+                assert(!prev.expired());
+                return prev.lock();
+            });
+
+    inner_op_node.AddEdgesToPreviousArrayNodesOfOuterGraph(outer_op_node.graph_id(), outer_prev_array_nodes);
+}
+
+}  // namespace
 
 void BackwardBuilder::AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs() {
     // If any output is retained, create outer edges (from op nodes to previous array nodes) w.r.t. all graphs.
