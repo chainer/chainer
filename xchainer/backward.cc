@@ -289,7 +289,8 @@ private:
                 assert(next_array_node != nullptr);
                 nonstd::optional<Array>& input_grad = input_grads[i_input_grad];
 
-                internal::SetGrad(input_grad, computed_input_grad, next_array_node->shape(), next_array_node->dtype(), next_array_node->device());
+                internal::SetGrad(
+                        input_grad, computed_input_grad, next_array_node->shape(), next_array_node->dtype(), next_array_node->device());
             }
         }
     }
