@@ -237,30 +237,62 @@ TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
 }
 #endif  // XCHAINER_ENABLE_CUDA
 
+TEST_P(BackpropTest, MultipleGraphsBackprop) {
+    GraphScope graph_scope_y{"graph_y"};
+    GraphScope graph_scope_x{"graph_x"};
+    GraphId graph_x = graph_scope_x.graph_id();
+    GraphId graph_y = graph_scope_y.graph_id();
+
+    Array x_value = Full({1}, 2.0f);
+    Array y_value = Full({1}, 3.0f);
+    Array x = x_value.MakeView().RequireGrad(graph_x);
+    Array y = y_value.MakeView().RequireGrad(graph_y);
+
+    Array z = x * (x + y);
+
+    Backward(z, graph_x, DoubleBackpropOption::kDisable);
+
+    Array gx = *x.GetGrad(graph_x);  // 2x + y
+    EXPECT_FALSE(gx.IsGradRequired(graph_x));
+    EXPECT_TRUE(gx.IsGradRequired(graph_y));
+    testing::ExpectEqual(2 * x_value + y_value, gx);
+
+    Array w = x * gx;
+    Backward(w, graph_y, DoubleBackpropOption::kDisable);
+
+    Array gy = *y.GetGrad(graph_y);
+    EXPECT_FALSE(gy.IsGradRequired(graph_x));
+    EXPECT_FALSE(gy.IsGradRequired(graph_y));
+    ExpectEqual<float>(x_value, gy);  // x
+}
+
 TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     GraphScope graph_scope_y{"graph_y"};
     GraphScope graph_scope_x{"graph_x"};
     GraphId graph_x = graph_scope_x.graph_id();
     GraphId graph_y = graph_scope_y.graph_id();
 
-    auto x = Full({1}, 2.0f);
-    x.RequireGrad(graph_x);
+    Array x_value = Full({1}, 2.0f);
+    Array y_value = Full({1}, 3.0f);
+    Array x = x_value.MakeView().RequireGrad(graph_x);
+    Array y = y_value.MakeView().RequireGrad(graph_y);
 
-    auto y = Full({1}, 3.0f);
-    y.RequireGrad(graph_y);
+    Array z = x * (x + y);
 
-    auto z = x * (x + y);
-    Backward(z, graph_x);
+    Backward(z, graph_x, DoubleBackpropOption::kEnable);
 
-    auto gx = *x.GetGrad(graph_x);  // 2x + y
-    EXPECT_FALSE(gx.IsGradRequired(graph_x));
+    Array gx = *x.GetGrad(graph_x);  // 2x + y
+    EXPECT_TRUE(gx.IsGradRequired(graph_x));
     EXPECT_TRUE(gx.IsGradRequired(graph_y));
+    testing::ExpectEqual(2 * x_value + y_value, gx);
 
-    auto w = x * gx;
-    Backward(w, graph_y);
+    Array w = x * gx;
+    Backward(w, graph_y, DoubleBackpropOption::kDisable);
 
-    auto e = Full({1}, 2.0f);
-    ExpectEqual<float>(e, *y.GetGrad(graph_y));  // x
+    Array gy = *y.GetGrad(graph_y);
+    EXPECT_FALSE(gy.IsGradRequired(graph_x));  // False because graph_x is inner
+    EXPECT_FALSE(gy.IsGradRequired(graph_y));
+    ExpectEqual<float>(x_value, gy);  // x
 }
 
 TEST_P(BackpropTest, BackwardInputToMultipleOps) {

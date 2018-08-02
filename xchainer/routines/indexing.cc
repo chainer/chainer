@@ -130,6 +130,8 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
     assert(b.ndim() == indices.ndim() + a.ndim() - 1);
     CheckEqual(a.dtype(), b.dtype());
 
+    // TODO(niboshi): Remove nodes from indices if any.
+
     Array out = EmptyLike(a, a.device());
 
     {
@@ -143,10 +145,8 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([indices, axis](BackwardContext& bctx) {
-                assert(internal::GetArrayBody(indices)->nodes().empty());
-                bctx.input_grad() = Take(bctx.output_grad(), indices, axis);
-            });
+            assert(internal::GetArrayBody(indices)->nodes().empty());
+            bt.Define([indices, axis](BackwardContext& bctx) { bctx.input_grad() = Take(bctx.output_grad(), indices, axis); });
         }
         assert(bb.is_complete());
     }
@@ -164,6 +164,8 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
                 GetDtypeName(indices.dtype()));
     }
 
+    // TODO(niboshi): Remove nodes from indices if any.
+
     int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
 
     Shape out_shape{};
@@ -179,6 +181,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     BackwardBuilder bb{"take", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        assert(internal::GetArrayBody(indices)->nodes().empty());
         bt.Define([ indices, axis_norm, a_shape = a.shape() ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
