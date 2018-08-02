@@ -13,7 +13,6 @@ from chainer.functions.array import squeeze
 from chainer.functions.array import stack
 from chainer.functions.array import swapaxes
 from chainer.functions.array import where
-from chainer.functions.math import basic_math
 from chainer.functions.math import exponential
 from chainer.functions.math import matmul
 from chainer.functions.math import sum as sum_mod
