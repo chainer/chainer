@@ -96,7 +96,7 @@ ReductionArg SquashReductionShapeAndStrides(const ReductionArg& arg) {
 
 }  // namespace
 
-ReductionArg MakeReductionArg(const Array& in, const Axes& axis, const Array& out) {
+ReductionArg MakeSquashedReductionArg(const Array& in, const Axes& axis, const Array& out) {
     // True if some axes are reduced but kept in output as 1-dim axes.
     // Corresponding to keepdim argument in Array::Sum().
     bool has_kept_dims = out.ndim() + static_cast<int64_t>(axis.size()) != in.ndim();

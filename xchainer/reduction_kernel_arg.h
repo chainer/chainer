@@ -59,6 +59,6 @@ ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> MakeReductionKernelArg(
                                                                     Indexer<ReduceNdim>{arg.reduce_shape}};
 }
 
-ReductionArg MakeReductionArg(const Array& in, const Axes& axis, const Array& out);
+ReductionArg MakeSquashedReductionArg(const Array& in, const Axes& axis, const Array& out);
 
 }  // namespace xchainer
