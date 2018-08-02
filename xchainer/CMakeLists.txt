@@ -30,6 +30,7 @@ install(FILES
     device_id.h
     dtype.h
     elementwise.h
+    enum.h
     error.h
     graph.h
     graph_scope.h
