@@ -5,6 +5,7 @@ import numpy
 from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
+from chainer import testing
 from chainer.testing import attr
 
 
