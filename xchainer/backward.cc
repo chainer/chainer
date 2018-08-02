@@ -379,7 +379,7 @@ private:
     DoubleBackpropOption double_backprop_;
 
     std::vector<GraphId> graph_ids_to_stop_gradient_;
-};  // namespace
+};
 
 }  // namespace
 
