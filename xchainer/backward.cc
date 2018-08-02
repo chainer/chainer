@@ -253,18 +253,18 @@ private:
             const std::shared_ptr<internal::OpNode>& op_node,
             const internal::OpNodeBackwardEntry& backward_entry,
             std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes,
-            std::vector<nonstd::optional<Array>>& target_grads,
+            std::vector<nonstd::optional<Array>>& input_grads,
             std::vector<internal::GradRef*>& output_grads) {
         size_t input_count = backward_entry.next_array_node_count();
 
-        // `input_grads_subset` stores the next gradients (`input_grads`) of the subset of input arrays of this backward
-        // call. `BackwardContext` holds it by reference and assignment to BackwardContext::input_grad() stores the
-        // gradients there. It initially holds null-body arrays.
+        // `computed_input_grads` holds the storage of gradients of all the inputs of the op node.
+        // The given backward entry will compute and store a subset of those gradients.
+        // The backward entry may compute and store the gradients of other inputs as well, which will be ignored.
 
-        std::vector<Array> input_grads(target_grads.size());
+        std::vector<Array> computed_input_grads(input_grads.size());
 
         // Call backward.
-        BackwardContext bctx{op_node, backward_entry, prev_array_nodes, output_grads, input_grads, graph_id_, double_backprop_};
+        BackwardContext bctx{op_node, backward_entry, prev_array_nodes, output_grads, computed_input_grads, graph_id_, double_backprop_};
         {
             NoBackpropModeScope scope{graph_ids_to_stop_gradient_};
             backward_entry.backward_func()(bctx);
@@ -277,8 +277,8 @@ private:
                 continue;
             }
 
-            Array& input_grad = gsl::at(input_grads, i_input_grad);
-            if (internal::GetArrayBody(input_grad) == nullptr) {
+            Array& computed_input_grad = gsl::at(computed_input_grads, i_input_grad);
+            if (internal::GetArrayBody(computed_input_grad) == nullptr) {
                 // Input grad is not set by backward function
                 continue;
             }
@@ -287,9 +287,9 @@ private:
             {
                 const std::shared_ptr<ArrayNode>& next_array_node = backward_entry.GetNextArrayNode(i_input);
                 assert(next_array_node != nullptr);
-                nonstd::optional<Array>& target_grad = target_grads[i_input_grad];
+                nonstd::optional<Array>& input_grad = input_grads[i_input_grad];
 
-                internal::SetGrad(target_grad, input_grad, next_array_node->shape(), next_array_node->dtype(), next_array_node->device());
+                internal::SetGrad(input_grad, computed_input_grad, next_array_node->shape(), next_array_node->dtype(), next_array_node->device());
             }
         }
     }
