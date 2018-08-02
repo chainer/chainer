@@ -30,6 +30,8 @@
 namespace xchainer {
 namespace internal {
 
+GraphId GetArrayGraphId(const Array& array, const nonstd::optional<GraphId>& graph_id);
+
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
 inline const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array);

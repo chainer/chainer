@@ -148,7 +148,7 @@ void CheckBackwardComputation(
         double rtol,
         const nonstd::optional<GraphId>& graph_id) {
     assert(!inputs.empty());
-    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : inputs.front().device().context().default_graph_id();
+    GraphId actual_graph_id = internal::GetArrayGraphId(inputs.front(), graph_id);
 
     // Copies the input arrays, so that computed gradients are released at the end of this function.
     // This is needed to detect unreleased array bodies using array body leak detection.
@@ -265,7 +265,7 @@ void CheckBackward(
         double rtol,
         const nonstd::optional<GraphId>& graph_id) {
     assert(!inputs.empty());
-    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : inputs.front().device().context().default_graph_id();
+    GraphId actual_graph_id = internal::GetArrayGraphId(inputs.front(), graph_id);
 
     CheckDoubleBackpropOption(func, inputs, actual_graph_id);
 
@@ -288,7 +288,7 @@ void CheckDoubleBackwardComputation(
         double atol,
         double rtol,
         const nonstd::optional<GraphId>& graph_id) {
-    GraphId actual_graph_id = graph_id.has_value() ? *graph_id : inputs.front().device().context().default_graph_id();
+    GraphId actual_graph_id = internal::GetArrayGraphId(inputs.front(), graph_id);
     const std::size_t nin = inputs.size();
     const std::size_t nout = grad_outputs.size();
 
