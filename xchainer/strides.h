@@ -11,6 +11,7 @@
 
 #include <gsl/gsl>
 
+#include "xchainer/axes.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
@@ -74,6 +75,22 @@ public:
 
     // span
     gsl::span<const int64_t> span() const { return {*this}; }
+
+    // Rearranges strides in the order specified by the axes.
+    //
+    // The size of given axes may be fewer than the size of strides.
+    // In that case, new strides will be composed by only given axes.
+    //
+    // It is the caller's responsibility to ensure validity of permutation.
+    // If the permutation is invalid, the behavior is undefined.
+    Strides Permute(const Axes& axes) const {
+        assert(axes.size() <= size());
+        Strides new_strides{};
+        for (int8_t axe : axes) {
+            new_strides.emplace_back(operator[](axe));
+        }
+        return new_strides;
+    }
 };
 
 std::ostream& operator<<(std::ostream&, const Strides&);

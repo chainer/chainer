@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/macro.h"
 #include "xchainer/reduction_kernel_arg.h"
 
 namespace xchainer {
@@ -24,8 +25,14 @@ int64_t RoundUpToPowerOf2(int64_t x) {
     return x + 1;
 }
 
-template <typename In, typename Out, typename ReductionImpl>
-__global__ void ReductionKernel(ReductionKernelArg<In, Out> arg, int reduce_block_size, ReductionImpl impl) {
+template <
+        typename In,
+        typename Out,
+        typename ReductionImpl,
+        int8_t InNdim = kDynamicNdim,
+        int8_t OutNdim = kDynamicNdim,
+        int8_t ReduceNdim = kDynamicNdim>
+__global__ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> arg, int reduce_block_size, ReductionImpl impl) {
     using T = decltype(impl.Identity());
 
     extern __shared__ __align__(8) uint8_t work_bytes[];
@@ -145,20 +152,114 @@ __global__ void ReductionKernel(ReductionKernelArg<In, Out> arg, int reduce_bloc
 //             __device__ float MapOut(float accum) { return accum; }
 //         };
 //
-//     Then, it can be passed to Reduce like: Reduce(MakeReductionKernelArg(input, axis, output), SumImpl{});
+//     Then, it can be passed to Reduce like: Reduce(input, axis, output, SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
-void Reduce(ReductionKernelArg<In, Out> arg, ReductionImpl&& impl) {
+void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&& impl) {
+    ReductionArg<In, Out> arg = MakeReductionArg<In, Out>(in, axis, out);
+
     static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&reduce_detail::ReductionKernel<In, Out, ReductionImpl>).block_size;
 
     int reduce_block_size = static_cast<int>(std::min(
             static_cast<int64_t>(reduce_detail::kMaxReductionBlockSize),
-            reduce_detail::RoundUpToPowerOf2(std::max(int64_t{1}, arg.reduce_indexer.total_size()))));
+            reduce_detail::RoundUpToPowerOf2(std::max(int64_t{1}, arg.reduce_shape.GetTotalSize()))));
     int block_size = std::min(kMaxBlockSize, reduce_block_size);
-    int64_t total_reduce_blocks = arg.out_indexer.total_size();
+    int64_t total_reduce_blocks = arg.out_shape.GetTotalSize();
     int64_t grid_size = total_reduce_blocks;
     size_t shared_mem_size = sizeof(decltype(impl.Identity())) * reduce_block_size;
 
-    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(arg, reduce_block_size, impl);
+    // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
+    assert(arg.in_shape.ndim() == arg.out_shape.ndim() + arg.reduce_shape.ndim());
+    switch (arg.in_strides.ndim()) {
+        case 1:
+            switch (arg.out_strides.ndim()) {
+                case 0:
+                    assert(arg.reduce_shape.ndim() == 1);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
+                    return;
+                case 1:
+                    assert(arg.reduce_shape.ndim() == 0);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 1, 1, 0>(arg), reduce_block_size, impl);
+                    return;
+            }
+            XCHAINER_NEVER_REACH();
+        case 2:
+            switch (arg.out_strides.ndim()) {
+                case 0:
+                    assert(arg.reduce_shape.ndim() == 2);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 2, 0, 2>(arg), reduce_block_size, impl);
+                    return;
+                case 1:
+                    assert(arg.reduce_shape.ndim() == 1);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
+                    return;
+                case 2:
+                    assert(arg.reduce_shape.ndim() == 0);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 2, 2, 0>(arg), reduce_block_size, impl);
+                    return;
+            }
+            XCHAINER_NEVER_REACH();
+        case 3:
+            switch (arg.out_strides.ndim()) {
+                case 0:
+                    assert(arg.reduce_shape.ndim() == 3);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 3, 0, 3>(arg), reduce_block_size, impl);
+                    return;
+                case 1:
+                    assert(arg.reduce_shape.ndim() == 2);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 3, 1, 2>(arg), reduce_block_size, impl);
+                    return;
+                case 2:
+                    assert(arg.reduce_shape.ndim() == 1);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 3, 2, 1>(arg), reduce_block_size, impl);
+                    return;
+                case 3:
+                    assert(arg.reduce_shape.ndim() == 0);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 3, 3, 0>(arg), reduce_block_size, impl);
+                    return;
+            }
+            XCHAINER_NEVER_REACH();
+        case 4:
+            switch (arg.out_strides.ndim()) {
+                case 0:
+                    assert(arg.reduce_shape.ndim() == 4);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 4, 0, 4>(arg), reduce_block_size, impl);
+                    return;
+                case 1:
+                    assert(arg.reduce_shape.ndim() == 3);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 4, 1, 3>(arg), reduce_block_size, impl);
+                    return;
+                case 2:
+                    assert(arg.reduce_shape.ndim() == 2);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 4, 2, 2>(arg), reduce_block_size, impl);
+                    return;
+                case 3:
+                    assert(arg.reduce_shape.ndim() == 1);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 4, 3, 1>(arg), reduce_block_size, impl);
+                    return;
+                case 4:
+                    assert(arg.reduce_shape.ndim() == 0);
+                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+                            MakeReductionKernelArg<In, Out, 4, 4, 0>(arg), reduce_block_size, impl);
+                    return;
+            }
+            XCHAINER_NEVER_REACH();
+    }
+
+    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
+            MakeReductionKernelArg<In, Out>(arg), reduce_block_size, impl);
 }
 
 }  // namespace cuda

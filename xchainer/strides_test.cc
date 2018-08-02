@@ -6,6 +6,8 @@
 #include <gtest/gtest.h>
 #include <gsl/gsl>
 
+#include "xchainer/axes.h"
+
 namespace xchainer {
 namespace {
 
@@ -145,6 +147,13 @@ TEST(StridesTest, ToString) {
 TEST(StridesTest, SpanFromStrides) {
     const Strides strides = {2, 3, 4};
     CheckSpanEqual({2, 3, 4}, gsl::make_span(strides));
+}
+
+TEST(StridesTest, Permute) {
+    const Strides strides = {2, 3, 4};
+    CheckSpanEqual({3, 4}, strides.Permute(Axes{1, 2}).span());
+    EXPECT_THROW(strides.Permute(Axes{3}), DimensionError);
+    EXPECT_THROW(strides.Permute(Axes{-1}), DimensionError);
 }
 
 struct GetDataRangeTestParams {

@@ -81,7 +81,7 @@ public:
         assert(axes.size() == static_cast<size_t>(kNdim));
         int64_t c[kNdim]{};
         std::copy(std::begin(strides_), std::end(strides_), c);
-        for (size_t i = 0; i < axes.size(); ++i) {
+        for (size_t i = 0; i < kNdim; ++i) {
             strides_[i] = c[axes[i]];
         }
         return *this;
@@ -94,6 +94,46 @@ private:
     const uint8_t* last_{nullptr};
 #endif  // NDEBUG
     int64_t strides_[kNdim];
+};
+
+// Static 0-dimensional specialization.
+template <typename T>
+class IndexableArray<T, 0> {
+public:
+    using ElementType = T;
+
+    IndexableArray(T* data, const Strides& strides) : data_{data} {
+        (void)strides;  // unused
+        assert(0 == strides.ndim());
+    }
+
+    IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
+        assert(TypeToDtype<T> == array.dtype());
+    }
+
+    explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
+
+    XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return 0; }
+
+    XCHAINER_HOST_DEVICE constexpr const int64_t* strides() const { return nullptr; }
+
+    XCHAINER_HOST_DEVICE T* data() const { return data_; }
+
+    XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
+        (void)index;  // unused
+        assert(index == nullptr || index[0] == 0);
+        return *data_;
+    }
+
+    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<0>& it) const { return operator[](it.index()); }
+
+    IndexableArray<T, 0>& Permute(const Axes& axes) {
+        // NOOP for 1-dimensional array.
+        return *this;
+    }
+
+private:
+    T* data_;
 };
 
 // Static 1-dimensional specialization.
@@ -129,7 +169,7 @@ public:
 
     XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<1>& it) const { return operator[](it.index()); }
 
-    IndexableArray<T, kDynamicNdim>& Permute(const Axes& axes) {
+    IndexableArray<T, 1>& Permute(const Axes& axes) {
         // NOOP for 1-dimensional array.
         return *this;
     }
