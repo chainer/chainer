@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include <gsl/gsl>
@@ -117,6 +118,25 @@ void Context::ReleaseGraphId(const GraphId& graph_id) {
     (void)graph_id;  // unused
 
     graph_stack_.pop_back();
+}
+
+std::string Context::GetGraphName(const GraphId& graph_id) {
+    // Note: graph name cannot be returned by reference, as the reference may be invalidated when a new graph is pushed to the graph
+    // stack.
+
+    static constexpr const char* kDefaultGraphDisplayName = "<default>";
+
+    if (graph_id == default_graph_id()) {
+        return kDefaultGraphDisplayName;
+    }
+
+    auto it = std::find_if(graph_stack_.rbegin(), graph_stack_.rend(), [&graph_id](const GraphStackItem& item) {
+        return item.sub_id == graph_id.sub_id();
+    });
+    if (it == graph_stack_.rend()) {
+        throw XchainerError{"Graph not found in the context. Sub ID:", graph_id.sub_id()};
+    }
+    return it->name;
 }
 
 void Context::CheckBackpropAllowed(const GraphId& graph_id) {

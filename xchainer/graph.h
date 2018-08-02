@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <ostream>
+#include <string>
 
 #include "xchainer/error.h"
 #include "xchainer/hash_combine.h"
@@ -36,6 +37,8 @@ public:
     Context& context() const { return context_; }
 
     GraphSubId sub_id() const { return sub_id_; }
+
+    std::string name() const;
 
 private:
     // A GraphId is always constructed by a Context.
