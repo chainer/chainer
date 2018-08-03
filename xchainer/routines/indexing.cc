@@ -110,8 +110,8 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
             Array gin = Zeros(a_shape, a_dtype, gout.device());
             bctx.input_grad() = AddAt(gin, indices, gout);
         });
-        bb.Finalize();
     }
+    bb.Finalize();
 
     return out;
 }

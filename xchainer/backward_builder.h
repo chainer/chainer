@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <functional>
@@ -24,7 +25,7 @@ namespace backward_builder_detail {
 
 // This class is used the be BackwardBuilder to record of retained inputs and outputs.
 // The records are used to create outer graph edges (between op nodes and previous array nodes) when the builder is finalized.
-class RetainmentRecord {
+class RetentionRecord {
 public:
     const std::vector<size_t>& recorded_input_indices() const { return recorded_input_indices_; }
 
@@ -32,7 +33,13 @@ public:
 
     bool is_any_output_recorded() const { return is_any_output_recorded_; }
 
-    void RecordInput(size_t input_index) { recorded_input_indices_.emplace_back(input_index); }
+    void RecordInput(size_t input_index) {
+        if (std::find(recorded_input_indices_.begin(), recorded_input_indices_.end(), input_index) != recorded_input_indices_.end()) {
+            // Do nothing if the input has already been recorded.
+            return;
+        }
+        recorded_input_indices_.emplace_back(input_index);
+    }
 
     void RecordOutput() { is_any_output_recorded_ = true; }
 
@@ -114,6 +121,7 @@ public:
         : BackwardBuilder{op_name, std::move(inputs), std::vector<ConstArrayRef>{output}} {}
     BackwardBuilder(const char* op_name, const Array& input, const Array& output)
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
+    ~BackwardBuilder() { assert(is_finalized_); }
 
     Target CreateTarget(std::vector<size_t> input_indices) {
         // input_indices shouldn't have duplicates.
@@ -155,11 +163,6 @@ public:
     void Finalize();
 
 private:
-    // Returns whether the backward definitions to cover all the input arrays have finished.
-    bool is_complete() const {
-        return std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; });
-    }
-
     // Create an op node for a specific graph.
     // Edges from output nodes to the op node are connected.
     std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
@@ -186,7 +189,9 @@ private:
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
 
-    backward_builder_detail::RetainmentRecord retainment_record_{};
+    backward_builder_detail::RetentionRecord retention_record_{};
+
+    bool is_finalized_{false};
 };
 
 }  // namespace xchainer

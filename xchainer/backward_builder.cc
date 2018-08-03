@@ -127,26 +127,31 @@ std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const GraphId& grap
 }
 
 RetainedInputToken BackwardBuilder::RetainInput(size_t input_index) {
-    if (!retainment_record_.is_any_output_recorded()) {
+    if (!retention_record_.is_any_output_recorded()) {
         // Record the input retainment, only if no output has been retained yet.
         // If any single output would have been retained, all of the graphs involved in the builder need to be considered during
         // finalization. This would covers a superset of the graphs recorded by the input retainment which means these records are not
         // necessary.
-        retainment_record_.RecordInput(input_index);
+        retention_record_.RecordInput(input_index);
     }
     assert(input_index < inputs_.size());
     return {internal::GetArrayBody(gsl::at(inputs_, input_index))->GetParams(), input_index};
 }
 
 RetainedOutputToken BackwardBuilder::RetainOutput(size_t output_index) {
-    retainment_record_.RecordOutput();
+    retention_record_.RecordOutput();
     assert(output_index < outputs_.size());
     return {internal::GetArrayBody(gsl::at(outputs_, output_index))->GetParams(), output_index};
 }
 
 void BackwardBuilder::Finalize() {
-    assert(is_complete());
+    assert(!is_finalized_);
+    // Checks that the backward definitions cover all the input arrays.
+    assert(std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; }));
+
     AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs();
+
+    is_finalized_ = true;
 }
 
 namespace {
@@ -175,7 +180,7 @@ void BackwardBuilder::AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs() {
     // If any output is retained, create outer edges (from op nodes to previous array nodes) w.r.t. all graphs.
     // If no output is retained but at least one input is, create outer edges w.r.t. all graphs to which the input belongs.
     // Both cases above run in O(n^2), assuming n is reasonably small, where n is the number of graphs.
-    if (retainment_record_.is_any_output_recorded()) {
+    if (retention_record_.is_any_output_recorded()) {
         for (const auto& tup : op_node_map_) {
             for (const auto& other_tup : op_node_map_) {
                 if (tup.first < other_tup.first) {
@@ -183,10 +188,10 @@ void BackwardBuilder::AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs() {
                 }
             }
         }
-    } else if (retainment_record_.is_any_input_recorded()) {
+    } else if (retention_record_.is_any_input_recorded()) {
         // Create a set of graphs to which the retained inputs belong.
         std::unordered_set<GraphId> retained_graphs{};
-        for (size_t input_index : retainment_record_.recorded_input_indices()) {
+        for (size_t input_index : retention_record_.recorded_input_indices()) {
             const Array& input = gsl::at(inputs_, input_index);
             for (const std::shared_ptr<ArrayNode>& array_node : internal::GetArrayBody(input)->nodes()) {
                 retained_graphs.emplace(array_node->graph_id());
