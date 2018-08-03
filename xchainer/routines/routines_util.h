@@ -10,7 +10,7 @@ namespace xchainer {
 namespace internal {
 
 inline void CheckNoInplaceWithRequiredGrad(const Array& out, std::initializer_list<std::reference_wrapper<const Array>> inputs) {
-    if (internal::HasAnyArrayNode(out)) {
+    if (!internal::GetArrayBody(out)->nodes().empty()) {
         throw XchainerError{"In-place assignment to output array requiring grad is not allowed."};
     }
 

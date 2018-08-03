@@ -632,7 +632,8 @@ TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
 }
 
 TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGradWithNoBackpropMode) {
-    GraphId graph_id = "graph_1";
+    GraphScope graph_scope{"graph_1"};
+    GraphId graph_id = graph_scope.graph_id();
     Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
     Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
     a.RequireGrad(graph_id);
