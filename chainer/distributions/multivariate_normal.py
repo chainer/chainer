@@ -100,13 +100,20 @@ class MultivariateNormal(distribution.Distribution):
 
     """MultivariateNormal Distribution.
 
+    The probability density function of the distribution is expressed as
+
+    .. math::
+        p(x;\\mu,V) = \\frac{1}{\\sqrt{\\det(2\\pi V)}}
+            \\exp\\left(-\\frac{1}{2}(x-\\mu) V^{-1}(x-\\mu)\\right)
+
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        location :math:`\\mu`.
-        scale_tril(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`L`.
+        loc (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing the
+            location :math:`\\mu`.
+        scale_tril (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing the
+            scale :math:`L` such that :math:`V=LL^T`.
+
     """
 
     def __init__(self, loc, **kwargs):
