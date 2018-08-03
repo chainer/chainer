@@ -70,48 +70,54 @@ def _get_bilinear_interp_params(y, x, height, width):
 
 
 _GET_BILINEAR_INTERP_KERNEL = '''
-// deal with cases that inverse elements are
-// out of feature map boundary
-if (y < -1. || y > height || x < -1. || x > width) {
-    // empty
-    continue;
+__device__
+bool get_bilinear_interp_params(
+    T x, T y, const int height, const int width,
+    int &y_low, int &x_low, int &y_high, int &x_high,
+    T &w1, T &w2, T &w3, T &w4) {
+    // deal with cases that inverse elements are
+    // out of feature map boundary
+    if (y < -1. || y > height || x < -1. || x > width) {
+        // empty
+        return false;
+    }
+
+    if (y <= 0) {
+        y = 0;
+    }
+    if (x <= 0) {
+        x = 0;
+    }
+
+    y_low = (int)y;
+    x_low = (int)x;
+
+    if (y_low >= height - 1) {
+        y_high = y_low = height - 1;
+        y = (T)y_low;
+    } else {
+        y_high = y_low + 1;
+    }
+
+    if (x_low >= width - 1) {
+        x_high = x_low = width - 1;
+        x = (T)x_low;
+    } else {
+        x_high = x_low + 1;
+    }
+
+    T ly = y - y_low;
+    T lx = x - x_low;
+    T hy = 1. - ly;
+    T hx = 1. - lx;
+
+    w1 = hy * hx;
+    w2 = hy * lx;
+    w3 = ly * hx;
+    w4 = ly * lx;
+
+    return true;
 }
-
-if (y <= 0) {
-    y = 0;
-}
-if (x <= 0) {
-    x = 0;
-}
-
-int y_low = (int)y;
-int x_low = (int)x;
-int y_high;
-int x_high;
-
-if (y_low >= height - 1) {
-    y_high = y_low = height - 1;
-    y = (T)y_low;
-} else {
-    y_high = y_low + 1;
-}
-
-if (x_low >= width - 1) {
-    x_high = x_low = width - 1;
-    x = (T)x_low;
-} else {
-    x_high = x_low + 1;
-}
-
-T ly = y - y_low;
-T lx = x - x_low;
-T hy = 1. - ly;
-T hx = 1. - lx;
-
-T w1 = hy * hx;
-T w2 = hy * lx;
-T w3 = ly * hx;
-T w4 = ly * lx;
 '''
 
 
@@ -296,8 +302,16 @@ class ROIAlign2D(function.Function):
                             static_cast<T>(roi_bin_grid_w);
 
                     // bilinear_interpolation {{
-
-                    @GET_BILINEAR_INTERP_KERNEL@
+                    int y_low, x_low, y_high, x_high;
+                    T w1, w2, w3, w4;
+                    bool ret = get_bilinear_interp_params(
+                        x, y, height, width,
+                        y_low, x_low, y_high, x_high,
+                        w1, w2, w3, w4
+                    );
+                    if (!ret) {
+                        continue;
+                    }
 
                     T v1 = bottom_data[bottom_data_offset +
                                        y_low * width + x_low];
@@ -316,9 +330,9 @@ class ROIAlign2D(function.Function):
             output_val /= count;
 
             top_data = output_val;
-            '''.replace('@GET_BILINEAR_INTERP_KERNEL@',
-                        _GET_BILINEAR_INTERP_KERNEL),
-            'roi_align_2d_fwd'
+            ''',
+            'roi_align_2d_fwd',
+            preamble=_GET_BILINEAR_INTERP_KERNEL,
         )(bottom_data, self.spatial_scale, channels, height, width,
           self.outh, self.outw, self.sampling_ratio[0], self.sampling_ratio[1],
           bottom_rois, top_data)
@@ -464,8 +478,16 @@ class ROIAlign2D(function.Function):
                             static_cast<T>(roi_bin_grid_w);
 
                     // bilinear_interpolation_gradient {{
-
-                    @GET_BILINEAR_INTERP_KERNEL@
+                    int y_low, x_low, y_high, x_high;
+                    T w1, w2, w3, w4;
+                    bool ret = get_bilinear_interp_params(
+                        x, y, height, width,
+                        y_low, x_low, y_high, x_high,
+                        w1, w2, w3, w4
+                    );
+                    if (!ret) {
+                        continue;
+                    }
 
                     T g1 = top_diff_this_bin * w1 / count;
                     T g2 = top_diff_this_bin * w2 / count;
@@ -487,9 +509,9 @@ class ROIAlign2D(function.Function):
                     // }}
                 }
             }
-            '''.replace('@GET_BILINEAR_INTERP_KERNEL@',
-                        _GET_BILINEAR_INTERP_KERNEL),
-            'roi_align_2d_bwd'
+            ''',
+            'roi_align_2d_bwd',
+            preamble=_GET_BILINEAR_INTERP_KERNEL,
         )(gy[0], bottom_rois.shape[0],
           self.spatial_scale, channels, height, width, self.outh, self.outw,
           self.sampling_ratio[0], self.sampling_ratio[1],
