@@ -52,7 +52,7 @@ class Distribution(object):
         >>> cov = np.random.normal(size=shape + (d, d)).astype(np.float32)
         >>> cov = np.matmul(cov, np.rollaxis(cov, -1, -2))
         >>> l = np.linalg.cholesky(cov)
-        >>> dist = D.MultivariateNormal(loc, l)
+        >>> dist = D.MultivariateNormal(loc, scale_tril=l)
         >>> dist.event_shape
         (2,)
         >>> dist.batch_shape
