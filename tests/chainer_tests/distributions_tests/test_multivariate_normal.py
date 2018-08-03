@@ -73,19 +73,15 @@ class TestTriangularInv(unittest.TestCase):
         self.double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def check_forward(self, x_data):
-        xp = cuda.get_array_module(x_data)
         y = distributions.multivariate_normal._triangular_inv(
             x_data, lower=self.lower)
-        y_xp = xp.linalg.inv(x_data)
-        testing.assert_allclose(y.array, y_xp)
+        inv_x = numpy.linalg.inv(cuda.to_cpu(x_data))
+        testing.assert_allclose(y.array, inv_x)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @unittest.skipUnless(
-        hasattr(cuda.cupy, 'cuda') and cuda.cupy.cuda.cusolver_enabled,
-        'Only cusolver in CUDA 8.0 is supported')
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
