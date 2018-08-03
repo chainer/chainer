@@ -91,8 +91,14 @@ public:
             std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> next_array_nodes, BackwardFunction backward_func);
 
     // Adds links to previous array nodes of other graphs.
+    // The size of the vector must be equal to the number of outputs.
     void AddEdgesToPreviousArrayNodesOfOuterGraph(
             const GraphId& outer_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes);
+
+    // Adds links to next array nodes of other graphs.
+    // The size of the vector must be equal to the number of inputs.
+    void AddEdgesToNextArrayNodesOfOuterGraph(
+            const GraphId& outer_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_next_array_nodes);
 
     void Unchain() {
         backward_entries_.clear();
@@ -136,6 +142,10 @@ public:
         return outer_graphs_prev_array_nodes_;
     }
 
+    const std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_next_array_nodes() const {
+        return outer_graphs_next_array_nodes_;
+    }
+
 private:
     OpNode(std::string name, GraphId graph_id, size_t next_array_node_count);
 
@@ -156,9 +166,11 @@ private:
     // List of previous array nodes of this graph.
     std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes_;
 
-    // List of prev array nodes of outer graphs.
+    // List of prev/next array nodes of outer graphs.
     // Outer graphs refer to graphs with lower sub ids.
-    // Each entry is a pair of graph ID and list of previous array nodes.
+    // Each entry is a pair of graph ID and list of previous/next array nodes.
+    std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_next_array_nodes_;
+
     std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_prev_array_nodes_;
 
     // Array props of previous array nodes. This is used for creating dummy gradients.

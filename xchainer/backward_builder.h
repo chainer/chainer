@@ -1,6 +1,5 @@
 #pragma once
 
-#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <functional>
@@ -9,6 +8,8 @@
 #include <set>
 #include <unordered_map>
 #include <vector>
+
+#include <gsl/gsl>
 
 #include "xchainer/array.h"
 #include "xchainer/array_body.h"
@@ -23,29 +24,28 @@
 namespace xchainer {
 namespace backward_builder_detail {
 
-// This class is used the be BackwardBuilder to record of retained inputs and outputs.
+// This class is used the be BackwardBuilder to record retained inputs and outputs.
 // The records are used to create outer graph edges (between op nodes and previous array nodes) when the builder is finalized.
 class RetentionRecord {
 public:
-    const std::vector<size_t>& recorded_input_indices() const { return recorded_input_indices_; }
+    explicit RetentionRecord(size_t size) : size_{size} { assert(size_ > 0); }
 
-    bool is_any_input_recorded() const { return !recorded_input_indices_.empty(); }
+    size_t size() const { return size_; }
 
-    bool is_any_output_recorded() const { return is_any_output_recorded_; }
-
-    void RecordInput(size_t input_index) {
-        if (std::find(recorded_input_indices_.begin(), recorded_input_indices_.end(), input_index) != recorded_input_indices_.end()) {
-            // Do nothing if the input has already been recorded.
-            return;
+    void Record(size_t index) {
+        if (recorded_indices_.empty()) {
+            recorded_indices_.resize(size_);
         }
-        recorded_input_indices_.emplace_back(input_index);
+        gsl::at(recorded_indices_, index) = static_cast<char>(true);
     }
 
-    void RecordOutput() { is_any_output_recorded_ = true; }
+    bool IsAnyRecorded() const { return !recorded_indices_.empty(); }
+
+    bool IsRecorded(size_t index) const { return static_cast<bool>(recorded_indices_[index]); }
 
 private:
-    std::vector<size_t> recorded_input_indices_{};
-    bool is_any_output_recorded_{false};
+    size_t size_{};
+    std::vector<char> recorded_indices_{};
 };
 
 template <typename Tag>
@@ -170,7 +170,7 @@ private:
     // Add shared ptrs between op nodes and array nodes belonging to outer graphs.
     // This functions is called once when the builder is finalized.
     // These references are required to restore retained inputs/outputs.
-    void AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs();
+    void AddEdgesToArrayNodesBetweenRetainedOuterGraphs();
 
     const char* op_name_;
 
@@ -189,7 +189,8 @@ private:
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
 
-    backward_builder_detail::RetentionRecord retention_record_{};
+    backward_builder_detail::RetentionRecord input_retention_record_;
+    backward_builder_detail::RetentionRecord output_retention_record_;
 
     bool is_finalized_{false};
 };

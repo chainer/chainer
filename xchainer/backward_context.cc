@@ -128,6 +128,28 @@ Array& BackwardContext::input_grad() {
 
 Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_, index); }
 
+namespace {
+
+// Returns the pointers to array nodes for all graphs in the input array corresponding to the input_index.
+// The raw pointers (not std::shared_ptr) are never null.
+// TODO(hvy): Consider implementing this an OpNode member function, if it could be used from other places.
+std::vector<const std::shared_ptr<ArrayNode>*> GetPrevArrayNodesForIndex(const OpNode& op_node, size_t input_index) {
+    std::vector<const std::shared_ptr<ArrayNode>*> next_array_nodes;
+
+    next_array_nodes.reserve(1 + op_node.outer_graphs_next_array_nodes().size());
+    next_array_nodes.emplace_back(&op_node.next_array_nodes()[input_index]);
+
+    std::transform(
+            op_node.outer_graphs_next_array_nodes().begin(),
+            op_node.outer_graphs_next_array_nodes().end(),
+            std::back_inserter(next_array_nodes),
+            [input_index](const auto& tup) { return &std::get<1>(tup)[input_index]; });
+
+    return next_array_nodes;
+}
+
+}  // namespace
+
 Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
     assert(token.index() < op_node_->next_array_node_count());
     size_t input_index = token.index();
@@ -138,28 +160,7 @@ Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
     std::shared_ptr<ArrayBody>& kept_body = gsl::at(retained_input_array_bodies_, input_index);
 
     if (kept_body == nullptr) {
-        // Collect the pointers to array nodes of all graphs, in the input array corresponding to input_index.
-        // The raw pointers (not std::shared_ptr) are never null.
-        std::vector<const std::shared_ptr<ArrayNode>*> next_array_nodes;
-        next_array_nodes.emplace_back(&gsl::at(op_node_->next_array_nodes(), input_index));
-
-        for (const auto& tup : op_node_->outer_graphs_prev_array_nodes()) {
-            const std::vector<std::shared_ptr<ArrayNode>>& outer_prev_array_nodes = std::get<1>(tup);
-            assert(!outer_prev_array_nodes.empty());
-
-            // Get any previous array node to find the op node of the outer graph.
-            const std::shared_ptr<ArrayNode>& prev_array_node = outer_prev_array_nodes.front();
-            assert(prev_array_node != nullptr);
-            assert(prev_array_node->next_op_node() != nullptr);
-
-            const std::shared_ptr<ArrayNode>& next_array_node = gsl::at(prev_array_node->next_op_node()->next_array_nodes(), input_index);
-
-            next_array_nodes.emplace_back(&next_array_node);
-        }
-
-        assert(!next_array_nodes.empty());
-        assert(std::all_of(
-                next_array_nodes.begin(), next_array_nodes.end(), [](const std::shared_ptr<ArrayNode>* ptr) { return ptr != nullptr; }));
+        std::vector<const std::shared_ptr<ArrayNode>*> next_array_nodes = GetPrevArrayNodesForIndex(*op_node_, input_index);
 
         // If the input array body is alive, use it.
         // Otherwise, create a new array body and put the nodes into it.

@@ -66,35 +66,55 @@ OpNode::OpNode(std::string name, GraphId graph_id, size_t next_array_node_count)
       next_array_nodes_{next_array_node_count}  // Initialize with nullptrs
 {}
 
-void OpNode::AssertConsistency() const {
 #ifndef NDEBUG
+
+namespace {
+
+void AssertOuterGraphsArrayNodesConsistency(
+        const GraphId& graph_id,
+        size_t array_node_count,
+        const std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_array_nodes) {
     // No pair of entries may have the same graph ID.
-    assert(std::all_of(outer_graphs_prev_array_nodes_.begin(), outer_graphs_prev_array_nodes_.end(), [this](const auto& tup1) {
-        return std::all_of(outer_graphs_prev_array_nodes_.begin(), outer_graphs_prev_array_nodes_.end(), [&tup1](const auto& tup2) {
+    assert(std::all_of(outer_graphs_array_nodes.begin(), outer_graphs_array_nodes.end(), [&outer_graphs_array_nodes](const auto& tup1) {
+        return std::all_of(outer_graphs_array_nodes.begin(), outer_graphs_array_nodes.end(), [&tup1](const auto& tup2) {
             return &tup1 == &tup2 || std::get<0>(tup1) != std::get<0>(tup2);
         });
     }));
 
     // All the outer graphs linked from this op node must be outer (lower graph sub ID).
-    assert(std::all_of(outer_graphs_prev_array_nodes_.begin(), outer_graphs_prev_array_nodes_.end(), [this](const auto& tup) {
-        return std::get<0>(tup) < graph_id_;
+    assert(std::all_of(outer_graphs_array_nodes.begin(), outer_graphs_array_nodes.end(), [&graph_id](const auto& tup) {
+        return std::get<0>(tup) < graph_id;
     }));
 
-    // Corresponding previous array nodes across graphs (corresponding to the same output array) should have the same array body, if it's
+    // Corresponding array nodes across graphs (corresponding to the same input/output array) should have the same array body, if it's
     // alive.
-    for (size_t i_prev = 0; i_prev < prev_array_node_count(); ++i_prev) {
-        nonstd::optional<ArrayBody*> prev_array_body{};
-        for (const auto& tup : outer_graphs_prev_array_nodes_) {
+    for (size_t i = 0; i < array_node_count; ++i) {
+        nonstd::optional<ArrayBody*> array_body{};
+        for (const auto& tup : outer_graphs_array_nodes) {
             const std::vector<std::shared_ptr<ArrayNode>>& vec = std::get<1>(tup);
-            const std::shared_ptr<ArrayNode>& prev_array_node = vec[i_prev];
-            std::shared_ptr<ArrayBody> body = prev_array_node->weak_body().lock();
-            if (!prev_array_body.has_value()) {
-                prev_array_body = body.get();
+            const std::shared_ptr<ArrayNode>& array_node = vec[i];
+            if (array_node == nullptr) {
+                // Outer graph references can be null for next array nodes for inputs that are not retained.
+                continue;
+            }
+            std::shared_ptr<ArrayBody> body = array_node->weak_body().lock();
+            if (!array_body.has_value()) {
+                array_body = body.get();
             } else {
-                assert(*prev_array_body == body.get());
+                assert(*array_body == body.get());
             }
         }
     }
+}
+
+}  // namespace
+
+#endif  // NDEBUG
+
+void OpNode::AssertConsistency() const {
+#ifndef NDEBUG
+    AssertOuterGraphsArrayNodesConsistency(graph_id_, prev_array_node_count(), outer_graphs_prev_array_nodes_);
+    AssertOuterGraphsArrayNodesConsistency(graph_id_, next_array_node_count(), outer_graphs_next_array_nodes_);
 #endif  // NDEBUG
 }
 
@@ -151,6 +171,21 @@ OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
     return backward_entries_.back();
 }
 
+void OpNode::AddEdgesToNextArrayNodesOfOuterGraph(
+        const GraphId& outer_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_next_array_nodes) {
+    AssertConsistency();
+    assert(outer_graph_id < graph_id_);
+    assert(outer_graphs_next_array_nodes.size() == next_array_nodes_.size());
+    assert(std::all_of(
+            outer_graphs_next_array_nodes.begin(),
+            outer_graphs_next_array_nodes.end(),
+            [&outer_graph_id](const std::shared_ptr<ArrayNode>& next) { return next == nullptr || next->graph_id() == outer_graph_id; }));
+
+    outer_graphs_next_array_nodes_.emplace_back(outer_graph_id, std::move(outer_graphs_next_array_nodes));
+
+    AssertConsistency();
+}
+
 void OpNode::AddEdgesToPreviousArrayNodesOfOuterGraph(
         const GraphId& outer_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_prev_array_nodes) {
     AssertConsistency();
@@ -159,7 +194,7 @@ void OpNode::AddEdgesToPreviousArrayNodesOfOuterGraph(
     assert(std::all_of(
             outer_graphs_prev_array_nodes.begin(),
             outer_graphs_prev_array_nodes.end(),
-            [&outer_graph_id](const std::shared_ptr<ArrayNode>& prev) { return prev->graph_id() == outer_graph_id; }));
+            [&outer_graph_id](const std::shared_ptr<ArrayNode>& prev) { return prev == nullptr || prev->graph_id() == outer_graph_id; }));
 
     outer_graphs_prev_array_nodes_.emplace_back(outer_graph_id, std::move(outer_graphs_prev_array_nodes));
 
