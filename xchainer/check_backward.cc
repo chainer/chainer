@@ -19,6 +19,23 @@
 namespace xchainer {
 namespace {
 
+// Disconnects the graphs of input arrays.
+// RequireGrad() is configured to match the original arrays, but not connected to them.
+// This prevents the graph nodes generated within check functions from leaking to the original input arrays, which would interfere with the
+// leak detector.
+std::vector<Array> DisconnectInputArrays(const std::vector<Array>& inputs) {
+    std::vector<Array> inputs_view;
+    inputs_view.reserve(inputs.size());
+    for (const auto& input : inputs) {
+        Array a = input.AsGradStopped(CopyKind::kView);
+        for (const std::shared_ptr<internal::ArrayNode>& arr_node : internal::GetArrayBody(input)->nodes()) {
+            a.RequireGrad(arr_node->graph_id());
+        }
+        inputs_view.emplace_back(std::move(a));
+    }
+    return inputs_view;
+}
+
 std::vector<nonstd::optional<Array>> BackwardGradients(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         std::vector<Array>& inputs,
@@ -92,9 +109,9 @@ void CheckDoubleBackpropOption(
     std::ostringstream failure_os;
 
     // make it nonlinear to be double differentiable so that this utility can be used even for non double differentiable functions
-    auto nonlinear_func = [&func](const std::vector<Array>& inputs) {
+    auto nonlinear_func = [&func](const std::vector<Array>& func_inputs) {
         std::vector<Array> nonlinear_outputs;
-        for (const auto& output : func(inputs)) {
+        for (const auto& output : func(func_inputs)) {
             nonlinear_outputs.emplace_back(output * output);
         }
         return nonlinear_outputs;
@@ -102,9 +119,9 @@ void CheckDoubleBackpropOption(
 
     // Disable double backprop
     {
-        std::vector<Array> inputs_copy{inputs};
+        std::vector<Array> inputs_disconnected = DisconnectInputArrays(inputs);
         std::vector<nonstd::optional<Array>> grads =
-                BackwardGradients(nonlinear_func, inputs_copy, nonstd::nullopt, graph_id, DoubleBackpropOption::kDisable);
+                BackwardGradients(nonlinear_func, inputs_disconnected, nonstd::nullopt, graph_id, DoubleBackpropOption::kDisable);
 
         for (size_t i = 0; i < grads.size(); ++i) {
             if (grads[i]) {
@@ -118,9 +135,9 @@ void CheckDoubleBackpropOption(
 
     // Enable double backprop
     {
-        std::vector<Array> inputs_copy{inputs};
+        std::vector<Array> inputs_disconnected = DisconnectInputArrays(inputs);
         std::vector<nonstd::optional<Array>> grads =
-                BackwardGradients(nonlinear_func, inputs_copy, nonstd::nullopt, graph_id, DoubleBackpropOption::kEnable);
+                BackwardGradients(nonlinear_func, inputs_disconnected, nonstd::nullopt, graph_id, DoubleBackpropOption::kEnable);
 
         for (size_t i = 0; i < grads.size(); ++i) {
             if (grads[i]) {
@@ -150,20 +167,9 @@ void CheckBackwardComputation(
     assert(!inputs.empty());
     GraphId actual_graph_id = internal::GetArrayGraphId(inputs.front(), graph_id);
 
-    // Copies the input arrays, so that computed gradients are released at the end of this function.
-    // This is needed to detect unreleased array bodies using array body leak detection.
-    // Copied input arrays are not connected to the original input arrays, but RequireGrad() is configured to match the original.
-    std::vector<Array> inputs_copy;
-    for (const auto& input : inputs) {
-        Array a = input.AsGradStopped(CopyKind::kCopy);
-        for (const std::shared_ptr<internal::ArrayNode>& arr_node : internal::GetArrayBody(input)->nodes()) {
-            a.RequireGrad(arr_node->graph_id());
-        }
-        inputs_copy.emplace_back(std::move(a));
-    }
-
     // Compute backward gradients
-    const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_copy, grad_outputs, actual_graph_id);
+    std::vector<Array> inputs_disconnected = DisconnectInputArrays(inputs);
+    const std::vector<nonstd::optional<Array>> backward_grads = BackwardGradients(func, inputs_disconnected, grad_outputs, actual_graph_id);
     if (backward_grads.size() != inputs.size()) {
         throw GradientCheckError{"Number of input gradients does not match the input arrays."};
     }
@@ -267,19 +273,28 @@ void CheckBackward(
     assert(!inputs.empty());
     GraphId actual_graph_id = internal::GetArrayGraphId(inputs.front(), graph_id);
 
-    CheckDoubleBackpropOption(func, inputs, actual_graph_id);
-
-    internal::ArrayBodyLeakTracker tracker{};
     {
-        internal::ArrayBodyLeakDetectionScope scope{tracker};
-
-        CheckBackwardComputation(func, inputs, grad_outputs, eps, atol, rtol, graph_id);
+        internal::ArrayBodyLeakTracker tracker{};
+        {
+            internal::ArrayBodyLeakDetectionScope scope{tracker};
+            CheckDoubleBackpropOption(func, inputs, actual_graph_id);
+        }
+        CheckAllArrayBodiesFreed(tracker);
     }
-    CheckAllArrayBodiesFreed(tracker);
+
+    {
+        internal::ArrayBodyLeakTracker tracker{};
+        {
+            internal::ArrayBodyLeakDetectionScope scope{tracker};
+            CheckBackwardComputation(func, inputs, grad_outputs, eps, atol, rtol, graph_id);
+        }
+        CheckAllArrayBodiesFreed(tracker);
+    }
 }
 
-// TODO(niboshi): Fix the leaks and enable array body leak detection.
-void CheckDoubleBackwardComputation(
+namespace {
+
+void CheckDoubleBackwardComputationImpl(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
         const std::vector<Array>& grad_outputs,
@@ -429,6 +444,26 @@ void CheckDoubleBackwardComputation(
         }
         throw GradientCheckError{os.str()};
     }
+}
+
+}  // namespace
+
+void CheckDoubleBackwardComputation(
+        const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
+        const std::vector<Array>& inputs,
+        const std::vector<Array>& grad_outputs,
+        const std::vector<Array>& grad_grad_inputs,
+        const std::vector<Array>& eps,
+        double atol,
+        double rtol,
+        const nonstd::optional<GraphId>& graph_id) {
+    internal::ArrayBodyLeakTracker tracker{};
+    {
+        internal::ArrayBodyLeakDetectionScope scope{tracker};
+        CheckDoubleBackwardComputationImpl(
+                func, DisconnectInputArrays(inputs), DisconnectInputArrays(grad_outputs), grad_grad_inputs, eps, atol, rtol, graph_id);
+    }
+    CheckAllArrayBodiesFreed(tracker);
 }
 
 }  // namespace xchainer
