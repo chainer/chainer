@@ -20,7 +20,7 @@ import collections
 import numpy
 import six
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
 
@@ -241,7 +241,7 @@ class ROIAlign2D(function.Function):
         n_rois = bottom_rois.shape[0]
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
                                     self.outw), dtype=bottom_data.dtype)
-        cuda.cupy.ElementwiseKernel(
+        cuda.elementwise(
             '''
             raw T bottom_data, T spatial_scale, int32 channels,
             int32 height, int32 width, int32 pooled_height, int32 pooled_width,
@@ -404,7 +404,7 @@ class ROIAlign2D(function.Function):
         bottom_rois = inputs[1]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, gy[0].dtype)
-        cuda.cupy.ElementwiseKernel(
+        cuda.elementwise(
             '''
             raw T top_diff,
             int32 num_rois, T spatial_scale,
