@@ -277,6 +277,19 @@ def test_array_repr():
             "       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, device='native:0')") == str(array)
 
 
+def test_array_repr_default_graph():
+    array = xchainer.ndarray((1,), xchainer.float32, [3.0])
+    array.require_grad()
+    assert "array([3.], shape=(1,), dtype=float32, device='native:0', graph_ids=['<default>'])" == str(array)
+
+
+def test_array_repr_expired_graph():
+    with xchainer.graph_scope('graph_1') as graph_1:
+        array = xchainer.ndarray((1,), xchainer.float32, [3.0])
+        array.require_grad(graph_1)
+    assert "array([3.], shape=(1,), dtype=float32, device='native:0', graph_ids=['<expired>'])" == str(array)
+
+
 @pytest.mark.parametrize('graph_args', [(None,), ()])
 def test_array_require_grad_without_graph_id(graph_args):
     array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])

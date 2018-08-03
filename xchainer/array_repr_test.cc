@@ -17,6 +17,7 @@
 #include "xchainer/native/native_backend.h"
 #include "xchainer/native/native_device.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/testing/array.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -257,6 +258,22 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
                 device,
                 {graph_id1, graph_id2, graph_id3, graph_id4, graph_id5});
     }
+}
+
+TEST(ArrayReprTest, ExpiredGraph) {
+    testing::DeviceSession device_session{DeviceId{"native:0"}};
+
+    Array a{};
+    {
+        GraphScope graph_scope{"graph_1"};
+        GraphId graph_id = graph_scope.graph_id();
+        a = testing::BuildArray({1}).WithData<float>({3.0f});
+        a.RequireGrad(graph_id);
+    }
+
+    std::ostringstream os;
+    os << a;
+    EXPECT_EQ("array([3.], shape=(1,), dtype=float32, device='native:0', graph_ids=['<expired>'])", os.str());
 }
 
 }  // namespace

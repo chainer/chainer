@@ -47,6 +47,8 @@ public:
 
     void ReleaseGraphId(const GraphId& graph_id);
 
+    // Return the name of the graph.
+    // XchainerError is thrown if the graph is expired or non-existent in the context.
     std::string GetGraphName(const GraphId& graph_id);
 
     // Checks if the graph ID is allowed to be backpropped.

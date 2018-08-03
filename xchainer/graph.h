@@ -38,7 +38,9 @@ public:
 
     GraphSubId sub_id() const { return sub_id_; }
 
-    std::string name() const;
+    // Returns the graph name.
+    // XchainerError is thrown if the graph is expired or non-existent in the associated context.
+    std::string GetName() const;
 
 private:
     // A GraphId is always constructed by a Context.
