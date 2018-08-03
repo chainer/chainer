@@ -597,49 +597,61 @@ TEST_P(ArrayTest, ComputationalGraph) {
     }
 }
 
-TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
+TEST_P(ArrayTest, InplaceWithArrayNodes) {
     GraphScope graph_scope{"graph_1"};
     GraphId graph_id = graph_scope.graph_id();
+
+    // Both input/output arrays have nodes
     {
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
-        Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
-        a.RequireGrad(graph_id);
-        b.RequireGrad(graph_id);
-        EXPECT_THROW({ a += b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(graph_id);
+        y.RequireGrad(graph_id);
+        EXPECT_THROW({ y += x; }, XchainerError);
     }
 
     {
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
-        Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
-        a.RequireGrad(graph_id);
-        b.RequireGrad(graph_id);
-        EXPECT_THROW({ a *= b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(graph_id);
+        y.RequireGrad(graph_id);
+        EXPECT_THROW({ y *= x; }, XchainerError);
     }
 
+    // Only output array has nodes
     {
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
-        Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
-        a.RequireGrad(graph_id);
-        EXPECT_THROW({ a *= b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        y.RequireGrad(graph_id);
+        EXPECT_THROW({ y *= x; }, XchainerError);
     }
 
+    // Only input array has nodes
     {
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
-        Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
-        b.RequireGrad(graph_id);
-        EXPECT_THROW({ a *= b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(graph_id);
+        EXPECT_THROW({ y *= x; }, XchainerError);
     }
-}
 
-TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGradWithNoBackpropMode) {
-    GraphScope graph_scope{"graph_1"};
-    GraphId graph_id = graph_scope.graph_id();
-    Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
-    Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
-    a.RequireGrad(graph_id);
+    // Only output arrays has nodes, with no backprop scope
     {
-        NoBackpropModeScope scope{};
-        EXPECT_THROW({ a += b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        y.RequireGrad(graph_id);
+
+        NoBackpropModeScope scope{graph_id};
+        EXPECT_THROW({ y *= x; }, XchainerError);
+    }
+
+    // Only input arrays has nodes, with no backprop scope
+    {
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(graph_id);
+
+        NoBackpropModeScope scope{graph_id};
+        y *= x;  // no throw
     }
 }
 
