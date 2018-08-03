@@ -8,19 +8,24 @@ from chainer.training import util
 
 
 @testing.parameterize(
-    {'init': 1, 'warmup_start_lr': 0.1,
+    {'init': 1, 'warmup_start': 0.1,
      'warmup_iter': 100, 'expect': [0.1, 0.991, 1, 1]},
-    {'init': 0.1, 'warmup_start_lr': 1,
+    {'init': 0.1, 'warmup_start': 1,
      'warmup_iter': 10, 'expect': [1, 0.19, 0.1, 0.1]},
-    {'init': 1, 'warmup_start_lr': -1,
+    {'init': 1, 'warmup_start': -1,
      'warmup_iter': 10, 'expect': [-1, 0.8, 1, 1]},
+    {'init': 1, 'warmup_start': -1,
+     'warmup_iter': 2, 'expect': [-1, 0, 1, 1]},
+    {'init': 0.1, 'warmup_start': 1,
+     'warmup_iter': 2, 'expect': [1, 0.55, 0.1, 0.1]},
 )
 class TestWarmupShift(unittest.TestCase):
 
     def setUp(self):
         self.optimizer = mock.MagicMock()
         self.extension = extensions.WarmupShift(
-            'x', self.warmup_start_lr, self.init, self.optimizer)
+            'x', self.warmup_start, self.warmup_iter,
+            self.init, self.optimizer)
 
         self.interval = 1
         self.expect = [e for e in self.expect for _ in range(self.interval)]
@@ -34,37 +39,37 @@ class TestWarmupShift(unittest.TestCase):
             optimizer = self.optimizer
         extension.initialize(self.trainer)
         actual = []
-        for _ in range(self.warmup_iter+2):
+        for _ in range(self.warmup_iter + 2):
             self.trainer.updater.update()
             actual.append(optimizer.x)
             if self.trigger(self.trainer):
                 extension(self.trainer)
 
-        self.assertEqual(round(actual[0], 6), expect[0])
-        self.assertEqual(round(actual[self.warmup_iter-1], 6), expect[1])
-        self.assertEqual(round(actual[self.warmup_iter], 6), expect[2])
-        self.assertEqual(round(actual[self.warmup_iter+1], 6), expect[3])
+        testing.assert_allclose(actual[0], expect[0])
+        testing.assert_allclose(actual[self.warmup_iter-1], expect[1])
+        testing.assert_allclose(actual[self.warmup_iter], expect[2])
+        testing.assert_allclose(actual[self.warmup_iter+1], expect[3])
 
     def test_basic(self):
         self.optimizer.x = 0
         extension = extensions.WarmupShift(
-            'x', self.warmup_start_lr, self.init,
-            self.warmup_iter, self.optimizer)
+            'x', self.warmup_start, self.warmup_iter,
+            self.init, self.optimizer)
         self._run_trainer(extension, self.expect)
 
     def test_without_init(self):
-        self.optimizer.x = self.warmup_start_lr
+        self.optimizer.x = self.warmup_start
         extension = extensions.WarmupShift(
-            'x', self.warmup_start_lr, self.init,
-            self.warmup_iter, self.optimizer)
+            'x', self.warmup_start, self.warmup_iter,
+            self.init, self.optimizer)
         self._run_trainer(extension, self.expect)
 
     def test_with_optimizer(self):
         optimizer = mock.Mock()
         optimizer.x = 0
         extension = extensions.WarmupShift(
-            'x', self.warmup_start_lr, self.init,
-            self.warmup_iter, optimizer)
+            'x', self.warmup_start, self.warmup_iter,
+            self.init, optimizer)
         self._run_trainer(extension, self.expect, optimizer)
 
 

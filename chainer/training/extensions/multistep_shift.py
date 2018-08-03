@@ -12,10 +12,10 @@ class MultistepShift(extension.Extension):
 
     For example, suppose that this extension is called at every iteration,
     and ``init = x``, ``gamma = y``, ``step_value = [s1, s2, s3]``.
-    Then during the iterations from 0 to s1, the attr will be ``x``. During the
-    iterations from s1 to s2, the attr will be ``x * y``. During the iterations
-    from s2 to s3, the attr will be ``x * y * y``. During the iterations after
-    s3, the attr will be ``x * y * y * y``.
+    Then during the iterations from 0 to (s1 - 1), the attr will be ``x``.
+    During the iterations from s1 to (s2 - 1), the attr will be ``x * y``.
+    During the iterations from s2 to (s3 - 1), the attr will be ``x * y * y``.
+    During the iterations after s3, the attr will be ``x * y * y * y``.
 
     This extension is also called before the training loop starts by default.
 
@@ -33,13 +33,13 @@ class MultistepShift(extension.Extension):
 
     """
 
-    def __init__(self, attr, init, gamma, step_value, optimizer=None):
+    def __init__(self, attr, gamma, step_value, init, optimizer=None):
         self._attr = attr
-        self._init = init
         self._gamma = gamma
         self._step_value = step_value
-        self._stepvalue_size = len(step_value)
+        self._init = init
         self._optimizer = optimizer
+        self._stepvalue_size = len(step_value)
         self._current_step = 0
         self._t = 0
 
@@ -61,3 +61,4 @@ class MultistepShift(extension.Extension):
 
     def serialize(self, serializer):
         self._t = serializer('_t', self._t)
+        self._current_step = serializer('_current_step', self._current_step)

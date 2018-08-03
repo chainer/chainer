@@ -22,7 +22,7 @@ class TestMutistepShift(unittest.TestCase):
     def setUp(self):
         self.optimizer = mock.MagicMock()
         self.extension = extensions.MultistepShift(
-            'x', self.init, self.gamma, self.step_value, self.optimizer)
+            'x', self.gamma, self.step_value, self.init, self.optimizer)
 
         self.interval = 1
         self.expect = [e for e in self.expect for _ in range(self.interval)]
@@ -42,26 +42,30 @@ class TestMutistepShift(unittest.TestCase):
             if self.trigger(self.trainer):
                 extension(self.trainer)
 
-        self.assertEqual([round(x, 6) for x in actual], expect)
+        testing.assert_allclose(actual[0], expect[0])
+        testing.assert_allclose(actual[1], expect[1])
+        testing.assert_allclose(actual[2], expect[2])
+        testing.assert_allclose(actual[3], expect[3])
+        testing.assert_allclose(actual[4], expect[4])
+        testing.assert_allclose(actual[5], expect[5])
 
     def test_basic(self):
         self.optimizer.x = 0
         extension = extensions.MultistepShift(
-            'x', self.init, self.gamma, self.step_value, self.optimizer)
+            'x', self.gamma, self.step_value, self.init, self.optimizer)
         self._run_trainer(extension, self.expect)
 
     def test_without_init(self):
         self.optimizer.x = self.init
         extension = extensions.MultistepShift(
-            'x', self.init, self.gamma, self.step_value, self.optimizer)
+            'x', self.gamma, self.step_value, self.init, self.optimizer)
         self._run_trainer(extension, self.expect)
 
     def test_with_optimizer(self):
         optimizer = mock.Mock()
         optimizer.x = 0
         extension = extensions.MultistepShift(
-            'x', self.init, self.gamma, self.step_value, optimizer)
-
+            'x', self.gamma, self.step_value, self.init, optimizer)
         self._run_trainer(extension, self.expect, optimizer)
 
 
