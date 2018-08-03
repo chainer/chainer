@@ -109,11 +109,14 @@ Array BatchNorm(
         bt.Define([ fb = std::move(fb), x_tok = bb.RetainInput(0), gamma_tok = bb.RetainInput(1), eps, sorted_axis = result.sorted_axis ](
                 BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
+
             std::array<Array, 3> ginputs = fb->Backward(gout.AsGradStopped());
             internal::MakeViewForForwardBackwardOutput(ginputs);
+
             const Array& gx = ginputs[0];
             const Array& ggamma = ginputs[1];
             const Array& gbeta = ginputs[2];
+
             assert(internal::GetArrayBody(gx)->nodes().empty());
             assert(internal::GetArrayBody(ggamma)->nodes().empty());
             assert(internal::GetArrayBody(gbeta)->nodes().empty());
@@ -121,21 +124,21 @@ Array BatchNorm(
             if (bctx.next_required()) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gamma_reshaped = bctx.GetRetainedInput(gamma_tok);
+
                 BackwardBuilder bb2{"batch_norm_backward", {x, gamma_reshaped, gout}, {gx, ggamma, gbeta}};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget({0, 1, 2})) {
                     bt2.Define([
-                        x_orig = x,
-                        gamma_orig = gamma,
-                        gout_orig = gout,
+                        x2_tok = bb2.RetainInput(0),
+                        gamma2_tok = bb2.RetainInput(1),
+                        gout_tok = bb2.RetainInput(2),
                         eps,
                         sorted_axis,
                         gx_tok = bb2.RetainOutput(0),
                         ggamma_tok = bb2.RetainOutput(1)
                     ](BackwardContext & bctx2) {
-                        // TODO(hvy): Avoid view of x, gamma, gout. Use retained input.
-                        const Array& x = x_orig.MakeView();
-                        const Array& gamma = gamma_orig.MakeView();
-                        const Array& gout = gout_orig.MakeView();
+                        const Array& x = bctx2.GetRetainedInput(x2_tok);
+                        const Array& gamma_reshaped = bctx2.GetRetainedInput(gamma2_tok);
+                        const Array& gout = bctx2.GetRetainedInput(gout_tok);
 
                         const Array& ggx = bctx2.output_grad(0);
                         const Array& gggamma = bctx2.output_grad(1);
@@ -149,9 +152,9 @@ Array BatchNorm(
                         const Array& ggamma = bctx2.GetRetainedOutput(ggamma_tok);
 
                         // Auxiliary values
-                        double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
+                        double inv_n = 1.0 / (x.GetTotalSize() / gamma_reshaped.GetTotalSize());
                         Array r = (gx * ggx).Sum(sorted_axis);
-                        Array coeff = gamma * x_inv_std;
+                        Array coeff = gamma_reshaped * x_inv_std;
                         Array coeff_m = coeff * inv_n;
                         Array x_hat = (x - x_mean) * x_inv_std;
 
@@ -164,7 +167,7 @@ Array BatchNorm(
                         Array gx2 = x_inv_std * gx_hat2 + inv_n * (gmean2 + x_hat * gstd2);
                         Array ggout2 = gggamma2 * x_hat + ggbeta2 + coeff * ggx;
 
-                        Array ggamma2 = r / gamma;
+                        Array ggamma2 = r / gamma_reshaped;
 
                         bctx2.input_grad(0) = gx2;
                         bctx2.input_grad(1) = ggamma2;
