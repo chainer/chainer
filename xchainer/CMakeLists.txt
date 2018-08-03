@@ -12,6 +12,7 @@ install(FILES
     array.h
     array_body.h
     array_body_leak_detection.h
+    array_fwd.h
     array_index.h
     array_node.h
     array_repr.h
@@ -20,14 +21,20 @@ install(FILES
     backend_util.h
     backprop_mode.h
     backward.h
+    backward_builder.h
+    backward_context.h
+    backward_fwd.h
     constant.h
     context.h
     device.h
     device_id.h
     dtype.h
     elementwise.h
+    enum.h
     error.h
     graph.h
+    graph_scope.h
+    hash_combine.h
     index_iterator.h
     indexable_array.h
     indexer.h
@@ -54,11 +61,14 @@ add_library(xchainer SHARED
     backend.cc
     backprop_mode.cc
     backward.cc
+    backward_builder.cc
+    backward_context.cc
     check_backward.cc
     context.cc
     device.cc
     device_id.cc
     dtype.cc
+    graph.cc
     numeric.cc
     numerical_gradient.cc
     op_node.cc

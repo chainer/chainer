@@ -19,15 +19,15 @@
 
 namespace xchainer {
 namespace native {
-namespace internal {
+namespace native_internal {
 
 Array Col2Im(
         const Array& col,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& out_size) {
-    int8_t batch_size = col.shape()[0];
-    int8_t channels = col.shape()[1];
+    int64_t batch_size = col.shape()[0];
+    int64_t channels = col.shape()[1];
     auto ndim = static_cast<int8_t>(stride.size());
 
     Shape padded_shape{batch_size, channels};
@@ -73,6 +73,6 @@ Array Col2Im(
     return padded_out.At(slice);
 }
 
-}  // namespace internal
+}  // namespace native_internal
 }  // namespace native
 }  // namespace xchainer

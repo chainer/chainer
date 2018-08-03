@@ -13,11 +13,11 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;
 
-using ArrayBodyPtr = std::shared_ptr<xchainer::internal::ArrayBody>;
+using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
 namespace {
 
@@ -27,7 +27,8 @@ struct ForwardInPython {
     std::vector<Array> operator()(const std::vector<Array>& xs_array) const {
         std::vector<ArrayBodyPtr> xs;
         xs.reserve(xs_array.size());
-        std::transform(xs_array.begin(), xs_array.end(), std::back_inserter(xs), [](Array a) { return a.move_body(); });
+        std::transform(
+                xs_array.begin(), xs_array.end(), std::back_inserter(xs), [](Array a) { return internal::MoveArrayBody(std::move(a)); });
 
         auto ys = py::cast<std::vector<ArrayBodyPtr>>(func(xs));
         return {ys.begin(), ys.end()};
@@ -44,7 +45,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const GraphId& graph_id) {
+             const nonstd::optional<GraphId>& graph_id) {
               CheckBackward(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
@@ -60,7 +61,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
           py::arg("eps"),
           py::arg("atol") = 1e-5,
           py::arg("rtol") = 1e-4,
-          py::arg("graph_id") = kDefaultGraphId);
+          py::arg("graph_id") = nullptr);
 
     m.def("check_double_backward",
           [](py::object func,
@@ -70,7 +71,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const GraphId& graph_id) {
+             const nonstd::optional<GraphId>& graph_id) {
               CheckDoubleBackwardComputation(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
@@ -88,9 +89,9 @@ void InitXchainerCheckBackward(pybind11::module& m) {
           py::arg("eps"),
           py::arg("atol") = 1e-5,
           py::arg("rtol") = 1e-4,
-          py::arg("graph_id") = kDefaultGraphId);
+          py::arg("graph_id") = nullptr);
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

@@ -11,7 +11,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -74,6 +74,6 @@ void InitXchainerDeviceScope(pybind11::module& m) {
     });
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

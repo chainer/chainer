@@ -17,9 +17,8 @@ namespace internal {
 
 class BackpropMode {
 public:
-    BackpropMode(Context& context, const nonstd::optional<GraphId>& graph_id, bool backprop)
-        : context_{context}, graph_id_{graph_id}, backprop_{backprop} {}
-    BackpropMode(Context& context, const GraphId& graph_id, bool backprop) : context_{context}, graph_id_{graph_id}, backprop_{backprop} {}
+    BackpropMode(Context& context, bool backprop) : context_{context}, graph_id_{nonstd::nullopt}, backprop_{backprop} {}
+    BackpropMode(const GraphId& graph_id, bool backprop) : context_{graph_id.context()}, graph_id_{graph_id}, backprop_{backprop} {}
 
     Context& context() const { return context_; }
 
@@ -44,17 +43,14 @@ using BackpropModeStack = std::vector<internal::BackpropMode>;
 template <bool kModeFlag>
 class BackpropModeScope {
 public:
-    // Backprop mode for all graphs
-    explicit BackpropModeScope(Context& context = GetDefaultContext()) { BackpropModeScopeImpl(nonstd::nullopt, context); }
+    // Backprop mode for all graphs in the specified context
+    explicit BackpropModeScope(Context& context = GetDefaultContext());
 
     // Backprop mode for specified graphs
-    explicit BackpropModeScope(std::vector<GraphId> graph_ids, Context& context = GetDefaultContext()) {
-        BackpropModeScopeImpl(std::move(graph_ids), context);
-    }
+    explicit BackpropModeScope(const std::vector<GraphId>& graph_ids);
 
     // Backprop mode for specified graphs
-    explicit BackpropModeScope(std::initializer_list<GraphId> graph_ids, Context& context = GetDefaultContext())
-        : BackpropModeScope({graph_ids.begin(), graph_ids.end()}, context) {}
+    explicit BackpropModeScope(std::initializer_list<GraphId> graph_ids) : BackpropModeScope({graph_ids.begin(), graph_ids.end()}) {}
 
     BackpropModeScope(const BackpropModeScope&) = delete;
     BackpropModeScope(BackpropModeScope&& other) = delete;
@@ -64,7 +60,7 @@ public:
     ~BackpropModeScope();
 
 private:
-    void BackpropModeScopeImpl(nonstd::optional<std::vector<GraphId>> graph_ids, Context& context);
+    void InitializeBackpropModeStack();
 
     // Number of BackpropMode instances pushed to the stack.
     size_t n_{};
@@ -82,11 +78,12 @@ using NoBackpropModeScope = backprop_mode_detail::BackpropModeScope<false>;
 // Make a context which enables back-propagation.
 using ForceBackpropModeScope = backprop_mode_detail::BackpropModeScope<true>;
 
-bool IsBackpropRequired(const GraphId& graph_id = kDefaultGraphId, Context& context = GetDefaultContext());
+bool IsBackpropRequired(Context& context = GetDefaultContext());
+bool IsBackpropRequired(const GraphId& graph_id);
 
 // Returns whether the array needs to backprop.
 // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
-bool IsGradRequired(const Array& array, const GraphId& graph_id = kDefaultGraphId);
+bool IsGradRequired(const Array& array, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
 bool IsGradRequired(const Array& array, AnyGraph any_graph);
 
 }  // namespace xchainer

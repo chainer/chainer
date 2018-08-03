@@ -35,7 +35,7 @@ TEST(ArrayBodyLeakDetectionTest, Leak) {
     {
         internal::ArrayBodyLeakDetectionScope scope{tracker};
         Array a = Ones({3, 2}, Dtype::kFloat32);
-        leaked_body = a.body();
+        leaked_body = internal::GetArrayBody(a);
     }
     std::vector<std::shared_ptr<internal::ArrayBody>> alive_arr_bodies = tracker.GetAliveArrayBodies();
     ASSERT_EQ(size_t{1}, alive_arr_bodies.size());

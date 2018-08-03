@@ -9,7 +9,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;
 
@@ -19,6 +19,6 @@ Axes ToAxes(const py::tuple& tup) {
     return axes;
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

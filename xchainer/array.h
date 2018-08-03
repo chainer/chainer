@@ -12,6 +12,7 @@
 #include <nonstd/optional.hpp>
 
 #include "xchainer/array_body.h"
+#include "xchainer/array_fwd.h"
 #include "xchainer/array_index.h"
 #include "xchainer/array_node.h"
 #include "xchainer/array_repr.h"
@@ -27,33 +28,21 @@
 #include "xchainer/strides.h"
 
 namespace xchainer {
-
-class Array;
-
-using ArrayRef = std::reference_wrapper<Array>;
-using ConstArrayRef = std::reference_wrapper<const Array>;
-
 namespace internal {
+
+GraphId GetArrayGraphId(const Array& array, const nonstd::optional<GraphId>& graph_id);
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
-bool HasArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
+inline const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array);
 
-bool HasAnyArrayNode(const Array& array);
-
-// Creates a new array node on the specified graph.
-// XchainerError is thrown if an array node is already registered on the graph.
-// The returned reference is only valid until the next call of CreateArrayNode (or ArrayBody::AddNode) on the same ArrayBody
-// instance.
-const std::shared_ptr<ArrayNode>& CreateArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
-
-std::shared_ptr<const ArrayNode> GetArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
-
-const std::shared_ptr<ArrayNode>& GetMutableArrayNode(const Array& array, const GraphId& graph_id = kDefaultGraphId);
+inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array);
 
 }  // namespace internal
 
-// The main data structure of multi-dimensional array.
+// The user interface of multi-dimensional arrays.
+//
+// This wraps an ArrayBody, providing accessors, an interface for graph operations and differentiable operations.
 class Array {
 public:
     Array() = default;
@@ -185,23 +174,23 @@ public:
 
     void Fill(Scalar value) const;
 
-    const nonstd::optional<Array>& GetGrad(const GraphId& graph_id = kDefaultGraphId) const;
+    const nonstd::optional<Array>& GetGrad(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) const;
 
-    void SetGrad(Array grad, const GraphId& graph_id = kDefaultGraphId) const;
+    void SetGrad(Array grad, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) const;
 
     // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
-    void ClearGrad(const GraphId& graph_id = kDefaultGraphId) const;
+    void ClearGrad(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) const;
 
     // Returns whether the array needs to backprop.
     // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
-    bool IsGradRequired(const GraphId& graph_id = kDefaultGraphId) const;
+    bool IsGradRequired(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) const;
     bool IsGradRequired(AnyGraph any_graph) const;
 
     // Flags the array to compute the gradient during backprop.
     // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.
-    const Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) const { return RequireGradImpl(*this, graph_id); }
+    const Array& RequireGrad(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) const { return RequireGradImpl(*this, graph_id); }
 
-    Array& RequireGrad(const GraphId& graph_id = kDefaultGraphId) { return RequireGradImpl(*this, graph_id); }
+    Array& RequireGrad(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) { return RequireGradImpl(*this, graph_id); }
 
     int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 
@@ -211,38 +200,34 @@ public:
 
     std::string ToString() const;
 
-    const std::shared_ptr<internal::ArrayBody>& body() const { return body_; }
+    Dtype dtype() const { return body_->dtype(); }
 
-    std::shared_ptr<internal::ArrayBody>&& move_body() { return std::move(body_); }
-
-    Dtype dtype() const { return body_->dtype_; }
-
-    Device& device() const { return body_->device_; }
+    Device& device() const { return body_->device(); }
 
     int8_t ndim() const { return shape().ndim(); }
 
-    const Shape& shape() const { return body_->shape_; }
+    const Shape& shape() const { return body_->shape(); }
 
-    const Strides& strides() const { return body_->strides_; }
+    const Strides& strides() const { return body_->strides(); }
 
     int64_t item_size() const { return GetItemSize(dtype()); }
 
-    const std::shared_ptr<void>& data() const { return body_->data_; }
+    const std::shared_ptr<void>& data() const { return body_->data(); }
 
-    void* raw_data() const { return body_->data_.get(); }
+    void* raw_data() const { return body_->data().get(); }
 
-    int64_t offset() const { return body_->offset_; }
-
-    std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return body_->nodes_; }
+    int64_t offset() const { return body_->offset(); }
 
 private:
     friend Array internal::MakeArray(
             const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset);
+    friend const std::shared_ptr<internal::ArrayBody>& internal::GetArrayBody(const Array& array);
+    friend std::shared_ptr<internal::ArrayBody>&& internal::MoveArrayBody(Array&& array);
 
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
     template <typename T>
-    static T& RequireGradImpl(T& array, const GraphId& graph_id);
+    static T& RequireGradImpl(T& array, const nonstd::optional<GraphId>& graph_id);
 
     std::shared_ptr<internal::ArrayBody> body_;
 };
@@ -252,10 +237,18 @@ inline Array operator-(Scalar lhs, const Array& rhs) { return -rhs + lhs; }
 inline Array operator*(Scalar lhs, const Array& rhs) { return rhs * lhs; }
 // TODO(hvy): Implement Scalar / Array using e.g. multiplication with reciprocal.
 
+namespace internal {
+
+inline const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array) { return array.body_; }
+
+inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array) { return std::move(array.body_); }
+
+}  // namespace internal
+
 void DebugDumpComputationalGraph(
         std::ostream& os,
         const Array& array,
-        const GraphId& graph_id,
+        const nonstd::optional<GraphId>& graph_id,
         int indent = 0,
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map = {});
 

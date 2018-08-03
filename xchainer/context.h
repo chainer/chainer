@@ -6,15 +6,22 @@
 #include <unordered_map>
 #include <vector>
 
+#include <nonstd/optional.hpp>
+
 #include "xchainer/backend.h"
 #include "xchainer/device.h"
 #include "xchainer/device_id.h"
+#include "xchainer/graph.h"
 
 namespace xchainer {
 namespace native {
-class NativeBackend;
-}
 
+class NativeBackend;
+
+}  // namespace native
+
+// TODO(sonots): Hide GraphId-related functions from users.
+// TODO(sonots): Move implementations of GraphId-releated functions into another class.
 class Context {
 public:
     Context() = default;
@@ -36,10 +43,47 @@ public:
     // If the backend and/or device do not exist, this function automatically creates them.
     Device& GetDevice(const DeviceId& device_id);
 
+    GraphId MakeNextGraphId(std::string graph_name);
+
+    void ReleaseGraphId(const GraphId& graph_id);
+
+    // Checks if the graph ID is allowed to be backpropped.
+    // Backprop is allowed if the order of graph IDs which have been backpropped is not reversed in any of the previous graph scopes.
+    // XchainerError is thrown if the check fails.
+    void CheckBackpropAllowed(const GraphId& graph_id);
+
+    // Flags the graph ID that it has been backpropped.
+    void SetBackpropDone(const GraphId& graph_id);
+
+    // Returns all graph IDs created after the queried graph.
+    // In many cases, these are also the graphs created in inner scopes.
+    // The queried graph is excluded from the returned container.
+    std::vector<GraphId> GetInnerGraphIds(const GraphId& graph_id);
+
+    GraphId default_graph_id() {
+        // 0 is the graph sub id of the default graph.
+        return GraphId{*this, 0};
+    }
+
 private:
+    // TODO(niboshi): Support multi-thread usage
+    struct GraphStackItem {
+        GraphStackItem(GraphSubId sub_id, std::string name) : sub_id{sub_id}, name{std::move(name)} {}
+
+        GraphSubId sub_id;
+        std::string name;
+
+        // Indicates whether Backward on any outer graphs (note that this graph is not included) has been called.
+        bool is_outer_graph_backpropped{false};
+    };
+
     std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
     std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
+
+    GraphSubId next_graph_sub_id_{1};  // 1 is the first graph sub id after the default graph whose graph sub id is 0.
+
+    std::vector<GraphStackItem> graph_stack_{};
 };
 
 // Gets/sets the context that used by default when current context is not set.

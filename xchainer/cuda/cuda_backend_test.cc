@@ -1,6 +1,7 @@
 #include "xchainer/cuda/cuda_backend.h"
 
-#include <stdlib.h>  // NOLINT: clang-tidy recommends to use cstdlib, but setenv is not included in cstdlib
+// NOLINTNEXTLINE(modernize-deprecated-headers): clang-tidy recommends to use cstdlib, but setenv is not included in cstdlib
+#include <stdlib.h>
 
 #include <tuple>
 
@@ -269,7 +270,7 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceFrom) {
     auto nop = [](void* p) {
         (void)p;  // unused
     };
-    Array a = xchainer::internal::FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device1);
+    Array a = internal::FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device1);
 
     // Transfer
     Array b = a.ToDevice(device0);
@@ -296,7 +297,7 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
     auto nop = [](void* p) {
         (void)p;  // unused
     };
-    Array a = xchainer::internal::FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device0);
+    Array a = internal::FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device0);
 
     // Transfer
     Array b = a.ToDevice(device1);

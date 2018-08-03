@@ -106,6 +106,34 @@ private:
     int64_t shape_[kNdim]{};
 };
 
+// Static 0-dimensional specialization.
+template <>
+class Indexer<0> {
+public:
+    explicit Indexer(const Shape& shape) {
+        (void)shape;  // unused
+        assert(shape.ndim() == 0);
+        assert(shape.GetTotalSize() == 1);
+    }
+
+    XCHAINER_HOST_DEVICE IndexIterator<0> It(int64_t start, int64_t step = 1) const { return IndexIterator<0>{start, step}; }
+
+    XCHAINER_HOST_DEVICE IndexIterator<0> At(const IndexIterator<0>& iter) { return It(iter.raw_index()); }
+
+    template <int8_t NdimArg, typename... IndexIterators>
+    XCHAINER_HOST_DEVICE IndexIterator<0> At(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
+        IndexIterator<0> it = It(0);
+        indexer_detail::CombineIterators<0>(it, first_iter, std::forward<IndexIterators>(iters)...);
+        return it;
+    }
+
+    XCHAINER_HOST_DEVICE static constexpr int8_t ndim() { return 0; }
+
+    XCHAINER_HOST_DEVICE static constexpr int64_t total_size() { return 1; }
+
+    XCHAINER_HOST_DEVICE static constexpr const int64_t* shape() { return nullptr; }
+};
+
 // Static 1-dimensional specialization.
 template <>
 class Indexer<1> {

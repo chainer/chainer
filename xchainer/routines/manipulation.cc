@@ -12,7 +12,8 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
-#include "xchainer/backward.h"
+#include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
@@ -33,7 +34,7 @@ Scalar AsScalar(const Array& a) {
     return VisitDtype(a.dtype(), [&native_copy](auto pt) -> Scalar {
         using T = typename decltype(pt)::type;
         const uint8_t* ptr = static_cast<const uint8_t*>(native_copy.data().get()) + native_copy.offset();
-        auto typed_ptr = reinterpret_cast<const T*>(ptr);  // NOLINT: reinterpret_cast
+        auto typed_ptr = reinterpret_cast<const T*>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         return Scalar{*typed_ptr};
     });
 }
@@ -88,9 +89,9 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
 
     Array out = internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    if (a.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"transpose", out};
-        bb.Define({a}, [real_axes](BackwardContext& bctx) {
+    BackwardBuilder bb{"transpose", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([real_axes](BackwardContext& bctx) {
             Axes backward_axes;
             backward_axes.resize(real_axes.ndim());
             for (int8_t i = 0; i < real_axes.ndim(); ++i) {
@@ -99,6 +100,7 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
             bctx.input_grad() = bctx.output_grad().Transpose(backward_axes);
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -202,10 +204,11 @@ Array Reshape(const Array& a, const Shape& newshape) {
 
     Array out = internal::MakeArray(newshape, strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    if (a.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"reshape", out};
-        bb.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
+    BackwardBuilder bb{"reshape", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
     }
+    assert(bb.is_complete());
 
     assert(out.shape() == newshape);
     assert(out.strides().size() == newshape.size());
@@ -257,10 +260,11 @@ Array Squeeze(const Array& a, const OptionalAxes& axis) {
                         ? a
                         : internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
-    if (a.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"squeeze", out};
-        bb.Define({a}, [in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
+    BackwardBuilder bb{"squeeze", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
     }
+    assert(bb.is_complete());
 
     return out;
 }
@@ -309,9 +313,9 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
 
     Array out = internal::MakeArray(shape, strides, array.dtype(), array.device(), array.data(), array.offset());
 
-    if (array.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"broadcast_to", out};
-        bb.Define({array}, [in_shape](BackwardContext& bctx) {
+    BackwardBuilder bb{"broadcast_to", array, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([in_shape](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
             if (gout.shape() == in_shape) {
                 bctx.input_grad() = gout;
@@ -339,6 +343,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
             }
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }

@@ -6,11 +6,13 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/backprop_mode.h"
-#include "xchainer/backward.h"
+#include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
+#include "xchainer/routines/routines_util.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 
@@ -94,35 +96,44 @@ Array BatchNorm(
     std::shared_ptr<BatchNormForwardBackward> fb =
             x.device().GetBatchNormForwardBackward(result.mean, result.var, eps, decay, result.sorted_axis);
 
-    Array out = fb->Forward(x.AsGradStopped(), result.gamma.AsGradStopped(), result.beta.AsGradStopped());
+    const Array& gamma_reshaped = result.gamma;
+    const Array& beta_reshaped = result.beta;
 
-    if (x.IsGradRequired(AnyGraph{}) || gamma.IsGradRequired(AnyGraph{}) || beta.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"batch_norm", {out}};
-        bb.Define({x, gamma, beta}, [ fb = std::move(fb), x, gamma = result.gamma ](BackwardContext & bctx) {
+    Array out = fb->Forward(x.AsGradStopped(), gamma_reshaped.AsGradStopped(), beta_reshaped.AsGradStopped());
+    internal::MakeViewForForwardBackwardOutput(out);
+
+    BackwardBuilder bb{"batch_norm", {x, gamma_reshaped, beta_reshaped}, {out}};
+    if (BackwardBuilder::Target bt = bb.CreateTarget({0, 1, 2})) {
+        bt.Define([ fb = std::move(fb), x, gamma_tok = bb.RetainInput(1) ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             std::array<Array, 3> ginputs = fb->Backward(gout.AsGradStopped());
+            internal::MakeViewForForwardBackwardOutput(ginputs);
             const Array& gx = ginputs[0];
             const Array& ggamma = ginputs[1];
             const Array& gbeta = ginputs[2];
-            assert(!internal::HasAnyArrayNode(gx));
-            assert(!internal::HasAnyArrayNode(ggamma));
-            assert(!internal::HasAnyArrayNode(gbeta));
+            assert(internal::GetArrayBody(gx)->nodes().empty());
+            assert(internal::GetArrayBody(ggamma)->nodes().empty());
+            assert(internal::GetArrayBody(gbeta)->nodes().empty());
 
-            if (bctx.next_required() &&
-                (x.IsGradRequired(AnyGraph{}) || gamma.IsGradRequired(AnyGraph{}) || gout.IsGradRequired(AnyGraph{}))) {
-                BackwardBuilder bb2{"batch_norm_backward", {gx, ggamma, gbeta}};
-                bb2.Define({x, gamma, gout}, [fb](BackwardContext& bctx2) {
-                    const Array& g2x = bctx2.output_grad(0);
-                    const Array& g2gamma = bctx2.output_grad(1);
-                    const Array& g2beta = bctx2.output_grad(2);
-                    std::array<Array, 3> ginputs2 =
-                            fb->DoubleBackward(g2x.AsGradStopped(), g2gamma.AsGradStopped(), g2beta.AsGradStopped());
-                    // TODO(niboshi): Make it further backproppable
-                    // TODO(niboshi): Assign at once
-                    bctx2.input_grad(0) = ginputs2[0];  // ggx
-                    bctx2.input_grad(1) = ginputs2[1];  // gggamma
-                    bctx2.input_grad(2) = ginputs2[2];  // ggout
-                });
+            if (bctx.next_required()) {
+                const Array& gamma_reshaped = bctx.GetRetainedInput(gamma_tok);
+                BackwardBuilder bb2{"batch_norm_backward", {x, gamma_reshaped, gout}, {gx, ggamma, gbeta}};
+                if (BackwardBuilder::Target bt2 = bb2.CreateTarget({0, 1, 2})) {
+                    bt2.Define([fb](BackwardContext& bctx2) {
+                        const Array& g2x = bctx2.output_grad(0);
+                        const Array& g2gamma = bctx2.output_grad(1);
+                        const Array& g2beta = bctx2.output_grad(2);
+                        std::array<Array, 3> ginputs2 =
+                                fb->DoubleBackward(g2x.AsGradStopped(), g2gamma.AsGradStopped(), g2beta.AsGradStopped());
+                        internal::MakeViewForForwardBackwardOutput(ginputs2);
+                        // TODO(niboshi): Make it further backproppable
+                        // TODO(niboshi): Assign at once
+                        bctx2.input_grad(0) = ginputs2[0];  // gx
+                        bctx2.input_grad(1) = ginputs2[1];  // ggamma
+                        bctx2.input_grad(2) = ginputs2[2];  // ggout
+                    });
+                }
+                assert(bb2.is_complete());
             }
 
             // TODO(niboshi): Assign at once
@@ -131,6 +142,7 @@ Array BatchNorm(
             bctx.input_grad(2) = gbeta;
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }

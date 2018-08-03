@@ -5,7 +5,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;
 
@@ -23,6 +23,6 @@ py::tuple ToTuple(const Strides& strides) {
     return ret;
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

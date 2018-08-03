@@ -18,7 +18,6 @@
 
 namespace xchainer {
 namespace cuda {
-
 namespace {
 
 template <typename T>
@@ -44,7 +43,7 @@ void CudaDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(a.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Reduce(MakeReductionKernelArg<T, int64_t>(a, axis, out), ArgMaxImpl<T>{});
+        Reduce<T, int64_t>(a, axis, out, ArgMaxImpl<T>{});
     });
 }
 
@@ -61,14 +60,14 @@ struct SumImpl {
 }  // namespace
 
 void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
 
     auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
         using In = typename decltype(in_pt)::type;
         using Out = typename decltype(out_pt)::type;
-        Reduce(MakeReductionKernelArg<In, Out>(a, axis, out), SumImpl<In, Out>{});
+        Reduce<In, Out>(a, axis, out, SumImpl<In, Out>{});
     };
 
     VisitDtype(out.dtype(), [ a_dtype = a.dtype(), &do_sum ](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
@@ -96,12 +95,12 @@ struct AMaxImpl {
 }  // namespace
 
 void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    assert(xchainer::internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Reduce(MakeReductionKernelArg<T, T>(a, axis, out), AMaxImpl<T>{});
+        Reduce<T, T>(a, axis, out, AMaxImpl<T>{});
     });
 }
 

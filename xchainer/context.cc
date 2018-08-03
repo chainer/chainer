@@ -3,10 +3,13 @@
 #include <dlfcn.h>
 
 #include <atomic>
+#include <cassert>
 #include <cstdlib>
 #include <mutex>
+#include <vector>
 
 #include <gsl/gsl>
+#include <nonstd/optional.hpp>
 
 #ifdef XCHAINER_ENABLE_CUDA
 #include "xchainer/cuda/cuda_backend.h"
@@ -80,7 +83,8 @@ Backend& Context::GetBackend(const std::string& backend_name) {
 
         // Create backend
         void* ptr = ::dlsym(handle, "CreateBackend");
-        auto create_backend = reinterpret_cast<std::unique_ptr<Backend> (*)(Context&)>(ptr);  // NOLINT: reinterpret_cast
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        auto create_backend = reinterpret_cast<std::unique_ptr<Backend> (*)(Context&)>(ptr);
         if (create_backend == nullptr) {
             throw BackendError{"Invalid backend plugin: CreateBackend is not found in '", so_file_path, "'."};
         }
@@ -99,6 +103,50 @@ Backend& Context::GetBackend(const std::string& backend_name) {
 Device& Context::GetDevice(const DeviceId& device_id) {
     Backend& backend = GetBackend(device_id.backend_name());
     return backend.GetDevice(device_id.index());
+}
+
+// TODO(sonots): Create a map to get graph name from sub id
+GraphId Context::MakeNextGraphId(std::string graph_name) {
+    graph_stack_.emplace_back(next_graph_sub_id_, std::move(graph_name));
+    return GraphId{*this, next_graph_sub_id_++};
+}
+
+void Context::ReleaseGraphId(const GraphId& graph_id) {
+    // Graph IDs must be released in the reverse order of creation
+    assert(&graph_id.context() == this && graph_id.sub_id() == graph_stack_.back().sub_id);
+    (void)graph_id;  // unused
+
+    graph_stack_.pop_back();
+}
+
+void Context::CheckBackpropAllowed(const GraphId& graph_id) {
+    // TODO(hvy): Check that graph_id exists in the stack or that it is the default graph id.
+    for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend(); ++it) {
+        if (it->sub_id == graph_id.sub_id()) {
+            if (it->is_outer_graph_backpropped) {
+                throw XchainerError{"Cannot backward for graph ", graph_id, " after outer graph"};
+            }
+            break;
+        }
+    }
+}
+
+void Context::SetBackpropDone(const GraphId& graph_id) {
+    for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend(); ++it) {
+        if (it->sub_id == graph_id.sub_id()) {
+            break;
+        }
+        it->is_outer_graph_backpropped = true;
+    }
+}
+
+std::vector<GraphId> Context::GetInnerGraphIds(const GraphId& graph_id) {
+    std::vector<GraphId> inner_graph_ids;
+    inner_graph_ids.reserve(graph_stack_.size());
+    for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend() && it->sub_id > graph_id.sub_id(); ++it) {
+        inner_graph_ids.emplace_back(GraphId{*this, it->sub_id});
+    }
+    return inner_graph_ids;
 }
 
 Context& GetGlobalDefaultContext() {

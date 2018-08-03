@@ -1,17 +1,20 @@
 #include "xchainer/array_body_leak_detection.h"
 
 #include <memory>
+#include <ostream>
 #include <vector>
 
 #include "xchainer/array.h"
 #include "xchainer/array_body.h"
+#include "xchainer/array_node.h"
+#include "xchainer/graph.h"
 
 namespace xchainer {
 namespace internal {
 
 ArrayBodyLeakTracker* ArrayBodyLeakDetectionScope::array_body_leak_tracker_ = nullptr;
 
-void ArrayBodyLeakTracker::operator()(const std::shared_ptr<internal::ArrayBody>& array_body) {
+void ArrayBodyLeakTracker::operator()(const std::shared_ptr<ArrayBody>& array_body) {
     // Keep weak pointer
     weak_ptrs_.emplace_back(array_body);
 }
@@ -24,6 +27,26 @@ std::vector<std::shared_ptr<ArrayBody>> ArrayBodyLeakTracker::GetAliveArrayBodie
         }
     }
     return alive_ptrs;
+}
+
+bool ArrayBodyLeakTracker::IsAllArrayBodiesFreed(std::ostream& os) const {
+    std::vector<std::shared_ptr<internal::ArrayBody>> alive_arr_bodies = GetAliveArrayBodies();
+    if (!alive_arr_bodies.empty()) {
+        // TODO(niboshi): Output only array bodies that are not referenced from other array bodies
+        os << "Some array bodies are not freed.\n";
+        os << "Number of alive array bodies: " << alive_arr_bodies.size() << "\n";
+        for (const std::shared_ptr<internal::ArrayBody>& array_body : alive_arr_bodies) {
+            Array array{array_body};
+            os << "- Unreleased array body: " << array_body.get() << "\n";
+            os << array << "\n";
+            for (const std::shared_ptr<ArrayNode>& array_node : internal::GetArrayBody(array)->nodes()) {
+                const GraphId& graph_id = array_node->graph_id();
+                DebugDumpComputationalGraph(os, array, graph_id);
+            }
+        }
+        return false;
+    }
+    return true;
 }
 
 ArrayBodyLeakDetectionScope ::ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& tracker) {

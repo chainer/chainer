@@ -13,7 +13,8 @@
 #include "xchainer/array_index.h"
 #include "xchainer/axes.h"
 #include "xchainer/backprop_mode.h"
-#include "xchainer/backward.h"
+#include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
@@ -47,13 +48,14 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
     }
 
     {
-        BackwardBuilder bb{"add_at", out};
-        if (a.IsGradRequired(AnyGraph{})) {
-            bb.Define({a}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+        BackwardBuilder bb{"add_at", {a, b}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
-        if (b.IsGradRequired(AnyGraph{})) {
-            bb.Define({b}, [indices](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().At(indices); });
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([indices](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().At(indices); });
         }
+        assert(bb.is_complete());
     }
 
     return out;
@@ -99,15 +101,16 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
         out_strides.emplace_back(a.strides()[i]);
     }
 
-    Array out = xchainer::internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), out_offset);
+    Array out = MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), out_offset);
 
-    if (a.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"get_item", out};
-        bb.Define({a}, [ indices, a_shape = a.shape(), a_dtype = a.dtype() ](BackwardContext & bctx) {
+    BackwardBuilder bb{"get_item", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([ indices, a_shape = a.shape(), a_dtype = a.dtype() ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             Array gin = Zeros(a_shape, a_dtype, gout.device());
             bctx.input_grad() = AddAt(gin, indices, gout);
         });
+        assert(bb.is_complete());
     }
 
     return out;
@@ -127,6 +130,8 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
     assert(b.ndim() == indices.ndim() + a.ndim() - 1);
     CheckEqual(a.dtype(), b.dtype());
 
+    // TODO(niboshi): Remove nodes from indices if any.
+
     Array out = EmptyLike(a, a.device());
 
     {
@@ -135,16 +140,15 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
     }
 
     {
-        BackwardBuilder bb{"add_at", out};
-        if (a.IsGradRequired(AnyGraph{})) {
-            bb.Define({a}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+        BackwardBuilder bb{"add_at", {a, b}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
-        if (b.IsGradRequired(AnyGraph{})) {
-            bb.Define({b}, [indices, axis](BackwardContext& bctx) {
-                assert(!internal::HasAnyArrayNode(indices));
-                bctx.input_grad() = Take(bctx.output_grad(), indices, axis);
-            });
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            assert(internal::GetArrayBody(indices)->nodes().empty());
+            bt.Define([indices, axis](BackwardContext& bctx) { bctx.input_grad() = Take(bctx.output_grad(), indices, axis); });
         }
+        assert(bb.is_complete());
     }
 
     return out;
@@ -160,6 +164,8 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
                 GetDtypeName(indices.dtype()));
     }
 
+    // TODO(niboshi): Remove nodes from indices if any.
+
     int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
 
     Shape out_shape{};
@@ -173,13 +179,15 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
         a.device().Take(a, indices, axis_norm, out);
     }
 
-    if (a.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"take", out};
-        bb.Define({a}, [ indices, axis_norm, a_shape = a.shape() ](BackwardContext & bctx) {
+    BackwardBuilder bb{"take", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        assert(internal::GetArrayBody(indices)->nodes().empty());
+        bt.Define([ indices, axis_norm, a_shape = a.shape() ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }

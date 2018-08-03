@@ -11,7 +11,8 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backprop_mode.h"
-#include "xchainer/backward.h"
+#include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
@@ -38,14 +39,15 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_
     return n_bytes;
 }
 
-Array FromHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device) {
+Array FromHostData(
+        const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, int64_t offset, Device& device) {
     auto bytesize = GetRequiredBytes(shape, strides, GetItemSize(dtype));
     std::shared_ptr<void> device_data = device.FromHostMemory(data, bytesize);
-    return MakeArray(shape, strides, dtype, device, device_data);
+    return MakeArray(shape, strides, dtype, device, device_data, offset);
 }
 
 Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
-    return FromHostData(shape, dtype, data, {shape, dtype}, device);
+    return FromHostData(shape, dtype, data, {shape, dtype}, 0, device);
 }
 
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device) {
@@ -64,7 +66,7 @@ Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepd
     for (int8_t axis : axes) {
         out_strides[axis] = 0;
     }
-    return internal::Empty(out_shape, dtype, out_strides, device);
+    return Empty(out_shape, dtype, out_strides, device);
 }
 
 }  // namespace internal
@@ -153,10 +155,11 @@ Array Copy(const Array& a) {
         a.device().Copy(a, out);
     }
 
-    if (a.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"copy", out};
-        bb.Define({a}, [](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+    BackwardBuilder bb{"copy", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
+    assert(bb.is_complete());
 
     assert(out.IsContiguous());
     return out;
@@ -217,12 +220,15 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
         a.device().AsType(a, out);
     }
 
-    if (a.IsGradRequired(AnyGraph{}) && GetKind(dt) == DtypeKind::kFloat) {
-        BackwardBuilder bb{"ascontiguousarray", out};
-        bb.Define({a}, [src_dt](BackwardContext& bctx) {
-            const Array& gout = bctx.output_grad();
-            bctx.input_grad() = gout.AsType(src_dt, false);
-        });
+    if (GetKind(dt) == DtypeKind::kFloat) {
+        BackwardBuilder bb{"ascontiguousarray", a, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([src_dt](BackwardContext& bctx) {
+                const Array& gout = bctx.output_grad();
+                bctx.input_grad() = gout.AsType(src_dt, false);
+            });
+        }
+        assert(bb.is_complete());
     }
 
     assert(out.IsContiguous());
@@ -263,13 +269,14 @@ Array Diag(const Array& v, int64_t k, Device& device) {
         throw DimensionError{"Input must be 1D or 2D."};
     }
 
-    if (v.IsGradRequired(AnyGraph{})) {
-        BackwardBuilder bb{"diag", out};
-        bb.Define({v}, [& device = v.device(), k ](BackwardContext & bctx) {
+    BackwardBuilder bb{"diag", v, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([& device = v.device(), k ](BackwardContext & bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = Diag(gout, k, device);
         });
     }
+    assert(bb.is_complete());
 
     return out;
 }

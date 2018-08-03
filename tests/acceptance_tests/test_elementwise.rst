@@ -63,11 +63,11 @@ Backward
 >>> x = xc.array(np.arange(-3, 3, dtype=np.float32).reshape((2, 3))).require_grad()
 >>> x
 array([[-3., -2., -1.],
-       [ 0.,  1.,  2.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
+       [ 0.,  1.,  2.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['0'])
 >>> y = xc.maximum(x, 0) * 2
 >>> y
 array([[0., 0., 0.],
-       [0., 2., 4.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['default'])
+       [0., 2., 4.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['0'])
 >>> y.backward()
 >>> x.grad
 array([[0., 0., 0.],

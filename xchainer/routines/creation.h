@@ -23,7 +23,12 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_
 
 // Creates an array with given data packed with specified strides
 Array FromHostData(
-        const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, Device& device = GetDefaultDevice());
+        const Shape& shape,
+        Dtype dtype,
+        const std::shared_ptr<void>& data,
+        const Strides& strides,
+        int64_t offset,
+        Device& device = GetDefaultDevice());
 
 // Creates an array with given contiguous data
 Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());

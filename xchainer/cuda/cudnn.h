@@ -25,7 +25,7 @@ private:
 
 void CheckCudnnError(cudnnStatus_t status);
 
-namespace internal {
+namespace cuda_internal {
 
 // Returns a pointer to a value of given type, allocated on the static storage.
 template <int kValue>
@@ -105,6 +105,6 @@ private:
     cudnnPoolingDescriptor_t desc_{};
 };
 
-}  // namespace internal
+}  // namespace cuda_internal
 }  // namespace cuda
 }  // namespace xchainer

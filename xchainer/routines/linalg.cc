@@ -7,7 +7,8 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backprop_mode.h"
-#include "xchainer/backward.h"
+#include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
@@ -55,19 +56,22 @@ Array Dot(const Array& a, const Array& b) {
     }
 
     {
-        BackwardBuilder bb{"dot", out_matrix};
-        if (a_matrix.IsGradRequired(AnyGraph{})) {
-            bb.Define({a_matrix}, [b_matrix](BackwardContext& bctx) {
+        BackwardBuilder bb{"dot", {a_matrix, b_matrix}, out_matrix};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([b_matrix_tok = bb.RetainInput(1)](BackwardContext & bctx) {
+                const Array& b_matrix = bctx.GetRetainedInput(b_matrix_tok);
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(gout, b_matrix.Transpose());
             });
         }
-        if (b_matrix.IsGradRequired(AnyGraph{})) {
-            bb.Define({b_matrix}, [a_matrix](BackwardContext& bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([a_matrix_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+                const Array& a_matrix = bctx.GetRetainedInput(a_matrix_tok);
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(a_matrix.Transpose(), gout);
             });
         }
+        assert(bb.is_complete());
     }
 
     return out_matrix.Reshape(out_shape);

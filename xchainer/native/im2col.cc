@@ -20,7 +20,7 @@
 
 namespace xchainer {
 namespace native {
-namespace internal {
+namespace native_internal {
 
 Array Im2Col(
         const Array& x,
@@ -42,7 +42,7 @@ Array Im2Col(
     std::vector<ArrayIndex> unpadded_slice{ArrayIndex{Slice{}}, ArrayIndex{Slice{}}};  // All batch and channel dimensions.
     for (int64_t i = 0; i < ndim; ++i) {
         padded_shape[i + 2] += pad[i] * 2 + (cover_all ? stride[i] - 1 : 0);  // Pad on both sides.
-        unpadded_slice.emplace_back(Slice{pad[i], pad[i] + x.shape()[i]});
+        unpadded_slice.emplace_back(Slice{pad[i], pad[i] + x.shape()[i + 2]});
     }
     Array padded_x = static_cast<int64_t>(pad_value) == int64_t{0} ? Zeros(padded_shape, x.dtype(), device)
                                                                    : Full(padded_shape, pad_value, x.dtype(), device);
@@ -51,7 +51,7 @@ Array Im2Col(
     // Create the output array.
     StackVector<int64_t, kMaxNdim> out_dims;  // Number of patches along each axis
     for (int8_t i = 0; i < ndim; ++i) {
-        out_dims.emplace_back(xchainer::internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
+        out_dims.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
         assert(out_dims.back() > 0);
     }
 
@@ -98,6 +98,6 @@ Array Im2Col(
     return out;
 }
 
-}  // namespace internal
+}  // namespace native_internal
 }  // namespace native
 }  // namespace xchainer

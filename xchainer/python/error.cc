@@ -6,7 +6,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 namespace py = pybind11;  // standard convention
 
@@ -21,6 +21,6 @@ void InitXchainerError(pybind11::module& m) {
     py::register_exception<GradientCheckError>(m, "GradientCheckError");
 }
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

@@ -6,10 +6,10 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 
 Slice MakeSlice(const pybind11::slice& slice);
 
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer

@@ -20,7 +20,7 @@ namespace cuda {
 
 class CudaDevice;
 
-namespace internal {
+namespace cuda_internal {
 
 class CudaConvTest;  // for unit-tests
 
@@ -125,6 +125,6 @@ private:
     BwdFilterAlgoCacheMap bwd_filter_algo_cache_map_{};
 };
 
-}  // namespace internal
+}  // namespace cuda_internal
 }  // namespace cuda
 }  // namespace xchainer

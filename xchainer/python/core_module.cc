@@ -18,7 +18,7 @@
 
 namespace xchainer {
 namespace python {
-namespace internal {
+namespace python_internal {
 namespace {
 
 void InitXchainerModule(pybind11::module& m) {
@@ -26,9 +26,10 @@ void InitXchainerModule(pybind11::module& m) {
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
     // xchainer
-    InitXchainerGraph(m);
     InitXchainerContext(m);
     InitXchainerContextScope(m);
+    InitXchainerGraph(m);
+    InitXchainerGraphScope(m);
     InitXchainerBackend(m);
     InitXchainerBackpropMode(m);
     InitXchainerDevice(m);
@@ -44,14 +45,14 @@ void InitXchainerModule(pybind11::module& m) {
 
     // xchainer.testing
     pybind11::module m_testing = m.def_submodule("testing");
-    testing::internal::InitXchainerTestingModule(m_testing);
+    testing::testing_internal::InitXchainerTestingModule(m_testing);
 }
 
 }  // namespace
-}  // namespace internal
+}  // namespace python_internal
 }  // namespace python
 }  // namespace xchainer
 
 PYBIND11_MODULE(_core, m) {  // NOLINT
-    xchainer::python::internal::InitXchainerModule(m);
+    xchainer::python::python_internal::InitXchainerModule(m);
 }

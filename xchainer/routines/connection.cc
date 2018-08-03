@@ -7,7 +7,8 @@
 
 #include "xchainer/array.h"
 #include "xchainer/backprop_mode.h"
-#include "xchainer/backward.h"
+#include "xchainer/backward_builder.h"
+#include "xchainer/backward_context.h"
 #include "xchainer/constant.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
@@ -57,10 +58,11 @@ Array ConvGradW(
     }
 
     {
-        BackwardBuilder bb{"conv-grad-weight", {out}};
+        BackwardBuilder bb{"conv-grad-weight", {x, gy}, out};
 
-        if (x.IsGradRequired(AnyGraph{})) {
-            bb.Define({x}, [ x_shape = x.shape(), gy, stride, pad ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([ x_shape = x.shape(), gy_tok = bb.RetainInput(1), stride, pad ](BackwardContext & bctx) {
+                const Array& gy = bctx.GetRetainedInput(gy_tok);
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
                 assert(out_size.size() == stride.size());
@@ -68,12 +70,14 @@ Array ConvGradW(
             });
         }
 
-        if (gy.IsGradRequired(AnyGraph{})) {
-            bb.Define({gy}, [x, stride, pad, cover_all](BackwardContext& bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([ x_tok = bb.RetainInput(0), stride, pad, cover_all ](BackwardContext & bctx) {
+                const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, cover_all);
             });
         }
+        assert(bb.is_complete());
     }
 
     return out;
@@ -120,33 +124,46 @@ Array Conv(
     }
 
     {
-        BackwardBuilder bb{"conv", {out}};
+        // TODO(niboshi): Improve interface of BackwardBuilder for accepting optional input arrays.
+        std::vector<ConstArrayRef> inputs{};
+        if (b.has_value()) {
+            inputs = {x, w, *b};
+        } else {
+            inputs = {x, w};
+        }
+        BackwardBuilder bb{"conv", std::move(inputs), out};
 
-        if (x.IsGradRequired(AnyGraph{})) {
-            bb.Define({x}, [ x_shape = x.shape(), w, stride, pad ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([ x_shape = x.shape(), w_tok = bb.RetainInput(1), stride, pad ](BackwardContext & bctx) {
+                const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
                 bctx.input_grad() = ConvTranspose(gout, w, nonstd::nullopt, stride, pad, out_size);
             });
         }
 
-        if (w.IsGradRequired(AnyGraph{})) {
-            bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([ w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all ](
+                    BackwardContext & bctx) {
+                const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = ConvGradW(w_dtype, w_shape, x, gout, stride, pad, cover_all);
             });
         }
 
-        if (b.has_value() && b->IsGradRequired(AnyGraph{})) {
-            bb.Define({*b}, [](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                Axes axis{0};
-                for (int8_t i = 2; i < gout.ndim(); ++i) {
-                    axis.emplace_back(int64_t{i});
-                }
-                bctx.input_grad() = Sum(gout, axis, false);
-            });
+        if (b.has_value()) {
+            if (BackwardBuilder::Target bt = bb.CreateTarget(2)) {
+                bt.Define([](BackwardContext& bctx) {
+                    const Array& gout = bctx.output_grad();
+                    Axes axis{0};
+                    for (int8_t i = 2; i < gout.ndim(); ++i) {
+                        axis.emplace_back(int64_t{i});
+                    }
+                    bctx.input_grad() = Sum(gout, axis, false);
+                });
+            }
         }
+        assert(bb.is_complete());
     }
 
     return out;
@@ -216,33 +233,46 @@ Array ConvTranspose(
     }
 
     {
-        BackwardBuilder bb{"conv_transpose", out};
+        // TODO(niboshi): Improve interface of BackwardBuilder for accepting optional input arrays.
+        std::vector<ConstArrayRef> inputs{};
+        if (b.has_value()) {
+            inputs = {x, w, *b};
+        } else {
+            inputs = {x, w};
+        }
+        BackwardBuilder bb{"conv_transpose", std::move(inputs), out};
 
-        if (x.IsGradRequired(AnyGraph{})) {
-            bb.Define({x}, [ x_shape = x.shape(), w, stride, pad, cover_all ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([ x_shape = x.shape(), w_tok = bb.RetainInput(1), stride, pad, cover_all ](BackwardContext & bctx) {
+                const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
                 bctx.input_grad() = Conv(gout, w, nonstd::nullopt, stride, pad, cover_all);
             });
         }
 
-        if (w.IsGradRequired(AnyGraph{})) {
-            bb.Define({w}, [ w_dtype = w.dtype(), w_shape = w.shape(), x, stride, pad, cover_all ](BackwardContext & bctx) {
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([ w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all ](
+                    BackwardContext & bctx) {
+                const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, x, stride, pad, cover_all);
             });
         }
 
-        if (b.has_value() && b->IsGradRequired(AnyGraph{})) {
-            bb.Define({*b}, [](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
-                Axes axis{0};
-                for (int8_t i = 2; i < gout.ndim(); ++i) {
-                    axis.emplace_back(int64_t{i});
-                }
-                bctx.input_grad() = Sum(gout, axis, false);
-            });
+        if (b.has_value()) {
+            if (BackwardBuilder::Target bt = bb.CreateTarget(2)) {
+                bt.Define([](BackwardContext& bctx) {
+                    const Array& gout = bctx.output_grad();
+                    Axes axis{0};
+                    for (int8_t i = 2; i < gout.ndim(); ++i) {
+                        axis.emplace_back(int64_t{i});
+                    }
+                    bctx.input_grad() = Sum(gout, axis, false);
+                });
+            }
         }
+        assert(bb.is_complete());
     }
 
     return out;

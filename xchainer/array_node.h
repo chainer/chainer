@@ -7,6 +7,7 @@
 
 #include <nonstd/optional.hpp>
 
+#include "xchainer/array_body.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
@@ -14,15 +15,12 @@
 #include "xchainer/shape.h"
 
 namespace xchainer {
-
-class Array;
+namespace internal {
 
 class ArrayNode {
 public:
-    ArrayNode(std::weak_ptr<internal::ArrayBody> body, const Shape& shape, Dtype dtype, Device& device, GraphId graph_id)
-        : body_{std::move(body)}, shape_{shape}, dtype_{dtype}, device_{device}, graph_id_{std::move(graph_id)} {
-        assert(body_.lock() != nullptr);
-    }
+    ArrayNode(const Shape& shape, Dtype dtype, Device& device, GraphId graph_id)
+        : shape_{shape}, dtype_{dtype}, device_{device}, graph_id_{std::move(graph_id)} {}
 
     ArrayNode(const ArrayNode&) = delete;
     ArrayNode(ArrayNode&&) = delete;
@@ -56,14 +54,13 @@ public:
     // Returns the graph ID.
     const GraphId& graph_id() const { return graph_id_; }
 
-    // Returns the array body. It returns nullptr if the array body is no longer alive.
-    std::shared_ptr<const internal::ArrayBody> GetBody() const { return body_.lock(); }
-
-    // Returns the array body. It returns nullptr if the array body is no longer alive.
-    std::shared_ptr<internal::ArrayBody> GetBody() { return body_.lock(); }
+    const std::weak_ptr<ArrayBody>& weak_body() const { return weak_body_; }
 
 private:
-    std::weak_ptr<internal::ArrayBody> body_;
+    // weak_body_ is set by this function.
+    friend const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<ArrayBody>&, std::shared_ptr<ArrayNode>);
+
+    std::weak_ptr<ArrayBody> weak_body_;
     std::shared_ptr<OpNode> next_op_node_;
     Shape shape_;
     Dtype dtype_;
@@ -71,4 +68,5 @@ private:
     GraphId graph_id_;
 };
 
+}  // namespace internal
 }  // namespace xchainer

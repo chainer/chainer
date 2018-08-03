@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <ostream>
 #include <vector>
 
 #include "xchainer/array_body.h"
@@ -12,14 +13,17 @@ namespace internal {
 // Used in combination with ArrayBodyLeakDetectionScope to detect leaks.
 class ArrayBodyLeakTracker {
 public:
-    void operator()(const std::shared_ptr<internal::ArrayBody>& array_body);
+    void operator()(const std::shared_ptr<ArrayBody>& array_body);
 
     // Returns the array bodies which are still alive.
     // It is useful to detect unreleased array bodies, leaking from the scope of ArrayBodyLeakDetectionScope.
     std::vector<std::shared_ptr<ArrayBody>> GetAliveArrayBodies() const;
 
+    // Asserts all the array bodies are freed in the leak tracker.
+    bool IsAllArrayBodiesFreed(std::ostream& os) const;
+
 private:
-    std::vector<std::weak_ptr<internal::ArrayBody>> weak_ptrs_;
+    std::vector<std::weak_ptr<ArrayBody>> weak_ptrs_;
 };
 
 // A scope object to detect array body leaks.
@@ -35,11 +39,9 @@ public:
     ArrayBodyLeakDetectionScope(ArrayBodyLeakDetectionScope&& other) = delete;
     ArrayBodyLeakDetectionScope& operator=(ArrayBodyLeakDetectionScope&& other) = delete;
 
-private:
-    friend class xchainer::Array;
-
     static ArrayBodyLeakTracker* GetGlobalTracker() { return array_body_leak_tracker_; }
 
+private:
     // The global array body leak tracker.
     static ArrayBodyLeakTracker* array_body_leak_tracker_;
 };

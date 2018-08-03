@@ -31,23 +31,29 @@ else()
 endif()
 option(BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT_BUILD_CUDA})
 
+# defaults to cmake -DCMAKE_BUILD_TYPE=Debug
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
 # CUDA
 if(${BUILD_CUDA})
     find_package(CUDA QUIET)
     if(${CUDA_FOUND})
         add_definitions(-DXCHAINER_ENABLE_CUDA=1)
         find_package(CuDNN 7 REQUIRED)
+        if(CMAKE_BUILD_TYPE MATCHES Release)
+            list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_30,code=sm_30)
+            list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_50,code=sm_50)
+            list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_60,code=sm_60)
+            list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_70,code=sm_70)
+        endif()
     endif()
 endif()
 
 # C++ setup
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE 1)  # ref. https://texus.me/2015/09/06/cmake-and-gcov/
-
-# defaults to cmake -DCMAKE_BUILD_TYPE=Debug
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug)
-endif()
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pthread")

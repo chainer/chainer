@@ -8,6 +8,8 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/macro.h"
+#include "xchainer/shape.h"
+#include "xchainer/strides.h"
 
 namespace xchainer {
 
@@ -15,8 +17,8 @@ namespace xchainer {
 //
 // It contains five data:
 //
-// - Input array
-// - Output array
+// - Input indexable array
+// - Output indexable array
 // - Input indexer (using the input shape)
 // - Output indexer (using the output shape)
 // - Reduction indexer (using the input shape only at reduction axes)
@@ -24,17 +26,44 @@ namespace xchainer {
 // Input and output arrays are transposed so that the reduction axes come last. Axes of length 1 are also removed.
 //
 // Any instance of this struct can be passed directly to a kernel function (including CUDA __global__ function).
-template <typename In, typename Out>
+template <typename In, typename Out, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim, int8_t ReduceNdim = kDynamicNdim>
 struct ReductionKernelArg {
-    IndexableArray<const In> in;
-    IndexableArray<Out> out;
-    Indexer<> in_indexer;
-    Indexer<> out_indexer;
-    Indexer<> reduce_indexer;
+    IndexableArray<const In, InNdim> in;
+    IndexableArray<Out, OutNdim> out;
+    Indexer<InNdim> in_indexer;
+    Indexer<OutNdim> out_indexer;
+    Indexer<ReduceNdim> reduce_indexer;
 };
 
+// A structure to represent argument of Reduce function.
+//
+// This structure is used to make a reduction kernel argument having indexers with dynamic ndim or statically optmized ndim.
+//
+// Input and output arrays are transposed so that the reduction axes come last. Axes of length 1 are also removed.
 template <typename In, typename Out>
-ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const Axes& axis, const Array& out) {
+struct ReductionArg {
+    In* in_data;
+    Out* out_data;
+    Strides in_strides;
+    Strides out_strides;
+    Shape in_shape;
+    Shape out_shape;
+    Shape reduce_shape;
+};
+
+// Creates ReductionKernelArg from ReductionArg
+template <typename In, typename Out, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim, int8_t ReduceNdim = kDynamicNdim>
+ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> MakeReductionKernelArg(const ReductionArg<In, Out>& arg) {
+    return ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim>{IndexableArray<const In, InNdim>{arg.in_data, arg.in_strides},
+                                                                    IndexableArray<Out, OutNdim>{arg.out_data, arg.out_strides},
+                                                                    Indexer<InNdim>{arg.in_shape},
+                                                                    Indexer<OutNdim>{arg.out_shape},
+                                                                    Indexer<ReduceNdim>{arg.reduce_shape}};
+}
+
+// TODO(sonots): Squash dimensions to optimize performance
+template <typename In, typename Out>
+ReductionArg<In, Out> MakeReductionArg(const Array& in, const Axes& axis, const Array& out) {
     // True if some axes are reduced but kept in output as 1-dim axes.
     // Corresponding to keepdim argument in Array::Sum().
     bool has_kept_dims = out.ndim() + static_cast<int64_t>(axis.size()) != in.ndim();
@@ -93,6 +122,10 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const Axes& 
     assert(out_axis_map.size() == new_out_shape.size());
 
     // Calculate source axis permutation
+    // - in.shape():      (12, 13, 14, 15, 16)
+    // - axis:             (1, 3)
+    // - axis_permutes:    (0, 2, 4, 1, 3)
+    // - new_in_shape:     (12, 14, 16, 13, 15)
     Axes axis_permutes{};
     {
         size_t i_reduce = 0;
@@ -123,11 +156,13 @@ ReductionKernelArg<In, Out> MakeReductionKernelArg(const Array& in, const Axes& 
     assert(std::find(new_in_shape.begin(), new_in_shape.end(), 1) == new_in_shape.end());
     assert(std::find(new_out_shape.begin(), new_out_shape.end(), 1) == new_out_shape.end());
 
-    return ReductionKernelArg<In, Out>{IndexableArray<const In>{in}.Permute(axis_permutes),
-                                       IndexableArray<Out>{out}.Permute(out_axis_map),
-                                       Indexer<>{new_in_shape},
-                                       Indexer<>{new_out_shape},
-                                       Indexer<>{reduce_shape}};
+    return ReductionArg<In, Out>{internal::GetRawOffsetData<In>(in),
+                                 internal::GetRawOffsetData<Out>(out),
+                                 in.strides().Permute(axis_permutes),
+                                 out.strides().Permute(out_axis_map),
+                                 std::move(new_in_shape),
+                                 std::move(new_out_shape),
+                                 std::move(reduce_shape)};
 }
 
 }  // namespace xchainer

@@ -608,7 +608,7 @@ TEST_P(CreationTest, AsContiguousArrayNoCopy) {
     ASSERT_TRUE(a.IsContiguous());  // test precondition
     Array b = AsContiguousArray(a);
 
-    EXPECT_EQ(b.body(), a.body());
+    EXPECT_EQ(internal::GetArrayBody(b), internal::GetArrayBody(a));
 }
 
 TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
@@ -616,7 +616,7 @@ TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
     ASSERT_TRUE(a.IsContiguous());  // test precondition
     Array b = AsContiguousArray(a, Dtype::kInt64);
 
-    EXPECT_NE(b.body(), a.body());
+    EXPECT_NE(internal::GetArrayBody(b), internal::GetArrayBody(a));
     EXPECT_TRUE(b.IsContiguous());
     EXPECT_EQ(Dtype::kInt64, b.dtype());
     testing::ExpectEqual(b, a.AsType(Dtype::kInt64));
@@ -624,7 +624,9 @@ TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
 
 TEST_P(CreationTest, AsContiguousArrayBackward) {
     CheckBackward(
-            [](const std::vector<Array>& xs) -> std::vector<Array> { return {AsContiguousArray(xs[0])}; },
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                return {AsContiguousArray(xs[0]).MakeView()};  // Make a view to avoid identical output
+            },
             {(*testing::BuildArray({2, 3}).WithLinearData<float>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 3}).WithLinearData<float>(-2.4f, 0.8f)},
             {Full({2, 3}, 1e-1f)});

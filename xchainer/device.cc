@@ -55,7 +55,7 @@ namespace {
 // Differentiable mean.
 // TODO(niboshi): Move to routines
 Array Mean(const Array& a, const Axes& axis, bool keepdims) {
-    return a.Sum(axis, keepdims) / xchainer::internal::CountItemsAlongAxes(a.shape(), axis);
+    return a.Sum(axis, keepdims) / internal::CountItemsAlongAxes(a.shape(), axis);
 }
 
 // Differentiable variance.
@@ -87,7 +87,7 @@ ApplyBatchNormResult ApplyBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
 #ifndef NDEBUG
     {
-        Shape reduced_shape = xchainer::internal::ReduceShape(x.shape(), axis, true);
+        Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
         assert(gamma.shape() == reduced_shape);
         assert(beta.shape() == reduced_shape);
 
@@ -112,6 +112,10 @@ GenericBatchNormForwardBackward::GenericBatchNormForwardBackward(
     : running_mean_{running_mean}, running_var_{running_var}, eps_{eps}, decay_{decay}, axis_{std::move(axis)} {}
 
 void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std) {
+    assert(internal::GetArrayBody(x)->nodes().empty());
+    assert(internal::GetArrayBody(gamma)->nodes().empty());
+    assert(internal::GetArrayBody(x_mean)->nodes().empty());
+    assert(internal::GetArrayBody(x_inv_std)->nodes().empty());
     x_ = std::make_shared<Array>(std::move(x));
     gamma_ = std::make_shared<Array>(std::move(gamma));
     x_mean_ = std::make_shared<Array>(std::move(x_mean));
@@ -119,15 +123,18 @@ void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Ar
 }
 
 void GenericBatchNormForwardBackward::SetBackwardResults(Array gout, Array gx, Array ggamma) {
+    assert(internal::GetArrayBody(gout)->nodes().empty());
+    assert(internal::GetArrayBody(gx)->nodes().empty());
+    assert(internal::GetArrayBody(ggamma)->nodes().empty());
     gout_ = std::make_shared<Array>(std::move(gout));
     gx_ = std::make_shared<Array>(std::move(gx));
     ggamma_ = std::make_shared<Array>(std::move(ggamma));
 }
 
 Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
-    assert(!internal::HasAnyArrayNode(x));
-    assert(!internal::HasAnyArrayNode(gamma));
-    assert(!internal::HasAnyArrayNode(beta));
+    assert(internal::GetArrayBody(x)->nodes().empty());
+    assert(internal::GetArrayBody(gamma)->nodes().empty());
+    assert(internal::GetArrayBody(beta)->nodes().empty());
 
     Array x_mean = Mean(x, axis_, true);
     Array x_var = Var(x, x_mean, axis_, true);
@@ -149,7 +156,7 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
 }
 
 std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout) {
-    assert(!internal::HasAnyArrayNode(gout));
+    assert(internal::GetArrayBody(gout)->nodes().empty());
 
     // Note: x_inv_std_ has the information of eps.
     const Array& x = *x_;
@@ -159,8 +166,8 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout
 
     double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
     Array x_hat = (x - x_mean) * x_inv_std;
-    Array ggamma = (gout * x_hat).Sum(axis_);
-    Array gbeta = gout.Sum(axis_);
+    Array ggamma = (gout * x_hat).Sum(axis_, true);
+    Array gbeta = gout.Sum(axis_, true);
     Array gx = (gamma * x_inv_std) * (gout - (x_hat * ggamma + gbeta) * inv_n);
 
     SetBackwardResults(gout, gx, ggamma);
