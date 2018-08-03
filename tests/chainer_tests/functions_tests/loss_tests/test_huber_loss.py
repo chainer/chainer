@@ -13,8 +13,8 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product_dict(
     [{'dtype': numpy.float16,
       'forward_options': {'rtol': 5e-3, 'atol': 5e-3},
-      'backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol':1e0},
-      'double_backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol':1e0}},
+      'backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol': 1e0},
+      'double_backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol': 1e0}},
      {'dtype': numpy.float32,
       'forward_options': {},
       'backward_options': {'eps': 1e-2, 'rtol': 1e-2, 'atol': 1e-2},
