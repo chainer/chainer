@@ -186,7 +186,7 @@ private:
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
 
-    backward_builder_detail::RetainmentRecord retainment_record_;
+    backward_builder_detail::RetainmentRecord retainment_record_{};
 };
 
 }  // namespace xchainer
