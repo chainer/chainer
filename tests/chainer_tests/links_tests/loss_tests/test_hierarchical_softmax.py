@@ -206,7 +206,8 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         for i in six.moves.range(batch):
             probs[i] = self.compute_probability_manually(self.x[i])
 
-        testing.assert_allclose(counter / samples, probs, atol=0.05)
+        testing.assert_allclose(
+            counter.astype('f') / samples, probs, atol=0.05)
 
     def test_probability_cpu(self):
         self.check_probability(self.x)
