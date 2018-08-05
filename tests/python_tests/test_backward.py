@@ -188,8 +188,8 @@ def test_double_backprop():
 
 
 def test_multiple_graphs_double_backprop():
-    with xchainer.graph_scope('graph_y') as graph_y, \
-            xchainer.graph_scope('graph_x') as graph_x:
+    with xchainer.backprop_scope('graph_y') as graph_y, \
+            xchainer.backprop_scope('graph_x') as graph_x:
 
         x = xchainer.full((1,), 2, xchainer.float32)
         x.require_grad(graph_id=graph_x)
@@ -311,7 +311,7 @@ def test_backward_given_output_grad():
 
 def test_backward_keyword_arguments():
     x = xchainer.full((1,), 2, xchainer.float32)
-    with xchainer.graph_scope('graph_1') as graph_id1:
+    with xchainer.backprop_scope('graph_1') as graph_id1:
         x.require_grad(graph_id=graph_id1)
         xchainer.backward(x, graph_id=graph_id1)
         with pytest.raises(TypeError, match=r'.*incompatible function arguments.*'):
@@ -325,8 +325,8 @@ def test_backward_multiple_graphs_basic():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    with xchainer.graph_scope('graph_1') as graph_id1, \
-            xchainer.graph_scope('graph_2') as graph_id2:
+    with xchainer.backprop_scope('graph_1') as graph_id1, \
+            xchainer.backprop_scope('graph_2') as graph_id2:
 
         x1.require_grad(graph_id1)
         x2.require_grad(graph_id2)
@@ -349,8 +349,8 @@ def test_backward_multiple_graphs_non_existing():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    with xchainer.graph_scope('graph_1') as graph_id1, \
-            xchainer.graph_scope('graph_2') as graph_id2:
+    with xchainer.backprop_scope('graph_1') as graph_id1, \
+            xchainer.backprop_scope('graph_2') as graph_id2:
 
         x1.require_grad(graph_id1)
         x2.require_grad(graph_id1)
@@ -367,8 +367,8 @@ def test_backward_multiple_graphs_reuse():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    with xchainer.graph_scope('graph_2') as graph_id2, \
-            xchainer.graph_scope('graph_1') as graph_id1:
+    with xchainer.backprop_scope('graph_2') as graph_id2, \
+            xchainer.backprop_scope('graph_1') as graph_id1:
 
         x1.require_grad(graph_id1)
         x2.require_grad(graph_id2)

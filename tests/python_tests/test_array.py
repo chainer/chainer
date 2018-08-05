@@ -181,9 +181,9 @@ def test_as_grad_stopped_copy(shape, dtype):
             assert array_a._debug_data_memory_address != array_b._debug_data_memory_address
 
     # Stop gradients on all graphs
-    with xchainer.graph_scope('graph_1') as graph_1, \
-            xchainer.graph_scope('graph_2') as graph_2, \
-            xchainer.graph_scope('graph_3') as graph_3:
+    with xchainer.backprop_scope('graph_1') as graph_1, \
+            xchainer.backprop_scope('graph_2') as graph_2, \
+            xchainer.backprop_scope('graph_3') as graph_3:
 
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
         a.require_grad(graph_1)
@@ -221,9 +221,9 @@ def test_as_grad_stopped_copy(shape, dtype):
 
 def test_as_grad_stopped_view(shape, dtype):
     # Stop gradients on all graphs
-    with xchainer.graph_scope('graph_1') as graph_1, \
-            xchainer.graph_scope('graph_2') as graph_2, \
-            xchainer.graph_scope('graph_3') as graph_3:
+    with xchainer.backprop_scope('graph_1') as graph_1, \
+            xchainer.backprop_scope('graph_2') as graph_2, \
+            xchainer.backprop_scope('graph_3') as graph_3:
 
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
         a.require_grad(graph_1)
@@ -296,7 +296,7 @@ def test_array_require_grad_without_graph_id(graph_args):
 def test_array_require_grad_with_graph_id():
     array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
 
-    with xchainer.graph_scope('graph_1') as graph_1:
+    with xchainer.backprop_scope('graph_1') as graph_1:
         assert not array.is_grad_required(graph_1)
         array.require_grad(graph_1)
         assert array.is_grad_required(graph_1)
@@ -306,7 +306,7 @@ def test_array_require_grad_with_graph_id():
         assert array.is_grad_required(graph_1)
 
     # keyword arguments
-    with xchainer.graph_scope('graph_2') as graph_2:
+    with xchainer.backprop_scope('graph_2') as graph_2:
         assert not array.is_grad_required(graph_id=graph_2)
         array.require_grad(graph_id=graph_2)
         assert array.is_grad_required(graph_2)
@@ -357,7 +357,7 @@ def test_array_grad_with_graph_id():
     array = xchainer.ndarray((3, 1), xchainer.float32, [1., 1., 1.])
     grad = xchainer.ndarray((3, 1), xchainer.float32, [0.5, 0.5, 0.5])
 
-    with xchainer.graph_scope('graph_1') as graph_1:
+    with xchainer.backprop_scope('graph_1') as graph_1:
         with pytest.raises(xchainer.XchainerError):
             array.get_grad(graph_1)
         with pytest.raises(xchainer.XchainerError):
@@ -373,7 +373,7 @@ def test_array_grad_with_graph_id():
         assert array.get_grad(graph_1) is None
 
     # keyword arguments
-    with xchainer.graph_scope('graph_2') as graph_2:
+    with xchainer.backprop_scope('graph_2') as graph_2:
         with pytest.raises(xchainer.XchainerError):
             array.get_grad(graph_id=graph_2)
         with pytest.raises(xchainer.XchainerError):
@@ -449,9 +449,9 @@ def test_array_require_grad_multiple_graphs_forward():
     x1 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
     x2 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
 
-    with xchainer.graph_scope('graph_1') as graph_1, \
-            xchainer.graph_scope('graph_2') as graph_2, \
-            xchainer.graph_scope('graph_3') as graph_3:
+    with xchainer.backprop_scope('graph_1') as graph_1, \
+            xchainer.backprop_scope('graph_2') as graph_2, \
+            xchainer.backprop_scope('graph_3') as graph_3:
 
         x1.require_grad(graph_1)
         x2.require_grad(graph_2)
@@ -498,7 +498,7 @@ def test_array_grad_invalid_grad(expected_error, invalid_shape, invalid_dtype, i
 
 
 def test_array_backward():
-    with xchainer.graph_scope('graph_1') as graph_1:
+    with xchainer.backprop_scope('graph_1') as graph_1:
         x1 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1]).require_grad(graph_id=graph_1)
         x2 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1]).require_grad(graph_id=graph_1)
         y = x1 * x2

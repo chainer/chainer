@@ -9,11 +9,11 @@
 #include <string>
 #include <vector>
 
+#include "xchainer/backprop_scope.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/device_id.h"
 #include "xchainer/graph.h"
-#include "xchainer/graph_scope.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/native/native_device.h"
 #include "xchainer/routines/creation.h"
@@ -201,8 +201,8 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
 
     // 0-sized
     {
-        GraphScope graph_scope{"graph_1"};
-        GraphId graph_id = graph_scope.graph_id();
+        BackpropScope backprop_scope{"graph_1"};
+        GraphId graph_id = backprop_scope.graph_id();
 
         CheckArrayRepr<int32_t>(
                 "array([], shape=(0, 1, 2), dtype=int32, device='native:0', graph_ids=['1'])", {}, Shape({0, 1, 2}), device, {graph_id});
@@ -210,8 +210,8 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
 
     // Single graph
     {
-        GraphScope graph_scope{"graph_1"};
-        GraphId graph_id = graph_scope.graph_id();
+        BackpropScope backprop_scope{"graph_1"};
+        GraphId graph_id = backprop_scope.graph_id();
 
         CheckArrayRepr<int32_t>(
                 "array([-2], shape=(1,), dtype=int32, device='native:0', graph_ids=['2'])", {-2}, Shape({1}), device, {graph_id});
@@ -219,10 +219,10 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
 
     // Two graphs
     {
-        GraphScope graph_scope1{"graph_1"};
-        GraphScope graph_scope2{"graph_2"};
-        GraphId graph_id1 = graph_scope1.graph_id();
-        GraphId graph_id2 = graph_scope2.graph_id();
+        BackpropScope backprop_scope1{"graph_1"};
+        BackpropScope backprop_scope2{"graph_2"};
+        GraphId graph_id1 = backprop_scope1.graph_id();
+        GraphId graph_id2 = backprop_scope2.graph_id();
 
         CheckArrayRepr<int32_t>(
                 "array([1], shape=(1,), dtype=int32, device='native:0', graph_ids=['3', '4'])",
@@ -234,16 +234,16 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
 
     // Multiple graphs
     {
-        GraphScope graph_scope1{"graph_1"};
-        GraphScope graph_scope2{"graph_2"};
-        GraphScope graph_scope3{"graph_3"};
-        GraphScope graph_scope4{"graph_4"};
-        GraphScope graph_scope5{"graph_5"};
-        GraphId graph_id1 = graph_scope1.graph_id();
-        GraphId graph_id2 = graph_scope2.graph_id();
-        GraphId graph_id3 = graph_scope3.graph_id();
-        GraphId graph_id4 = graph_scope4.graph_id();
-        GraphId graph_id5 = graph_scope5.graph_id();
+        BackpropScope backprop_scope1{"graph_1"};
+        BackpropScope backprop_scope2{"graph_2"};
+        BackpropScope backprop_scope3{"graph_3"};
+        BackpropScope backprop_scope4{"graph_4"};
+        BackpropScope backprop_scope5{"graph_5"};
+        GraphId graph_id1 = backprop_scope1.graph_id();
+        GraphId graph_id2 = backprop_scope2.graph_id();
+        GraphId graph_id3 = backprop_scope3.graph_id();
+        GraphId graph_id4 = backprop_scope4.graph_id();
+        GraphId graph_id5 = backprop_scope5.graph_id();
 
         CheckArrayRepr<int32_t>(
                 "array([-9], shape=(1,), dtype=int32, device='native:0', graph_ids=['5', '6', '7', '8', '9'])",

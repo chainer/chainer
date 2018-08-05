@@ -48,7 +48,7 @@ public:
     void ReleaseGraphId(const GraphId& graph_id);
 
     // Checks if the graph ID is allowed to be backpropped.
-    // Backprop is allowed if the order of graph IDs which have been backpropped is not reversed in any of the previous graph scopes.
+    // Backprop is allowed if the order of graph IDs which have been backpropped is not reversed in any of the previous backprop scopes.
     // XchainerError is thrown if the check fails.
     void CheckBackpropAllowed(const GraphId& graph_id);
 

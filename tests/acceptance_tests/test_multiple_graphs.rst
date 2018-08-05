@@ -6,8 +6,8 @@ Double backprop with different graphs
 
 >>> import xchainer as xc
 
->>> with xc.graph_scope('weight') as weight_graph:
-...     with xc.graph_scope('input') as input_graph:
+>>> with xc.backprop_scope('weight') as weight_graph:
+...     with xc.backprop_scope('input') as input_graph:
 ...         x = xc.ndarray((3,), xc.float32, [1, 2, 3]).require_grad(input_graph)
 ...         w = xc.ndarray((3,), xc.float32, [4, 5, 6]).require_grad(weight_graph)
 ...         y = x * w
@@ -48,7 +48,7 @@ Double backprop with single graph
 >>> y = x * w
 >>> y.is_grad_required()
 True
->>> with xc.graph_scope('foo') as foo:
+>>> with xc.backprop_scope('foo') as foo:
 ...     y.is_grad_required(foo)  # unknown graph name
 False
 
