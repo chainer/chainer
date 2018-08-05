@@ -6,14 +6,13 @@ import chainer
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
+from chainer.functions.array import diagonal
 from chainer.functions.array import expand_dims
-from chainer.functions.array import moveaxis
 from chainer.functions.array import repeat
 from chainer.functions.array import squeeze
 from chainer.functions.array import stack
 from chainer.functions.array import swapaxes
 from chainer.functions.array import where
-from chainer.functions.math import basic_math
 from chainer.functions.math import exponential
 from chainer.functions.math import matmul
 from chainer.functions.math import sum as sum_mod
@@ -52,15 +51,21 @@ class TriangularInv(chainer.function_node.FunctionNode):
                               " of triangular_inv in CPU can not be done." +
                               str(_import_error))
         x, = inputs
+        if len(x) == 0:
+            # linalg.solve_triangular crashes
+            return x,
         invx = scipy.linalg.solve_triangular(
-            x, numpy.eye(len(x), dtype=x[0].dtype), lower=self._lower)
+            x, numpy.eye(len(x), dtype=x.dtype), lower=self._lower)
         return invx,
 
     def forward_gpu(self, inputs):
         self.retain_outputs((0,))
         x, = inputs
+        if len(x) == 0:
+            # linalg.solve_triangular crashes
+            return x,
         invx = cuda.cupyx.scipy.linalg.solve_triangular(
-            x, cuda.cupy.eye(len(x), dtype=x[0].dtype), lower=self._lower)
+            x, cuda.cupy.eye(len(x), dtype=x.dtype), lower=self._lower)
         return invx,
 
     def backward(self, target_input_indexes, grad_outputs):
@@ -95,13 +100,20 @@ class MultivariateNormal(distribution.Distribution):
 
     """MultivariateNormal Distribution.
 
+    The probability density function of the distribution is expressed as
+
+    .. math::
+        p(x;\\mu,V) = \\frac{1}{\\sqrt{\\det(2\\pi V)}}
+            \\exp\\left(-\\frac{1}{2}(x-\\mu) V^{-1}(x-\\mu)\\right)
+
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        location :math:`\\mu`.
-        scale_tril(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`L`.
+        loc (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing the
+            location :math:`\\mu`.
+        scale_tril (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing the
+            scale :math:`L` such that :math:`V=LL^T`.
+
     """
 
     def __init__(self, loc, **kwargs):
@@ -119,10 +131,9 @@ class MultivariateNormal(distribution.Distribution):
         return self._copy_to(MultivariateNormal(self.loc, self.scale_tril))
 
     def _logdet(self, x):
-        st = moveaxis.moveaxis(x, (-2, -1), (0, 1))
-        diag = st[list(range(self.d)), list(range(self.d))]
+        diag = diagonal.diagonal(x, axis1=-2, axis2=-1)
         logdet = sum_mod.sum(
-            exponential.log(basic_math.absolute(diag)), axis=0)
+            exponential.log(abs(diag)), axis=-1)
         return logdet
 
     @property
@@ -185,13 +196,11 @@ class MultivariateNormal(distribution.Distribution):
 
 @distribution.register_kl(MultivariateNormal, MultivariateNormal)
 def _kl_multivariatenormal_multivariatenormal(dist1, dist2):
-    st = moveaxis.moveaxis(dist1.scale_tril, (-2, -1), (0, 1))
-    diag = st[list(range(dist1.d)), list(range(dist1.d))]
-    logdet1 = sum_mod.sum(exponential.log(basic_math.absolute(diag)), axis=0)
+    diag = diagonal.diagonal(dist1.scale_tril, axis1=-2, axis2=-1)
+    logdet1 = sum_mod.sum(exponential.log(abs(diag)), axis=-1)
 
-    st = moveaxis.moveaxis(dist2.scale_tril, (-2, -1), (0, 1))
-    diag = st[list(range(dist2.d)), list(range(dist2.d))]
-    logdet2 = sum_mod.sum(exponential.log(basic_math.absolute(diag)), axis=0)
+    diag = diagonal.diagonal(dist2.scale_tril, axis1=-2, axis2=-1)
+    logdet2 = sum_mod.sum(exponential.log(abs(diag)), axis=-1)
 
     scale_tril_inv2 = _batch_triangular_inv(dist2.scale_tril.reshape(
         -1, dist2.d, dist2.d))
