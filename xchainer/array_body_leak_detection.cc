@@ -40,8 +40,8 @@ bool ArrayBodyLeakTracker::IsAllArrayBodiesFreed(std::ostream& os) const {
             os << "- Unreleased array body: " << array_body.get() << "\n";
             os << array << "\n";
             for (const std::shared_ptr<ArrayNode>& array_node : internal::GetArrayBody(array)->nodes()) {
-                const GraphId& graph_id = array_node->graph_id();
-                DebugDumpComputationalGraph(os, array, graph_id);
+                const BackpropId& backprop_id = array_node->backprop_id();
+                DebugDumpComputationalGraph(os, array, backprop_id);
             }
         }
         return false;

@@ -28,13 +28,13 @@ void CheckArrayRepr(
         const std::vector<T>& data_vec,
         const Shape& shape,
         Device& device,
-        const std::vector<GraphId>& graph_ids = {}) {
+        const std::vector<BackpropId>& backprop_ids = {}) {
     // Copy to a contiguous memory block because std::vector<bool> is not packed as a sequence of bool's.
     std::shared_ptr<T> data_ptr{new T[data_vec.size()], std::default_delete<T[]>{}};
     std::copy(data_vec.begin(), data_vec.end(), data_ptr.get());
     Array array = internal::FromContiguousHostData(shape, TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data_ptr), device);
-    for (const GraphId& graph_id : graph_ids) {
-        array.RequireGrad(graph_id);
+    for (const BackpropId& backprop_id : backprop_ids) {
+        array.RequireGrad(backprop_id);
     }
 
     // std::string version
@@ -202,34 +202,38 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
     // 0-sized
     {
         BackpropScope backprop_scope{"graph_1"};
-        GraphId graph_id = backprop_scope.graph_id();
+        BackpropId backprop_id = backprop_scope.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([], shape=(0, 1, 2), dtype=int32, device='native:0', graph_ids=['1'])", {}, Shape({0, 1, 2}), device, {graph_id});
+                "array([], shape=(0, 1, 2), dtype=int32, device='native:0', backprop_ids=['1'])",
+                {},
+                Shape({0, 1, 2}),
+                device,
+                {backprop_id});
     }
 
     // Single graph
     {
         BackpropScope backprop_scope{"graph_1"};
-        GraphId graph_id = backprop_scope.graph_id();
+        BackpropId backprop_id = backprop_scope.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([-2], shape=(1,), dtype=int32, device='native:0', graph_ids=['2'])", {-2}, Shape({1}), device, {graph_id});
+                "array([-2], shape=(1,), dtype=int32, device='native:0', backprop_ids=['2'])", {-2}, Shape({1}), device, {backprop_id});
     }
 
     // Two graphs
     {
         BackpropScope backprop_scope1{"graph_1"};
         BackpropScope backprop_scope2{"graph_2"};
-        GraphId graph_id1 = backprop_scope1.graph_id();
-        GraphId graph_id2 = backprop_scope2.graph_id();
+        BackpropId backprop_id1 = backprop_scope1.backprop_id();
+        BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([1], shape=(1,), dtype=int32, device='native:0', graph_ids=['3', '4'])",
+                "array([1], shape=(1,), dtype=int32, device='native:0', backprop_ids=['3', '4'])",
                 {1},
                 Shape({1}),
                 device,
-                {graph_id1, graph_id2});
+                {backprop_id1, backprop_id2});
     }
 
     // Multiple graphs
@@ -239,18 +243,18 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         BackpropScope backprop_scope3{"graph_3"};
         BackpropScope backprop_scope4{"graph_4"};
         BackpropScope backprop_scope5{"graph_5"};
-        GraphId graph_id1 = backprop_scope1.graph_id();
-        GraphId graph_id2 = backprop_scope2.graph_id();
-        GraphId graph_id3 = backprop_scope3.graph_id();
-        GraphId graph_id4 = backprop_scope4.graph_id();
-        GraphId graph_id5 = backprop_scope5.graph_id();
+        BackpropId backprop_id1 = backprop_scope1.backprop_id();
+        BackpropId backprop_id2 = backprop_scope2.backprop_id();
+        BackpropId backprop_id3 = backprop_scope3.backprop_id();
+        BackpropId backprop_id4 = backprop_scope4.backprop_id();
+        BackpropId backprop_id5 = backprop_scope5.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([-9], shape=(1,), dtype=int32, device='native:0', graph_ids=['5', '6', '7', '8', '9'])",
+                "array([-9], shape=(1,), dtype=int32, device='native:0', backprop_ids=['5', '6', '7', '8', '9'])",
                 {-9},
                 Shape({1}),
                 device,
-                {graph_id1, graph_id2, graph_id3, graph_id4, graph_id5});
+                {backprop_id1, backprop_id2, backprop_id3, backprop_id4, backprop_id5});
     }
 }
 

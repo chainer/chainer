@@ -8,7 +8,7 @@ constexpr int8_t kMaxNdim = 10;
 // Reserved dimension for dynamic-length arrays.
 constexpr int8_t kDynamicNdim = -1;
 
-// Default graph ID to be used if not specified
+// Default backprop ID to be used if not specified
 constexpr const char* kDefaultGraphName = "default";
 
 }  // namespace xchainer

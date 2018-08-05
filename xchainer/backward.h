@@ -28,12 +28,12 @@ void SetGrad(nonstd::optional<Array>& target_grad, Array grad, const Shape& shap
 
 void Backward(
         const Array& output,
-        const nonstd::optional<GraphId>& graph_id = nonstd::nullopt,
+        const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
 void Backward(
         const std::vector<ConstArrayRef>& outputs,
-        const nonstd::optional<GraphId>& graph_id = nonstd::nullopt,
+        const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
 }  // namespace xchainer

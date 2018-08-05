@@ -20,10 +20,10 @@ True
 ...         y.is_grad_required()  # 'default'
 False
 
-...         xc.backward(y, graph_id=input_graph)
+...         xc.backward(y, backprop_id=input_graph)
 ...         gx = x.get_grad(input_graph)
 ...         gx  # == w
-array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', graph_ids=['weight'])
+array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['weight'])
 
 ...         w.get_grad(input_graph)
 Traceback (most recent call last):
@@ -31,7 +31,7 @@ Traceback (most recent call last):
 xchainer.XchainerError: Array does not belong to the graph: 'input'.
 
 ...     z = gx * w  # == w * w
-...     xc.backward(z, graph_id=weight_graph)
+...     xc.backward(z, backprop_id=weight_graph)
 ...     w.get_grad(weight_graph)  # == 2 * w
 array([ 8., 10., 12.], shape=(3,), dtype=float32, device='native:0')
 
@@ -55,9 +55,9 @@ False
 >>> xc.backward(y, enable_double_backprop=True)
 >>> gx = x.get_grad()
 >>> gx  # == w
-array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', graph_ids=['0'])
+array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['0'])
 >>> w.get_grad()  # == x
-array([1., 2., 3.], shape=(3,), dtype=float32, device='native:0', graph_ids=['0'])
+array([1., 2., 3.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['0'])
 
 >>> w.cleargrad()
 >>> z = gx * w  # == w * w
@@ -65,6 +65,6 @@ array([1., 2., 3.], shape=(3,), dtype=float32, device='native:0', graph_ids=['0'
 >>> w.get_grad()  # == 2 * w
 array([ 8., 10., 12.], shape=(3,), dtype=float32, device='native:0')
 >>> x.get_grad()  # the second backprop does not reach here
-array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', graph_ids=['0'])
+array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['0'])
 >>> x.get_grad() is gx
 True

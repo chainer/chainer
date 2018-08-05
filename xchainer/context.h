@@ -20,8 +20,8 @@ class NativeBackend;
 
 }  // namespace native
 
-// TODO(sonots): Hide GraphId-related functions from users.
-// TODO(sonots): Move implementations of GraphId-releated functions into another class.
+// TODO(sonots): Hide BackpropId-related functions from users.
+// TODO(sonots): Move implementations of BackpropId-releated functions into another class.
 class Context {
 public:
     Context() = default;
@@ -43,26 +43,26 @@ public:
     // If the backend and/or device do not exist, this function automatically creates them.
     Device& GetDevice(const DeviceId& device_id);
 
-    GraphId MakeNextGraphId(std::string graph_name);
+    BackpropId MakeNextBackpropId(std::string graph_name);
 
-    void ReleaseGraphId(const GraphId& graph_id);
+    void ReleaseBackpropId(const BackpropId& backprop_id);
 
-    // Checks if the graph ID is allowed to be backpropped.
-    // Backprop is allowed if the order of graph IDs which have been backpropped is not reversed in any of the previous backprop scopes.
+    // Checks if the backprop ID is allowed to be backpropped.
+    // Backprop is allowed if the order of backprop IDs which have been backpropped is not reversed in any of the previous backprop scopes.
     // XchainerError is thrown if the check fails.
-    void CheckBackpropAllowed(const GraphId& graph_id);
+    void CheckBackpropAllowed(const BackpropId& backprop_id);
 
-    // Flags the graph ID that it has been backpropped.
-    void SetBackpropDone(const GraphId& graph_id);
+    // Flags the backprop ID that it has been backpropped.
+    void SetBackpropDone(const BackpropId& backprop_id);
 
-    // Returns all graph IDs created after the queried graph.
+    // Returns all backprop IDs created after the queried graph.
     // In many cases, these are also the graphs created in inner scopes.
     // The queried graph is excluded from the returned container.
-    std::vector<GraphId> GetInnerGraphIds(const GraphId& graph_id);
+    std::vector<BackpropId> GetInnerBackpropIds(const BackpropId& backprop_id);
 
-    GraphId default_graph_id() {
+    BackpropId default_backprop_id() {
         // 0 is the graph sub id of the default graph.
-        return GraphId{*this, 0};
+        return BackpropId{*this, 0};
     }
 
 private:

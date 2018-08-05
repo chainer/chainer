@@ -14,39 +14,39 @@ using GraphSubId = uint64_t;
 
 class Context;
 
-class GraphId {
+class BackpropId {
 public:
-    GraphId(const GraphId&) = default;
-    GraphId(GraphId&&) = default;
-    GraphId& operator=(const GraphId&) = default;
-    GraphId& operator=(GraphId&&) = default;
+    BackpropId(const BackpropId&) = default;
+    BackpropId(BackpropId&&) = default;
+    BackpropId& operator=(const BackpropId&) = default;
+    BackpropId& operator=(BackpropId&&) = default;
 
-    bool operator==(const GraphId& other) const { return &context_.get() == &other.context_.get() && sub_id_ == other.sub_id_; }
+    bool operator==(const BackpropId& other) const { return &context_.get() == &other.context_.get() && sub_id_ == other.sub_id_; }
 
-    bool operator!=(const GraphId& other) const { return !operator==(other); }
+    bool operator!=(const BackpropId& other) const { return !operator==(other); }
 
-    bool operator<(const GraphId& other) const { return CompareImpl<std::less<GraphSubId>>(other); }
+    bool operator<(const BackpropId& other) const { return CompareImpl<std::less<GraphSubId>>(other); }
 
-    bool operator<=(const GraphId& other) const { return CompareImpl<std::less_equal<GraphSubId>>(other); }
+    bool operator<=(const BackpropId& other) const { return CompareImpl<std::less_equal<GraphSubId>>(other); }
 
-    bool operator>(const GraphId& other) const { return CompareImpl<std::greater<GraphSubId>>(other); }
+    bool operator>(const BackpropId& other) const { return CompareImpl<std::greater<GraphSubId>>(other); }
 
-    bool operator>=(const GraphId& other) const { return CompareImpl<std::greater_equal<GraphSubId>>(other); }
+    bool operator>=(const BackpropId& other) const { return CompareImpl<std::greater_equal<GraphSubId>>(other); }
 
     Context& context() const { return context_; }
 
     GraphSubId sub_id() const { return sub_id_; }
 
 private:
-    // A GraphId is always constructed by a Context.
+    // A BackpropId is always constructed by a Context.
     friend class Context;
 
-    GraphId(Context& context, GraphSubId sub_id) : context_{context}, sub_id_{sub_id} {}
+    BackpropId(Context& context, GraphSubId sub_id) : context_{context}, sub_id_{sub_id} {}
 
     template <typename Compare>
-    bool CompareImpl(const GraphId& other) const {
+    bool CompareImpl(const BackpropId& other) const {
         if (&context_.get() != &other.context_.get()) {
-            throw ContextError{"Cannot compare graph ids with different contexts."};
+            throw ContextError{"Cannot compare backprop ids with different contexts."};
         }
         return Compare{}(sub_id_, other.sub_id_);
     }
@@ -57,7 +57,7 @@ private:
     GraphSubId sub_id_;
 };
 
-std::ostream& operator<<(std::ostream& os, const GraphId& graph_id);
+std::ostream& operator<<(std::ostream& os, const BackpropId& backprop_id);
 
 // Used to represent any graph (id).
 class AnyGraph {};
@@ -67,10 +67,10 @@ class AnyGraph {};
 namespace std {
 
 template <>
-struct hash<xchainer::GraphId> {
-    size_t operator()(const xchainer::GraphId& graph_id) const {
-        size_t seed = std::hash<xchainer::Context*>()(&graph_id.context());
-        xchainer::internal::HashCombine(seed, std::hash<xchainer::GraphSubId>()(graph_id.sub_id()));
+struct hash<xchainer::BackpropId> {
+    size_t operator()(const xchainer::BackpropId& backprop_id) const {
+        size_t seed = std::hash<xchainer::Context*>()(&backprop_id.context());
+        xchainer::internal::HashCombine(seed, std::hash<xchainer::GraphSubId>()(backprop_id.sub_id()));
         return seed;
     }
 };

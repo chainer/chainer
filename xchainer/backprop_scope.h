@@ -11,19 +11,19 @@ namespace xchainer {
 class BackpropScope {
 public:
     explicit BackpropScope(std::string graph_name, Context& context = GetDefaultContext())
-        : graph_id_{context.MakeNextGraphId(std::move(graph_name))} {}
+        : backprop_id_{context.MakeNextBackpropId(std::move(graph_name))} {}
 
     BackpropScope(const BackpropScope&) = delete;
     BackpropScope& operator=(const BackpropScope&) = delete;
     BackpropScope& operator=(BackpropScope&&) = delete;
     BackpropScope(BackpropScope&& other) = delete;
 
-    ~BackpropScope() { graph_id_.context().ReleaseGraphId(graph_id_); }
+    ~BackpropScope() { backprop_id_.context().ReleaseBackpropId(backprop_id_); }
 
-    GraphId graph_id() const { return graph_id_; }
+    BackpropId backprop_id() const { return backprop_id_; }
 
 private:
-    GraphId graph_id_;
+    BackpropId backprop_id_;
 };
 
 }  // namespace xchainer

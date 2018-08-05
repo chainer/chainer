@@ -22,7 +22,7 @@ namespace py = pybind11;  // standard convention
 class PyBackpropScope {
 public:
     explicit PyBackpropScope(std::string graph_name, Context& context) : graph_name_{std::move(graph_name)}, context_{context} {}
-    GraphId Enter() {
+    BackpropId Enter() {
         if (scope_ != nullptr) {
             throw XchainerError{"Backprop scope cannot be nested."};
         }
@@ -30,7 +30,7 @@ public:
             throw XchainerError{"Exited backprop scope cannot be reused."};
         }
         scope_ = std::make_unique<BackpropScope>(graph_name_, context_);
-        return scope_->graph_id();
+        return scope_->backprop_id();
     }
     void Exit(py::args args) {
         (void)args;  // unused
@@ -48,16 +48,16 @@ private:
 void InitXchainerGraph(pybind11::module& m) {
     py::class_<AnyGraph>{m, "AnyGraph"};  // NOLINT(misc-unused-raii)
 
-    // TODO(imanishi): Add module function to retrieve default graph id.
+    // TODO(imanishi): Add module function to retrieve default backprop id.
     m.attr("anygraph") = AnyGraph{};
 
-    py::class_<GraphId> c{m, "GraphId"};
-    c.def("__repr__", [](const GraphId& graph_id) {
+    py::class_<BackpropId> c{m, "BackpropId"};
+    c.def("__repr__", [](const BackpropId& backprop_id) {
         std::ostringstream stream;
-        stream << graph_id;
+        stream << backprop_id;
         return stream.str();
     });
-    c.def_property_readonly("context", &GraphId::context);
+    c.def_property_readonly("context", &BackpropId::context);
 }
 
 void InitXchainerBackpropScope(pybind11::module& m) {

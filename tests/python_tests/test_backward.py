@@ -12,7 +12,7 @@ def _assert_arrays_equal(array1, array2):
         assert array1._debug_flat_data == array2._debug_flat_data
 
 
-def _check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=None):
+def _check_backprop(xs, expected_gxs, fprop, extra_xs, backprop_id=None):
     # Checks for test validity
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
@@ -24,19 +24,19 @@ def _check_backprop(xs, expected_gxs, fprop, extra_xs, graph_id=None):
     assert all([isinstance(a, xchainer.ndarray) for a in extra_xs])
 
     outputs = fprop(xs, extra_xs)
-    xchainer.backward(outputs, graph_id)
+    xchainer.backward(outputs, backprop_id)
 
     for i, expected_gx in enumerate(expected_gxs):
         x = xs[i]
         if expected_gx is xchainer.XchainerError:
             with pytest.raises(xchainer.XchainerError):
-                x.get_grad(graph_id)
+                x.get_grad(backprop_id)
         else:
-            gx = x.get_grad(graph_id)
+            gx = x.get_grad(backprop_id)
             _assert_arrays_equal(gx, expected_gx)
 
     for output in outputs:
-        grad = output.get_grad(graph_id)
+        grad = output.get_grad(backprop_id)
         assert grad is not None
 
 
@@ -192,20 +192,20 @@ def test_multiple_graphs_double_backprop():
             xchainer.backprop_scope('graph_x') as graph_x:
 
         x = xchainer.full((1,), 2, xchainer.float32)
-        x.require_grad(graph_id=graph_x)
+        x.require_grad(backprop_id=graph_x)
 
         y = xchainer.full((1,), 3, xchainer.float32)
-        y.require_grad(graph_id=graph_y)
+        y.require_grad(backprop_id=graph_y)
 
         z = x * (x + y)
-        xchainer.backward(z, graph_id=graph_x)
+        xchainer.backward(z, backprop_id=graph_x)
 
         gx = x.get_grad(graph_x)  # 2x + y
-        assert not gx.is_grad_required(graph_id=graph_x)
-        assert gx.is_grad_required(graph_id=graph_y)
+        assert not gx.is_grad_required(backprop_id=graph_x)
+        assert gx.is_grad_required(backprop_id=graph_y)
 
         w = x * gx
-        xchainer.backward(w, graph_id=graph_y)
+        xchainer.backward(w, backprop_id=graph_y)
 
         e = xchainer.full((1,), 2, xchainer.float32)
 
@@ -311,11 +311,11 @@ def test_backward_given_output_grad():
 
 def test_backward_keyword_arguments():
     x = xchainer.full((1,), 2, xchainer.float32)
-    with xchainer.backprop_scope('graph_1') as graph_id1:
-        x.require_grad(graph_id=graph_id1)
-        xchainer.backward(x, graph_id=graph_id1)
+    with xchainer.backprop_scope('graph_1') as backprop_id1:
+        x.require_grad(backprop_id=backprop_id1)
+        xchainer.backward(x, backprop_id=backprop_id1)
         with pytest.raises(TypeError, match=r'.*incompatible function arguments.*'):
-            xchainer.backward(body=x, graph_id=graph_id1)
+            xchainer.backward(body=x, backprop_id=backprop_id1)
 
 
 def test_backward_multiple_graphs_basic():
@@ -325,11 +325,11 @@ def test_backward_multiple_graphs_basic():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    with xchainer.backprop_scope('graph_1') as graph_id1, \
-            xchainer.backprop_scope('graph_2') as graph_id2:
+    with xchainer.backprop_scope('graph_1') as backprop_id1, \
+            xchainer.backprop_scope('graph_2') as backprop_id2:
 
-        x1.require_grad(graph_id1)
-        x2.require_grad(graph_id2)
+        x1.require_grad(backprop_id1)
+        x2.require_grad(backprop_id2)
 
         xs = (x1, x2)
         expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.XchainerError)
@@ -339,7 +339,7 @@ def test_backward_multiple_graphs_basic():
             y = x1 * x2
             return y,
 
-        _check_backprop(xs, expected_gxs, fprop, (), graph_id1)
+        _check_backprop(xs, expected_gxs, fprop, (), backprop_id1)
 
 
 def test_backward_multiple_graphs_non_existing():
@@ -349,15 +349,15 @@ def test_backward_multiple_graphs_non_existing():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    with xchainer.backprop_scope('graph_1') as graph_id1, \
-            xchainer.backprop_scope('graph_2') as graph_id2:
+    with xchainer.backprop_scope('graph_1') as backprop_id1, \
+            xchainer.backprop_scope('graph_2') as backprop_id2:
 
-        x1.require_grad(graph_id1)
-        x2.require_grad(graph_id1)
+        x1.require_grad(backprop_id1)
+        x2.require_grad(backprop_id1)
 
         y = x1 * x2
         with pytest.raises(xchainer.XchainerError):
-            xchainer.backward(y, graph_id2)
+            xchainer.backward(y, backprop_id2)
 
 
 def test_backward_multiple_graphs_reuse():
@@ -367,11 +367,11 @@ def test_backward_multiple_graphs_reuse():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    with xchainer.backprop_scope('graph_2') as graph_id2, \
-            xchainer.backprop_scope('graph_1') as graph_id1:
+    with xchainer.backprop_scope('graph_2') as backprop_id2, \
+            xchainer.backprop_scope('graph_1') as backprop_id1:
 
-        x1.require_grad(graph_id1)
-        x2.require_grad(graph_id2)
+        x1.require_grad(backprop_id1)
+        x2.require_grad(backprop_id2)
 
         xs = (x1, x2)
 
@@ -381,28 +381,28 @@ def test_backward_multiple_graphs_reuse():
             return y,
 
         expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.XchainerError)
-        _check_backprop(xs, expected_gxs, fprop, (), graph_id1)
+        _check_backprop(xs, expected_gxs, fprop, (), backprop_id1)
 
-        x1.cleargrad(graph_id1)
-        x2.cleargrad(graph_id2)
+        x1.cleargrad(backprop_id1)
+        x2.cleargrad(backprop_id2)
 
-        assert x1.get_grad(graph_id1) is None
-        assert x2.get_grad(graph_id2) is None
+        assert x1.get_grad(backprop_id1) is None
+        assert x2.get_grad(backprop_id2) is None
 
         expected_gxs = (xchainer.XchainerError, xchainer.full(shape, 2, dtype))
-        _check_backprop(xs, expected_gxs, fprop, (), graph_id2)
+        _check_backprop(xs, expected_gxs, fprop, (), backprop_id2)
 
-        x1.cleargrad(graph_id1)
-        x2.cleargrad(graph_id2)
+        x1.cleargrad(backprop_id1)
+        x2.cleargrad(backprop_id2)
 
-        x1.require_grad(graph_id2)
-        x2.require_grad(graph_id1)
+        x1.require_grad(backprop_id2)
+        x2.require_grad(backprop_id1)
 
         expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.full(shape, 2, dtype))
-        _check_backprop(xs, expected_gxs, fprop, (), graph_id2)
+        _check_backprop(xs, expected_gxs, fprop, (), backprop_id2)
 
-        assert x1.get_grad(graph_id1) is None
-        assert x2.get_grad(graph_id1) is None
+        assert x1.get_grad(backprop_id1) is None
+        assert x2.get_grad(backprop_id1) is None
 
 
 def test_backward_multiple_outputs():
