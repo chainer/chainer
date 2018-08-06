@@ -6,27 +6,31 @@ class LinkHook(object):
 
     :class:`~chainer.LinkHook` is a callback object
     that is registered to a :class:`~chainer.Link`.
-    Registered link hooks are invoked before calling
-    :meth:`forward` methodof each link.
+    Registered link hooks are invoked before and after calling
+    :meth:`forward` method of each link.
 
-    Link hooks that derive :class:`LinkHook` are required
-    to implement two methods:
-    :meth:`~chainer.FunctionHook.forward_preprocess` and
-    :meth:`~chainer.FunctionHook.forward_postprocess`.
+    Link hooks that derive from :class:`LinkHook` may override the following
+    method:
+
+    * :meth:`~chainer.LinkHook.added`
+    * :meth:`~chainer.LinkHook.deleted`
+    * :meth:`~chainer.LinkHook.preprocess`
+    * :meth:`~chainer.LinkHook.postprocess`
+
     By default, these methods do nothing.
 
     Specifically, when :meth:`~chainer.Link.__call__`
-    method of some function is invoked,
+    method of some link is invoked,
     :meth:`~chainer.LinkHook.forward_preprocess`
     (resp. :meth:`~chainer.LinkHook.forward_postprocess`)
-    of all function hooks registered to this function are called before
+    of all link hooks registered to this link are called before
     (resp. after) :meth:`forward` method of the link.
 
     There are two ways to register :class:`~chainer.LinkHook`
     objects to :class:`~chainer.Link` objects.
 
     First one is to use ``with`` statement. Link hooks hooked
-    in this way are registered to all functions within ``with`` statement
+    in this way are registered to all links within ``with`` statement
     and are unregistered at the end of ``with`` statement.
 
     .. admonition:: Example
@@ -47,39 +51,38 @@ class LinkHook(object):
         >>> model1 = Model()
         >>> model2 = Model()
         >>> x = chainer.Variable(np.zeros((1, 10), np.float32))
-        >>> with chainer.function_hooks.TimerHook() as m:
+        >>> with chainer.link_hooks.TimerHook() as m:
         ...   _ = model1(x)
         ...   y = model2(x)
-        ...   print("Total time : " + str(m.total_time()))
-        ...   model3 = Model()
-        ...   z = model3(y) # doctest:+ELLIPSIS
+        >>> model3 = Model()
+        >>> z = model3(y) # doctest:+ELLIPSIS
+        >>> print("Total time : " + str(m.total_time()))
         Total time : ...
 
         In this example, we measure the elapsed times for each forward
-        propagation of all functions in ``model1`` and ``model2``
-        (specifically, :class:`~chainer.functions.LinearFunction` and
-        :class:`~chainer.functions.Exp` of ``model1`` and ``model2``).
+        propagation of all links in ``model1`` and ``model2``
+        (specifically, :class:`~chainer.links.Linear` and ``Model``).
         Note that ``model3`` is not a target of measurement
-        as :class:`~chainer.function_hooks.TimerHook` is unregistered
+        as :class:`~chainer.link_hooks.TimerHook` is unregistered
         before forward propagation of ``model3``.
 
     .. note::
 
-       Chainer stores the dictionary of registered function hooks
-       as a thread local object. So, function hooks registered
+       Chainer stores the dictionary of registered link hooks
+       as a thread local object. So, link hooks registered
        are different depending on threads.
 
     The other one is to register directly to
-    :class:`~chainer.FunctionNode` object with
-    :meth:`~chainer.Function.add_hook` method.
-    Function hooks registered in this way can be removed by
-    :meth:`~chainer.Function.delete_hook` method.
-    Contrary to former registration method, function hooks are registered
-    only to the function which :meth:`~chainer.FunctionNode.add_hook`
+    :class:`~chainer.LinkNode` object with
+    :meth:`~chainer.Link.add_hook` method.
+    Link hooks registered in this way can be removed by
+    :meth:`~chainer.Link.delete_hook` method.
+    Contrary to former registration method, link hooks are registered
+    only to the link which :meth:`~chainer.LinkNode.add_hook`
     is called.
 
     Args:
-        name(str): Name of this function hook.
+        name(str): Name of this link hook.
     """
 
     name = 'LinkHook'
@@ -102,7 +105,8 @@ class LinkHook(object):
 
         Args:
             link(~chainer.Link): Link object to which
-                the link hook is added.
+                the link hook is added. ``None`` if the link hook is
+                registered globally.
         """
         pass
 
@@ -111,7 +115,8 @@ class LinkHook(object):
 
         Args:
             link(~chainer.Link): Link object to which
-                the link hook is deleted.
+                the link hook is deleted. ``None`` if the link hook had been
+                registered globally.
         """
         pass
 

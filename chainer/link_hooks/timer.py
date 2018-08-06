@@ -33,7 +33,7 @@ class TimerHook(link_hook.LinkHook):
     Warning:
         Call graph of links are hierarchical. That means reported elapsed times
         may be overlapping with each other and the sum may exceed the total
-        time.
+        time reported by :meth:`~TimerHook.total_time`.
 
     Attributes:
         call_history: List of measurement results. It consists of pairs of
