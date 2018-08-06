@@ -1,4 +1,3 @@
-import collections
 import numpy
 import six
 
@@ -7,6 +6,7 @@ from chainer.backends import cuda
 from chainer import function
 from chainer import utils
 from chainer.utils import type_check
+from chainer.utils import collections_abc
 
 
 def _logsumexp(a, xp, axis=None):
@@ -388,7 +388,7 @@ def connectionist_temporal_classification(
     <https://www.cs.toronto.edu/~graves/preprint.pdf>`_
 
     """
-    if not isinstance(x, collections.Sequence):
+    if not isinstance(x, collections_abc.Sequence):
         raise TypeError('x must be a list of Variables')
     if not isinstance(blank_symbol, int):
         raise TypeError('blank_symbol must be non-negative integer.')
