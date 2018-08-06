@@ -8,7 +8,6 @@ from chainer import distribution
 from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
-from chainer.functions.math import erf
 from chainer.functions.math import erfc
 from chainer.functions.math import erfinv
 from chainer.functions.math import exponential
