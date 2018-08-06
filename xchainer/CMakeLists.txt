@@ -20,6 +20,7 @@ install(FILES
     backend.h
     backend_util.h
     backprop_mode.h
+    backprop_scope.h
     backward.h
     backward_builder.h
     backward_context.h
@@ -33,7 +34,6 @@ install(FILES
     enum.h
     error.h
     graph.h
-    backprop_scope.h
     hash_combine.h
     index_iterator.h
     indexable_array.h
