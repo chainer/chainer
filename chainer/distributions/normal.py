@@ -77,9 +77,9 @@ class Normal(distribution.Distribution):
         return self.loc.shape
 
     def cdf(self, x):
-        return 0.5 * (1. + erf.erf((
+        return 0.5 * erfc.erfc(-(
             x - broadcast.broadcast_to(self.loc, x.shape))
-            / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape))))
+            / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape)))
 
     @property
     def entropy(self):
