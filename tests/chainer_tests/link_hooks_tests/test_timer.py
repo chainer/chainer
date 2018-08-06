@@ -48,6 +48,9 @@ class TestTimerHook(unittest.TestCase):
         assert times[0] + times[1] < times[2]
         assert times[3] + times[4] < times[5]
 
+        # total_time: Note that it's not the sum of all elapsed times
+        assert hook.total_time() == times[2] + times[5]
+
         # summary
         summary = hook.summary()
         assert sorted(summary.keys()) == ['Linear', 'MyModel']
