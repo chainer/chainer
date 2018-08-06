@@ -53,11 +53,13 @@ class PickleDataset(dataset_mixin.DatasetMixin):
     Even when a user wants to use a large dataset, this dataset can stores all
     data in a large storage like HDD and each data can be randomly accessible.
 
-    >>> with chainer.datasets.open_pickle_dataset_writer('path/to/data') as w:
+    >>> import tempfile
+    >>> _, path_to_data = tempfile.mkstemp()
+    >>> with chainer.datasets.open_pickle_dataset_writer(path_to_data) as w:
     ...     w.write((1, 2.0, 'hello'))
     ...     w.write((2, 3.0, 'good-bye'))
     ...
-    >>> with chainer.datasets.open_pickle_dataset('path/to/data') as dataset:
+    >>> with chainer.datasets.open_pickle_dataset(path_to_data) as dataset:
     ...     print(dataset[1])
     ...
     (2, 3.0, 'good-bye')
