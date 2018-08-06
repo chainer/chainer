@@ -49,13 +49,13 @@ public:
     const std::vector<size_t>& input_array_node_indices() const { return input_array_node_indices_; }
 
     // Returns the input array nodes of exotic graphs.
-    const std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& exotic_input_array_nodes() const {
+    const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& exotic_input_array_nodes() const {
         return exotic_input_array_nodes_;
     }
 
     const BackwardFunction& backward_func() const { return backward_func_; }
 
-    void AddExoticInputArrayNode(std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>> input_array_nodes);
+    void AddExoticInputArrayNode(std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>> input_array_nodes);
 
 private:
     friend class OpNode;
@@ -66,7 +66,7 @@ private:
     // Can be unset if the input array does not require grad.
     std::vector<size_t> input_array_node_indices_;
 
-    std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> exotic_input_array_nodes_;
+    std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> exotic_input_array_nodes_;
 
     BackwardFunction backward_func_;
 };
@@ -80,7 +80,7 @@ class OpNode {
 public:
     // Creates a new op node that has output array nodes corresponding to the given outputs.
     static std::shared_ptr<OpNode> CreateWithPrevArrayNodes(
-            std::string name, GraphId graph_id, size_t input_count, const std::vector<ConstArrayRef>& outputs);
+            std::string name, BackpropId backprop_id, size_t input_count, const std::vector<ConstArrayRef>& outputs);
 
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;
@@ -92,7 +92,7 @@ public:
 
     // Adds links to output array nodes of other graphs.
     void AddEdgesToOutputArrayNodesOfOuterGraph(
-            const GraphId& outer_graph_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_output_array_nodes);
+            const BackpropId& outer_backprop_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_output_array_nodes);
 
     void Unchain() {
         backward_entries_.clear();
@@ -118,7 +118,7 @@ public:
 
     int64_t rank() const { return rank_; }
 
-    GraphId graph_id() const { return graph_id_; }
+    BackpropId backprop_id() const { return backprop_id_; }
 
     const ArrayProps& GetOutputArrayProps(size_t i) const {
         assert(i < output_array_props_.size());
@@ -132,21 +132,21 @@ public:
     std::vector<std::weak_ptr<ArrayNode>>& output_array_nodes() { return output_array_nodes_; }
 
     // Returns the output array nodes of all graphs.
-    const std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_output_array_nodes() const {
+    const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_output_array_nodes() const {
         return outer_graphs_output_array_nodes_;
     }
 
 private:
-    OpNode(std::string name, GraphId graph_id, size_t input_array_node_count);
+    OpNode(std::string name, BackpropId backprop_id, size_t input_array_node_count);
 
     void AssertConsistency() const;
 
     std::string name_;
 
-    // Graph ID.
-    // Graph ID is also held in the first entry of output_array_nodes_, but the reference to it may be invalidated, whereas this member is
-    // stable during the lifetime of this OpNode instance.
-    GraphId graph_id_;
+    // Backprop ID.
+    // Backprop ID is also held in the first entry of output_array_nodes_, but the reference to it may be invalidated, whereas this member
+    // is stable during the lifetime of this OpNode instance.
+    BackpropId backprop_id_;
 
     int64_t rank_{0};
 
@@ -157,9 +157,9 @@ private:
     std::vector<std::weak_ptr<ArrayNode>> output_array_nodes_;
 
     // List of output array nodes of outer graphs.
-    // Outer graphs refer to graphs with lower sub ids.
-    // Each entry is a pair of graph ID and list of output array nodes.
-    std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_output_array_nodes_;
+    // Outer graphs refer to graphs with lower ordinals.
+    // Each entry is a pair of backprop ID and list of output array nodes.
+    std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_output_array_nodes_;
 
     // Array props of output array nodes. This is used for creating dummy gradients.
     std::vector<ArrayProps> output_array_props_;

@@ -20,6 +20,7 @@
 #include "xchainer/axes.h"
 #include "xchainer/backend.h"
 #include "xchainer/backprop_mode.h"
+#include "xchainer/backprop_scope.h"
 #include "xchainer/backward.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/constant.h"
@@ -29,7 +30,6 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
-#include "xchainer/graph_scope.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/op_node.h"
@@ -174,51 +174,51 @@ TEST_P(ArrayTest, SetRequiresGrad) {
 
     // User-specified graph
     {
-        GraphScope graph_scope{"graph_1"};
-        GraphId graph_id = graph_scope.graph_id();
+        BackpropScope backprop_scope{"bp1"};
+        BackpropId backprop_id = backprop_scope.backprop_id();
 
         Array x = testing::BuildArray({1}).WithData<bool>({true});
-        ASSERT_FALSE(x.IsGradRequired(graph_id));
-        x.RequireGrad(graph_id);
-        ASSERT_TRUE(x.IsGradRequired(graph_id));
+        ASSERT_FALSE(x.IsGradRequired(backprop_id));
+        x.RequireGrad(backprop_id);
+        ASSERT_TRUE(x.IsGradRequired(backprop_id));
     }
 }
 
 TEST_P(ArrayTest, Grad) {
     using T = float;
-    GraphScope graph_scope{"graph_1"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp1"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2, 3};
 
     Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
     Array g = testing::BuildArray(shape).WithData<T>({8, 4, 6, 3, 2, 1});
 
-    x.RequireGrad(graph_id);
-    g.RequireGrad(graph_id);
+    x.RequireGrad(backprop_id);
+    g.RequireGrad(backprop_id);
 
-    EXPECT_FALSE(x.GetGrad(graph_id)) << "grad must be initially unset";
+    EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be initially unset";
 
     // Set and get grad
     {
-        x.SetGrad(g, graph_id);
+        x.SetGrad(g, backprop_id);
 
-        testing::ExpectEqual(g, *x.GetGrad(graph_id));
+        testing::ExpectEqual(g, *x.GetGrad(backprop_id));
     }
 
     // Get grad multiple times
     {
-        const nonstd::optional<Array>& grad1 = x.GetGrad(graph_id);
-        const nonstd::optional<Array>& grad2 = x.GetGrad(graph_id);
+        const nonstd::optional<Array>& grad1 = x.GetGrad(backprop_id);
+        const nonstd::optional<Array>& grad2 = x.GetGrad(backprop_id);
         EXPECT_EQ(&*grad1, &*grad2) << "Multiple retrieval of grad must return the same arrays";
     }
 
     // ClearGrad
     {
-        Array grad_view = *x.GetGrad(graph_id);  // Make a view of grad
+        Array grad_view = *x.GetGrad(backprop_id);  // Make a view of grad
 
-        x.ClearGrad(graph_id);
+        x.ClearGrad(backprop_id);
 
-        EXPECT_FALSE(x.GetGrad(graph_id)) << "grad must be cleared after calling ClearGrad()";
+        EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be cleared after calling ClearGrad()";
 
         // ClearGrad() must not affect previously retrieved view to grad
         testing::ExpectEqual(grad_view, g);
@@ -227,15 +227,15 @@ TEST_P(ArrayTest, Grad) {
 
 TEST_P(ArrayTest, InvalidGradNoGraph) {
     using T = float;
-    GraphScope graph_scope{"graph_1"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp1"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2, 3};
 
     Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
     Array g = testing::BuildArray(shape).WithData<T>({8, 4, 6, 3, 2, 1});
 
     EXPECT_THROW(x.SetGrad(g), XchainerError);  // x does not belong to the default graph.
-    EXPECT_THROW(x.SetGrad(g, graph_id), XchainerError);  // x does not belong to the given graph.
+    EXPECT_THROW(x.SetGrad(g, backprop_id), XchainerError);  // x does not belong to the given graph.
 }
 
 TEST_P(ArrayTest, InvalidGradMismatchedShape) {
@@ -541,14 +541,14 @@ TEST_P(ArrayTest, ComputationalGraph) {
     Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
     Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
 
-    GraphScope graph_scope{"graph_1"};
-    GraphId graph_id = graph_scope.graph_id();
-    a.RequireGrad(graph_id);
-    b.RequireGrad(graph_id);
+    BackpropScope backprop_scope{"bp1"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
+    a.RequireGrad(backprop_id);
+    b.RequireGrad(backprop_id);
 
     {
-        auto a_array_node = internal::GetArrayBody(a)->GetArrayNode(graph_id);
-        auto b_array_node = internal::GetArrayBody(b)->GetArrayNode(graph_id);
+        auto a_array_node = internal::GetArrayBody(a)->GetArrayNode(backprop_id);
+        auto b_array_node = internal::GetArrayBody(b)->GetArrayNode(backprop_id);
         EXPECT_NE(a_array_node, nullptr);
         EXPECT_NE(b_array_node, nullptr);
         auto a_op_node = a_array_node->creator_op_node();
@@ -559,9 +559,9 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array c = a + b;
     {
-        auto a_array_node = internal::GetArrayBody(a)->GetArrayNode(graph_id);
-        auto b_array_node = internal::GetArrayBody(b)->GetArrayNode(graph_id);
-        auto c_array_node = internal::GetArrayBody(c)->GetArrayNode(graph_id);
+        auto a_array_node = internal::GetArrayBody(a)->GetArrayNode(backprop_id);
+        auto b_array_node = internal::GetArrayBody(b)->GetArrayNode(backprop_id);
+        auto c_array_node = internal::GetArrayBody(c)->GetArrayNode(backprop_id);
         EXPECT_NE(a_array_node, nullptr);
         EXPECT_NE(b_array_node, nullptr);
         EXPECT_NE(c_array_node, nullptr);
@@ -576,10 +576,10 @@ TEST_P(ArrayTest, ComputationalGraph) {
 
     Array o = a * c;
     {
-        auto a_array_node = internal::GetArrayBody(a)->GetArrayNode(graph_id);
-        auto b_array_node = internal::GetArrayBody(b)->GetArrayNode(graph_id);
-        auto c_array_node = internal::GetArrayBody(c)->GetArrayNode(graph_id);
-        auto o_array_node = internal::GetArrayBody(o)->GetArrayNode(graph_id);
+        auto a_array_node = internal::GetArrayBody(a)->GetArrayNode(backprop_id);
+        auto b_array_node = internal::GetArrayBody(b)->GetArrayNode(backprop_id);
+        auto c_array_node = internal::GetArrayBody(c)->GetArrayNode(backprop_id);
+        auto o_array_node = internal::GetArrayBody(o)->GetArrayNode(backprop_id);
         EXPECT_NE(a_array_node, nullptr);
         EXPECT_NE(b_array_node, nullptr);
         EXPECT_NE(c_array_node, nullptr);
@@ -598,35 +598,35 @@ TEST_P(ArrayTest, ComputationalGraph) {
 }
 
 TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
-    GraphScope graph_scope{"graph_1"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp1"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
-        a.RequireGrad(graph_id);
-        b.RequireGrad(graph_id);
+        a.RequireGrad(backprop_id);
+        b.RequireGrad(backprop_id);
         EXPECT_THROW({ a += b; }, XchainerError);
     }
 
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
-        a.RequireGrad(graph_id);
-        b.RequireGrad(graph_id);
+        a.RequireGrad(backprop_id);
+        b.RequireGrad(backprop_id);
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
 
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
-        a.RequireGrad(graph_id);
+        a.RequireGrad(backprop_id);
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
 
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
-        b.RequireGrad(graph_id);
+        b.RequireGrad(backprop_id);
         EXPECT_THROW({ a *= b; }, XchainerError);
     }
 }
@@ -681,67 +681,67 @@ TEST_P(ArrayTest, MakeViewDoubleBackward) {
 }
 
 TEST_P(ArrayTest, IsGradRequired) {
-    GraphScope graph_scope{"testgraph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp1"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
 
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
-    a.RequireGrad(graph_id);
+    a.RequireGrad(backprop_id);
     EXPECT_TRUE(a.IsGradRequired(AnyGraph{}));
 }
 
 TEST_P(ArrayTest, AsGradStoppedCopy) {
     // Stop gradients on all graphs
     {
-        GraphScope graph_scope1{"graph_1"};
-        GraphScope graph_scope2{"graph_2"};
-        GraphId graph_id1 = graph_scope1.graph_id();
-        GraphId graph_id2 = graph_scope2.graph_id();
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
+        BackpropId backprop_id1 = backprop_scope1.backprop_id();
+        BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
-        a.RequireGrad(graph_id1);
-        a.RequireGrad(graph_id2);
-        ASSERT_TRUE(a.IsGradRequired(graph_id1));
-        ASSERT_TRUE(a.IsGradRequired(graph_id2));
+        a.RequireGrad(backprop_id1);
+        a.RequireGrad(backprop_id2);
+        ASSERT_TRUE(a.IsGradRequired(backprop_id1));
+        ASSERT_TRUE(a.IsGradRequired(backprop_id2));
         Array b = a.AsGradStopped(CopyKind::kCopy);
 
         EXPECT_EQ(&b.device(), &a.device());
 
         testing::ExpectEqualCopy(a, b);
-        EXPECT_FALSE(b.IsGradRequired(graph_id1));
-        EXPECT_FALSE(b.IsGradRequired(graph_id2));
+        EXPECT_FALSE(b.IsGradRequired(backprop_id1));
+        EXPECT_FALSE(b.IsGradRequired(backprop_id2));
 
-        EXPECT_TRUE(a.IsGradRequired(graph_id1));
-        EXPECT_TRUE(a.IsGradRequired(graph_id2));
+        EXPECT_TRUE(a.IsGradRequired(backprop_id1));
+        EXPECT_TRUE(a.IsGradRequired(backprop_id2));
     }
 
     // Stop gradients on graphs
     {
-        GraphScope graph_scope1{"graph_1"};
-        GraphScope graph_scope2{"graph_2"};
-        GraphScope graph_scope3{"graph_3"};
-        GraphId graph_id1 = graph_scope1.graph_id();
-        GraphId graph_id2 = graph_scope2.graph_id();
-        GraphId graph_id3 = graph_scope3.graph_id();
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
+        BackpropScope backprop_scope3{"bp3"};
+        BackpropId backprop_id1 = backprop_scope1.backprop_id();
+        BackpropId backprop_id2 = backprop_scope2.backprop_id();
+        BackpropId backprop_id3 = backprop_scope3.backprop_id();
 
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
-        a.RequireGrad(graph_id1);
-        a.RequireGrad(graph_id2);
-        a.RequireGrad(graph_id3);
-        ASSERT_TRUE(a.IsGradRequired(graph_id1));
-        ASSERT_TRUE(a.IsGradRequired(graph_id2));
-        ASSERT_TRUE(a.IsGradRequired(graph_id3));
-        Array b = a.AsGradStopped({graph_id1, graph_id2}, CopyKind::kCopy);
+        a.RequireGrad(backprop_id1);
+        a.RequireGrad(backprop_id2);
+        a.RequireGrad(backprop_id3);
+        ASSERT_TRUE(a.IsGradRequired(backprop_id1));
+        ASSERT_TRUE(a.IsGradRequired(backprop_id2));
+        ASSERT_TRUE(a.IsGradRequired(backprop_id3));
+        Array b = a.AsGradStopped({backprop_id1, backprop_id2}, CopyKind::kCopy);
 
         EXPECT_EQ(&b.device(), &a.device());
 
         testing::ExpectEqualCopy(a, b);
-        EXPECT_FALSE(b.IsGradRequired(graph_id1));
-        EXPECT_FALSE(b.IsGradRequired(graph_id2));
-        EXPECT_TRUE(b.IsGradRequired(graph_id3));
+        EXPECT_FALSE(b.IsGradRequired(backprop_id1));
+        EXPECT_FALSE(b.IsGradRequired(backprop_id2));
+        EXPECT_TRUE(b.IsGradRequired(backprop_id3));
 
-        EXPECT_TRUE(a.IsGradRequired(graph_id1));
-        EXPECT_TRUE(a.IsGradRequired(graph_id2));
-        EXPECT_TRUE(a.IsGradRequired(graph_id3));
+        EXPECT_TRUE(a.IsGradRequired(backprop_id1));
+        EXPECT_TRUE(a.IsGradRequired(backprop_id2));
+        EXPECT_TRUE(a.IsGradRequired(backprop_id3));
     }
 
     // Non-contiguous
@@ -756,52 +756,52 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
 TEST_P(ArrayTest, AsGradStoppedView) {
     // Stop gradients on all graphs
     {
-        GraphScope graph_scope1{"graph_1"};
-        GraphScope graph_scope2{"graph_2"};
-        GraphId graph_id1 = graph_scope1.graph_id();
-        GraphId graph_id2 = graph_scope2.graph_id();
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
+        BackpropId backprop_id1 = backprop_scope1.backprop_id();
+        BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
-        a.RequireGrad(graph_id1);
-        a.RequireGrad(graph_id2);
-        ASSERT_TRUE(a.IsGradRequired(graph_id1));
-        ASSERT_TRUE(a.IsGradRequired(graph_id2));
+        a.RequireGrad(backprop_id1);
+        a.RequireGrad(backprop_id2);
+        ASSERT_TRUE(a.IsGradRequired(backprop_id1));
+        ASSERT_TRUE(a.IsGradRequired(backprop_id2));
         Array b = a.AsGradStopped();
 
         testing::ExpectEqualView(a, b);
-        EXPECT_FALSE(b.IsGradRequired(graph_id1));
-        EXPECT_FALSE(b.IsGradRequired(graph_id2));
+        EXPECT_FALSE(b.IsGradRequired(backprop_id1));
+        EXPECT_FALSE(b.IsGradRequired(backprop_id2));
 
-        EXPECT_TRUE(a.IsGradRequired(graph_id1));
-        EXPECT_TRUE(a.IsGradRequired(graph_id2));
+        EXPECT_TRUE(a.IsGradRequired(backprop_id1));
+        EXPECT_TRUE(a.IsGradRequired(backprop_id2));
     }
 
     // Stop gradients on some graphs
     {
-        GraphScope graph_scope1{"graph_1"};
-        GraphScope graph_scope2{"graph_2"};
-        GraphScope graph_scope3{"graph_3"};
-        GraphId graph_id1 = graph_scope1.graph_id();
-        GraphId graph_id2 = graph_scope2.graph_id();
-        GraphId graph_id3 = graph_scope3.graph_id();
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
+        BackpropScope backprop_scope3{"bp3"};
+        BackpropId backprop_id1 = backprop_scope1.backprop_id();
+        BackpropId backprop_id2 = backprop_scope2.backprop_id();
+        BackpropId backprop_id3 = backprop_scope3.backprop_id();
 
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
-        a.RequireGrad(graph_id1);
-        a.RequireGrad(graph_id2);
-        a.RequireGrad(graph_id3);
-        ASSERT_TRUE(a.IsGradRequired(graph_id1));
-        ASSERT_TRUE(a.IsGradRequired(graph_id2));
-        ASSERT_TRUE(a.IsGradRequired(graph_id3));
-        Array b = a.AsGradStopped({graph_id1, graph_id2});
+        a.RequireGrad(backprop_id1);
+        a.RequireGrad(backprop_id2);
+        a.RequireGrad(backprop_id3);
+        ASSERT_TRUE(a.IsGradRequired(backprop_id1));
+        ASSERT_TRUE(a.IsGradRequired(backprop_id2));
+        ASSERT_TRUE(a.IsGradRequired(backprop_id3));
+        Array b = a.AsGradStopped({backprop_id1, backprop_id2});
 
         testing::ExpectEqualView(a, b);
-        EXPECT_FALSE(b.IsGradRequired(graph_id1));
-        EXPECT_FALSE(b.IsGradRequired(graph_id2));
-        EXPECT_TRUE(b.IsGradRequired(graph_id3));
+        EXPECT_FALSE(b.IsGradRequired(backprop_id1));
+        EXPECT_FALSE(b.IsGradRequired(backprop_id2));
+        EXPECT_TRUE(b.IsGradRequired(backprop_id3));
 
-        EXPECT_TRUE(a.IsGradRequired(graph_id1));
-        EXPECT_TRUE(a.IsGradRequired(graph_id2));
-        EXPECT_TRUE(a.IsGradRequired(graph_id3));
+        EXPECT_TRUE(a.IsGradRequired(backprop_id1));
+        EXPECT_TRUE(a.IsGradRequired(backprop_id2));
+        EXPECT_TRUE(a.IsGradRequired(backprop_id3));
     }
     // Non-contiguous
     {
@@ -931,18 +931,18 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
-    GraphScope graph_scope{"graph_1"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp1"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
 
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
-    ASSERT_FALSE(a.IsGradRequired(graph_id));
+    ASSERT_FALSE(a.IsGradRequired(backprop_id));
 
-    a.RequireGrad(graph_id);
-    EXPECT_TRUE(a.IsGradRequired(graph_id));
+    a.RequireGrad(backprop_id);
+    EXPECT_TRUE(a.IsGradRequired(backprop_id));
 
-    a.RequireGrad(graph_id);
-    EXPECT_TRUE(a.IsGradRequired(graph_id));
+    a.RequireGrad(backprop_id);
+    EXPECT_TRUE(a.IsGradRequired(backprop_id));
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsCtor) {
@@ -962,33 +962,33 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsRequireGrad) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsForward) {
-    GraphScope graph_scope1{"graph_1"};
-    GraphScope graph_scope2{"graph_2"};
-    GraphScope graph_scope3{"graph_3"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
-    GraphId graph_id3 = graph_scope3.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropScope backprop_scope3{"bp3"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
+    BackpropId backprop_id3 = backprop_scope3.backprop_id();
 
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
     Array b = testing::BuildArray({1}).WithData<float>({2.0f});
 
-    a.RequireGrad(graph_id1);
-    b.RequireGrad(graph_id2);
+    a.RequireGrad(backprop_id1);
+    b.RequireGrad(backprop_id2);
 
-    EXPECT_TRUE(a.IsGradRequired(graph_id1));
-    EXPECT_FALSE(a.IsGradRequired(graph_id2));
+    EXPECT_TRUE(a.IsGradRequired(backprop_id1));
+    EXPECT_FALSE(a.IsGradRequired(backprop_id2));
 
-    EXPECT_FALSE(b.IsGradRequired(graph_id1));
-    EXPECT_TRUE(b.IsGradRequired(graph_id2));
+    EXPECT_FALSE(b.IsGradRequired(backprop_id1));
+    EXPECT_TRUE(b.IsGradRequired(backprop_id2));
 
     Array o = a * b;
 
-    EXPECT_TRUE(o.IsGradRequired(graph_id1));
-    EXPECT_TRUE(o.IsGradRequired(graph_id2));
+    EXPECT_TRUE(o.IsGradRequired(backprop_id1));
+    EXPECT_TRUE(o.IsGradRequired(backprop_id2));
 
     // No unspecified or previously unused graphs are generated
     EXPECT_FALSE(o.IsGradRequired());
-    EXPECT_FALSE(o.IsGradRequired(graph_id3));
+    EXPECT_FALSE(o.IsGradRequired(backprop_id3));
 }
 
 TEST_P(ArrayTest, RequireGradWithBackpropModeScope) {
@@ -1030,21 +1030,21 @@ INSTANTIATE_TEST_CASE_P(
 
 TEST(ArrayGradTest, ClearGradThrow) {
     testing::ContextSession context_session{};
-    GraphScope graph_scope1{"testgraph1"};
-    GraphScope graph_scope2{"testgraph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
     Array x = testing::BuildArray({2, 1}).WithLinearData<float>();
 
     EXPECT_THROW(x.ClearGrad(), XchainerError);
-    EXPECT_THROW(x.ClearGrad(graph_id1), XchainerError);
+    EXPECT_THROW(x.ClearGrad(backprop_id1), XchainerError);
 
-    x.RequireGrad(graph_id1);
+    x.RequireGrad(backprop_id1);
 
     EXPECT_THROW(x.ClearGrad(), XchainerError);
-    EXPECT_THROW(x.ClearGrad(graph_id2), XchainerError);
-    x.ClearGrad(graph_id1);  // no throw
+    EXPECT_THROW(x.ClearGrad(backprop_id2), XchainerError);
+    x.ClearGrad(backprop_id1);  // no throw
 }
 
 TEST(ArrayAtTest, At) {

@@ -34,7 +34,7 @@ namespace internal {
 
 GradRef::GradRef(ArrayNode& array_node) : original_grad_owner_body_{array_node.weak_body().lock()} {
     if (original_grad_owner_body_ != nullptr) {
-        original_grad_ptr_ = original_grad_owner_body_->GetGrad(array_node.graph_id());
+        original_grad_ptr_ = original_grad_owner_body_->GetGrad(array_node.backprop_id());
     }
 }
 
@@ -64,7 +64,7 @@ BackwardContext::BackwardContext(
         gsl::span<std::shared_ptr<ArrayNode>> output_array_nodes,
         gsl::span<internal::GradRef*> output_grads,
         std::vector<Array>& input_grads,
-        const GraphId& graph_id,
+        const BackpropId& backprop_id,
         DoubleBackpropOption double_backprop_option)
     : op_node_{op_node},
       backward_entry_{backward_entry},
@@ -72,7 +72,7 @@ BackwardContext::BackwardContext(
       output_grads_{output_grads},
       input_grads_{input_grads},
       zero_output_grads_{output_array_nodes_.size()},
-      graph_id_{graph_id},
+      backprop_id_{backprop_id},
       double_backprop_option_{double_backprop_option} {
     assert(op_node.get() == &backward_entry.op_node());
     assert(output_array_nodes_.size() == output_grads_.size());
@@ -225,7 +225,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
 
         // If the weak ptr to old output array node was dead, replenish it with the fabricated one.
         if (output_array_node == nullptr) {
-            output_array_nodes_[output_index] = array_body->GetArrayNode(op_node_->graph_id());
+            output_array_nodes_[output_index] = array_body->GetArrayNode(op_node_->backprop_id());
         }
 
         // Cut graphs of the array body

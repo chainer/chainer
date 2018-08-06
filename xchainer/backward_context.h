@@ -70,7 +70,7 @@ public:
             gsl::span<std::shared_ptr<internal::ArrayNode>> output_array_nodes,
             gsl::span<internal::GradRef*> output_grads,
             std::vector<Array>& input_grads,
-            const GraphId& graph_id,
+            const BackpropId& backprop_id,
             DoubleBackpropOption double_backprop_option);
 
     // Indicates whether the next order of backward is required. It reflects DoubleBackpropOption.
@@ -140,7 +140,7 @@ private:
     // Initialized by nullptrs and populated as queried by calling GetRetainedOutput().
     std::vector<std::shared_ptr<internal::ArrayBody>> retained_output_array_bodies_;
 
-    const GraphId& graph_id_;
+    const BackpropId& backprop_id_;
 
     DoubleBackpropOption double_backprop_option_;
 };

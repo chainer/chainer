@@ -26,7 +26,7 @@ void CheckBackward(
         const std::vector<Array>& eps,
         double atol = 1e-5,
         double rtol = 1e-4,
-        const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
+        const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt);
 
 // Tests twice differentiation of a given procedure.
 //
@@ -57,6 +57,6 @@ void CheckDoubleBackwardComputation(
         const std::vector<Array>& eps,
         double atol = 1e-5,
         double rtol = 1e-4,
-        const nonstd::optional<GraphId>& graph_id = nonstd::nullopt);
+        const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt);
 
 }  // namespace xchainer
