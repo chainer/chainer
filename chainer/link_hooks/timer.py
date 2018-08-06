@@ -31,9 +31,9 @@ class TimerHook(link_hook.LinkHook):
         and *Occurrence* is the number of calls.
 
     Warning:
-        Call graph of links are hierarchical. That means reported elapsed times
-        may be overlapping with each other and the sum may exceed the total
-        time reported by :meth:`~TimerHook.total_time`.
+        Link calls are hierarchical and may overlap with each other.
+        The sum of reported elapsed time of each link may exceed the one
+        returned by :meth:`~TimerHook.total_time`.
 
     Attributes:
         call_history: List of measurement results. It consists of pairs of
@@ -92,7 +92,7 @@ class TimerHook(link_hook.LinkHook):
         self._postprocess(link)
 
     def total_time(self):
-        """Returns total elapsed time in seconds."""
+        """Returns the total elapsed time in seconds."""
         return self._total_time
 
     def summary(self):
@@ -120,7 +120,7 @@ class TimerHook(link_hook.LinkHook):
         return '%.2f%s' % (second, 'ns')
 
     def print_report(self, file=sys.stdout):
-        """Prints a summary report of time profiling in linkss."""
+        """Prints a summary report of time profiling in links."""
         entries = [['LinkName', 'ElapsedTime', 'Occurrence']]
         for link_name, record in self.summary().items():
             elapsed_time = self._humanized_time(record['elapsed_time'])

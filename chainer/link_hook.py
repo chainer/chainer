@@ -7,15 +7,15 @@ class LinkHook(object):
     :class:`~chainer.LinkHook` is a callback object
     that is registered to a :class:`~chainer.Link`.
     Registered link hooks are invoked before and after calling
-    :meth:`forward` method of each link.
+    :meth:`Link.forward() <chainer.Link.forward>` method of each link.
 
     Link hooks that derive from :class:`LinkHook` may override the following
     method:
 
     * :meth:`~chainer.LinkHook.added`
     * :meth:`~chainer.LinkHook.deleted`
-    * :meth:`~chainer.LinkHook.preprocess`
-    * :meth:`~chainer.LinkHook.postprocess`
+    * :meth:`~chainer.LinkHook.forward_preprocess`
+    * :meth:`~chainer.LinkHook.forward_postprocess`
 
     By default, these methods do nothing.
 
@@ -23,8 +23,8 @@ class LinkHook(object):
     method of some link is invoked,
     :meth:`~chainer.LinkHook.forward_preprocess`
     (resp. :meth:`~chainer.LinkHook.forward_postprocess`)
-    of all link hooks registered to this link are called before
-    (resp. after) :meth:`forward` method of the link.
+    of all link hooks registered to this link are called before (resp. after)
+    :meth:`Link.forward() <chainer.Link.forward>` method of the link.
 
     There are two ways to register :class:`~chainer.LinkHook`
     objects to :class:`~chainer.Link` objects.
@@ -40,7 +40,6 @@ class LinkHook(object):
         with :class:`~chainer.link_hooks.TimerHook`, which is a subclass of
         :class:`~chainer.LinkHook`.
 
-        >>> from chainer import link_hooks
         >>> class Model(chainer.Chain):
         ...   def __init__(self):
         ...     super(Model, self).__init__()
@@ -55,8 +54,9 @@ class LinkHook(object):
         ...   _ = model1(x)
         ...   y = model2(x)
         >>> model3 = Model()
-        >>> z = model3(y) # doctest:+ELLIPSIS
-        >>> print("Total time : " + str(m.total_time()))
+        >>> z = model3(y)
+        >>> print('Total time : {}'.format(m.total_time()))
+        ... # doctest:+ELLIPSIS
         Total time : ...
 
         In this example, we measure the elapsed times for each forward
@@ -73,12 +73,12 @@ class LinkHook(object):
        are different depending on threads.
 
     The other one is to register directly to
-    :class:`~chainer.LinkNode` object with
+    :class:`~chainer.Link` object with
     :meth:`~chainer.Link.add_hook` method.
     Link hooks registered in this way can be removed by
     :meth:`~chainer.Link.delete_hook` method.
     Contrary to former registration method, link hooks are registered
-    only to the link which :meth:`~chainer.LinkNode.add_hook`
+    only to the link which :meth:`~chainer.Link.add_hook`
     is called.
 
     Args:
@@ -101,44 +101,58 @@ class LinkHook(object):
         del chainer.get_link_hooks()[self.name]
 
     def added(self, link):
-        """Callback function invoked when a link hook is added
+        """Callback function invoked when the link hook is registered
 
         Args:
             link(~chainer.Link): Link object to which
-                the link hook is added. ``None`` if the link hook is
+                the link hook is registered. ``None`` if the link hook is
                 registered globally.
         """
         pass
 
     def deleted(self, link):
-        """Callback function invoked when a link hook is deleted
+        """Callback function invoked when the link hook is unregistered
 
         Args:
             link(~chainer.Link): Link object to which
-                the link hook is deleted. ``None`` if the link hook had been
-                registered globally.
+                the link hook is unregistered. ``None`` if the link hook had
+                been registered globally.
         """
         pass
 
     # forward
     def forward_preprocess(self, args):
-        """Callback function invoked before :meth:`forward`.
+        """Callback function invoked before a forward call of a link.
 
         Args:
-            link(~chainer.Link): Link object to which
-                the link hook is registered.
-            in_data(tuple):
-               Input argument of :meth:`forward`.
+            args: Callback data. It has the following attributes:
+
+                * link (:class:`~chainer.Link`)
+                    Link object.
+                * forward_method (:class:`str`)
+                    Name of the forward method.
+                * args (:class:`tuple`)
+                    Non-keyword arguments given to the forward method.
+                * kwargs (:class:`dict`)
+                    Keyword arguments given to the forward method.
         """
         pass
 
-    def forward_postprocess(self, link, *args, **kwargs):
-        """Callback function invoked after link propagation.
+    def forward_postprocess(self, args):
+        """Callback function invoked after a forward call of a link.
 
         Args:
-            link(~chainer.Link): Link object to which
-                the link hook is registered.
-            in_data(tuple):
-                Input argument of :meth:`forward`.
+            args: Callback data. It has the following attributes:
+
+                * link (:class:`~chainer.Link`)
+                    Link object.
+                * forward_method (:class:`str`)
+                    Name of the forward method.
+                * args (:class:`tuple`)
+                    Non-keyword arguments given to the forward method.
+                * kwargs (:class:`dict`)
+                    Keyword arguments given to the forward method.
+                * out
+                    Return value of the forward method.
         """
         pass

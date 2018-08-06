@@ -166,3 +166,26 @@ Link and Chain base classes
    chainer.Chain
    chainer.ChainList
    chainer.Sequential
+
+Link hooks
+--------------
+
+.. module:: chainer.link_hooks
+
+Chainer provides a link-hook mechanism that enriches the behavior of :class:`~chainer.Link`.
+
+.. currentmodule:: chainer
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.link_hooks.TimerHook
+
+You can also implement your own link-hook to inject arbitrary code before/after the forward propagation.
+
+.. currentmodule:: chainer
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.LinkHook
