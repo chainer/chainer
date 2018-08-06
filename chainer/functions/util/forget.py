@@ -53,10 +53,14 @@ class Forget(function_node.FunctionNode):
 
         with function.force_backprop_mode():
             outs = _call_func(self.func, dummy_inputs)
-        assert len(outs) == len(grad_outputs)
+            assert len(outs) == len(grad_outputs)
+            outs = chainer.functions.identity(*outs)
+        if not isinstance(outs, tuple):
+            outs = (outs,)
         for out, grad_output in zip(outs, grad_outputs):
             out.grad_var = grad_output
-            out.backward()
+        outs[0].backward()
+
         return tuple([inp.grad_var for inp in dummy_inputs])
 
 
