@@ -154,7 +154,7 @@ TEST_P(CheckBackwardTest, CorrectBackward) {
     std::vector<T> grad_output_data{0.f, -2.f, 1.f};
     std::vector<T> eps_data{1e-3f, 1e-3f, 1e-3f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[0]}; };
-    CheckCheckBackward(true, fprop, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "graph_1");
+    CheckCheckBackward(true, fprop, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "bp1");
 }
 
 TEST_P(CheckBackwardTest, CorrectBackwardWithNonDoubleDifferentiableFunction) {
@@ -163,7 +163,7 @@ TEST_P(CheckBackwardTest, CorrectBackwardWithNonDoubleDifferentiableFunction) {
     std::vector<T> grad_output_data{0.f, -2.f, 1.f};
     std::vector<T> eps_data{1e-3f, 1e-3f, 1e-3f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {-inputs[0]}; };
-    CheckCheckBackward(true, fprop, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "graph_1");
+    CheckCheckBackward(true, fprop, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "bp1");
 }
 
 TEST_P(CheckBackwardTest, IncorrectBackward) {
@@ -171,7 +171,7 @@ TEST_P(CheckBackwardTest, IncorrectBackward) {
     std::vector<T> input_data{-2.f, 3.f, 1.f};
     std::vector<T> grad_output_data{0.f, -2.f, 1.f};
     std::vector<T> eps_data{1e-3f, 1e-3f, 1e-3f};
-    CheckCheckBackward(false, &ForwardWithIncorrectBackward, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "graph_1");
+    CheckCheckBackward(false, &ForwardWithIncorrectBackward, {1, 3}, input_data, grad_output_data, eps_data, 1e-5, 1e-4, "bp1");
 }
 
 TEST_P(CheckBackwardTest, IncorrectBackwardIdenticalInputOutput) {
@@ -188,7 +188,7 @@ TEST_P(CheckBackwardTest, IncorrectBackwardIdenticalInputOutput) {
             eps_data,
             1e-4,
             1e-3,
-            "graph_1");
+            "bp1");
 }
 
 TEST_F(CheckDoubleBackwardTest, CorrectBackward) {
@@ -200,7 +200,7 @@ TEST_F(CheckDoubleBackwardTest, CorrectBackward) {
     std::vector<T> eps_grad_output_data{1e-3f, 1e-3f, 1e-3f};
     Fprop fprop = [](const Arrays& inputs) -> Arrays { return {inputs[0] * inputs[0]}; };
     CheckCheckDoubleBackward(
-            fprop, {1, 3}, input_data, grad_output_data, grad_grad_input_data, eps_input_data, eps_grad_output_data, 1e-4, 1e-3, "graph_1");
+            fprop, {1, 3}, input_data, grad_output_data, grad_grad_input_data, eps_input_data, eps_grad_output_data, 1e-4, 1e-3, "bp1");
 }
 
 INSTANTIATE_TEST_CASE_P(ForEachSingleSetRequiresGrad, CheckBackwardTest, ::testing::Bool());

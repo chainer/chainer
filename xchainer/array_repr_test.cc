@@ -201,7 +201,7 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
 
     // 0-sized
     {
-        BackpropScope backprop_scope{"graph_1"};
+        BackpropScope backprop_scope{"bp1"};
         BackpropId backprop_id = backprop_scope.backprop_id();
 
         CheckArrayRepr<int32_t>(
@@ -214,7 +214,7 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
 
     // Single graph
     {
-        BackpropScope backprop_scope{"graph_1"};
+        BackpropScope backprop_scope{"bp1"};
         BackpropId backprop_id = backprop_scope.backprop_id();
 
         CheckArrayRepr<int32_t>(
@@ -223,8 +223,8 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
 
     // Two graphs
     {
-        BackpropScope backprop_scope1{"graph_1"};
-        BackpropScope backprop_scope2{"graph_2"};
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
         BackpropId backprop_id1 = backprop_scope1.backprop_id();
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -238,11 +238,11 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
 
     // Multiple graphs
     {
-        BackpropScope backprop_scope1{"graph_1"};
-        BackpropScope backprop_scope2{"graph_2"};
-        BackpropScope backprop_scope3{"graph_3"};
-        BackpropScope backprop_scope4{"graph_4"};
-        BackpropScope backprop_scope5{"graph_5"};
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
+        BackpropScope backprop_scope3{"bp3"};
+        BackpropScope backprop_scope4{"bp4"};
+        BackpropScope backprop_scope5{"bp5"};
         BackpropId backprop_id1 = backprop_scope1.backprop_id();
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
         BackpropId backprop_id3 = backprop_scope3.backprop_id();

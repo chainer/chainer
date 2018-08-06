@@ -174,7 +174,7 @@ TEST_P(ArrayTest, SetRequiresGrad) {
 
     // User-specified graph
     {
-        BackpropScope backprop_scope{"graph_1"};
+        BackpropScope backprop_scope{"bp1"};
         BackpropId backprop_id = backprop_scope.backprop_id();
 
         Array x = testing::BuildArray({1}).WithData<bool>({true});
@@ -186,7 +186,7 @@ TEST_P(ArrayTest, SetRequiresGrad) {
 
 TEST_P(ArrayTest, Grad) {
     using T = float;
-    BackpropScope backprop_scope{"graph_1"};
+    BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2, 3};
 
@@ -227,7 +227,7 @@ TEST_P(ArrayTest, Grad) {
 
 TEST_P(ArrayTest, InvalidGradNoGraph) {
     using T = float;
-    BackpropScope backprop_scope{"graph_1"};
+    BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2, 3};
 
@@ -541,7 +541,7 @@ TEST_P(ArrayTest, ComputationalGraph) {
     Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
     Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
 
-    BackpropScope backprop_scope{"graph_1"};
+    BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     a.RequireGrad(backprop_id);
     b.RequireGrad(backprop_id);
@@ -598,7 +598,7 @@ TEST_P(ArrayTest, ComputationalGraph) {
 }
 
 TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
-    BackpropScope backprop_scope{"graph_1"};
+    BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
@@ -681,7 +681,7 @@ TEST_P(ArrayTest, MakeViewDoubleBackward) {
 }
 
 TEST_P(ArrayTest, IsGradRequired) {
-    BackpropScope backprop_scope{"testgraph"};
+    BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
 
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
@@ -692,8 +692,8 @@ TEST_P(ArrayTest, IsGradRequired) {
 TEST_P(ArrayTest, AsGradStoppedCopy) {
     // Stop gradients on all graphs
     {
-        BackpropScope backprop_scope1{"graph_1"};
-        BackpropScope backprop_scope2{"graph_2"};
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
         BackpropId backprop_id1 = backprop_scope1.backprop_id();
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -716,9 +716,9 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
 
     // Stop gradients on graphs
     {
-        BackpropScope backprop_scope1{"graph_1"};
-        BackpropScope backprop_scope2{"graph_2"};
-        BackpropScope backprop_scope3{"graph_3"};
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
+        BackpropScope backprop_scope3{"bp3"};
         BackpropId backprop_id1 = backprop_scope1.backprop_id();
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
         BackpropId backprop_id3 = backprop_scope3.backprop_id();
@@ -756,8 +756,8 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
 TEST_P(ArrayTest, AsGradStoppedView) {
     // Stop gradients on all graphs
     {
-        BackpropScope backprop_scope1{"graph_1"};
-        BackpropScope backprop_scope2{"graph_2"};
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
         BackpropId backprop_id1 = backprop_scope1.backprop_id();
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -778,9 +778,9 @@ TEST_P(ArrayTest, AsGradStoppedView) {
 
     // Stop gradients on some graphs
     {
-        BackpropScope backprop_scope1{"graph_1"};
-        BackpropScope backprop_scope2{"graph_2"};
-        BackpropScope backprop_scope3{"graph_3"};
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
+        BackpropScope backprop_scope3{"bp3"};
         BackpropId backprop_id1 = backprop_scope1.backprop_id();
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
         BackpropId backprop_id3 = backprop_scope3.backprop_id();
@@ -931,7 +931,7 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
-    BackpropScope backprop_scope{"graph_1"};
+    BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
 
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
@@ -962,9 +962,9 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsRequireGrad) {
 }
 
 TEST_P(ArrayTest, MultipleGraphsForward) {
-    BackpropScope backprop_scope1{"graph_1"};
-    BackpropScope backprop_scope2{"graph_2"};
-    BackpropScope backprop_scope3{"graph_3"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropScope backprop_scope3{"bp3"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
     BackpropId backprop_id3 = backprop_scope3.backprop_id();
@@ -1030,8 +1030,8 @@ INSTANTIATE_TEST_CASE_P(
 
 TEST(ArrayGradTest, ClearGradThrow) {
     testing::ContextSession context_session{};
-    BackpropScope backprop_scope1{"testgraph1"};
-    BackpropScope backprop_scope2{"testgraph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 

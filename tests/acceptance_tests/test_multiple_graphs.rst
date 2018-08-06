@@ -6,36 +6,36 @@ Double backprop with different graphs
 
 >>> import xchainer as xc
 
->>> with xc.backprop_scope('weight') as weight_graph:
-...     with xc.backprop_scope('input') as input_graph:
-...         x = xc.ndarray((3,), xc.float32, [1, 2, 3]).require_grad(input_graph)
-...         w = xc.ndarray((3,), xc.float32, [4, 5, 6]).require_grad(weight_graph)
+>>> with xc.backprop_scope('weight') as weight_backprop:
+...     with xc.backprop_scope('input') as input_backprop:
+...         x = xc.ndarray((3,), xc.float32, [1, 2, 3]).require_grad(input_backprop)
+...         w = xc.ndarray((3,), xc.float32, [4, 5, 6]).require_grad(weight_backprop)
 ...         y = x * w
-...         y.is_grad_required(input_graph)
+...         y.is_grad_required(input_backprop)
 True
 
-...         y.is_grad_required(weight_graph)
+...         y.is_grad_required(weight_backprop)
 True
 
 ...         y.is_grad_required()  # 'default'
 False
 
-...         xc.backward(y, backprop_id=input_graph)
-...         gx = x.get_grad(input_graph)
+...         xc.backward(y, backprop_id=input_backprop)
+...         gx = x.get_grad(input_backprop)
 ...         gx  # == w
 array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['weight'])
 
-...         w.get_grad(input_graph)
+...         w.get_grad(input_backprop)
 Traceback (most recent call last):
   ...
 xchainer.XchainerError: Array does not belong to the graph: 'input'.
 
 ...     z = gx * w  # == w * w
-...     xc.backward(z, backprop_id=weight_graph)
-...     w.get_grad(weight_graph)  # == 2 * w
+...     xc.backward(z, backprop_id=weight_backprop)
+...     w.get_grad(weight_backprop)  # == 2 * w
 array([ 8., 10., 12.], shape=(3,), dtype=float32, device='native:0')
 
-...     x.get_grad(weight_graph)
+...     x.get_grad(weight_backprop)
 Traceback (most recent call last):
   ...
 xchainer.XchainerError: Array does not belong to the graph: 'weight'.

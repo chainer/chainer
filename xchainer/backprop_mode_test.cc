@@ -19,8 +19,8 @@ namespace {
 TEST(BackpropModeScopeTest, NoBackpropModeScopeSingle) {
     testing::ContextSession context_session{};
 
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -59,8 +59,8 @@ TEST(BackpropModeScopeTest, NoBackpropModeScopeSingle) {
 TEST(BackpropModeScopeTest, ForceBackpropModeScopeSingle) {
     testing::ContextSession context_session{};
 
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -99,8 +99,8 @@ TEST(BackpropModeScopeTest, ForceBackpropModeScopeSingle) {
 TEST(BackpropModeScopeTest, BackpropModeScopeMultiple) {
     testing::ContextSession context_session{};
 
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -157,8 +157,8 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultiple) {
 TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
     testing::ContextSession context_session{};
 
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -275,8 +275,8 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleVariedArgumentTypes) {
 TEST(BackpropModeScopeTest, BackpropModeScopeMultipleGraphArguments) {
     testing::ContextSession context_session{};
 
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -308,7 +308,7 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleGraphArguments) {
 TEST(BackpropModeScopeTest, BackpropModeScopeOneContext) {
     testing::ContextSession context_session{};
 
-    BackpropScope backprop_scope1{"graph1"};
+    BackpropScope backprop_scope1{"bp1"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
 
     {
@@ -339,7 +339,7 @@ TEST(BackpropModeScopeTest, BackpropModeScopeOneContext) {
 
 TEST(BackpropModeScopeTest, BackpropModeScopeMultipleContexts) {
     testing::ContextSession context_session1{};
-    BackpropScope backprop_scope1{"graph1"};
+    BackpropScope backprop_scope1{"bp1"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
 
     {
@@ -349,7 +349,7 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleContexts) {
         EXPECT_FALSE(IsBackpropRequired(backprop_id1));
         {
             testing::ContextSession context_session2{};
-            BackpropScope backprop_scope2{"graph2"};
+            BackpropScope backprop_scope2{"bp2"};
             BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
             EXPECT_TRUE(IsBackpropRequired());
@@ -388,7 +388,7 @@ TEST(BackpropModeScopeTest, BackpropModeScopeMultipleContexts) {
 TEST(BackpropModeScopeTest, BackpropModeScopeFlatScope) {
     testing::ContextSession context_session{};
 
-    BackpropScope backprop_scope1{"graph1"};
+    BackpropScope backprop_scope1{"bp1"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
 
     {
@@ -410,11 +410,11 @@ TEST(BackpropModeScopeTest, BackpropModeWithoutContext) {
 
 TEST(BackpropModeScopeTest, BackpropModeScopeWithAnotherContext) {
     testing::ContextSession context_session{};
-    BackpropScope backprop_scope{"graph1"};
+    BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
 
     Context another_context{};
-    BackpropScope another_backprop_scope{"another_graph", another_context};
+    BackpropScope another_backprop_scope{"another_backprop", another_context};
     BackpropId another_backprop_id = another_backprop_scope.backprop_id();
 
     {
@@ -449,7 +449,7 @@ TEST(BackpropModeScopeTest, IsGradRequiredNoGraph) {
 TEST(BackpropModeScopeTest, IsGradRequiredSingleGraph) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
 
-    BackpropScope backprop_scope1{"graph1"};
+    BackpropScope backprop_scope1{"bp1"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
 
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
@@ -475,9 +475,9 @@ TEST(BackpropModeScopeTest, IsGradRequiredSingleGraph) {
 TEST(BackpropModeScopeTest, IsGradRequiredMultipleGraphs) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
 
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
-    BackpropScope backprop_scope3{"graph3"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropScope backprop_scope3{"bp3"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
     BackpropId backprop_id3 = backprop_scope3.backprop_id();
@@ -536,7 +536,7 @@ TEST(BackpropModeScopeTest, IsGradRequiredMultipleGraphs) {
 TEST(BackpropModeScopeTest, IsGradRequiredAnotherContext) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
 
-    BackpropScope backprop_scope1{"graph1"};
+    BackpropScope backprop_scope1{"bp1"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
 
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();

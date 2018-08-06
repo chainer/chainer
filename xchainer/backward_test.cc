@@ -56,8 +56,8 @@ TEST(BackwardContextTest, InputGrad) {
     // (x3) <-
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -294,60 +294,60 @@ TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
 #endif  // XCHAINER_ENABLE_CUDA
 
 TEST_P(BackpropTest, MultipleGraphsBackprop) {
-    BackpropScope backprop_scope_y{"graph_y"};
-    BackpropScope backprop_scope_x{"graph_x"};
-    BackpropId graph_x = backprop_scope_x.backprop_id();
-    BackpropId graph_y = backprop_scope_y.backprop_id();
+    BackpropScope backprop_scope_y{"bp_y"};
+    BackpropScope backprop_scope_x{"bp_x"};
+    BackpropId bp_x = backprop_scope_x.backprop_id();
+    BackpropId bp_y = backprop_scope_y.backprop_id();
 
     Array x_value = Full({1}, 2.0f);
     Array y_value = Full({1}, 3.0f);
-    Array x = x_value.MakeView().RequireGrad(graph_x);
-    Array y = y_value.MakeView().RequireGrad(graph_y);
+    Array x = x_value.MakeView().RequireGrad(bp_x);
+    Array y = y_value.MakeView().RequireGrad(bp_y);
 
     Array z = x * (x + y);
 
-    Backward(z, graph_x, DoubleBackpropOption::kDisable);
+    Backward(z, bp_x, DoubleBackpropOption::kDisable);
 
-    Array gx = *x.GetGrad(graph_x);  // 2x + y
-    EXPECT_FALSE(gx.IsGradRequired(graph_x));
-    EXPECT_TRUE(gx.IsGradRequired(graph_y));
+    Array gx = *x.GetGrad(bp_x);  // 2x + y
+    EXPECT_FALSE(gx.IsGradRequired(bp_x));
+    EXPECT_TRUE(gx.IsGradRequired(bp_y));
     testing::ExpectEqual(2 * x_value + y_value, gx);
 
     Array w = x * gx;
-    Backward(w, graph_y, DoubleBackpropOption::kDisable);
+    Backward(w, bp_y, DoubleBackpropOption::kDisable);
 
-    Array gy = *y.GetGrad(graph_y);
-    EXPECT_FALSE(gy.IsGradRequired(graph_x));
-    EXPECT_FALSE(gy.IsGradRequired(graph_y));
+    Array gy = *y.GetGrad(bp_y);
+    EXPECT_FALSE(gy.IsGradRequired(bp_x));
+    EXPECT_FALSE(gy.IsGradRequired(bp_y));
     ExpectEqual<float>(x_value, gy);  // x
 }
 
 TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
-    BackpropScope backprop_scope_y{"graph_y"};
-    BackpropScope backprop_scope_x{"graph_x"};
-    BackpropId graph_x = backprop_scope_x.backprop_id();
-    BackpropId graph_y = backprop_scope_y.backprop_id();
+    BackpropScope backprop_scope_y{"bp_y"};
+    BackpropScope backprop_scope_x{"bp_x"};
+    BackpropId bp_x = backprop_scope_x.backprop_id();
+    BackpropId bp_y = backprop_scope_y.backprop_id();
 
     Array x_value = Full({1}, 2.0f);
     Array y_value = Full({1}, 3.0f);
-    Array x = x_value.MakeView().RequireGrad(graph_x);
-    Array y = y_value.MakeView().RequireGrad(graph_y);
+    Array x = x_value.MakeView().RequireGrad(bp_x);
+    Array y = y_value.MakeView().RequireGrad(bp_y);
 
     Array z = x * (x + y);
 
-    Backward(z, graph_x, DoubleBackpropOption::kEnable);
+    Backward(z, bp_x, DoubleBackpropOption::kEnable);
 
-    Array gx = *x.GetGrad(graph_x);  // 2x + y
-    EXPECT_TRUE(gx.IsGradRequired(graph_x));
-    EXPECT_TRUE(gx.IsGradRequired(graph_y));
+    Array gx = *x.GetGrad(bp_x);  // 2x + y
+    EXPECT_TRUE(gx.IsGradRequired(bp_x));
+    EXPECT_TRUE(gx.IsGradRequired(bp_y));
     testing::ExpectEqual(2 * x_value + y_value, gx);
 
     Array w = x * gx;
-    Backward(w, graph_y, DoubleBackpropOption::kDisable);
+    Backward(w, bp_y, DoubleBackpropOption::kDisable);
 
-    Array gy = *y.GetGrad(graph_y);
-    EXPECT_FALSE(gy.IsGradRequired(graph_x));  // False because graph_x is inner
-    EXPECT_FALSE(gy.IsGradRequired(graph_y));
+    Array gy = *y.GetGrad(bp_y);
+    EXPECT_FALSE(gy.IsGradRequired(bp_x));  // False because bp_x is inner
+    EXPECT_FALSE(gy.IsGradRequired(bp_y));
     ExpectEqual<float>(x_value, gy);  // x
 }
 
@@ -389,8 +389,8 @@ TEST_P(BackpropTest, MultipleGraphsBasic) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id_1 = backprop_scope1.backprop_id();
     BackpropId backprop_id_2 = backprop_scope2.backprop_id();
 
@@ -408,7 +408,7 @@ TEST_P(BackpropTest, MultipleGraphsBasic) {
 TEST_P(BackpropTest, MultipleGraphsSameInput) {
     Array x1 = MakeFullArray({1}, {3.0f});
 
-    BackpropScope backprop_scope1{"graph1"};
+    BackpropScope backprop_scope1{"bp1"};
     BackpropId backprop_id_1 = backprop_scope1.backprop_id();
 
     x1.RequireGrad(backprop_id_1);
@@ -426,8 +426,8 @@ TEST_P(BackpropTest, MultipleGraphsNonExisting) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id_1 = backprop_scope1.backprop_id();
     BackpropId backprop_id_2 = backprop_scope2.backprop_id();
 
@@ -442,7 +442,7 @@ TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    BackpropScope backprop_scope{"graph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
 
     x1.RequireGrad(backprop_id);
@@ -484,8 +484,8 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    BackpropScope backprop_scope_outer{"graph_outer"};
-    BackpropScope backprop_scope_inner{"graph_inner"};
+    BackpropScope backprop_scope_outer{"bp_outer"};
+    BackpropScope backprop_scope_inner{"bp_inner"};
     BackpropId backprop_id_outer = backprop_scope_outer.backprop_id();
     BackpropId backprop_id_inner = backprop_scope_inner.backprop_id();
 
@@ -528,7 +528,7 @@ TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
     Array x = MakeFullArray({1}, {2.0f});
     x.RequireGrad();
 
-    BackpropScope backprop_scope{"graph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
 
     x.RequireGrad(backprop_id);
@@ -546,7 +546,7 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
     Array x = MakeFullArray({1}, {2.0f});
     x.RequireGrad();
 
-    BackpropScope backprop_scope{"graph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
 
     x.RequireGrad(backprop_id);
@@ -563,8 +563,8 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
 TEST_P(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
     Array x = MakeFullArray({1}, {2.0f});
 
-    BackpropScope backprop_scope_outer{"graph_outer"};
-    BackpropScope backprop_scope_inner{"graph_inner"};
+    BackpropScope backprop_scope_outer{"bp_outer"};
+    BackpropScope backprop_scope_inner{"bp_inner"};
     BackpropId backprop_id_outer = backprop_scope_outer.backprop_id();
     BackpropId backprop_id_inner = backprop_scope_inner.backprop_id();
 
@@ -584,10 +584,10 @@ TEST_P(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
     Array x = MakeFullArray({1}, {2.0f});
     Array y;
 
-    BackpropScope backprop_scope_1{"graph_1"};
+    BackpropScope backprop_scope_1{"bp1"};
     BackpropId backprop_id_1 = backprop_scope_1.backprop_id();
     {
-        BackpropScope backprop_scope_2{"graph_2"};
+        BackpropScope backprop_scope_2{"bp2"};
         BackpropId backprop_id_2 = backprop_scope_2.backprop_id();
 
         x.RequireGrad();
@@ -615,12 +615,12 @@ TEST_P(BackpropTest, BackwardThreeGraphs) {
     Array x = MakeFullArray({1}, {2.0f});
     Array y;
 
-    BackpropScope backprop_scope_1{"graph_1"};
-    BackpropScope backprop_scope_2{"graph_2"};
+    BackpropScope backprop_scope_1{"bp1"};
+    BackpropScope backprop_scope_2{"bp2"};
     BackpropId backprop_id_1 = backprop_scope_1.backprop_id();
     BackpropId backprop_id_2 = backprop_scope_2.backprop_id();
     {
-        BackpropScope backprop_scope_3{"graph_3"};
+        BackpropScope backprop_scope_3{"bp3"};
         BackpropId backprop_id_3 = backprop_scope_3.backprop_id();
 
         x.RequireGrad(backprop_id_1);
@@ -651,7 +651,7 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     std::weak_ptr<internal::ArrayBody> x_grad_body{};
 
     {
-        BackpropScope backprop_scope{"testgraph"};
+        BackpropScope backprop_scope{"bp"};
         BackpropId backprop_id = backprop_scope.backprop_id();
 
         auto forward = [](const Array& x, Array& y) {
@@ -743,7 +743,7 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    BackpropScope backprop_scope{"testgraph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
@@ -804,7 +804,7 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    BackpropScope backprop_scope{"testgraph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
@@ -878,7 +878,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    BackpropScope backprop_scope{"testgraph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
@@ -989,7 +989,7 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    BackpropScope backprop_scope{"testgraph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
@@ -1101,8 +1101,8 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
     Shape shape{2};
@@ -1167,7 +1167,7 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    BackpropScope backprop_scope{"testgraph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
@@ -1243,8 +1243,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -1394,8 +1394,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -1550,8 +1550,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -1703,8 +1703,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -1806,9 +1806,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
-    BackpropScope backprop_scope3{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropScope backprop_scope3{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
     BackpropId backprop_id3 = backprop_scope3.backprop_id();
@@ -1894,9 +1894,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
-    BackpropScope backprop_scope3{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropScope backprop_scope3{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
     BackpropId backprop_id3 = backprop_scope3.backprop_id();
@@ -1982,8 +1982,8 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -2096,8 +2096,8 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -2223,8 +2223,8 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    BackpropScope backprop_scope1{"graph1"};
-    BackpropScope backprop_scope2{"graph2"};
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
     BackpropId backprop_id1 = backprop_scope1.backprop_id();
     BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
@@ -2331,7 +2331,7 @@ TEST(BackpropGradValidationTest, InvalidGradShape) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    BackpropScope backprop_scope{"testgraph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
@@ -2367,7 +2367,7 @@ TEST(BackpropGradValidationTest, InvalidGradDtype) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    BackpropScope backprop_scope{"testgraph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
@@ -2403,7 +2403,7 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    BackpropScope backprop_scope{"testgraph"};
+    BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});

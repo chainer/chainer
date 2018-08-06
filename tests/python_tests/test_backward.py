@@ -188,28 +188,28 @@ def test_double_backprop():
 
 
 def test_multiple_graphs_double_backprop():
-    with xchainer.backprop_scope('graph_y') as graph_y, \
-            xchainer.backprop_scope('graph_x') as graph_x:
+    with xchainer.backprop_scope('bp_y') as bp_y, \
+            xchainer.backprop_scope('bp_x') as bp_x:
 
         x = xchainer.full((1,), 2, xchainer.float32)
-        x.require_grad(backprop_id=graph_x)
+        x.require_grad(backprop_id=bp_x)
 
         y = xchainer.full((1,), 3, xchainer.float32)
-        y.require_grad(backprop_id=graph_y)
+        y.require_grad(backprop_id=bp_y)
 
         z = x * (x + y)
-        xchainer.backward(z, backprop_id=graph_x)
+        xchainer.backward(z, backprop_id=bp_x)
 
-        gx = x.get_grad(graph_x)  # 2x + y
-        assert not gx.is_grad_required(backprop_id=graph_x)
-        assert gx.is_grad_required(backprop_id=graph_y)
+        gx = x.get_grad(bp_x)  # 2x + y
+        assert not gx.is_grad_required(backprop_id=bp_x)
+        assert gx.is_grad_required(backprop_id=bp_y)
 
         w = x * gx
-        xchainer.backward(w, backprop_id=graph_y)
+        xchainer.backward(w, backprop_id=bp_y)
 
         e = xchainer.full((1,), 2, xchainer.float32)
 
-        _assert_arrays_equal(y.get_grad(graph_y), e)  # x
+        _assert_arrays_equal(y.get_grad(bp_y), e)  # x
 
 
 def test_backward_input_to_multiple_ops():
@@ -311,7 +311,7 @@ def test_backward_given_output_grad():
 
 def test_backward_keyword_arguments():
     x = xchainer.full((1,), 2, xchainer.float32)
-    with xchainer.backprop_scope('graph_1') as backprop_id1:
+    with xchainer.backprop_scope('bp1') as backprop_id1:
         x.require_grad(backprop_id=backprop_id1)
         xchainer.backward(x, backprop_id=backprop_id1)
         with pytest.raises(TypeError, match=r'.*incompatible function arguments.*'):
@@ -325,8 +325,8 @@ def test_backward_multiple_graphs_basic():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    with xchainer.backprop_scope('graph_1') as backprop_id1, \
-            xchainer.backprop_scope('graph_2') as backprop_id2:
+    with xchainer.backprop_scope('bp1') as backprop_id1, \
+            xchainer.backprop_scope('bp2') as backprop_id2:
 
         x1.require_grad(backprop_id1)
         x2.require_grad(backprop_id2)
@@ -349,8 +349,8 @@ def test_backward_multiple_graphs_non_existing():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    with xchainer.backprop_scope('graph_1') as backprop_id1, \
-            xchainer.backprop_scope('graph_2') as backprop_id2:
+    with xchainer.backprop_scope('bp1') as backprop_id1, \
+            xchainer.backprop_scope('bp2') as backprop_id2:
 
         x1.require_grad(backprop_id1)
         x2.require_grad(backprop_id1)
@@ -367,8 +367,8 @@ def test_backward_multiple_graphs_reuse():
     x1 = xchainer.full(shape, 2, dtype)
     x2 = xchainer.full(shape, 5, dtype)
 
-    with xchainer.backprop_scope('graph_2') as backprop_id2, \
-            xchainer.backprop_scope('graph_1') as backprop_id1:
+    with xchainer.backprop_scope('bp2') as backprop_id2, \
+            xchainer.backprop_scope('bp1') as backprop_id1:
 
         x1.require_grad(backprop_id1)
         x2.require_grad(backprop_id2)
