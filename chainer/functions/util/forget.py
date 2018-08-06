@@ -1,3 +1,4 @@
+import chainer
 from chainer import function
 from chainer import function_node
 from chainer import variable
@@ -41,6 +42,11 @@ class Forget(function_node.FunctionNode):
         return tuple(out.data for out in outs)
 
     def backward(self, indexes, grad_outputs):
+        # Double backprop is not allowed
+        if chainer.config.enable_backprop:
+            raise RuntimeError('double backpropagation in functions.forget is '
+                               'not allowed.')
+
         inputs = self.get_retained_inputs()
         # Create new variables that have no creators
         dummy_inputs = tuple([variable.Variable(inp.array) for inp in inputs])
