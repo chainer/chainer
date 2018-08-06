@@ -47,7 +47,7 @@ void CheckBackward(
 // function should be tested by `CheckBackwardComputation` first, and then should be
 // tested by this function if neccessary.
 //
-// Note that any previous inputs gradients are cleared and overwritten with the
+// Note that any output inputs gradients are cleared and overwritten with the
 // computed gradients by `func`.
 void CheckDoubleBackwardComputation(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,

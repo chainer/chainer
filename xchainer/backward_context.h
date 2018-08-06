@@ -67,7 +67,7 @@ public:
     BackwardContext(
             const std::shared_ptr<internal::OpNode>& op_node,
             const internal::OpNodeBackwardEntry& backward_entry,
-            gsl::span<std::shared_ptr<internal::ArrayNode>> prev_array_nodes,
+            gsl::span<std::shared_ptr<internal::ArrayNode>> output_array_nodes,
             gsl::span<internal::GradRef*> output_grads,
             std::vector<Array>& input_grads,
             const GraphId& graph_id,
@@ -91,7 +91,7 @@ public:
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
     const Array& output_grad() const {
-        assert(prev_array_nodes_.size() == 1);
+        assert(output_array_nodes_.size() == 1);
         return output_grad(0);
     }
 
@@ -119,9 +119,9 @@ private:
 
     const internal::OpNodeBackwardEntry& backward_entry_;
 
-    // Previous array nodes of the op node.
+    // Output array nodes of the op node.
     // Null if the array node is gone (the weak pointer is dead).
-    gsl::span<std::shared_ptr<internal::ArrayNode>> prev_array_nodes_;
+    gsl::span<std::shared_ptr<internal::ArrayNode>> output_array_nodes_;
 
     gsl::span<internal::GradRef*> output_grads_;
 
