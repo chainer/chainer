@@ -118,7 +118,7 @@ def open_pickle_dataset(path):
     :func:`PickleDataset.close` or use `with`:
 
     >>> with chainer.datasets.open_pickle_dataset('path') as dataset:
-    ...    # use dataset
+    ...     pass  # use dataset
 
 
     Args:
