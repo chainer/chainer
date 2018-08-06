@@ -9,12 +9,16 @@ class FunctionHook(object):
     Registered function hooks are invoked before and after
     forward and backward operations of each function.
 
-    Function hooks that derive :class:`FunctionHook` are required
-    to implement four methods:
-    :meth:`~chainer.FunctionHook.forward_preprocess`,
-    :meth:`~chainer.FunctionHook.forward_postprocess`,
-    :meth:`~chainer.FunctionHook.backward_preprocess`, and
-    :meth:`~chainer.FunctionHook.backward_postprocess`.
+    Function hooks that derive from :class:`FunctionHook` may override the
+    following  methods:
+
+    * :meth:`~chainer.FunctionHook.added`
+    * :meth:`~chainer.FunctionHook.deleted`
+    * :meth:`~chainer.FunctionHook.forward_preprocess`
+    * :meth:`~chainer.FunctionHook.forward_postprocess`
+    * :meth:`~chainer.FunctionHook.backward_preprocess`
+    * :meth:`~chainer.FunctionHook.backward_postprocess`
+
     By default, these methods do nothing.
 
     Specifically, when :meth:`~chainer.FunctionNode.__call__`
@@ -31,6 +35,10 @@ class FunctionHook(object):
     of all function hooks registered to the function which holds this variable
     as a gradient are called before (resp. after) backward propagation.
 
+    :meth:`~chainer.FunctionHook.added` and
+    :meth:`~chainer.FunctionHook.deleted` are called when the hook is
+    registered or unregistered, respectively.
+
     There are two ways to register :class:`~chainer.FunctionHook`
     objects to :class:`~chainer.FunctionNode` objects.
 
@@ -45,7 +53,6 @@ class FunctionHook(object):
         with :class:`~chainer.function_hooks.TimerHook`, which is a subclass of
         :class:`~chainer.FunctionHook`.
 
-        >>> from chainer import function_hooks
         >>> class Model(chainer.Chain):
         ...   def __init__(self):
         ...     super(Model, self).__init__()
@@ -59,9 +66,10 @@ class FunctionHook(object):
         >>> with chainer.function_hooks.TimerHook() as m:
         ...   _ = model1(x)
         ...   y = model2(x)
-        ...   print("Total time : " + str(m.total_time()))
-        ...   model3 = Model()
-        ...   z = model3(y) # doctest:+ELLIPSIS
+        >>> model3 = Model()
+        >>> z = model3(y)
+        >>> print('Total time : {}'.format(m.total_time()))
+        ... # doctest:+ELLIPSIS
         Total time : ...
 
         In this example, we measure the elapsed times for each forward
@@ -76,14 +84,23 @@ class FunctionHook(object):
        as a thread local object. So, function hooks registered
        are different depending on threads.
 
+    If the hook is registered in this way, :meth:`~chainer.FunctionHook.added`
+    and :meth:`~chainer.FunctionHook.deleted` are given ``None`` as the
+    ``function`` argument.
+
     The other one is to register directly to
     :class:`~chainer.FunctionNode` object with
-    :meth:`~chainer.Function.add_hook` method.
+    :meth:`~chainer.FunctionNode.add_hook` method.
     Function hooks registered in this way can be removed by
-    :meth:`~chainer.Function.delete_hook` method.
+    :meth:`~chainer.FunctionNode.delete_hook` method.
     Contrary to former registration method, function hooks are registered
     only to the function which :meth:`~chainer.FunctionNode.add_hook`
     is called.
+
+    If the hook is registered in this way, the :class:`~chainer.FunctionNode`
+    instance is given as the ``function`` argument of
+    :meth:`~chainer.FunctionHook.added` and
+    :meth:`~chainer.FunctionHook.deleted`.
 
     Args:
         name(str): Name of this function hook.
@@ -109,7 +126,8 @@ class FunctionHook(object):
 
         Args:
             function(~chainer.FunctionNode): Function object to which
-                the function hook is added.
+                the function hook is added. ``None`` if the function hook is
+                registered globally.
         """
         pass
 
@@ -118,7 +136,8 @@ class FunctionHook(object):
 
         Args:
             function(~chainer.FunctionNode): Function object to which
-                the function hook is deleted.
+                the function hook is deleted. ``None`` if the function hook
+                had been registered globally.
         """
         pass
 
