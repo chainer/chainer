@@ -124,7 +124,7 @@ void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {
     for (auto it = backprop_stack_.rbegin(); it != backprop_stack_.rend(); ++it) {
         if (it->ordinal == backprop_id.ordinal()) {
             if (it->is_outer_graph_backpropped) {
-                throw XchainerError{"Cannot backward for graph ", backprop_id, " after outer graph"};
+                throw XchainerError{"Cannot backward for backprop ID ", backprop_id, " after outer backprop ID"};
             }
             break;
         }

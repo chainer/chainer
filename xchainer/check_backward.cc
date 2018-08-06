@@ -236,7 +236,7 @@ void CheckBackwardComputation(
             os << i;
         }
         os << std::endl;
-        os << "Graph: " << actual_backprop_id << std::endl;
+        os << "Backprop ID: " << actual_backprop_id << std::endl;
         os << "Atol: " << atol << "  Rtol: " << rtol << std::endl;
         for (size_t i : failed_input_indices) {
             os << "Error[" << i << "]:" << std::endl
@@ -320,7 +320,7 @@ void CheckDoubleBackwardComputationImpl(
     // Check all the input arrays require gradients
     for (size_t i = 0; i < nin; ++i) {
         if (!inputs[i].IsGradRequired(actual_backprop_id)) {
-            throw XchainerError{"Input array ", i, " / ", nin, " is not differentiable w.r.t. the graph '", actual_backprop_id, "'."};
+            throw XchainerError{"Input array ", i, " / ", nin, " is not differentiable w.r.t. the backprop ID '", actual_backprop_id, "'."};
         }
     }
 
@@ -328,7 +328,7 @@ void CheckDoubleBackwardComputationImpl(
     for (size_t i = 0; i < nout; ++i) {
         if (!grad_outputs[i].IsGradRequired(actual_backprop_id)) {
             throw XchainerError{
-                    "Output gradient array ", i, " / ", nout, " is not differentiable w.r.t. the graph '", actual_backprop_id, "'."};
+                    "Output gradient array ", i, " / ", nout, " is not differentiable w.r.t. the backprop ID '", actual_backprop_id, "'."};
         }
     }
 
@@ -369,7 +369,7 @@ void CheckDoubleBackwardComputationImpl(
                                          i,
                                          " / ",
                                          nin,
-                                         " is not differentiable w.r.t. the graph '",
+                                         " is not differentiable w.r.t. the backprop ID '",
                                          actual_backprop_id,
                                          "'."};
             }
@@ -411,7 +411,7 @@ void CheckDoubleBackwardComputationImpl(
         for (size_t i = 0; i < backward_grads.size(); ++i) {
             if (!backward_grads[i].has_value()) {
                 os << "Second order gradient w.r.t. the input gradient " << i << " (Total inputs: " << inputs.size()
-                   << ", outputs: " << nout << ") is missing on the graph '" << actual_backprop_id << "'. "
+                   << ", outputs: " << nout << ") is missing for the backprop ID '" << actual_backprop_id << "'. "
                    << "Maybe you need additional nonlinearity in the target function.";
                 has_error = true;
             }
@@ -439,7 +439,7 @@ void CheckDoubleBackwardComputationImpl(
             os << i;
         }
         os << std::endl;
-        os << "Graph: " << actual_backprop_id << std::endl;
+        os << "Backprop ID: " << actual_backprop_id << std::endl;
         os << "Atol: " << atol << "  Rtol: " << rtol << std::endl;
         for (size_t i : failed_input_indices) {
             os << "Error[" << i << "]:" << std::endl

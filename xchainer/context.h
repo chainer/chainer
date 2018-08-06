@@ -81,8 +81,8 @@ private:
     std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
 
-    BackpropOrdinal next_backprop_ordinal_{
-            1};  // 1 is the first backprop ordinal id after the default graph whose backprop ordinal id is 0.
+    // 1 is the first backprop ordinal id after the default graph whose backprop ordinal id is 0.
+    BackpropOrdinal next_backprop_ordinal_{1};
 
     std::vector<BackpropStackItem> backprop_stack_{};
 };
