@@ -787,6 +787,39 @@ Assign a Parameter object directly to an attribute within a \
             size += param.size
         return size
 
+    def add_hook(self, hook, name=None):
+        """Registers a link hook.
+
+        Args:
+            hook (~chainer.LinkHook): Link hook to be registered.
+            name (str): Name of the link hook. The name must be unique
+                among link hooks registered to this link. If ``None``,
+                the default name of the link hook is used.
+
+        """
+        if not isinstance(hook, link_hook.LinkHook):
+            raise TypeError('Hook must be of type LinkHook')
+        if name is None:
+            name = hook.name
+        hooks = self.local_link_hooks
+        if name in hooks:
+            raise KeyError('Hook %s already exists' % name)
+        hooks[name] = hook
+        hook.added(self)
+
+    def delete_hook(self, name):
+        """Unregisters the link hook.
+
+        Args:
+            name (str): The name of the link hook to be unregistered.
+
+        """
+        if name in self.local_link_hooks:
+            self.local_link_hooks[name].deleted(self)
+            del self.local_link_hooks[name]
+        else:
+            raise KeyError('Hook %s does not exist' % name)
+
 
 class Chain(Link):
 
@@ -1028,39 +1061,6 @@ Assign a Link object directly to an attribute within a \
         d = self.__dict__
         for name in self._children:
             d[name].serialize(serializer[name])
-
-    def add_hook(self, hook, name=None):
-        """Registers a link hook.
-
-        Args:
-            hook (~chainer.LinkHook): Link hook to be registered.
-            name (str): Name of the link hook. The name must be unique
-                among link hooks registered to this link. If ``None``,
-                the default name of the link hook is used.
-
-        """
-        if not isinstance(hook, link_hook.LinkHook):
-            raise TypeError('Hook must be of type LinkHook')
-        if name is None:
-            name = hook.name
-        hooks = self.local_link_hooks
-        if name in hooks:
-            raise KeyError('Hook %s already exists' % name)
-        hooks[name] = hook
-        hook.added(self)
-
-    def delete_hook(self, name):
-        """Unregisters the link hook.
-
-        Args:
-            name (str): The name of the link hook to be unregistered.
-
-        """
-        if name in self.local_link_hooks:
-            self.local_link_hooks[name].deleted(self)
-            del self.local_link_hooks[name]
-        else:
-            raise KeyError('Hook %s does not exist' % name)
 
 
 class ChainList(Link, collections_abc.MutableSequence):
