@@ -67,8 +67,8 @@ public:
 
 private:
     // TODO(niboshi): Support multi-thread usage
-    struct GraphStackItem {
-        GraphStackItem(BackpropOrdinal ordinal, std::string name) : ordinal{ordinal}, name{std::move(name)} {}
+    struct BackpropStackItem {
+        BackpropStackItem(BackpropOrdinal ordinal, std::string name) : ordinal{ordinal}, name{std::move(name)} {}
 
         BackpropOrdinal ordinal;
         std::string name;
@@ -84,7 +84,7 @@ private:
     BackpropOrdinal next_backprop_ordinal_{
             1};  // 1 is the first backprop ordinal id after the default graph whose backprop ordinal id is 0.
 
-    std::vector<GraphStackItem> graph_stack_{};
+    std::vector<BackpropStackItem> backprop_stack_{};
 };
 
 // Gets/sets the context that used by default when current context is not set.

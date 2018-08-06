@@ -104,7 +104,7 @@ TEST(BackwardContextTest, InputGrad) {
     testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(backprop_id2));
 }
 
-// TODO(hvy): Separate tests of graph stack manipulation into another test class/fixture and parameterize the outermost graph over the
+// TODO(hvy): Separate tests of backprop stack manipulation into another test class/fixture and parameterize the outermost graph over the
 // default graph and an explicitly scoped graph. Some tests will become redundant. Remove them.
 class BackpropTest : public ::testing::TestWithParam<std::string> {
 protected:
