@@ -117,9 +117,10 @@ def open_pickle_dataset(path):
     This method does not close the opened file. A user needs to call
     :func:`PickleDataset.close` or use `with`:
 
-    >>> with chainer.datasets.open_pickle_dataset('path') as dataset:
-    ...     pass  # use dataset
+    .. code-block:: python
 
+        with chainer.datasets.open_pickle_dataset('path') as dataset:
+            pass  # use dataset
 
     Args:
         path (str): Path to a dataset.
@@ -144,8 +145,10 @@ def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
     This method does not close the opened file. A user needs to call
     :func:`PickleDatasetWriter.close` or use `with`:
 
-    >>> with chainer.datasets.open_pickle_dataset_writer('path') as writer:
-    ...     pass  # use writer
+    .. code-block:: python
+
+        with chainer.datasets.open_pickle_dataset_writer('path') as writer:
+            pass  # use writer
 
     Args:
         path (str): Path to a dataset.
