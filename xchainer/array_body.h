@@ -56,7 +56,7 @@ public:
     const std::shared_ptr<ArrayNode>& GetArrayNode(const BackpropId& backprop_id) const {
         nonstd::optional<size_t> index = GetNodeIndex(backprop_id);
         if (!index.has_value()) {
-            throw XchainerError{"Array does not belong to the graph: '", backprop_id, "'."};
+            throw XchainerError{"Array does not require gradient for backprop id: '", backprop_id, "'."};
         }
         return nodes_[*index];
     }
