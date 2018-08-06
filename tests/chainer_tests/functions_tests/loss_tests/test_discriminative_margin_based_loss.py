@@ -17,7 +17,9 @@ from chainer.testing import attr
     'beta': [1],
     'gamma': [0.001],
     'norm': [1],
-    'result': [9709.69497664]
+    'result_l_dist': [1.21553416],
+    'result_l_var': [64],
+    'result_l_reg': [0.03419368]
 }) + testing.product(({
     'delta_v': [3],
     'delta_d': [10],
@@ -26,7 +28,9 @@ from chainer.testing import attr
     'gamma': [0.1],
     'max_n_clusters': [2],
     'norm': [2],
-    'result': [2140205.11050112]
+    'result_l_dist': [0.00561398],
+    'result_l_var': [25.6],
+    'result_l_reg': [141.67655858]
 })))
 class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
 
@@ -36,58 +40,68 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
         self.width = 10
         self.height = 10
         shape = (self.batch, self.max_n_clusters,
-                 self.height, self.width)
+                 self.width, self.height)
 
         input_arr = numpy.linspace(0, 100,
                                    shape[0] * shape[1] *
                                    shape[2] * shape[3])
         self.input = input_arr.reshape(shape)
-        self.gt = numpy.linspace(100, 0,
-                                 shape[0] * shape[1] *
-                                 shape[2] * shape[3])
-        self.gt = self.gt.reshape(shape)
-        self.gt_obj = [1, 2, 3, 4, 5]
-        self.gt_obj_idx = [[0], [0, 2],
-                           [0, 3, 4], [0, 1, 2, 3],
-                           [0, 1, 2, 3, 4]]
-        self.y = numpy.asarray(self.result)
 
-    def get_result(self, prediction, labels, n_objects, gt_idx):
+        g_s = (self.batch, self.width, self.height)
+        self.gt = numpy.linspace(0, 10,
+                                 g_s[0] * g_s[1] * g_s[2]).astype(numpy.int32)
+        self.gt = numpy.reshape(self.gt, g_s)
+        self.y = (numpy.asarray(self.result_l_dist),
+                  numpy.asarray(self.result_l_var),
+                  numpy.asarray(self.result_l_reg))
+
+    def get_result(self, prediction, labels):
         out = functions.discriminative_margin_based_clustering_loss(
-            prediction, labels, n_objects, gt_idx,
+            prediction, labels,
             self.delta_v, self.delta_d, self.max_n_clusters,
             self.norm, self.alpha, self.beta, self.gamma)
         return out
 
-    def check_forward_cpu(self, prediction, labels, n_objects, gt_idx, t_data):
-        t = chainer.Variable(t_data)
-        out = self.get_result(prediction, labels, n_objects, gt_idx)
-        numpy.testing.assert_almost_equal(out.data, t.data)
+    def check_forward_cpu(self, prediction, labels, t_data):
+        t_dist, t_var, t_reg = chainer.Variable(t_data[0]), \
+                               chainer.Variable(t_data[1]), \
+                               chainer.Variable(t_data[2])
+        l_dist, l_var, l_reg = self.get_result(prediction, labels)
 
-    def check_forward_gpu(self, prediction, labels, n_objects, gt_idx, t_data):
-        t = chainer.Variable(t_data)
-        out = self.get_result(prediction, labels, n_objects, gt_idx)
-        out.to_cpu()
-        t.to_cpu()
-        numpy.testing.assert_almost_equal(out.data, t.data)
+        numpy.testing.assert_almost_equal(l_dist.data, t_dist.data)
+        numpy.testing.assert_almost_equal(l_var.data, t_var.data)
+        numpy.testing.assert_almost_equal(l_reg.data, t_reg.data)
+
+    def check_forward_gpu(self, prediction, labels, t_data):
+        t_dist, t_var, t_reg = chainer.Variable(t_data[0]), \
+                               chainer.Variable(t_data[1]), \
+                               chainer.Variable(t_data[2])
+        l_dist, l_var, l_reg = self.get_result(prediction, labels)
+        l_dist.to_cpu()
+        l_var.to_cpu()
+        l_reg.to_cpu()
+        t_dist.to_cpu()
+        t_var.to_cpu()
+        t_reg.to_cpu()
+        numpy.testing.assert_almost_equal(l_dist.data, t_dist.data)
+        numpy.testing.assert_almost_equal(l_var.data, t_var.data)
+        numpy.testing.assert_almost_equal(l_reg.data, t_reg.data)
 
     def test_forward_cpu(self):
         self.check_forward_cpu(cuda.to_cpu(self.input), cuda.to_cpu(self.gt),
-                               self.gt_obj, self.gt_obj_idx, self.y)
+                               self.y)
 
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward_gpu(cuda.to_gpu(self.input), cuda.to_gpu(self.gt),
-                               self.gt_obj, self.gt_obj_idx, self.y)
+                               self.y)
 
     @attr.gpu
     def test_forward_gpu_cpu(self):
         cpu_res = self.get_result(cuda.to_cpu(self.input),
-                                  cuda.to_cpu(self.gt),
-                                  self.gt_obj, self.gt_obj_idx)
+                                  cuda.to_cpu(self.gt))
         gpu_res = self.get_result(cuda.to_gpu(self.input),
-                                  cuda.to_gpu(self.gt),
-                                  self.gt_obj, self.gt_obj_idx)
+                                  cuda.to_gpu(self.gt))
         gpu_res.to_cpu()
         numpy.testing.assert_almost_equal(cpu_res.data, gpu_res.data)
 
