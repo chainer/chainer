@@ -122,9 +122,14 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             pred_instance = prediction * xp.broadcast_to(mask, prediction.shape)
 
             # Calculate the number of pixels belonging to instance c
-            nc = xp.asarray(xp.sum(mask, (1, 2, 3)), dtype=pred_instance.dtype)
+            nc = xp.sum(mask, (1, 2, 3))
+            if xp.sum(nc) == 0:
+                continue
+
+            nc = xp.asarray(nc, dtype=pred_instance.dtype)
             mean = c_sum(pred_instance, axis=(2, 3)) / \
                    xp.expand_dims(xp.maximum(nc, 1), 1)
+
             means.append(mean)
 
             # Calculate variance term
@@ -148,7 +153,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                 dist = self.norm(m_a - m_b, 1)  # N
                 l_dist += c_sum((relu(2 * self.delta_d - dist)) ** 2)
                 count += 1
-        l_dist /= count * prediction.shape[0]
+        l_dist /= xp.maximum(count * prediction.shape[0], 1)
 
         return self.alpha * l_var, self.beta * l_dist, self.gamma * l_reg
 

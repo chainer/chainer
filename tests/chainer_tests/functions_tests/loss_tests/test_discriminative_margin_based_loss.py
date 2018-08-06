@@ -102,8 +102,10 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
                                   cuda.to_cpu(self.gt))
         gpu_res = self.get_result(cuda.to_gpu(self.input),
                                   cuda.to_gpu(self.gt))
-        gpu_res.to_cpu()
-        numpy.testing.assert_almost_equal(cpu_res.data, gpu_res.data)
+        for idx in range(len(gpu_res)):
+            gpu_res[idx].to_cpu()
+            numpy.testing.assert_almost_equal(cpu_res[idx].data,
+                                              gpu_res[idx].data)
 
     def check_backward(self, x0_data, x1_data, y_grad):
         gradient_check.check_backward(
