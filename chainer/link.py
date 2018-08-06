@@ -228,6 +228,8 @@ class Link(object):
             self._within_init_scope = old_flag
 
     def __call__(self, *args, **kwargs):
+
+        # TODO(niboshi): Support link hooks for other forward methods.
         hooks = chainer.get_link_hooks()
         if self._n_local_link_hooks > 0:
             hooks = collections.OrderedDict(hooks)
@@ -236,7 +238,8 @@ class Link(object):
 
         # Call forward_preprocess hook
         if hooks:
-            cb_args = _CallbackArgs(link=self, args=args, kwargs=kwargs)
+            cb_args = _CallbackArgs(
+                link=self, forward_method='forward', args=args, kwargs=kwargs)
             for hook in hooks:
                 hook.forward_preprocess(cb_args)
 
@@ -251,7 +254,9 @@ class Link(object):
 
         # Call forward_postprocess hook
         if hooks:
-            cb_args = _CallbackArgs(link=self, args=args, kwargs=kwargs, out=out)
+            cb_args = _CallbackArgs(
+                link=self, forward_method='forward',args=args,
+                kwargs=kwargs, out=out)
             for hook in hooks:
                 hook.forward_postprocess(cb_args)
 
