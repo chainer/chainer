@@ -1,50 +1,147 @@
 import unittest
 
-import mock
 import numpy
 
 import chainer
 from chainer import testing
 
 
+class MyLinkHook(chainer.LinkHook):
+    name = 'MyLinkHook'
+
+    def __init__(self):
+        self.added_args = []
+        self.deleted_args = []
+        self.forward_preprocess_args = []
+        self.forward_postprocess_args = []
+
+    def added(self, link):
+        self.added_args.append(link)
+
+    def deleted(self, link):
+        self.deleted_args.append(link)
+
+    def forward_preprocess(self, args):
+        self.forward_preprocess_args.append(args)
+
+    def forward_postprocess(self, args):
+        self.forward_postprocess_args.append(args)
+
+
+class MyModel(chainer.Chain):
+    def __init__(self, w):
+        super(MyModel, self).__init__()
+        with self.init_scope():
+            self.l1 = chainer.links.Linear(3, 2, initialW=w)
+
+    def forward(self, x, test1, test2):
+        return self.l1(x)
+
+
 class TestLinkHook(unittest.TestCase):
 
-    def setUp(self):
-        self.h = chainer.LinkHook()
-
-        class Model(chainer.Chain):
-            def __init__(self):
-                super(Model, self).__init__()
-                with self.init_scope():
-                    self.l1 = chainer.links.Linear(3, 2)
-
-            def forward(self, x):
-                return self.l1(x)
-
-        self.model = Model()
-
     def test_name(self):
-        self.assertEqual(self.h.name, 'LinkHook')
+        chainer.LinkHook().name == 'LinkHook'
 
-    def test_forward_preprocess(self):
-        self.assertTrue(hasattr(self.h, 'forward_preprocess'))
+    def test_global_hook(self):
 
-    def test_forward_postprocess(self):
-        self.assertTrue(hasattr(self.h, 'forward_postprocess'))
+        x = numpy.array([[3, 1, 2]], numpy.float32)
+        w = numpy.array([[1, 3, 2], [6, 4, 5]], numpy.float32)
+        dot = numpy.dot(x, w.T)
 
-    def check_hook_methods_called(self, x):
-        def check_method_called(name):
-            with mock.patch.object(self.h, name) as patched:
-                with self.h:
-                    self.model(x)
-                patched.assert_called()
+        model = MyModel(w)
+        hook = MyLinkHook()
+        x_var = chainer.Variable(x)
 
-        check_method_called('forward_preprocess')
-        check_method_called('forward_postprocess')
+        with hook:
+            model(x_var, 'foo', test2='bar')
 
-    def test_all_called(self):
-        x = chainer.Variable(numpy.random.rand(2, 3).astype(numpy.float32))
-        self.check_hook_methods_called(x)
+        # added
+        assert len(hook.added_args) == 1
+        assert hook.added_args[0] is None
 
+        # deleted
+        assert len(hook.added_args) == 1
+        assert hook.deleted_args[0] is None
+
+        # forward_preprocess
+        assert len(hook.forward_preprocess_args) == 2
+        # - MyModel
+        args = hook.forward_preprocess_args[0]
+        assert args.link is model
+        assert len(args.args) == 2
+        numpy.testing.assert_array_equal(args.args[0].data, x)
+        assert args.args[1] == 'foo'
+        assert len(args.kwargs) == 1
+        assert args.kwargs['test2'] == 'bar'
+        # - Linear
+        args = hook.forward_preprocess_args[1]
+        assert args.link is model.l1
+
+        # forward_postprocess
+        assert len(hook.forward_postprocess_args) == 2
+        # - Linear
+        args = hook.forward_postprocess_args[0]
+        assert args.link is model.l1
+        # - MyModel
+        args = hook.forward_postprocess_args[1]
+        assert args.link is model
+        assert len(args.args) == 2
+        numpy.testing.assert_array_equal(args.args[0].data, x)
+        assert args.args[1] == 'foo'
+        assert len(args.kwargs) == 1
+        assert args.kwargs['test2'] == 'bar'
+        numpy.testing.assert_array_equal(args.out.data, dot)
+
+    def _check_local_hook(self, add_hook_name, delete_hook_name):
+
+        x = numpy.array([[3, 1, 2]], numpy.float32)
+        w = numpy.array([[1, 3, 2], [6, 4, 5]], numpy.float32)
+        dot = numpy.dot(x, w.T)
+
+        model = MyModel(w)
+        hook = MyLinkHook()
+        x_var = chainer.Variable(x)
+
+        model.add_hook(hook, add_hook_name)
+        model(x_var, 'foo', test2='bar')
+        model.delete_hook(delete_hook_name)
+
+        # added
+        assert len(hook.added_args) == 1
+        assert hook.added_args[0] is model
+
+        # deleted
+        assert len(hook.added_args) == 1
+        assert hook.deleted_args[0] is model
+
+        # forward_preprocess
+        assert len(hook.forward_preprocess_args) == 1
+        # - MyModel
+        args = hook.forward_preprocess_args[0]
+        assert args.link is model
+        assert len(args.args) == 2
+        numpy.testing.assert_array_equal(args.args[0].data, x)
+        assert args.args[1] == 'foo'
+        assert len(args.kwargs) == 1
+        assert args.kwargs['test2'] == 'bar'
+
+        # forward_postprocess
+        assert len(hook.forward_postprocess_args) == 1
+        # - MyModel
+        args = hook.forward_postprocess_args[0]
+        assert args.link is model
+        assert len(args.args) == 2
+        numpy.testing.assert_array_equal(args.args[0].data, x)
+        assert args.args[1] == 'foo'
+        assert len(args.kwargs) == 1
+        assert args.kwargs['test2'] == 'bar'
+        numpy.testing.assert_array_equal(args.out.data, dot)
+
+    def test_local_hook_named(self):
+        self._check_local_hook('myhook', 'myhook')
+
+    def test_local_hook_unnamed(self):
+        self._check_local_hook(None, 'MyLinkHook')
 
 testing.run_module(__name__, __file__)

@@ -90,14 +90,14 @@ class LinkHook(object):
             raise KeyError('hook %s already exists' % self.name)
 
         link_hooks[self.name] = self
-        self.added()
+        self.added(None)
         return self
 
     def __exit__(self, *_):
-        chainer.get_link_hooks()[self.name].deleted()
+        chainer.get_link_hooks()[self.name].deleted(None)
         del chainer.get_link_hooks()[self.name]
 
-    def added(self, link=None):
+    def added(self, link):
         """Callback function invoked when a link hook is added
 
         Args:
@@ -106,7 +106,7 @@ class LinkHook(object):
         """
         pass
 
-    def deleted(self, link=None):
+    def deleted(self, link):
         """Callback function invoked when a link hook is deleted
 
         Args:
@@ -116,7 +116,7 @@ class LinkHook(object):
         pass
 
     # forward
-    def forward_preprocess(self, link, *args, **kwargs):
+    def forward_preprocess(self, args):
         """Callback function invoked before :meth:`forward`.
 
         Args:
