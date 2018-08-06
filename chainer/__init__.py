@@ -224,13 +224,14 @@ def get_dtype(dtype=None):
     """Resolves Chainer's default dtype.
 
     Returns:
-        If ``dtype`` is not ``None``, it returns the dtype as is. Otherwise, it
-        returns ``chainer.config.dtype`` (see :ref:`configuration`).
+        If ``dtype`` is not ``None``, it returns the dtype normalized by
+        ``numpy.dtype()``. Otherwise, it returns ``chainer.config.dtype`` (see
+        :ref:`configuration`) normalized as well.
 
     """
     if dtype is None:
-        return config.dtype
-    return dtype
+        dtype = config.dtype
+    return numpy.dtype(dtype)
 
 
 basic_math.install_variable_arithmetics()
