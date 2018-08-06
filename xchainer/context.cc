@@ -105,15 +105,15 @@ Device& Context::GetDevice(const DeviceId& device_id) {
     return backend.GetDevice(device_id.index());
 }
 
-// TODO(sonots): Create a map to get backprop name from sub id
+// TODO(sonots): Create a map to get backprop name from ordinal id
 BackpropId Context::MakeNextBackpropId(std::string backprop_name) {
-    graph_stack_.emplace_back(next_graph_sub_id_, std::move(backprop_name));
-    return BackpropId{*this, next_graph_sub_id_++};
+    graph_stack_.emplace_back(next_backprop_ordinal_, std::move(backprop_name));
+    return BackpropId{*this, next_backprop_ordinal_++};
 }
 
 void Context::ReleaseBackpropId(const BackpropId& backprop_id) {
     // Backprop IDs must be released in the reverse order of creation
-    assert(&backprop_id.context() == this && backprop_id.sub_id() == graph_stack_.back().sub_id);
+    assert(&backprop_id.context() == this && backprop_id.ordinal() == graph_stack_.back().ordinal);
     (void)backprop_id;  // unused
 
     graph_stack_.pop_back();
@@ -122,7 +122,7 @@ void Context::ReleaseBackpropId(const BackpropId& backprop_id) {
 void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {
     // TODO(hvy): Check that backprop_id exists in the stack or that it is the default backprop id.
     for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend(); ++it) {
-        if (it->sub_id == backprop_id.sub_id()) {
+        if (it->ordinal == backprop_id.ordinal()) {
             if (it->is_outer_graph_backpropped) {
                 throw XchainerError{"Cannot backward for graph ", backprop_id, " after outer graph"};
             }
@@ -133,7 +133,7 @@ void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {
 
 void Context::SetBackpropDone(const BackpropId& backprop_id) {
     for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend(); ++it) {
-        if (it->sub_id == backprop_id.sub_id()) {
+        if (it->ordinal == backprop_id.ordinal()) {
             break;
         }
         it->is_outer_graph_backpropped = true;
@@ -143,8 +143,8 @@ void Context::SetBackpropDone(const BackpropId& backprop_id) {
 std::vector<BackpropId> Context::GetInnerBackpropIds(const BackpropId& backprop_id) {
     std::vector<BackpropId> inner_backprop_ids;
     inner_backprop_ids.reserve(graph_stack_.size());
-    for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend() && it->sub_id > backprop_id.sub_id(); ++it) {
-        inner_backprop_ids.emplace_back(BackpropId{*this, it->sub_id});
+    for (auto it = graph_stack_.rbegin(); it != graph_stack_.rend() && it->ordinal > backprop_id.ordinal(); ++it) {
+        inner_backprop_ids.emplace_back(BackpropId{*this, it->ordinal});
     }
     return inner_backprop_ids;
 }

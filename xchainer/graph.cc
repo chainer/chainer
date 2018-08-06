@@ -6,7 +6,7 @@ namespace xchainer {
 
 std::ostream& operator<<(std::ostream& os, const BackpropId& backprop_id) {
     // TODO(niboshi): Implement backprop name lookup
-    return os << backprop_id.sub_id();
+    return os << backprop_id.ordinal();
 }
 
 }  // namespace xchainer

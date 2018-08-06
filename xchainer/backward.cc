@@ -85,7 +85,7 @@ public:
 
         // Graphs for which gradients will be stopped.
         // These include the current graph that is being backpropped depending on the double backprop option, as well as all graphs
-        // belonging to inner scopes, i.e. graphs with higher graph sub ids.
+        // belonging to inner scopes, i.e. graphs with higher backprop ordinal ids.
         backprop_ids_to_stop_gradient_ = backprop_id.context().GetInnerBackpropIds(backprop_id_);
         if (double_backprop_ == DoubleBackpropOption::kDisable) {
             backprop_ids_to_stop_gradient_.emplace_back(backprop_id_);

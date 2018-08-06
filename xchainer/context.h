@@ -61,16 +61,16 @@ public:
     std::vector<BackpropId> GetInnerBackpropIds(const BackpropId& backprop_id);
 
     BackpropId default_backprop_id() {
-        // 0 is the graph sub id of the default graph.
+        // 0 is the backprop ordinal id of the default graph.
         return BackpropId{*this, 0};
     }
 
 private:
     // TODO(niboshi): Support multi-thread usage
     struct GraphStackItem {
-        GraphStackItem(GraphSubId sub_id, std::string name) : sub_id{sub_id}, name{std::move(name)} {}
+        GraphStackItem(BackpropOrdinal ordinal, std::string name) : ordinal{ordinal}, name{std::move(name)} {}
 
-        GraphSubId sub_id;
+        BackpropOrdinal ordinal;
         std::string name;
 
         // Indicates whether Backward on any outer graphs (note that this graph is not included) has been called.
@@ -81,7 +81,8 @@ private:
     std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
 
-    GraphSubId next_graph_sub_id_{1};  // 1 is the first graph sub id after the default graph whose graph sub id is 0.
+    BackpropOrdinal next_backprop_ordinal_{
+            1};  // 1 is the first backprop ordinal id after the default graph whose backprop ordinal id is 0.
 
     std::vector<GraphStackItem> graph_stack_{};
 };

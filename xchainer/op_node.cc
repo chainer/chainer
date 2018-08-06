@@ -76,7 +76,7 @@ void OpNode::AssertConsistency() const {
         });
     }));
 
-    // All the outer graphs linked from this op node must be outer (lower graph sub ID).
+    // All the outer graphs linked from this op node must be outer (lower backprop ordinal ID).
     assert(std::all_of(outer_graphs_prev_array_nodes_.begin(), outer_graphs_prev_array_nodes_.end(), [this](const auto& tup) {
         return std::get<0>(tup) < backprop_id_;
     }));

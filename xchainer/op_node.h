@@ -157,7 +157,7 @@ private:
     std::vector<std::weak_ptr<ArrayNode>> prev_array_nodes_;
 
     // List of prev array nodes of outer graphs.
-    // Outer graphs refer to graphs with lower sub ids.
+    // Outer graphs refer to graphs with lower ordinal ids.
     // Each entry is a pair of backprop ID and list of previous array nodes.
     std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_prev_array_nodes_;
 
