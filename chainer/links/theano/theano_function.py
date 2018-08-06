@@ -1,3 +1,5 @@
+import collections
+
 from chainer.functions.theano import theano_function
 from chainer import link
 from chainer.utils import collections_abc
