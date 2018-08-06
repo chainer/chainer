@@ -145,7 +145,7 @@ def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
     :func:`PickleDatasetWriter.close` or use `with`:
 
     >>> with chainer.datasets.open_pickle_dataset_writer('path') as writer:
-    ...    # use writer
+    ...     pass  # use writer
 
     Args:
         path (str): Path to a dataset.
