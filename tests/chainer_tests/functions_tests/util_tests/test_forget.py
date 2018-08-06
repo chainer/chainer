@@ -110,6 +110,18 @@ class TestForgetError(unittest.TestCase):
             functions.forget(lambda: (self.v,) * 12 + (1,))
 
 
+class TestForgetDoubleBackpropError(unittest.TestCase):
+
+    def setUp(self):
+        self.v = chainer.Variable(numpy.zeros(1))
+
+    def test_invalid_double_backprop(self):
+        with self.assertRaises(RuntimeError):
+            x = functions.forget(lambda v: v, self.v)
+            x.grad_var = variable.Variable(numpy.ones_like(x.data))
+            x.backward(enable_double_backprop=True)
+
+
 class TestForgetGrad(unittest.TestCase):
 
     def setUp(self):
