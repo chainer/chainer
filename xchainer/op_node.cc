@@ -40,7 +40,7 @@ std::shared_ptr<ArrayNode> FabricateOutputArrayNode(std::shared_ptr<OpNode> op_n
 }
 
 // static
-std::shared_ptr<OpNode> OpNode::CreateWithPrevArrayNodes(
+std::shared_ptr<OpNode> OpNode::CreateWithOutputArrayNodes(
         std::string name, BackpropId backprop_id, size_t input_count, const std::vector<ConstArrayRef>& outputs) {
     // Trick to use make_shared with private ctor
     struct OpNodeWithPublicCtor : OpNode {

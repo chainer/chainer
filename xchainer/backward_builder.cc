@@ -118,7 +118,7 @@ std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const BackpropId& b
 
     // If not found, create a new one.
     if (insert_result.second) {
-        insert_result.first->second = OpNode::CreateWithPrevArrayNodes(op_name_, backprop_id, inputs_.size(), outputs_);
+        insert_result.first->second = OpNode::CreateWithOutputArrayNodes(op_name_, backprop_id, inputs_.size(), outputs_);
         AddEdgesToOutputArrayNodesBetweenEncounteredGraphs(insert_result.first->second);
     }
 
