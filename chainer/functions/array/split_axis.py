@@ -5,8 +5,8 @@ import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
-from chainer.utils import type_check
 from chainer.utils import collections_abc
+from chainer.utils import type_check
 
 
 _numpy_split_ok = numpy.lib.NumpyVersion(numpy.__version__) >= '1.11.0'

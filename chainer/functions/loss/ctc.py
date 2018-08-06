@@ -5,8 +5,8 @@ import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer import utils
-from chainer.utils import type_check
 from chainer.utils import collections_abc
+from chainer.utils import type_check
 
 
 def _logsumexp(a, xp, axis=None):
