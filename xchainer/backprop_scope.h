@@ -10,8 +10,8 @@ namespace xchainer {
 
 class BackpropScope {
 public:
-    explicit BackpropScope(std::string graph_name, Context& context = GetDefaultContext())
-        : backprop_id_{context.MakeNextBackpropId(std::move(graph_name))} {}
+    explicit BackpropScope(std::string backprop_name, Context& context = GetDefaultContext())
+        : backprop_id_{context.MakeNextBackpropId(std::move(backprop_name))} {}
 
     BackpropScope(const BackpropScope&) = delete;
     BackpropScope& operator=(const BackpropScope&) = delete;

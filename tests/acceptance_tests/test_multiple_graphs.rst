@@ -49,7 +49,7 @@ Double backprop with single graph
 >>> y.is_grad_required()
 True
 >>> with xc.backprop_scope('foo') as foo:
-...     y.is_grad_required(foo)  # unknown graph name
+...     y.is_grad_required(foo)  # unknown backprop name
 False
 
 >>> xc.backward(y, enable_double_backprop=True)

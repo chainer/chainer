@@ -105,9 +105,9 @@ Device& Context::GetDevice(const DeviceId& device_id) {
     return backend.GetDevice(device_id.index());
 }
 
-// TODO(sonots): Create a map to get graph name from sub id
-BackpropId Context::MakeNextBackpropId(std::string graph_name) {
-    graph_stack_.emplace_back(next_graph_sub_id_, std::move(graph_name));
+// TODO(sonots): Create a map to get backprop name from sub id
+BackpropId Context::MakeNextBackpropId(std::string backprop_name) {
+    graph_stack_.emplace_back(next_graph_sub_id_, std::move(backprop_name));
     return BackpropId{*this, next_graph_sub_id_++};
 }
 

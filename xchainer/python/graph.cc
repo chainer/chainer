@@ -21,7 +21,7 @@ namespace py = pybind11;  // standard convention
 
 class PyBackpropScope {
 public:
-    explicit PyBackpropScope(std::string graph_name, Context& context) : graph_name_{std::move(graph_name)}, context_{context} {}
+    explicit PyBackpropScope(std::string backprop_name, Context& context) : backprop_name_{std::move(backprop_name)}, context_{context} {}
     BackpropId Enter() {
         if (scope_ != nullptr) {
             throw XchainerError{"Backprop scope cannot be nested."};
@@ -29,7 +29,7 @@ public:
         if (exited_) {
             throw XchainerError{"Exited backprop scope cannot be reused."};
         }
-        scope_ = std::make_unique<BackpropScope>(graph_name_, context_);
+        scope_ = std::make_unique<BackpropScope>(backprop_name_, context_);
         return scope_->backprop_id();
     }
     void Exit(py::args args) {
@@ -39,7 +39,7 @@ public:
     }
 
 private:
-    std::string graph_name_;
+    std::string backprop_name_;
     Context& context_;
     std::unique_ptr<BackpropScope> scope_;
     bool exited_{false};
@@ -66,8 +66,8 @@ void InitXchainerBackpropScope(pybind11::module& m) {
     c.def("__exit__", &PyBackpropScope::Exit);
 
     m.def("backprop_scope",
-          [](const std::string& graph_name, py::handle context) { return PyBackpropScope(graph_name, GetContext(context)); },
-          py::arg("graph_name"),
+          [](const std::string& backprop_name, py::handle context) { return PyBackpropScope(backprop_name, GetContext(context)); },
+          py::arg("backprop_name"),
           py::arg("context") = py::none());
 }
 

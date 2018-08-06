@@ -79,9 +79,9 @@ protected:
             const std::vector<T>& eps_data,
             double atol,
             double rtol,
-            const std::string& graph_name) {
+            const std::string& backprop_name) {
         Arrays inputs{testing::BuildArray(shape).WithData(input_data)};
-        BackpropScope backprop_scope{graph_name};
+        BackpropScope backprop_scope{backprop_name};
 
         if (requires_grad_) {
             inputs[0].RequireGrad(backprop_scope.backprop_id());
@@ -126,12 +126,12 @@ protected:
             const std::vector<T>& eps_grad_output_data,
             double atol,
             double rtol,
-            const std::string& graph_name) {
+            const std::string& backprop_name) {
         Arrays inputs{testing::BuildArray(shape).WithData(input_data)};
         Arrays grad_outputs{testing::BuildArray(shape).WithData(grad_output_data)};
         Arrays grad_grad_inputs{testing::BuildArray(shape).WithData(grad_grad_input_data)};
         Arrays eps{testing::BuildArray(shape).WithData(eps_input_data), testing::BuildArray(shape).WithData(eps_grad_output_data)};
-        BackpropScope backprop_scope{graph_name};
+        BackpropScope backprop_scope{backprop_name};
 
         for (auto& input : inputs) {
             input.RequireGrad(backprop_scope.backprop_id());

@@ -43,7 +43,7 @@ public:
     // If the backend and/or device do not exist, this function automatically creates them.
     Device& GetDevice(const DeviceId& device_id);
 
-    BackpropId MakeNextBackpropId(std::string graph_name);
+    BackpropId MakeNextBackpropId(std::string backprop_name);
 
     void ReleaseBackpropId(const BackpropId& backprop_id);
 
