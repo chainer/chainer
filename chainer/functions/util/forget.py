@@ -1,4 +1,3 @@
-import chainer
 from chainer import function
 from chainer import function_node
 from chainer import variable
@@ -43,12 +42,16 @@ class Forget(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         inputs = self.get_retained_inputs()
+        # Create new variables that have no creators
+        dummy_inputs = tuple([variable.Variable(inp.array) for inp in inputs])
+
         with function.force_backprop_mode():
-            outs = _call_func(self.func, inputs)
-        # Return gradients that are further backproable
-        return chainer.grad(
-            outs, inputs, grad_outputs=grad_outputs,
-            enable_double_backprop=True)
+            outs = _call_func(self.func, dummy_inputs)
+        assert len(outs) == len(grad_outputs)
+        for out, grad_output in zip(outs, grad_outputs):
+            out.grad_var = grad_output
+            out.backward()
+        return tuple([inp.grad_var for inp in dummy_inputs])
 
 
 def forget(func, *xs):
@@ -104,6 +107,10 @@ def forget(func, *xs):
         converted to :class:`~chainer.Variable`\\ s.
         This conversion takes place to ensure that this function is included
         in the computational graph to enable backward computations.
+
+    .. note::
+
+        ``F.forget`` does not support double backpropagation.
 
     Args:
         func (callable): A function to call. It needs to be called with

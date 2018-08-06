@@ -9,6 +9,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer import variable
 
 
 class TestForget(unittest.TestCase):
@@ -46,24 +47,6 @@ class TestForget(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.y),
                             cuda.to_gpu(self.gz))
-
-    def check_double_backward(self, x_data, y_data, gz_data, ggx_data,
-                              ggy_data):
-        def f(x, y):
-            return functions.forget(lambda x, y: (x * x * 3 + y * x,), x, y)
-
-        gradient_check.check_double_backward(
-            f, (x_data, y_data), gz_data, (ggx_data, ggy_data),
-            **self.check_double_backward_options)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.x, self.y, self.gz, self.ggx, self.ggy)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.y),
-                                   cuda.to_gpu(self.gz), cuda.to_gpu(self.ggx),
-                                   cuda.to_gpu(self.ggy))
 
 
 class TestForgetError(unittest.TestCase):
@@ -106,6 +89,24 @@ class TestForgetError(unittest.TestCase):
     def test_invalid_tuple_type_13th(self):
         with six.assertRaisesRegex(self, RuntimeError, '13th.*int'):
             functions.forget(lambda: (self.v,) * 12 + (1,))
+
+
+class TestForgetGrad(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        self.x = variable.Variable(self.x)
+        self.w = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        self.w = variable.Variable(self.w)
+        self.func = lambda a, b: a + b
+
+    def test_grad(self):
+        y = functions.forget(self.func, self.x, self.w)
+        y.grad_var = variable.Variable(numpy.ones_like(y.data))
+        y.backward()
+
+        assert self.x.grad_var is not None
+        assert self.w.grad_var is not None
 
 
 testing.run_module(__name__, __file__)
