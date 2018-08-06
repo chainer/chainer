@@ -150,4 +150,5 @@ class TestLinkHook(unittest.TestCase):
     def test_local_hook_unnamed(self):
         self._check_local_hook(None, 'MyLinkHook')
 
+
 testing.run_module(__name__, __file__)
