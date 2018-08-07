@@ -404,13 +404,13 @@ public:
                 }
             }
 
-            std::shared_ptr<const OpNode> op = array_node.next_op_node();
+            std::shared_ptr<const OpNode> op = array_node.creator_op_node();
             if (op) {
                 os_ << Indent(indent + 1) << "Op<" << op->name() << " " << op.get() << " rank=" << op->rank() << ">" << std::endl;
-                for (const std::shared_ptr<ArrayNode>& next_array_node : op->next_array_nodes()) {
+                for (const std::shared_ptr<ArrayNode>& input_array_node : op->input_array_nodes()) {
                     state.indent += 2;
-                    if (next_array_node != nullptr) {
-                        RunImpl(state, *next_array_node);
+                    if (input_array_node != nullptr) {
+                        RunImpl(state, *input_array_node);
                     } else {
                         os_ << Indent(state.indent) << "(null)" << std::endl;
                     }

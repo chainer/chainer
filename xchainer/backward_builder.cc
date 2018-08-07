@@ -38,34 +38,34 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> in
 }
 
 void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
-    assert(graph_to_next_array_nodes_.empty());
+    assert(graph_to_input_array_nodes_.empty());
     for (size_t input_index : input_indices_) {
         // Need to access the input array via the builder.
         const Array& input = gsl::at(builder_.inputs_, input_index);
 
-        for (std::shared_ptr<ArrayNode>& next_array_node : internal::GetArrayBody(input)->nodes()) {
-            const BackpropId& backprop_id = next_array_node->backprop_id();
+        for (std::shared_ptr<ArrayNode>& input_array_node : internal::GetArrayBody(input)->nodes()) {
+            const BackpropId& backprop_id = input_array_node->backprop_id();
             if (!IsBackpropRequired(backprop_id)) {
                 continue;
             }
 
             // Add the array node to the mapping
-            auto insert_result = graph_to_next_array_nodes_.emplace(backprop_id, NextArrayNodes{});
-            auto& next_array_nodes = insert_result.first->second;
+            auto insert_result = graph_to_input_array_nodes_.emplace(backprop_id, InputArrayNodes{});
+            auto& input_array_nodes = insert_result.first->second;
             if (insert_result.second) {
                 // New array node for a graph. Fill all array nodes with nullptr.
-                next_array_nodes.resize(builder_.inputs_.size());
+                input_array_nodes.resize(builder_.inputs_.size());
             }
             // Assign valid pointer to the array node.
-            next_array_nodes[input_index] = &next_array_node;
+            input_array_nodes[input_index] = &input_array_node;
         }
     }
 
 #ifndef NDEBUG
-    for (auto& pair : graph_to_next_array_nodes_) {
+    for (auto& pair : graph_to_input_array_nodes_) {
         const BackpropId& backprop_id = pair.first;
-        const NextArrayNodes& next_array_nodes = pair.second;
-        for (const std::shared_ptr<ArrayNode>* array_node : next_array_nodes) {
+        const InputArrayNodes& input_array_nodes = pair.second;
+        for (const std::shared_ptr<ArrayNode>* array_node : input_array_nodes) {
             assert(array_node == nullptr || backprop_id == (*array_node)->backprop_id());
         }
     }
@@ -76,23 +76,23 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
     assert(is_definition_required());
 
     // Find/Create an op node for each graph and register the given backward function to each of them.
-    for (const auto& pair : graph_to_next_array_nodes_) {
+    for (const auto& pair : graph_to_input_array_nodes_) {
         const BackpropId& backprop_id = pair.first;
-        const NextArrayNodes& next_array_nodes = pair.second;
+        const InputArrayNodes& input_array_nodes = pair.second;
 
-        std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> temp_next_array_nodes;
-        temp_next_array_nodes.reserve(next_array_nodes.size());
+        std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> temp_input_array_nodes;
+        temp_input_array_nodes.reserve(input_array_nodes.size());
         std::transform(
                 input_indices_.begin(),
                 input_indices_.end(),
-                std::back_inserter(temp_next_array_nodes),
-                [&next_array_nodes](size_t input_index) {
-                    const std::shared_ptr<ArrayNode>* array_node = next_array_nodes[input_index];
+                std::back_inserter(temp_input_array_nodes),
+                [&input_array_nodes](size_t input_index) {
+                    const std::shared_ptr<ArrayNode>* array_node = input_array_nodes[input_index];
                     return std::make_tuple(input_index, array_node == nullptr ? nullptr : *array_node);
                 });
 
         std::shared_ptr<OpNode>& op_node = builder_.FindOrCreateOpNode(backprop_id);
-        op_node->RegisterBackwardFunction(std::move(temp_next_array_nodes), backward_func);
+        op_node->RegisterBackwardFunction(std::move(temp_input_array_nodes), backward_func);
     }
 }
 
@@ -123,7 +123,7 @@ std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const BackpropId& b
 
     // If not found, create a new one.
     if (insert_result.second) {
-        insert_result.first->second = OpNode::CreateWithPrevArrayNodes(op_name_, backprop_id, inputs_.size(), outputs_);
+        insert_result.first->second = OpNode::CreateWithOutputArrayNodes(op_name_, backprop_id, inputs_.size(), outputs_);
     }
 
     assert(!op_node_map_.empty());
@@ -154,7 +154,7 @@ void BackwardBuilder::Finalize() {
 
 namespace {
 
-void AddEdgesToNextArrayNodesOfOuterGraph(
+void AddEdgesToInputArrayNodesOfOuterGraph(
         const OpNode& outer_op_node,
         OpNode& inner_op_node,
         const backward_builder_detail::RetentionRecord& input_retention_record,
@@ -166,25 +166,25 @@ void AddEdgesToNextArrayNodesOfOuterGraph(
                 return std::get<0>(cache) == outer_op_node.backprop_id();
             });
     if (it != input_retention_cache.end()) {
-        inner_op_node.AddEdgesToNextArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::get<1>(*it));
+        inner_op_node.AddEdgesToInputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::get<1>(*it));
     } else {
-        std::vector<std::shared_ptr<internal::ArrayNode>> next_array_nodes;
-        next_array_nodes.reserve(input_retention_record.size());
+        std::vector<std::shared_ptr<internal::ArrayNode>> input_array_nodes;
+        input_array_nodes.reserve(input_retention_record.size());
 
         for (size_t i = 0; i < input_retention_record.size(); ++i) {
             if (input_retention_record.IsRecorded(i)) {
-                next_array_nodes.emplace_back(outer_op_node.next_array_nodes()[i]);
+                input_array_nodes.emplace_back(outer_op_node.input_array_nodes()[i]);
             } else {
-                next_array_nodes.emplace_back(nullptr);
+                input_array_nodes.emplace_back(nullptr);
             }
         }
 
-        input_retention_cache.emplace_back(outer_op_node.backprop_id(), next_array_nodes);
-        inner_op_node.AddEdgesToNextArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::move(next_array_nodes));
+        input_retention_cache.emplace_back(outer_op_node.backprop_id(), input_array_nodes);
+        inner_op_node.AddEdgesToInputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::move(input_array_nodes));
     }
 }
 
-void AddEdgesToPreviousArrayNodesOfOuterGraph(
+void AddEdgesToOutputArrayNodesOfOuterGraph(
         const OpNode& outer_op_node,
         OpNode& inner_op_node,
         const backward_builder_detail::RetentionRecord& output_retention_record,
@@ -196,25 +196,25 @@ void AddEdgesToPreviousArrayNodesOfOuterGraph(
                 return std::get<0>(cache) == outer_op_node.backprop_id();
             });
     if (it != output_retention_cache.end()) {
-        inner_op_node.AddEdgesToPreviousArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::get<1>(*it));
+        inner_op_node.AddEdgesToOutputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::get<1>(*it));
     } else {
-        std::vector<std::shared_ptr<internal::ArrayNode>> prev_array_nodes;
-        prev_array_nodes.reserve(output_retention_record.size());
+        std::vector<std::shared_ptr<internal::ArrayNode>> output_array_nodes;
+        output_array_nodes.reserve(output_retention_record.size());
 
-        // Outer graphs must be registered using shared_ptr but op nodes only have weak_ptr to their previous array nodes.
+        // Outer graphs must be registered using shared_ptr but op nodes only have weak_ptr to their output array nodes.
         // Therefore, first convert the weak_ptr to shared_ptr, assuming that they have not expired.
         for (size_t i = 0; i < output_retention_record.size(); ++i) {
             if (output_retention_record.IsRecorded(i)) {
-                const std::weak_ptr<ArrayNode>& prev = outer_op_node.prev_array_nodes()[i];
-                assert(!prev.expired());
-                prev_array_nodes.emplace_back(prev.lock());
+                const std::weak_ptr<ArrayNode>& array_node = outer_op_node.output_array_nodes()[i];
+                assert(!array_node.expired());
+                output_array_nodes.emplace_back(array_node.lock());
             } else {
-                prev_array_nodes.emplace_back(nullptr);
+                output_array_nodes.emplace_back(nullptr);
             }
         }
 
-        output_retention_cache.emplace_back(outer_op_node.backprop_id(), prev_array_nodes);
-        inner_op_node.AddEdgesToPreviousArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::move(prev_array_nodes));
+        output_retention_cache.emplace_back(outer_op_node.backprop_id(), output_array_nodes);
+        inner_op_node.AddEdgesToOutputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::move(output_array_nodes));
     }
 }
 
@@ -238,7 +238,7 @@ void BackwardBuilder::AddEdgesToArrayNodesBetweenRetainedOuterGraphs() {
             for (auto other_it = retained_graphs.begin(); other_it != retained_graphs.end(); ++other_it) {
                 const BackpropId& other_backprop_id = *other_it;
                 if (backprop_id < other_backprop_id) {
-                    AddEdgesToNextArrayNodesOfOuterGraph(
+                    AddEdgesToInputArrayNodesOfOuterGraph(
                             *op_node_map_[backprop_id], *op_node_map_[other_backprop_id], input_retention_record_, input_retention_cache);
                 }
             }
@@ -249,7 +249,7 @@ void BackwardBuilder::AddEdgesToArrayNodesBetweenRetainedOuterGraphs() {
         for (const auto& tup : op_node_map_) {
             for (const auto& other_tup : op_node_map_) {
                 if (tup.first < other_tup.first) {
-                    AddEdgesToPreviousArrayNodesOfOuterGraph(
+                    AddEdgesToOutputArrayNodesOfOuterGraph(
                             *tup.second, *other_tup.second, output_retention_record_, output_retention_cache);
                 }
             }

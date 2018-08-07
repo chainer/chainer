@@ -551,8 +551,8 @@ TEST_P(ArrayTest, ComputationalGraph) {
         auto b_array_node = internal::GetArrayBody(b)->GetArrayNode(backprop_id);
         EXPECT_NE(a_array_node, nullptr);
         EXPECT_NE(b_array_node, nullptr);
-        auto a_op_node = a_array_node->next_op_node();
-        auto b_op_node = b_array_node->next_op_node();
+        auto a_op_node = a_array_node->creator_op_node();
+        auto b_op_node = b_array_node->creator_op_node();
         EXPECT_EQ(a_op_node, nullptr);
         EXPECT_EQ(b_op_node, nullptr);
     }
@@ -565,9 +565,9 @@ TEST_P(ArrayTest, ComputationalGraph) {
         EXPECT_NE(a_array_node, nullptr);
         EXPECT_NE(b_array_node, nullptr);
         EXPECT_NE(c_array_node, nullptr);
-        auto a_op_node = a_array_node->next_op_node();
-        auto b_op_node = b_array_node->next_op_node();
-        auto c_op_node = c_array_node->next_op_node();
+        auto a_op_node = a_array_node->creator_op_node();
+        auto b_op_node = b_array_node->creator_op_node();
+        auto c_op_node = c_array_node->creator_op_node();
         EXPECT_EQ(a_op_node, nullptr);
         EXPECT_EQ(b_op_node, nullptr);
         EXPECT_NE(c_op_node, nullptr);
@@ -584,10 +584,10 @@ TEST_P(ArrayTest, ComputationalGraph) {
         EXPECT_NE(b_array_node, nullptr);
         EXPECT_NE(c_array_node, nullptr);
         EXPECT_NE(o_array_node, nullptr);
-        auto a_op_node = a_array_node->next_op_node();
-        auto b_op_node = b_array_node->next_op_node();
-        auto c_op_node = c_array_node->next_op_node();
-        auto o_op_node = o_array_node->next_op_node();
+        auto a_op_node = a_array_node->creator_op_node();
+        auto b_op_node = b_array_node->creator_op_node();
+        auto c_op_node = c_array_node->creator_op_node();
+        auto o_op_node = o_array_node->creator_op_node();
         EXPECT_EQ(a_op_node, nullptr);
         EXPECT_EQ(b_op_node, nullptr);
         EXPECT_NE(c_op_node, nullptr);

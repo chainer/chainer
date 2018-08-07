@@ -94,12 +94,12 @@ public:
         // Defines a backward function with respect to specified input arrays (target).
         void Define(const BackwardFunction& backward_func);
 
-        bool is_definition_required() const { return !graph_to_next_array_nodes_.empty(); }
+        bool is_definition_required() const { return !graph_to_input_array_nodes_.empty(); }
 
     private:
         friend class BackwardBuilder;  // Only BackwardBuilder can create Target
 
-        using NextArrayNodes = std::vector<const std::shared_ptr<internal::ArrayNode>*>;
+        using InputArrayNodes = std::vector<const std::shared_ptr<internal::ArrayNode>*>;
 
         Target(BackwardBuilder& builder, std::vector<size_t> input_indices);
 
@@ -111,7 +111,7 @@ public:
         std::vector<size_t> input_indices_;
 
         // TODO(hvy): Consider using linear search since elements are usually few.
-        std::unordered_map<BackpropId, NextArrayNodes> graph_to_next_array_nodes_;
+        std::unordered_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes_;
     };
 
     BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs);
