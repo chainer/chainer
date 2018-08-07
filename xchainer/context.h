@@ -47,8 +47,8 @@ public:
 
     void ReleaseBackpropId(const BackpropId& backprop_id);
 
-    // Return the name of the graph.
-    // XchainerError is thrown if the graph is expired or non-existent in the context.
+    // Return the name of the backprop.
+    // XchainerError is thrown if the backprop ID is expired or non-existent in the context.
     std::string GetBackpropName(const BackpropId& backprop_id);
 
     // Checks if the backprop ID is allowed to be backpropped.

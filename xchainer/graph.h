@@ -38,8 +38,8 @@ public:
 
     BackpropOrdinal ordinal() const { return ordinal_; }
 
-    // Returns the graph name.
-    // XchainerError is thrown if the graph is expired or non-existent in the associated context.
+    // Returns the backprop name.
+    // XchainerError is thrown if the backprop ID is expired or non-existent in the associated context.
     std::string GetName() const;
 
 private:

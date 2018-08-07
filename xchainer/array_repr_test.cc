@@ -260,7 +260,7 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
     }
 }
 
-TEST(ArrayReprTest, ExpiredGraph) {
+TEST(ArrayReprTest, ExpiredBackprop) {
     testing::DeviceSession device_session{DeviceId{"native:0"}};
 
     Array a{};
