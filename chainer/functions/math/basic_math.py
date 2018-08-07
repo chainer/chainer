@@ -143,7 +143,7 @@ class Add(function_node.FunctionNode):
         return '_ + _'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x0', 'x1'))
+        type_check.argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype == in_types[1].dtype,
         )
@@ -237,7 +237,7 @@ class Sub(function_node.FunctionNode):
         return '_ - _'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x0', 'x1'))
+        type_check.argname(in_types, ('lhs', 'rhs'))
         type_check.expect(in_types[0].dtype == in_types[1].dtype)
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
@@ -308,7 +308,7 @@ class Mul(function_node.FunctionNode):
         return '_ * _'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x0', 'x1'))
+        type_check.argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -370,7 +370,7 @@ class Div(function_node.FunctionNode):
         return '_ / _'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x0', 'x1'))
+        type_check.argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -554,7 +554,7 @@ class PowVarVar(function_node.FunctionNode):
         return '_ ** _'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x0', 'x1'))
+        type_check.argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -579,7 +579,7 @@ class PowVarVarGrad(function_node.FunctionNode):
         self.y = y
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x0', 'x1', 'gy'))
+        type_check.argname(in_types, ('lhs', 'rhs', 'gy'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
