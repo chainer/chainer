@@ -30,7 +30,7 @@
 namespace xchainer {
 namespace internal {
 
-GraphId GetArrayGraphId(const Array& array, const nonstd::optional<GraphId>& graph_id);
+BackpropId GetArrayBackpropId(const Array& array, const nonstd::optional<BackpropId>& backprop_id);
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
@@ -162,9 +162,9 @@ public:
 
     // Creates a copy or a view. It will be disconnected from the specified graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsGradStopped(gsl::span<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const;
-    Array AsGradStopped(std::initializer_list<const GraphId> graph_ids, CopyKind kind = CopyKind::kView) const {
-        return AsGradStopped(gsl::span<const GraphId>{graph_ids.begin(), graph_ids.end()}, kind);
+    Array AsGradStopped(gsl::span<const BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsGradStopped(std::initializer_list<const BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const {
+        return AsGradStopped(gsl::span<const BackpropId>{backprop_ids.begin(), backprop_ids.end()}, kind);
     }
 
     // Casts to a specified type.
@@ -174,23 +174,25 @@ public:
 
     void Fill(Scalar value) const;
 
-    const nonstd::optional<Array>& GetGrad(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) const;
+    const nonstd::optional<Array>& GetGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
-    void SetGrad(Array grad, const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) const;
+    void SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
     // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
-    void ClearGrad(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) const;
+    void ClearGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
     // Returns whether the array needs to backprop.
     // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
-    bool IsGradRequired(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) const;
+    bool IsGradRequired(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
     bool IsGradRequired(AnyGraph any_graph) const;
 
     // Flags the array to compute the gradient during backprop.
     // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.
-    const Array& RequireGrad(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) const { return RequireGradImpl(*this, graph_id); }
+    const Array& RequireGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const {
+        return RequireGradImpl(*this, backprop_id);
+    }
 
-    Array& RequireGrad(const nonstd::optional<GraphId>& graph_id = nonstd::nullopt) { return RequireGradImpl(*this, graph_id); }
+    Array& RequireGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) { return RequireGradImpl(*this, backprop_id); }
 
     int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 
@@ -227,7 +229,7 @@ private:
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
     template <typename T>
-    static T& RequireGradImpl(T& array, const nonstd::optional<GraphId>& graph_id);
+    static T& RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id);
 
     std::shared_ptr<internal::ArrayBody> body_;
 };
@@ -248,7 +250,7 @@ inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array) { return std::m
 void DebugDumpComputationalGraph(
         std::ostream& os,
         const Array& array,
-        const nonstd::optional<GraphId>& graph_id,
+        const nonstd::optional<BackpropId>& backprop_id,
         int indent = 0,
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map = {});
 

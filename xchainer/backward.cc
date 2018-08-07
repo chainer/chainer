@@ -70,30 +70,30 @@ struct OpNodeComparator {
 
 class BackwardImpl {
 public:
-    BackwardImpl(const std::vector<ConstArrayRef>& outputs, const GraphId& graph_id, DoubleBackpropOption double_backprop)
-        : outputs_{outputs}, graph_id_{graph_id}, double_backprop_{double_backprop} {
+    BackwardImpl(const std::vector<ConstArrayRef>& outputs, const BackpropId& backprop_id, DoubleBackpropOption double_backprop)
+        : outputs_{outputs}, backprop_id_{backprop_id}, double_backprop_{double_backprop} {
         for (const Array& output : outputs) {
-            if (!output.IsGradRequired(graph_id)) {
-                throw XchainerError{"Cannot start backprop from an array whose gradient is not required (on graph '", graph_id, "')"};
+            if (!output.IsGradRequired(backprop_id)) {
+                throw XchainerError{"Cannot start backprop from an array whose gradient is not required (on graph '", backprop_id, "')"};
             }
-            output_array_nodes_.emplace_back(internal::GetArrayBody(output)->GetArrayNode(graph_id));
+            output_array_nodes_.emplace_back(internal::GetArrayBody(output)->GetArrayNode(backprop_id));
         }
 
         // Check if backward is possible for the given graph, in this context.
         // It is not possible if a graph from an outer scope has already been backpropped.
-        graph_id.context().CheckBackpropAllowed(graph_id);
+        backprop_id.context().CheckBackpropAllowed(backprop_id);
 
         // Graphs for which gradients will be stopped.
         // These include the current graph that is being backpropped depending on the double backprop option, as well as all graphs
-        // belonging to inner scopes, i.e. graphs with higher graph sub ids.
-        graph_ids_to_stop_gradient_ = graph_id.context().GetInnerGraphIds(graph_id_);
+        // belonging to inner scopes, i.e. graphs with higher backprop ordinal ids.
+        backprop_ids_to_stop_gradient_ = backprop_id.context().GetInnerBackpropIds(backprop_id_);
         if (double_backprop_ == DoubleBackpropOption::kDisable) {
-            graph_ids_to_stop_gradient_.emplace_back(graph_id_);
+            backprop_ids_to_stop_gradient_.emplace_back(backprop_id_);
         }
     }
 
     void Run() {
-        Context& context = graph_id_.context();
+        Context& context = backprop_id_.context();
 
         // Push initial output array nodes
         for (size_t i = 0; i < outputs_.size(); ++i) {
@@ -153,7 +153,7 @@ public:
         }
 
         // Register this graph as backpropped.
-        context.SetBackpropDone(graph_id_);
+        context.SetBackpropDone(backprop_id_);
     }
 
 private:
@@ -236,7 +236,7 @@ private:
                 if (prev_array_node != nullptr) {
                     std::shared_ptr<ArrayBody> body = prev_array_node->weak_body().lock();
                     if (body != nullptr) {
-                        body->ClearGrad(prev_array_node->graph_id());
+                        body->ClearGrad(prev_array_node->backprop_id());
                     }
                 }
             }
@@ -262,9 +262,9 @@ private:
         std::vector<Array> computed_input_grads(input_grads.size());
 
         // Call backward.
-        BackwardContext bctx{op_node, backward_entry, prev_array_nodes, output_grads, computed_input_grads, graph_id_, double_backprop_};
+        BackwardContext bctx{op_node, backward_entry, prev_array_nodes, output_grads, computed_input_grads, backprop_id_, double_backprop_};
         {
-            NoBackpropModeScope scope{graph_ids_to_stop_gradient_};
+            NoBackpropModeScope scope{backprop_ids_to_stop_gradient_};
             backward_entry.backward_func()(bctx);
         }
 
@@ -309,7 +309,7 @@ private:
                            if (body == nullptr) {
                                return false;
                            }
-                           const nonstd::optional<Array>* prev_grad = body->GetGrad(graph_id_);
+                           const nonstd::optional<Array>* prev_grad = body->GetGrad(backprop_id_);
                            return prev_grad != nullptr && prev_grad->has_value() &&
                                   internal::GetArrayBody(input_grad) == internal::GetArrayBody(**prev_grad);
                        }) ||
@@ -372,26 +372,27 @@ private:
     // Be careful that references require the referred objects alive (it should be guaranteed by Backward()).
     const std::vector<ConstArrayRef>& outputs_;
     std::vector<std::reference_wrapper<const std::shared_ptr<ArrayNode>>> output_array_nodes_;
-    const GraphId& graph_id_;
+    const BackpropId& backprop_id_;
     DoubleBackpropOption double_backprop_;
 
-    std::vector<GraphId> graph_ids_to_stop_gradient_;
+    std::vector<BackpropId> backprop_ids_to_stop_gradient_;
 };
 
 }  // namespace
 
-void Backward(const Array& output, const nonstd::optional<GraphId>& graph_id, DoubleBackpropOption double_backprop) {
-    GraphId actual_graph_id = internal::GetArrayGraphId(output, graph_id);
+void Backward(const Array& output, const nonstd::optional<BackpropId>& backprop_id, DoubleBackpropOption double_backprop) {
+    BackpropId actual_backprop_id = internal::GetArrayBackpropId(output, backprop_id);
     std::vector<ConstArrayRef> outputs{output};  // Do not inline it; we need to guarantee that the vector is alive until Run() finishes.
-    BackwardImpl{outputs, actual_graph_id, double_backprop}.Run();
+    BackwardImpl{outputs, actual_backprop_id, double_backprop}.Run();
 }
 
-void Backward(const std::vector<ConstArrayRef>& outputs, const nonstd::optional<GraphId>& graph_id, DoubleBackpropOption double_backprop) {
+void Backward(
+        const std::vector<ConstArrayRef>& outputs, const nonstd::optional<BackpropId>& backprop_id, DoubleBackpropOption double_backprop) {
     if (outputs.empty()) {
         return;
     }
-    GraphId actual_graph_id = internal::GetArrayGraphId(outputs.front().get(), graph_id);
-    BackwardImpl{outputs, actual_graph_id, double_backprop}.Run();
+    BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
+    BackwardImpl{outputs, actual_backprop_id, double_backprop}.Run();
 }
 
 }  // namespace xchainer

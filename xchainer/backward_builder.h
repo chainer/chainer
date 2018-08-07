@@ -111,7 +111,7 @@ public:
         std::vector<size_t> input_indices_;
 
         // TODO(hvy): Consider using linear search since elements are usually few.
-        std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
+        std::unordered_map<BackpropId, NextArrayNodes> graph_to_next_array_nodes_;
     };
 
     BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs);
@@ -165,7 +165,7 @@ public:
 private:
     // Create an op node for a specific graph.
     // Edges from output nodes to the op node are connected.
-    std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
+    std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const BackpropId& backprop_id);
 
     // Add shared ptrs between op nodes and array nodes belonging to outer graphs.
     // This functions is called once when the builder is finalized.
@@ -187,7 +187,7 @@ private:
 
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
-    std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
+    std::unordered_map<BackpropId, std::shared_ptr<internal::OpNode>> op_node_map_;
 
     backward_builder_detail::RetentionRecord input_retention_record_;
     backward_builder_detail::RetentionRecord output_retention_record_;

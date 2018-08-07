@@ -19,8 +19,8 @@ namespace internal {
 
 class ArrayNode {
 public:
-    ArrayNode(const Shape& shape, Dtype dtype, Device& device, GraphId graph_id)
-        : shape_{shape}, dtype_{dtype}, device_{device}, graph_id_{std::move(graph_id)} {}
+    ArrayNode(const Shape& shape, Dtype dtype, Device& device, BackpropId backprop_id)
+        : shape_{shape}, dtype_{dtype}, device_{device}, backprop_id_{std::move(backprop_id)} {}
 
     ArrayNode(const ArrayNode&) = delete;
     ArrayNode(ArrayNode&&) = delete;
@@ -40,7 +40,7 @@ public:
     void set_next_op_node(std::shared_ptr<OpNode> next_op_node) {
         assert(next_op_node != nullptr);
         assert(next_op_node_ == nullptr);
-        assert(graph_id() == next_op_node->graph_id());
+        assert(backprop_id() == next_op_node->backprop_id());
         next_op_node_ = std::move(next_op_node);
     }
 
@@ -51,8 +51,8 @@ public:
         return next_op_node_->rank();
     }
 
-    // Returns the graph ID.
-    const GraphId& graph_id() const { return graph_id_; }
+    // Returns the backprop ID.
+    const BackpropId& backprop_id() const { return backprop_id_; }
 
     const std::weak_ptr<ArrayBody>& weak_body() const { return weak_body_; }
 
@@ -65,7 +65,7 @@ private:
     Shape shape_;
     Dtype dtype_;
     Device& device_;
-    GraphId graph_id_;
+    BackpropId backprop_id_;
 };
 
 }  // namespace internal

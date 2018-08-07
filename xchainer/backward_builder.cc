@@ -44,13 +44,13 @@ void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
         const Array& input = gsl::at(builder_.inputs_, input_index);
 
         for (std::shared_ptr<ArrayNode>& next_array_node : internal::GetArrayBody(input)->nodes()) {
-            const GraphId& graph_id = next_array_node->graph_id();
-            if (!IsBackpropRequired(graph_id)) {
+            const BackpropId& backprop_id = next_array_node->backprop_id();
+            if (!IsBackpropRequired(backprop_id)) {
                 continue;
             }
 
             // Add the array node to the mapping
-            auto insert_result = graph_to_next_array_nodes_.emplace(graph_id, NextArrayNodes{});
+            auto insert_result = graph_to_next_array_nodes_.emplace(backprop_id, NextArrayNodes{});
             auto& next_array_nodes = insert_result.first->second;
             if (insert_result.second) {
                 // New array node for a graph. Fill all array nodes with nullptr.
@@ -63,10 +63,10 @@ void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
 
 #ifndef NDEBUG
     for (auto& pair : graph_to_next_array_nodes_) {
-        const GraphId& graph_id = pair.first;
+        const BackpropId& backprop_id = pair.first;
         const NextArrayNodes& next_array_nodes = pair.second;
         for (const std::shared_ptr<ArrayNode>* array_node : next_array_nodes) {
-            assert(array_node == nullptr || graph_id == (*array_node)->graph_id());
+            assert(array_node == nullptr || backprop_id == (*array_node)->backprop_id());
         }
     }
 #endif  // NDEBUG
@@ -77,7 +77,7 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
 
     // Find/Create an op node for each graph and register the given backward function to each of them.
     for (const auto& pair : graph_to_next_array_nodes_) {
-        const GraphId& graph_id = pair.first;
+        const BackpropId& backprop_id = pair.first;
         const NextArrayNodes& next_array_nodes = pair.second;
 
         std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> temp_next_array_nodes;
@@ -91,7 +91,7 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
                     return std::make_tuple(input_index, array_node == nullptr ? nullptr : *array_node);
                 });
 
-        std::shared_ptr<OpNode>& op_node = builder_.FindOrCreateOpNode(graph_id);
+        std::shared_ptr<OpNode>& op_node = builder_.FindOrCreateOpNode(backprop_id);
         op_node->RegisterBackwardFunction(std::move(temp_next_array_nodes), backward_func);
     }
 }
@@ -117,13 +117,13 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
             inputs_.begin(), inputs_.end(), [this](const Array& input) { return &inputs_.begin()->get().device() == &input.device(); }));
 }
 
-std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const GraphId& graph_id) {
+std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const BackpropId& backprop_id) {
     // Try to find an existing op node for the given graph.
-    auto insert_result = op_node_map_.emplace(graph_id, nullptr);
+    auto insert_result = op_node_map_.emplace(backprop_id, nullptr);
 
     // If not found, create a new one.
     if (insert_result.second) {
-        insert_result.first->second = OpNode::CreateWithPrevArrayNodes(op_name_, graph_id, inputs_.size(), outputs_);
+        insert_result.first->second = OpNode::CreateWithPrevArrayNodes(op_name_, backprop_id, inputs_.size(), outputs_);
     }
 
     assert(!op_node_map_.empty());
@@ -158,15 +158,15 @@ void AddEdgesToNextArrayNodesOfOuterGraph(
         const OpNode& outer_op_node,
         OpNode& inner_op_node,
         const backward_builder_detail::RetentionRecord& input_retention_record,
-        std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& input_retention_cache) {
+        std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& input_retention_cache) {
     auto it = std::find_if(
             input_retention_cache.begin(),
             input_retention_cache.end(),
-            [&outer_op_node](const std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>& cache) {
-                return std::get<0>(cache) == outer_op_node.graph_id();
+            [&outer_op_node](const std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>& cache) {
+                return std::get<0>(cache) == outer_op_node.backprop_id();
             });
     if (it != input_retention_cache.end()) {
-        inner_op_node.AddEdgesToNextArrayNodesOfOuterGraph(outer_op_node.graph_id(), std::get<1>(*it));
+        inner_op_node.AddEdgesToNextArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::get<1>(*it));
     } else {
         std::vector<std::shared_ptr<internal::ArrayNode>> next_array_nodes;
         next_array_nodes.reserve(input_retention_record.size());
@@ -179,8 +179,8 @@ void AddEdgesToNextArrayNodesOfOuterGraph(
             }
         }
 
-        input_retention_cache.emplace_back(outer_op_node.graph_id(), next_array_nodes);
-        inner_op_node.AddEdgesToNextArrayNodesOfOuterGraph(outer_op_node.graph_id(), std::move(next_array_nodes));
+        input_retention_cache.emplace_back(outer_op_node.backprop_id(), next_array_nodes);
+        inner_op_node.AddEdgesToNextArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::move(next_array_nodes));
     }
 }
 
@@ -188,15 +188,15 @@ void AddEdgesToPreviousArrayNodesOfOuterGraph(
         const OpNode& outer_op_node,
         OpNode& inner_op_node,
         const backward_builder_detail::RetentionRecord& output_retention_record,
-        std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>>& output_retention_cache) {
+        std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& output_retention_cache) {
     auto it = std::find_if(
             output_retention_cache.begin(),
             output_retention_cache.end(),
-            [&outer_op_node](const std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>& cache) {
-                return std::get<0>(cache) == outer_op_node.graph_id();
+            [&outer_op_node](const std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>& cache) {
+                return std::get<0>(cache) == outer_op_node.backprop_id();
             });
     if (it != output_retention_cache.end()) {
-        inner_op_node.AddEdgesToPreviousArrayNodesOfOuterGraph(outer_op_node.graph_id(), std::get<1>(*it));
+        inner_op_node.AddEdgesToPreviousArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::get<1>(*it));
     } else {
         std::vector<std::shared_ptr<internal::ArrayNode>> prev_array_nodes;
         prev_array_nodes.reserve(output_retention_record.size());
@@ -213,8 +213,8 @@ void AddEdgesToPreviousArrayNodesOfOuterGraph(
             }
         }
 
-        output_retention_cache.emplace_back(outer_op_node.graph_id(), prev_array_nodes);
-        inner_op_node.AddEdgesToPreviousArrayNodesOfOuterGraph(outer_op_node.graph_id(), std::move(prev_array_nodes));
+        output_retention_cache.emplace_back(outer_op_node.backprop_id(), prev_array_nodes);
+        inner_op_node.AddEdgesToPreviousArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::move(prev_array_nodes));
     }
 }
 
@@ -223,29 +223,29 @@ void AddEdgesToPreviousArrayNodesOfOuterGraph(
 void BackwardBuilder::AddEdgesToArrayNodesBetweenRetainedOuterGraphs() {
     if (input_retention_record_.IsAnyRecorded()) {
         // Create a set of graphs to which the retained inputs belong.
-        std::unordered_set<GraphId> retained_graphs{};
+        std::unordered_set<BackpropId> retained_graphs{};
         for (size_t i = 0; i < input_retention_record_.size(); ++i) {
             if (input_retention_record_.IsRecorded(i)) {
                 for (const std::shared_ptr<ArrayNode>& array_node : internal::GetArrayBody(gsl::at(inputs_, i))->nodes()) {
-                    retained_graphs.emplace(array_node->graph_id());
+                    retained_graphs.emplace(array_node->backprop_id());
                 }
             }
         }
 
-        std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> input_retention_cache{};
+        std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> input_retention_cache{};
         for (auto it = retained_graphs.begin(); it != retained_graphs.end(); ++it) {
-            const GraphId& graph_id = *it;
+            const BackpropId& backprop_id = *it;
             for (auto other_it = retained_graphs.begin(); other_it != retained_graphs.end(); ++other_it) {
-                const GraphId& other_graph_id = *other_it;
-                if (graph_id < other_graph_id) {
+                const BackpropId& other_backprop_id = *other_it;
+                if (backprop_id < other_backprop_id) {
                     AddEdgesToNextArrayNodesOfOuterGraph(
-                            *op_node_map_[graph_id], *op_node_map_[other_graph_id], input_retention_record_, input_retention_cache);
+                            *op_node_map_[backprop_id], *op_node_map_[other_backprop_id], input_retention_record_, input_retention_cache);
                 }
             }
         }
     }
     if (output_retention_record_.IsAnyRecorded()) {
-        std::vector<std::tuple<GraphId, std::vector<std::shared_ptr<ArrayNode>>>> output_retention_cache{};
+        std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> output_retention_cache{};
         for (const auto& tup : op_node_map_) {
             for (const auto& other_tup : op_node_map_) {
                 if (tup.first < other_tup.first) {

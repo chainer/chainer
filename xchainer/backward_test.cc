@@ -22,11 +22,11 @@
 #include "xchainer/cuda/cuda_backend.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
+#include "xchainer/backprop_scope.h"
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
-#include "xchainer/graph_scope.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/op_node.h"
 #include "xchainer/routines/creation.h"
@@ -56,10 +56,10 @@ TEST(BackwardContextTest, InputGrad) {
     // (x3) <-
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
     auto forward = [](const Array& x1, const Array& x2, const Array& x3, Array& y1) {
         Array x1_c = x1.AsGradStopped();
@@ -95,17 +95,17 @@ TEST(BackwardContextTest, InputGrad) {
     };
 
     Array x_value = testing::BuildArray({1}).WithLinearData<double>(3);
-    Array x1 = x_value.MakeView().RequireGrad(graph_id1);
-    Array x2 = x_value.MakeView().RequireGrad(graph_id1);
-    Array x3 = x_value.MakeView().RequireGrad(graph_id2);
+    Array x1 = x_value.MakeView().RequireGrad(backprop_id1);
+    Array x2 = x_value.MakeView().RequireGrad(backprop_id1);
+    Array x3 = x_value.MakeView().RequireGrad(backprop_id2);
     Array expected_x3_grad = OnesLike(x_value, x_value.device());
     Array y1{};
     forward(x1, x2, x3, y1);
-    Backward({y1}, graph_id2);
-    testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(graph_id2));
+    Backward({y1}, backprop_id2);
+    testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(backprop_id2));
 }
 
-// TODO(hvy): Separate tests of graph stack manipulation into another test class/fixture and parameterize the outermost graph over the
+// TODO(hvy): Separate tests of backprop stack manipulation into another test class/fixture and parameterize the outermost graph over the
 // default graph and an explicitly scoped graph. Some tests will become redundant. Remove them.
 class BackpropTest : public ::testing::TestWithParam<std::string> {
 protected:
@@ -295,60 +295,60 @@ TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
 #endif  // XCHAINER_ENABLE_CUDA
 
 TEST_P(BackpropTest, MultipleGraphsBackprop) {
-    GraphScope graph_scope_y{"graph_y"};
-    GraphScope graph_scope_x{"graph_x"};
-    GraphId graph_x = graph_scope_x.graph_id();
-    GraphId graph_y = graph_scope_y.graph_id();
+    BackpropScope backprop_scope_y{"bp_y"};
+    BackpropScope backprop_scope_x{"bp_x"};
+    BackpropId bp_x = backprop_scope_x.backprop_id();
+    BackpropId bp_y = backprop_scope_y.backprop_id();
 
     Array x_value = Full({1}, 2.0f);
     Array y_value = Full({1}, 3.0f);
-    Array x = x_value.MakeView().RequireGrad(graph_x);
-    Array y = y_value.MakeView().RequireGrad(graph_y);
+    Array x = x_value.MakeView().RequireGrad(bp_x);
+    Array y = y_value.MakeView().RequireGrad(bp_y);
 
     Array z = x * (x + y);
 
-    Backward(z, graph_x, DoubleBackpropOption::kDisable);
+    Backward(z, bp_x, DoubleBackpropOption::kDisable);
 
-    Array gx = *x.GetGrad(graph_x);  // 2x + y
-    EXPECT_FALSE(gx.IsGradRequired(graph_x));
-    EXPECT_TRUE(gx.IsGradRequired(graph_y));
+    Array gx = *x.GetGrad(bp_x);  // 2x + y
+    EXPECT_FALSE(gx.IsGradRequired(bp_x));
+    EXPECT_TRUE(gx.IsGradRequired(bp_y));
     testing::ExpectEqual(2 * x_value + y_value, gx);
 
     Array w = x * gx;
-    Backward(w, graph_y, DoubleBackpropOption::kDisable);
+    Backward(w, bp_y, DoubleBackpropOption::kDisable);
 
-    Array gy = *y.GetGrad(graph_y);
-    EXPECT_FALSE(gy.IsGradRequired(graph_x));
-    EXPECT_FALSE(gy.IsGradRequired(graph_y));
+    Array gy = *y.GetGrad(bp_y);
+    EXPECT_FALSE(gy.IsGradRequired(bp_x));
+    EXPECT_FALSE(gy.IsGradRequired(bp_y));
     ExpectEqual<float>(x_value, gy);  // x
 }
 
 TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
-    GraphScope graph_scope_y{"graph_y"};
-    GraphScope graph_scope_x{"graph_x"};
-    GraphId graph_x = graph_scope_x.graph_id();
-    GraphId graph_y = graph_scope_y.graph_id();
+    BackpropScope backprop_scope_y{"bp_y"};
+    BackpropScope backprop_scope_x{"bp_x"};
+    BackpropId bp_x = backprop_scope_x.backprop_id();
+    BackpropId bp_y = backprop_scope_y.backprop_id();
 
     Array x_value = Full({1}, 2.0f);
     Array y_value = Full({1}, 3.0f);
-    Array x = x_value.MakeView().RequireGrad(graph_x);
-    Array y = y_value.MakeView().RequireGrad(graph_y);
+    Array x = x_value.MakeView().RequireGrad(bp_x);
+    Array y = y_value.MakeView().RequireGrad(bp_y);
 
     Array z = x * (x + y);
 
-    Backward(z, graph_x, DoubleBackpropOption::kEnable);
+    Backward(z, bp_x, DoubleBackpropOption::kEnable);
 
-    Array gx = *x.GetGrad(graph_x);  // 2x + y
-    EXPECT_TRUE(gx.IsGradRequired(graph_x));
-    EXPECT_TRUE(gx.IsGradRequired(graph_y));
+    Array gx = *x.GetGrad(bp_x);  // 2x + y
+    EXPECT_TRUE(gx.IsGradRequired(bp_x));
+    EXPECT_TRUE(gx.IsGradRequired(bp_y));
     testing::ExpectEqual(2 * x_value + y_value, gx);
 
     Array w = x * gx;
-    Backward(w, graph_y, DoubleBackpropOption::kDisable);
+    Backward(w, bp_y, DoubleBackpropOption::kDisable);
 
-    Array gy = *y.GetGrad(graph_y);
-    EXPECT_FALSE(gy.IsGradRequired(graph_x));  // False because graph_x is inner
-    EXPECT_FALSE(gy.IsGradRequired(graph_y));
+    Array gy = *y.GetGrad(bp_y);
+    EXPECT_FALSE(gy.IsGradRequired(bp_x));  // False because bp_x is inner
+    EXPECT_FALSE(gy.IsGradRequired(bp_y));
     ExpectEqual<float>(x_value, gy);  // x
 }
 
@@ -390,73 +390,73 @@ TEST_P(BackpropTest, MultipleGraphsBasic) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id_1 = graph_scope1.graph_id();
-    GraphId graph_id_2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id_2 = backprop_scope2.backprop_id();
 
-    x1.RequireGrad(graph_id_1);
-    x2.RequireGrad(graph_id_2);
+    x1.RequireGrad(backprop_id_1);
+    x2.RequireGrad(backprop_id_2);
 
     Array y1 = x1 * x2;
-    Backward(y1, graph_id_1);
+    Backward(y1, backprop_id_1);
 
     Array expected_1 = MakeFullArray({1}, {5.0f});
-    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_1));
-    EXPECT_FALSE(x2.GetGrad(graph_id_2));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(backprop_id_1));
+    EXPECT_FALSE(x2.GetGrad(backprop_id_2));
 }
 
 TEST_P(BackpropTest, MultipleGraphsSameInput) {
     Array x1 = MakeFullArray({1}, {3.0f});
 
-    GraphScope graph_scope1{"graph1"};
-    GraphId graph_id_1 = graph_scope1.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
 
-    x1.RequireGrad(graph_id_1);
+    x1.RequireGrad(backprop_id_1);
 
     Array y1 = x1 * x1;
-    Backward(y1, graph_id_1);
+    Backward(y1, backprop_id_1);
 
     Array expected_1 = MakeFullArray({1}, {6.0f});
-    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_1));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(backprop_id_1));
 
-    EXPECT_FALSE(x1.GetGrad(graph_id_1)->IsGradRequired(graph_id_1));
+    EXPECT_FALSE(x1.GetGrad(backprop_id_1)->IsGradRequired(backprop_id_1));
 }
 
 TEST_P(BackpropTest, MultipleGraphsNonExisting) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id_1 = graph_scope1.graph_id();
-    GraphId graph_id_2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id_1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id_2 = backprop_scope2.backprop_id();
 
-    x1.RequireGrad(graph_id_1);
-    x2.RequireGrad(graph_id_1);
+    x1.RequireGrad(backprop_id_1);
+    x2.RequireGrad(backprop_id_1);
 
     Array y1 = x1 * x2;
-    EXPECT_THROW(Backward(y1, graph_id_2), XchainerError);
+    EXPECT_THROW(Backward(y1, backprop_id_2), XchainerError);
 }
 
 TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    GraphScope graph_scope{"graph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
 
-    x1.RequireGrad(graph_id);
+    x1.RequireGrad(backprop_id);
     x2.RequireGrad();
 
     Array y1 = x1 * x2;
-    Backward(y1, graph_id);
+    Backward(y1, backprop_id);
 
     Array expected_1 = MakeFullArray({1}, {5.0f});
-    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(backprop_id));
     EXPECT_FALSE(x2.GetGrad());
 
-    x1.ClearGrad(graph_id);
+    x1.ClearGrad(backprop_id);
     x2.ClearGrad();
 
     Array y2 = x1 * x2;
@@ -464,72 +464,72 @@ TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
 
     Array expected_2 = MakeFullArray({1}, {2.0f});
     ExpectEqual<float>(expected_2, *x2.GetGrad());
-    EXPECT_FALSE(x1.GetGrad(graph_id));
+    EXPECT_FALSE(x1.GetGrad(backprop_id));
 
-    x1.ClearGrad(graph_id);
+    x1.ClearGrad(backprop_id);
     x2.ClearGrad();
 
     x1.RequireGrad();
-    x2.RequireGrad(graph_id);
+    x2.RequireGrad(backprop_id);
 
     Array y3 = x1 * x2;
     Backward(y3);
 
     ExpectEqual<float>(expected_1, *x1.GetGrad());
     ExpectEqual<float>(expected_2, *x2.GetGrad());
-    EXPECT_FALSE(x1.GetGrad(graph_id));
-    EXPECT_FALSE(x2.GetGrad(graph_id));
+    EXPECT_FALSE(x1.GetGrad(backprop_id));
+    EXPECT_FALSE(x2.GetGrad(backprop_id));
 }
 
 TEST_P(BackpropTest, MultipleGraphsReuse) {
     Array x1 = MakeFullArray({1}, {2.0f});
     Array x2 = MakeFullArray({1}, {5.0f});
 
-    GraphScope graph_scope_outer{"graph_outer"};
-    GraphScope graph_scope_inner{"graph_inner"};
-    GraphId graph_id_outer = graph_scope_outer.graph_id();
-    GraphId graph_id_inner = graph_scope_inner.graph_id();
+    BackpropScope backprop_scope_outer{"bp_outer"};
+    BackpropScope backprop_scope_inner{"bp_inner"};
+    BackpropId backprop_id_outer = backprop_scope_outer.backprop_id();
+    BackpropId backprop_id_inner = backprop_scope_inner.backprop_id();
 
-    x1.RequireGrad(graph_id_inner);
-    x2.RequireGrad(graph_id_outer);
+    x1.RequireGrad(backprop_id_inner);
+    x2.RequireGrad(backprop_id_outer);
 
     Array y1 = x1 * x2;
-    Backward(y1, graph_id_inner);
+    Backward(y1, backprop_id_inner);
 
     Array expected_1 = MakeFullArray({1}, {5.0f});
-    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_inner));
-    EXPECT_FALSE(x2.GetGrad(graph_id_outer));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(backprop_id_inner));
+    EXPECT_FALSE(x2.GetGrad(backprop_id_outer));
 
-    x1.ClearGrad(graph_id_inner);
-    x2.ClearGrad(graph_id_outer);
+    x1.ClearGrad(backprop_id_inner);
+    x2.ClearGrad(backprop_id_outer);
 
     Array y2 = x1 * x2;
-    Backward(y2, graph_id_outer);
+    Backward(y2, backprop_id_outer);
 
     Array expected_2 = MakeFullArray({1}, {2.0f});
-    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_outer));
-    EXPECT_FALSE(x1.GetGrad(graph_id_inner));
+    ExpectEqual<float>(expected_2, *x2.GetGrad(backprop_id_outer));
+    EXPECT_FALSE(x1.GetGrad(backprop_id_inner));
 
-    x1.ClearGrad(graph_id_inner);
-    x2.ClearGrad(graph_id_outer);
+    x1.ClearGrad(backprop_id_inner);
+    x2.ClearGrad(backprop_id_outer);
 
-    x1.RequireGrad(graph_id_outer);
-    x2.RequireGrad(graph_id_inner);
+    x1.RequireGrad(backprop_id_outer);
+    x2.RequireGrad(backprop_id_inner);
 
     Array y3 = x1 * x2;
-    Backward(y3, graph_id_outer);
+    Backward(y3, backprop_id_outer);
 
-    ExpectEqual<float>(expected_1, *x1.GetGrad(graph_id_outer));
-    ExpectEqual<float>(expected_2, *x2.GetGrad(graph_id_outer));
-    EXPECT_FALSE(x1.GetGrad(graph_id_inner));
-    EXPECT_FALSE(x2.GetGrad(graph_id_inner));
+    ExpectEqual<float>(expected_1, *x1.GetGrad(backprop_id_outer));
+    ExpectEqual<float>(expected_2, *x2.GetGrad(backprop_id_outer));
+    EXPECT_FALSE(x1.GetGrad(backprop_id_inner));
+    EXPECT_FALSE(x2.GetGrad(backprop_id_inner));
 }
 
 TEST_P(BackpropTest, MultipleGraphsNoLinks) {
-    GraphScope graph_scope_outer{"graph_outer"};
-    GraphScope graph_scope_inner{"graph_inner"};
-    GraphId graph_id_outer = graph_scope_outer.graph_id();
-    GraphId graph_id_inner = graph_scope_inner.graph_id();
+    BackpropScope backprop_scope_outer{"bp_outer"};
+    BackpropScope backprop_scope_inner{"bp_inner"};
+    BackpropId backprop_id_outer = backprop_scope_outer.backprop_id();
+    BackpropId backprop_id_inner = backprop_scope_inner.backprop_id();
 
     Array y1_grad_stopped;
     std::weak_ptr<internal::ArrayNode> x1_array_node;
@@ -538,13 +538,13 @@ TEST_P(BackpropTest, MultipleGraphsNoLinks) {
         Array x1 = MakeFullArray({1}, {2.0f});
         Array x2 = MakeFullArray({1}, {5.0f});
 
-        x1.RequireGrad(graph_id_outer);
-        x2.RequireGrad(graph_id_inner);
+        x1.RequireGrad(backprop_id_outer);
+        x2.RequireGrad(backprop_id_inner);
 
         Array y1 = x1 + x2;
-        y1_grad_stopped = y1.AsGradStopped(graph_id_outer);
+        y1_grad_stopped = y1.AsGradStopped(backprop_id_outer);
 
-        x1_array_node = internal::GetArrayBody(x1)->GetArrayNode(graph_id_outer);
+        x1_array_node = internal::GetArrayBody(x1)->GetArrayNode(backprop_id_outer);
     }
 
     EXPECT_TRUE(x1_array_node.expired());
@@ -554,16 +554,16 @@ TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
     Array x = MakeFullArray({1}, {2.0f});
     x.RequireGrad();
 
-    GraphScope graph_scope{"graph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
 
-    x.RequireGrad(graph_id);
+    x.RequireGrad(backprop_id);
 
     Array y = x * x;
 
-    Backward(y, graph_id);
+    Backward(y, backprop_id);
 
-    EXPECT_TRUE(x.GetGrad(graph_id)->IsGradRequired());
+    EXPECT_TRUE(x.GetGrad(backprop_id)->IsGradRequired());
 
     Backward(y);  // no throw
 }
@@ -572,102 +572,102 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
     Array x = MakeFullArray({1}, {2.0f});
     x.RequireGrad();
 
-    GraphScope graph_scope{"graph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
 
-    x.RequireGrad(graph_id);
+    x.RequireGrad(backprop_id);
 
     Array y = x * x;
 
     Backward(y);
 
-    EXPECT_FALSE(x.GetGrad()->IsGradRequired(graph_id));
+    EXPECT_FALSE(x.GetGrad()->IsGradRequired(backprop_id));
 
-    EXPECT_THROW(Backward(y, graph_id), XchainerError);
+    EXPECT_THROW(Backward(y, backprop_id), XchainerError);
 }
 
 TEST_P(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
     Array x = MakeFullArray({1}, {2.0f});
 
-    GraphScope graph_scope_outer{"graph_outer"};
-    GraphScope graph_scope_inner{"graph_inner"};
-    GraphId graph_id_outer = graph_scope_outer.graph_id();
-    GraphId graph_id_inner = graph_scope_inner.graph_id();
+    BackpropScope backprop_scope_outer{"bp_outer"};
+    BackpropScope backprop_scope_inner{"bp_inner"};
+    BackpropId backprop_id_outer = backprop_scope_outer.backprop_id();
+    BackpropId backprop_id_inner = backprop_scope_inner.backprop_id();
 
-    x.RequireGrad(graph_id_outer);
-    x.RequireGrad(graph_id_inner);
+    x.RequireGrad(backprop_id_outer);
+    x.RequireGrad(backprop_id_inner);
 
     Array y = x * x;
 
-    Backward(y, graph_id_outer);
+    Backward(y, backprop_id_outer);
 
-    EXPECT_FALSE(x.GetGrad(graph_id_outer)->IsGradRequired(graph_id_inner));
+    EXPECT_FALSE(x.GetGrad(backprop_id_outer)->IsGradRequired(backprop_id_inner));
 
-    EXPECT_THROW(Backward(y, graph_id_inner), XchainerError);
+    EXPECT_THROW(Backward(y, backprop_id_inner), XchainerError);
 }
 
 TEST_P(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
     Array x = MakeFullArray({1}, {2.0f});
     Array y;
 
-    GraphScope graph_scope_1{"graph_1"};
-    GraphId graph_id_1 = graph_scope_1.graph_id();
+    BackpropScope backprop_scope_1{"bp1"};
+    BackpropId backprop_id_1 = backprop_scope_1.backprop_id();
     {
-        GraphScope graph_scope_2{"graph_2"};
-        GraphId graph_id_2 = graph_scope_2.graph_id();
+        BackpropScope backprop_scope_2{"bp2"};
+        BackpropId backprop_id_2 = backprop_scope_2.backprop_id();
 
         x.RequireGrad();
-        x.RequireGrad(graph_id_1);
-        x.RequireGrad(graph_id_2);
+        x.RequireGrad(backprop_id_1);
+        x.RequireGrad(backprop_id_2);
 
         y = x * x;
 
-        Backward(y, graph_id_2);
+        Backward(y, backprop_id_2);
 
-        EXPECT_TRUE(x.GetGrad(graph_id_2)->IsGradRequired());
-        EXPECT_TRUE(x.GetGrad(graph_id_2)->IsGradRequired(graph_id_1));
+        EXPECT_TRUE(x.GetGrad(backprop_id_2)->IsGradRequired());
+        EXPECT_TRUE(x.GetGrad(backprop_id_2)->IsGradRequired(backprop_id_1));
 
         Backward(y);
 
-        EXPECT_FALSE(x.GetGrad()->IsGradRequired(graph_id_1));
-        EXPECT_FALSE(x.GetGrad()->IsGradRequired(graph_id_2));
+        EXPECT_FALSE(x.GetGrad()->IsGradRequired(backprop_id_1));
+        EXPECT_FALSE(x.GetGrad()->IsGradRequired(backprop_id_2));
     }
 
     // Default graph backward is already finished in a deeper scope.
-    EXPECT_THROW(Backward(y, graph_id_1), XchainerError);
+    EXPECT_THROW(Backward(y, backprop_id_1), XchainerError);
 }
 
 TEST_P(BackpropTest, BackwardThreeGraphs) {
     Array x = MakeFullArray({1}, {2.0f});
     Array y;
 
-    GraphScope graph_scope_1{"graph_1"};
-    GraphScope graph_scope_2{"graph_2"};
-    GraphId graph_id_1 = graph_scope_1.graph_id();
-    GraphId graph_id_2 = graph_scope_2.graph_id();
+    BackpropScope backprop_scope_1{"bp1"};
+    BackpropScope backprop_scope_2{"bp2"};
+    BackpropId backprop_id_1 = backprop_scope_1.backprop_id();
+    BackpropId backprop_id_2 = backprop_scope_2.backprop_id();
     {
-        GraphScope graph_scope_3{"graph_3"};
-        GraphId graph_id_3 = graph_scope_3.graph_id();
+        BackpropScope backprop_scope_3{"bp3"};
+        BackpropId backprop_id_3 = backprop_scope_3.backprop_id();
 
-        x.RequireGrad(graph_id_1);
-        x.RequireGrad(graph_id_2);
-        x.RequireGrad(graph_id_3);
+        x.RequireGrad(backprop_id_1);
+        x.RequireGrad(backprop_id_2);
+        x.RequireGrad(backprop_id_3);
 
         y = x * x;
 
-        Backward(y, graph_id_3);
+        Backward(y, backprop_id_3);
 
-        EXPECT_TRUE(x.GetGrad(graph_id_3)->IsGradRequired(graph_id_1));
-        EXPECT_TRUE(x.GetGrad(graph_id_3)->IsGradRequired(graph_id_2));
+        EXPECT_TRUE(x.GetGrad(backprop_id_3)->IsGradRequired(backprop_id_1));
+        EXPECT_TRUE(x.GetGrad(backprop_id_3)->IsGradRequired(backprop_id_2));
 
-        Backward(y, graph_id_1);
+        Backward(y, backprop_id_1);
 
-        EXPECT_FALSE(x.GetGrad(graph_id_1)->IsGradRequired(graph_id_2));
-        EXPECT_FALSE(x.GetGrad(graph_id_1)->IsGradRequired(graph_id_3));
+        EXPECT_FALSE(x.GetGrad(backprop_id_1)->IsGradRequired(backprop_id_2));
+        EXPECT_FALSE(x.GetGrad(backprop_id_1)->IsGradRequired(backprop_id_3));
     }
 
     // Outer scope graph backward is already finished in a deeper scope.
-    EXPECT_THROW(Backward(y, graph_id_2), XchainerError);
+    EXPECT_THROW(Backward(y, backprop_id_2), XchainerError);
 }
 
 TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
@@ -677,8 +677,8 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     std::weak_ptr<internal::ArrayBody> x_grad_body{};
 
     {
-        GraphScope graph_scope{"testgraph"};
-        GraphId graph_id = graph_scope.graph_id();
+        BackpropScope backprop_scope{"bp"};
+        BackpropId backprop_id = backprop_scope.backprop_id();
 
         auto forward = [](const Array& x, Array& y) {
             y = x.AsGradStopped() * x.AsGradStopped();
@@ -695,12 +695,12 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
         Array x = testing::BuildArray({1}).WithLinearData<float>();
         Array y{};
 
-        x.RequireGrad(graph_id);
+        x.RequireGrad(backprop_id);
         forward(x, y);
 
-        Backward(y, graph_id, DoubleBackpropOption::kEnable);
+        Backward(y, backprop_id, DoubleBackpropOption::kEnable);
 
-        x_grad_body = internal::GetArrayBody(*x.GetGrad(graph_id));  // Keep weak pointer to the body of x.grad
+        x_grad_body = internal::GetArrayBody(*x.GetGrad(backprop_id));  // Keep weak pointer to the body of x.grad
     }
 
     // The body of x.grad must have been released.
@@ -771,8 +771,8 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    GraphScope graph_scope{"testgraph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
     Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
@@ -780,7 +780,7 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
 
     DoubleBackpropOption double_backprop_opt = GetParam();
 
-    auto forward = [gy1_value, double_backprop_opt, &graph_id](const Array& x1, Array& y1) {
+    auto forward = [gy1_value, double_backprop_opt, &backprop_id](const Array& x1, Array& y1) {
         ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
         y1 = 2 * x1.AsGradStopped() + 1;
         ASSERT_FALSE(y1.IsGradRequired(AnyGraph{}));
@@ -792,11 +792,11 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
             EXPECT_TRUE(bt.is_definition_required());
             EXPECT_TRUE(static_cast<bool>(bt));
 
-            bt.Define([gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+            bt.Define([gy1_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad();  // omit index
                 testing::ExpectEqual(gy1_value, gy1);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                    EXPECT_TRUE(gy1.IsGradRequired(backprop_id));
                 } else {
                     EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 }
@@ -806,23 +806,23 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
         }
     };
 
-    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x1 = x1_value.MakeView().RequireGrad(backprop_id);
     Array y1{};
     forward(x1, y1);
 
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        y1.SetGrad(gy1_value.MakeView().RequireGrad(graph_id), graph_id);
+        y1.SetGrad(gy1_value.MakeView().RequireGrad(backprop_id), backprop_id);
     } else {
-        y1.SetGrad(gy1_value, graph_id);
+        y1.SetGrad(gy1_value, backprop_id);
     }
-    Backward({y1}, graph_id, double_backprop_opt);
+    Backward({y1}, backprop_id, double_backprop_opt);
 
-    testing::ExpectEqual(gy1_value, *y1.GetGrad(graph_id));
-    testing::ExpectEqual(gx1_value, *x1.GetGrad(graph_id));
+    testing::ExpectEqual(gy1_value, *y1.GetGrad(backprop_id));
+    testing::ExpectEqual(gx1_value, *x1.GetGrad(backprop_id));
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
+        EXPECT_TRUE(y1.GetGrad(backprop_id)->IsGradRequired(backprop_id));
     } else {
-        EXPECT_FALSE(y1.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
+        EXPECT_FALSE(y1.GetGrad(backprop_id)->IsGradRequired(AnyGraph{}));
     }
 }
 
@@ -830,8 +830,8 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    GraphScope graph_scope{"testgraph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
     Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
@@ -840,7 +840,7 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
 
     DoubleBackpropOption double_backprop_opt = GetParam();
 
-    auto forward = [gy1_value, gy2_value, double_backprop_opt, &graph_id](const Array& x1, Array& y1, Array& y2) {
+    auto forward = [gy1_value, gy2_value, double_backprop_opt, &backprop_id](const Array& x1, Array& y1, Array& y2) {
         ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
         y1 = 2 * x1.AsGradStopped() + 1;
         y2 = 3 * x1.AsGradStopped() + 2;
@@ -854,14 +854,14 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
             EXPECT_TRUE(bt.is_definition_required());
             EXPECT_TRUE(static_cast<bool>(bt));
 
-            bt.Define([gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+            bt.Define([gy1_value, gy2_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad(0);  // by index
                 const Array& gy2 = bctx.output_grad(1);
                 testing::ExpectEqual(gy1_value, gy1);
                 testing::ExpectEqual(gy2_value, gy2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(gy1.IsGradRequired(graph_id));
-                    EXPECT_TRUE(gy2.IsGradRequired(graph_id));
+                    EXPECT_TRUE(gy1.IsGradRequired(backprop_id));
+                    EXPECT_TRUE(gy2.IsGradRequired(backprop_id));
                 } else {
                     EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                     EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
@@ -872,29 +872,29 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
         }
     };
 
-    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x1 = x1_value.MakeView().RequireGrad(backprop_id);
     Array y1{};
     Array y2{};
     forward(x1, y1, y2);
 
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        y1.SetGrad(gy1_value.MakeView().RequireGrad(graph_id), graph_id);
-        y2.SetGrad(gy2_value.MakeView().RequireGrad(graph_id), graph_id);
+        y1.SetGrad(gy1_value.MakeView().RequireGrad(backprop_id), backprop_id);
+        y2.SetGrad(gy2_value.MakeView().RequireGrad(backprop_id), backprop_id);
     } else {
-        y1.SetGrad(gy1_value, graph_id);
-        y2.SetGrad(gy2_value, graph_id);
+        y1.SetGrad(gy1_value, backprop_id);
+        y2.SetGrad(gy2_value, backprop_id);
     }
-    Backward({y1, y2}, graph_id, double_backprop_opt);
+    Backward({y1, y2}, backprop_id, double_backprop_opt);
 
-    testing::ExpectEqual(gy1_value, *y1.GetGrad(graph_id));
-    testing::ExpectEqual(gy2_value, *y2.GetGrad(graph_id));
-    testing::ExpectEqual(gx1_value, *x1.GetGrad(graph_id));
+    testing::ExpectEqual(gy1_value, *y1.GetGrad(backprop_id));
+    testing::ExpectEqual(gy2_value, *y2.GetGrad(backprop_id));
+    testing::ExpectEqual(gx1_value, *x1.GetGrad(backprop_id));
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
-        EXPECT_TRUE(y2.GetGrad(graph_id)->IsGradRequired(graph_id));
+        EXPECT_TRUE(y1.GetGrad(backprop_id)->IsGradRequired(backprop_id));
+        EXPECT_TRUE(y2.GetGrad(backprop_id)->IsGradRequired(backprop_id));
     } else {
-        EXPECT_FALSE(y1.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
-        EXPECT_FALSE(y2.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
+        EXPECT_FALSE(y1.GetGrad(backprop_id)->IsGradRequired(AnyGraph{}));
+        EXPECT_FALSE(y2.GetGrad(backprop_id)->IsGradRequired(AnyGraph{}));
     }
 }
 
@@ -902,8 +902,8 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    GraphScope graph_scope{"testgraph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
     Array x2_value = testing::BuildArray(shape).WithData<T>({4, -1});
@@ -915,7 +915,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
 
     DoubleBackpropOption double_backprop_opt = GetParam();
 
-    auto forward = [gy1_value, double_backprop_opt, &graph_id](const Array& x1, const Array& x2, const Array& x3, Array& y1) {
+    auto forward = [gy1_value, double_backprop_opt, &backprop_id](const Array& x1, const Array& x2, const Array& x3, Array& y1) {
         ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
         ASSERT_TRUE(x2.IsGradRequired(AnyGraph{}));
         ASSERT_TRUE(x3.IsGradRequired(AnyGraph{}));
@@ -929,11 +929,11 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                 EXPECT_TRUE(bt.is_definition_required());
                 EXPECT_TRUE(static_cast<bool>(bt));
 
-                bt.Define([gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                bt.Define([gy1_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad();  // omit index
                     testing::ExpectEqual(gy1_value, gy1);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                        EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                        EXPECT_TRUE(gy1.IsGradRequired(backprop_id));
                     } else {
                         EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                     }
@@ -954,11 +954,11 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                 EXPECT_TRUE(bt.is_definition_required());
                 EXPECT_TRUE(static_cast<bool>(bt));
 
-                bt.Define([gy1_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                bt.Define([gy1_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
                     testing::ExpectEqual(gy1_value, gy1);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                        EXPECT_TRUE(gy1.IsGradRequired(graph_id));
+                        EXPECT_TRUE(gy1.IsGradRequired(backprop_id));
                     } else {
                         EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                     }
@@ -982,27 +982,27 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
         }
     };
 
-    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
-    Array x2 = x2_value.MakeView().RequireGrad(graph_id);
-    Array x3 = x3_value.MakeView().RequireGrad(graph_id);
+    Array x1 = x1_value.MakeView().RequireGrad(backprop_id);
+    Array x2 = x2_value.MakeView().RequireGrad(backprop_id);
+    Array x3 = x3_value.MakeView().RequireGrad(backprop_id);
     Array y1{};
     forward(x1, x2, x3, y1);
 
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        y1.SetGrad(gy1_value.MakeView().RequireGrad(graph_id), graph_id);
+        y1.SetGrad(gy1_value.MakeView().RequireGrad(backprop_id), backprop_id);
     } else {
-        y1.SetGrad(gy1_value, graph_id);
+        y1.SetGrad(gy1_value, backprop_id);
     }
-    Backward({y1}, graph_id, double_backprop_opt);
+    Backward({y1}, backprop_id, double_backprop_opt);
 
-    testing::ExpectEqual(gy1_value, *y1.GetGrad(graph_id));
-    testing::ExpectEqual(gx1_value, *x1.GetGrad(graph_id));
-    testing::ExpectEqual(gx2_value, *x2.GetGrad(graph_id));
-    testing::ExpectEqual(gx3_value, *x3.GetGrad(graph_id));
+    testing::ExpectEqual(gy1_value, *y1.GetGrad(backprop_id));
+    testing::ExpectEqual(gx1_value, *x1.GetGrad(backprop_id));
+    testing::ExpectEqual(gx2_value, *x2.GetGrad(backprop_id));
+    testing::ExpectEqual(gx3_value, *x3.GetGrad(backprop_id));
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
+        EXPECT_TRUE(y1.GetGrad(backprop_id)->IsGradRequired(backprop_id));
     } else {
-        EXPECT_FALSE(y1.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
+        EXPECT_FALSE(y1.GetGrad(backprop_id)->IsGradRequired(AnyGraph{}));
     }
 }
 
@@ -1010,8 +1010,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    GraphScope graph_scope{"testgraph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
     Array x2_value = testing::BuildArray(shape).WithData<T>({4, -1});
@@ -1024,7 +1024,7 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
 
     DoubleBackpropOption double_backprop_opt = GetParam();
 
-    auto forward = [gy1_value, gy2_value, double_backprop_opt, &graph_id](
+    auto forward = [gy1_value, gy2_value, double_backprop_opt, &backprop_id](
                            const Array& x1, const Array& x2, const Array& x3, Array& y1, Array& y2) {
         ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
         ASSERT_TRUE(x2.IsGradRequired(AnyGraph{}));
@@ -1041,14 +1041,14 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                 EXPECT_TRUE(bt.is_definition_required());
                 EXPECT_TRUE(static_cast<bool>(bt));
 
-                bt.Define([gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                bt.Define([gy1_value, gy2_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
                     const Array& gy2 = bctx.output_grad(1);
                     testing::ExpectEqual(gy1_value, gy1);
                     testing::ExpectEqual(gy2_value, gy2);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                        EXPECT_TRUE(gy1.IsGradRequired(graph_id));
-                        EXPECT_TRUE(gy2.IsGradRequired(graph_id));
+                        EXPECT_TRUE(gy1.IsGradRequired(backprop_id));
+                        EXPECT_TRUE(gy2.IsGradRequired(backprop_id));
                     } else {
                         EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                         EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
@@ -1061,14 +1061,14 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                 EXPECT_TRUE(bt.is_definition_required());
                 EXPECT_TRUE(static_cast<bool>(bt));
 
-                bt.Define([gy1_value, gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+                bt.Define([gy1_value, gy2_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
                     const Array& gy2 = bctx.output_grad(1);
                     testing::ExpectEqual(gy1_value, gy1);
                     testing::ExpectEqual(gy2_value, gy2);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                        EXPECT_TRUE(gy1.IsGradRequired(graph_id));
-                        EXPECT_TRUE(gy2.IsGradRequired(graph_id));
+                        EXPECT_TRUE(gy1.IsGradRequired(backprop_id));
+                        EXPECT_TRUE(gy2.IsGradRequired(backprop_id));
                     } else {
                         EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                         EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
@@ -1084,33 +1084,33 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
         }
     };
 
-    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
-    Array x2 = x2_value.MakeView().RequireGrad(graph_id);
-    Array x3 = x3_value.MakeView().RequireGrad(graph_id);
+    Array x1 = x1_value.MakeView().RequireGrad(backprop_id);
+    Array x2 = x2_value.MakeView().RequireGrad(backprop_id);
+    Array x3 = x3_value.MakeView().RequireGrad(backprop_id);
     Array y1{};
     Array y2{};
     forward(x1, x2, x3, y1, y2);
 
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        y1.SetGrad(gy1_value.MakeView().RequireGrad(graph_id), graph_id);
-        y2.SetGrad(gy2_value.MakeView().RequireGrad(graph_id), graph_id);
+        y1.SetGrad(gy1_value.MakeView().RequireGrad(backprop_id), backprop_id);
+        y2.SetGrad(gy2_value.MakeView().RequireGrad(backprop_id), backprop_id);
     } else {
-        y1.SetGrad(gy1_value, graph_id);
-        y2.SetGrad(gy2_value, graph_id);
+        y1.SetGrad(gy1_value, backprop_id);
+        y2.SetGrad(gy2_value, backprop_id);
     }
-    Backward({y1, y2}, graph_id, double_backprop_opt);
+    Backward({y1, y2}, backprop_id, double_backprop_opt);
 
-    testing::ExpectEqual(gy1_value, *y1.GetGrad(graph_id));
-    testing::ExpectEqual(gy2_value, *y2.GetGrad(graph_id));
-    testing::ExpectEqual(gx1_value, *x1.GetGrad(graph_id));
-    testing::ExpectEqual(gx2_value, *x2.GetGrad(graph_id));
-    testing::ExpectEqual(gx3_value, *x3.GetGrad(graph_id));
+    testing::ExpectEqual(gy1_value, *y1.GetGrad(backprop_id));
+    testing::ExpectEqual(gy2_value, *y2.GetGrad(backprop_id));
+    testing::ExpectEqual(gx1_value, *x1.GetGrad(backprop_id));
+    testing::ExpectEqual(gx2_value, *x2.GetGrad(backprop_id));
+    testing::ExpectEqual(gx3_value, *x3.GetGrad(backprop_id));
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        EXPECT_TRUE(y1.GetGrad(graph_id)->IsGradRequired(graph_id));
-        EXPECT_TRUE(y2.GetGrad(graph_id)->IsGradRequired(graph_id));
+        EXPECT_TRUE(y1.GetGrad(backprop_id)->IsGradRequired(backprop_id));
+        EXPECT_TRUE(y2.GetGrad(backprop_id)->IsGradRequired(backprop_id));
     } else {
-        EXPECT_FALSE(y1.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
-        EXPECT_FALSE(y2.GetGrad(graph_id)->IsGradRequired(AnyGraph{}));
+        EXPECT_FALSE(y1.GetGrad(backprop_id)->IsGradRequired(AnyGraph{}));
+        EXPECT_FALSE(y2.GetGrad(backprop_id)->IsGradRequired(AnyGraph{}));
     }
 }
 
@@ -1119,10 +1119,10 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
     Array x2_value = testing::BuildArray(shape).WithData<T>({4, -1});
@@ -1162,29 +1162,29 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
         }
     };
 
-    Array x1 = x1_value.MakeView().RequireGrad(graph_id2);  // Grad not required for graph_id1
-    Array x2 = x2_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
+    Array x1 = x1_value.MakeView().RequireGrad(backprop_id2);  // Grad not required for backprop_id1
+    Array x2 = x2_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
     Array y1{};
     forward(x1, x2, y1);
 
-    Backward({y1}, graph_id1, double_backprop_opt);
+    Backward({y1}, backprop_id1, double_backprop_opt);
 
-    testing::ExpectEqual(gx2_value, *x2.GetGrad(graph_id1));
+    testing::ExpectEqual(gx2_value, *x2.GetGrad(backprop_id1));
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
         // TODO(niboshi): Enable this check
-        // EXPECT_TRUE(x2.GetGrad(graph_id1)->IsGradRequired(graph_id1));
+        // EXPECT_TRUE(x2.GetGrad(backprop_id1)->IsGradRequired(backprop_id1));
     } else {
-        EXPECT_FALSE(x2.GetGrad(graph_id1)->IsGradRequired(AnyGraph{}));
+        EXPECT_FALSE(x2.GetGrad(backprop_id1)->IsGradRequired(AnyGraph{}));
     }
-    EXPECT_THROW({ x1.GetGrad(graph_id1); }, XchainerError);
+    EXPECT_THROW({ x1.GetGrad(backprop_id1); }, XchainerError);
 }
 
 TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    GraphScope graph_scope{"testgraph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
     Array gy2_value = testing::BuildArray(shape).WithData<T>({4, -1});
@@ -1192,7 +1192,7 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
 
     DoubleBackpropOption double_backprop_opt = GetParam();
 
-    auto forward = [gy2_value, double_backprop_opt, &graph_id](const Array& x1, Array& y1, Array& y2) {
+    auto forward = [gy2_value, double_backprop_opt, &backprop_id](const Array& x1, Array& y1, Array& y2) {
         ASSERT_TRUE(x1.IsGradRequired(AnyGraph{}));
         y1 = 2 * x1.AsGradStopped() + 1;
         y2 = 3 * x1.AsGradStopped() + 2;
@@ -1206,7 +1206,7 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
             EXPECT_TRUE(bt.is_definition_required());
             EXPECT_TRUE(static_cast<bool>(bt));
 
-            bt.Define([gy2_value, double_backprop_opt, &graph_id](BackwardContext& bctx) {
+            bt.Define([gy2_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                 EXPECT_FALSE(bctx.HasOutputGrad(0));
                 EXPECT_TRUE(bctx.HasOutputGrad(1));
 
@@ -1217,7 +1217,7 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
 
                 EXPECT_FALSE(gy1.IsGradRequired(AnyGraph{}));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(gy2.IsGradRequired(graph_id));
+                    EXPECT_TRUE(gy2.IsGradRequired(backprop_id));
                 } else {
                     EXPECT_FALSE(gy2.IsGradRequired(AnyGraph{}));
                 }
@@ -1228,21 +1228,21 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
         }
     };
 
-    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x1 = x1_value.MakeView().RequireGrad(backprop_id);
     Array y1{};
     Array y2{};
     forward(x1, y1, y2);
 
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-        y2.SetGrad(gy2_value.MakeView().RequireGrad(graph_id), graph_id);
+        y2.SetGrad(gy2_value.MakeView().RequireGrad(backprop_id), backprop_id);
     } else {
-        y2.SetGrad(gy2_value, graph_id);
+        y2.SetGrad(gy2_value, backprop_id);
     }
     // Start backprop from y2. y1 is ignored.
-    Backward(y2, graph_id, double_backprop_opt);
+    Backward(y2, backprop_id, double_backprop_opt);
 
-    testing::ExpectEqual(gy2_value, *y2.GetGrad(graph_id));
-    testing::ExpectEqual(gx1_value, *x1.GetGrad(graph_id));
+    testing::ExpectEqual(gy2_value, *y2.GetGrad(backprop_id));
+    testing::ExpectEqual(gx1_value, *x1.GetGrad(backprop_id));
 }
 
 INSTANTIATE_TEST_CASE_P(Params, BackpropFunctionTest, ::testing::Values(DoubleBackpropOption::kDisable, DoubleBackpropOption::kEnable));
@@ -1257,15 +1257,15 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
     std::weak_ptr<internal::ArrayBody> y1_body{};
     std::weak_ptr<internal::ArrayBody> y2_body{};
 
-    auto forward = [&graph_id1, &graph_id2, &y1_body, &y2_body, double_backprop_opt](
+    auto forward = [&backprop_id1, &backprop_id2, &y1_body, &y2_body, double_backprop_opt](
                            const Array& x1, const Array& x2, Array& y1, Array& y2) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
@@ -1288,8 +1288,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                 tok2 = bb.RetainOutput(1),
                 y1_value,
                 y2_value,
-                &graph_id1,
-                &graph_id2,
+                &backprop_id1,
+                &backprop_id2,
                 &y1_body,
                 &y2_body,
                 double_backprop_opt
@@ -1305,14 +1305,14 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                 testing::ExpectEqual(y1_value, y1);
                 testing::ExpectEqual(y2_value, y2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y1.IsGradRequired(backprop_id1));
+                    EXPECT_TRUE(y2.IsGradRequired(backprop_id1));
                 } else {
-                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y1.IsGradRequired(backprop_id1));
+                    EXPECT_FALSE(y2.IsGradRequired(backprop_id1));
                 }
-                EXPECT_FALSE(y1.IsGradRequired(graph_id2));
-                EXPECT_FALSE(y2.IsGradRequired(graph_id2));
+                EXPECT_FALSE(y1.IsGradRequired(backprop_id2));
+                EXPECT_FALSE(y2.IsGradRequired(backprop_id2));
 
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
@@ -1333,8 +1333,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                 tok2 = bb.RetainOutput(1),
                 y1_value,
                 y2_value,
-                &graph_id1,
-                &graph_id2,
+                &backprop_id1,
+                &backprop_id2,
                 &y1_body,
                 &y2_body,
                 double_backprop_opt
@@ -1350,14 +1350,14 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                 testing::ExpectEqual(y1_value, y1);
                 testing::ExpectEqual(y2_value, y2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y1.IsGradRequired(backprop_id1));
+                    EXPECT_TRUE(y2.IsGradRequired(backprop_id1));
                 } else {
-                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y1.IsGradRequired(backprop_id1));
+                    EXPECT_FALSE(y2.IsGradRequired(backprop_id1));
                 }
-                EXPECT_FALSE(y1.IsGradRequired(graph_id2));
-                EXPECT_FALSE(y2.IsGradRequired(graph_id2));
+                EXPECT_FALSE(y1.IsGradRequired(backprop_id2));
+                EXPECT_FALSE(y2.IsGradRequired(backprop_id2));
 
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
@@ -1379,8 +1379,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
 
         Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
         Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
-        Array x1 = x1_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
-        Array x2 = x2_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
+        Array x1 = x1_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
+        Array x2 = x2_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
         Array expected_x1_grad = 2 * Exp(x1_value + 2 * x2_value);
         Array expected_x2_grad = 4 * Exp(x1_value + 2 * x2_value);
         Array y1{};
@@ -1393,9 +1393,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
             y2_body = internal::GetArrayBody(y2);
         }
         // y's are alive here
-        Backward({y1, y2}, graph_id1, double_backprop_opt);
-        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(graph_id1));
-        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(graph_id1));
+        Backward({y1, y2}, backprop_id1, double_backprop_opt);
+        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(backprop_id1));
+        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(backprop_id1));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1409,15 +1409,15 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
     std::weak_ptr<internal::ArrayBody> y1_body{};
     std::weak_ptr<internal::ArrayBody> y2_body{};
 
-    auto forward = [&graph_id1, &graph_id2, &y1_body, &y2_body, double_backprop_opt](
+    auto forward = [&backprop_id1, &backprop_id2, &y1_body, &y2_body, double_backprop_opt](
                            const Array& x1, const Array& x2, Array& y1, Array& y2) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
@@ -1440,8 +1440,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
                 tok2 = bb.RetainOutput(1),
                 y1_value,
                 y2_value,
-                &graph_id1,
-                &graph_id2,
+                &backprop_id1,
+                &backprop_id2,
                 &y1_body,
                 &y2_body,
                 double_backprop_opt
@@ -1457,14 +1457,14 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
                 testing::ExpectEqual(y1_value, y1);
                 testing::ExpectEqual(y2_value, y2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y1.IsGradRequired(backprop_id1));
+                    EXPECT_TRUE(y2.IsGradRequired(backprop_id1));
                 } else {
-                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y1.IsGradRequired(backprop_id1));
+                    EXPECT_FALSE(y2.IsGradRequired(backprop_id1));
                 }
-                EXPECT_FALSE(y1.IsGradRequired(graph_id2));
-                EXPECT_FALSE(y2.IsGradRequired(graph_id2));
+                EXPECT_FALSE(y1.IsGradRequired(backprop_id2));
+                EXPECT_FALSE(y2.IsGradRequired(backprop_id2));
 
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
@@ -1484,8 +1484,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
                 tok2 = bb.RetainOutput(1),
                 y1_value,
                 y2_value,
-                &graph_id1,
-                &graph_id2,
+                &backprop_id1,
+                &backprop_id2,
                 &y1_body,
                 &y2_body,
                 double_backprop_opt
@@ -1501,14 +1501,14 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
                 testing::ExpectEqual(y1_value, y1);
                 testing::ExpectEqual(y2_value, y2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                    EXPECT_TRUE(y1.IsGradRequired(backprop_id1));
+                    EXPECT_TRUE(y2.IsGradRequired(backprop_id1));
                 } else {
-                    EXPECT_FALSE(y1.IsGradRequired(graph_id1));
-                    EXPECT_FALSE(y2.IsGradRequired(graph_id1));
+                    EXPECT_FALSE(y1.IsGradRequired(backprop_id1));
+                    EXPECT_FALSE(y2.IsGradRequired(backprop_id1));
                 }
-                EXPECT_FALSE(y1.IsGradRequired(graph_id2));
-                EXPECT_FALSE(y2.IsGradRequired(graph_id2));
+                EXPECT_FALSE(y1.IsGradRequired(backprop_id2));
+                EXPECT_FALSE(y2.IsGradRequired(backprop_id2));
 
                 // Retrieve retained outputs repeatedly
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
@@ -1530,8 +1530,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
 
         Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
         Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
-        Array x1 = x1_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
-        Array x2 = x2_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
+        Array x1 = x1_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
+        Array x2 = x2_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
         Array expected_x1_grad = 2 * Exp(x1_value + 2 * x2_value);
         Array expected_x2_grad = 4 * Exp(x1_value + 2 * x2_value);
         Array z1{};
@@ -1548,9 +1548,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
             z2 = y2.MakeView();
         }
         // y's are dead here
-        Backward({z1, z2}, graph_id1, double_backprop_opt);
-        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(graph_id1));
-        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(graph_id1));
+        Backward({z1, z2}, backprop_id1, double_backprop_opt);
+        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(backprop_id1));
+        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(backprop_id1));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1566,15 +1566,15 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
     std::weak_ptr<internal::ArrayBody> y1_body{};
     std::weak_ptr<const internal::ArrayNode> y1_node{};
 
-    auto forward = [&graph_id1, &graph_id2, &y1_body, &y1_node, double_backprop_opt](
+    auto forward = [&backprop_id1, &backprop_id2, &y1_body, &y1_node, double_backprop_opt](
                            const Array& x1, const Array& x2, Array& y1, Array& y2) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
@@ -1597,8 +1597,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
                 tok2 = bb.RetainOutput(1),
                 y1_value,
                 y2_value,
-                &graph_id1,
-                &graph_id2,
+                &backprop_id1,
+                &backprop_id2,
                 &y1_body,
                 &y1_node,
                 double_backprop_opt
@@ -1613,14 +1613,14 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
 
                 testing::ExpectEqual(y1_value, y1);
                 testing::ExpectEqual(y2_value, y2);
-                EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                EXPECT_TRUE(y1.IsGradRequired(backprop_id1));
+                EXPECT_TRUE(y2.IsGradRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(y1.IsGradRequired(backprop_id2));
+                    EXPECT_TRUE(y2.IsGradRequired(backprop_id2));
                 } else {
-                    EXPECT_FALSE(y1.IsGradRequired(graph_id2));
-                    EXPECT_FALSE(y2.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(y1.IsGradRequired(backprop_id2));
+                    EXPECT_FALSE(y2.IsGradRequired(backprop_id2));
                 }
 
                 // Retrieve retained outputs repeatedly
@@ -1641,8 +1641,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
                 tok2 = bb.RetainOutput(1),
                 y1_value,
                 y2_value,
-                &graph_id1,
-                &graph_id2,
+                &backprop_id1,
+                &backprop_id2,
                 &y1_body,
                 &y1_node,
                 double_backprop_opt
@@ -1657,14 +1657,14 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
 
                 testing::ExpectEqual(y1_value, y1);
                 testing::ExpectEqual(y2_value, y2);
-                EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                EXPECT_TRUE(y2.IsGradRequired(graph_id1));
+                EXPECT_TRUE(y1.IsGradRequired(backprop_id1));
+                EXPECT_TRUE(y2.IsGradRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(y2.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(y1.IsGradRequired(backprop_id2));
+                    EXPECT_TRUE(y2.IsGradRequired(backprop_id2));
                 } else {
-                    EXPECT_FALSE(y1.IsGradRequired(graph_id2));
-                    EXPECT_FALSE(y2.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(y1.IsGradRequired(backprop_id2));
+                    EXPECT_FALSE(y2.IsGradRequired(backprop_id2));
                 }
 
                 // Retrieve retained outputs repeatedly
@@ -1687,8 +1687,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
 
         Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
         Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
-        Array x1 = x1_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
-        Array x2 = x2_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
+        Array x1 = x1_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
+        Array x2 = x2_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
         Array expected_x1_grad = 1 * Exp(x1_value + 2 * x2_value) - 2 * Exp(2 * x1_value + x2_value);
         Array expected_x2_grad = 2 * Exp(x1_value + 2 * x2_value) - 1 * Exp(2 * x1_value + x2_value);
         Array z2{};
@@ -1699,14 +1699,14 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIs
 
             // Keep weak reference to y1.body() and y1's node to check if it is actually gone
             y1_body = internal::GetArrayBody(y1);
-            y1_node = internal::GetArrayBody(y1)->GetArrayNode(graph_id2);
+            y1_node = internal::GetArrayBody(y1)->GetArrayNode(backprop_id2);
             // Only z2 is kept. y1 (and therefore y1's node) will be released.
             z2 = y2.MakeView();
         }
         // Only z2 is alive here
-        Backward({z2}, graph_id2, double_backprop_opt);
-        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(graph_id2));
-        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(graph_id2));
+        Backward({z2}, backprop_id2, double_backprop_opt);
+        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(backprop_id2));
+        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(backprop_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1720,14 +1720,14 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
     std::weak_ptr<internal::ArrayBody> y1_body{};
 
-    auto forward = [&graph_id1, &graph_id2, &y1_body, double_backprop_opt](const Array& x1, const Array& x2, Array& y1) {
+    auto forward = [&backprop_id1, &backprop_id2, &y1_body, double_backprop_opt](const Array& x1, const Array& x2, Array& y1) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         y1 = Exp(2 * x1_c + x2_c);
@@ -1738,54 +1738,54 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
             assert(bt);
-            bt.Define(
-                    [ tok1 = bb.RetainOutput(0), y1_value, &graph_id1, &graph_id2, &y1_body, double_backprop_opt ](BackwardContext & bctx) {
-                        // Test assumption: the bodies of ys must be dead.
-                        ASSERT_EQ(nullptr, y1_body.lock());
+            bt.Define([ tok1 = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &y1_body, double_backprop_opt ](
+                    BackwardContext & bctx) {
+                // Test assumption: the bodies of ys must be dead.
+                ASSERT_EQ(nullptr, y1_body.lock());
 
-                        // Retrieve retained outputs
-                        const Array& y1 = bctx.GetRetainedOutput(tok1);
+                // Retrieve retained outputs
+                const Array& y1 = bctx.GetRetainedOutput(tok1);
 
-                        testing::ExpectEqual(y1_value, y1);
-                        EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                            EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                        } else {
-                            EXPECT_FALSE(y1.IsGradRequired(graph_id2));
-                        }
+                testing::ExpectEqual(y1_value, y1);
+                EXPECT_TRUE(y1.IsGradRequired(backprop_id1));
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(y1.IsGradRequired(backprop_id2));
+                } else {
+                    EXPECT_FALSE(y1.IsGradRequired(backprop_id2));
+                }
 
-                        // Retrieve retained outputs repeatedly
-                        const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                        EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                // Retrieve retained outputs repeatedly
+                const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
 
-                        bctx.input_grad() = bctx.output_grad(0) * y1 * 2;
-                    });
+                bctx.input_grad() = bctx.output_grad(0) * y1 * 2;
+            });
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
             assert(bt);
-            bt.Define(
-                    [ tok1 = bb.RetainOutput(0), y1_value, &graph_id1, &graph_id2, &y1_body, double_backprop_opt ](BackwardContext & bctx) {
-                        // Test assumption: the bodies of ys must be dead.
-                        ASSERT_EQ(nullptr, y1_body.lock());
+            bt.Define([ tok1 = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &y1_body, double_backprop_opt ](
+                    BackwardContext & bctx) {
+                // Test assumption: the bodies of ys must be dead.
+                ASSERT_EQ(nullptr, y1_body.lock());
 
-                        // Retrieve retained outputs
-                        const Array& y1 = bctx.GetRetainedOutput(tok1);
+                // Retrieve retained outputs
+                const Array& y1 = bctx.GetRetainedOutput(tok1);
 
-                        testing::ExpectEqual(y1_value, y1);
-                        EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                        if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                            EXPECT_TRUE(y1.IsGradRequired(graph_id2));
-                        } else {
-                            EXPECT_FALSE(y1.IsGradRequired(graph_id2));
-                        }
+                testing::ExpectEqual(y1_value, y1);
+                EXPECT_TRUE(y1.IsGradRequired(backprop_id1));
+                if (double_backprop_opt == DoubleBackpropOption::kEnable) {
+                    EXPECT_TRUE(y1.IsGradRequired(backprop_id2));
+                } else {
+                    EXPECT_FALSE(y1.IsGradRequired(backprop_id2));
+                }
 
-                        // Retrieve retained outputs repeatedly
-                        const Array& y1_again = bctx.GetRetainedOutput(tok1);
-                        EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
+                // Retrieve retained outputs repeatedly
+                const Array& y1_again = bctx.GetRetainedOutput(tok1);
+                EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
 
-                        bctx.input_grad() = bctx.output_grad(0) * y1;
-                    });
+                bctx.input_grad() = bctx.output_grad(0) * y1;
+            });
         }
         bb.Finalize();
     };
@@ -1796,8 +1796,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
 
         Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
         Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
-        Array x1 = x1_value.MakeView().RequireGrad(graph_id1);
-        Array x2 = x2_value.MakeView().RequireGrad(graph_id2);
+        Array x1 = x1_value.MakeView().RequireGrad(backprop_id1);
+        Array x2 = x2_value.MakeView().RequireGrad(backprop_id2);
         Array expected_x2_grad = 1 * Exp(2 * x1_value + x2_value);
         Array z1{};
         {
@@ -1809,8 +1809,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
             z1 = y1.MakeView();
         }
         // y's are dead here
-        Backward({z1}, graph_id2, double_backprop_opt);
-        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(graph_id2));
+        Backward({z1}, backprop_id2, double_backprop_opt);
+        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(backprop_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1824,16 +1824,16 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphScope graph_scope3{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
-    GraphId graph_id3 = graph_scope3.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropScope backprop_scope3{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
+    BackpropId backprop_id3 = backprop_scope3.backprop_id();
 
     std::weak_ptr<internal::ArrayBody> y1_body{};
 
-    auto forward = [&graph_id1, &graph_id2, &graph_id3, &y1_body, double_backprop_opt](
+    auto forward = [&backprop_id1, &backprop_id2, &backprop_id3, &y1_body, double_backprop_opt](
                            const Array& x1, const Array& x2, const Array& x3, Array& y1) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
@@ -1853,7 +1853,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(2);
-            bt.Define([ y1_tok = bb.RetainOutput(0), y1_value, &graph_id1, &graph_id2, &graph_id3, &y1_body, double_backprop_opt ](
+            bt.Define([ y1_tok = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &backprop_id3, &y1_body, double_backprop_opt ](
                     BackwardContext & bctx) {
                 // Test assumption: the bodies of ys must be dead.
                 ASSERT_EQ(nullptr, y1_body.lock());
@@ -1862,12 +1862,12 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
                 const Array& y1 = bctx.GetRetainedOutput(y1_tok);
 
                 testing::ExpectEqual(y1_value, y1);
-                EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                EXPECT_TRUE(y1.IsGradRequired(backprop_id1));
+                EXPECT_TRUE(y1.IsGradRequired(backprop_id2));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id3));
+                    EXPECT_TRUE(y1.IsGradRequired(backprop_id3));
                 } else {
-                    EXPECT_FALSE(y1.IsGradRequired(graph_id3));
+                    EXPECT_FALSE(y1.IsGradRequired(backprop_id3));
                 }
 
                 bctx.input_grad() = bctx.output_grad(0) * y1;
@@ -1883,9 +1883,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
         Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
         Array x3_value = testing::BuildArray({1}).WithLinearData<double>(4);
-        Array x1 = x1_value.MakeView().RequireGrad(graph_id1);
-        Array x2 = x2_value.MakeView().RequireGrad(graph_id2);
-        Array x3 = x3_value.MakeView().RequireGrad(graph_id3);
+        Array x1 = x1_value.MakeView().RequireGrad(backprop_id1);
+        Array x2 = x2_value.MakeView().RequireGrad(backprop_id2);
+        Array x3 = x3_value.MakeView().RequireGrad(backprop_id3);
         Array expected_x3_grad = Exp(x1_value + x2_value + x3_value);
         Array z1{};
         {
@@ -1897,8 +1897,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
             z1 = y1.MakeView();
         }
         // y's are dead here
-        Backward({z1}, graph_id3, double_backprop_opt);
-        testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(graph_id3));
+        Backward({z1}, backprop_id3, double_backprop_opt);
+        testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(backprop_id3));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1913,16 +1913,16 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphScope graph_scope3{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
-    GraphId graph_id3 = graph_scope3.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropScope backprop_scope3{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
+    BackpropId backprop_id3 = backprop_scope3.backprop_id();
 
     std::weak_ptr<internal::ArrayBody> y1_body{};
 
-    auto forward = [&graph_id1, &graph_id2, &graph_id3, &y1_body, double_backprop_opt](
+    auto forward = [&backprop_id1, &backprop_id2, &backprop_id3, &y1_body, double_backprop_opt](
                            const Array& x1, const Array& x2, const Array& x3, Array& y1) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
@@ -1934,7 +1934,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         BackwardBuilder bb{"func", {x1, x2, x3}, y1};
         {
             BackwardBuilder::Target bt = bb.CreateTarget(2);
-            bt.Define([ y1_tok = bb.RetainOutput(0), y1_value, &graph_id1, &graph_id2, &graph_id3, &y1_body, double_backprop_opt ](
+            bt.Define([ y1_tok = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &backprop_id3, &y1_body, double_backprop_opt ](
                     BackwardContext & bctx) {
                 // Test assumption: the bodies of ys must be dead.
                 ASSERT_EQ(nullptr, y1_body.lock());
@@ -1943,12 +1943,12 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
                 const Array& y1 = bctx.GetRetainedOutput(y1_tok);
 
                 testing::ExpectEqual(y1_value, y1);
-                EXPECT_TRUE(y1.IsGradRequired(graph_id1));
-                EXPECT_TRUE(y1.IsGradRequired(graph_id2));
+                EXPECT_TRUE(y1.IsGradRequired(backprop_id1));
+                EXPECT_TRUE(y1.IsGradRequired(backprop_id2));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(y1.IsGradRequired(graph_id3));
+                    EXPECT_TRUE(y1.IsGradRequired(backprop_id3));
                 } else {
-                    EXPECT_FALSE(y1.IsGradRequired(graph_id3));
+                    EXPECT_FALSE(y1.IsGradRequired(backprop_id3));
                 }
 
                 bctx.input_grad() = bctx.output_grad(0) * y1;
@@ -1972,9 +1972,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
         Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
         Array x3_value = testing::BuildArray({1}).WithLinearData<double>(4);
-        Array x1 = x1_value.MakeView().RequireGrad(graph_id1);
-        Array x2 = x2_value.MakeView().RequireGrad(graph_id2);
-        Array x3 = x3_value.MakeView().RequireGrad(graph_id3);
+        Array x1 = x1_value.MakeView().RequireGrad(backprop_id1);
+        Array x2 = x2_value.MakeView().RequireGrad(backprop_id2);
+        Array x3 = x3_value.MakeView().RequireGrad(backprop_id3);
         Array expected_x3_grad = Exp(x1_value + x2_value + x3_value);
         Array z1{};
         {
@@ -1986,8 +1986,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
             z1 = y1.MakeView();
         }
         // y's are dead here
-        Backward({z1}, graph_id3, double_backprop_opt);
-        testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(graph_id3));
+        Backward({z1}, backprop_id3, double_backprop_opt);
+        testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(backprop_id3));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -2002,12 +2002,12 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
-    auto forward = [&graph_id1, &graph_id2, double_backprop_opt](const Array& x1, const Array& x2, Array& y1, Array& y2) {
+    auto forward = [&backprop_id1, &backprop_id2, double_backprop_opt](const Array& x1, const Array& x2, Array& y1, Array& y2) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         y1 = x1_c * x1_c * x2_c * x2_c;
@@ -2024,21 +2024,22 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
 
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &graph_id1, &graph_id2, double_backprop_opt ](BackwardContext & bctx) {
+            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt ](
+                    BackwardContext & bctx) {
                 // Retrieve retained inputs
                 const Array& x1 = bctx.GetRetainedInput(tok1);
                 const Array& x2 = bctx.GetRetainedInput(tok2);
 
                 testing::ExpectEqual(x1_c, x1);
                 testing::ExpectEqual(x2_c, x2);
-                EXPECT_TRUE(x1.IsGradRequired(graph_id1));
-                EXPECT_TRUE(x2.IsGradRequired(graph_id1));
+                EXPECT_TRUE(x1.IsGradRequired(backprop_id1));
+                EXPECT_TRUE(x2.IsGradRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(x1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(x2.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(x1.IsGradRequired(backprop_id2));
+                    EXPECT_TRUE(x2.IsGradRequired(backprop_id2));
                 } else {
-                    EXPECT_FALSE(x1.IsGradRequired(graph_id2));
-                    EXPECT_FALSE(x2.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(x1.IsGradRequired(backprop_id2));
+                    EXPECT_FALSE(x2.IsGradRequired(backprop_id2));
                 }
 
                 // Retrieve retained inputs repeatedly
@@ -2054,21 +2055,22 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &graph_id1, &graph_id2, double_backprop_opt ](BackwardContext & bctx) {
+            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt ](
+                    BackwardContext & bctx) {
                 // Retrieve retained outputs
                 const Array& x1 = bctx.GetRetainedInput(tok1);
                 const Array& x2 = bctx.GetRetainedInput(tok2);
 
                 testing::ExpectEqual(x1_c, x1);
                 testing::ExpectEqual(x2_c, x2);
-                EXPECT_TRUE(x1.IsGradRequired(graph_id1));
-                EXPECT_TRUE(x2.IsGradRequired(graph_id1));
+                EXPECT_TRUE(x1.IsGradRequired(backprop_id1));
+                EXPECT_TRUE(x2.IsGradRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(x1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(x2.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(x1.IsGradRequired(backprop_id2));
+                    EXPECT_TRUE(x2.IsGradRequired(backprop_id2));
                 } else {
-                    EXPECT_FALSE(x1.IsGradRequired(graph_id2));
-                    EXPECT_FALSE(x2.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(x1.IsGradRequired(backprop_id2));
+                    EXPECT_FALSE(x2.IsGradRequired(backprop_id2));
                 }
 
                 // Retrieve retained outputs repeatedly
@@ -2091,8 +2093,8 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
 
         Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
         Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
-        Array x1 = x1_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
-        Array x2 = x2_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
+        Array x1 = x1_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
+        Array x2 = x2_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
         Array expected_x1_grad = 2 * x1_value * x2_value * x2_value + 3 * x1_value * x1_value * x2_value * x2_value * x2_value;
         Array expected_x2_grad = x1_value * x1_value * 2 * x2_value + x1_value * x1_value * x1_value * 3 * x2_value * x2_value;
 
@@ -2100,9 +2102,9 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
         Array y2{};
         forward(x1, x2, y1, y2);
 
-        Backward({y1, y2}, graph_id2, double_backprop_opt);
-        testing::ExpectEqual(expected_x1_grad, *x1.GetGrad(graph_id2));
-        testing::ExpectEqual(expected_x2_grad, *x2.GetGrad(graph_id2));
+        Backward({y1, y2}, backprop_id2, double_backprop_opt);
+        testing::ExpectEqual(expected_x1_grad, *x1.GetGrad(backprop_id2));
+        testing::ExpectEqual(expected_x2_grad, *x2.GetGrad(backprop_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -2115,15 +2117,15 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
     std::weak_ptr<internal::ArrayBody> x1_body{};
     std::weak_ptr<internal::ArrayBody> x2_body{};
 
-    auto forward = [&graph_id1, &graph_id2, &x1_body, &x2_body, double_backprop_opt](
+    auto forward = [&backprop_id1, &backprop_id2, &x1_body, &x2_body, double_backprop_opt](
                            const Array& x1, const Array& x2, Array& y1, Array& y2) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
@@ -2141,7 +2143,7 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
 
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &graph_id1, &graph_id2, &x1_body, &x2_body, double_backprop_opt ](
+            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, &x1_body, &x2_body, double_backprop_opt ](
                     BackwardContext & bctx) {
                 // Test assumption: the array bodies must be gone.
                 EXPECT_EQ(x1_body.lock(), nullptr);
@@ -2153,14 +2155,14 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
 
                 testing::ExpectEqual(x1_c, x1);
                 testing::ExpectEqual(x2_c, x2);
-                EXPECT_TRUE(x1.IsGradRequired(graph_id1));
-                EXPECT_TRUE(x2.IsGradRequired(graph_id1));
+                EXPECT_TRUE(x1.IsGradRequired(backprop_id1));
+                EXPECT_TRUE(x2.IsGradRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(x1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(x2.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(x1.IsGradRequired(backprop_id2));
+                    EXPECT_TRUE(x2.IsGradRequired(backprop_id2));
                 } else {
-                    EXPECT_FALSE(x1.IsGradRequired(graph_id2));
-                    EXPECT_FALSE(x2.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(x1.IsGradRequired(backprop_id2));
+                    EXPECT_FALSE(x2.IsGradRequired(backprop_id2));
                 }
 
                 // Retrieve retained inputs repeatedly
@@ -2176,7 +2178,7 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &graph_id1, &graph_id2, &x1_body, &x2_body, double_backprop_opt ](
+            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, &x1_body, &x2_body, double_backprop_opt ](
                     BackwardContext & bctx) {
                 // Test assumption: the array bodies must be gone.
                 EXPECT_EQ(x1_body.lock(), nullptr);
@@ -2188,14 +2190,14 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
 
                 testing::ExpectEqual(x1_c, x1);
                 testing::ExpectEqual(x2_c, x2);
-                EXPECT_TRUE(x1.IsGradRequired(graph_id1));
-                EXPECT_TRUE(x2.IsGradRequired(graph_id1));
+                EXPECT_TRUE(x1.IsGradRequired(backprop_id1));
+                EXPECT_TRUE(x2.IsGradRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(x1.IsGradRequired(graph_id2));
-                    EXPECT_TRUE(x2.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(x1.IsGradRequired(backprop_id2));
+                    EXPECT_TRUE(x2.IsGradRequired(backprop_id2));
                 } else {
-                    EXPECT_FALSE(x1.IsGradRequired(graph_id2));
-                    EXPECT_FALSE(x2.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(x1.IsGradRequired(backprop_id2));
+                    EXPECT_FALSE(x2.IsGradRequired(backprop_id2));
                 }
 
                 // Retrieve retained outputs repeatedly
@@ -2223,8 +2225,8 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
         Array y2{};
 
         {
-            Array x1 = x1_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
-            Array x2 = x2_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
+            Array x1 = x1_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
+            Array x2 = x2_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
 
             forward(x1, x2, y1, y2);
 
@@ -2232,7 +2234,7 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
             x2_body = internal::GetArrayBody(x2);
         }
 
-        Backward({y1, y2}, graph_id2, double_backprop_opt);
+        Backward({y1, y2}, backprop_id2, double_backprop_opt);
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -2243,12 +2245,12 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     DoubleBackpropOption double_backprop_opt = GetParam();
-    GraphScope graph_scope1{"graph1"};
-    GraphScope graph_scope2{"graph2"};
-    GraphId graph_id1 = graph_scope1.graph_id();
-    GraphId graph_id2 = graph_scope2.graph_id();
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
-    auto forward = [&graph_id1, &graph_id2, double_backprop_opt](const Array& x1, const Array& x2, Array& y1, Array& y2) {
+    auto forward = [&backprop_id1, &backprop_id2, double_backprop_opt](const Array& x1, const Array& x2, Array& y1, Array& y2) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         y1 = x1_c * x1_c * x2_c * x2_c;
@@ -2265,21 +2267,22 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
 
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &graph_id1, &graph_id2, double_backprop_opt ](BackwardContext & bctx) {
+            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt ](
+                    BackwardContext & bctx) {
                 // Retrieve retained inputs
                 const Array& x1 = bctx.GetRetainedInput(tok1);
                 const Array& x2 = bctx.GetRetainedInput(tok2);
 
                 testing::ExpectEqual(x1_c, x1);
                 testing::ExpectEqual(x2_c, x2);
-                EXPECT_TRUE(x1.IsGradRequired(graph_id1));
-                EXPECT_TRUE(x2.IsGradRequired(graph_id1));
+                EXPECT_TRUE(x1.IsGradRequired(backprop_id1));
+                EXPECT_TRUE(x2.IsGradRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(x1.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(x1.IsGradRequired(backprop_id2));
                 } else {
-                    EXPECT_FALSE(x1.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(x1.IsGradRequired(backprop_id2));
                 }
-                EXPECT_FALSE(x2.IsGradRequired(graph_id2));
+                EXPECT_FALSE(x2.IsGradRequired(backprop_id2));
 
                 // Retrieve retained inputs repeatedly
                 const Array& x1_again = bctx.GetRetainedInput(tok1);
@@ -2294,21 +2297,22 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &graph_id1, &graph_id2, double_backprop_opt ](BackwardContext & bctx) {
+            bt.Define([ tok1, tok2 = bb.RetainInput(1), x1_c, x2_c, &backprop_id1, &backprop_id2, double_backprop_opt ](
+                    BackwardContext & bctx) {
                 // Retrieve retained outputs
                 const Array& x1 = bctx.GetRetainedInput(tok1);
                 const Array& x2 = bctx.GetRetainedInput(tok2);
 
                 testing::ExpectEqual(x1_c, x1);
                 testing::ExpectEqual(x2_c, x2);
-                EXPECT_TRUE(x1.IsGradRequired(graph_id1));
-                EXPECT_TRUE(x2.IsGradRequired(graph_id1));
+                EXPECT_TRUE(x1.IsGradRequired(backprop_id1));
+                EXPECT_TRUE(x2.IsGradRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
-                    EXPECT_TRUE(x1.IsGradRequired(graph_id2));
+                    EXPECT_TRUE(x1.IsGradRequired(backprop_id2));
                 } else {
-                    EXPECT_FALSE(x1.IsGradRequired(graph_id2));
+                    EXPECT_FALSE(x1.IsGradRequired(backprop_id2));
                 }
-                EXPECT_FALSE(x2.IsGradRequired(graph_id2));
+                EXPECT_FALSE(x2.IsGradRequired(backprop_id2));
 
                 // Retrieve retained outputs repeatedly
                 const Array& x1_again = bctx.GetRetainedInput(tok1);
@@ -2330,16 +2334,16 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
 
         Array x1_value = testing::BuildArray({1}).WithLinearData<double>(2);
         Array x2_value = testing::BuildArray({1}).WithLinearData<double>(3);
-        Array x1 = x1_value.MakeView().RequireGrad(graph_id1).RequireGrad(graph_id2);
-        Array x2 = x2_value.MakeView().RequireGrad(graph_id1);
+        Array x1 = x1_value.MakeView().RequireGrad(backprop_id1).RequireGrad(backprop_id2);
+        Array x2 = x2_value.MakeView().RequireGrad(backprop_id1);
         Array expected_x1_grad = 2 * x1_value * x2_value * x2_value + 3 * x1_value * x1_value * x2_value * x2_value * x2_value;
 
         Array y1{};
         Array y2{};
         forward(x1, x2, y1, y2);
 
-        Backward({y1, y2}, graph_id2, double_backprop_opt);
-        testing::ExpectEqual(expected_x1_grad, *x1.GetGrad(graph_id2));
+        Backward({y1, y2}, backprop_id2, double_backprop_opt);
+        testing::ExpectEqual(expected_x1_grad, *x1.GetGrad(backprop_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -2350,8 +2354,8 @@ TEST(BackpropGradValidationTest, InvalidGradShape) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    GraphScope graph_scope{"testgraph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
     Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
@@ -2373,22 +2377,22 @@ TEST(BackpropGradValidationTest, InvalidGradShape) {
         }
     };
 
-    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x1 = x1_value.MakeView().RequireGrad(backprop_id);
     Array y1{};
     forward(x1, y1);
 
-    y1.SetGrad(gy1_value, graph_id);
+    y1.SetGrad(gy1_value, backprop_id);
 
     // The shape of the computed gradient of x1 is (2, 1) but the shape of x1 is (2,), thus an exception should be thrown.
-    EXPECT_THROW(Backward({y1}, graph_id, DoubleBackpropOption::kDisable), DimensionError);
+    EXPECT_THROW(Backward({y1}, backprop_id, DoubleBackpropOption::kDisable), DimensionError);
 }
 
 TEST(BackpropGradValidationTest, InvalidGradDtype) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    GraphScope graph_scope{"testgraph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
     Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
@@ -2410,22 +2414,22 @@ TEST(BackpropGradValidationTest, InvalidGradDtype) {
         }
     };
 
-    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x1 = x1_value.MakeView().RequireGrad(backprop_id);
     Array y1{};
     forward(x1, y1);
 
-    y1.SetGrad(gy1_value, graph_id);
+    y1.SetGrad(gy1_value, backprop_id);
 
     // The dtype of the computed gradient of x1 is float but the dtype of x1 is double, thus an exception should be thrown.
-    EXPECT_THROW(Backward({y1}, graph_id, DoubleBackpropOption::kDisable), DtypeError);
+    EXPECT_THROW(Backward({y1}, backprop_id, DoubleBackpropOption::kDisable), DtypeError);
 }
 
 TEST(BackpropGradValidationTest, InvalidGradDevice) {
     testing::DeviceSession device_session({native::NativeBackend::kDefaultName, 0});
 
     using T = double;
-    GraphScope graph_scope{"testgraph"};
-    GraphId graph_id = graph_scope.graph_id();
+    BackpropScope backprop_scope{"bp"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
     Shape shape{2};
     Array x1_value = testing::BuildArray(shape).WithData<T>({1, 2});
     Array gy1_value = testing::BuildArray(shape).WithData<T>({1, -3});
@@ -2448,14 +2452,14 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
         }
     };
 
-    Array x1 = x1_value.MakeView().RequireGrad(graph_id);
+    Array x1 = x1_value.MakeView().RequireGrad(backprop_id);
     Array y1{};
     forward(x1, y1);
 
-    y1.SetGrad(gy1_value, graph_id);
+    y1.SetGrad(gy1_value, backprop_id);
 
     // The device of the computed gradient of x1 is on a different device from the device of x1, thus an exception should be throws.
-    EXPECT_THROW(Backward({y1}, graph_id, DoubleBackpropOption::kDisable), DeviceError);
+    EXPECT_THROW(Backward({y1}, backprop_id, DoubleBackpropOption::kDisable), DeviceError);
 }
 
 }  // namespace
