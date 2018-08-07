@@ -87,16 +87,22 @@ __global__ void ReductionKernel(
                         __syncthreads();
                         if (out_block_size <= 32) {
                             _REDUCE(32);
+                            __syncthreads();
                             if (out_block_size <= 16) {
                                 _REDUCE(16);
+                                __syncthreads();
                                 if (out_block_size <= 8) {
                                     _REDUCE(8);
+                                    __syncthreads();
                                     if (out_block_size <= 4) {
                                         _REDUCE(4);
+                                        __syncthreads();
                                         if (out_block_size <= 2) {
                                             _REDUCE(2);
+                                            __syncthreads();
                                             if (out_block_size <= 1) {
                                                 _REDUCE(1);
+                                                __syncthreads();
                                             }
                                         }
                                     }
