@@ -680,7 +680,7 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     EXPECT_EQ(nullptr, x_grad_body.lock());
 }
 
-TEST_P(BackpropTest, SomeOfPreviousArrayNodesAreGone) {
+TEST_P(BackpropTest, SomeOfOutputArrayNodesAreGone) {
     // This test checks the backward of a multiple-output function where some of the output arrays are gone.
     //
     // (x) <- [forward] <- (y1 := (x-1) exp x) <- [view] <- (z1)
@@ -1385,7 +1385,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
 
-TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
+TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
     // This test checks retained output arrays can be retrieved, where their array bodyies (yn) is gone at the moment of retrieval, but
     // their array nodes are still alive.
     //
@@ -1539,9 +1539,9 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToPreviousArrayNode) {
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
 
-TEST_P(BackpropRetainOutputTest, RetainOutput_PreviousArrayNodeOfBackwardGraphIsDead) {
+TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDead) {
     // This test checks retained output arrays can be retrieved, where their array bodies (yn) are gone at the moment of retrieval, and
-    // their array nodes are also gone. In that case new mocked previous array nodes are created.
+    // their array nodes are also gone. In that case new mocked output array nodes are created.
     //
     // (x1) <- [forward] <- (y1 := exp(x1 + 2 x2) + exp(2 x1 + x2))
     // (x2) <-           <- (y2 := exp(x1 + 2 x2) - exp(2 x1 + x2)) <- [view] <- (z2)

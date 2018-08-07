@@ -61,44 +61,44 @@ nonstd::optional<Array>& GradRef::get() {
 BackwardContext::BackwardContext(
         const std::shared_ptr<OpNode>& op_node,
         const internal::OpNodeBackwardEntry& backward_entry,
-        gsl::span<std::shared_ptr<ArrayNode>> prev_array_nodes,
+        gsl::span<std::shared_ptr<ArrayNode>> output_array_nodes,
         gsl::span<internal::GradRef*> output_grads,
         std::vector<Array>& input_grads,
         const BackpropId& backprop_id,
         DoubleBackpropOption double_backprop_option)
     : op_node_{op_node},
       backward_entry_{backward_entry},
-      prev_array_nodes_{prev_array_nodes},
+      output_array_nodes_{output_array_nodes},
       output_grads_{output_grads},
       input_grads_{input_grads},
-      zero_output_grads_{prev_array_nodes_.size()},
+      zero_output_grads_{output_array_nodes_.size()},
       backprop_id_{backprop_id},
       double_backprop_option_{double_backprop_option} {
     assert(op_node.get() == &backward_entry.op_node());
-    assert(prev_array_nodes_.size() == output_grads_.size());
-    assert(input_grads_.size() == op_node->next_array_node_count());
+    assert(output_array_nodes_.size() == output_grads_.size());
+    assert(input_grads_.size() == op_node->input_array_node_count());
 
     // Input grads must be initialized with null-body arrays.
-    const std::vector<size_t>& input_grad_indices = backward_entry.next_array_node_indices();
+    const std::vector<size_t>& input_grad_indices = backward_entry.input_array_node_indices();
     (void)input_grad_indices;  // maybe unused
     assert(std::all_of(input_grad_indices.begin(), input_grad_indices.end(), [&](const size_t& index) {
         return internal::GetArrayBody(gsl::at(input_grads_, index)) == nullptr;
     }));
 
     // Total number of input arrays including those that do not require grads.
-    retained_input_array_bodies_.resize(op_node->next_array_node_count());
+    retained_input_array_bodies_.resize(op_node->input_array_node_count());
 
-    retained_output_array_bodies_.resize(op_node->prev_array_node_count());
+    retained_output_array_bodies_.resize(op_node->output_array_node_count());
 };
 
 bool BackwardContext::HasOutputGrad(size_t output_index) const { return gsl::at(output_grads_, output_index)->get().has_value(); }
 
 bool BackwardContext::is_input_grad_required(size_t input_index) const {
-    const std::vector<size_t>& input_grad_indices = backward_entry_.next_array_node_indices();
+    const std::vector<size_t>& input_grad_indices = backward_entry_.input_array_node_indices();
     (void)input_grad_indices;  // maybe unused
     assert(std::find(input_grad_indices.begin(), input_grad_indices.end(), input_index) != input_grad_indices.end());
 
-    return op_node_->HasNextArrayNode(input_index);
+    return op_node_->HasInputArrayNode(input_index);
 }
 
 const Array& BackwardContext::output_grad(size_t output_index) const {
@@ -115,13 +115,13 @@ const Array& BackwardContext::output_grad(size_t output_index) const {
     }
 
     // Allocate new zero-filled gradient and return it.
-    const internal::ArrayProps& props = op_node_->GetPrevArrayProps(output_index);
+    const internal::ArrayProps& props = op_node_->GetOutputArrayProps(output_index);
     zero_grad = Zeros(props.shape, props.dtype, props.device);
     return *zero_grad;
 }
 
 Array& BackwardContext::input_grad() {
-    const std::vector<size_t>& input_grad_indices = backward_entry_.next_array_node_indices();
+    const std::vector<size_t>& input_grad_indices = backward_entry_.input_array_node_indices();
     assert(input_grad_indices.size() == 1);
     return input_grad(input_grad_indices.front());
 }
@@ -129,7 +129,7 @@ Array& BackwardContext::input_grad() {
 Array& BackwardContext::input_grad(size_t index) { return gsl::at(input_grads_, index); }
 
 Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
-    assert(token.index() < op_node_->next_array_node_count());
+    assert(token.index() < op_node_->input_array_node_count());
     size_t input_index = token.index();
 
     // Retrieve the kept array body for retained input.
@@ -140,45 +140,46 @@ Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
     if (kept_body == nullptr) {
         // Collect the pointers to array nodes of all graphs, in the input array corresponding to input_index.
         // The raw pointers (not std::shared_ptr) are never null.
-        std::vector<const std::shared_ptr<ArrayNode>*> next_array_nodes;
-        next_array_nodes.emplace_back(&gsl::at(op_node_->next_array_nodes(), input_index));
+        std::vector<const std::shared_ptr<ArrayNode>*> input_array_nodes;
+        input_array_nodes.emplace_back(&gsl::at(op_node_->input_array_nodes(), input_index));
 
-        for (const auto& tup : op_node_->outer_graphs_prev_array_nodes()) {
-            const std::vector<std::shared_ptr<ArrayNode>>& outer_prev_array_nodes = std::get<1>(tup);
-            assert(!outer_prev_array_nodes.empty());
+        for (const auto& tup : op_node_->outer_graphs_output_array_nodes()) {
+            const std::vector<std::shared_ptr<ArrayNode>>& outer_output_array_nodes = std::get<1>(tup);
+            assert(!outer_output_array_nodes.empty());
 
-            // Get any previous array node to find the op node of the outer graph.
-            const std::shared_ptr<ArrayNode>& prev_array_node = outer_prev_array_nodes.front();
-            assert(prev_array_node != nullptr);
-            assert(prev_array_node->next_op_node() != nullptr);
+            // Get any output array node to find the op node of the outer graph.
+            const std::shared_ptr<ArrayNode>& output_array_node = outer_output_array_nodes.front();
+            assert(output_array_node != nullptr);
+            assert(output_array_node->creator_op_node() != nullptr);
 
-            const std::shared_ptr<ArrayNode>& next_array_node = gsl::at(prev_array_node->next_op_node()->next_array_nodes(), input_index);
+            const std::shared_ptr<ArrayNode>& input_array_node =
+                    gsl::at(output_array_node->creator_op_node()->input_array_nodes(), input_index);
 
-            next_array_nodes.emplace_back(&next_array_node);
+            input_array_nodes.emplace_back(&input_array_node);
         }
 
-        assert(!next_array_nodes.empty());
+        assert(!input_array_nodes.empty());
         assert(std::all_of(
-                next_array_nodes.begin(), next_array_nodes.end(), [](const std::shared_ptr<ArrayNode>* ptr) { return ptr != nullptr; }));
+                input_array_nodes.begin(), input_array_nodes.end(), [](const std::shared_ptr<ArrayNode>* ptr) { return ptr != nullptr; }));
 
         // If the input array body is alive, use it.
         // Otherwise, create a new array body and put the nodes into it.
         std::shared_ptr<ArrayBody> array_body{};
         {
             auto it = std::find_if(
-                    next_array_nodes.begin(), next_array_nodes.end(), [](const std::shared_ptr<ArrayNode>* next_array_node_ptr) {
-                        return *next_array_node_ptr != nullptr;
+                    input_array_nodes.begin(), input_array_nodes.end(), [](const std::shared_ptr<ArrayNode>* input_array_node_ptr) {
+                        return *input_array_node_ptr != nullptr;
                     });
-            if (it != next_array_nodes.end()) {
+            if (it != input_array_nodes.end()) {
                 array_body = (**it)->weak_body().lock();
             }
 
             if (array_body == nullptr) {
                 array_body = internal::CreateArrayBody(token.array_params());
 
-                for (const std::shared_ptr<ArrayNode>* next_array_node_ptr : next_array_nodes) {
-                    if (*next_array_node_ptr != nullptr) {
-                        ArrayBody::AddNode(array_body, *next_array_node_ptr);
+                for (const std::shared_ptr<ArrayNode>* input_array_node_ptr : input_array_nodes) {
+                    if (*input_array_node_ptr != nullptr) {
+                        ArrayBody::AddNode(array_body, *input_array_node_ptr);
                     }
                 }
             }
@@ -211,10 +212,10 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
 
         // Retrieve the array body of the original output array.
         std::shared_ptr<ArrayBody> array_body{nullptr};
-        const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes_[output_index];
-        if (prev_array_node != nullptr) {
+        const std::shared_ptr<ArrayNode>& output_array_node = output_array_nodes_[output_index];
+        if (output_array_node != nullptr) {
             // array node is alive
-            array_body = prev_array_node->weak_body().lock();
+            array_body = output_array_node->weak_body().lock();
         }
 
         if (array_body == nullptr) {
@@ -222,9 +223,9 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
             array_body = GetFabricatedArrayBodyWithNodes(token);
         }
 
-        // If the weak ptr to old previous array node was dead, replenish it with the fabricated one.
-        if (prev_array_node == nullptr) {
-            prev_array_nodes_[output_index] = array_body->GetArrayNode(op_node_->backprop_id());
+        // If the weak ptr to old output array node was dead, replenish it with the fabricated one.
+        if (output_array_node == nullptr) {
+            output_array_nodes_[output_index] = array_body->GetArrayNode(op_node_->backprop_id());
         }
 
         // Cut graphs of the array body
@@ -238,36 +239,36 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
 }
 
 std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const {
-    std::vector<std::shared_ptr<ArrayNode>> new_prev_array_nodes;
+    std::vector<std::shared_ptr<ArrayNode>> new_output_array_nodes;
 
     // Loop over outer graphs to collect array nodes corresponding to the same output index
-    for (const auto& tup : op_node_->outer_graphs_prev_array_nodes()) {
-        const std::vector<std::shared_ptr<ArrayNode>>& prev_array_nodes = std::get<1>(tup);
-        const std::shared_ptr<ArrayNode>& prev_array_node = prev_array_nodes[token.index()];
-        assert(prev_array_node->weak_body().expired());
-        new_prev_array_nodes.emplace_back(prev_array_node);
+    for (const auto& tup : op_node_->outer_graphs_output_array_nodes()) {
+        const std::vector<std::shared_ptr<ArrayNode>>& output_array_nodes = std::get<1>(tup);
+        const std::shared_ptr<ArrayNode>& output_array_node = output_array_nodes[token.index()];
+        assert(output_array_node->weak_body().expired());
+        new_output_array_nodes.emplace_back(output_array_node);
     }
 
     // Collect array node of this graph.
-    // If the previous array node is alive, add the node to the array body.
+    // If the output array node is alive, add the node to the array body.
     // Otherwise, create a new array node out of the op node.
     {
-        const std::vector<std::weak_ptr<ArrayNode>>& prev_array_nodes = op_node_->prev_array_nodes();
-        std::shared_ptr<ArrayNode> prev_array_node = prev_array_nodes[token.index()].lock();
-        if (prev_array_node == nullptr) {
-            // Create mocked prev array node for "this" graph, based on the current op node
-            prev_array_node = internal::FabricatePrevArrayNode(op_node_, token.index());
+        const std::vector<std::weak_ptr<ArrayNode>>& output_array_nodes = op_node_->output_array_nodes();
+        std::shared_ptr<ArrayNode> output_array_node = output_array_nodes[token.index()].lock();
+        if (output_array_node == nullptr) {
+            // Create mocked output array node for "this" graph, based on the current op node
+            output_array_node = internal::FabricateOutputArrayNode(op_node_, token.index());
         }
 
-        new_prev_array_nodes.emplace_back(std::move(prev_array_node));
+        new_output_array_nodes.emplace_back(std::move(output_array_node));
     }
 
     // Create a new array body with (possibly fabricated) array nodes.
     // TODO(niboshi): Avoid unnecessary copy of array body params.
     std::shared_ptr<ArrayBody> fabricated_array_body = internal::CreateArrayBody(token.array_params());
-    for (const std::shared_ptr<ArrayNode>& prev_array_node : new_prev_array_nodes) {
-        assert(prev_array_node->weak_body().expired());
-        ArrayBody::AddNode(fabricated_array_body, prev_array_node);
+    for (const std::shared_ptr<ArrayNode>& output_array_node : new_output_array_nodes) {
+        assert(output_array_node->weak_body().expired());
+        ArrayBody::AddNode(fabricated_array_body, output_array_node);
     }
 
     return fabricated_array_body;
