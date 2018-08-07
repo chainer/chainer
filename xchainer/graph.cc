@@ -11,9 +11,8 @@ namespace xchainer {
 std::ostream& operator<<(std::ostream& os, const BackpropId& backprop_id) {
     static constexpr const char* kExpiredBackpropDisplayName = "<expired>";
     try {
-        const std::string& name = backprop_id.GetName();
-        os << name;
-    } catch (const XchainerError& e) {
+        os << backprop_id.GetName();
+    } catch (const XchainerError&) {
         os << kExpiredBackpropDisplayName;
     }
     return os;
