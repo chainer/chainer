@@ -84,10 +84,6 @@ class FunctionHook(object):
        as a thread local object. So, function hooks registered
        are different depending on threads.
 
-    If the hook is registered in this way, ``None`` is passed as the
-    ``function`` argument of :meth:`~chainer.FunctionHook.added` and
-    :meth:`~chainer.FunctionHook.deleted`.
-
     The other one is to register it directly to
     :class:`~chainer.FunctionNode` object with
     :meth:`~chainer.FunctionNode.add_hook` method.
@@ -97,7 +93,12 @@ class FunctionHook(object):
     only to the function whose :meth:`~chainer.FunctionNode.add_hook`
     method is called.
 
-    If the hook is registered in this way, the :class:`~chainer.FunctionNode`
+    If the hook is registered globally using ``with`` statement, ``None`` is
+    passed as the ``function`` argument of :meth:`~chainer.FunctionHook.added`
+    and :meth:`~chainer.FunctionHook.deleted`.
+
+    If the hook is registered in a specific function using
+    :meth:`~chainer.FunctionNode.add_hook`, the :class:`~chainer.FunctionNode`
     instance is passed as the ``function`` argument of
     :meth:`~chainer.FunctionHook.added` and
     :meth:`~chainer.FunctionHook.deleted`.
