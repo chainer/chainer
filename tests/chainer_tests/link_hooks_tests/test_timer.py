@@ -63,7 +63,7 @@ class TestTimerHook(unittest.TestCase):
         summary['Linear']
 
         # print_report
-        s = six.io.StringIO()
+        s = six.StringIO()
         hook.print_report(file=s)
         report = s.getvalue().split('\n')
         assert len(report) == 4
