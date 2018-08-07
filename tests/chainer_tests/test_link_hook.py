@@ -16,15 +16,30 @@ class MyLinkHook(chainer.LinkHook):
         self.forward_postprocess_args = []
 
     def added(self, link):
+        assert link is None or isinstance(link, chainer.Link)
         self.added_args.append(link)
 
     def deleted(self, link):
+        assert link is None or isinstance(link, chainer.Link)
         self.deleted_args.append(link)
 
     def forward_preprocess(self, args):
+        assert isinstance(args.link, chainer.Link)
+        assert isinstance(args.forward_name, str)
+        assert isinstance(args.args, tuple)
+        assert isinstance(args.kwargs, dict)
+        assert isinstance(str(args), str)
+        assert isinstance(repr(args), str)
         self.forward_preprocess_args.append(args)
 
     def forward_postprocess(self, args):
+        assert isinstance(args.link, chainer.Link)
+        assert isinstance(args.forward_name, str)
+        assert isinstance(args.args, tuple)
+        assert isinstance(args.kwargs, dict)
+        assert hasattr(args, 'out')
+        assert isinstance(str(args), str)
+        assert isinstance(repr(args), str)
         self.forward_postprocess_args.append(args)
 
 

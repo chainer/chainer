@@ -1,4 +1,36 @@
 import chainer
+from chainer import utils
+
+
+class _ForwardPreprocessCallbackArgs(object):
+    """Callback data for LinkHook.forward_preprocess"""
+
+    def __init__(self, link, forward_name, args, kwargs):
+        self.link = link
+        self.forward_name = forward_name
+        self.args = args
+        self.kwargs = kwargs
+
+    def __repr__(self):
+        return utils._repr_with_named_data(
+            self, link=self.link, forward_name=self.forward_name,
+            args=self.args, kwargs=self.kwargs)
+
+
+class _ForwardPostprocessCallbackArgs(object):
+    """Callback data for LinkHook.forward_postrocess"""
+
+    def __init__(self, link, forward_name, args, kwargs, out):
+        self.link = link
+        self.forward_name = forward_name
+        self.args = args
+        self.kwargs = kwargs
+        self.out = out
+
+    def __repr__(self):
+        return utils._repr_with_named_data(
+            self, link=self.link, forward_name=self.forward_name,
+            args=self.args, kwargs=self.kwargs, out=self.out)
 
 
 class LinkHook(object):

@@ -4,6 +4,7 @@ import shutil
 import tempfile
 
 import numpy
+import six
 
 # import classes and functions
 from chainer.utils.array import sum_to  # NOQA
@@ -59,3 +60,9 @@ def tempdir(**kwargs):
         yield temp_dir
     finally:
         shutil.rmtree(temp_dir, ignore_errors=ignore_errors)
+
+
+def _repr_with_named_data(inst, **kwargs):
+   return '<{}.{} {}>'.format(
+       inst.__module__, inst.__class__.__qualname__,
+       ' '.join('{}={}'.format(k, v) for k, v in six.iteritems(kwargs)))

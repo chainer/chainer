@@ -38,19 +38,6 @@ def _ensure_shape_dtype(value):
         return value
 
 
-class _CallbackArgs(object):
-    def __init__(self, **kwargs):
-        for k, v in six.iteritems(kwargs):
-            setattr(self, k, v)
-        self._names = tuple(kwargs.keys())
-
-    def __repr__(self):
-        return '<{}.{} {}>'.format(
-            self.__module__, self.__class__.__qualname__,
-            ' '.join('{}={}'.format(
-                k, getattr(self, k)) for k in sorted(self._names)))
-
-
 class Link(object):
 
     """Building block of model definitions.
@@ -239,8 +226,8 @@ class Link(object):
 
         # Call forward_preprocess hook
         if hooks:
-            cb_args = _CallbackArgs(
-                link=self, forward_name='forward', args=args, kwargs=kwargs)
+            cb_args = link_hook._ForwardPreprocessCallbackArgs(
+                self, 'forward', args, kwargs)
             for hook in hooks:
                 hook.forward_preprocess(cb_args)
 
@@ -255,9 +242,8 @@ class Link(object):
 
         # Call forward_postprocess hook
         if hooks:
-            cb_args = _CallbackArgs(
-                link=self, forward_name='forward', args=args,
-                kwargs=kwargs, out=out)
+            cb_args = link_hook._ForwardPostprocessCallbackArgs(
+                self, 'forward', args, kwargs, out)
             for hook in hooks:
                 hook.forward_postprocess(cb_args)
 
