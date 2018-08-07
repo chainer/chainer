@@ -8,7 +8,7 @@ namespace python_internal {
 
 void InitXchainerGraph(pybind11::module&);
 
-void InitXchainerGraphScope(pybind11::module&);
+void InitXchainerBackpropScope(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python
