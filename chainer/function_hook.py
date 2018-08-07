@@ -84,21 +84,21 @@ class FunctionHook(object):
        as a thread local object. So, function hooks registered
        are different depending on threads.
 
-    If the hook is registered in this way, :meth:`~chainer.FunctionHook.added`
-    and :meth:`~chainer.FunctionHook.deleted` are given ``None`` as the
-    ``function`` argument.
+    If the hook is registered in this way, ``None`` is passed as the
+    ``function`` argument of :meth:`~chainer.FunctionHook.added` and
+    :meth:`~chainer.FunctionHook.deleted`.
 
-    The other one is to register directly to
+    The other one is to register it directly to
     :class:`~chainer.FunctionNode` object with
     :meth:`~chainer.FunctionNode.add_hook` method.
     Function hooks registered in this way can be removed by
     :meth:`~chainer.FunctionNode.delete_hook` method.
-    Contrary to former registration method, function hooks are registered
-    only to the function which :meth:`~chainer.FunctionNode.add_hook`
-    is called.
+    Contrary to the former registration method, function hooks are registered
+    only to the function whose :meth:`~chainer.FunctionNode.add_hook`
+    method is called.
 
     If the hook is registered in this way, the :class:`~chainer.FunctionNode`
-    instance is given as the ``function`` argument of
+    instance is passed as the ``function`` argument of
     :meth:`~chainer.FunctionHook.added` and
     :meth:`~chainer.FunctionHook.deleted`.
 
@@ -135,9 +135,9 @@ class FunctionHook(object):
         """Callback function invoked when a function hook is deleted
 
         Args:
-            function(~chainer.FunctionNode): Function object to which
+            function(~chainer.FunctionNode): Function object from which
                 the function hook is deleted. ``None`` if the function hook
-                had been registered globally.
+                was registered globally.
         """
         pass
 
