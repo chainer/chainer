@@ -312,7 +312,10 @@ Array Divide(const Array& x1, Scalar x2) { return Binary(&DivideASImpl, x1, x2);
 
 Array Divide(Scalar /*x1*/, const Array& /*x2*/) { throw NotImplementedError{"Scalar / Array division is not yet supported."}; }
 
-Array Reciprocal(const Array& x) { return OnesLike(x, x.device()) / x; }
+Array Reciprocal(const Array& x) {
+    // TODO(hvy): Optimize the implementation using e.g. 1 / x.
+    return OnesLike(x, x.device()) / x;
+}
 
 Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
