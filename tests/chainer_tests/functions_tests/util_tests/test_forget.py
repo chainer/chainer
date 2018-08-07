@@ -7,6 +7,7 @@ import chainer
 from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
+from chainer import links
 from chainer import testing
 from chainer.testing import attr
 from chainer import variable
@@ -124,20 +125,39 @@ class TestForgetDoubleBackpropError(unittest.TestCase):
 
 class TestForgetGrad(unittest.TestCase):
 
-    def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
-        self.x = variable.Variable(self.x)
-        self.w = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
-        self.w = variable.Variable(self.w)
-        self.func = lambda a, b: a + b
+    def test_variable_grad(self):
+        x = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        x = variable.Variable(x)
+        w = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        w = variable.Variable(w)
 
-    def test_grad(self):
-        y = functions.forget(self.func, self.x, self.w)
+        y = functions.forget(lambda a, b: a + b, x, w)
         y.grad_var = variable.Variable(numpy.ones_like(y.data))
         y.backward()
 
-        assert self.x.grad_var is not None
-        assert self.w.grad_var is not None
+        assert isinstance(x.grad_var, variable.Variable)
+        assert isinstance(w.grad_var, variable.Variable)
+
+    def test_link_grad(self):
+
+        class Model(chainer.link.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+                with self.init_scope():
+                    self.link = links.Linear(None, 10)
+
+            def forward(self, x):
+                return functions.forget(self.link, x)
+
+        model = Model()
+        model.cleargrads()
+        x = numpy.random.uniform(-1, 1, (64, 768)).astype(numpy.float32)
+        x = variable.Variable(x, requires_grad=True)
+
+        y = functions.sum(model(x))
+        y.backward()
+        assert isinstance(model.link.W.grad_var, variable.Variable)
+        assert isinstance(model.link.b.grad_var, variable.Variable)
 
 
 testing.run_module(__name__, __file__)
