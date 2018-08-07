@@ -16,8 +16,9 @@ Distributions
    
    chainer.distributions.Beta
    chainer.distributions.Bernoulli
-   chainer.distributions.Normal
    chainer.distributions.Laplace
+   chainer.distributions.MultivariateNormal
+   chainer.distributions.Normal
 
 
 Functionals of distribution
