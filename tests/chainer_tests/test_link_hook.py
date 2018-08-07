@@ -72,7 +72,7 @@ class TestLinkHook(unittest.TestCase):
         # - MyModel
         args = hook.forward_preprocess_args[0]
         assert args.link is model
-        assert args.forward_method == 'forward'
+        assert args.forward_name == 'forward'
         assert len(args.args) == 2
         numpy.testing.assert_array_equal(args.args[0].data, x)
         assert args.args[1] == 'foo'
@@ -81,18 +81,18 @@ class TestLinkHook(unittest.TestCase):
         # - Linear
         args = hook.forward_preprocess_args[1]
         assert args.link is model.l1
-        assert args.forward_method == 'forward'
+        assert args.forward_name == 'forward'
 
         # forward_postprocess
         assert len(hook.forward_postprocess_args) == 2
         # - Linear
         args = hook.forward_postprocess_args[0]
         assert args.link is model.l1
-        assert args.forward_method == 'forward'
+        assert args.forward_name == 'forward'
         # - MyModel
         args = hook.forward_postprocess_args[1]
         assert args.link is model
-        assert args.forward_method == 'forward'
+        assert args.forward_name == 'forward'
         assert len(args.args) == 2
         numpy.testing.assert_array_equal(args.args[0].data, x)
         assert args.args[1] == 'foo'
@@ -121,7 +121,7 @@ class TestLinkHook(unittest.TestCase):
         # - MyModel
         args = hook.forward_preprocess_args[0]
         assert args.link is model
-        assert args.forward_method == 'forward'
+        assert args.forward_name == 'forward'
         assert len(args.args) == 2
         numpy.testing.assert_array_equal(args.args[0].data, x)
         assert args.args[1] == 'foo'
@@ -133,7 +133,7 @@ class TestLinkHook(unittest.TestCase):
         # - MyModel
         args = hook.forward_postprocess_args[0]
         assert args.link is model
-        assert args.forward_method == 'forward'
+        assert args.forward_name == 'forward'
         assert len(args.args) == 2
         numpy.testing.assert_array_equal(args.args[0].data, x)
         assert args.args[1] == 'foo'

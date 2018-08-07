@@ -240,7 +240,7 @@ class Link(object):
         # Call forward_preprocess hook
         if hooks:
             cb_args = _CallbackArgs(
-                link=self, forward_method='forward', args=args, kwargs=kwargs)
+                link=self, forward_name='forward', args=args, kwargs=kwargs)
             for hook in hooks:
                 hook.forward_preprocess(cb_args)
 
@@ -256,7 +256,7 @@ class Link(object):
         # Call forward_postprocess hook
         if hooks:
             cb_args = _CallbackArgs(
-                link=self, forward_method='forward', args=args,
+                link=self, forward_name='forward', args=args,
                 kwargs=kwargs, out=out)
             for hook in hooks:
                 hook.forward_postprocess(cb_args)

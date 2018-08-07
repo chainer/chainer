@@ -130,7 +130,7 @@ class LinkHook(object):
 
                 * link (:class:`~chainer.Link`)
                     Link object.
-                * forward_method (:class:`str`)
+                * forward_name (:class:`str`)
                     Name of the forward method.
                 * args (:class:`tuple`)
                     Non-keyword arguments given to the forward method.
@@ -147,7 +147,7 @@ class LinkHook(object):
 
                 * link (:class:`~chainer.Link`)
                     Link object.
-                * forward_method (:class:`str`)
+                * forward_name (:class:`str`)
                     Name of the forward method.
                 * args (:class:`tuple`)
                     Non-keyword arguments given to the forward method.
