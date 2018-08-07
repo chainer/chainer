@@ -171,8 +171,8 @@ void InitXchainerArray(pybind11::module& m) {
           },
           py::arg("copy") = false);
     c.def("as_grad_stopped",
-          [](const ArrayBodyPtr& self, const std::vector<GraphId>& graph_ids, bool copy) {
-              return MoveArrayBody(Array{self}.AsGradStopped(graph_ids, copy ? CopyKind::kCopy : CopyKind::kView));
+          [](const ArrayBodyPtr& self, const std::vector<BackpropId>& backprop_ids, bool copy) {
+              return MoveArrayBody(Array{self}.AsGradStopped(backprop_ids, copy ? CopyKind::kCopy : CopyKind::kView));
           },
           py::arg().noconvert(),
           py::arg("copy") = false);
@@ -271,50 +271,50 @@ void InitXchainerArray(pybind11::module& m) {
           py::arg("value"));
 
     c.def("require_grad",
-          [](const ArrayBodyPtr& self, const nonstd::optional<GraphId>& graph_id) {
-              return MoveArrayBody(std::move(Array{self}.RequireGrad(graph_id)));
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
+              return MoveArrayBody(std::move(Array{self}.RequireGrad(backprop_id)));
           },
-          py::arg("graph_id") = nullptr);
+          py::arg("backprop_id") = nullptr);
     c.def("is_grad_required",
-          [](const ArrayBodyPtr& self, const nonstd::optional<GraphId>& graph_id) { return Array{self}.IsGradRequired(graph_id); },
-          py::arg("graph_id") = nullptr);
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) { return Array{self}.IsGradRequired(backprop_id); },
+          py::arg("backprop_id") = nullptr);
     c.def("is_grad_required",
           [](const ArrayBodyPtr& self, AnyGraph any_graph) { return Array{self}.IsGradRequired(any_graph); },
-          py::arg("graph_id"));
+          py::arg("backprop_id"));
     c.def("get_grad",
-          [](const ArrayBodyPtr& self, const nonstd::optional<GraphId>& graph_id) -> ConstArrayBodyPtr {
-              const nonstd::optional<Array>& grad = Array{self}.GetGrad(graph_id);
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) -> ConstArrayBodyPtr {
+              const nonstd::optional<Array>& grad = Array{self}.GetGrad(backprop_id);
               if (!grad.has_value()) {
                   return nullptr;
               }
               return internal::GetArrayBody(*grad);
           },
-          py::arg("graph_id") = nullptr);
+          py::arg("backprop_id") = nullptr);
     c.def("set_grad",
-          [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const nonstd::optional<GraphId>& graph_id) {
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const nonstd::optional<BackpropId>& backprop_id) {
               auto array = Array{self};
               if (grad) {
-                  array.SetGrad(Array{grad}, graph_id);
+                  array.SetGrad(Array{grad}, backprop_id);
               } else {
-                  array.ClearGrad(graph_id);
+                  array.ClearGrad(backprop_id);
               }
           },
           py::arg("grad"),
-          py::arg("graph_id") = nullptr);
+          py::arg("backprop_id") = nullptr);
     c.def("backward",
-          [](const ArrayBodyPtr& self, const nonstd::optional<GraphId>& graph_id, bool enable_double_backprop) {
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id, bool enable_double_backprop) {
               Array array{self};
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
-              Backward(array, graph_id, double_backprop);
+              Backward(array, backprop_id, double_backprop);
           },
-          py::arg("graph_id") = nullptr,
+          py::arg("backprop_id") = nullptr,
           py::arg("enable_double_backprop") = false);
     c.def("_debug_dump_computational_graph",
-          [](const ArrayBodyPtr& self, const nonstd::optional<GraphId>& graph_id) {
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
               Array array{self};
-              DebugDumpComputationalGraph(std::cout, array, graph_id);
+              DebugDumpComputationalGraph(std::cout, array, backprop_id);
           },
-          py::arg("graph_id") = nullptr);
+          py::arg("backprop_id") = nullptr);
     c.def_property(
             "grad",
             [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
@@ -333,8 +333,8 @@ void InitXchainerArray(pybind11::module& m) {
                 }
             });
     c.def("cleargrad",
-          [](const ArrayBodyPtr& self, const nonstd::optional<GraphId>& graph_id) { Array{self}.ClearGrad(graph_id); },
-          py::arg("graph_id") = nullptr);
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) { Array{self}.ClearGrad(backprop_id); },
+          py::arg("backprop_id") = nullptr);
     c.def_property_readonly(
             "device", [](const ArrayBodyPtr& self) -> Device& { return Array{self}.device(); }, py::return_value_policy::reference);
     c.def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return Array{self}.dtype(); });

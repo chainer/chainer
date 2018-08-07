@@ -181,84 +181,84 @@ def test_as_grad_stopped_copy(shape, dtype):
             assert array_a._debug_data_memory_address != array_b._debug_data_memory_address
 
     # Stop gradients on all graphs
-    with xchainer.graph_scope('graph_1') as graph_1, \
-            xchainer.graph_scope('graph_2') as graph_2, \
-            xchainer.graph_scope('graph_3') as graph_3:
+    with xchainer.backprop_scope('bp1') as bp1, \
+            xchainer.backprop_scope('bp2') as bp2, \
+            xchainer.backprop_scope('bp3') as bp3:
 
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
-        a.require_grad(graph_1)
-        a.require_grad(graph_2)
-        assert a.is_grad_required(graph_1)
-        assert a.is_grad_required(graph_2)
+        a.require_grad(bp1)
+        a.require_grad(bp2)
+        assert a.is_grad_required(bp1)
+        assert a.is_grad_required(bp2)
         b = a.as_grad_stopped(copy=True)
 
         check(a, b)
-        assert not b.is_grad_required(graph_1)
-        assert not b.is_grad_required(graph_2)
+        assert not b.is_grad_required(bp1)
+        assert not b.is_grad_required(bp2)
 
-        assert a.is_grad_required(graph_1)
-        assert a.is_grad_required(graph_2)
+        assert a.is_grad_required(bp1)
+        assert a.is_grad_required(bp2)
 
         # Stop gradients on some graphs
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
-        a.require_grad(graph_1)
-        a.require_grad(graph_2)
-        a.require_grad(graph_3)
-        assert a.is_grad_required(graph_1)
-        assert a.is_grad_required(graph_2)
-        assert a.is_grad_required(graph_3)
-        b = a.as_grad_stopped([graph_1, graph_2], copy=True)
+        a.require_grad(bp1)
+        a.require_grad(bp2)
+        a.require_grad(bp3)
+        assert a.is_grad_required(bp1)
+        assert a.is_grad_required(bp2)
+        assert a.is_grad_required(bp3)
+        b = a.as_grad_stopped([bp1, bp2], copy=True)
 
         check(a, b)
-        assert not b.is_grad_required(graph_1)
-        assert not b.is_grad_required(graph_2)
-        assert b.is_grad_required(graph_3)
+        assert not b.is_grad_required(bp1)
+        assert not b.is_grad_required(bp2)
+        assert b.is_grad_required(bp3)
 
-        assert a.is_grad_required(graph_1)
-        assert a.is_grad_required(graph_2)
-        assert a.is_grad_required(graph_3)
+        assert a.is_grad_required(bp1)
+        assert a.is_grad_required(bp2)
+        assert a.is_grad_required(bp3)
 
 
 def test_as_grad_stopped_view(shape, dtype):
     # Stop gradients on all graphs
-    with xchainer.graph_scope('graph_1') as graph_1, \
-            xchainer.graph_scope('graph_2') as graph_2, \
-            xchainer.graph_scope('graph_3') as graph_3:
+    with xchainer.backprop_scope('bp1') as bp1, \
+            xchainer.backprop_scope('bp2') as bp2, \
+            xchainer.backprop_scope('bp3') as bp3:
 
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
-        a.require_grad(graph_1)
-        a.require_grad(graph_2)
-        assert a.is_grad_required(graph_1)
-        assert a.is_grad_required(graph_2)
+        a.require_grad(bp1)
+        a.require_grad(bp2)
+        assert a.is_grad_required(bp1)
+        assert a.is_grad_required(bp2)
         b = a.as_grad_stopped(copy=False)
 
         xchainer.testing.assert_array_equal_ex(a, b)
         assert b.device is a.device
-        assert not b.is_grad_required(graph_1)
-        assert not b.is_grad_required(graph_2)
+        assert not b.is_grad_required(bp1)
+        assert not b.is_grad_required(bp2)
 
-        assert a.is_grad_required(graph_1)
-        assert a.is_grad_required(graph_2)
+        assert a.is_grad_required(bp1)
+        assert a.is_grad_required(bp2)
 
         # Stop gradients on some graphs
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
-        a.require_grad(graph_1)
-        a.require_grad(graph_2)
-        a.require_grad(graph_3)
-        assert a.is_grad_required(graph_1)
-        assert a.is_grad_required(graph_2)
-        assert a.is_grad_required(graph_3)
-        b = a.as_grad_stopped([graph_1, graph_2], copy=False)
+        a.require_grad(bp1)
+        a.require_grad(bp2)
+        a.require_grad(bp3)
+        assert a.is_grad_required(bp1)
+        assert a.is_grad_required(bp2)
+        assert a.is_grad_required(bp3)
+        b = a.as_grad_stopped([bp1, bp2], copy=False)
 
         xchainer.testing.assert_array_equal_ex(a, b)
         assert b.device is a.device
-        assert not b.is_grad_required(graph_1)
-        assert not b.is_grad_required(graph_2)
-        assert b.is_grad_required(graph_3)
+        assert not b.is_grad_required(bp1)
+        assert not b.is_grad_required(bp2)
+        assert b.is_grad_required(bp3)
 
-        assert a.is_grad_required(graph_1)
-        assert a.is_grad_required(graph_2)
-        assert a.is_grad_required(graph_3)
+        assert a.is_grad_required(bp1)
+        assert a.is_grad_required(bp2)
+        assert a.is_grad_required(bp3)
 
 
 def test_array_repr():
@@ -277,132 +277,132 @@ def test_array_repr():
             "       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, device='native:0')") == str(array)
 
 
-def test_array_repr_default_graph():
+def test_array_repr_default_backprop_id():
     array = xchainer.ndarray((1,), xchainer.float32, [3.0])
     array.require_grad()
-    assert "array([3.], shape=(1,), dtype=float32, device='native:0', graph_ids=['<default>'])" == str(array)
+    assert "array([3.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['<default>'])" == str(array)
 
 
-def test_array_repr_expired_graph():
-    with xchainer.graph_scope('graph_1') as graph_1:
+def test_array_repr_expired_backprop_id():
+    with xchainer.backprop_scope('bp1') as bp1:
         array = xchainer.ndarray((1,), xchainer.float32, [3.0])
-        array.require_grad(graph_1)
-    assert "array([3.], shape=(1,), dtype=float32, device='native:0', graph_ids=['<expired>'])" == str(array)
+        array.require_grad(bp1)
+    assert "array([3.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['<expired>'])" == str(array)
 
 
-@pytest.mark.parametrize('graph_args', [(None,), ()])
-def test_array_require_grad_without_graph_id(graph_args):
+@pytest.mark.parametrize('backprop_args', [(None,), ()])
+def test_array_require_grad_without_backprop_id(backprop_args):
     array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
 
-    assert not array.is_grad_required(*graph_args)
+    assert not array.is_grad_required(*backprop_args)
     assert not array.is_grad_required(xchainer.anygraph)
-    array.require_grad(*graph_args)
-    assert array.is_grad_required(*graph_args)
+    array.require_grad(*backprop_args)
+    assert array.is_grad_required(*backprop_args)
     assert array.is_grad_required(xchainer.anygraph)
 
     # Repeated calls should not fail, but do nothing
-    array.require_grad(*graph_args)
-    assert array.is_grad_required(*graph_args)
+    array.require_grad(*backprop_args)
+    assert array.is_grad_required(*backprop_args)
     assert array.is_grad_required(xchainer.anygraph)
 
 
-def test_array_require_grad_with_graph_id():
+def test_array_require_grad_with_backprop_id():
     array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
 
-    with xchainer.graph_scope('graph_1') as graph_1:
-        assert not array.is_grad_required(graph_1)
-        array.require_grad(graph_1)
-        assert array.is_grad_required(graph_1)
+    with xchainer.backprop_scope('bp1') as bp1:
+        assert not array.is_grad_required(bp1)
+        array.require_grad(bp1)
+        assert array.is_grad_required(bp1)
 
         # Repeated calls should not fail, but do nothing
-        array.require_grad(graph_1)
-        assert array.is_grad_required(graph_1)
+        array.require_grad(bp1)
+        assert array.is_grad_required(bp1)
 
     # keyword arguments
-    with xchainer.graph_scope('graph_2') as graph_2:
-        assert not array.is_grad_required(graph_id=graph_2)
-        array.require_grad(graph_id=graph_2)
-        assert array.is_grad_required(graph_2)
-        assert array.is_grad_required(graph_id=graph_2)
+    with xchainer.backprop_scope('bp2') as bp2:
+        assert not array.is_grad_required(backprop_id=bp2)
+        array.require_grad(backprop_id=bp2)
+        assert array.is_grad_required(bp2)
+        assert array.is_grad_required(backprop_id=bp2)
 
         # Repeated calls should not fail, but do nothing
-        array.require_grad(graph_id=graph_2)
-        assert array.is_grad_required(graph_id=graph_2)
+        array.require_grad(backprop_id=bp2)
+        assert array.is_grad_required(backprop_id=bp2)
 
 
-@pytest.mark.parametrize('graph_args', [(None,), ()])
-def test_array_grad_without_graph_id(graph_args):
+@pytest.mark.parametrize('backprop_args', [(None,), ()])
+def test_array_grad_without_backprop_id(backprop_args):
     array = xchainer.ndarray((3, 1), xchainer.float32, [1., 1., 1.])
     grad = xchainer.ndarray((3, 1), xchainer.float32, [0.5, 0.5, 0.5])
 
     with pytest.raises(xchainer.XchainerError):
-        array.get_grad(*graph_args)
+        array.get_grad(*backprop_args)
     with pytest.raises(xchainer.XchainerError):
-        array.set_grad(grad, *graph_args)
+        array.set_grad(grad, *backprop_args)
     with pytest.raises(xchainer.XchainerError):
-        array.cleargrad(*graph_args)
+        array.cleargrad(*backprop_args)
 
     # Gradient methods
-    array.require_grad().set_grad(grad, *graph_args)
-    assert array.get_grad(*graph_args) is not None
-    assert array.get_grad(*graph_args)._debug_flat_data == grad._debug_flat_data
+    array.require_grad().set_grad(grad, *backprop_args)
+    assert array.get_grad(*backprop_args) is not None
+    assert array.get_grad(*backprop_args)._debug_flat_data == grad._debug_flat_data
 
-    array.cleargrad(*graph_args)  # clear
-    assert array.get_grad(*graph_args) is None
+    array.cleargrad(*backprop_args)  # clear
+    assert array.get_grad(*backprop_args) is None
 
-    array.set_grad(grad, *graph_args)
-    assert array.get_grad(*graph_args) is not None
-    assert array.get_grad(*graph_args)._debug_flat_data == grad._debug_flat_data
+    array.set_grad(grad, *backprop_args)
+    assert array.get_grad(*backprop_args) is not None
+    assert array.get_grad(*backprop_args)._debug_flat_data == grad._debug_flat_data
 
-    array.set_grad(None, *graph_args)  # clear
-    assert array.get_grad(*graph_args) is None
+    array.set_grad(None, *backprop_args)  # clear
+    assert array.get_grad(*backprop_args) is None
 
     # Gradient attributes
     array.grad = grad
-    assert array.get_grad(*graph_args) is not None
-    assert array.get_grad(*graph_args) is array.grad
+    assert array.get_grad(*backprop_args) is not None
+    assert array.get_grad(*backprop_args) is array.grad
 
     array.grad = None  # clear
-    assert array.get_grad(*graph_args) is None
+    assert array.get_grad(*backprop_args) is None
 
 
-def test_array_grad_with_graph_id():
+def test_array_grad_with_backprop_id():
     array = xchainer.ndarray((3, 1), xchainer.float32, [1., 1., 1.])
     grad = xchainer.ndarray((3, 1), xchainer.float32, [0.5, 0.5, 0.5])
 
-    with xchainer.graph_scope('graph_1') as graph_1:
+    with xchainer.backprop_scope('bp1') as bp1:
         with pytest.raises(xchainer.XchainerError):
-            array.get_grad(graph_1)
+            array.get_grad(bp1)
         with pytest.raises(xchainer.XchainerError):
-            array.set_grad(grad, graph_1)
+            array.set_grad(grad, bp1)
         with pytest.raises(xchainer.XchainerError):
-            array.cleargrad(graph_1)
+            array.cleargrad(bp1)
 
-        array.require_grad(graph_1).set_grad(grad, graph_1)
-        assert array.get_grad(graph_1) is not None
-        assert array.get_grad(graph_1)._debug_flat_data == grad._debug_flat_data
+        array.require_grad(bp1).set_grad(grad, bp1)
+        assert array.get_grad(bp1) is not None
+        assert array.get_grad(bp1)._debug_flat_data == grad._debug_flat_data
 
-        array.cleargrad(graph_1)  # clear
-        assert array.get_grad(graph_1) is None
+        array.cleargrad(bp1)  # clear
+        assert array.get_grad(bp1) is None
 
     # keyword arguments
-    with xchainer.graph_scope('graph_2') as graph_2:
+    with xchainer.backprop_scope('bp2') as bp2:
         with pytest.raises(xchainer.XchainerError):
-            array.get_grad(graph_id=graph_2)
+            array.get_grad(backprop_id=bp2)
         with pytest.raises(xchainer.XchainerError):
-            array.set_grad(grad, graph_id=graph_2)
+            array.set_grad(grad, backprop_id=bp2)
         with pytest.raises(xchainer.XchainerError):
-            array.cleargrad(graph_id=graph_2)
+            array.cleargrad(backprop_id=bp2)
 
-        array.require_grad(graph_id=graph_2).set_grad(grad, graph_id=graph_2)
-        assert array.get_grad(graph_2) is not None
-        assert array.get_grad(graph_id=graph_2) is not None
-        assert array.get_grad(graph_2)._debug_flat_data == grad._debug_flat_data
-        assert array.get_grad(graph_id=graph_2)._debug_flat_data == grad._debug_flat_data
+        array.require_grad(backprop_id=bp2).set_grad(grad, backprop_id=bp2)
+        assert array.get_grad(bp2) is not None
+        assert array.get_grad(backprop_id=bp2) is not None
+        assert array.get_grad(bp2)._debug_flat_data == grad._debug_flat_data
+        assert array.get_grad(backprop_id=bp2)._debug_flat_data == grad._debug_flat_data
 
-        array.cleargrad(graph_id=graph_2)  # clear
-        assert array.get_grad(graph_2) is None
-        assert array.get_grad(graph_id=graph_2) is None
+        array.cleargrad(backprop_id=bp2)  # clear
+        assert array.get_grad(bp2) is None
+        assert array.get_grad(backprop_id=bp2) is None
 
 
 def test_array_grad_no_deepcopy():
@@ -462,27 +462,27 @@ def test_array_require_grad_multiple_graphs_forward():
     x1 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
     x2 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
 
-    with xchainer.graph_scope('graph_1') as graph_1, \
-            xchainer.graph_scope('graph_2') as graph_2, \
-            xchainer.graph_scope('graph_3') as graph_3:
+    with xchainer.backprop_scope('bp1') as bp1, \
+            xchainer.backprop_scope('bp2') as bp2, \
+            xchainer.backprop_scope('bp3') as bp3:
 
-        x1.require_grad(graph_1)
-        x2.require_grad(graph_2)
+        x1.require_grad(bp1)
+        x2.require_grad(bp2)
 
-        assert x1.is_grad_required(graph_1)
-        assert x2.is_grad_required(graph_2)
+        assert x1.is_grad_required(bp1)
+        assert x2.is_grad_required(bp2)
 
-        assert not x1.is_grad_required(graph_2)
-        assert not x2.is_grad_required(graph_1)
+        assert not x1.is_grad_required(bp2)
+        assert not x2.is_grad_required(bp1)
 
         y = x1 * x2
 
-        assert y.is_grad_required(graph_1)
-        assert y.is_grad_required(graph_2)
+        assert y.is_grad_required(bp1)
+        assert y.is_grad_required(bp2)
 
         # No unspecified graphs are generated
         assert not y.is_grad_required(None)
-        assert not y.is_grad_required(graph_3)
+        assert not y.is_grad_required(bp3)
 
 
 @pytest.mark.parametrize('expected_error,invalid_shape,invalid_dtype,invalid_device', [
@@ -511,17 +511,17 @@ def test_array_grad_invalid_grad(expected_error, invalid_shape, invalid_dtype, i
 
 
 def test_array_backward():
-    with xchainer.graph_scope('graph_1') as graph_1:
-        x1 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1]).require_grad(graph_id=graph_1)
-        x2 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1]).require_grad(graph_id=graph_1)
+    with xchainer.backprop_scope('bp1') as bp1:
+        x1 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1]).require_grad(backprop_id=bp1)
+        x2 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1]).require_grad(backprop_id=bp1)
         y = x1 * x2
 
-        y.backward(graph_id=graph_1, enable_double_backprop=True)
-        gx1 = x1.get_grad(graph_id=graph_1)
-        x1.set_grad(None, graph_id=graph_1)
+        y.backward(backprop_id=bp1, enable_double_backprop=True)
+        gx1 = x1.get_grad(backprop_id=bp1)
+        x1.set_grad(None, backprop_id=bp1)
 
-        gx1.backward(graph_id=graph_1)
-        assert gx1.get_grad(graph_id=graph_1) is not None
+        gx1.backward(backprop_id=bp1)
+        assert gx1.get_grad(backprop_id=bp1) is not None
 
 
 @xchainer.testing.numpy_xchainer_array_equal(strides_check=False)

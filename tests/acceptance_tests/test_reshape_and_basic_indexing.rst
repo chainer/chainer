@@ -68,15 +68,15 @@ Backward
 >>> a = xc.array(a_np).require_grad()
 >>> a
 array([[0., 1., 2.],
-       [3., 4., 5.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['<default>'])
+       [3., 4., 5.]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 >>> b = a.reshape(3, 2)
 >>> b
 array([[0., 1.],
        [2., 3.],
-       [4., 5.]], shape=(3, 2), dtype=float32, device='native:0', graph_ids=['<default>'])
+       [4., 5.]], shape=(3, 2), dtype=float32, device='native:0', backprop_ids=['<default>'])
 >>> c = b[1, :]
 >>> c
-array([2., 3.], shape=(2,), dtype=float32, device='native:0', graph_ids=['<default>'])
+array([2., 3.], shape=(2,), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> c.set_grad(xc.array(np.array([5, 7], dtype=np.float32)))
 >>> xc.backward(c)

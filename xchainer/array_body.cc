@@ -60,7 +60,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
     assert(array_node->weak_body().expired());
 
     auto it = std::find_if(body->nodes_.begin(), body->nodes_.end(), [&array_node](const std::shared_ptr<ArrayNode>& existing_node) {
-        return existing_node->graph_id() == array_node->graph_id();
+        return existing_node->backprop_id() == array_node->backprop_id();
     });
     if (it != body->nodes_.end()) {
         return *it;  // Do nothing and return the existing ArrayNode if found for this graph.
@@ -75,8 +75,8 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
     return body->nodes_.back();
 }
 
-const std::shared_ptr<ArrayNode>& ArrayBody::CreateArrayNode(const std::shared_ptr<ArrayBody>& body, const GraphId& graph_id) {
-    return AddNode(body, std::make_shared<ArrayNode>(body->shape_, body->dtype_, body->device_, graph_id));
+const std::shared_ptr<ArrayNode>& ArrayBody::CreateArrayNode(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id) {
+    return AddNode(body, std::make_shared<ArrayNode>(body->shape_, body->dtype_, body->device_, backprop_id));
 }
 
 void ArrayBody::AssertConsistency() const {
@@ -97,38 +97,38 @@ void ArrayBody::AssertConsistency() const {
 #endif  // NDEBUG
 }
 
-nonstd::optional<size_t> ArrayBody::GetNodeIndex(const GraphId& graph_id) const {
+nonstd::optional<size_t> ArrayBody::GetNodeIndex(const BackpropId& backprop_id) const {
     for (size_t i = 0; i < nodes_.size(); ++i) {
-        if (nodes_[i]->graph_id() == graph_id) {
+        if (nodes_[i]->backprop_id() == backprop_id) {
             return i;
         }
     }
     return nonstd::nullopt;
 }
 
-void ArrayBody::SetGrad(Array grad, const GraphId& graph_id) {
-    nonstd::optional<Array>* target_grad = GetGrad(graph_id);
+void ArrayBody::SetGrad(Array grad, const BackpropId& backprop_id) {
+    nonstd::optional<Array>* target_grad = GetGrad(backprop_id);
     assert(target_grad != nullptr);
     internal::SetGrad(*target_grad, std::move(grad), shape_, dtype_, device_);
 }
 
-void ArrayBody::AccumulateGrad(Array partial_grad, const GraphId& graph_id) {
-    nonstd::optional<Array>* target_grad = GetGrad(graph_id);
+void ArrayBody::AccumulateGrad(Array partial_grad, const BackpropId& backprop_id) {
+    nonstd::optional<Array>* target_grad = GetGrad(backprop_id);
     assert(target_grad != nullptr);
     internal::AccumulateGrad(*target_grad, std::move(partial_grad), shape_, dtype_, device_);
 }
 
-void ArrayBody::ClearGrad(const GraphId& graph_id) {
-    nonstd::optional<Array>* grad = GetGrad(graph_id);
+void ArrayBody::ClearGrad(const BackpropId& backprop_id) {
+    nonstd::optional<Array>* grad = GetGrad(backprop_id);
     if (grad == nullptr) {
-        throw XchainerError{"Array does not belong to the graph: '", graph_id, "'."};
+        throw XchainerError{"Array does not require gradient for backprop id: '", backprop_id, "'."};
     }
     grad->reset();
 }
 
 template <typename ThisPtr, typename ReturnType>
-ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const GraphId& graph_id) {
-    nonstd::optional<size_t> i = this_ptr->GetNodeIndex(graph_id);
+ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_id) {
+    nonstd::optional<size_t> i = this_ptr->GetNodeIndex(backprop_id);
     if (!i.has_value()) {
         return nullptr;
     }
@@ -136,9 +136,9 @@ ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const GraphId& graph_id) {
     return this_ptr->grads_[*i].get();
 }
 
-template nonstd::optional<Array>* ArrayBody::GetGradImpl<ArrayBody*, nonstd::optional<Array>*>(ArrayBody*, const GraphId&);
+template nonstd::optional<Array>* ArrayBody::GetGradImpl<ArrayBody*, nonstd::optional<Array>*>(ArrayBody*, const BackpropId&);
 template const nonstd::optional<Array>* ArrayBody::GetGradImpl<const ArrayBody*, const nonstd::optional<Array>*>(
-        const ArrayBody*, const GraphId&);
+        const ArrayBody*, const BackpropId&);
 
 }  // namespace internal
 }  // namespace xchainer

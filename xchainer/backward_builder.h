@@ -68,12 +68,12 @@ public:
         // Defines a backward function with respect to specified input arrays (target).
         void Define(const BackwardFunction& backward_func);
 
-        bool is_definition_required() const { return !graph_to_next_array_nodes_.empty(); }
+        bool is_definition_required() const { return !graph_to_input_array_nodes_.empty(); }
 
     private:
         friend class BackwardBuilder;  // Only BackwardBuilder can create Target
 
-        using NextArrayNodes = std::vector<const std::shared_ptr<internal::ArrayNode>*>;
+        using InputArrayNodes = std::vector<const std::shared_ptr<internal::ArrayNode>*>;
 
         Target(BackwardBuilder& builder, std::vector<size_t> input_indices);
 
@@ -85,7 +85,7 @@ public:
         std::vector<size_t> input_indices_;
 
         // TODO(hvy): Consider using linear search since elements are usually few.
-        std::unordered_map<GraphId, NextArrayNodes> graph_to_next_array_nodes_;
+        std::unordered_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes_;
     };
 
     BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs);
@@ -138,12 +138,12 @@ public:
 private:
     // Create an op node for a specific graph.
     // Edges from output nodes to the op node are connected.
-    std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const GraphId& graph_id);
+    std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const BackpropId& backprop_id);
 
     // Add shared ptrs between op nodes and array nodes belonging to outer graphs.
     // This functions is called once when the given op node is encountered for the first time.
     // These references are required to restore retained inputs/outputs.
-    void AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs(const std::shared_ptr<internal::OpNode>& op_node);
+    void AddEdgesToOutputArrayNodesBetweenEncounteredGraphs(const std::shared_ptr<internal::OpNode>& op_node);
 
     const char* op_name_;
 
@@ -160,7 +160,7 @@ private:
 
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
-    std::unordered_map<GraphId, std::shared_ptr<internal::OpNode>> op_node_map_;
+    std::unordered_map<BackpropId, std::shared_ptr<internal::OpNode>> op_node_map_;
 };
 
 }  // namespace xchainer

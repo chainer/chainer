@@ -8,10 +8,10 @@
 
 namespace xchainer {
 
-std::ostream& operator<<(std::ostream& os, const GraphId& graph_id) {
+std::ostream& operator<<(std::ostream& os, const BackpropId& backprop_id) {
     static constexpr const char* kExpiredGraphDisplayName = "<expired>";
     try {
-        const std::string& name = graph_id.GetName();
+        const std::string& name = backprop_id.GetName();
         os << name;
     } catch (const XchainerError& e) {
         os << kExpiredGraphDisplayName;
@@ -19,6 +19,6 @@ std::ostream& operator<<(std::ostream& os, const GraphId& graph_id) {
     return os;
 }
 
-std::string GraphId::GetName() const { return context_.get().GetGraphName(*this); }
+std::string BackpropId::GetName() const { return context_.get().GetBackpropName(*this); }
 
 }  // namespace xchainer

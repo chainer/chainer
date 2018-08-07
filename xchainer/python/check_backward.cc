@@ -45,7 +45,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const nonstd::optional<GraphId>& graph_id) {
+             const nonstd::optional<BackpropId>& backprop_id) {
               CheckBackward(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
@@ -53,7 +53,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
                       {eps.begin(), eps.end()},
                       atol,
                       rtol,
-                      graph_id);
+                      backprop_id);
           },
           py::arg("func"),
           py::arg("inputs"),
@@ -61,7 +61,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
           py::arg("eps"),
           py::arg("atol") = 1e-5,
           py::arg("rtol") = 1e-4,
-          py::arg("graph_id") = nullptr);
+          py::arg("backprop_id") = nullptr);
 
     m.def("check_double_backward",
           [](py::object func,
@@ -71,7 +71,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const nonstd::optional<GraphId>& graph_id) {
+             const nonstd::optional<BackpropId>& backprop_id) {
               CheckDoubleBackwardComputation(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
@@ -80,7 +80,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
                       {eps.begin(), eps.end()},
                       atol,
                       rtol,
-                      graph_id);
+                      backprop_id);
           },
           py::arg("func"),
           py::arg("inputs"),
@@ -89,7 +89,7 @@ void InitXchainerCheckBackward(pybind11::module& m) {
           py::arg("eps"),
           py::arg("atol") = 1e-5,
           py::arg("rtol") = 1e-4,
-          py::arg("graph_id") = nullptr);
+          py::arg("backprop_id") = nullptr);
 }
 
 }  // namespace python_internal
