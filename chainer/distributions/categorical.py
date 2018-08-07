@@ -1,3 +1,5 @@
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
@@ -6,7 +8,6 @@ from chainer.functions.math import exponential
 from chainer.functions.math import logsumexp
 from chainer.functions.math import sum as sum_mod
 from chainer.utils import argument
-import numpy
 
 
 class Categorical(distribution.Distribution):
@@ -89,5 +90,4 @@ class Categorical(distribution.Distribution):
 
 @distribution.register_kl(Categorical, Categorical)
 def _kl_categorical_categorical(dist1, dist2):
-    return sum_mod.sum(dist1.p * (
-        exponential.log(dist1.p) - exponential.log(dist2.p)), axis=-1)
+    return sum_mod.sum(dist1.p * (dist1.log_p - dist2.log_p), axis=-1)
