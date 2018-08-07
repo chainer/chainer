@@ -83,8 +83,6 @@ class Preprocess(object):
         one_hot = numpy.identity(
             self.quantize, dtype=numpy.float32)[quantized]
         one_hot = numpy.expand_dims(one_hot.T, 2)
-        raw = numpy.expand_dims(raw, 0)  # expand channel
-        raw = numpy.expand_dims(raw, -1)  # expand height
         spectrogram = numpy.expand_dims(spectrogram, 2)
         quantized = numpy.expand_dims(quantized, 1)
 
