@@ -1,3 +1,5 @@
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
@@ -6,7 +8,7 @@ from chainer.functions.array import where
 from chainer.functions.math import clip
 from chainer.functions.math import exponential
 from chainer.functions.math import sqrt
-import numpy
+from chainer.utils import argument
 
 
 class Uniform(distribution.Distribution):
@@ -30,9 +32,26 @@ class Uniform(distribution.Distribution):
         higher bound :math:`h`.
     """
 
-    def __init__(self, low, high):
-        self.__low = chainer.as_variable(low)
-        self.__high = chainer.as_variable(high)
+    def __init__(self, **kwargs):
+        low, high, loc, scale = None, None, None, None
+        if kwargs:
+            low, high, loc, scale = argument.parse_kwargs(
+                kwargs, ('low', low), ('high', high), ('loc', loc),
+                ('scale', scale))
+        if not (low is None or high is None) ^ (loc is None or scale is None):
+            raise ValueError(
+                "Either `low, high` or `loc, scale` (not both) must have a "
+                "value.")
+        if low is None:
+            self.__loc = chainer.as_variable(loc)
+            self.__scale = chainer.as_variable(scale)
+            self.__low = self.__loc
+            self.__high = self.__loc + self.__scale
+        else:
+            self.__low = chainer.as_variable(low)
+            self.__high = chainer.as_variable(high)
+            self.__loc = self.__low
+            self.__scale = self.__high - self.__low
 
     @property
     def low(self):
@@ -41,6 +60,14 @@ class Uniform(distribution.Distribution):
     @property
     def high(self):
         return self.__high
+
+    @property
+    def loc(self):
+        return self.__loc
+
+    @property
+    def scale(self):
+        return self.__scale
 
     @property
     def batch_shape(self):
