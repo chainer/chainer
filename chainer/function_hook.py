@@ -123,7 +123,7 @@ class FunctionHook(object):
         del chainer.get_function_hooks()[self.name]
 
     def added(self, function=None):
-        """Callback function invoked when a function hook is added
+        """Callback function invoked when the function hook is registered
 
         Args:
             function(~chainer.FunctionNode): Function object to which
@@ -133,7 +133,7 @@ class FunctionHook(object):
         pass
 
     def deleted(self, function=None):
-        """Callback function invoked when a function hook is deleted
+        """Callback function invoked when the function hook is unregistered
 
         Args:
             function(~chainer.FunctionNode): Function object from which
