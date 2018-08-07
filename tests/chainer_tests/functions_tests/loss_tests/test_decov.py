@@ -43,9 +43,6 @@ def _deconv(h):
 class TestDeCov(unittest.TestCase):
 
     def setUp(self):
-        self._config_user = chainer.using_config('dtype', self.dtype)
-        self._config_user.__enter__()
-
         self.h = numpy.random.uniform(-1, 1, (4, 3)).astype(self.dtype)
         if self.reduce == 'half_squared_sum':
             gloss_shape = ()
@@ -53,9 +50,6 @@ class TestDeCov(unittest.TestCase):
             gloss_shape = (3, 3)
         self.gloss = numpy.random.uniform(
             -1, 1, gloss_shape).astype(self.dtype)
-
-    def tearDown(self):
-        self._config_user.__exit__(None, None, None)
 
     def check_forward(self, h_data):
         h = chainer.Variable(h_data)
