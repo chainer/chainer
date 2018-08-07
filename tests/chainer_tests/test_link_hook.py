@@ -40,21 +40,24 @@ class MyModel(chainer.Chain):
 
 class TestLinkHook(unittest.TestCase):
 
-    def test_name(self):
-        chainer.LinkHook().name == 'LinkHook'
-
-    def test_global_hook(self):
-
+    def _create_model_and_data(self):
         x = numpy.array([[3, 1, 2]], numpy.float32)
         w = numpy.array([[1, 3, 2], [6, 4, 5]], numpy.float32)
         dot = numpy.dot(x, w.T)
 
         model = MyModel(w)
+
+        return model, x, dot
+
+    def test_name(self):
+        chainer.LinkHook().name == 'LinkHook'
+
+    def test_global_hook(self):
+        model, x, dot = self._create_model_and_data()
         hook = MyLinkHook()
-        x_var = chainer.Variable(x)
 
         with hook:
-            model(x_var, 'foo', test2='bar')
+            model(chainer.Variable(x), 'foo', test2='bar')
 
         # added
         assert len(hook.added_args) == 1
@@ -98,17 +101,11 @@ class TestLinkHook(unittest.TestCase):
         numpy.testing.assert_array_equal(args.out.data, dot)
 
     def _check_local_hook(self, add_hook_name, delete_hook_name):
-
-        x = numpy.array([[3, 1, 2]], numpy.float32)
-        w = numpy.array([[1, 3, 2], [6, 4, 5]], numpy.float32)
-        dot = numpy.dot(x, w.T)
-
-        model = MyModel(w)
+        model, x, dot = self._create_model_and_data()
         hook = MyLinkHook()
-        x_var = chainer.Variable(x)
 
         model.add_hook(hook, add_hook_name)
-        model(x_var, 'foo', test2='bar')
+        model(chainer.Variable(x), 'foo', test2='bar')
         model.delete_hook(delete_hook_name)
 
         # added
@@ -149,6 +146,36 @@ class TestLinkHook(unittest.TestCase):
 
     def test_local_hook_unnamed(self):
         self._check_local_hook(None, 'MyLinkHook')
+
+    def test_global_hook_delete(self):
+        # Deleted hook should not be called
+
+        model, x, dot = self._create_model_and_data()
+        hook = MyLinkHook()
+
+        with hook:
+            pass
+        model(chainer.Variable(x), 'foo', test2='bar')
+
+        assert len(hook.added_args) == 1
+        assert len(hook.deleted_args) == 1
+        assert len(hook.forward_preprocess_args) == 0
+        assert len(hook.forward_postprocess_args) == 0
+
+    def test_local_hook_delete(self):
+        # Deleted hook should not be called
+
+        model, x, dot = self._create_model_and_data()
+        hook = MyLinkHook()
+
+        model.add_hook(hook)
+        model.delete_hook('MyLinkHook')
+        model(chainer.Variable(x), 'foo', test2='bar')
+
+        assert len(hook.added_args) == 1
+        assert len(hook.deleted_args) == 1
+        assert len(hook.forward_preprocess_args) == 0
+        assert len(hook.forward_postprocess_args) == 0
 
 
 testing.run_module(__name__, __file__)
