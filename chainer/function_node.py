@@ -549,54 +549,11 @@ Use apply() method instead.\
 
         gxs = self.backward(target_input_indexes, grad_outputs)
 
-        is_debug = chainer.is_debug()
-
-        if is_debug:
-            for gx in gxs:
-                if not (gx is None or isinstance(gx, variable.Variable)):
-                    self._raise_error(
-                        'type of gradients returned from backward is '
-                        'incorrect: '
-                        '{} != expected {}'.format(
-                            type(gx), variable.Variable))
-
         len_gxs = len(gxs)
         if len_gxs == len(self.inputs):
             gxs = tuple([gxs[i] for i in target_input_indexes])
-        elif len_gxs != len(target_input_indexes):
-            msg = 'number of gradients returned from backward is incorrect: '
-            if len(self.inputs) == len(target_input_indexes):
-                msg += (
-                    '%s != expected %s' % (len_gxs, len(self.inputs)))
-            else:
-                msg += (
-                    '%s != expected %s or %s'
-                    % (len_gxs, len(self.inputs), len(target_input_indexes)))
-            self._raise_error(msg)
-
-        if is_debug:
-            for gx, i in six.moves.zip(gxs, target_input_indexes):
-                if gx is None:
-                    continue
-                if gx.shape != self.inputs[i].shape:
-                    self._raise_error(
-                        'shape of gradients returned from backward is '
-                        'incorrect: '
-                        'input-index={}, actual {} != expected {}'.format(
-                            i, gx.shape, self.inputs[i].shape))
-                if gx is not None and grad_inputs[i] is not None:
-                    if gx.shape != grad_inputs[i].shape:
-                        self._raise_error(
-                            'shape of gradients returned from backward is '
-                            'incorrect: '
-                            'input-index={}, actual {} != expected {}'.format(
-                                i, gx.shape, grad_inputs[i].shape))
-                    if gx.dtype != grad_inputs[i].dtype:
-                        self._raise_error(
-                            'dtype of gradients returned from backward is '
-                            'incorrect: '
-                            'input-index={}, actual {} != expected {}'.format(
-                                i, gx.dtype, grad_inputs[i].dtype))
+        else:
+            assert len_gxs == len(target_input_indexes)
 
         return tuple([gx if g_input is None else
                       g_input if gx is None else

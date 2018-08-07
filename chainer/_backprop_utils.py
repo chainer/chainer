@@ -87,7 +87,8 @@ def backprop_step(
         grad_inputs (dict): References of radients w.r.t. the input variables.
 
     """
-    if chainer.is_debug():
+    is_debug = chainer.is_debug()
+    if is_debug:
         assert isinstance(target_input_indexes, tuple)
         assert target_input_indexes == tuple(sorted(target_input_indexes))
         assert isinstance(grad_outputs, tuple)
@@ -103,17 +104,54 @@ def backprop_step(
     else:  # otherwise, backward should be overridden
         gxs = func.backward(
             target_input_indexes, grad_outputs)
+
+        if is_debug:
+            for gx in gxs:
+                if not (gx is None or isinstance(gx, variable.Variable)):
+                    func._raise_error(
+                        'type of gradients returned from backward is '
+                        'incorrect: '
+                        '{} != expected {}'.format(
+                            type(gx), variable.Variable))
+
         len_gxs = len(gxs)
         if len_gxs == len(func.inputs):
             gxs = tuple([gxs[i] for i in target_input_indexes])
         elif len_gxs != len(target_input_indexes):
-            raise ValueError(
-                'number of gradients returned by %s (%s) is incorrect.'
-                % (func._impl_name, func.label))
+            msg = 'number of gradients returned from backward is incorrect: '
+            if len(func.inputs) == len(target_input_indexes):
+                msg += (
+                    '%s != expected %s' % (len_gxs, len(func.inputs)))
+            else:
+                msg += (
+                    '%s != expected %s or %s'
+                    % (len_gxs, len(func.inputs), len(target_input_indexes)))
+            func._raise_error(msg)
 
     for i, gx in six.moves.zip(target_input_indexes, gxs):
         if gx is not None:
             grad_inputs[func.inputs[i]].append(gx)
+
+            if is_debug:
+                if gx.shape != func.inputs[i].shape:
+                    func._raise_error(
+                        'shape of gradients returned from backward is '
+                        'incorrect: '
+                        'input-index={}, actual {} != expected {}'.format(
+                            i, gx.shape, func.inputs[i].shape))
+                if gx is not None and grad_inputs[i] is not None:
+                    if gx.shape != grad_inputs[i].shape:
+                        func._raise_error(
+                            'shape of gradients returned from backward is '
+                            'incorrect: '
+                            'input-index={}, actual {} != expected {}'.format(
+                                i, gx.shape, grad_inputs[i].shape))
+                    if gx.dtype != grad_inputs[i].dtype:
+                        func._raise_error(
+                            'dtype of gradients returned from backward is '
+                            'incorrect: '
+                            'input-index={}, actual {} != expected {}'.format(
+                                i, gx.dtype, grad_inputs[i].dtype))
 
     if not func.lazy_grad_sum:
         for gx in grad_inputs.values():
