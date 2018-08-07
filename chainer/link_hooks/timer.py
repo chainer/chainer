@@ -103,7 +103,8 @@ class TimerHook(link_hook.LinkHook):
     def call_history(self):
         """Iterable of measurement results.
 
-        :return: An iterable of record data, each of which represents a single
+        Returns:
+            An iterable of record data, each of which represents a single
             invocation of link's forward method. A record data has the
             following attributes:
 
