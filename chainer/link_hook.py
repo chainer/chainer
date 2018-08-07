@@ -88,7 +88,7 @@ class LinkHook(object):
     name = 'LinkHook'
 
     def __enter__(self):
-        link_hooks = chainer.get_link_hooks()
+        link_hooks = chainer._get_link_hooks()
         if self.name in link_hooks:
             raise KeyError('hook %s already exists' % self.name)
 
@@ -97,8 +97,9 @@ class LinkHook(object):
         return self
 
     def __exit__(self, *_):
-        chainer.get_link_hooks()[self.name].deleted(None)
-        del chainer.get_link_hooks()[self.name]
+        link_hooks = chainer._get_link_hooks()
+        link_hooks[self.name].deleted(None)
+        del link_hooks[self.name]
 
     def added(self, link):
         """Callback function invoked when the link hook is registered

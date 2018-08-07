@@ -92,7 +92,7 @@ def get_function_hooks():
     return ret
 
 
-def get_link_hooks():
+def _get_link_hooks():
     try:
         ret = _thread_local.link_hooks
     except AttributeError:

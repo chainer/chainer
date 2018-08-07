@@ -230,7 +230,7 @@ class Link(object):
     def __call__(self, *args, **kwargs):
 
         # TODO(niboshi): Support link hooks for other forward methods.
-        hooks = chainer.get_link_hooks()
+        hooks = chainer._get_link_hooks()
         if self._n_local_link_hooks > 0:
             hooks = collections.OrderedDict(hooks)
             hooks.update(self.local_link_hooks)
