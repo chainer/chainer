@@ -47,7 +47,8 @@ class _CallbackArgs(object):
     def __repr__(self):
         return '<{}.{} {}>'.format(
             self.__module__, self.__class__.__qualname__,
-            ' '.join('{}={}'.format(k, getattr(self, k)) for k in self._names))
+            ' '.join('{}={}'.format(
+                k, getattr(self, k)) for k in sorted(self._names)))
 
 
 class Link(object):
@@ -163,7 +164,7 @@ class Link(object):
 
         Contrary to ``chainer.thread_local.link_hooks``,
         which registers its elements to all functions,
-        Function hooks in this property is specific to this function.
+        link hooks in this property are specific to this link.
 
         """
         if self._local_link_hooks is None:

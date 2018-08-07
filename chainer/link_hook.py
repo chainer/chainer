@@ -2,7 +2,7 @@ import chainer
 
 
 class LinkHook(object):
-    """Base class of hooks for Links.
+    """Base class of hooks for links.
 
     :class:`~chainer.LinkHook` is a callback object
     that is registered to a :class:`~chainer.Link`.

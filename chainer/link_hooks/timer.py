@@ -62,10 +62,6 @@ class TimerHook(link_hook.LinkHook):
             self._running_stack.append((start, stop))
         self._depth += 1
 
-    def forward_preprocess(self, args):
-        self.xp = args.link.xp
-        self._preprocess()
-
     def _postprocess(self, link):
         if self.xp is numpy:
             start = self._running_stack.pop()
@@ -85,6 +81,10 @@ class TimerHook(link_hook.LinkHook):
         self._depth -= 1
         if self._depth == 0:
             self._total_time += elapsed_time
+
+    def forward_preprocess(self, args):
+        self.xp = args.link.xp
+        self._preprocess()
 
     def forward_postprocess(self, args):
         link = args.link
