@@ -5,10 +5,23 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import link_hook
+from chainer import utils
+
+
+class _CallHistoryRecord(object):
+    """Call history record for a single call"""
+
+    def __init__(self, link_name, elapsed_time):
+        self.link_name = link_name
+        self.elapsed_time = elapsed_time
+
+    def __repr__(self):
+        return utils._repr_with_named_data(
+            self, link_name=self.link_name, elapsed_time=self.elapsed_time)
 
 
 class TimerHook(link_hook.LinkHook):
-    """Link hook for measuring elapsed time of :meth:`forward`.
+    """Link hook for measuring elapsed time of :meth:`Link.forward`.
 
     Example:
         Code example::
@@ -34,18 +47,12 @@ class TimerHook(link_hook.LinkHook):
         Link calls are hierarchical and may overlap with each other.
         The sum of reported elapsed time of each link may exceed the one
         returned by :meth:`~TimerHook.total_time`.
-
-    Attributes:
-        call_history: List of measurement results. It consists of pairs of
-            the name of the link that calls this hook and the elapsed time
-            the :meth:`forward` method of link consumes.
-
     """
 
     name = 'TimerHook'
 
     def __init__(self):
-        self.call_history = []
+        self._call_history = []
         self._running_stack = []
         self._depth = 0
         self._total_time = 0
@@ -79,7 +86,7 @@ class TimerHook(link_hook.LinkHook):
             # Note that `get_elapsed_time` returns result in milliseconds
             elapsed_time = cuda.cupy.cuda.get_elapsed_time(
                 start, stop) / 1000
-        self.call_history.append((link.__class__.__name__, elapsed_time))
+        self._call_history.append((link.__class__.__name__, elapsed_time))
 
         assert self._depth > 0
         self._depth -= 1
@@ -91,6 +98,22 @@ class TimerHook(link_hook.LinkHook):
 
     def forward_postprocess(self, args):
         self._postprocess(args.link)
+
+    @property
+    def call_history(self):
+        """Iterable of measurement results.
+
+        :return: An iterable of record data, each of which represents a single
+            invocation of link's forward method. A record data has the
+            following attributes:
+
+                * link_name (:class:`str`)
+                    Name of the link
+                * elapsed_time (:class:`float`)
+                    Elapsed time of the forward method in seconds.
+        """
+        for link_name, elapsed_time in self._call_history:
+            yield _CallHistoryRecord(link_name, elapsed_time)
 
     def total_time(self):
         """Returns the total elapsed time in seconds."""
@@ -104,7 +127,7 @@ class TimerHook(link_hook.LinkHook):
             values are dictionaries of `elapsed_time` and `occurrrence`.
         """
         summary = {}
-        for link_name, elapsed_time in self.call_history:
+        for link_name, elapsed_time in self._call_history:
             if link_name not in summary:
                 summary[link_name] = {'elapsed_time': 0, 'occurrence': 0}
             record = summary[link_name]

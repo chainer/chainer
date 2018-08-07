@@ -63,6 +63,6 @@ def tempdir(**kwargs):
 
 
 def _repr_with_named_data(inst, **kwargs):
-   return '<{}.{} {}>'.format(
-       inst.__module__, inst.__class__.__qualname__,
-       ' '.join('{}={}'.format(k, v) for k, v in six.iteritems(kwargs)))
+    return '<{}.{} {}>'.format(
+        inst.__module__, inst.__class__.__qualname__,
+        ' '.join('{}={}'.format(k, v) for k, v in six.iteritems(kwargs)))
