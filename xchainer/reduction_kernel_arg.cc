@@ -149,18 +149,6 @@ void ReductionArg::Squash() {
     }
 #endif
 
-    // Some cases we can not squash further
-    if (in_shape_.ndim() == 0) {
-        assert(out_shape_.ndim() == 0 && reduce_shape_.ndim() == 0);
-        return
-    } else if (in_shape_.ndim() == 1) {
-        assert((out_shape_.ndim() == 1 && reduce_shape_.ndim() == 0) || (out_shape_.ndim() == 0 && reduce_shape_.ndim() == 1));
-        return
-    } else if (in_shape_.ndim() == 2 && out_shape_.ndim() == 1) {
-        assert(reduce_shape_.ndim() == 1);
-        return
-    }
-
     // Squash out
     Strides in_out_strides_{};  // former out_shape_.ndim() parts of in_strides_
     for (int8_t i = 0; i < out_strides_.ndim(); ++i) {
