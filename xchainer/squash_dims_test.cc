@@ -1,4 +1,4 @@
-#include "xchainer/squash_dim.h"
+#include "xchainer/squash_dims.h"
 
 #include <tuple>
 
@@ -14,14 +14,14 @@
 namespace xchainer {
 namespace {
 
-TEST(SquashDimTest, GetSquashedStrides) {
+TEST(SquashDimsTest, GetSquashedStrides) {
     EXPECT_EQ(Strides({3, 2, 5, 4}), GetSquashedStrides({3, 2, 5, 4}, {0, 1, 2, 3}));
     EXPECT_EQ(Strides({2, 5}), GetSquashedStrides({3, 2, 5, 4}, {1, 2}));
     EXPECT_EQ(Strides({}), GetSquashedStrides({3, 2, 5, 4}, {}));
     EXPECT_EQ(Strides({}), GetSquashedStrides({}, {}));
 }
 
-TEST(SquashDimTest, SquashAllDimensions) {
+TEST(SquashDimsTest, SquashAllDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>();
@@ -31,7 +31,7 @@ TEST(SquashDimTest, SquashAllDimensions) {
     EXPECT_EQ(Axes({3}), std::get<1>(squashed_result));
 }
 
-TEST(SquashDimTest, SquashPartialDimensions) {
+TEST(SquashDimsTest, SquashPartialDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding({0, 2, 0, 0});
@@ -41,7 +41,7 @@ TEST(SquashDimTest, SquashPartialDimensions) {
     EXPECT_EQ(Axes({1, 3}), std::get<1>(squashed_result));
 }
 
-TEST(SquashDimTest, SquashUnitLengthDimensions) {
+TEST(SquashDimsTest, SquashUnitLengthDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 1, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding(1);
@@ -51,7 +51,7 @@ TEST(SquashDimTest, SquashUnitLengthDimensions) {
     EXPECT_EQ(Axes({0, 1, 3}), std::get<1>(squashed_result));
 }
 
-TEST(SquashDimTest, SquashMultipleArraysDimensions) {
+TEST(SquashDimsTest, SquashMultipleArraysDimensions) {
     testing::ContextSession context_session;
     Shape shape{3, 2, 5, 4};
     Array a = testing::BuildArray(shape).WithLinearData<float>().WithPadding({0, 2, 0, 0});

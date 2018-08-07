@@ -45,7 +45,7 @@ install(FILES
     scalar.h
     shape.h
     slice.h
-    squash_dim.h
+    squash_dims.h
     stack_vector.h
     strides.h
     xchainer.h
@@ -117,7 +117,7 @@ if(ENABLE_TEST)
         optional_container_arg_test.cc
         scalar_test.cc
         shape_test.cc
-        squash_dim_test.cc
+        squash_dims_test.cc
         stack_vector_test.cc
         strides_test.cc
         )

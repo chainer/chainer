@@ -6,7 +6,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/shape.h"
-#include "xchainer/squash_dim.h"
+#include "xchainer/squash_dims.h"
 #include "xchainer/strides.h"
 
 namespace xchainer {

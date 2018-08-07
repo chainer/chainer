@@ -8,7 +8,7 @@
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 #include "xchainer/shape.h"
-#include "xchainer/squash_dim.h"
+#include "xchainer/squash_dims.h"
 
 namespace xchainer {
 namespace native {
