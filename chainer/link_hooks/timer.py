@@ -50,26 +50,30 @@ class TimerHook(link_hook.LinkHook):
         self._depth = 0
         self._total_time = 0
 
-    def _preprocess(self):
-        if self.xp is numpy:
+    def _preprocess(self, link):
+        xp = link.xp
+        if xp is numpy:
             start = time.time()
-            self._running_stack.append(start)
+            self._running_stack.append((xp, start))
         else:
-            assert self.xp is cuda.cupy
+            assert xp is cuda.cupy
             start = cuda.Event()
             stop = cuda.Event()
             start.record()
-            self._running_stack.append((start, stop))
+            self._running_stack.append((xp, start, stop))
         self._depth += 1
 
     def _postprocess(self, link):
-        if self.xp is numpy:
-            start = self._running_stack.pop()
+        last = self._running_stack.pop()
+        xp = link.xp
+        assert last[0] is xp
+        if xp is numpy:
+            _, start = last
             stop = time.time()
             elapsed_time = stop - start
         else:
-            assert self.xp is cuda.cupy
-            start, stop = self._running_stack.pop()
+            assert xp is cuda.cupy
+            _, start, stop = self._running_stack.pop()
             stop.record()
             stop.synchronize()
             # Note that `get_elapsed_time` returns result in milliseconds
@@ -83,13 +87,10 @@ class TimerHook(link_hook.LinkHook):
             self._total_time += elapsed_time
 
     def forward_preprocess(self, args):
-        self.xp = args.link.xp
-        self._preprocess()
+        self._preprocess(args.link)
 
     def forward_postprocess(self, args):
-        link = args.link
-        assert link.xp == self.xp
-        self._postprocess(link)
+        self._postprocess(args.link)
 
     def total_time(self):
         """Returns the total elapsed time in seconds."""
