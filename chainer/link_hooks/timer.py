@@ -35,9 +35,9 @@ class TimerHook(link_hook.LinkHook):
         Output example::
 
               LinkName  ElapsedTime  Occurrence
-                Linear     41.42sec        2100
-                   MLP     42.09sec         700
             Classifier     42.39sec         700
+                   MLP     42.09sec         700
+                Linear     41.42sec        2100
 
         where *LinkName* is the name of link that calls the hook,
         and *ElapsedTime* is the elapsed time the link consumed,
@@ -147,7 +147,13 @@ class TimerHook(link_hook.LinkHook):
     def print_report(self, file=sys.stdout):
         """Prints a summary report of time profiling in links."""
         entries = [['LinkName', 'ElapsedTime', 'Occurrence']]
-        for link_name, record in self.summary().items():
+        summary = self.summary()
+        # Sort links in the descending order of elapsed time
+        sorted_link_names = sorted(
+            summary.keys(),
+            key=lambda link_name: -summary[link_name]['elapsed_time'])
+        for link_name in sorted_link_names:
+            record = summary[link_name]
             elapsed_time = self._humanized_time(record['elapsed_time'])
             occurrence = str(record['occurrence'])
             entries.append([link_name, elapsed_time, occurrence])

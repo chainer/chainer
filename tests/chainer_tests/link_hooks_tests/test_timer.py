@@ -69,9 +69,9 @@ class TestTimerHook(unittest.TestCase):
             s = six.StringIO()
             hook.print_report(file=s)
             report = s.getvalue().split('\n')
-            assert len(report) == 4
-            assert re.match(r' +Linear +[.0-9a-z]+ +4$', report[1])
-            assert re.match(r' +MyModel +[.0-9a-z]+ +2$', report[2])
+            assert len(report) == 4  # report[0] is the header line
+            assert re.match(r' +MyModel +[.0-9a-z]+ +2$', report[1])
+            assert re.match(r' +Linear +[.0-9a-z]+ +4$', report[2])
             assert len(report[3]) == 0
 
         # Probing the record should not change the internal state
