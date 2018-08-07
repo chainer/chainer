@@ -224,6 +224,7 @@ Mathematical functions
    chainer.functions.einsum
    chainer.functions.erf
    chainer.functions.erfc
+   chainer.functions.erfcx
    chainer.functions.erfinv
    chainer.functions.exp
    chainer.functions.expm1
