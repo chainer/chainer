@@ -11,11 +11,11 @@ from chainer import testing
 from chainer.testing import attr
 
 
-def _deconv(h, dtype):
+def _deconv(h):
     h = cuda.to_cpu(h)
     h_mean = h.mean(axis=0)
     N, M = h.shape
-    loss_expect = numpy.zeros((M, M), dtype=dtype)
+    loss_expect = numpy.zeros((M, M), dtype=h.dtype)
     for i in six.moves.range(M):
         for j in six.moves.range(M):
             if i != j:
@@ -67,7 +67,7 @@ class TestDeCov(unittest.TestCase):
         # Compute expected value
         h_data = cuda.to_cpu(h_data)
 
-        loss_expect = _deconv(h_data, self.dtype)
+        loss_expect = _deconv(h_data)
         if self.reduce == 'half_squared_sum':
             loss_expect = (loss_expect ** 2).sum() * 0.5
 
