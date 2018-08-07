@@ -31,6 +31,18 @@ inline Strides GetSquashedStrides(const Strides& strides, const Axes& keep) {
     return squashed;
 }
 
+// Given an equal shape of arrays and strides of these arrays, returns a tuple with a squashed shape with possibly fewer number of dimensions
+// (but with equal total size) and axes that were kept in the procedure. Dimensions must be either successively contiguous or unit-length in
+// order to be squashed as in the following examples.
+//
+// Example 1:
+// Given Shape{2, 3}, all contiguous strides => Shape{6} and Axes{1}.
+//
+// Example 2:
+// Given Shape{3, 2, 1, 2}, strides with padded first dimension => Shape{3, 4} and Axes{0, 3}.
+//
+// Strided indexing spanning over multiple dimensions can be slow and may thus be preceded with this squash.
+// Axes are needed to extract the subset of strides corresponding to the correct axes using GetSquashedStrides.
 template <typename... PackedStrides>
 std::tuple<Shape, Axes> SquashShape(const Shape& shape, const PackedStrides&... strides) {
     Shape squashed{};
@@ -74,18 +86,6 @@ std::tuple<Shape, Axes> SquashShape(const Shape& shape, const PackedStrides&... 
     return std::make_tuple(squashed, keep);
 }
 
-// Given arrays of equal shapes, returns a tuple with a squashed shape with possibly fewer number of dimensions (but with equal total size)
-// and axes that were kept in the procedure. Dimensions must be either successively contiguous or unit-length in order to be squashed as in
-// the following examples.
-//
-// Example 1:
-// Given arrays with Shape{2, 3}, all contiguous => Shape{6} and Axes{1}.
-//
-// Example 2:
-// Given arrays with Shape{3, 2, 1, 2}, padded first dimension => Shape{3, 4} and Axes{0, 3}.
-//
-// Strided indexing spanning over multiple dimensions can be slow and may thus be preceded with this squash.
-// Axes are needed to extract the subset of strides corresponding to the correct axes using GetSquashedStrides.
 template <typename... Arrays>
 std::tuple<Shape, Axes> SquashShape(const Array& array, Arrays&&... arrays) {
     return SquashShape(array.shape(), array.strides(), arrays.strides()...);
