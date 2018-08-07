@@ -52,7 +52,7 @@ TEST_P(StatisticsTest, MeanAllAxes) {
     Array a = testing::BuildArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
     Array b = Mean(a);
     EXPECT_EQ(Shape{}, b.shape());
-    Array e = testing::BuildArray({}).WithData<T>({8.5});
+    Array e = testing::BuildArray({}).WithData<T>({8.5f});
     testing::ExpectEqual(e, b);
 }
 
@@ -92,7 +92,7 @@ TEST_P(StatisticsTest, MeanLarge) {
     Array a = testing::BuildArray({0x100000}).WithLinearData<T>().WithPadding(1);
     Array b = Mean(a, Axes{0});
     EXPECT_EQ(Shape{}, b.shape());
-    Array e = testing::BuildArray({}).WithData<T>({524287.5});
+    Array e = testing::BuildArray({}).WithData<T>({524287.5f});
     testing::ExpectEqual(e, b);
 }
 
