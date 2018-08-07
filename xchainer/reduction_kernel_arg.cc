@@ -55,8 +55,11 @@ ReductionArg SquashReductionShapeAndStrides(const ReductionArg& arg) {
     }
 
     // Squash out
-    // Note that only out_shape.ndim() elements in in_strides are seen in SquashShape, thus we can skip copying former parts of in_strides
-    std::tuple<Shape, Axes> out_squashed_result = SquashShape(arg.out_shape, arg.in_strides, arg.out_strides);
+    Strides in_out_strides{};  // former out_shape.ndim() parts of arg.in_strides
+    for (int8_t i = 0; i < arg.out_strides.ndim(); ++i) {
+        in_out_strides.emplace_back(arg.in_strides[i]);
+    }
+    std::tuple<Shape, Axes> out_squashed_result = SquashShape(arg.out_shape, in_out_strides, arg.out_strides);
     const Shape& out_squashed_shape = std::get<0>(out_squashed_result);
     const Axes& out_keep_axes = std::get<1>(out_squashed_result);
     Strides out_squashed_strides = GetSquashedStrides(arg.out_strides, out_keep_axes);
