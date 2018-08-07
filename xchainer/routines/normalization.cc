@@ -128,7 +128,7 @@ Array BatchNorm(
                 BackwardBuilder bb2{"batch_norm_backward", {x, gamma_reshaped, gout}, {gx, ggamma, gbeta}};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget({0, 1, 2})) {
                     bt2.Define([
-                        x2_tok = bb2.RetainInput(0),
+                        x_tok = bb2.RetainInput(0),
                         gamma2_tok = bb2.RetainInput(1),
                         gout_tok = bb2.RetainInput(2),
                         eps,
@@ -136,7 +136,7 @@ Array BatchNorm(
                         gx_tok = bb2.RetainOutput(0),
                         ggamma_tok = bb2.RetainOutput(1)
                     ](BackwardContext & bctx2) {
-                        const Array& x = bctx2.GetRetainedInput(x2_tok);
+                        const Array& x = bctx2.GetRetainedInput(x_tok);
                         const Array& gamma_reshaped = bctx2.GetRetainedInput(gamma2_tok);
                         const Array& gout = bctx2.GetRetainedInput(gout_tok);
 
