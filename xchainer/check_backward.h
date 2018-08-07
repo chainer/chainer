@@ -16,9 +16,6 @@ namespace xchainer {
 // correctly implemented, starting from the initial gradient given by `grad_outputs`.
 //
 // It throws GradientCheckError when the test fails.
-//
-// Note that any previous inputs gradients are cleared and overwritten with the
-// computed gradients by `func`.
 void CheckBackward(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
@@ -46,9 +43,6 @@ void CheckBackward(
 // by the usual `Backward` is correct. The implementation of each differentiable
 // function should be tested by `CheckBackwardComputation` first, and then should be
 // tested by this function if neccessary.
-//
-// Note that any output inputs gradients are cleared and overwritten with the
-// computed gradients by `func`.
 void CheckDoubleBackwardComputation(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,

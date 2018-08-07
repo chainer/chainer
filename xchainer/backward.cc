@@ -108,7 +108,7 @@ public:
                 emplace_result.first->second.get() = OnesLike(output, output.device());
             }
 
-            PushInputOpNode(array_node);
+            PushCreatorOpNode(array_node);
         }
 
         // Backpropagation
@@ -130,10 +130,10 @@ public:
                 AccumulateInputGradients(*op_node, std::move(gxs));
             }
 
-            // Push the input op nodes into the queue
+            // Push the creator op nodes into the queue
             for (const auto& input_array_node : op_node->input_array_nodes()) {
                 if (input_array_node != nullptr) {
-                    PushInputOpNode(input_array_node);
+                    PushCreatorOpNode(input_array_node);
                 }
             }
 
@@ -337,9 +337,9 @@ private:
         }
     }
 
-    void PushInputOpNode(const std::shared_ptr<ArrayNode>& array_node) {
-        // When double backprop is enabled, array_node releases the pointer to the input node here. After this operation, array_node will
-        // look like a leaf node of the graph. Note that this move does not invalidates the array_node object itself; it is guaranteed
+    void PushCreatorOpNode(const std::shared_ptr<ArrayNode>& array_node) {
+        // When double backprop is enabled, array_node releases the pointer to the creator op node here. After this operation, array_node
+        // will look like a leaf node of the graph. Note that this move does not invalidates the array_node object itself; it is guaranteed
         // by the standard that shared_ptr becomes null after move-assigned to another.
         std::shared_ptr<OpNode> creator_op_node =
                 double_backprop_ == DoubleBackpropOption::kEnable ? array_node->creator_op_node() : array_node->move_creator_op_node();
@@ -347,7 +347,7 @@ private:
         if (creator_op_node) {
             auto range = output_array_node_keeper_.equal_range(creator_op_node.get());
             if (std::none_of(range.first, range.second, [&array_node](const auto& pair) { return pair.second == array_node; })) {
-                // First appearance of the combination of op node and input node.
+                // First appearance of the combination of op node and input array node.
                 bool is_first_visit = range.first == range.second;
                 output_array_node_keeper_.emplace(creator_op_node.get(), array_node);  // Iterators are invalidated here.
                 if (is_first_visit) {
