@@ -38,27 +38,41 @@ struct ReductionKernelArg {
 //
 // This structure is used to make a reduction kernel argument having indexers with dynamic ndim or statically optmized ndim.
 //
-// Note that the reduction axes come last. Axes of length 1 are also removed.
+// Strides and shapes are permuted so that the reduction axes come last. Axes of length 1 are also removed.
+// Dimensions of strides and shapes are squashed.
 struct ReductionArg {
-    const Array& in;
-    const Array& out;
-    Strides in_strides;
-    Strides out_strides;
-    Shape in_shape;
-    Shape out_shape;
-    Shape reduce_shape;
+public:
+    ReductionArg(const Array& in, const Axes& axis, const Array& out);
+
+    const Array& in() const { return in_; }
+    const Array& out() const { return out_; }
+    const Strides& in_strides() const { return in_strides_; }
+    const Strides& out_strides() const { return out_strides_; }
+    const Shape& in_shape() const { return in_shape_; }
+    const Shape& out_shape() const { return out_shape_; }
+    const Shape& reduce_shape() const { return reduce_shape_; }
+
+private:
+    void Permute(const Axes& axis);
+    void Squash();
+
+    const Array& in_;
+    const Array& out_;
+    Strides in_strides_;
+    Strides out_strides_;
+    Shape in_shape_;
+    Shape out_shape_;
+    Shape reduce_shape_;
 };
 
 // Creates ReductionKernelArg from ReductionArg
 template <typename In, typename Out, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim, int8_t ReduceNdim = kDynamicNdim>
 ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> MakeReductionKernelArg(const ReductionArg& arg) {
-    return ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim>{IndexableArray<const In, InNdim>{arg.in, arg.in_strides},
-                                                                    IndexableArray<Out, OutNdim>{arg.out, arg.out_strides},
-                                                                    Indexer<InNdim>{arg.in_shape},
-                                                                    Indexer<OutNdim>{arg.out_shape},
-                                                                    Indexer<ReduceNdim>{arg.reduce_shape}};
+    return ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim>{IndexableArray<const In, InNdim>{arg.in(), arg.in_strides()},
+                                                                    IndexableArray<Out, OutNdim>{arg.out(), arg.out_strides()},
+                                                                    Indexer<InNdim>{arg.in_shape()},
+                                                                    Indexer<OutNdim>{arg.out_shape()},
+                                                                    Indexer<ReduceNdim>{arg.reduce_shape()}};
 }
-
-ReductionArg MakeSquashedReductionArg(const Array& in, const Axes& axis, const Array& out);
 
 }  // namespace xchainer
