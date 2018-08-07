@@ -1,3 +1,7 @@
+import math
+
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
@@ -8,8 +12,6 @@ from chainer.functions.math import erf
 from chainer.functions.math import erfinv
 from chainer.functions.math import exponential
 from chainer.utils import argument
-import math
-import numpy
 
 
 ENTROPYC = 0.5 * math.log(2 * math.pi * math.e)

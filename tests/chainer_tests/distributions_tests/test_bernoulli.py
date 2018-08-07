@@ -40,6 +40,14 @@ class TestBernoulli(testing.distribution_unittest):
         self.support = '{0, 1}'
         self.continuous = False
 
+        self.old_settings = None
+        if self.extreme_values:
+            self.old_settings = numpy.seterr(divide='ignore', invalid='ignore')
+
+    def tearDown(self):
+        if self.old_settings is not None:
+            numpy.seterr(**self.old_settings)
+
     def sample_for_test(self):
         smp = numpy.random.randint(
             2, size=self.sample_shape + self.shape).astype(numpy.float32)

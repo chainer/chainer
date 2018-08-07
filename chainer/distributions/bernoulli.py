@@ -1,3 +1,7 @@
+import warnings
+
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
@@ -7,7 +11,6 @@ from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
 from chainer import utils
-import numpy
 
 
 class BernoulliLogProb(chainer.function_node.FunctionNode):
