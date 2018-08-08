@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-
-from __future__ import print_function
-
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 
@@ -43,7 +40,7 @@ class Generator(chainer.Chain):
         return numpy.random.uniform(-1, 1, (batchsize, self.n_hidden, 1, 1))\
             .astype(numpy.float32)
 
-    def __call__(self, z):
+    def forward(self, z):
         h = F.reshape(F.relu(self.bn0(self.l0(z))),
                       (len(z), self.ch, self.bottom_width, self.bottom_width))
         h = F.relu(self.bn1(self.dc1(h)))
@@ -74,7 +71,7 @@ class Discriminator(chainer.Chain):
             self.bn2_1 = L.BatchNormalization(ch // 1, use_gamma=False)
             self.bn3_0 = L.BatchNormalization(ch // 1, use_gamma=False)
 
-    def __call__(self, x):
+    def forward(self, x):
         h = add_noise(x)
         h = F.leaky_relu(add_noise(self.c0_0(h)))
         h = F.leaky_relu(add_noise(self.bn0_1(self.c0_1(h))))

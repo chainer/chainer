@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import imp
 import os
 import pkg_resources
 import sys
@@ -20,6 +19,10 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
         sys.exit(1)
 
 
+def cupy_requirement(pkg):
+    return '{}==5.0.0b3'.format(pkg)
+
+
 requirements = {
     'install': [
         'filelock',
@@ -28,11 +31,13 @@ requirements = {
         'six>=1.9.0',
     ],
     'cuda': [
-        'cupy==4.0.0b4',
+        cupy_requirement('cupy'),
     ],
     'stylecheck': [
-        'hacking',
-        'autopep8',
+        'autopep8==1.3.5',
+        'flake8==3.5.0',
+        'pbr==4.0.4',
+        'pycodestyle==2.3.1',
     ],
     'test': [
         'pytest',
@@ -43,21 +48,26 @@ requirements = {
         'theano',
     ],
     'docs': [
+        'sphinx',
         'sphinx_rtd_theme',
     ],
     'travis': [
         '-r stylecheck',
         '-r test',
-        'pytest-timeout',
+        '-r docs',
+        # pytest-timeout>=1.3.0 requires pytest>=3.6.
+        # TODO(niboshi): Consider upgrading pytest to >=3.6
+        'pytest-timeout<1.3.0',
         'pytest-cov',
         'theano',
         'h5py',
         'pillow',
     ],
     'appveyor': [
-        '-r stylecheck',
         '-r test',
-        'pytest-timeout',
+        # pytest-timeout>=1.3.0 requires pytest>=3.6.
+        # TODO(niboshi): Consider upgrading pytest to >=3.6
+        'pytest-timeout<1.3.0',
         'pytest-cov',
     ],
 }
@@ -86,25 +96,42 @@ extras_require = {k: v for k, v in requirements.items() if k != 'install'}
 
 setup_requires = []
 install_requires = requirements['install']
+tests_require = requirements['test']
 
-cupy_pkg = None
-try:
-    cupy_pkg = pkg_resources.get_distribution('cupy')
-except pkg_resources.DistributionNotFound:
-    pass
 
+def find_any_distribution(pkgs):
+    for pkg in pkgs:
+        try:
+            return pkg_resources.get_distribution(pkg)
+        except pkg_resources.DistributionNotFound:
+            pass
+    return None
+
+
+# Currently cupy provides source package (cupy) and binary wheel packages
+# (cupy-cudaXX). Chainer can use any one of these packages.
+cupy_pkg = find_any_distribution([
+    'cupy-cuda92',
+    'cupy-cuda91',
+    'cupy-cuda90',
+    'cupy-cuda80',
+    'cupy',
+])
 if cupy_pkg is not None:
-    install_requires.append(requirements['cuda'])
-    print('Use %s' % requirements['cuda'])
+    req = cupy_requirement(cupy_pkg.project_name)
+    install_requires.append(req)
+    print('Use %s' % req)
+else:
+    print('No CuPy installation detected')
 
 here = os.path.abspath(os.path.dirname(__file__))
-__version__ = imp.load_source(
-    '_version', os.path.join(here, 'chainer', '_version.py')).__version__
+# Get __version__ variable
+exec(open(os.path.join(here, 'chainer', '_version.py')).read())
 
 
 setup(
     name='chainer',
-    version=__version__,
+    version=__version__,  # NOQA
     description='A flexible framework of neural networks',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
@@ -114,6 +141,8 @@ setup(
               'chainer.backends',
               'chainer.dataset',
               'chainer.datasets',
+              'chainer.distributions',
+              'chainer.exporters',
               'chainer.functions',
               'chainer.functions.activation',
               'chainer.functions.array',
@@ -140,6 +169,7 @@ setup(
               'chainer.links.normalization',
               'chainer.links.theano',
               'chainer.optimizers',
+              'chainer.optimizer_hooks',
               'chainer.serializers',
               'chainer.testing',
               'chainer.training',
@@ -150,6 +180,6 @@ setup(
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
-    tests_require=requirements['test'],
+    tests_require=tests_require,
     extras_require=extras_require,
 )

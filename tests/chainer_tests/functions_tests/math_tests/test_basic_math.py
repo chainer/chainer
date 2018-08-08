@@ -3,28 +3,38 @@ import sys
 import unittest
 
 import numpy
-import six
+import pytest
 
 import chainer
+from chainer.backends import cuda
 from chainer import basic_math
-from chainer import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
+from chainer.utils import type_check
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(3, 2), ()],
+    'shape': [
+        # x1, x2, y
+        ((3, 2), (3, 2), (3, 2)),
+        ((), (), ()),
+        ((3, 2), (3, 1), (3, 2)),
+        ((2,), (3, 2), (3, 2)),
+    ],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestBinaryOp(unittest.TestCase):
 
     def setUp(self):
-        self.x1 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
-        self.x2 = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggx1 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggx2 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.x1 = numpy.random.uniform(.5, 1, self.shape[0]).astype(self.dtype)
+        self.x2 = numpy.random.uniform(.5, 1, self.shape[1]).astype(self.dtype)
+        self.gy = numpy.random.uniform(-1, 1, self.shape[2]).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, self.shape[0]).astype(
+            self.dtype)
+        self.ggx2 = numpy.random.uniform(-1, 1, self.shape[1]).astype(
+            self.dtype)
 
     def check_forward(self, op, x1_data, x2_data):
         x1 = chainer.Variable(x1_data)
@@ -189,12 +199,8 @@ class TestBinaryOp(unittest.TestCase):
             options = {'atol': 5e-3, 'rtol': 5e-2}
         options.update(args)
 
-        def _op(*xs):
-            y = op(*xs)
-            return y * y
-
         gradient_check.check_double_backward(
-            _op, (x1_data, x2_data), y_grad, (ggx1_data, ggx2_data),
+            op, (x1_data, x2_data), y_grad, (ggx1_data, ggx2_data),
             dtype=numpy.float64, **options)
 
     def double_backward_cpu(self, op, **options):
@@ -228,6 +234,118 @@ class TestBinaryOp(unittest.TestCase):
     @attr.gpu
     def test_rpow_double_backward_gpu(self):
         self.double_backward_gpu(lambda x, y: y.__rpow__(x))
+
+
+@testing.parameterize(*testing.product({
+    'in_shapes': [
+        ((3, 2),) * 3,
+        ((),) * 3,
+        ((1, 3), (), (2, 1, 2, 1)),
+        ((), (2, 1, 2), (3, 1)),
+        ((3, 1), (1, 1), (2,)),
+    ],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
+@backend.inject_backend_tests(
+    ['test_forward', 'test_backward', 'test_double_backward'],
+    # CPU tests
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
+class TestMultipleAdd(unittest.TestCase):
+
+    def setUp(self):
+        x1_shape, x2_shape, x3_shape = self.in_shapes
+        self.x1 = numpy.random.uniform(.5, 1, x1_shape).astype(self.dtype)
+        self.x2 = numpy.random.uniform(.5, 1, x2_shape).astype(self.dtype)
+        self.x3 = numpy.random.uniform(.5, 1, x3_shape).astype(self.dtype)
+        y_shape = numpy.broadcast(self.x1, self.x2, self.x3).shape
+        self.gy = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, x1_shape).astype(self.dtype)
+        self.ggx2 = numpy.random.uniform(-1, 1, x2_shape).astype(self.dtype)
+        self.ggx3 = numpy.random.uniform(-1, 1, x3_shape).astype(self.dtype)
+
+    def check_forward(self, func, x1_data, x2_data, x3_data, backend_config):
+        # convert to cupy.ndarray for GPU tests
+        if backend_config.use_cuda:
+            x1_data, x2_data, x3_data = cuda.to_gpu(
+                (x1_data, x2_data, x3_data))
+        x1 = chainer.Variable(x1_data)
+        x2 = chainer.Variable(x2_data)
+        x3 = chainer.Variable(x3_data)
+        with backend_config:
+            y = func(x1, x2, x3)
+        options = {}
+        if self.dtype == numpy.float16:
+            options = {'atol': 1e-4, 'rtol': 1e-3}
+        testing.assert_allclose(
+            (self.x1 + self.x2 + self.x3), y.data, **options)
+
+    def forward_cpu(self, func, backend_config):
+        self.check_forward(func, self.x1, self.x2, self.x3, backend_config)
+
+    def test_forward(self, backend_config):
+        func = chainer.functions.add
+        self.forward_cpu(func, backend_config)
+
+    def check_backward(self, func, x1_data, x2_data, x3_data, y_grad,
+                       backend_config):
+        # convert to cupy.ndarray for GPU tests
+        if backend_config.use_cuda:
+            x1_data, x2_data, x3_data, y_grad = cuda.to_gpu(
+                (x1_data, x2_data, x3_data, y_grad))
+        options = {}
+        if self.dtype == numpy.float16:
+            options = {'atol': 5e-3, 'rtol': 5e-2}
+        with backend_config:
+            gradient_check.check_backward(func, (x1_data, x2_data, x3_data),
+                                          y_grad,
+                                          dtype=numpy.float64, **options)
+
+    def backward_cpu(self, func, backend_config):
+        self.check_backward(
+            func, self.x1, self.x2, self.x3, self.gy, backend_config)
+
+    def test_backward(self, backend_config):
+        func = chainer.functions.add
+        self.backward_cpu(func, backend_config)
+
+    def check_double_backward(
+            self, func, backend_config, x1_data, x2_data, x3_data, y_grad,
+            ggx1_data, ggx2_data, ggx3_data, **args):
+        # convert to cupy.ndarray for GPU tests
+        if backend_config.use_cuda:
+            (x1_data, x2_data, x3_data, y_grad,
+                ggx1_data, ggx2_data, ggx3_data) = cuda.to_gpu(
+                (x1_data, x2_data, x3_data, y_grad,
+                    ggx1_data, ggx2_data, ggx3_data))
+        options = {}
+        if self.dtype == numpy.float16:
+            options = {'atol': 5e-3, 'rtol': 5e-2}
+        options.update(args)
+
+        with backend_config:
+            gradient_check.check_double_backward(
+                func, (x1_data, x2_data, x3_data), y_grad,
+                (ggx1_data,
+                 ggx2_data, ggx3_data),
+                dtype=numpy.float64, **options)
+
+    def double_backward_cpu(self, func, backend_config, **options):
+        self.check_double_backward(
+            func, backend_config, self.x1, self.x2, self.x3, self.gy,
+            self.ggx1, self.ggx2, self.ggx3,
+            **options)
+
+    def test_double_backward(self, backend_config):
+        func = chainer.functions.add
+        self.double_backward_cpu(func, backend_config, atol=5e-2, rtol=5e-2)
 
 
 @testing.parameterize(*testing.product({
@@ -272,24 +390,18 @@ class TestBinaryOpConstant(unittest.TestCase):
         x_data = numpy.array([1.0, 2.0], self.dtype)
 
         self._test_constant_array_one(
-            func, x_data, numpy.array([3.0, 4.0], numpy.int32))
-        self._test_constant_array_one(
-            func, x_data, numpy.array([3.0, 4.0], numpy.int64))
-        self._test_constant_array_one(
-            func, x_data, numpy.array([3.0, 4.0], numpy.float32))
-        self._test_constant_array_one(
-            func, x_data, numpy.array([3.0, 4.0], numpy.float64))
+            func, x_data, numpy.array([3.0, 4.0], self.dtype))
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, [3.0, 4.0])
-        with self.assertRaises(ValueError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, (3.0, 4.0))
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, [3.0, 4.0, 5.0])
-        with self.assertRaises(ValueError):
+        with pytest.raises(TypeError):
             self._test_constant_array_one(func, x_data, (3.0, 4.0, 5.0))
-        with self.assertRaises(ValueError):
+        with pytest.raises(type_check.InvalidType):
             self._test_constant_array_one(
                 func, x_data, numpy.array([3.0, 4.0, 5.0], self.dtype))
 
@@ -297,7 +409,7 @@ class TestBinaryOpConstant(unittest.TestCase):
         x = chainer.Variable(cuda.to_gpu(lhs))
         y = func(x, rhs)
         self.assertEqual(y.data.dtype, self.dtype)
-        y.grad = chainer.cuda.cupy.ones_like(y.data).astype(self.dtype)
+        y.grad = cuda.cupy.ones_like(y.data).astype(self.dtype)
         y.backward()
         self.assertEqual(x.grad.dtype, self.dtype)
 
@@ -305,23 +417,12 @@ class TestBinaryOpConstant(unittest.TestCase):
         x_data = numpy.array([1.0, 2.0], self.dtype)
 
         self._test_constant_array_gpu_one(
-            func, x_data, cuda.to_gpu(numpy.array([3.0, 4.0], numpy.int32)))
-        self._test_constant_array_gpu_one(
-            func, x_data, cuda.to_gpu(numpy.array([3.0, 4.0], numpy.int64)))
-        self._test_constant_array_gpu_one(
-            func, x_data, cuda.to_gpu(numpy.array([3.0, 4.0], numpy.float32)))
-        self._test_constant_array_gpu_one(
-            func, x_data, cuda.to_gpu(numpy.array([3.0, 4.0], numpy.float64)))
+            func, x_data, cuda.to_gpu(numpy.array([3.0, 4.0], self.dtype)))
 
-        with self.assertRaises(exception):
+        with pytest.raises(exception):
             self._test_constant_array_one(
                 func, x_data, cuda.to_gpu(
                     numpy.array([3.0, 4.0, 5.0], self.dtype)))
-
-        with six.assertRaisesRegex(self, ValueError, 'broadcast'):
-            self._test_constant_array_gpu_one(
-                func, x_data, cuda.to_gpu(
-                    numpy.array([[3.0, 4.0], [5.0, 6.0]], self.dtype)))
 
     def test_add_constant(self):
         self._test_constant(lambda x, y: x + y)
@@ -660,8 +761,7 @@ class TestVariableConstantOp(unittest.TestCase):
             options = {'atol': 5e-3, 'rtol': 5e-2}
 
         def _op(x):
-            y = op(x, self.value)
-            return y * y
+            return op(x, self.value)
 
         gradient_check.check_double_backward(
             _op, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
@@ -897,8 +997,7 @@ class TestVariableConstantArrayOp(unittest.TestCase):
             options = {'atol': 5e-3, 'rtol': 5e-2}
 
         def _op(x):
-            y = op(x, value)
-            return y * y
+            return op(x, value)
 
         gradient_check.check_double_backward(
             _op, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
@@ -999,11 +1098,8 @@ class TestUnaryFunctions(unittest.TestCase):
         if self.dtype == numpy.float16:
             options = {'atol': 5e-3, 'rtol': 5e-2}
 
-        def f(x):
-            x = op(x)
-            return x * x
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
+            op, x_data, y_grad, x_grad_grad, dtype=numpy.float64, **options)
 
     def double_backward_cpu(self, op):
         self.check_double_backward(op, self.x, self.gy, self.ggx)
@@ -1081,12 +1177,18 @@ class TestNegativePow(unittest.TestCase):
     ], [
         {'x_shape': (3, 2), 'y_shape': (2, 4), 'z_shape': (3, 4)},
         {'x_shape': (2, 3, 2), 'y_shape': (2, 2, 4), 'z_shape': (2, 3, 4)},
+        {'x_shape': (2, 1, 3, 4),
+         'y_shape': (2, 4, 2),
+         'z_shape': (2, 2, 3, 2)},
+        {'x_shape': (5, 3, 2), 'y_shape': (2,), 'z_shape': (5, 3)},
+        {'x_shape': (2,), 'y_shape': (5, 2, 4), 'z_shape': (5, 4)},
+        {'x_shape': (2, 3, 2), 'y_shape': (2, 4), 'z_shape': (2, 3, 4)},
         {'x_shape': (3,), 'y_shape': (3,), 'z_shape': ()},
     ]
 ))
 @unittest.skipUnless(sys.version_info >= (3, 5),
                      'Only for Python3.5 or higher')
-class TestMatMulVarVar(unittest.TestCase):
+class TestMatMul(unittest.TestCase):
 
     def setUp(self):
         self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
@@ -1098,8 +1200,12 @@ class TestMatMulVarVar(unittest.TestCase):
             -1, 1, self.y_shape).astype(self.dtype)
 
     def _get_forward_answer(self, x, y):
-        if x.ndim <= 2:
+        if x.ndim <= 2 or y.ndim == 1:
             return numpy.dot(x, y)
+        elif hasattr(numpy, 'matmul'):
+            # Note: NumPy 1.14.0 has a bug in einsum (numpy/numpy#10343),
+            # so we use matmul if available to avoid it
+            return numpy.matmul(x, y)
         else:
             return numpy.einsum('...ij,...jk->...ik', x, y)
 
@@ -1159,20 +1265,16 @@ class TestMatMulVarVar(unittest.TestCase):
             self, x_data, y_data, z_grad, x_grad_grad, y_grad_grad):
         if self.right_const:
             def op(x):
-                z = operator.matmul(x, y_data)
-                return z * z
+                return operator.matmul(x, y_data.astype(x.dtype))
             data = x_data,
             grad_grad = x_grad_grad,
         elif self.left_const:
             def op(y):
-                z = operator.matmul(x_data, y)
-                return z * z
+                return operator.matmul(x_data.astype(y.dtype), y)
             data = y_data,
             grad_grad = y_grad_grad,
         else:
-            def op(x, y):
-                z = operator.matmul(x, y)
-                return z * z
+            op = operator.matmul
             data = x_data, y_data
             grad_grad = x_grad_grad, y_grad_grad
 
@@ -1193,6 +1295,30 @@ class TestMatMulVarVar(unittest.TestCase):
             cuda.to_gpu(self.ggx), cuda.to_gpu(self.ggy))
 
 
+@testing.parameterize(
+    {'x_shape': (), 'y_shape': ()},
+    {'x_shape': (3, 2), 'y_shape': ()},
+    {'x_shape': (), 'y_shape': (2, 4)},
+    {'x_shape': (2, 3), 'y_shape': (2, 3)},
+    {'x_shape': (2,), 'y_shape': (1,)},
+)
+@unittest.skipUnless(sys.version_info >= (3, 5),
+                     'Only for Python3.5 or higher')
+class TestMatMulInvalidShape(unittest.TestCase):
+
+    dtype = numpy.float32
+
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
+        self.y = numpy.random.uniform(-1, 1, self.y_shape).astype(self.dtype)
+
+    def test_invalid_type(self):
+        x = chainer.Variable(self.x)
+        y = chainer.Variable(self.y)
+        with pytest.raises(type_check.InvalidType):
+            operator.matmul(x, y)
+
+
 class TestNotSupportOperation(unittest.TestCase):
 
     def setUp(self):
@@ -1200,31 +1326,31 @@ class TestNotSupportOperation(unittest.TestCase):
         self.y = chainer.Variable(numpy.zeros(10))
 
     def test_lt(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x < self.y
 
     def test_le(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x <= self.y
 
     def test_eq(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x == self.y
 
     def test_ne(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x != self.y
 
     def test_gt(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x > self.y
 
     def test_ge(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             self.x >= self.y
 
     def test_nonzero(self):
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             if self.x:
                 pass
 
@@ -1308,19 +1434,6 @@ class TestLabel(unittest.TestCase):
 
     def test_pow_const_var(self):
         self.assertEqual(basic_math.PowConstVar(2.0).label, '2.0 ** _')
-
-    def test_matmul_var_var(self):
-        self.assertEqual(basic_math.MatMulVarVar().label, '_ @ _')
-
-    def test_matmul_var_const(self):
-        self.assertEqual(
-            basic_math.MatMulVarConst(numpy.zeros((2, 2))).label,
-            '_ @ constant array')
-
-    def test_matmul_const_var(self):
-        self.assertEqual(
-            basic_math.MatMulConstVar(numpy.zeros((2, 2))).label,
-            'constant array @ _')
 
 
 testing.run_module(__name__, __file__)

@@ -3,12 +3,14 @@
 from chainer.links.activation.maxout import Maxout  # NOQA
 from chainer.links.activation.prelu import PReLU  # NOQA
 from chainer.links.activation.simplified_dropconnect import SimplifiedDropconnect  # NOQA
+from chainer.links.activation.swish import Swish  # NOQA
 from chainer.links.connection.bias import Bias  # NOQA
 from chainer.links.connection.bilinear import Bilinear  # NOQA
 from chainer.links.connection.convolution_2d import Convolution2D  # NOQA
 from chainer.links.connection.convolution_nd import ConvolutionND  # NOQA
 from chainer.links.connection.deconvolution_2d import Deconvolution2D  # NOQA
 from chainer.links.connection.deconvolution_nd import DeconvolutionND  # NOQA
+from chainer.links.connection.deformable_convolution_2d import DeformableConvolution2D  # NOQA
 from chainer.links.connection.depthwise_convolution_2d import DepthwiseConvolution2D  # NOQA
 from chainer.links.connection.dilated_convolution_2d import DilatedConvolution2D  # NOQA
 from chainer.links.connection.embed_id import EmbedID  # NOQA
@@ -19,6 +21,7 @@ from chainer.links.connection.highway import Highway  # NOQA
 from chainer.links.connection.inception import Inception  # NOQA
 from chainer.links.connection.inceptionbn import InceptionBN  # NOQA
 from chainer.links.connection.linear import Linear  # NOQA
+from chainer.links.connection.local_convolution_2d import LocalConvolution2D  # NOQA
 from chainer.links.connection.lstm import LSTM  # NOQA
 from chainer.links.connection.lstm import StatelessLSTM  # NOQA
 from chainer.links.connection.mgu import StatefulMGU  # NOQA
@@ -50,5 +53,6 @@ from chainer.links.model.vision.resnet import ResNet50Layers  # NOQA
 from chainer.links.model.vision.vgg import VGG16Layers  # NOQA
 from chainer.links.normalization.batch_normalization import BatchNormalization  # NOQA
 from chainer.links.normalization.batch_renormalization import BatchRenormalization  # NOQA
+from chainer.links.normalization.group_normalization import GroupNormalization  # NOQA
 from chainer.links.normalization.layer_normalization import LayerNormalization  # NOQA
 from chainer.links.theano.theano_function import TheanoFunction  # NOQA

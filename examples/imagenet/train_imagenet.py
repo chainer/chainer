@@ -8,7 +8,6 @@ second column is zero-origin label (this format is same as that used by Caffe's
 ImageDataLayer).
 
 """
-from __future__ import print_function
 import argparse
 import random
 
@@ -23,6 +22,7 @@ import googlenet
 import googlenetbn
 import nin
 import resnet50
+import resnext50
 
 
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
@@ -75,7 +75,7 @@ def main():
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
-        'resnext50': resnet50.ResNeXt50,
+        'resnext50': resnext50.ResNeXt50,
     }
 
     parser = argparse.ArgumentParser(
@@ -111,10 +111,11 @@ def main():
     # Initialize the model to train
     model = archs[args.arch]()
     if args.initmodel:
-        print('Load model from', args.initmodel)
+        print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()  # Make the GPU current
+        chainer.backends.cuda.get_device_from_id(
+            args.gpu).use()  # Make the GPU current
         model.to_gpu()
 
     # Load the datasets and mean file

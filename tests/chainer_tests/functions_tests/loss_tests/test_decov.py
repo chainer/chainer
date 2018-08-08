@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -68,8 +68,11 @@ class TestDeCov(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.h))
 
     def check_backward(self, h_data, gloss_data):
+        def f(h):
+            return functions.decov(h, self.reduce)
+
         gradient_check.check_backward(
-            functions.DeCov(self.reduce), (h_data,), gloss_data,
+            f, (h_data,), gloss_data,
             eps=0.02, atol=1e-3)
 
     def check_type(self, h_data, gloss_data):

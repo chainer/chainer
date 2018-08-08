@@ -7,28 +7,9 @@ import six
 
 from chainer.backends import cuda
 from chainer import link as link_module
+from chainer import optimizer_hooks
 from chainer import serializer as serializer_module
 from chainer import variable
-
-
-def _sum_sqnorm(arr):
-    sq_sum = collections.defaultdict(float)
-    for x in arr:
-        with cuda.get_device_from_array(x) as dev:
-            x = x.ravel()
-            s = x.dot(x)
-            sq_sum[int(dev)] += s
-    return sum([float(i) for i in six.itervalues(sq_sum)])
-
-
-def exponential_decay_noise(xp, shape, dtype, hook, opt):
-    """Time-dependent annealed Gaussian noise function from the paper:
-
-    `Adding Gradient Noise Improves Learning for Very Deep Networks
-    <https://arxiv.org/pdf/1511.06807>`_.
-    """
-    std = numpy.sqrt(hook.eta / numpy.power(1 + opt.t, 0.55))
-    return xp.random.normal(0, std, shape).astype(dtype)
 
 
 class Hyperparameter(object):
@@ -242,7 +223,7 @@ class UpdateRule(object):
         """Updates the parameter.
 
         Implementation of UpdateRule should override this method or both of
-        :meth:`_update_core_cpu` and :meth:`_update_core_gpu`.
+        :meth:`update_core_cpu` and :meth:`update_core_gpu`.
 
         Args:
             param (~chainer.Variable): Variable to be updated.
@@ -390,6 +371,10 @@ class Optimizer(object):
             :meth:`update` method.
         ~Optimizer.epoch: Current epoch. It is incremented by the
             :meth:`new_epoch` method.
+        ~Optimizer.use_auto_new_epoch: Boolean flag to indicate if
+            :meth:`new_epoch` will be called by the updater. Updater should
+            set this flag to ``True`` if it automatically calls
+            :meth:`new_epoch`.
 
     """
 
@@ -399,6 +384,7 @@ class Optimizer(object):
     _pre_update_hooks = None
     _post_update_hooks = None
     _loss_scale = None
+    use_auto_new_epoch = False
 
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
@@ -450,24 +436,51 @@ class Optimizer(object):
         parameters.
 
         Args:
-            lossfun (function): Loss function. It accepts arbitrary arguments
-                and returns one :class:`~chainer.Variable` object that
-                represents the loss (or objective) value. This argument can be
-                omitted for single gradient-based methods. In this case, this
-                method assumes gradient arrays computed.
+            lossfun (callable):
+                Loss function.
+                You can specify one of loss functions from
+                :doc:`built-in loss functions </reference/functions>`, or
+                your own loss function.
+                It should not be an
+                :doc:`loss functions with parameters </reference/links>`
+                (i.e., :class:`~chainer.Link` instance).
+                The function must accept arbitrary arguments
+                and return one :class:`~chainer.Variable` object that
+                represents the loss (or objective) value.
+                Returned value must be a Variable derived from the input
+                Variable object.
+                ``lossfun`` can be omitted for single gradient-based methods.
+                In this case, this method assumes gradient arrays computed.
             args, kwds: Arguments for the loss function.
 
         """
         raise NotImplementedError
 
-    def new_epoch(self):
+    def new_epoch(self, auto=False):
         """Starts a new epoch.
 
         This method increments the :attr:`epoch` count. Note that if the
         optimizer depends on the epoch count, then user should call this method
         appropriately at the beginning of each epoch.
 
+        Args:
+            auto (bool): Should be ``True`` if this method is called by an
+                updater. In this case, :attr:`use_auto_new_epoch` should be set
+                to ``True`` by the updater.
+
         """
+        if auto:
+            if not self.use_auto_new_epoch:
+                raise RuntimeError(
+                    'invalid new_epoch call with auto=True.\n'
+                    'Fix the updater to set '
+                    'optimizer.use_auto_new_epoch = True.')
+        else:
+            if self.use_auto_new_epoch:
+                raise RuntimeError(
+                    'duplicated new_epoch with the updater.\n'
+                    'Pass auto_new_epoch=False to the updater or stop calling '
+                    'new_epoch outside the updater.')
         self.epoch += 1
 
     def add_hook(self, hook, name=None, timing='auto'):
@@ -478,7 +491,7 @@ class Optimizer(object):
         attribute.
 
         Args:
-            hook (function): Hook function. If ``hook.call_for_each_param`` is
+            hook (callable): Hook function. If ``hook.call_for_each_param`` is
                 true, this hook function is called for each parameter by
                 passing the update rule and the parameter. Otherwise, this hook
                 function is called only once each iteration by passing the
@@ -747,223 +760,47 @@ class HyperparameterProxy(object):
         setattr(obj.hyperparam, self._attr_name, value)
 
 
-class WeightDecay(object):
-
-    """Optimizer/UpdateRule hook function for weight decay regularization.
-
-    This hook function adds a scaled parameter to the corresponding gradient.
-    It can be used as a regularization.
-
-    Args:
-        rate (float): Coefficient for the weight decay.
-
-    Attributes:
-        ~WeightDecay.rate (float): Coefficient for the weight decay.
-        ~WeightDecay.timing (string): Specifies when this hook should be called
-                         by the Optimizer/UpdateRule. Valid values are 'pre'
-                         (before any updates) and 'post' (after any updates).
-
-    .. versionadded:: 4.0.0
-       The *timing* parameter.
-
-    """
-    name = 'WeightDecay'
-    call_for_each_param = True
-    timing = 'pre'
-
-    def __init__(self, rate):
-        self.rate = rate
-
-    def __call__(self, rule, param):
-        p, g = param.data, param.grad
-        if p is None or g is None:
-            return
-        with cuda.get_device_from_array(p) as dev:
-            if int(dev) == -1:
-                g += self.rate * p
-            else:
-                kernel = cuda.elementwise(
-                    'T p, T decay', 'T g', 'g += decay * p', 'weight_decay')
-                kernel(p, self.rate, g)
+def make_deprecation_message(module_name):
+    return ('chainer.optimizer.{0} is deprecated from v4. '
+            'Use chainer.optimizer_hooks.{0} instead.'
+            ''.format(module_name))
 
 
-class Lasso(object):
-    """Optimizer/UpdateRule hook function for Lasso regularization.
+class WeightDecay(optimizer_hooks.WeightDecay):
 
-    This hook function adds a scaled parameter to the sign of each weight.
-    It can be used as a regularization.
-
-    Args:
-        rate (float): Coefficient for the weight decay.
-
-    Attributes:
-        ~Lasso.rate (float): Coefficient for the weight decay.
-        ~Lasso.timing (string): Specifies when this hook should be called by
-                         the Optimizer/UpdateRule. Valid values are 'pre'
-                         (before any updates) and 'post' (after any updates).
-
-    .. versionadded:: 4.0.0
-       The *timing* parameter.
-
-    """
-    name = 'Lasso'
-    call_for_each_param = True
-    timing = 'pre'
-
-    def __init__(self, rate):
-        self.rate = rate
-
-    def __call__(self, rule, param):
-        p, g = param.data, param.grad
-        if p is None or g is None:
-            return
-        xp = cuda.get_array_module(p)
-        with cuda.get_device_from_array(p) as dev:
-            sign = xp.sign(p)
-            if int(dev) == -1:
-                g += self.rate * sign
-            else:
-                kernel = cuda.elementwise(
-                    'T s, T decay', 'T g', 'g += decay * s', 'lasso')
-                kernel(sign, self.rate, g)
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('WeightDecay'),
+                      DeprecationWarning)
+        return super(WeightDecay, self).__init__(*args, **kwargs)
 
 
-class GradientClipping(object):
-    """Optimizer hook function for gradient clipping.
+class Lasso(optimizer_hooks.Lasso):
 
-    This hook function scales all gradient arrays to fit to the defined L2 norm
-    threshold.
-
-    Args:
-        threshold (float): L2 norm threshold.
-
-    Attributes:
-        ~GradientClipping.threshold (float): L2 norm threshold of gradient
-                                             norm.
-        ~GradientClipping.timing (string): Specifies when this hook should be
-                         called by the Optimizer/UpdateRule. Valid values are
-                         'pre' (before any updates) and 'post' (after any
-                         updates).
-
-    .. versionadded:: 4.0.0
-       The *timing* parameter.
-
-    """
-    name = 'GradientClipping'
-    timing = 'pre'
-
-    def __init__(self, threshold):
-        self.threshold = threshold
-
-    def __call__(self, opt):
-        norm = numpy.sqrt(_sum_sqnorm(
-            [p.grad for p in opt.target.params(False)]))
-        rate = self.threshold / norm
-        if rate < 1:
-            for param in opt.target.params(False):
-                grad = param.grad
-                with cuda.get_device_from_array(grad):
-                    grad *= rate
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('Lasso'),
+                      DeprecationWarning)
+        return super(Lasso, self).__init__(*args, **kwargs)
 
 
-class GradientNoise(object):
-    """Optimizer/UpdateRule hook function for adding gradient noise.
+class GradientClipping(optimizer_hooks.GradientClipping):
 
-    This hook function simply adds noise generated by the ``noise_func``
-    to the gradient. By default it adds time-dependent annealed Gaussian
-    noise to the gradient at every training step:
-
-    .. math::
-
-        g_t \\leftarrow g_t + N(0, \\sigma_t^2)
-
-    where
-
-    .. math::
-
-        \\sigma_t^2 = \\frac{\\eta}{(1+t)^\\gamma}
-
-    with :math:`\\eta` selected from {0.01, 0.3, 1.0} and
-    :math:`\\gamma = 0.55`.
-
-    Args:
-        eta (float): Parameter that defines the scale of the noise, which for
-            the default noise function is recommended to be either 0.01, 0.3
-            or 1.0.
-        noise_func (function): Noise generating function which by default
-            is given by `Adding Gradient Noise Improves Learning for Very Deep\
-            Networks <https://arxiv.org/pdf/1511.06807>`_.
-
-    Attributes:
-        ~GradientNoise.timing (string): Specifies when this hook should be
-                         called by the Optimizer/UpdateRule. Valid values are
-                         'pre' (before any updates) and 'post' (after any
-                         updates).
-
-    .. versionadded:: 4.0.0
-       The *timing* parameter.
-
-    """
-    name = 'GradientNoise'
-    call_for_each_param = True
-    timing = 'pre'
-
-    def __init__(self, eta, noise_func=exponential_decay_noise):
-        self.eta = eta
-        self.noise_func = noise_func
-
-    def __call__(self, rule, param):
-        g = param.grad
-        if g is None:
-            return
-        xp = cuda.get_array_module(g)
-        with cuda.get_device_from_array(g) as dev:
-            noise = self.noise_func(xp, g.shape, g.dtype, self, rule)
-            if int(dev) == -1:
-                g += noise
-            else:
-                kernel = cuda.elementwise(
-                    'T noise', 'T g', 'g += noise', 'gradient_noise')
-                kernel(noise, g)
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('GradientClipping'),
+                      DeprecationWarning)
+        return super(GradientClipping, self).__init__(*args, **kwargs)
 
 
-class GradientHardClipping(object):
+class GradientNoise(optimizer_hooks.GradientNoise):
 
-    """Optimizer/UpdateRule hook function for gradient clipping.
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('GradientNoise'),
+                      DeprecationWarning)
+        return super(GradientNoise, self).__init__(*args, **kwargs)
 
-    This hook function clips all gradient arrays to be within a lower and upper
-    bound.
 
-    Args:
-        lower_bound (float): The lower bound of the gradient value.
-        upper_bound (float): The upper bound of the gradient value.
+class GradientHardClipping(optimizer_hooks.GradientHardClipping):
 
-    Attributes:
-        ~GradientHardClipping.lower_bound (float): The lower bound of the
-                                                   gradient value.
-        ~GradientHardClipping.upper_bound (float): The upper bound of the
-                                                   gradient value.
-        ~GradientHardClipping.timing (string): Specifies when this hook should
-                         be called by the Optimizer/UpdateRule. Valid values
-                         are 'pre' (before any updates) and 'post' (after any
-                         updates).
-
-    .. versionadded:: 4.0.0
-       The *timing* parameter.
-
-    """
-    name = 'GradientHardClipping'
-    call_for_each_param = True
-    timing = 'pre'
-
-    def __init__(self, lower_bound, upper_bound):
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
-
-    def __call__(self, rule, param):
-        grad = param.grad
-        if grad is None:
-            return
-        xp = cuda.get_array_module(grad)
-        with cuda.get_device_from_array(grad):
-            xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
+    def __init__(self, *args, **kwargs):
+        warnings.warn(make_deprecation_message('GradientHardClipping'),
+                      DeprecationWarning)
+        return super(GradientHardClipping, self).__init__(*args, **kwargs)

@@ -4,7 +4,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -112,9 +112,8 @@ class TestUnpooling2D(unittest.TestCase):
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
                               use_cudnn='always'):
         def f(x):
-            y = functions.unpooling_2d(x, self.ksize, outsize=self.outsize,
-                                       cover_all=self.cover_all)
-            return y * y
+            return functions.unpooling_2d(x, self.ksize, outsize=self.outsize,
+                                          cover_all=self.cover_all)
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
                 f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,

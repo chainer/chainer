@@ -1,11 +1,10 @@
 import unittest
 
-import mock
 import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -73,16 +72,16 @@ class TestMaxPooling2D(unittest.TestCase):
     def forward_cpu(self, inputs):
         x, = inputs
         expect = numpy.empty(self.output_shape, dtype=self.dtype)
-        for k in six.moves.range(2):
+        for i in six.moves.range(2):
             for c in six.moves.range(3):
-                xx = x[k, c]
+                xx = x[i, c]
                 if self.cover_all:
-                    expect[k, c] = numpy.array([
+                    expect[i, c] = numpy.array([
                         [xx[0:2, 0:2].max(), xx[0:2, 1:3].max()],
                         [xx[1:4, 0:2].max(), xx[1:4, 1:3].max()],
                         [xx[3:4, 0:2].max(), xx[3:4, 1:3].max()]])
                 else:
-                    expect[k, c] = numpy.array([
+                    expect[i, c] = numpy.array([
                         [xx[0:2, 0:2].max(), xx[0:2, 1:3].max()],
                         [xx[1:4, 0:2].max(), xx[1:4, 1:3].max()]])
         return expect,
@@ -155,7 +154,7 @@ class TestMaxPooling2D(unittest.TestCase):
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
     def test_backward_cpu_more_than_once(self):
-        func = functions.MaxPooling2D(
+        func = functions.pooling.max_pooling_2d.MaxPooling2D(
             3, stride=2, pad=1, cover_all=self.cover_all)
         func.apply(self.inputs)
         func.backward((0,), self.grad_outputs)
@@ -173,9 +172,8 @@ class TestMaxPooling2D(unittest.TestCase):
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(x):
-            y = functions.max_pooling_2d(
+            return functions.max_pooling_2d(
                 x, 3, stride=2, pad=1, cover_all=self.cover_all)
-            return y * y
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -209,7 +207,7 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with mock.patch('cupy.cuda.cudnn.poolingForward') as func:
+            with testing.patch('cupy.cuda.cudnn.poolingForward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
@@ -220,9 +218,51 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
             y = self.forward()
         # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
-        with mock.patch('cupy.cuda.cudnn.poolingBackward') as func:
+        with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
+
+
+class TestMaxPooling2DIndices(unittest.TestCase):
+    def setUp(self):
+        self.x = numpy.arange(
+            2 * 3 * 4 * 4, dtype=numpy.float32).reshape(2, 3, 4, 4)
+        numpy.random.shuffle(self.x)
+
+    def _check(self, x):
+        out, indices = functions.max_pooling_2d(
+            x, 2, cover_all=False, return_indices=True)
+        assert isinstance(out, chainer.Variable)
+        assert isinstance(out.array, type(x))
+        assert isinstance(indices, type(x))
+        assert indices.shape == out.array.shape
+
+        # Calculate expected indices.
+        expect = numpy.zeros(indices.shape, dtype=indices.dtype)
+        for i in six.moves.range(2):
+            for c in six.moves.range(3):
+                xx = x[i, c]
+                expect[i, c] = numpy.array([
+                    [xx[0:2, 0:2].ravel().argmax(),
+                     xx[0:2, 2:4].ravel().argmax()],
+                    [xx[2:4, 0:2].ravel().argmax(),
+                     xx[2:4, 2:4].ravel().argmax()],
+                ])
+        if out.xp is not numpy:
+            expect = cuda.to_gpu(expect)
+        assert (expect == indices).all()
+
+    def test_cpu(self):
+        self._check(self.x)
+
+    @attr.gpu
+    @attr.cudnn
+    def test_gpu(self):
+        x = cuda.to_gpu(self.x)
+        with chainer.using_config('use_cudnn', 'never'):
+            self._check(x)
+        with chainer.using_config('use_cudnn', 'always'):
+            self._check(x)
 
 
 testing.run_module(__name__, __file__)

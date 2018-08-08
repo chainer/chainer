@@ -19,21 +19,21 @@ matrix:
       - PYTHON_VERSION=2.7.10
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v3) AND (NOT type in (pull_request))
+      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
     - os: osx
       language: generic
       env:
       - PYTHON_VERSION=3.4.4
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v3) AND (NOT type in (pull_request))
+      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
     - os: osx
       language: generic
       env:
       - PYTHON_VERSION=3.5.1
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v3) AND (NOT type in (pull_request))
+      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
 
 before_install:
   # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
@@ -57,14 +57,17 @@ install:
 
 script:
   - flake8
-  - autopep8 -r . --global-config .pep8 --diff | tee check_autopep8
+  - autopep8 -r . --diff | tee check_autopep8
   - test ! -s check_autopep8
-  - cd tests
-  - CHAINER_TEST_GPU_LIMIT=0 pytest -m "not slow and not cudnn and not ideep" chainer_tests
+  - pushd tests
+  - pytest -m "not slow and not gpu and not cudnn and not ideep" chainer_tests
+  - popd
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-      cd ..;
       READTHEDOCS=True python setup.py develop;
     fi
+  - pushd docs
+  - make html
+  - popd
 
 sudo: false
 

@@ -8,7 +8,6 @@ origin label at the second column (this format is same as that used by Caffe's
 ImageDataLayer).
 
 """
-from __future__ import print_function
 import argparse
 import os
 import sys
@@ -17,7 +16,7 @@ import numpy as np
 from PIL import Image
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer.links import caffe
 
@@ -56,9 +55,9 @@ with open(args.dataset) as list_file:
 assert len(dataset) % args.batchsize == 0
 
 
-print('Loading Caffe model file %s...' % args.model, file=sys.stderr)
+print('Loading Caffe model file %s...' % args.model)
 func = caffe.CaffeFunction(args.model)
-print('Loaded', file=sys.stderr)
+print('Loaded')
 if args.gpu >= 0:
     cuda.get_device_from_id(args.gpu).use()
     func.to_gpu()
@@ -124,8 +123,8 @@ for path, label in dataset:
         del x, y, loss, accuracy
 
         count += args.batchsize
-        print('{} / {}'.format(count, len(dataset)), end='\r', file=sys.stderr)
-        sys.stderr.flush()
+        sys.stdout.write('{} / {}\r'.format(count, len(dataset)))
+        sys.stdout.flush()
 
         i = 0
 

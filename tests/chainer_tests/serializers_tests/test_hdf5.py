@@ -7,7 +7,7 @@ import mock
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import link
 from chainer import links
 from chainer import optimizers
@@ -152,6 +152,20 @@ class TestHDF5Deserializer(unittest.TestCase):
     def test_deserialize_none_value_gpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize_none_value(cuda.to_gpu(y))
+
+    def test_deserialize_different_dtype_cpu(self):
+        y = numpy.empty((2, 3), dtype=numpy.float16)
+        ret = self.deserializer('y', y)
+        numpy.testing.assert_array_equal(y, self.data.astype(numpy.float16))
+        self.assertIs(ret, y)
+
+    @attr.gpu
+    def test_deserialize_different_dtype_gpu(self):
+        y = cuda.cupy.empty((2, 3), dtype=numpy.float16)
+        ret = self.deserializer('y', y)
+        numpy.testing.assert_array_equal(
+            y.get(), self.data.astype(numpy.float16))
+        self.assertIs(ret, y)
 
     def test_deserialize_scalar(self):
         z = 5

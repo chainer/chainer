@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
@@ -19,9 +19,10 @@ class TestInceptionBNBase(unittest.TestCase):
     insize = 10
 
     def setup_data(self):
+        dtype = chainer.get_dtype()
         self.x = numpy.random.uniform(
             -1, 1, (10, self.in_channels, 5, 5)
-        ).astype(numpy.float32)
+        ).astype(dtype)
         self.l = links.InceptionBN(
             self.in_channels, self.out1, self.proj3, self.out3,
             self.proj33, self.out33, self.pooltype, self.proj_pool,
@@ -139,6 +140,27 @@ class TestInceptionBNInvalidPoolType(TestInceptionBNBase):
     def test_invalid_pooltype(self):
         with self.assertRaises(NotImplementedError):
             self.setup_data()
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float32, numpy.float16],
+}))
+class TestInceptionBnDtype(TestInceptionBNBase):
+
+    def setUp(self):
+        with chainer.using_config('dtype', self.dtype):
+            self.setup_data()
+
+    def test_dtype(self):
+        link = self.l
+        # Check the dtype of batch normalization layers.
+        assert link.proj3n.beta.dtype == self.dtype
+        assert link.conv3n.beta.dtype == self.dtype
+        assert link.proj33n.beta.dtype == self.dtype
+        assert link.conv33an.beta.dtype == self.dtype
+        assert link.conv33bn.beta.dtype == self.dtype
+        assert link.conv1n.beta.dtype == self.dtype
+        assert link.poolpn.beta.dtype == self.dtype
 
 
 testing.run_module(__name__, __file__)

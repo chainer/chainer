@@ -15,13 +15,12 @@
 import inspect
 import os
 import pkg_resources
-import re
-import six
 import sys
 
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import _docstring_check
+import _autosummary_check
 
 
 __version__ = pkg_resources.get_distribution('chainer').version
@@ -51,14 +50,17 @@ extlinks = {
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.autosummary',
-              'sphinx.ext.doctest',
-              'sphinx.ext.extlinks',
-              'sphinx.ext.intersphinx',
-              'sphinx.ext.mathjax',
-              'sphinx.ext.napoleon',
-              'sphinx.ext.linkcode']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.doctest',
+    'sphinx.ext.extlinks',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.linkcode',
+    '_napoleon_patch',
+]
 
 try:
     import sphinxcontrib.spelling  # noqa
@@ -345,7 +347,8 @@ doctest_global_setup = '''
 import numpy as np
 import cupy
 import chainer
-from chainer import cuda, Function, gradient_check, training, utils, Variable
+from chainer.backends import cuda
+from chainer import Function, gradient_check, training, utils, Variable
 from chainer import datasets, iterators, optimizers, serializers
 from chainer import Link, Chain, ChainList
 import chainer.functions as F
@@ -360,10 +363,16 @@ spelling_word_list_filename = 'spelling_wordlist.txt'
 
 def setup(app):
     app.connect('autodoc-process-docstring', _autodoc_process_docstring)
+    app.connect('build-finished', _build_finished)
 
 
 def _autodoc_process_docstring(app, what, name, obj, options, lines):
     _docstring_check.check(app, what, name, obj, options, lines)
+
+
+def _build_finished(app, exception):
+    if exception is None:
+        _autosummary_check.check(app, exception)
 
 
 def _import_object_from_name(module_name, fullname):

@@ -2,7 +2,7 @@ import numpy
 import six
 
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
@@ -13,7 +13,7 @@ if cuda.cudnn_enabled:
     libcudnn = cuda.cuda.cudnn
 
 
-class _PoolingND(function.Function):
+class _PoolingND(function_node.FunctionNode):
 
     """Base class of pooling function over a set of N-dimensional planes."""
 
@@ -85,9 +85,9 @@ class _PoolingND(function.Function):
         zero = numpy.array(0, dtype=oz_dtype).ctypes
         gx = cuda.cupy.empty_like(x)
         libcudnn.poolingBackward(
-            handle, pool_desc.value, one.data, y_desc.value,
-            y.data.ptr, y_desc.value, gy.data.ptr, x_desc.value,
-            x.data.ptr, zero.data, x_desc.value, gx.data.ptr)
+            handle, pool_desc.value,
+            one.data, y_desc.value, y.data.ptr, y_desc.value, gy.data.ptr,
+            x_desc.value, x.data.ptr, zero.data, x_desc.value, gx.data.ptr)
         return gx,
 
     def create_pool_desc(self):

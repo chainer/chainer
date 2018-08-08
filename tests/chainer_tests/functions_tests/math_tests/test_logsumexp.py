@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -246,19 +246,19 @@ class TestLogSumExp(unittest.TestCase):
 
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
-            functions.Sum([0])
+            functions.logsumexp(self.x, [0])
 
     def test_invalid_axis_type_in_tuple(self):
         with self.assertRaises(TypeError):
-            functions.Sum((1, 'x'))
+            functions.logsumexp(self.x, (1, 'x'))
 
     def test_duplicate_axis(self):
         with self.assertRaises(ValueError):
-            functions.Sum((0, 0))
+            functions.logsumexp(self.x, (0, 0))
 
     def test_pos_neg_duplicate_axis(self):
         with self.assertRaises(ValueError):
-            self.x.sum(axis=(1, -2))
+            functions.logsumexp(self.x, (1, -2))
 
 
 testing.run_module(__name__, __file__)

@@ -1,12 +1,11 @@
 import math
 import unittest
 
-import mock
 import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -191,7 +190,7 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
                 x, t, normalize=normalize, reduce=reduce)
 
         gradient_check.check_double_backward(
-            f, (x_data, t_data), y_grad, (gx_grad, None),
+            f, (x_data, t_data), y_grad, (gx_grad,),
             **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
@@ -247,9 +246,7 @@ class TestSigmoidCrossEntropyCudnnCall(unittest.TestCase):
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
-            with mock.patch.object(
-                    cuda.cupy.cudnn, 'activation_forward',
-                    wraps=cuda.cupy.cudnn.activation_forward) as func:
+            with testing.patch('cupy.cudnn.activation_forward') as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
 

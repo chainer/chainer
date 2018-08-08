@@ -4,7 +4,7 @@ import io
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 
 
 def split_text(text, char_based=False):

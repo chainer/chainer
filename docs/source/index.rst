@@ -2,27 +2,30 @@
 Chainer -- A flexible framework of neural networks
 ==================================================
 
-This is the `Chainer <https://chainer.org>`_ documentation.
+`Chainer <https://chainer.org>`_ is a powerful, flexible and intuitive deep learning framework.
+
+* Chainer supports CUDA computation. It only requires a few lines of code to leverage a GPU. It also runs on multiple GPUs with little effort.
+* Chainer supports various network architectures including feed-forward nets, convnets, recurrent nets and recursive nets. It also supports per-batch architectures.
+* Forward computation can include any control flow statements of Python without lacking the ability of backpropagation. It makes code intuitive and easy to debug.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
+   :caption: Chainer Documents
 
-   tutorial/index
+   glance
+   install
+   guides/index
+   examples/index
    reference/index
 
 .. toctree::
    :maxdepth: 1
-   :caption: Development
+   :caption: Other
 
    compatibility
    contribution
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Misc
-
-   install
    tips
+   performance
    upgrade
    comparison
    license

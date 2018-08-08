@@ -4,7 +4,6 @@
 For DQN, see: https://www.nature.com/articles/nature14236
 For DoubleDQN, see: https://arxiv.org/abs/1509.06461
 """
-from __future__ import print_function
 from __future__ import division
 import argparse
 import collections
@@ -30,7 +29,7 @@ class QFunction(chainer.Chain):
             self.l1 = L.Linear(n_units, n_units)
             self.l2 = L.Linear(n_units, n_actions)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Compute Q-values of actions for given observations."""
         h = F.relu(self.l0(x))
         h = F.relu(self.l1(h))
@@ -134,7 +133,7 @@ def main():
     # Initialize a model and its optimizer
     Q = QFunction(obs_size, n_actions, n_units=args.unit)
     if args.gpu >= 0:
-        chainer.cuda.get_device_from_id(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         Q.to_gpu(args.gpu)
     target_Q = copy.deepcopy(Q)
     opt = optimizers.Adam(eps=1e-2)

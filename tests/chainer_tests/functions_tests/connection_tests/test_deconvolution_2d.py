@@ -1,10 +1,9 @@
-import mock
 import unittest
 
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
@@ -30,7 +29,7 @@ def _pair(x):
         'dilate': [1],
         'x_dtype': [numpy.float32],
         'W_dtype': [numpy.float32],
-        'group': [1, 2],
+        'groups': [1, 2],
     })
     + testing.product({
         'c_contiguous': [False],
@@ -40,7 +39,7 @@ def _pair(x):
         'dilate': [1, 2],
         'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
         'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
-        'group': [1, 2],
+        'groups': [1, 2],
     }),
 ])))
 @backend.inject_backend_tests(
@@ -69,8 +68,8 @@ class TestDeconvolution2DFunction(unittest.TestCase):
     def setUp(self):
         in_channels_a_group = 3
         out_channels_a_group = 2
-        self.in_channels = in_channels_a_group * self.group
-        self.out_channels = out_channels_a_group * self.group
+        self.in_channels = in_channels_a_group * self.groups
+        self.out_channels = out_channels_a_group * self.groups
         self.ksize = 3
         self.pad = 1
         kh, kw = _pair(self.ksize)
@@ -124,7 +123,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         with chainer.using_config('use_ideep', 'never'):
             y_cpu = F.deconvolution_2d(
                 x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-                outsize=self.outsize, dilate=self.dilate, group=self.group)
+                outsize=self.outsize, dilate=self.dilate, groups=self.groups)
         return y_cpu,
 
     def check_forward(self, inputs, backend_config):
@@ -141,7 +140,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         with backend_config:
             y_actual = F.deconvolution_2d(
                 x, W, b, stride=self.stride, pad=self.pad,
-                outsize=self.outsize, dilate=self.dilate, group=self.group)
+                outsize=self.outsize, dilate=self.dilate, groups=self.groups)
 
         assert y_expected.data.dtype == self.x_dtype
         assert y_actual.data.dtype == self.x_dtype
@@ -182,7 +181,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         def f(*args):
             return F.deconvolution_2d(
                 *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
-                dilate=self.dilate, group=self.group)
+                dilate=self.dilate, groups=self.groups)
 
         with backend_config:
             gradient_check.check_backward(
@@ -234,10 +233,9 @@ class TestDeconvolution2DFunction(unittest.TestCase):
             grad_grads = grad_grads + (b_grad_grad,)
 
         def f(*args):
-            y = F.deconvolution_2d(
+            return F.deconvolution_2d(
                 *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
-                dilate=self.dilate, group=self.group)
-            return y * y  # make the function nonlinear
+                dilate=self.dilate, groups=self.groups)
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -255,7 +253,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
     'use_cudnn': ['always', 'auto', 'never'],
     'cudnn_deterministic': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'group': [1, 2],
+    'groups': [1, 2],
 }))
 @attr.cudnn
 class TestDeconvolution2DCudnnCall(unittest.TestCase):
@@ -263,8 +261,8 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
     def setUp(self):
         in_channels_a_group = 3
         out_channels_a_group = 2
-        self.in_channels = in_channels_a_group * self.group
-        self.out_channels = out_channels_a_group * self.group
+        self.in_channels = in_channels_a_group * self.groups
+        self.out_channels = out_channels_a_group * self.groups
         kh, kw = _pair(3)
         sh, sw = _pair(1)
         ph, pw = _pair(1)
@@ -282,47 +280,35 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
             -1, 1, (N, self.out_channels, outh, outw)).astype(self.dtype)
         with chainer.using_config('use_cudnn', self.use_cudnn):
             self.should_call_cudnn = chainer.should_use_cudnn('>=auto')
-            if self.group > 1 and cuda.cuda.cudnn.getVersion() < 7000:
+            if self.groups > 1 and cuda.cuda.cudnn.getVersion() < 7000:
                 self.should_call_cudnn = False
 
     def forward(self):
         x = chainer.Variable(self.x)
         W = chainer.Variable(self.W)
         return F.deconvolution_2d(x, W, None, stride=1, pad=1,
-                                  group=self.group)
+                                  groups=self.groups)
 
     def test_call_cudnn_forward(self):
-        name = 'cupy.cuda.cudnn.convolutionBackwardData_v3'
+        name = 'cupy.cudnn.convolution_backward_data'
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
-                with mock.patch(name) as func:
+                with testing.patch(name) as func:
                     self.forward()
                 self.assertEqual(func.called, self.should_call_cudnn)
 
     def test_call_cudnn_backward(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            # This test includes the case in which cudnn < v3
-            # and cudnn_deterministic is True, in which
-            # the backward method of chainer.functions.Deconvolution2D
-            # must raise an error.
-            # But in this case, its forward method should raise
-            # an error as well.
-            # Therefore, we intentionally set cudnn_deterministic
-            # to False so that the forward method does not
-            # raise an error.
-            with chainer.using_config('cudnn_deterministic', False):
-                y = self.forward()
-        y.grad = self.gy
-
-        data_func_name = 'cupy.cuda.cudnn.convolutionForward'
-        filter_func_name = 'cupy.cuda.cudnn.convolutionBackwardFilter_v3'
+        data_func_name = 'cupy.cudnn.convolution_forward'
+        filter_func_name = 'cupy.cudnn.convolution_backward_filter'
 
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with chainer.using_config('cudnn_deterministic',
                                       self.cudnn_deterministic):
-                with mock.patch(data_func_name) as data_func,\
-                        mock.patch(filter_func_name) as filter_func:
+                y = self.forward()
+                y.grad = self.gy
+                with testing.patch(data_func_name) as data_func, \
+                        testing.patch(filter_func_name) as filter_func:
                     y.backward()
                     self.assertEqual(
                         data_func.called, self.should_call_cudnn)
@@ -334,7 +320,7 @@ class TestDeconvolution2DCudnnCall(unittest.TestCase):
     'c_contiguous': [True, False],
     'cudnn_deterministic': [True, False],
     'nobias': [True, False],
-    'group': [1, 2],
+    'groups': [1, 2],
 }))
 @attr.gpu
 @attr.cudnn
@@ -346,8 +332,8 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         batch_sz = 2
         in_channels_a_group = 64
         out_channels_a_group = 64
-        in_channels = in_channels_a_group * self.group
-        out_channels = out_channels_a_group * self.group
+        in_channels = in_channels_a_group * self.groups
+        out_channels = out_channels_a_group * self.groups
         kh, kw = (3, 3)
         in_h, in_w = (32, 128)
         out_h, out_w = (63, 255)
@@ -362,21 +348,6 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
             -1, 1, (batch_sz, in_channels, in_h, in_w)).astype(x_dtype)
         self.gy = numpy.random.uniform(
             -1, 1, (batch_sz, out_channels, out_h, out_w)).astype(x_dtype)
-
-    def test_called(self):
-        with mock.patch(
-                'chainer.functions.connection.deconvolution_2d.libcudnn'
-        ) as mlibcudnn:
-            # cuDNN version >= v3 supports `cudnn_deterministic` option
-            x, W, b, y = self._run()
-
-            # in Deconvolution2DFunction.forward_gpu()
-            self.assertFalse(
-                mlibcudnn.getConvolutionBackwardDataAlgorithm.called)
-
-            # in Deconvolution2DFunction.backward_gpu()
-            self.assertFalse(
-                mlibcudnn.getConvolutionBackwardFilterAlgorithm.called)
 
     def test_cudnn_deterministic(self):
         x1, W1, b1, y1 = self._run()
@@ -418,7 +389,7 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         b = None if self.nobias else chainer.Variable(b_data)
         with chainer.using_config('use_cudnn', 'always'):
             y = F.deconvolution_2d(x, W, b, stride=self.stride, pad=self.pad,
-                                   group=self.group)
+                                   groups=self.groups)
         return x, W, b, y
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import datetime
 
 from nltk.translate import bleu_score
 import numpy
@@ -8,7 +9,7 @@ import progressbar
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import training
@@ -41,7 +42,7 @@ class Seq2seq(chainer.Chain):
         self.n_layers = n_layers
         self.n_units = n_units
 
-    def __call__(self, xs, ys):
+    def forward(self, xs, ys):
         xs = [x[::-1] for x in xs]
 
         eos = self.xp.array([EOS], numpy.int32)
@@ -135,7 +136,7 @@ class CalculateBleu(chainer.training.Extension):
         self.device = device
         self.max_length = max_length
 
-    def __call__(self, trainer):
+    def forward(self, trainer):
         with chainer.no_backprop_mode():
             references = []
             hypotheses = []
@@ -183,6 +184,29 @@ def load_data(vocabulary, path):
     return data
 
 
+def load_data_using_dataset_api(
+        src_vocab, src_path, target_vocab, target_path, filter_func):
+
+    def _transform_line(vocabulary, line):
+        words = line.strip().split()
+        return numpy.array(
+            [vocabulary.get(w, UNK) for w in words], numpy.int32)
+
+    def _transform(example):
+        source, target = example
+        return (
+            _transform_line(src_vocab, source),
+            _transform_line(target_vocab, target)
+        )
+
+    return chainer.datasets.TransformDataset(
+        chainer.datasets.TextDataset(
+            [src_path, target_path],
+            encoding='utf-8',
+            filter_func=filter_func
+        ), _transform)
+
+
 def calculate_unknown_ratio(data):
     unknown = sum((s == UNK).sum() for s in data)
     total = sum(s.size for s in data)
@@ -211,6 +235,9 @@ def main():
                         help='number of units')
     parser.add_argument('--layer', '-l', type=int, default=3,
                         help='number of layers')
+    parser.add_argument('--use-dataset-api', default=False,
+                        action='store_true',
+                        help='use TextDataset API to reduce CPU memory usage')
     parser.add_argument('--min-source-sentence', type=int, default=1,
                         help='minimium length of source sentence')
     parser.add_argument('--max-source-sentence', type=int, default=50,
@@ -228,40 +255,74 @@ def main():
                         help='directory to output the result')
     args = parser.parse_args()
 
+    # Load pre-processed dataset
+    print('[{}] Loading dataset... (this may take several minutes)'.format(
+        datetime.datetime.now()))
     source_ids = load_vocabulary(args.SOURCE_VOCAB)
     target_ids = load_vocabulary(args.TARGET_VOCAB)
-    train_source = load_data(source_ids, args.SOURCE)
-    train_target = load_data(target_ids, args.TARGET)
-    assert len(train_source) == len(train_target)
-    train_data = [(s, t)
-                  for s, t in six.moves.zip(train_source, train_target)
-                  if args.min_source_sentence <= len(s)
-                  <= args.max_source_sentence and
-                  args.min_source_sentence <= len(t)
-                  <= args.max_source_sentence]
-    train_source_unknown = calculate_unknown_ratio(
-        [s for s, _ in train_data])
-    train_target_unknown = calculate_unknown_ratio(
-        [t for _, t in train_data])
 
-    print('Source vocabulary size: %d' % len(source_ids))
-    print('Target vocabulary size: %d' % len(target_ids))
-    print('Train data size: %d' % len(train_data))
-    print('Train source unknown ratio: %.2f%%' % (train_source_unknown * 100))
-    print('Train target unknown ratio: %.2f%%' % (train_target_unknown * 100))
+    if args.use_dataset_api:
+        # By using TextDataset, you can avoid loading whole dataset on memory.
+        # This significantly reduces the host memory usage.
+        def _filter_func(s, t):
+            sl = len(s.strip().split())  # number of words in source line
+            tl = len(t.strip().split())  # number of words in target line
+            return (
+                args.min_source_sentence <= sl <= args.max_source_sentence and
+                args.min_target_sentence <= tl <= args.max_target_sentence)
+
+        train_data = load_data_using_dataset_api(
+            source_ids, args.SOURCE,
+            target_ids, args.TARGET,
+            _filter_func,
+        )
+    else:
+        # Load all records on memory.
+        train_source = load_data(source_ids, args.SOURCE)
+        train_target = load_data(target_ids, args.TARGET)
+        assert len(train_source) == len(train_target)
+
+        train_data = [
+            (s, t)
+            for s, t in six.moves.zip(train_source, train_target)
+            if (args.min_source_sentence <= len(s) <= args.max_source_sentence
+                and
+                args.min_target_sentence <= len(t) <= args.max_target_sentence)
+        ]
+    print('[{}] Dataset loaded.'.format(datetime.datetime.now()))
+
+    if not args.use_dataset_api:
+        # Skip printing statistics when using TextDataset API, as it is slow.
+        train_source_unknown = calculate_unknown_ratio(
+            [s for s, _ in train_data])
+        train_target_unknown = calculate_unknown_ratio(
+            [t for _, t in train_data])
+
+        print('Source vocabulary size: %d' % len(source_ids))
+        print('Target vocabulary size: %d' % len(target_ids))
+        print('Train data size: %d' % len(train_data))
+        print('Train source unknown ratio: %.2f%%' % (
+            train_source_unknown * 100))
+        print('Train target unknown ratio: %.2f%%' % (
+            train_target_unknown * 100))
 
     target_words = {i: w for w, i in target_ids.items()}
     source_words = {i: w for w, i in source_ids.items()}
 
+    # Setup model
     model = Seq2seq(args.layer, len(source_ids), len(target_ids), args.unit)
     if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
+        chainer.backends.cuda.get_device(args.gpu).use()
         model.to_gpu(args.gpu)
 
+    # Setup optimizer
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
+    # Setup iterator
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
+
+    # Setup updater and trainer
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, converter=convert, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
@@ -299,8 +360,8 @@ def main():
             target_sentence = ' '.join([target_words[y] for y in target])
             result_sentence = ' '.join([target_words[y] for y in result])
             print('# source : ' + source_sentence)
-            print('#  result : ' + result_sentence)
-            print('#  expect : ' + target_sentence)
+            print('# result : ' + result_sentence)
+            print('# expect : ' + target_sentence)
 
         trainer.extend(
             translate, trigger=(args.validation_interval, 'iteration'))

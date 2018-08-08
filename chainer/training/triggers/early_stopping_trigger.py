@@ -1,8 +1,8 @@
-from chainer import reporter
-from chainer.training import util
-
 import operator
 import warnings
+
+from chainer import reporter
+from chainer.training import util
 
 
 class EarlyStoppingTrigger(object):
@@ -33,7 +33,7 @@ class EarlyStoppingTrigger(object):
             It is used to determine how to compare the monitored values.
         verbose (bool) : Enable verbose output.
             If verbose is true, you can get more information
-        max_trigger (int) : Upper bound of the number of training loops
+        max_trigger: Upper bound of the number of training loops
     """
 
     def __init__(self, check_trigger=(1, 'epoch'), monitor='main/loss',

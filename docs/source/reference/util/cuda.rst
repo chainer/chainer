@@ -1,6 +1,12 @@
-CUDA utilities
---------------
-.. automodule:: chainer.cuda
+CUDA and Backend Utilities
+==========================
+
+.. module:: chainer.backends
+
+CUDA
+----
+
+.. automodule:: chainer.backends.cuda
 
 .. currentmodule:: /
 
@@ -11,9 +17,9 @@ Devices
    :toctree: generated/
    :nosignatures:
 
-   chainer.cuda.get_device
-   chainer.cuda.get_device_from_id
-   chainer.cuda.get_device_from_array
+   chainer.backends.cuda.get_device
+   chainer.backends.cuda.get_device_from_id
+   chainer.backends.cuda.get_device_from_array
 
 CuPy array allocation and copy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,9 +28,10 @@ CuPy array allocation and copy
    :toctree: generated/
    :nosignatures:
 
-   chainer.cuda.copy
-   chainer.cuda.to_cpu
-   chainer.cuda.to_gpu
+   chainer.backends.cuda.copy
+   chainer.backends.cuda.copyto
+   chainer.backends.cuda.to_cpu
+   chainer.backends.cuda.to_gpu
 
 Kernel definition utilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -33,10 +40,11 @@ Kernel definition utilities
    :toctree: generated/
    :nosignatures:
 
-   chainer.cuda.memoize
-   chainer.cuda.clear_memo
-   chainer.cuda.elementwise
-   chainer.cuda.reduce
+   chainer.backends.cuda.memoize
+   chainer.backends.cuda.clear_memo
+   chainer.backends.cuda.elementwise
+   chainer.backends.cuda.raw
+   chainer.backends.cuda.reduce
 
 CPU/GPU generic code support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -45,7 +53,7 @@ CPU/GPU generic code support
    :toctree: generated/
    :nosignatures:
 
-   chainer.cuda.get_array_module
+   chainer.backends.cuda.get_array_module
 
 cuDNN support
 ~~~~~~~~~~~~~
@@ -54,5 +62,20 @@ cuDNN support
    :toctree: generated/
    :nosignatures:
 
-   chainer.cuda.set_max_workspace_size
-   chainer.cuda.get_max_workspace_size
+   chainer.backends.cuda.set_max_workspace_size
+   chainer.backends.cuda.get_max_workspace_size
+
+iDeep
+-----
+
+`iDeep <https://github.com/intel/ideep>`__ is a module that provides NumPy-like API and DNN acceleration using MKL-DNN for Intel CPUs.
+See :doc:`../../tips` and :doc:`../../performance` for details.
+
+.. module:: chainer.backends.intel64
+.. currentmodule:: chainer
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.backends.intel64.is_ideep_available

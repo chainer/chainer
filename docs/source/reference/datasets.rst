@@ -1,9 +1,77 @@
+Datasets
+========
+
+.. module:: chainer.dataset
+
+Dataset Abstraction (``chainer.dataset``)
+-----------------------------------------
+
+Chainer supports a common interface for training and validation of datasets. The dataset support consists of three components: datasets, iterators, and batch conversion functions.
+
+**Dataset** represents a set of examples. The interface is only determined by combination with iterators you want to use on it. The built-in iterators of Chainer require the dataset to support ``__getitem__`` and ``__len__`` methods. In particular, the ``__getitem__`` method should support indexing by both an integer and a slice. We can easily support slice indexing by inheriting :class:`DatasetMixin`, in which case users only have to implement :meth:`~DatasetMixin.get_example` method for indexing. Basically, datasets are considered as `stateless` objects, so that we do not need to save the dataset as a checkpoint of the training procedure.
+
+**Iterator** iterates over the dataset, and at each iteration, it yields a mini-batch of examples as a list. Iterators should support the :class:`Iterator` interface, which includes the standard iterator protocol of Python. Iterators manage where to read next, which means they are `stateful`.
+
+**Batch conversion function** converts the mini-batch into arrays to feed to the neural nets. They are also responsible to send each array to an appropriate device.
+Chainer currently provides two implementations:
+
+- :func:`concat_examples` is a plain implementation which is used as the default choice.
+- :class:`ConcatWithAsyncTransfer` is a variant which is basically same as :func:`concat_examples` except that it overlaps other GPU computations and data transfer for the next iteration.
+
+These components are all customizable, and designed to have a minimum interface to restrict the types of datasets and ways to handle them. In most cases, though, implementations provided by Chainer itself are enough to cover the usages.
+
+Chainer also has a light system to download, manage, and cache concrete examples of datasets. All datasets managed through the system are saved under `the dataset root directory`, which is determined by the ``CHAINER_DATASET_ROOT`` environment variable, and can also be set by the :func:`set_dataset_root` function.
+
+
+Dataset Representation
+~~~~~~~~~~~~~~~~~~~~~~
+See :ref:`datasets` for dataset implementations.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.DatasetMixin
+
+Iterator Interface
+~~~~~~~~~~~~~~~~~~
+See :ref:`iterators` for dataset iterator implementations.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.Iterator
+
+Batch Conversion Function
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.concat_examples
+   chainer.dataset.ConcatWithAsyncTransfer
+   chainer.dataset.to_device
+
+Dataset Management
+~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.get_dataset_root
+   chainer.dataset.set_dataset_root
+   chainer.dataset.cached_download
+   chainer.dataset.cache_or_load_file
+
 .. module:: chainer.datasets
 
 .. _datasets:
 
-Dataset examples
-================
+Dataset Examples (``chainer.datasets``)
+---------------------------------------
 
 The most basic :mod:`~chainer.dataset` implementation is an array.
 Both NumPy and CuPy arrays can be used directly as datasets.
@@ -17,7 +85,7 @@ Most of them are wrapper of other datasets to introduce some structures (e.g., t
 The other one is a group of concrete, popular datasets.
 These concrete examples use the downloading utilities in the :mod:`chainer.dataset` module to cache downloaded and converted datasets.
 
-General datasets
+General Datasets
 ----------------
 
 General datasets are further divided into four types.
@@ -31,7 +99,8 @@ The second one is :class:`ConcatenatedDataset` and :class:`SubDataset`.
 The third one is :class:`TransformDataset`, which wraps around a dataset by applying a function to data indexed from the underlying dataset.
 It can be used to modify behavior of a dataset that is already prepared.
 
-The last one is a group of domain-specific datasets. Currently, :class:`ImageDataset` and :class:`LabeledImageDataset` are provided for datasets of images.
+The last one is a group of domain-specific datasets.
+Currently, implementations for datasets of images (:class:`ImageDataset`, :class:`LabeledImageDataset`, etc.) and text (:class:`TextDataset`) are provided.
 
 
 DictDataset
@@ -54,8 +123,12 @@ TupleDataset
 
 ConcatenatedDataset
 ~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ConcatenatedDataset
-   :members:
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+    chainer.datasets.ConcatenatedDataset
 
 SubDataset
 ~~~~~~~~~~
@@ -87,6 +160,8 @@ ImageDataset
    :nosignatures:
 
    chainer.datasets.ImageDataset
+   chainer.datasets.ZippedImageDataset
+   chainer.datasets.MultiZippedImageDataset
 
 LabeledImageDataset
 ~~~~~~~~~~~~~~~~~~~
@@ -96,8 +171,18 @@ LabeledImageDataset
    :nosignatures:
 
    chainer.datasets.LabeledImageDataset
+   chainer.datasets.LabeledZippedImageDataset
 
-Concrete datasets
+TextDataset
+~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.TextDataset
+
+Concrete Datasets
 -----------------
 
 .. autosummary::
@@ -105,6 +190,7 @@ Concrete datasets
    :nosignatures:
 
    chainer.datasets.get_mnist
+   chainer.datasets.get_fashion_mnist_labels
    chainer.datasets.get_fashion_mnist
    chainer.datasets.get_cifar10
    chainer.datasets.get_cifar100

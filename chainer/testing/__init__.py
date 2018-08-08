@@ -1,13 +1,9 @@
-from chainer.testing import array  # NOQA
-from chainer.testing import helper  # NOQA
-from chainer.testing import parameterized  # NOQA
-from chainer.testing import serializer  # NOQA
-from chainer.testing import training  # NOQA
-from chainer.testing import unary_math_function_test  # NOQA
-
 from chainer.testing.array import assert_allclose  # NOQA
+from chainer.testing.distribution_test import distribution_unittest  # NOQA
 from chainer.testing.helper import assert_warns  # NOQA
+from chainer.testing.helper import patch  # NOQA
 from chainer.testing.helper import with_requires  # NOQA
+from chainer.testing.helper import without_requires  # NOQA
 from chainer.testing.parameterized import parameterize  # NOQA
 from chainer.testing.parameterized import product  # NOQA
 from chainer.testing.parameterized import product_dict  # NOQA

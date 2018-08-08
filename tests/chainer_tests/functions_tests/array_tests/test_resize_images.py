@@ -2,7 +2,7 @@ import unittest
 
 import numpy
 
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
@@ -125,8 +125,7 @@ class TestResizeImagesBackward(unittest.TestCase):
 
     def check_double_backward(self, x, output_shape, gy, ggx):
         def f(x):
-            y = functions.resize_images(x, output_shape)
-            return y * y
+            return functions.resize_images(x, output_shape)
 
         gradient_check.check_double_backward(
             f, x, gy, ggx, atol=1e-2, rtol=1e-3)

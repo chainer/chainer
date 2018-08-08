@@ -3,7 +3,7 @@ import unittest
 import numpy
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
 from chainer.testing import backend
@@ -25,31 +25,52 @@ def inject_backend_tests(method_names):
 @testing.parameterize(*testing.product_dict(
     [
         {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [2, 5],
-         'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
-                    [slice(None), slice(5, None)]]},
+         'slices': [
+             (slice(None), slice(None, 2)),
+             (slice(None), slice(2, 5)),
+             (slice(None), slice(5, None))]},
         {'shape': (7, 3), 'axis': 0, 'ys_section': [2, 5],
          'slices': [slice(None, 2), slice(2, 5), slice(5, None)]},
+        {'shape': (7, 0), 'axis': 0, 'ys_section': [2, 5],
+         'slices': [slice(None, 2), slice(2, 5), slice(5, None)]},
         {'shape': (2, 9, 3), 'axis': 1, 'ys_section': 3,
-         'slices': [[slice(None), slice(None, 3)], [slice(None), slice(3, 6)],
-                    [slice(None), slice(6, None)]]},
+         'slices': [
+             (slice(None), slice(None, 3)),
+             (slice(None), slice(3, 6)),
+             (slice(None), slice(6, None))]},
         {'shape': (2, 6, 3), 'axis': 1, 'ys_section': 3,
-         'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 4)],
-                    [slice(None), slice(4, None)]]},
+         'slices': [
+             (slice(None), slice(None, 2)),
+             (slice(None), slice(2, 4)),
+             (slice(None), slice(4, None))]},
         {'shape': (2,), 'axis': 0, 'ys_section': [1],
          'slices': [slice(None, 1), slice(1, None)]},
         {'shape': (2,), 'axis': 0, 'ys_section': [],
          'slices': [slice(None, None)]},
         {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [2, 5],
-         'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
-                    [slice(None), slice(5, None)]]},
+         'slices': [
+             (slice(None), slice(None, 2)),
+             (slice(None), slice(2, 5)),
+             (slice(None), slice(5, None))]},
         {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [0],
-         'slices': [[slice(None), slice(None, 0)], [slice(None), slice(0, 7)]]
+         'slices': [
+             (slice(None), slice(None, 0)),
+             (slice(None), slice(0, 7))]
+         },
+        {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [7],
+         'slices': [
+             (slice(None), slice(None, 7)),
+             (slice(None), slice(7, 7))]
          },
         {'shape': (2, 7, 3, 2), 'axis': 1, 'ys_section': [2, 5],
-         'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
-                    [slice(None), slice(5, None)]]},
+         'slices': [
+             (slice(None), slice(None, 2)),
+             (slice(None), slice(2, 5)),
+             (slice(None), slice(5, None))]},
         {'shape': (2, 7, 3, 2), 'axis': 1, 'ys_section': [0],
-         'slices': [[slice(None), slice(None, 0)], [slice(None), slice(0, 7)]]
+         'slices': [
+             (slice(None), slice(None, 0)),
+             (slice(None), slice(0, 7))]
          },
         {'shape': (10, 4, 3, 2), 'axis': 0, 'ys_section': 1,
          'slices': [slice(None, None)]
@@ -78,23 +99,29 @@ def inject_backend_tests(method_names):
                     slice(5, None)]
          },
         {'shape': (5, 5, 3, 8), 'axis': 3, 'ys_section': 2,
-         'slices': [[slice(None, None), slice(None, None), slice(None, None),
-                     slice(None, 4)],
-                    [slice(None, None), slice(None, None), slice(None, None),
-                     slice(4, None)]]
+         'slices': [
+             (slice(None, None), slice(None, None), slice(None, None),
+              slice(None, 4)),
+             (slice(None, None), slice(None, None), slice(None, None),
+              slice(4, None))]
          },
         {'shape': (5, 8, 3, 2), 'axis': -3, 'ys_section': 2,
-         'slices': [[slice(None, None), slice(None, 4)],
-                    [slice(None, None), slice(4, None)]]
+         'slices': [(slice(None, None), slice(None, 4)),
+                    (slice(None, None), slice(4, None))]
          },
         {'shape': (5, 8, 3, 2), 'axis': 1, 'ys_section': 2,
-         'slices': [[slice(None, None), slice(None, 4)],
-                    [slice(None, None), slice(4, None)]]
+         'slices': [(slice(None, None), slice(None, 4)),
+                    (slice(None, None), slice(4, None))]
          },
         {'shape': (5, 4, 3, 4), 'axis': -1, 'ys_section': 2,
-         'slices': [[slice(None, None), slice(None, None), slice(None, None),
-                     slice(None, 2)], [slice(None, None), slice(None, None),
-                                       slice(None, None), slice(2, None)]]
+         'slices': [
+             (slice(None, None), slice(None, None), slice(None, None),
+              slice(None, 2)),
+             (slice(None, None), slice(None, None), slice(None, None),
+              slice(2, None))]
+         },
+        {'shape': (10, 4, 3, 2), 'axis': 0, 'ys_section': numpy.array([]),
+         'slices': [slice(None, None)]
          },
     ],
     [

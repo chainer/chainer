@@ -6,7 +6,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
@@ -577,11 +577,17 @@ class TestCheckBackward(unittest.TestCase):
         g1 = numpy.array([1], dtype='f')
 
         def f(x, y):
-            s = Ident()(x)
+            s = x + y.array
             return s,
 
-        self.assertRaises(RuntimeError, gradient_check.check_backward,
-                          f, (x1, x2), g1, no_grads=[False, False])
+        self.assertRaises(
+            RuntimeError,  # backward computes x1.grad
+            gradient_check.check_backward,
+            f, (x1, x2), g1, no_grads=[True, True])
+        self.assertRaises(
+            AssertionError,  # numerical backward to x2 is nonzero
+            gradient_check.check_backward,
+            f, (x1, x2), g1, no_grads=[False, False])
         gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
 
     def test_no_grads_option_with_dtype(self):
