@@ -20,6 +20,7 @@ install(FILES
     backend.h
     backend_util.h
     backprop_mode.h
+    backprop_scope.h
     backward.h
     backward_builder.h
     backward_context.h
@@ -29,11 +30,9 @@ install(FILES
     device.h
     device_id.h
     dtype.h
-    elementwise.h
     enum.h
     error.h
     graph.h
-    graph_scope.h
     hash_combine.h
     index_iterator.h
     indexable_array.h
@@ -46,6 +45,7 @@ install(FILES
     scalar.h
     shape.h
     slice.h
+    squash_dims.h
     stack_vector.h
     strides.h
     xchainer.h
@@ -72,6 +72,7 @@ add_library(xchainer SHARED
     numeric.cc
     numerical_gradient.cc
     op_node.cc
+    reduction_kernel_arg.cc
     scalar.cc
     shape.cc
     strides.cc
@@ -107,7 +108,6 @@ if(ENABLE_TEST)
         context_test.cc
         device_test.cc
         dtype_test.cc
-        elementwise_test.cc
         index_iterator_test.cc
         indexable_array_test.cc
         indexer_test.cc
@@ -117,6 +117,7 @@ if(ENABLE_TEST)
         optional_container_arg_test.cc
         scalar_test.cc
         shape_test.cc
+        squash_dims_test.cc
         stack_vector_test.cc
         strides_test.cc
         )

@@ -9,14 +9,15 @@
 #include <string>
 #include <vector>
 
+#include "xchainer/backprop_scope.h"
 #include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/device_id.h"
 #include "xchainer/graph.h"
-#include "xchainer/graph_scope.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/native/native_device.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/testing/array.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -28,13 +29,13 @@ void CheckArrayRepr(
         const std::vector<T>& data_vec,
         const Shape& shape,
         Device& device,
-        const std::vector<GraphId>& graph_ids = {}) {
+        const std::vector<BackpropId>& backprop_ids = {}) {
     // Copy to a contiguous memory block because std::vector<bool> is not packed as a sequence of bool's.
     std::shared_ptr<T> data_ptr{new T[data_vec.size()], std::default_delete<T[]>{}};
     std::copy(data_vec.begin(), data_vec.end(), data_ptr.get());
     Array array = internal::FromContiguousHostData(shape, TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data_ptr), device);
-    for (const GraphId& graph_id : graph_ids) {
-        array.RequireGrad(graph_id);
+    for (const BackpropId& backprop_id : backprop_ids) {
+        array.RequireGrad(backprop_id);
     }
 
     // std::string version
@@ -201,57 +202,78 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
 
     // 0-sized
     {
-        GraphScope graph_scope{"graph_1"};
-        GraphId graph_id = graph_scope.graph_id();
+        BackpropScope backprop_scope{"bp1"};
+        BackpropId backprop_id = backprop_scope.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([], shape=(0, 1, 2), dtype=int32, device='native:0', graph_ids=['1'])", {}, Shape({0, 1, 2}), device, {graph_id});
+                "array([], shape=(0, 1, 2), dtype=int32, device='native:0', backprop_ids=['bp1'])",
+                {},
+                Shape({0, 1, 2}),
+                device,
+                {backprop_id});
     }
 
     // Single graph
     {
-        GraphScope graph_scope{"graph_1"};
-        GraphId graph_id = graph_scope.graph_id();
+        BackpropScope backprop_scope{"bp1"};
+        BackpropId backprop_id = backprop_scope.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([-2], shape=(1,), dtype=int32, device='native:0', graph_ids=['2'])", {-2}, Shape({1}), device, {graph_id});
+                "array([-2], shape=(1,), dtype=int32, device='native:0', backprop_ids=['bp1'])", {-2}, Shape({1}), device, {backprop_id});
     }
 
     // Two graphs
     {
-        GraphScope graph_scope1{"graph_1"};
-        GraphScope graph_scope2{"graph_2"};
-        GraphId graph_id1 = graph_scope1.graph_id();
-        GraphId graph_id2 = graph_scope2.graph_id();
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
+        BackpropId backprop_id1 = backprop_scope1.backprop_id();
+        BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([1], shape=(1,), dtype=int32, device='native:0', graph_ids=['3', '4'])",
+                "array([1], shape=(1,), dtype=int32, device='native:0', backprop_ids=['bp1', 'bp2'])",
                 {1},
                 Shape({1}),
                 device,
-                {graph_id1, graph_id2});
+                {backprop_id1, backprop_id2});
     }
 
     // Multiple graphs
     {
-        GraphScope graph_scope1{"graph_1"};
-        GraphScope graph_scope2{"graph_2"};
-        GraphScope graph_scope3{"graph_3"};
-        GraphScope graph_scope4{"graph_4"};
-        GraphScope graph_scope5{"graph_5"};
-        GraphId graph_id1 = graph_scope1.graph_id();
-        GraphId graph_id2 = graph_scope2.graph_id();
-        GraphId graph_id3 = graph_scope3.graph_id();
-        GraphId graph_id4 = graph_scope4.graph_id();
-        GraphId graph_id5 = graph_scope5.graph_id();
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropScope backprop_scope2{"bp2"};
+        BackpropScope backprop_scope3{"bp3"};
+        BackpropScope backprop_scope4{"bp4"};
+        BackpropScope backprop_scope5{"bp5"};
+        BackpropId backprop_id1 = backprop_scope1.backprop_id();
+        BackpropId backprop_id2 = backprop_scope2.backprop_id();
+        BackpropId backprop_id3 = backprop_scope3.backprop_id();
+        BackpropId backprop_id4 = backprop_scope4.backprop_id();
+        BackpropId backprop_id5 = backprop_scope5.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([-9], shape=(1,), dtype=int32, device='native:0', graph_ids=['5', '6', '7', '8', '9'])",
+                "array([-9], shape=(1,), dtype=int32, device='native:0', backprop_ids=['bp1', 'bp2', 'bp3', 'bp4', "
+                "'bp5'])",
                 {-9},
                 Shape({1}),
                 device,
-                {graph_id1, graph_id2, graph_id3, graph_id4, graph_id5});
+                {backprop_id1, backprop_id2, backprop_id3, backprop_id4, backprop_id5});
     }
+}
+
+TEST(ArrayReprTest, ExpiredBackprop) {
+    testing::DeviceSession device_session{DeviceId{"native:0"}};
+
+    Array a{};
+    {
+        BackpropScope backprop_scope{"bp1"};
+        BackpropId backprop_id = backprop_scope.backprop_id();
+        a = testing::BuildArray({1}).WithData<float>({3.0f});
+        a.RequireGrad(backprop_id);
+    }
+
+    std::ostringstream os;
+    os << a;
+    EXPECT_EQ("array([3.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['<expired>'])", os.str());
 }
 
 }  // namespace

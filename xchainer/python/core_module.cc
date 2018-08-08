@@ -29,7 +29,7 @@ void InitXchainerModule(pybind11::module& m) {
     InitXchainerContext(m);
     InitXchainerContextScope(m);
     InitXchainerGraph(m);
-    InitXchainerGraphScope(m);
+    InitXchainerBackpropScope(m);
     InitXchainerBackend(m);
     InitXchainerBackpropMode(m);
     InitXchainerDevice(m);

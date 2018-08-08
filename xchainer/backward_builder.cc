@@ -37,35 +37,35 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> in
 }
 
 void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
-    assert(graph_to_next_array_nodes_.empty());
+    assert(graph_to_input_array_nodes_.empty());
     for (size_t input_index : input_indices_) {
         // Need to access the input array via the builder.
         const Array& input = gsl::at(builder_.inputs_, input_index);
 
-        for (std::shared_ptr<ArrayNode>& next_array_node : internal::GetArrayBody(input)->nodes()) {
-            const GraphId& graph_id = next_array_node->graph_id();
-            if (!IsBackpropRequired(graph_id)) {
+        for (std::shared_ptr<ArrayNode>& input_array_node : internal::GetArrayBody(input)->nodes()) {
+            const BackpropId& backprop_id = input_array_node->backprop_id();
+            if (!IsBackpropRequired(backprop_id)) {
                 continue;
             }
 
             // Add the array node to the mapping
-            auto insert_result = graph_to_next_array_nodes_.emplace(graph_id, NextArrayNodes{});
-            auto& next_array_nodes = insert_result.first->second;
+            auto insert_result = graph_to_input_array_nodes_.emplace(backprop_id, InputArrayNodes{});
+            auto& input_array_nodes = insert_result.first->second;
             if (insert_result.second) {
                 // New array node for a graph. Fill all array nodes with nullptr.
-                next_array_nodes.resize(builder_.inputs_.size());
+                input_array_nodes.resize(builder_.inputs_.size());
             }
             // Assign valid pointer to the array node.
-            next_array_nodes[input_index] = &next_array_node;
+            input_array_nodes[input_index] = &input_array_node;
         }
     }
 
 #ifndef NDEBUG
-    for (auto& pair : graph_to_next_array_nodes_) {
-        const GraphId& graph_id = pair.first;
-        const NextArrayNodes& next_array_nodes = pair.second;
-        for (const std::shared_ptr<ArrayNode>* array_node : next_array_nodes) {
-            assert(array_node == nullptr || graph_id == (*array_node)->graph_id());
+    for (auto& pair : graph_to_input_array_nodes_) {
+        const BackpropId& backprop_id = pair.first;
+        const InputArrayNodes& input_array_nodes = pair.second;
+        for (const std::shared_ptr<ArrayNode>* array_node : input_array_nodes) {
+            assert(array_node == nullptr || backprop_id == (*array_node)->backprop_id());
         }
     }
 #endif  // NDEBUG
@@ -75,24 +75,24 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
     assert(is_definition_required());
 
     // Find/Create an op node for each graph and register the given backward function to each of them.
-    for (const auto& pair : graph_to_next_array_nodes_) {
-        const GraphId& graph_id = pair.first;
-        const NextArrayNodes& next_array_nodes = pair.second;
+    for (const auto& pair : graph_to_input_array_nodes_) {
+        const BackpropId& backprop_id = pair.first;
+        const InputArrayNodes& input_array_nodes = pair.second;
 
-        std::shared_ptr<OpNode>& op_node = builder_.FindOrCreateOpNode(graph_id);
+        std::shared_ptr<OpNode>& op_node = builder_.FindOrCreateOpNode(backprop_id);
 
-        std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> temp_next_array_nodes;
-        temp_next_array_nodes.reserve(next_array_nodes.size());
+        std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> temp_input_array_nodes;
+        temp_input_array_nodes.reserve(input_array_nodes.size());
         std::transform(
                 input_indices_.begin(),
                 input_indices_.end(),
-                std::back_inserter(temp_next_array_nodes),
-                [&next_array_nodes](size_t input_index) {
-                    const std::shared_ptr<ArrayNode>* array_node = next_array_nodes[input_index];
+                std::back_inserter(temp_input_array_nodes),
+                [&input_array_nodes](size_t input_index) {
+                    const std::shared_ptr<ArrayNode>* array_node = input_array_nodes[input_index];
                     return std::tuple<size_t, std::shared_ptr<ArrayNode>>{input_index, array_node == nullptr ? nullptr : *array_node};
                 });
 
-        op_node->RegisterBackwardFunction(std::move(temp_next_array_nodes), backward_func);
+        op_node->RegisterBackwardFunction(std::move(temp_input_array_nodes), backward_func);
     }
 }
 
@@ -112,14 +112,14 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
             inputs_.begin(), inputs_.end(), [this](const Array& input) { return &inputs_.begin()->get().device() == &input.device(); }));
 }
 
-std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const GraphId& graph_id) {
+std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const BackpropId& backprop_id) {
     // Try to find an existing op node for the given graph.
-    auto insert_result = op_node_map_.emplace(graph_id, nullptr);
+    auto insert_result = op_node_map_.emplace(backprop_id, nullptr);
 
     // If not found, create a new one.
     if (insert_result.second) {
-        insert_result.first->second = OpNode::CreateWithPrevArrayNodes(op_name_, graph_id, inputs_.size(), outputs_);
-        AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs(insert_result.first->second);
+        insert_result.first->second = OpNode::CreateWithOutputArrayNodes(op_name_, backprop_id, inputs_.size(), outputs_);
+        AddEdgesToOutputArrayNodesBetweenEncounteredGraphs(insert_result.first->second);
     }
 
     assert(!op_node_map_.empty());
@@ -128,37 +128,37 @@ std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const GraphId& grap
 
 namespace {
 
-void AddEdgesToPreviousArrayNodesOfOuterGraph(const OpNode& outer_op_node, OpNode& inner_op_node) {
-    // Outer graphs must be registered using shared_ptr but op nodes only have weak_ptr to their previous array nodes.
+void AddEdgesToOutputArrayNodesOfOuterGraph(const OpNode& outer_op_node, OpNode& inner_op_node) {
+    // Outer graphs must be registered using shared_ptr but op nodes only have weak_ptr to their output array nodes.
     // Therefore, first convert the weak_ptr to shared_ptr, assuming that they have not expired.
-    const std::vector<std::weak_ptr<ArrayNode>>& weak_outer_prev_array_nodes = outer_op_node.prev_array_nodes();
-    std::vector<std::shared_ptr<internal::ArrayNode>> outer_prev_array_nodes;
-    outer_prev_array_nodes.reserve(weak_outer_prev_array_nodes.size());
+    const std::vector<std::weak_ptr<ArrayNode>>& weak_outer_output_array_nodes = outer_op_node.output_array_nodes();
+    std::vector<std::shared_ptr<internal::ArrayNode>> outer_output_array_nodes;
+    outer_output_array_nodes.reserve(weak_outer_output_array_nodes.size());
     std::transform(
-            weak_outer_prev_array_nodes.begin(),
-            weak_outer_prev_array_nodes.end(),
-            std::back_inserter(outer_prev_array_nodes),
-            [](const std::weak_ptr<ArrayNode>& prev) {
-                assert(!prev.expired());
-                return prev.lock();
+            weak_outer_output_array_nodes.begin(),
+            weak_outer_output_array_nodes.end(),
+            std::back_inserter(outer_output_array_nodes),
+            [](const std::weak_ptr<ArrayNode>& output) {
+                assert(!output.expired());
+                return output.lock();
             });
 
-    inner_op_node.AddEdgesToPreviousArrayNodesOfOuterGraph(outer_op_node.graph_id(), outer_prev_array_nodes);
+    inner_op_node.AddEdgesToOutputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), outer_output_array_nodes);
 }
 
 }  // namespace
 
-void BackwardBuilder::AddEdgesToPreviousArrayNodesBetweenEncounteredGraphs(const std::shared_ptr<internal::OpNode>& op_node) {
+void BackwardBuilder::AddEdgesToOutputArrayNodesBetweenEncounteredGraphs(const std::shared_ptr<internal::OpNode>& op_node) {
     // Compare the order (outer/inner) between the graph of given op node and all graphs involved in this builder to create references to
     // outer graphs as necessary.
-    const GraphId& graph_id = op_node->graph_id();
+    const BackpropId& backprop_id = op_node->backprop_id();
     for (const auto& tup : op_node_map_) {
-        const GraphId& other_graph_id = tup.first;
+        const BackpropId& other_backprop_id = tup.first;
         const std::shared_ptr<OpNode>& other_op_node = tup.second;
-        if (other_graph_id < graph_id) {  // Create reference from given (inner) to other (outer).
-            AddEdgesToPreviousArrayNodesOfOuterGraph(*other_op_node, *op_node);
-        } else if (other_graph_id > graph_id) {  // Create reference from other (inner) to given (outer).
-            AddEdgesToPreviousArrayNodesOfOuterGraph(*op_node, *other_op_node);
+        if (other_backprop_id < backprop_id) {  // Create reference from given (inner) to other (outer).
+            AddEdgesToOutputArrayNodesOfOuterGraph(*other_op_node, *op_node);
+        } else if (other_backprop_id > backprop_id) {  // Create reference from other (inner) to given (outer).
+            AddEdgesToOutputArrayNodesOfOuterGraph(*op_node, *other_op_node);
         } else {
             // Do nothing.
         }

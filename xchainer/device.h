@@ -38,7 +38,6 @@ public:
     virtual ~BatchNormForwardBackward() = default;
     virtual Array Forward(const Array& x, const Array& gamma, const Array& beta) = 0;
     virtual std::array<Array, 3> Backward(const Array& gout) = 0;
-    virtual std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) = 0;
 };
 
 class GenericBatchNormForwardBackward : public BatchNormForwardBackward {
@@ -47,11 +46,9 @@ public:
 
     Array Forward(const Array& x, const Array& gamma, const Array& beta) override;
     std::array<Array, 3> Backward(const Array& gout) override;
-    std::array<Array, 3> DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) override;
 
 protected:
     void SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std);
-    void SetBackwardResults(Array gout, Array gx, Array ggamma);
 
     const Array& running_mean() { return running_mean_; }
     const Array& running_var() { return running_var_; }
@@ -65,11 +62,6 @@ protected:
     const Array& x_mean() { return *x_mean_; }
     const Array& x_inv_std() { return *x_inv_std_; }
 
-    // Backward results.
-    const Array& gout() { return *gout_; }
-    const Array& gx() { return *gx_; }
-    const Array& ggamma() { return *ggamma_; }
-
 private:
     const Array& running_mean_;
     const Array& running_var_;
@@ -82,9 +74,6 @@ private:
     std::shared_ptr<Array> gamma_;
     std::shared_ptr<Array> x_mean_;
     std::shared_ptr<Array> x_inv_std_;
-    std::shared_ptr<Array> gout_;
-    std::shared_ptr<Array> gx_;
-    std::shared_ptr<Array> ggamma_;
 };
 
 // Device base class.

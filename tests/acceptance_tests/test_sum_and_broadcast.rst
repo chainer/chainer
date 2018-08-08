@@ -87,14 +87,14 @@ Backward
 >>> a = xc.array(a_np).require_grad()
 >>> a
 array([[0., 1., 2.],
-       [3., 4., 5.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['0'])
+       [3., 4., 5.]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 >>> b = a.sum(axis=0)
 >>> b
-array([3., 5., 7.], shape=(3,), dtype=float32, device='native:0', graph_ids=['0'])
+array([3., 5., 7.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['<default>'])
 >>> c = a * b
 >>> c
 array([[ 0.,  5., 14.],
-       [ 9., 20., 35.]], shape=(2, 3), dtype=float32, device='native:0', graph_ids=['0'])
+       [ 9., 20., 35.]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> c.set_grad(xc.ndarray((2, 3), c.dtype, [1, 2, 3, 4, 5, 6]))
 >>> xc.backward(c)

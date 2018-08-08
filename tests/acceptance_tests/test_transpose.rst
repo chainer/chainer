@@ -61,7 +61,7 @@ True
 >>> y
 array([[-2.,  4.],
        [ 6., -5.],
-       [ 3.,  0.]], shape=(3, 2), dtype=float32, device='native:0', graph_ids=['0'])
+       [ 3.,  0.]], shape=(3, 2), dtype=float32, device='native:0', backprop_ids=['<default>'])
 >>> y.is_contiguous
 True
 >>> y.set_grad(xc.full_like(y, 0.5))
