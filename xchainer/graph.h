@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <ostream>
+#include <string>
 
 #include "xchainer/error.h"
 #include "xchainer/hash_combine.h"
@@ -36,6 +37,10 @@ public:
     Context& context() const { return context_; }
 
     BackpropOrdinal ordinal() const { return ordinal_; }
+
+    // Returns the backprop name.
+    // XchainerError is thrown if the backprop ID is expired or non-existent in the associated context.
+    std::string GetName() const;
 
 private:
     // A BackpropId is always constructed by a Context.

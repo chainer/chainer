@@ -277,6 +277,19 @@ def test_array_repr():
             "       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, device='native:0')") == str(array)
 
 
+def test_array_repr_default_backprop_id():
+    array = xchainer.ndarray((1,), xchainer.float32, [3.0])
+    array.require_grad()
+    assert "array([3.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['<default>'])" == str(array)
+
+
+def test_array_repr_expired_backprop_id():
+    with xchainer.backprop_scope('bp1') as bp1:
+        array = xchainer.ndarray((1,), xchainer.float32, [3.0])
+        array.require_grad(bp1)
+    assert "array([3.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['<expired>'])" == str(array)
+
+
 @pytest.mark.parametrize('backprop_args', [(None,), ()])
 def test_array_require_grad_without_backprop_id(backprop_args):
     array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])

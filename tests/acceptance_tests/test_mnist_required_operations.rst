@@ -13,16 +13,16 @@ Dot
 >>> y = a.dot(b)
 >>> y
 array([[22., 28.],
-       [49., 64.]], shape=(2, 2), dtype=float32, device='native:0', backprop_ids=['0'])
+       [49., 64.]], shape=(2, 2), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
 array([[ 3.,  7., 11.],
-       [ 3.,  7., 11.]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['0'])
+       [ 3.,  7., 11.]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 >>> b.grad
 array([[5., 5.],
        [7., 7.],
-       [9., 9.]], shape=(3, 2), dtype=float32, device='native:0', backprop_ids=['0'])
+       [9., 9.]], shape=(3, 2), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 Subtract
 --------
@@ -33,7 +33,7 @@ Subtract
 >>> y = a - b
 >>> y
 array([[-1.,  0.,  1.],
-       [ 2.,  3.,  4.]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['0'])
+       [ 2.,  3.,  4.]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
@@ -51,7 +51,7 @@ Divide
 >>> y = a / b
 >>> y
 array([[0.25, 0.4 , 0.5 ],
-       [1.  , 1.  , 1.  ]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['0'])
+       [1.  , 1.  , 1.  ]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
@@ -68,7 +68,7 @@ Max
 >>> y = xc.amax(a, axis=(1,), keepdims=True)
 >>> y
 array([[3.],
-       [6.]], shape=(2, 1), dtype=float32, device='native:0', backprop_ids=['0'])
+       [6.]], shape=(2, 1), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
@@ -92,7 +92,7 @@ Log
 >>> y = xc.log(a)
 >>> y
 array([[0.        , 0.69314718, 1.0986123 ],
-       [1.38629436, 1.60943794, 1.79175949]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['0'])
+       [1.38629436, 1.60943794, 1.79175949]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
@@ -107,7 +107,7 @@ Exp
 >>> y = xc.exp(a)
 >>> y
 array([[  2.71828175,   7.3890562 ,  20.08553696],
-       [ 54.59814835, 148.41316223, 403.42880249]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['0'])
+       [ 54.59814835, 148.41316223, 403.42880249]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
@@ -122,7 +122,7 @@ Negative
 >>> y = -a
 >>> y
 array([[-1., -2., -3.],
-       [-4., -5., -6.]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['0'])
+       [-4., -5., -6.]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
@@ -137,7 +137,7 @@ Log of Softmax
 >>> y = xc.log_softmax(a)
 >>> y
 array([[-2.40760589, -1.40760589, -0.40760589],
-       [-2.40760612, -1.40760612, -0.40760612]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['0'])
+       [-2.40760612, -1.40760612, -0.40760612]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> y.backward(enable_double_backprop=False)
 >>> a.grad
@@ -162,7 +162,7 @@ False
 >>> y = a.astype(xc.float64)
 >>> y
 array([[1., 2., 3.],
-       [4., 5., 6.]], shape=(2, 3), dtype=float64, device='native:0', backprop_ids=['0'])
+       [4., 5., 6.]], shape=(2, 3), dtype=float64, device='native:0', backprop_ids=['<default>'])
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad
 array([[1., 1., 1.],
@@ -181,7 +181,7 @@ Take
 >>> y = a.take(indicies, axis=1)
 >>> y
 array([[2., 3.],
-       [5., 6.]], shape=(2, 2), dtype=float32, device='native:0', backprop_ids=['0'])
+       [5., 6.]], shape=(2, 2), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> y.backward(enable_double_backprop=True)
 >>> a.grad

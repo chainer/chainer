@@ -47,6 +47,10 @@ public:
 
     void ReleaseBackpropId(const BackpropId& backprop_id);
 
+    // Return the name of the backprop.
+    // XchainerError is thrown if the backprop ID is expired or non-existent in the context.
+    std::string GetBackpropName(const BackpropId& backprop_id);
+
     // Checks if the backprop ID is allowed to be backpropped.
     // Backprop is allowed if the order of backprop IDs which have been backpropped is not reversed in any of the previous backprop scopes.
     // XchainerError is thrown if the check fails.

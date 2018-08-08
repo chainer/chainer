@@ -17,6 +17,7 @@
 #include "xchainer/native/native_backend.h"
 #include "xchainer/native/native_device.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/testing/array.h"
 #include "xchainer/testing/device_session.h"
 
 namespace xchainer {
@@ -205,7 +206,7 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         BackpropId backprop_id = backprop_scope.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([], shape=(0, 1, 2), dtype=int32, device='native:0', backprop_ids=['1'])",
+                "array([], shape=(0, 1, 2), dtype=int32, device='native:0', backprop_ids=['bp1'])",
                 {},
                 Shape({0, 1, 2}),
                 device,
@@ -218,7 +219,7 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         BackpropId backprop_id = backprop_scope.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([-2], shape=(1,), dtype=int32, device='native:0', backprop_ids=['2'])", {-2}, Shape({1}), device, {backprop_id});
+                "array([-2], shape=(1,), dtype=int32, device='native:0', backprop_ids=['bp1'])", {-2}, Shape({1}), device, {backprop_id});
     }
 
     // Two graphs
@@ -229,7 +230,7 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([1], shape=(1,), dtype=int32, device='native:0', backprop_ids=['3', '4'])",
+                "array([1], shape=(1,), dtype=int32, device='native:0', backprop_ids=['bp1', 'bp2'])",
                 {1},
                 Shape({1}),
                 device,
@@ -250,12 +251,29 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         BackpropId backprop_id5 = backprop_scope5.backprop_id();
 
         CheckArrayRepr<int32_t>(
-                "array([-9], shape=(1,), dtype=int32, device='native:0', backprop_ids=['5', '6', '7', '8', '9'])",
+                "array([-9], shape=(1,), dtype=int32, device='native:0', backprop_ids=['bp1', 'bp2', 'bp3', 'bp4', "
+                "'bp5'])",
                 {-9},
                 Shape({1}),
                 device,
                 {backprop_id1, backprop_id2, backprop_id3, backprop_id4, backprop_id5});
     }
+}
+
+TEST(ArrayReprTest, ExpiredBackprop) {
+    testing::DeviceSession device_session{DeviceId{"native:0"}};
+
+    Array a{};
+    {
+        BackpropScope backprop_scope{"bp1"};
+        BackpropId backprop_id = backprop_scope.backprop_id();
+        a = testing::BuildArray({1}).WithData<float>({3.0f});
+        a.RequireGrad(backprop_id);
+    }
+
+    std::ostringstream os;
+    os << a;
+    EXPECT_EQ("array([3.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['<expired>'])", os.str());
 }
 
 }  // namespace
