@@ -40,7 +40,7 @@ struct ReductionKernelArg {
 //
 // Strides and shapes are permuted so that the reduction axes come last. Axes of length 1 are also removed.
 // Contiguous dimensions of strides and shapes are squashed.
-struct ReductionArg {
+class ReductionArg {
 public:
     ReductionArg(const Array& in, const Axes& axis, const Array& out);
 
