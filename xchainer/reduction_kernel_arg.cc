@@ -29,14 +29,12 @@ void ReductionArg::Permute(const Axes& axis) {
     // - in_.shape():     (12, 13, 14, 15, 16)
     // - axis:             (1, 3)
     // - out_.shape():     (12, 14, 16)
-    // - reduce_shape_:    (13, 15)
     // - out_axis_map:     (0, 1, 2)
     // - out_shape_:       (12, 14, 16)
     // Example (in the case of has_kept_dims=true):
     // - in_.shape():     (12, 13, 14, 15, 16)
     // - axis:             (1, 3)
     // - out_.shape():     (12, 1, 14, 1, 16)
-    // - reduce_shape_:    (13, 15)
     // - out_axis_map:     (0, 2, 4)
     // - out_shape_:       (12, 14, 16)
 
@@ -46,10 +44,6 @@ void ReductionArg::Permute(const Axes& axis) {
         for (int8_t i = 0; i < in_.shape().ndim(); ++i) {
             if (i_axis < axis.size() && i == axis[i_axis]) {
                 // i is to be reduced
-                int64_t in_dim = in_.shape()[i];
-                if (in_dim != 1) {
-                    reduce_shape_.emplace_back(in_dim);
-                }
                 ++i_axis;
                 if (has_kept_dims) {
                     ++i_out_axis;
@@ -68,7 +62,6 @@ void ReductionArg::Permute(const Axes& axis) {
         assert(i_axis == axis.size());
     }
     // Inequality because 1-dim axes are eliminated.
-    assert(reduce_shape_.size() <= axis.size());
     assert(out_axis_map.size() <= in_.shape().size() - axis.size());
     assert(out_axis_map.size() == out_shape_.size());
 
@@ -115,28 +108,18 @@ void ReductionArg::Permute(const Axes& axis) {
 // Example (in the case of a contiguous array):
 // - in_shape_:             (2, 3, 4, 5, 6)
 // - out_shape_:            (2, 3, 4)
-// - reduce_shape_:         (5, 6)
 // - in_squashed_shape:     (24, 30)
 // - out_squashed_shape:    (24)
-// - reduce_squashed_shape: (30)
 //
-// The following equality always holds:
-// in_squashed_shape.ndim() == out_squashed_shape.ndim() + reduce_squashed_shape.ndim()
-//
-// TODO(sonots): To achieve best performance optimization, squash dimensions of input and output individually, that is,
-// in_squashed_shape.ndim() != out_squashed_shape.ndim() + reduce_squashed_shape.ndim()
-// To do it, we have to revise implementation of ReductionKernel.
+// TODO(sonots): To achieve best performance optimization, squash dimensions of input and output individually.
 void ReductionArg::Squash() {
+#if 0
 #ifndef NDEBUG
-    assert(in_shape_.ndim() == out_shape_.ndim() + reduce_shape_.ndim());
     assert(in_shape_.ndim() == in_strides_.ndim());
     assert(out_shape_.ndim() == out_strides_.ndim());
 
     for (int8_t i = 0; i < out_shape_.ndim(); ++i) {
         assert(in_shape_[i] == out_shape_[i]);
-    }
-    for (int8_t i = 0; i < reduce_shape_.ndim(); ++i) {
-        assert(in_shape_[out_shape_.ndim() + i] == reduce_shape_[i]);
     }
 #endif
 
@@ -169,15 +152,11 @@ void ReductionArg::Squash() {
     }
 
 #ifndef NDEBUG
-    assert(in_squashed_shape.ndim() == out_squashed_shape.ndim() + reduce_squashed_shape.ndim());
     assert(in_squashed_shape.ndim() == in_squashed_strides.ndim());
     assert(out_squashed_shape.ndim() == out_squashed_strides.ndim());
 
     for (int8_t i = 0; i < out_squashed_shape.ndim(); ++i) {
         assert(in_squashed_shape[i] == out_squashed_shape[i]);
-    }
-    for (int8_t i = 0; i < reduce_squashed_shape.ndim(); ++i) {
-        assert(in_squashed_shape[out_squashed_shape.ndim() + i] == reduce_squashed_shape[i]);
     }
 #endif
 
@@ -185,7 +164,7 @@ void ReductionArg::Squash() {
     out_strides_ = out_squashed_strides;
     in_shape_ = in_squashed_shape;
     out_shape_ = out_squashed_shape;
-    reduce_shape_ = reduce_squashed_shape;
+#endif
 }
 
 }  // namespace xchainer
