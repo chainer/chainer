@@ -11,7 +11,7 @@
 #include "xchainer/strides.h"
 
 namespace xchainer {
-namespace elementwise_detail {
+namespace squash_dims_detail {
 
 // Returns true if dimension i can be squashed for all strides, false otherwise.
 template <typename... PackedStrides>
@@ -21,7 +21,7 @@ inline bool IsSquashableDimension(size_t i, const Shape& shape, const PackedStri
     return !static_cast<bool>(std::max({(strides[i] * shape[i] != strides[i - 1])...}));
 }
 
-}  // namespace elementwise_detail
+}  // namespace squash_dims_detail
 
 // Returns a subset of strides with elements corresponding to the given axes that were kept after squashing a shape with SquashShape.
 // It should therefore be called with the resulting keep axes from SquashShape and the strides from the same arrays.
@@ -31,24 +31,23 @@ inline Strides GetSquashedStrides(const Strides& strides, const Axes& keep) {
     return squashed;
 }
 
-// Given arrays of equal shapes, returns a tuple with a squashed shape with possibly fewer number of dimensions (but with equal total size)
-// and axes that were kept in the procedure. Dimensions must be either successively contiguous or unit-length in order to be squashed as in
-// the following examples.
+// Given a common shape and respective strides of arrays, returns a tuple with a squashed shape with possibly fewer number of
+// dimensions (but with equal total size) and axes that were kept in the procedure. Dimensions must be either successively contiguous or
+// unit-length in order to be squashed as in the following examples.
 //
 // Example 1:
-// Given arrays with Shape{2, 3}, all contiguous => Shape{6} and Axes{1}.
+// Given Shape{2, 3}, all contiguous strides => Shape{6} and Axes{1}.
 //
 // Example 2:
-// Given arrays with Shape{3, 2, 1, 2}, padded first dimension => Shape{3, 4} and Axes{0, 3}.
+// Given Shape{3, 2, 1, 2}, strides with padded first dimension => Shape{3, 4} and Axes{0, 3}.
 //
 // Strided indexing spanning over multiple dimensions can be slow and may thus be preceded with this squash.
 // Axes are needed to extract the subset of strides corresponding to the correct axes using GetSquashedStrides.
-template <typename... Arrays>
-std::tuple<Shape, Axes> SquashShape(const Array& array, Arrays&&... arrays) {
+template <typename... PackedStrides>
+std::tuple<Shape, Axes> SquashShape(const Shape& shape, const PackedStrides&... strides) {
     Shape squashed{};
     Axes keep{};
 
-    const Shape& shape = array.shape();
     switch (int8_t ndim = shape.ndim()) {
         case 0:
             break;
@@ -63,7 +62,7 @@ std::tuple<Shape, Axes> SquashShape(const Array& array, Arrays&&... arrays) {
             for (int8_t i = 1; i < ndim; ++i) {
                 if (compressed[i - 1] == 1) {
                     // Do nothing.
-                } else if (elementwise_detail::IsSquashableDimension(i, compressed, array.strides(), arrays.strides()...)) {
+                } else if (squash_dims_detail::IsSquashableDimension(i, compressed, strides...)) {
                     compressed[i] *= compressed[i - 1];
                     compressed[i - 1] = 1;
                 } else {
@@ -85,6 +84,11 @@ std::tuple<Shape, Axes> SquashShape(const Array& array, Arrays&&... arrays) {
     }
     assert(squashed.ndim() == keep.ndim());
     return std::make_tuple(squashed, keep);
+}
+
+template <typename... Arrays>
+std::tuple<Shape, Axes> SquashShape(const Array& array, Arrays&&... arrays) {
+    return SquashShape(array.shape(), array.strides(), arrays.strides()...);
 }
 
 }  // namespace xchainer
