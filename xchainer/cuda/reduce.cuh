@@ -136,7 +136,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                             MakeReductionKernelArg<In, Out, 1, 1>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
         case 2:
             switch (arg.out_strides().ndim()) {
                 case 0:
@@ -152,7 +151,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                             MakeReductionKernelArg<In, Out, 2, 2>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
         case 3:
             switch (arg.out_strides().ndim()) {
                 case 0:
@@ -172,7 +170,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                             MakeReductionKernelArg<In, Out, 3, 3>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
         case 4:
             switch (arg.out_strides().ndim()) {
                 case 0:
@@ -196,7 +193,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                             MakeReductionKernelArg<In, Out, 4, 4>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
     }
 #endif
 

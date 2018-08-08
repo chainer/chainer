@@ -10,12 +10,7 @@ namespace xchainer {
 namespace native {
 namespace reduce_detail {
 
-template <
-        typename In,
-        typename Out,
-        typename ReductionImpl,
-        int8_t InNdim = kDynamicNdim,
-        int8_t OutNdim = kDynamicNdim>
+template <typename In, typename Out, typename ReductionImpl, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
 void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, ReductionImpl&& impl) {
     // Iterate over output dimensions
     for (auto it_out = arg.out_indexer.It(0); it_out; ++it_out) {
@@ -72,7 +67,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 1, 1>(arg), impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
         case 2:
             switch (arg.out_shape().ndim()) {
                 case 0:
@@ -85,7 +79,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 2, 2>(arg), impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
         case 3:
             switch (arg.out_shape().ndim()) {
                 case 0:
@@ -101,7 +94,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 3, 3>(arg), impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
         case 4:
             switch (arg.out_shape().ndim()) {
                 case 0:
@@ -120,7 +112,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 4, 4>(arg), impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
     }
 
     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out>(arg), impl);
