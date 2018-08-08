@@ -1,6 +1,7 @@
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -43,7 +44,7 @@ class LogSumExp(function_node.FunctionNode):
 
         x, = inputs
         m = x.max(axis=self.axis, keepdims=True)
-        y = x - m
+        y = utils.force_array(x - m)
         xp.exp(y, out=y)
         y_sum = y.sum(axis=self.axis)
         y = xp.asarray(xp.log(y_sum) + m.reshape(y_sum.shape))
