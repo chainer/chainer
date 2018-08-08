@@ -88,9 +88,9 @@ void ExpectDataEqual(T expected, const Array& actual) {
     (__VA_ARGS__)
 
 // Expects that the given array b is a valid copy of a.
-#define XCHAINER_EXPECT_ARRAY_COPY_EQ(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::IsCopy, a, b)
+#define XCHAINER_EXPECT_ARRAY_COPY_EQ(orig, copy) EXPECT_PRED_FORMAT2(testing::testing_internal::IsCopy, orig, copy)
 
 // Expects that the given array b is a valid view of a.
-#define XCHAINER_EXPECT_ARRAY_VIEW_EQ(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::IsView, a, b)
+#define XCHAINER_EXPECT_ARRAY_VIEW_EQ(orig, view) EXPECT_PRED_FORMAT2(testing::testing_internal::IsView, orig, view)
 
 }  // namespace xchainer
