@@ -237,14 +237,14 @@ class NesterovAG(OptimizerTestBase, unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_placeholder': [False, True],
+    'eps_inside_sqrt': [False, True],
 }))
 class TestRMSprop(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
+        kwargs = {'eps_inside_sqrt': self.eps_inside_sqrt}
         if self.dtype == numpy.float16:
-            kwargs = {'eps': 1e-6}
-        else:
-            kwargs = {}
+            kwargs['eps'] = 1e-6
         return optimizers.RMSprop(0.1, **kwargs)
 
 

@@ -14,8 +14,10 @@ Distributions
    :toctree: generated/
    :nosignatures:
    
-   chainer.distributions.Normal
+   chainer.distributions.Bernoulli
    chainer.distributions.Laplace
+   chainer.distributions.MultivariateNormal
+   chainer.distributions.Normal
 
 
 Functionals of distribution

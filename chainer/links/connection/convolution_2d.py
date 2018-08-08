@@ -149,14 +149,14 @@ class Convolution2D(link.Link):
         kh, kw = _pair(self.ksize)
         if self.out_channels % self.groups != 0:
             raise ValueError('the number of output channels must be'
-                             'divisible by the number of groups')
+                             ' divisible by the number of groups')
         if in_channels % self.groups != 0:
             raise ValueError('the number of input channels must be'
-                             'divisible by the number of groups')
+                             ' divisible by the number of groups')
         W_shape = (self.out_channels, int(in_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the convolution layer.
 
         Args:

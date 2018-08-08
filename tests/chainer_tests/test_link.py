@@ -80,6 +80,22 @@ class TestLink(unittest.TestCase):
             self.link.p = p
         self.assertTrue(all(p is not param for param in self.link.params()))
 
+    def test_call_injected_with_mixin(self):
+        call = mock.MagicMock()
+        call.return_value = 3
+
+        class CallMixin(object):
+            __call__ = call
+
+        class InjectedLink(chainer.Link, CallMixin):
+            pass
+
+        link = InjectedLink()
+        ret = link(1, a=2)
+
+        call.assert_called_once_with(1, a=2)
+        assert ret == call.return_value
+
     def test_add_param(self):
         with testing.assert_warns(DeprecationWarning):
             self.link.add_param('z', (2, 3))
@@ -550,7 +566,7 @@ class TestLinkRepeat(unittest.TestCase):
                     self.x = chainer.Parameter(
                         chainer.initializers.Normal(), shape=(2, 3))
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.link = Layer()
@@ -1042,7 +1058,7 @@ class TestChainRepeat(unittest.TestCase):
                 with self.init_scope():
                     self.link = chainer.Link()
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.chain = ChainForTest()
@@ -1580,7 +1596,7 @@ class TestChainListRepeat(unittest.TestCase):
             def __init__(self):
                 super(ChainListForTest, self).__init__(chainer.Link())
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.chainlist = ChainListForTest()
@@ -1853,7 +1869,7 @@ class TestCallMethod(unittest.TestCase):
         model.mock.assert_called_with(0)
 
     def test_no_call_no_forward(self):
-        with self.assertRaises(TypeError):
+        with self.assertRaises(AttributeError):
             self.model(0)
 
 

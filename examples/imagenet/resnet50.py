@@ -30,7 +30,7 @@ class BottleNeckA(chainer.Chain):
                 initialW=initialW, nobias=True)
             self.bn4 = L.BatchNormalization(out_size)
 
-    def __call__(self, x):
+    def forward(self, x):
         h1 = F.relu(self.bn1(self.conv1(x)))
         h1 = F.relu(self.bn2(self.conv2(h1)))
         h1 = self.bn3(self.conv3(h1))
@@ -57,7 +57,7 @@ class BottleNeckB(chainer.Chain):
                 ch, in_size, 1, 1, 0, initialW=initialW, nobias=True)
             self.bn3 = L.BatchNormalization(in_size)
 
-    def __call__(self, x):
+    def forward(self, x):
         h = F.relu(self.bn1(self.conv1(x)))
         h = F.relu(self.bn2(self.conv2(h)))
         h = self.bn3(self.conv3(h))
@@ -73,7 +73,7 @@ class Block(chainer.ChainList):
         for i in range(layer - 1):
             self.add_link(BottleNeckB(out_size, ch, groups))
 
-    def __call__(self, x):
+    def forward(self, x):
         for f in self.children():
             x = f(x)
         return x
@@ -95,7 +95,7 @@ class ResNet50(chainer.Chain):
             self.res5 = Block(3, 1024, 512, 2048)
             self.fc = L.Linear(2048, 1000)
 
-    def __call__(self, x, t):
+    def forward(self, x, t):
         h = self.bn1(self.conv1(x))
         h = F.max_pooling_2d(F.relu(h), 3, stride=2)
         h = self.res2(h)
