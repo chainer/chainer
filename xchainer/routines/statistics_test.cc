@@ -43,7 +43,7 @@ TEST_P(StatisticsTest, Mean) {
     Array b = Mean(a, Axes{2, 1, -1});
     EXPECT_EQ(Shape{2}, b.shape());
     Array e = testing::BuildArray({2}).WithData<T>({17.5f, 53.5f});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, MeanAllAxes) {
@@ -53,7 +53,7 @@ TEST_P(StatisticsTest, MeanAllAxes) {
     Array b = Mean(a);
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({8.5f});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, MeanZero) {
@@ -63,7 +63,7 @@ TEST_P(StatisticsTest, MeanZero) {
     Array b = Mean(a);
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({std::nanf("")});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, MeanOne) {
@@ -73,7 +73,7 @@ TEST_P(StatisticsTest, MeanOne) {
     Array b = Mean(a);
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({42.0f});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, MeanTwo) {
@@ -83,7 +83,7 @@ TEST_P(StatisticsTest, MeanTwo) {
     Array b = Mean(a);
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({39.5f});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, MeanLarge) {
@@ -93,7 +93,7 @@ TEST_P(StatisticsTest, MeanLarge) {
     Array b = Mean(a, Axes{0});
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({524287.5f});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, MeanKeepDims) {
@@ -105,7 +105,7 @@ TEST_P(StatisticsTest, MeanKeepDims) {
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
     Array e = testing::BuildArray({2, 1, 2, 1}).WithData<T>({9.5f, 13.5f, 33.5f, 37.5f});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, InvalidMeanDuplicateAxes) {
@@ -169,7 +169,7 @@ TEST_P(StatisticsTest, Var) {
     Array b = Var(a, Axes{2, 1, -1});
     EXPECT_EQ(Shape{2}, b.shape());
     Array e = testing::BuildArray({2}).WithData<T>({107.91666667f, 107.91666667f});
-    testing::ExpectAllClose(e, b);
+    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, b);
 }
 
 TEST_P(StatisticsTest, VarAllAxes) {
@@ -179,7 +179,7 @@ TEST_P(StatisticsTest, VarAllAxes) {
     Array b = Var(a);
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({26.91666667f});
-    testing::ExpectAllClose(e, b);
+    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, b);
 }
 
 TEST_P(StatisticsTest, VarZero) {
@@ -189,7 +189,7 @@ TEST_P(StatisticsTest, VarZero) {
     Array b = Var(a);
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({std::nanf("")});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, VarOne) {
@@ -199,7 +199,7 @@ TEST_P(StatisticsTest, VarOne) {
     Array b = Var(a);
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({0.f});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, VarTwo) {
@@ -209,7 +209,7 @@ TEST_P(StatisticsTest, VarTwo) {
     Array b = Var(a);
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({6.25f});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, VarLarge) {
@@ -219,7 +219,7 @@ TEST_P(StatisticsTest, VarLarge) {
     Array b = Var(a, Axes{0});
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({91625968981.25});
-    testing::ExpectAllClose(e, b);
+    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, b);
 }
 
 TEST_P(StatisticsTest, VarKeepDims) {
@@ -231,7 +231,7 @@ TEST_P(StatisticsTest, VarKeepDims) {
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
     Array e = testing::BuildArray({2, 1, 2, 1}).WithData<T>({43.91666667f, 43.91666667f, 43.91666667f, 43.91666667f});
-    testing::ExpectEqual(e, b);
+    XCHAINER_EXPECT_EQ(e, b);
 }
 
 TEST_P(StatisticsTest, InvalidVarDuplicateAxes) {

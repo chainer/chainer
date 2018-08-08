@@ -154,7 +154,7 @@ TEST(CudaDeviceTest, DotNonContiguousOut) {
     a.device().Dot(a, b, c);
 
     Array e = testing::BuildArray({2, 2}).WithData<float>({5.f, 8.f, 11.f, 17.f});
-    testing::ExpectEqual(e, c);
+    XCHAINER_EXPECT_EQ(e, c);
 }
 
 // TODO(sonots): Any ways to test cudaDeviceSynchronize()?

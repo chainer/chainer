@@ -484,85 +484,85 @@ TEST_P(CreationTest, OnesLike) {
 TEST_P(CreationTest, Arange) {
     Array a = Arange(0, 3, 1);
     Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeStopDtype) {
     Array a = Arange(3, Dtype::kInt32);
     Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeStopDevice) {
     Array a = Arange(Scalar{3, Dtype::kInt32}, GetDefaultDevice());
     Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeStopDtypeDevice) {
     Array a = Arange(3, Dtype::kInt32, GetDefaultDevice());
     Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeStartStopDtype) {
     Array a = Arange(1, 3, Dtype::kInt32);
     Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeStartStopDevice) {
     Array a = Arange(1, 3, GetDefaultDevice());
     Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeStartStopDtypeDevice) {
     Array a = Arange(1, 3, Dtype::kInt32, GetDefaultDevice());
     Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeStartStopStepDtype) {
     Array a = Arange(1, 7, 2, Dtype::kInt32);
     Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeStartStopStepDevice) {
     Array a = Arange(1, 7, 2, GetDefaultDevice());
     Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeStartStopStepDtypeDevice) {
     Array a = Arange(1, 7, 2, Dtype::kInt32, GetDefaultDevice());
     Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeNegativeStep) {
     Array a = Arange(4.f, 0.f, -1.5f, Dtype::kFloat32);
     Array e = testing::BuildArray({3}).WithData<float>({4.f, 2.5f, 1.f});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeLargeStep) {
     Array a = Arange(2, 3, 5, Dtype::kInt32);
     Array e = testing::BuildArray({1}).WithData<int32_t>({2});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeEmpty) {
     Array a = Arange(2, 1, 1, Dtype::kInt32);
     Array e = testing::BuildArray({0}).WithData<int32_t>({});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, ArangeNoDtype) {
     Array a = Arange(Scalar{1, Dtype::kUInt8}, Scalar{4, Dtype::kUInt8}, Scalar{1, Dtype::kUInt8});
     Array e = testing::BuildArray({3}).WithData<uint8_t>({1, 2, 3});
-    testing::ExpectEqual(e, a);
+    XCHAINER_EXPECT_EQ(e, a);
 }
 
 TEST_P(CreationTest, InvalidTooLongBooleanArange) { EXPECT_THROW(Arange(0, 3, 1, Dtype::kBool), DtypeError); }
@@ -571,31 +571,31 @@ TEST_P(CreationTest, Copy) {
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         Array o = Copy(a);
-        testing::ExpectEqualCopy(a, o);
+        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, o);
     }
     {
         Array a = testing::BuildArray({3, 1}).WithData<int8_t>({1, 2, 3});
         Array o = Copy(a);
-        testing::ExpectEqualCopy(a, o);
+        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, o);
     }
     {
         Array a = testing::BuildArray({3, 1}).WithData<float>({1.0f, 2.0f, 3.0f});
         Array o = Copy(a);
-        testing::ExpectEqualCopy(a, o);
+        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, o);
     }
 
     // with padding
     {
         Array a = testing::BuildArray({3, 1}).WithData<float>({1.0f, 2.0f, 3.0f}).WithPadding(1);
         Array o = Copy(a);
-        testing::ExpectEqualCopy(a, o);
+        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, o);
     }
 }
 
 TEST_P(CreationTest, Identity) {
     Array o = Identity(3, Dtype::kFloat32);
     Array e = testing::BuildArray({3, 3}).WithData<float>({1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
-    testing::ExpectEqual(e, o);
+    XCHAINER_EXPECT_EQ(e, o);
 }
 
 TEST_P(CreationTest, IdentityInvalidN) { EXPECT_THROW(Identity(-1, Dtype::kFloat32), DimensionError); }
@@ -604,12 +604,12 @@ TEST_P(CreationTest, Eye) {
     {
         Array o = Eye(2, 3, 1, Dtype::kFloat32);
         Array e = testing::BuildArray({2, 3}).WithData<float>({0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
     }
     {
         Array o = Eye(3, 2, -2, Dtype::kFloat32);
         Array e = testing::BuildArray({3, 2}).WithData<float>({0.f, 0.f, 0.f, 0.f, 1.f, 0.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
     }
 }
 
@@ -625,7 +625,7 @@ TEST_P(CreationTest, AsContiguousArray) {
     Array b = AsContiguousArray(a);
 
     EXPECT_TRUE(b.IsContiguous());
-    testing::ExpectEqual(b, a);
+    XCHAINER_EXPECT_EQ(b, a);
 }
 
 TEST_P(CreationTest, AsContiguousArrayNoCopy) {
@@ -644,7 +644,7 @@ TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
     EXPECT_NE(internal::GetArrayBody(b), internal::GetArrayBody(a));
     EXPECT_TRUE(b.IsContiguous());
     EXPECT_EQ(Dtype::kInt64, b.dtype());
-    testing::ExpectEqual(b, a.AsType(Dtype::kInt64));
+    XCHAINER_EXPECT_EQ(b, a.AsType(Dtype::kInt64));
 }
 
 TEST_P(CreationTest, AsContiguousArrayBackward) {
@@ -674,21 +674,21 @@ TEST_P(CreationTest, DiagVecToMat) {
         Array v = Arange(1, 3, Dtype::kFloat32);
         Array o = Diag(v);
         Array e = testing::BuildArray({2, 2}).WithData<float>({1.f, 0.f, 0.f, 2.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
     }
     {
         Array v = Arange(1, 4, Dtype::kFloat32);
         Array o = Diag(v, 1);
         Array e = testing::BuildArray({4, 4}).WithData<float>(
                 {0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 3.f, 0.f, 0.f, 0.f, 0.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
     }
     {
         Array v = Arange(1, 3, Dtype::kFloat32);
         Array o = Diag(v, -2);
         Array e = testing::BuildArray({4, 4}).WithData<float>(
                 {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
     }
 }
 
@@ -697,21 +697,21 @@ TEST_P(CreationTest, DiagMatToVec) {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
         Array o = Diag(v);
         Array e = testing::BuildArray({2}).WithData<float>({0.f, 4.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
         EXPECT_EQ(v.data().get(), o.data().get());
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
         Array o = Diag(v, 1);
         Array e = testing::BuildArray({2}).WithData<float>({1.f, 5.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
         EXPECT_EQ(v.data().get(), o.data().get());
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
         Array o = Diag(v, -1);
         Array e = testing::BuildArray({1}).WithData<float>({3.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
         EXPECT_EQ(v.data().get(), o.data().get());
     }
 }
@@ -777,20 +777,20 @@ TEST_P(CreationTest, Diagflat) {
         Array v = Arange(1, 3, Dtype::kFloat32);
         Array o = Diagflat(v);
         Array e = testing::BuildArray({2, 2}).WithData<float>({1.f, 0.f, 0.f, 2.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
     }
     {
         Array v = Arange(1, 5, Dtype::kFloat32).Reshape({2, 2});
         Array o = Diagflat(v, 1);
         Array e = testing::BuildArray({5, 5}).WithData<float>({0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 0.f,
                                                                3.f, 0.f, 0.f, 0.f, 0.f, 0.f, 4.f, 0.f, 0.f, 0.f, 0.f, 0.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
     }
     {
         Array v = Arange(1, 3, Dtype::kFloat32).Reshape({1, 2});
         Array o = Diagflat(v, -1);
         Array e = testing::BuildArray({3, 3}).WithData<float>({0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 2.f, 0.f});
-        testing::ExpectEqual(e, o);
+        XCHAINER_EXPECT_EQ(e, o);
     }
 }
 
@@ -825,13 +825,13 @@ TEST_P(CreationTest, DiagflatDoubleBackward) {
 TEST_P(CreationTest, Linspace) {
     Array o = Linspace(3.0, 10.0, 4, true, Dtype::kInt32);
     Array e = testing::BuildArray({4}).WithData<int32_t>({3, 5, 7, 10});
-    testing::ExpectEqual(e, o);
+    XCHAINER_EXPECT_EQ(e, o);
 }
 
 TEST_P(CreationTest, LinspaceEndPointFalse) {
     Array o = Linspace(3.0, 10.0, 4, false, Dtype::kInt32);
     Array e = testing::BuildArray({4}).WithData<int32_t>({3, 4, 6, 8});
-    testing::ExpectEqual(e, o);
+    XCHAINER_EXPECT_EQ(e, o);
 }
 
 INSTANTIATE_TEST_CASE_P(

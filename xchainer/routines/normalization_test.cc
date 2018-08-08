@@ -67,9 +67,9 @@ TEST_P(NormalizationTest, BatchNorm) {
             testing::BuildArray(reduced_shape)
                     .WithData<T>({0.7451742, 0.33908403, 0.01705596, 0.76526403, 0.08779196, 0.00319096, 0.6016993, 0.60400796});
 
-    testing::ExpectAllClose(e_out, out, 1e-6f, 1e-6f);
-    testing::ExpectAllClose(e_running_mean, running_mean, 1e-6f, 1e-6f);
-    testing::ExpectAllClose(e_running_var, running_var, 1e-6f, 1e-6f);
+    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e_out, out, 1e-6f, 1e-6f);
+    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e_running_mean, running_mean, 1e-6f, 1e-6f);
+    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e_running_var, running_var, 1e-6f, 1e-6f);
 }
 
 TEST_P(NormalizationTest, BatchNormWithAxis) {
@@ -100,9 +100,9 @@ TEST_P(NormalizationTest, BatchNormWithAxis) {
     Array e_running_mean = testing::BuildArray(reduced_shape).WithData<T>({0.35380796, 0.3172636, 0.79048187, 0.6975811});
     Array e_running_var = testing::BuildArray(reduced_shape).WithData<T>({0.01976142, 0.7138863, 0.16801749, 0.18175972});
 
-    testing::ExpectAllClose(e_out, out, 1e-6f, 1e-4f);
-    testing::ExpectAllClose(e_running_mean, running_mean, 1e-6f, 1e-6f);
-    testing::ExpectAllClose(e_running_var, running_var, 1e-6f, 1e-6f);
+    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e_out, out, 1e-6f, 1e-4f);
+    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e_running_mean, running_mean, 1e-6f, 1e-6f);
+    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e_running_var, running_var, 1e-6f, 1e-6f);
 }
 
 TEST_P(NormalizationTest, BatchNormBackward) {
@@ -229,7 +229,7 @@ TEST_P(NormalizationTest, FixedBatchNorm) {
                                                             0.14779580, -7.23801136, 0.36471885,  0.70745426,  0.98528314, 0.73192370,
                                                             1.95030916, 0.78064066,  -0.01417956, -3.72501326, 0.69175488, 0.67471159});
 
-    testing::ExpectAllClose(e_out, out, 1e-6f, 1e-6f);
+    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e_out, out, 1e-6f, 1e-6f);
 }
 
 INSTANTIATE_TEST_CASE_P(
