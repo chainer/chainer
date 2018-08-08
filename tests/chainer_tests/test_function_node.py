@@ -403,7 +403,6 @@ class TestFunctionNodeInvalidBackwardChecks(unittest.TestCase):
     """Tests FunctionNode.backward correctness checks"""
 
     def setUp(self):
-        self.one = numpy.array([1], numpy.float32)
         self.f = chainer.FunctionNode()
 
     def _dummy_func(self, bwd_return_data):
@@ -411,7 +410,7 @@ class TestFunctionNodeInvalidBackwardChecks(unittest.TestCase):
         # `backward` method.
 
         def one(xp):
-            return xp.array([1], numpy.float32)
+            return xp.array(1, numpy.float32)
 
         class DummyFunc(chainer.FunctionNode):
             def forward_cpu(self, inputs):
