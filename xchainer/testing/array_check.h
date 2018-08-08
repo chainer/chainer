@@ -69,12 +69,6 @@ void ExpectDataEqual(T expected, const Array& actual) {
 // Expects that given arrays have same elements and that they belong to the same device.
 #define XCHAINER_EXPECT_EQ(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::IsEqual, a, b)
 
-// Expects that the given array b is a valid copy of a.
-#define XCHAINER_EXPECT_ARRAY_COPY_EQ(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::IsCopy, a, b)
-
-// Expects that the given array b is a valid view of a.
-#define XCHAINER_EXPECT_ARRAY_VIEW_EQ(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::IsView, a, b)
-
 // Expects that the given arrays have elements that are all close to each other and that they belong to the same device.
 //
 // GET_MACRO is used to "overload" XCHAINER_EXPECT_ARRAY_ALL_CLOSE with optional arguments.
@@ -93,5 +87,11 @@ void ExpectDataEqual(T expected, const Array& actual) {
             XCHAINER_EXPECT_ARRAY_ALL_CLOSE3, \
             XCHAINER_EXPECT_ARRAY_ALL_CLOSE2) \
     (__VA_ARGS__)
+
+// Expects that the given array b is a valid copy of a.
+#define XCHAINER_EXPECT_ARRAY_COPY_EQ(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::IsCopy, a, b)
+
+// Expects that the given array b is a valid view of a.
+#define XCHAINER_EXPECT_ARRAY_VIEW_EQ(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::IsView, a, b)
 
 }  // namespace xchainer
