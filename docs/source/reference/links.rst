@@ -173,15 +173,7 @@ Link hooks
 .. module:: chainer.link_hooks
 
 Chainer provides a link-hook mechanism that enriches the behavior of :class:`~chainer.Link`.
-
-.. currentmodule:: chainer
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   chainer.link_hooks.TimerHook
-
-You can also implement your own link-hook to inject arbitrary code before/after the forward propagation.
+You can implement your own link-hook to inject arbitrary code before/after the forward propagation.
 
 .. currentmodule:: chainer
 .. autosummary::

@@ -65,38 +65,7 @@ class LinkHook(object):
     in this way are registered to all links within ``with`` statement
     and are unregistered at the end of ``with`` statement.
 
-    .. admonition:: Example
-
-        The following code is a simple example in which
-        we measure the elapsed time of a part of forward propagation procedure
-        with :class:`~chainer.link_hooks.TimerHook`, which is a subclass of
-        :class:`~chainer.LinkHook`.
-
-        >>> class Model(chainer.Chain):
-        ...   def __init__(self):
-        ...     super(Model, self).__init__()
-        ...     with self.init_scope():
-        ...       self.l = L.Linear(10, 10)
-        ...   def forward(self, x1):
-        ...     return F.exp(self.l(x1))
-        >>> model1 = Model()
-        >>> model2 = Model()
-        >>> x = chainer.Variable(np.zeros((1, 10), np.float32))
-        >>> with chainer.link_hooks.TimerHook() as m:
-        ...   _ = model1(x)
-        ...   y = model2(x)
-        >>> model3 = Model()
-        >>> z = model3(y)
-        >>> print('Total time : {}'.format(m.total_time()))
-        ... # doctest:+ELLIPSIS
-        Total time : ...
-
-        In this example, we measure the elapsed times for each forward
-        propagation of all links in ``model1`` and ``model2``
-        (specifically, :class:`~chainer.links.Linear` and ``Model``).
-        Note that ``model3`` is not a target of measurement
-        as :class:`~chainer.link_hooks.TimerHook` is unregistered
-        before forward propagation of ``model3``.
+    .. TODO(niboshi): Add example
 
     .. note::
 
