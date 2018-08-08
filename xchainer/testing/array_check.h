@@ -1,6 +1,5 @@
 #pragma once
 
-// TODO(hvy): Clean up imports
 #include <cmath>
 #include <cstdint>
 
