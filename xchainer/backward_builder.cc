@@ -223,6 +223,7 @@ void AddEdgesToOutputArrayNodesOfOuterGraph(
 void BackwardBuilder::AddEdgesToArrayNodesBetweenRetainedOuterGraphs() {
     if (input_retention_record_.IsAnyRecorded()) {
         // Create a set of graphs to which the retained inputs belong.
+        // TODO(beam2d): Use a lighter container.
         std::unordered_set<BackpropId> retained_graphs{};
         for (size_t i = 0; i < input_retention_record_.size(); ++i) {
             if (input_retention_record_.IsRecorded(i)) {
@@ -233,13 +234,12 @@ void BackwardBuilder::AddEdgesToArrayNodesBetweenRetainedOuterGraphs() {
         }
 
         std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> input_retention_cache{};
-        for (auto it = retained_graphs.begin(); it != retained_graphs.end(); ++it) {
-            const BackpropId& backprop_id = *it;
-            for (auto other_it = retained_graphs.begin(); other_it != retained_graphs.end(); ++other_it) {
-                const BackpropId& other_backprop_id = *other_it;
+        for (const BackpropId& backprop_id : retained_graphs) {
+            const OpNode& op_node = *op_node_map_.at(backprop_id);
+            for (const BackpropId& other_backprop_id : retained_graphs) {
                 if (backprop_id < other_backprop_id) {
-                    AddEdgesToInputArrayNodesOfOuterGraph(
-                            *op_node_map_[backprop_id], *op_node_map_[other_backprop_id], input_retention_record_, input_retention_cache);
+                    OpNode& other_op_node = *op_node_map_.at(other_backprop_id);
+                    AddEdgesToInputArrayNodesOfOuterGraph(op_node, other_op_node, input_retention_record_, input_retention_cache);
                 }
             }
         }
