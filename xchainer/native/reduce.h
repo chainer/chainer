@@ -57,6 +57,7 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
     ReductionArg arg{in, axis, out};
 
     // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
+    // Currently, we optimize for contiguous output arrays.
     switch (arg.in_shape().ndim()) {
         case 1:
             switch (arg.out_shape().ndim()) {
@@ -75,9 +76,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                 case 1:
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 2, 1>(arg), impl);
                     return;
-                case 2:
-                    reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 2, 2>(arg), impl);
-                    return;
             }
         case 3:
             switch (arg.out_shape().ndim()) {
@@ -87,12 +85,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                 case 1:
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 3, 1>(arg), impl);
                     return;
-                case 2:
-                    reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 3, 2>(arg), impl);
-                    return;
-                case 3:
-                    reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 3, 3>(arg), impl);
-                    return;
             }
         case 4:
             switch (arg.out_shape().ndim()) {
@@ -101,15 +93,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     return;
                 case 1:
                     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 4, 1>(arg), impl);
-                    return;
-                case 2:
-                    reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 4, 2>(arg), impl);
-                    return;
-                case 3:
-                    reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 4, 3>(arg), impl);
-                    return;
-                case 4:
-                    reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out, 4, 4>(arg), impl);
                     return;
             }
     }

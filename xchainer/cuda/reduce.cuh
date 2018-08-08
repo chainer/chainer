@@ -124,6 +124,7 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
 
 #ifdef NDEBUG  // Optimize only in Release build to save time on development
     // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
+    // Currently, only contiguous output arrays are optimized.
     switch (arg.in_strides().ndim()) {
         case 1:
             switch (arg.out_strides().ndim()) {
@@ -146,10 +147,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 2, 1>(arg), out_block_size, reduce_block_size, impl);
                     return;
-                case 2:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 2, 2>(arg), out_block_size, reduce_block_size, impl);
-                    return;
             }
         case 3:
             switch (arg.out_strides().ndim()) {
@@ -161,14 +158,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 3, 1>(arg), out_block_size, reduce_block_size, impl);
                     return;
-                case 2:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 3, 2>(arg), out_block_size, reduce_block_size, impl);
-                    return;
-                case 3:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 3, 3>(arg), out_block_size, reduce_block_size, impl);
-                    return;
             }
         case 4:
             switch (arg.out_strides().ndim()) {
@@ -179,18 +168,6 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
                 case 1:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 1>(arg), out_block_size, reduce_block_size, impl);
-                    return;
-                case 2:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 4, 2>(arg), out_block_size, reduce_block_size, impl);
-                    return;
-                case 3:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 4, 3>(arg), out_block_size, reduce_block_size, impl);
-                    return;
-                case 4:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 4, 4>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
     }
