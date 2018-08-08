@@ -18,26 +18,15 @@ template <
         int8_t OutNdim = kDynamicNdim,
         int8_t ReduceNdim = kDynamicNdim>
 void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> arg, ReductionImpl&& impl) {
-    auto it_in = arg.in_indexer.It(0);
-
     // Iterate over output dimensions
     for (auto it_out = arg.out_indexer.It(0); it_out; ++it_out) {
         auto accum = impl.Identity();
 
-        // Set output indices in the corresponding indices (out_axis) in src_index.
-        for (int8_t i_out_dim = 0; i_out_dim < arg.out_indexer.ndim(); ++i_out_dim) {
-            it_in.index()[arg.reduce_indexer.ndim() + i_out_dim] = it_out.index()[i_out_dim];
+        for (auto it_in = arg.in_indexer.It(it_out.raw_index(), arg.out_indexer.total_size()); it_in; ++it_in) {
+            int64_t i_reduce = it_in.raw_index() / arg.out_indexer.total_size();
+            impl.Reduce(impl.MapIn(arg.in[it_in], i_reduce), accum);
         }
 
-        // Iterate over reduction dimensions, reducing into a single output value.
-        for (auto it_reduce = arg.reduce_indexer.It(0); it_reduce; ++it_reduce) {
-            // Set reduction indices in the corresponding indices (axis) in src_index.
-            for (int8_t i_reduce_dim = 0; i_reduce_dim < arg.reduce_indexer.ndim(); ++i_reduce_dim) {
-                it_in.index()[i_reduce_dim] = it_reduce.index()[i_reduce_dim];
-            }
-
-            impl.Reduce(impl.MapIn(arg.in[it_in], it_reduce.raw_index()), accum);
-        }
         arg.out[it_out] = impl.MapOut(accum);
     }
 }
