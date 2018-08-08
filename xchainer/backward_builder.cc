@@ -155,67 +155,39 @@ void BackwardBuilder::Finalize() {
 namespace {
 
 void AddEdgesToInputArrayNodesOfOuterGraph(
-        const OpNode& outer_op_node,
-        OpNode& inner_op_node,
-        const backward_builder_detail::RetentionRecord& input_retention_record,
-        std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& input_retention_cache) {
-    auto it = std::find_if(
-            input_retention_cache.begin(),
-            input_retention_cache.end(),
-            [&outer_op_node](const std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>& cache) {
-                return std::get<0>(cache) == outer_op_node.backprop_id();
-            });
-    if (it != input_retention_cache.end()) {
-        inner_op_node.AddEdgesToInputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::get<1>(*it));
-    } else {
-        std::vector<std::shared_ptr<internal::ArrayNode>> input_array_nodes;
-        input_array_nodes.reserve(input_retention_record.size());
+        const OpNode& outer_op_node, OpNode& inner_op_node, const backward_builder_detail::RetentionRecord& input_retention_record) {
+    std::vector<std::shared_ptr<internal::ArrayNode>> input_array_nodes;
+    input_array_nodes.reserve(input_retention_record.size());
 
-        for (size_t i = 0; i < input_retention_record.size(); ++i) {
-            if (input_retention_record.IsRecorded(i)) {
-                input_array_nodes.emplace_back(outer_op_node.input_array_nodes()[i]);
-            } else {
-                input_array_nodes.emplace_back(nullptr);
-            }
+    for (size_t i = 0; i < input_retention_record.size(); ++i) {
+        if (input_retention_record.IsRecorded(i)) {
+            input_array_nodes.emplace_back(outer_op_node.input_array_nodes()[i]);
+        } else {
+            input_array_nodes.emplace_back(nullptr);
         }
-
-        input_retention_cache.emplace_back(outer_op_node.backprop_id(), input_array_nodes);
-        inner_op_node.AddEdgesToInputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::move(input_array_nodes));
     }
+
+    inner_op_node.AddEdgesToInputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::move(input_array_nodes));
 }
 
 void AddEdgesToOutputArrayNodesOfOuterGraph(
-        const OpNode& outer_op_node,
-        OpNode& inner_op_node,
-        const backward_builder_detail::RetentionRecord& output_retention_record,
-        std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& output_retention_cache) {
-    auto it = std::find_if(
-            output_retention_cache.begin(),
-            output_retention_cache.end(),
-            [&outer_op_node](const std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>& cache) {
-                return std::get<0>(cache) == outer_op_node.backprop_id();
-            });
-    if (it != output_retention_cache.end()) {
-        inner_op_node.AddEdgesToOutputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::get<1>(*it));
-    } else {
-        std::vector<std::shared_ptr<internal::ArrayNode>> output_array_nodes;
-        output_array_nodes.reserve(output_retention_record.size());
+        const OpNode& outer_op_node, OpNode& inner_op_node, const backward_builder_detail::RetentionRecord& output_retention_record) {
+    std::vector<std::shared_ptr<internal::ArrayNode>> output_array_nodes;
+    output_array_nodes.reserve(output_retention_record.size());
 
-        // Outer graphs must be registered using shared_ptr but op nodes only have weak_ptr to their output array nodes.
-        // Therefore, first convert the weak_ptr to shared_ptr, assuming that they have not expired.
-        for (size_t i = 0; i < output_retention_record.size(); ++i) {
-            if (output_retention_record.IsRecorded(i)) {
-                const std::weak_ptr<ArrayNode>& array_node = outer_op_node.output_array_nodes()[i];
-                assert(!array_node.expired());
-                output_array_nodes.emplace_back(array_node.lock());
-            } else {
-                output_array_nodes.emplace_back(nullptr);
-            }
+    // Outer graphs must be registered using shared_ptr but op nodes only have weak_ptr to their output array nodes.
+    // Therefore, first convert the weak_ptr to shared_ptr, assuming that they have not expired.
+    for (size_t i = 0; i < output_retention_record.size(); ++i) {
+        if (output_retention_record.IsRecorded(i)) {
+            const std::weak_ptr<ArrayNode>& array_node = outer_op_node.output_array_nodes()[i];
+            assert(!array_node.expired());
+            output_array_nodes.emplace_back(array_node.lock());
+        } else {
+            output_array_nodes.emplace_back(nullptr);
         }
-
-        output_retention_cache.emplace_back(outer_op_node.backprop_id(), output_array_nodes);
-        inner_op_node.AddEdgesToOutputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::move(output_array_nodes));
     }
+
+    inner_op_node.AddEdgesToOutputArrayNodesOfOuterGraph(outer_op_node.backprop_id(), std::move(output_array_nodes));
 }
 
 }  // namespace
@@ -233,24 +205,25 @@ void BackwardBuilder::AddEdgesToArrayNodesBetweenRetainedOuterGraphs() {
             }
         }
 
-        std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> input_retention_cache{};
         for (const BackpropId& backprop_id : retained_graphs) {
             const OpNode& op_node = *op_node_map_.at(backprop_id);
             for (const BackpropId& other_backprop_id : retained_graphs) {
                 if (backprop_id < other_backprop_id) {
                     OpNode& other_op_node = *op_node_map_.at(other_backprop_id);
-                    AddEdgesToInputArrayNodesOfOuterGraph(op_node, other_op_node, input_retention_record_, input_retention_cache);
+                    AddEdgesToInputArrayNodesOfOuterGraph(op_node, other_op_node, input_retention_record_);
                 }
             }
         }
     }
     if (output_retention_record_.IsAnyRecorded()) {
-        std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> output_retention_cache{};
         for (const auto& tup : op_node_map_) {
+            const BackpropId& backprop_id = tup.first;
+            const OpNode& op_node = *tup.second;
             for (const auto& other_tup : op_node_map_) {
-                if (tup.first < other_tup.first) {
-                    AddEdgesToOutputArrayNodesOfOuterGraph(
-                            *tup.second, *other_tup.second, output_retention_record_, output_retention_cache);
+                const BackpropId& other_backprop_id = other_tup.first;
+                OpNode& other_op_node = *other_tup.second;
+                if (backprop_id < other_backprop_id) {
+                    AddEdgesToOutputArrayNodesOfOuterGraph(op_node, other_op_node, output_retention_record_);
                 }
             }
         }
