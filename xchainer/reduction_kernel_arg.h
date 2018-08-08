@@ -58,11 +58,11 @@ private:
 
     const Array& in_;
     const Array& out_;
-    Strides in_strides_;
-    Strides out_strides_;
-    Shape in_shape_;
-    Shape out_shape_;
-    Shape reduce_shape_;
+    Strides in_strides_{};
+    Strides out_strides_{};
+    Shape in_shape_{};
+    Shape out_shape_{};
+    Shape reduce_shape_{};
 };
 
 // Creates ReductionKernelArg from ReductionArg

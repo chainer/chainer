@@ -22,25 +22,23 @@ void ReductionArg::Permute(const Axes& axis) {
     bool has_kept_dims = out_.ndim() + static_cast<int64_t>(axis.size()) != in_.ndim();
 
     // Prepare axis mappings
-    Shape reduce_shape{};  // Reduction dimensions
     Axes out_axis_map{};  // Mapping from effective output indices to actual output indices
-    Shape new_out_shape{};
     // (Here "effective output indices" means source indices minus reduction indices.)
 
     // Example (in the case of has_kept_dims=false):
-    // - in.shape():      (12, 13, 14, 15, 16)
+    // - in_.shape():     (12, 13, 14, 15, 16)
     // - axis:             (1, 3)
-    // - out.shape():      (12, 14, 16)
-    // - reduce_shape:     (13, 15)
+    // - out_.shape():     (12, 14, 16)
+    // - reduce_shape_:    (13, 15)
     // - out_axis_map:     (0, 1, 2)
-    // - new_out_shape:    (12, 14, 16)
+    // - out_shape_:       (12, 14, 16)
     // Example (in the case of has_kept_dims=true):
-    // - in.shape():      (12, 13, 14, 15, 16)
+    // - in_.shape():     (12, 13, 14, 15, 16)
     // - axis:             (1, 3)
-    // - out.shape():      (12, 1, 14, 1, 16)
-    // - reduce_shape:     (13, 15)
+    // - out_.shape():     (12, 1, 14, 1, 16)
+    // - reduce_shape_:    (13, 15)
     // - out_axis_map:     (0, 2, 4)
-    // - new_out_shape:    (12, 14, 16)
+    // - out_shape_:       (12, 14, 16)
 
     {
         size_t i_axis = 0;
@@ -50,7 +48,7 @@ void ReductionArg::Permute(const Axes& axis) {
                 // i is to be reduced
                 int64_t in_dim = in_.shape()[i];
                 if (in_dim != 1) {
-                    reduce_shape.emplace_back(in_dim);
+                    reduce_shape_.emplace_back(in_dim);
                 }
                 ++i_axis;
                 if (has_kept_dims) {
@@ -61,7 +59,7 @@ void ReductionArg::Permute(const Axes& axis) {
                 int64_t out_dim = out_.shape()[i_out_axis];
                 if (out_dim != 1) {
                     out_axis_map.emplace_back(static_cast<int8_t>(i_out_axis));
-                    new_out_shape.emplace_back(out_dim);
+                    out_shape_.emplace_back(out_dim);
                 }
                 ++i_out_axis;
             }
@@ -70,15 +68,15 @@ void ReductionArg::Permute(const Axes& axis) {
         assert(i_axis == axis.size());
     }
     // Inequality because 1-dim axes are eliminated.
-    assert(reduce_shape.size() <= axis.size());
+    assert(reduce_shape_.size() <= axis.size());
     assert(out_axis_map.size() <= in_.shape().size() - axis.size());
-    assert(out_axis_map.size() == new_out_shape.size());
+    assert(out_axis_map.size() == out_shape_.size());
 
     // Calculate source axis permutation
-    // - in.shape():      (12, 13, 14, 15, 16)
+    // - in_.shape():     (12, 13, 14, 15, 16)
     // - axis:             (1, 3)
     // - axis_permutes:    (0, 2, 4, 1, 3)
-    // - new_in_shape:     (12, 14, 16, 13, 15)
+    // - in_shape_:        (12, 14, 16, 13, 15)
     Axes axis_permutes{};
     {
         size_t i_reduce = 0;
@@ -100,33 +98,26 @@ void ReductionArg::Permute(const Axes& axis) {
     assert(axis_permutes.size() <= in_.shape().size());  // Inequality because 1-dim axes are eliminated.
 
     // Calculate new source shape
-    Shape new_in_shape{};
     for (int8_t i : axis_permutes) {
-        new_in_shape.emplace_back(in_.shape()[i]);
+        in_shape_.emplace_back(in_.shape()[i]);
     }
 
     // 1-dim axes must be eliminated
-    assert(std::find(new_in_shape.begin(), new_in_shape.end(), 1) == new_in_shape.end());
-    assert(std::find(new_out_shape.begin(), new_out_shape.end(), 1) == new_out_shape.end());
+    assert(std::find(in_shape_.begin(), in_shape_.end(), 1) == in_shape_.end());
+    assert(std::find(out_shape_.begin(), out_shape_.end(), 1) == out_shape_.end());
 
-    Strides new_in_strides = in_.strides().Permute(axis_permutes);
-    Strides new_out_strides = out_.strides().Permute(out_axis_map);
-
-    in_strides_ = std::move(new_in_strides);
-    out_strides_ = std::move(new_out_strides);
-    in_shape_ = std::move(new_in_shape);
-    out_shape_ = std::move(new_out_shape);
-    reduce_shape_ = std::move(reduce_shape);
+    in_strides_ = in_.strides().Permute(axis_permutes);
+    out_strides_ = out_.strides().Permute(out_axis_map);
 }
 
 // Squashes dimensions of reduction
 //
 // Example (in the case of a contiguous array):
-// - in_shape:     (2, 3, 4, 5, 6)
-// - out_shape:    (2, 3, 4)
-// - reduce_shape: (5, 6)
-// - in_squashed_shape: (24, 30)
-// - out_squashed_shape: (24)
+// - in_shape_:             (2, 3, 4, 5, 6)
+// - out_shape_:            (2, 3, 4)
+// - reduce_shape_:         (5, 6)
+// - in_squashed_shape:     (24, 30)
+// - out_squashed_shape:    (24)
 // - reduce_squashed_shape: (30)
 //
 // The following equality always holds:
