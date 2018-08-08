@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <initializer_list>
 #include <memory>
@@ -24,7 +25,7 @@
 namespace xchainer {
 namespace backward_builder_detail {
 
-// This class is used the be BackwardBuilder to record retained inputs and outputs.
+// This class is used by the BackwardBuilder to record retained inputs and outputs.
 // The records are used to create outer graph edges (between op nodes and previous array nodes) when the builder is finalized.
 class RetentionRecord {
 public:
@@ -33,19 +34,19 @@ public:
     size_t size() const { return size_; }
 
     void Record(size_t index) {
-        if (recorded_indices_.empty()) {
-            recorded_indices_.resize(size_);
+        if (flags_.empty()) {
+            flags_.resize(size_);
         }
-        gsl::at(recorded_indices_, index) = static_cast<char>(true);
+        gsl::at(flags_, index) = static_cast<int8_t>(true);
     }
 
-    bool IsAnyRecorded() const { return !recorded_indices_.empty(); }
+    bool IsAnyRecorded() const { return !flags_.empty(); }
 
-    bool IsRecorded(size_t index) const { return static_cast<bool>(recorded_indices_[index]); }
+    bool IsRecorded(size_t index) const { return static_cast<bool>(flags_[index]); }
 
 private:
     size_t size_{};
-    std::vector<char> recorded_indices_{};
+    std::vector<int8_t> flags_{};  // binary flags
 };
 
 template <typename Tag>
