@@ -171,7 +171,7 @@ private:
     // Add shared ptrs between op nodes and array nodes belonging to outer graphs.
     // This functions is called once when the builder is finalized.
     // These references are required to restore retained inputs/outputs.
-    void AddEdgesToArrayNodesBetweenRetainedOuterGraphs();
+    void AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention();
 
     const char* op_name_;
 
