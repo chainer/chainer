@@ -77,10 +77,9 @@ bool IsBackpropRequired(const BackpropId& backprop_id) {
     auto it = std::find_if(bms->rbegin(), bms->rend(), [&backprop_id](const internal::BackpropMode& bm) {
         if (bm.backprop_id().has_value()) {
             return backprop_id == *bm.backprop_id();
-        } else {
-            // for all graphs in the context
-            return &backprop_id.context() == &bm.context();
         }
+        // for all graphs in the context
+        return &backprop_id.context() == &bm.context();
     });
     if (it != bms->rend()) {
         return it->backprop();
