@@ -13,7 +13,7 @@ namespace xchainer {
 
 ReductionArg::ReductionArg(const Array& in, const Axes& axis, const Array& out) : in_{in}, out_{out} {
     Permute(axis);
-    Squash();
+    // Squash();
 }
 
 void ReductionArg::Permute(const Axes& axis) {
@@ -75,9 +75,14 @@ void ReductionArg::Permute(const Axes& axis) {
     // Calculate source axis permutation
     // - in_.shape():     (12, 13, 14, 15, 16)
     // - axis:             (1, 3)
-    // - axis_permutes:    (0, 2, 4, 1, 3)
-    // - in_shape_:        (12, 14, 16, 13, 15)
+    // - axis_permutes:    (1, 3, 0, 2, 4)
+    // - in_shape_:        (13, 15, 12, 14, 16)
     Axes axis_permutes{};
+    for (int8_t i : axis) {
+        if (in_.shape()[i] != 1) {
+            axis_permutes.emplace_back(i);
+        }
+    }
     {
         size_t i_reduce = 0;
         for (int8_t i = 0; i < in_.ndim(); ++i) {
@@ -88,11 +93,6 @@ void ReductionArg::Permute(const Axes& axis) {
                     axis_permutes.emplace_back(i);
                 }
             }
-        }
-    }
-    for (int8_t i : axis) {
-        if (in_.shape()[i] != 1) {
-            axis_permutes.emplace_back(i);
         }
     }
     assert(axis_permutes.size() <= in_.shape().size());  // Inequality because 1-dim axes are eliminated.

@@ -26,14 +26,14 @@ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> ar
 
         // Set output indices in the corresponding indices (out_axis) in src_index.
         for (int8_t i_out_dim = 0; i_out_dim < arg.out_indexer.ndim(); ++i_out_dim) {
-            it_in.index()[i_out_dim] = it_out.index()[i_out_dim];
+            it_in.index()[arg.reduce_indexer.ndim() + i_out_dim] = it_out.index()[i_out_dim];
         }
 
         // Iterate over reduction dimensions, reducing into a single output value.
         for (auto it_reduce = arg.reduce_indexer.It(0); it_reduce; ++it_reduce) {
             // Set reduction indices in the corresponding indices (axis) in src_index.
             for (int8_t i_reduce_dim = 0; i_reduce_dim < arg.reduce_indexer.ndim(); ++i_reduce_dim) {
-                it_in.index()[arg.out_indexer.ndim() + i_reduce_dim] = it_reduce.index()[i_reduce_dim];
+                it_in.index()[i_reduce_dim] = it_reduce.index()[i_reduce_dim];
             }
 
             impl.Reduce(impl.MapIn(arg.in[it_in], it_reduce.raw_index()), accum);

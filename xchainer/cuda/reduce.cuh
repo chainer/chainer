@@ -54,14 +54,14 @@ __global__ void ReductionKernel(
 
         // Set output indices in the corresponding indices (out_axis) in input index.
         for (int8_t i_out_dim = 0; i_out_dim < arg.out_indexer.ndim(); ++i_out_dim) {
-            it_in.index()[i_out_dim] = it_out.index()[i_out_dim];
+            it_in.index()[arg.reduce_indexer.ndim() + i_out_dim] = it_out.index()[i_out_dim];
         }
 
         // Linearly compute the partial sum onto reduction blocks.
         for (auto it_reduce = arg.reduce_indexer.It(reduce_block_offset, reduce_block_size); it_reduce; ++it_reduce) {
             // Set reduction indices in the corresponding indices (axis) in input index.
             for (int8_t i_reduce_dim = 0; i_reduce_dim < arg.reduce_indexer.ndim(); ++i_reduce_dim) {
-                it_in.index()[arg.out_indexer.ndim() + i_reduce_dim] = it_reduce.index()[i_reduce_dim];
+                it_in.index()[i_reduce_dim] = it_reduce.index()[i_reduce_dim];
             }
 
             int64_t i_reduce = it_reduce.raw_index();
