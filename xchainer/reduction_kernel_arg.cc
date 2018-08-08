@@ -129,7 +129,7 @@ void ReductionArg::Permute(const Axes& axis) {
 // - out_squashed_shape: (24)
 // - reduce_squashed_shape: (30)
 //
-// Following equality always consists:
+// The following equality always holds:
 // in_squashed_shape.ndim() == out_squashed_shape.ndim() + reduce_squashed_shape.ndim()
 //
 // TODO(sonots): To achieve best performance optimization, squash dimensions of input and output individually, that is,

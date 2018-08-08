@@ -39,7 +39,7 @@ struct ReductionKernelArg {
 // This structure is used to make a reduction kernel argument having indexers with dynamic ndim or statically optmized ndim.
 //
 // Strides and shapes are permuted so that the reduction axes come last. Axes of length 1 are also removed.
-// Dimensions of strides and shapes are squashed.
+// Contiguous dimensions of strides and shapes are squashed.
 struct ReductionArg {
 public:
     ReductionArg(const Array& in, const Axes& axis, const Array& out);

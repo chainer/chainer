@@ -31,7 +31,7 @@ inline Strides GetSquashedStrides(const Strides& strides, const Axes& keep) {
     return squashed;
 }
 
-// Given an equal shape of arrays and strides of these arrays, returns a tuple with a squashed shape with possibly fewer number of
+// Given a common shape and respective strides of arrays, returns a tuple with a squashed shape with possibly fewer number of
 // dimensions (but with equal total size) and axes that were kept in the procedure. Dimensions must be either successively contiguous or
 // unit-length in order to be squashed as in the following examples.
 //
