@@ -22,7 +22,7 @@ class Triplet(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 3)
+        type_check.argname(in_types, ('anchor', 'positive', 'negative'))
 
         type_check.expect(
             in_types[0].dtype == numpy.float32,
