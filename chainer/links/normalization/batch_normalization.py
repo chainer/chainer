@@ -193,10 +193,8 @@ class BatchNormalization(link.Link):
 
         if size is None and axis is None:
             raise RuntimeError('size or axis is required')
-        self.avg_mean = _init_array(initial_avg_mean, 0, size, dtype)
-        self.register_persistent('avg_mean')
-        self.avg_var = _init_array(initial_avg_var, 1, size, dtype)
-        self.register_persistent('avg_var')
+        self._initial_avg_mean = initial_avg_mean
+        self._initial_avg_var = initial_avg_var
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
@@ -225,9 +223,12 @@ class BatchNormalization(link.Link):
             self._initialize_params(size)
 
     def _initialize_params(self, shape):
-        self.avg_mean = numpy.zeros(shape, dtype=self._dtype)
+        dtype = self._dtype
+        self.avg_mean = _init_array(self._initial_avg_mean, 0, shape, dtype)
+        del self._initial_avg_mean
         self.register_persistent('avg_mean')
-        self.avg_var = numpy.zeros(shape, dtype=self._dtype)
+        self.avg_var = _init_array(self._initial_avg_var, 1, shape, dtype)
+        del self._initial_avg_var
         self.register_persistent('avg_var')
         if self.gamma is not None:
             self.gamma.initialize(shape)
