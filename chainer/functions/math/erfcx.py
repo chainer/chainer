@@ -30,10 +30,12 @@ class Erfcx(function_node.FunctionNode):
                                   " of erfcx can not be done.")
 
         self.retain_inputs((0,))
+        self.retain_outputs((0,))
         return utils.force_array(_erfcx_cpu(x[0]), dtype=x[0].dtype),
 
     def forward_gpu(self, x):
         self.retain_inputs((0,))
+        self.retain_outputs((0,))
         return cuda.elementwise(
             'T x', 'T y',
             'y = erfcx(x)',
@@ -42,7 +44,8 @@ class Erfcx(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         x = self.get_retained_inputs()[0]
-        return 2 * (x * erfcx(x) - numpy.pi ** -0.5) * gy[0],
+        y = self.get_retained_outputs()[0]
+        return 2 * (x * y - numpy.pi ** -0.5) * gy[0],
 
 
 def erfcx(x):
