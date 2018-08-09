@@ -503,6 +503,7 @@ Array Sqrt(const Array& x) {
             bctx.input_grad() = gout / (2 * out);
         });
     }
+    bb.Finalize();
 
     return out;
 }

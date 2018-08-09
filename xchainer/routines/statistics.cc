@@ -39,6 +39,7 @@ Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
             }
         });
     }
+    bb.Finalize();
 
     return out;
 }
