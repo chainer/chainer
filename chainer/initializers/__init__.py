@@ -38,12 +38,14 @@ def generate_array(initializer, shape, xp, dtype=None):
         numpy.ndarray or cupy.ndarray: An initialized array.
 
     """
-<<<<<<< HEAD
+    dtype_attr = getattr(initializer, 'dtype', None)
+    if dtype is not None and dtype_attr is not None \
+            and numpy.dtype(dtype) != numpy.dtype(dtype_attr):
+        raise ValueError(
+            'dtype mismatch: {} != {}'.format(dtype, dtype_attr))
     if dtype is None:
-        dtype = getattr(initializer, 'dtype', numpy.float32)
-=======
-    dtype = chainer.get_dtype(getattr(initializer, 'dtype', None))
->>>>>>> master
+        dtype = dtype_attr
+    dtype = chainer.get_dtype(dtype)
     array = xp.empty(shape, dtype=dtype)
     initializer(array)
     return array
