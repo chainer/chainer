@@ -83,7 +83,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::CreateArrayNode(const std::shared_p
 
 void ArrayBody::AssertConsistency() const {
 #ifndef NDEBUG
-    // Array with integral dtypes cannot have both array nodes and gradients.
+    // Array with integral dtypes can neither have array nodes nor gradients.
     if (GetKind(dtype()) != DtypeKind::kFloat) {
         assert(nodes_.empty());
         assert(grads_.empty());
