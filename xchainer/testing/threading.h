@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <condition_variable>
 #include <cstddef>
 #include <future>
@@ -46,9 +47,8 @@ auto RunThreads(size_t thread_count, const Func& func, Args&&... args) -> std::v
     // Retrieve results
     std::vector<ResultType> results;
     results.reserve(thread_count);
-    for (size_t i = 0; i < thread_count; ++i) {
-        results.emplace_back(futures[i].get());
-    }
+    std::transform(
+            futures.begin(), futures.end(), std::back_inserter(results), [](std::future<ResultType>& future) { return future.get(); });
 
     return results;
 }
