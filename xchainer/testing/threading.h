@@ -8,9 +8,9 @@
 namespace xchainer {
 namespace testing {
 
-template <typename Func>
-auto RunThreads(size_t thread_count, const Func& func) -> std::vector<decltype(func(size_t{}))> {
-    using ResultType = decltype(func(size_t{}));
+template <typename Func, typename... Args>
+auto RunThreads(size_t thread_count, const Func& func, Args&&... args) -> std::vector<decltype(func(size_t{}, Args{}...))> {
+    using ResultType = decltype(func(size_t{}, Args{}...));
 
     std::mutex mutex;
     std::condition_variable cv_all_ready;
@@ -20,7 +20,7 @@ auto RunThreads(size_t thread_count, const Func& func) -> std::vector<decltype(f
 
     size_t wait_count = thread_count;
 
-    auto thread_proc = [&mutex, &cv_all_ready, &wait_count, &func, &results](size_t thread_index) mutable {
+    auto thread_proc = [&mutex, &cv_all_ready, &wait_count, &func, &results, &args...](size_t thread_index) mutable {
         {
             std::unique_lock<std::mutex> lock{mutex};
 
@@ -35,7 +35,7 @@ auto RunThreads(size_t thread_count, const Func& func) -> std::vector<decltype(f
             }
         }
 
-        ResultType result = func(thread_index);
+        ResultType result = func(thread_index, std::forward<Args>(args)...);
 
         {
             std::lock_guard<std::mutex> lock{mutex};
@@ -56,6 +56,20 @@ auto RunThreads(size_t thread_count, const Func& func) -> std::vector<decltype(f
     }
 
     return results;
+}
+
+template <typename SetupFunc, typename Func, typename CheckFunc>
+void CheckThreadSafety(size_t thread_count, size_t repeat_count, const SetupFunc& setupFunc, const Func& func, const CheckFunc& checkFunc) {
+    using CheckContextType = std::add_const_t<decltype(setupFunc(size_t{}))>;
+    using ResultType = decltype(func(size_t{}, CheckContextType{}));
+
+    for (size_t i_repeat = 0; i_repeat < repeat_count; ++i_repeat) {
+        CheckContextType checkContext = setupFunc(i_repeat);
+
+        std::vector<ResultType> results = RunThreads(thread_count, func, checkContext);
+
+        checkFunc(results);
+    }
 }
 
 }  // namespace testing

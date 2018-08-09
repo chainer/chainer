@@ -31,6 +31,26 @@ TEST(ContextTest, NativeBackend) {
     EXPECT_EQ(&ctx.GetBackend("native"), &backend);
 }
 
+TEST(ContextTest, GetBackendThreadSafe) {
+    static constexpr int kRepeat = 100;
+    static constexpr size_t kThreadCount = 1024;
+
+    xchainer::testing::CheckThreadSafety(
+            kThreadCount,
+            kRepeat,
+            [](size_t /*repeat*/) { return std::make_unique<Context>(); },
+            [](size_t /*thread_index*/, const std::unique_ptr<Context>& ctx) {
+                Backend& backend = ctx->GetBackend("native");
+                return &backend;
+            },
+            [this](const std::vector<Backend*>& results) {
+                for (Backend* backend : results) {
+                    ASSERT_EQ("native", backend->GetName());
+                    ASSERT_EQ(backend, results.front());
+                }
+            });
+}
+
 TEST(ContextTest, BackendNotFound) {
     Context ctx;
     EXPECT_THROW(ctx.GetBackend("something_that_does_not_exist"), BackendError);
