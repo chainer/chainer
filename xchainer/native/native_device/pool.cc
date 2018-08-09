@@ -147,6 +147,7 @@ Array GetPadModeIgnorePoolingWidths(
     assert(n == static_cast<int8_t>(kernel_size.size()));
     assert(n == static_cast<int8_t>(stride.size()));
     assert(n == static_cast<int8_t>(pad.size()));
+    assert(GetKind(dtype) == DtypeKind::kFloat);
 
     Array widths;
     for (int64_t i = 0; i < n; ++i) {
@@ -156,7 +157,7 @@ Array GetPadModeIgnorePoolingWidths(
         int64_t pad_i = pad[i];
 
         Array width = Empty({internal::GetConvOutDim(dim_i, kernel_size_i, stride_i, pad_i, false)}, dtype);
-        VisitDtype(dtype, [dim_i, kernel_size_i, stride_i, pad_i, &width](auto pt) {
+        VisitFloatingPointDtype(dtype, [dim_i, kernel_size_i, stride_i, pad_i, &width](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
                 void operator()(int64_t i, T& w) {

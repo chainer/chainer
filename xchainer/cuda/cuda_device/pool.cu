@@ -179,7 +179,7 @@ public:
         Device& device = ggx.device();
         Array ggy = EmptyLike(y_, y_.device());
 
-        VisitDtype(ggy.dtype(), [&](auto pt) {
+        VisitFloatingPointDtype(ggy.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
 
             IndexableArray<const T> ggx_iarray{ggx};

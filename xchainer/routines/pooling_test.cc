@@ -821,6 +821,11 @@ TEST_P(PoolingTest, AveragePoolPadModeZeroDoubleBackward) {
             1e-3);
 }
 
+TEST_P(PoolingTest, AveragePoolInvalidDtype) {
+    Array x = Ones({2, 2, 3, 3}, Dtype::kInt32);
+    EXPECT_THROW(AveragePool(x, {3, 3}, {1, 1}, {1, 1}, AveragePoolPadMode::kZero), DtypeError);
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         PoolingTest,

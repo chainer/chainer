@@ -107,6 +107,10 @@ Array AveragePool(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         AveragePoolPadMode pad_mode) {
+    if (GetKind(x.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError("cannot apply average pooling to ", x.dtype(), " array (floatXX array is expected)");
+    }
+
     CheckPoolInputs(x, kernel_size, stride, pad);
     std::shared_ptr<AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(kernel_size, stride, pad, pad_mode);
     Array out = fb->Forward(x.AsGradStopped());
