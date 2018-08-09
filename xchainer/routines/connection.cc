@@ -77,7 +77,7 @@ Array ConvGradW(
                 bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, cover_all);
             });
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 
     return out;
@@ -163,7 +163,7 @@ Array Conv(
                 });
             }
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 
     return out;
@@ -272,7 +272,7 @@ Array ConvTranspose(
                 });
             }
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 
     return out;

@@ -100,7 +100,7 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
             bctx.input_grad() = bctx.output_grad().Transpose(backward_axes);
         });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }
@@ -208,7 +208,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     assert(out.shape() == newshape);
     assert(out.strides().size() == newshape.size());
@@ -264,7 +264,7 @@ Array Squeeze(const Array& a, const OptionalAxes& axis) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }
@@ -343,7 +343,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
             }
         });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }

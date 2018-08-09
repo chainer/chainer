@@ -90,7 +90,13 @@ public:
     OpNodeBackwardEntry& RegisterBackwardFunction(
             std::vector<std::tuple<size_t, std::shared_ptr<ArrayNode>>> input_array_nodes, BackwardFunction backward_func);
 
+    // Adds links to input array nodes of other graphs.
+    // The size of the vector must be equal to the number of inputs.
+    void AddEdgesToInputArrayNodesOfOuterGraph(
+            const BackpropId& outer_backprop_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_input_array_nodes);
+
     // Adds links to output array nodes of other graphs.
+    // The size of the vector must be equal to the number of outputs.
     void AddEdgesToOutputArrayNodesOfOuterGraph(
             const BackpropId& outer_backprop_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_output_array_nodes);
 
@@ -131,6 +137,11 @@ public:
     // Returns the list of output array nodes on "this" graph.
     std::vector<std::weak_ptr<ArrayNode>>& output_array_nodes() { return output_array_nodes_; }
 
+    // Returns the input array nodes of all graphs.
+    const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_input_array_nodes() const {
+        return outer_graphs_input_array_nodes_;
+    }
+
     // Returns the output array nodes of all graphs.
     const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_output_array_nodes() const {
         return outer_graphs_output_array_nodes_;
@@ -156,9 +167,10 @@ private:
     // List of output array nodes of this graph.
     std::vector<std::weak_ptr<ArrayNode>> output_array_nodes_;
 
-    // List of output array nodes of outer graphs.
+    // List of input/output array nodes of outer graphs.
     // Outer graphs refer to graphs with lower ordinals.
-    // Each entry is a pair of backprop ID and list of output array nodes.
+    // Each entry is a pair of backprop ID and list of input/output array nodes.
+    std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_input_array_nodes_;
     std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_output_array_nodes_;
 
     // Array props of output array nodes. This is used for creating dummy gradients.

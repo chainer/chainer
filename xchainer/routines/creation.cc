@@ -159,7 +159,7 @@ Array Copy(const Array& a) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     assert(out.IsContiguous());
     return out;
@@ -228,7 +228,7 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
                 bctx.input_grad() = gout.AsType(src_dt, false);
             });
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 
     assert(out.IsContiguous());
@@ -276,7 +276,7 @@ Array Diag(const Array& v, int64_t k, Device& device) {
             bctx.input_grad() = Diag(gout, k, device);
         });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }
