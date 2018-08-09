@@ -48,7 +48,7 @@ class ErfInv(function_node.FunctionNode):
 
 
 def erfinv(x):
-    """Elementwise error function.
+    """Elementwise inverse function of error function.
 
     .. note::
        Forward computation in CPU can not be done if
