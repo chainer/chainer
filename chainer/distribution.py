@@ -88,7 +88,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Cumulative distribution function value evaluated
@@ -132,7 +132,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Inverse cumulative distribution function value
@@ -147,7 +147,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Logarithm of cumulative distribution function
@@ -162,7 +162,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Logarithm of probability evaluated at `x`.
@@ -176,7 +176,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Logarithm of survival function value evaluated
@@ -211,7 +211,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Perplexity function value evaluated at `x`.
@@ -225,7 +225,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Probability evaluated at `x`.
@@ -303,7 +303,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Survival function value evaluated at `x`.
@@ -332,11 +332,11 @@ def register_kl(Dist1, Dist2):
     divergence. This function will be called by `kl_divergence` based on the
     argument types.
 
-     Args:
-         Dist1(`type`): type of a class inherit from `~chainer.Distribution` to
-         calculate KL divergence.
-         Dist2(`type`): type of a class inherit from `~chainer.Distribution` to
-         calculate KL divergence.
+    Args:
+        Dist1(`type`): type of a class inherit from `~chainer.Distribution` to
+            calculate KL divergence.
+        Dist2(`type`): type of a class inherit from `~chainer.Distribution` to
+            calculate KL divergence.
 
     The decorated functoion takes an instance of `Dist1` and `Dist2` and
     returns KL divergence value.
