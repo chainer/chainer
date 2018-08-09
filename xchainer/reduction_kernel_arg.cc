@@ -181,11 +181,11 @@ void ReductionArg::Squash() {
     }
 #endif
 
-    in_strides_ = std::move(in_squashed_strides);
-    out_strides_ = std::move(out_squashed_strides);
-    in_shape_ = std::move(in_squashed_shape);
-    out_shape_ = std::move(out_squashed_shape);
-    reduce_shape_ = std::move(reduce_squashed_shape);
+    in_strides_ = in_squashed_strides;
+    out_strides_ = out_squashed_strides;
+    in_shape_ = in_squashed_shape;
+    out_shape_ = out_squashed_shape;
+    reduce_shape_ = reduce_squashed_shape;
 }
 
 }  // namespace xchainer
