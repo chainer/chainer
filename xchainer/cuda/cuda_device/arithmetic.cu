@@ -56,7 +56,7 @@ namespace {
 
 template <typename T>
 struct SubtractImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = x1 - x2; }
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, T& out) { out = ArithmeticOps<T>::Subtract(x1, x2); }
 };
 
 }  // namespace
@@ -74,7 +74,7 @@ namespace {
 
 template <typename T>
 struct SubtractASImpl {
-    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = x1 - x2; }
+    __device__ void operator()(int64_t /*i*/, T x1, T& out) { out = ArithmeticOps<T>::Subtract(x1, x2); }
     T x2;
 };
 
