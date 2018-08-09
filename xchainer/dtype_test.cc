@@ -51,6 +51,18 @@ TEST(DtypeTest, IsValidDtype) {
     EXPECT_FALSE(IsValidDtype(static_cast<Dtype>(static_cast<int>(Dtype::kFloat64) + 1)));
 }
 
+TEST(DtypeTest, NumericDtypeMapping) {
+    for (Dtype dtype : GetAllDtypes()) {
+        switch (dtype) {
+            case Dtype::kBool:
+                EXPECT_THROW(VisitNumericDtype(dtype, [](auto) {}), DtypeError);
+                break;
+            default:
+                EXPECT_EQ(dtype, VisitNumericDtype(dtype, [](auto pt) { return decltype(pt)::kDtype; }));
+        }
+    }
+}
+
 TEST(DtypeTest, FloatingPointDtypeMapping) {
     for (Dtype dtype : GetAllDtypes()) {
         switch (dtype) {
