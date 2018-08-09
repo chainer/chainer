@@ -35,7 +35,7 @@ auto RunThreads(size_t thread_count, const Func& func, Args&&... args) -> std::v
             }
         }
 
-        ResultType result = func(thread_index, std::forward<Args>(args)...);
+        ResultType result = func(thread_index, args...);
 
         {
             std::lock_guard<std::mutex> lock{mutex};
