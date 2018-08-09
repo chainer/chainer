@@ -141,9 +141,15 @@ You can also use :func:`chainer.using_config` to change the configuration.
         y = chainer.functions.relu(x)
     print(type(y.data))
 
-.. testoutput::
+.. code-block:: none
 
     <class 'ideep4py.mdarray'>
+
+.. Avoid dependency to iDeep module in doctest.
+.. testoutput::
+   :hide:
+
+   <class '...'>
 
 Convert Your Model to iDeep
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -18,6 +18,7 @@ dist/
 htmlcov/
 .idea/
 .cache/
+.pytest_cache/
 docs/my.model
 docs/my.state
 docs/my_mnist.model

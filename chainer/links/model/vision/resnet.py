@@ -527,6 +527,7 @@ def prepare(image, size=(224, 224)):
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
+    dtype = chainer.get_dtype()
     if isinstance(image, numpy.ndarray):
         if image.ndim == 3:
             if image.shape[0] == 1:
@@ -537,14 +538,14 @@ def prepare(image, size=(224, 224)):
     image = image.convert('RGB')
     if size:
         image = image.resize(size)
-    image = numpy.asarray(image, dtype=numpy.float32)
+    image = numpy.asarray(image, dtype=dtype)
     image = image[:, :, ::-1]
     # NOTE: in the original paper they subtract a fixed mean image,
     #       however, in order to support arbitrary size we instead use the
     #       mean pixel (rather than mean image) as with VGG team. The mean
     #       value used in ResNet is slightly different from that of VGG16.
     image -= numpy.array(
-        [103.063,  115.903,  123.152], dtype=numpy.float32)
+        [103.063,  115.903,  123.152], dtype=dtype)
     image = image.transpose((2, 0, 1))
     return image
 

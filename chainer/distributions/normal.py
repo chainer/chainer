@@ -1,15 +1,17 @@
+import math
+
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
-from chainer.functions.math import erf
+from chainer.functions.math import erfc
 from chainer.functions.math import erfinv
 from chainer.functions.math import exponential
 from chainer.utils import argument
-import math
-import numpy
 
 
 ENTROPYC = 0.5 * math.log(2 * math.pi * math.e)
@@ -74,9 +76,9 @@ class Normal(distribution.Distribution):
         return self.loc.shape
 
     def cdf(self, x):
-        return 0.5 * (1. + erf.erf((
+        return 0.5 * erfc.erfc(-(
             x - broadcast.broadcast_to(self.loc, x.shape))
-            / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape))))
+            / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape)))
 
     @property
     def entropy(self):
@@ -139,9 +141,9 @@ class Normal(distribution.Distribution):
         return 'real'
 
     def survival_function(self, x):
-        return 0.5 * (1. - erf.erf(
+        return 0.5 * erfc.erfc(
             (x - broadcast.broadcast_to(self.loc, x.shape))
-            / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape))))
+            / (2 ** 0.5 * broadcast.broadcast_to(self.scale, x.shape)))
 
     @property
     def variance(self):
