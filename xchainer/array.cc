@@ -316,6 +316,9 @@ bool Array::IsGradRequired(AnyGraph any_graph) const { return xchainer::IsGradRe
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id) {
+    if (GetKind(array.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError{"Array with integral dtype (", GetDtypeName(array.dtype()), ") cannot compute gradient"};
+    }
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(array, backprop_id);
     if (xchainer::IsBackpropRequired(actual_backprop_id)) {
         internal::ArrayBody::CreateArrayNode(internal::GetArrayBody(array), actual_backprop_id);

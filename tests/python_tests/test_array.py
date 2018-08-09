@@ -170,7 +170,9 @@ def test_astype(xp, shape, device, copy, src_dtype, dst_dtype):
     return b
 
 
-def test_as_grad_stopped_copy(shape, dtype):
+def test_as_grad_stopped_copy(shape, float_dtype):
+    dtype = float_dtype
+
     def check(array_a, array_b):
         xchainer.testing.assert_array_equal_ex(array_a, array_b, strides_check=False)
 
@@ -219,7 +221,9 @@ def test_as_grad_stopped_copy(shape, dtype):
         assert a.is_grad_required(bp3)
 
 
-def test_as_grad_stopped_view(shape, dtype):
+def test_as_grad_stopped_view(shape, float_dtype):
+    dtype = float_dtype
+
     # Stop gradients on all graphs
     with xchainer.backprop_scope('bp1') as bp1, \
             xchainer.backprop_scope('bp2') as bp2, \
@@ -277,9 +281,22 @@ def test_array_repr():
             "       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, device='native:0')") == str(array)
 
 
+def test_array_repr_default_backprop_id():
+    array = xchainer.ndarray((1,), xchainer.float32, [3.0])
+    array.require_grad()
+    assert "array([3.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['<default>'])" == str(array)
+
+
+def test_array_repr_expired_backprop_id():
+    with xchainer.backprop_scope('bp1') as bp1:
+        array = xchainer.ndarray((1,), xchainer.float32, [3.0])
+        array.require_grad(bp1)
+    assert "array([3.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['<expired>'])" == str(array)
+
+
 @pytest.mark.parametrize('backprop_args', [(None,), ()])
 def test_array_require_grad_without_backprop_id(backprop_args):
-    array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
+    array = xchainer.ndarray((3, 1), xchainer.float32, [1, 1, 1])
 
     assert not array.is_grad_required(*backprop_args)
     assert not array.is_grad_required(xchainer.anygraph)
@@ -294,7 +311,7 @@ def test_array_require_grad_without_backprop_id(backprop_args):
 
 
 def test_array_require_grad_with_backprop_id():
-    array = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
+    array = xchainer.ndarray((3, 1), xchainer.float32, [1, 1, 1])
 
     with xchainer.backprop_scope('bp1') as bp1:
         assert not array.is_grad_required(bp1)
@@ -394,7 +411,7 @@ def test_array_grad_with_backprop_id():
 
 def test_array_grad_no_deepcopy():
     shape = (3, 1)
-    dtype = xchainer.int8
+    dtype = xchainer.float32
     array = xchainer.ndarray(shape, dtype, [2, 5, 1])
     grad = xchainer.ndarray(shape, dtype, [5, 7, 8])
 
@@ -411,7 +428,7 @@ def test_array_grad_no_deepcopy():
 
 def test_array_cleargrad():
     shape = (3, 1)
-    dtype = xchainer.int8
+    dtype = xchainer.float32
     array = xchainer.ndarray(shape, dtype, [2, 5, 1])
     grad = xchainer.ndarray(shape, dtype, [5, 7, 8])
 
@@ -446,8 +463,8 @@ def test_array_grad_identity():
 
 
 def test_array_require_grad_multiple_graphs_forward():
-    x1 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
-    x2 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1])
+    x1 = xchainer.ndarray((3, 1), xchainer.float32, [1, 1, 1])
+    x2 = xchainer.ndarray((3, 1), xchainer.float32, [1, 1, 1])
 
     with xchainer.backprop_scope('bp1') as bp1, \
             xchainer.backprop_scope('bp2') as bp2, \
@@ -473,13 +490,13 @@ def test_array_require_grad_multiple_graphs_forward():
 
 
 @pytest.mark.parametrize('expected_error,invalid_shape,invalid_dtype,invalid_device', [
-    (xchainer.DtypeError, None, xchainer.int8, None),
+    (xchainer.DtypeError, None, xchainer.float32, None),
     (xchainer.DimensionError, (2, 1), None, None),
     (xchainer.DeviceError, None, None, 'native:1'),
 ])
 def test_array_grad_invalid_grad(expected_error, invalid_shape, invalid_dtype, invalid_device):
     shape = (3, 1)
-    dtype = xchainer.float32
+    dtype = xchainer.float64
     device = 'native:0'
 
     array = xchainer.ndarray(shape, dtype, [1., 1., 1.], device=device)
@@ -499,8 +516,8 @@ def test_array_grad_invalid_grad(expected_error, invalid_shape, invalid_dtype, i
 
 def test_array_backward():
     with xchainer.backprop_scope('bp1') as bp1:
-        x1 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1]).require_grad(backprop_id=bp1)
-        x2 = xchainer.ndarray((3, 1), xchainer.int8, [1, 1, 1]).require_grad(backprop_id=bp1)
+        x1 = xchainer.ndarray((3, 1), xchainer.float32, [1, 1, 1]).require_grad(backprop_id=bp1)
+        x2 = xchainer.ndarray((3, 1), xchainer.float32, [1, 1, 1]).require_grad(backprop_id=bp1)
         y = x1 * x2
 
         y.backward(backprop_id=bp1, enable_double_backprop=True)

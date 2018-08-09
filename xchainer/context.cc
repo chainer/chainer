@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include <gsl/gsl>
@@ -117,6 +118,25 @@ void Context::ReleaseBackpropId(const BackpropId& backprop_id) {
     (void)backprop_id;  // unused
 
     backprop_stack_.pop_back();
+}
+
+std::string Context::GetBackpropName(const BackpropId& backprop_id) {
+    // Note: backprop name cannot be returned by reference, as the reference may be invalidated when a new graph is pushed to the backprop
+    // stack.
+
+    static constexpr const char* kDefaultBackpropDisplayName = "<default>";
+
+    if (backprop_id == default_backprop_id()) {
+        return kDefaultBackpropDisplayName;
+    }
+
+    auto it = std::find_if(backprop_stack_.rbegin(), backprop_stack_.rend(), [&backprop_id](const BackpropStackItem& item) {
+        return item.ordinal == backprop_id.ordinal();
+    });
+    if (it == backprop_stack_.rend()) {
+        throw XchainerError{"Backprop not found in the context. Ordinal:", backprop_id.ordinal()};
+    }
+    return it->name;
 }
 
 void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {

@@ -55,9 +55,9 @@ False
 >>> xc.backward(y, enable_double_backprop=True)
 >>> gx = x.get_grad()
 >>> gx  # == w
-array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['0'])
+array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['<default>'])
 >>> w.get_grad()  # == x
-array([1., 2., 3.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['0'])
+array([1., 2., 3.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['<default>'])
 
 >>> w.cleargrad()
 >>> z = gx * w  # == w * w
@@ -65,6 +65,6 @@ array([1., 2., 3.], shape=(3,), dtype=float32, device='native:0', backprop_ids=[
 >>> w.get_grad()  # == 2 * w
 array([ 8., 10., 12.], shape=(3,), dtype=float32, device='native:0')
 >>> x.get_grad()  # the second backprop does not reach here
-array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['0'])
+array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['<default>'])
 >>> x.get_grad() is gx
 True

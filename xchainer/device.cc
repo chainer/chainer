@@ -9,6 +9,8 @@
 #include "xchainer/error.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/routines/math.h"
+#include "xchainer/routines/statistics.h"
 
 namespace xchainer {
 namespace {
@@ -51,32 +53,6 @@ void CheckEqual(const Device& lhs, const Device& rhs) {
 }
 
 namespace {
-
-// Differentiable mean.
-// TODO(niboshi): Move to routines
-Array Mean(const Array& a, const Axes& axis, bool keepdims) {
-    return a.Sum(axis, keepdims) / internal::CountItemsAlongAxes(a.shape(), axis);
-}
-
-// Differentiable variance.
-// TODO(niboshi): Move to routines
-Array Var(const Array& a, const Array& mean, const Axes& axis, bool keepdims) {
-    Array diff = a - mean;
-    return Mean(diff * diff, axis, keepdims);
-}
-
-// Differentiable sqrt.
-// TODO(niboshi): Move to routines
-Array Sqrt(const Array& x) {
-    Array out = EmptyLike(x, x.device());
-    x.device().Sqrt(x, out);
-    // TODO(niboshi): Implement backward
-    return out;
-}
-
-// Differentiable reciprocal.
-// TODO(niboshi): Move to routines
-Array Reciprocal(const Array& x) { return OnesLike(x, x.device()) / x; }
 
 struct ApplyBatchNormResult {
     Array out;
@@ -122,22 +98,13 @@ void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Ar
     x_inv_std_ = std::make_shared<Array>(std::move(x_inv_std));
 }
 
-void GenericBatchNormForwardBackward::SetBackwardResults(Array gout, Array gx, Array ggamma) {
-    assert(internal::GetArrayBody(gout)->nodes().empty());
-    assert(internal::GetArrayBody(gx)->nodes().empty());
-    assert(internal::GetArrayBody(ggamma)->nodes().empty());
-    gout_ = std::make_shared<Array>(std::move(gout));
-    gx_ = std::make_shared<Array>(std::move(gx));
-    ggamma_ = std::make_shared<Array>(std::move(ggamma));
-}
-
 Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
     assert(internal::GetArrayBody(x)->nodes().empty());
     assert(internal::GetArrayBody(gamma)->nodes().empty());
     assert(internal::GetArrayBody(beta)->nodes().empty());
 
     Array x_mean = Mean(x, axis_, true);
-    Array x_var = Var(x, x_mean, axis_, true);
+    Array x_var = Var(x, axis_, true);
 
     ApplyBatchNormResult result = ApplyBatchNorm(x, gamma, beta, x_mean, x_var, eps_, axis_);
     Array& out = result.out;
@@ -170,39 +137,7 @@ std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout
     Array gbeta = gout.Sum(axis_, true);
     Array gx = (gamma * x_inv_std) * (gout - (x_hat * ggamma + gbeta) * inv_n);
 
-    SetBackwardResults(gout, gx, ggamma);
-
     return {std::move(gx), std::move(ggamma), std::move(gbeta)};
-}
-
-std::array<Array, 3> GenericBatchNormForwardBackward::DoubleBackward(const Array& ggx, const Array& gggamma, const Array& ggbeta) {
-    const Array& x = *x_;
-    const Array& gamma = *gamma_;
-    const Array& x_mean = *x_mean_;
-    const Array& x_inv_std = *x_inv_std_;
-    const Array& gout = *gout_;
-    const Array& gx = *gx_;
-    const Array& ggamma = *ggamma_;
-
-    // Auxiliary values
-    double inv_n = 1.0 / (x.GetTotalSize() / gamma.GetTotalSize());
-    Array r = (gx * ggx).Sum(axis_);
-    Array coeff = gamma * x_inv_std;
-    Array coeff_m = coeff * inv_n;
-    Array x_hat = (x - x_mean) * x_inv_std;
-
-    Array gggamma2 = gggamma - coeff_m * (x_hat * ggx).Sum(axis_);
-    Array ggbeta2 = ggbeta - coeff_m * ggx.Sum(axis_);
-
-    Array gx_hat2 = gggamma2 * gout - coeff_m * ggamma * ggx;
-    Array gstd2 = -x_inv_std * (r + (x_hat * gx_hat2).Sum(axis_));
-    Array gmean2 = -x_inv_std * gx_hat2.Sum(axis_);
-    Array gx2 = x_inv_std * gx_hat2 + inv_n * (gmean2 + x_hat * gstd2);
-    Array ggy2 = gggamma2 * x_hat + ggbeta2 + coeff * ggx;
-
-    Array ggamma2 = r / gamma;
-
-    return {std::move(gx2), std::move(ggamma2), std::move(ggy2)};
 }
 
 Array Device::FixedBatchNorm(
