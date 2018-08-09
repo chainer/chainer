@@ -377,31 +377,19 @@ class TestDefaultInitializer(unittest.TestCase):
     def check_initialize(self):
         testing.assert_allclose(numpy.ones(self.size), self.link.gamma.array)
         testing.assert_allclose(numpy.zeros(self.size), self.link.beta.array)
+        testing.assert_allclose(0, self.link.avg_mean)
+        testing.assert_allclose(1, self.link.avg_var)
         y = self.link(self.x)
         assert y.dtype == self.dtype
 
     def test_initialize_cpu(self):
-<<<<<<< HEAD
-        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
-        testing.assert_allclose(numpy.zeros(self.size), self.link.beta.data)
-        testing.assert_allclose(0, self.link.avg_mean)
-        testing.assert_allclose(1, self.link.avg_var)
-=======
         self.check_initialize()
->>>>>>> master
 
     @attr.gpu
     def test_initialize_gpu(self):
         self.link.to_gpu()
-<<<<<<< HEAD
-        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
-        testing.assert_allclose(numpy.zeros(self.size), self.link.beta.data)
-        testing.assert_allclose(0, self.link.avg_mean)
-        testing.assert_allclose(1, self.link.avg_var)
-=======
         self.x = cuda.to_gpu(self.x)
         self.check_initialize()
->>>>>>> master
 
 
 @testing.parameterize(*testing.product({

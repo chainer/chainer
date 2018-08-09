@@ -190,16 +190,13 @@ class BatchNormalization(link.Link):
                  initial_gamma=None, initial_beta=None, axis=None,
                  initial_avg_mean=None, initial_avg_var=None):
         super(BatchNormalization, self).__init__()
-<<<<<<< HEAD
+
+        if size is None and axis is None:
+            raise RuntimeError('size or axis is required')
         self.avg_mean = _init_array(initial_avg_mean, 0, size, dtype)
         self.register_persistent('avg_mean')
         self.avg_var = _init_array(initial_avg_var, 1, size, dtype)
         self.register_persistent('avg_var')
-=======
-
-        if size is None and axis is None:
-            raise RuntimeError('size or axis is required')
->>>>>>> master
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
