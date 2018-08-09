@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
@@ -27,8 +25,8 @@ class CrossCovariance(function_node.FunctionNode):
         z_type, y_type = in_types
 
         type_check.expect(
-            y_type.dtype == numpy.float32,
-            z_type.dtype == numpy.float32,
+            y_type.dtype.kind == 'f',
+            y_type.dtype == z_type.dtype,
             y_type.ndim == 2,
             z_type.ndim == 2,
             z_type.shape[0] == y_type.shape[0]

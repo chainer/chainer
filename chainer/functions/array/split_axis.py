@@ -1,5 +1,3 @@
-import collections
-
 import numpy
 import six
 
@@ -7,6 +5,7 @@ import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
+from chainer.utils import collections_abc
 from chainer.utils import type_check
 
 
@@ -51,7 +50,7 @@ def _get_indices_or_sections(indices_or_sections):
         if ios.ndim >= 2:
             raise TypeError('indices_or_sections must be 1-D sequence')
         is_seq = ios.ndim != 0
-    elif isinstance(ios, collections.Sequence):
+    elif isinstance(ios, collections_abc.Sequence):
         # Any sequence except numpy.ndarray
         ios = list(ios)
         is_seq = True

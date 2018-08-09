@@ -27,7 +27,8 @@ class distribution_unittest(unittest.TestCase):
 
     def setUp(self):
         self.support = 'real'
-        self.event_shape = ()
+        if not hasattr(self, 'event_shape'):
+            self.event_shape = ()
         self.continuous = True
         self.test_targets = set()
 
