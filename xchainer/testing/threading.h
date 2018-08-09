@@ -9,8 +9,8 @@ namespace xchainer {
 namespace testing {
 
 template <typename Func, typename... Args>
-auto RunThreads(size_t thread_count, const Func& func, Args&&... args) -> std::vector<decltype(func(size_t{}, Args{}...))> {
-    using ResultType = decltype(func(size_t{}, Args{}...));
+auto RunThreads(size_t thread_count, const Func& func, Args&&... args) -> std::vector<decltype(func(size_t{}, std::declval<Args>()...))> {
+    using ResultType = decltype(func(size_t{}, std::declval<Args>()...));
 
     std::mutex mutex;
     std::condition_variable cv_all_ready;
@@ -60,8 +60,8 @@ auto RunThreads(size_t thread_count, const Func& func, Args&&... args) -> std::v
 
 template <typename SetupFunc, typename Func, typename CheckFunc>
 void CheckThreadSafety(size_t thread_count, size_t repeat_count, const SetupFunc& setupFunc, const Func& func, const CheckFunc& checkFunc) {
-    using CheckContextType = std::add_const_t<decltype(setupFunc(size_t{}))>;
-    using ResultType = decltype(func(size_t{}, CheckContextType{}));
+    using CheckContextType = decltype(setupFunc(size_t{}));
+    using ResultType = decltype(func(size_t{}, std::declval<CheckContextType>()));
 
     for (size_t i_repeat = 0; i_repeat < repeat_count; ++i_repeat) {
         CheckContextType checkContext = setupFunc(i_repeat);
