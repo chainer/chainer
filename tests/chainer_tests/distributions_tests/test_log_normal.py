@@ -11,7 +11,7 @@ import numpy
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
-class TestNormal(testing.distribution_unittest):
+class TestLogNormal(testing.distribution_unittest):
 
     scipy_onebyone = True
 
@@ -24,12 +24,12 @@ class TestNormal(testing.distribution_unittest):
             "batch_shape", "entropy", "event_shape", "log_prob", "mean",
             "sample", "support", "variance"])
 
-        loc = utils.force_array(
+        mu = utils.force_array(
             numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32))
-        scale = utils.force_array(numpy.exp(numpy.random.uniform(
+        sigma = utils.force_array(numpy.exp(numpy.random.uniform(
             -1, 0, self.shape)).astype(numpy.float32))
-        self.params = {"loc": loc, "scale": scale}
-        self.scipy_params = {"s": scale, "scale": numpy.exp(loc)}
+        self.params = {"mu": mu, "sigma": sigma}
+        self.scipy_params = {"s": sigma, "scale": numpy.exp(mu)}
 
         self.support = 'positive'
 

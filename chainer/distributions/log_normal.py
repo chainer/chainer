@@ -19,58 +19,58 @@ class LogNormal(distribution.Distribution):
             \\exp\\left(-\\frac{(\\log{x}-\\mu)^2}{2\\sigma^2}\\right)
 
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        mu(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Parameter of distribution :math:`\\mu`.
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        sigma(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Parameter of distribution :math:`\\sigma`.
     """
 
-    def __init__(self, loc, scale):
-        self.__loc = chainer.as_variable(loc)
-        self.__scale = chainer.as_variable(scale)
+    def __init__(self, mu, sigma):
+        self.__mu = chainer.as_variable(mu)
+        self.__sigma = chainer.as_variable(sigma)
 
     @property
-    def loc(self):
-        return self.__loc
+    def mu(self):
+        return self.__mu
 
     @property
-    def scale(self):
-        return self.__scale
+    def sigma(self):
+        return self.__sigma
 
     @property
     def batch_shape(self):
-        return self.loc.shape
+        return self.mu.shape
 
     @property
     def entropy(self):
-        return 0.5 - LOGPROBC + exponential.log(self.scale) + self.loc
+        return 0.5 - LOGPROBC + exponential.log(self.sigma) + self.mu
 
     @property
     def event_shape(self):
         return ()
 
     def log_prob(self, x):
-        bl = broadcast.broadcast_to(self.loc, x.shape)
-        bs = broadcast.broadcast_to(self.scale, x.shape)
-        return LOGPROBC - exponential.log(bs) \
-            - exponential.log(x) \
-            - (0.5 * (exponential.log(x) - bl) ** 2 / bs ** 2)
+        bl = broadcast.broadcast_to(self.mu, x.shape)
+        bs = broadcast.broadcast_to(self.sigma, x.shape)
+        logx = exponential.log(x)
+        return LOGPROBC - exponential.log(bs) - logx \
+            - (0.5 * (logx - bl) ** 2 / bs ** 2)
 
     @property
     def mean(self):
-        return exponential.exp(self.loc + 0.5 * self.scale ** 2)
+        return exponential.exp(self.mu + 0.5 * self.sigma ** 2)
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.loc)
+        xp = cuda.get_array_module(self.mu)
         if xp is cuda.cupy:
             eps = xp.random.standard_normal(
-                (n,)+self.loc.shape, dtype=self.loc.dtype)
+                (n,)+self.mu.shape, dtype=self.mu.dtype)
         else:
             eps = xp.random.standard_normal(
-                (n,)+self.loc.shape).astype(self.loc.dtype)
+                (n,)+self.mu.shape).astype(self.mu.dtype)
 
-        noise = broadcast.broadcast_to(self.scale, eps.shape) * eps
-        noise += broadcast.broadcast_to(self.loc, eps.shape)
+        noise = broadcast.broadcast_to(self.sigma, eps.shape) * eps
+        noise += broadcast.broadcast_to(self.mu, eps.shape)
 
         return exponential.exp(noise)
 
@@ -80,12 +80,12 @@ class LogNormal(distribution.Distribution):
 
     @property
     def variance(self):
-        return exponential.exp(2 * self.loc + self.scale ** 2) \
-            * (exponential.exp(self.scale ** 2) - 1)
+        return exponential.exp(2 * self.mu + self.sigma ** 2) \
+            * (exponential.exp(self.sigma ** 2) - 1)
 
 
 @distribution.register_kl(LogNormal, LogNormal)
 def _kl_log_normal_log_normal(dist1, dist2):
-    return 0.5 * ((dist1.loc - dist2.loc) ** 2 +
-                  dist1.scale ** 2) / dist2.scale ** 2 - 0.5 \
-        + exponential.log(dist2.scale) - exponential.log(dist1.scale)
+    return 0.5 * ((dist1.mu - dist2.mu) ** 2 +
+                  dist1.sigma ** 2) / dist2.sigma ** 2 - 0.5 \
+        + exponential.log(dist2.sigma) - exponential.log(dist1.sigma)

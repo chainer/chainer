@@ -51,10 +51,10 @@ class TestKLDivergence(unittest.TestCase):
         return distributions.Laplace(**params)
 
     def make_log_normal_dist(self, is_gpu=False):
-        loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        scale = numpy.exp(
+        mu = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        sigma = numpy.exp(
             numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
-        params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+        params = self.encode_params({"mu": mu, "sigma": sigma}, is_gpu)
         return distributions.LogNormal(**params)
 
     def make_normal_dist(self, is_gpu=False, use_log_scale=False):
