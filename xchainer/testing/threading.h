@@ -59,16 +59,17 @@ auto RunThreads(size_t thread_count, const Func& func, Args&&... args) -> std::v
 }
 
 template <typename SetupFunc, typename Func, typename CheckFunc>
-void CheckThreadSafety(size_t thread_count, size_t repeat_count, const SetupFunc& setupFunc, const Func& func, const CheckFunc& checkFunc) {
-    using CheckContextType = decltype(setupFunc(size_t{}));
+void CheckThreadSafety(
+        size_t thread_count, size_t repeat_count, const SetupFunc& setup_func, const Func& func, const CheckFunc& check_func) {
+    using CheckContextType = decltype(setup_func(size_t{}));
     using ResultType = decltype(func(size_t{}, std::declval<CheckContextType>()));
 
     for (size_t i_repeat = 0; i_repeat < repeat_count; ++i_repeat) {
-        CheckContextType checkContext = setupFunc(i_repeat);
+        CheckContextType check_context = setup_func(i_repeat);
 
-        std::vector<ResultType> results = RunThreads(thread_count, func, checkContext);
+        std::vector<ResultType> results = RunThreads(thread_count, func, check_context);
 
-        checkFunc(results);
+        check_func(results);
     }
 }
 
