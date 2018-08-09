@@ -28,6 +28,12 @@ _SHOULD_USE_IDEEP = {
 
 
 def is_ideep_available():
+    """Returns if iDeep is available.
+
+    Returns:
+        bool: ``True`` if iDeep is installed.
+    """
+
     return _ideep_version is not None
 
 

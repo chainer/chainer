@@ -1,3 +1,4 @@
+import functools
 import unittest
 
 import numpy
@@ -10,17 +11,36 @@ from chainer import testing
 from chainer.testing import attr
 
 
+def _skip_if(cond, reason):
+    def decorator(impl):
+        @functools.wraps(impl)
+        def wrapper(self, *args, **kwargs):
+            if cond(self):
+                raise unittest.SkipTest(reason)
+            else:
+                impl(self, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+_skip_if_0dim = _skip_if(
+    lambda self: self.shape == (),
+    'axis must be None on 0-dim input.'
+)
+
+
 @testing.parameterize(
-    {'dtype': numpy.float16},
-    {'dtype': numpy.float32},
-    {'dtype': numpy.float64},
+    *testing.product({
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+        'shape': [(), (3, 2, 4)]
+    })
 )
 class TestLogSumExp(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(self.dtype)
+        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, ()).astype(self.dtype)
-        self.ggx = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.check_forward_option = {}
         self.check_backward_option = {
             'eps': 2.0 ** -5, 'rtol': 1e-4, 'atol': 1e-4}
@@ -44,22 +64,28 @@ class TestLogSumExp(unittest.TestCase):
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
+    @_skip_if_0dim
     def test_forward_axis_cpu(self):
         for i in range(self.x.ndim):
             self.check_forward(self.x, axis=i)
 
+    @_skip_if_0dim
     def test_forward_negative_axis_cpu(self):
         self.check_forward(self.x, axis=-1)
 
+    @_skip_if_0dim
     def test_forward_multi_axis_cpu(self):
         self.check_forward(self.x, axis=(0, 1))
 
+    @_skip_if_0dim
     def test_forward_multi_axis_invert_cpu(self):
         self.check_forward(self.x, axis=(1, 0))
 
+    @_skip_if_0dim
     def test_forward_negative_multi_axis_cpu(self):
         self.check_forward(self.x, axis=(0, -1))
 
+    @_skip_if_0dim
     def test_forward_negative_multi_axis_invert_cpu(self):
         self.check_forward(self.x, axis=(-2, 0))
 
@@ -68,27 +94,33 @@ class TestLogSumExp(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_forward_axis_gpu(self):
         for i in range(self.x.ndim):
             self.check_forward(cuda.to_gpu(self.x), axis=i)
 
     @attr.gpu
+    @_skip_if_0dim
     def test_forward_negative_axis_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), axis=-1)
 
     @attr.gpu
+    @_skip_if_0dim
     def test_forward_multi_axis_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), axis=(0, 1))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_forward_multi_axis_invert_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), axis=(1, 0))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_forward_negative_multi_axis_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), axis=(0, -1))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_forward_negative_multi_axis_invert_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), axis=(-2, 0))
 
@@ -100,27 +132,33 @@ class TestLogSumExp(unittest.TestCase):
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
 
+    @_skip_if_0dim
     def test_backward_axis_cpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=i)) * self.gy
             self.check_backward(self.x, gy, axis=i)
 
+    @_skip_if_0dim
     def test_backward_negative_axis_cpu(self):
         gy = numpy.ones_like(self.x.sum(axis=-1)) * self.gy
         self.check_backward(self.x, gy, axis=-1)
 
+    @_skip_if_0dim
     def test_backward_multi_axis_cpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, 1))) * self.gy
         self.check_backward(self.x, gy, axis=(0, 1))
 
+    @_skip_if_0dim
     def test_backward_multi_axis_invert_cpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(1, 0))) * self.gy
         self.check_backward(self.x, gy, axis=(1, 0))
 
+    @_skip_if_0dim
     def test_backward_negative_multi_axis_cpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
         self.check_backward(self.x, gy, axis=(0, -1))
 
+    @_skip_if_0dim
     def test_backward_negative_multi_axis_invert_cpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_backward(self.x, gy, axis=(-2, 0))
@@ -130,33 +168,39 @@ class TestLogSumExp(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_backward_axis_gpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=i)) * self.gy
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=i)
 
     @attr.gpu
+    @_skip_if_0dim
     def test_backward_negative_axis_gpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=-1)) * self.gy
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=-1)
 
     @attr.gpu
+    @_skip_if_0dim
     def test_backward_multi_axis_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, 1))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(0, 1))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_backward_multi_axis_invert_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(1, 0))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(1, 0))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_backward_negative_multi_axis_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(0, -1))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_backward_negative_multi_axis_invert_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(-2, 0))
@@ -170,27 +214,33 @@ class TestLogSumExp(unittest.TestCase):
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.gy, self.ggx)
 
+    @_skip_if_0dim
     def test_double_backward_axis_cpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=i)) * self.gy
             self.check_double_backward(self.x, gy, self.ggx, axis=i)
 
+    @_skip_if_0dim
     def test_double_backward_negative_axis_cpu(self):
         gy = numpy.ones_like(self.x.sum(axis=-1)) * self.gy
         self.check_double_backward(self.x, gy, self.ggx, axis=-1)
 
+    @_skip_if_0dim
     def test_double_backward_multi_axis_cpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, 1))) * self.gy
         self.check_double_backward(self.x, gy, self.ggx, axis=(0, 1))
 
+    @_skip_if_0dim
     def test_double_backward_multi_axis_invert_cpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(1, 0))) * self.gy
         self.check_double_backward(self.x, gy, self.ggx, axis=(1, 0))
 
+    @_skip_if_0dim
     def test_double_backward_negative_multi_axis_cpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
         self.check_double_backward(self.x, gy, self.ggx, axis=(0, -1))
 
+    @_skip_if_0dim
     def test_double_backward_negative_multi_axis_invert_cpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_double_backward(self.x, gy, self.ggx, axis=(-2, 0))
@@ -201,6 +251,7 @@ class TestLogSumExp(unittest.TestCase):
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_double_backward_axis_gpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=i)) * self.gy
@@ -209,6 +260,7 @@ class TestLogSumExp(unittest.TestCase):
                 axis=i)
 
     @attr.gpu
+    @_skip_if_0dim
     def test_double_backward_negative_axis_gpu(self):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=-1)) * self.gy
@@ -217,6 +269,7 @@ class TestLogSumExp(unittest.TestCase):
                 axis=-1)
 
     @attr.gpu
+    @_skip_if_0dim
     def test_double_backward_multi_axis_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, 1))) * self.gy
         self.check_double_backward(
@@ -224,6 +277,7 @@ class TestLogSumExp(unittest.TestCase):
             axis=(0, 1))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_double_backward_multi_axis_invert_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(1, 0))) * self.gy
         self.check_double_backward(
@@ -231,6 +285,7 @@ class TestLogSumExp(unittest.TestCase):
             axis=(1, 0))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_double_backward_negative_multi_axis_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
         self.check_double_backward(
@@ -238,6 +293,7 @@ class TestLogSumExp(unittest.TestCase):
             axis=(0, -1))
 
     @attr.gpu
+    @_skip_if_0dim
     def test_double_backward_negative_multi_axis_invert_gpu(self):
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_double_backward(
@@ -252,10 +308,12 @@ class TestLogSumExp(unittest.TestCase):
         with self.assertRaises(TypeError):
             functions.logsumexp(self.x, (1, 'x'))
 
+    @_skip_if_0dim
     def test_duplicate_axis(self):
         with self.assertRaises(ValueError):
             functions.logsumexp(self.x, (0, 0))
 
+    @_skip_if_0dim
     def test_pos_neg_duplicate_axis(self):
         with self.assertRaises(ValueError):
             functions.logsumexp(self.x, (1, -2))

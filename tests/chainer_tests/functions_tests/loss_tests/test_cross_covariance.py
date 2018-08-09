@@ -11,14 +11,14 @@ from chainer import testing
 from chainer.testing import attr
 
 
-def _cross_covariance(y, z):
+def _cross_covariance(y, z, dtype):
     row = y.shape[1]
     col = z.shape[1]
     y, z = cuda.to_cpu(y), cuda.to_cpu(z)
     y_mean = y.mean(axis=0)
     z_mean = z.mean(axis=0)
     N = y.shape[0]
-    loss_expect = numpy.zeros((row, col), dtype=numpy.float32)
+    loss_expect = numpy.zeros((row, col), dtype=dtype)
     for i in six.moves.xrange(row):
         for j in six.moves.xrange(col):
             for n in six.moves.xrange(N):
@@ -28,23 +28,37 @@ def _cross_covariance(y, z):
     return loss_expect
 
 
-@testing.parameterize(
-    {'reduce': 'half_squared_sum'},
-    {'reduce': 'no'}
-)
+@testing.parameterize(*testing.product_dict(
+    [{'dtype': numpy.float16,
+      'forward_options': {'rtol': 1e-3, 'atol': 1e-3},
+      'backward_options': {'rtol': 3e-2, 'atol': 3e-2},
+      'double_backward_options': {'rtol': 5e-1, 'atol': 5e-1}},
+     {'dtype': numpy.float32,
+      'forward_options': {'rtol': 1e-4, 'atol': 1e-4},
+      'backward_options': {'rtol': 1e-4, 'atol': 1e-4},
+      'double_backward_options': {'rtol': 1e-4, 'atol': 1e-4}},
+     {'dtype': numpy.float64,
+      'forward_options': {'rtol': 1e-4, 'atol': 1e-4},
+      'backward_options': {'rtol': 1e-4, 'atol': 1e-4},
+      'double_backward_options': {'rtol': 1e-4, 'atol': 1e-4}},
+     ],
+    [{'reduce': 'half_squared_sum'},
+     {'reduce': 'no'},
+     ]
+))
 class TestCrossCovariance(unittest.TestCase):
 
     def setUp(self):
-        self.y = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
-        self.z = numpy.random.uniform(-1, 1, (4, 2)).astype(numpy.float32)
+        self.y = numpy.random.uniform(-1, 1, (4, 3)).astype(self.dtype)
+        self.z = numpy.random.uniform(-1, 1, (4, 2)).astype(self.dtype)
         if self.reduce == 'half_squared_sum':
             gloss_shape = ()
         else:
             gloss_shape = (3, 2)
         self.gloss = numpy.random.uniform(
-            -1, 1, gloss_shape).astype(numpy.float32)
-        self.ggy = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
-        self.ggz = numpy.random.uniform(-1, 1, (4, 2)).astype(numpy.float32)
+            -1, 1, gloss_shape).astype(self.dtype)
+        self.ggy = numpy.random.uniform(-1, 1, (4, 3)).astype(self.dtype)
+        self.ggz = numpy.random.uniform(-1, 1, (4, 2)).astype(self.dtype)
 
     def check_forward(self, y_data, z_data):
         y = chainer.Variable(y_data)
@@ -52,15 +66,15 @@ class TestCrossCovariance(unittest.TestCase):
         loss = functions.cross_covariance(y, z, self.reduce)
 
         self.assertEqual(loss.shape, self.gloss.shape)
-        self.assertEqual(loss.data.dtype, numpy.float32)
+        self.assertEqual(loss.data.dtype, self.dtype)
         loss_value = cuda.to_cpu(loss.data)
 
         # Compute expected value
-        loss_expect = _cross_covariance(y_data, z_data)
+        loss_expect = _cross_covariance(y_data, z_data, dtype=self.dtype)
         if self.reduce == 'half_squared_sum':
             loss_expect = numpy.sum(loss_expect ** 2) * 0.5
         numpy.testing.assert_allclose(
-            loss_expect, loss_value, rtol=1e-4, atol=1e-4)
+            loss_expect, loss_value, **self.forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.y, self.z)
@@ -74,7 +88,7 @@ class TestCrossCovariance(unittest.TestCase):
             return functions.cross_covariance(y, z, self.reduce)
 
         gradient_check.check_backward(
-            f, (y_data, z_data), gloss_data, eps=0.02, rtol=1e-4, atol=1e-4)
+            f, (y_data, z_data), gloss_data, eps=0.02, **self.backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.y, self.z, self.gloss)
@@ -108,7 +122,7 @@ class TestCrossCovariance(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, (y_data, z_data), gloss_data, (ggy_data, ggz_data),
-            rtol=1e-4, atol=1e-4)
+            **self.double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(

@@ -10,35 +10,52 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(
-    {'reduce': 'no'},
-    {'reduce': 'sum_along_second_axis'}
-)
+@testing.parameterize(*testing.product_dict(
+    [{'dtype': numpy.float16,
+      'forward_options': {'rtol': 5e-3, 'atol': 5e-3},
+      'backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol': 1e0},
+      'double_backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol': 1e0}},
+     {'dtype': numpy.float32,
+      'forward_options': {},
+      'backward_options': {'eps': 1e-2, 'rtol': 1e-2, 'atol': 1e-2},
+      'double_backward_options': {'eps': 1e-2, 'rtol': 1e-1, 'atol': 1e-1}},
+     {'dtype': numpy.float64,
+      'forward_options': {},
+      'backward_options': {'eps': 1e-2, 'rtol': 1e-2, 'atol': 1e-2},
+      'double_backward_options': {'eps': 1e-2, 'rtol': 1e-1, 'atol': 1e-1}},
+     ],
+    [{'reduce': 'no'},
+     {'reduce': 'sum_along_second_axis'},
+     ],
+))
 class TestHuberLoss(unittest.TestCase):
 
     def setUp(self):
+        self._config_user = chainer.using_config('dtype', self.dtype)
+        self._config_user.__enter__()
+
         self.shape = (4, 10)
         self.x = (numpy.random.random(self.shape) - 0.5) * 20
-        self.x = self.x.astype(numpy.float32)
-        self.t = numpy.random.random(self.shape).astype(numpy.float32)
+        self.x = self.x.astype(self.dtype)
+        self.t = numpy.random.random(self.shape).astype(self.dtype)
         if self.reduce == 'sum_along_second_axis':
             gy_shape = self.shape[0]
         else:
             gy_shape = self.shape
-        self.gy = numpy.random.random(gy_shape).astype(numpy.float32)
+        self.gy = numpy.random.random(gy_shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, self.x.shape)
-        self.ggx = self.ggx.astype(numpy.float32)
+        self.ggx = self.ggx.astype(self.dtype)
         self.ggt = numpy.random.uniform(-1, 1, self.t.shape)
-        self.ggt = self.ggt.astype(numpy.float32)
+        self.ggt = self.ggt.astype(self.dtype)
 
-        self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-        self.check_double_backward_options = {'atol': 5e-2, 'rtol': 5e-2}
+    def tearDown(self):
+        self._config_user.__exit__(None, None, None)
 
     def check_forward(self, x_data, t_data):
         x = chainer.Variable(x_data)
         t = chainer.Variable(t_data)
         loss = functions.huber_loss(x, t, delta=1, reduce=self.reduce)
-        self.assertEqual(loss.data.dtype, numpy.float32)
+        self.assertEqual(loss.data.dtype, self.dtype)
         loss_value = cuda.to_cpu(loss.data)
 
         diff_data = cuda.to_cpu(x_data) - cuda.to_cpu(t_data)
@@ -48,7 +65,8 @@ class TestHuberLoss(unittest.TestCase):
         loss_expect[~mask] = numpy.abs(diff_data[~mask]) - 0.5
         if self.reduce == 'sum_along_second_axis':
             loss_expect = numpy.sum(loss_expect, axis=1)
-        testing.assert_allclose(loss_value, loss_expect)
+        testing.assert_allclose(
+            loss_value, loss_expect, **self.forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.x, self.t)
@@ -62,8 +80,7 @@ class TestHuberLoss(unittest.TestCase):
             return functions.huber_loss(x, t, delta=1, reduce=self.reduce)
 
         gradient_check.check_backward(
-            f, (x_data, t_data), y_grad, eps=1e-2,
-            **self.check_backward_options)
+            f, (x_data, t_data), y_grad, **self.backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.t, self.gy)
@@ -79,8 +96,8 @@ class TestHuberLoss(unittest.TestCase):
             return functions.huber_loss(x, t, delta=1, reduce=self.reduce)
 
         gradient_check.check_double_backward(
-            f, (x_data, t_data), y_grad, (x_grad_grad, t_grad_grad), eps=1e-2,
-            **self.check_double_backward_options)
+            f, (x_data, t_data), y_grad, (x_grad_grad, t_grad_grad),
+            **self.double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.t, self.gy, self.ggx, self.ggt)

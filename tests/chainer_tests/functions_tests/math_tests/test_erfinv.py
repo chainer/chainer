@@ -49,7 +49,7 @@ class TestErfinv(unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64]
 }))
 @testing.without_requires('scipy')
-class TestLGammaExceptions(unittest.TestCase):
+class TestErfinvExceptions(unittest.TestCase):
     def setUp(self):
         self.x, self.gy, self.ggx = make_data(self.shape, self.dtype)
         self.func = F.erfinv

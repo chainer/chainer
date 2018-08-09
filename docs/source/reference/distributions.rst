@@ -15,9 +15,10 @@ Distributions
    :nosignatures:
    
    chainer.distributions.Bernoulli
-   chainer.distributions.Normal
-   chainer.distributions.LogNormal
    chainer.distributions.Laplace
+   chainer.distributions.LogNormal
+   chainer.distributions.MultivariateNormal
+   chainer.distributions.Normal
 
 
 Functionals of distribution
