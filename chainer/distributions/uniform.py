@@ -42,16 +42,17 @@ class Uniform(distribution.Distribution):
             raise ValueError(
                 "Either `low, high` or `loc, scale` (not both) must have a "
                 "value.")
-        if low is None:
-            self.__loc = chainer.as_variable(loc)
-            self.__scale = chainer.as_variable(scale)
-            self.__low = self.__loc
-            self.__high = self.__loc + self.__scale
-        else:
-            self.__low = chainer.as_variable(low)
-            self.__high = chainer.as_variable(high)
-            self.__loc = self.__low
-            self.__scale = self.__high - self.__low
+        with chainer.using_config('enable_backprop', True):
+            if low is None:
+                self.__loc = chainer.as_variable(loc)
+                self.__scale = chainer.as_variable(scale)
+                self.__low = self.__loc
+                self.__high = self.__loc + self.__scale
+            else:
+                self.__low = chainer.as_variable(low)
+                self.__high = chainer.as_variable(high)
+                self.__loc = self.__low
+                self.__scale = self.__high - self.__low
 
     @property
     def low(self):
