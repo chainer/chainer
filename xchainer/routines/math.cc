@@ -25,7 +25,7 @@ namespace xchainer {
 
 Array Negative(const Array& x) {
     if (x.dtype() == Dtype::kBool) {
-        throw DtypeError{"Cannot negative a boolean array."};
+        throw DtypeError{"Cannot negate a boolean array."};
     }
     return Multiply(x, Scalar{-1, x.dtype()});
 }
@@ -139,6 +139,9 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
     // TODO(niboshi): dtype conversion
     CheckEqual(x1.dtype(), x2.dtype());
     CheckEqual(x1.shape(), x2.shape());
+    if (x1.dtype() == Dtype::kBool) {
+        throw DtypeError{"Cannot subtract from a boolean array."};
+    }
 
     {
         NoBackpropModeScope scope{};
@@ -159,6 +162,9 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
 
 void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
     // TODO(hvy): dtype conversion
+    if (x1.dtype() == Dtype::kBool) {
+        throw DtypeError{"Cannot subtract from a boolean array."};
+    }
 
     {
         NoBackpropModeScope scope{};
