@@ -132,7 +132,7 @@ namespace {
 
 // Returns the pointers to array nodes for all graphs in the input array corresponding to the input_index.
 // The raw pointers (not std::shared_ptr) are never null.
-// TODO(hvy): Consider implementing this an OpNode member function, if it could be used from other places.
+// TODO(hvy): Consider implementing this an OpNode member function.
 std::vector<const std::shared_ptr<ArrayNode>*> GetInputArrayNodesForIndex(const OpNode& op_node, size_t input_index) {
     std::vector<const std::shared_ptr<ArrayNode>*> input_array_nodes;
 
