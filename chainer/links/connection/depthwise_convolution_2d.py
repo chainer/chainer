@@ -76,7 +76,7 @@ class DepthwiseConvolution2D(link.Link):
         if self.b is not None:
             self.b.initialize(self.channel_multiplier * in_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the depthwise convolution layer.
 
         Args:

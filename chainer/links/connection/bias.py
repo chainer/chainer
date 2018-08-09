@@ -17,7 +17,7 @@ class Bias(link.Link):
             input is applied.
         shape (tuple of ints): Shape of the learnable bias parameter. If
             ``None``, this link does not have learnable parameters so an
-            explicit bias needs to be given to its ``__call__`` method's second
+            explicit bias needs to be given to its ``forward`` method's second
             input.
 
     .. seealso:: See :func:`~chainer.functions.bias` for details.
@@ -38,7 +38,7 @@ class Bias(link.Link):
 
         self.axis = axis
 
-    def __call__(self, *xs):
+    def forward(self, *xs):
         """Applies broadcasted elementwise summation.
 
         Args:

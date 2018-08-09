@@ -3,14 +3,27 @@ Functions
 
 .. module:: chainer.functions
 
-Chainer provides basic :class:`~chainer.FunctionNode` implementations in the
-:mod:`chainer.functions` package. Most of them are wrapped by plain Python
-functions, which users should use.
+Chainer provides variety of built-in function implementations in :mod:`chainer.functions` package.
+These functions return a :class:`~chainer.Variable` object or a tuple of multiple :class:`~chainer.Variable` objects.
+
+.. note::
+    Functions implemented in Chainer consists of the following two parts:
+
+    * A class that inherits :class:`~chainer.FunctionNode`, which defines forward/backward computation.
+    * A "wrapper" function around the class.
+
+    APIs listed in this page are "wrapper" of :class:`~chainer.FunctionNode` implementations.
+    In most cases, you don't have to use :class:`~chainer.FunctionNode` classes directly.
+
+    For example, :func:`chainer.functions.sum` is a wrapper function defined as ``def sum(...):`` in `chainer/functions/math/sum.py <https://github.com/chainer/chainer/blob/master/chainer/functions/math/sum.py>`__, and it calls its corresponding :class:`~chainer.FunctionNode` implementation, ``Sum``.
+    Some functions may not have the corresponding :class:`~chainer.FunctionNode` implementation; one example is :func:`chainer.functions.average`, which is defined in `chainer/functions/math/average.py <https://github.com/chainer/chainer/blob/master/chainer/functions/math/average.py>`__, which calls other wrapper functions to calculate average.
+
+    If you are implementing your own functions, please see :doc:`../guides/functions`.
 
 .. note::
    As of v1.5, the concept of parameterized functions are gone, and they are
    replaced by corresponding :class:`~chainer.Link` implementations. They are
-   found in the :mod:`~chainer.links` namespace.
+   found in the :mod:`chainer.links` namespace.
 
 ..
    For contributors that want to update these lists:
@@ -24,6 +37,11 @@ functions, which users should use.
 
 Arithmetic functions
 --------------------
+
+Basic arithmetic operations for :class:`~chainer.Variable`\s are implemented as operators.
+Refer to the Notes section of :class:`~chainer.Variable` for details.
+
+:func:`chainer.functions.add` provides better performance when accumulating three or more :class:`~chainer.Variable`\s at once.
 
 .. autosummary::
    :toctree: generated/
@@ -70,6 +88,7 @@ Array manipulations
    chainer.functions.concat
    chainer.functions.copy
    chainer.functions.depth2space
+   chainer.functions.diagonal
    chainer.functions.dstack
    chainer.functions.expand_dims
    chainer.functions.flatten
@@ -79,6 +98,7 @@ Array manipulations
    chainer.functions.get_item
    chainer.functions.hstack
    chainer.functions.im2col
+   chainer.functions.moveaxis
    chainer.functions.pad
    chainer.functions.pad_sequence
    chainer.functions.permutate
@@ -115,6 +135,7 @@ Neural network connections
    chainer.functions.deconvolution_2d
    chainer.functions.deconvolution_nd
    chainer.functions.depthwise_convolution_2d
+   chainer.functions.deformable_convolution_2d_sampler
    chainer.functions.dilated_convolution_2d
    chainer.functions.embed_id
    chainer.functions.linear
@@ -195,11 +216,16 @@ Mathematical functions
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh
+   chainer.functions.cumprod
    chainer.functions.cumsum
    chainer.functions.det
    chainer.functions.batch_det
+   chainer.functions.digamma
+   chainer.functions.einsum
    chainer.functions.erf
    chainer.functions.erfc
+   chainer.functions.erfcx
+   chainer.functions.erfinv
    chainer.functions.exp
    chainer.functions.expm1
    chainer.functions.fft
@@ -209,6 +235,7 @@ Mathematical functions
    chainer.functions.identity
    chainer.functions.ifft
    chainer.functions.inv
+   chainer.functions.lgamma
    chainer.functions.linear_interpolate
    chainer.functions.log
    chainer.functions.log10
@@ -222,15 +249,18 @@ Mathematical functions
    chainer.functions.min
    chainer.functions.minimum
    chainer.functions.prod
+   chainer.functions.polygamma
    chainer.functions.rsqrt
    chainer.functions.scale
    chainer.functions.sin
    chainer.functions.sinh
    chainer.functions.sign
+   chainer.functions.sparse_matmul
    chainer.functions.sqrt
    chainer.functions.square
    chainer.functions.squared_difference
    chainer.functions.sum
+   chainer.functions.sum_to
    chainer.functions.tanh
    chainer.functions.tan
    chainer.functions.tensordot
@@ -259,6 +289,7 @@ Normalization functions
    chainer.functions.batch_renormalization
    chainer.functions.fixed_batch_normalization
    chainer.functions.fixed_batch_renormalization
+   chainer.functions.group_normalization
    chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
    chainer.functions.normalize
@@ -294,8 +325,7 @@ Utility functions
 Function base
 -------------
 
-.. module:: chainer
-
+.. currentmodule:: chainer
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -310,23 +340,11 @@ Function base
 Function hooks
 --------------
 
-Chainer provides a function-hook mechanism that enriches
-the behavior of forward and backward propagation of :class:`~chainer.Function`.
-
-Base class
-----------
-
-.. autosummary::
-   :toctree: generated/
-   :nosignatures:
-
-   chainer.FunctionHook
-
 .. module:: chainer.function_hooks
 
-Concrete function hooks
------------------------
+Chainer provides a function-hook mechanism that enriches the behavior of forward and backward propagation of :class:`~chainer.FunctionNode` and :class:`~chainer.Function`.
 
+.. currentmodule:: chainer
 .. autosummary::
    :toctree: generated/
    :nosignatures:
@@ -335,3 +353,12 @@ Concrete function hooks
    chainer.function_hooks.CupyMemoryProfileHook
    chainer.function_hooks.PrintHook
    chainer.function_hooks.TimerHook
+
+You can also implement your own function-hook to inject arbitrary code before/after the forward/backward propagation.
+
+.. currentmodule:: chainer
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.FunctionHook

@@ -29,7 +29,7 @@ class QFunction(chainer.Chain):
             self.l2 = L.Linear(n_units, 1,
                                initialW=chainer.initializers.HeNormal(1e-3))
 
-    def __call__(self, obs, action):
+    def forward(self, obs, action):
         """Compute Q-values for given state-action pairs."""
         x = F.concat((obs, action), axis=1)
         h = F.relu(self.l0(x))
@@ -58,7 +58,7 @@ class Policy(chainer.Chain):
             self.l2 = L.Linear(n_units, action_size,
                                initialW=chainer.initializers.HeNormal(1e-3))
 
-    def __call__(self, x):
+    def forward(self, x):
         """Compute actions for given observations."""
         h = F.relu(self.l0(x))
         h = F.relu(self.l1(h))

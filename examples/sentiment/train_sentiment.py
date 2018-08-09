@@ -10,8 +10,6 @@ This is Socher's simple recursive model, not RTNN:
 
 import argparse
 import collections
-import random
-import time
 
 import numpy as np
 
@@ -20,35 +18,10 @@ from chainer.backends import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import optimizers
+from chainer import reporter
+from chainer.training import extensions
 
 import data
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--gpu', '-g', default=-1, type=int,
-                    help='GPU ID (negative value indicates CPU)')
-parser.add_argument('--epoch', '-e', default=400, type=int,
-                    help='number of epochs to learn')
-parser.add_argument('--unit', '-u', default=30, type=int,
-                    help='number of units')
-parser.add_argument('--batchsize', '-b', type=int, default=25,
-                    help='learning minibatch size')
-parser.add_argument('--label', '-l', type=int, default=5,
-                    help='number of labels')
-parser.add_argument('--epocheval', '-p', type=int, default=5,
-                    help='number of epochs per evaluation')
-parser.add_argument('--test', dest='test', action='store_true')
-parser.set_defaults(test=False)
-args = parser.parse_args()
-if args.gpu >= 0:
-    cuda.check_cuda_available()
-xp = cuda.cupy if args.gpu >= 0 else np
-
-n_epoch = args.epoch       # number of epochs
-n_units = args.unit        # number of units per layer
-batchsize = args.batchsize      # minibatch size
-n_label = args.label         # number of labels
-epoch_per_eval = args.epocheval  # number of epochs per evaluation
 
 
 def convert_tree(vocab, exp):
@@ -67,12 +40,25 @@ def convert_tree(vocab, exp):
 
 class RecursiveNet(chainer.Chain):
 
-    def __init__(self, n_vocab, n_units):
+    def __init__(self, n_vocab, n_units, n_label):
         super(RecursiveNet, self).__init__()
         with self.init_scope():
             self.embed = L.EmbedID(n_vocab, n_units)
             self.l = L.Linear(n_units * 2, n_units)
             self.w = L.Linear(n_units, n_label)
+
+    def forward(self, x):
+        accum_loss = 0.0
+        result = collections.defaultdict(lambda: 0)
+        # calculate each tree in batch ``x`` because we cannot process as batch
+        for tree in x:
+            loss, _ = self.traverse(tree, evaluate=result)
+            accum_loss += loss
+
+        reporter.report({'loss': accum_loss}, self)
+        reporter.report({'total': result['total_node']}, self)
+        reporter.report({'correct': result['correct_node']}, self)
+        return accum_loss
 
     def leaf(self, x):
         return self.embed(x)
@@ -83,31 +69,28 @@ class RecursiveNet(chainer.Chain):
     def label(self, v):
         return self.w(v)
 
+    def traverse(self, node, evaluate, root=True):
+        if isinstance(node['node'], int):
+            # leaf node
+            word = self.xp.array([node['node']], np.int32)
+            loss = 0
+            v = self.leaf(word)
+        else:
+            # internal node
+            left_node, right_node = node['node']
+            left_loss, left = self.traverse(
+                left_node, evaluate=evaluate, root=False)
+            right_loss, right = self.traverse(
+                right_node, evaluate=evaluate, root=False)
+            v = self.node(left, right)
+            loss = left_loss + right_loss
 
-def traverse(model, node, evaluate=None, root=True):
-    if isinstance(node['node'], int):
-        # leaf node
-        word = xp.array([node['node']], np.int32)
-        loss = 0
-        v = model.leaf(word)
-    else:
-        # internal node
-        left_node, right_node = node['node']
-        left_loss, left = traverse(
-            model, left_node, evaluate=evaluate, root=False)
-        right_loss, right = traverse(
-            model, right_node, evaluate=evaluate, root=False)
-        v = model.node(left, right)
-        loss = left_loss + right_loss
+        y = self.label(v)
 
-    y = model.label(v)
-
-    if chainer.config.train:
-        label = xp.array([node['label']], np.int32)
+        label = self.xp.array([node['label']], np.int32)
         t = chainer.Variable(label)
         loss += F.softmax_cross_entropy(y, t)
 
-    if evaluate is not None:
         predict = cuda.to_cpu(y.data.argmax(1))
         if predict[0] == node['label']:
             evaluate['correct_node'] += 1
@@ -118,14 +101,14 @@ def traverse(model, node, evaluate=None, root=True):
                 evaluate['correct_root'] += 1
             evaluate['total_root'] += 1
 
-    return loss, v
+        return loss, v
 
 
 def evaluate(model, test_trees):
     result = collections.defaultdict(lambda: 0)
     with chainer.using_config('train', False), chainer.no_backprop_mode():
         for tree in test_trees:
-            traverse(model, tree, evaluate=result)
+            model.traverse(tree, evaluate=result)
 
     acc_node = 100.0 * result['correct_node'] / result['total_node']
     acc_root = 100.0 * result['correct_root'] / result['total_root']
@@ -135,64 +118,85 @@ def evaluate(model, test_trees):
         acc_root, result['correct_root'], result['total_root']))
 
 
-vocab = {}
-if args.test:
-    max_size = 10
-else:
-    max_size = None
-train_trees = [convert_tree(vocab, tree)
-               for tree in data.read_corpus('trees/train.txt', max_size)]
-test_trees = [convert_tree(vocab, tree)
-              for tree in data.read_corpus('trees/test.txt', max_size)]
-develop_trees = [convert_tree(vocab, tree)
-                 for tree in data.read_corpus('trees/dev.txt', max_size)]
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--gpu', '-g', default=-1, type=int,
+                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--epoch', '-e', default=400, type=int,
+                        help='number of epochs to learn')
+    parser.add_argument('--unit', '-u', default=30, type=int,
+                        help='number of units')
+    parser.add_argument('--batchsize', '-b', type=int, default=25,
+                        help='learning minibatch size')
+    parser.add_argument('--label', '-l', type=int, default=5,
+                        help='number of labels')
+    parser.add_argument('--epocheval', '-p', type=int, default=5,
+                        help='number of epochs per evaluation')
+    parser.add_argument('--test', dest='test', action='store_true')
+    parser.set_defaults(test=False)
+    args = parser.parse_args()
 
-model = RecursiveNet(len(vocab), n_units)
+    n_epoch = args.epoch       # number of epochs
+    n_units = args.unit        # number of units per layer
+    batchsize = args.batchsize      # minibatch size
+    n_label = args.label         # number of labels
+    epoch_per_eval = args.epocheval  # number of epochs per evaluation
 
-if args.gpu >= 0:
-    model.to_gpu()
+    if args.test:
+        max_size = 10
+    else:
+        max_size = None
 
-# Setup optimizer
-optimizer = optimizers.AdaGrad(lr=0.1)
-optimizer.setup(model)
-optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(0.0001))
+    vocab = {}
+    train_data = [convert_tree(vocab, tree)
+                  for tree in data.read_corpus('trees/train.txt', max_size)]
+    train_iter = chainer.iterators.SerialIterator(train_data, batchsize)
+    validation_data = [convert_tree(vocab, tree)
+                       for tree in data.read_corpus('trees/dev.txt', max_size)]
+    validation_iter = chainer.iterators.SerialIterator(
+        validation_data, batchsize, repeat=False, shuffle=False)
+    test_data = [convert_tree(vocab, tree)
+                 for tree in data.read_corpus('trees/test.txt', max_size)]
 
-accum_loss = 0
-count = 0
-start_at = time.time()
-cur_at = start_at
-for epoch in range(n_epoch):
-    print('Epoch: {0:d}'.format(epoch))
-    total_loss = 0
-    cur_at = time.time()
-    random.shuffle(train_trees)
-    for tree in train_trees:
-        loss, v = traverse(model, tree)
-        accum_loss += loss
-        count += 1
+    model = RecursiveNet(len(vocab), n_units, n_label)
 
-        if count >= batchsize:
-            model.cleargrads()
-            accum_loss.backward()
-            optimizer.update()
-            total_loss += float(accum_loss.data)
+    if args.gpu >= 0:
+        model.to_gpu()
 
-            accum_loss = 0
-            count = 0
+    # Setup optimizer
+    optimizer = optimizers.AdaGrad(lr=0.1)
+    optimizer.setup(model)
+    optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(0.0001))
 
-    print('loss: {:.2f}'.format(total_loss))
+    def _convert(batch, _):
+        return batch
 
-    now = time.time()
-    throughput = float(len(train_trees)) / (now - cur_at)
-    print('{:.2f} iters/sec, {:.2f} sec'.format(throughput, now - cur_at))
-    print()
+    # Setup updater
+    updater = chainer.training.StandardUpdater(
+        train_iter, optimizer, device=args.gpu, converter=_convert)
 
-    if (epoch + 1) % epoch_per_eval == 0:
-        print('Train data evaluation:')
-        evaluate(model, train_trees)
-        print('Develop data evaluation:')
-        evaluate(model, develop_trees)
-        print('')
+    # Setup trainer and run
+    trainer = chainer.training.Trainer(updater, (n_epoch, 'epoch'))
+    trainer.extend(
+        extensions.Evaluator(validation_iter, model, device=args.gpu,
+                             converter=_convert),
+        trigger=(epoch_per_eval, 'epoch'))
+    trainer.extend(extensions.LogReport())
 
-print('Test evaluation')
-evaluate(model, test_trees)
+    trainer.extend(extensions.MicroAverage(
+        'main/correct', 'main/total', 'main/accuracy'))
+    trainer.extend(extensions.MicroAverage(
+        'validation/main/correct', 'validation/main/total',
+        'validation/main/accuracy'))
+
+    trainer.extend(extensions.PrintReport(
+        ['epoch', 'main/loss', 'validation/main/loss',
+         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+    trainer.run()
+
+    print('Test evaluation')
+    evaluate(model, test_data)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,5 +1,6 @@
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -70,23 +71,32 @@ class ResNetLayers(link.Chain):
             ``chainer.initializers.HeNormal(scale=1.0)``.
         n_layers (int): The number of layers of this model. It should be either
             50, 101, or 152.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
 
     Attributes:
-        ~ResNetLayers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``forward`` and ``extract`` methods.
 
     """
 
-    def __init__(self, pretrained_model, n_layers):
+    def __init__(self, pretrained_model, n_layers, downsample_fb=False):
         super(ResNetLayers, self).__init__()
 
         if pretrained_model:
             # As a sampling process is time-consuming,
             # we employ a zero initializer for faster computation.
-            kwargs = {'initialW': constant.Zero()}
+            conv_kwargs = {'initialW': constant.Zero()}
         else:
             # employ default initializers used in the original paper
-            kwargs = {'initialW': normal.HeNormal(scale=1.0)}
+            conv_kwargs = {'initialW': normal.HeNormal(scale=1.0)}
+
+        kwargs = conv_kwargs.copy()
+        kwargs['downsample_fb'] = downsample_fb
 
         if n_layers == 50:
             block = [3, 4, 6, 3]
@@ -99,7 +109,7 @@ class ResNetLayers(link.Chain):
                              ' or 152, but {} was given.'.format(n_layers))
 
         with self.init_scope():
-            self.conv1 = Convolution2D(3, 64, 7, 2, 3, **kwargs)
+            self.conv1 = Convolution2D(3, 64, 7, 2, 3, **conv_kwargs)
             self.bn1 = BatchNormalization(64)
             self.res2 = BuildingBlock(block[0], 64, 64, 256, 1, **kwargs)
             self.res3 = BuildingBlock(block[1], 256, 128, 512, 2, **kwargs)
@@ -156,8 +166,8 @@ class ResNetLayers(link.Chain):
                              ' or 152, but {} was given.'.format(n_layers))
         npz.save_npz(path_npz, chainermodel, compression=False)
 
-    def __call__(self, x, layers=None, **kwargs):
-        """__call__(self, x, layers=['prob'])
+    def forward(self, x, layers=None, **kwargs):
+        """forward(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
 
@@ -182,10 +192,11 @@ class ResNetLayers(link.Chain):
         if layers is None:
             layers = ['prob']
 
-        argument.check_unexpected_kwargs(
-            kwargs, test='test argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, test='test argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         h = x
         activations = {}
@@ -205,20 +216,43 @@ class ResNetLayers(link.Chain):
 
         Extracts all the feature maps of given images.
 
-        The difference of directly executing ``__call__`` is that
+        The difference of directly executing ``forward`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
-        ``prepare`` and ``__call__`` functions.
+        ``prepare`` and ``forward`` functions.
+
+        Unlike ``predict`` method, this method does not override
+        ``chainer.config.train`` and ``chainer.config.enable_backprop``
+        configuration. If you want to extract features without updating
+        model parameters, you need to manually set configuration when
+        calling this method as follows:
+
+         .. code-block:: python
+
+             # model is an instance of ResNetLayers (50 or 101 or 152 layers)
+             with chainer.using_config('train', False):
+                 with chainer.using_config('enable_backprop', False):
+                     feature = model.extract([image])
 
         .. warning::
 
-           ``test`` and ``volatile`` arguments are not supported anymore since
-           v2.
-           Instead, use ``chainer.using_config('train', train)`` and
-           ``chainer.using_config('enable_backprop', not volatile)``
-           respectively.
-           See :func:`chainer.using_config`.
+           ``test`` and ``volatile`` arguments are not supported
+           anymore since v2. Instead, users should configure
+           training and volatile modes with ``train`` and
+           ``enable_backprop``, respectively.
+
+           Note that default behavior of this method is different
+           between v1 and later versions. Specifically,
+           the default values of ``test`` in v1 were ``True`` (test mode).
+           But that of ``chainer.config.train`` is also ``True``
+           (train mode). Therefore, users need to explicitly switch
+           ``train`` to ``False`` to run the code in test mode and
+           ``enable_backprop`` to ``False`` to turn off
+           coputational graph construction.
+
+           See the `upgrade guide <https://docs.chainer.org/en/stable\
+           /upgrade_v2.html#training-mode-is-configured-by-a-thread-local-flag>`_.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -238,12 +272,13 @@ class ResNetLayers(link.Chain):
         if layers is None:
             layers = ['pool5']
 
-        argument.check_unexpected_kwargs(
-            kwargs, test='test argument is not supported anymore. '
-            'Use chainer.using_config',
-            volatile='volatile argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, test='test argument is not supported anymore. '
+                'Use chainer.using_config',
+                volatile='volatile argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x))
@@ -327,17 +362,24 @@ class ResNet50Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
 
     Attributes:
-        ~ResNet50Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``forward`` and ``extract`` methods.
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', downsample_fb=False):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-50-model.caffemodel'
-        super(ResNet50Layers, self).__init__(pretrained_model, 50)
+        super(ResNet50Layers, self).__init__(
+            pretrained_model, 50, downsample_fb)
 
 
 class ResNet101Layers(ResNetLayers):
@@ -380,17 +422,24 @@ class ResNet101Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
 
     Attributes:
-        ~ResNet101Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``forward`` and ``extract`` methods.
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', downsample_fb=False):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-101-model.caffemodel'
-        super(ResNet101Layers, self).__init__(pretrained_model, 101)
+        super(ResNet101Layers, self).__init__(
+            pretrained_model, 101, downsample_fb)
 
 
 class ResNet152Layers(ResNetLayers):
@@ -432,23 +481,30 @@ class ResNet152Layers(ResNetLayers):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.HeNormal(scale=1.0)``.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
 
     Attributes:
-        ~ResNet152Layers.available_layers (list of str): The list of available
-            layer names used by ``__call__`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``forward`` and ``extract`` methods.
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model='auto', downsample_fb=False):
         if pretrained_model == 'auto':
             pretrained_model = 'ResNet-152-model.caffemodel'
-        super(ResNet152Layers, self).__init__(pretrained_model, 152)
+        super(ResNet152Layers, self).__init__(
+            pretrained_model, 152, downsample_fb)
 
 
 def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for ResNets.
 
-    Note that you have to call this method before ``__call__``
+    Note that you have to call this method before ``forward``
     because the pre-trained resnet model requires to resize the given
     image, covert the RGB to the BGR, subtract the mean,
     and permute the dimensions before calling.
@@ -471,6 +527,7 @@ def prepare(image, size=(224, 224)):
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
+    dtype = chainer.get_dtype()
     if isinstance(image, numpy.ndarray):
         if image.ndim == 3:
             if image.shape[0] == 1:
@@ -481,14 +538,14 @@ def prepare(image, size=(224, 224)):
     image = image.convert('RGB')
     if size:
         image = image.resize(size)
-    image = numpy.asarray(image, dtype=numpy.float32)
+    image = numpy.asarray(image, dtype=dtype)
     image = image[:, :, ::-1]
     # NOTE: in the original paper they subtract a fixed mean image,
     #       however, in order to support arbitrary size we instead use the
     #       mean pixel (rather than mean image) as with VGG team. The mean
     #       value used in ResNet is slightly different from that of VGG16.
     image -= numpy.array(
-        [103.063,  115.903,  123.152], dtype=numpy.float32)
+        [103.063,  115.903,  123.152], dtype=dtype)
     image = image.transpose((2, 0, 1))
     return image
 
@@ -505,14 +562,21 @@ class BuildingBlock(link.Chain):
         stride (int or tuple of ints): Stride of filter application.
         initialW (4-D array): Initial weight value used in
             the convolutional layers.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
     """
 
     def __init__(self, n_layer, in_channels, mid_channels,
-                 out_channels, stride, initialW=None):
+                 out_channels, stride, initialW=None, downsample_fb=False):
         super(BuildingBlock, self).__init__()
         with self.init_scope():
             self.a = BottleneckA(
-                in_channels, mid_channels, out_channels, stride, initialW)
+                in_channels, mid_channels, out_channels, stride,
+                initialW, downsample_fb)
             self._forward = ["a"]
             for i in range(n_layer - 1):
                 name = 'b{}'.format(i + 1)
@@ -520,15 +584,11 @@ class BuildingBlock(link.Chain):
                 setattr(self, name, bottleneck)
                 self._forward.append(name)
 
-    def __call__(self, x):
+    def forward(self, x):
         for name in self._forward:
             l = getattr(self, name)
             x = l(x)
         return x
-
-    @property
-    def forward(self):
-        return [getattr(self, name) for name in self._forward]
 
 
 class BottleneckA(link.Chain):
@@ -542,19 +602,29 @@ class BottleneckA(link.Chain):
         stride (int or tuple of ints): Stride of filter application.
         initialW (4-D array): Initial weight value used in
             the convolutional layers.
+        downsample_fb (bool): If this argument is specified as ``False``,
+            it performs downsampling by placing stride 2
+            on the 1x1 convolutional layers (the original MSRA ResNet).
+            If this argument is specified as ``True``, it performs downsampling
+            by placing stride 2 on the 3x3 convolutional layers
+            (Facebook ResNet).
     """
 
     def __init__(self, in_channels, mid_channels, out_channels,
-                 stride=2, initialW=None):
+                 stride=2, initialW=None, downsample_fb=False):
         super(BottleneckA, self).__init__()
+        # In the original MSRA ResNet, stride=2 is on 1x1 convolution.
+        # In Facebook ResNet, stride=2 is on 3x3 convolution.
+
+        stride_1x1, stride_3x3 = (stride, 1) if downsample_fb else (1, stride)
         with self.init_scope():
             self.conv1 = Convolution2D(
-                in_channels, mid_channels, 1, stride, 0, initialW=initialW,
+                in_channels, mid_channels, 1, stride_1x1, 0, initialW=initialW,
                 nobias=True)
             self.bn1 = BatchNormalization(mid_channels)
             self.conv2 = Convolution2D(
-                mid_channels, mid_channels, 3, 1, 1, initialW=initialW,
-                nobias=True)
+                mid_channels, mid_channels, 3, stride_3x3, 1,
+                initialW=initialW, nobias=True)
             self.bn2 = BatchNormalization(mid_channels)
             self.conv3 = Convolution2D(
                 mid_channels, out_channels, 1, 1, 0, initialW=initialW,
@@ -565,7 +635,7 @@ class BottleneckA(link.Chain):
                 nobias=True)
             self.bn4 = BatchNormalization(out_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         h1 = relu(self.bn1(self.conv1(x)))
         h1 = relu(self.bn2(self.conv2(h1)))
         h1 = self.bn3(self.conv3(h1))
@@ -600,7 +670,7 @@ class BottleneckB(link.Chain):
                 nobias=True)
             self.bn3 = BatchNormalization(in_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         h = relu(self.bn1(self.conv1(x)))
         h = relu(self.bn2(self.conv2(h)))
         h = self.bn3(self.conv3(h))
@@ -698,13 +768,14 @@ def _transfer_resnet152(src, dst):
 
 
 def _make_npz(path_npz, path_caffemodel, model, n_layers):
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     if not os.path.exists(path_caffemodel):
         raise IOError(
             'The pre-trained caffemodel does not exist. Please download it '
             'from \'https://github.com/KaimingHe/deep-residual-networks\', '
             'and place it on {}'.format(path_caffemodel))
-
     ResNetLayers.convert_caffemodel_to_npz(path_caffemodel, path_npz, n_layers)
     npz.load_npz(path_npz, model)
     return model
