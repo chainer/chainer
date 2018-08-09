@@ -18,6 +18,7 @@ Distributions
    chainer.distributions.Laplace
    chainer.distributions.MultivariateNormal
    chainer.distributions.Normal
+   chainer.distributions.Uniform
 
 
 Functionals of distribution
