@@ -160,6 +160,7 @@ Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
     std::shared_ptr<ArrayBody>& kept_body = gsl::at(retained_input_array_bodies_, input_index);
 
     if (kept_body == nullptr) {
+        // Array nodes corresponding to the input_index for all graphs.
         std::vector<const std::shared_ptr<ArrayNode>*> input_array_nodes = GetInputArrayNodesForIndex(*op_node_, input_index);
 
         // If the input array body is alive, use it.
