@@ -525,7 +525,7 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(backprop_id_inner));
 }
 
-TEST_P(BackpropTest, MultipleGraphsNoLinks) {
+TEST_P(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
     BackpropScope backprop_scope_outer{"bp_outer"};
     BackpropScope backprop_scope_inner{"bp_inner"};
     BackpropId backprop_id_outer = backprop_scope_outer.backprop_id();
@@ -541,7 +541,7 @@ TEST_P(BackpropTest, MultipleGraphsNoLinks) {
         x1.RequireGrad(backprop_id_outer);
         x2.RequireGrad(backprop_id_inner);
 
-        Array y1 = x1 + x2;
+        Array y1 = x1 + x2;  // operator+ does not retain inputs/outputs
         y1_grad_stopped = y1.AsGradStopped(backprop_id_outer);
 
         x1_array_node = internal::GetArrayBody(x1)->GetArrayNode(backprop_id_outer);
