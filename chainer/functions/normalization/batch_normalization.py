@@ -9,8 +9,8 @@ from chainer import configuration
 from chainer import function
 from chainer import function_node
 from chainer.utils import argument
-from chainer.utils import type_check
 from chainer.utils import collections_abc
+from chainer.utils import type_check
 
 
 if cuda.cudnn_enabled:

@@ -9,8 +9,8 @@ import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
-from chainer import variable
 from chainer.utils import collections_abc
+from chainer import variable
 
 
 def _is_shape(value):

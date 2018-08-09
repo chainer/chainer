@@ -4,8 +4,8 @@ import six
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
-from chainer.utils import type_check
 from chainer.utils import collections_abc
+from chainer.utils import type_check
 
 
 def _tensordot(a, b, a_axes, b_axes, c_axes=None):
