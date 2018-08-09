@@ -10,6 +10,7 @@
 #include "xchainer/array_body_leak_detection.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backward.h"
+#include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
 
@@ -76,11 +77,18 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
 }
 
 const std::shared_ptr<ArrayNode>& ArrayBody::CreateArrayNode(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id) {
+    assert(GetKind(body->dtype()) == DtypeKind::kFloat);
     return AddNode(body, std::make_shared<ArrayNode>(body->shape_, body->dtype_, body->device_, backprop_id));
 }
 
 void ArrayBody::AssertConsistency() const {
 #ifndef NDEBUG
+    // Array with integral dtypes can neither have array nodes nor gradients.
+    if (GetKind(dtype()) != DtypeKind::kFloat) {
+        assert(nodes_.empty());
+        assert(grads_.empty());
+    }
+
     assert(nodes_.size() == grads_.size());
     for (size_t i = 0; i < nodes_.size(); ++i) {
         const std::shared_ptr<ArrayNode>& array_node = nodes_[i];

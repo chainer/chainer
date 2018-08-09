@@ -130,7 +130,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
     assert(b.ndim() == indices.ndim() + a.ndim() - 1);
     CheckEqual(a.dtype(), b.dtype());
 
-    // TODO(niboshi): Remove nodes from indices if any.
+    assert(internal::GetArrayBody(indices)->nodes().empty());
 
     Array out = EmptyLike(a, a.device());
 
@@ -164,7 +164,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
                 GetDtypeName(indices.dtype()));
     }
 
-    // TODO(niboshi): Remove nodes from indices if any.
+    assert(internal::GetArrayBody(indices)->nodes().empty());
 
     int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
 
