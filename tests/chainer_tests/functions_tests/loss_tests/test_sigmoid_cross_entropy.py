@@ -289,14 +289,14 @@ class TestSigmoidCrossEntropyCudnnCall(unittest.TestCase):
         t = chainer.Variable(self.t)
         return functions.sigmoid_cross_entropy(x, t)
 
+    # Note that SigmoidCrossEntropy does not use cudnn on forward
+
     def test_call_cudnn_backward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             y = self.forward()
             with testing.patch('cupy.cudnn.activation_forward') as func:
                 y.backward()
                 self.assertEqual(func.called, self.expect)
-
-    # Note that SoftmaxCrossEntropy does not use cudnn on backward
 
 
 testing.run_module(__name__, __file__)
