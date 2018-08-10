@@ -47,7 +47,7 @@ def _is_good_param(param):
         {'shape': (), 'axis': ()},
     ],
     [
-        # nonzeros (optional int): max number of nonzero elems in input
+        # nonzeros (optional int): number of nonzero elems in input
         # truezero (bool): flag whether zero elems are exactly zero. If false,
         #     randomly-chosen small values are used.
         {'eps': 1e-5, 'nonzeros': None},
@@ -61,7 +61,10 @@ def _is_good_param(param):
 class TestL2Normalization(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.x = chainer.utils.force_array(
+            numpy.random.uniform(0.1, 1, self.shape)
+            * (1 - 2 * numpy.random.randint(2, size=self.shape)),
+            numpy.float32)
         if self.nonzeros is not None:
             # Make self.x have limited number of large values
 
