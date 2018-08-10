@@ -101,12 +101,12 @@ In this case, the function expects that ``x.shape[0]`` is equal to ``y.shape[0]`
 See :doc:`guides/type_checks` for the detailed behavior of type checking system in Chainer.
 
 How do I accelerate my model using Chainer Backend for Intel Architecture?
-------------------------------------------------------
+--------------------------------------------------------------------------
 
 Follow these steps to utilize Chainer Backend for Intel Architecture in your model.
 
 Install Chainer Backend for Intel Architecture
-~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following environments are recommended by `Chainer Backend for Intel Architecture <https://github.com/intel/ideep>`_.
 
@@ -120,7 +120,7 @@ On recommended systems, you can install Chainer Backend for Intel Architecture w
     $ pip install 'ideep4py<2'
 
 Enable Chainer Backend for Intel Architecture Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Currently Chainer Backend for Intel Architecture is disabled by default because it is an experimental feature.
 You need to manually enable it by changing ``chainer.config.use_ideep`` configuration to ``'auto'``.
@@ -152,7 +152,7 @@ You can also use :func:`chainer.using_config` to change the configuration.
    <class '...'>
 
 Convert Your Model to Chainer Backend for Intel Architecture
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You need to call ``model.to_intel64()`` (in the same way you call ``model.to_gpu()`` to transfer your link to GPU) to convert the link to Chainer Backend for Intel Architecture.
 
