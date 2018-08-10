@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
@@ -28,7 +26,7 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         x_type, t_type = in_types
 
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             t_type.dtype.kind == 'i',
             x_type.shape == t_type.shape
         )
