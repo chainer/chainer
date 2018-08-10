@@ -6,6 +6,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -536,7 +537,7 @@ Assign a Parameter object directly to an attribute within a \
                 d = dst[name]
                 s = src[name]
                 if isinstance(d, array_types) and isinstance(s, array_types):
-                    cuda.copyto(d, s)
+                    backends.copyto(d, s)
                 else:
                     dst[name] = copy.deepcopy(s)
 
