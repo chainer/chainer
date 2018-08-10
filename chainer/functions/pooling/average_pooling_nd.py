@@ -9,7 +9,6 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import average_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
-from chainer import utils
 from chainer.utils import conv
 from chainer.utils import conv_nd
 
@@ -48,7 +47,6 @@ class AveragePoolingND(pooling_nd._PoolingND):
             raise ValueError(
                 'pad_value must be either 0 or None, not {}.'.format(
                     pad_value))
-        utils.experimental('chainer.functions.pooling.AveragePoolingND')
 
         # TODO(takagi) Support cover_all mode.
         if cover_all is True:
@@ -219,10 +217,10 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):
         This feature is experimental. The interface can change in the future.
 
     This function provides a N-dimensionally generalized version of
-    :func:`~functions.average_pooling_2d`. This acts similarly to
-    :class:`~functions.ConvolutionND`, but it computes the average of input
-    spatial patch for each channel without any parameter instead of computing
-    the inner products.
+    :func:`~chainer.functions.average_pooling_2d`. This acts similarly to
+    :func:`~chainer.functions.convolution_nd`, but it computes the average of
+    input spatial patch for each channel without any parameter instead of
+    computing the inner products.
 
     Args:
         x(~chainer.Variable): Input variable.

@@ -9,7 +9,6 @@ import chainer
 from chainer import function
 from chainer import function_node
 from chainer.links.caffe.protobuf3 import caffe_pb2 as caffe_pb
-from chainer import utils
 from chainer import variable
 
 
@@ -193,6 +192,7 @@ class _RetrieveAsCaffeModel(object):
                 params['type'] = 'Convolution'
             else:
                 params['type'] = 'Deconvolution'
+                convolution_param['num_output'] = n_in
             params['convolution_param'] = convolution_param
 
             if net is not None:
@@ -288,6 +288,14 @@ class _RetrieveAsCaffeModel(object):
 
         elif func.label == 'ReLU':
             params['type'] = 'ReLU'
+
+        elif func.label == 'LeakyReLU':
+            relu_param = {'negative_slope': func.slope}
+            params['type'] = 'ReLU'
+            params['relu_param'] = relu_param
+            if net is not None:
+                for k, v in six.iteritems(relu_param):
+                    setattr(layer.relu_param, k, v)
 
         elif func.label == 'Concat':
             axis = func.axis
@@ -399,6 +407,7 @@ def export(model, args, directory=None,
         - :func:`~chainer.functions.batch_normalization`
         - :func:`~chainer.functions.local_response_normalization`
         - :func:`~chainer.functions.relu`
+        - :func:`~chainer.functions.leaky_relu`
         - :func:`~chainer.functions.concat`
         - :func:`~chainer.functions.softmax`
         - :func:`~chainer.functions.reshape`
@@ -434,7 +443,6 @@ def export(model, args, directory=None,
 
     """
 
-    utils.experimental('chainer.exporters.caffe.export')
     assert isinstance(args, (tuple, list))
     if len(args) != 1:
         raise NotImplementedError()

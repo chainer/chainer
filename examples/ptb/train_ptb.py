@@ -35,7 +35,7 @@ class RNNForLM(chainer.Chain):
         self.l1.reset_state()
         self.l2.reset_state()
 
-    def __call__(self, x):
+    def forward(self, x):
         h0 = self.embed(x)
         h1 = self.l1(F.dropout(h0))
         h2 = self.l2(F.dropout(h1))

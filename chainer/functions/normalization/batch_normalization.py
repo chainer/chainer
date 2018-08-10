@@ -1,4 +1,3 @@
-import collections
 import warnings
 
 import numpy
@@ -6,24 +5,29 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
+from chainer import configuration
 from chainer import function
 from chainer import function_node
 from chainer.utils import argument
+from chainer.utils import collections_abc
 from chainer.utils import type_check
+
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.cuda.cudnn
+    _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
-def _compute_axis(x_ndim, param_ndim=1, axis=None):
+def _compute_axis(x_ndim, gamma_ndim=1, axis=None):
     if axis is None:
-        axis = (0,) + tuple(range(param_ndim + 1, x_ndim))
+        axis = (0,) + tuple(range(gamma_ndim + 1, x_ndim))
     return axis
 
 
-def _compute_key_axis(x_ndim, param_ndim=1, axis=None):
-    axis = _compute_axis(x_ndim, param_ndim, axis)
+# Computes a complementary set of axis
+def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
+    axis = _compute_axis(x_ndim, gamma_ndim, axis)
     key_axis = tuple([i for i in range(x_ndim) if i not in axis])
     return key_axis
 
@@ -48,7 +52,7 @@ class BatchNormalization(function_node.FunctionNode):
                     'cuDNN does not allow an eps value '
                     'less than {}.'.format(libcudnn.CUDNN_BN_MIN_EPSILON))
         self.decay = decay
-        if isinstance(axis, collections.Sequence):
+        if isinstance(axis, collections_abc.Sequence):
             for i in range(1, len(axis)):
                 if axis[i - 1] >= axis[i]:
                     msg = 'numbers in axis must be sorted in ascending order'
@@ -123,6 +127,7 @@ class BatchNormalization(function_node.FunctionNode):
         expander = [None for _ in range(x.ndim)]
         for i in self.key_axis:
             expander[i] = slice(None)
+        expander = tuple(expander)
         self.expander = expander
 
         self.mode = _BNMode(x, gamma, self.key_axis)
@@ -180,7 +185,7 @@ class BatchNormalization(function_node.FunctionNode):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, self.mode))
             cudnn_mode = self.mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -221,6 +226,19 @@ class BatchNormalization(function_node.FunctionNode):
                 beta.data.ptr, factor, running_mean.data.ptr,
                 running_var.data.ptr, self.eps,
                 self.mean.data.ptr, self.inv_std.data.ptr)
+
+            # Note: When the CUDNN_BATCHNORM_SPATIAL_PERSISTENT mode is used,
+            # there is a possibility of numerical overflow. You can use
+            # queryRuntimeError() to make sure whether the overflow actually
+            # occured or not during the batch normalization.
+            if (cudnn_mode is libcudnn.CUDNN_BATCHNORM_SPATIAL_PERSISTENT and
+                    configuration.config.debug):
+                query_mode = libcudnn.CUDNN_ERRQUERY_BLOCKING
+                rstatus = libcudnn.queryRuntimeError(handle, query_mode)
+                if rstatus is not libcudnn.CUDNN_STATUS_SUCCESS:
+                    warnings.warn(
+                        'A numerical overflow might have happend in cuDNN'
+                        'batch normalization (status:{})'.format(rstatus))
 
             if dtype_param is not dtype:
                 # When data type of prameters is converted, say, from fp16
@@ -329,7 +347,7 @@ class BatchNormalizationGrad(function.Function):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, self.mode))
             cudnn_mode = self.mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -350,6 +368,19 @@ class BatchNormalizationGrad(function.Function):
                 derivedBnDesc.value, gamma.data.ptr,
                 ggamma.data.ptr, gbeta.data.ptr,
                 self.eps, self.mean.data.ptr, self.inv_std.data.ptr)
+
+            # Note: When the CUDNN_BATCHNORM_SPATIAL_PERSISTENT mode is used,
+            # there is a possibility of numerical overflow. You can use
+            # queryRuntimeError() to make sure whether the overflow actually
+            # occured or not during the batch normalization.
+            if (cudnn_mode is libcudnn.CUDNN_BATCHNORM_SPATIAL_PERSISTENT and
+                    configuration.config.debug):
+                query_mode = libcudnn.CUDNN_ERRQUERY_BLOCKING
+                rstatus = libcudnn.queryRuntimeError(handle, query_mode)
+                if rstatus is not libcudnn.CUDNN_STATUS_SUCCESS:
+                    warnings.warn(
+                        'A numerical overflow might have happend in cuDNN'
+                        'batch normalization (status:{})'.format(rstatus))
 
             if dtype_param is not dtype:
                 ggamma = ggamma.astype(dtype)
@@ -422,7 +453,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
 
     def __init__(self, eps=2e-5, axis=None):
         self.eps = eps
-        if isinstance(axis, collections.Sequence):
+        if isinstance(axis, collections_abc.Sequence):
             for i in range(1, len(axis)):
                 if axis[i - 1] >= axis[i]:
                     msg = 'numbers in axis must be sorted in ascending order'
@@ -473,11 +504,12 @@ class FixedBatchNormalization(function_node.FunctionNode):
         # expander inserts singleton dimensions to gamma and beta so that they
         # can be broadcasted with x.
         expander = [None for _ in range(x.ndim)]
-        for i, j in enumerate(self.key_axis):
-            expander[j] = slice(gamma.shape[i])
+        for i in self.key_axis:
+            expander[i] = slice(None)
+        expander = tuple(expander)
         self.expander = expander
 
-        mode = _BNMode(x, gamma, self.key_axis)
+        mode = _BNMode(x, gamma, self.key_axis, inference=True)
         if mode.can_use_ideep():
             # TODO(niboshi): Refactor iDeep part into a separate method
             expand_dim = False
@@ -513,7 +545,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
             dtype = x.dtype
             handle = cudnn.get_handle()
             x_desc = cudnn.create_tensor_descriptor(
-                _as4darray(x, self.key_axis))
+                _as4darray(x, mode))
             cudnn_mode = mode.get_cudnn_mode()
             derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
             libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
@@ -627,7 +659,7 @@ class FixedBatchNormalizationGrad(function.Function):
 
 class _BNMode(object):
 
-    def __init__(self, x, gamma, key_axis):
+    def __init__(self, x, gamma, key_axis, inference=False):
         is_gamma_1d = gamma.ndim == 1
         # cuDNN only supports these tensor dimensions because they are
         # the most commonly used. If there is a need to support other
@@ -641,9 +673,16 @@ class _BNMode(object):
         # self.cudnn_dtype_ok = x.dtype != numpy.float16
         self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
         self.ideep_ok = is_gamma_1d and intel64.inputs_all_ready((x,))
+        self.inference = inference
 
     def get_cudnn_mode(self):
         assert self.cudnn_dim_ok
+        if self.is_for_linear:
+            return libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
+
+        if (not self.inference and _cudnn_version >= 7000 and
+                configuration.config.cudnn_fast_batch_normalization):
+            return libcudnn.CUDNN_BATCHNORM_SPATIAL_PERSISTENT
         return libcudnn.CUDNN_BATCHNORM_SPATIAL
 
     def can_use_ideep(self):
@@ -658,20 +697,13 @@ class _BNMode(object):
                 self.cudnn_dtype_ok)
 
 
-def _as4darray(arr, key_axis):
-    if arr.ndim == 4 and key_axis[0] == 1:
+def _as4darray(arr, mode):
+    assert mode.cudnn_dim_ok
+    if mode.is_for_conv2d:
+        assert arr.ndim == 4
         return arr
-    elif key_axis[0] == arr.ndim - 1:
+    else:  # is_for_linear
         return arr.reshape(numpy.prod(arr.shape[0:-1]), -1, 1, 1)
-    else:
-        msg = 'Unexpected combination of array shape and key_axis'
-        raise RuntimeError(msg)
-
-
-def _get_mode(x, gamma):
-    if x.ndim == 4 and gamma.ndim == 1:
-        return libcudnn.CUDNN_BATCHNORM_SPATIAL
-    return libcudnn.CUDNN_BATCHNORM_PER_ACTIVATION
 
 
 def _x_hat(x, mean, inv_std):
@@ -751,9 +783,12 @@ def batch_normalization(x, gamma, beta, **kwargs):
        See :func:`chainer.using_config`.
 
     Args:
-        x (Variable): Input variable.
-        gamma (Variable): Scaling parameter of normalized data.
-        beta (Variable): Shifting parameter of scaled normalized data.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Scaling parameter of normalized data.
+        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
         running_mean (numpy.ndarray or cupy.ndarray):
             Running average of the mean. This is a running average of
@@ -806,11 +841,16 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
     statistics cannot be used for prediction consistency.
 
     Args:
-        x (Variable): Input variable.
-        gamma (Variable): Scaling parameter of normalized data.
-        beta (Variable): Shifting parameter of scaled normalized data.
-        mean (Variable): Shifting parameter of input.
-        var (Variable): Square of scaling parameter of input.
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Scaling parameter of normalized data.
+        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
+        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Shifting parameter of input.
+        var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Square of scaling parameter of input.
         eps (float): Epsilon value for numerical stability.
         axis (int, tuple of int or None): Axis over which normalization is
             performed. When axis is ``None``, it is determined from input

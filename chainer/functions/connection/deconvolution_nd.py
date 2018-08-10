@@ -12,7 +12,6 @@ from chainer.utils import type_check
 
 
 class DeconvolutionND(function_node.FunctionNode):
-
     cover_all = None
 
     def __init__(self, ndim, stride=1, pad=0, outsize=None,
@@ -60,8 +59,11 @@ class DeconvolutionND(function_node.FunctionNode):
             )
 
     def _use_cudnn(self, x, W):
-        if cuda._cudnn_version < 6000 and any(d != 1 for d in self.dilate):
-            # cuDNN < 6.0 does not support dilated convolutions
+        if ((cuda._cudnn_version < 6000
+             or configuration.config.cudnn_deterministic)
+                and any(d != 1 for d in self.dilate)):
+            # cuDNN < 6.0 and deterministic algorithms
+            # does not support dilated convolutions
             return False
         if cuda._cudnn_version < 7000 and 1 < self.groups:
             # cuDNN < 7.0 does not support grouped convolutions

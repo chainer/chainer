@@ -147,6 +147,8 @@ global_config.autotune = False
 global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'never')
 global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))
+global_config.cudnn_fast_batch_normalization = bool(int(
+    os.environ.get('CHAINER_CUDNN_FAST_BATCH_NORMALIZATION', '0')))
 
 _chainer_dtype = os.environ.get('CHAINER_DTYPE', 'float32')
 if _chainer_dtype not in ('float16', 'float32', 'float64'):
@@ -211,13 +213,14 @@ def get_dtype(dtype=None):
     """Resolves Chainer's default dtype.
 
     Returns:
-        If ``dtype`` is not ``None``, it returns the dtype as is. Otherwise, it
-        returns ``chainer.config.dtype`` (see :ref:`configuration`).
+        If ``dtype`` is not ``None``, it returns the dtype normalized by
+        ``numpy.dtype()``. Otherwise, it returns ``chainer.config.dtype`` (see
+        :ref:`configuration`) normalized as well.
 
     """
     if dtype is None:
-        return config.dtype
-    return dtype
+        dtype = config.dtype
+    return numpy.dtype(dtype)
 
 
 basic_math.install_variable_arithmetics()

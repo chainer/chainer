@@ -74,7 +74,7 @@ Here are some examples of ``InvalidType`` errors:
    Expect: in_types[0].dtype.kind == f
    Actual: i != f
 
-In this case, :class:`~numpy.dtype.kind` of ``in_types[0]`` (which means the first input to the function, ``x``) is expected to be ``f`` (floating-point), whereas the input was ``i`` (signed integer).
+In this case, :attr:`~numpy.dtype.kind` of ``in_types[0]`` (which means the first input to the function, ``x``) is expected to be ``f`` (floating-point), whereas the input was ``i`` (signed integer).
 You need to cast the input appropriately before passing to the function (e.g., ``x.astype(np.float32)``).
 
 .. testcode::
@@ -117,7 +117,7 @@ On recommended systems, you can install iDeep wheel (binary distribution) by:
 
 .. code-block:: console
 
-    $ pip install ideep4py
+    $ pip install 'ideep4py<2'
 
 Enable iDeep Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -141,9 +141,15 @@ You can also use :func:`chainer.using_config` to change the configuration.
         y = chainer.functions.relu(x)
     print(type(y.data))
 
-.. testoutput::
+.. code-block:: none
 
     <class 'ideep4py.mdarray'>
+
+.. Avoid dependency to iDeep module in doctest.
+.. testoutput::
+   :hide:
+
+   <class '...'>
 
 Convert Your Model to iDeep
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
