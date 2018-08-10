@@ -86,6 +86,16 @@ class TestL2Normalization(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         self.ggx = numpy.random.uniform(
             -1, 1, self.shape).astype(numpy.float32)
+        self.check_options = {
+            'dtype': numpy.float64,
+        }
+        if self.nonzeros is None:
+            self.check_options['rtol'] = 1e-4
+            self.check_options['atol'] = 1e-4
+        else:
+            self.check_options['rtol'] = 1e-2
+            self.check_options['atol'] = 1e-2
+            self.check_options['eps'] = 1e-4
 
     def check_forward(self, x_data, axis):
         eps = self.eps
@@ -122,7 +132,7 @@ class TestL2Normalization(unittest.TestCase):
             return functions.normalize(x, eps=self.eps, axis=axis)
 
         gradient_check.check_backward(
-            f, x_data, y_grad, dtype='d', atol=1e-2, rtol=3e-2)
+            f, x_data, y_grad, **self.check_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.axis, self.gy)
@@ -140,7 +150,7 @@ class TestL2Normalization(unittest.TestCase):
             return functions.normalize(x, eps=self.eps, axis=axis)
 
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype='d', atol=1e-2, rtol=3e-2)
+            f, x_data, y_grad, x_grad_grad, **self.check_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.axis, self.gy, self.ggx)
