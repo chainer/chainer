@@ -36,8 +36,8 @@ TEST(ContextTest, GetBackendThreadSafe) {
     static constexpr size_t kThreadCount = 1024;
 
     xchainer::testing::CheckThreadSafety(
-            kThreadCount,
             kRepeat,
+            kThreadCount,
             [](size_t /*repeat*/) { return std::make_unique<Context>(); },
             [](size_t /*thread_index*/, const std::unique_ptr<Context>& ctx) {
                 Backend& backend = ctx->GetBackend("native");

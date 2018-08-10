@@ -55,7 +55,7 @@ auto RunThreads(size_t thread_count, const Func& func, Args&&... args) -> std::v
 
 template <typename SetupFunc, typename Func, typename CheckFunc>
 void CheckThreadSafety(
-        size_t thread_count, size_t repeat_count, const SetupFunc& setup_func, const Func& func, const CheckFunc& check_func) {
+        size_t repeat_count, size_t thread_count, const SetupFunc& setup_func, const Func& func, const CheckFunc& check_func) {
     using CheckContextType = decltype(setup_func(size_t{}));
     using ResultType = decltype(func(size_t{}, std::declval<CheckContextType>()));
 
