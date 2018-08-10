@@ -1219,7 +1219,7 @@ TEST_P(MathTest, Exp) {
             {0.f, 1.f, std::log(3.f), std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()});
     Array e = testing::BuildArray({5}).WithData<float>({1.f, std::exp(1.f), 3.f, std::numeric_limits<float>::infinity(), 0});
     Array b = Exp(a);
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, b, 1e-3, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, b, 1e-3, 0);
 }
 
 TEST_P(MathTest, ExpBackward) {
@@ -1249,7 +1249,7 @@ TEST_P(MathTest, Log) {
     Array e = testing::BuildArray({6}).WithData<float>(
             {-std::numeric_limits<float>::infinity(), 0.0f, std::log(3.0f), std::nanf(""), -4.0f, 4.0f});
     Array b = Log(a);
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, b, 1e-3, 0, true);
+    EXPECT_ARRAY_ALL_CLOSE(e, b, 1e-3, 0, true);
 }
 
 TEST_P(MathTest, LogBackward) {
@@ -1280,7 +1280,7 @@ TEST_P(MathTest, LogSumExp) {
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({std::log(
             std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a), 1e-5, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpReduceFirstAxis) {
@@ -1290,7 +1290,7 @@ TEST_P(MathTest, LogSumExpReduceFirstAxis) {
     Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[3])),
                                                     std::log(std::exp(adata[1]) + std::exp(adata[4])),
                                                     std::log(std::exp(adata[2]) + std::exp(adata[5]))});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a, Axes{0}), 1e-5, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a, Axes{0}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpReduceSecondAxis) {
@@ -1299,7 +1299,7 @@ TEST_P(MathTest, LogSumExpReduceSecondAxis) {
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray({2}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
                                                     std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a, Axes{1}), 1e-5, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a, Axes{1}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpReduceMultipleAxes) {
@@ -1309,7 +1309,7 @@ TEST_P(MathTest, LogSumExpReduceMultipleAxes) {
     Array e = testing::BuildArray({3}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1])),
                                                     std::log(std::exp(adata[2]) + std::exp(adata[3])),
                                                     std::log(std::exp(adata[4]) + std::exp(adata[5]))});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a, Axes{0, 2, 3}), 1e-5, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a, Axes{0, 2, 3}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpKeepdims) {
@@ -1318,7 +1318,7 @@ TEST_P(MathTest, LogSumExpKeepdims) {
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray({2, 1}).WithData<T>({std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
                                                        std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a, Axes{1}, true), 1e-5, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a, Axes{1}, true), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpReduceMultipleAxesKeepdims) {
@@ -1327,7 +1327,7 @@ TEST_P(MathTest, LogSumExpReduceMultipleAxesKeepdims) {
     Array a = testing::BuildArray({2, 3}).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray({1, 1}).WithData<T>({std::log(
             std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2]) + std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a, Axes{0, 1}, true), 1e-5, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSumExp(a, Axes{0, 1}, true), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSumExpBackward) {
@@ -1361,8 +1361,8 @@ TEST_P(MathTest, LogSoftmax) {
     Array e = testing::BuildArray(shape).WithData<T>(
             {adata[0] - log_z[0], adata[1] - log_z[0], adata[2] - log_z[0], adata[3] - log_z[1], adata[4] - log_z[1], adata[5] - log_z[1]});
 
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a), 1e-5, 0);
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a, Axes{1}), 1e-5, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a), 1e-5, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a, Axes{1}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSoftmaxAlongFirstAxis) {
@@ -1375,7 +1375,7 @@ TEST_P(MathTest, LogSoftmaxAlongFirstAxis) {
     Array a = testing::BuildArray(shape).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray(shape).WithData<T>(
             {adata[0] - log_z[0], adata[1] - log_z[1], adata[2] - log_z[2], adata[3] - log_z[0], adata[4] - log_z[1], adata[5] - log_z[2]});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a, Axes{0}), 1e-5, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a, Axes{0}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSoftmaxAlongMultipleAxes) {
@@ -1387,7 +1387,7 @@ TEST_P(MathTest, LogSoftmaxAlongMultipleAxes) {
     Array a = testing::BuildArray(shape).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray(shape).WithData<T>(
             {adata[0] - log_z, adata[1] - log_z, adata[2] - log_z, adata[3] - log_z, adata[4] - log_z, adata[5] - log_z});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a, Axes{0, 1}), 1e-3, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a, Axes{0, 1}), 1e-3, 0);
 }
 
 TEST_P(MathTest, LogSoftmaxHighDimAlongDefaultSecondAxis) {
@@ -1399,8 +1399,8 @@ TEST_P(MathTest, LogSoftmaxHighDimAlongDefaultSecondAxis) {
     Array a = testing::BuildArray(shape).WithData<T>(adata).WithPadding(1);
     Array e = testing::BuildArray(shape).WithData<T>(
             {adata[0] - log_z[0], adata[1] - log_z[1], adata[2] - log_z[0], adata[3] - log_z[1], adata[4] - log_z[0], adata[5] - log_z[1]});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a), 1e-5, 0, true);
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a, Axes{1}), 1e-5, 0);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a), 1e-5, 0, true);
+    EXPECT_ARRAY_ALL_CLOSE(e, LogSoftmax(a, Axes{1}), 1e-5, 0);
 }
 
 TEST_P(MathTest, LogSoftmaxBackward) {

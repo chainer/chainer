@@ -169,7 +169,7 @@ TEST_P(StatisticsTest, Var) {
     Array b = Var(a, Axes{2, 1, -1});
     EXPECT_EQ(Shape{2}, b.shape());
     Array e = testing::BuildArray({2}).WithData<T>({107.91666667f, 107.91666667f});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, b);
+    EXPECT_ARRAY_ALL_CLOSE(e, b);
 }
 
 TEST_P(StatisticsTest, VarAllAxes) {
@@ -179,7 +179,7 @@ TEST_P(StatisticsTest, VarAllAxes) {
     Array b = Var(a);
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({26.91666667f});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, b);
+    EXPECT_ARRAY_ALL_CLOSE(e, b);
 }
 
 TEST_P(StatisticsTest, VarZero) {
@@ -219,7 +219,7 @@ TEST_P(StatisticsTest, VarLarge) {
     Array b = Var(a, Axes{0});
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({91625968981.25});
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e, b);
+    EXPECT_ARRAY_ALL_CLOSE(e, b);
 }
 
 TEST_P(StatisticsTest, VarKeepDims) {

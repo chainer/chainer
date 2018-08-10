@@ -70,21 +70,15 @@ void ExpectDataEqual(T expected, const Array& actual) {
 
 // Expects that the given arrays have elements that are all close to each other and that they belong to the same device.
 //
-// GET_MACRO is used to "overload" XCHAINER_EXPECT_ARRAY_ALL_CLOSE with optional arguments.
+// GET_MACRO is used to "overload" EXPECT_ARRAY_ALL_CLOSE with optional arguments.
 #define GET_MACRO(_1, _2, _3, _4, _5, NAME, ...) NAME
-#define XCHAINER_EXPECT_ARRAY_ALL_CLOSE2(a, b) EXPECT_PRED_FORMAT5(testing::testing_internal::IsAllClose, a, b, 1e-5, 1e-8, false)
-#define XCHAINER_EXPECT_ARRAY_ALL_CLOSE3(a, b, rtol) EXPECT_PRED_FORMAT5(testing::testing_internal::IsAllClose, a, b, rtol, 1e-8, false)
-#define XCHAINER_EXPECT_ARRAY_ALL_CLOSE4(a, b, rtol, atol) \
-    EXPECT_PRED_FORMAT5(testing::testing_internal::IsAllClose, a, b, rtol, atol, false)
-#define XCHAINER_EXPECT_ARRAY_ALL_CLOSE5(a, b, rtol, atol, equal_nan) \
+#define EXPECT_ARRAY_ALL_CLOSE2(a, b) EXPECT_PRED_FORMAT5(testing::testing_internal::IsAllClose, a, b, 1e-5, 1e-8, false)
+#define EXPECT_ARRAY_ALL_CLOSE3(a, b, rtol) EXPECT_PRED_FORMAT5(testing::testing_internal::IsAllClose, a, b, rtol, 1e-8, false)
+#define EXPECT_ARRAY_ALL_CLOSE4(a, b, rtol, atol) EXPECT_PRED_FORMAT5(testing::testing_internal::IsAllClose, a, b, rtol, atol, false)
+#define EXPECT_ARRAY_ALL_CLOSE5(a, b, rtol, atol, equal_nan) \
     EXPECT_PRED_FORMAT5(testing::testing_internal::IsAllClose, a, b, rtol, atol, equal_nan)
-#define XCHAINER_EXPECT_ARRAY_ALL_CLOSE(...)  \
-    GET_MACRO(                                \
-            __VA_ARGS__,                      \
-            XCHAINER_EXPECT_ARRAY_ALL_CLOSE5, \
-            XCHAINER_EXPECT_ARRAY_ALL_CLOSE4, \
-            XCHAINER_EXPECT_ARRAY_ALL_CLOSE3, \
-            XCHAINER_EXPECT_ARRAY_ALL_CLOSE2) \
+#define EXPECT_ARRAY_ALL_CLOSE(...)                                                                                            \
+    GET_MACRO(__VA_ARGS__, EXPECT_ARRAY_ALL_CLOSE5, EXPECT_ARRAY_ALL_CLOSE4, EXPECT_ARRAY_ALL_CLOSE3, EXPECT_ARRAY_ALL_CLOSE2) \
     (__VA_ARGS__)
 
 // Expects that the given array b is a valid copy of a.

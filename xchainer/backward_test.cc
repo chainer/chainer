@@ -102,7 +102,7 @@ TEST(BackwardContextTest, InputGrad) {
     Array y1{};
     forward(x1, x2, x3, y1);
     Backward({y1}, backprop_id2);
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x3_grad, *x3.GetGrad(backprop_id2));
+    EXPECT_ARRAY_ALL_CLOSE(expected_x3_grad, *x3.GetGrad(backprop_id2));
 }
 
 // TODO(hvy): Separate tests of backprop stack manipulation into another test class/fixture and parameterize the outermost graph over the
@@ -753,7 +753,7 @@ TEST_P(BackpropTest, SomeOfOutputArrayNodesAreGone) {
     Backward(z1, nonstd::nullopt);
 
     Array expected_x_grad = x_value * Exp(x_value);
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
+    EXPECT_ARRAY_ALL_CLOSE(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -1390,8 +1390,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
         }
         // y's are alive here
         Backward({y1, y2}, backprop_id1, double_backprop_opt);
-        XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x1_grad, *x1.GetGrad(backprop_id1));
-        XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id1));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x1_grad, *x1.GetGrad(backprop_id1));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id1));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1541,8 +1541,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
         }
         // y's are dead here
         Backward({z1, z2}, backprop_id1, double_backprop_opt);
-        XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x1_grad, *x1.GetGrad(backprop_id1));
-        XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id1));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x1_grad, *x1.GetGrad(backprop_id1));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id1));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1693,8 +1693,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
         }
         // Only z2 is alive here
         Backward({z2}, backprop_id2, double_backprop_opt);
-        XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x1_grad, *x1.GetGrad(backprop_id2));
-        XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id2));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x1_grad, *x1.GetGrad(backprop_id2));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1798,7 +1798,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
         }
         // y's are dead here
         Backward({z1}, backprop_id2, double_backprop_opt);
-        XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id2));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1886,7 +1886,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         }
         // y's are dead here
         Backward({z1}, backprop_id3, double_backprop_opt);
-        XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x3_grad, *x3.GetGrad(backprop_id3));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x3_grad, *x3.GetGrad(backprop_id3));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1975,7 +1975,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         }
         // y's are dead here
         Backward({z1}, backprop_id3, double_backprop_opt);
-        XCHAINER_EXPECT_ARRAY_ALL_CLOSE(expected_x3_grad, *x3.GetGrad(backprop_id3));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x3_grad, *x3.GetGrad(backprop_id3));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }

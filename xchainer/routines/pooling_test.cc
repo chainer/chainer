@@ -522,7 +522,7 @@ TEST_P(PoolingTest, AveragePoolPadModeIgnore) {
              0.69924927, 0.7164636,  0.31257492, 0.3045208,  0.37353006, 0.32604605, 0.20149867, 0.5739569,  0.4754313,
              0.3749856,  0.34619308, 0.31932065});  // Computed with Chainer.
 
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e_out, out, 1e-7, 1e-7);
+    EXPECT_ARRAY_ALL_CLOSE(e_out, out, 1e-7, 1e-7);
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeZero) {
@@ -579,7 +579,7 @@ TEST_P(PoolingTest, AveragePoolPadModeZero) {
              0.32501528, 0.27838096, 0.38496295, 0.48860213, 0.4943433,  0.6386533,  0.3274555,  0.14210498, 0.25845996, 0.46114156,
              0.31804958, 0.46384564});  // Computed with Chainer.
 
-    XCHAINER_EXPECT_ARRAY_ALL_CLOSE(e_out, out, 1e-7, 1e-7);
+    EXPECT_ARRAY_ALL_CLOSE(e_out, out, 1e-7, 1e-7);
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeIgnoreBackward) {
