@@ -34,19 +34,20 @@ TEST(ContextTest, NativeBackend) {
 TEST(ContextTest, GetBackendThreadSafe) {
     static constexpr size_t kRepeat = 100;
     static constexpr size_t kThreadCount = 128;
+    std::string backend_name{"native"};
 
     xchainer::testing::CheckThreadSafety(
             kRepeat,
             kThreadCount,
             [](size_t /*repeat*/) { return std::make_unique<Context>(); },
-            [](size_t /*thread_index*/, const std::unique_ptr<Context>& ctx) {
-                Backend& backend = ctx->GetBackend("native");
+            [&backend_name](size_t /*thread_index*/, const std::unique_ptr<Context>& ctx) {
+                Backend& backend = ctx->GetBackend(backend_name);
                 return &backend;
             },
-            [this](const std::vector<Backend*>& results) {
+            [&backend_name](const std::vector<Backend*>& results) {
                 for (Backend* backend : results) {
-                    ASSERT_EQ("native", backend->GetName());
                     ASSERT_EQ(backend, results.front());
+                    ASSERT_EQ(backend_name, backend->GetName());
                 }
             });
 }
@@ -77,7 +78,7 @@ TEST(ContextTest, GetDeviceThreadSafe) {
                 Device& device = ctx->GetDevice({"native", device_index});
                 return &device;
             },
-            [this](const std::vector<Device*>& results) {
+            [](const std::vector<Device*>& results) {
                 // Check device pointers are identical within each set of threads corresponding to one device
                 for (int device_index = 0; device_index < kDeviceCount; ++device_index) {
                     auto it_first = std::next(results.begin(), device_index * kThreadCountPerDevice);
