@@ -105,7 +105,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
     BackwardBuilder bb{"get_item", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([ indices, a_shape = a.shape(), a_dtype = a.dtype() ](BackwardContext & bctx) {
+        bt.Define([indices, a_shape = a.shape(), a_dtype = a.dtype()](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
             Array gin = Zeros(a_shape, a_dtype, gout.device());
             bctx.input_grad() = AddAt(gin, indices, gout);
@@ -182,7 +182,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
     BackwardBuilder bb{"take", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         assert(internal::GetArrayBody(indices)->nodes().empty());
-        bt.Define([ indices, axis_norm, a_shape = a.shape() ](BackwardContext & bctx) {
+        bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
         });

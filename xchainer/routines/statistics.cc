@@ -24,7 +24,7 @@ Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     BackwardBuilder bb{"mean", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([ n, sorted_axis, in_shape = a.shape(), keepdims ](BackwardContext & bctx) {
+        bt.Define([n, sorted_axis, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
             assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 

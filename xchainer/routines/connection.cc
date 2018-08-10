@@ -61,7 +61,7 @@ Array ConvGradW(
         BackwardBuilder bb{"conv-grad-weight", {x, gy}, out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([ x_shape = x.shape(), gy_tok = bb.RetainInput(1), stride, pad ](BackwardContext & bctx) {
+            bt.Define([x_shape = x.shape(), gy_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
                 const Array& gy = bctx.GetRetainedInput(gy_tok);
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
@@ -71,7 +71,7 @@ Array ConvGradW(
         }
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([ x_tok = bb.RetainInput(0), stride, pad, cover_all ](BackwardContext & bctx) {
+            bt.Define([x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, cover_all);
@@ -134,7 +134,7 @@ Array Conv(
         BackwardBuilder bb{"conv", std::move(inputs), out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([ x_shape = x.shape(), w_tok = bb.RetainInput(1), stride, pad ](BackwardContext & bctx) {
+            bt.Define([x_shape = x.shape(), w_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
@@ -143,8 +143,7 @@ Array Conv(
         }
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([ w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all ](
-                    BackwardContext & bctx) {
+            bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = ConvGradW(w_dtype, w_shape, x, gout, stride, pad, cover_all);
@@ -243,7 +242,7 @@ Array ConvTranspose(
         BackwardBuilder bb{"conv_transpose", std::move(inputs), out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([ x_shape = x.shape(), w_tok = bb.RetainInput(1), stride, pad, cover_all ](BackwardContext & bctx) {
+            bt.Define([x_shape = x.shape(), w_tok = bb.RetainInput(1), stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
@@ -252,8 +251,7 @@ Array ConvTranspose(
         }
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([ w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all ](
-                    BackwardContext & bctx) {
+            bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = ConvGradW(w_dtype, w_shape, gout, x, stride, pad, cover_all);
