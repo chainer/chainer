@@ -21,11 +21,6 @@ ArrayProps::ArrayProps(const ArrayNode& array_node) : shape{array_node.shape()},
 OpNodeBackwardEntry::OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> input_array_node_indices, BackwardFunction backward_func)
     : op_node_{op_node}, input_array_node_indices_{std::move(input_array_node_indices)}, backward_func_{std::move(backward_func)} {}
 
-void OpNodeBackwardEntry::AddExoticInputArrayNode(std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>> input_array_nodes) {
-    assert(std::get<0>(input_array_nodes) != op_node_.backprop_id());
-    exotic_input_array_nodes_.emplace_back(std::move(input_array_nodes));
-}
-
 std::shared_ptr<ArrayNode> FabricateOutputArrayNode(std::shared_ptr<OpNode> op_node, size_t output_array_node_index) {
     assert(output_array_node_index < op_node->output_array_node_count());
     assert(op_node->output_array_nodes()[output_array_node_index].expired());
