@@ -48,14 +48,7 @@ public:
 
     const std::vector<size_t>& input_array_node_indices() const { return input_array_node_indices_; }
 
-    // Returns the input array nodes of exotic graphs.
-    const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& exotic_input_array_nodes() const {
-        return exotic_input_array_nodes_;
-    }
-
     const BackwardFunction& backward_func() const { return backward_func_; }
-
-    void AddExoticInputArrayNode(std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>> input_array_nodes);
 
 private:
     friend class OpNode;
@@ -65,8 +58,6 @@ private:
     // The index mapping from local (this backward function) to global (op node).
     // Can be unset if the input array does not require grad.
     std::vector<size_t> input_array_node_indices_;
-
-    std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> exotic_input_array_nodes_;
 
     BackwardFunction backward_func_;
 };
