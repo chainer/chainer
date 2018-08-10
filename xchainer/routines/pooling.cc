@@ -118,7 +118,7 @@ Array AveragePool(
     {
         BackwardBuilder bb1{"average_pool", x, out};
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
-            bt1.Define([ fb = std::move(fb), kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
+            bt1.Define([fb = std::move(fb), kernel_size, stride, pad, pad_mode](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 Array gx = fb->Backward(gout.AsGradStopped());
                 internal::MakeViewForForwardBackwardOutput(gx);

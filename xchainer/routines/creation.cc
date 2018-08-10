@@ -271,7 +271,7 @@ Array Diag(const Array& v, int64_t k, Device& device) {
 
     BackwardBuilder bb{"diag", v, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([& device = v.device(), k ](BackwardContext & bctx) {
+        bt.Define([& device = v.device(), k](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = Diag(gout, k, device);
         });

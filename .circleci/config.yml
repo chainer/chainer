@@ -10,13 +10,13 @@ jobs:
           name: Setup
           command: |
             apt-get update
-            apt-get install -y g++ cmake clang-5.0 clang-format-5.0 git python3-dev wget
+            apt-get install -y g++ cmake clang-6.0 clang-format-6.0 git python3-dev wget
             apt-get install openssh-client  # To avoid warning on checkout
             apt-get install -y bzip2  # To install miniconda
             apt-get install -y parallel  # Used in scripts
 
-            update-alternatives --install /usr/bin/clang clang /usr/bin/clang-5.0 1 \
-                --slave /usr/bin/clang-format clang-format /usr/bin/clang-format-5.0 \
+            update-alternatives --install /usr/bin/clang clang /usr/bin/clang-6.0 1 \
+                --slave /usr/bin/clang-format clang-format /usr/bin/clang-format-6.0 \
 
             # To avoid configuring PATH environment variable in every steps
             echo 'export PATH="$HOME"/miniconda/bin:"$PATH"' >> $BASH_ENV
