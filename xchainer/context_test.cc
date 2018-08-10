@@ -32,7 +32,7 @@ TEST(ContextTest, NativeBackend) {
 }
 
 TEST(ContextTest, GetBackendThreadSafe) {
-    static constexpr int kRepeat = 100;
+    static constexpr size_t kRepeat = 100;
     static constexpr size_t kThreadCount = 1024;
 
     xchainer::testing::CheckThreadSafety(
@@ -63,7 +63,7 @@ TEST(ContextTest, GetDevice) {
 }
 
 TEST(ContextTest, GetDeviceThreadSafe) {
-    static constexpr int kRepeat = 100;
+    static constexpr size_t kRepeat = 100;
     static constexpr int kDeviceCount = 4;
     static constexpr size_t kThreadCountPerDevice = 32;
     static constexpr size_t kThreadCount = kDeviceCount * kThreadCountPerDevice;
