@@ -115,6 +115,44 @@ TEST(ContextTest, DefaultContext) {
     ASSERT_EQ(&ctx, &GetDefaultContext());
 }
 
+TEST(ContextTest, DefaultContextThreadSafe) {
+    static constexpr size_t kRepeat = 100;
+    static constexpr size_t kThreadCount = 256;
+
+    xchainer::testing::CheckThreadSafety(
+            kRepeat,
+            kThreadCount,
+            [](size_t /*repeat*/) { return nullptr; },
+            [](size_t /*thread_index*/, std::nullptr_t) {
+                Context ctx{};
+                SetDefaultContext(&ctx);
+                Context& ctx2 = GetDefaultContext();
+                EXPECT_EQ(&ctx, &ctx2);
+                return nullptr;
+            },
+            [](const std::vector<std::nullptr_t>& /*results*/) {});
+}
+
+TEST(ContextTest, GlobalDefaultContextThreadSafe) {
+    static constexpr size_t kRepeat = 100;
+    static constexpr size_t kThreadCount = 256;
+
+    // Each of SetGlobalDefaultContext() and GetGlobalDefaultContext() must be thread-safe, but a pair of these calls is not guaranteed to
+    // be so. In this check, a single context is set as the global context simultaneously in many threads and it only checks that
+    // the succeeding Get...() call returns the same instance.
+    xchainer::testing::CheckThreadSafety(
+            kRepeat,
+            kThreadCount,
+            [](size_t /*repeat*/) { return std::make_unique<Context>(); },
+            [](size_t /*thread_index*/, const std::unique_ptr<Context>& ctx) {
+                SetGlobalDefaultContext(ctx.get());
+                Context& ctx2 = GetGlobalDefaultContext();
+                EXPECT_EQ(ctx.get(), &ctx2);
+                return nullptr;
+            },
+            [](const std::vector<std::nullptr_t>& /*results*/) {});
+}
+
 TEST(ContextTest, GlobalDefaultContext) {
     SetGlobalDefaultContext(nullptr);
     ASSERT_THROW(GetGlobalDefaultContext(), XchainerError);

@@ -22,6 +22,7 @@ class NativeBackend;
 
 // TODO(sonots): Hide BackpropId-related functions from users.
 // TODO(sonots): Move implementations of BackpropId-releated functions into another class.
+// TODO(niboshi): Make BackpropId-related functions thread-safe.
 class Context {
 public:
     Context() = default;
