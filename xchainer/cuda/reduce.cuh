@@ -73,6 +73,7 @@ __global__ void ReductionKernel(
             impl.Reduce(impl.MapIn(arg.in[it_in], i_reduce), accum);
         }
 
+        static_assert(kMaxReductionBlockSize == 512, "");
         if (out_block_size < 512) {
             work[tid] = accum;
             __syncthreads();
