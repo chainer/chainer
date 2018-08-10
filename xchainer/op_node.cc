@@ -71,6 +71,16 @@ OpNode::OpNode(std::string name, BackpropId backprop_id, size_t input_array_node
 
 namespace {
 
+bool IsAllArrayNodesMatchBackpropId(
+        const BackpropId& outer_backprop_id, const std::vector<std::shared_ptr<ArrayNode>>& outer_graphs_array_nodes) {
+    return std::all_of(
+            outer_graphs_array_nodes.begin(),
+            outer_graphs_array_nodes.end(),
+            [&outer_backprop_id](const std::shared_ptr<ArrayNode>& array_node) {
+                return array_node == nullptr || array_node->backprop_id() == outer_backprop_id;
+            });
+}
+
 void AssertOuterGraphsArrayNodesConsistency(
         const BackpropId& backprop_id,
         size_t array_node_count,
@@ -122,14 +132,16 @@ void AssertOuterGraphsArrayNodesConsistency(
 
 }  // namespace
 
-#endif  // NDEBUG
-
 void OpNode::AssertConsistency() const {
-#ifndef NDEBUG
     AssertOuterGraphsArrayNodesConsistency(backprop_id_, input_array_node_count(), outer_graphs_input_array_nodes_, false);
     AssertOuterGraphsArrayNodesConsistency(backprop_id_, output_array_node_count(), outer_graphs_output_array_nodes_, true);
-#endif  // NDEBUG
 }
+
+#else
+
+void OpNode::AssertConsistency() const {}
+
+#endif  // NDEBUG
 
 std::vector<std::shared_ptr<ArrayNode>>& OpNode::input_array_nodes() {
     assert(std::all_of(input_array_nodes_.begin(), input_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
@@ -183,20 +195,6 @@ OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
     AssertConsistency();
     return backward_entries_.back();
 }
-
-namespace {
-
-bool IsAllArrayNodesMatchBackpropId(
-        const BackpropId& outer_backprop_id, const std::vector<std::shared_ptr<ArrayNode>>& outer_graphs_array_nodes) {
-    return std::all_of(
-            outer_graphs_array_nodes.begin(),
-            outer_graphs_array_nodes.end(),
-            [&outer_backprop_id](const std::shared_ptr<ArrayNode>& array_node) {
-                return array_node == nullptr || array_node->backprop_id() == outer_backprop_id;
-            });
-}
-
-}  // namespace
 
 void OpNode::AddEdgesToInputArrayNodesOfOuterGraph(
         const BackpropId& outer_backprop_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_input_array_nodes) {
