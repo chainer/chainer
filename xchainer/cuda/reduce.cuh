@@ -12,8 +12,8 @@ namespace xchainer {
 namespace cuda {
 namespace reduce_detail {
 
-static constexpr int kMaxReductionBlockSize = 512;
-static constexpr int64_t kMaxGridSize = int64_t{0x7fffffffUL};
+static constexpr int kMaxReductionBlockSize{512};
+static constexpr int64_t kMaxGridSize{0x7fffffff};
 
 int64_t RoundUpToPowerOf2(int64_t x) {
     --x;
