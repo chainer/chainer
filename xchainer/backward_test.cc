@@ -1,7 +1,9 @@
 #include "xchainer/backward.h"
 
 #include <algorithm>
+#include <map>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #ifdef XCHAINER_ENABLE_CUDA
@@ -525,31 +527,6 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(backprop_id_inner));
 }
 
-TEST_P(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
-    BackpropScope backprop_scope_outer{"bp_outer"};
-    BackpropScope backprop_scope_inner{"bp_inner"};
-    BackpropId backprop_id_outer = backprop_scope_outer.backprop_id();
-    BackpropId backprop_id_inner = backprop_scope_inner.backprop_id();
-
-    Array y1_grad_stopped;
-    std::weak_ptr<internal::ArrayNode> x1_array_node;
-
-    {
-        Array x1 = MakeFullArray({1}, {2.0f});
-        Array x2 = MakeFullArray({1}, {5.0f});
-
-        x1.RequireGrad(backprop_id_outer);
-        x2.RequireGrad(backprop_id_inner);
-
-        Array y1 = x1 + x2;  // operator+ does not retain inputs/outputs
-        y1_grad_stopped = y1.AsGradStopped(backprop_id_outer);
-
-        x1_array_node = internal::GetArrayBody(x1)->GetArrayNode(backprop_id_outer);
-    }
-
-    EXPECT_TRUE(x1_array_node.expired());
-}
-
 TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
     Array x = MakeFullArray({1}, {2.0f});
     x.RequireGrad();
@@ -754,6 +731,89 @@ TEST_P(BackpropTest, SomeOfOutputArrayNodesAreGone) {
 
     Array expected_x_grad = x_value * Exp(x_value);
     testing::ExpectAllClose(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
+}
+
+TEST_P(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropScope backprop_scope3{"bp3"};
+    BackpropScope backprop_scope4{"bp4"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
+    BackpropId backprop_id3 = backprop_scope3.backprop_id();
+    BackpropId backprop_id4 = backprop_scope4.backprop_id();
+
+    Array x1 = Full({1}, 2.0f).RequireGrad(backprop_id1).RequireGrad(backprop_id2).RequireGrad(backprop_id4);
+    Array x2 = Full({1}, 5.0f).RequireGrad(backprop_id2).RequireGrad(backprop_id3);
+    Array x3 = Full({1}, 7.0f).RequireGrad(backprop_id1);
+    Array y1 = Empty({1}, Dtype::kFloat32);
+    Array y2 = Empty({1}, Dtype::kFloat32);
+
+    {
+        BackwardBuilder bb{"func", {x1, x2, x3}, {y1, y2}};
+        RetainedInputToken tok_x1 = bb.RetainInput(0);
+        RetainedInputToken tok_x3 = bb.RetainInput(2);
+        RetainedOutputToken tok_y2 = bb.RetainOutput(1);
+        BackwardBuilder::Target bt = bb.CreateTarget({0, 1, 2});
+        bt.Define([](BackwardContext& /*bctx*/) {
+            FAIL();  // backward is never called
+        });
+        bb.Finalize();
+    }
+
+    // Returns a map: backprop ID -> vector of array nodes
+    auto get_graph_map =
+            [](const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<internal::ArrayNode>>>>& outer_graphs_array_nodes) {
+                std::map<BackpropId, std::vector<std::shared_ptr<internal::ArrayNode>>> map;
+                std::transform(
+                        outer_graphs_array_nodes.begin(),
+                        outer_graphs_array_nodes.end(),
+                        std::inserter(map, map.end()),
+                        [](const auto& tup) {
+                            BackpropId backprop_id = std::get<0>(tup);
+                            return std::make_pair(backprop_id, std::get<1>(tup));
+                        });
+                assert(map.size() == outer_graphs_array_nodes.size());
+                return map;
+            };
+
+    // In the following checks, only edges registered to backprop_id4's op node are checked.
+    const std::shared_ptr<internal::OpNode>& op_node_bp4 = internal::GetArrayBody(y1)->GetArrayNode(backprop_id4)->creator_op_node();
+    ASSERT_EQ(backprop_id4, op_node_bp4->backprop_id());
+
+    // Edges from op node to input array nodes
+    {
+        auto map_bp4 = get_graph_map(op_node_bp4->outer_graphs_input_array_nodes());
+        ASSERT_EQ(2U, op_node_bp4->outer_graphs_input_array_nodes().size());
+        ASSERT_EQ(1U, map_bp4.count(backprop_id1));
+        ASSERT_EQ(1U, map_bp4.count(backprop_id2));
+        EXPECT_EQ(3U, map_bp4.at(backprop_id1).size());
+        EXPECT_NE(nullptr, map_bp4.at(backprop_id1).at(0));
+        EXPECT_EQ(nullptr, map_bp4.at(backprop_id1).at(1));
+        EXPECT_NE(nullptr, map_bp4.at(backprop_id1).at(2));
+        EXPECT_EQ(3U, map_bp4.at(backprop_id2).size());
+        EXPECT_NE(nullptr, map_bp4.at(backprop_id2).at(0));
+        EXPECT_EQ(nullptr, map_bp4.at(backprop_id2).at(1));
+        EXPECT_EQ(nullptr, map_bp4.at(backprop_id2).at(2));
+    }
+
+    // Edges from op node to output array nodes
+    {
+        auto map_bp4 = get_graph_map(op_node_bp4->outer_graphs_output_array_nodes());
+        ASSERT_EQ(3U, op_node_bp4->outer_graphs_output_array_nodes().size());
+        ASSERT_EQ(1U, map_bp4.count(backprop_id1));
+        ASSERT_EQ(1U, map_bp4.count(backprop_id2));
+        ASSERT_EQ(1U, map_bp4.count(backprop_id3));
+        EXPECT_EQ(2U, map_bp4.at(backprop_id1).size());
+        EXPECT_EQ(nullptr, map_bp4.at(backprop_id1).at(0));
+        EXPECT_NE(nullptr, map_bp4.at(backprop_id1).at(1));
+        EXPECT_EQ(2U, map_bp4.at(backprop_id2).size());
+        EXPECT_EQ(nullptr, map_bp4.at(backprop_id2).at(0));
+        EXPECT_NE(nullptr, map_bp4.at(backprop_id2).at(1));
+        EXPECT_EQ(2U, map_bp4.at(backprop_id3).size());
+        EXPECT_EQ(nullptr, map_bp4.at(backprop_id3).at(0));
+        EXPECT_NE(nullptr, map_bp4.at(backprop_id3).at(1));
+    }
 }
 
 INSTANTIATE_TEST_CASE_P(
