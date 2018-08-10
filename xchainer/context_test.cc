@@ -33,7 +33,7 @@ TEST(ContextTest, NativeBackend) {
 
 TEST(ContextTest, GetBackendThreadSafe) {
     static constexpr size_t kRepeat = 100;
-    static constexpr size_t kThreadCount = 1024;
+    static constexpr size_t kThreadCount = 128;
 
     xchainer::testing::CheckThreadSafety(
             kRepeat,
