@@ -81,7 +81,7 @@ bool IsAllArrayNodesMatchBackpropId(
             });
 }
 
-bool AssertOuterGraphsArrayNodesConsistency(
+void AssertOuterGraphsArrayNodesConsistency(
         const BackpropId& backprop_id,
         size_t array_node_count,
         const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_array_nodes,
