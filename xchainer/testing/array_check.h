@@ -66,7 +66,7 @@ void ExpectDataEqual(T expected, const Array& actual) {
 }  // namespace testing
 
 // Expects that given arrays have same elements and that they belong to the same device.
-#define XCHAINER_EXPECT_EQ(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::IsEqual, a, b)
+#define EXPECT_ARRAY_EQ(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::IsEqual, a, b)
 
 // Expects that the given arrays have elements that are all close to each other and that they belong to the same device.
 //

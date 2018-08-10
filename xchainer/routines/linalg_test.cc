@@ -36,7 +36,7 @@ TEST_P(LinalgTest, Dot) {
     Array b = testing::BuildArray({3, 2}).WithData<float>({1.f, 2.f, -1.f, -3.f, 2.f, 4.f}).WithPadding(2);
     Array c = Dot(a, b);
     Array e = testing::BuildArray({2, 2}).WithData<float>({5.f, 8.f, 11.f, 17.f});
-    XCHAINER_EXPECT_EQ(e, c);
+    EXPECT_ARRAY_EQ(e, c);
 }
 
 TEST_P(LinalgTest, DotZeroDim) {
@@ -44,7 +44,7 @@ TEST_P(LinalgTest, DotZeroDim) {
     Array b = testing::BuildArray({}).WithData<float>({2.f});
     Array c = Dot(a, b);
     Array e = testing::BuildArray({2, 3}).WithLinearData(2.f, 2.f);
-    XCHAINER_EXPECT_EQ(e, c);
+    EXPECT_ARRAY_EQ(e, c);
 }
 
 TEST_P(LinalgTest, DotVecVec) {
@@ -52,7 +52,7 @@ TEST_P(LinalgTest, DotVecVec) {
     Array b = testing::BuildArray({3}).WithLinearData(1.f, 2.f);
     Array c = Dot(a, b);
     Array e = testing::BuildArray({}).WithData<float>({22.f});
-    XCHAINER_EXPECT_EQ(e, c);
+    EXPECT_ARRAY_EQ(e, c);
 }
 
 TEST_P(LinalgTest, DotMatVec) {
@@ -60,7 +60,7 @@ TEST_P(LinalgTest, DotMatVec) {
     Array b = testing::BuildArray({3}).WithLinearData(1.f, 2.f);
     Array c = Dot(a, b);
     Array e = testing::BuildArray({2}).WithData<float>({22.f, 49.f});
-    XCHAINER_EXPECT_EQ(e, c);
+    EXPECT_ARRAY_EQ(e, c);
 }
 
 TEST_P(LinalgTest, DotInvalidShape) {
@@ -74,7 +74,7 @@ TEST_P(LinalgTest, DotAlongZeroLengthAxis) {
     Array b = Empty({0, 2}, a.dtype());
     Array c = Dot(a, b);
     Array e = Zeros({2, 2}, a.dtype());
-    XCHAINER_EXPECT_EQ(e, c);
+    EXPECT_ARRAY_EQ(e, c);
 }
 
 TEST_P(LinalgTest, DotBackward) {

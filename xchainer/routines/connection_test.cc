@@ -67,7 +67,7 @@ TEST_P(ConnectionTest, Conv2d) {
              1.30000e+00,  1.30000e+00,  1.30000e+00,  1.76173e+04,  1.79233e+04,  1.82293e+04,  2.08303e+04,  2.11363e+04,  2.14423e+04,
              2.40433e+04,  2.43493e+04,  2.46553e+04,  1.30000e+00,  1.30000e+00,  1.30000e+00});  // Computed with Chainer.
 
-    XCHAINER_EXPECT_EQ(e, y);
+    EXPECT_ARRAY_EQ(e, y);
 }
 
 TEST_P(ConnectionTest, ConvNd) {
@@ -98,7 +98,7 @@ TEST_P(ConnectionTest, ConvNd) {
              -1.44347e+04, -1.81367e+04, -1.28147e+04, -2.00000e-01, -2.00000e-01, -2.00000e-01, -3.58202e+04, -4.92422e+04, -3.80882e+04,
              1.30000e+00,  1.30000e+00,  1.30000e+00,  4.38853e+04,  5.83273e+04,  4.35613e+04});  // Computed with Chainer.
 
-    XCHAINER_EXPECT_EQ(e, y);
+    EXPECT_ARRAY_EQ(e, y);
 }
 
 TEST_P(ConnectionTest, ConvCoverAll) {
@@ -144,7 +144,7 @@ TEST_P(ConnectionTest, ConvCoverAll) {
                      2.43943e+04,  1.56763e+04,  2.74543e+04,  2.77603e+04,  2.80663e+04,  1.79803e+04,  1.30000e+00,
                      1.30000e+00,  1.30000e+00,  1.30000e+00});  // Computed with Chainer.
 
-    XCHAINER_EXPECT_EQ(e, y);
+    EXPECT_ARRAY_EQ(e, y);
 }
 
 TEST_P(ConnectionTest, ConvBackward) {
@@ -396,7 +396,7 @@ TEST_P(ConnectionTest, ConvTranspose) {
              1.3303e+03,  6.7330e+02,  7.5130e+02,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,
              1.3000e+00});  // Computed with Chainer.
 
-    XCHAINER_EXPECT_EQ(e, y);
+    EXPECT_ARRAY_EQ(e, y);
 }
 
 TEST_P(ConnectionTest, ConvTransposeOutSize) {
@@ -464,7 +464,7 @@ TEST_P(ConnectionTest, ConvTransposeOutSize) {
              1.7383e+03,  8.7730e+02,  1.7623e+03,  8.8930e+02,  1.7863e+03,  9.0130e+02,  1.3000e+00,  1.3000e+00,  1.3000e+00,
              1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00});  // Computed with Chainer.
 
-    XCHAINER_EXPECT_EQ(e, y);
+    EXPECT_ARRAY_EQ(e, y);
 }
 
 TEST_P(ConnectionTest, ConvTransposeBackward) {
