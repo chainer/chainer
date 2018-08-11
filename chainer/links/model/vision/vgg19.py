@@ -1,6 +1,6 @@
-from __future__ import print_function
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -47,6 +47,7 @@ class VGG19Layers(link.Chain):
     If you want to manually convert the pre-trained caffemodel to a chainer
     model that can be specified in the constructor,
     please use ``convert_caffemodel_to_npz`` classmethod instead.
+
     See: K. Simonyan and A. Zisserman, `Very Deep Convolutional Networks
     for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`_
 
@@ -69,6 +70,7 @@ class VGG19Layers(link.Chain):
     Attributes:
         available_layers (list of str): The list of available layer names
             used by ``forward`` and ``extract`` methods.
+
     """
 
     def __init__(self, pretrained_model='auto'):
@@ -168,19 +170,23 @@ class VGG19Layers(link.Chain):
         """forward(self, x, layers=['prob'])
 
         Computes all the feature maps specified by ``layers``.
+
         .. warning::
+
            ``test`` argument is not supported anymore since v2.
            Instead, use ``chainer.using_config('train', train)``.
            See :func:`chainer.using_config`.
 
         Args:
-            x (~chainer.Variable): Input variable.
+            x (~chainer.Variable): Input variable. It should be prepared by
+                ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
 
         Returns:
             Dictionary of ~chainer.Variable: A directory in which
             the key contains the layer name and the value contains
             the corresponding feature map variable.
+
         """
 
         if layers is None:
@@ -283,21 +289,25 @@ class VGG19Layers(link.Chain):
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
+                When you specify a color image as a :class:`numpy.ndarray`,
+                make sure that color order is RGB.
             oversample (bool): If ``True``, it averages results across
                 center, corners, and mirrors. Otherwise, it uses only the
                 center.
+
         Returns:
             ~chainer.Variable: Output that contains the class probabilities
             of given images.
+
         """
 
         x = concat_examples([prepare(img, size=(256, 256)) for img in images])
         if oversample:
             x = imgproc.oversample(x, crop_dims=(224, 224))
         else:
-            x = x[:, :, 19:240, 19:240]
+            x = x[:, :, 16:240, 16:240]
         # Use no_backprop_mode to reduce memory consumption
-        with function.no_backprop_mode():
+        with function.no_backprop_mode(), chainer.using_config('train', False):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
@@ -315,6 +325,7 @@ def prepare(image, size=(224, 224)):
     because the pre-trained vgg model requires to resize the given image,
     covert the RGB to the BGR, subtract the mean,
     and permute the dimensions before calling.
+
     Args:
         image (PIL.Image or numpy.ndarray): Input image.
             If an input is ``numpy.ndarray``, its shape must be
@@ -323,8 +334,10 @@ def prepare(image, size=(224, 224)):
             the order of the channels must be RGB.
         size (pair of ints): Size of converted images.
             If ``None``, the given image is not resized.
+
     Returns:
         numpy.ndarray: The converted output array.
+
     """
 
     if not available:
@@ -356,7 +369,9 @@ def _max_pooling_2d(x):
 
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     VGG19Layers.convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model
