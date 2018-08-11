@@ -118,6 +118,7 @@ from chainer.functions.math.batch_l2_norm_squared import batch_l2_norm_squared  
 from chainer.functions.math.bias import bias  # NOQA
 from chainer.functions.math.ceil import ceil  # NOQA
 from chainer.functions.math.clip import clip  # NOQA
+from chainer.functions.math.cumprod import cumprod  # NOQA
 from chainer.functions.math.cumsum import cumsum  # NOQA
 from chainer.functions.math.det import batch_det  # NOQA
 from chainer.functions.math.det import det  # NOQA
@@ -125,6 +126,7 @@ from chainer.functions.math.digamma import digamma  # NOQA
 from chainer.functions.math.einsum import einsum  # NOQA
 from chainer.functions.math.erf import erf  # NOQA
 from chainer.functions.math.erfc import erfc  # NOQA
+from chainer.functions.math.erfcx import erfcx  # NOQA
 from chainer.functions.math.erfinv import erfinv  # NOQA
 from chainer.functions.math.exponential import exp  # NOQA
 from chainer.functions.math.exponential import log  # NOQA

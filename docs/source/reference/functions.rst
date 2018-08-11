@@ -216,6 +216,7 @@ Mathematical functions
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh
+   chainer.functions.cumprod
    chainer.functions.cumsum
    chainer.functions.det
    chainer.functions.batch_det
@@ -223,6 +224,7 @@ Mathematical functions
    chainer.functions.einsum
    chainer.functions.erf
    chainer.functions.erfc
+   chainer.functions.erfcx
    chainer.functions.erfinv
    chainer.functions.exp
    chainer.functions.expm1

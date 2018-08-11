@@ -34,7 +34,7 @@ class Hinge(function.Function):
 
         x_type, t_type = in_types
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             t_type.dtype.kind == 'i',
             x_type.ndim == 2,
             t_type.ndim == 1,
