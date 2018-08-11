@@ -7,6 +7,7 @@ from chainer.backends import cuda
 from chainer.links.model.vision import googlenet
 from chainer.links.model.vision import resnet
 from chainer.links.model.vision import vgg
+from chainer.links.model.vision import vgg19
 from chainer import testing
 from chainer.testing import attr
 from chainer.variable import Variable
@@ -166,16 +167,20 @@ class TestResNetLayers(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
+    'n_layers': [16, 19],
     'dtype': [numpy.float16, numpy.float32],
 }))
 @unittest.skipUnless(resnet.available, 'Pillow is required')
 @attr.slow
-class TestVGG16Layers(unittest.TestCase):
+class TestVGGs(unittest.TestCase):
 
     def setUp(self):
         self._config_user = chainer.using_config('dtype', self.dtype)
         self._config_user.__enter__()
-        self.link = vgg.VGG16Layers(pretrained_model=None)
+        if self.n_layers == 16:
+            self.link = vgg.VGG16Layers(pretrained_model=None)
+        elif self.n_layers == 19:
+            self.link = vgg19.VGG19Layers(pretrained_model=None)
 
     def tearDown(self):
         self._config_user.__exit__(None, None, None)
