@@ -47,7 +47,3 @@ def print_runtime_info(out=None):
     out.write(str(get_runtime_info()))
     if hasattr(out, 'flush'):
         out.flush()
-
-
-if __name__ == '__main__':
-    chainer.print_runtime_info()
