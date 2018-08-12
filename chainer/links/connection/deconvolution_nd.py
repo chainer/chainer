@@ -132,7 +132,14 @@ class DeconvolutionND(link.Link):
                 self.b = variable.Parameter(initial_bias, out_channels)
 
     def _initialize_params(self, in_channels):
-        W_shape = (in_channels, self.out_channels) + self.ksize
+        if self.out_channels % self.groups != 0:
+            raise ValueError('the number of output channels must be'
+                             'divisible by the number of groups')
+        if in_channels % self.groups != 0:
+            raise ValueError('the number of input channels must be'
+                             'divisible by the number of groups')
+        W_shape = (
+            in_channels, int(self.out_channels / self.groups)) + self.ksize
         self.W.initialize(W_shape)
 
     def forward(self, x):

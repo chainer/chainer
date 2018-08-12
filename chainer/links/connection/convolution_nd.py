@@ -134,7 +134,14 @@ class ConvolutionND(link.Link):
                 self.b = variable.Parameter(initial_bias, out_channels)
 
     def _initialize_params(self, in_channels):
-        W_shape = (self.out_channels, in_channels) + self.ksize
+        if self.out_channels % self.groups != 0:
+            raise ValueError('the number of output channels must be'
+                             ' divisible by the number of groups')
+        if in_channels % self.groups != 0:
+            raise ValueError('the number of input channels must be'
+                             ' divisible by the number of groups')
+        W_shape = (
+            int(self.out_channels / self.groups), in_channels) + self.ksize
         self.W.initialize(W_shape)
 
     def forward(self, x):
