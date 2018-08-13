@@ -40,13 +40,13 @@ void Im2ColImpl(
 
     NdimIndex img_index{KernelNdim};
 
-    for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
-        for (auto it_out_dims = out_dims_indexer.It(0); it_out_dims; ++it_out_dims) {
-            for (int i = 0; i < KernelNdim; ++i) {
-                img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i];
-            }
+    for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
+        for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
+            for (auto it_out_dims = out_dims_indexer.It(0); it_out_dims; ++it_out_dims) {
+                for (int i = 0; i < KernelNdim; ++i) {
+                    img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i];
+                }
 
-            for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
                 auto it_x = x_indexer.At(it_batch_channel, img_index);
                 auto it_out = out_indexer.At(it_batch_channel, it_kernel, it_out_dims);
 
