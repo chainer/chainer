@@ -42,10 +42,6 @@ class Beta(distribution.Distribution):
     def event_shape(self):
         return ()
 
-    @property
-    def _is_gpu(self):
-        return isinstance(self.a.data, cuda.ndarray)
-
     def log_prob(self, x):
         logp = (self.a - 1) * exponential.log(x) \
             + (self.b - 1) * exponential.log(1 - x) \
@@ -54,7 +50,7 @@ class Beta(distribution.Distribution):
         inf = xp.full_like(logp.array, xp.inf)
         if isinstance(x, chainer.Variable):
             x = x.array
-        return where.where(xp.bitwise_and(x >= 0, x <= 1), logp, -inf)
+        return where.where(xp.logical_and(x >= 0, x <= 1), logp, -inf)
 
     @property
     def mean(self):
