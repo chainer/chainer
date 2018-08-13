@@ -14,8 +14,8 @@ Distributions
    :toctree: generated/
    :nosignatures:
    
-   chainer.distributions.Categorical
    chainer.distributions.Bernoulli
+   chainer.distributions.Categorical
    chainer.distributions.Laplace
    chainer.distributions.MultivariateNormal
    chainer.distributions.Normal
