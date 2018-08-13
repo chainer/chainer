@@ -66,7 +66,6 @@ class Categorical(distribution.Distribution):
 
     @property
     def entropy(self):
-        print(self.p)
         return - sum_mod.sum(
             chainer.distributions.utils._modified_xlogx(self.p), axis=-1)
 
