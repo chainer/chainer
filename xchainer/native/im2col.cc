@@ -11,6 +11,7 @@
 #include "xchainer/device.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/macro.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
@@ -64,15 +65,17 @@ Array Im2Col(
     std::copy(kernel_size.begin(), kernel_size.end(), std::back_inserter(out_shape));
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
     Array out = Empty(out_shape, x.dtype(), device);
-    assert(out.shape().ndim() == 2 + 2 * ndim);
+    assert(ndim * 2 + 2 == out.ndim());
 
     // Write to the output array.
     VisitDtype(x.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
 
-        // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
         switch (ndim) {
+            case 0:
+                Im2ColImpl<T, 0>(padded_x, out, kernel_size, stride, out_dims, batch_channel_indexer);
+                break;
             case 1:
                 Im2ColImpl<T, 1>(padded_x, out, kernel_size, stride, out_dims, batch_channel_indexer);
                 break;
@@ -86,7 +89,7 @@ Array Im2Col(
                 Im2ColImpl<T, 4>(padded_x, out, kernel_size, stride, out_dims, batch_channel_indexer);
                 break;
             default:
-                Im2ColImpl<T>(padded_x, out, kernel_size, stride, out_dims, batch_channel_indexer);
+                XCHAINER_NEVER_REACH();  // Never out.ndim() > kMaxNdim(10)
                 break;
         }
     });

@@ -14,7 +14,7 @@ namespace xchainer {
 namespace native {
 namespace native_internal {
 
-template <typename T, int8_t KernelNdim = kDynamicNdim>
+template <typename T, int8_t KernelNdim>
 void Im2ColImpl(
         const Array& x,
         const Array& out,
