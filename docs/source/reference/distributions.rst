@@ -14,6 +14,7 @@ Distributions
    :toctree: generated/
    :nosignatures:
    
+   chainer.distributions.Beta
    chainer.distributions.Bernoulli
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
