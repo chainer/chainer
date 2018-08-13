@@ -4,47 +4,12 @@ from chainer import distribution
 from chainer.functions.array import broadcast
 from chainer.functions.math import digamma
 from chainer.functions.math import exponential
+from chainer.functions.math import lgamma
 from chainer.functions.array import where
-from chainer import utils
-
-_lgamma_cpu = None
-
-
-class LBeta(chainer.function_node.FunctionNode):
-
-    def forward_cpu(self, inputs):
-        a, b = inputs
-        global _lgamma_cpu
-        if _lgamma_cpu is None:
-            try:
-                from scipy import special
-                _lgamma_cpu = special.gammaln
-            except ImportError:
-                raise ImportError("SciPy is not available. Forward computation"
-                                  " of lgamma can not be done.")
-        self.retain_inputs((0, 1))
-        y = _lgamma_cpu(a) + _lgamma_cpu(b) - _lgamma_cpu(a + b)
-        return utils.force_array(y, dtype=a.dtype),
-
-    def forward_gpu(self, inputs):
-        a, b = inputs
-        self.retain_inputs((0, 1))
-        y = cuda.cupyx.scipy.special.gammaln(a) \
-            + cuda.cupyx.scipy.special.gammaln(b) \
-            - cuda.cupyx.scipy.special.gammaln(a + b)
-        return utils.force_array(y, dtype=a.dtype),
-
-    def backward(self, target_input_indexes, grad_outputs):
-        gy, = grad_outputs
-        a, b = self.get_retained_inputs()
-        digamma_apb = chainer.functions.digamma(a + b)
-        return (gy * (chainer.functions.digamma(a) - digamma_apb),
-                gy * (chainer.functions.digamma(b) - digamma_apb))
 
 
 def _lbeta(a, b):
-    y, = LBeta().apply((a, b))
-    return y
+    return lgamma.lgamma(a) + lgamma.lgamma(b) - lgamma.lgamma(a + b)
 
 
 class Beta(distribution.Distribution):
