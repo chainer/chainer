@@ -1,9 +1,16 @@
+import time
 import unittest
 
 import numpy
 
 import chainer
 from chainer import testing
+
+
+try:
+    _process_time = time.process_time
+except AttributeError:
+    _process_time = time.clock
 
 
 class MyLinkHook(chainer.LinkHook):
@@ -17,11 +24,11 @@ class MyLinkHook(chainer.LinkHook):
 
     def added(self, link):
         assert link is None or isinstance(link, chainer.Link)
-        self.added_args.append(link)
+        self.added_args.append((_process_time(), link))
 
     def deleted(self, link):
         assert link is None or isinstance(link, chainer.Link)
-        self.deleted_args.append(link)
+        self.deleted_args.append((_process_time(), link))
 
     def forward_preprocess(self, args):
         assert isinstance(args.link, chainer.Link)
@@ -30,7 +37,7 @@ class MyLinkHook(chainer.LinkHook):
         assert isinstance(args.kwargs, dict)
         assert isinstance(str(args), str)
         assert isinstance(repr(args), str)
-        self.forward_preprocess_args.append(args)
+        self.forward_preprocess_args.append((_process_time(), args))
 
     def forward_postprocess(self, args):
         assert isinstance(args.link, chainer.Link)
@@ -40,7 +47,7 @@ class MyLinkHook(chainer.LinkHook):
         assert hasattr(args, 'out')
         assert isinstance(str(args), str)
         assert isinstance(repr(args), str)
-        self.forward_postprocess_args.append(args)
+        self.forward_postprocess_args.append((_process_time(), args))
 
 
 class MyModel(chainer.Chain):
@@ -76,16 +83,16 @@ class TestLinkHook(unittest.TestCase):
 
         # added
         assert len(hook.added_args) == 1
-        assert hook.added_args[0] is None
+        assert hook.added_args[0][1] is None
 
         # deleted
         assert len(hook.added_args) == 1
-        assert hook.deleted_args[0] is None
+        assert hook.deleted_args[0][1] is None
 
         # forward_preprocess
         assert len(hook.forward_preprocess_args) == 2
         # - MyModel
-        args = hook.forward_preprocess_args[0]
+        args = hook.forward_preprocess_args[0][1]
         assert args.link is model
         assert args.forward_name == 'forward'
         assert len(args.args) == 2
@@ -94,18 +101,18 @@ class TestLinkHook(unittest.TestCase):
         assert len(args.kwargs) == 1
         assert args.kwargs['test2'] == 'bar'
         # - Linear
-        args = hook.forward_preprocess_args[1]
+        args = hook.forward_preprocess_args[1][1]
         assert args.link is model.l1
         assert args.forward_name == 'forward'
 
         # forward_postprocess
         assert len(hook.forward_postprocess_args) == 2
         # - Linear
-        args = hook.forward_postprocess_args[0]
+        args = hook.forward_postprocess_args[0][1]
         assert args.link is model.l1
         assert args.forward_name == 'forward'
         # - MyModel
-        args = hook.forward_postprocess_args[1]
+        args = hook.forward_postprocess_args[1][1]
         assert args.link is model
         assert args.forward_name == 'forward'
         assert len(args.args) == 2
@@ -114,6 +121,16 @@ class TestLinkHook(unittest.TestCase):
         assert len(args.kwargs) == 1
         assert args.kwargs['test2'] == 'bar'
         numpy.testing.assert_array_equal(args.out.data, dot)
+
+        # Test callback call order
+        time_sequence = [
+            hook.added_args[0][0],
+            hook.forward_preprocess_args[0][0],
+            hook.forward_preprocess_args[1][0],
+            hook.forward_postprocess_args[0][0],
+            hook.forward_postprocess_args[1][0],
+            hook.deleted_args[0][0]]
+        assert sorted(time_sequence) == time_sequence
 
     def _check_local_hook(self, add_hook_name, delete_hook_name):
         model, x, dot = self._create_model_and_data()
@@ -125,16 +142,16 @@ class TestLinkHook(unittest.TestCase):
 
         # added
         assert len(hook.added_args) == 1
-        assert hook.added_args[0] is model
+        assert hook.added_args[0][1] is model
 
         # deleted
         assert len(hook.added_args) == 1
-        assert hook.deleted_args[0] is model
+        assert hook.deleted_args[0][1] is model
 
         # forward_preprocess
         assert len(hook.forward_preprocess_args) == 1
         # - MyModel
-        args = hook.forward_preprocess_args[0]
+        args = hook.forward_preprocess_args[0][1]
         assert args.link is model
         assert args.forward_name == 'forward'
         assert len(args.args) == 2
@@ -146,7 +163,7 @@ class TestLinkHook(unittest.TestCase):
         # forward_postprocess
         assert len(hook.forward_postprocess_args) == 1
         # - MyModel
-        args = hook.forward_postprocess_args[0]
+        args = hook.forward_postprocess_args[0][1]
         assert args.link is model
         assert args.forward_name == 'forward'
         assert len(args.args) == 2
