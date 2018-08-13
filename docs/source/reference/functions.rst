@@ -216,6 +216,7 @@ Mathematical functions
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh
+   chainer.functions.cumprod
    chainer.functions.cumsum
    chainer.functions.det
    chainer.functions.batch_det
@@ -223,6 +224,8 @@ Mathematical functions
    chainer.functions.einsum
    chainer.functions.erf
    chainer.functions.erfc
+   chainer.functions.erfcinv
+   chainer.functions.erfcx
    chainer.functions.erfinv
    chainer.functions.exp
    chainer.functions.expm1
@@ -304,6 +307,7 @@ Spatial pooling
    chainer.functions.average_pooling_nd
    chainer.functions.max_pooling_2d
    chainer.functions.max_pooling_nd
+   chainer.functions.roi_align_2d
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
    chainer.functions.unpooling_2d

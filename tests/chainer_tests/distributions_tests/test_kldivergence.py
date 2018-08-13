@@ -50,6 +50,13 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Laplace(**params)
 
+    def make_log_normal_dist(self, is_gpu=False):
+        mu = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        sigma = numpy.exp(
+            numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
+        params = self.encode_params({"mu": mu, "sigma": sigma}, is_gpu)
+        return distributions.LogNormal(**params)
+
     def make_normal_dist(self, is_gpu=False, use_log_scale=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         if use_log_scale:
@@ -62,6 +69,37 @@ class TestKLDivergence(unittest.TestCase):
                 numpy.random.uniform(-1, 1, self.shape)).astype(numpy.float32)
             params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
         return distributions.Normal(**params)
+
+    def make_multivariatenormal_dist(self, is_gpu=False):
+        loc = numpy.random.uniform(
+            -1, 1, self.shape + (3,)).astype(numpy.float32)
+        cov = numpy.random.normal(size=(numpy.prod(self.shape),) + (3, 3))
+        cov = [cov_.dot(cov_.T) for cov_ in cov]
+        cov = numpy.vstack(cov).reshape(self.shape + (3, 3))
+        scale_tril = numpy.linalg.cholesky(cov).astype(numpy.float32)
+        params = self.encode_params(
+            {"loc": loc, "scale_tril": scale_tril}, is_gpu)
+        return distributions.MultivariateNormal(**params)
+
+    def make_uniform_dist(self, is_gpu=False, low=None, high=None,
+                          loc=None, scale=None, use_loc_scale=False):
+        if use_loc_scale:
+            if loc is None:
+                loc = numpy.random.uniform(
+                    -3, 0, self.shape).astype(numpy.float32)
+            if scale is None:
+                scale = numpy.random.uniform(
+                    1, 5, self.shape).astype(numpy.float32)
+            params = self.encode_params({"loc": loc, "scale": scale}, is_gpu)
+        else:
+            if low is None:
+                low = numpy.random.uniform(
+                    -3, 0, self.shape).astype(numpy.float32)
+            if high is None:
+                high = numpy.random.uniform(
+                    low + 1, low + 6, self.shape).astype(numpy.float32)
+            params = self.encode_params({"low": low, "high": high}, is_gpu)
+        return distributions.Uniform(**params)
 
     def test_bernoulli_bernoulli_cpu(self):
         dist1 = self.make_bernoulli_dist()
@@ -85,6 +123,17 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_laplace_dist(True)
         self.check_kl(dist1, dist2)
 
+    def test_log_normal_log_normal_cpu(self):
+        dist1 = self.make_log_normal_dist()
+        dist2 = self.make_log_normal_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_log_normal_log_normal_gpu(self):
+        dist1 = self.make_log_normal_dist(True)
+        dist2 = self.make_log_normal_dist(True)
+        self.check_kl(dist1, dist2)
+
     def test_normal_normal_cpu(self):
         for use_log_scale1 in [True, False]:
             for use_log_scale2 in [True, False]:
@@ -100,6 +149,35 @@ class TestKLDivergence(unittest.TestCase):
                     True, use_log_scale=use_log_scale1)
                 dist2 = self.make_normal_dist(
                     True, use_log_scale=use_log_scale2)
+                self.check_kl(dist1, dist2)
+
+    @testing.with_requires('scipy')
+    def test_multivariatenormal_multivariatenormal_cpu(self):
+        dist1 = self.make_multivariatenormal_dist()
+        dist2 = self.make_multivariatenormal_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_multivariatenormal_multivariatenormal_gpu(self):
+        dist1 = self.make_multivariatenormal_dist(True)
+        dist2 = self.make_multivariatenormal_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_uniform_uniform_cpu(self):
+        for use_loc_scale1 in [True, False]:
+            for use_loc_scale2 in [True, False]:
+                dist1 = self.make_uniform_dist(use_loc_scale=use_loc_scale1)
+                dist2 = self.make_uniform_dist(use_loc_scale=use_loc_scale2)
+                self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_uniform_uniform_gpu(self):
+        for use_loc_scale1 in [True, False]:
+            for use_loc_scale2 in [True, False]:
+                dist1 = self.make_uniform_dist(
+                    True, use_loc_scale=use_loc_scale1)
+                dist2 = self.make_uniform_dist(
+                    True, use_loc_scale=use_loc_scale2)
                 self.check_kl(dist1, dist2)
 
 

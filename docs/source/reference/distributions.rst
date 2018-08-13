@@ -15,8 +15,11 @@ Distributions
    :nosignatures:
    
    chainer.distributions.Bernoulli
-   chainer.distributions.Normal
    chainer.distributions.Laplace
+   chainer.distributions.LogNormal
+   chainer.distributions.MultivariateNormal
+   chainer.distributions.Normal
+   chainer.distributions.Uniform
 
 
 Functionals of distribution

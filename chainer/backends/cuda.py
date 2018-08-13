@@ -51,6 +51,7 @@ try:
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
     import cupyx  # NOQA
+    import cupyx.scipy.linalg  # NOQA
     import cupyx.scipy.special  # NOQA
 
     from cupy import ndarray  # NOQA
@@ -59,12 +60,9 @@ try:
     from cupy.cuda import Event  # NOQA
     from cupy.cuda import Stream  # NOQA
 
-    from . import cuda_fusion as fusion  # NOQA
-
     available = True
 except Exception as e:
     _resolution_error = e
-    fusion = numpy
 
     class ndarray(object):
         pass  # for type testing
@@ -429,35 +427,6 @@ def copy(array, out=None, out_device=None, stream=None):
     return out
 
 
-def copyto(dst, src):
-    """Copies the elements of an ndarray to those of another one.
-
-    This function can copy the CPU/GPU arrays to the destination arrays on
-    another device.
-
-    Args:
-        dst (numpy.ndarray or cupy.ndarray): Destination array.
-        src (numpy.ndarray or cupy.ndarray): Source array.
-
-    """
-    if isinstance(dst, numpy.ndarray):
-        numpy.copyto(dst, to_cpu(src))
-    elif isinstance(dst, ndarray):
-        if isinstance(src, numpy.ndarray):
-            if dst.flags.c_contiguous or dst.flags.f_contiguous:
-                dst.set(src)
-            else:
-                cupy.copyto(dst, to_gpu(src, device=dst.device))
-        elif isinstance(src, ndarray):
-            cupy.copyto(dst, src)
-        else:
-            raise TypeError('cannot copy from non-array object of type {}'
-                            .format(type(src)))
-    else:
-        raise TypeError('cannot copy to non-array object of type {}'.format(
-            type(dst)))
-
-
 # ------------------------------------------------------------------------------
 # Function result memoization
 # ------------------------------------------------------------------------------
@@ -536,6 +505,21 @@ def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
     return cupy.ReductionKernel(
         in_params, out_params, map_expr, reduce_expr, post_map_expr,
         identity, name, **kwargs)
+
+
+@memoize()
+def raw(code, name, *args, **kwargs):
+    """Creates a raw kernel function.
+
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the
+    resulting kernel object, i.e. the resulting kernel object is cached for
+    each argument combination and CUDA device.
+
+    The arguments are the same as those for :class:`cupy.RawKernel`.
+
+    """
+    check_cuda_available()
+    return cupy.RawKernel(code, name, *args, **kwargs)
 
 
 # ------------------------------------------------------------------------------

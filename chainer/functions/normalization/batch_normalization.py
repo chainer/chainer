@@ -1,4 +1,3 @@
-import collections
 import warnings
 
 import numpy
@@ -10,7 +9,9 @@ from chainer import configuration
 from chainer import function
 from chainer import function_node
 from chainer.utils import argument
+from chainer.utils import collections_abc
 from chainer.utils import type_check
+
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -51,7 +52,7 @@ class BatchNormalization(function_node.FunctionNode):
                     'cuDNN does not allow an eps value '
                     'less than {}.'.format(libcudnn.CUDNN_BN_MIN_EPSILON))
         self.decay = decay
-        if isinstance(axis, collections.Sequence):
+        if isinstance(axis, collections_abc.Sequence):
             for i in range(1, len(axis)):
                 if axis[i - 1] >= axis[i]:
                     msg = 'numbers in axis must be sorted in ascending order'
@@ -452,7 +453,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
 
     def __init__(self, eps=2e-5, axis=None):
         self.eps = eps
-        if isinstance(axis, collections.Sequence):
+        if isinstance(axis, collections_abc.Sequence):
             for i in range(1, len(axis)):
                 if axis[i - 1] >= axis[i]:
                     msg = 'numbers in axis must be sorted in ascending order'

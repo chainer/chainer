@@ -182,6 +182,18 @@ TextDataset
 
    chainer.datasets.TextDataset
 
+PickleDatase
+~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.PickleDataset
+   chainer.datasets.PickleDatasetWriter
+   chainer.datasets.open_pickle_dataset
+   chainer.datasets.open_pickle_dataset_writer
+
 Concrete Datasets
 -----------------
 
