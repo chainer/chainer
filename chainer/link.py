@@ -7,12 +7,13 @@ import numpy
 import six
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer import link_hook
-from chainer import variable
 from chainer.utils import collections_abc
+from chainer import variable
 
 
 def _is_shape(value):
@@ -583,7 +584,7 @@ Assign a Parameter object directly to an attribute within a \
                 d = dst[name]
                 s = src[name]
                 if isinstance(d, array_types) and isinstance(s, array_types):
-                    cuda.copyto(d, s)
+                    backends.copyto(d, s)
                 else:
                     dst[name] = copy.deepcopy(s)
 

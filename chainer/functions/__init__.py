@@ -126,6 +126,7 @@ from chainer.functions.math.digamma import digamma  # NOQA
 from chainer.functions.math.einsum import einsum  # NOQA
 from chainer.functions.math.erf import erf  # NOQA
 from chainer.functions.math.erfc import erfc  # NOQA
+from chainer.functions.math.erfcx import erfcx  # NOQA
 from chainer.functions.math.erfinv import erfinv  # NOQA
 from chainer.functions.math.exponential import exp  # NOQA
 from chainer.functions.math.exponential import log  # NOQA
@@ -193,6 +194,7 @@ from chainer.functions.pooling.average_pooling_2d import average_pooling_2d  # N
 from chainer.functions.pooling.average_pooling_nd import average_pooling_nd  # NOQA
 from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
+from chainer.functions.pooling.roi_align_2d import roi_align_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA

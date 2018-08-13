@@ -1,10 +1,11 @@
 import io
 import os
-import tempfile
+import sys
 import unittest
 
 from chainer import datasets
 from chainer import testing
+from chainer import utils
 
 
 class TestPickleDataset(unittest.TestCase):
@@ -29,11 +30,12 @@ class TestPickleDataset(unittest.TestCase):
 class TestPickleDatasetHelper(unittest.TestCase):
 
     def setUp(self):
-        _, self.path = tempfile.mkstemp()
+        self.tempdir = utils.tempdir()
+        dirpath = self.tempdir.__enter__()
+        self.path = os.path.join(dirpath, 'test.pkl')
 
     def tearDown(self):
-        if os.path.exists(self.path):
-            os.remove(self.path)
+        self.tempdir.__exit__(*sys.exc_info())
 
     def test_write_read(self):
         with datasets.open_pickle_dataset_writer(self.path) as writer:

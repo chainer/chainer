@@ -53,14 +53,24 @@ class PickleDataset(dataset_mixin.DatasetMixin):
     Even when a user wants to use a large dataset, this dataset can stores all
     data in a large storage like HDD and each data can be randomly accessible.
 
-    >>> with chainer.datasets.open_pickle_dataset_writer('/path/to/data') as w:
+    .. testsetup::
+
+        import tempfile
+        fs, path_to_data = tempfile.mkstemp()
+
+    >>> with chainer.datasets.open_pickle_dataset_writer(path_to_data) as w:
     ...     w.write((1, 2.0, 'hello'))
     ...     w.write((2, 3.0, 'good-bye'))
     ...
-    >>> with chainer.datasets.open_pickle_dataset('/path/to/data') as dataset:
+    >>> with chainer.datasets.open_pickle_dataset(path_to_data) as dataset:
     ...     print(dataset[1])
     ...
     (2, 3.0, 'good-bye')
+
+    .. testcleanup::
+
+        import os
+        os.close(fs)
 
     Args:
         reader: File like object. `reader` must support random access.
@@ -117,9 +127,10 @@ def open_pickle_dataset(path):
     This method does not close the opened file. A user needs to call
     :func:`PickleDataset.close` or use `with`:
 
-    >>> with chainer.datasets.open_pickle_dataset('path') as dataset:
-    ...    # use dataset
+    .. code-block:: python
 
+        with chainer.datasets.open_pickle_dataset('path') as dataset:
+            pass  # use dataset
 
     Args:
         path (str): Path to a dataset.
@@ -144,8 +155,10 @@ def open_pickle_dataset_writer(path, protocol=pickle.HIGHEST_PROTOCOL):
     This method does not close the opened file. A user needs to call
     :func:`PickleDatasetWriter.close` or use `with`:
 
-    >>> with chainer.datasets.open_pickle_dataset_writer('path') as writer:
-    ...    # use writer
+    .. code-block:: python
+
+        with chainer.datasets.open_pickle_dataset_writer('path') as writer:
+            pass  # use writer
 
     Args:
         path (str): Path to a dataset.
