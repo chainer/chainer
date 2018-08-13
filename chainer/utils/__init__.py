@@ -64,6 +64,10 @@ def tempdir(**kwargs):
 
 def _repr_with_named_data(inst, **kwargs):
     """Convenient function to generate `repr` string with custom named data"""
+    if six.PY2:
+        class_name = inst.__class__.__name__
+    else:
+        class_name = inst.__class__.__qualname__
     return '<{}.{} {}>'.format(
-        inst.__module__, inst.__class__.__qualname__,
+        inst.__module__, class_name,
         ' '.join('{}={}'.format(k, v) for k, v in six.iteritems(kwargs)))
