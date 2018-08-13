@@ -67,7 +67,7 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     }
 
     // Create and return the array
-    return MoveArrayBody(FromHostData(shape, dtype, data, strides, -first, device));
+    return MoveArrayBody(internal::FromHostData(shape, dtype, data, strides, -first, device));
 }
 
 namespace {

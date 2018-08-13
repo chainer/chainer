@@ -39,6 +39,14 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_
     return n_bytes;
 }
 
+Array FromHostData(
+        const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, int64_t offset, Device& device) {
+    auto range = GetDataRange(shape, strides, GetItemSize(dtype));
+    // TODO(niboshi): Copy only required region. Currently the whole preceding (offset) region is copied.
+    std::shared_ptr<void> device_data = device.FromHostMemory(data, offset + std::get<1>(range));
+    return internal::MakeArray(shape, strides, dtype, device, std::move(device_data), offset);
+}
+
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device) {
     auto bytesize = GetRequiredBytes(shape, strides, GetItemSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);
@@ -60,16 +68,8 @@ Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepd
 
 }  // namespace internal
 
-Array FromHostData(
-        const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, int64_t offset, Device& device) {
-    auto range = GetDataRange(shape, strides, GetItemSize(dtype));
-    // TODO(niboshi): Copy only required region. Currently the whole preceding (offset) region is copied.
-    std::shared_ptr<void> device_data = device.FromHostMemory(data, offset + std::get<1>(range));
-    return internal::MakeArray(shape, strides, dtype, device, std::move(device_data), offset);
-}
-
 Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
-    return FromHostData(shape, dtype, data, {shape, dtype}, 0, device);
+    return internal::FromHostData(shape, dtype, data, {shape, dtype}, 0, device);
 }
 
 Array FromData(

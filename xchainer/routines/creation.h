@@ -22,14 +22,6 @@ namespace internal {
 // TODO(niboshi): Replace this with xchainer::GetDataRange()
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_size);
 
-// Creates an empty array with specified strides.
-Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device = GetDefaultDevice());
-
-// Creates an empty array with reduced shape.
-Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepdims, Device& device = GetDefaultDevice());
-
-}  // namespace internal
-
 // Creates an array with given data packed with specified strides
 Array FromHostData(
         const Shape& shape,
@@ -38,6 +30,14 @@ Array FromHostData(
         const Strides& strides,
         int64_t offset,
         Device& device = GetDefaultDevice());
+
+// Creates an empty array with specified strides.
+Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device = GetDefaultDevice());
+
+// Creates an empty array with reduced shape.
+Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepdims, Device& device = GetDefaultDevice());
+
+}  // namespace internal
 
 // Creates an array with given contiguous data
 Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());

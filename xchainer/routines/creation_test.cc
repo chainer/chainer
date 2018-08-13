@@ -316,7 +316,7 @@ TEST_P(CreationTest, FromHostData) {
     T raw_data[] = {0, 1, 2, 3, 4, 5};
     std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
 
-    x = FromHostData(shape, dtype, host_data, strides, offset, device);
+    x = internal::FromHostData(shape, dtype, host_data, strides, offset, device);
 
     T expected_data[] = {1, 4};
     EXPECT_EQ(shape, x.shape());
