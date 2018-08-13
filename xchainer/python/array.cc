@@ -67,7 +67,7 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     }
 
     // Create and return the array
-    return MoveArrayBody(internal::FromHostData(shape, dtype, data, strides, -first, device));
+    return MoveArrayBody(FromHostData(shape, dtype, data, strides, -first, device));
 }
 
 namespace {
@@ -87,7 +87,7 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
 
-    return MoveArrayBody(internal::FromContiguousHostData(shape, dtype, ptr, device));
+    return MoveArrayBody(FromContiguousHostData(shape, dtype, ptr, device));
 }
 
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {

@@ -160,7 +160,7 @@ TEST_P(ArrayToDeviceCompatibleTest, ToDevice) {
     auto nop = [](void* p) {
         (void)p;  // unused
     };
-    Array a = internal::FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), src_dev);
+    Array a = FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), src_dev);
 
     // Transfer
     Array b = a.ToDevice(dst_dev);
@@ -217,7 +217,7 @@ TEST(ArrayToDeviceIncompatibleTest, ToDeviceIncompatible) {
     auto nop = [](void* p) {
         (void)p;  // unused
     };
-    Array a = internal::FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), src_dev);
+    Array a = FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), src_dev);
 
     // Transfer
     EXPECT_THROW(a.ToDevice(dst_dev), XchainerError) << "Array::ToDevice must throw if incompatible device is given.";
@@ -242,9 +242,9 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     float data1[]{3.0f, 4.0f};
     float data2[]{5.0f, 6.0f};
     Shape shape{2, 1};
-    Array a0 = internal::FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data0, nop), dev0);
-    Array a1 = internal::FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data1, nop), dev0);
-    Array a2 = internal::FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data2, nop), dev1);
+    Array a0 = FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data0, nop), dev0);
+    Array a1 = FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data1, nop), dev0);
+    Array a2 = FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data2, nop), dev1);
     a0.RequireGrad();
     a1.RequireGrad();
     a2.RequireGrad();
@@ -271,7 +271,7 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     EXPECT_TRUE(b_dev1.IsGradRequired());
     EXPECT_TRUE(b.IsGradRequired());
     float datay[]{8.0f, 14.0f};  // d0 * d1 + d2
-    ExpectArraysEqual(c, internal::FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(datay, nop)));
+    ExpectArraysEqual(c, FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(datay, nop)));
 
     // Backward
     Backward(c);
@@ -288,9 +288,9 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     float data0_grad[]{3.0f, 4.0f};
     float data1_grad[]{1.0f, 2.0f};
     float data2_grad[]{1.0f, 1.0f};
-    ExpectArraysEqual(*a0.GetGrad(), internal::FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data0_grad, nop)));
-    ExpectArraysEqual(*a1.GetGrad(), internal::FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data1_grad, nop)));
-    ExpectArraysEqual(*a2.GetGrad(), internal::FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data2_grad, nop)));
+    ExpectArraysEqual(*a0.GetGrad(), FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data0_grad, nop)));
+    ExpectArraysEqual(*a1.GetGrad(), FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data1_grad, nop)));
+    ExpectArraysEqual(*a2.GetGrad(), FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(data2_grad, nop)));
 }
 
 }  // namespace

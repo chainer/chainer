@@ -67,7 +67,8 @@ void InitXchainerDeviceBuffer(pybind11::module& m) {
               });
 
               // Copy the data on the host buffer to the target device.
-              std::shared_ptr<void> device_data = python_internal::GetDevice(device).FromHostMemory(host_data, bytes);
+              std::shared_ptr<void> device_data = python_internal::GetDevice(device).FromHostMemory(host_data, bytes
+);
               return PyDeviceBuffer{device_data, item_size, format, shape.ndim(), shape, Strides{shape, dtype}};
           }),
           py::arg("shape"),
