@@ -1,3 +1,4 @@
+import collections
 import contextlib
 import shutil
 import tempfile
@@ -12,6 +13,14 @@ from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
 from chainer.utils.experimental import experimental  # NOQA
 from chainer.utils.walker_alias import WalkerAlias  # NOQA
+
+
+# TODO(kmaehashi) remove this when `six.moves.collections_abc` is implemented.
+# See: https://github.com/chainer/chainer/issues/5097
+try:
+    collections_abc = collections.abc
+except AttributeError:  # python <3.3
+    collections_abc = collections
 
 
 def force_array(x, dtype=None):
