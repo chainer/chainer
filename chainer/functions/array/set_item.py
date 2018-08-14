@@ -1,11 +1,12 @@
 import chainer
+from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
 
 class CopiedSetItem(function_node.FunctionNode):
 
-    """Function that slices array and extract elements."""
+    """Set given values to specified elements of an array"""
 
     def __init__(self, slices):
         if isinstance(slices, list):
@@ -38,12 +39,18 @@ class CopiedSetItem(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
+        xp = cuda.get_array_module(gy)
         ret = []
         if 0 in indexes:
             ret.append(copied_set_item(
-                gy, self.slices, gy.xp.array(0, dtype=gy.dtype)))
+                gy, self.slices, xp.array(0, dtype=gy.dtype)))
         if 1 in indexes:
-            # TODO(kataoka): Allow duplicate value in indices (self.slices)
+            if chainer.is_debug():
+                # Check duplicate indexes
+                tmp = xp.arange(gy.size).reshape(gy.shape)
+                tmp = xp.sort(tmp[self.slices], axis=None)
+                if (tmp[:-1] == tmp[1:]).any():
+                    raise ValueError('setitem to an index more than once')
             ret.append(chainer.functions.sum_to(
                 gy[self.slices], self.rhs_shape))
         return tuple(ret)
@@ -59,7 +66,7 @@ def copied_set_item(x, slices, rhs):
         array-like or tuple of them):
             An object to specify the selection of elements.
         rhs (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): A variable to be sliced.
+        :class:`cupy.ndarray`): A variable to be set.
 
     Returns:
         A :class:`~chainer.Variable` object which contains the new array.

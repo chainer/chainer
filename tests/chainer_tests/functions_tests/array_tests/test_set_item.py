@@ -1,3 +1,4 @@
+import sys
 import unittest
 
 import numpy
@@ -44,14 +45,18 @@ from chainer.testing import parameterize
             (numpy.array(False)),
             (numpy.array(True)),
         ],
+        'debug': [False],
     },
-) + [
+) + testing.product_dict([
     {'shape': (4, 3, 2), 'slices': (1, -1), 'batch_ndim': 1},
     {'shape': (4, 3, 2), 'slices': (Ellipsis, 1), 'batch_ndim': 2},
     {'shape': (), 'slices': (), 'batch_ndim': 0},
     {'shape': (), 'slices': None, 'batch_ndim': 0},
     {'shape': (), 'slices': None, 'batch_ndim': 1},
-]))
+], [
+    {'debug': False},
+    {'debug': True},
+])))
 class TestCopiedSetItem(unittest.TestCase):
 
     def setUp(self):
@@ -67,6 +72,11 @@ class TestCopiedSetItem(unittest.TestCase):
         self.gy_data = numpy.random.uniform(-1, 1, self.shape)
         self.ggx0_data = numpy.random.uniform(-1, 1, self.shape)
         self.ggx1_data = numpy.random.uniform(-1, 1, rhs_shape)
+        self.ctx = chainer.using_config('debug', self.debug)
+        self.ctx.__enter__()
+
+    def tearDown(self):
+        self.ctx.__exit__(*sys.exc_info())
 
     def _forward(self, x0, x1):
         return functions.copied_set_item(x0, self.slices, x1)
@@ -115,6 +125,63 @@ class TestCopiedSetItem(unittest.TestCase):
             (cuda.to_gpu(self.x0_data), cuda.to_gpu(self.x1_data)),
             cuda.to_gpu(self.gy_data),
             (cuda.to_gpu(self.ggx0_data), cuda.to_gpu(self.ggx1_data)))
+
+
+@parameterize(
+    {'shape': (1,), 'slices': (
+        numpy.array([0, 0]),
+    ), 'batch_ndim': 0},
+    {'shape': (3, 2), 'slices': (
+        numpy.array([1, 0, 1, 2]), numpy.array([0, 1, 0, 1])
+    ), 'batch_ndim': 0},
+    {'shape': (3, 2), 'slices': (
+        numpy.array([1, 0, 1, 2]), numpy.array([0, 1, 0, 1])
+    ), 'batch_ndim': 1},
+    {'shape': (3, 2), 'slices': (
+        numpy.array([[1, 0], [2, 1]]), numpy.array([[0, 1], [1, 0]])
+    ), 'batch_ndim': 0},
+    {'shape': (3, 2), 'slices': (
+        numpy.array([[1, 0], [2, 1]]), numpy.array([[0, 1], [1, 0]])
+    ), 'batch_ndim': 2},
+    {'shape': (3, 2), 'slices': (
+        numpy.array([[1, 0], [1, 2]]), numpy.array([[0, 1]])
+    ), 'batch_ndim': 0},
+    {'shape': (3, 2), 'slices': (
+        numpy.array([[1, 0], [1, 2]]), numpy.array([[0, 1]])
+    ), 'batch_ndim': 2},
+)
+class TestCopiedSetItemRaise(unittest.TestCase):
+
+    def setUp(self):
+        self.x0_data = numpy.random.uniform(-1, 1, self.shape)
+        try:
+            sliced_shape = self.x0_data[self.slices].shape
+        except IndexError as e:
+            self.skipTest(
+                "not supported in this version of numpy ({})".format(e))
+        assert 0 <= self.batch_ndim <= len(sliced_shape)
+        rhs_shape = sliced_shape[self.batch_ndim:]
+        self.x1_data = numpy.random.uniform(-1, 1, rhs_shape)
+        self.gy_data = numpy.random.uniform(-1, 1, self.shape)
+
+    def check_backward_raise(self, x_data, gy_data):
+        x0_data, x1_data = x_data
+        x0 = chainer.Variable(x0_data)
+        x1 = chainer.Variable(x1_data)
+        y = functions.copied_set_item(x0, self.slices, x1)
+        y.grad = gy_data
+        with chainer.using_config('debug', True):
+            with self.assertRaises(ValueError):
+                y.backward()
+
+    def test_backward_cpu(self):
+        self.check_backward_raise((self.x0_data, self.x1_data), self.gy_data)
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward_raise(
+            (cuda.to_gpu(self.x0_data), cuda.to_gpu(self.x1_data)),
+            cuda.to_gpu(self.gy_data))
 
 
 testing.run_module(__name__, __file__)
