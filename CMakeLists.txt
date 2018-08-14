@@ -35,6 +35,13 @@ option(XCHAINER_BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT
 # Supposed usage is to avoid slowness of PTX JIT compilation on development.
 set(XCHAINER_NVCC_GENERATE_CODE "$ENV{XCHAINER_NVCC_GENERATE_CODE}" CACHE STRING "nvcc --generate-code option")
 
+if(DEFINED ENV{ENABLE_BLAS})
+    set(DEFAULT_ENABLE_BLAS $ENV{ENABLE_BLAS})
+else()
+    set(DEFAULT_ENABLE_BLAS ON)
+endif()
+option(ENABLE_BLAS "Use BLAS if available" ${DEFAULT_ENABLE_BLAS})
+
 # defaults to cmake -DCMAKE_BUILD_TYPE=Debug
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
@@ -54,6 +61,17 @@ if(${XCHAINER_BUILD_CUDA})
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_60,code=sm_60)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_70,code=sm_70)
         endif()
+    endif()
+endif()
+
+# BLAS
+if(${ENABLE_BLAS})
+    find_package(BLAS QUIET)
+    if (${BLAS_FOUND})
+        message(STATUS "Found BLAS (library: ${BLAS_LIBRARIES})")
+        add_definitions(-DXCHAINER_ENABLE_BLAS=1)
+    else()
+        message(STATUS "BLAS not found")
     endif()
 endif()
 
