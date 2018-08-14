@@ -89,7 +89,8 @@ Array Im2Col(
                 Im2ColImpl<T, 4>(padded_x, out, kernel_size, stride, out_dims, batch_channel_indexer);
                 break;
             default:
-                XCHAINER_NEVER_REACH();  // Never out.ndim() > kMaxNdim(10)
+                static_assert(kMaxNdim == 10, "kMaxNdim equals to 10");
+                XCHAINER_NEVER_REACH();  // Never out.ndim() > kMaxNdim
                 break;
         }
     });
