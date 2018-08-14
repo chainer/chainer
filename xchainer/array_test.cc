@@ -609,37 +609,61 @@ TEST_P(ArrayTest, ComputationalGraph) {
     }
 }
 
-TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
+TEST_P(ArrayTest, InplaceWithArrayNodes) {
     BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
+
+    // Both input/output arrays have nodes
     {
-        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
-        Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
-        a.RequireGrad(backprop_id);
-        b.RequireGrad(backprop_id);
-        EXPECT_THROW({ a += b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(backprop_id);
+        y.RequireGrad(backprop_id);
+        EXPECT_THROW({ y += x; }, XchainerError);
     }
 
     {
-        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
-        Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
-        a.RequireGrad(backprop_id);
-        b.RequireGrad(backprop_id);
-        EXPECT_THROW({ a *= b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(backprop_id);
+        y.RequireGrad(backprop_id);
+        EXPECT_THROW({ y *= x; }, XchainerError);
     }
 
+    // Only output array has nodes
     {
-        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
-        Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
-        a.RequireGrad(backprop_id);
-        EXPECT_THROW({ a *= b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        y.RequireGrad(backprop_id);
+        EXPECT_THROW({ y *= x; }, XchainerError);
     }
 
+    // Only input array has nodes
     {
-        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
-        Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
-        b.RequireGrad(backprop_id);
-        EXPECT_THROW({ a *= b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(backprop_id);
+        EXPECT_THROW({ y *= x; }, XchainerError);
+    }
+
+    // Only output arrays has nodes, with no backprop scope
+    {
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        y.RequireGrad(backprop_id);
+
+        NoBackpropModeScope scope{backprop_id};
+        EXPECT_THROW({ y *= x; }, XchainerError);
+    }
+
+    // Only input arrays has nodes, with no backprop scope
+    {
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(backprop_id);
+
+        NoBackpropModeScope scope{backprop_id};
+        y *= x;  // no throw
     }
 }
 
