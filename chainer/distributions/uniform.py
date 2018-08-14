@@ -76,19 +76,18 @@ class Uniform(distribution.Distribution):
         return self.low.shape
 
     def cdf(self, x):
-        return clip.clip((x - self.low)/(self.high - self.low), 0., 1.)
+        return clip.clip((x - self.loc)/self.scale, 0., 1.)
 
     @property
     def entropy(self):
-        return exponential.log(self.high - self.low)
+        return exponential.log(self.scale)
 
     @property
     def event_shape(self):
         return ()
 
     def icdf(self, x):
-        return x * self.high \
-            + (1 - x) * self.low
+        return x * self.scale + self.loc
 
     def log_prob(self, x):
         if not isinstance(x, chainer.Variable):
@@ -97,7 +96,7 @@ class Uniform(distribution.Distribution):
         xp = cuda.get_array_module(x)
 
         logp = broadcast.broadcast_to(
-            -exponential.log(self.high - self.low), x.shape)
+            -exponential.log(self.scale), x.shape)
         return where.where(
             utils.force_array(
                 (x.data >= self.low.data) & (x.data < self.high.data),
@@ -131,7 +130,7 @@ class Uniform(distribution.Distribution):
 
     @property
     def variance(self):
-        return (self.high - self.low) ** 2 / 12
+        return self.scale ** 2 / 12
 
 
 @distribution.register_kl(Uniform, Uniform)
