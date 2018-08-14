@@ -11,13 +11,13 @@ Double backprop with different graphs
 ...         x = xc.ndarray((3,), xc.float32, [1, 2, 3]).require_grad(input_backprop)
 ...         w = xc.ndarray((3,), xc.float32, [4, 5, 6]).require_grad(weight_backprop)
 ...         y = x * w
-...         y.is_grad_required(input_backprop)
+...         y.is_backprop_required(input_backprop)
 True
 
-...         y.is_grad_required(weight_backprop)
+...         y.is_backprop_required(weight_backprop)
 True
 
-...         y.is_grad_required()  # 'default'
+...         y.is_backprop_required()  # 'default'
 False
 
 ...         xc.backward(y, backprop_id=input_backprop)
@@ -46,10 +46,10 @@ Double backprop with single graph
 >>> x = xc.ndarray((3,), xc.float32, [1, 2, 3]).require_grad()
 >>> w = xc.ndarray((3,), xc.float32, [4, 5, 6]).require_grad()
 >>> y = x * w
->>> y.is_grad_required()
+>>> y.is_backprop_required()
 True
 >>> with xc.backprop_scope('foo') as foo:
-...     y.is_grad_required(foo)  # unknown backprop name
+...     y.is_backprop_required(foo)  # unknown backprop name
 False
 
 >>> xc.backward(y, enable_double_backprop=True)

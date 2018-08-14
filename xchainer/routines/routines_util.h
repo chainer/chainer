@@ -27,7 +27,7 @@ inline void CheckNoUnsafeInplace(const Array& out, std::initializer_list<std::re
     bool any_input_grad_required = false;
     bool any_inplace = false;
     for (const Array& input : inputs) {
-        any_input_grad_required |= input.IsGradRequired(AnyGraph{});
+        any_input_grad_required |= input.IsBackpropRequired(AnyGraph{});
         any_inplace |= out_body == internal::GetArrayBody(input);
     }
 

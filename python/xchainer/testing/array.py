@@ -9,7 +9,7 @@ def _check_xchainer_array(x):
     # Checks basic conditions that are assumed to hold true for any given xChainer array passed to assert_array_close and
     # assert_array_equal.
     assert isinstance(x, xchainer.ndarray)
-    assert not x.is_grad_required()
+    assert not x.is_backprop_required()
 
 
 def _as_numpy(x):

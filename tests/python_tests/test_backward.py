@@ -201,8 +201,8 @@ def test_multiple_graphs_double_backprop():
         xchainer.backward(z, backprop_id=bp_x)
 
         gx = x.get_grad(bp_x)  # 2x + y
-        assert not gx.is_grad_required(backprop_id=bp_x)
-        assert gx.is_grad_required(backprop_id=bp_y)
+        assert not gx.is_backprop_required(backprop_id=bp_x)
+        assert gx.is_backprop_required(backprop_id=bp_y)
 
         w = x * gx
         xchainer.backward(w, backprop_id=bp_y)

@@ -307,12 +307,17 @@ void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     body_->ClearGrad(actual_backprop_id);
 }
 
-bool Array::IsGradRequired(const nonstd::optional<BackpropId>& backprop_id) const {
+bool Array::IsBackpropRequired(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
-    return xchainer::IsGradRequired(*this, actual_backprop_id);
+    return body_->HasArrayNode(actual_backprop_id) && xchainer::IsBackpropRequired(actual_backprop_id);
 }
 
-bool Array::IsGradRequired(AnyGraph any_graph) const { return xchainer::IsGradRequired(*this, any_graph); }
+bool Array::IsBackpropRequired(AnyGraph /*any_graph*/) const {
+    const std::vector<std::shared_ptr<internal::ArrayNode>>& array_nodes = body_->nodes();
+    return std::any_of(array_nodes.begin(), array_nodes.end(), [](const std::shared_ptr<const internal::ArrayNode>& array_node) {
+        return xchainer::IsBackpropRequired(array_node->backprop_id());
+    });
+}
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id) {
