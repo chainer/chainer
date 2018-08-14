@@ -158,7 +158,6 @@ def backprop_step(
     del gxs
 
     if is_debug:
-        cuda = chainer.backends.cuda
         # each grad is a list of variables
         # iter_gxs expands it as a sequence of variables.
         def iter_gxs(gxs):
@@ -166,6 +165,7 @@ def backprop_step(
                 for gx_elem in gx:
                     yield gx_elem
 
+        cuda = chainer.backends.cuda
         for gx in iter_gxs(grad_inputs.values()):
             gx_data = gx.data
             if gx_data.dtype.kind == 'f':
