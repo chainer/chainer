@@ -5,7 +5,6 @@ from chainer.backends import cuda
 from chainer import distribution
 import chainer.distributions.utils
 from chainer.functions.activation import sigmoid
-from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
 from chainer import utils
@@ -123,8 +122,8 @@ class Bernoulli(distribution.Distribution):
             valid = cuda.cupy.bitwise_or(x.array == 0, x.array == 1)
         else:
             valid = numpy.bitwise_or(x.array == 0, x.array == 1)
-        ret = x * broadcast.broadcast_to(self.p, x.shape) \
-            + (1 - x) * (1 - broadcast.broadcast_to(self.p, x.shape))
+        ret = x * self.p \
+            + (1 - x) * (1 - self.p)
         return ret * valid
 
     def sample_n(self, n):
