@@ -39,7 +39,7 @@ def _inv_gpu(b):
 class Inv(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('a',))
         a_type, = in_types
         type_check.expect(a_type.dtype == numpy.float32)
         # Only 2D array shapes allowed
@@ -77,7 +77,7 @@ class Inv(function_node.FunctionNode):
 class BatchInv(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('a',))
         a_type, = in_types
         type_check.expect(a_type.dtype == numpy.float32)
         # Only a minibatch of 2D array shapes allowed
