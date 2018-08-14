@@ -1,5 +1,5 @@
-import contextlib
 import collections
+import contextlib
 import shutil
 import tempfile
 
