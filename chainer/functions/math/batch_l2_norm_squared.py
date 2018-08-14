@@ -11,7 +11,7 @@ from chainer.utils import type_check
 class BatchL2NormSquared(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         x_type, = in_types
 
         type_check.expect(

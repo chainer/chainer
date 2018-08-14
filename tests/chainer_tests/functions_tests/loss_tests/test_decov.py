@@ -9,14 +9,13 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 def _deconv(h):
     h = cuda.to_cpu(h)
     h_mean = h.mean(axis=0)
     N, M = h.shape
-    loss_expect = numpy.zeros((M, M), dtype=numpy.float32)
+    loss_expect = numpy.zeros((M, M), dtype=h.dtype)
     for i in six.moves.range(M):
         for j in six.moves.range(M):
             if i != j:
@@ -26,26 +25,37 @@ def _deconv(h):
     return loss_expect / N
 
 
-@testing.parameterize(
-    {'reduce': 'half_squared_sum'},
-    {'reduce': 'no'}
-)
+@testing.parameterize(*testing.product_dict(
+    [{'dtype': numpy.float16,
+      'forward_options': {'rtol': 1e-2, 'atol': 1e-2},
+      'backward_options': {'atol': 3e-2}},
+     {'dtype': numpy.float32,
+      'forward_options': {'rtol': 1e-4, 'atol': 1e-4},
+      'backward_options': {'atol': 1e-3}},
+     {'dtype': numpy.float64,
+      'forward_options': {'rtol': 1e-4, 'atol': 1e-4},
+      'backward_options': {'atol': 1e-3}},
+     ],
+    [{'reduce': 'half_squared_sum'},
+     {'reduce': 'no'},
+     ],
+))
 class TestDeCov(unittest.TestCase):
 
     def setUp(self):
-        self.h = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+        self.h = numpy.random.uniform(-1, 1, (4, 3)).astype(self.dtype)
         if self.reduce == 'half_squared_sum':
             gloss_shape = ()
         else:
             gloss_shape = (3, 3)
         self.gloss = numpy.random.uniform(
-            -1, 1, gloss_shape).astype(numpy.float32)
+            -1, 1, gloss_shape).astype(self.dtype)
 
     def check_forward(self, h_data):
         h = chainer.Variable(h_data)
         loss = functions.decov(h, self.reduce)
         self.assertEqual(loss.shape, self.gloss.shape)
-        self.assertEqual(loss.data.dtype, numpy.float32)
+        self.assertEqual(loss.data.dtype, self.dtype)
         loss_value = cuda.to_cpu(loss.data)
 
         # Compute expected value
@@ -56,14 +66,12 @@ class TestDeCov(unittest.TestCase):
             loss_expect = (loss_expect ** 2).sum() * 0.5
 
         numpy.testing.assert_allclose(
-            loss_expect, loss_value, rtol=1e-4, atol=1e-4)
+            loss_expect, loss_value, **self.forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.h)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.h))
 
@@ -72,8 +80,7 @@ class TestDeCov(unittest.TestCase):
             return functions.decov(h, self.reduce)
 
         gradient_check.check_backward(
-            f, (h_data,), gloss_data,
-            eps=0.02, atol=1e-3)
+            f, (h_data,), gloss_data, eps=0.02, **self.backward_options)
 
     def check_type(self, h_data, gloss_data):
         h = chainer.Variable(h_data)
@@ -82,7 +89,6 @@ class TestDeCov(unittest.TestCase):
         loss.backward()
         self.assertEqual(h_data.dtype, h.grad.dtype)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.check_backward(self.h, self.gloss)
 
@@ -95,7 +101,6 @@ class TestDeCov(unittest.TestCase):
                         cuda.to_gpu(self.gloss))
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.h),
                             cuda.to_gpu(self.gloss))

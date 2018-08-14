@@ -644,7 +644,7 @@ Use apply() method instead.\
         if name in hooks:
             raise KeyError('Hook %s already exists' % name)
         hooks[name] = hook
-        hook.added(function=self)
+        hook.added(self)
 
     def delete_hook(self, name):
         """Unregisters the function hook.
@@ -654,7 +654,7 @@ Use apply() method instead.\
 
         """
         if name in self.local_function_hooks:
-            self.local_function_hooks[name].deleted(function=self)
+            self.local_function_hooks[name].deleted(self)
             del self.local_function_hooks[name]
         else:
             raise KeyError('Hook %s does not exist' % name)
