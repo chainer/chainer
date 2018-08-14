@@ -26,11 +26,6 @@ int64_t RoundUpToPowerOf2(int64_t x) {
     return x + 1;
 }
 
-#define _REDUCE(offset)                               \
-    if (tid < offset) {                               \
-        impl.Reduce(work[(tid + offset)], work[tid]); \
-    }
-
 template <
         typename In,
         typename Out,
@@ -74,43 +69,16 @@ __global__ void ReductionKernel(
         }
 
         static_assert(kMaxReductionBlockSize == 512, "");
-        if (out_block_size < 512) {
+        if (out_block_size <= 256) {
             work[tid] = accum;
             __syncthreads();
-            if (out_block_size <= 256) {
-                _REDUCE(256);
-                __syncthreads();
-                if (out_block_size <= 128) {
-                    _REDUCE(128);
-                    __syncthreads();
-                    if (out_block_size <= 64) {
-                        _REDUCE(64);
-                        __syncthreads();
-                        if (out_block_size <= 32) {
-                            _REDUCE(32);
-                            __syncthreads();
-                            if (out_block_size <= 16) {
-                                _REDUCE(16);
-                                __syncthreads();
-                                if (out_block_size <= 8) {
-                                    _REDUCE(8);
-                                    __syncthreads();
-                                    if (out_block_size <= 4) {
-                                        _REDUCE(4);
-                                        __syncthreads();
-                                        if (out_block_size <= 2) {
-                                            _REDUCE(2);
-                                            __syncthreads();
-                                            if (out_block_size <= 1) {
-                                                _REDUCE(1);
-                                                __syncthreads();
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+            // NOTE: Compiler optimizes to unroll this loop
+            for (int stride = 256; stride > 0; stride >>= 1) {
+                if (out_block_size <= stride) {
+                    if (tid < stride) {
+                        impl.Reduce(work[tid + stride], work[tid]);
                     }
+                    __syncthreads();
                 }
             }
             accum = work[tid];
@@ -121,8 +89,6 @@ __global__ void ReductionKernel(
         }
     }
 }
-
-#undef _REDUCE
 
 }  // namespace reduce_detail
 
