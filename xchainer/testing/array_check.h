@@ -28,9 +28,7 @@ namespace testing_internal {
         double atol,
         bool equal_nan);
 
-::testing::AssertionResult IsCopy(const char* orig_expr, const char* copy_expr, const Array& orig, const Array& copy);
-
-::testing::AssertionResult IsView(const char* orig_expr, const char* view_expr, const Array& orig, const Array& view);
+::testing::AssertionResult HaveDistinctArrayNodes(const char* a_expr, const char* b_expr, const Array& a, const Array& b);
 
 }  // namespace testing_internal
 
@@ -81,10 +79,7 @@ void ExpectDataEqual(T expected, const Array& actual) {
     GET_MACRO(__VA_ARGS__, EXPECT_ARRAY_ALL_CLOSE5, EXPECT_ARRAY_ALL_CLOSE4, EXPECT_ARRAY_ALL_CLOSE3, EXPECT_ARRAY_ALL_CLOSE2) \
     (__VA_ARGS__)
 
-// Expects that the given array b is a valid copy of a.
-#define XCHAINER_EXPECT_ARRAY_COPY_EQ(orig, copy) EXPECT_PRED_FORMAT2(testing::testing_internal::IsCopy, orig, copy)
-
-// Expects that the given array b is a valid view of a.
-#define XCHAINER_EXPECT_ARRAY_VIEW_EQ(orig, view) EXPECT_PRED_FORMAT2(testing::testing_internal::IsView, orig, view)
+// Expects that the arrays a and b have distint array bodies.
+#define EXPECT_ARRAY_HAVE_DISTINCT_ARRAY_NODES(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::HaveDistinctArrayNodes, a, b)
 
 }  // namespace xchainer

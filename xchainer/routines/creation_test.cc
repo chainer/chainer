@@ -21,6 +21,12 @@
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
 
+#define EXPECT_ARRAYS_ARE_EQUAL_COPY(orig, copy)     \
+    EXPECT_TRUE(copy.IsContiguous());                \
+    EXPECT_EQ(copy.offset(), 0);                     \
+    EXPECT_NE(orig.data().get(), copy.data().get()); \
+    EXPECT_ARRAY_EQ(orig, copy)
+
 namespace xchainer {
 namespace {
 
@@ -571,24 +577,24 @@ TEST_P(CreationTest, Copy) {
     {
         Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
         Array o = Copy(a);
-        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, o);
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
     }
     {
         Array a = testing::BuildArray({3, 1}).WithData<int8_t>({1, 2, 3});
         Array o = Copy(a);
-        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, o);
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
     }
     {
         Array a = testing::BuildArray({3, 1}).WithData<float>({1.0f, 2.0f, 3.0f});
         Array o = Copy(a);
-        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, o);
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
     }
 
     // with padding
     {
         Array a = testing::BuildArray({3, 1}).WithData<float>({1.0f, 2.0f, 3.0f}).WithPadding(1);
         Array o = Copy(a);
-        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, o);
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
     }
 }
 

@@ -42,6 +42,19 @@
 #include "xchainer/testing/device_session.h"
 #include "xchainer/testing/util.h"
 
+#define EXPECT_ARRAYS_ARE_EQUAL_COPY(orig, copy)     \
+    EXPECT_TRUE(copy.IsContiguous());                \
+    EXPECT_EQ(copy.offset(), 0);                     \
+    EXPECT_NE(orig.data().get(), copy.data().get()); \
+    EXPECT_ARRAY_EQ(orig, copy)
+
+#define EXPECT_ARRAYS_ARE_EQAUL_VIEW(orig, view)         \
+    EXPECT_EQ(orig.IsContiguous(), view.IsContiguous()); \
+    EXPECT_EQ(orig.offset(), view.offset());             \
+    EXPECT_EQ(orig.data().get(), view.data().get());     \
+    EXPECT_ARRAY_HAVE_DISTINCT_ARRAY_NODES(orig, view);  \
+    EXPECT_ARRAY_EQ(orig, view)
+
 namespace xchainer {
 namespace {
 
@@ -101,7 +114,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
         Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
         Array b = a.Copy();
         Array c = std::move(a);
-        XCHAINER_EXPECT_ARRAY_COPY_EQ(b, c);
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(b, c);
     }
 
     // Array body must be transferred by move
@@ -682,13 +695,13 @@ TEST_P(ArrayTest, Copy) {
     using T = int32_t;
     Array a = testing::BuildArray({3, 1}).WithData<T>({1, 2, 3});
     Array o = a.Copy();
-    XCHAINER_EXPECT_ARRAY_COPY_EQ(a, o);
+    EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
 }
 
 TEST_P(ArrayTest, MakeView) {
     Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
     Array o = a.MakeView();
-    XCHAINER_EXPECT_ARRAY_VIEW_EQ(a, o);
+    EXPECT_ARRAYS_ARE_EQAUL_VIEW(a, o);
 }
 
 TEST_P(ArrayTest, MakeViewBackward) {
@@ -742,7 +755,7 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
 
         EXPECT_EQ(&b.device(), &a.device());
 
-        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, b);
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, b);
         EXPECT_FALSE(b.IsBackpropRequired(backprop_id1));
         EXPECT_FALSE(b.IsBackpropRequired(backprop_id2));
 
@@ -770,7 +783,7 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
 
         EXPECT_EQ(&b.device(), &a.device());
 
-        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, b);
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, b);
         EXPECT_FALSE(b.IsBackpropRequired(backprop_id1));
         EXPECT_FALSE(b.IsBackpropRequired(backprop_id2));
         EXPECT_TRUE(b.IsBackpropRequired(backprop_id3));
@@ -785,7 +798,7 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
         Array a = testing::BuildArray({4, 1}).WithLinearData<float>().WithPadding(4);
         Array b = a.AsGradStopped(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
-        XCHAINER_EXPECT_ARRAY_COPY_EQ(a, b);
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, b);
     }
 }
 
@@ -804,7 +817,7 @@ TEST_P(ArrayTest, AsGradStoppedView) {
         ASSERT_TRUE(a.IsBackpropRequired(backprop_id2));
         Array b = a.AsGradStopped();
 
-        XCHAINER_EXPECT_ARRAY_VIEW_EQ(a, b);
+        EXPECT_ARRAYS_ARE_EQAUL_VIEW(a, b);
         EXPECT_FALSE(b.IsBackpropRequired(backprop_id1));
         EXPECT_FALSE(b.IsBackpropRequired(backprop_id2));
 
@@ -830,7 +843,7 @@ TEST_P(ArrayTest, AsGradStoppedView) {
         ASSERT_TRUE(a.IsBackpropRequired(backprop_id3));
         Array b = a.AsGradStopped({backprop_id1, backprop_id2});
 
-        XCHAINER_EXPECT_ARRAY_VIEW_EQ(a, b);
+        EXPECT_ARRAYS_ARE_EQAUL_VIEW(a, b);
         EXPECT_FALSE(b.IsBackpropRequired(backprop_id1));
         EXPECT_FALSE(b.IsBackpropRequired(backprop_id2));
         EXPECT_TRUE(b.IsBackpropRequired(backprop_id3));
@@ -844,7 +857,7 @@ TEST_P(ArrayTest, AsGradStoppedView) {
         Array a = testing::BuildArray({4, 1}).WithLinearData<float>().WithPadding(4);
         Array b = a.AsGradStopped(CopyKind::kView);
         EXPECT_EQ(&b.device(), &a.device());
-        XCHAINER_EXPECT_ARRAY_VIEW_EQ(a, b);
+        EXPECT_ARRAYS_ARE_EQAUL_VIEW(a, b);
     }
 }
 
@@ -852,21 +865,21 @@ TEST_P(ArrayTest, AsTypeFloatToDouble) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kFloat64);
     Array e = testing::BuildArray({3, 1}).WithData<double>({1, 2, 3});
-    XCHAINER_EXPECT_ARRAY_COPY_EQ(e, o);
+    EXPECT_ARRAYS_ARE_EQUAL_COPY(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeFloatToInt) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kInt32);
     Array e = testing::BuildArray({3, 1}).WithData<int32_t>({1, 2, 3});
-    XCHAINER_EXPECT_ARRAY_COPY_EQ(e, o);
+    EXPECT_ARRAYS_ARE_EQUAL_COPY(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeBoolToFloat) {
     Array a = testing::BuildArray({3, 1}).WithData<bool>({true, false, true});
     Array o = a.AsType(Dtype::kFloat32);
     Array e = testing::BuildArray({3, 1}).WithData<float>({1.0, 0.0, 1.0});
-    XCHAINER_EXPECT_ARRAY_COPY_EQ(e, o);
+    EXPECT_ARRAYS_ARE_EQUAL_COPY(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeCopyFalse) {
@@ -880,7 +893,7 @@ TEST_P(ArrayTest, AsTypeCopyFalseButDifferentType) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kFloat64, false);
     Array e = testing::BuildArray({3, 1}).WithData<double>({1, 2, 3});
-    XCHAINER_EXPECT_ARRAY_COPY_EQ(e, o);
+    EXPECT_ARRAYS_ARE_EQUAL_COPY(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeBackward) {
