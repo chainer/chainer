@@ -58,20 +58,20 @@ Array Dot(const Array& a, const Array& b) {
     {
         BackwardBuilder bb{"dot", {a_matrix, b_matrix}, out_matrix};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([b_matrix_tok = bb.RetainInput(1)](BackwardContext & bctx) {
+            bt.Define([b_matrix_tok = bb.RetainInput(1)](BackwardContext& bctx) {
                 const Array& b_matrix = bctx.GetRetainedInput(b_matrix_tok);
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(gout, b_matrix.Transpose());
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([a_matrix_tok = bb.RetainInput(0)](BackwardContext & bctx) {
+            bt.Define([a_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
                 const Array& a_matrix = bctx.GetRetainedInput(a_matrix_tok);
                 const Array& gout = bctx.output_grad();
                 bctx.input_grad() = Dot(a_matrix.Transpose(), gout);
             });
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 
     return out_matrix.Reshape(out_shape);

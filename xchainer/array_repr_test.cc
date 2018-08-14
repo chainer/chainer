@@ -33,7 +33,7 @@ void CheckArrayRepr(
     // Copy to a contiguous memory block because std::vector<bool> is not packed as a sequence of bool's.
     std::shared_ptr<T> data_ptr{new T[data_vec.size()], std::default_delete<T[]>{}};
     std::copy(data_vec.begin(), data_vec.end(), data_ptr.get());
-    Array array = internal::FromContiguousHostData(shape, TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data_ptr), device);
+    Array array = FromContiguousHostData(shape, TypeToDtype<T>, static_cast<std::shared_ptr<void>>(data_ptr), device);
     for (const BackpropId& backprop_id : backprop_ids) {
         array.RequireGrad(backprop_id);
     }
@@ -205,8 +205,8 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         BackpropScope backprop_scope{"bp1"};
         BackpropId backprop_id = backprop_scope.backprop_id();
 
-        CheckArrayRepr<int32_t>(
-                "array([], shape=(0, 1, 2), dtype=int32, device='native:0', backprop_ids=['bp1'])",
+        CheckArrayRepr<float>(
+                "array([], shape=(0, 1, 2), dtype=float32, device='native:0', backprop_ids=['bp1'])",
                 {},
                 Shape({0, 1, 2}),
                 device,
@@ -218,8 +218,12 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         BackpropScope backprop_scope{"bp1"};
         BackpropId backprop_id = backprop_scope.backprop_id();
 
-        CheckArrayRepr<int32_t>(
-                "array([-2], shape=(1,), dtype=int32, device='native:0', backprop_ids=['bp1'])", {-2}, Shape({1}), device, {backprop_id});
+        CheckArrayRepr<float>(
+                "array([-2.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['bp1'])",
+                {-2},
+                Shape({1}),
+                device,
+                {backprop_id});
     }
 
     // Two graphs
@@ -229,8 +233,8 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         BackpropId backprop_id1 = backprop_scope1.backprop_id();
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
-        CheckArrayRepr<int32_t>(
-                "array([1], shape=(1,), dtype=int32, device='native:0', backprop_ids=['bp1', 'bp2'])",
+        CheckArrayRepr<float>(
+                "array([1.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['bp1', 'bp2'])",
                 {1},
                 Shape({1}),
                 device,
@@ -250,8 +254,8 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
         BackpropId backprop_id4 = backprop_scope4.backprop_id();
         BackpropId backprop_id5 = backprop_scope5.backprop_id();
 
-        CheckArrayRepr<int32_t>(
-                "array([-9], shape=(1,), dtype=int32, device='native:0', backprop_ids=['bp1', 'bp2', 'bp3', 'bp4', "
+        CheckArrayRepr<float>(
+                "array([-9.], shape=(1,), dtype=float32, device='native:0', backprop_ids=['bp1', 'bp2', 'bp3', 'bp4', "
                 "'bp5'])",
                 {-9},
                 Shape({1}),

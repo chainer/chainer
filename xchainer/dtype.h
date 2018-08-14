@@ -142,6 +142,30 @@ auto VisitDtype(Dtype dtype, F&& f, Args&&... args) {
     }
 }
 
+// Invokes a function by passing PrimitiveType<T> corresponding to given numeric dtype value.
+// See VisitDtype for more detail.
+template <typename F, typename... Args>
+auto VisitNumericDtype(Dtype dtype, F&& f, Args&&... args) {
+    switch (dtype) {
+        case Dtype::kInt8:
+            return std::forward<F>(f)(PrimitiveType<int8_t>{}, std::forward<Args>(args)...);
+        case Dtype::kInt16:
+            return std::forward<F>(f)(PrimitiveType<int16_t>{}, std::forward<Args>(args)...);
+        case Dtype::kInt32:
+            return std::forward<F>(f)(PrimitiveType<int32_t>{}, std::forward<Args>(args)...);
+        case Dtype::kInt64:
+            return std::forward<F>(f)(PrimitiveType<int64_t>{}, std::forward<Args>(args)...);
+        case Dtype::kUInt8:
+            return std::forward<F>(f)(PrimitiveType<uint8_t>{}, std::forward<Args>(args)...);
+        case Dtype::kFloat32:
+            return std::forward<F>(f)(PrimitiveType<float>{}, std::forward<Args>(args)...);
+        case Dtype::kFloat64:
+            return std::forward<F>(f)(PrimitiveType<double>{}, std::forward<Args>(args)...);
+        default:
+            throw DtypeError{"invalid dtype"};
+    }
+}
+
 // Invokes a function by passing PrimitiveType<T> corresponding to given floating-point dtype value.
 // See VisitDtype for more detail.
 template <typename F, typename... Args>

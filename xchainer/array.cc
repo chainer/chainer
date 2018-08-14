@@ -187,7 +187,7 @@ Array Array::MakeView() const {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }
@@ -225,7 +225,7 @@ Array Array::ToDevice(Device& dst_device) const {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }
@@ -275,7 +275,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 
     assert(out.IsContiguous());
@@ -316,6 +316,9 @@ bool Array::IsGradRequired(AnyGraph any_graph) const { return xchainer::IsGradRe
 
 template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id) {
+    if (GetKind(array.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError{"Array with integral dtype (", GetDtypeName(array.dtype()), ") cannot compute gradient"};
+    }
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(array, backprop_id);
     if (xchainer::IsBackpropRequired(actual_backprop_id)) {
         internal::ArrayBody::CreateArrayNode(internal::GetArrayBody(array), actual_backprop_id);

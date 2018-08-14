@@ -21,11 +21,6 @@ ArrayProps::ArrayProps(const ArrayNode& array_node) : shape{array_node.shape()},
 OpNodeBackwardEntry::OpNodeBackwardEntry(OpNode& op_node, std::vector<size_t> input_array_node_indices, BackwardFunction backward_func)
     : op_node_{op_node}, input_array_node_indices_{std::move(input_array_node_indices)}, backward_func_{std::move(backward_func)} {}
 
-void OpNodeBackwardEntry::AddExoticInputArrayNode(std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>> input_array_nodes) {
-    assert(std::get<0>(input_array_nodes) != op_node_.backprop_id());
-    exotic_input_array_nodes_.emplace_back(std::move(input_array_nodes));
-}
-
 std::shared_ptr<ArrayNode> FabricateOutputArrayNode(std::shared_ptr<OpNode> op_node, size_t output_array_node_index) {
     assert(output_array_node_index < op_node->output_array_node_count());
     assert(op_node->output_array_nodes()[output_array_node_index].expired());
@@ -67,37 +62,81 @@ OpNode::OpNode(std::string name, BackpropId backprop_id, size_t input_array_node
       input_array_nodes_{input_array_node_count}  // Initialize with nullptrs
 {}
 
-void OpNode::AssertConsistency() const {
 #ifndef NDEBUG
+
+namespace {
+
+bool IsAllArrayNodesMatchBackpropId(
+        const BackpropId& outer_backprop_id, const std::vector<std::shared_ptr<ArrayNode>>& outer_graphs_array_nodes) {
+    return std::all_of(
+            outer_graphs_array_nodes.begin(),
+            outer_graphs_array_nodes.end(),
+            [&outer_backprop_id](const std::shared_ptr<ArrayNode>& array_node) {
+                return array_node == nullptr || array_node->backprop_id() == outer_backprop_id;
+            });
+}
+
+void AssertOuterGraphsArrayNodesConsistency(
+        const BackpropId& backprop_id,
+        size_t array_node_count,
+        const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_array_nodes,
+        bool is_output) {
+    assert(array_node_count > 0);
+
     // No pair of entries may have the same backprop ID.
-    assert(std::all_of(outer_graphs_output_array_nodes_.begin(), outer_graphs_output_array_nodes_.end(), [this](const auto& tup1) {
-        return std::all_of(outer_graphs_output_array_nodes_.begin(), outer_graphs_output_array_nodes_.end(), [&tup1](const auto& tup2) {
-            return &tup1 == &tup2 || std::get<0>(tup1) != std::get<0>(tup2);
+    assert(std::all_of(outer_graphs_array_nodes.begin(), outer_graphs_array_nodes.end(), [&outer_graphs_array_nodes](const auto& tup1) {
+        return std::all_of(outer_graphs_array_nodes.begin(), outer_graphs_array_nodes.end(), [&tup1](const auto& tup2) {
+            BackpropId backprop_id1 = std::get<0>(tup1);
+            BackpropId backprop_id2 = std::get<0>(tup2);
+            return &tup1 == &tup2 || backprop_id1 != backprop_id2;
         });
     }));
 
     // All the outer graphs linked from this op node must be outer (lower backprop ordinal).
-    assert(std::all_of(outer_graphs_output_array_nodes_.begin(), outer_graphs_output_array_nodes_.end(), [this](const auto& tup) {
-        return std::get<0>(tup) < backprop_id_;
+    assert(std::all_of(outer_graphs_array_nodes.begin(), outer_graphs_array_nodes.end(), [&backprop_id](const auto& tup) {
+        BackpropId outer_backprop_id = std::get<0>(tup);
+        return outer_backprop_id < backprop_id;
     }));
 
-    // Corresponding output array nodes across graphs (corresponding to the same output array) should have the same array body, if it's
+    // Corresponding array nodes across graphs (corresponding to the same input/output array) should have the same array body, if it's
     // alive.
-    for (size_t i_output = 0; i_output < output_array_node_count(); ++i_output) {
-        nonstd::optional<ArrayBody*> output_array_body{};
-        for (const auto& tup : outer_graphs_output_array_nodes_) {
+    for (size_t i = 0; i < array_node_count; ++i) {
+        nonstd::optional<ArrayBody*> array_body{};
+        for (const auto& tup : outer_graphs_array_nodes) {
             const std::vector<std::shared_ptr<ArrayNode>>& vec = std::get<1>(tup);
-            const std::shared_ptr<ArrayNode>& output_array_node = vec[i_output];
-            std::shared_ptr<ArrayBody> body = output_array_node->weak_body().lock();
-            if (!output_array_body.has_value()) {
-                output_array_body = body.get();
+            assert(vec.size() == array_node_count);
+            const std::shared_ptr<ArrayNode>& array_node = vec.at(i);
+            if (is_output) {
+                // If the output is retained, array nodes of the output for all the outer graphs are not null.
+                // Otherwise, they are all null.
+                assert((array_node == nullptr) == (std::get<1>(outer_graphs_array_nodes.front()).at(i) == nullptr));
+            }
+            if (array_node == nullptr) {
+                // Outer graph references can be null for array nodes for arrays that are not retained.
+                continue;
+            }
+            std::shared_ptr<ArrayBody> body = array_node->weak_body().lock();
+            if (!array_body.has_value()) {
+                array_body = body.get();
             } else {
-                assert(*output_array_body == body.get());
+                assert(*array_body == body.get());
             }
         }
     }
-#endif  // NDEBUG
 }
+
+}  // namespace
+
+void OpNode::AssertConsistency() const {
+    AssertOuterGraphsArrayNodesConsistency(backprop_id_, input_array_node_count(), outer_graphs_input_array_nodes_, false);
+    AssertOuterGraphsArrayNodesConsistency(backprop_id_, output_array_node_count(), outer_graphs_output_array_nodes_, true);
+}
+
+#else
+
+void OpNode::AssertConsistency() const {}
+
+#endif  // NDEBUG
 
 std::vector<std::shared_ptr<ArrayNode>>& OpNode::input_array_nodes() {
     assert(std::all_of(input_array_nodes_.begin(), input_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {
@@ -152,15 +191,24 @@ OpNodeBackwardEntry& OpNode::RegisterBackwardFunction(
     return backward_entries_.back();
 }
 
+void OpNode::AddEdgesToInputArrayNodesOfOuterGraph(
+        const BackpropId& outer_backprop_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_input_array_nodes) {
+    AssertConsistency();
+    assert(outer_backprop_id < backprop_id_);
+    assert(outer_graphs_input_array_nodes.size() == input_array_nodes_.size());
+    assert(IsAllArrayNodesMatchBackpropId(outer_backprop_id, outer_graphs_input_array_nodes));
+
+    outer_graphs_input_array_nodes_.emplace_back(outer_backprop_id, std::move(outer_graphs_input_array_nodes));
+
+    AssertConsistency();
+}
+
 void OpNode::AddEdgesToOutputArrayNodesOfOuterGraph(
         const BackpropId& outer_backprop_id, std::vector<std::shared_ptr<ArrayNode>> outer_graphs_output_array_nodes) {
     AssertConsistency();
     assert(outer_backprop_id < backprop_id_);
     assert(outer_graphs_output_array_nodes.size() == output_array_props_.size());
-    assert(std::all_of(
-            outer_graphs_output_array_nodes.begin(),
-            outer_graphs_output_array_nodes.end(),
-            [&outer_backprop_id](const std::shared_ptr<ArrayNode>& output) { return output->backprop_id() == outer_backprop_id; }));
+    assert(IsAllArrayNodesMatchBackpropId(outer_backprop_id, outer_graphs_output_array_nodes));
 
     outer_graphs_output_array_nodes_.emplace_back(outer_backprop_id, std::move(outer_graphs_output_array_nodes));
 

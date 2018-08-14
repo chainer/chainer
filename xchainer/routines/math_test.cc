@@ -180,11 +180,22 @@ TEST_P(MathTest, ISubtractInvalidBroadcast2) {
     EXPECT_THROW(internal::ISubtract(a, b), XchainerError);
 }
 
+TEST_P(MathTest, ISubtractInvalidDtype) {
+    Array a = Ones({3}, Dtype::kBool);
+    Array b = Ones({3}, Dtype::kBool);
+    EXPECT_THROW(internal::ISubtract(a, b), DtypeError);
+}
+
 TEST_P(MathTest, ISubtractScalar) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array e = testing::BuildArray({3, 1}).WithData<float>({-2, -1, 0});
     internal::ISubtract(a, Scalar{3.f});
     testing::ExpectEqual(e, a);
+}
+
+TEST_P(MathTest, ISubtractScalarInvalidDtype) {
+    Array a = Ones({3}, Dtype::kBool);
+    EXPECT_THROW(internal::ISubtract(a, Scalar{true}), DtypeError);
 }
 
 TEST_P(MathTest, IMultiply) {
@@ -494,6 +505,12 @@ TEST_P(MathTest, SubtractInvalidBroadcast) {
     EXPECT_THROW(Subtract(a, b), XchainerError);
 }
 
+TEST_P(MathTest, SubtractInvalidDtype) {
+    Array a = Ones({3}, Dtype::kBool);
+    Array b = Ones({3}, Dtype::kBool);
+    EXPECT_THROW(Subtract(a, b), DtypeError);
+}
+
 TEST_P(MathTest, SubtractScalar) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Scalar b{2.f};
@@ -507,6 +524,11 @@ TEST_P(MathTest, SubtractScalar) {
         Array o = Subtract(b, a);
         testing::ExpectEqual(e, o);
     }
+}
+
+TEST_P(MathTest, SubtractScalarInvalidDtype) {
+    Array a = Ones({3}, Dtype::kBool);
+    EXPECT_THROW(Subtract(a, Scalar{true}), DtypeError);
 }
 
 TEST_P(MathTest, SubtractBackward) {

@@ -74,12 +74,12 @@ Array MaxPool(
                             if (BackwardBuilder::Target bt3 = bb3.CreateTarget(0)) {
                                 bt3.Define(*this);
                             }
-                            assert(bb3.is_complete());
+                            bb3.Finalize();
                         }
                         bctx2.input_grad() = ggout;
                     });
                 }
-                assert(bb2.is_complete());
+                bb2.Finalize();
             }
             bctx1.input_grad() = gx;
         }
@@ -96,7 +96,7 @@ Array MaxPool(
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
             bt1.Define(MaxPoolBwd{kernel_size, stride, pad, cover_all, std::move(fb)});
         }
-        assert(bb1.is_complete());
+        bb1.Finalize();
     }
     return out;
 }
@@ -107,6 +107,10 @@ Array AveragePool(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         AveragePoolPadMode pad_mode) {
+    if (GetKind(x.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError("cannot apply average pooling to ", x.dtype(), " array (floatXX array is expected)");
+    }
+
     CheckPoolInputs(x, kernel_size, stride, pad);
     std::shared_ptr<AveragePoolForwardBackward> fb = x.device().GetAveragePoolForwardBackward(kernel_size, stride, pad, pad_mode);
     Array out = fb->Forward(x.AsGradStopped());
@@ -114,7 +118,7 @@ Array AveragePool(
     {
         BackwardBuilder bb1{"average_pool", x, out};
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
-            bt1.Define([ fb = std::move(fb), kernel_size, stride, pad, pad_mode ](BackwardContext & bctx) {
+            bt1.Define([fb = std::move(fb), kernel_size, stride, pad, pad_mode](BackwardContext& bctx) {
                 const Array& gout = bctx.output_grad();
                 Array gx = fb->Backward(gout.AsGradStopped());
                 internal::MakeViewForForwardBackwardOutput(gx);
@@ -126,12 +130,12 @@ Array AveragePool(
                             bctx2.input_grad() = AveragePool(ggx, kernel_size, stride, pad, pad_mode);
                         });
                     }
-                    assert(bb2.is_complete());
+                    bb2.Finalize();
                 }
                 bctx.input_grad() = gx;
             });
         }
-        assert(bb1.is_complete());
+        bb1.Finalize();
     }
     return out;
 }

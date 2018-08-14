@@ -188,7 +188,7 @@ TEST_P(NativeBackendTransferTest, ArrayToDevice) {
     auto nop = [](void* p) {
         (void)p;  // unused
     };
-    Array a = internal::FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device0);
+    Array a = FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), device0);
 
     // Transfer
     Array b = a.ToDevice(device1);

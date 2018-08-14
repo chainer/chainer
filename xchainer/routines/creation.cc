@@ -41,19 +41,16 @@ size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_
 
 Array FromHostData(
         const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, const Strides& strides, int64_t offset, Device& device) {
-    auto bytesize = GetRequiredBytes(shape, strides, GetItemSize(dtype));
-    std::shared_ptr<void> device_data = device.FromHostMemory(data, bytesize);
-    return MakeArray(shape, strides, dtype, device, device_data, offset);
-}
-
-Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
-    return FromHostData(shape, dtype, data, {shape, dtype}, 0, device);
+    auto range = GetDataRange(shape, strides, GetItemSize(dtype));
+    // TODO(niboshi): Copy only required region. Currently the whole preceding (offset) region is copied.
+    std::shared_ptr<void> device_data = device.FromHostMemory(data, offset + std::get<1>(range));
+    return internal::MakeArray(shape, strides, dtype, device, std::move(device_data), offset);
 }
 
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device) {
     auto bytesize = GetRequiredBytes(shape, strides, GetItemSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);
-    return MakeArray(shape, strides, dtype, device, data);
+    return MakeArray(shape, strides, dtype, device, std::move(data));
 }
 
 Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepdims, Device& device) {
@@ -71,6 +68,10 @@ Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepd
 
 }  // namespace internal
 
+Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device) {
+    return internal::FromHostData(shape, dtype, data, {shape, dtype}, 0, device);
+}
+
 Array FromData(
         const Shape& shape,
         Dtype dtype,
@@ -85,7 +86,7 @@ Array FromData(
 Array Empty(const Shape& shape, Dtype dtype, Device& device) {
     auto bytesize = static_cast<size_t>(shape.GetTotalSize() * GetItemSize(dtype));
     std::shared_ptr<void> data = device.Allocate(bytesize);
-    return internal::MakeArray(shape, Strides{shape, dtype}, dtype, device, data);
+    return internal::MakeArray(shape, Strides{shape, dtype}, dtype, device, std::move(data));
 }
 
 Array Full(const Shape& shape, Scalar fill_value, Dtype dtype, Device& device) {
@@ -159,7 +160,7 @@ Array Copy(const Array& a) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     assert(out.IsContiguous());
     return out;
@@ -228,7 +229,7 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
                 bctx.input_grad() = gout.AsType(src_dt, false);
             });
         }
-        assert(bb.is_complete());
+        bb.Finalize();
     }
 
     assert(out.IsContiguous());
@@ -271,12 +272,12 @@ Array Diag(const Array& v, int64_t k, Device& device) {
 
     BackwardBuilder bb{"diag", v, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([& device = v.device(), k ](BackwardContext & bctx) {
+        bt.Define([& device = v.device(), k](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = Diag(gout, k, device);
         });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }

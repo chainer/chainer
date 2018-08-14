@@ -15,7 +15,7 @@ include(cmake/third-party.cmake)
 # Configure options
 option(BUILD_PYTHON "Build Python binding" OFF)
 option(ENABLE_TEST "Enable building test" ON)
-option(WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" OFF)
+option(WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" ON)
 
 if(DEFINED ENV{ENABLE_COVERAGE})
     set(DEFAULT_ENABLE_COVERAGE $ENV{ENABLE_COVERAGE})

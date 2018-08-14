@@ -2,12 +2,15 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <initializer_list>
 #include <memory>
 #include <set>
 #include <unordered_map>
 #include <vector>
+
+#include <gsl/gsl>
 
 #include "xchainer/array.h"
 #include "xchainer/array_body.h"
@@ -21,6 +24,30 @@
 
 namespace xchainer {
 namespace backward_builder_detail {
+
+// This class is used by the BackwardBuilder to record retained inputs and outputs.
+// The records are used to create outer graph edges (between op nodes and previous array nodes) when the builder is finalized.
+class RetentionRecord {
+public:
+    explicit RetentionRecord(size_t size) : size_{size} { assert(size_ > 0); }
+
+    size_t size() const { return size_; }
+
+    void Record(size_t index) {
+        if (flags_.empty()) {
+            flags_.resize(size_);
+        }
+        gsl::at(flags_, index) = static_cast<int8_t>(true);
+    }
+
+    bool IsAnyRecorded() const { return !flags_.empty(); }
+
+    bool IsRecorded(size_t index) const { return static_cast<bool>(flags_[index]); }
+
+private:
+    size_t size_{};
+    std::vector<int8_t> flags_{};  // binary flags
+};
 
 template <typename Tag>
 class RetainedArrayToken {
@@ -95,11 +122,7 @@ public:
         : BackwardBuilder{op_name, std::move(inputs), std::vector<ConstArrayRef>{output}} {}
     BackwardBuilder(const char* op_name, const Array& input, const Array& output)
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
-
-    // Returns whether the backward definitions to cover all the input arrays have finished.
-    bool is_complete() const {
-        return std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; });
-    }
+    ~BackwardBuilder() { assert(is_finalized_); }
 
     Target CreateTarget(std::vector<size_t> input_indices) {
         // input_indices shouldn't have duplicates.
@@ -135,15 +158,20 @@ public:
     // If invalid array is specified, XchainerError will be thrown.
     RetainedOutputToken RetainOutput(size_t output_index);
 
+    // Finalizes the builder.
+    //
+    // This functions must be called when targets have been created for all inputs.
+    void Finalize();
+
 private:
     // Create an op node for a specific graph.
     // Edges from output nodes to the op node are connected.
     std::shared_ptr<internal::OpNode>& FindOrCreateOpNode(const BackpropId& backprop_id);
 
     // Add shared ptrs between op nodes and array nodes belonging to outer graphs.
-    // This functions is called once when the given op node is encountered for the first time.
+    // This functions is called once when the builder is finalized.
     // These references are required to restore retained inputs/outputs.
-    void AddEdgesToOutputArrayNodesBetweenEncounteredGraphs(const std::shared_ptr<internal::OpNode>& op_node);
+    void AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention();
 
     const char* op_name_;
 
@@ -161,6 +189,11 @@ private:
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
     std::unordered_map<BackpropId, std::shared_ptr<internal::OpNode>> op_node_map_;
+
+    backward_builder_detail::RetentionRecord input_retention_record_;
+    backward_builder_detail::RetentionRecord output_retention_record_;
+
+    bool is_finalized_{false};
 };
 
 }  // namespace xchainer

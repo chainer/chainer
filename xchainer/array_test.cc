@@ -163,10 +163,10 @@ TEST_P(ArrayTest, MoveAssignment) {
     }
 }
 
-TEST_P(ArrayTest, SetRequiresGrad) {
+TEST_P(ArrayTest, RequireGrad) {
     // Default graph
     {
-        Array x = testing::BuildArray({1}).WithData<bool>({true});
+        Array x = testing::BuildArray({1}).WithData<float>({2.0f});
         ASSERT_FALSE(x.IsGradRequired());
         x.RequireGrad();
         ASSERT_TRUE(x.IsGradRequired());
@@ -177,11 +177,23 @@ TEST_P(ArrayTest, SetRequiresGrad) {
         BackpropScope backprop_scope{"bp1"};
         BackpropId backprop_id = backprop_scope.backprop_id();
 
-        Array x = testing::BuildArray({1}).WithData<bool>({true});
+        Array x = testing::BuildArray({1}).WithData<float>({2.0f});
         ASSERT_FALSE(x.IsGradRequired(backprop_id));
         x.RequireGrad(backprop_id);
         ASSERT_TRUE(x.IsGradRequired(backprop_id));
     }
+}
+
+TEST_P(ArrayTest, RequireGradDtype) {
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kBool).RequireGrad(); }, DtypeError);
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt8).RequireGrad(); }, DtypeError);
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt16).RequireGrad(); }, DtypeError);
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt32).RequireGrad(); }, DtypeError);
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kInt64).RequireGrad(); }, DtypeError);
+    EXPECT_THROW({ Ones(Shape{1}, Dtype::kUInt8).RequireGrad(); }, DtypeError);
+    // no throw
+    Ones(Shape{1}, Dtype::kFloat32).RequireGrad();
+    Ones(Shape{1}, Dtype::kFloat64).RequireGrad();
 }
 
 TEST_P(ArrayTest, Grad) {
@@ -538,8 +550,8 @@ TEST_P(ArrayTest, DivideScalar) {
 TEST_P(ArrayTest, ComputationalGraph) {
     // c = a + b
     // o = a * c
-    Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
-    Array b = testing::BuildArray({4, 1}).WithData<bool>({true, false, true, false});
+    Array a = testing::BuildArray({2, 1}).WithData<float>({2.f, 3.f});
+    Array b = testing::BuildArray({2, 1}).WithData<float>({5.f, 1.f});
 
     BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
@@ -721,7 +733,7 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
         BackpropId backprop_id1 = backprop_scope1.backprop_id();
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
         a.RequireGrad(backprop_id1);
         a.RequireGrad(backprop_id2);
         ASSERT_TRUE(a.IsGradRequired(backprop_id1));
@@ -747,7 +759,7 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
         BackpropId backprop_id3 = backprop_scope3.backprop_id();
 
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
         a.RequireGrad(backprop_id1);
         a.RequireGrad(backprop_id2);
         a.RequireGrad(backprop_id3);
@@ -770,7 +782,7 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
 
     // Non-contiguous
     {
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false}).WithPadding(4);
+        Array a = testing::BuildArray({4, 1}).WithLinearData<float>().WithPadding(4);
         Array b = a.AsGradStopped(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualCopy(a, b);
@@ -785,7 +797,7 @@ TEST_P(ArrayTest, AsGradStoppedView) {
         BackpropId backprop_id1 = backprop_scope1.backprop_id();
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
 
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
         a.RequireGrad(backprop_id1);
         a.RequireGrad(backprop_id2);
         ASSERT_TRUE(a.IsGradRequired(backprop_id1));
@@ -809,7 +821,7 @@ TEST_P(ArrayTest, AsGradStoppedView) {
         BackpropId backprop_id2 = backprop_scope2.backprop_id();
         BackpropId backprop_id3 = backprop_scope3.backprop_id();
 
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
         a.RequireGrad(backprop_id1);
         a.RequireGrad(backprop_id2);
         a.RequireGrad(backprop_id3);
@@ -829,7 +841,7 @@ TEST_P(ArrayTest, AsGradStoppedView) {
     }
     // Non-contiguous
     {
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false}).WithPadding(4);
+        Array a = testing::BuildArray({4, 1}).WithLinearData<float>().WithPadding(4);
         Array b = a.AsGradStopped(CopyKind::kView);
         EXPECT_EQ(&b.device(), &a.device());
         testing::ExpectEqualView(a, b);

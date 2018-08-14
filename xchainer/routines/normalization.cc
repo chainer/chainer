@@ -106,8 +106,8 @@ Array BatchNorm(
 
     BackwardBuilder bb{"batch_norm", {x, gamma_reshaped, beta_reshaped}, {out}};
     if (BackwardBuilder::Target bt = bb.CreateTarget({0, 1, 2})) {
-        bt.Define([ fb = std::move(fb), x_tok = bb.RetainInput(0), gamma_tok = bb.RetainInput(1), eps, sorted_axis = result.sorted_axis ](
-                BackwardContext & bctx) {
+        bt.Define([fb = std::move(fb), x_tok = bb.RetainInput(0), gamma_tok = bb.RetainInput(1), eps, sorted_axis = result.sorted_axis](
+                          BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
 
             std::array<Array, 3> ginputs = fb->Backward(gout.AsGradStopped());
@@ -127,15 +127,13 @@ Array BatchNorm(
 
                 BackwardBuilder bb2{"batch_norm_backward", {x, gamma_reshaped, gout}, {gx, ggamma, gbeta}};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget({0, 1, 2})) {
-                    bt2.Define([
-                        x_tok = bb2.RetainInput(0),
-                        gamma2_tok = bb2.RetainInput(1),
-                        gout_tok = bb2.RetainInput(2),
-                        eps,
-                        sorted_axis,
-                        gx_tok = bb2.RetainOutput(0),
-                        ggamma_tok = bb2.RetainOutput(1)
-                    ](BackwardContext & bctx2) {
+                    bt2.Define([x_tok = bb2.RetainInput(0),
+                                gamma2_tok = bb2.RetainInput(1),
+                                gout_tok = bb2.RetainInput(2),
+                                eps,
+                                sorted_axis,
+                                gx_tok = bb2.RetainOutput(0),
+                                ggamma_tok = bb2.RetainOutput(1)](BackwardContext& bctx2) {
                         const Array& x = bctx2.GetRetainedInput(x_tok);
                         const Array& gamma_reshaped = bctx2.GetRetainedInput(gamma2_tok);
                         const Array& gout = bctx2.GetRetainedInput(gout_tok);
@@ -174,7 +172,7 @@ Array BatchNorm(
                         bctx2.input_grad(2) = ggout2;
                     });
                 }
-                assert(bb2.is_complete());
+                bb2.Finalize();
             }
 
             // TODO(niboshi): Assign at once
@@ -183,7 +181,7 @@ Array BatchNorm(
             bctx.input_grad(2) = gbeta;
         });
     }
-    assert(bb.is_complete());
+    bb.Finalize();
 
     return out;
 }

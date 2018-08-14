@@ -44,6 +44,7 @@ Arrays ForwardWithIncorrectBackward(const Arrays& inputs) {
             bctx.input_grad() = gout * gout;
         });
     }
+    bb.Finalize();
 
     VisitDtype(in.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
