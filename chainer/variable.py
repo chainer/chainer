@@ -968,8 +968,6 @@ Actual: {0}'''.format(type(data))
                 if e.status != 38:  # cudaErrorNoDevice
                     raise
 
-        is_debug = chainer.is_debug()
-
         cand_funcs = []
         seen_set = set()
         grads = _backprop_utils.GradTable(load_if_new=True)
@@ -1041,23 +1039,6 @@ Actual: {0}'''.format(type(data))
 
             for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad_data)
-
-            if is_debug:
-                # each grad is a list of variables
-                # iter_gxs expands it as a sequence of variables.
-                def iter_gxs(gxs):
-                    for gx in gxs:
-                        for gx_elem in gx:
-                            yield gx_elem
-
-                for gx in iter_gxs(in_grad.values()):
-                    gx_data = gx.data
-                    if gx_data.dtype.kind == 'f':
-                        cuda.get_device_from_array(gx_data).use()
-                        if cuda.get_array_module(gx_data).isnan(gx_data).any():
-                            raise RuntimeError(
-                                'NaN is detected on backward computation of '
-                                '{}'.format(func.label))
 
             for y, gy in six.moves.zip(outputs, out_grad):
                 if y is not None and y is not self.node:
