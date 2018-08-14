@@ -119,6 +119,7 @@ Array Im2Col(
         using T = typename decltype(pt)::type;
         Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
 
+        static_assert(4 * 2 + 2 == kMaxNdim, "4 is the maximum kernel ndim whose output ndim does not exceed kMaxNdim");
         switch (ndim) {
             case 0:
                 Im2ColImpl<T, 0>(padded_x, out, kernel_size, stride, out_dims, batch_channel_indexer);
@@ -136,7 +137,6 @@ Array Im2Col(
                 Im2ColImpl<T, 4>(padded_x, out, kernel_size, stride, out_dims, batch_channel_indexer);
                 break;
             default:
-                static_assert(kMaxNdim == 10, "kMaxNdim equals to 10");
                 XCHAINER_NEVER_REACH();  // Never out.ndim() > kMaxNdim
                 break;
         }
