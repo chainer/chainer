@@ -40,9 +40,9 @@ The state of an optimizer can also be saved by the same functions:
    Note that serialization of optimizer only saves its internal states including number of iterations, momentum vectors of MomentumSGD, etc.
    It does not save the parameters and persistent values of the target link.
    We have to explicitly save the target link with the optimizer to resume the optimization from saved states.
-   This can be done by saving the entire :class:'~training.Trainer' object, like this:
+   This can be done by saving the entire :class:`~training.Trainer` object, like this:
 
-.. code-block:: console
+.. code-block:: python
 
    >>> serializers.save_npz('my.state', trainer)
 
