@@ -34,21 +34,21 @@ TEST_P(SortingTest, ArgMax) {
     Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4}).WithPadding(1);
     Array b = ArgMax(a, 0);
     Array e = testing::BuildArray({3}).WithData<int64_t>({0, 0, 1});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST_P(SortingTest, ArgMaxNegativeAxis) {
     Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
     Array b = ArgMax(a, -1);
     Array e = testing::BuildArray({2}).WithData<int64_t>({1, 2});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST_P(SortingTest, ArgMaxAllAxes) {
     Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
     Array b = ArgMax(a);
     Array e = testing::BuildArray({}).WithData<int64_t>({1});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST_P(SortingTest, ArgMaxInvalidAxis) {

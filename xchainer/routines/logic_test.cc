@@ -63,7 +63,7 @@ TEST_P(LogicTest, Equal) {
 
     ASSERT_EQ(c.dtype(), Dtype::kBool);
     EXPECT_TRUE(c.IsContiguous());
-    testing::ExpectEqual(e, c);
+    EXPECT_ARRAY_EQ(e, c);
 }
 
 TEST_P(LogicTest, EqualBroadcast) {
@@ -73,7 +73,7 @@ TEST_P(LogicTest, EqualBroadcast) {
     Array b = testing::BuildArray({2, 1}).WithData<T>({3, 2});
     Array e = testing::BuildArray({2, 3}).WithData<bool>({false, false, true, false, false, true});
     Array o = Equal(a, b);
-    testing::ExpectEqual(e, o);
+    EXPECT_ARRAY_EQ(e, o);
 }
 
 INSTANTIATE_TEST_CASE_P(

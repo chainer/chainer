@@ -102,7 +102,7 @@ TEST(BackwardContextTest, InputGrad) {
     Array y1{};
     forward(x1, x2, x3, y1);
     Backward({y1}, backprop_id2);
-    testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(backprop_id2));
+    EXPECT_ARRAY_ALL_CLOSE(expected_x3_grad, *x3.GetGrad(backprop_id2));
 }
 
 // TODO(hvy): Separate tests of backprop stack manipulation into another test class/fixture and parameterize the outermost graph over the
@@ -312,7 +312,7 @@ TEST_P(BackpropTest, MultipleGraphsBackprop) {
     Array gx = *x.GetGrad(bp_x);  // 2x + y
     EXPECT_FALSE(gx.IsBackpropRequired(bp_x));
     EXPECT_TRUE(gx.IsBackpropRequired(bp_y));
-    testing::ExpectEqual(2 * x_value + y_value, gx);
+    EXPECT_ARRAY_EQ(2 * x_value + y_value, gx);
 
     Array w = x * gx;
     Backward(w, bp_y, DoubleBackpropOption::kDisable);
@@ -341,7 +341,7 @@ TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     Array gx = *x.GetGrad(bp_x);  // 2x + y
     EXPECT_TRUE(gx.IsBackpropRequired(bp_x));
     EXPECT_TRUE(gx.IsBackpropRequired(bp_y));
-    testing::ExpectEqual(2 * x_value + y_value, gx);
+    EXPECT_ARRAY_EQ(2 * x_value + y_value, gx);
 
     Array w = x * gx;
     Backward(w, bp_y, DoubleBackpropOption::kDisable);
@@ -753,7 +753,7 @@ TEST_P(BackpropTest, SomeOfOutputArrayNodesAreGone) {
     Backward(z1, nonstd::nullopt);
 
     Array expected_x_grad = x_value * Exp(x_value);
-    testing::ExpectAllClose(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
+    EXPECT_ARRAY_ALL_CLOSE(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -794,7 +794,7 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
 
             bt.Define([gy1_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad();  // omit index
-                testing::ExpectEqual(gy1_value, gy1);
+                EXPECT_ARRAY_EQ(gy1_value, gy1);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(gy1.IsBackpropRequired(backprop_id));
                 } else {
@@ -817,8 +817,8 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
     }
     Backward({y1}, backprop_id, double_backprop_opt);
 
-    testing::ExpectEqual(gy1_value, *y1.GetGrad(backprop_id));
-    testing::ExpectEqual(gx1_value, *x1.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gy1_value, *y1.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gx1_value, *x1.GetGrad(backprop_id));
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
         EXPECT_TRUE(y1.GetGrad(backprop_id)->IsBackpropRequired(backprop_id));
     } else {
@@ -857,8 +857,8 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
             bt.Define([gy1_value, gy2_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                 const Array& gy1 = bctx.output_grad(0);  // by index
                 const Array& gy2 = bctx.output_grad(1);
-                testing::ExpectEqual(gy1_value, gy1);
-                testing::ExpectEqual(gy2_value, gy2);
+                EXPECT_ARRAY_EQ(gy1_value, gy1);
+                EXPECT_ARRAY_EQ(gy2_value, gy2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(gy1.IsBackpropRequired(backprop_id));
                     EXPECT_TRUE(gy2.IsBackpropRequired(backprop_id));
@@ -886,9 +886,9 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
     }
     Backward({y1, y2}, backprop_id, double_backprop_opt);
 
-    testing::ExpectEqual(gy1_value, *y1.GetGrad(backprop_id));
-    testing::ExpectEqual(gy2_value, *y2.GetGrad(backprop_id));
-    testing::ExpectEqual(gx1_value, *x1.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gy1_value, *y1.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gy2_value, *y2.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gx1_value, *x1.GetGrad(backprop_id));
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
         EXPECT_TRUE(y1.GetGrad(backprop_id)->IsBackpropRequired(backprop_id));
         EXPECT_TRUE(y2.GetGrad(backprop_id)->IsBackpropRequired(backprop_id));
@@ -931,7 +931,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
 
                 bt.Define([gy1_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad();  // omit index
-                    testing::ExpectEqual(gy1_value, gy1);
+                    EXPECT_ARRAY_EQ(gy1_value, gy1);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                         EXPECT_TRUE(gy1.IsBackpropRequired(backprop_id));
                     } else {
@@ -946,7 +946,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
 
                     // Check bctx.input_grad() as a getter
                     Array gx1_back = bctx.input_grad();
-                    testing::ExpectEqual(2 * gy1, gx1_back);
+                    EXPECT_ARRAY_EQ(2 * gy1, gx1_back);
                 });
             }
             {
@@ -956,7 +956,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
 
                 bt.Define([gy1_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
-                    testing::ExpectEqual(gy1_value, gy1);
+                    EXPECT_ARRAY_EQ(gy1_value, gy1);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                         EXPECT_TRUE(gy1.IsBackpropRequired(backprop_id));
                     } else {
@@ -974,8 +974,8 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                     // Check bctx.input_grad() as a getter
                     Array gx2_back = bctx.input_grad(1);
                     Array gx3_back = bctx.input_grad(2);
-                    testing::ExpectEqual(3 * gy1, gx2_back);
-                    testing::ExpectEqual(1 * gy1, gx3_back);
+                    EXPECT_ARRAY_EQ(3 * gy1, gx2_back);
+                    EXPECT_ARRAY_EQ(1 * gy1, gx3_back);
                 });
             }
             bb.Finalize();
@@ -995,10 +995,10 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
     }
     Backward({y1}, backprop_id, double_backprop_opt);
 
-    testing::ExpectEqual(gy1_value, *y1.GetGrad(backprop_id));
-    testing::ExpectEqual(gx1_value, *x1.GetGrad(backprop_id));
-    testing::ExpectEqual(gx2_value, *x2.GetGrad(backprop_id));
-    testing::ExpectEqual(gx3_value, *x3.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gy1_value, *y1.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gx1_value, *x1.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gx2_value, *x2.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gx3_value, *x3.GetGrad(backprop_id));
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
         EXPECT_TRUE(y1.GetGrad(backprop_id)->IsBackpropRequired(backprop_id));
     } else {
@@ -1044,8 +1044,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                 bt.Define([gy1_value, gy2_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
                     const Array& gy2 = bctx.output_grad(1);
-                    testing::ExpectEqual(gy1_value, gy1);
-                    testing::ExpectEqual(gy2_value, gy2);
+                    EXPECT_ARRAY_EQ(gy1_value, gy1);
+                    EXPECT_ARRAY_EQ(gy2_value, gy2);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                         EXPECT_TRUE(gy1.IsBackpropRequired(backprop_id));
                         EXPECT_TRUE(gy2.IsBackpropRequired(backprop_id));
@@ -1064,8 +1064,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                 bt.Define([gy1_value, gy2_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
                     const Array& gy1 = bctx.output_grad(0);  // by index
                     const Array& gy2 = bctx.output_grad(1);
-                    testing::ExpectEqual(gy1_value, gy1);
-                    testing::ExpectEqual(gy2_value, gy2);
+                    EXPECT_ARRAY_EQ(gy1_value, gy1);
+                    EXPECT_ARRAY_EQ(gy2_value, gy2);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                         EXPECT_TRUE(gy1.IsBackpropRequired(backprop_id));
                         EXPECT_TRUE(gy2.IsBackpropRequired(backprop_id));
@@ -1100,11 +1100,11 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
     }
     Backward({y1, y2}, backprop_id, double_backprop_opt);
 
-    testing::ExpectEqual(gy1_value, *y1.GetGrad(backprop_id));
-    testing::ExpectEqual(gy2_value, *y2.GetGrad(backprop_id));
-    testing::ExpectEqual(gx1_value, *x1.GetGrad(backprop_id));
-    testing::ExpectEqual(gx2_value, *x2.GetGrad(backprop_id));
-    testing::ExpectEqual(gx3_value, *x3.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gy1_value, *y1.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gy2_value, *y2.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gx1_value, *x1.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gx2_value, *x2.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gx3_value, *x3.GetGrad(backprop_id));
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
         EXPECT_TRUE(y1.GetGrad(backprop_id)->IsBackpropRequired(backprop_id));
         EXPECT_TRUE(y2.GetGrad(backprop_id)->IsBackpropRequired(backprop_id));
@@ -1155,8 +1155,8 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
                 EXPECT_TRUE(bctx.is_input_grad_required(1));
 
                 // The value of `input_grad` should be retained, even if it's not required.
-                testing::ExpectEqual(bctx.input_grad(0), gy1gx1);
-                testing::ExpectEqual(bctx.input_grad(1), gy1gx2);
+                EXPECT_ARRAY_EQ(bctx.input_grad(0), gy1gx1);
+                EXPECT_ARRAY_EQ(bctx.input_grad(1), gy1gx2);
             });
             bb.Finalize();
         }
@@ -1169,7 +1169,7 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
 
     Backward({y1}, backprop_id1, double_backprop_opt);
 
-    testing::ExpectEqual(gx2_value, *x2.GetGrad(backprop_id1));
+    EXPECT_ARRAY_EQ(gx2_value, *x2.GetGrad(backprop_id1));
     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
         // TODO(niboshi): Enable this check
         // EXPECT_TRUE(x2.GetGrad(backprop_id1)->IsBackpropRequired(backprop_id1));
@@ -1212,8 +1212,8 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
 
                 const Array& gy1 = bctx.output_grad(0);
                 const Array& gy2 = bctx.output_grad(1);
-                testing::ExpectEqual(ZerosLike(gy2_value), gy1);
-                testing::ExpectEqual(gy2_value, gy2);
+                EXPECT_ARRAY_EQ(ZerosLike(gy2_value), gy1);
+                EXPECT_ARRAY_EQ(gy2_value, gy2);
 
                 EXPECT_FALSE(gy1.IsBackpropRequired(AnyGraph{}));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -1241,8 +1241,8 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
     // Start backprop from y2. y1 is ignored.
     Backward(y2, backprop_id, double_backprop_opt);
 
-    testing::ExpectEqual(gy2_value, *y2.GetGrad(backprop_id));
-    testing::ExpectEqual(gx1_value, *x1.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gy2_value, *y2.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(gx1_value, *x1.GetGrad(backprop_id));
 }
 
 INSTANTIATE_TEST_CASE_P(Params, BackpropFunctionTest, ::testing::Values(DoubleBackpropOption::kDisable, DoubleBackpropOption::kEnable));
@@ -1300,8 +1300,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                 const Array& y1 = bctx.GetRetainedOutput(tok1);
                 const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                testing::ExpectEqual(y1_value, y1);
-                testing::ExpectEqual(y2_value, y2);
+                EXPECT_ARRAY_EQ(y1_value, y1);
+                EXPECT_ARRAY_EQ(y2_value, y2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(y1.IsBackpropRequired(backprop_id1));
                     EXPECT_TRUE(y2.IsBackpropRequired(backprop_id1));
@@ -1343,8 +1343,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                 const Array& y1 = bctx.GetRetainedOutput(tok1);
                 const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                testing::ExpectEqual(y1_value, y1);
-                testing::ExpectEqual(y2_value, y2);
+                EXPECT_ARRAY_EQ(y1_value, y1);
+                EXPECT_ARRAY_EQ(y2_value, y2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(y1.IsBackpropRequired(backprop_id1));
                     EXPECT_TRUE(y2.IsBackpropRequired(backprop_id1));
@@ -1390,8 +1390,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
         }
         // y's are alive here
         Backward({y1, y2}, backprop_id1, double_backprop_opt);
-        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(backprop_id1));
-        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(backprop_id1));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x1_grad, *x1.GetGrad(backprop_id1));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id1));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1448,8 +1448,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
                 const Array& y1 = bctx.GetRetainedOutput(tok1);
                 const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                testing::ExpectEqual(y1_value, y1);
-                testing::ExpectEqual(y2_value, y2);
+                EXPECT_ARRAY_EQ(y1_value, y1);
+                EXPECT_ARRAY_EQ(y2_value, y2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(y1.IsBackpropRequired(backprop_id1));
                     EXPECT_TRUE(y2.IsBackpropRequired(backprop_id1));
@@ -1490,8 +1490,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
                 const Array& y1 = bctx.GetRetainedOutput(tok1);
                 const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                testing::ExpectEqual(y1_value, y1);
-                testing::ExpectEqual(y2_value, y2);
+                EXPECT_ARRAY_EQ(y1_value, y1);
+                EXPECT_ARRAY_EQ(y2_value, y2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(y1.IsBackpropRequired(backprop_id1));
                     EXPECT_TRUE(y2.IsBackpropRequired(backprop_id1));
@@ -1541,8 +1541,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
         }
         // y's are dead here
         Backward({z1, z2}, backprop_id1, double_backprop_opt);
-        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(backprop_id1));
-        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(backprop_id1));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x1_grad, *x1.GetGrad(backprop_id1));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id1));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1601,8 +1601,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
                 const Array& y1 = bctx.GetRetainedOutput(tok1);
                 const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                testing::ExpectEqual(y1_value, y1);
-                testing::ExpectEqual(y2_value, y2);
+                EXPECT_ARRAY_EQ(y1_value, y1);
+                EXPECT_ARRAY_EQ(y2_value, y2);
                 EXPECT_TRUE(y1.IsBackpropRequired(backprop_id1));
                 EXPECT_TRUE(y2.IsBackpropRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -1643,8 +1643,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
                 const Array& y1 = bctx.GetRetainedOutput(tok1);
                 const Array& y2 = bctx.GetRetainedOutput(tok2);
 
-                testing::ExpectEqual(y1_value, y1);
-                testing::ExpectEqual(y2_value, y2);
+                EXPECT_ARRAY_EQ(y1_value, y1);
+                EXPECT_ARRAY_EQ(y2_value, y2);
                 EXPECT_TRUE(y1.IsBackpropRequired(backprop_id1));
                 EXPECT_TRUE(y2.IsBackpropRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -1693,8 +1693,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
         }
         // Only z2 is alive here
         Backward({z2}, backprop_id2, double_backprop_opt);
-        testing::ExpectAllClose(expected_x1_grad, *x1.GetGrad(backprop_id2));
-        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(backprop_id2));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x1_grad, *x1.GetGrad(backprop_id2));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1734,7 +1734,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
                 // Retrieve retained outputs
                 const Array& y1 = bctx.GetRetainedOutput(tok1);
 
-                testing::ExpectEqual(y1_value, y1);
+                EXPECT_ARRAY_EQ(y1_value, y1);
                 EXPECT_TRUE(y1.IsBackpropRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(y1.IsBackpropRequired(backprop_id2));
@@ -1760,7 +1760,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
                 // Retrieve retained outputs
                 const Array& y1 = bctx.GetRetainedOutput(tok1);
 
-                testing::ExpectEqual(y1_value, y1);
+                EXPECT_ARRAY_EQ(y1_value, y1);
                 EXPECT_TRUE(y1.IsBackpropRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(y1.IsBackpropRequired(backprop_id2));
@@ -1798,7 +1798,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
         }
         // y's are dead here
         Backward({z1}, backprop_id2, double_backprop_opt);
-        testing::ExpectAllClose(expected_x2_grad, *x2.GetGrad(backprop_id2));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x2_grad, *x2.GetGrad(backprop_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1849,7 +1849,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
                 // Retrieve retained outputs
                 const Array& y1 = bctx.GetRetainedOutput(y1_tok);
 
-                testing::ExpectEqual(y1_value, y1);
+                EXPECT_ARRAY_EQ(y1_value, y1);
                 EXPECT_TRUE(y1.IsBackpropRequired(backprop_id1));
                 EXPECT_TRUE(y1.IsBackpropRequired(backprop_id2));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -1886,7 +1886,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         }
         // y's are dead here
         Backward({z1}, backprop_id3, double_backprop_opt);
-        testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(backprop_id3));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x3_grad, *x3.GetGrad(backprop_id3));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -1930,7 +1930,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
                 // Retrieve retained outputs
                 const Array& y1 = bctx.GetRetainedOutput(y1_tok);
 
-                testing::ExpectEqual(y1_value, y1);
+                EXPECT_ARRAY_EQ(y1_value, y1);
                 EXPECT_TRUE(y1.IsBackpropRequired(backprop_id1));
                 EXPECT_TRUE(y1.IsBackpropRequired(backprop_id2));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -1975,7 +1975,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
         }
         // y's are dead here
         Backward({z1}, backprop_id3, double_backprop_opt);
-        testing::ExpectAllClose(expected_x3_grad, *x3.GetGrad(backprop_id3));
+        EXPECT_ARRAY_ALL_CLOSE(expected_x3_grad, *x3.GetGrad(backprop_id3));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -2018,8 +2018,8 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
                         const Array& x1 = bctx.GetRetainedInput(tok1);
                         const Array& x2 = bctx.GetRetainedInput(tok2);
 
-                        testing::ExpectEqual(x1_c, x1);
-                        testing::ExpectEqual(x2_c, x2);
+                        EXPECT_ARRAY_EQ(x1_c, x1);
+                        EXPECT_ARRAY_EQ(x2_c, x2);
                         EXPECT_TRUE(x1.IsBackpropRequired(backprop_id1));
                         EXPECT_TRUE(x2.IsBackpropRequired(backprop_id1));
                         if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -2049,8 +2049,8 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
                         const Array& x1 = bctx.GetRetainedInput(tok1);
                         const Array& x2 = bctx.GetRetainedInput(tok2);
 
-                        testing::ExpectEqual(x1_c, x1);
-                        testing::ExpectEqual(x2_c, x2);
+                        EXPECT_ARRAY_EQ(x1_c, x1);
+                        EXPECT_ARRAY_EQ(x2_c, x2);
                         EXPECT_TRUE(x1.IsBackpropRequired(backprop_id1));
                         EXPECT_TRUE(x2.IsBackpropRequired(backprop_id1));
                         if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -2091,8 +2091,8 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
         forward(x1, x2, y1, y2);
 
         Backward({y1, y2}, backprop_id2, double_backprop_opt);
-        testing::ExpectEqual(expected_x1_grad, *x1.GetGrad(backprop_id2));
-        testing::ExpectEqual(expected_x2_grad, *x2.GetGrad(backprop_id2));
+        EXPECT_ARRAY_EQ(expected_x1_grad, *x1.GetGrad(backprop_id2));
+        EXPECT_ARRAY_EQ(expected_x2_grad, *x2.GetGrad(backprop_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }
@@ -2141,8 +2141,8 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
                 const Array& x1 = bctx.GetRetainedInput(tok1);
                 const Array& x2 = bctx.GetRetainedInput(tok2);
 
-                testing::ExpectEqual(x1_c, x1);
-                testing::ExpectEqual(x2_c, x2);
+                EXPECT_ARRAY_EQ(x1_c, x1);
+                EXPECT_ARRAY_EQ(x2_c, x2);
                 EXPECT_TRUE(x1.IsBackpropRequired(backprop_id1));
                 EXPECT_TRUE(x2.IsBackpropRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -2176,8 +2176,8 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
                 const Array& x1 = bctx.GetRetainedInput(tok1);
                 const Array& x2 = bctx.GetRetainedInput(tok2);
 
-                testing::ExpectEqual(x1_c, x1);
-                testing::ExpectEqual(x2_c, x2);
+                EXPECT_ARRAY_EQ(x1_c, x1);
+                EXPECT_ARRAY_EQ(x2_c, x2);
                 EXPECT_TRUE(x1.IsBackpropRequired(backprop_id1));
                 EXPECT_TRUE(x2.IsBackpropRequired(backprop_id1));
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -2261,8 +2261,8 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
                         const Array& x1 = bctx.GetRetainedInput(tok1);
                         const Array& x2 = bctx.GetRetainedInput(tok2);
 
-                        testing::ExpectEqual(x1_c, x1);
-                        testing::ExpectEqual(x2_c, x2);
+                        EXPECT_ARRAY_EQ(x1_c, x1);
+                        EXPECT_ARRAY_EQ(x2_c, x2);
                         EXPECT_TRUE(x1.IsBackpropRequired(backprop_id1));
                         EXPECT_TRUE(x2.IsBackpropRequired(backprop_id1));
                         if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -2291,8 +2291,8 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
                         const Array& x1 = bctx.GetRetainedInput(tok1);
                         const Array& x2 = bctx.GetRetainedInput(tok2);
 
-                        testing::ExpectEqual(x1_c, x1);
-                        testing::ExpectEqual(x2_c, x2);
+                        EXPECT_ARRAY_EQ(x1_c, x1);
+                        EXPECT_ARRAY_EQ(x2_c, x2);
                         EXPECT_TRUE(x1.IsBackpropRequired(backprop_id1));
                         EXPECT_TRUE(x2.IsBackpropRequired(backprop_id1));
                         if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -2331,7 +2331,7 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
         forward(x1, x2, y1, y2);
 
         Backward({y1, y2}, backprop_id2, double_backprop_opt);
-        testing::ExpectEqual(expected_x1_grad, *x1.GetGrad(backprop_id2));
+        EXPECT_ARRAY_EQ(expected_x1_grad, *x1.GetGrad(backprop_id2));
     }
     EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
 }

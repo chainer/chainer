@@ -43,7 +43,7 @@ TEST_P(IndexingTest, At) {
 
     EXPECT_EQ(output_shape, b.shape());
     Array e = testing::BuildArray(output_shape).WithData<T>({4, 5});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 
     // Check if strides are 0 for newaxis.
     EXPECT_EQ(0, b.strides()[0]);
@@ -105,7 +105,7 @@ TEST_P(IndexingTest, Take) {
 
     EXPECT_EQ(output_shape, b.shape());
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 2, 3, 1, 2, 1, 4, 6, 7, 5, 6, 5});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST_P(IndexingTest, TakeBackward) {
@@ -157,7 +157,7 @@ TEST_P(IndexingTest, TakeLongAxis) {
 
     EXPECT_EQ(Shape{1}, b.shape());
     Array e = Full({1}, 10.f);
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 INSTANTIATE_TEST_CASE_P(
