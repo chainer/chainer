@@ -167,9 +167,9 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
     int64_t grid_size = total_reduce_blocks;
     size_t shared_mem_size = sizeof(decltype(impl.Identity())) * reduce_block_size;
 
+    assert(arg.in_shape().ndim() == arg.out_shape().ndim() + arg.reduce_shape().ndim());
 #ifdef NDEBUG  // Optimize only in Release build to save time on development
     // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
-    assert(arg.in_shape().ndim() == arg.out_shape().ndim() + arg.reduce_shape().ndim());
     switch (arg.in_strides().ndim()) {
         case 1:
             switch (arg.out_strides().ndim()) {
