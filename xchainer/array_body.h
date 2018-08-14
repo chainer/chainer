@@ -48,6 +48,30 @@ public:
 
     int64_t offset() const { return offset_; }
 
+    // Returns the list of backprop IDs whose gradients are marked as required.
+    // This does not take backprop mode into account.
+    const std::vector<BackpropId>& grad_required_backprop_ids() const { return grad_required_backprop_ids_; }
+
+    // Returns whether the gradient of the specified backprop ID is marked as required.
+    // This does not take backprop mode into account.
+    bool IsGradRequired(const BackpropId& backprop_id) const {
+        return grad_required_backprop_ids_.end() !=
+               std::find(grad_required_backprop_ids_.begin(), grad_required_backprop_ids_.end(), backprop_id);
+    }
+
+    // Mark the gradient of the specified backprop ID as required.
+    // This does not take backprop mode into account.
+    static void RequireGrad(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id) {
+        if (body->grad_required_backprop_ids_.end() ==
+            std::find(body->grad_required_backprop_ids_.begin(), body->grad_required_backprop_ids_.end(), backprop_id)) {
+            body->grad_required_backprop_ids_.emplace_back(backprop_id);
+
+            if (!body->HasArrayNode(backprop_id)) {
+                CreateArrayNode(body, backprop_id);
+            }
+        }
+    }
+
     const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return nodes_; }
 
     // TODO(niboshi): Remove this function and add another to assign an array node at a specified index.
@@ -55,9 +79,7 @@ public:
 
     const std::shared_ptr<ArrayNode>& GetArrayNode(const BackpropId& backprop_id) const {
         nonstd::optional<size_t> index = GetNodeIndex(backprop_id);
-        if (!index.has_value()) {
-            throw XchainerError{"Array does not require gradient for backprop id: '", backprop_id, "'."};
-        }
+        assert(index.has_value());
         return nodes_[*index];
     }
 
@@ -98,7 +120,7 @@ public:
     void AccumulateGrad(Array partial_grad, const BackpropId& backprop_id);
 
     // Clears a gradient array.
-    // XchainerError is thrown if there is no array node for the specified graph.
+    // The behavior is undefined if there is no array node for the specified graph.
     void ClearGrad(const BackpropId& backprop_id);
 
 private:
@@ -128,6 +150,7 @@ private:
     std::shared_ptr<void> data_;
     int64_t offset_;  // in bytes
 
+    std::vector<BackpropId> grad_required_backprop_ids_;
     std::vector<std::shared_ptr<ArrayNode>> nodes_;
     std::vector<std::unique_ptr<nonstd::optional<Array>>> grads_;
 };

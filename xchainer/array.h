@@ -174,20 +174,43 @@ public:
 
     void Fill(Scalar value) const;
 
+    // Returns the gradient of the array.
+    //
+    // XchainerError is thrown if the array is constant with respect to the computation for the specified backprop ID.
+    // XchainerError is thrown if the array is not flagged as requiring gradient.
+    // This function ignores no/force-backprop mode.
     const nonstd::optional<Array>& GetGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
+    // Sets the gradient of the array.
+    // This function also flags the array as requiring gradient, so that preceding GetGrad() can return the gradient.
+    //
+    // XchainerError is thrown if the array is constant with respect to the computation for the specified backprop ID.
+    // This function ignores no/force-backprop mode.
     void SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
-    // Clears the gradient stored in the ArrayNode, but does not delete the ArrayNode itself
+    // Clears the gradient of the array if set.
+    // This function does not change the state of the array other than that. For example, if the array is flagged as requiring gradient,
+    // that will not change.
+    //
+    // XchainerError is thrown if the array is constant with respect to the computation for the specified backprop ID.
+    // This function ignores no/force-backprop mode.
     void ClearGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
     // Returns whether the array needs to backprop.
-    // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
+    //
+    // If no-backprop mode is set with respect to the specified backprop ID, this function returns false.
     bool IsBackpropRequired(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
     bool IsBackpropRequired(AnyGraph any_graph) const;
 
+    // Returns whether the array is flagged to compute the gradient during backprop.
+    // If the array is constant with respect to the computation of the backprop ID, this function makes the array non-constant.
+    //
+    // This function ignores no/force-backprop mode.
+    bool IsGradRequired(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
+
     // Flags the array to compute the gradient during backprop.
-    // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.
+    //
+    // This function ignores no/force-backprop mode.
     const Array& RequireGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const {
         return RequireGradImpl(*this, backprop_id);
     }

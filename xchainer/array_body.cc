@@ -128,9 +128,7 @@ void ArrayBody::AccumulateGrad(Array partial_grad, const BackpropId& backprop_id
 
 void ArrayBody::ClearGrad(const BackpropId& backprop_id) {
     nonstd::optional<Array>* grad = GetGrad(backprop_id);
-    if (grad == nullptr) {
-        throw XchainerError{"Array does not require gradient for backprop id: '", backprop_id, "'."};
-    }
+    assert(grad != nullptr);
     grad->reset();
 }
 

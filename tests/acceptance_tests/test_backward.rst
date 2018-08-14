@@ -5,12 +5,18 @@ Acceptance tests for Backprop
 
 >>> a = xc.ndarray((2, 3), xc.float32, [0, 1, 2, 3, 4, 5]).require_grad()
 >>> b = xc.full_like(a, 2)
+>>> a.is_grad_required()
+True
+>>> b.is_grad_required()
+False
 >>> y = (a * b) + b
+>>> y.is_grad_required()
+False
 >>> y.is_backprop_required()
 True
->>> b.is_backprop_required()
-False
 >>> y.grad = xc.full_like(a, 0.5)
+>>> y.is_grad_required()
+True
 >>> xc.backward(y)
 
 Access gradients through attribute
