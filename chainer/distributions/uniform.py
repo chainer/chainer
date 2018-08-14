@@ -8,6 +8,7 @@ from chainer.functions.array import where
 from chainer.functions.math import clip
 from chainer.functions.math import exponential
 from chainer.functions.math import sqrt
+from chainer import utils
 from chainer.utils import argument
 
 
@@ -86,22 +87,22 @@ class Uniform(distribution.Distribution):
         return ()
 
     def icdf(self, x):
-        return x * broadcast.broadcast_to(self.high, x.shape) \
-            + (1 - x) * broadcast.broadcast_to(self.low, x.shape)
+        return x * self.high \
+            + (1 - x) * self.low
 
     def log_prob(self, x):
         if not isinstance(x, chainer.Variable):
             x = chainer.Variable(x)
 
-        bl = broadcast.broadcast_to(self.low, x.shape)
-        bh = broadcast.broadcast_to(self.high, x.shape)
-
         xp = cuda.get_array_module(x)
 
-        logp = -exponential.log(bh - bl)
+        logp = broadcast.broadcast_to(
+            -exponential.log(self.high - self.low), x.shape)
         return where.where(
-            xp.asarray((x.data >= bl.data) & (x.data < bh.data)),
-            logp, xp.asarray(-xp.ones_like(x.data)*numpy.inf, dtype=x.dtype))
+            utils.force_array(
+                (x.data >= self.low.data) & (x.data < self.high.data),
+            ),
+            logp, xp.full_like(logp.array, -numpy.inf))
 
     @property
     def mean(self):
