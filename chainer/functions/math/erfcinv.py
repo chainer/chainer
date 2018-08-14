@@ -16,11 +16,11 @@ from chainer.utils import type_check
 BACKWORDC = math.pi ** 0.5 / 2
 
 
-class ErfInv(function_node.FunctionNode):
+class ErfcInv(function_node.FunctionNode):
 
     @property
     def label(self):
-        return 'erfinv'
+        return 'erfcinv'
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 1)
@@ -29,26 +29,26 @@ class ErfInv(function_node.FunctionNode):
     def forward_cpu(self, x):
         if not available_cpu:
             raise ImportError("SciPy is not available. Forward computation"
-                              " of erfinv in CPU can not be done." +
+                              " of erfcinv in CPU can not be done." +
                               str(_import_error))
         self.retain_outputs((0,))
-        return utils.force_array(special.erfinv(x[0]), dtype=x[0].dtype),
+        return utils.force_array(special.erfcinv(x[0]), dtype=x[0].dtype),
 
     def forward_gpu(self, x):
         self.retain_outputs((0,))
         return cuda.elementwise(
             'T x', 'T y',
-            'y = erfinv(x)',
-            'elementwise_erfinv',
+            'y = erfcinv(x)',
+            'elementwise_erfcinv',
         )(x[0]),
 
     def backward(self, indexes, gy):
         y, = self.get_retained_outputs()
-        return BACKWORDC * chainer.functions.exp(y ** 2) * gy[0],
+        return -BACKWORDC * chainer.functions.exp(y ** 2) * gy[0],
 
 
-def erfinv(x):
-    """Elementwise inverse function of error function.
+def erfcinv(x):
+    """Elementwise inverse function of complementary error function.
 
     .. note::
        Forward computation in CPU can not be done if
@@ -61,4 +61,4 @@ def erfinv(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return ErfInv().apply((x,))[0]
+    return ErfcInv().apply((x,))[0]
