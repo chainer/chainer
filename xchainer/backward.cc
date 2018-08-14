@@ -73,7 +73,7 @@ public:
     BackwardImpl(const std::vector<ConstArrayRef>& outputs, const BackpropId& backprop_id, DoubleBackpropOption double_backprop)
         : outputs_{outputs}, backprop_id_{backprop_id}, double_backprop_{double_backprop} {
         for (const Array& output : outputs) {
-            if (!output.IsGradRequired(backprop_id)) {
+            if (!output.IsBackpropRequired(backprop_id)) {
                 throw XchainerError{"Cannot start backprop from an array whose gradient is not required (on graph '", backprop_id, "')"};
             }
             output_array_nodes_.emplace_back(internal::GetArrayBody(output)->GetArrayNode(backprop_id));

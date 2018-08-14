@@ -83,9 +83,4 @@ using ForceBackpropModeScope = backprop_mode_detail::BackpropModeScope<true>;
 bool IsBackpropRequired(Context& context = GetDefaultContext());
 bool IsBackpropRequired(const BackpropId& backprop_id);
 
-// Returns whether the array needs to backprop.
-// This takes into account NoBackpropModeScope and ForceBackpropModeScope.
-bool IsGradRequired(const Array& array, const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt);
-bool IsGradRequired(const Array& array, AnyGraph any_graph);
-
 }  // namespace xchainer

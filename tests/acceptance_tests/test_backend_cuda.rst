@@ -34,7 +34,7 @@ native:0
 >>> ag = a.to_device('cuda')  # Transfer onto CUDA device
 >>> ag.device
 cuda:0
->>> ag.is_grad_required()
+>>> ag.is_backprop_required()
 True
 
 Backward on a graph with multiple devices

@@ -53,7 +53,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
 
     for (size_t i = 0; i < inputs.size(); ++i) {
         for (size_t j = 0; j < outputs.size(); ++j) {
-            if (internal::GetArrayBody(inputs[i]) == internal::GetArrayBody(outputs[j]) && inputs[i].IsGradRequired(backprop_id)) {
+            if (internal::GetArrayBody(inputs[i]) == internal::GetArrayBody(outputs[j]) && inputs[i].IsBackpropRequired(backprop_id)) {
                 throw GradientCheckError{"BackwardGradients: Input ", i, " and output ", j, " of the forward function are identical."};
             }
         }
@@ -70,7 +70,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
         }
 
         for (std::size_t i = 0; i < nout; ++i) {
-            if (outputs[i].IsGradRequired(backprop_id)) {
+            if (outputs[i].IsBackpropRequired(backprop_id)) {
                 outputs[i].SetGrad((*grad_outputs)[i], backprop_id);
             }
         }
@@ -78,7 +78,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
 
     // Clear gradients which may exist if func calls backward inside of itself.
     for (Array& input : inputs) {
-        if (input.IsGradRequired(backprop_id)) {
+        if (input.IsBackpropRequired(backprop_id)) {
             input.ClearGrad(backprop_id);
         }
     }
@@ -86,7 +86,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
     std::vector<ConstArrayRef> outputs_ref{outputs.begin(), outputs.end()};
     std::vector<ConstArrayRef> outputs_requiring_grad;
     std::copy_if(outputs_ref.begin(), outputs_ref.end(), std::back_inserter(outputs_requiring_grad), [&backprop_id](const Array& a) {
-        return a.IsGradRequired(backprop_id);
+        return a.IsBackpropRequired(backprop_id);
     });
     Backward(outputs_requiring_grad, backprop_id, double_backprop);
 
@@ -96,7 +96,7 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
             inputs.end(),
             std::back_inserter(backward_grads),
             [&backprop_id](const Array& input) -> nonstd::optional<Array> {
-                if (!input.IsGradRequired(backprop_id)) {
+                if (!input.IsBackpropRequired(backprop_id)) {
                     return nonstd::nullopt;
                 }
                 return input.GetGrad(backprop_id);
@@ -128,7 +128,7 @@ void CheckDoubleBackpropOption(
 
         for (size_t i = 0; i < grads.size(); ++i) {
             if (grads[i]) {
-                if (grads[i]->IsGradRequired(backprop_id)) {
+                if (grads[i]->IsBackpropRequired(backprop_id)) {
                     failure_os << "Gradient " << i << " / " << grads.size() << " is connected to the graph '" << backprop_id
                                << "' even when double-backprop is disabled.";
                 }
@@ -144,7 +144,7 @@ void CheckDoubleBackpropOption(
 
         for (size_t i = 0; i < grads.size(); ++i) {
             if (grads[i]) {
-                if (!grads[i]->IsGradRequired(backprop_id)) {
+                if (!grads[i]->IsBackpropRequired(backprop_id)) {
                     failure_os << "Gradient " << i << " / " << grads.size() << " is not connected to the graph '" << backprop_id
                                << "' even when double-backprop is enabled.";
                 }
@@ -319,14 +319,14 @@ void CheckDoubleBackwardComputationImpl(
 
     // Check all the input arrays require gradients
     for (size_t i = 0; i < nin; ++i) {
-        if (!inputs[i].IsGradRequired(actual_backprop_id)) {
+        if (!inputs[i].IsBackpropRequired(actual_backprop_id)) {
             throw XchainerError{"Input array ", i, " / ", nin, " is not differentiable w.r.t. the backprop ID '", actual_backprop_id, "'."};
         }
     }
 
     // Check all the output gradient arrays require gradients
     for (size_t i = 0; i < nout; ++i) {
-        if (!grad_outputs[i].IsGradRequired(actual_backprop_id)) {
+        if (!grad_outputs[i].IsBackpropRequired(actual_backprop_id)) {
             throw XchainerError{
                     "Output gradient array ", i, " / ", nout, " is not differentiable w.r.t. the backprop ID '", actual_backprop_id, "'."};
         }
@@ -364,7 +364,7 @@ void CheckDoubleBackwardComputationImpl(
         }
 
         for (size_t i = 0; i < nin; ++i) {
-            if (!optional_backward_grads[i]->IsGradRequired(actual_backprop_id)) {
+            if (!optional_backward_grads[i]->IsBackpropRequired(actual_backprop_id)) {
                 throw GradientCheckError{"First-order Input gradient ",
                                          i,
                                          " / ",
