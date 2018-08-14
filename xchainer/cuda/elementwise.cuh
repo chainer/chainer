@@ -46,24 +46,25 @@ void Elementwise(Op&& op, const Arrays&... args) {
     const Shape& squashed = std::get<0>(squashed_result);
     const Axes& keep = std::get<1>(squashed_result);
 
+#ifdef NDEBUG  // Optimize only in Release build to save time on development
     // TODO(hvy): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
     switch (squashed.ndim()) {
         case 1:
             elementwise_detail::LaunchElementwiseKernel<1, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
-            break;
+            return;
         case 2:
             elementwise_detail::LaunchElementwiseKernel<2, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
-            break;
+            return;
         case 3:
             elementwise_detail::LaunchElementwiseKernel<3, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
-            break;
+            return;
         case 4:
             elementwise_detail::LaunchElementwiseKernel<4, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
-            break;
-        default:
-            elementwise_detail::LaunchElementwiseKernel<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
-            break;
+            return;
     }
+#endif
+
+    elementwise_detail::LaunchElementwiseKernel<kDynamicNdim, Op, Ts...>(std::forward<Op>(op), squashed, keep, args...);
 }
 
 }  // namespace cuda
