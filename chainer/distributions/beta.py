@@ -1,11 +1,10 @@
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.functions.array import broadcast
+from chainer.functions.array import where
 from chainer.functions.math import digamma
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
-from chainer.functions.array import where
 
 
 def _lbeta(a, b):
@@ -43,24 +42,15 @@ class Beta(distribution.Distribution):
     def event_shape(self):
         return ()
 
-    @property
-    def _is_gpu(self):
-        return isinstance(self.a.data, cuda.ndarray)
-
     def log_prob(self, x):
-        x = chainer.as_variable(x)
-        xp = cuda.get_array_module(x)
-
-        ba = broadcast.broadcast_to(self.a, x.shape)
-        bb = broadcast.broadcast_to(self.b, x.shape)
-
-        logp = (ba - 1) * exponential.log(x) \
-            + (bb - 1) * exponential.log(1 - x) \
-            - _lbeta(ba, bb)
-
-        inf = xp.ones_like(ba.data) * xp.inf
-        return where.where(xp.bitwise_and(x.data >= 0, x.data <= 1),
-                           logp, -inf)
+        logp = (self.a - 1) * exponential.log(x) \
+            + (self.b - 1) * exponential.log(1 - x) \
+            - _lbeta(self.a, self.b)
+        xp = logp.xp
+        inf = xp.full_like(logp.array, xp.inf)
+        if isinstance(x, chainer.Variable):
+            x = x.array
+        return where.where(xp.logical_and(x >= 0, x <= 1), logp, -inf)
 
     @property
     def mean(self):
