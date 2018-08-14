@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -31,6 +32,43 @@ namespace testing_internal {
 ::testing::AssertionResult HaveDistinctArrayNodes(const char* a_expr, const char* b_expr, const Array& a, const Array& b);
 
 }  // namespace testing_internal
+
+namespace array_check_detail {
+
+// Checks if `subset` is a subset of `superset` and `superset` have no duplicate elements.
+template <typename SubsetContainer, typename SupersetContainer>
+bool IsSubset(const SubsetContainer& subset, const SupersetContainer& superset) {
+    return std::all_of(subset.begin(), subset.end(), [&superset](const auto& l) {
+        return std::count_if(superset.begin(), superset.end(), [&l](const auto& r) { return l == r; }) == 1;
+    });
+}
+
+}  // namespace array_check_detail
+
+template <typename ActualContainer, typename T = typename ActualContainer::value_type>
+::testing::AssertionResult IsSetEqual(const std::vector<T>& expected, const ActualContainer& actual) {
+    bool result = array_check_detail::IsSubset(expected, actual) && array_check_detail::IsSubset(actual, expected);
+    if (result) {
+        return ::testing::AssertionSuccess();
+    }
+    ::testing::AssertionResult os = ::testing::AssertionFailure();
+    os << "Expected : { ";
+    for (auto it = expected.begin(); it != expected.end(); ++it) {
+        os << *it;
+        if (it != std::prev(expected.end())) {
+            os << ", ";
+        }
+    }
+    os << " }\nTo be equal to { ";
+    for (auto it = actual.begin(); it != actual.end(); ++it) {
+        os << *it;
+        if (it != std::prev(actual.end())) {
+            os << ", ";
+        }
+    }
+    os << " }\n";
+    return os;
+}
 
 // TODO(hvy): Allow friendlier failure messages by avoiding EXPECT_* and return ::testing::AssertionResult instead.
 template <typename T, typename Container>
