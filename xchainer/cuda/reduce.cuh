@@ -68,12 +68,11 @@ __global__ void ReductionKernel(
             impl.Reduce(impl.MapIn(arg.in[it_in], i_reduce), accum);
         }
 
-        static_assert(kMaxReductionBlockSize == 512, "");
-        if (out_block_size <= 256) {
+        if (out_block_size <= kMaxReductionBlockSize / 2) {
             work[tid] = accum;
             __syncthreads();
             // NOTE: Compiler optimizes to unroll this loop
-            for (int stride = 256; stride > 0; stride >>= 1) {
+            for (int stride = kMaxReductionBlockSize / 2; stride > 0; stride >>= 1) {
                 if (out_block_size <= stride) {
                     if (tid < stride) {
                         impl.Reduce(work[tid + stride], work[tid]);
