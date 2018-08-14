@@ -19,6 +19,7 @@ namespace xchainer {
 namespace internal {
 
 // Returns the minimum number of bytes required to pack the data with specified strides and shape.
+// TODO(niboshi): Replace this with xchainer::GetDataRange()
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_size);
 
 // Creates an array with given data packed with specified strides
@@ -30,9 +31,6 @@ Array FromHostData(
         int64_t offset,
         Device& device = GetDefaultDevice());
 
-// Creates an array with given contiguous data
-Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
-
 // Creates an empty array with specified strides.
 Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& device = GetDefaultDevice());
 
@@ -40,6 +38,9 @@ Array Empty(const Shape& shape, Dtype dtype, const Strides& strides, Device& dev
 Array EmptyReduced(const Shape& shape, Dtype dtype, const Axes& axes, bool keepdims, Device& device = GetDefaultDevice());
 
 }  // namespace internal
+
+// Creates an array with given contiguous data
+Array FromContiguousHostData(const Shape& shape, Dtype dtype, const std::shared_ptr<void>& data, Device& device = GetDefaultDevice());
 
 // Creates an array with given data without copying.
 //

@@ -183,7 +183,7 @@ TEST_P(CreationTest, FromContiguousHostData) {
     std::shared_ptr<T> data{raw_data, [](const T*) {}};
 
     Dtype dtype = TypeToDtype<T>;
-    Array x = internal::FromContiguousHostData(shape, dtype, data);
+    Array x = FromContiguousHostData(shape, dtype, data);
 
     // Basic attributes
     EXPECT_EQ(shape, x.shape());
@@ -301,6 +301,31 @@ TEST(CreationTest, FromData_FromAnotherDevice) {
     EXPECT_THROW(FromData(shape, dtype, data, strides, offset, cuda_device), XchainerError);
 }
 #endif  // XCHAINER_ENABLE_CUDA
+
+TEST_P(CreationTest, FromHostData) {
+    using T = int32_t;
+    Dtype dtype = TypeToDtype<T>;
+    Device& device = GetDefaultDevice();
+
+    // non-contiguous array like a[:,1]
+    Shape shape{2};
+    Strides strides{sizeof(T) * 3};
+    int64_t offset = sizeof(T);
+
+    Array x;
+    T raw_data[] = {0, 1, 2, 3, 4, 5};
+    std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
+
+    x = internal::FromHostData(shape, dtype, host_data, strides, offset, device);
+
+    T expected_data[] = {1, 4};
+    EXPECT_EQ(shape, x.shape());
+    EXPECT_EQ(dtype, x.dtype());
+    EXPECT_EQ(strides, x.strides());
+    EXPECT_EQ(offset, x.offset());
+    EXPECT_EQ(&device, &x.device());
+    testing::ExpectDataEqual<T>(expected_data, x);
+}
 
 TEST_P(CreationTest, Empty) {
     CheckEmpty<bool>();
