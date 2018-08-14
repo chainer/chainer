@@ -31,6 +31,10 @@ else()
 endif()
 option(BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT_BUILD_CUDA})
 
+# Allow to specify *one* --generate-code option of the nvcc command.
+# Supposed usage is to avoid slowness of PTX JIT compilation on development.
+set(NVCC_GENERATE_CODE "$ENV{NVCC_GENERATE_CODE}" CACHE STRING "nvcc --generate-code option")
+
 # defaults to cmake -DCMAKE_BUILD_TYPE=Debug
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
@@ -42,7 +46,9 @@ if(${BUILD_CUDA})
     if(${CUDA_FOUND})
         add_definitions(-DXCHAINER_ENABLE_CUDA=1)
         find_package(CuDNN 7 REQUIRED)
-        if(CMAKE_BUILD_TYPE MATCHES Release)
+        if(NOT NVCC_GENERATE_CODE STREQUAL "")
+            list(APPEND CUDA_NVCC_FLAGS --generate-code=${NVCC_GENERATE_CODE})
+        elseif(CMAKE_BUILD_TYPE MATCHES Release)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_30,code=sm_30)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_50,code=sm_50)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_60,code=sm_60)
