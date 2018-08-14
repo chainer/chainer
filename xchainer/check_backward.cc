@@ -83,12 +83,11 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
         }
     }
 
-    std::vector<ConstArrayRef> outputs_ref{outputs.begin(), outputs.end()};
-    std::vector<ConstArrayRef> outputs_requiring_grad;
-    std::copy_if(outputs_ref.begin(), outputs_ref.end(), std::back_inserter(outputs_requiring_grad), [&backprop_id](const Array& a) {
-        return a.IsBackpropRequired(backprop_id);
+    std::vector<ConstArrayRef> output_refs;
+    std::transform(outputs.begin(), outputs.end(), std::back_inserter(output_refs), [](const Array& output) {
+        return std::reference_wrapper<const Array>{output};
     });
-    Backward(outputs_requiring_grad, backprop_id, double_backprop);
+    Backward(output_refs, backprop_id, double_backprop);
 
     std::vector<nonstd::optional<Array>> backward_grads;
     std::transform(
@@ -167,7 +166,6 @@ void CheckBackwardComputation(
         double atol,
         double rtol,
         const nonstd::optional<BackpropId>& backprop_id) {
-    assert(!inputs.empty());
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(inputs.front(), backprop_id);
 
     // Compute backward gradients
@@ -274,7 +272,21 @@ void CheckBackward(
         double atol,
         double rtol,
         const nonstd::optional<BackpropId>& backprop_id) {
+#ifndef NDEBUG
     assert(!inputs.empty());
+    assert(std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
+
+    assert(!grad_outputs.empty());
+    assert(std::none_of(
+            grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
+
+    assert(eps.size() == inputs.size());
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        assert(eps[i].shape() == inputs[i].shape());
+        assert(&eps[i].device() == &inputs[i].device());
+    }
+#endif
+
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(inputs.front(), backprop_id);
 
     {
@@ -394,65 +406,7 @@ void CheckDoubleBackwardComputationImpl(
     std::copy(inputs.begin(), inputs.end(), std::back_inserter(inputs_and_grad_outputs));
     std::copy(grad_outputs.begin(), grad_outputs.end(), std::back_inserter(inputs_and_grad_outputs));
 
-    // Compute second order numerial gradients w.r.t. the first-order gradients.
-    const std::vector<Array> numerical_grads =
-            CalculateNumericalGradient(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, eps);
-    assert(numerical_grads.size() == nin + nout);
-
-    // Compute second order backward gradients w.r.t. the first-order gradients.
-    const std::vector<nonstd::optional<Array>> backward_grads =
-            BackwardGradients(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, actual_backprop_id);
-    assert(backward_grads.size() == nin + nout);
-
-    // Check if all the second order gradients exist
-    {
-        std::ostringstream os;
-        bool has_error = false;
-        for (size_t i = 0; i < backward_grads.size(); ++i) {
-            if (!backward_grads[i].has_value()) {
-                os << "Second order gradient w.r.t. the input gradient " << i << " (Total inputs: " << inputs.size()
-                   << ", outputs: " << nout << ") is missing for the backprop ID '" << actual_backprop_id << "'. "
-                   << "Maybe you need additional nonlinearity in the target function.";
-                has_error = true;
-            }
-        }
-        if (has_error) {
-            throw GradientCheckError{os.str()};
-        }
-    }
-
-    // Check numerical consistency between numerical and backward gradients.
-    std::vector<size_t> failed_input_indices;
-    for (size_t i = 0; i < backward_grads.size(); ++i) {
-        if (!AllClose(*backward_grads[i], numerical_grads[i], atol, rtol)) {
-            failed_input_indices.emplace_back(i);
-        }
-    }
-
-    if (!failed_input_indices.empty()) {
-        std::ostringstream os;
-        os << "Numerical error in double backward on inputs (out of " << inputs.size() << "): ";
-        for (size_t i : failed_input_indices) {
-            if (i != 0) {
-                os << ", ";
-            }
-            os << i;
-        }
-        os << std::endl;
-        os << "Backprop ID: " << actual_backprop_id << std::endl;
-        os << "Atol: " << atol << "  Rtol: " << rtol << std::endl;
-        for (size_t i : failed_input_indices) {
-            os << "Error[" << i << "]:" << std::endl
-               << *backward_grads[i] - numerical_grads[i] << std::endl  // TODO(niboshi): Use abs
-               << "Backward gradients[" << i << "]:" << std::endl
-               << *backward_grads[i] << std::endl
-               << "Numerical gradients[" << i << "]:" << std ::endl
-               << numerical_grads[i] << std::endl
-               << "Eps[" << i << "] (perturbation in numerical gradients):" << std::endl
-               << eps[i] << std::endl;
-        }
-        throw GradientCheckError{os.str()};
-    }
+    CheckBackwardComputation(first_order_grad_func, inputs_and_grad_outputs, grad_grad_inputs, eps, atol, rtol, backprop_id);
 }
 
 }  // namespace
@@ -466,6 +420,35 @@ void CheckDoubleBackwardComputation(
         double atol,
         double rtol,
         const nonstd::optional<BackpropId>& backprop_id) {
+#ifndef NDEBUG
+    assert(!inputs.empty());
+    assert(std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
+
+    assert(!grad_outputs.empty());
+    assert(std::all_of(
+            grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
+
+    assert(grad_grad_inputs.size() == inputs.size());
+    assert(std::none_of(grad_grad_inputs.begin(), grad_grad_inputs.end(), [&backprop_id](const Array& a) {
+        return a.IsBackpropRequired(backprop_id);
+    }));
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        assert(inputs[i].shape() == grad_grad_inputs[i].shape());
+        assert(inputs[i].dtype() == grad_grad_inputs[i].dtype());
+        assert(&inputs[i].device() == &grad_grad_inputs[i].device());
+    }
+
+    assert(eps.size() == inputs.size() + grad_outputs.size());
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        assert(eps[i].shape() == inputs[i].shape());
+        assert(&eps[i].device() == &inputs[i].device());
+    }
+    for (size_t i = 0; i < grad_outputs.size(); ++i) {
+        assert(eps[inputs.size() + i].shape() == grad_outputs[i].shape());
+        assert(&eps[inputs.size() + i].device() == &grad_outputs[i].device());
+    }
+#endif
+
     internal::ArrayBodyLeakTracker tracker{};
     {
         internal::ArrayBodyLeakDetectionScope scope{tracker};

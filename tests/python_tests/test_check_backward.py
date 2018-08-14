@@ -3,10 +3,9 @@ import pytest
 import xchainer
 
 
-def _check_backward_unary(fprop, requires_grad=True):
+def _check_backward_unary(fprop):
     x = xchainer.ndarray((3,), xchainer.float32, [1., 2., 1.])
-    if requires_grad:
-        x.require_grad()
+    x.require_grad()
 
     xchainer.check_backward(
         fprop,
@@ -18,10 +17,6 @@ def _check_backward_unary(fprop, requires_grad=True):
 
 def test_correct_backward_unary():
     _check_backward_unary(lambda xs: (xs[0] * xs[0],))
-
-
-def test_no_grad_required():
-    _check_backward_unary(lambda xs: (xs[0] * xs[0],), False)
 
 
 def test_incorrect_backward_unary():
