@@ -174,12 +174,10 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
         case 1:
             switch (arg.out_strides().ndim()) {
                 case 0:
-                    assert(arg.reduce_shape().ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), reduce_block_size, impl);
                     return;
                 case 1:
-                    assert(arg.reduce_shape().ndim() == 0);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 1, 1, 0>(arg), reduce_block_size, impl);
                     return;
@@ -188,17 +186,14 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
         case 2:
             switch (arg.out_strides().ndim()) {
                 case 0:
-                    assert(arg.reduce_shape().ndim() == 2);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 2, 0, 2>(arg), reduce_block_size, impl);
                     return;
                 case 1:
-                    assert(arg.reduce_shape().ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), reduce_block_size, impl);
                     return;
                 case 2:
-                    assert(arg.reduce_shape().ndim() == 0);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 2, 2, 0>(arg), reduce_block_size, impl);
                     return;
@@ -207,22 +202,18 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
         case 3:
             switch (arg.out_strides().ndim()) {
                 case 0:
-                    assert(arg.reduce_shape().ndim() == 3);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 3, 0, 3>(arg), reduce_block_size, impl);
                     return;
                 case 1:
-                    assert(arg.reduce_shape().ndim() == 2);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 3, 1, 2>(arg), reduce_block_size, impl);
                     return;
                 case 2:
-                    assert(arg.reduce_shape().ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 3, 2, 1>(arg), reduce_block_size, impl);
                     return;
                 case 3:
-                    assert(arg.reduce_shape().ndim() == 0);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 3, 3, 0>(arg), reduce_block_size, impl);
                     return;
@@ -231,27 +222,22 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
         case 4:
             switch (arg.out_strides().ndim()) {
                 case 0:
-                    assert(arg.reduce_shape().ndim() == 4);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 0, 4>(arg), reduce_block_size, impl);
                     return;
                 case 1:
-                    assert(arg.reduce_shape().ndim() == 3);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 1, 3>(arg), reduce_block_size, impl);
                     return;
                 case 2:
-                    assert(arg.reduce_shape().ndim() == 2);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 2, 2>(arg), reduce_block_size, impl);
                     return;
                 case 3:
-                    assert(arg.reduce_shape().ndim() == 1);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 3, 1>(arg), reduce_block_size, impl);
                     return;
                 case 4:
-                    assert(arg.reduce_shape().ndim() == 0);
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
                             MakeReductionKernelArg<In, Out, 4, 4, 0>(arg), reduce_block_size, impl);
                     return;
