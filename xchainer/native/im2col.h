@@ -14,7 +14,7 @@ namespace xchainer {
 namespace native {
 namespace native_internal {
 
-template <typename T, int8_t KernelNdim>
+template <typename T, int8_t kKernelNdim>
 void Im2ColImpl(
         const Array& x,
         const Array& out,
@@ -22,28 +22,28 @@ void Im2ColImpl(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& out_dims,
         const Indexer<2>& batch_channel_indexer) {
-    static constexpr int8_t InNdim = 2 + KernelNdim;
-    static constexpr int8_t OutNdim = 2 + 2 * KernelNdim;
+    static constexpr int8_t kInNdim = 2 + kKernelNdim;
+    static constexpr int8_t kOutNdim = 2 + 2 * kKernelNdim;
 
-    assert(KernelNdim == static_cast<int8_t>(kernel_size.size()));
-    assert(KernelNdim == static_cast<int8_t>(stride.size()));
-    assert(KernelNdim == static_cast<int8_t>(out_dims.size()));
-    assert(InNdim == x.ndim());
-    assert(OutNdim == out.ndim());
+    assert(kKernelNdim == static_cast<int8_t>(kernel_size.size()));
+    assert(kKernelNdim == static_cast<int8_t>(stride.size()));
+    assert(kKernelNdim == static_cast<int8_t>(out_dims.size()));
+    assert(kInNdim == x.ndim());
+    assert(kOutNdim == out.ndim());
 
-    Indexer<KernelNdim> kernel_indexer{Shape{kernel_size.begin(), kernel_size.end()}};
-    Indexer<KernelNdim> out_dims_indexer{Shape{out_dims.begin(), out_dims.end()}};
-    Indexer<InNdim> x_indexer{x.shape()};
-    Indexer<OutNdim> out_indexer{out.shape()};
-    IndexableArray<const T, InNdim> x_iarray{x};
-    IndexableArray<T, OutNdim> out_iarray{out};
+    Indexer<kKernelNdim> kernel_indexer{Shape{kernel_size.begin(), kernel_size.end()}};
+    Indexer<kKernelNdim> out_dims_indexer{Shape{out_dims.begin(), out_dims.end()}};
+    Indexer<kInNdim> x_indexer{x.shape()};
+    Indexer<kOutNdim> out_indexer{out.shape()};
+    IndexableArray<const T, kInNdim> x_iarray{x};
+    IndexableArray<T, kOutNdim> out_iarray{out};
 
-    NdimIndex img_index{KernelNdim};
+    NdimIndex img_index{kKernelNdim};
 
     for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
         for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
             for (auto it_out_dims = out_dims_indexer.It(0); it_out_dims; ++it_out_dims) {
-                for (int i = 0; i < KernelNdim; ++i) {
+                for (int i = 0; i < kKernelNdim; ++i) {
                     img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i];
                 }
 
