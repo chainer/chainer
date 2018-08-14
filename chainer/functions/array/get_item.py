@@ -35,7 +35,7 @@ class GetItem(function_node.FunctionNode):
         self.slices = slices
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
 
     def forward(self, xs):
         return utils.force_array(xs[0][self.slices]),
