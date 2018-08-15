@@ -21,7 +21,8 @@ class TheanoFunctionTestBase(object):
     def setUp(self):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', DeprecationWarning)
-            import theano  # Theano 1.0.2 causes DeprecationWarning
+            # Theano 1.0.2 causes DeprecationWarning
+            import theano  # NOQA
 
         self.input_data = [
             numpy.random.uniform(
