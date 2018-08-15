@@ -8,6 +8,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/array_body.h"
+#include "xchainer/array_node.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 
@@ -68,6 +69,16 @@ template <typename ActualContainer, typename T = typename ActualContainer::value
     }
     os << " }\n";
     return os;
+}
+
+inline ::testing::AssertionResult IsBackpropIdsEqual(const std::vector<BackpropId>& expected, const Array& array) {
+    std::vector<BackpropId> actual;
+    std::vector<std::shared_ptr<internal::ArrayNode>>& nodes = internal::GetArrayBody(array)->nodes();
+    actual.reserve(nodes.size());
+    std::transform(nodes.begin(), nodes.end(), std::back_inserter(actual), [](const std::shared_ptr<internal::ArrayNode>& node) {
+        return node->backprop_id();
+    });
+    return IsSetEqual(expected, actual);
 }
 
 // TODO(hvy): Allow friendlier failure messages by avoiding EXPECT_* and return ::testing::AssertionResult instead.
