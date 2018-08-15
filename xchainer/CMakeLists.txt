@@ -4,7 +4,7 @@ add_subdirectory(testing)
 if(${CUDA_FOUND})
     add_subdirectory(cuda)
 endif()
-if(${BUILD_PYTHON})
+if(${XCHAINER_BUILD_PYTHON})
     add_subdirectory(python)
 endif()
 
@@ -93,7 +93,7 @@ target_link_libraries(xchainer
     -Wl,--no-whole-archive)
 install(TARGETS xchainer DESTINATION lib)
 
-if(ENABLE_TEST)
+if(XCHAINER_ENABLE_TEST)
     add_subdirectory(context_testdata)
     set(srcs
         array_body_leak_detection_test.cc
