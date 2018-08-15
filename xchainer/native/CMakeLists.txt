@@ -29,7 +29,7 @@ add_library(xchainer_native STATIC
     im2col.cc
     tensor_dot.cc)
 
-if(${XCHAINER_ENABLE_TEST})
+if(${XCHAINER_BUILD_TEST})
   add_executable(xchainer_native_test
       native_backend_test.cc
       native_device_test.cc

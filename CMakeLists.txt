@@ -14,7 +14,7 @@ include(cmake/third-party.cmake)
 
 # Configure options
 option(XCHAINER_BUILD_PYTHON "Build Python binding" OFF)
-option(XCHAINER_ENABLE_TEST "Enable building test" ON)
+option(XCHAINER_BUILD_TEST "Build test" ON)
 option(XCHAINER_WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" ON)
 
 if(DEFINED ENV{XCHAINER_ENABLE_COVERAGE})
@@ -114,7 +114,7 @@ get_third_party(optional-lite)
 include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
 
 # Test
-if(XCHAINER_ENABLE_TEST)
+if(${XCHAINER_BUILD_TEST})
     get_third_party(gtest)
     enable_testing()
     add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src

@@ -154,7 +154,7 @@ $ pytest -m 'not cuda'
 
 ### Run the C++ test suite
 
-The test suite is built by default unless `-DXCHAINER_ENABLE_TEST=OFF` is passed to `cmake`.
+The test suite is built by default unless `-DXCHAINER_BUILD_TEST=OFF` is passed to `cmake`.
 Run the tests with the following command from within `build`.
 
 ```shell-session

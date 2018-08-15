@@ -93,7 +93,7 @@ target_link_libraries(xchainer
     -Wl,--no-whole-archive)
 install(TARGETS xchainer DESTINATION lib)
 
-if(XCHAINER_ENABLE_TEST)
+if(${XCHAINER_BUILD_TEST})
     add_subdirectory(context_testdata)
     set(srcs
         array_body_leak_detection_test.cc
