@@ -18,9 +18,9 @@
 namespace xchainer {
 namespace native {
 
+#ifdef XCHAINER_ENABLE_BLAS
 namespace {
 
-#ifdef XCHAINER_ENABLE_BLAS
 // Dispatch gemm routines based on the element type T
 template <typename T>
 struct GemmImpl;
@@ -104,23 +104,17 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
         out.device().Copy(out_contiguous, out);
     }
 }
-#endif  // XCHAINER_ENABLE_BLAS
-
-void DotCheckNdim(int8_t ndim) {
-    // TODO(sonots): Support ndim >= 2
-    if (ndim != 2) {
-        throw DimensionError{"XChainer dot supports only 2-dimensional arrays."};
-    }
-}
 
 }  // namespace
+#endif  // XCHAINER_ENABLE_BLAS
 
 void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
 
-    DotCheckNdim(a.ndim());
-    DotCheckNdim(b.ndim());
-    DotCheckNdim(out.ndim());
+    // TODO(sonots): Support ndim >= 2
+    if (a.ndim() != 2 || b.ndim() != 2 || out.ndim() != 2) {
+        throw DimensionError{"XChainer dot supports only 2-dimensional arrays."};
+    }
 
 #ifdef XCHAINER_ENABLE_BLAS
     if (out.dtype() == Dtype::kFloat32 || out.dtype() == Dtype::kFloat64) {
