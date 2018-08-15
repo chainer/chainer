@@ -155,7 +155,14 @@ jobs:
 
             mkdir -p build
             pushd build
-            cmake -DXCHAINER_BUILD_PYTHON=1 -DXCHAINER_ENABLE_COVERAGE=ON -DXCHAINER_WARNINGS_AS_ERRORS=ON -DCMAKE_INSTALL_PREFIX=$HOME/local ..
+            cmake \
+                -DCMAKE_BUILD_TYPE=Debug \
+                -DXCHAINER_BUILD_PYTHON=1 \
+                -DXCHAINER_ENABLE_COVERAGE=ON \
+                -DXCHAINER_WARNINGS_AS_ERRORS=ON \
+                -DCMAKE_INSTALL_PREFIX=$HOME/local \
+                -DXCHAINER_ENABLE_THREAD_SANITIZER=ON \
+                ..
             popd
 
       # make
@@ -185,7 +192,7 @@ jobs:
             source activate testenv
 
             pushd build
-            ctest -V
+            TSAN_OPTIONS="history_size=7 report_thread_leaks=0" ctest -V
             popd
 
       # Python test
