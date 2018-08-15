@@ -346,7 +346,7 @@ void CheckDoubleBackwardComputationImpl(
 
     // The "forward" function to return the first order gradients
 
-    auto first_order_grad_func = [&func, nin, nout, &actual_backprop_id](const std::vector<Array>& inputs_and_grad_outputs) {
+    auto first_order_grad_func = [&func, nin, &actual_backprop_id](const std::vector<Array>& inputs_and_grad_outputs) {
         // Just revert (split) inputs_and_grad_outputs into inputs and grad_outputs
         std::vector<Array> inputs{inputs_and_grad_outputs.begin(), inputs_and_grad_outputs.begin() + nin};
         std::vector<Array> grad_outputs{inputs_and_grad_outputs.begin() + nin, inputs_and_grad_outputs.end()};

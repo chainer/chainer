@@ -61,6 +61,9 @@ BackpropModeScope<kModeFlag>::~BackpropModeScope() {
     }
 }
 
+template class BackpropModeScope<true>;
+template class BackpropModeScope<false>;
+
 }  // namespace backprop_mode_detail
 
 bool IsBackpropRequired(Context& context) {

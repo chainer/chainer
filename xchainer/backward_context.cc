@@ -64,7 +64,6 @@ BackwardContext::BackwardContext(
         gsl::span<std::shared_ptr<ArrayNode>> output_array_nodes,
         gsl::span<internal::GradRef*> output_grads,
         std::vector<Array>& input_grads,
-        const BackpropId& backprop_id,
         DoubleBackpropOption double_backprop_option)
     : op_node_{op_node},
       backward_entry_{backward_entry},
@@ -72,7 +71,6 @@ BackwardContext::BackwardContext(
       output_grads_{output_grads},
       input_grads_{input_grads},
       zero_output_grads_{output_array_nodes_.size()},
-      backprop_id_{backprop_id},
       double_backprop_option_{double_backprop_option} {
     assert(op_node.get() == &backward_entry.op_node());
     assert(output_array_nodes_.size() == output_grads_.size());

@@ -15,4 +15,6 @@ public:
 
 }  // namespace
 
-extern "C" std::unique_ptr<xchainer::Backend> CreateBackend(xchainer::Context& ctx) { return std::make_unique<Backend0>(ctx); }
+extern "C" xchainer::Backend* CreateBackend(xchainer::Context& ctx) { return new Backend0{ctx}; }
+
+extern "C" void DestroyBackend(xchainer::Backend* backend) { delete backend; }

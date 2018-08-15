@@ -119,8 +119,6 @@ protected:
     void TearDown() override { device_session_.reset(); }
 
 public:
-    Array MakeFullArray(const Shape& shape, float value) const { return Full(shape, value); }
-
     std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values) const {
         std::vector<Array> ret;
         ret.reserve(values.size());
@@ -385,8 +383,8 @@ TEST_P(BackpropTest, BackwardGivenOutputGrad) {
 }
 
 TEST_P(BackpropTest, MultipleGraphsBasic) {
-    Array x1 = MakeFullArray({1}, {2.0f});
-    Array x2 = MakeFullArray({1}, {5.0f});
+    Array x1 = Full({1}, 2.0f);
+    Array x2 = Full({1}, 5.0f);
 
     BackpropScope backprop_scope1{"bp1"};
     BackpropScope backprop_scope2{"bp2"};
@@ -399,13 +397,13 @@ TEST_P(BackpropTest, MultipleGraphsBasic) {
     Array y1 = x1 * x2;
     Backward(y1, backprop_id_1);
 
-    Array expected_1 = MakeFullArray({1}, {5.0f});
+    Array expected_1 = Full({1}, 5.0f);
     ExpectEqual<float>(expected_1, *x1.GetGrad(backprop_id_1));
     EXPECT_FALSE(x2.GetGrad(backprop_id_2));
 }
 
 TEST_P(BackpropTest, MultipleGraphsSameInput) {
-    Array x1 = MakeFullArray({1}, {3.0f});
+    Array x1 = Full({1}, 3.0f);
 
     BackpropScope backprop_scope1{"bp1"};
     BackpropId backprop_id_1 = backprop_scope1.backprop_id();
@@ -415,15 +413,15 @@ TEST_P(BackpropTest, MultipleGraphsSameInput) {
     Array y1 = x1 * x1;
     Backward(y1, backprop_id_1);
 
-    Array expected_1 = MakeFullArray({1}, {6.0f});
+    Array expected_1 = Full({1}, 6.0f);
     ExpectEqual<float>(expected_1, *x1.GetGrad(backprop_id_1));
 
     EXPECT_TRUE(testing::IsBackpropIdsEqual({}, *x1.GetGrad(backprop_id_1)));
 }
 
 TEST_P(BackpropTest, MultipleGraphsNonExisting) {
-    Array x1 = MakeFullArray({1}, {2.0f});
-    Array x2 = MakeFullArray({1}, {5.0f});
+    Array x1 = Full({1}, 2.0f);
+    Array x2 = Full({1}, 5.0f);
 
     BackpropScope backprop_scope1{"bp1"};
     BackpropScope backprop_scope2{"bp2"};
@@ -438,8 +436,8 @@ TEST_P(BackpropTest, MultipleGraphsNonExisting) {
 }
 
 TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
-    Array x1 = MakeFullArray({1}, {2.0f});
-    Array x2 = MakeFullArray({1}, {5.0f});
+    Array x1 = Full({1}, 2.0f);
+    Array x2 = Full({1}, 5.0f);
 
     BackpropScope backprop_scope{"bp"};
     BackpropId backprop_id = backprop_scope.backprop_id();
@@ -450,7 +448,7 @@ TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
     Array y1 = x1 * x2;
     Backward(y1, backprop_id);
 
-    Array expected_1 = MakeFullArray({1}, {5.0f});
+    Array expected_1 = Full({1}, 5.0f);
     ExpectEqual<float>(expected_1, *x1.GetGrad(backprop_id));
     EXPECT_FALSE(x2.GetGrad());
 
@@ -460,7 +458,7 @@ TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
     Array y2 = x1 * x2;
     Backward(y2);
 
-    Array expected_2 = MakeFullArray({1}, {2.0f});
+    Array expected_2 = Full({1}, 2.0f);
     ExpectEqual<float>(expected_2, *x2.GetGrad());
     EXPECT_FALSE(x1.GetGrad(backprop_id));
 
@@ -480,8 +478,8 @@ TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
 }
 
 TEST_P(BackpropTest, MultipleGraphsReuse) {
-    Array x1 = MakeFullArray({1}, {2.0f});
-    Array x2 = MakeFullArray({1}, {5.0f});
+    Array x1 = Full({1}, 2.0f);
+    Array x2 = Full({1}, 5.0f);
 
     BackpropScope backprop_scope_outer{"bp_outer"};
     BackpropScope backprop_scope_inner{"bp_inner"};
@@ -494,7 +492,7 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     Array y1 = x1 * x2;
     Backward(y1, backprop_id_inner);
 
-    Array expected_1 = MakeFullArray({1}, {5.0f});
+    Array expected_1 = Full({1}, 5.0f);
     ExpectEqual<float>(expected_1, *x1.GetGrad(backprop_id_inner));
     EXPECT_FALSE(x2.GetGrad(backprop_id_outer));
 
@@ -504,7 +502,7 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     Array y2 = x1 * x2;
     Backward(y2, backprop_id_outer);
 
-    Array expected_2 = MakeFullArray({1}, {2.0f});
+    Array expected_2 = Full({1}, 2.0f);
     ExpectEqual<float>(expected_2, *x2.GetGrad(backprop_id_outer));
     EXPECT_FALSE(x1.GetGrad(backprop_id_inner));
 
@@ -524,7 +522,7 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
 }
 
 TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
-    Array x = MakeFullArray({1}, {2.0f});
+    Array x = Full({1}, 2.0f);
     x.RequireGrad();
 
     BackpropScope backprop_scope{"bp"};
@@ -542,7 +540,7 @@ TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
 }
 
 TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
-    Array x = MakeFullArray({1}, {2.0f});
+    Array x = Full({1}, 2.0f);
     x.RequireGrad();
 
     BackpropScope backprop_scope{"bp"};
@@ -560,7 +558,7 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
 }
 
 TEST_P(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
-    Array x = MakeFullArray({1}, {2.0f});
+    Array x = Full({1}, 2.0f);
 
     BackpropScope backprop_scope_outer{"bp_outer"};
     BackpropScope backprop_scope_inner{"bp_inner"};
@@ -580,7 +578,7 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
 }
 
 TEST_P(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
-    Array x = MakeFullArray({1}, {2.0f});
+    Array x = Full({1}, 2.0f);
     Array y;
 
     BackpropScope backprop_scope_1{"bp1"};
@@ -609,7 +607,7 @@ TEST_P(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
 }
 
 TEST_P(BackpropTest, BackwardThreeGraphs) {
-    Array x = MakeFullArray({1}, {2.0f});
+    Array x = Full({1}, {2.0f});
     Array y;
 
     BackpropScope backprop_scope_1{"bp1"};

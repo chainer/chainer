@@ -12,6 +12,7 @@
 #include "xchainer/device.h"
 #include "xchainer/device_id.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 
 namespace xchainer {
 namespace native {
@@ -19,6 +20,25 @@ namespace native {
 class NativeBackend;
 
 }  // namespace native
+
+namespace context_detail {
+
+// Deleter for backend object whose memory may be managed by external module.
+class BackendDeleter {
+public:
+    BackendDeleter()
+        : destroy_backend_func_{[](Backend*) {
+              XCHAINER_NEVER_REACH();  // Default-ctor is only for default-constructed unique_ptr which never calls deleter.
+          }} {}
+    explicit BackendDeleter(void (*destroy_backend_func)(Backend*)) : destroy_backend_func_{destroy_backend_func} {}
+
+    void operator()(Backend* backend) { destroy_backend_func_(backend); }
+
+private:
+    void (*destroy_backend_func_)(Backend*);
+};
+
+}  // namespace context_detail
 
 // TODO(sonots): Hide BackpropId-related functions from users.
 // TODO(sonots): Move implementations of BackpropId-releated functions into another class.
@@ -82,7 +102,7 @@ private:
         bool is_outer_graph_backpropped{false};
     };
 
-    std::unordered_map<std::string, std::unique_ptr<Backend>> backends_;
+    std::unordered_map<std::string, std::unique_ptr<Backend, context_detail::BackendDeleter>> backends_;
     std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
 

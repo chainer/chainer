@@ -262,8 +262,7 @@ private:
         std::vector<Array> computed_input_grads(input_grads.size());
 
         // Call backward.
-        BackwardContext bctx{
-                op_node, backward_entry, output_array_nodes, output_grads, computed_input_grads, backprop_id_, double_backprop_};
+        BackwardContext bctx{op_node, backward_entry, output_array_nodes, output_grads, computed_input_grads, double_backprop_};
         {
             NoBackpropModeScope scope{backprop_ids_to_stop_gradient_};
             backward_entry.backward_func()(bctx);
