@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import warnings
 
 import chainer
 from chainer.configuration import config
@@ -9,6 +10,12 @@ _error = None
 
 try:
     import ideep4py as ideep  # NOQA
+
+    # ideep4py 2+ is not supported.
+    # Note that ideep4py.__version__ was added in ideep4py 2.0.0.
+    if hasattr(ideep, '__version__'):
+        warnings.warn('''ideep4py {} is not compatible with this version of Chainer.'''.format(ideep.__version__))
+
     from ideep4py import mdarray  # NOQA
     _ideep_version = 0
 except ImportError as e:
