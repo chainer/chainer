@@ -20,8 +20,8 @@ class Uniform(distribution.Distribution):
 
     .. math::
         p(x; l, h) = \\begin{cases}
-            \\frac{1}{h - l} (l \\leq x \\leq h) \\\\
-            0 (other)
+            \\frac{1}{h - l} & \\text{if }l \\leq x \\leq h \\\\
+            0 & \\text{otherwise}
           \\end{cases}
 
     Args:
