@@ -21,6 +21,44 @@ namespace xchainer {
 namespace native {
 namespace native_internal {
 
+namespace {
+
+template <typename T, int8_t kKernelNdim>
+void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, kMaxNdim>& stride, const Indexer<2>& batch_channel_indexer) {
+    static constexpr int8_t kColNdim = 2 + 2 * kKernelNdim;
+    static constexpr int8_t kOutNdim = 2 + kKernelNdim;
+
+    assert(kKernelNdim == static_cast<int8_t>(stride.size()));
+    assert(kColNdim == col.ndim());
+    assert(kOutNdim == out.ndim());
+
+    Indexer<kKernelNdim> kernel_indexer{Shape{col.shape().begin() + 2, col.shape().begin() + 2 + kKernelNdim}};
+    Indexer<kKernelNdim> in_image_dims_indexer{Shape{col.shape().begin() + 2 + kKernelNdim, col.shape().end()}};
+    Indexer<kColNdim> col_indexer{col.shape()};
+    Indexer<kOutNdim> out_indexer{out.shape()};
+    IndexableArray<const T, kColNdim> col_iarray{col};
+    IndexableArray<T, kOutNdim> out_iarray{out};
+
+    // Indices over the output image.
+    NdimIndex out_image_index{kKernelNdim};
+
+    for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
+        for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
+            for (auto it_in_image_dims = in_image_dims_indexer.It(0); it_in_image_dims; ++it_in_image_dims) {
+                for (int8_t i = 0; i < kKernelNdim; ++i) {
+                    out_image_index.index()[i] = it_in_image_dims.index()[i] * stride[i] + it_kernel.index()[i];
+                }
+
+                auto it_col = col_indexer.At(it_batch_channel, it_kernel, it_in_image_dims);
+                auto it_out = out_indexer.At(it_batch_channel, out_image_index);
+                out_iarray[it_out] += col_iarray[it_col];
+            }
+        }
+    }
+}
+
+}  // namespace
+
 Array Col2Im(
         const Array& col,
         const StackVector<int64_t, kMaxNdim>& stride,
@@ -29,40 +67,40 @@ Array Col2Im(
     int64_t batch_size = col.shape()[0];
     int64_t channels = col.shape()[1];
     auto ndim = static_cast<int8_t>(stride.size());
+    assert(ndim * 2 + 2 == col.ndim());
 
     Shape padded_shape{batch_size, channels};
     for (int8_t i = 0; i < ndim; ++i) {
         padded_shape.emplace_back(out_size[i] + 2 * pad[i] + stride[i] - 1);
     }
     Array padded_out = Zeros(padded_shape, col.dtype(), col.device());
+    assert(ndim + 2 == padded_out.ndim());
 
     // Write to the output array
     VisitDtype(col.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-
         Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
-        Indexer<> kernel_indexer{Shape{col.shape().begin() + 2, col.shape().begin() + 2 + ndim}};
-        Indexer<> in_image_dims_indexer{Shape{col.shape().begin() + 2 + ndim, col.shape().end()}};
-        Indexer<> col_indexer{col.shape()};
-        Indexer<> padded_out_indexer{padded_shape};
-        IndexableArray<const T> col_iarray{col};
-        IndexableArray<T> padded_out_iarray{padded_out};
 
-        // Indices over the output image.
-        NdimIndex out_image_index{ndim};
-
-        for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
-            for (auto it_in_image_dims = in_image_dims_indexer.It(0); it_in_image_dims; ++it_in_image_dims) {
-                for (int8_t i = 0; i < ndim; ++i) {
-                    out_image_index.index()[i] = it_in_image_dims.index()[i] * stride[i] + it_kernel.index()[i];
-                }
-
-                for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
-                    auto it_col = col_indexer.At(it_batch_channel, it_kernel, it_in_image_dims);
-                    auto it_padded_out = padded_out_indexer.At(it_batch_channel, out_image_index);
-                    padded_out_iarray[it_padded_out] += col_iarray[it_col];
-                }
-            }
+        static_assert(4 * 2 + 2 == kMaxNdim, "4 is the maximum kernel ndim whose col ndim does not exceed kMaxNdim");
+        switch (ndim) {
+            case 0:
+                Col2ImImpl<T, 0>(col, padded_out, stride, batch_channel_indexer);
+                break;
+            case 1:
+                Col2ImImpl<T, 1>(col, padded_out, stride, batch_channel_indexer);
+                break;
+            case 2:
+                Col2ImImpl<T, 2>(col, padded_out, stride, batch_channel_indexer);
+                break;
+            case 3:
+                Col2ImImpl<T, 3>(col, padded_out, stride, batch_channel_indexer);
+                break;
+            case 4:
+                Col2ImImpl<T, 4>(col, padded_out, stride, batch_channel_indexer);
+                break;
+            default:
+                XCHAINER_NEVER_REACH();  // Never col.ndim() > kMaxNdim
+                break;
         }
     });
 
