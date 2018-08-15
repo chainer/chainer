@@ -17,6 +17,7 @@
 #include "xchainer/native/native_backend.h"
 #include "xchainer/native/native_device.h"
 #include "xchainer/testing/array.h"
+#include "xchainer/testing/array_check.h"
 #include "xchainer/testing/context_session.h"
 #include "xchainer/testing/util.h"
 
@@ -259,17 +260,17 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     Array b_dev1 = b.ToDevice(dev1);
     Array c = b_dev1 + a2;
 
-    ASSERT_TRUE(c.IsBackpropRequired());
-    ASSERT_TRUE(b_dev1.IsBackpropRequired());
-    ASSERT_TRUE(b.IsBackpropRequired());
+    ASSERT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, c));
+    ASSERT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, b_dev1));
+    ASSERT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, b));
 
     // Check forward correctness
     EXPECT_EQ(&dev0, &b.device());
     EXPECT_EQ(&dev1, &b_dev1.device());
     EXPECT_EQ(&dev1, &c.device());
-    EXPECT_TRUE(c.IsBackpropRequired());
-    EXPECT_TRUE(b_dev1.IsBackpropRequired());
-    EXPECT_TRUE(b.IsBackpropRequired());
+    EXPECT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, c));
+    EXPECT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, b_dev1));
+    EXPECT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, b));
     float datay[]{8.0f, 14.0f};  // d0 * d1 + d2
     ExpectArraysEqual(c, FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(datay, nop)));
 
