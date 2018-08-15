@@ -765,15 +765,11 @@ TEST_P(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
     auto get_graph_map =
             [](const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<internal::ArrayNode>>>>& outer_graphs_array_nodes) {
                 std::map<BackpropId, std::vector<std::shared_ptr<internal::ArrayNode>>> map;
-                std::transform(
-                        outer_graphs_array_nodes.begin(),
-                        outer_graphs_array_nodes.end(),
-                        std::inserter(map, map.end()),
-                        [](const auto& tup) {
-                            BackpropId backprop_id = std::get<0>(tup);
-                            return std::make_pair(backprop_id, std::get<1>(tup));
-                        });
-                assert(map.size() == outer_graphs_array_nodes.size());
+                for (auto& tup : outer_graphs_array_nodes) {
+                    BackpropId backprop_id = std::get<0>(tup);
+                    auto result = map.emplace(backprop_id, std::get<1>(tup));
+                    EXPECT_TRUE(result.second);  // no duplicate backprop IDs allowed
+                }
                 return map;
             };
 
@@ -783,36 +779,47 @@ TEST_P(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
 
     // Edges from op node to input array nodes
     {
+        const std::shared_ptr<internal::ArrayNode>& x1_node_bp1 = internal::GetArrayBody(x1)->GetArrayNode(backprop_id1);
+        const std::shared_ptr<internal::ArrayNode>& x3_node_bp1 = internal::GetArrayBody(x3)->GetArrayNode(backprop_id1);
+        const std::shared_ptr<internal::ArrayNode>& x1_node_bp2 = internal::GetArrayBody(x1)->GetArrayNode(backprop_id2);
         auto map_bp4 = get_graph_map(op_node_bp4->outer_graphs_input_array_nodes());
-        ASSERT_EQ(2U, op_node_bp4->outer_graphs_input_array_nodes().size());
+        ASSERT_EQ(2U, map_bp4.size());
         ASSERT_EQ(1U, map_bp4.count(backprop_id1));
         ASSERT_EQ(1U, map_bp4.count(backprop_id2));
+
         EXPECT_EQ(3U, map_bp4.at(backprop_id1).size());
-        EXPECT_NE(nullptr, map_bp4.at(backprop_id1).at(0));
+        EXPECT_EQ(x1_node_bp1, map_bp4.at(backprop_id1).at(0));
         EXPECT_EQ(nullptr, map_bp4.at(backprop_id1).at(1));
-        EXPECT_NE(nullptr, map_bp4.at(backprop_id1).at(2));
+        EXPECT_EQ(x3_node_bp1, map_bp4.at(backprop_id1).at(2));
+
         EXPECT_EQ(3U, map_bp4.at(backprop_id2).size());
-        EXPECT_NE(nullptr, map_bp4.at(backprop_id2).at(0));
+        EXPECT_EQ(x1_node_bp2, map_bp4.at(backprop_id2).at(0));
         EXPECT_EQ(nullptr, map_bp4.at(backprop_id2).at(1));
         EXPECT_EQ(nullptr, map_bp4.at(backprop_id2).at(2));
     }
 
     // Edges from op node to output array nodes
     {
+        const std::shared_ptr<internal::ArrayNode>& y2_node_bp1 = internal::GetArrayBody(y2)->GetArrayNode(backprop_id1);
+        const std::shared_ptr<internal::ArrayNode>& y2_node_bp2 = internal::GetArrayBody(y2)->GetArrayNode(backprop_id2);
+        const std::shared_ptr<internal::ArrayNode>& y2_node_bp3 = internal::GetArrayBody(y2)->GetArrayNode(backprop_id3);
         auto map_bp4 = get_graph_map(op_node_bp4->outer_graphs_output_array_nodes());
-        ASSERT_EQ(3U, op_node_bp4->outer_graphs_output_array_nodes().size());
+        ASSERT_EQ(3U, map_bp4.size());
         ASSERT_EQ(1U, map_bp4.count(backprop_id1));
         ASSERT_EQ(1U, map_bp4.count(backprop_id2));
         ASSERT_EQ(1U, map_bp4.count(backprop_id3));
+
         EXPECT_EQ(2U, map_bp4.at(backprop_id1).size());
         EXPECT_EQ(nullptr, map_bp4.at(backprop_id1).at(0));
-        EXPECT_NE(nullptr, map_bp4.at(backprop_id1).at(1));
+        EXPECT_EQ(y2_node_bp1, map_bp4.at(backprop_id1).at(1));
+
         EXPECT_EQ(2U, map_bp4.at(backprop_id2).size());
         EXPECT_EQ(nullptr, map_bp4.at(backprop_id2).at(0));
-        EXPECT_NE(nullptr, map_bp4.at(backprop_id2).at(1));
+        EXPECT_EQ(y2_node_bp2, map_bp4.at(backprop_id2).at(1));
+
         EXPECT_EQ(2U, map_bp4.at(backprop_id3).size());
         EXPECT_EQ(nullptr, map_bp4.at(backprop_id3).at(0));
-        EXPECT_NE(nullptr, map_bp4.at(backprop_id3).at(1));
+        EXPECT_EQ(y2_node_bp3, map_bp4.at(backprop_id3).at(1));
     }
 }
 
