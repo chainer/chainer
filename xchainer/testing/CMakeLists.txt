@@ -8,7 +8,7 @@ install(FILES
     DESTINATION include/xchainer/testing
     )
 
-if(${ENABLE_TEST})
+if(${XCHAINER_BUILD_TEST})
     add_library(xchainer_testing SHARED
         array_check.cc
         util.cc

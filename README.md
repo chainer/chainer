@@ -34,7 +34,7 @@ $ pip install .
 
 You could set `MAKEFLAGS=-j8` environment variable (with a number to fit in your environment) to speed up the installation.
 
-To build the Python binding as a C++ project, pass `-DBUILD_PYTHON=1` to `cmake`,
+To build the Python binding as a C++ project, pass `-DXCHAINER_BUILD_PYTHON=1` to `cmake`,
 then `make` will automatically build the Python binding.
 
 ## CUDA support
@@ -50,7 +50,7 @@ $ cmake -DCUDNN_ROOT_DIR=$HOME/.cudnn/active ..
 
 For Python binding, set `CUDNN_ROOT_DIR` environment variable.
 
-To disable CUDA support, either set `BUILD_CUDA=0` as environment variable or specify `-DBUILD_CUDA=0` in `cmake`.
+To disable CUDA support, either set `XCHAINER_BUILD_CUDA=0` as environment variable or specify `-DXCHAINER_BUILD_CUDA=0` in `cmake`.
 
 ## Information for developers
 
@@ -115,7 +115,7 @@ Build C++ project beforehand, then run the lint:
 ```
 $ mkdir -p build
 $ cd build
-$ cmake -DBUILD_PYTHON=1 ..
+$ cmake -DXCHAINER_BUILD_PYTHON=1 ..
 
 $ make clang-tidy
 ```
@@ -154,7 +154,7 @@ $ pytest -m 'not cuda'
 
 ### Run the C++ test suite
 
-The test suite is built by default unless `-DENABLE_TEST=OFF` is passed to `cmake`.
+The test suite is built by default unless `-DXCHAINER_BUILD_TEST=OFF` is passed to `cmake`.
 Run the tests with the following command from within `build`.
 
 ```shell-session
@@ -170,7 +170,7 @@ Build Python package in `Debug` mode, and build C++ test suite as:
 $ python setup.py build --debug --build-temp ./build --build-lib ./build develop
 $ mkdir -p build
 $ cd build
-$ cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE ..
+$ cmake -DXCHAINER_BUILD_PYTHON=1 -DXCHAINER_ENABLE_COVERAGE ..
 $ make
 ```
 
