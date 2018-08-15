@@ -4,11 +4,13 @@ import warnings
 
 import numpy
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
 from chainer import types
+import chainerx
 
 
 if types.TYPE_CHECKING:
@@ -62,10 +64,33 @@ def _inplace_axpby(x, a, b, y):
     if isinstance(x, intel64.mdarray):
         x.inplace_axpby(a, b, y)
     else:
-        if a == 1:
-            x += b * y
-        else:
-            x[:] = a * x + b * y
+        x[...] = a * x + b * y
+
+
+@cuda.fuse(kernel_name='adam')
+def _adam_impl(
+        grad, alpha_t, one_minus_beta1, one_minus_beta2, eps,
+        eta, one_minus_weight_decay_rate, param, m, v, vhat):
+    xp = cuda.get_array_module(grad)
+    dtype = _get_intermediate_dtype(param.dtype.type)
+    grad = grad.astype(dtype, copy=False)
+
+    # m += (1 - beta1) * (grad - m)
+    _inplace_axpby(m, 1.0, one_minus_beta1, grad - m)
+    # v += (1 - beta2) * (grad * grad - v)
+    _inplace_axpby(v, 1.0, one_minus_beta2, grad * grad - v)
+
+    if vhat is None:
+        vhat = v
+    else:
+        xp.maximum(vhat, v, out=vhat)
+    vhat = vhat.astype(dtype, copy=False)
+
+    # param -= eta * (alpha_t * m / (sqrt(vhat) + eps)
+    #                 - weight_decay_rate * param)
+    _inplace_axpby(
+        param, one_minus_weight_decay_rate, -eta,
+        alpha_t * m / (xp.sqrt(vhat) + eps))
 
 
 class AdamRule(optimizer.UpdateRule):
@@ -102,12 +127,6 @@ class AdamRule(optimizer.UpdateRule):
     """
     _kernel = None
     _amsgrad_kernel = None
-
-    # Only used in `update_core_gpu`.
-    # A dummy ndarray to help ElementwiseKernel deduce generic type T as
-    # `dtype`.
-    # It cannot be deduced only by scalar arguments.
-    _dummy = None
 
     def __init__(self, parent_hyperparam=None,
                  alpha=None, beta1=None, beta2=None, eps=None,
@@ -156,84 +175,24 @@ class AdamRule(optimizer.UpdateRule):
         # the original `hp.eps` is used in calculation, because Python
         # scalars are faster in cupy elementwise kernels.
 
-    def update_core_cpu(self, param):
-        grad = param.grad
-        if grad is None:
-            return
-        hp = self.hyperparam
-        dtype = _get_intermediate_dtype(param.dtype.type)
-        self._check_eps(dtype)
-        grad = grad.astype(dtype, copy=False)
+    def update_core(self, param):
+        device = param.device
+        with chainer.using_device(device):
+            if device.xp is chainerx:
+                self.update_core_chainerx(param)
+                return
 
-        m, v = self.state['m'], self.state['v']
+            grad = param.grad
+            if grad is None:
+                return
+            hp = self.hyperparam
+            dtype = _get_intermediate_dtype(param.dtype.type)
+            self._check_eps(dtype)
 
-        # m += (1 - beta1) * (grad - m)
-        _inplace_axpby(m, 1.0, 1.0 - hp.beta1, grad - m)
-        # v += (1 - beta2) * (grad * grad - v)
-        _inplace_axpby(v, 1.0, 1.0 - hp.beta2, grad*grad - v)
-
-        if hp.amsgrad:
-            vhat = self.state['vhat']
-            numpy.maximum(vhat, v, out=vhat)
-        else:
-            vhat = v
-        vhat = vhat.astype(dtype, copy=False)
-
-        # param -=
-        #  eta * (alpha_t * m / (sqrt(vhat) + eps) - weight_decay_rate * param)
-        _inplace_axpby(
-            param.data,
-            1.0 - hp.weight_decay_rate,
-            -hp.eta,
-            self.alpha_t * m / (numpy.sqrt(vhat) + hp.eps))
-
-    def update_core_gpu(self, param):
-        grad = param.grad
-        if grad is None:
-            return
-        hp = self.hyperparam
-        dtype = _get_intermediate_dtype(param.dtype.type)
-        self._check_eps(dtype)
-
-        if self._dummy is None:
-            self._dummy = cuda.cupy.empty((0,), dtype=dtype)
-
-        if hp.amsgrad:
-            if AdamRule._amsgrad_kernel is None:
-                AdamRule._amsgrad_kernel = cuda.elementwise(
-                    'P grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
-                    'T eps, T eta, T weight_decay_rate, raw T dummy',
-                    'P param, P m, P v, P vhat',
-                    '''T grad_ = static_cast<T>(grad);
-                       m += one_minus_beta1 * (grad_ - m);
-                       v += one_minus_beta2 * (grad_ * grad_ - v);
-                       vhat = max(vhat, v);
-                       param -= eta * (alpha_t * m / (sqrt(vhat) + eps) +
-                                       weight_decay_rate * param);''',
-                    'adam')
-            AdamRule._amsgrad_kernel(
-                grad, self.alpha_t, 1 - hp.beta1,
-                1 - hp.beta2, hp.eps,
-                hp.eta, hp.weight_decay_rate, self._dummy,
-                param.data, self.state['m'], self.state['v'],
-                self.state['vhat'])
-        else:
-            if AdamRule._kernel is None:
-                AdamRule._kernel = cuda.elementwise(
-                    'P grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
-                    'T eps, T eta, T weight_decay_rate, raw T dummy',
-                    'P param, P m, P v',
-                    '''T grad_ = static_cast<T>(grad);
-                       m += one_minus_beta1 * (grad_ - m);
-                       v += one_minus_beta2 * (grad_ * grad_ - v);
-                       param -= eta * (alpha_t * m / (sqrt(v) + eps) +
-                                       weight_decay_rate * param);''',
-                    'adam')
-            AdamRule._kernel(
-                grad, self.alpha_t, 1 - hp.beta1,
-                1 - hp.beta2, hp.eps,
-                hp.eta, hp.weight_decay_rate, self._dummy,
-                param.data, self.state['m'], self.state['v'])
+            vhat = self.state['vhat'] if self.hyperparam.amsgrad else None
+            _adam_impl(grad, self.alpha_t, 1 - hp.beta1, 1 - hp.beta2, hp.eps,
+                       hp.eta, 1 - hp.weight_decay_rate, param.data,
+                       self.state['m'], self.state['v'], vhat)
 
     @property
     def alpha_t(self):
