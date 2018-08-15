@@ -1,5 +1,3 @@
-import numpy
-
 from chainer.backends import cuda
 from chainer import function
 from chainer import utils
@@ -24,7 +22,7 @@ class DeCov(function.Function):
         h_type, = in_types
 
         type_check.expect(
-            h_type.dtype == numpy.float32,
+            h_type.dtype.kind == 'f',
             h_type.ndim == 2,
         )
 

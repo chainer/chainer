@@ -38,6 +38,12 @@ class DeconvolutionND(link.Link):
         initial_bias (:ref:`initializer <initializer>`): Initializer to
             initialize the bias. If ``None``, the bias will be initialized to
             zero. When it is :class:`numpy.ndarray`, its ``ndim`` should 1.
+        dilate (:class:`int` or :class:`tuple` of :class:`int` s):
+            Dilation factor of filter applications.
+            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+        groups (:class:`int`):
+            The number of groups to use grouped convolution.
+            The default is one, where grouped convolution is not used.
 
     .. seealso::
        :func:`~chainer.functions.deconvolution_nd`
@@ -50,14 +56,16 @@ class DeconvolutionND(link.Link):
     """
 
     def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, outsize=None,
-                 initialW=None, initial_bias=None):
+                 nobias=False, outsize=None, initialW=None, initial_bias=None,
+                 dilate=1, groups=1):
         super(DeconvolutionND, self).__init__()
 
         ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
         self.outsize = outsize
+        self.dilate = conv_nd.as_tuple(dilate, ndim)
+        self.groups = int(groups)
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
@@ -71,7 +79,7 @@ class DeconvolutionND(link.Link):
                 initial_bias = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(initial_bias, out_channels)
 
-    def __call__(self, x):
+    def forward(self, x):
         return deconvolution_nd.deconvolution_nd(
             x, self.W, b=self.b, stride=self.stride, pad=self.pad,
-            outsize=self.outsize)
+            outsize=self.outsize, dilate=self.dilate, groups=self.groups)

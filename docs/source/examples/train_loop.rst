@@ -130,7 +130,7 @@ The main steps are twofold:
 
 1. Register the network components which have trainable parameters to the subclass. Each of them must be instantiated and assigned to a property in the scope specified by :meth:`~chainer.Chain.init_scope`:
 
-2. Define a :meth:`~chainer.Chain.__call__` method that represents the actual **forward computation** of your network. This method takes one or more :class:`~chainer.Variable`, :class:`numpy.array`, or :class:`cupy.array` as its inputs and calculates the forward pass using them.
+2. Define a :meth:`~chainer.Chain.forward` method that represents the actual **forward computation** of your network. This method takes one or more :class:`~chainer.Variable`, :class:`numpy.array`, or :class:`cupy.array` as its inputs and calculates the forward pass using them.
 
     .. testcode::
 
@@ -143,7 +143,7 @@ The main steps are twofold:
                     self.l2 = L.Linear(n_mid_units, n_mid_units)
                     self.l3 = L.Linear(n_mid_units, n_out)
 
-            def __call__(self, x):
+            def forward(self, x):
                 h = F.relu(self.l1(x))
                 h = F.relu(self.l2(h))
                 return self.l3(h)
@@ -154,7 +154,7 @@ The main steps are twofold:
         if gpu_id >= 0:
             model.to_gpu(gpu_id)
 
-:class:`~chainer.Link`, :class:`~chainer.Chain`, :class:`~chainer.ChainList`, and those subclass objects which contain trainable parameters should be registered to the model by assigning it as a property inside the :meth:`~chainer.Chain.init_scope`. For example, a :class:`~chainer.FunctionNode` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, using it as a function in :meth:`~chainer.Chain.__call__` works correctly.
+:class:`~chainer.Link`, :class:`~chainer.Chain`, :class:`~chainer.ChainList`, and those subclass objects which contain trainable parameters should be registered to the model by assigning it as a property inside the :meth:`~chainer.Chain.init_scope`. For example, a :class:`~chainer.FunctionNode` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, using it as a function in :meth:`~chainer.Chain.forward` works correctly.
 
 In Chainer, the Python code that implements the forward computation itself represents the network. In other words, we can conceptually think of the computation graph for our network being constructed dynamically as this forward computation code executes. This allows Chainer to describe networks in which different computations can be performed in each iteration, such as branched networks, intuitively and with a high degree of flexibility. This is the key feature of Chainer that we call **Define-by-Run**.
 
@@ -181,7 +181,7 @@ You can easily try out other optimizers as well. Please test and observe the res
                 self.l2 = L.Linear(n_mid_units, n_mid_units)
                 self.l3 = L.Linear(n_mid_units, n_out)
 
-        def __call__(self, x):
+        def forward(self, x):
             h = F.relu(self.l1(x))
             h = F.relu(self.l2(h))
             return self.l3(h)
@@ -215,7 +215,7 @@ We now show how to write the training loop. Since we are working on a digit clas
 Our training loop will be structured as follows.
 
 1. We will first get a mini-batch of examples from the training dataset.
-2. We will then feed the batch into our network by calling it (a :class:`~chainer.Chain` object) like a function. This will execute the forward-pass code that are written in the :meth:`~chainer.Chain.__call__` method.
+2. We will then feed the batch into our network by calling it (a :class:`~chainer.Chain` object) like a function. This will execute the forward-pass code that are written in the :meth:`~chainer.Chain.forward` method.
 3. This will return the network output that represents class label predictions. We supply it to the loss function along with the true (that is, target) values. The loss function will output the loss as a :class:`~chainer.Variable` object.
 4. We then clear any previous gradients in the network and perform the backward pass by calling the :meth:`~chainer.Variable.backward` method on the loss variable which computes the parameter gradients. We need to clear the gradients first because the :meth:`~chainer.Variable.backward` method accumulates gradients instead of overwriting the previous values.
 5. Since the optimizer already has a reference to the network, it has access to the parameters and the computed gradients so that we can now call the :meth:`~chainer.Optimizer.update` method of the optimizer which will update the model parameters.
@@ -248,7 +248,7 @@ The training loop code is as follows:
         model.cleargrads()
         loss.backward()
 
-        # Update all the trainable parameters
+        # Update all the trainable parameters
         optimizer.update()
         # --------------------- until here ---------------------
 
@@ -335,7 +335,7 @@ Once the model is restored, it can be used to predict image labels on new input 
     # Create an instance of the network you trained
     model = MyNetwork()
 
-    # Load the saved parameters into the instance
+    # Load the saved parameters into the instance
     serializers.load_npz('my_mnist.model', model)
 
     # Get a test image and label
@@ -362,7 +362,7 @@ The saved test image looks like:
     x = x[None, ...]
     print(x.shape)
 
-    # Forward calculation of the model by sending X
+    # Forward calculation of the model by sending X
     y = model(x)
 
     # The result is given as Variable, then we can take a look at the contents by the attribute, .data.

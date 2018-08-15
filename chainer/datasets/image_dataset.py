@@ -13,6 +13,7 @@ import six
 import threading
 import zipfile
 
+import chainer
 from chainer.dataset import dataset_mixin
 
 
@@ -69,18 +70,19 @@ class ImageDataset(dataset_mixin.DatasetMixin):
             ``i``-th image. In both cases, each path is a relative one from the
             root path given by another argument.
         root (str): Root directory to retrieve images from.
-        dtype: Data type of resulting image arrays.
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
 
     """
 
-    def __init__(self, paths, root='.', dtype=numpy.float32):
+    def __init__(self, paths, root='.', dtype=None):
         _check_pillow_availability()
         if isinstance(paths, six.string_types):
             with open(paths) as paths_file:
                 paths = [path.strip() for path in paths_file]
         self._paths = paths
         self._root = root
-        self._dtype = dtype
+        self._dtype = chainer.get_dtype(dtype)
 
     def __len__(self):
         return len(self._paths)
@@ -125,13 +127,13 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
             each path is a relative one from the root path given by another
             argument.
         root (str): Root directory to retrieve images from.
-        dtype: Data type of resulting image arrays.
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
         label_dtype: Data type of the labels.
 
     """
 
-    def __init__(self, pairs, root='.', dtype=numpy.float32,
-                 label_dtype=numpy.int32):
+    def __init__(self, pairs, root='.', dtype=None, label_dtype=numpy.int32):
         _check_pillow_availability()
         if isinstance(pairs, six.string_types):
             pairs_path = pairs
@@ -146,7 +148,7 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
                     pairs.append((pair[0], int(pair[1])))
         self._pairs = pairs
         self._root = root
-        self._dtype = dtype
+        self._dtype = chainer.get_dtype(dtype)
         self._label_dtype = label_dtype
 
     def __len__(self):
@@ -161,6 +163,54 @@ class LabeledImageDataset(dataset_mixin.DatasetMixin):
         return _postprocess_image(image), label
 
 
+class LabeledZippedImageDataset(dataset_mixin.DatasetMixin):
+
+    """Dataset of zipped image and label pairs.
+
+    This dataset is zip version of :class:`LabeledImageDataset`. It
+    takes a zipfile like :class:`ZippedImageDataset`. The label file
+    shall contain lines like text file used in
+    :class:`LabeledImageDataset`, but a filename in each line of the
+    label file shall match with a file in the zip archive.
+
+    Args:
+        zipfilename (str): Path to a zipfile with images
+        labelfilename (str): Path to a label file. ``i``-th line shall
+            contain a filename and an integer label that corresponds
+            to the ``i``-th sample. A filename in the label file shall
+            match with a filename in the zip file given with
+            `zipfilename`.
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
+        label_dtype: Data type of the labels.
+
+    """
+
+    def __init__(self, zipfilename, labelfilename, dtype=None,
+                 label_dtype=numpy.int32):
+        _check_pillow_availability()
+        pairs = []
+        with open(labelfilename) as pairs_file:
+            for i, line in enumerate(pairs_file):
+                pair = line.strip().split()
+                if len(pair) != 2:
+                    raise ValueError(
+                        'invalid format at line {} in file {}'.format(
+                            i, pairs_file))
+                pairs.append((pair[0], int(pair[1])))
+        self._pairs = pairs
+        self._label_dtype = label_dtype
+        self._zipfile = ZippedImageDataset(zipfilename, dtype=dtype)
+
+    def __len__(self):
+        return len(self._pairs)
+
+    def get_example(self, i):
+        path, int_label = self._pairs[i]
+        label = numpy.array(int_label, dtype=self._label_dtype)
+        return self._zipfile.get_example(path), label
+
+
 class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
     """Dataset of images built from a list of paths to zip files.
 
@@ -172,10 +222,11 @@ class MultiZippedImageDataset(dataset_mixin.DatasetMixin):
 
     Args:
         zipfilenames (list of strings): List of zipped archive filename.
-        dtype: Data type of resulting image arrays.
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
     """
 
-    def __init__(self, zipfilenames, dtype=numpy.float32):
+    def __init__(self, zipfilenames, dtype=None):
         self._zfs = [ZippedImageDataset(fn, dtype) for fn in zipfilenames]
         self._zpaths_accumlens = [0]
         zplen = 0
@@ -208,15 +259,16 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
 
     Args:
         zipfilename (str): a string to point zipfile path
-        dtype: Data type of resulting image arrays
+        dtype: Data type of resulting image arrays. ``chainer.config.dtype`` is
+            used by default (see :ref:`configuration`).
 
     """
 
-    def __init__(self, zipfilename, dtype=numpy.float32):
+    def __init__(self, zipfilename, dtype=None):
         self._zipfilename = zipfilename
         self._zf = zipfile.ZipFile(zipfilename)
         self._zf_pid = os.getpid()
-        self._dtype = dtype
+        self._dtype = chainer.get_dtype(dtype)
         self._paths = [x for x in self._zf.namelist() if not x.endswith('/')]
         self._lock = threading.Lock()
 
@@ -233,13 +285,19 @@ class ZippedImageDataset(dataset_mixin.DatasetMixin):
         self.__dict__ = state
         self._lock = threading.Lock()
 
-    def get_example(self, i):
+    def get_example(self, i_or_filename):
+        # LabeledZippedImageDataset needs file with filename in zip archive
+        if isinstance(i_or_filename, six.integer_types):
+            zfn = self._paths[i_or_filename]
+        else:
+            zfn = i_or_filename
+
         # PIL may seek() on the file -- zipfile won't support it
         with self._lock:
             if self._zf is None or self._zf_pid != os.getpid():
                 self._zf_pid = os.getpid()
                 self._zf = zipfile.ZipFile(self._zipfilename)
-            image_file_mem = self._zf.read(self._paths[i])
+            image_file_mem = self._zf.read(zfn)
         image_file = io.BytesIO(image_file_mem)
         image = _read_image_as_array(image_file, self._dtype)
         return _postprocess_image(image)

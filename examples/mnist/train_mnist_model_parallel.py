@@ -27,7 +27,7 @@ class ParallelMLP(chainer.Chain):
             self.second0 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu0)
             self.second1 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu1)
 
-    def __call__(self, x):
+    def forward(self, x):
         # assume x is on gpu0
         x1 = F.copy(x, self.gpu1)
 

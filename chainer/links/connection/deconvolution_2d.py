@@ -132,12 +132,11 @@ class Deconvolution2D(link.Link):
                  **kwargs):
         super(Deconvolution2D, self).__init__()
 
-        argument.check_unexpected_kwargs(
-            kwargs, deterministic="deterministic argument is not "
-            "supported anymore. "
+        groups, = argument.parse_kwargs(
+            kwargs, ('groups', 1),
+            deterministic="deterministic argument is not supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        groups, = argument.parse_kwargs(kwargs, ('groups', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -176,7 +175,7 @@ class Deconvolution2D(link.Link):
         W_shape = (in_channels, int(self.out_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
-    def __call__(self, x):
+    def forward(self, x):
         if self.W.data is None:
             self._initialize_params(x.shape[1])
         return deconvolution_2d.deconvolution_2d(

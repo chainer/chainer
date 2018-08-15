@@ -65,9 +65,7 @@ class FunctionHook(object):
         Total time : ...
 
         In this example, we measure the elapsed times for each forward
-        propagation of all functions in ``model1`` and ``model2``
-        (specifically, :class:`~chainer.functions.LinearFunction` and
-        :class:`~chainer.functions.Exp` of ``model1`` and ``model2``).
+        propagation of all functions in ``model1`` and ``model2``.
         Note that ``model3`` is not a target of measurement
         as :class:`~chainer.function_hooks.TimerHook` is unregistered
         before forward propagation of ``model3``.
@@ -99,14 +97,14 @@ class FunctionHook(object):
             raise KeyError('hook %s already exists' % self.name)
 
         function_hooks[self.name] = self
-        self.added()
+        self.added(None)
         return self
 
     def __exit__(self, *_):
-        chainer.get_function_hooks()[self.name].deleted()
+        chainer.get_function_hooks()[self.name].deleted(None)
         del chainer.get_function_hooks()[self.name]
 
-    def added(self, function=None):
+    def added(self, function):
         """Callback function invoked when a function hook is added
 
         Args:
@@ -115,7 +113,7 @@ class FunctionHook(object):
         """
         pass
 
-    def deleted(self, function=None):
+    def deleted(self, function):
         """Callback function invoked when a function hook is deleted
 
         Args:

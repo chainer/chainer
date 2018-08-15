@@ -101,38 +101,6 @@ class TestFunctionNode(unittest.TestCase):
         self.setup_gpu()
         self.check_forward(True)
 
-    def check_backward_accumulate(self, gxs):
-        x1 = chainer.Variable(self.x1)
-        x2 = chainer.Variable(self.x2)
-        self.f.inputs = (x1.node, x2.node)
-        gx1, gx2 = self.f.backward_accumulate(
-            (0, 1), (self.gy1, self.gy2), gxs)
-        if gxs[0] is None:
-            numpy.testing.assert_array_equal(cuda.to_cpu(gx1.data),
-                                             cuda.to_cpu(self.gx1.data))
-            self.assertIsNone(gx2)
-        else:
-            numpy.testing.assert_array_equal(cuda.to_cpu(gx1.data),
-                                             cuda.to_cpu(self.gx1_accum.data))
-            numpy.testing.assert_array_equal(cuda.to_cpu(gx2.data),
-                                             cuda.to_cpu(self.gx2_orig.data))
-
-    def test_backward_accumulate_none_cpu(self):
-        self.check_backward_accumulate((None, None))
-
-    @attr.gpu
-    def test_backward_accumulate_none_gpu(self):
-        self.setup_gpu()
-        self.check_backward_accumulate((None, None))
-
-    def test_backward_accumulate_cpu(self):
-        self.check_backward_accumulate((self.gx1_orig, self.gx2_orig))
-
-    @attr.gpu
-    def test_backward_accumulate_gpu(self):
-        self.setup_gpu()
-        self.check_backward_accumulate((self.gx1_orig, self.gx2_orig))
-
     def check_check_type_forward(self):
         self.assertEqual(self.f.check_type_forward.call_count, 1)
         ts = self.f.check_type_forward.call_args[0][0]
@@ -563,12 +531,16 @@ class GradTestBase(object):
     x_names = ()
     y_names = ()
     loss_scale = None
+    extend_graph_x = False
+    extend_graph_y = False
 
     def _init_attrs(self, names):
         ret = []
         for name in names:
             v = chainer.Variable(
                 numpy.random.randint(-4, 6, self.shape).astype('f'), name=name)
+            if self.extend_graph_x:
+                v *= 1.
             ret.append(v)
             setattr(self, name, v)
         return ret
@@ -625,6 +597,8 @@ class GradTestBase(object):
     def check_grad(self):
         self.forward()
         ys = [getattr(self, name) for name in self.y_names]
+        if self.extend_graph_y:
+            self._ys = [v * 1. for v in ys]
         gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
                            loss_scale=self.loss_scale)
 
@@ -704,6 +678,10 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
         return [ggrad]
 
 
+@testing.parameterize(*testing.product({
+    'extend_graph_x': [False, True],
+    'extend_graph_y': [False, True],
+}))
 class TestGradComplex(GradTestBase, unittest.TestCase):
 
     x_names = 'x1', 'x2'
@@ -723,6 +701,108 @@ class TestGradComplex(GradTestBase, unittest.TestCase):
     def expected_double_grad(self):
         dy1_dx = self.gy1 + self.gy2
         return [3 * dy1_dx + 2 * self.gy2, dy1_dx]
+
+
+class ExpPair(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        self.retain_outputs((0, 1))
+        return xp.exp(x), xp.exp(x)
+
+    def backward(self, target_input_indexes, grad_outputs):
+        return sum([
+            g * exp
+            for g, exp in zip(grad_outputs, self.get_retained_outputs())
+            if g is not None
+        ]),
+
+
+def exp_pair(x):
+    return ExpPair().apply((x,))
+
+
+@testing.parameterize(*testing.product({
+    'keep_y2': [False, True],
+}))
+class TestGradDelRetainedOutput(GradTestBase, unittest.TestCase):
+
+    x_names = 'x1',
+    y_names = 'y1',
+
+    def forward(self):
+        self.y1, y2 = exp_pair(self.x1)
+        if self.keep_y2:
+            self.y2 = y2
+
+    def expected_grad(self):
+        return [self.gy1 * self.y1]
+
+    def expected_double_grad(self):
+        return [self.gy1 * self.y1]
+
+
+class TestGradV3Compat1(unittest.TestCase):
+
+    def _var(self, val):
+        return chainer.Variable(numpy.array(val, numpy.float32))
+
+    def check(self, option, grads_before, grads_after):
+        vs = []
+        v = self._var(0.5)
+        for _ in range(4):
+            vs.append(v)
+            v += v
+            vs.append(v)
+            v *= 1.
+        _, x1, _, x2, _, y1, _, y2 = vs
+        gx1 = self._var(1000.)
+        gx2 = self._var(100.)
+        gy1 = self._var(10.)
+        gy2 = self._var(1.)
+        for v, g in zip(vs, grads_before):
+            if g is not None:
+                v.grad_var = self._var(g)
+        grads = chainer.grad(
+            [y1, y2], [x1, x2], [gy1, gy2], [gx1, gx2], **option)
+        numpy.testing.assert_allclose(grads[0].array, 1248.)
+        numpy.testing.assert_allclose(grads[1].array, 124.)
+        for v, ans in zip(vs, grads_after):
+            if ans is None:
+                self.assertIsNone(v.grad)
+            else:
+                numpy.testing.assert_allclose(v.grad, ans)
+
+    def test_no_option(self):
+        self.check({}, [None] * 8, [None] * 8)
+        self.check({}, [-1.] * 8, [-1.] * 8)
+
+    def test_set_grad(self):
+        self.check(
+            {'set_grad': True},
+            [None] * 8,
+            [None, 1248., None, 124., None, None, None, None])
+        self.check(
+            {'set_grad': True},
+            [-1.] * 8,
+            [-1., 1248., -1., 124., -1., -1., -1., -1.])
+
+    def test_retain_grad(self):
+        self.check(
+            {'retain_grad': True},
+            [None] * 8,
+            [None, 1248., 248., 124., 24., 12., 2., 1.]
+            # Before v5, the result was
+            # [None, 1248., 248., 124., 24., 12., 2., None]
+        )
+        self.check(
+            {'retain_grad': True},
+            [-1.] * 8,
+            [-1., 1248., 248., 124., 24., 12., 2., 1.]
+            # Before v5, the result was
+            # [-1., 1248., 248., 124., 24., 12., 2., -1.]
+        )
 
 
 testing.run_module(__name__, __file__)

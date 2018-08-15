@@ -57,12 +57,14 @@ class NStepRNNBase(link.ChainList):
     """  # NOQA
 
     def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, use_cudnn='use_cudnn argument is not supported anymore. '
-            'Use chainer.using_config',
-            use_bi_direction='use_bi_direction is not supported anymore',
-            activation='activation is not supported anymore')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                use_cudnn='use_cudnn argument is not supported anymore. '
+                'Use chainer.using_config',
+                use_bi_direction='use_bi_direction is not supported anymore',
+                activation='activation is not supported anymore')
+            argument.assert_kwargs_empty(kwargs)
 
         weights = []
         if self.use_bi_direction:
@@ -124,8 +126,8 @@ class NStepRNNBase(link.ChainList):
         """
         return NotImplementedError
 
-    def __call__(self, hx, xs, **kwargs):
-        """__call__(self, hx, xs)
+    def forward(self, hx, xs, **kwargs):
+        """forward(self, hx, xs)
 
         Calculate all hidden states and cell states.
 
@@ -177,10 +179,11 @@ class NStepRNNBase(link.ChainList):
         Returns:
             tuple: hs
         """
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
         xp = cuda.get_array_module(*(list(hs) + list(xs)))
@@ -323,7 +326,6 @@ class NStepBiRNNTanh(NStepRNNBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_cudnn (bool): Use cuDNN.
 
     .. seealso::
         :func:`chainer.functions.n_step_birnn`

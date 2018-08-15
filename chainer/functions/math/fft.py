@@ -11,7 +11,7 @@ class FFT(function_node.FunctionNode):
         self._method = method
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('real', 'imag'))
         r_type, i_type = in_types
         type_check.expect(
             r_type.dtype.kind == 'f',
@@ -54,7 +54,7 @@ def fft(x):
         the result and ``ri`` is the imaginary part of the result.
 
     .. note::
-       Currently this function supports a tuple as input. It will supports a
+       Currently this function supports a tuple as input. It will support a
        complex numbers directly in the future.
 
     """
@@ -76,7 +76,7 @@ def ifft(x):
         the result and ``ri`` is the imaginary part of the result.
 
     .. note::
-       Currently this function supports a tuple as input. It will supports a
+       Currently this function supports a tuple as input. It will support a
        complex numbers directly in the future.
 
     """

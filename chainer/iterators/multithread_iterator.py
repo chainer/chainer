@@ -195,3 +195,7 @@ class MultithreadIterator(iterator.Iterator):
         else:
             epoch_size = len(self._order)
         return epoch_size
+
+    @property
+    def repeat(self):
+        return self._repeat

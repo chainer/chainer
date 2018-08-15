@@ -98,8 +98,7 @@ class TestSLSTM(unittest.TestCase):
     def check_backward(self, c_prev1_data, c_prev2_data, x1_data, x2_data,
                        c_grad, h_grad):
         gradient_check.check_backward(
-            functions.SLSTM(),
-            (c_prev1_data, c_prev2_data, x1_data, x2_data),
+            functions.slstm, (c_prev1_data, c_prev2_data, x1_data, x2_data),
             (c_grad, h_grad), dtype=numpy.float64,
             **self.check_backward_options)
 

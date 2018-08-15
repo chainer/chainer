@@ -85,7 +85,7 @@ class StatefulPeepholeLSTM(link.Chain):
         """
         self.c = self.h = None
 
-    def __call__(self, x):
+    def forward(self, x):
         """Updates the internal state and returns the LSTM outputs.
 
         Args:
