@@ -23,6 +23,10 @@ See `CuPy Overview <https://docs-cupy.chainer.org/en/stable/overview.html>`_ for
 MNIST example does not converge in CPU mode on Mac OS X
 -------------------------------------------------------
 
+.. note::
+
+    Mac OS X is not an officially supported OS.
+
 Many users have reported that MNIST example does not work correctly
 when using vecLib as NumPy backend on Mac OS X.
 vecLib is the default BLAS library installed on Mac OS X.
@@ -31,6 +35,9 @@ We recommend using other BLAS libraries such as `OpenBLAS <http://www.openblas.n
 
 To use an alternative BLAS library, it is necessary to reinstall NumPy.
 Here is an instruction to install NumPy with OpenBLAS using `Homebrew <https://brew.sh/>`_.
+
+For details of the issue, please see
+https://docs.chainer.org/en/stable/tips.html#mnist-example-does-not-converge-in-cpu-mode-on-mac-os-x.
 
 ::
 
