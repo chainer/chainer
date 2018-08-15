@@ -29,14 +29,12 @@ void ReductionArg::Permute(const Axes& axis) {
     // - in_.shape():     (12, 13, 14, 15, 16)
     // - axis:             (1, 3)
     // - out_.shape():     (12, 14, 16)
-    // - reduce_shape_:    (13, 15)
     // - out_axis_map:     (0, 1, 2)
     // - out_shape_:       (12, 14, 16)
     // Example (in the case of has_kept_dims=true):
     // - in_.shape():     (12, 13, 14, 15, 16)
     // - axis:             (1, 3)
     // - out_.shape():     (12, 1, 14, 1, 16)
-    // - reduce_shape_:    (13, 15)
     // - out_axis_map:     (0, 2, 4)
     // - out_shape_:       (12, 14, 16)
 
@@ -46,10 +44,6 @@ void ReductionArg::Permute(const Axes& axis) {
         for (int8_t i = 0; i < in_.shape().ndim(); ++i) {
             if (i_axis < axis.size() && i == axis[i_axis]) {
                 // i is to be reduced
-                int64_t in_dim = in_.shape()[i];
-                if (in_dim != 1) {
-                    reduce_shape_.emplace_back(in_dim);
-                }
                 ++i_axis;
                 if (has_kept_dims) {
                     ++i_out_axis;
@@ -68,16 +62,20 @@ void ReductionArg::Permute(const Axes& axis) {
         assert(i_axis == axis.size());
     }
     // Inequality because 1-dim axes are eliminated.
-    assert(reduce_shape_.size() <= axis.size());
     assert(out_axis_map.size() <= in_.shape().size() - axis.size());
     assert(out_axis_map.size() == out_shape_.size());
 
     // Calculate source axis permutation
     // - in_.shape():     (12, 13, 14, 15, 16)
     // - axis:             (1, 3)
-    // - axis_permutes:    (0, 2, 4, 1, 3)
-    // - in_shape_:        (12, 14, 16, 13, 15)
+    // - axis_permutes:    (1, 3, 0, 2, 4)
+    // - in_shape_:        (13, 15, 12, 14, 16)
     Axes axis_permutes{};
+    for (int8_t i : axis) {
+        if (in_.shape()[i] != 1) {
+            axis_permutes.emplace_back(i);
+        }
+    }
     {
         size_t i_reduce = 0;
         for (int8_t i = 0; i < in_.ndim(); ++i) {
@@ -88,11 +86,6 @@ void ReductionArg::Permute(const Axes& axis) {
                     axis_permutes.emplace_back(i);
                 }
             }
-        }
-    }
-    for (int8_t i : axis) {
-        if (in_.shape()[i] != 1) {
-            axis_permutes.emplace_back(i);
         }
     }
     assert(axis_permutes.size() <= in_.shape().size());  // Inequality because 1-dim axes are eliminated.
@@ -113,79 +106,41 @@ void ReductionArg::Permute(const Axes& axis) {
 // Squashes dimensions of reduction
 //
 // Example (in the case of a contiguous array):
-// - in_shape_:             (2, 3, 4, 5, 6)
+// - in_shape_:             (5, 6, 2, 3, 4)
 // - out_shape_:            (2, 3, 4)
-// - reduce_shape_:         (5, 6)
-// - in_squashed_shape:     (24, 30)
+// - in_squashed_shape:     (720)
 // - out_squashed_shape:    (24)
-// - reduce_squashed_shape: (30)
-//
-// The following equality always holds:
-// in_squashed_shape.ndim() == out_squashed_shape.ndim() + reduce_squashed_shape.ndim()
-//
-// TODO(sonots): To achieve best performance optimization, squash dimensions of input and output individually, that is,
-// in_squashed_shape.ndim() != out_squashed_shape.ndim() + reduce_squashed_shape.ndim()
-// To do it, we have to revise implementation of ReductionKernel.
 void ReductionArg::Squash() {
 #ifndef NDEBUG
-    assert(in_shape_.ndim() == out_shape_.ndim() + reduce_shape_.ndim());
     assert(in_shape_.ndim() == in_strides_.ndim());
     assert(out_shape_.ndim() == out_strides_.ndim());
 
-    for (int8_t i = 0; i < out_shape_.ndim(); ++i) {
-        assert(in_shape_[i] == out_shape_[i]);
-    }
-    for (int8_t i = 0; i < reduce_shape_.ndim(); ++i) {
-        assert(in_shape_[out_shape_.ndim() + i] == reduce_shape_[i]);
+    for (int8_t i = -1; i >= -out_shape_.ndim(); --i) {
+        assert(in_shape_[in_shape_.ndim() + i] == out_shape_[out_shape_.ndim() + i]);
     }
 #endif
 
     // Squash out
-    Strides in_out_strides_{};  // former out_shape_.ndim() parts of in_strides_
-    for (int8_t i = 0; i < out_strides_.ndim(); ++i) {
-        in_out_strides_.emplace_back(in_strides_[i]);
-    }
-    std::tuple<Shape, Axes> out_squashed_result = SquashShape(out_shape_, in_out_strides_, out_strides_);
+    std::tuple<Shape, Axes> out_squashed_result = SquashShape(out_shape_, out_strides_);
     const Shape& out_squashed_shape = std::get<0>(out_squashed_result);
     const Axes& out_keep_axes = std::get<1>(out_squashed_result);
     Strides out_squashed_strides = GetSquashedStrides(out_strides_, out_keep_axes);
 
-    // Squash reduce
-    Strides reduce_strides{};
-    for (int8_t i = out_strides_.ndim(); i < in_strides_.ndim(); ++i) {
-        reduce_strides.emplace_back(in_strides_[i]);
-    }
-    std::tuple<Shape, Axes> reduce_squashed_result = SquashShape(reduce_shape_, reduce_strides);
-    const Shape& reduce_squashed_shape = std::get<0>(reduce_squashed_result);
-    const Axes& reduce_keep_axes = std::get<1>(reduce_squashed_result);
-    Strides reduce_squashed_strides = GetSquashedStrides(reduce_strides, reduce_keep_axes);
-
-    // Merge out and reduce into input
-    Shape in_squashed_shape{out_squashed_shape};
-    Strides in_squashed_strides = GetSquashedStrides(in_strides_, out_keep_axes);
-    for (int8_t i = 0; i < reduce_squashed_shape.ndim(); ++i) {
-        in_squashed_shape.emplace_back(reduce_squashed_shape[i]);
-        in_squashed_strides.emplace_back(reduce_squashed_strides[i]);
-    }
+    // Squash in
+    std::tuple<Shape, Axes> in_squashed_result = SquashShape(in_shape_, in_strides_);
+    const Shape& in_squashed_shape = std::get<0>(in_squashed_result);
+    const Axes& in_keep_axes = std::get<1>(in_squashed_result);
+    Strides in_squashed_strides = GetSquashedStrides(in_strides_, in_keep_axes);
 
 #ifndef NDEBUG
-    assert(in_squashed_shape.ndim() == out_squashed_shape.ndim() + reduce_squashed_shape.ndim());
     assert(in_squashed_shape.ndim() == in_squashed_strides.ndim());
     assert(out_squashed_shape.ndim() == out_squashed_strides.ndim());
-
-    for (int8_t i = 0; i < out_squashed_shape.ndim(); ++i) {
-        assert(in_squashed_shape[i] == out_squashed_shape[i]);
-    }
-    for (int8_t i = 0; i < reduce_squashed_shape.ndim(); ++i) {
-        assert(in_squashed_shape[out_squashed_shape.ndim() + i] == reduce_squashed_shape[i]);
-    }
 #endif
 
     in_strides_ = in_squashed_strides;
     out_strides_ = out_squashed_strides;
     in_shape_ = in_squashed_shape;
     out_shape_ = out_squashed_shape;
-    reduce_shape_ = reduce_squashed_shape;
 }
 
 }  // namespace xchainer

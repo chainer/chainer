@@ -26,15 +26,9 @@ int64_t RoundUpToPowerOf2(int64_t x) {
     return x + 1;
 }
 
-template <
-        typename In,
-        typename Out,
-        typename ReductionImpl,
-        int8_t InNdim = kDynamicNdim,
-        int8_t OutNdim = kDynamicNdim,
-        int8_t ReduceNdim = kDynamicNdim>
+template <typename In, typename Out, typename ReductionImpl, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
 __global__ void ReductionKernel(
-        ReductionKernelArg<In, Out, InNdim, OutNdim, ReduceNdim> arg, int out_block_size, int reduce_block_size, ReductionImpl impl) {
+        ReductionKernelArg<In, Out, InNdim, OutNdim> arg, int out_block_size, int reduce_block_size, ReductionImpl impl) {
     using T = decltype(impl.Identity());
 
     extern __shared__ __align__(8) uint8_t work_bytes[];
@@ -42,29 +36,18 @@ __global__ void ReductionKernel(
     int tid = threadIdx.x;
 
     int64_t reduce_block_offset = tid / out_block_size;
+    int64_t reduce_offset = reduce_block_offset * arg.out_indexer.total_size();
+    int64_t reduce_stride = reduce_block_size * arg.out_indexer.total_size();
 
     int64_t out_offset = tid % out_block_size;
     int64_t out_base = blockIdx.x * out_block_size;
     int64_t out_stride = gridDim.x * out_block_size;
 
-    auto it_in = arg.in_indexer.It(0);
-
     for (auto it_out = arg.out_indexer.It(out_base + out_offset, out_stride); it_out; ++it_out) {
         T accum = impl.Identity();
 
-        // Set output indices in the corresponding indices (out_axis) in input index.
-        for (int8_t i_out_dim = 0; i_out_dim < arg.out_indexer.ndim(); ++i_out_dim) {
-            it_in.index()[i_out_dim] = it_out.index()[i_out_dim];
-        }
-
-        // Linearly compute the partial sum onto reduction blocks.
-        for (auto it_reduce = arg.reduce_indexer.It(reduce_block_offset, reduce_block_size); it_reduce; ++it_reduce) {
-            // Set reduction indices in the corresponding indices (axis) in input index.
-            for (int8_t i_reduce_dim = 0; i_reduce_dim < arg.reduce_indexer.ndim(); ++i_reduce_dim) {
-                it_in.index()[arg.out_indexer.ndim() + i_reduce_dim] = it_reduce.index()[i_reduce_dim];
-            }
-
-            int64_t i_reduce = it_reduce.raw_index();
+        for (auto it_in = arg.in_indexer.It(it_out.raw_index() + reduce_offset, reduce_stride); it_in; ++it_in) {
+            int64_t i_reduce = it_in.raw_index() / arg.out_indexer.total_size();
             impl.Reduce(impl.MapIn(arg.in[it_in], i_reduce), accum);
         }
 
@@ -118,13 +101,18 @@ __global__ void ReductionKernel(
 //     Then, it can be passed to Reduce like: Reduce(input, axis, output, SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
 void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&& impl) {
+    if (out.GetTotalSize() == 0) {
+        return;
+    }
+
     ReductionArg arg{in, axis, out};
 
     static const int64_t kMaxBlockSize = std::min(
             reduce_detail::kMaxReductionBlockSize,
             CudaOccupancyMaxPotentialBlockSize(&reduce_detail::ReductionKernel<In, Out, ReductionImpl>).block_size);
 
-    int64_t reduce_total_size_pow2 = reduce_detail::RoundUpToPowerOf2(std::max(int64_t{1}, arg.reduce_shape().GetTotalSize()));
+    int64_t reduce_total_size_pow2 =
+            reduce_detail::RoundUpToPowerOf2(std::max(int64_t{1}, arg.in_shape().GetTotalSize() / arg.out_shape().GetTotalSize()));
 
     int64_t reduce_block_size = std::min(kMaxBlockSize, reduce_total_size_pow2);
     int64_t out_block_size = kMaxBlockSize / reduce_block_size;
@@ -134,82 +122,58 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
     int64_t grid_size = std::min(reduce_detail::kMaxGridSize, out_block_num);
     int64_t shared_mem_size = sizeof(decltype(impl.Identity())) * block_size;
 
-    assert(arg.in_shape().ndim() == arg.out_shape().ndim() + arg.reduce_shape().ndim());
 #ifdef NDEBUG  // Optimize only in Release build to save time on development
     // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
+    // Currently, only contiguous output arrays are optimized.
     switch (arg.in_strides().ndim()) {
         case 1:
             switch (arg.out_strides().ndim()) {
                 case 0:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 1, 0, 1>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 1, 0>(arg), out_block_size, reduce_block_size, impl);
                     return;
                 case 1:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 1, 1, 0>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 1, 1>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
+            break;
         case 2:
             switch (arg.out_strides().ndim()) {
                 case 0:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 2, 0, 2>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 2, 0>(arg), out_block_size, reduce_block_size, impl);
                     return;
                 case 1:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 2, 1, 1>(arg), out_block_size, reduce_block_size, impl);
-                    return;
-                case 2:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 2, 2, 0>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 2, 1>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
+            break;
         case 3:
             switch (arg.out_strides().ndim()) {
                 case 0:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 3, 0, 3>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 3, 0>(arg), out_block_size, reduce_block_size, impl);
                     return;
                 case 1:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 3, 1, 2>(arg), out_block_size, reduce_block_size, impl);
-                    return;
-                case 2:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 3, 2, 1>(arg), out_block_size, reduce_block_size, impl);
-                    return;
-                case 3:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 3, 3, 0>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 3, 1>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
+            break;
         case 4:
             switch (arg.out_strides().ndim()) {
                 case 0:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 4, 0, 4>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 4, 0>(arg), out_block_size, reduce_block_size, impl);
                     return;
                 case 1:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 4, 1, 3>(arg), out_block_size, reduce_block_size, impl);
-                    return;
-                case 2:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 4, 2, 2>(arg), out_block_size, reduce_block_size, impl);
-                    return;
-                case 3:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 4, 3, 1>(arg), out_block_size, reduce_block_size, impl);
-                    return;
-                case 4:
-                    reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 4, 4, 0>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 4, 1>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
-            XCHAINER_NEVER_REACH();
+            break;
     }
 #endif
 
