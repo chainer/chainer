@@ -13,23 +13,27 @@ include(cmake/clang-tidy.cmake)
 include(cmake/third-party.cmake)
 
 # Configure options
-option(BUILD_PYTHON "Build Python binding" OFF)
-option(ENABLE_TEST "Enable building test" ON)
-option(WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" OFF)
+option(XCHAINER_BUILD_PYTHON "Build Python binding" OFF)
+option(XCHAINER_BUILD_TEST "Build test" ON)
+option(XCHAINER_WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" ON)
 
-if(DEFINED ENV{ENABLE_COVERAGE})
-    set(DEFAULT_ENABLE_COVERAGE $ENV{ENABLE_COVERAGE})
+if(DEFINED ENV{XCHAINER_ENABLE_COVERAGE})
+    set(DEFAULT_XCHAINER_ENABLE_COVERAGE $ENV{XCHAINER_ENABLE_COVERAGE})
 else()
-    set(DEFAULT_ENABLE_COVERAGE OFF)
+    set(DEFAULT_XCHAINER_ENABLE_COVERAGE OFF)
 endif()
-option(ENABLE_COVERAGE "Enable test coverage with gcov" ${DEFAULT_ENABLE_COVERAGE})
+option(XCHAINER_ENABLE_COVERAGE "Enable test coverage with gcov" ${DEFAULT_XCHAINER_ENABLE_COVERAGE})
 
-if(DEFINED ENV{BUILD_CUDA})
-    set(DEFAULT_BUILD_CUDA $ENV{BUILD_CUDA})
+if(DEFINED ENV{XCHAINER_BUILD_CUDA})
+    set(DEFAULT_XCHAINER_BUILD_CUDA $ENV{XCHAINER_BUILD_CUDA})
 else()
-    set(DEFAULT_BUILD_CUDA ON)
+    set(DEFAULT_XCHAINER_BUILD_CUDA ON)
 endif()
-option(BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT_BUILD_CUDA})
+option(XCHAINER_BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT_XCHAINER_BUILD_CUDA})
+
+# Allow to specify *one* --generate-code option of the nvcc command.
+# Supposed usage is to avoid slowness of PTX JIT compilation on development.
+set(XCHAINER_NVCC_GENERATE_CODE "$ENV{XCHAINER_NVCC_GENERATE_CODE}" CACHE STRING "nvcc --generate-code option")
 
 # defaults to cmake -DCMAKE_BUILD_TYPE=Debug
 if(NOT CMAKE_BUILD_TYPE)
@@ -37,12 +41,14 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # CUDA
-if(${BUILD_CUDA})
+if(${XCHAINER_BUILD_CUDA})
     find_package(CUDA QUIET)
     if(${CUDA_FOUND})
         add_definitions(-DXCHAINER_ENABLE_CUDA=1)
         find_package(CuDNN 7 REQUIRED)
-        if(CMAKE_BUILD_TYPE MATCHES Release)
+        if(NOT XCHAINER_NVCC_GENERATE_CODE STREQUAL "")
+            list(APPEND CUDA_NVCC_FLAGS --generate-code=${XCHAINER_NVCC_GENERATE_CODE})
+        elseif(CMAKE_BUILD_TYPE MATCHES Release)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_30,code=sm_30)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_50,code=sm_50)
             list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_60,code=sm_60)
@@ -64,14 +70,14 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
         list(APPEND CUDA_NVCC_FLAGS -std=c++14)
     endif()
 
-    # cmake -DENABLE_COVERAGE=ON|OFF
-    if(ENABLE_COVERAGE)
+    # cmake -DXCHAINER_ENABLE_COVERAGE=ON|OFF
+    if(XCHAINER_ENABLE_COVERAGE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
     endif()
 
-    # cmake -DWARNINGS_AS_ERRORS=ON|OFF
-    if (WARNINGS_AS_ERRORS)
+    # cmake -DXCHAINER_WARNINGS_AS_ERRORS=ON|OFF
+    if (XCHAINER_WARNINGS_AS_ERRORS)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
     endif()
 endif()
@@ -84,7 +90,7 @@ else()
 endif()
 
 # pybind11
-if(${BUILD_PYTHON})
+if(${XCHAINER_BUILD_PYTHON})
     get_third_party(pybind11)
     include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
     add_subdirectory(${CMAKE_BINARY_DIR}/pybind11)
@@ -108,7 +114,7 @@ get_third_party(optional-lite)
 include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
 
 # Test
-if(ENABLE_TEST)
+if(${XCHAINER_BUILD_TEST})
     get_third_party(gtest)
     enable_testing()
     add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src

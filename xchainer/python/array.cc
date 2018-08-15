@@ -87,7 +87,7 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
         std::transform(list.begin(), list.end(), static_cast<T*>(ptr.get()), [](auto& item) { return py::cast<T>(item); });
     });
 
-    return MoveArrayBody(internal::FromContiguousHostData(shape, dtype, ptr, device));
+    return MoveArrayBody(FromContiguousHostData(shape, dtype, ptr, device));
 }
 
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
@@ -275,11 +275,13 @@ void InitXchainerArray(pybind11::module& m) {
               return MoveArrayBody(std::move(Array{self}.RequireGrad(backprop_id)));
           },
           py::arg("backprop_id") = nullptr);
-    c.def("is_grad_required",
-          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) { return Array{self}.IsGradRequired(backprop_id); },
+    c.def("is_backprop_required",
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
+              return Array{self}.IsBackpropRequired(backprop_id);
+          },
           py::arg("backprop_id") = nullptr);
-    c.def("is_grad_required",
-          [](const ArrayBodyPtr& self, AnyGraph any_graph) { return Array{self}.IsGradRequired(any_graph); },
+    c.def("is_backprop_required",
+          [](const ArrayBodyPtr& self, AnyGraph any_graph) { return Array{self}.IsBackpropRequired(any_graph); },
           py::arg("backprop_id"));
     c.def("get_grad",
           [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) -> ConstArrayBodyPtr {

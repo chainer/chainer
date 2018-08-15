@@ -87,19 +87,4 @@ bool IsBackpropRequired(const BackpropId& backprop_id) {
     return true;  // Per default.
 }
 
-bool IsGradRequired(const Array& array, const nonstd::optional<BackpropId>& backprop_id) {
-    BackpropId actual_backprop_id = internal::GetArrayBackpropId(array, backprop_id);
-    if (internal::GetArrayBody(array)->HasArrayNode(actual_backprop_id)) {
-        return IsBackpropRequired(actual_backprop_id);
-    }
-    return false;
-}
-
-bool IsGradRequired(const Array& array, AnyGraph /*any_graph*/) {
-    const std::vector<std::shared_ptr<internal::ArrayNode>>& array_nodes = internal::GetArrayBody(array)->nodes();
-    return std::any_of(array_nodes.begin(), array_nodes.end(), [](const std::shared_ptr<const internal::ArrayNode>& array_node) {
-        return IsBackpropRequired(array_node->backprop_id());
-    });
-}
-
 }  // namespace xchainer

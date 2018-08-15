@@ -10,6 +10,7 @@
 #include "xchainer/device.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/native/native_device.h"
+#include "xchainer/testing/threading.h"
 
 namespace xchainer {
 namespace {
@@ -30,6 +31,27 @@ TEST(ContextTest, NativeBackend) {
     EXPECT_EQ(&ctx.GetBackend("native"), &backend);
 }
 
+TEST(ContextTest, GetBackendThreadSafe) {
+    static constexpr size_t kRepeat = 100;
+    static constexpr size_t kThreadCount = 128;
+    std::string backend_name{"native"};
+
+    xchainer::testing::CheckThreadSafety(
+            kRepeat,
+            kThreadCount,
+            [](size_t /*repeat*/) { return std::make_unique<Context>(); },
+            [&backend_name](size_t /*thread_index*/, const std::unique_ptr<Context>& ctx) {
+                Backend& backend = ctx->GetBackend(backend_name);
+                return &backend;
+            },
+            [&backend_name](const std::vector<Backend*>& results) {
+                for (Backend* backend : results) {
+                    ASSERT_EQ(backend, results.front());
+                    ASSERT_EQ(backend_name, backend->GetName());
+                }
+            });
+}
+
 TEST(ContextTest, BackendNotFound) {
     Context ctx;
     EXPECT_THROW(ctx.GetBackend("something_that_does_not_exist"), BackendError);
@@ -39,6 +61,38 @@ TEST(ContextTest, GetDevice) {
     Context ctx;
     Device& device = ctx.GetDevice({"native", 0});
     EXPECT_EQ(&device, &ctx.GetDevice({"native:0"}));
+}
+
+TEST(ContextTest, GetDeviceThreadSafe) {
+    static constexpr size_t kRepeat = 100;
+    static constexpr int kDeviceCount = 4;
+    static constexpr size_t kThreadCountPerDevice = 32;
+    static constexpr size_t kThreadCount = kDeviceCount * kThreadCountPerDevice;
+
+    xchainer::testing::CheckThreadSafety(
+            kRepeat,
+            kThreadCount,
+            [](size_t /*repeat*/) { return std::make_unique<Context>(); },
+            [](size_t thread_index, const std::unique_ptr<Context>& ctx) {
+                int device_index = thread_index / kThreadCountPerDevice;
+                Device& device = ctx->GetDevice({"native", device_index});
+                return &device;
+            },
+            [](const std::vector<Device*>& results) {
+                // Check device pointers are identical within each set of threads corresponding to one device
+                for (int device_index = 0; device_index < kDeviceCount; ++device_index) {
+                    auto it_first = std::next(results.begin(), device_index * kThreadCountPerDevice);
+                    auto it_last = std::next(results.begin(), (device_index + 1) * kThreadCountPerDevice);
+                    Device* ref_device = *it_first;
+
+                    // Check the device index
+                    ASSERT_EQ(device_index, ref_device->index());
+
+                    for (auto it = it_first; it != it_last; ++it) {
+                        ASSERT_EQ(ref_device, *it);
+                    }
+                }
+            });
 }
 
 TEST(ContextTest, DefaultContext) {

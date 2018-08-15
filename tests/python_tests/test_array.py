@@ -143,11 +143,11 @@ def test_view_must_not_share_properties():
     array = xchainer.ndarray((1,), xchainer.float32, [3.0])
     view = array.view()
     # Test preconditions
-    assert not array.is_grad_required()
-    assert not view.is_grad_required()
+    assert not array.is_backprop_required()
+    assert not view.is_backprop_required()
 
     array.require_grad()
-    assert not view.is_grad_required(), 'A view must not share is_grad_required with the original array.'
+    assert not view.is_backprop_required(), 'A view must not share is_backprop_required with the original array.'
 
 
 @xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
@@ -190,35 +190,35 @@ def test_as_grad_stopped_copy(shape, float_dtype):
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
         a.require_grad(bp1)
         a.require_grad(bp2)
-        assert a.is_grad_required(bp1)
-        assert a.is_grad_required(bp2)
+        assert a.is_backprop_required(bp1)
+        assert a.is_backprop_required(bp2)
         b = a.as_grad_stopped(copy=True)
 
         check(a, b)
-        assert not b.is_grad_required(bp1)
-        assert not b.is_grad_required(bp2)
+        assert not b.is_backprop_required(bp1)
+        assert not b.is_backprop_required(bp2)
 
-        assert a.is_grad_required(bp1)
-        assert a.is_grad_required(bp2)
+        assert a.is_backprop_required(bp1)
+        assert a.is_backprop_required(bp2)
 
         # Stop gradients on some graphs
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
         a.require_grad(bp1)
         a.require_grad(bp2)
         a.require_grad(bp3)
-        assert a.is_grad_required(bp1)
-        assert a.is_grad_required(bp2)
-        assert a.is_grad_required(bp3)
+        assert a.is_backprop_required(bp1)
+        assert a.is_backprop_required(bp2)
+        assert a.is_backprop_required(bp3)
         b = a.as_grad_stopped([bp1, bp2], copy=True)
 
         check(a, b)
-        assert not b.is_grad_required(bp1)
-        assert not b.is_grad_required(bp2)
-        assert b.is_grad_required(bp3)
+        assert not b.is_backprop_required(bp1)
+        assert not b.is_backprop_required(bp2)
+        assert b.is_backprop_required(bp3)
 
-        assert a.is_grad_required(bp1)
-        assert a.is_grad_required(bp2)
-        assert a.is_grad_required(bp3)
+        assert a.is_backprop_required(bp1)
+        assert a.is_backprop_required(bp2)
+        assert a.is_backprop_required(bp3)
 
 
 def test_as_grad_stopped_view(shape, float_dtype):
@@ -232,37 +232,37 @@ def test_as_grad_stopped_view(shape, float_dtype):
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
         a.require_grad(bp1)
         a.require_grad(bp2)
-        assert a.is_grad_required(bp1)
-        assert a.is_grad_required(bp2)
+        assert a.is_backprop_required(bp1)
+        assert a.is_backprop_required(bp2)
         b = a.as_grad_stopped(copy=False)
 
         xchainer.testing.assert_array_equal_ex(a, b)
         assert b.device is a.device
-        assert not b.is_grad_required(bp1)
-        assert not b.is_grad_required(bp2)
+        assert not b.is_backprop_required(bp1)
+        assert not b.is_backprop_required(bp2)
 
-        assert a.is_grad_required(bp1)
-        assert a.is_grad_required(bp2)
+        assert a.is_backprop_required(bp1)
+        assert a.is_backprop_required(bp2)
 
         # Stop gradients on some graphs
         a = array_utils.create_dummy_ndarray(xchainer, shape, dtype)
         a.require_grad(bp1)
         a.require_grad(bp2)
         a.require_grad(bp3)
-        assert a.is_grad_required(bp1)
-        assert a.is_grad_required(bp2)
-        assert a.is_grad_required(bp3)
+        assert a.is_backprop_required(bp1)
+        assert a.is_backprop_required(bp2)
+        assert a.is_backprop_required(bp3)
         b = a.as_grad_stopped([bp1, bp2], copy=False)
 
         xchainer.testing.assert_array_equal_ex(a, b)
         assert b.device is a.device
-        assert not b.is_grad_required(bp1)
-        assert not b.is_grad_required(bp2)
-        assert b.is_grad_required(bp3)
+        assert not b.is_backprop_required(bp1)
+        assert not b.is_backprop_required(bp2)
+        assert b.is_backprop_required(bp3)
 
-        assert a.is_grad_required(bp1)
-        assert a.is_grad_required(bp2)
-        assert a.is_grad_required(bp3)
+        assert a.is_backprop_required(bp1)
+        assert a.is_backprop_required(bp2)
+        assert a.is_backprop_required(bp3)
 
 
 def test_array_repr():
@@ -298,40 +298,40 @@ def test_array_repr_expired_backprop_id():
 def test_array_require_grad_without_backprop_id(backprop_args):
     array = xchainer.ndarray((3, 1), xchainer.float32, [1, 1, 1])
 
-    assert not array.is_grad_required(*backprop_args)
-    assert not array.is_grad_required(xchainer.anygraph)
+    assert not array.is_backprop_required(*backprop_args)
+    assert not array.is_backprop_required(xchainer.anygraph)
     array.require_grad(*backprop_args)
-    assert array.is_grad_required(*backprop_args)
-    assert array.is_grad_required(xchainer.anygraph)
+    assert array.is_backprop_required(*backprop_args)
+    assert array.is_backprop_required(xchainer.anygraph)
 
     # Repeated calls should not fail, but do nothing
     array.require_grad(*backprop_args)
-    assert array.is_grad_required(*backprop_args)
-    assert array.is_grad_required(xchainer.anygraph)
+    assert array.is_backprop_required(*backprop_args)
+    assert array.is_backprop_required(xchainer.anygraph)
 
 
 def test_array_require_grad_with_backprop_id():
     array = xchainer.ndarray((3, 1), xchainer.float32, [1, 1, 1])
 
     with xchainer.backprop_scope('bp1') as bp1:
-        assert not array.is_grad_required(bp1)
+        assert not array.is_backprop_required(bp1)
         array.require_grad(bp1)
-        assert array.is_grad_required(bp1)
+        assert array.is_backprop_required(bp1)
 
         # Repeated calls should not fail, but do nothing
         array.require_grad(bp1)
-        assert array.is_grad_required(bp1)
+        assert array.is_backprop_required(bp1)
 
     # keyword arguments
     with xchainer.backprop_scope('bp2') as bp2:
-        assert not array.is_grad_required(backprop_id=bp2)
+        assert not array.is_backprop_required(backprop_id=bp2)
         array.require_grad(backprop_id=bp2)
-        assert array.is_grad_required(bp2)
-        assert array.is_grad_required(backprop_id=bp2)
+        assert array.is_backprop_required(bp2)
+        assert array.is_backprop_required(backprop_id=bp2)
 
         # Repeated calls should not fail, but do nothing
         array.require_grad(backprop_id=bp2)
-        assert array.is_grad_required(backprop_id=bp2)
+        assert array.is_backprop_required(backprop_id=bp2)
 
 
 @pytest.mark.parametrize('backprop_args', [(None,), ()])
@@ -473,20 +473,20 @@ def test_array_require_grad_multiple_graphs_forward():
         x1.require_grad(bp1)
         x2.require_grad(bp2)
 
-        assert x1.is_grad_required(bp1)
-        assert x2.is_grad_required(bp2)
+        assert x1.is_backprop_required(bp1)
+        assert x2.is_backprop_required(bp2)
 
-        assert not x1.is_grad_required(bp2)
-        assert not x2.is_grad_required(bp1)
+        assert not x1.is_backprop_required(bp2)
+        assert not x2.is_backprop_required(bp1)
 
         y = x1 * x2
 
-        assert y.is_grad_required(bp1)
-        assert y.is_grad_required(bp2)
+        assert y.is_backprop_required(bp1)
+        assert y.is_backprop_required(bp2)
 
         # No unspecified graphs are generated
-        assert not y.is_grad_required(None)
-        assert not y.is_grad_required(bp3)
+        assert not y.is_backprop_required(None)
+        assert not y.is_backprop_required(bp3)
 
 
 @pytest.mark.parametrize('expected_error,invalid_shape,invalid_dtype,invalid_device', [

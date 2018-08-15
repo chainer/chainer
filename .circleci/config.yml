@@ -142,7 +142,7 @@ jobs:
 
             mkdir -p build
             pushd build
-            cmake -DBUILD_PYTHON=1 -DENABLE_COVERAGE=ON -DWARNINGS_AS_ERRORS=ON -DCMAKE_INSTALL_PREFIX=$HOME/local ..
+            cmake -DXCHAINER_BUILD_PYTHON=1 -DXCHAINER_ENABLE_COVERAGE=ON -DXCHAINER_WARNINGS_AS_ERRORS=ON -DCMAKE_INSTALL_PREFIX=$HOME/local ..
             popd
 
       # make

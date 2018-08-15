@@ -183,8 +183,8 @@ public:
 
     // Returns whether the array needs to backprop.
     // This takes into account NoBackpropModeScope and ForceBackpropModeScope.
-    bool IsGradRequired(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
-    bool IsGradRequired(AnyGraph any_graph) const;
+    bool IsBackpropRequired(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
+    bool IsBackpropRequired(AnyGraph any_graph) const;
 
     // Flags the array to compute the gradient during backprop.
     // If the backprop mode is disabled for the graph in the current thread, it does nothing but returns a reference to itself.

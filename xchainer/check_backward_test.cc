@@ -92,7 +92,7 @@ protected:
         Arrays eps{testing::BuildArray(shape).WithData(eps_data)};
 
         bool is_none_of_grad_required = std::none_of(inputs.begin(), inputs.end(), [&backprop_scope](const Array& input) {
-            return input.IsGradRequired(backprop_scope.backprop_id());
+            return input.IsBackpropRequired(backprop_scope.backprop_id());
         });
 
         if (expect_correct || is_none_of_grad_required) {

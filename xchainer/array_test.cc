@@ -42,6 +42,19 @@
 #include "xchainer/testing/device_session.h"
 #include "xchainer/testing/util.h"
 
+#define EXPECT_ARRAYS_ARE_EQUAL_COPY(orig, copy)     \
+    EXPECT_TRUE(copy.IsContiguous());                \
+    EXPECT_EQ(copy.offset(), 0);                     \
+    EXPECT_NE(orig.data().get(), copy.data().get()); \
+    EXPECT_ARRAY_EQ(orig, copy)
+
+#define EXPECT_ARRAYS_ARE_EQAUL_VIEW(orig, view)         \
+    EXPECT_EQ(orig.IsContiguous(), view.IsContiguous()); \
+    EXPECT_EQ(orig.offset(), view.offset());             \
+    EXPECT_EQ(orig.data().get(), view.data().get());     \
+    EXPECT_ARRAY_HAVE_DISTINCT_ARRAY_NODES(orig, view);  \
+    EXPECT_ARRAY_EQ(orig, view)
+
 namespace xchainer {
 namespace {
 
@@ -93,7 +106,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
         Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
         Array b = a.MakeView();
         Array c = std::move(a);
-        testing::ExpectEqual(b, c);
+        EXPECT_ARRAY_EQ(b, c);
     }
 
     // A copy must not be affected by move
@@ -101,7 +114,7 @@ TEST_P(ArrayTest, ArrayMoveCtor) {
         Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
         Array b = a.Copy();
         Array c = std::move(a);
-        testing::ExpectEqualCopy(b, c);
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(b, c);
     }
 
     // Array body must be transferred by move
@@ -167,9 +180,9 @@ TEST_P(ArrayTest, RequireGrad) {
     // Default graph
     {
         Array x = testing::BuildArray({1}).WithData<float>({2.0f});
-        ASSERT_FALSE(x.IsGradRequired());
+        ASSERT_FALSE(x.IsBackpropRequired());
         x.RequireGrad();
-        ASSERT_TRUE(x.IsGradRequired());
+        ASSERT_TRUE(x.IsBackpropRequired());
     }
 
     // User-specified graph
@@ -178,9 +191,9 @@ TEST_P(ArrayTest, RequireGrad) {
         BackpropId backprop_id = backprop_scope.backprop_id();
 
         Array x = testing::BuildArray({1}).WithData<float>({2.0f});
-        ASSERT_FALSE(x.IsGradRequired(backprop_id));
+        ASSERT_FALSE(x.IsBackpropRequired(backprop_id));
         x.RequireGrad(backprop_id);
-        ASSERT_TRUE(x.IsGradRequired(backprop_id));
+        ASSERT_TRUE(x.IsBackpropRequired(backprop_id));
     }
 }
 
@@ -214,7 +227,7 @@ TEST_P(ArrayTest, Grad) {
     {
         x.SetGrad(g, backprop_id);
 
-        testing::ExpectEqual(g, *x.GetGrad(backprop_id));
+        EXPECT_ARRAY_EQ(g, *x.GetGrad(backprop_id));
     }
 
     // Get grad multiple times
@@ -233,7 +246,7 @@ TEST_P(ArrayTest, Grad) {
         EXPECT_FALSE(x.GetGrad(backprop_id)) << "grad must be cleared after calling ClearGrad()";
 
         // ClearGrad() must not affect previously retrieved view to grad
-        testing::ExpectEqual(grad_view, g);
+        EXPECT_ARRAY_EQ(grad_view, g);
     }
 }
 
@@ -391,7 +404,7 @@ TEST_P(ArrayTest, Negative) {
     Array a = testing::BuildArray({3}).WithData<float>({-1, 0, 2});
     Array e = testing::BuildArray({3}).WithData<float>({1, 0, -2});
     Array b = -a;
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST_P(ArrayTest, Equality) {
@@ -402,7 +415,7 @@ TEST_P(ArrayTest, Equality) {
     Array c = a == b;
 
     ASSERT_EQ(c.dtype(), Dtype::kBool);
-    testing::ExpectEqual(e, c);
+    EXPECT_ARRAY_EQ(e, c);
 }
 
 TEST_P(ArrayTest, IAdd) {
@@ -410,14 +423,14 @@ TEST_P(ArrayTest, IAdd) {
     Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array e = testing::BuildArray({3, 1}).WithData<float>({2, 4, 6});
     a += b;
-    testing::ExpectEqual(e, a);
+    EXPECT_ARRAY_EQ(e, a);
 }
 
 TEST_P(ArrayTest, IAddScalar) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array e = testing::BuildArray({3, 1}).WithData<float>({3, 4, 5});
     a += Scalar{2.f};
-    testing::ExpectEqual(e, a);
+    EXPECT_ARRAY_EQ(e, a);
 }
 
 TEST_P(ArrayTest, ISubtract) {
@@ -425,14 +438,14 @@ TEST_P(ArrayTest, ISubtract) {
     Array b = testing::BuildArray({3, 1}).WithData<float>({4, 0, -2});
     Array e = testing::BuildArray({3, 1}).WithData<float>({-3, 2, 5});
     a -= b;
-    testing::ExpectEqual(e, a);
+    EXPECT_ARRAY_EQ(e, a);
 }
 
 TEST_P(ArrayTest, ISubtractScalar) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1.f, 2.f, 3.f});
     Array e = testing::BuildArray({3, 1}).WithData<float>({0.5f, 1.5f, 2.5f});
     a -= Scalar{0.5f};
-    testing::ExpectEqual(e, a);
+    EXPECT_ARRAY_EQ(e, a);
 }
 
 TEST_P(ArrayTest, IMultiply) {
@@ -440,14 +453,14 @@ TEST_P(ArrayTest, IMultiply) {
     Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array e = testing::BuildArray({3, 1}).WithData<float>({1, 4, 9});
     a *= b;
-    testing::ExpectEqual(e, a);
+    EXPECT_ARRAY_EQ(e, a);
 }
 
 TEST_P(ArrayTest, IMultiplyScalar) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array e = testing::BuildArray({3, 1}).WithData<float>({2, 4, 6});
     a *= Scalar{2.f};
-    testing::ExpectEqual(e, a);
+    EXPECT_ARRAY_EQ(e, a);
 }
 
 TEST_P(ArrayTest, IDivide) {
@@ -455,14 +468,14 @@ TEST_P(ArrayTest, IDivide) {
     Array b = testing::BuildArray({3, 1}).WithData<float>({1.f, 0.5f, 2.f});
     Array e = testing::BuildArray({3, 1}).WithData<float>({1.f, 4.f, 1.5f});
     a /= b;
-    testing::ExpectEqual(e, a);
+    EXPECT_ARRAY_EQ(e, a);
 }
 
 TEST_P(ArrayTest, IDivideScalar) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1.f, 2.f, 3.f});
     Array e = testing::BuildArray({3, 1}).WithData<float>({0.5f, 1.f, 1.5f});
     a /= Scalar{2.f};
-    testing::ExpectEqual(e, a);
+    EXPECT_ARRAY_EQ(e, a);
 }
 
 TEST_P(ArrayTest, Add) {
@@ -470,7 +483,7 @@ TEST_P(ArrayTest, Add) {
     Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array e = testing::BuildArray({3, 1}).WithData<float>({2, 4, 6});
     Array o = a + b;
-    testing::ExpectEqual(e, o);
+    EXPECT_ARRAY_EQ(e, o);
 }
 
 TEST_P(ArrayTest, AddScalar) {
@@ -479,11 +492,11 @@ TEST_P(ArrayTest, AddScalar) {
     Array e = testing::BuildArray({3, 1}).WithData<float>({3, 4, 5});
     {
         Array o = a + b;
-        testing::ExpectEqual(e, o);
+        EXPECT_ARRAY_EQ(e, o);
     }
     {
         Array o = b + a;
-        testing::ExpectEqual(e, o);
+        EXPECT_ARRAY_EQ(e, o);
     }
 }
 
@@ -492,7 +505,7 @@ TEST_P(ArrayTest, Subtract) {
     Array b = testing::BuildArray({3, 1}).WithData<float>({4, 0, -2});
     Array e = testing::BuildArray({3, 1}).WithData<float>({-3, 2, 5});
     Array o = a - b;
-    testing::ExpectEqual(e, o);
+    EXPECT_ARRAY_EQ(e, o);
 }
 
 TEST_P(ArrayTest, SubtractScalar) {
@@ -501,12 +514,12 @@ TEST_P(ArrayTest, SubtractScalar) {
     {
         Array e = testing::BuildArray({3, 1}).WithData<float>({-0.5f, 0.5f, 1.5f});
         Array o = a - b;
-        testing::ExpectEqual(e, o);
+        EXPECT_ARRAY_EQ(e, o);
     }
     {
         Array e = testing::BuildArray({3, 1}).WithData<float>({0.5f, -0.5f, -1.5f});
         Array o = b - a;
-        testing::ExpectEqual(e, o);
+        EXPECT_ARRAY_EQ(e, o);
     }
 }
 
@@ -515,7 +528,7 @@ TEST_P(ArrayTest, Multiply) {
     Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array e = testing::BuildArray({3, 1}).WithData<float>({1, 4, 9});
     Array o = a * b;
-    testing::ExpectEqual(e, o);
+    EXPECT_ARRAY_EQ(e, o);
 }
 
 TEST_P(ArrayTest, MultiplyScalar) {
@@ -524,11 +537,11 @@ TEST_P(ArrayTest, MultiplyScalar) {
     Array e = testing::BuildArray({3, 1}).WithData<float>({2, 4, 6});
     {
         Array o = a * b;
-        testing::ExpectEqual(e, o);
+        EXPECT_ARRAY_EQ(e, o);
     }
     {
         Array o = b * a;
-        testing::ExpectEqual(e, o);
+        EXPECT_ARRAY_EQ(e, o);
     }
 }
 
@@ -537,14 +550,14 @@ TEST_P(ArrayTest, Divide) {
     Array b = testing::BuildArray({3, 1}).WithData<float>({0.5f, 0.5f, 2.f});
     Array e = testing::BuildArray({3, 1}).WithData<float>({2.f, 4.f, 1.5f});
     Array o = a / b;
-    testing::ExpectEqual(e, o);
+    EXPECT_ARRAY_EQ(e, o);
 }
 
 TEST_P(ArrayTest, DivideScalar) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array e = testing::BuildArray({3, 1}).WithData<float>({0.5f, 1.f, 1.5f});
     Array o = a / Scalar{2.f};
-    testing::ExpectEqual(e, o);
+    EXPECT_ARRAY_EQ(e, o);
 }
 
 TEST_P(ArrayTest, ComputationalGraph) {
@@ -609,37 +622,61 @@ TEST_P(ArrayTest, ComputationalGraph) {
     }
 }
 
-TEST_P(ArrayTest, InplaceNotAllowedWithRequiresGrad) {
+TEST_P(ArrayTest, InplaceWithArrayNodes) {
     BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
+
+    // Both input/output arrays have nodes
     {
-        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
-        Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
-        a.RequireGrad(backprop_id);
-        b.RequireGrad(backprop_id);
-        EXPECT_THROW({ a += b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(backprop_id);
+        y.RequireGrad(backprop_id);
+        EXPECT_THROW({ y += x; }, XchainerError);
     }
 
     {
-        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
-        Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
-        a.RequireGrad(backprop_id);
-        b.RequireGrad(backprop_id);
-        EXPECT_THROW({ a *= b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(backprop_id);
+        y.RequireGrad(backprop_id);
+        EXPECT_THROW({ y *= x; }, XchainerError);
     }
 
+    // Only output array has nodes
     {
-        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
-        Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
-        a.RequireGrad(backprop_id);
-        EXPECT_THROW({ a *= b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        y.RequireGrad(backprop_id);
+        EXPECT_THROW({ y *= x; }, XchainerError);
     }
 
+    // Only input array has nodes
     {
-        Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
-        Array b = testing::BuildArray({4, 1}).WithLinearData<float>();
-        b.RequireGrad(backprop_id);
-        EXPECT_THROW({ a *= b; }, XchainerError);
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(backprop_id);
+        EXPECT_THROW({ y *= x; }, XchainerError);
+    }
+
+    // Only output arrays has nodes, with no backprop scope
+    {
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        y.RequireGrad(backprop_id);
+
+        NoBackpropModeScope scope{backprop_id};
+        EXPECT_THROW({ y *= x; }, XchainerError);
+    }
+
+    // Only input arrays has nodes, with no backprop scope
+    {
+        Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
+        Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
+        x.RequireGrad(backprop_id);
+
+        NoBackpropModeScope scope{backprop_id};
+        y *= x;  // no throw
     }
 }
 
@@ -651,20 +688,20 @@ TEST_P(ArrayTest, Transpose) {
     EXPECT_EQ(Strides({4, 12}), b.strides());
 
     Array e = testing::BuildArray({3, 2}).WithData<int32_t>({0, 3, 1, 4, 2, 5});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST_P(ArrayTest, Copy) {
     using T = int32_t;
     Array a = testing::BuildArray({3, 1}).WithData<T>({1, 2, 3});
     Array o = a.Copy();
-    testing::ExpectEqualCopy(a, o);
+    EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
 }
 
 TEST_P(ArrayTest, MakeView) {
     Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
     Array o = a.MakeView();
-    testing::ExpectEqualView(a, o);
+    EXPECT_ARRAYS_ARE_EQAUL_VIEW(a, o);
 }
 
 TEST_P(ArrayTest, MakeViewBackward) {
@@ -692,13 +729,13 @@ TEST_P(ArrayTest, MakeViewDoubleBackward) {
             {eps, eps});
 }
 
-TEST_P(ArrayTest, IsGradRequired) {
+TEST_P(ArrayTest, IsBackpropRequired) {
     BackpropScope backprop_scope{"bp1"};
     BackpropId backprop_id = backprop_scope.backprop_id();
 
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
     a.RequireGrad(backprop_id);
-    EXPECT_TRUE(a.IsGradRequired(AnyGraph{}));
+    EXPECT_TRUE(a.IsBackpropRequired(AnyGraph{}));
 }
 
 TEST_P(ArrayTest, AsGradStoppedCopy) {
@@ -712,18 +749,18 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
         Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
         a.RequireGrad(backprop_id1);
         a.RequireGrad(backprop_id2);
-        ASSERT_TRUE(a.IsGradRequired(backprop_id1));
-        ASSERT_TRUE(a.IsGradRequired(backprop_id2));
+        ASSERT_TRUE(a.IsBackpropRequired(backprop_id1));
+        ASSERT_TRUE(a.IsBackpropRequired(backprop_id2));
         Array b = a.AsGradStopped(CopyKind::kCopy);
 
         EXPECT_EQ(&b.device(), &a.device());
 
-        testing::ExpectEqualCopy(a, b);
-        EXPECT_FALSE(b.IsGradRequired(backprop_id1));
-        EXPECT_FALSE(b.IsGradRequired(backprop_id2));
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, b);
+        EXPECT_FALSE(b.IsBackpropRequired(backprop_id1));
+        EXPECT_FALSE(b.IsBackpropRequired(backprop_id2));
 
-        EXPECT_TRUE(a.IsGradRequired(backprop_id1));
-        EXPECT_TRUE(a.IsGradRequired(backprop_id2));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id2));
     }
 
     // Stop gradients on graphs
@@ -739,21 +776,21 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
         a.RequireGrad(backprop_id1);
         a.RequireGrad(backprop_id2);
         a.RequireGrad(backprop_id3);
-        ASSERT_TRUE(a.IsGradRequired(backprop_id1));
-        ASSERT_TRUE(a.IsGradRequired(backprop_id2));
-        ASSERT_TRUE(a.IsGradRequired(backprop_id3));
+        ASSERT_TRUE(a.IsBackpropRequired(backprop_id1));
+        ASSERT_TRUE(a.IsBackpropRequired(backprop_id2));
+        ASSERT_TRUE(a.IsBackpropRequired(backprop_id3));
         Array b = a.AsGradStopped({backprop_id1, backprop_id2}, CopyKind::kCopy);
 
         EXPECT_EQ(&b.device(), &a.device());
 
-        testing::ExpectEqualCopy(a, b);
-        EXPECT_FALSE(b.IsGradRequired(backprop_id1));
-        EXPECT_FALSE(b.IsGradRequired(backprop_id2));
-        EXPECT_TRUE(b.IsGradRequired(backprop_id3));
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, b);
+        EXPECT_FALSE(b.IsBackpropRequired(backprop_id1));
+        EXPECT_FALSE(b.IsBackpropRequired(backprop_id2));
+        EXPECT_TRUE(b.IsBackpropRequired(backprop_id3));
 
-        EXPECT_TRUE(a.IsGradRequired(backprop_id1));
-        EXPECT_TRUE(a.IsGradRequired(backprop_id2));
-        EXPECT_TRUE(a.IsGradRequired(backprop_id3));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id2));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id3));
     }
 
     // Non-contiguous
@@ -761,7 +798,7 @@ TEST_P(ArrayTest, AsGradStoppedCopy) {
         Array a = testing::BuildArray({4, 1}).WithLinearData<float>().WithPadding(4);
         Array b = a.AsGradStopped(CopyKind::kCopy);
         EXPECT_EQ(&b.device(), &a.device());
-        testing::ExpectEqualCopy(a, b);
+        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, b);
     }
 }
 
@@ -776,16 +813,16 @@ TEST_P(ArrayTest, AsGradStoppedView) {
         Array a = testing::BuildArray({4, 1}).WithLinearData<float>();
         a.RequireGrad(backprop_id1);
         a.RequireGrad(backprop_id2);
-        ASSERT_TRUE(a.IsGradRequired(backprop_id1));
-        ASSERT_TRUE(a.IsGradRequired(backprop_id2));
+        ASSERT_TRUE(a.IsBackpropRequired(backprop_id1));
+        ASSERT_TRUE(a.IsBackpropRequired(backprop_id2));
         Array b = a.AsGradStopped();
 
-        testing::ExpectEqualView(a, b);
-        EXPECT_FALSE(b.IsGradRequired(backprop_id1));
-        EXPECT_FALSE(b.IsGradRequired(backprop_id2));
+        EXPECT_ARRAYS_ARE_EQAUL_VIEW(a, b);
+        EXPECT_FALSE(b.IsBackpropRequired(backprop_id1));
+        EXPECT_FALSE(b.IsBackpropRequired(backprop_id2));
 
-        EXPECT_TRUE(a.IsGradRequired(backprop_id1));
-        EXPECT_TRUE(a.IsGradRequired(backprop_id2));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id2));
     }
 
     // Stop gradients on some graphs
@@ -801,26 +838,26 @@ TEST_P(ArrayTest, AsGradStoppedView) {
         a.RequireGrad(backprop_id1);
         a.RequireGrad(backprop_id2);
         a.RequireGrad(backprop_id3);
-        ASSERT_TRUE(a.IsGradRequired(backprop_id1));
-        ASSERT_TRUE(a.IsGradRequired(backprop_id2));
-        ASSERT_TRUE(a.IsGradRequired(backprop_id3));
+        ASSERT_TRUE(a.IsBackpropRequired(backprop_id1));
+        ASSERT_TRUE(a.IsBackpropRequired(backprop_id2));
+        ASSERT_TRUE(a.IsBackpropRequired(backprop_id3));
         Array b = a.AsGradStopped({backprop_id1, backprop_id2});
 
-        testing::ExpectEqualView(a, b);
-        EXPECT_FALSE(b.IsGradRequired(backprop_id1));
-        EXPECT_FALSE(b.IsGradRequired(backprop_id2));
-        EXPECT_TRUE(b.IsGradRequired(backprop_id3));
+        EXPECT_ARRAYS_ARE_EQAUL_VIEW(a, b);
+        EXPECT_FALSE(b.IsBackpropRequired(backprop_id1));
+        EXPECT_FALSE(b.IsBackpropRequired(backprop_id2));
+        EXPECT_TRUE(b.IsBackpropRequired(backprop_id3));
 
-        EXPECT_TRUE(a.IsGradRequired(backprop_id1));
-        EXPECT_TRUE(a.IsGradRequired(backprop_id2));
-        EXPECT_TRUE(a.IsGradRequired(backprop_id3));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id2));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id3));
     }
     // Non-contiguous
     {
         Array a = testing::BuildArray({4, 1}).WithLinearData<float>().WithPadding(4);
         Array b = a.AsGradStopped(CopyKind::kView);
         EXPECT_EQ(&b.device(), &a.device());
-        testing::ExpectEqualView(a, b);
+        EXPECT_ARRAYS_ARE_EQAUL_VIEW(a, b);
     }
 }
 
@@ -828,21 +865,21 @@ TEST_P(ArrayTest, AsTypeFloatToDouble) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kFloat64);
     Array e = testing::BuildArray({3, 1}).WithData<double>({1, 2, 3});
-    testing::ExpectEqualCopy(e, o);
+    EXPECT_ARRAYS_ARE_EQUAL_COPY(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeFloatToInt) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kInt32);
     Array e = testing::BuildArray({3, 1}).WithData<int32_t>({1, 2, 3});
-    testing::ExpectEqualCopy(e, o);
+    EXPECT_ARRAYS_ARE_EQUAL_COPY(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeBoolToFloat) {
     Array a = testing::BuildArray({3, 1}).WithData<bool>({true, false, true});
     Array o = a.AsType(Dtype::kFloat32);
     Array e = testing::BuildArray({3, 1}).WithData<float>({1.0, 0.0, 1.0});
-    testing::ExpectEqualCopy(e, o);
+    EXPECT_ARRAYS_ARE_EQUAL_COPY(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeCopyFalse) {
@@ -856,7 +893,7 @@ TEST_P(ArrayTest, AsTypeCopyFalseButDifferentType) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array o = a.AsType(Dtype::kFloat64, false);
     Array e = testing::BuildArray({3, 1}).WithData<double>({1, 2, 3});
-    testing::ExpectEqualCopy(e, o);
+    EXPECT_ARRAYS_ARE_EQUAL_COPY(e, o);
 }
 
 TEST_P(ArrayTest, AsTypeBackward) {
@@ -873,8 +910,8 @@ TEST_P(ArrayTest, AsTypeBackward) {
 
 TEST_P(ArrayTest, AsTypeToNonFloatNoGraph) {
     Array a = (*testing::BuildArray({2, 3}).WithLinearData<float>(-3).WithPadding(1)).RequireGrad();
-    EXPECT_FALSE(a.AsType(Dtype::kInt32).IsGradRequired());
-    EXPECT_FALSE(a.AsType(Dtype::kBool).IsGradRequired());
+    EXPECT_FALSE(a.AsType(Dtype::kInt32).IsBackpropRequired());
+    EXPECT_FALSE(a.AsType(Dtype::kBool).IsBackpropRequired());
 }
 
 TEST_P(ArrayTest, AsTypeDoubleBackward) {
@@ -910,7 +947,7 @@ TEST_P(ArrayTest, ToNative) {
 
     EXPECT_EQ(a.dtype(), b.dtype());
     EXPECT_EQ(a.shape(), b.shape());
-    testing::ExpectEqual(a.ToNative(), b.ToNative());
+    EXPECT_ARRAY_EQ(a.ToNative(), b.ToNative());
 
     if (a.device().name() == "native:0") {
         // Between the same device
@@ -933,13 +970,13 @@ TEST_P(ArrayTest, ToNative) {
 TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
-    EXPECT_FALSE(a.IsGradRequired());
+    EXPECT_FALSE(a.IsBackpropRequired());
 
     a.RequireGrad();
-    EXPECT_TRUE(a.IsGradRequired());
+    EXPECT_TRUE(a.IsBackpropRequired());
 
     a.RequireGrad();
-    EXPECT_TRUE(a.IsGradRequired());
+    EXPECT_TRUE(a.IsBackpropRequired());
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
@@ -948,29 +985,29 @@ TEST_P(ArrayTest, MultipleGraphsRequireGradNamed) {
 
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
-    ASSERT_FALSE(a.IsGradRequired(backprop_id));
+    ASSERT_FALSE(a.IsBackpropRequired(backprop_id));
 
     a.RequireGrad(backprop_id);
-    EXPECT_TRUE(a.IsGradRequired(backprop_id));
+    EXPECT_TRUE(a.IsBackpropRequired(backprop_id));
 
     a.RequireGrad(backprop_id);
-    EXPECT_TRUE(a.IsGradRequired(backprop_id));
+    EXPECT_TRUE(a.IsBackpropRequired(backprop_id));
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsCtor) {
     Array a = (*testing::BuildArray({1}).WithData<float>({2.0f})).RequireGrad();
 
-    EXPECT_TRUE(a.IsGradRequired());
+    EXPECT_TRUE(a.IsBackpropRequired());
 
     a.RequireGrad();
-    EXPECT_TRUE(a.IsGradRequired());
+    EXPECT_TRUE(a.IsBackpropRequired());
 }
 
 TEST_P(ArrayTest, MultipleGraphsRequireGradChainedCallsRequireGrad) {
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
     a.RequireGrad().RequireGrad();
-    EXPECT_TRUE(a.IsGradRequired());
+    EXPECT_TRUE(a.IsBackpropRequired());
 }
 
 TEST_P(ArrayTest, MultipleGraphsForward) {
@@ -987,20 +1024,20 @@ TEST_P(ArrayTest, MultipleGraphsForward) {
     a.RequireGrad(backprop_id1);
     b.RequireGrad(backprop_id2);
 
-    EXPECT_TRUE(a.IsGradRequired(backprop_id1));
-    EXPECT_FALSE(a.IsGradRequired(backprop_id2));
+    EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+    EXPECT_FALSE(a.IsBackpropRequired(backprop_id2));
 
-    EXPECT_FALSE(b.IsGradRequired(backprop_id1));
-    EXPECT_TRUE(b.IsGradRequired(backprop_id2));
+    EXPECT_FALSE(b.IsBackpropRequired(backprop_id1));
+    EXPECT_TRUE(b.IsBackpropRequired(backprop_id2));
 
     Array o = a * b;
 
-    EXPECT_TRUE(o.IsGradRequired(backprop_id1));
-    EXPECT_TRUE(o.IsGradRequired(backprop_id2));
+    EXPECT_TRUE(o.IsBackpropRequired(backprop_id1));
+    EXPECT_TRUE(o.IsBackpropRequired(backprop_id2));
 
     // No unspecified or previously unused graphs are generated
-    EXPECT_FALSE(o.IsGradRequired());
-    EXPECT_FALSE(o.IsGradRequired(backprop_id3));
+    EXPECT_FALSE(o.IsBackpropRequired());
+    EXPECT_FALSE(o.IsBackpropRequired(backprop_id3));
 }
 
 TEST_P(ArrayTest, RequireGradWithBackpropModeScope) {
@@ -1009,12 +1046,12 @@ TEST_P(ArrayTest, RequireGradWithBackpropModeScope) {
         NoBackpropModeScope scope{};
         a.RequireGrad();
     }
-    EXPECT_FALSE(a.IsGradRequired());
+    EXPECT_FALSE(a.IsBackpropRequired());
     {
         ForceBackpropModeScope scope{};
         a.RequireGrad();
     }
-    EXPECT_TRUE(a.IsGradRequired());
+    EXPECT_TRUE(a.IsBackpropRequired());
 }
 
 TEST_P(ArrayTest, Take) {
@@ -1028,7 +1065,7 @@ TEST_P(ArrayTest, Take) {
 
     EXPECT_EQ(output_shape, b.shape());
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 2, 3, 1, 2, 1, 4, 6, 7, 5, 6, 5});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 INSTANTIATE_TEST_CASE_P(
@@ -1070,7 +1107,7 @@ TEST(ArrayAtTest, At) {
 
     EXPECT_EQ(output_shape, b.shape());
     Array e = testing::BuildArray(output_shape).WithData<T>({4, 5});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 
     // Check if strides are 0 for newaxis.
     EXPECT_EQ(0, b.strides()[0]);
@@ -1089,7 +1126,7 @@ TEST(ArrayReshapeTest, Reshape) {
     ASSERT_EQ(output_shape, b.shape());
     EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArraySqueezeTest, SqueezeSpecifiedUnitLenghtAxes) {
@@ -1099,7 +1136,7 @@ TEST(ArraySqueezeTest, SqueezeSpecifiedUnitLenghtAxes) {
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
     Array b = a.Squeeze(Axes{2, 0, 4});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArraySqueezeTest, SqueezeAllAxes) {
@@ -1109,7 +1146,7 @@ TEST(ArraySqueezeTest, SqueezeAllAxes) {
     Array a = testing::BuildArray({1, 1, 1}).WithLinearData<T>();
     Array b = a.Squeeze();
     Array e = testing::BuildArray({}).WithData<T>(std::vector<T>(1, 0));
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArrayBroadcastToTest, BroadcastTo) {
@@ -1132,7 +1169,7 @@ TEST(ArrayBroadcastToTest, BroadcastTo) {
         output_data.insert(output_data.end(), {1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6});
     }
     Array e = testing::BuildArray(output_shape).WithData<T>(output_data);
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArrayArgMaxTest, ArgMax) {
@@ -1142,7 +1179,7 @@ TEST(ArrayArgMaxTest, ArgMax) {
     Array a = testing::BuildArray({2, 3}).WithData<T>({1, 4, 3, 0, 1, 4});
     Array b = a.ArgMax(0);
     Array e = testing::BuildArray({3}).WithData<int64_t>({0, 0, 1});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArrayArgMaxTest, ArgMaxAllAxes) {
@@ -1152,7 +1189,7 @@ TEST(ArrayArgMaxTest, ArgMaxAllAxes) {
     Array a = testing::BuildArray({2, 3}).WithData<T>({1, 4, 3, 0, 1, 4});
     Array b = a.ArgMax();
     Array e = testing::BuildArray({}).WithData<int64_t>({1});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArraySumTest, Sum) {
@@ -1163,7 +1200,7 @@ TEST(ArraySumTest, Sum) {
     Array b = a.Sum(Axes{2, 1, -1});
     EXPECT_EQ(Shape{2}, b.shape());
     Array e = testing::BuildArray({2}).WithData<T>({630.0f, 1926.0f});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArraySumTest, SumAllAxes) {
@@ -1174,7 +1211,7 @@ TEST(ArraySumTest, SumAllAxes) {
     Array b = a.Sum();
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<T>({153.0f});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArraySumTest, SumKeepDims) {
@@ -1187,7 +1224,7 @@ TEST(ArraySumTest, SumKeepDims) {
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
     Array e = testing::BuildArray({2, 1, 2, 1}).WithData<T>({114.0f, 162.0f, 402.0f, 450.0f});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArrayMaxTest, Max) {
@@ -1196,7 +1233,7 @@ TEST(ArrayMaxTest, Max) {
     Array b = a.Max(Axes{2, 0, -1});
     EXPECT_EQ(Shape{3}, b.shape());
     Array e = testing::BuildArray({3}).WithData<float>({47.f, 59.f, 71.f});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArrayMaxTest, MaxAllAxes) {
@@ -1205,7 +1242,7 @@ TEST(ArrayMaxTest, MaxAllAxes) {
     Array b = a.Max();
     EXPECT_EQ(Shape{}, b.shape());
     Array e = testing::BuildArray({}).WithData<float>({17.f});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArrayMaxTest, MaxKeepDims) {
@@ -1216,7 +1253,7 @@ TEST(ArrayMaxTest, MaxKeepDims) {
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
     Array e = testing::BuildArray({2, 1, 2, 1}).WithData<float>({19.f, 23.f, 43.f, 47.f});
-    testing::ExpectEqual(e, b);
+    EXPECT_ARRAY_EQ(e, b);
 }
 
 TEST(ArrayDotTest, Dot) {
@@ -1227,7 +1264,124 @@ TEST(ArrayDotTest, Dot) {
     Array b = testing::BuildArray({3, 2}).WithData<T>({1.f, 2.f, -1.f, -3.f, 2.f, 4.f}).WithPadding(2);
     Array c = a.Dot(b);
     Array e = testing::BuildArray({2, 2}).WithData<T>({5.f, 8.f, 11.f, 17.f});
-    testing::ExpectEqual(e, c);
+    EXPECT_ARRAY_EQ(e, c);
+}
+
+TEST(ArrayIsBackpropRequiredTest, IsBackpropRequiredNoGraph) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+
+    EXPECT_FALSE(a.IsBackpropRequired());
+    EXPECT_FALSE(a.IsBackpropRequired(AnyGraph{}));
+}
+
+TEST(ArrayIsBackpropRequiredTest, IsBackpropRequiredSingleGraph) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+    a.RequireGrad(backprop_id1);
+
+    EXPECT_FALSE(a.IsBackpropRequired());
+    EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+    EXPECT_TRUE(a.IsBackpropRequired(AnyGraph{}));
+    {
+        NoBackpropModeScope scope1{};
+        EXPECT_FALSE(a.IsBackpropRequired());
+        EXPECT_FALSE(a.IsBackpropRequired(backprop_id1));
+        EXPECT_FALSE(a.IsBackpropRequired(AnyGraph{}));
+        {
+            ForceBackpropModeScope scope2{backprop_id1};
+            EXPECT_FALSE(a.IsBackpropRequired());
+            EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+            EXPECT_TRUE(a.IsBackpropRequired(AnyGraph{}));
+        }
+    }
+}
+
+TEST(ArrayIsBackpropRequiredTest, IsBackpropRequiredMultipleGraphs) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropScope backprop_scope2{"bp2"};
+    BackpropScope backprop_scope3{"bp3"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+    BackpropId backprop_id2 = backprop_scope2.backprop_id();
+    BackpropId backprop_id3 = backprop_scope3.backprop_id();
+
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+    a.RequireGrad(backprop_id1);
+    a.RequireGrad(backprop_id2);
+
+    EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+    EXPECT_TRUE(a.IsBackpropRequired(backprop_id2));
+    EXPECT_TRUE(a.IsBackpropRequired(AnyGraph{}));
+    {
+        NoBackpropModeScope scope1{backprop_id1};
+        EXPECT_FALSE(a.IsBackpropRequired(backprop_id1));
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id2));
+        EXPECT_TRUE(a.IsBackpropRequired(AnyGraph{}));
+        {
+            NoBackpropModeScope scope2{backprop_id2};
+            EXPECT_FALSE(a.IsBackpropRequired(backprop_id1));
+            EXPECT_FALSE(a.IsBackpropRequired(backprop_id2));
+            EXPECT_FALSE(a.IsBackpropRequired(AnyGraph{}));
+            {
+                ForceBackpropModeScope scope3{backprop_id1};
+                EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+                EXPECT_FALSE(a.IsBackpropRequired(backprop_id2));
+                EXPECT_TRUE(a.IsBackpropRequired(AnyGraph{}));
+            }
+            {
+                ForceBackpropModeScope scope3{backprop_id2};
+                EXPECT_FALSE(a.IsBackpropRequired(backprop_id1));
+                EXPECT_TRUE(a.IsBackpropRequired(backprop_id2));
+                EXPECT_TRUE(a.IsBackpropRequired(AnyGraph{}));
+            }
+            {
+                ForceBackpropModeScope scope3{{backprop_id3}};
+                EXPECT_FALSE(a.IsBackpropRequired(backprop_id1));
+                EXPECT_FALSE(a.IsBackpropRequired(backprop_id2));
+                EXPECT_FALSE(a.IsBackpropRequired(AnyGraph{}));
+            }
+        }
+    }
+    {
+        NoBackpropModeScope scope{};
+        EXPECT_FALSE(a.IsBackpropRequired(backprop_id1));
+        EXPECT_FALSE(a.IsBackpropRequired(backprop_id2));
+        EXPECT_FALSE(a.IsBackpropRequired(AnyGraph{}));
+    }
+    {
+        NoBackpropModeScope scope{backprop_id1, backprop_id2};
+        EXPECT_FALSE(a.IsBackpropRequired(backprop_id1));
+        EXPECT_FALSE(a.IsBackpropRequired(backprop_id2));
+        EXPECT_FALSE(a.IsBackpropRequired(AnyGraph{}));
+    }
+}
+
+TEST(ArrayIsBackpropRequiredTest, IsBackpropRequiredAnotherContext) {
+    testing::DeviceSession device_session{DeviceId{"native", 0}};
+
+    BackpropScope backprop_scope1{"bp1"};
+    BackpropId backprop_id1 = backprop_scope1.backprop_id();
+
+    Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
+    a.RequireGrad(backprop_id1);
+
+    EXPECT_FALSE(a.IsBackpropRequired());
+    EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+    EXPECT_TRUE(a.IsBackpropRequired(AnyGraph{}));
+    {
+        testing::ContextSession another_context_session{};
+        NoBackpropModeScope scope{};
+        // BackpropModeScope of another context does not reflect.
+        EXPECT_FALSE(a.IsBackpropRequired());
+        EXPECT_TRUE(a.IsBackpropRequired(backprop_id1));
+        EXPECT_TRUE(a.IsBackpropRequired(AnyGraph{}));
+    }
 }
 
 }  // namespace

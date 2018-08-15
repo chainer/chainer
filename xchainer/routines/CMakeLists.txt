@@ -28,7 +28,7 @@ install(FILES
     DESTINATION include/xchainer/routines
     )
 
-if(${ENABLE_TEST})
+if(${XCHAINER_BUILD_TEST})
   add_executable(xchainer_routines_test
       connection_test.cc
       creation_test.cc
