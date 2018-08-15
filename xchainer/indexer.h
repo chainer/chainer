@@ -33,48 +33,6 @@ private:
     int8_t ndim_;
 };
 
-namespace indexer_detail {
-
-// IndexSource is either IndexIterator or NdimIndex.
-template <int8_t Ndim, typename IndexSource>
-XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImplBase(
-        IndexIterator<Ndim>& it, int8_t processed_dims, const IndexSource& index_source) {
-    assert(processed_dims + index_source.ndim() <= it.ndim());
-    for (int8_t i = 0; i < index_source.ndim(); ++i) {
-        it.index()[processed_dims + i] = index_source.index()[i];
-    }
-    return processed_dims + index_source.ndim();
-}
-
-template <int8_t Ndim>
-XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(IndexIterator<Ndim>& /*it*/, int8_t processed_dims) {
-    return processed_dims;
-}
-
-template <int8_t Ndim, typename IndexSource, typename... IndexSources>
-XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(
-        IndexIterator<Ndim>& it, int8_t processed_dims, IndexSource&& index_source, IndexSources&&... index_sources) {
-    processed_dims = CombineIteratorsImplBase(it, processed_dims, index_source);
-    return CombineIteratorsImpl(it, processed_dims, std::forward<IndexSources>(index_sources)...);
-}
-
-// Combine multiple sub-iterators to make a combined iterator.
-// Returns the number of written dimensions, which is equal to ndim_.
-// `processed_dims` is the number of written dimensions so far.
-template <int8_t Ndim, typename... IndexSources>
-XCHAINER_HOST_DEVICE void CombineIterators(IndexIterator<Ndim>& it, IndexSources&&... index_sources) {
-    int8_t processed_dims = indexer_detail::CombineIteratorsImpl<Ndim>(it, 0, std::forward<IndexSources>(index_sources)...);
-    (void)processed_dims;  // unused
-    assert(processed_dims == it.ndim());
-    if (XCHAINER_DEBUG) {
-        for (int8_t i = 0; i < it.ndim(); ++i) {
-            assert(0 <= it.index()[i]);
-        }
-    }
-}
-
-}  // namespace indexer_detail
-
 template <int8_t kNdim = kDynamicNdim>
 class Indexer {
 public:
@@ -91,7 +49,7 @@ public:
     template <int8_t NdimArg, typename... IndexIterators>
     XCHAINER_HOST_DEVICE IndexIterator<kNdim> At(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
         IndexIterator<kNdim> it = It(0);
-        indexer_detail::CombineIterators<kNdim>(it, first_iter, std::forward<IndexIterators>(iters)...);
+        internal::CombineIterators<kNdim>(it, first_iter, std::forward<IndexIterators>(iters)...);
         return it;
     }
 
@@ -123,7 +81,7 @@ public:
     template <int8_t NdimArg, typename... IndexIterators>
     XCHAINER_HOST_DEVICE IndexIterator<0> At(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
         IndexIterator<0> it = It(0);
-        indexer_detail::CombineIterators<0>(it, first_iter, std::forward<IndexIterators>(iters)...);
+        internal::CombineIterators<0>(it, first_iter, std::forward<IndexIterators>(iters)...);
         return it;
     }
 
@@ -147,7 +105,7 @@ public:
     template <int8_t NdimArg, typename... IndexIterators>
     XCHAINER_HOST_DEVICE IndexIterator<1> At(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
         IndexIterator<1> it = It(0);
-        indexer_detail::CombineIterators<1>(it, first_iter, std::forward<IndexIterators>(iters)...);
+        internal::CombineIterators<1>(it, first_iter, std::forward<IndexIterators>(iters)...);
         return it;
     }
 
@@ -176,8 +134,7 @@ public:
     template <typename IndexSource, typename... IndexSources>
     XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim> At(IndexSource&& index_source, IndexSources&&... index_sources) {
         IndexIterator<kDynamicNdim> it = It(0);
-        indexer_detail::CombineIterators<kDynamicNdim>(
-                it, std::forward<IndexSource>(index_source), std::forward<IndexSources>(index_sources)...);
+        internal::CombineIterators<kDynamicNdim>(it, std::forward<IndexSource>(index_source), std::forward<IndexSources>(index_sources)...);
         return it;
     }
 

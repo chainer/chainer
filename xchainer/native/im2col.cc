@@ -51,15 +51,37 @@ void Im2ColImpl(
 
     NdimIndex img_index{kKernelNdim};
 
-    for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
-        for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
-            for (auto it_out_dims = out_dims_indexer.It(0); it_out_dims; ++it_out_dims) {
+    auto it_batch_channel = batch_channel_indexer.It(0);
+    auto it_kernel = kernel_indexer.It(0);
+    auto it_out_dims = out_dims_indexer.It(0);
+    auto it_x = x_indexer.It(0);
+    auto it_out = out_indexer.It(0);
+    for (it_batch_channel.Restart(); it_batch_channel; ++it_batch_channel) {
+        for (it_kernel.Restart(); it_kernel; ++it_kernel) {
+            for (it_out_dims.Restart(); it_out_dims; ++it_out_dims) {
                 for (int i = 0; i < kKernelNdim; ++i) {
                     img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i];
                 }
 
-                auto it_x = x_indexer.At(it_batch_channel, img_index);
-                auto it_out = out_indexer.At(it_batch_channel, it_kernel, it_out_dims);
+                // TODO(sonots): fast, but ...
+                for (int i = 0; i < 2; ++i) {
+                    it_x.index()[i] = it_batch_channel.index()[i];
+                }
+                for (int i = 0; i < kKernelNdim; ++i) {
+                    it_x.index()[i + 2] = img_index.index()[i];
+                }
+
+                for (int i = 0; i < 2; ++i) {
+                    it_out.index()[i] = it_batch_channel.index()[i];
+                }
+                for (int i = 0; i < kKernelNdim; ++i) {
+                    it_out.index()[i + 2] = it_kernel.index()[i];
+                }
+                for (int i = 0; i < kKernelNdim; ++i) {
+                    it_out.index()[i + 2 + kKernelNdim] = it_out_dims.index()[i];
+                }
+                // it_x.Combine(it_batch_channel, img_index);
+                // it_out.Combine(it_batch_channel, it_kernel, it_out_dims);
 
                 // Write the output column value.
                 out_iarray[it_out] = x_iarray[it_x];
