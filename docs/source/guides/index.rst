@@ -15,4 +15,5 @@ Guides
    gpu
    type_checks
    serializers
+   export
    report
