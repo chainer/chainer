@@ -136,10 +136,6 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        # TODO(takagi): curiously large error on FP64
-        if self.dtype == numpy.float64:
-            self.places = 0
-
         with chainer.using_config('use_cudnn', 'always'):
             self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
@@ -151,10 +147,6 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_no_cudnn(self):
-        # TODO(takagi): curiously large error on FP64
-        if self.dtype == numpy.float64:
-            self.places = 0
-
         with chainer.using_config('use_cudnn', 'never'):
             self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
@@ -242,10 +234,6 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
 
     @attr.gpu
     def test_double_backward_gpu(self):
-        # TODO(takagi): curiously large error on FP64
-        if self.dtype == numpy.float64:
-            self.check_double_backward_options = {'atol': 3e1, 'rtol': 1e-2}
-
         with chainer.using_config('use_cudnn', 'always'):
             self.check_double_backward(cuda.to_gpu(self.x),
                                        cuda.to_gpu(self.t),
