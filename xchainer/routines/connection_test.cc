@@ -17,6 +17,7 @@
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
+#include "xchainer/testing/routines.h"
 
 namespace xchainer {
 namespace {
@@ -56,7 +57,6 @@ TEST_P(ConnectionTest, Conv2d) {
     Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
     Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
-    Array y = Conv(x, w, b, stride, pad, cover_all);
 
     Array e = testing::BuildArray(out_shape).WithData<float>(
             {-2.00000e-01, -2.00000e-01, -2.00000e-01, 2.71198e+04,  2.67778e+04,  2.64358e+04,  2.35288e+04,  2.31868e+04,  2.28448e+04,
@@ -67,7 +67,14 @@ TEST_P(ConnectionTest, Conv2d) {
              1.30000e+00,  1.30000e+00,  1.30000e+00,  1.76173e+04,  1.79233e+04,  1.82293e+04,  2.08303e+04,  2.11363e+04,  2.14423e+04,
              2.40433e+04,  2.43493e+04,  2.46553e+04,  1.30000e+00,  1.30000e+00,  1.30000e+00});  // Computed with Chainer.
 
-    EXPECT_ARRAY_EQ(e, y);
+    testing::CheckForward(
+            [&stride, &pad, &cover_all](const std::vector<Array>& xs) {
+                return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, cover_all)};
+            },
+            {x, w, b},
+            {e},
+            // TODO(niboshi): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ConnectionTest, ConvNd) {
