@@ -252,6 +252,34 @@ TEST_P(ArrayTest, Grad) {
 }
 
 // TODO(niboshi): Move to ArrayGradTest
+TEST_P(ArrayTest, GetGradIntermediateArray) {
+    using T = float;
+    BackpropScope backprop_scope{"bp1"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
+
+    Array x = testing::BuildArray({2, 3}).WithData<T>({5, 3, 2, 1, 4, 6});
+    x.RequireGrad(backprop_id);
+    Array y = x * 3;
+    Array z = y * y;
+
+    y.RequireGrad(backprop_id);
+    ASSERT_TRUE(x.IsGradRequired(backprop_id));
+    ASSERT_TRUE(y.IsGradRequired(backprop_id));
+    ASSERT_FALSE(z.IsGradRequired(backprop_id));
+
+    Backward(z, backprop_id);
+
+    ASSERT_TRUE(x.IsGradRequired(backprop_id));
+    ASSERT_TRUE(y.IsGradRequired(backprop_id));
+    ASSERT_FALSE(z.IsGradRequired(backprop_id));
+    ASSERT_TRUE(x.GetGrad(backprop_id).has_value());
+    ASSERT_TRUE(y.GetGrad(backprop_id).has_value());
+
+    EXPECT_ARRAY_EQ(2 * y, *y.GetGrad(backprop_id));
+    EXPECT_ARRAY_EQ(18 * x, *x.GetGrad(backprop_id));
+}
+
+// TODO(niboshi): Move to ArrayGradTest
 TEST_P(ArrayTest, InvalidSetGradNoGraph) {
     using T = float;
     BackpropScope backprop_scope{"bp1"};

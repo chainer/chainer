@@ -223,7 +223,7 @@ private:
             }
         }
 
-        // If output array nodes are not output nodes of backward, clear their gradients
+        // If the output gradients corresponding to the output array nodes are not flagged as required, clear them.
         for (const std::shared_ptr<ArrayNode>& output_array_node : output_array_nodes) {
             if (output_array_node == nullptr) {
                 continue;
@@ -235,8 +235,8 @@ private:
                 output_array_nodes_.end()) {
                 if (output_array_node != nullptr) {
                     std::shared_ptr<ArrayBody> body = output_array_node->weak_body().lock();
-                    if (body != nullptr) {
-                        body->ClearGrad(output_array_node->backprop_id());
+                    if (body != nullptr && !body->IsGradRequired(backprop_id_)) {
+                        body->ClearGrad(backprop_id_);
                     }
                 }
             }
