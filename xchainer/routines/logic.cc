@@ -10,14 +10,15 @@
 
 namespace xchainer {
 
-Array Equal(const Array& x1, const Array& x2) {
-    CheckEqual(x1.dtype(), x2.dtype());
+namespace {
 
-    auto func = [](const Array& x1, const Array& x2) {
+template <typename Impl>
+Array BroadcastComparison(Impl&& impl, const Array& x1, const Array& x2) {
+    auto func = [&impl](const Array& x1, const Array& x2) {
         Array out = Empty(x1.shape(), Dtype::kBool, x1.device());
         {
             NoBackpropModeScope scope{};
-            x1.device().Equal(x1, x2, out);
+            impl(x1, x2, out);
         }
         return out;
     };
@@ -33,6 +34,33 @@ Array Equal(const Array& x1, const Array& x2) {
         return func(x1.BroadcastTo(result_shape), x2);
     }
     return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
+}
+
+}  // namespace
+
+Array Equal(const Array& x1, const Array& x2) {
+    CheckEqual(x1.dtype(), x2.dtype());
+    auto func = [](const Array& x1, const Array& x2, Array& out) {
+        return x1.device().Equal(x1, x2, out);
+    };
+    return BroadcastComparison(func, x1, x2);
+}
+
+Array Greater(const Array& x1, const Array& x2) {
+    CheckEqual(x1.dtype(), x2.dtype());
+    auto func = [](const Array& x1, const Array& x2, Array& out) {
+        return x1.device().Greater(x1, x2, out);
+    };
+    return BroadcastComparison(func, x1, x2);
+}
+
+Array Not(const Array& x1) {
+    Array out = Empty(x1.shape(), Dtype::kBool, x1.device());
+    {
+        NoBackpropModeScope scope{};
+        x1.device().Not(x1, out);
+    }
+    return out;
 }
 
 }  // namespace xchainer
