@@ -129,11 +129,8 @@ TEST_P(LogicTest, Not) {
         bool e;
     };
 
-    std::vector<Param> data = {{1.0f, false},
-                               {0.0f, true},
-                               {-0.0f, true},
-                               {std::nanf(""), false},
-                               {std::numeric_limits<T>::infinity(), false}};
+    std::vector<Param> data = {
+            {1.0f, false}, {0.0f, true}, {-0.0f, true}, {std::nanf(""), false}, {std::numeric_limits<T>::infinity(), false}};
     std::vector<T> a_data;
     std::vector<bool> e_data;
     std::transform(data.begin(), data.end(), std::back_inserter(a_data), [](const auto& param) { return param.a; });

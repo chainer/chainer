@@ -40,17 +40,13 @@ Array BroadcastComparison(Impl&& impl, const Array& x1, const Array& x2) {
 
 Array Equal(const Array& x1, const Array& x2) {
     CheckEqual(x1.dtype(), x2.dtype());
-    auto func = [](const Array& x1, const Array& x2, Array& out) {
-        return x1.device().Equal(x1, x2, out);
-    };
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().Equal(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
 Array Greater(const Array& x1, const Array& x2) {
     CheckEqual(x1.dtype(), x2.dtype());
-    auto func = [](const Array& x1, const Array& x2, Array& out) {
-        return x1.device().Greater(x1, x2, out);
-    };
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().Greater(x1, x2, out); };
     return BroadcastComparison(func, x1, x2);
 }
 
