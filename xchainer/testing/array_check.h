@@ -45,11 +45,9 @@ bool IsSubset(const SubsetContainer& subset, const SupersetContainer& superset) 
     });
 }
 
-}  // namespace array_check_detail
-
 template <typename ActualContainer, typename T = typename ActualContainer::value_type>
 ::testing::AssertionResult IsSetEqual(const std::vector<T>& expected, const ActualContainer& actual) {
-    bool result = array_check_detail::IsSubset(expected, actual) && array_check_detail::IsSubset(actual, expected);
+    bool result = IsSubset(expected, actual) && IsSubset(actual, expected);
     if (result) {
         return ::testing::AssertionSuccess();
     }
@@ -72,6 +70,8 @@ template <typename ActualContainer, typename T = typename ActualContainer::value
     return os;
 }
 
+}  // namespace array_check_detail
+
 inline ::testing::AssertionResult IsBackpropIdsEqual(const std::vector<BackpropId>& expected, const Array& array) {
     std::vector<BackpropId> actual;
     std::vector<std::shared_ptr<internal::ArrayNode>>& nodes = internal::GetArrayBody(array)->nodes();
@@ -79,7 +79,7 @@ inline ::testing::AssertionResult IsBackpropIdsEqual(const std::vector<BackpropI
     std::transform(nodes.begin(), nodes.end(), std::back_inserter(actual), [](const std::shared_ptr<internal::ArrayNode>& node) {
         return node->backprop_id();
     });
-    return IsSetEqual(expected, actual);
+    return array_check_detail::IsSetEqual(expected, actual);
 }
 
 // TODO(hvy): Allow friendlier failure messages by avoiding EXPECT_* and return ::testing::AssertionResult instead.
