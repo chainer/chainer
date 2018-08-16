@@ -492,9 +492,9 @@ TEST_P(ConnectionTest, ConvTransposeBackward) {
     Shape out_shape{batch_size, out_channels};
     std::copy(out_dims.begin(), out_dims.end(), std::back_inserter(out_shape));
 
-    Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
-    Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
-    Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
+    Array x = (*testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1)).RequireGrad();
+    Array w = (*testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f)).RequireGrad();
+    Array b = (*testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f})).RequireGrad();
 
     Array go = testing::BuildArray(out_shape).WithLinearData(-0.1f, 0.1f).WithPadding(1);
 
