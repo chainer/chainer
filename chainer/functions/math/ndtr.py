@@ -55,7 +55,7 @@ class Ndtr(function_node.FunctionNode):
 
 
 def ndtr(x):
-    """Cumulative distribution function of normal distribution.
+    """Elementwise cumulative distribution function of normal distribution.
 
     .. note::
        Forward computation in CPU can be slow if
