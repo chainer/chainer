@@ -79,17 +79,17 @@ void CheckOutputArraysEqual(const std::vector<Array>& expected, const std::vecto
             }
             os << i;
         }
-        os << std::endl;
-        os << "Atol: " << atol << "  Rtol: " << rtol << std::endl;
+        os << "\n";
+        os << "Atol: " << atol << "  Rtol: " << rtol << "\n";
         for (size_t i : failed_input_indices) {
             const Array& e = expected[i];
             const Array& a = actual[i];
-            os << "Error[" << i << "]:" << std::endl
-               << e - a << std::endl  // TODO(niboshi): Use abs
-               << "Actual output[" << i << "]:" << std::endl
-               << a << std::endl
-               << "Expected output[" << i << "]:" << std ::endl
-               << e << std::endl;
+            os << "Error[" << i << "]:\n"
+               << e - a << "\n"  // TODO(niboshi): Use abs
+               << "Actual output[" << i << "]:\n"
+               << a << "\n"
+               << "Expected output[" << i << "]:\n"
+               << e << "\n";
         }
         throw RoutinesCheckError{os.str()};
     }
