@@ -16,10 +16,10 @@ namespace xchainer {
 namespace testing {
 namespace {
 
-void CheckArraysEqual(const std::vector<Array>& expected, const std::vector<Array>& actual, double atol, double rtol) {
+void CheckOutputArraysEqual(const std::vector<Array>& expected, const std::vector<Array>& actual, double atol, double rtol) {
     // Number of outputs
     if (expected.size() != actual.size()) {
-        throw RoutinesCheckError{"Number of arrays does not match."};
+        throw RoutinesCheckError{"Number of output arrays does not match."};
     }
 
     // Output array properties
@@ -108,7 +108,7 @@ void CheckForward(
         double rtol) {
     // Run single-shot test
     std::vector<Array> outputs = func(inputs);
-    CheckArraysEqual(expected_outputs, outputs, atol, rtol);
+    CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
 
     // Run thread safety check
     if (concurrent_check_repeat_count > 0) {
@@ -121,7 +121,7 @@ void CheckForward(
                 [&func, &inputs, &expected_outputs, &atol, &rtol, &context](size_t /*thread_index*/, std::nullptr_t) {
                     xchainer::SetDefaultContext(&context);
                     std::vector<Array> outputs = func(inputs);
-                    CheckArraysEqual(expected_outputs, outputs, atol, rtol);
+                    CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
                     return nullptr;
                 },
                 [](const std::vector<std::nullptr_t>&) {});
