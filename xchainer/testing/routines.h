@@ -22,7 +22,7 @@ void CheckForward(
         const std::vector<Array>& inputs,
         const std::vector<Array>& expected_outputs,
         size_t concurrent_check_repeat_count = 0U,
-        size_t concurrent_check_thread_count = 256U,
+        size_t concurrent_check_thread_count = 2U,
         double atol = 1e-5,
         double rtol = 1e-4);
 
