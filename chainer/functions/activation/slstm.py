@@ -265,39 +265,35 @@ class SLSTMGrad(function.Function):
         return gc_prev1, gc_prev2, gx1, gx2, gc_next, ggc, ggh
 
 
-def _cupy_sigmoid(x):
-    half = x.dtype.type(0.5)
-    return cuda.fusion.tanh(x * half) * half + half
-
-
 @cuda.fuse()
 def slstm_grad_grad(c_prev1, a1, i1, f1,
                     c_prev2, a2, i2, f2,
                     o, c, gc, gh,
                     ggc_prev1, gga1, ggi1, ggf1, ggo1,
                     ggc_prev2, gga2, ggi2, ggf2, ggo2):
-    sig_o = _cupy_sigmoid(o)
+    xp = cuda.get_array_module(a1)
+    sig_o = _sigmoid(o, xp)
     gsig_o = _grad_sigmoid(sig_o)
     ggsig_o = _grad_grad_sigmoid(sig_o)
-    sig_i1 = _cupy_sigmoid(i1)
+    sig_i1 = _sigmoid(i1, xp)
     gsig_i1 = _grad_sigmoid(sig_i1)
     ggsig_i1 = _grad_grad_sigmoid(sig_i1)
-    sig_i2 = _cupy_sigmoid(i2)
+    sig_i2 = _sigmoid(i2, xp)
     gsig_i2 = _grad_sigmoid(sig_i2)
     ggsig_i2 = _grad_grad_sigmoid(sig_i2)
-    sig_f1 = _cupy_sigmoid(f1)
+    sig_f1 = _sigmoid(f1, xp)
     gsig_f1 = _grad_sigmoid(sig_f1)
     ggsig_f1 = _grad_grad_sigmoid(sig_f1)
-    sig_f2 = _cupy_sigmoid(f2)
+    sig_f2 = _sigmoid(f2, xp)
     gsig_f2 = _grad_sigmoid(sig_f2)
     ggsig_f2 = _grad_grad_sigmoid(sig_f2)
-    tanh_a1 = cuda.fusion.tanh(a1)
+    tanh_a1 = xp.tanh(a1)
     gtanh_a1 = _grad_tanh(tanh_a1)
     ggtanh_a1 = _grad_grad_tanh(tanh_a1, gtanh_a1)
-    tanh_a2 = cuda.fusion.tanh(a2)
+    tanh_a2 = xp.tanh(a2)
     gtanh_a2 = _grad_tanh(tanh_a2)
     ggtanh_a2 = _grad_grad_tanh(tanh_a2, gtanh_a2)
-    tanh_c = cuda.fusion.tanh(c)
+    tanh_c = xp.tanh(c)
     gtanh_c = _grad_tanh(tanh_c)
     ggtanh_c = _grad_grad_tanh(tanh_c, gtanh_c)
 
