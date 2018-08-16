@@ -146,6 +146,7 @@ from chainer.functions.math.inv import batch_inv  # NOQA
 from chainer.functions.math.inv import inv  # NOQA
 from chainer.functions.math.lgamma import lgamma  # NOQA
 from chainer.functions.math.linear_interpolate import linear_interpolate  # NOQA
+from chainer.functions.math.log_ndtr import log_ndtr  # NOQA
 from chainer.functions.math.logarithm_1p import log1p  # NOQA
 from chainer.functions.math.logsumexp import logsumexp  # NOQA
 from chainer.functions.math.matmul import batch_matmul  # NOQA
