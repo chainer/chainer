@@ -13,6 +13,10 @@ from chainer.utils import type_check
 _ndtr_cpu = None
 
 
+def _slow_ndtr_cpu(x):
+    return 0.5 * math.erfc(-x / 2 ** 0.5)
+
+
 class Ndtr(function_node.FunctionNode):
 
     @property
@@ -33,7 +37,7 @@ class Ndtr(function_node.FunctionNode):
                 warnings.warn(
                     "SciPy is not available. Forward computation of ndtr in"
                     " CPU can be slow without SciPy.")
-                _ndtr_cpu = numpy.vectorize(math.ndtr)
+                _ndtr_cpu = numpy.vectorize(_slow_ndtr_cpu)
         self.retain_inputs((0,))
         return utils.force_array(_ndtr_cpu(x[0]), dtype=x[0].dtype),
 

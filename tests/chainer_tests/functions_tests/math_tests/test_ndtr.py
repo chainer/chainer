@@ -1,3 +1,4 @@
+import math
 import unittest
 
 import numpy
@@ -5,11 +6,13 @@ import numpy
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
+from chainer import utils
 
 
 def _ndtr_cpu(x, dtype):
-    from scipy import special
-    return special.ndtr(x).astype(dtype)
+    erfc = numpy.vectorize(
+        lambda x: 0.5 * math.erfc(-x / 2 ** 0.5))
+    return utils.force_array(erfc(x), dtype=dtype)
 
 
 def _ndtr_gpu(x, dtype):
@@ -27,7 +30,6 @@ def _ndtr_expected(x, dtype):
     F.ndtr,
     func_expected=_ndtr_expected,
 )
-@testing.with_requires('scipy')
 class TestNdtr(unittest.TestCase):
     pass
 
