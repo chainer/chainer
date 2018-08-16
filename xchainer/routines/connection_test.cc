@@ -74,8 +74,7 @@ TEST_P(ConnectionTest, Conv2d) {
             {x, w, b},
             {e},
             // TODO(niboshi): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 100,
-            16);
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ConnectionTest, ConvNd) {
