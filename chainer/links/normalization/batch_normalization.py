@@ -225,10 +225,10 @@ class BatchNormalization(link.Link):
     def _initialize_params(self, shape):
         dtype = self._dtype
         self.avg_mean = _init_array(self._initial_avg_mean, 0, shape, dtype)
-        del self._initial_avg_mean
+        self._initial_avg_mean = None
         self.register_persistent('avg_mean')
         self.avg_var = _init_array(self._initial_avg_var, 1, shape, dtype)
-        del self._initial_avg_var
+        self._initial_avg_var = None
         self.register_persistent('avg_var')
         if self.gamma is not None:
             self.gamma.initialize(shape)
