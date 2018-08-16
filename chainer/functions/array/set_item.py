@@ -6,7 +6,7 @@ from chainer.utils import type_check
 
 class CopiedSetItem(function_node.FunctionNode):
 
-    """Set given values to specified elements of an array"""
+    """Sets given values to specified elements of an array"""
 
     def __init__(self, slices):
         if isinstance(slices, list):
@@ -57,7 +57,7 @@ class CopiedSetItem(function_node.FunctionNode):
 
 
 def copied_set_item(x, slices, rhs):
-    """Copy array and do setitem
+    """Copies array and does setitem
 
     Args:
         x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
