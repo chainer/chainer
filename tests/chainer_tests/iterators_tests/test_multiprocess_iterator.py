@@ -2,7 +2,6 @@ from __future__ import division
 import copy
 import datetime
 import errno
-import multiprocessing
 import os
 import signal
 import subprocess
@@ -11,6 +10,7 @@ import tempfile
 import threading
 import time
 import unittest
+import warnings
 
 import numpy
 import pytest
@@ -702,16 +702,18 @@ if __name__ == '__main__':
 
 class StallingDataset(object):
 
-    def __init__(self, nth):
+    def __init__(self, nth, sleep):
+        self.data = [0, 1, 2, 3, 4]
         self.nth = nth
+        self.sleep = sleep
 
     def __len__(self):
-        return 10
+        return len(self.data)
 
     def __getitem__(self, i):
         if i == self.nth:
-            time.sleep(10)
-        return i
+            time.sleep(self.sleep)
+        return self.data[i]
 
 
 @testing.parameterize(*testing.product({
@@ -719,21 +721,70 @@ class StallingDataset(object):
 }))
 class TestMultiprocessIteratorStalledDatasetDetection(unittest.TestCase):
 
-    def test_stalled_getitem(self):
+    def test_stalled_getitem_warn(self):
         nth = self.nth
+        batch_size = 2
+        sleep = 0.5
+        timeout = 0.1
 
-        dataset = StallingDataset(nth)
+        dataset = StallingDataset(nth, sleep)
         it = iterators.MultiprocessIterator(
-            dataset, 2, shuffle=False, dataset_timeout=1)
+            dataset, batch_size=batch_size, shuffle=False,
+            dataset_timeout=timeout, repeat=False)
+
+        # TimeoutWarning should be issued.
+        warning_cls = iterators.MultiprocessIterator.TimeoutWarning
+        data = []
+        # No warning until the stalling batch
+        for i in range(nth // batch_size):
+            data.append(it.next())
+        # Warning on the stalling batch
+        with testing.assert_warns(warning_cls):
+            data.append(it.next())
+        # Retrieve data until the end
+        while True:
+            try:
+                data.append(it.next())
+            except StopIteration:
+                break
+
+        # All data must be retrieved
+        assert data == [
+            dataset.data[i * batch_size: (i+1) * batch_size]
+            for i in range((len(dataset) + batch_size - 1) // batch_size)]
+
+    def test_stalled_getitem_as_error(self):
+        # Confirms TimeoutWarning turns into error by using
+        # warnings.filterwarnings
+        nth = self.nth
+        batch_size = 2
+        sleep = 10.0
+        timeout = 1.0
+
+        dataset = StallingDataset(nth, sleep)
+        it = iterators.MultiprocessIterator(
+            dataset, batch_size=batch_size, shuffle=False,
+            dataset_timeout=timeout, repeat=False)
 
         time_start = datetime.datetime.now()
 
-        # TimeoutError should be raised.
-        # Note that the error can be raised in an earlier fetch because fetches
-        # are done in per-batch manner.
-        with pytest.raises(multiprocessing.TimeoutError):
-            for i in range(nth + 1):
+        # TimeoutWarning should be issued as an error.
+        warning_cls = iterators.MultiprocessIterator.TimeoutWarning
+        data = []
+        # No error until the stalling batch
+        with warnings.catch_warnings():
+            warnings.filterwarnings('error', '', warning_cls)
+            for i in range(nth // batch_size):
+                data.append(it.next())
+        # Error on the stalling batch
+        with pytest.raises(warning_cls):
+            with warnings.catch_warnings():
+                warnings.filterwarnings('error', '', warning_cls)
                 it.next()
+
+        assert data == [
+            dataset.data[i * batch_size: (i+1) * batch_size]
+            for i in range(nth // batch_size)]
 
         # Check total time: it should not take too long
         time_end = datetime.datetime.now()

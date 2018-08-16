@@ -21,13 +21,14 @@ _PrefetchState = collections.namedtuple('_PrefetchState', (
     'previous_epoch_detail', 'order'))
 
 
-def _raise_timeout_error():
-    raise multiprocessing.TimeoutError(
+def _raise_timeout_warning():
+    warnings.warn(
         'Stalled dataset is detected. '
         'See the documentation of MultiprocessIterator for common causes and '
         'workarounds:\n'
         'https://docs.chainer.org/en/stable/reference/generated/'
-        'chainer.iterators.MultiprocessIterator.html')
+        'chainer.iterators.MultiprocessIterator.html',
+        MultiprocessIterator.TimeoutWarning)
 
 
 class MultiprocessIterator(iterator.Iterator):
@@ -72,9 +73,15 @@ class MultiprocessIterator(iterator.Iterator):
         n_prefetch (int): Number of prefetch batches.
         shared_mem (int): The size of using shared memory per data.
             If ``None``, size is adjusted automatically.
-        dataset_timeout (float): :class:`multiprocessing.TimeoutError` will be
-            raised after this time in seconds elapsed in each dataset
-            realization. ``None`` to disable the error.
+        dataset_timeout (float): :class:`MultiprocessIterator.TimeoutWarning`
+            will be issued after this time in seconds elapsed in each dataset
+            realization. ``None`` to disable the warning. You can turn this
+            warning into an error by using :func:`warnings.filterwarnings`::
+
+                warnings.filterwarnings(
+                    'error', '',
+                    chainer.iterators.MultiprocessIterator.TimeoutWarning)
+
         order_sampler (callable): A callable that generates the order
             of the indices to sample in the next epoch when a epoch finishes.
             This function should take two arguements: the current order
@@ -84,6 +91,9 @@ class MultiprocessIterator(iterator.Iterator):
             This option cannot be used when ``shuffle`` is not ``None``.
 
     """
+
+    class TimeoutWarning(RuntimeWarning):
+        pass
 
     _interruption_testing = False  # for testing
     _finalized = False
@@ -289,7 +299,7 @@ class _Communicator(object):
                 if (self.dataset_timeout is not None
                         and dt > datetime.timedelta(
                             seconds=self.dataset_timeout)):
-                    _raise_timeout_error()
+                    _raise_timeout_warning()
             batch, prefetch_state = self._batch_queue.pop(0)
             self._not_full_cond.notify()
             return batch, prefetch_state
@@ -400,7 +410,8 @@ class _PrefetchLoop(object):
                 thr.start()
                 thr.join(dataset_timeout)
                 if thr.is_alive():
-                    _raise_timeout_error()
+                    _raise_timeout_warning()
+                thr.join()
 
             batch = batch_ret[0]
             self.mem_size = max(map(_measure, batch))
