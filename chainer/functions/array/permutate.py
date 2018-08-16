@@ -45,7 +45,7 @@ class Permutate(function_node.FunctionNode):
         self.inv = inv
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 'indices'))
         x_type, ind_type = in_types
         if self.axis < 0:
             type_check.expect(x_type.ndim >= -self.axis)
