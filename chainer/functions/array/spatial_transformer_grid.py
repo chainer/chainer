@@ -16,7 +16,6 @@ class SpatialTransformerGrid(function.Function):
 
     def __init__(self, output_shape):
         self.output_shape = output_shape
-        self._dtype = chainer.get_dtype()
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -63,13 +62,13 @@ class SpatialTransformerGrid(function.Function):
         xp = cuda.get_array_module(theta)
 
         ys, xs = xp.meshgrid(
-            xp.linspace(-1, 1, H, dtype=self._dtype),
-            xp.linspace(-1, 1, W, dtype=self._dtype), indexing='ij',
+            xp.linspace(-1, 1, H, dtype=theta.dtype),
+            xp.linspace(-1, 1, W, dtype=theta.dtype), indexing='ij',
             copy=False
         )
 
         coords = xp.concatenate(
-            [xs[None], ys[None], xp.ones((1, H, W), dtype=self._dtype)],
+            [xs[None], ys[None], xp.ones((1, H, W), dtype=theta.dtype)],
             axis=0)
         grid = theta.dot(coords.reshape(3, H * W)).reshape(B, 2, H, W)
         return grid,
@@ -99,13 +98,13 @@ class SpatialTransformerGrid(function.Function):
         xp = cuda.get_array_module(theta)
 
         ys, xs = xp.meshgrid(
-            xp.linspace(-1, 1, H, dtype=self._dtype),
-            xp.linspace(-1, 1, W, dtype=self._dtype), indexing='ij',
+            xp.linspace(-1, 1, H, dtype=theta.dtype),
+            xp.linspace(-1, 1, W, dtype=theta.dtype), indexing='ij',
             copy=False
         )
 
         coords = xp.concatenate(
-            [xs[None], ys[None], xp.ones((1, H, W), dtype=self._dtype)],
+            [xs[None], ys[None], xp.ones((1, H, W), dtype=theta.dtype)],
             axis=0)
         coords_T = coords.reshape(3, H * W).transpose(1, 0)
         ggrid = ggrid.reshape(B, 2, H * W)

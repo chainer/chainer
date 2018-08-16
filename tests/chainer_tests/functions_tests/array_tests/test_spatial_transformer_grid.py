@@ -27,20 +27,14 @@ from chainer.testing import attr
 class TestSpatialTransformerGrid(unittest.TestCase):
 
     def setUp(self):
-        self._config_user = chainer.using_config('dtype', self.dtype)
-        self._config_user.__enter__()
-
         B = 3
         self.theta = numpy.random.uniform(size=(B, 2, 3)).astype(self.dtype)
         self.output_shape = (5, 6)
         self.grads = numpy.random.uniform(
-            size=(B, 2) + self.output_shape).astype(self.theta.dtype)
+            size=(B, 2) + self.output_shape).astype(self.dtype)
 
         self.check_backward_options = {
             'atol': 1e-4, 'rtol': 1e-3}
-
-    def tearDown(self):
-        self._config_user.__exit__(None, None, None)
 
     def check_forward(self, theta, output_shape):
         grid = functions.spatial_transformer_grid(theta, output_shape).data
@@ -58,7 +52,7 @@ class TestSpatialTransformerGrid(unittest.TestCase):
         expected = numpy.array(
             expected).reshape(B, H, W, 2).transpose(0, 3, 1, 2)
         testing.assert_allclose(grid, expected, **self.forward_options)
-        self.assertEqual(grid.dtype, theta.dtype)
+        self.assertEqual(grid.dtype, self.dtype)
 
     def test_forward_cpu(self):
         self.check_forward(self.theta, self.output_shape)
