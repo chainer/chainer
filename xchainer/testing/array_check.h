@@ -1,12 +1,15 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <vector>
 
 #include <gtest/gtest.h>
 
 #include "xchainer/array.h"
 #include "xchainer/array_body.h"
+#include "xchainer/array_node.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
 
@@ -31,6 +34,53 @@ namespace testing_internal {
 ::testing::AssertionResult HaveDistinctArrayNodes(const char* a_expr, const char* b_expr, const Array& a, const Array& b);
 
 }  // namespace testing_internal
+
+namespace array_check_detail {
+
+// Checks if `subset` is a subset of `superset` and `superset` have no duplicate elements.
+template <typename SubsetContainer, typename SupersetContainer>
+bool IsSubset(const SubsetContainer& subset, const SupersetContainer& superset) {
+    return std::all_of(subset.begin(), subset.end(), [&superset](const auto& l) {
+        return std::count_if(superset.begin(), superset.end(), [&l](const auto& r) { return l == r; }) == 1;
+    });
+}
+
+template <typename ActualContainer, typename T = typename ActualContainer::value_type>
+::testing::AssertionResult IsSetEqual(const std::vector<T>& expected, const ActualContainer& actual) {
+    bool result = IsSubset(expected, actual) && IsSubset(actual, expected);
+    if (result) {
+        return ::testing::AssertionSuccess();
+    }
+    ::testing::AssertionResult os = ::testing::AssertionFailure();
+    os << "Expected : { ";
+    for (auto it = expected.begin(); it != expected.end(); ++it) {
+        os << *it;
+        if (it != std::prev(expected.end())) {
+            os << ", ";
+        }
+    }
+    os << " }\nTo be equal to { ";
+    for (auto it = actual.begin(); it != actual.end(); ++it) {
+        os << *it;
+        if (it != std::prev(actual.end())) {
+            os << ", ";
+        }
+    }
+    os << " }\n";
+    return os;
+}
+
+}  // namespace array_check_detail
+
+inline ::testing::AssertionResult IsBackpropIdsEqual(const std::vector<BackpropId>& expected, const Array& array) {
+    std::vector<BackpropId> actual;
+    std::vector<std::shared_ptr<internal::ArrayNode>>& nodes = internal::GetArrayBody(array)->nodes();
+    actual.reserve(nodes.size());
+    std::transform(nodes.begin(), nodes.end(), std::back_inserter(actual), [](const std::shared_ptr<internal::ArrayNode>& node) {
+        return node->backprop_id();
+    });
+    return array_check_detail::IsSetEqual(expected, actual);
+}
 
 // TODO(hvy): Allow friendlier failure messages by avoiding EXPECT_* and return ::testing::AssertionResult instead.
 template <typename T, typename Container>
