@@ -1,4 +1,3 @@
-import numpy
 import six
 
 import chainer
@@ -15,7 +14,7 @@ class BatchL2NormSquared(function_node.FunctionNode):
         x_type, = in_types
 
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             x_type.ndim >= 2,
         )
 
