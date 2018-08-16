@@ -1242,7 +1242,8 @@ TEST(ArrayIsBackpropRequiredTest, IsBackpropRequiredNoGraph) {
     testing::DeviceSession device_session{DeviceId{"native", 0}};
     Array a = testing::BuildArray({2, 1}).WithLinearData<float>();
 
-    EXPECT_TRUE(testing::IsBackpropIdsEqual({}, a));
+    EXPECT_FALSE(a.IsBackpropRequired());
+    EXPECT_FALSE(a.IsBackpropRequired(AnyGraph{}));
 }
 
 TEST(ArrayIsBackpropRequiredTest, IsBackpropRequiredSingleGraph) {
