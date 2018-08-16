@@ -9,6 +9,7 @@ if(${XCHAINER_BUILD_PYTHON})
 endif()
 
 install(FILES
+    arithmetic_ops.h
     array.h
     array_body.h
     array_body_leak_detection.h
@@ -25,6 +26,7 @@ install(FILES
     backward_builder.h
     backward_context.h
     backward_fwd.h
+    check_backward.h
     constant.h
     context.h
     device.h
@@ -38,6 +40,8 @@ install(FILES
     indexable_array.h
     indexer.h
     macro.h
+    numerical_gradient.h
+    numeric.h
     numeric_limits.h
     op_node.h
     optional_container_arg.h
