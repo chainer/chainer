@@ -10,20 +10,10 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(*testing.product_dict(
-    [{'dtype': numpy.float16,
-      'forward_options': {'atol': 1e-4, 'rtol': 1e-3},
-      'backward_options': {'atol': 1e-2, 'rtol': 1e-1}},
-     {'dtype': numpy.float32,
-      'forward_options': {},
-      'backward_options': {}},
-     {'dtype': numpy.float64,
-      'forward_options': {},
-      'backward_options': {}},
-     ],
-    [{'use_cudnn': 'always'},
-     {'use_cudnn': 'never'}]
-))
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_cudnn': ['always', 'never'],
+}))
 class TestSpatialTransformerGrid(unittest.TestCase):
 
     def setUp(self):
@@ -33,8 +23,12 @@ class TestSpatialTransformerGrid(unittest.TestCase):
         self.grads = numpy.random.uniform(
             size=(B, 2) + self.output_shape).astype(self.dtype)
 
-        self.check_backward_options = {
-            'atol': 1e-4, 'rtol': 1e-3}
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
+        else:
+            self.check_forward_options = {}
+            self.check_backward_options = {}
 
     def check_forward(self, theta, output_shape):
         grid = functions.spatial_transformer_grid(theta, output_shape).data
@@ -51,7 +45,7 @@ class TestSpatialTransformerGrid(unittest.TestCase):
                     expected.append(self.theta[b].dot(coord))
         expected = numpy.array(
             expected).reshape(B, H, W, 2).transpose(0, 3, 1, 2)
-        testing.assert_allclose(grid, expected, **self.forward_options)
+        testing.assert_allclose(grid, expected, **self.check_forward_options)
         self.assertEqual(grid.dtype, self.dtype)
 
     def test_forward_cpu(self):
@@ -68,7 +62,7 @@ class TestSpatialTransformerGrid(unittest.TestCase):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             gradient_check.check_backward(
                 f, (theta,), (grads,), dtype=numpy.float64,
-                **self.backward_options)
+                **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.theta, self.output_shape, self.grads)
