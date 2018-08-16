@@ -25,14 +25,12 @@ TEST(CheckForward, IncorrectOutputNumber) {
     Array x = Ones({2}, Dtype::kFloat32);
 
     EXPECT_THROW(
-            {
-                CheckForward(
-                        [](const std::vector<Array>& xs) {
-                            return std::vector<Array>{xs[0] * 2, xs[0] + 2};
-                        },
-                        std::vector<Array>{x},
-                        std::vector<Array>{x * 2});
-            },
+            CheckForward(
+                    [](const std::vector<Array>& xs) {
+                        return std::vector<Array>{xs[0] * 2, xs[0] + 2};
+                    },
+                    std::vector<Array>{x},
+                    std::vector<Array>{x * 2}),
             testing::RoutinesCheckError);
 }
 
@@ -41,14 +39,12 @@ TEST(CheckForward, IncorrectOutputShape) {
     Array x = Ones({2}, Dtype::kFloat32);
 
     EXPECT_THROW(
-            {
-                CheckForward(
-                        [](const std::vector<Array>& xs) {
-                            return std::vector<Array>{(xs[0] * 2).Reshape({1, 2})};
-                        },
-                        std::vector<Array>{x},
-                        std::vector<Array>{x * 2});
-            },
+            CheckForward(
+                    [](const std::vector<Array>& xs) {
+                        return std::vector<Array>{(xs[0] * 2).Reshape({1, 2})};
+                    },
+                    std::vector<Array>{x},
+                    std::vector<Array>{x * 2}),
             testing::RoutinesCheckError);
 }
 
@@ -57,12 +53,10 @@ TEST(CheckForward, IncorrectOutputDtype) {
     Array x = Ones({2}, Dtype::kFloat32);
 
     EXPECT_THROW(
-            {
-                CheckForward(
-                        [](const std::vector<Array>& xs) { return std::vector<Array>{(xs[0] * 2).AsType(Dtype::kFloat64)}; },
-                        std::vector<Array>{x},
-                        std::vector<Array>{x * 2});
-            },
+            CheckForward(
+                    [](const std::vector<Array>& xs) { return std::vector<Array>{(xs[0] * 2).AsType(Dtype::kFloat64)}; },
+                    std::vector<Array>{x},
+                    std::vector<Array>{x * 2}),
             testing::RoutinesCheckError);
 }
 
@@ -72,12 +66,10 @@ TEST(CheckForward, IncorrectOutputDevice) {
     Array x = Ones({2}, Dtype::kFloat32);
 
     EXPECT_THROW(
-            {
-                CheckForward(
-                        [&dst_device](const std::vector<Array>& xs) { return std::vector<Array>{(xs[0] * 2).ToDevice(dst_device)}; },
-                        std::vector<Array>{x},
-                        std::vector<Array>{x * 2});
-            },
+            CheckForward(
+                    [&dst_device](const std::vector<Array>& xs) { return std::vector<Array>{(xs[0] * 2).ToDevice(dst_device)}; },
+                    std::vector<Array>{x},
+                    std::vector<Array>{x * 2}),
             testing::RoutinesCheckError);
 }
 
@@ -86,12 +78,10 @@ TEST(CheckForward, IncorrectOutputValue) {
     Array x = Ones({2}, Dtype::kFloat32);
 
     EXPECT_THROW(
-            {
-                CheckForward(
-                        [](const std::vector<Array>& xs) { return std::vector<Array>{xs[0] * 3}; },
-                        std::vector<Array>{x},
-                        std::vector<Array>{x * 2});
-            },
+            CheckForward(
+                    [](const std::vector<Array>& xs) { return std::vector<Array>{xs[0] * 3}; },
+                    std::vector<Array>{x},
+                    std::vector<Array>{x * 2}),
             testing::RoutinesCheckError);
 }
 
