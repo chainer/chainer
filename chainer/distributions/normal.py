@@ -8,7 +8,7 @@ from chainer import distribution
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
 from chainer.functions.math import erfc
-from chainer.functions.math import erfinv
+from chainer.functions.math import erfcinv
 from chainer.functions.math import exponential
 from chainer.utils import argument
 
@@ -86,8 +86,8 @@ class Normal(distribution.Distribution):
         return ()
 
     def icdf(self, x):
-        return self.loc + (
-            erfinv.erfinv(2. * chainer.as_variable(x) - 1.)
+        return self.loc - (
+            erfcinv.erfcinv(2. * chainer.as_variable(x))
             * (2 ** 0.5 * self.scale))
 
     @property
