@@ -116,8 +116,6 @@ class TestRReLUR(unittest.TestCase):
     def test_gpu(self):
         self.x = cuda.to_gpu(self.x)
         self.r = cuda.to_gpu(self.r)
-        self.l = cuda.to_gpu(self.l)
-        self.u = cuda.to_gpu(self.u)
         self._check()
 
 
