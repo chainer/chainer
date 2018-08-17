@@ -7,9 +7,10 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
-from chainer.functions.math import erfc
 from chainer.functions.math import erfcinv
 from chainer.functions.math import exponential
+from chainer.functions.math import log_ndtr
+from chainer.functions.math import ndtr
 from chainer.utils import argument
 
 
@@ -75,7 +76,7 @@ class Normal(distribution.Distribution):
         return self.loc.shape
 
     def cdf(self, x):
-        return 0.5 * erfc.erfc((self.loc - x) / (2 ** 0.5 * self.scale))
+        return ndtr.ndtr((x - self.loc) / self.scale)
 
     @property
     def entropy(self):
@@ -95,14 +96,14 @@ class Normal(distribution.Distribution):
         return isinstance(self.loc.data, cuda.ndarray)
 
     def log_cdf(self, x):
-        return exponential.log(self.cdf(x))
+        return log_ndtr.log_ndtr((x - self.loc) / self.scale)
 
     def log_prob(self, x):
         return LOGPROBC - self.log_scale \
             - 0.5 * (x - self.loc) ** 2 / self.scale ** 2
 
     def log_survival_function(self, x):
-        return exponential.log(self.survival_function(x))
+        return log_ndtr.log_ndtr((self.loc - x) / self.scale)
 
     @property
     def mean(self):
@@ -135,7 +136,7 @@ class Normal(distribution.Distribution):
         return 'real'
 
     def survival_function(self, x):
-        return 0.5 * erfc.erfc((x - self.loc) / (2 ** 0.5 * self.scale))
+        return ndtr.ndtr((self.loc - x) / self.scale)
 
     @property
     def variance(self):
