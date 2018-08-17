@@ -37,7 +37,8 @@ class RReLU(function_node.FunctionNode):
                 self.r = np.random.uniform(
                     self.lower, self.upper, x[0].shape).astype(x[0].dtype)
         else:
-            self.r = np.full(x[0].shape, (self.lower + self.upper) / 2).astype(x[0].dtype)
+            self.r = np.full(
+                x[0].shape, (self.lower + self.upper) / 2).astype(x[0].dtype)
         y = np.where(x[0] >= 0, x[0], x[0] * self.r)
         self.retain_outputs((0,))
         return y,
@@ -49,7 +50,8 @@ class RReLU(function_node.FunctionNode):
                 self.r = xp.random.uniform(
                     self.lower, self.upper, x[0].shape).astype(x[0].dtype)
         else:
-            self.r = xp.full(x[0].shape, (self.lower + self.upper) / 2).astype(x[0].dtype)
+            self.r = xp.full(
+                x[0].shape, (self.lower + self.upper) / 2).astype(x[0].dtype)
         y = _kern()(x[0], x[0], self.r.astype(x[0].dtype))
         self.retain_inputs(())
         self.retain_outputs((0,))
