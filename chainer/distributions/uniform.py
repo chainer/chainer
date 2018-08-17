@@ -76,7 +76,7 @@ class Uniform(distribution.Distribution):
         return self.low.shape
 
     def cdf(self, x):
-        return clip.clip((x - self.loc)/self.scale, 0., 1.)
+        return clip.clip((x - self.loc) / self.scale, 0., 1.)
 
     @property
     def entropy(self):
@@ -111,10 +111,10 @@ class Uniform(distribution.Distribution):
         xp = cuda.get_array_module(self.low)
         if xp is cuda.cupy:
             eps = xp.random.uniform(
-                0, 1, (n,)+self.low.shape, dtype=self.low.dtype)
+                0, 1, (n,) + self.low.shape, dtype=self.low.dtype)
         else:
             eps = xp.random.uniform(
-                0, 1, (n,)+self.low.shape).astype(self.low.dtype)
+                0, 1, (n,) + self.low.shape).astype(self.low.dtype)
 
         noise = self.icdf(eps)
 
