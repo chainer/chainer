@@ -773,13 +773,15 @@ class TestMultiprocessIteratorStalledDatasetDetection(unittest.TestCase):
         data = []
         # No error until the stalling batch
         with warnings.catch_warnings():
-            warnings.filterwarnings('error', '', warning_cls)
+            warnings.simplefilter('always', warning_cls)
+            warnings.simplefilter('error', warning_cls)
             for i in range(nth // batch_size):
                 data.append(it.next())
         # Error on the stalling batch
         with pytest.raises(warning_cls):
             with warnings.catch_warnings():
-                warnings.filterwarnings('error', '', warning_cls)
+                warnings.simplefilter('always', warning_cls)
+                warnings.simplefilter('error', warning_cls)
                 it.next()
 
         assert data == [
