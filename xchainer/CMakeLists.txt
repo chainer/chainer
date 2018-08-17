@@ -89,6 +89,7 @@ target_link_libraries(xchainer
     -Wl,--whole-archive)
 target_link_libraries(xchainer PRIVATE xchainer_routines)
 target_link_libraries(xchainer PRIVATE xchainer_native)
+target_link_libraries(xchainer PRIVATE xchainer_testing)
 if(${CUDA_FOUND})
     target_link_libraries(xchainer PRIVATE xchainer_cuda)
 endif()
@@ -136,7 +137,6 @@ if(${XCHAINER_BUILD_TEST})
 
     target_link_libraries(xchainer_test
         xchainer
-        xchainer_testing
         gtest)
     add_test(NAME xchainer_test COMMAND xchainer_test)
 endif()

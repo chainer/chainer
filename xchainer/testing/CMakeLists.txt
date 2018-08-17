@@ -9,15 +9,14 @@ install(FILES
     DESTINATION include/xchainer/testing
     )
 
-if(${XCHAINER_BUILD_TEST})
-    add_library(xchainer_testing SHARED
-        array_check.cc
-        util.cc
-        gtest_main.cc
-        routines.cc)
+add_library(xchainer_testing STATIC
+    array_check.cc
+    util.cc
+    routines.cc)
 
-    target_link_libraries(xchainer_testing
-      xchainer)
+if(${XCHAINER_BUILD_TEST})
+    target_sources(xchainer_testing PRIVATE
+        gtest_main.cc)
 
     add_executable(xchainer_testing_test
         array_test.cc
