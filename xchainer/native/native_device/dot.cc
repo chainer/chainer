@@ -50,14 +50,13 @@ struct GemmInputLayout {
         assert(a.ndim() == 2);
         // Row-major
         // Note that this condition is slightly relaxed than Array::IsContiguous() which requires
-        // a.strides()[0] == a.item_size() * a.shape()[1], that is,
-        // a.strides()[0] % a.item_size() == 0 && a.strides()[0] / a.item_size() = a.shape()[1]
-        if (a.strides()[1] == a.item_size() && a.strides()[0] % a.item_size() == 0) {
+        // a.strides()[0] == a.item_size() * a.shape()[1]
+        if (a.strides()[1] == a.item_size() && a.strides()[0] / a.item_size() >= a.shape()[1] && a.strides()[0] % a.item_size() == 0) {
             ld = a.strides()[0] / a.item_size();
             return a;
         }
         // Column-major
-        if (a.strides()[0] == a.item_size() && a.strides()[1] % a.item_size() == 0) {
+        if (a.strides()[0] == a.item_size() && a.strides()[1] / a.item_size() >= a.shape()[0] && a.strides()[1] % a.item_size() == 0) {
             ld = a.strides()[1] / a.item_size();
             trans = CblasTrans;
             return a;
