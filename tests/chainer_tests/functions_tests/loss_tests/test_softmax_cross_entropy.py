@@ -396,6 +396,7 @@ class TestSoftmaxCrossEntropyInvalidReduce(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
+    'ignore_label': [-2, 9],
     'reduce': ['mean', 'no'],
     'enable_double_backprop': [False, True],
     'class_weight': [None, numpy.ones((3,), dtype=numpy.float32)]})
@@ -403,7 +404,6 @@ class TestSoftmaxCrossEntropyInvalidReduce(unittest.TestCase):
 class TestNonDefaultIgnoreLabel(unittest.TestCase):
 
     def setUp(self):
-        self.ignore_label = -2
         self.x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
         self.t = numpy.full((2,), self.ignore_label, dtype=numpy.int32)
         if self.reduce == 'mean':
