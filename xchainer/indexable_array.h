@@ -27,7 +27,7 @@ template <typename To, typename From>
 using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_const_t<To>, std::remove_const_t<To>>;
 
 #ifndef NDEBUG
-static std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
+static inline std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
     std::tuple<int64_t, int64_t> range = xchainer::GetDataRange(a.shape(), a.strides(), a.item_size());
     int64_t lower = std::get<0>(range);
     int64_t upper = std::get<1>(range);
@@ -127,7 +127,7 @@ public:
 
     XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<0>& it) const { return operator[](it.index()); }
 
-    IndexableArray<T, 0>& Permute(const Axes& axes) {
+    IndexableArray<T, 0>& Permute(const Axes& /*axes*/) {
         // NOOP for 1-dimensional array.
         return *this;
     }
@@ -169,7 +169,7 @@ public:
 
     XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<1>& it) const { return operator[](it.index()); }
 
-    IndexableArray<T, 1>& Permute(const Axes& axes) {
+    IndexableArray<T, 1>& Permute(const Axes& /*axes*/) {
         // NOOP for 1-dimensional array.
         return *this;
     }

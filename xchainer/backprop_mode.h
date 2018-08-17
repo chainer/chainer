@@ -69,8 +69,8 @@ private:
     bool is_outermost_{false};
 };
 
-template class BackpropModeScope<true>;
-template class BackpropModeScope<false>;
+extern template class BackpropModeScope<true>;
+extern template class BackpropModeScope<false>;
 
 }  // namespace backprop_mode_detail
 

@@ -61,7 +61,7 @@ TEST(OptionalContainerArgTest, Vector) {
 // Initialize with single-element vector
 TEST(OptionalContainerArgTest, SingleVector) {
     {
-        OptionalContainerArg<std::vector<int>> a{{0}};
+        OptionalContainerArg<std::vector<int>> a{0};
         EXPECT_TRUE(a.has_value());
         EXPECT_TRUE(static_cast<bool>(a));
         EXPECT_EQ(std::vector<int>({0}), *a);

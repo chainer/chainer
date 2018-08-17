@@ -63,12 +63,14 @@ Backend& Context::GetBackend(const std::string& backend_name) {
 
     // Ctor of each backend may call member functions of Context.
     // Lock is released here to avoid any deadlocks.
-    std::unique_ptr<Backend> backend;
+    std::unique_ptr<Backend, context_detail::BackendDeleter> backend;
     if (backend_name == native::NativeBackend::kDefaultName) {
-        backend = std::make_unique<native::NativeBackend>(*this);
+        backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
+                new native::NativeBackend{*this}, context_detail::BackendDeleter{[](Backend* ptr) { delete ptr; }}};
 #ifdef XCHAINER_ENABLE_CUDA
     } else if (backend_name == cuda::CudaBackend::kDefaultName) {
-        backend = std::make_unique<cuda::CudaBackend>(*this);
+        backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
+                new cuda::CudaBackend{*this}, context_detail::BackendDeleter{[](Backend* ptr) { delete ptr; }}};
 #endif  // XCHAINER_ENABLE_CUDA
     } else {
         // Load .so file
@@ -83,13 +85,20 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         }
 
         // Create backend
-        void* ptr = ::dlsym(handle, "CreateBackend");
+        void* ptr_create_backend = ::dlsym(handle, "CreateBackend");
+        void* ptr_destroy_backend = ::dlsym(handle, "DestroyBackend");
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        auto create_backend = reinterpret_cast<std::unique_ptr<Backend> (*)(Context&)>(ptr);
+        auto create_backend = reinterpret_cast<Backend* (*)(Context&)>(ptr_create_backend);
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        auto destroy_backend = reinterpret_cast<void (*)(Backend*)>(ptr_destroy_backend);
         if (create_backend == nullptr) {
             throw BackendError{"Invalid backend plugin: CreateBackend is not found in '", so_file_path, "'."};
         }
-        backend = create_backend(*this);
+        if (destroy_backend == nullptr) {
+            throw BackendError{"Invalid backend plugin: DestroyBackend is not found in '", so_file_path, "'."};
+        }
+        backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{create_backend(*this),
+                                                                           context_detail::BackendDeleter{destroy_backend}};
     }
 
     {

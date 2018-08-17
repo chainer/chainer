@@ -32,7 +32,9 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol, bool equ
             T bi = b_iarray[it];
             if (equal_nan && std::isnan(ai) && std::isnan(bi)) {
                 // nop
-            } else if (std::isnan(ai) || std::isnan(bi) || std::abs(ai - bi) > atol + rtol * std::abs(bi)) {
+            } else if (
+                    std::isnan(ai) || std::isnan(bi) ||
+                    std::abs(static_cast<double>(ai) - static_cast<double>(bi)) > atol + rtol * std::abs(static_cast<double>(bi))) {
                 return false;
             }
         }

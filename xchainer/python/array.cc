@@ -228,8 +228,8 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("__itruediv__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} /= Array{rhs})); });
     c.def("__itruediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} /= rhs)); });
-    c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} + Array{rhs})); });
-    c.def("__add__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} + rhs)); });
+    c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} + Array{rhs}); });
+    c.def("__add__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} + rhs); });
     c.def("__radd__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs + Array{self}); });
     c.def("__sub__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} - Array{rhs}); });
     c.def("__sub__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} - rhs); });
