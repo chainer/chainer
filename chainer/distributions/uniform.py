@@ -141,7 +141,6 @@ def _kl_uniform_uniform(dist1, dist2):
                            dist1.low.data < dist2.low.data)
     kl = - exponential.log(dist1.high - dist1.low) \
         + exponential.log(dist2.high - dist2.low)
-    inf = xp.asarray(xp.ones_like(dist1.high.data)*numpy.inf,
-                     dtype=dist1.high.dtype)
+    inf = xp.full_like(dist1.high.data, numpy.inf)
 
     return where.where(is_inf, inf, kl)
