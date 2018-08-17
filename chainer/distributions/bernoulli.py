@@ -122,8 +122,7 @@ class Bernoulli(distribution.Distribution):
             valid = cuda.cupy.bitwise_or(x.array == 0, x.array == 1)
         else:
             valid = numpy.bitwise_or(x.array == 0, x.array == 1)
-        ret = x * self.p \
-            + (1 - x) * (1 - self.p)
+        ret = x * self.p + (1 - x) * (1 - self.p)
         return ret * valid
 
     def sample_n(self, n):

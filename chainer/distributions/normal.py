@@ -75,9 +75,7 @@ class Normal(distribution.Distribution):
         return self.loc.shape
 
     def cdf(self, x):
-        return 0.5 * erfc.erfc(
-            (self.loc - x)
-            / (2 ** 0.5 * self.scale))
+        return 0.5 * erfc.erfc((self.loc - x) / (2 ** 0.5 * self.scale))
 
     @property
     def entropy(self):
@@ -137,9 +135,7 @@ class Normal(distribution.Distribution):
         return 'real'
 
     def survival_function(self, x):
-        return 0.5 * erfc.erfc(
-            (x - self.loc)
-            / (2 ** 0.5 * self.scale))
+        return 0.5 * erfc.erfc((x - self.loc) / (2 ** 0.5 * self.scale))
 
     @property
     def variance(self):
