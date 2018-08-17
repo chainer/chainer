@@ -132,13 +132,14 @@ get_third_party(optional-lite)
 include_directories(${CMAKE_BINARY_DIR}/optional-lite/include)
 
 # Test
+# TODO(niboshi): Remove gtest dependency from testing
+get_third_party(gtest)
+add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+    ${CMAKE_BINARY_DIR}/googletest-build
+    EXCLUDE_FROM_ALL)
+include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
 if(${XCHAINER_BUILD_TEST})
-    get_third_party(gtest)
     enable_testing()
-    add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
-        ${CMAKE_BINARY_DIR}/googletest-build
-        EXCLUDE_FROM_ALL)
-    include_directories(${CMAKE_BINARY_DIR}/googletest-src/googletest/include)
 endif()
 
 add_subdirectory(xchainer)
