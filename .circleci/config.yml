@@ -134,6 +134,18 @@ jobs:
 
             scripts/run-cpplint.sh --jobs 4
 
+      # Setup openblas
+      - run:
+          name: Setup openblas
+          command: |
+            source activate testenv
+
+            conda install -c anaconda openblas
+            # TODO(sonots): Fix we get warnings like
+            # /usr/bin/cmake: /root/miniconda/envs/testenv/lib/libssl.so.1.0.0: no version information available (required by /usr/lib/x86_64-linux-gnu/libcurl.so.4)
+            echo "export LD_LIBRARY_PATH=\"$CONDA_PREFIX/lib:$LD_LIBRARY_PATH\"" >> $BASH_ENV
+            echo "export CPATH=\"$CONDA_PREFIX/include:$CPATH\"" >> $BASH_ENV
+
       # cmake
       - run:
           name: cmake
