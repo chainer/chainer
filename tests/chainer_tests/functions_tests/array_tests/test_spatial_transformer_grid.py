@@ -24,7 +24,7 @@ class TestSpatialTransformerGrid(unittest.TestCase):
             size=(B, 2) + self.output_shape).astype(self.dtype)
 
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
             self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
         else:
             self.check_forward_options = {}
