@@ -44,18 +44,26 @@ struct GemmInputLayout {
     int64_t ld = 0;
     cublasOperation_t trans = CUBLAS_OP_T;
 
-    // Makes the array C or Fortran contiguous and configure leading dimension and transposition accordingly.
+    // Configure leading dimension and transposition accordingly, and makes the array C contiguous if necessary.
     Array Configure(const Array& a) {
         assert(a.ndim() == 2);
-        if (a.strides()[0] == a.item_size() && a.strides()[0] * a.shape()[0] == a.strides()[1]) {
-            // Fortran contiguous
-            ld = a.shape()[0];
+        // Row-major
+        // Note that this condition is slightly relaxed than Array::IsContiguous() which requires
+        // a.strides()[0] == a.item_size() * a.shape()[1]
+        if (a.strides()[1] == a.item_size() && a.strides()[0] / a.item_size() >= a.shape()[1] && a.strides()[0] % a.item_size() == 0) {
+            ld = a.strides()[0] / a.item_size();
+            trans = CUBLAS_OP_N;  // transposed
             return a;
         }
-        // Force C contiguous
+        // Column-major
+        if (a.strides()[0] == a.item_size() && a.strides()[1] / a.item_size() >= a.shape()[0] && a.strides()[1] % a.item_size() == 0) {
+            ld = a.strides()[1] / a.item_size();
+            return a;
+        }
+        // Force row-major contiguous
         ld = a.shape()[1];
         trans = CUBLAS_OP_N;  // transposed
-        return a.IsContiguous() ? a : a.Copy();
+        return AsContiguousArray(a);
     }
 };
 
