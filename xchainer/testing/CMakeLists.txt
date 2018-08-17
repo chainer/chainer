@@ -14,6 +14,10 @@ add_library(xchainer_testing STATIC
     util.cc
     routines.cc)
 
+# TODO(niboshi): Remove gtest dependency from testing
+target_link_libraries(xchainer_testing
+    gtest)
+
 if(${XCHAINER_BUILD_TEST})
     target_sources(xchainer_testing PRIVATE
         gtest_main.cc)
@@ -24,7 +28,6 @@ if(${XCHAINER_BUILD_TEST})
 
     target_link_libraries(xchainer_testing_test
       xchainer
-      xchainer_testing
-      gtest)
+      xchainer_testing)
     add_test(NAME xchainer_testing_test COMMAND xchainer_testing_test)
 endif()
