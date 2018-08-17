@@ -1,4 +1,3 @@
-import functools
 import numpy
 
 from chainer.backends import cuda
@@ -70,16 +69,12 @@ class Maxout(link.Chain):
         elif isinstance(initialW, initializer.Initializer):
             pass
         elif callable(initialW):
-            def make_initialW_wrapper(initialW):
-                @functools.wraps(initialW)
-                def wrapper(array):
-                    array.shape = (out_size, pool_size, in_size)
-                    initialW(array)
-                    array.shape = (linear_out_size, in_size)
-                return wrapper
-            initialW = make_initialW_wrapper(initialW)
-        else:
-            pass
+            initialW_orig = initialW
+
+            def initialW(array):
+                array.shape = (out_size, pool_size, in_size)
+                initialW_orig(array)
+                array.shape = (linear_out_size, in_size)
 
         if numpy.isscalar(initial_bias):
             pass
@@ -90,16 +85,12 @@ class Maxout(link.Chain):
         elif isinstance(initial_bias, initializer.Initializer):
             pass
         elif callable(initial_bias):
-            def make_initial_bias_wrapper(initial_bias):
-                @functools.wraps(initial_bias)
-                def wrapper(array):
-                    array.shape = (out_size, pool_size)
-                    initial_bias(array)
-                    array.shape = linear_out_size,
-                return wrapper
-            initial_bias = make_initial_bias_wrapper(initial_bias)
-        else:
-            pass
+            initial_bias_orig = initial_bias
+
+            def initial_bias(array):
+                array.shape = (out_size, pool_size)
+                initial_bias_orig(array)
+                array.shape = linear_out_size,
 
         with self.init_scope():
             self.linear = linear.Linear(
