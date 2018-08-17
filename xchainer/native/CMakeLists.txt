@@ -29,6 +29,12 @@ add_library(xchainer_native STATIC
     im2col.cc
     tensor_dot.cc)
 
+if(${BLAS_FOUND})
+    # TODO(sonots): Fix that CMake built-in FindBLAS.cmake does not declare BLAS_INCLUDE_DIR
+    # include_directories(${BLAS_INCLUDE_DIR})
+    target_link_libraries(xchainer_native ${BLAS_LIBRARIES})
+endif()
+
 if(${XCHAINER_BUILD_TEST})
   add_executable(xchainer_native_test
       native_backend_test.cc
