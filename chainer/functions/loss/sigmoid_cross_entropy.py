@@ -55,7 +55,7 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         # TODO(takagi): Fix to perform division in a specific dtype. See
         # cupy/cupy#1534.
         return utils.force_array(
-            xp.divide(xp.sum(loss), self.count).astype(x.dtype)),
+            xp.divide(xp.sum(loss), self.count), dtype=x.dtype),
 
     def backward(self, inputs, grad_outputs):
         x, t = self.get_retained_inputs()
