@@ -28,7 +28,7 @@ def logsumexp(x, axis):
     return m
 
 
-def _log_softmax(x, axis):
+def _log_softmax(x, axis=1):
     if chainer.should_use_cudnn('>=auto'):
         xp = cuda.get_array_module(x)
         if xp is not numpy:
