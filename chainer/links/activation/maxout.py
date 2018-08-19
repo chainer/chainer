@@ -60,9 +60,9 @@ class Maxout(link.Chain):
 
         linear_out_size = out_size * pool_size
 
-        if (initialW is None or
-            numpy.isscalar(initialW) or
-            isinstance(initialW, initializer.Initializer)):
+        if initialW is None or \
+           numpy.isscalar(initialW) or \
+           isinstance(initialW, initializer.Initializer):
             pass
         elif chainer.is_arrays_compatible([initialW]):
             if initialW.ndim != 3:
@@ -76,9 +76,9 @@ class Maxout(link.Chain):
                 initialW_orig(array)
                 array.shape = (linear_out_size, in_size)
 
-        if (initial_bias is None or
-            numpy.isscalar(initial_bias) or
-            isinstance(initial_bias, initializer.Initializer)):
+        if initial_bias is None or \
+           numpy.isscalar(initial_bias) or \
+           isinstance(initial_bias, initializer.Initializer):
             pass
         elif chainer.is_arrays_compatible([initial_bias]):
             if initial_bias.ndim != 2:
