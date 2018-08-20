@@ -11,26 +11,19 @@ class LinearFunction(function_node.FunctionNode):
     _config_use_ideep = None
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size()
-        type_check.expect(2 <= n_in, n_in <= 3)
-        x_type, w_type = in_types[:2]
-        type_check.argname((x_type, w_type), ('x', 'W'))
+        x_type, w_type, b_type = type_check.argname(
+            in_types, ('x', 'W'), ('b',))
 
         type_check.expect(
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
+            b_type.dtype == x_type.dtype,
             x_type.ndim == 2,
             w_type.ndim == 2,
+            b_type.ndim == 1,
             x_type.shape[1] == w_type.shape[1],
+            b_type.shape[0] == w_type.shape[0],
         )
-        if type_check.eval(n_in) == 3:
-            b_type = in_types[2]
-            type_check.argname((b_type,), ('b',))
-            type_check.expect(
-                b_type.dtype == x_type.dtype,
-                b_type.ndim == 1,
-                b_type.shape[0] == w_type.shape[0],
-            )
 
     def forward(self, inputs):
         self._config_use_ideep = chainer.config.use_ideep

@@ -504,7 +504,65 @@ Invalid operation is performed in: {0} (Forward)
         self.actual = actual
 
 
-def argname(in_types, names):
+class _MissingArgument(object):
+    def __init__(self):
+        # typical attributes
+        for name in ('shape', 'dtype', 'kind', 'ndim', 'size'):
+            setattr(self, name, self)
+
+    def __getattr__(self, name):
+        return self
+
+    def __bool__(self):
+        return True
+
+    def __call__(self, *args, **kwargs):
+        return self
+
+    def __getitem__(self, *args, **kwargs):
+        return self
+
+    def __len__(self):
+        return self
+
+    def __nonzero__(self):
+        return True
+
+    def __eq__(self, other):
+        return self
+
+    def __ne__(self, other):
+        return self
+
+    def __lt__(self, other):
+        return self
+
+    def __gt__(self, other):
+        return self
+
+    def __le__(self, other):
+        return self
+
+    def __ge__(self, other):
+        return self
+
+    def __add__(self, other):
+        return self
+
+    def __sub__(self, other):
+        return self
+
+    def __mul__(self, other):
+        return self
+
+    def __div__(self, other):
+        return self
+
+
+_missing_argument = _MissingArgument()
+
+
+def argname(in_types, names, optional_names=()):
     """Assigns user friendly names for the input types.
 
     This function also asserts that lenghts of in_types and names are the
@@ -515,14 +573,41 @@ def argname(in_types, names):
             name to.
         names (tuple of str): Human-readabel names of ``in_types``.
     """
-    if len(in_types) != len(names):
+    min_len = len(names)
+    max_len = min_len + len(optional_names)
+    actual_len = len(in_types)
+
+    if not min_len <= actual_len <= max_len:
+        if len(optional_names) == 0:
+            expected = '{} argument(s)'.format(len(names))
+        else:
+            expected = '{}-{} argument(s)'.format(
+                len(names), len(names) + len(optional_names))
         raise InvalidType(
-            '{} argument(s)'.format(str(len(names))),
-            '{} argument(s)'.format(str(len(in_types))),
+            expected, '{} argument(s)'.format(actual_len),
             'Invalid number of arguments')
+
+    ret = in_types
+
+    # Assign the names for the mandatory arguments.
+    # Note: zip truncates to the shorter (names) if the lengths are different
     for in_type, name in zip(in_types, names):
         if isinstance(in_type, Variable):
             in_type.name = name
+
+    # Assign the names for the optional arguments.
+    if actual_len > min_len:
+        for in_type, name in zip(in_types[len(names):], optional_names):
+            if isinstance(in_type, Variable):
+                in_type.name = name
+
+    # For missing optional arguments, fill with _missing_argument which
+    # evaluates to True for any checks.
+    if actual_len < max_len:
+        ret += (_missing_argument,) * (max_len - actual_len)
+
+    assert len(ret) == max_len
+    return ret
 
 
 def expect(*bool_exprs):
