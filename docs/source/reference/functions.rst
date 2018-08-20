@@ -251,6 +251,7 @@ Mathematical functions
    chainer.functions.min
    chainer.functions.minimum
    chainer.functions.ndtr
+   chainer.functions.ndtri
    chainer.functions.prod
    chainer.functions.polygamma
    chainer.functions.rsqrt
