@@ -46,9 +46,8 @@ TEST(NativeBackendTest, GetDeviceCount) {
 }
 
 TEST(NativeBackendTest, GetDeviceCountGetNameThreadSafe) {
-    static constexpr size_t kRepeat = 10;
-    static constexpr size_t kThreadCount = 32;
-    static constexpr size_t kRepeatCountPerThread = 100;
+    static constexpr size_t kRepeat = 1;
+    static constexpr size_t kThreadCount = 2;
     int expected_device_count = Context{}.GetNativeBackend().GetDeviceCount();
     std::string expected_backend_name = Context{}.GetNativeBackend().GetName();
 
@@ -62,12 +61,10 @@ TEST(NativeBackendTest, GetDeviceCountGetNameThreadSafe) {
             },
             [expected_device_count, &expected_backend_name](size_t /*thread_index*/, const auto& tup) {
                 Backend& backend = *std::get<1>(tup);
-                for (size_t i = 0; i < kRepeatCountPerThread; ++i) {
-                    int device_count = backend.GetDeviceCount();
-                    std::string name = backend.GetName();
-                    EXPECT_EQ(expected_device_count, device_count);
-                    EXPECT_EQ(expected_backend_name, name);
-                }
+                int device_count = backend.GetDeviceCount();
+                std::string name = backend.GetName();
+                EXPECT_EQ(expected_device_count, device_count);
+                EXPECT_EQ(expected_backend_name, name);
                 return nullptr;
             },
             [](const std::vector<std::nullptr_t>& /*results*/) {});
@@ -96,10 +93,9 @@ TEST(NativeBackendTest, GetDevice) {
 }
 
 TEST(NativeBackendTest, GetDeviceThreadSafe) {
-    static constexpr size_t kRepeat = 10;
+    static constexpr size_t kRepeat = 1;
     static constexpr int kDeviceCount = 4;
-    static constexpr size_t kThreadCountPerDevice = 32;
-    static constexpr size_t kThreadCount = kDeviceCount * kThreadCountPerDevice;
+    static constexpr size_t kThreadCount = kDeviceCount;
 
     xchainer::testing::CheckThreadSafety(
             kRepeat,
@@ -111,26 +107,13 @@ TEST(NativeBackendTest, GetDeviceThreadSafe) {
             },
             [](size_t thread_index, const auto& tup) {
                 Backend& backend = *std::get<1>(tup);
-                int device_index = thread_index / kThreadCountPerDevice;
+                int device_index = thread_index;
                 Device& device = backend.GetDevice(device_index);
                 EXPECT_EQ(&backend, &device.backend());
-                return &device;
+                EXPECT_EQ(device_index, device.index());
+                return nullptr;
             },
-            [](const std::vector<Device*>& results) {
-                // Check device pointers are identical within each set of threads corresponding to one device
-                for (int device_index = 0; device_index < kDeviceCount; ++device_index) {
-                    auto it_first = std::next(results.begin(), device_index * kThreadCountPerDevice);
-                    auto it_last = std::next(results.begin(), (device_index + 1) * kThreadCountPerDevice);
-                    Device* ref_device = *it_first;
-
-                    // Check the device index
-                    ASSERT_EQ(device_index, ref_device->index());
-
-                    for (auto it = it_first; it != it_last; ++it) {
-                        ASSERT_EQ(ref_device, *it);
-                    }
-                }
-            });
+            [](const std::vector<std::nullptr_t>& /*results*/) {});
 }
 
 TEST(NativeBackendTest, GetName) {
@@ -139,9 +122,8 @@ TEST(NativeBackendTest, GetName) {
 }
 
 TEST(NativeBackendTest, SupportsTransferThreadSafe) {
-    static constexpr size_t kRepeat = 10;
-    static constexpr size_t kThreadCount = 32;
-    static constexpr size_t kRepeatCountPerThread = 100;
+    static constexpr size_t kRepeat = 1;
+    static constexpr size_t kThreadCount = 2;
 
     struct CheckContext {
         std::unique_ptr<Context> context0;
@@ -174,10 +156,8 @@ TEST(NativeBackendTest, SupportsTransferThreadSafe) {
                 Device& context0_device0 = check_ctx.context0_device0;
                 Device& context0_device1 = check_ctx.context0_device1;
                 Device& context1_device = check_ctx.context1_device;
-                for (size_t i = 0; i < kRepeatCountPerThread; ++i) {
-                    EXPECT_TRUE(context0_backend.SupportsTransfer(context0_device0, context0_device1));
-                    EXPECT_FALSE(context0_backend.SupportsTransfer(context0_device0, context1_device));
-                }
+                EXPECT_TRUE(context0_backend.SupportsTransfer(context0_device0, context0_device1));
+                EXPECT_FALSE(context0_backend.SupportsTransfer(context0_device0, context1_device));
                 return nullptr;
             },
             [](const std::vector<std::nullptr_t>& /*results*/) {});
