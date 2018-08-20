@@ -46,8 +46,9 @@ __global__ void ReductionKernel(
     for (auto it_out = arg.out_indexer.It(out_base + out_offset, out_stride); it_out; ++it_out) {
         T accum = impl.Identity();
 
-        for (auto it_in = arg.in_indexer.It(it_out.raw_index() + reduce_offset, reduce_stride); it_in; ++it_in) {
-            int64_t i_reduce = it_in.raw_index() / arg.out_indexer.total_size();
+        int64_t i_reduce = reduce_block_offset;
+        for (auto it_in = arg.in_indexer.It(it_out.raw_index() + reduce_offset, reduce_stride); it_in;
+             ++it_in, i_reduce += reduce_block_size) {
             impl.Reduce(impl.MapIn(arg.in[it_in], i_reduce), accum);
         }
 
