@@ -32,11 +32,11 @@ class ExampleModel(chainer.Chain):
     def __init__(self, dtype=None):
         if dtype is not None:
             self.dtype = dtype
-        super(ExampleModel, self).__init__(
-            a=chainer.links.Linear(2, 3),
-            b=chainer.links.Linear(3, 4),
-            c=chainer.links.Linear(4, 5),
-        )
+        super(ExampleModel, self).__init__()
+        with self.init_scope():
+            self.a = chainer.links.Linear(2, 3)
+            self.b = chainer.links.Linear(3, 4)
+            self.c = chainer.links.Linear(4, 5)
 
 
 class Param(object):

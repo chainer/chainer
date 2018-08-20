@@ -17,11 +17,11 @@ from chainermn.extensions.checkpoint import create_multi_node_checkpointer
 
 class MLP(chainer.Chain):
     def __init__(self, n_units, n_out):
-        super(MLP, self).__init__(
-            l1=L.Linear(784, n_units),
-            l2=L.Linear(n_units, n_units),
-            l3=L.Linear(n_units, n_out),
-        )
+        super(MLP, self).__init__()
+        with self.init_scope():
+            self.l1 = L.Linear(784, n_units)
+            self.l2 = L.Linear(n_units, n_units)
+            self.l3 = L.Linear(n_units, n_out)
 
     def __call__(self, x):
         h1 = F.relu(self.l1(x))

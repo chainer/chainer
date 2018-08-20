@@ -20,4 +20,4 @@ from chainermn.optimizers import create_multi_node_optimizer  # NOQA
 
 global_except_hook._add_hook_if_enabled()
 
-__version__ = pkg_resources.get_distribution('chainermn').version
+__version__ = pkg_resources.get_distribution('chainer').version
