@@ -630,6 +630,13 @@ device.
             param.cleargrad()
 
     def zerograds(self):
+        """Initializes all gradient arrays by zero.
+
+         .. deprecated:: v1.15
+            Use :meth:`cleargrads` instead.
+
+         """
+
         warnings.warn(
             'Link.zerograds is deprecated. Use Link.cleargrads instead.',
             DeprecationWarning)
