@@ -76,10 +76,10 @@ class MultiprocessIterator(iterator.Iterator):
         dataset_timeout (float): :class:`MultiprocessIterator.TimeoutWarning`
             will be issued after this time in seconds elapsed in each dataset
             realization. ``None`` to disable the warning. You can turn this
-            warning into an error by using :func:`warnings.filterwarnings`::
+            warning into an error by using :func:`warnings.simplefilter`::
 
-                warnings.filterwarnings(
-                    'error', '',
+                warnings.simplefilter(
+                    'error',
                     chainer.iterators.MultiprocessIterator.TimeoutWarning)
 
         order_sampler (callable): A callable that generates the order
