@@ -52,7 +52,7 @@ class TestNdtri(unittest.TestCase):
 class TestNdtriExceptions(unittest.TestCase):
     def setUp(self):
         self.x, self.gy, self.ggx = make_data(self.shape, self.dtype)
-        self.func = F.erfcinv
+        self.func = F.ndtri
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
