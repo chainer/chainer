@@ -119,7 +119,7 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
 
     Returns:
         ~chainer.Variable or tuple:
-            When ``return_mask`` is ``False`` (default), return the output
+            When ``return_r`` is ``False`` (default), return the output
             variable. Otherwise returnes the tuple of the output variable and
             ``r`` (ndarray). The ``r`` will be on the same device as the input.
             A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
