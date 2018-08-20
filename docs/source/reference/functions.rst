@@ -243,6 +243,7 @@ Mathematical functions
    chainer.functions.log10
    chainer.functions.log1p
    chainer.functions.log2
+   chainer.functions.log_ndtr
    chainer.functions.logsumexp
    chainer.functions.matmul
    chainer.functions.max
