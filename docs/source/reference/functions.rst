@@ -65,6 +65,7 @@ Activation functions
    chainer.functions.lstm
    chainer.functions.maxout
    chainer.functions.prelu
+   chainer.functions.rrelu
    chainer.functions.relu
    chainer.functions.selu
    chainer.functions.sigmoid

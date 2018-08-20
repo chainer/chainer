@@ -14,6 +14,7 @@ from chainer.functions.activation.lstm import lstm  # NOQA
 from chainer.functions.activation.maxout import maxout  # NOQA
 from chainer.functions.activation.prelu import prelu  # NOQA
 from chainer.functions.activation.relu import relu  # NOQA
+from chainer.functions.activation.rrelu import rrelu  # NOQA
 from chainer.functions.activation.selu import selu  # NOQA
 from chainer.functions.activation.sigmoid import sigmoid  # NOQA
 from chainer.functions.activation.slstm import slstm  # NOQA
