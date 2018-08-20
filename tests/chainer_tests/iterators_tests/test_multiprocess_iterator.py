@@ -1,6 +1,5 @@
 from __future__ import division
 import copy
-import datetime
 import errno
 import os
 import signal
@@ -10,10 +9,8 @@ import tempfile
 import threading
 import time
 import unittest
-import warnings
 
 import numpy
-import pytest
 import six
 
 from chainer import iterators
@@ -721,7 +718,7 @@ class StallingDataset(object):
 }))
 class TestMultiprocessIteratorStalledDatasetDetection(unittest.TestCase):
 
-    def test_stalled_getitem_warn(self):
+    def test_stalled_getitem(self):
         nth = self.nth
         batch_size = 2
         sleep = 0.5
@@ -752,45 +749,6 @@ class TestMultiprocessIteratorStalledDatasetDetection(unittest.TestCase):
         assert data == [
             dataset.data[i * batch_size: (i+1) * batch_size]
             for i in range((len(dataset) + batch_size - 1) // batch_size)]
-
-    def test_stalled_getitem_as_error(self):
-        # Confirms TimeoutWarning turns into error by using
-        # warnings.filterwarnings
-        nth = self.nth
-        batch_size = 2
-        sleep = 10.0
-        timeout = 1.0
-
-        dataset = StallingDataset(nth, sleep)
-        it = iterators.MultiprocessIterator(
-            dataset, batch_size=batch_size, shuffle=False,
-            dataset_timeout=timeout, repeat=False)
-
-        time_start = datetime.datetime.now()
-
-        # TimeoutWarning should be issued as an error.
-        warning_cls = iterators.MultiprocessIterator.TimeoutWarning
-        data = []
-        # No error until the stalling batch
-        with warnings.catch_warnings():
-            warnings.simplefilter('always', warning_cls)
-            warnings.simplefilter('error', warning_cls)
-            for i in range(nth // batch_size):
-                data.append(it.next())
-        # Error on the stalling batch
-        with pytest.raises(warning_cls):
-            with warnings.catch_warnings():
-                warnings.simplefilter('always', warning_cls)
-                warnings.simplefilter('error', warning_cls)
-                it.next()
-
-        assert data == [
-            dataset.data[i * batch_size: (i+1) * batch_size]
-            for i in range(nth // batch_size)]
-
-        # Check total time: it should not take too long
-        time_end = datetime.datetime.now()
-        assert time_end - time_start < datetime.timedelta(seconds=2)
 
 
 testing.run_module(__name__, __file__)
