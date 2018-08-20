@@ -62,7 +62,7 @@ OpNode::OpNode(std::string name, BackpropId backprop_id, size_t input_array_node
       input_array_nodes_{input_array_node_count}  // Initialize with nullptrs
 {}
 
-#ifndef NDEBUG
+#if XCHAINER_DEBUG
 
 namespace {
 
@@ -132,11 +132,11 @@ void OpNode::AssertConsistency() const {
     AssertOuterGraphsArrayNodesConsistency(backprop_id_, output_array_node_count(), outer_graphs_output_array_nodes_, true);
 }
 
-#else
+#else  // XCHAINER_DEBUG
 
 void OpNode::AssertConsistency() const {}
 
-#endif  // NDEBUG
+#endif  // XCHAINER_DEBUG
 
 std::vector<std::shared_ptr<ArrayNode>>& OpNode::input_array_nodes() {
     assert(std::all_of(input_array_nodes_.begin(), input_array_nodes_.end(), [this](const std::shared_ptr<ArrayNode>& arr_node) {

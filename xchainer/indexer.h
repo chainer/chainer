@@ -66,11 +66,11 @@ XCHAINER_HOST_DEVICE void CombineIterators(IndexIterator<Ndim>& it, IndexSources
     int8_t processed_dims = indexer_detail::CombineIteratorsImpl<Ndim>(it, 0, std::forward<IndexSources>(index_sources)...);
     (void)processed_dims;  // unused
     assert(processed_dims == it.ndim());
-#ifndef NDEBUG
-    for (int8_t i = 0; i < it.ndim(); ++i) {
-        assert(0 <= it.index()[i]);
+    if (XCHAINER_DEBUG) {
+        for (int8_t i = 0; i < it.ndim(); ++i) {
+            assert(0 <= it.index()[i]);
+        }
     }
-#endif  // NDEBUG
 }
 
 }  // namespace indexer_detail

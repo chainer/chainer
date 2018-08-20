@@ -18,6 +18,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/hash_combine.h"
+#include "xchainer/macro.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
@@ -424,8 +425,7 @@ Array CudaConv::ConvGradWeight(
     assert(x.dtype() == w_dtype);
     assert(x.dtype() == gy.dtype());
 
-#ifndef NDEBUG
-    {
+    if (XCHAINER_DEBUG) {
         // w_shape = (out_channels, in_channels, k_1, k_2, ..., k_N)
         int64_t out_channels = w_shape[0];
         // x.shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
@@ -438,7 +438,6 @@ Array CudaConv::ConvGradWeight(
         }
         assert(gy.shape() == out_shape);
     }
-#endif  // NDEBUG
 
     Array gw = Empty(w_shape, w_dtype, device);
 

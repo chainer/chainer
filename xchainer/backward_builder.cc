@@ -61,15 +61,15 @@ void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
         }
     }
 
-#ifndef NDEBUG
-    for (auto& pair : graph_to_input_array_nodes_) {
-        const BackpropId& backprop_id = pair.first;
-        const InputArrayNodes& input_array_nodes = pair.second;
-        for (const std::shared_ptr<ArrayNode>* array_node : input_array_nodes) {
-            assert(array_node == nullptr || backprop_id == (*array_node)->backprop_id());
+    if (XCHAINER_DEBUG) {
+        for (auto& pair : graph_to_input_array_nodes_) {
+            const BackpropId& backprop_id = pair.first;
+            const InputArrayNodes& input_array_nodes = pair.second;
+            for (const std::shared_ptr<ArrayNode>* array_node : input_array_nodes) {
+                assert(array_node == nullptr || backprop_id == (*array_node)->backprop_id());
+            }
         }
     }
-#endif  // NDEBUG
 }
 
 void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {

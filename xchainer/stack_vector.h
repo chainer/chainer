@@ -8,6 +8,8 @@
 #include <iterator>
 #include <type_traits>
 
+#include "xchainer/macro.h"
+
 namespace xchainer {
 namespace stack_vector_detail {
 
@@ -166,9 +168,9 @@ public:
 
     template <class InputIter>
     iterator insert(const_iterator pos, InputIter first, InputIter last) {
-#ifndef NDEBUG
+#if XCHAINER_DEBUG
         size_type n_old = n_;
-#endif  // NDEBUG
+#endif  // XCHAINER_DEBUG
         iterator it_pos0 = begin() + std::distance(cbegin(), pos);
         iterator it_pos = it_pos0;
         for (InputIter it = first; it != last; ++it, ++it_pos) {

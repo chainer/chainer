@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef NDEBUG
+#define XCHAINER_DEBUG false
+#else  // NDEBUG
+#define XCHAINER_DEBUG true
+#endif  // NDEBUG
+
 #ifndef XCHAINER_HOST_DEVICE
 #ifdef __CUDACC__
 #define XCHAINER_HOST_DEVICE __host__ __device__

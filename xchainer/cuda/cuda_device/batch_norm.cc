@@ -13,6 +13,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
@@ -96,8 +97,7 @@ public:
     }
 
     Array Forward(const Array& x, const Array& gamma, const Array& beta) override {
-#ifndef NDEBUG
-        {
+        if (XCHAINER_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis(), true);
             assert(gamma.shape() == reduced_shape);
             assert(beta.shape() == reduced_shape);
@@ -116,7 +116,6 @@ public:
             assert(x.dtype() == running_mean().dtype());
             assert(x.dtype() == running_var().dtype());
         }
-#endif  // NDEBUG
 
         Device& device = x.device();
         Dtype dtype = x.dtype();
@@ -197,8 +196,7 @@ public:
         const Array& gamma = this->gamma();
         const Array& x_mean = this->x_mean();
         const Array& x_inv_std = this->x_inv_std();
-#ifndef NDEBUG
-        {
+        if (XCHAINER_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x_cont.shape(), axis(), true);
             assert(reduced_shape == gamma.shape());
             assert(x_cont.shape() == gout.shape());
@@ -216,7 +214,6 @@ public:
 
             assert(x_cont.IsContiguous());
         }
-#endif  // NDEBUG
 
         Device& device = x_cont.device();
         Dtype dtype = x_cont.dtype();
@@ -287,8 +284,7 @@ Array CudaDevice::FixedBatchNorm(
         throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
     }
 
-#ifndef NDEBUG
-    {
+    if (XCHAINER_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
         assert(gamma.shape() == reduced_shape);
         assert(beta.shape() == reduced_shape);
@@ -305,7 +301,6 @@ Array CudaDevice::FixedBatchNorm(
         assert(x.dtype() == mean.dtype());
         assert(x.dtype() == var.dtype());
     }
-#endif  // NDEBUG
 
     Array x_cont = AsContiguousArray(x);
     cuda_internal::CudnnTensorDescriptor x_desc{x_cont};

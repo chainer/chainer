@@ -5,6 +5,7 @@
 #include <tuple>
 
 #include "xchainer/array.h"
+#include "xchainer/macro.h"
 #include "xchainer/shape.h"
 #include "xchainer/squash_dims.h"
 #include "xchainer/strides.h"
@@ -111,14 +112,14 @@ void ReductionArg::Permute(const Axes& axis) {
 // - in_squashed_shape:     (720)
 // - out_squashed_shape:    (24)
 void ReductionArg::Squash() {
-#ifndef NDEBUG
-    assert(in_shape_.ndim() == in_strides_.ndim());
-    assert(out_shape_.ndim() == out_strides_.ndim());
+    if (XCHAINER_DEBUG) {
+        assert(in_shape_.ndim() == in_strides_.ndim());
+        assert(out_shape_.ndim() == out_strides_.ndim());
 
-    for (int8_t i = -1; i >= -out_shape_.ndim(); --i) {
-        assert(in_shape_[in_shape_.ndim() + i] == out_shape_[out_shape_.ndim() + i]);
+        for (int8_t i = -1; i >= -out_shape_.ndim(); --i) {
+            assert(in_shape_[in_shape_.ndim() + i] == out_shape_[out_shape_.ndim() + i]);
+        }
     }
-#endif
 
     // Squash out
     std::tuple<Shape, Axes> out_squashed_result = SquashShape(out_shape_, out_strides_);
@@ -132,10 +133,8 @@ void ReductionArg::Squash() {
     const Axes& in_keep_axes = std::get<1>(in_squashed_result);
     Strides in_squashed_strides = GetSquashedStrides(in_strides_, in_keep_axes);
 
-#ifndef NDEBUG
     assert(in_squashed_shape.ndim() == in_squashed_strides.ndim());
     assert(out_squashed_shape.ndim() == out_squashed_strides.ndim());
-#endif
 
     in_strides_ = in_squashed_strides;
     out_strides_ = out_squashed_strides;

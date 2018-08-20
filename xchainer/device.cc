@@ -61,8 +61,7 @@ struct ApplyBatchNormResult {
 
 ApplyBatchNormResult ApplyBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
-#ifndef NDEBUG
-    {
+    if (XCHAINER_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
         assert(gamma.shape() == reduced_shape);
         assert(beta.shape() == reduced_shape);
@@ -71,9 +70,6 @@ ApplyBatchNormResult ApplyBatchNorm(
         assert(mean.GetTotalSize() == reduced_total_size);
         assert(var.GetTotalSize() == reduced_total_size);
     }
-#else
-    (void)axis;  // unused
-#endif  // NDEBUG
     Array inv_std = Reciprocal(Sqrt(var + eps));
 
     Array out = (x - mean) * inv_std * gamma + beta;
