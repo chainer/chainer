@@ -7,6 +7,15 @@ import xchainer.testing
 from tests import array_utils
 
 
+# Skip if creating an ndarray while casting the data to the parameterized dtype fails.
+# E.g. [numpy.inf] to numpy.int32.
+def _to_numpy_safe(a_object, dtype):
+    try:
+        return numpy.array(a_object, dtype)
+    except (ValueError, OverflowError):
+        return None
+
+
 # Ignore warnings from numpy for NaN comparisons.
 @pytest.mark.filterwarnings('ignore:invalid value encountered in ')
 @pytest.mark.parametrize('a_object,b_object', [
@@ -45,12 +54,9 @@ from tests import array_utils
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_cmp(device, cmp_op, xc_cmp, np_cmp, a_object, b_object, dtype):
-    try:
-        a_np = numpy.array(a_object, dtype)
-        b_np = numpy.array(b_object, dtype)
-    except (ValueError, OverflowError):
-        # Skip if creating an ndarray while casting the data to the parameterized dtype fails.
-        # E.g. [numpy.inf] to numpy.int32.
+    a_np = _to_numpy_safe(a_object, dtype)
+    b_np = _to_numpy_safe(b_object, dtype)
+    if a_np is None or b_np is None:
         return
 
     a_xc = xchainer.array(a_np)
@@ -83,3 +89,28 @@ def test_cmp_invalid(cmp_op, xc_cmp, a_shape, b_shape):
     b = array_utils.create_dummy_ndarray(xchainer, b_shape, 'float32')
     check(a, b)
     check(b, a)
+
+
+@pytest.mark.parametrize('a_object', [
+    ([]),
+    ([0]),
+    ([1]),
+    ([0.2]),
+    ([-0.3]),
+    ([True]),
+    ([False]),
+    ([0, 1, 2]),
+    ([0., numpy.nan]),
+    ([numpy.nan, numpy.inf]),
+    ([-numpy.inf, numpy.nan]),
+    ([[0, 1], [2, 0]]),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_not(device, a_object, dtype):
+    a_np = _to_numpy_safe(a_object, dtype)
+    if a_np is None:
+        return
+
+    a_xc = xchainer.array(a_np)
+
+    xchainer.testing.assert_array_equal_ex(xchainer.logical_not(a_xc), numpy.logical_not(a_np))
