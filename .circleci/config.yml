@@ -192,7 +192,7 @@ jobs:
             source activate testenv
 
             pushd build
-            TSAN_OPTIONS="history_size=7 report_thread_leaks=0" ctest -V
+            TSAN_OPTIONS="history_size=2 report_thread_leaks=0" ctest -V
             popd
 
       # Python test
