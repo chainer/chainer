@@ -170,6 +170,7 @@ public:
     template <typename IndexSource>
     XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset = 0) {
         (void)index_source;  // unused
+        (void)offset; // unused
         assert(index_source.ndim() == 1);
         assert(offset == 0);
         raw_index_ = index_source.index()[0];
