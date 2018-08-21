@@ -98,6 +98,12 @@ public:
         internal::CombineIterators<kNdim>(*this, first_iter, std::forward<IndexIterators>(iters)...);
     }
 
+    XCHAINER_HOST_DEVICE void CopyFrom(int64_t* src, int8_t ndim, int8_t offset = 0) {
+        for (int i = 0; i < ndim; ++i) {
+            index_[i + offset] = src[i];
+        }
+    }
+
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
 
     XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return kNdim; }
@@ -167,6 +173,14 @@ public:
         internal::CombineIterators<0>(*this, first_iter, std::forward<IndexIterators>(iters)...);
     }
 
+    XCHAINER_HOST_DEVICE void CopyFrom(int64_t* src, int8_t ndim, int8_t offset = 0) {
+        (void)src;  // unused
+        (void)ndim;  // unused
+        (void)offset;  // unused
+        assert(ndim == 0);
+        assert(offset == 0);
+    }
+
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < 1; }
 
     XCHAINER_HOST_DEVICE static constexpr int8_t ndim() { return 0; }
@@ -217,6 +231,14 @@ public:
     template <int8_t NdimArg, typename... IndexIterators>
     XCHAINER_HOST_DEVICE void Combine(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
         internal::CombineIterators<1>(*this, first_iter, std::forward<IndexIterators>(iters)...);
+    }
+
+    XCHAINER_HOST_DEVICE void CopyFrom(int64_t* src, int8_t ndim, int8_t offset = 0) {
+        (void)ndim;  // unused
+        (void)offset;  // unused
+        assert(ndim == 1);
+        assert(offset == 0);
+        raw_index_ = src[0];
     }
 
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
@@ -273,6 +295,12 @@ public:
     XCHAINER_HOST_DEVICE void Combine(IndexSource&& index_source, IndexSources&&... index_sources) {
         internal::CombineIterators<kDynamicNdim>(
                 *this, std::forward<IndexSource>(index_source), std::forward<IndexSources>(index_sources)...);
+    }
+
+    XCHAINER_HOST_DEVICE void CopyFrom(int64_t* src, int8_t ndim, int8_t offset = 0) {
+        for (int i = 0; i < ndim; ++i) {
+            index_[i + offset] = src[i];
+        }
     }
 
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }

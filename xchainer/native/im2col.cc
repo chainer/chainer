@@ -63,7 +63,14 @@ void Im2ColImpl(
                     img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i];
                 }
 
-                // TODO(sonots): fast, but ...
+                it_x.CopyFrom(it_batch_channel.index(), 2, 0);
+                it_x.CopyFrom(img_index.index(), kKernelNdim, 2);
+
+                it_out.CopyFrom(it_batch_channel.index(), 2, 0);
+                it_out.CopyFrom(it_kernel.index(), kKernelNdim, 2);
+                it_out.CopyFrom(it_out_dims.index(), kKernelNdim, 2 + kKernelNdim);
+
+#if 0
                 for (int i = 0; i < 2; ++i) {
                     it_x.index()[i] = it_batch_channel.index()[i];
                 }
@@ -80,6 +87,8 @@ void Im2ColImpl(
                 for (int i = 0; i < kKernelNdim; ++i) {
                     it_out.index()[i + 2 + kKernelNdim] = it_out_dims.index()[i];
                 }
+#endif
+
                 // it_x.Combine(it_batch_channel, img_index);
                 // it_out.Combine(it_batch_channel, it_kernel, it_out_dims);
 
