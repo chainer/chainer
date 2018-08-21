@@ -87,8 +87,6 @@ void NativeDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
         IndexableArray<const T, 1> v_iarray{v};
         IndexableArray<T, 2> out_iarray{out};
         Indexer<1> v_indexer{v.shape()};
-        Indexer<1> out_rows_indexer{Shape{out.shape()[0]}};
-        Indexer<1> out_cols_indexer{Shape{out.shape()[1]}};
         Indexer<2> out_indexer{out.shape()};
 
         // Initialize all elements to 0 first instead of conditionally filling in the diagonal.
@@ -98,10 +96,8 @@ void NativeDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
 
         auto out_it = out_indexer.It(0);
         for (auto v_it = v_indexer.It(0); v_it; ++v_it) {
-            auto out_rows_it = out_rows_indexer.It(row_start + v_it.raw_index());
-            auto out_cols_it = out_cols_indexer.It(col_start + v_it.raw_index());
-            out_it.CopyIndex(out_rows_it);
-            out_it.CopyIndex(out_cols_it, out_rows_it.ndim());
+            out_it.index()[0] = row_start + v_it.raw_index();
+            out_it.index()[1] = col_start + v_it.raw_index();
             out_iarray[out_it] = v_iarray[v_it];
         }
     });
