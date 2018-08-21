@@ -111,10 +111,7 @@ TEST(BackwardContextTest, InputGrad) {
 // default graph and an explicitly scoped graph. Some tests will become redundant. Remove them.
 class BackpropTest : public ::testing::TestWithParam<std::string> {
 protected:
-    void SetUp() override {
-        std::string backend_name = GetParam();
-        device_session_.emplace(DeviceId{backend_name, 0});
-    }
+    void SetUp() override { device_session_.emplace(DeviceId{native::NativeBackend::kDefaultName, 0}); }
 
     void TearDown() override { device_session_.reset(); }
 
@@ -138,8 +135,8 @@ public:
     template <typename T>
     void ExpectDataEqual(const Array& expected, const Array& actual) const {
 #ifdef XCHAINER_ENABLE_CUDA
-        std::string backend_name = GetParam();
-        if (backend_name == "cuda") {
+        if (expected.device().backend().GetName() == cuda::CudaBackend::kDefaultName ||
+            actual.device().backend().GetName() == cuda::CudaBackend::kDefaultName) {
             cuda::CheckCudaError(cudaDeviceSynchronize());
         }
 #endif  // XCHAINER_ENABLE_CUDA
@@ -284,13 +281,22 @@ TEST_P(BackpropTest, DoubleBackprop) {
 
 #ifdef XCHAINER_ENABLE_CUDA
 TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
-    std::string another_backend = GetParam() == "cuda" ? "native" : "cuda";
-    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [another_backend](auto& xs) {
-        auto ret = xs[0] * xs[1];
-        // This device switch also affects backward
-        SetDefaultDevice(&GetDefaultContext().GetDevice({another_backend, 0}));
-        return ret;
-    });
+    struct Param {
+        std::string default_backend;
+        std::string another_backend;
+    };
+
+    std::vector<Param> params = {{native::NativeBackend::kDefaultName, cuda::CudaBackend::kDefaultName},
+                                 {cuda::CudaBackend::kDefaultName, native::NativeBackend::kDefaultName}};
+    for (auto param : params) {
+        testing::DeviceSession device_session{DeviceId{param.default_backend, 0}};
+        CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [& another_backend = param.another_backend](auto& xs) {
+            auto ret = xs[0] * xs[1];
+            // This device switch also affects backward
+            SetDefaultDevice(&GetDefaultContext().GetDevice({another_backend, 0}));
+            return ret;
+        });
+    }
 }
 #endif  // XCHAINER_ENABLE_CUDA
 
@@ -812,15 +818,6 @@ TEST_P(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
         EXPECT_EQ(y2_node_bp3, map_bp4.at(backprop_id3).at(1));
     }
 }
-
-INSTANTIATE_TEST_CASE_P(
-        ForEachBackend,
-        BackpropTest,
-        ::testing::Values(
-#ifdef XCHAINER_ENABLE_CUDA
-                std::string{"cuda"},
-#endif  // XCHAINER_ENABLE_CUDA
-                std::string{"native"}));
 
 class BackpropFunctionTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
 
