@@ -40,6 +40,7 @@ public:
         }
     }
 
+    // TODO(sonots): Set raw_index_
     template <typename IndexSource>
     XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
         for (int i = 0; i < index_source.ndim(); ++i) {
@@ -225,6 +226,7 @@ public:
         }
     }
 
+    // TODO(sonots): Set raw_index_
     template <typename IndexSource>
     XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
         for (int i = 0; i < index_source.ndim(); ++i) {
