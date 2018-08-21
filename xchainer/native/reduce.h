@@ -19,8 +19,8 @@ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, Reduction
     for (it_out.Restart(); it_out; ++it_out) {
         auto accum = impl.Identity();
 
-        for (it_in.Restart(it_out.raw_index()); it_in; ++it_in) {
-            int64_t i_reduce = it_in.raw_index() / arg.out_indexer.total_size();
+        int64_t i_reduce{0};
+        for (it_in.Restart(it_out.raw_index()); it_in; ++it_in, ++i_reduce) {
             impl.Reduce(impl.MapIn(arg.in[it_in], i_reduce), accum);
         }
 
