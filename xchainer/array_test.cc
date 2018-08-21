@@ -42,18 +42,22 @@
 #include "xchainer/testing/device_session.h"
 #include "xchainer/testing/util.h"
 
-#define EXPECT_ARRAYS_ARE_EQUAL_COPY(orig, copy)     \
-    EXPECT_TRUE(copy.IsContiguous());                \
-    EXPECT_EQ(copy.offset(), 0);                     \
-    EXPECT_NE(orig.data().get(), copy.data().get()); \
-    EXPECT_ARRAY_EQ(orig, copy)
+#define EXPECT_ARRAYS_ARE_EQUAL_COPY(orig, copy)             \
+    do {                                                     \
+        EXPECT_TRUE((copy).IsContiguous());                  \
+        EXPECT_EQ((copy).offset(), 0);                       \
+        EXPECT_NE((orig).data().get(), (copy).data().get()); \
+        EXPECT_ARRAY_EQ((orig), copy);                       \
+    } while (0)
 
-#define EXPECT_ARRAYS_ARE_EQAUL_VIEW(orig, view)         \
-    EXPECT_EQ(orig.IsContiguous(), view.IsContiguous()); \
-    EXPECT_EQ(orig.offset(), view.offset());             \
-    EXPECT_EQ(orig.data().get(), view.data().get());     \
-    EXPECT_ARRAY_HAVE_DISTINCT_ARRAY_NODES(orig, view);  \
-    EXPECT_ARRAY_EQ(orig, view)
+#define EXPECT_ARRAYS_ARE_EQAUL_VIEW(orig, view)                 \
+    do {                                                         \
+        EXPECT_EQ((orig).IsContiguous(), (view).IsContiguous()); \
+        EXPECT_EQ((orig).offset(), (view).offset());             \
+        EXPECT_EQ((orig).data().get(), (view).data().get());     \
+        EXPECT_ARRAY_HAVE_DISTINCT_ARRAY_NODES((orig), (view));  \
+        EXPECT_ARRAY_EQ((orig), (view));                         \
+    } while (0)
 
 namespace xchainer {
 namespace {

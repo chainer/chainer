@@ -21,11 +21,13 @@
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
 
-#define EXPECT_ARRAYS_ARE_EQUAL_COPY(orig, copy)     \
-    EXPECT_TRUE(copy.IsContiguous());                \
-    EXPECT_EQ(copy.offset(), 0);                     \
-    EXPECT_NE(orig.data().get(), copy.data().get()); \
-    EXPECT_ARRAY_EQ(orig, copy)
+#define EXPECT_ARRAYS_ARE_EQUAL_COPY(orig, copy)             \
+    do {                                                     \
+        EXPECT_TRUE((copy).IsContiguous());                  \
+        EXPECT_EQ((copy).offset(), 0);                       \
+        EXPECT_NE((orig).data().get(), (copy).data().get()); \
+        EXPECT_ARRAY_EQ((orig), (copy));                     \
+    } while (0)
 
 namespace xchainer {
 namespace {
