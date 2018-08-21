@@ -15,7 +15,7 @@ from chainer.testing import attr
 @testing.parameterize(
     *testing.product({
         'batchsize': [5, 10], 'input_dim': [2, 3], 'margin': [1, 2],
-        'reduce': ['mean', 'no'], 'label_dtype': [numpy.int32, numpy.int32]
+        'reduce': ['mean', 'no'], 'label_dtype': [numpy.int32, numpy.int64]
     })
 )
 class TestContrastive(unittest.TestCase):
