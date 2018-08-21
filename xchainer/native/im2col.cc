@@ -57,17 +57,15 @@ void Im2ColImpl(
     auto it_x = x_indexer.It(0);
     auto it_out = out_indexer.It(0);
     for (it_batch_channel.Restart(); it_batch_channel; ++it_batch_channel) {
+        it_x.CopyFrom(it_batch_channel);
+        it_out.CopyFrom(it_batch_channel);
         for (it_kernel.Restart(); it_kernel; ++it_kernel) {
+            it_out.CopyFrom(it_kernel, batch_channel_indexer.ndim());
             for (it_out_dims.Restart(); it_out_dims; ++it_out_dims) {
                 for (int i = 0; i < kKernelNdim; ++i) {
                     img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i];
                 }
-
-                it_x.CopyFrom(it_batch_channel);
                 it_x.CopyFrom(img_index, batch_channel_indexer.ndim());
-
-                it_out.CopyFrom(it_batch_channel);
-                it_out.CopyFrom(it_kernel, batch_channel_indexer.ndim());
                 it_out.CopyFrom(it_out_dims, batch_channel_indexer.ndim() + kernel_indexer.ndim());
 
 #if 0
