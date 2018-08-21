@@ -203,12 +203,12 @@ public:
     bool IsBackpropRequired(AnyGraph any_graph) const;
 
     // Returns whether the array is flagged to compute the gradient during backprop.
-    // If the array is constant with respect to the computation of the backprop ID, this function makes the array non-constant.
     //
     // This function ignores no/force-backprop mode.
     bool IsGradRequired(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
     // Flags the array to compute the gradient during backprop.
+    // If the array is constant with respect to the computation of the backprop ID, this function makes the array non-constant.
     //
     // This function ignores no/force-backprop mode.
     const Array& RequireGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const {
