@@ -48,14 +48,18 @@ void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, k
     auto it_col = col_indexer.It(0);
     auto it_out = out_indexer.It(0);
     for (it_batch_channel.Restart(); it_batch_channel; ++it_batch_channel) {
+        it_col.CopyFrom(it_batch_channel);
+        it_out.CopyFrom(it_batch_channel);
+
         for (it_kernel.Restart(); it_kernel; ++it_kernel) {
+            it_col.CopyFrom(it_kernel, batch_channel_indexer.ndim());
+
             for (it_in_image_dims.Restart(); it_in_image_dims; ++it_in_image_dims) {
                 for (int8_t i = 0; i < kKernelNdim; ++i) {
                     out_image_index.index()[i] = it_in_image_dims.index()[i] * stride[i] + it_kernel.index()[i];
                 }
-
-                it_col.Combine(it_batch_channel, it_kernel, it_in_image_dims);
-                it_out.Combine(it_batch_channel, out_image_index);
+                it_col.CopyFrom(it_in_image_dims, batch_channel_indexer.ndim() + kernel_indexer.ndim());
+                it_out.CopyFrom(out_image_index, batch_channel_indexer.ndim());
 
                 out_iarray[it_out] += col_iarray[it_col];
             }
