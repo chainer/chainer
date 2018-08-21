@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <cstdint>
-#include <utility>
 
 #include "xchainer/constant.h"
 #include "xchainer/macro.h"

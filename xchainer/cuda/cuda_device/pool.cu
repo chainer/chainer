@@ -52,7 +52,6 @@ __global__ void MaxPoolDoubleBackwardKernel(
         CudaStackVector stride,
         CudaStackVector pad,
         NdimIndex x_index) {
-
     auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x);
     auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1);
     auto it_x = x_indexer.It(0);
