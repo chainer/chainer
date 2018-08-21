@@ -10,57 +10,6 @@
 namespace xchainer {
 
 template <int8_t kNdim = kDynamicNdim>
-class IndexIterator;
-
-namespace index_iterator_detail {
-
-// IndexSource is either IndexIterator or NdimIndex.
-template <int8_t Ndim, typename IndexSource>
-XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImplBase(
-        IndexIterator<Ndim>& it, int8_t processed_dims, const IndexSource& index_source) {
-    assert(processed_dims + index_source.ndim() <= it.ndim());
-    for (int8_t i = 0; i < index_source.ndim(); ++i) {
-        it.index()[processed_dims + i] = index_source.index()[i];
-    }
-    return processed_dims + index_source.ndim();
-}
-
-template <int8_t Ndim>
-XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(IndexIterator<Ndim>& /*it*/, int8_t processed_dims) {
-    return processed_dims;
-}
-
-template <int8_t Ndim, typename IndexSource, typename... IndexSources>
-XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(
-        IndexIterator<Ndim>& it, int8_t processed_dims, IndexSource&& index_source, IndexSources&&... index_sources) {
-    processed_dims = CombineIteratorsImplBase(it, processed_dims, index_source);
-    return CombineIteratorsImpl(it, processed_dims, std::forward<IndexSources>(index_sources)...);
-}
-
-}  // namespace index_iterator_detail
-
-namespace internal {
-
-// Combine multiple sub-iterators to make a combined iterator.
-// Returns the number of written dimensions, which is equal to ndim_.
-// `processed_dims` is the number of written dimensions so far.
-//
-// TODO(sonots): Set raw_index
-template <int8_t Ndim, typename... IndexSources>
-XCHAINER_HOST_DEVICE void CombineIterators(IndexIterator<Ndim>& it, IndexSources&&... index_sources) {
-    int8_t processed_dims = index_iterator_detail::CombineIteratorsImpl<Ndim>(it, 0, std::forward<IndexSources>(index_sources)...);
-    (void)processed_dims;  // unused
-    assert(processed_dims == it.ndim());
-#ifndef NDEBUG
-    for (int8_t i = 0; i < it.ndim(); ++i) {
-        assert(0 <= it.index()[i]);
-    }
-#endif  // NDEBUG
-}
-
-}  // namespace internal
-
-template <int8_t kNdim>
 class IndexIterator {
 public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
@@ -90,12 +39,6 @@ public:
         if (total_size_ > 0) {
             Set(start_);
         }
-    }
-
-    // Sets an index from multiple indexers each of which composes a portion of dimensions in order.
-    template <int8_t NdimArg, typename... IndexIterators>
-    XCHAINER_HOST_DEVICE void Combine(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
-        internal::CombineIterators<kNdim>(*this, first_iter, std::forward<IndexIterators>(iters)...);
     }
 
     template <typename IndexSource>
@@ -169,11 +112,6 @@ public:
         raw_index_ = start;
     }
 
-    template <int8_t NdimArg, typename... IndexIterators>
-    XCHAINER_HOST_DEVICE void Combine(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
-        internal::CombineIterators<0>(*this, first_iter, std::forward<IndexIterators>(iters)...);
-    }
-
     template <typename IndexSource>
     XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset = 0) {
         (void)index_source; // unused;
@@ -227,11 +165,6 @@ public:
     XCHAINER_HOST_DEVICE void Restart(int64_t start) {
         assert(start >= 0);
         raw_index_ = start;
-    }
-
-    template <int8_t NdimArg, typename... IndexIterators>
-    XCHAINER_HOST_DEVICE void Combine(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
-        internal::CombineIterators<1>(*this, first_iter, std::forward<IndexIterators>(iters)...);
     }
 
     template <typename IndexSource>
@@ -290,12 +223,6 @@ public:
         if (total_size_ > 0) {
             Set(start_);
         }
-    }
-
-    template <typename IndexSource, typename... IndexSources>
-    XCHAINER_HOST_DEVICE void Combine(IndexSource&& index_source, IndexSources&&... index_sources) {
-        internal::CombineIterators<kDynamicNdim>(
-                *this, std::forward<IndexSource>(index_source), std::forward<IndexSources>(index_sources)...);
     }
 
     template <typename IndexSource>

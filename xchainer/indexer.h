@@ -45,14 +45,6 @@ public:
         return IndexIterator<kNdim>{shape_, total_size_, start, step};
     }
 
-    // Sets an index from multiple indexers each of which composes a portion of dimensions in order.
-    template <int8_t NdimArg, typename... IndexIterators>
-    XCHAINER_HOST_DEVICE IndexIterator<kNdim> At(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
-        IndexIterator<kNdim> it = It(0);
-        internal::CombineIterators<kNdim>(it, first_iter, std::forward<IndexIterators>(iters)...);
-        return it;
-    }
-
     XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return kNdim; }
 
     XCHAINER_HOST_DEVICE int64_t total_size() const { return total_size_; }
@@ -76,15 +68,6 @@ public:
 
     XCHAINER_HOST_DEVICE IndexIterator<0> It(int64_t start, int64_t step = 1) const { return IndexIterator<0>{start, step}; }
 
-    XCHAINER_HOST_DEVICE IndexIterator<0> At(const IndexIterator<0>& iter) { return It(iter.raw_index()); }
-
-    template <int8_t NdimArg, typename... IndexIterators>
-    XCHAINER_HOST_DEVICE IndexIterator<0> At(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
-        IndexIterator<0> it = It(0);
-        internal::CombineIterators<0>(it, first_iter, std::forward<IndexIterators>(iters)...);
-        return it;
-    }
-
     XCHAINER_HOST_DEVICE static constexpr int8_t ndim() { return 0; }
 
     XCHAINER_HOST_DEVICE static constexpr int64_t total_size() { return 1; }
@@ -99,15 +82,6 @@ public:
     explicit Indexer(const Shape& shape) : total_size_{shape[0]} { assert(1 == shape.ndim()); }
 
     XCHAINER_HOST_DEVICE IndexIterator<1> It(int64_t start, int64_t step = 1) const { return IndexIterator<1>{total_size_, start, step}; }
-
-    XCHAINER_HOST_DEVICE IndexIterator<1> At(const IndexIterator<1>& iter) { return It(iter.raw_index()); }
-
-    template <int8_t NdimArg, typename... IndexIterators>
-    XCHAINER_HOST_DEVICE IndexIterator<1> At(const IndexIterator<NdimArg>& first_iter, IndexIterators&&... iters) {
-        IndexIterator<1> it = It(0);
-        internal::CombineIterators<1>(it, first_iter, std::forward<IndexIterators>(iters)...);
-        return it;
-    }
 
     XCHAINER_HOST_DEVICE static constexpr int8_t ndim() { return 1; }
 
@@ -129,13 +103,6 @@ public:
 
     XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim> It(int64_t start, int64_t step = 1) const {
         return IndexIterator<kDynamicNdim>{shape_, ndim_, total_size_, start, step};
-    }
-
-    template <typename IndexSource, typename... IndexSources>
-    XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim> At(IndexSource&& index_source, IndexSources&&... index_sources) {
-        IndexIterator<kDynamicNdim> it = It(0);
-        internal::CombineIterators<kDynamicNdim>(it, std::forward<IndexSource>(index_source), std::forward<IndexSources>(index_sources)...);
-        return it;
     }
 
     XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
