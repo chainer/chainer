@@ -35,7 +35,7 @@ class Ndtri(function_node.FunctionNode):
         self.retain_outputs((0,))
         return cuda.elementwise(
             'T x', 'T y',
-            'y = -sqrt(2.0) * erfcinv(2 * x)',
+            'y = normcdfinv(x)',
             'elementwise_ndtri',
         )(x[0]),
 
