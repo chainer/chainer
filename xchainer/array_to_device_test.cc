@@ -260,6 +260,12 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     Array b_dev1 = b.ToDevice(dev1);
     Array c = b_dev1 + a2;
 
+    ASSERT_TRUE(a0.IsGradRequired());
+    ASSERT_TRUE(a1.IsGradRequired());
+    ASSERT_TRUE(a2.IsGradRequired());
+    ASSERT_FALSE(c.IsGradRequired());
+    ASSERT_FALSE(b_dev1.IsGradRequired());
+    ASSERT_FALSE(b.IsGradRequired());
     ASSERT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, c));
     ASSERT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, b_dev1));
     ASSERT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, b));
@@ -268,9 +274,6 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     EXPECT_EQ(&dev0, &b.device());
     EXPECT_EQ(&dev1, &b_dev1.device());
     EXPECT_EQ(&dev1, &c.device());
-    EXPECT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, c));
-    EXPECT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, b_dev1));
-    EXPECT_TRUE(testing::IsBackpropIdsEqual({GetDefaultContext().default_backprop_id()}, b));
     float datay[]{8.0f, 14.0f};  // d0 * d1 + d2
     ExpectArraysEqual(c, FromContiguousHostData(shape, Dtype::kFloat32, std::shared_ptr<float>(datay, nop)));
 
@@ -281,11 +284,9 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     ASSERT_TRUE(a0.GetGrad().has_value());
     ASSERT_TRUE(a1.GetGrad().has_value());
     ASSERT_TRUE(a2.GetGrad().has_value());
-    ASSERT_TRUE(c.GetGrad().has_value());
     EXPECT_EQ(&dev0, &a0.GetGrad()->device());
     EXPECT_EQ(&dev0, &a1.GetGrad()->device());
     EXPECT_EQ(&dev1, &a2.GetGrad()->device());
-    EXPECT_EQ(&dev1, &c.GetGrad()->device());
     float data0_grad[]{3.0f, 4.0f};
     float data1_grad[]{1.0f, 2.0f};
     float data2_grad[]{1.0f, 1.0f};

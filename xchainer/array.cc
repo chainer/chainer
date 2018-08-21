@@ -286,10 +286,11 @@ void Array::Fill(Scalar value) const { device().Fill(*this, value); }
 
 const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
-    const nonstd::optional<Array>* grad = body_->GetGrad(actual_backprop_id);
-    if (grad == nullptr) {
-        throw XchainerError{"Array does not belong to the graph: '", actual_backprop_id, "'."};
+    if (!IsGradRequired(actual_backprop_id)) {
+        throw XchainerError{"Array is not flagged as requiring gradient for backprop id: '", actual_backprop_id, "'."};
     }
+    const nonstd::optional<Array>* grad = body_->GetGrad(actual_backprop_id);
+    assert(grad != nullptr);
     return *grad;
 }
 
@@ -297,13 +298,20 @@ void Array::SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id)
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     nonstd::optional<Array>* target_grad = body_->GetGrad(actual_backprop_id);
     if (target_grad == nullptr) {
-        throw XchainerError{"Array does not belong to the graph: '", actual_backprop_id, "'."};
+        throw XchainerError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
     }
+
+    // Setting the gradient flags the array to require gradient, so that it can return the gradient with GetGrad().
+    RequireGrad(actual_backprop_id);
+
     internal::SetGrad(*target_grad, std::move(grad), shape(), dtype(), device());
 }
 
 void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
+    if (!body_->HasArrayNode(actual_backprop_id)) {
+        throw XchainerError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
+    }
     body_->ClearGrad(actual_backprop_id);
 }
 
@@ -319,15 +327,18 @@ bool Array::IsBackpropRequired(AnyGraph /*any_graph*/) const {
     });
 }
 
+bool Array::IsGradRequired(const nonstd::optional<BackpropId>& backprop_id) const {
+    BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
+    return body_->IsGradRequired(actual_backprop_id);
+}
+
 template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id) {
     if (GetKind(array.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"Array with integral dtype (", GetDtypeName(array.dtype()), ") cannot compute gradient"};
     }
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(array, backprop_id);
-    if (xchainer::IsBackpropRequired(actual_backprop_id)) {
-        internal::ArrayBody::CreateArrayNode(internal::GetArrayBody(array), actual_backprop_id);
-    }
+    internal::ArrayBody::RequireGrad(internal::GetArrayBody(array), actual_backprop_id);
     return array;
 }
 

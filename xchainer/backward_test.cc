@@ -151,17 +151,6 @@ public:
         }
     }
 
-    void CheckArrayGrad(const Array& a) const {
-        ASSERT_TRUE(a.GetGrad().has_value());
-        EXPECT_EQ(&a.device(), &a.GetGrad()->device());
-    }
-
-    void CheckArrayGrad(const std::vector<Array>& as) const {
-        for (const auto& a : as) {
-            CheckArrayGrad(a);
-        }
-    }
-
     void CallBackward(const Array& a) const { Backward(a); }
     void CallBackward(const std::vector<Array>& a) const { Backward({a.begin(), a.end()}); }
 
@@ -182,7 +171,6 @@ public:
             EXPECT_EQ(&target_input.device(), &target_input.GetGrad()->device());
             ExpectEqual<float>(expected_grads[i], *target_input.GetGrad());
         }
-        CheckArrayGrad(y);
     }
 
     template <typename Fprop>
@@ -310,6 +298,8 @@ TEST_P(BackpropTest, MultipleGraphsBackprop) {
     Backward(z, bp_x, DoubleBackpropOption::kDisable);
 
     Array gx = *x.GetGrad(bp_x);  // 2x + y
+    EXPECT_FALSE(gx.IsGradRequired(bp_x));
+    EXPECT_FALSE(gx.IsGradRequired(bp_y));
     EXPECT_TRUE(testing::IsBackpropIdsEqual({bp_y}, gx));
     EXPECT_ARRAY_EQ(2 * x_value + y_value, gx);
 
@@ -317,6 +307,8 @@ TEST_P(BackpropTest, MultipleGraphsBackprop) {
     Backward(w, bp_y, DoubleBackpropOption::kDisable);
 
     Array gy = *y.GetGrad(bp_y);
+    EXPECT_FALSE(gy.IsGradRequired(bp_x));
+    EXPECT_FALSE(gy.IsGradRequired(bp_y));
     EXPECT_TRUE(testing::IsBackpropIdsEqual({}, gy));
     ExpectEqual<float>(x_value, gy);  // x
 }

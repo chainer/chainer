@@ -12,7 +12,7 @@ def _assert_arrays_equal(array1, array2):
         assert array1._debug_flat_data == array2._debug_flat_data
 
 
-def _check_backprop(xs, expected_gxs, fprop, extra_xs, backprop_id=None):
+def _check_backprop(xs, expected_gxs, fprop, extra_xs, gys=None, backprop_id=None):
     # Checks for test validity
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
@@ -23,9 +23,21 @@ def _check_backprop(xs, expected_gxs, fprop, extra_xs, backprop_id=None):
     assert all([(isinstance(a, xchainer.ndarray) or a == xchainer.XchainerError) for a in expected_gxs])
     assert all([isinstance(a, xchainer.ndarray) for a in extra_xs])
 
+    # Forward
     outputs = fprop(xs, extra_xs)
+
+    # Set output gradients
+    if gys is None:
+        gys = (None,) * len(outputs)
+    assert len(gys) == len(outputs)
+    for output, gy in zip(outputs, gys):
+        assert not output.is_grad_required()
+        output.set_grad(gy, backprop_id)
+
+    # Backward
     xchainer.backward(outputs, backprop_id)
 
+    # Check gradients of input arrays
     for i, expected_gx in enumerate(expected_gxs):
         x = xs[i]
         if expected_gx is xchainer.XchainerError:
@@ -35,9 +47,15 @@ def _check_backprop(xs, expected_gxs, fprop, extra_xs, backprop_id=None):
             gx = x.get_grad(backprop_id)
             _assert_arrays_equal(gx, expected_gx)
 
-    for output in outputs:
-        grad = output.get_grad(backprop_id)
-        assert grad is not None
+    # Check gradients of output arrays
+    for output, gy in zip(outputs, gys):
+        if gy is None:
+            assert not output.is_grad_required(backprop_id)
+            with pytest.raises(xchainer.XchainerError):
+                output.get_grad(backprop_id)
+        else:
+            assert output.is_grad_required(backprop_id)
+            _assert_arrays_equal(gy, output.get_grad(backprop_id))
 
 
 def test_backward_identity():
@@ -295,6 +313,7 @@ def test_backward_given_output_grad():
     xs = (xchainer.full(shape, 2, dtype),)
     extra_xs = (xchainer.full(shape, 3, dtype),)
     expected_gxs = (xchainer.full(shape, 6, dtype),)
+    gys = (xchainer.full(shape, 2, dtype),)
 
     for x in xs:
         x.require_grad()
@@ -303,10 +322,9 @@ def test_backward_given_output_grad():
         x, = xs_
         t, = extra_xs_
         y = x * t
-        y.set_grad(xchainer.full(shape, 2, dtype))
         return y,
 
-    _check_backprop(xs, expected_gxs, fprop, extra_xs)
+    _check_backprop(xs, expected_gxs, fprop, extra_xs, gys)
 
 
 def test_backward_keyword_arguments():
@@ -339,7 +357,7 @@ def test_backward_multiple_graphs_basic():
             y = x1 * x2
             return y,
 
-        _check_backprop(xs, expected_gxs, fprop, (), backprop_id1)
+        _check_backprop(xs, expected_gxs, fprop, (), backprop_id=backprop_id1)
 
 
 def test_backward_multiple_graphs_non_existing():
@@ -381,7 +399,7 @@ def test_backward_multiple_graphs_reuse():
             return y,
 
         expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.XchainerError)
-        _check_backprop(xs, expected_gxs, fprop, (), backprop_id1)
+        _check_backprop(xs, expected_gxs, fprop, (), backprop_id=backprop_id1)
 
         x1.cleargrad(backprop_id1)
         x2.cleargrad(backprop_id2)
@@ -390,7 +408,7 @@ def test_backward_multiple_graphs_reuse():
         assert x2.get_grad(backprop_id2) is None
 
         expected_gxs = (xchainer.XchainerError, xchainer.full(shape, 2, dtype))
-        _check_backprop(xs, expected_gxs, fprop, (), backprop_id2)
+        _check_backprop(xs, expected_gxs, fprop, (), backprop_id=backprop_id2)
 
         x1.cleargrad(backprop_id1)
         x2.cleargrad(backprop_id2)
@@ -399,7 +417,7 @@ def test_backward_multiple_graphs_reuse():
         x2.require_grad(backprop_id1)
 
         expected_gxs = (xchainer.full(shape, 5, dtype), xchainer.full(shape, 2, dtype))
-        _check_backprop(xs, expected_gxs, fprop, (), backprop_id2)
+        _check_backprop(xs, expected_gxs, fprop, (), backprop_id=backprop_id2)
 
         assert x1.get_grad(backprop_id1) is None
         assert x2.get_grad(backprop_id1) is None
