@@ -161,7 +161,6 @@ jobs:
                 -DXCHAINER_ENABLE_COVERAGE=ON \
                 -DXCHAINER_WARNINGS_AS_ERRORS=ON \
                 -DCMAKE_INSTALL_PREFIX=$HOME/local \
-                -DXCHAINER_ENABLE_THREAD_SANITIZER=ON \
                 ..
             popd
 
@@ -192,7 +191,7 @@ jobs:
             source activate testenv
 
             pushd build
-            TSAN_OPTIONS="history_size=2 report_thread_leaks=0" ctest -V
+            ctest -V
             popd
 
       # Python test
