@@ -37,7 +37,14 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
         Indexer<> right_indexer{right_shape};
         Indexer<> axis_indexer{axis_shape};
 
-        for (auto it = indices_indexer.It(0); it; ++it) {
+        auto it = indices_indexer.It(0);
+        auto it_left = left_indexer.It(0);
+        auto it_right = right_indexer.It(0);
+        auto it_axis = axis_indexer.It(0);
+        auto it_out = out_indexer.It(0);
+        auto it_a = a_indexer.It(0);
+
+        for (it.Restart(); it; ++it) {
             int64_t index = indices_iarray[it];
             if (index < 0) {
                 index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
@@ -46,12 +53,18 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
             }
             assert(0 <= index);
             assert(index < axis_dim);
-            auto it_axis = axis_indexer.It(index);
+            it_axis.Restart(index);
 
-            for (auto it_left = left_indexer.It(0); it_left; ++it_left) {
-                for (auto it_right = right_indexer.It(0); it_right; ++it_right) {
-                    auto it_out = out_indexer.At(it_left, it, it_right);
-                    auto it_a = a_indexer.At(it_left, it_axis, it_right);
+            it_out.CopyIndex(it, it_left.ndim());
+            it_a.CopyIndex(it_axis, it_left.ndim());
+
+            for (it_left.Restart(); it_left; ++it_left) {
+                it_out.CopyIndex(it_left);
+                it_a.CopyIndex(it_left);
+
+                for (it_right.Restart(); it_right; ++it_right) {
+                    it_out.CopyIndex(it_right, it_left.ndim() + it.ndim());
+                    it_a.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
                     out_iarray[it_out] = a_iarray[it_a];
                 }
             }
@@ -89,8 +102,15 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
             out_iarray[it] = a_iarray[it];
         }
 
+        auto it = indices_indexer.It(0);
+        auto it_left = left_indexer.It(0);
+        auto it_right = right_indexer.It(0);
+        auto it_axis = axis_indexer.It(0);
+        auto it_out = out_indexer.It(0);
+        auto it_b = b_indexer.It(0);
+
         // Add
-        for (auto it = indices_indexer.It(0); it; ++it) {
+        for (it.Restart(); it; ++it) {
             int64_t index = indices_iarray[it];
             if (index < 0) {
                 index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
@@ -99,12 +119,18 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
             }
             assert(0 <= index);
             assert(index < axis_dim);
-            auto it_axis = axis_indexer.It(index);
+            it_axis.Restart(index);
 
-            for (auto it_left = left_indexer.It(0); it_left; ++it_left) {
-                for (auto it_right = right_indexer.It(0); it_right; ++it_right) {
-                    auto it_out = out_indexer.At(it_left, it_axis, it_right);
-                    auto it_b = b_indexer.At(it_left, it, it_right);
+            it_out.CopyIndex(it_axis, it_left.ndim());
+            it_b.CopyIndex(it, it_left.ndim());
+
+            for (it_left.Restart(); it_left; ++it_left) {
+                it_out.CopyIndex(it_left);
+                it_b.CopyIndex(it_left);
+
+                for (it_right.Restart(); it_right; ++it_right) {
+                    it_out.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
+                    it_b.CopyIndex(it_right, it_left.ndim() + it.ndim());
                     out_iarray[it_out] += b_iarray[it_b];
                 }
             }

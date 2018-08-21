@@ -96,10 +96,12 @@ void NativeDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
             out_iarray[out_it] = T{0};
         }
 
+        auto out_it = out_indexer.It(0);
         for (auto v_it = v_indexer.It(0); v_it; ++v_it) {
             auto out_rows_it = out_rows_indexer.It(row_start + v_it.raw_index());
             auto out_cols_it = out_cols_indexer.It(col_start + v_it.raw_index());
-            auto out_it = out_indexer.At(out_rows_it, out_cols_it);
+            out_it.CopyIndex(out_rows_it);
+            out_it.CopyIndex(out_cols_it, out_rows_it.ndim());
             out_iarray[out_it] = v_iarray[v_it];
         }
     });

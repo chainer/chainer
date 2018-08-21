@@ -52,21 +52,26 @@ __global__ void MaxPoolDoubleBackwardKernel(
         CudaStackVector stride,
         CudaStackVector pad,
         NdimIndex x_index) {
-    for (auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it_y; ++it_y) {
+
+    auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x);
+    auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1);
+    auto it_x = x_indexer.It(0);
+
+    for (it_y.Restart(); it_y; ++it_y) {
         x_index.index()[0] = it_y.index()[0];  // batch.
         x_index.index()[1] = it_y.index()[1];  // channel.
 
         T y = y_iarray[it_y];
 
         // Iterate over the kernel in the reverse order, since the resulting index should the be first match.
-        for (auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1); it_kernel.raw_index() >= 0; --it_kernel) {
+        for (it_kernel.Restart(); it_kernel.raw_index() >= 0; --it_kernel) {
             for (int8_t i = 2; i < x_indexer.ndim(); ++i) {
                 int64_t idx = it_y.index()[i] * stride.data[i - 2] - pad.data[i - 2] + it_kernel.index()[i - 2];
                 idx = max(idx, int64_t{0});
                 idx = min(idx, x_indexer.shape()[i] - 1);
                 x_index.index()[i] = idx;
             }
-            auto it_x = x_indexer.At(x_index);
+            it_x.CopyIndex(x_index);
             if (y == x_iarray[it_x]) {
                 ggy_iarray[it_y] = ggx_iarray[it_x];
             }
