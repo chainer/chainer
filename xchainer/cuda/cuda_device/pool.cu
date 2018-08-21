@@ -50,15 +50,14 @@ __global__ void MaxPoolDoubleBackwardKernel(
         Indexer<> y_indexer,
         Indexer<> kernel_indexer,
         CudaStackVector stride,
-        CudaStackVector pad,
-        NdimIndex x_index) {
+        CudaStackVector pad) {
     auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x);
     auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1);
     auto it_x = x_indexer.It(0);
 
     for (it_y.Restart(); it_y; ++it_y) {
-        x_index.index()[0] = it_y.index()[0];  // batch.
-        x_index.index()[1] = it_y.index()[1];  // channel.
+        it_x.index()[0] = it_y.index()[0];  // batch.
+        it_x.index()[1] = it_y.index()[1];  // channel.
 
         T y = y_iarray[it_y];
 
@@ -68,9 +67,8 @@ __global__ void MaxPoolDoubleBackwardKernel(
                 int64_t idx = it_y.index()[i] * stride.data[i - 2] - pad.data[i - 2] + it_kernel.index()[i - 2];
                 idx = max(idx, int64_t{0});
                 idx = min(idx, x_indexer.shape()[i] - 1);
-                x_index.index()[i] = idx;
+                it_x.index()[i] = idx;
             }
-            it_x.CopyIndex(x_index);
             if (y == x_iarray[it_x]) {
                 ggy_iarray[it_y] = ggx_iarray[it_x];
             }
@@ -209,8 +207,7 @@ public:
                     y_indexer,
                     kernel_indexer,
                     CudaStackVector{stride_},
-                    CudaStackVector{pad_},
-                    NdimIndex{x_iarray.ndim()});
+                    CudaStackVector{pad_});
         });
 
         return ggy;
