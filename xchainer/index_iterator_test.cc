@@ -69,10 +69,8 @@ TEST(IndexIteratorTest, Rank1) {
     EXPECT_EQ(1, it.index()[0]);
     EXPECT_TRUE(static_cast<bool>(it));
 
-    IndexIterator<0> a(nullptr, 1, 0, 1);
-    IndexIterator<1> b(&shape[0], 3, 1, 1);
+    IndexIterator<1> a(&shape[0], 3, 1, 1);
     it.CopyIndex(a);
-    it.CopyIndex(b, a.ndim());
     EXPECT_EQ(1, it.ndim());
     EXPECT_EQ(1, it.index()[0]);
     EXPECT_TRUE(static_cast<bool>(it));
@@ -196,10 +194,8 @@ TEST(DynamicIndexIteratorTest, Rank1) {
     EXPECT_EQ(1, it.index()[0]);
     EXPECT_TRUE(static_cast<bool>(it));
 
-    IndexIterator<0> a(nullptr, 1, 0, 1);
-    IndexIterator<1> b(&shape[0], 3, 1, 1);
+    IndexIterator<1> a(&shape[0], 3, 1, 1);
     it.CopyIndex(a);
-    it.CopyIndex(b, a.ndim());
     EXPECT_EQ(1, it.ndim());
     EXPECT_EQ(1, it.index()[0]);
     EXPECT_TRUE(static_cast<bool>(it));
