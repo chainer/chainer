@@ -31,11 +31,11 @@ from chainer.utils import imgproc
 from chainer.variable import Variable
 
 
-class VGG16Layers(link.Chain):
+class VGGLayers(link.Chain):
 
-    """A pre-trained CNN model with 16 layers provided by VGG team.
+    """A pre-trained CNN model provided by VGG team.
 
-    During initialization, this chain model automatically downloads
+    During initialization, this chan model automatically downloads
     the pre-trained caffemodel, convert to another chainer model,
     stores it on your local directory, and initializes all the parameters
     with it. This model would be useful when you want to extract a semantic
@@ -66,6 +66,8 @@ class VGG16Layers(link.Chain):
             are not initialized by the pre-trained model, but the default
             initializer used in the original paper, i.e.,
             ``chainer.initializers.Normal(scale=0.01)``.
+        n_layers (int): The number of layers of this model. It should be
+            either 16 or 19.
 
     Attributes:
         available_layers (list of str): The list of available layer names
@@ -73,19 +75,25 @@ class VGG16Layers(link.Chain):
 
     """
 
-    def __init__(self, pretrained_model='auto'):
+    def __init__(self, pretrained_model, n_layers):
+        super(VGGLayers, self).__init__()
         if pretrained_model:
-            # As a sampling process is time-consuming,
+            # Because a sampling process is time-consuming,
             # we employ a zero initializer for faster computation.
             init = constant.Zero()
             kwargs = {'initialW': init, 'initial_bias': init}
         else:
-            # employ default initializers used in the original paper
             kwargs = {
                 'initialW': normal.Normal(0.01),
                 'initial_bias': constant.Zero(),
             }
-        super(VGG16Layers, self).__init__()
+
+        if n_layers not in [16, 19]:
+            raise ValueError(
+                "Invalid number of layers. Expect 16 or 19, Actual {}".format(
+                    n_layers
+                )
+            )
 
         with self.init_scope():
             self.conv1_1 = Convolution2D(3, 64, 3, 1, 1, **kwargs)
@@ -104,61 +112,32 @@ class VGG16Layers(link.Chain):
             self.fc6 = Linear(512 * 7 * 7, 4096, **kwargs)
             self.fc7 = Linear(4096, 4096, **kwargs)
             self.fc8 = Linear(4096, 1000, **kwargs)
+            if n_layers == 19:
+                self.conv3_4 = Convolution2D(256, 256, 3, 1, 1, **kwargs)
+                self.conv4_4 = Convolution2D(512, 256, 3, 1, 1, **kwargs)
+                self.conv5_4 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
 
         if pretrained_model == 'auto':
-            _retrieve(
-                'VGG_ILSVRC_16_layers.npz',
-                'https://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
-                'caffe/VGG_ILSVRC_16_layers.caffemodel',
-                self)
-        elif pretrained_model:
-            npz.load_npz(pretrained_model, self)
+            if n_layers == 16:
+                _retrieve(
+                    'VGG_ILSVRC_16_layers.npz',
+                    'https://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
+                    'caffe/VGG_ILSVRC_16_layers.caffemodel',
+                    self)
+            else:
+                _retrieve(
+                    'VGG_ILSVRC_19_layers.npz',
+                    'http://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
+                    'caffe/VGG_ILSVRC_19_layers.caffemodel',
+                    self)
 
     @property
     def functions(self):
-        return collections.OrderedDict([
-            ('conv1_1', [self.conv1_1, relu]),
-            ('conv1_2', [self.conv1_2, relu]),
-            ('pool1', [_max_pooling_2d]),
-            ('conv2_1', [self.conv2_1, relu]),
-            ('conv2_2', [self.conv2_2, relu]),
-            ('pool2', [_max_pooling_2d]),
-            ('conv3_1', [self.conv3_1, relu]),
-            ('conv3_2', [self.conv3_2, relu]),
-            ('conv3_3', [self.conv3_3, relu]),
-            ('pool3', [_max_pooling_2d]),
-            ('conv4_1', [self.conv4_1, relu]),
-            ('conv4_2', [self.conv4_2, relu]),
-            ('conv4_3', [self.conv4_3, relu]),
-            ('pool4', [_max_pooling_2d]),
-            ('conv5_1', [self.conv5_1, relu]),
-            ('conv5_2', [self.conv5_2, relu]),
-            ('conv5_3', [self.conv5_3, relu]),
-            ('pool5', [_max_pooling_2d]),
-            ('fc6', [self.fc6, relu, dropout]),
-            ('fc7', [self.fc7, relu, dropout]),
-            ('fc8', [self.fc8]),
-            ('prob', [softmax]),
-        ])
+        raise NotImplementedError
 
     @property
     def available_layers(self):
         return list(self.functions.keys())
-
-    @classmethod
-    def convert_caffemodel_to_npz(cls, path_caffemodel, path_npz):
-        """Converts a pre-trained caffemodel to a chainer model.
-
-        Args:
-            path_caffemodel (str): Path of the pre-trained caffemodel.
-            path_npz (str): Path of the converted chainer model.
-        """
-
-        # As CaffeFunction uses shortcut symbols,
-        # we import CaffeFunction here.
-        from chainer.links.caffe.caffe_function import CaffeFunction
-        caffemodel = CaffeFunction(path_caffemodel)
-        npz.save_npz(path_npz, caffemodel, compression=False)
 
     def forward(self, x, layers=None, **kwargs):
         """forward(self, x, layers=['prob'])
@@ -167,19 +146,20 @@ class VGG16Layers(link.Chain):
 
         .. warning::
 
-           ``test`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', train)``.
-           See :func:`chainer.using_config`.
+            ``test`` argument is not supported anymore since v2.
+            Instead, use ``chainer.using_config('train', False)``.
+            See :func:`chainer.using_config`.
 
         Args:
             x (~chainer.Variable): Input variable. It should be prepared by
                 ``prepare`` function.
             layers (list of str): The list of layer names you want to extract.
+                If ``None``, 'prob' will be used as layers.
 
         Returns:
-            Dictionary of ~chainer.Variable: A directory in which
-            the key contains the layer name and the value contains
-            the corresponding feature map variable.
+            Dictionary of ~chainer.Variable: A dictionay in which
+            the key contains the layer and the value contains the
+            corresponding feature map variable.
 
         """
 
@@ -188,8 +168,9 @@ class VGG16Layers(link.Chain):
 
         if kwargs:
             argument.check_unexpected_kwargs(
-                kwargs, test='test argument is not supported anymore. '
-                'Use chainer.using_config')
+                kwargs, test='test argument is not supported anymote. '
+                'Use chainer.using_config'
+            )
             argument.assert_kwargs_empty(kwargs)
 
         h = x
@@ -210,8 +191,8 @@ class VGG16Layers(link.Chain):
 
         Extracts all the feature maps of given images.
 
-        The difference of directly executing ``forward`` is that
-        it directly accepts images as an input and automatically
+        The difference of directory executing ``forward`` is that
+        it directly accepts images as an input and automaticallyl
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
         ``prepare`` and ``forward`` functions.
@@ -312,6 +293,155 @@ class VGG16Layers(link.Chain):
         return y
 
 
+class VGG16Layers(link.Chain):
+
+    """A pre-trained CNN model with 16 layers provided by VGG team.
+
+    During initialization, this chain model automatically downloads
+    the pre-trained caffemodel, convert to another chainer model,
+    stores it on your local directory, and initializes all the parameters
+    with it. This model would be useful when you want to extract a semantic
+    feature vector from a given image, or fine-tune the model
+    on a different dataset.
+    Note that this pre-trained model is released under Creative Commons
+    Attribution License.
+
+    If you want to manually convert the pre-trained caffemodel to a chainer
+    model that can be specified in the constructor,
+    please use ``convert_caffemodel_to_npz`` classmethod instead.
+
+    See: K. Simonyan and A. Zisserman, `Very Deep Convolutional Networks
+    for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`_
+
+    Args:
+        pretrained_model (str): the destination of the pre-trained
+            chainer model serialized as a ``.npz`` file.
+            If this argument is specified as ``auto``,
+            it automatically downloads the caffemodel from the internet.
+            Note that in this case the converted chainer model is stored
+            on ``$CHAINER_DATASET_ROOT/pfnet/chainer/models`` directory,
+            where ``$CHAINER_DATASET_ROOT`` is set as
+            ``$HOME/.chainer/dataset`` unless you specify another value
+            as a environment variable. The converted chainer model is
+            automatically used from the second time.
+            If the argument is specified as ``None``, all the parameters
+            are not initialized by the pre-trained model, but the default
+            initializer used in the original paper, i.e.,
+            ``chainer.initializers.Normal(scale=0.01)``.
+
+    Attributes:
+        available_layers (list of str): The list of available layer names
+            used by ``forward`` and ``extract`` methods.
+
+    """
+
+    def __init__(self, pretrained_model='auto'):
+        super(VGG16Layers, self).__init__(pretrained_model, n_layers=16)
+
+    @property
+    def functions(self):
+        return collections.OrderedDict([
+            ('conv1_1', [self.conv1_1, relu]),
+            ('conv1_2', [self.conv1_2, relu]),
+            ('pool1', [_max_pooling_2d]),
+            ('conv2_1', [self.conv2_1, relu]),
+            ('conv2_2', [self.conv2_2, relu]),
+            ('pool2', [_max_pooling_2d]),
+            ('conv3_1', [self.conv3_1, relu]),
+            ('conv3_2', [self.conv3_2, relu]),
+            ('conv3_3', [self.conv3_3, relu]),
+            ('pool3', [_max_pooling_2d]),
+            ('conv4_1', [self.conv4_1, relu]),
+            ('conv4_2', [self.conv4_2, relu]),
+            ('conv4_3', [self.conv4_3, relu]),
+            ('pool4', [_max_pooling_2d]),
+            ('conv5_1', [self.conv5_1, relu]),
+            ('conv5_2', [self.conv5_2, relu]),
+            ('conv5_3', [self.conv5_3, relu]),
+            ('pool5', [_max_pooling_2d]),
+            ('fc6', [self.fc6, relu, dropout]),
+            ('fc7', [self.fc7, relu, dropout]),
+            ('fc8', [self.fc8]),
+            ('prob', [softmax]),
+        ])
+
+
+class VGG19Layers(link.Chain):
+
+    """A pre-trained CNN model with 19 layers provided by VGG team.
+
+    During initialization, this chain model automatically downloads
+    the pre-trained caffemodel, convert to another chainer model,
+    stores it on your local directory, and initializes all the parameters
+    with it. This model would be useful when you want to extract a semantic
+    feature vector from a given image, or fine-tune the model
+    on a different dataset.
+    Note that this pre-trained model is released under Creative Commons
+    Attribution License.
+
+    If you want to manually convert the pre-trained caffemodel to a chainer
+    model that can be specified in the constructor,
+    please use ``convert_caffemodel_to_npz`` classmethod instead.
+
+    See: K. Simonyan and A. Zisserman, `Very Deep Convolutional Networks
+    for Large-Scale Image Recognition <https://arxiv.org/abs/1409.1556>`_
+
+    Args:
+        pretrained_model (str): the destination of the pre-trained
+            chainer model serialized as a ``.npz`` file.
+            If this argument is specified as ``auto``,
+            it automatically downloads the caffemodel from the internet.
+            Note that in this case the converted chainer model is stored
+            on ``$CHAINER_DATASET_ROOT/pfnet/chainer/models`` directory,
+            where ``$CHAINER_DATASET_ROOT`` is set as
+            ``$HOME/.chainer/dataset`` unless you specify another value
+            as a environment variable. The converted chainer model is
+            automatically used from the second time.
+            If the argument is specified as ``None``, all the parameters
+            are not initialized by the pre-trained model, but the default
+            initializer used in the original paper, i.e.,
+            ``chainer.initializers.Normal(scale=0.01)``.
+
+    Attributes:
+        available_layers (list of str): The list of available layer names
+            used by ``forward`` and ``extract`` methods.
+
+    """
+
+    def __init__(self, pretrained_model='auto'):
+        super(VGG19Layers, self).__init__(pretrained_model, n_layers=19)
+
+    @property
+    def functions(self):
+        return collections.OrderedDict([
+            ('conv1_1', [self.conv1_1, relu]),
+            ('conv1_2', [self.conv1_2, relu]),
+            ('pool1', [_max_pooling_2d]),
+            ('conv2_1', [self.conv2_1, relu]),
+            ('conv2_2', [self.conv2_2, relu]),
+            ('pool2', [_max_pooling_2d]),
+            ('conv3_1', [self.conv3_1, relu]),
+            ('conv3_2', [self.conv3_2, relu]),
+            ('conv3_3', [self.conv3_3, relu]),
+            ('conv3_4', [self.conv3_4, relu]),
+            ('pool3', [_max_pooling_2d]),
+            ('conv4_1', [self.conv4_1, relu]),
+            ('conv4_2', [self.conv4_2, relu]),
+            ('conv4_3', [self.conv4_3, relu]),
+            ('conv4_4', [self.conv4_4, relu]),
+            ('pool4', [_max_pooling_2d]),
+            ('conv5_1', [self.conv5_1, relu]),
+            ('conv5_2', [self.conv5_2, relu]),
+            ('conv5_3', [self.conv5_3, relu]),
+            ('conv5_4', [self.conv5_4, relu]),
+            ('pool5', [_max_pooling_2d]),
+            ('fc6', [self.fc6, relu, dropout]),
+            ('fc7', [self.fc7, relu, dropout]),
+            ('fc8', [self.fc8]),
+            ('prob', [softmax]),
+        ])
+
+
 def prepare(image, size=(224, 224)):
     """Converts the given image to the numpy array for VGG models.
 
@@ -361,12 +491,27 @@ def _max_pooling_2d(x):
     return max_pooling_2d(x, ksize=2)
 
 
+def _convert_caffemodel_to_npz(path_caffemodel, path_npz):
+    """Converts a pre-trained caffemodel to a chainer model.
+
+    Args:
+        path_caffemodel (str): Path of the pre-trained caffemodel.
+        path_npz (str): Path of the converted chainer model.
+    """
+
+    # As CaffeFunction uses shortcut symbols,
+    # we import CaffeFunction here.
+    from chainer.links.caffe_function import CaffeFunction
+    caffemodel = CaffeFunction(path_caffemodel)
+    npz.save_npz(path_npz, caffemodel, compression=False)
+
+
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
     sys.stderr.write(
         'Now loading caffemodel (usually it may take few minutes)\n')
     sys.stderr.flush()
-    VGG16Layers.convert_caffemodel_to_npz(path_caffemodel, path_npz)
+    _convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model
 

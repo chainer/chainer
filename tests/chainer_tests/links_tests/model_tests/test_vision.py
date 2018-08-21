@@ -7,7 +7,6 @@ from chainer.backends import cuda
 from chainer.links.model.vision import googlenet
 from chainer.links.model.vision import resnet
 from chainer.links.model.vision import vgg
-from chainer.links.model.vision import vgg19
 from chainer import testing
 from chainer.testing import attr
 from chainer.variable import Variable
@@ -180,7 +179,7 @@ class TestVGGs(unittest.TestCase):
         if self.n_layers == 16:
             self.link = vgg.VGG16Layers(pretrained_model=None)
         elif self.n_layers == 19:
-            self.link = vgg19.VGG19Layers(pretrained_model=None)
+            self.link = vgg.VGG19Layers(pretrained_model=None)
 
     def tearDown(self):
         self._config_user.__exit__(None, None, None)
