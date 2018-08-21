@@ -153,7 +153,7 @@ class CooMatMul(function_node.FunctionNode):
         self.dtype = dtype
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('sp', 'dn'))
         sp_type, dn_type = in_types
         # sp_type.shape: ((nb,) ldnz)
         # dn_type.shape: ((nb,) _k, _n) when transb is False
