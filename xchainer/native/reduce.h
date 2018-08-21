@@ -57,6 +57,10 @@ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, Reduction
 //     Then, it can be passed to Reduce like: Reduce(input, axis, output, SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
 void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&& impl) {
+    if (out.GetTotalSize() == 0) {
+        return;
+    }
+
     ReductionArg arg{in, axis, out};
 
     // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
