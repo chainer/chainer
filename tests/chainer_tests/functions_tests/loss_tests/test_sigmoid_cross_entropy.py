@@ -65,16 +65,10 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
                 'dtype':numpy.float64, 'atol': 5e-2, 'rtol': 5e-2}
             self.check_double_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-2, 'rtol': 5e-2}
-        elif self.dtype == numpy.float32:
+        elif
             self.places = 5
             self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-3}
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-3}
-        elif self.dtype == numpy.float64:
-            self.places = 5
-            self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-3}
-            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-3}
-        else:
-            raise ValueError('invalid dtype')
 
     def check_forward(self, x_data, t_data, use_cudnn='always'):
         x_val = chainer.Variable(x_data)
