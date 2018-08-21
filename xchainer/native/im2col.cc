@@ -59,8 +59,10 @@ void Im2ColImpl(
     for (it_batch_channel.Restart(); it_batch_channel; ++it_batch_channel) {
         it_x.CopyFrom(it_batch_channel);
         it_out.CopyFrom(it_batch_channel);
+
         for (it_kernel.Restart(); it_kernel; ++it_kernel) {
             it_out.CopyFrom(it_kernel, batch_channel_indexer.ndim());
+
             for (it_out_dims.Restart(); it_out_dims; ++it_out_dims) {
                 for (int i = 0; i < kKernelNdim; ++i) {
                     img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i];
@@ -68,29 +70,6 @@ void Im2ColImpl(
                 it_x.CopyFrom(img_index, batch_channel_indexer.ndim());
                 it_out.CopyFrom(it_out_dims, batch_channel_indexer.ndim() + kernel_indexer.ndim());
 
-#if 0
-                for (int i = 0; i < 2; ++i) {
-                    it_x.index()[i] = it_batch_channel.index()[i];
-                }
-                for (int i = 0; i < kKernelNdim; ++i) {
-                    it_x.index()[i + 2] = img_index.index()[i];
-                }
-
-                for (int i = 0; i < 2; ++i) {
-                    it_out.index()[i] = it_batch_channel.index()[i];
-                }
-                for (int i = 0; i < kKernelNdim; ++i) {
-                    it_out.index()[i + 2] = it_kernel.index()[i];
-                }
-                for (int i = 0; i < kKernelNdim; ++i) {
-                    it_out.index()[i + 2 + kKernelNdim] = it_out_dims.index()[i];
-                }
-#endif
-
-                // it_x.Combine(it_batch_channel, img_index);
-                // it_out.Combine(it_batch_channel, it_kernel, it_out_dims);
-
-                // Write the output column value.
                 out_iarray[it_out] = x_iarray[it_x];
             }
         }
