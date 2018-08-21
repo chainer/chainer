@@ -32,7 +32,7 @@ void NativeDevice::Greater(const Array& x1, const Array& x2, const Array& out) {
     });
 }
 
-void NativeDevice::Not(const Array& x1, const Array& out) {
+void NativeDevice::LogicalNot(const Array& x1, const Array& out) {
     CheckDevicesCompatible(x1, out);
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;

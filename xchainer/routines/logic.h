@@ -15,6 +15,6 @@ Array Equal(const Array& x1, const Array& x2);
 Array Greater(const Array& x1, const Array& x2);
 
 // Returns an elementwise logical negation of an array.
-Array Not(const Array& x1);
+Array LogicalNot(const Array& x1);
 
 }  // namespace xchainer

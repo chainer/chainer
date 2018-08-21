@@ -121,7 +121,7 @@ TEST_P(LogicTest, GreaterBroadcast) {
     EXPECT_ARRAY_EQ(e, o);
 }
 
-TEST_P(LogicTest, Not) {
+TEST_P(LogicTest, LogicalNot) {
     using T = float;
 
     struct Param {
@@ -138,7 +138,7 @@ TEST_P(LogicTest, Not) {
     Shape shape{static_cast<int64_t>(data.size())};
     Array a = testing::BuildArray(shape).WithData<T>(a_data);
     Array e = testing::BuildArray(shape).WithData<bool>(e_data);
-    Array c = Not(a);
+    Array c = LogicalNot(a);
 
     ASSERT_EQ(c.dtype(), Dtype::kBool);
     EXPECT_TRUE(c.IsContiguous());

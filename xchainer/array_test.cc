@@ -418,6 +418,17 @@ TEST_P(ArrayTest, Equality) {
     EXPECT_ARRAY_EQ(e, c);
 }
 
+TEST_P(ArrayTest, Greater) {
+    using T = int32_t;
+    Array a = testing::BuildArray({2, 3}).WithData<T>({1, 2, 3, 4, 3, 2});
+    Array b = testing::BuildArray({2, 1}).WithData<T>({1, 2});
+    Array e = testing::BuildArray({2, 3}).WithData<bool>({false, true, true, true, true, false});
+    Array c = a > b;
+
+    ASSERT_EQ(c.dtype(), Dtype::kBool);
+    EXPECT_ARRAY_EQ(e, c);
+}
+
 TEST_P(ArrayTest, IAdd) {
     Array a = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});
     Array b = testing::BuildArray({3, 1}).WithData<float>({1, 2, 3});

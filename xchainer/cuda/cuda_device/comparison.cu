@@ -51,18 +51,18 @@ void CudaDevice::Greater(const Array& x1, const Array& x2, const Array& out) {
 namespace {
 
 template <typename T>
-struct NotImpl {
+struct LogicalNotImpl {
     __device__ void operator()(int64_t /*i*/, T x1, bool& out) { out = !x1; }
 };
 
 }  // namespace
 
-void CudaDevice::Not(const Array& x1, const Array& out) {
+void CudaDevice::LogicalNot(const Array& x1, const Array& out) {
     CheckDevicesCompatible(x1, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, bool>(NotImpl<T>{}, x1, out);
+        Elementwise<const T, bool>(LogicalNotImpl<T>{}, x1, out);
     });
 }
 

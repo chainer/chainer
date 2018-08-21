@@ -50,11 +50,11 @@ Array Greater(const Array& x1, const Array& x2) {
     return BroadcastComparison(func, x1, x2);
 }
 
-Array Not(const Array& x1) {
+Array LogicalNot(const Array& x1) {
     Array out = Empty(x1.shape(), Dtype::kBool, x1.device());
     {
         NoBackpropModeScope scope{};
-        x1.device().Not(x1, out);
+        x1.device().LogicalNot(x1, out);
     }
     return out;
 }
