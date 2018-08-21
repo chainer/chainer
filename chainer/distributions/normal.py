@@ -7,10 +7,10 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
-from chainer.functions.math import erfcinv
 from chainer.functions.math import exponential
 from chainer.functions.math import log_ndtr
 from chainer.functions.math import ndtr
+from chainer.functions.math import ndtri
 from chainer.utils import argument
 
 
@@ -87,9 +87,7 @@ class Normal(distribution.Distribution):
         return ()
 
     def icdf(self, x):
-        return self.loc - (
-            erfcinv.erfcinv(2. * chainer.as_variable(x))
-            * (2 ** 0.5 * self.scale))
+        return self.loc + self.scale * ndtri.ndtri(x)
 
     @property
     def _is_gpu(self):
