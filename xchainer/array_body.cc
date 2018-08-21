@@ -82,27 +82,27 @@ const std::shared_ptr<ArrayNode>& ArrayBody::CreateArrayNode(const std::shared_p
 }
 
 void ArrayBody::AssertConsistency() const {
-#ifndef NDEBUG
-    // Array with integral dtypes can neither have array nodes nor gradients.
-    if (GetKind(dtype()) != DtypeKind::kFloat) {
-        assert(nodes_.empty());
-        assert(grads_.empty());
-    }
+    if (XCHAINER_DEBUG) {
+        // Array with integral dtypes can neither have array nodes nor gradients.
+        if (GetKind(dtype()) != DtypeKind::kFloat) {
+            assert(nodes_.empty());
+            assert(grads_.empty());
+        }
 
-    assert(nodes_.size() == grads_.size());
-    for (size_t i = 0; i < nodes_.size(); ++i) {
-        const std::shared_ptr<ArrayNode>& array_node = nodes_[i];
-        const nonstd::optional<Array>& grad = *grads_[i];
-        assert(array_node != nullptr);
-        assert(this == array_node->weak_body().lock().get());
-        if (grad.has_value()) {
-            assert(internal::GetArrayBody(*grad) != nullptr);
-            assert(grad->shape() == array_node->shape());
-            assert(grad->dtype() == array_node->dtype());
-            assert(&grad->device() == &array_node->device());
+        assert(nodes_.size() == grads_.size());
+        for (size_t i = 0; i < nodes_.size(); ++i) {
+            const std::shared_ptr<ArrayNode>& array_node = nodes_[i];
+            const nonstd::optional<Array>& grad = *grads_[i];
+            assert(array_node != nullptr);
+            assert(this == array_node->weak_body().lock().get());
+            if (grad.has_value()) {
+                assert(internal::GetArrayBody(*grad) != nullptr);
+                assert(grad->shape() == array_node->shape());
+                assert(grad->dtype() == array_node->dtype());
+                assert(&grad->device() == &array_node->device());
+            }
         }
     }
-#endif  // NDEBUG
 }
 
 nonstd::optional<size_t> ArrayBody::GetNodeIndex(const BackpropId& backprop_id) const {

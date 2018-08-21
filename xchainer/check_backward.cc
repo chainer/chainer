@@ -272,20 +272,20 @@ void CheckBackward(
         double atol,
         double rtol,
         const nonstd::optional<BackpropId>& backprop_id) {
-#ifndef NDEBUG
-    assert(!inputs.empty());
-    assert(std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
+    if (XCHAINER_DEBUG) {
+        assert(!inputs.empty());
+        assert(std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-    assert(!grad_outputs.empty());
-    assert(std::none_of(
-            grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
+        assert(!grad_outputs.empty());
+        assert(std::none_of(
+                grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-    assert(eps.size() == inputs.size());
-    for (size_t i = 0; i < inputs.size(); ++i) {
-        assert(eps[i].shape() == inputs[i].shape());
-        assert(&eps[i].device() == &inputs[i].device());
+        assert(eps.size() == inputs.size());
+        for (size_t i = 0; i < inputs.size(); ++i) {
+            assert(eps[i].shape() == inputs[i].shape());
+            assert(&eps[i].device() == &inputs[i].device());
+        }
     }
-#endif
 
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(inputs.front(), backprop_id);
 
@@ -420,34 +420,34 @@ void CheckDoubleBackwardComputation(
         double atol,
         double rtol,
         const nonstd::optional<BackpropId>& backprop_id) {
-#ifndef NDEBUG
-    assert(!inputs.empty());
-    assert(std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
+    if (XCHAINER_DEBUG) {
+        assert(!inputs.empty());
+        assert(std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-    assert(!grad_outputs.empty());
-    assert(std::all_of(
-            grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
+        assert(!grad_outputs.empty());
+        assert(std::all_of(
+                grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-    assert(grad_grad_inputs.size() == inputs.size());
-    assert(std::none_of(grad_grad_inputs.begin(), grad_grad_inputs.end(), [&backprop_id](const Array& a) {
-        return a.IsBackpropRequired(backprop_id);
-    }));
-    for (size_t i = 0; i < inputs.size(); ++i) {
-        assert(inputs[i].shape() == grad_grad_inputs[i].shape());
-        assert(inputs[i].dtype() == grad_grad_inputs[i].dtype());
-        assert(&inputs[i].device() == &grad_grad_inputs[i].device());
-    }
+        assert(grad_grad_inputs.size() == inputs.size());
+        assert(std::none_of(grad_grad_inputs.begin(), grad_grad_inputs.end(), [&backprop_id](const Array& a) {
+            return a.IsBackpropRequired(backprop_id);
+        }));
+        for (size_t i = 0; i < inputs.size(); ++i) {
+            assert(inputs[i].shape() == grad_grad_inputs[i].shape());
+            assert(inputs[i].dtype() == grad_grad_inputs[i].dtype());
+            assert(&inputs[i].device() == &grad_grad_inputs[i].device());
+        }
 
-    assert(eps.size() == inputs.size() + grad_outputs.size());
-    for (size_t i = 0; i < inputs.size(); ++i) {
-        assert(eps[i].shape() == inputs[i].shape());
-        assert(&eps[i].device() == &inputs[i].device());
+        assert(eps.size() == inputs.size() + grad_outputs.size());
+        for (size_t i = 0; i < inputs.size(); ++i) {
+            assert(eps[i].shape() == inputs[i].shape());
+            assert(&eps[i].device() == &inputs[i].device());
+        }
+        for (size_t i = 0; i < grad_outputs.size(); ++i) {
+            assert(eps[inputs.size() + i].shape() == grad_outputs[i].shape());
+            assert(&eps[inputs.size() + i].device() == &grad_outputs[i].device());
+        }
     }
-    for (size_t i = 0; i < grad_outputs.size(); ++i) {
-        assert(eps[inputs.size() + i].shape() == grad_outputs[i].shape());
-        assert(&eps[inputs.size() + i].device() == &grad_outputs[i].device());
-    }
-#endif
 
     internal::ArrayBodyLeakTracker tracker{};
     {

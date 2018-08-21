@@ -26,7 +26,6 @@ namespace indexable_array_detail {
 template <typename To, typename From>
 using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_const_t<To>, std::remove_const_t<To>>;
 
-#ifndef NDEBUG
 static inline std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
     std::tuple<int64_t, int64_t> range = xchainer::GetDataRange(a.shape(), a.strides(), a.item_size());
     int64_t lower = std::get<0>(range);
@@ -34,7 +33,6 @@ static inline std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Arra
     const uint8_t* base = internal::GetRawOffsetData<const uint8_t>(a);
     return std::tuple<const uint8_t*, const uint8_t*>{base + lower, base + upper};
 }
-#endif  // NDEBUG
 
 }  // namespace indexable_array_detail
 
@@ -48,9 +46,9 @@ public:
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
         assert(TypeToDtype<T> == array.dtype());
 
-#ifndef NDEBUG
-        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-#endif  // NDEBUG
+        if (XCHAINER_DEBUG) {
+            std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
+        }
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -89,10 +87,10 @@ public:
 
 private:
     T* data_;
-#ifndef NDEBUG
+#if XCHAINER_DEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
-#endif  // NDEBUG
+#endif  // XCHAINER_DEBUG
     int64_t strides_[kNdim];
 };
 
@@ -147,9 +145,9 @@ public:
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
         assert(TypeToDtype<T> == array.dtype());
 
-#ifndef NDEBUG
-        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-#endif  // NDEBUG
+        if (XCHAINER_DEBUG) {
+            std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
+        }
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -176,10 +174,10 @@ public:
 
 private:
     T* data_;
-#ifndef NDEBUG
+#if XCHAINER_DEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
-#endif  // NDEBUG
+#endif  // XCHAINER_DEBUG
     int64_t stride_{};
 };
 
@@ -196,9 +194,9 @@ public:
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
         assert(TypeToDtype<T> == array.dtype());
 
-#ifndef NDEBUG
-        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-#endif  // NDEBUG
+        if (XCHAINER_DEBUG) {
+            std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
+        }
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -241,10 +239,10 @@ public:
 
 private:
     T* data_;
-#ifndef NDEBUG
+#if XCHAINER_DEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
-#endif  // NDEBUG
+#endif  // XCHAINER_DEBUG
     int64_t strides_[kMaxNdim];
     int8_t ndim_;
 };
