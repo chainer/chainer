@@ -32,8 +32,8 @@ TEST(ContextTest, NativeBackend) {
 }
 
 TEST(ContextTest, GetBackendThreadSafe) {
-    static constexpr size_t kRepeat = 100;
-    static constexpr size_t kThreadCount = 128;
+    static constexpr size_t kRepeat = 1;
+    static constexpr size_t kThreadCount = 2;
     std::string backend_name{"native"};
 
     xchainer::testing::CheckThreadSafety(
@@ -64,9 +64,9 @@ TEST(ContextTest, GetDevice) {
 }
 
 TEST(ContextTest, GetDeviceThreadSafe) {
-    static constexpr size_t kRepeat = 100;
+    static constexpr size_t kRepeat = 1;
     static constexpr int kDeviceCount = 4;
-    static constexpr size_t kThreadCountPerDevice = 32;
+    static constexpr size_t kThreadCountPerDevice = 2;
     static constexpr size_t kThreadCount = kDeviceCount * kThreadCountPerDevice;
 
     xchainer::testing::CheckThreadSafety(
@@ -116,8 +116,8 @@ TEST(ContextTest, DefaultContext) {
 }
 
 TEST(ContextTest, DefaultContextThreadSafe) {
-    static constexpr size_t kRepeat = 100;
-    static constexpr size_t kThreadCount = 256;
+    static constexpr size_t kRepeat = 1;
+    static constexpr size_t kThreadCount = 2;
 
     xchainer::testing::CheckThreadSafety(
             kRepeat,
@@ -134,8 +134,8 @@ TEST(ContextTest, DefaultContextThreadSafe) {
 }
 
 TEST(ContextTest, GlobalDefaultContextThreadSafe) {
-    static constexpr size_t kRepeat = 100;
-    static constexpr size_t kThreadCount = 256;
+    static constexpr size_t kRepeat = 1;
+    static constexpr size_t kThreadCount = 2;
 
     // Each of SetGlobalDefaultContext() and GetGlobalDefaultContext() must be thread-safe, but a pair of these calls is not guaranteed to
     // be so. In this check, a single context is set as the global context simultaneously in many threads and it only checks that
