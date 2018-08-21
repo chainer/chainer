@@ -1,5 +1,3 @@
-import numpy
-
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
@@ -40,9 +38,7 @@ class NormalizeL2(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
 
-        type_check.expect(
-            x_type.dtype == numpy.float32,
-        )
+        type_check.expect(x_type.dtype.kind == 'f')
 
     def forward(self, inputs):
         self.retain_inputs((0,))
