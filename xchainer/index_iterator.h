@@ -99,7 +99,7 @@ public:
     }
 
     template <typename IndexSource>
-    XCHAINER_HOST_DEVICE void CopyFrom(IndexSource index_source, int8_t offset = 0) {
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset = 0) {
         for (int i = 0; i < index_source.ndim(); ++i) {
             index_[i + offset] = index_source.index()[i];
         }
@@ -175,7 +175,7 @@ public:
     }
 
     template <typename IndexSource>
-    XCHAINER_HOST_DEVICE void CopyFrom(IndexSource index_source, int8_t offset = 0) {
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset = 0) {
         (void)index_source; // unused;
         (void)offset;  // unused
         assert(index_source.ndim() == 0);
@@ -235,7 +235,7 @@ public:
     }
 
     template <typename IndexSource>
-    XCHAINER_HOST_DEVICE void CopyFrom(IndexSource index_source, int8_t offset = 0) {
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset = 0) {
         (void)index_source;  // unused
         assert(index_source.ndim() == 1);
         assert(offset == 0);
@@ -299,7 +299,7 @@ public:
     }
 
     template <typename IndexSource>
-    XCHAINER_HOST_DEVICE void CopyFrom(IndexSource index_source, int8_t offset = 0) {
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset = 0) {
         for (int i = 0; i < index_source.ndim(); ++i) {
             index_[i + offset] = index_source.index()[i];
         }
