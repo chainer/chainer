@@ -560,7 +560,7 @@ Use apply() method instead.\
                       gx + g_input
                       for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
-    def _raise_error(self, message, error_type=ValueError):
+    def _get_error_message(self, message):
         lines = [
             message,
             '  function={} ({})'.format(self._impl_name, self.label)
@@ -580,8 +580,7 @@ Use apply() method instead.\
                     lines.append(
                         '    output {}: shape={} dtype={}'.format(
                             i, output.shape, output.dtype))
-        exc = error_type('\n'.join(lines))
-        raise exc
+        return '\n'.join(lines)
 
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
@@ -595,8 +594,8 @@ Use apply() method instead.\
         """
         inputs = self.inputs
         if self._input_indexes_to_retain is None:
-            raise self._raise_error(
-                'retain_inputs is not called in forward.')
+            raise ValueError(self._get_error_message(
+                'retain_inputs is not called in forward.'))
         return tuple([inputs[index].get_variable()
                       for index in self._input_indexes_to_retain])
 
@@ -618,8 +617,8 @@ Use apply() method instead.\
 
         """
         if self._retained_output_data is None:
-            raise self._raise_error(
-                'retain_outputs is not called in forward.')
+            raise ValueError(self._get_error_message(
+                'retain_outputs is not called in forward.'))
         ret = []
         outputs = self.outputs
 
