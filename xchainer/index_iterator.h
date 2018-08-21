@@ -42,9 +42,9 @@ public:
     }
 
     template <typename IndexSource>
-    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset = 0) {
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
         for (int i = 0; i < index_source.ndim(); ++i) {
-            index_[i + offset] = index_source.index()[i];
+            index_[i + offset_dim] = index_source.index()[i];
         }
     }
 
@@ -113,11 +113,11 @@ public:
     }
 
     template <typename IndexSource>
-    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset = 0) {
-        (void)index_source; // unused;
-        (void)offset;  // unused
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
+        (void)index_source;  // unused
+        (void)offset_dim;  // unused
         assert(index_source.ndim() == 0);
-        assert(offset == 0);
+        assert(offset_dim == 0);
     }
 
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < 1; }
@@ -168,11 +168,11 @@ public:
     }
 
     template <typename IndexSource>
-    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset = 0) {
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
         (void)index_source;  // unused
-        (void)offset; // unused
+        (void)offset_dim;  // unused
         assert(index_source.ndim() == 1);
-        assert(offset == 0);
+        assert(offset_dim == 0);
         raw_index_ = index_source.index()[0];
     }
 
@@ -227,9 +227,9 @@ public:
     }
 
     template <typename IndexSource>
-    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset = 0) {
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
         for (int i = 0; i < index_source.ndim(); ++i) {
-            index_[i + offset] = index_source.index()[i];
+            index_[i + offset_dim] = index_source.index()[i];
         }
     }
 
