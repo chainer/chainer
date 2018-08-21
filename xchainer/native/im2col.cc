@@ -63,12 +63,12 @@ void Im2ColImpl(
                     img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i];
                 }
 
-                it_x.CopyFrom(it_batch_channel.index(), batch_channel_indexer.ndim());
-                it_x.CopyFrom(img_index.index(), img_index.ndim(), batch_channel_indexer.ndim());
+                it_x.CopyFrom(it_batch_channel);
+                it_x.CopyFrom(img_index, batch_channel_indexer.ndim());
 
-                it_out.CopyFrom(it_batch_channel.index(), batch_channel_indexer.ndim());
-                it_out.CopyFrom(it_kernel.index(), kernel_indexer.ndim(), batch_channel_indexer.ndim());
-                it_out.CopyFrom(it_out_dims.index(), out_dims_indexer.ndim(), batch_channel_indexer.ndim() + kernel_indexer.ndim());
+                it_out.CopyFrom(it_batch_channel);
+                it_out.CopyFrom(it_kernel, batch_channel_indexer.ndim());
+                it_out.CopyFrom(it_out_dims, batch_channel_indexer.ndim() + kernel_indexer.ndim());
 
 #if 0
                 for (int i = 0; i < 2; ++i) {

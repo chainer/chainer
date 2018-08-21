@@ -98,9 +98,10 @@ public:
         internal::CombineIterators<kNdim>(*this, first_iter, std::forward<IndexIterators>(iters)...);
     }
 
-    XCHAINER_HOST_DEVICE void CopyFrom(int64_t* src, int8_t ndim, int8_t offset = 0) {
-        for (int i = 0; i < ndim; ++i) {
-            index_[i + offset] = src[i];
+    template <typename IndexSource>
+    XCHAINER_HOST_DEVICE void CopyFrom(IndexSource index_source, int8_t offset = 0) {
+        for (int i = 0; i < index_source.ndim(); ++i) {
+            index_[i + offset] = index_source.index()[i];
         }
     }
 
@@ -173,11 +174,11 @@ public:
         internal::CombineIterators<0>(*this, first_iter, std::forward<IndexIterators>(iters)...);
     }
 
-    XCHAINER_HOST_DEVICE void CopyFrom(int64_t* src, int8_t ndim, int8_t offset = 0) {
-        (void)src;  // unused
-        (void)ndim;  // unused
+    template <typename IndexSource>
+    XCHAINER_HOST_DEVICE void CopyFrom(IndexSource index_source, int8_t offset = 0) {
+        (void)index_source; // unused;
         (void)offset;  // unused
-        assert(ndim == 0);
+        assert(index_source.ndim() == 0);
         assert(offset == 0);
     }
 
@@ -233,12 +234,12 @@ public:
         internal::CombineIterators<1>(*this, first_iter, std::forward<IndexIterators>(iters)...);
     }
 
-    XCHAINER_HOST_DEVICE void CopyFrom(int64_t* src, int8_t ndim, int8_t offset = 0) {
-        (void)ndim;  // unused
-        (void)offset;  // unused
-        assert(ndim == 1);
+    template <typename IndexSource>
+    XCHAINER_HOST_DEVICE void CopyFrom(IndexSource index_source, int8_t offset = 0) {
+        (void)index_source;  // unused
+        assert(index_source.ndim() == 1);
         assert(offset == 0);
-        raw_index_ = src[0];
+        raw_index_ = index_source.index()[0];
     }
 
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
@@ -297,9 +298,10 @@ public:
                 *this, std::forward<IndexSource>(index_source), std::forward<IndexSources>(index_sources)...);
     }
 
-    XCHAINER_HOST_DEVICE void CopyFrom(int64_t* src, int8_t ndim, int8_t offset = 0) {
-        for (int i = 0; i < ndim; ++i) {
-            index_[i + offset] = src[i];
+    template <typename IndexSource>
+    XCHAINER_HOST_DEVICE void CopyFrom(IndexSource index_source, int8_t offset = 0) {
+        for (int i = 0; i < index_source.ndim(); ++i) {
+            index_[i + offset] = index_source.index()[i];
         }
     }
 
