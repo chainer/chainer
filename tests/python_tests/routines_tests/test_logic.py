@@ -106,7 +106,7 @@ def test_cmp_invalid(cmp_op, xc_cmp, a_shape, b_shape):
     ([[0, 1], [2, 0]]),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_not(device, a_object, dtype):
+def test_logical_not(device, a_object, dtype):
     a_np = _to_numpy_safe(a_object, dtype)
     if a_np is None:
         return
