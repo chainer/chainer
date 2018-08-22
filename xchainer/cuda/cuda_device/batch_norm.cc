@@ -99,10 +99,12 @@ public:
     Array Forward(const Array& x, const Array& gamma, const Array& beta) override {
         if (XCHAINER_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis(), true);
+            (void)reduced_shape;  // maybe unused
             assert(gamma.shape() == reduced_shape);
             assert(beta.shape() == reduced_shape);
 
             int64_t reduced_total_size = reduced_shape.GetTotalSize();
+            (void)reduced_total_size;  // maybe unused
             assert(running_mean().GetTotalSize() == reduced_total_size);
             assert(running_var().GetTotalSize() == reduced_total_size);
 
@@ -198,6 +200,7 @@ public:
         const Array& x_inv_std = this->x_inv_std();
         if (XCHAINER_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x_cont.shape(), axis(), true);
+            (void)reduced_shape;  // maybe unused
             assert(reduced_shape == gamma.shape());
             assert(x_cont.shape() == gout.shape());
 
@@ -286,6 +289,7 @@ Array CudaDevice::FixedBatchNorm(
 
     if (XCHAINER_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
+        (void)reduced_shape;  // maybe unused
         assert(gamma.shape() == reduced_shape);
         assert(beta.shape() == reduced_shape);
         assert(mean.shape() == reduced_shape);

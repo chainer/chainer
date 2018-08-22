@@ -67,6 +67,7 @@ ApplyBatchNormResult ApplyBatchNorm(
         assert(beta.shape() == reduced_shape);
 
         int64_t reduced_total_size = reduced_shape.GetTotalSize();
+        (void)reduced_total_size;  // maybe unused
         assert(mean.GetTotalSize() == reduced_total_size);
         assert(var.GetTotalSize() == reduced_total_size);
     }

@@ -93,6 +93,9 @@ void ArrayBody::AssertConsistency() const {
         for (size_t i = 0; i < nodes_.size(); ++i) {
             const std::shared_ptr<ArrayNode>& array_node = nodes_[i];
             const nonstd::optional<Array>& grad = *grads_[i];
+            (void)array_node;  // maybe unused
+            (void)grad;  // maybe unused
+
             assert(array_node != nullptr);
             assert(this == array_node->weak_body().lock().get());
             if (grad.has_value()) {

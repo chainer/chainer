@@ -64,8 +64,10 @@ void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
     if (XCHAINER_DEBUG) {
         for (auto& pair : graph_to_input_array_nodes_) {
             const BackpropId& backprop_id = pair.first;
+            (void)backprop_id;  // maybe unused
             const InputArrayNodes& input_array_nodes = pair.second;
             for (const std::shared_ptr<ArrayNode>* array_node : input_array_nodes) {
+                (void)array_node;  // maybe unused
                 assert(array_node == nullptr || backprop_id == (*array_node)->backprop_id());
             }
         }
