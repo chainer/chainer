@@ -254,6 +254,11 @@ void InitXchainerRoutines(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Equal(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("greater",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Greater(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("logical_not", [](const ArrayBodyPtr& x1) { return MoveArrayBody(LogicalNot(Array{x1})); }, py::arg("x1"));
 
     // manipulation routines
     m.def("asscalar",
