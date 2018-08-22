@@ -1,7 +1,6 @@
 #include "xchainer/testing/util.h"
 
 #include <atomic>
-#include <cassert>
 #include <cstdlib>
 #include <string>
 
@@ -10,6 +9,7 @@
 #include "xchainer/backend.h"
 #include "xchainer/context.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 
 namespace xchainer {
 namespace testing {
@@ -19,7 +19,7 @@ std::atomic<int> g_skipped_native_test_count{0};
 std::atomic<int> g_skipped_cuda_test_count{0};
 
 int GetNativeDeviceLimit(Backend& backend) {
-    assert(backend.GetName() == "native");
+    XCHAINER_ASSERT(backend.GetName() == "native");
     static int limit = -1;
     if (limit >= 0) {
         return limit;
@@ -37,7 +37,7 @@ int GetNativeDeviceLimit(Backend& backend) {
 }
 
 int GetCudaDeviceLimit(Backend& backend) {
-    assert(backend.GetName() == "cuda");
+    XCHAINER_ASSERT(backend.GetName() == "cuda");
     static int limit = -1;
     if (limit >= 0) {
         return limit;

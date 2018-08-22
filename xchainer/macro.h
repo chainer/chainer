@@ -1,10 +1,21 @@
 #pragma once
 
+#include <cassert>
+#include <cstdlib>
+
 #ifdef NDEBUG
 #define XCHAINER_DEBUG false
 #else  // NDEBUG
 #define XCHAINER_DEBUG true
 #endif  // NDEBUG
+
+#define XCHAINER_ASSERT(...)                                   \
+    do {                                                       \
+        if (XCHAINER_DEBUG) {                                  \
+            (void)(false && (__VA_ARGS__)); /* maybe unused */ \
+            assert(__VA_ARGS__);                               \
+        }                                                      \
+    } while (false)
 
 #ifndef XCHAINER_HOST_DEVICE
 #ifdef __CUDACC__
@@ -16,10 +27,8 @@
 
 #ifndef XCHAINER_NEVER_REACH
 #ifdef NDEBUG
-#include <cstdlib>
 #define XCHAINER_NEVER_REACH() (std::abort())
 #else  // NDEBUG
-#include <cassert>
 #define XCHAINER_NEVER_REACH()                    \
     do {                                          \
         assert(false); /* NOLINT(cert-dcl03-c) */ \

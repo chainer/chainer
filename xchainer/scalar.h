@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <cstdint>
 #include <ostream>
 #include <string>
@@ -116,7 +115,7 @@ public:
 
     Scalar operator+(const Scalar& rhs) const {
         // TODO(niboshi): Support dtype conversion
-        assert(dtype_ == rhs.dtype_);
+        XCHAINER_ASSERT(dtype_ == rhs.dtype_);
 
         return VisitDtype(dtype_, [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -126,7 +125,7 @@ public:
 
     Scalar operator*(const Scalar& rhs) const {
         // TODO(niboshi): Support dtype conversion
-        assert(dtype_ == rhs.dtype_);
+        XCHAINER_ASSERT(dtype_ == rhs.dtype_);
 
         return VisitDtype(dtype_, [&](auto pt) {
             using T = typename decltype(pt)::type;

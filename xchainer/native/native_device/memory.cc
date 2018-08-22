@@ -1,12 +1,12 @@
 #include "xchainer/native/native_device.h"
 
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 
 #include "xchainer/device.h"
+#include "xchainer/macro.h"
 
 namespace xchainer {
 namespace native {
@@ -14,14 +14,12 @@ namespace native {
 std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
 
 void NativeDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
-    (void)src_device;  // unused
-    assert(nullptr != dynamic_cast<NativeDevice*>(&src_device) && "Native device only supports copy between native devices");
+    XCHAINER_ASSERT(nullptr != dynamic_cast<NativeDevice*>(&src_device) && "Native device only supports copy between native devices");
     std::memcpy(dst, src, bytesize);
 }
 
 void NativeDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
-    (void)dst_device;  // unused
-    assert(nullptr != dynamic_cast<NativeDevice*>(&dst_device) && "Native device only supports copy between native devices");
+    XCHAINER_ASSERT(nullptr != dynamic_cast<NativeDevice*>(&dst_device) && "Native device only supports copy between native devices");
     std::memcpy(dst, src, bytesize);
 }
 

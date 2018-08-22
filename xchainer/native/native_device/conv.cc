@@ -1,7 +1,6 @@
 #include "xchainer/native/native_device.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <iterator>
 #include <numeric>
@@ -16,6 +15,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/macro.h"
 #include "xchainer/native/col2im.h"
 #include "xchainer/native/im2col.h"
 #include "xchainer/native/tensor_dot.h"
@@ -74,7 +74,7 @@ Array NativeDevice::ConvGradWeight(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    assert(x.ndim() == w_shape.ndim());
+    XCHAINER_ASSERT(x.ndim() == w_shape.ndim());
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
 
     // Compute the kernel size

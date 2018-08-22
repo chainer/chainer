@@ -1,6 +1,5 @@
 #include "xchainer/cuda/cuda_device.h"
 
-#include <cassert>
 #include <cstddef>
 #include <memory>
 
@@ -9,6 +8,7 @@
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/device.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/native/native_device.h"
 
 namespace xchainer {
@@ -43,7 +43,7 @@ std::shared_ptr<void> CudaDevice::MakeDataFromForeignPointer(const std::shared_p
 }
 
 void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
-    assert(bytesize == 0 || IsPointerCudaMemory(dst));
+    XCHAINER_ASSERT(bytesize == 0 || IsPointerCudaMemory(dst));
     if (bytesize == 0) {
         return;
     }
@@ -52,15 +52,16 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
-        assert(nullptr != dynamic_cast<native::NativeDevice*>(&src_device) &&
-               "CudaDevice only supports copy between cuda or native devices.");
+        XCHAINER_ASSERT(
+                nullptr != dynamic_cast<native::NativeDevice*>(&src_device) &&
+                "CudaDevice only supports copy between cuda or native devices.");
         // Copy from native device
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyHostToDevice));
     }
 }
 
 void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
-    assert(bytesize == 0 || src == nullptr || IsPointerCudaMemory(src));
+    XCHAINER_ASSERT(bytesize == 0 || src == nullptr || IsPointerCudaMemory(src));
     if (bytesize == 0) {
         return;
     }
@@ -69,8 +70,9 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
-        assert(nullptr != dynamic_cast<native::NativeDevice*>(&dst_device) &&
-               "CudaDevice only supports copy between cuda or native devices.");
+        XCHAINER_ASSERT(
+                nullptr != dynamic_cast<native::NativeDevice*>(&dst_device) &&
+                "CudaDevice only supports copy between cuda or native devices.");
         // Copy to native device
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
     }

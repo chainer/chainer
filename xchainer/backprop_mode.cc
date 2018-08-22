@@ -11,6 +11,7 @@
 #include "xchainer/constant.h"
 #include "xchainer/context.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 
 namespace xchainer {
 namespace backprop_mode_detail {
@@ -48,12 +49,12 @@ BackpropModeScope<kModeFlag>::BackpropModeScope(const std::vector<BackpropId>& b
 
 template <bool kModeFlag>
 BackpropModeScope<kModeFlag>::~BackpropModeScope() {
-    assert(t_backprop_mode_stack != nullptr);
-    assert(t_backprop_mode_stack->size() >= n_);
+    XCHAINER_ASSERT(t_backprop_mode_stack != nullptr);
+    XCHAINER_ASSERT(t_backprop_mode_stack->size() >= n_);
 
     // Recover thread local variable to nullptr on exiting from the outer-most scope.
     if (is_outermost_) {
-        assert(t_backprop_mode_stack->size() == n_);
+        XCHAINER_ASSERT(t_backprop_mode_stack->size() == n_);
         delete t_backprop_mode_stack;
         t_backprop_mode_stack = nullptr;
     } else {

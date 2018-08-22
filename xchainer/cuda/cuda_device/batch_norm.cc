@@ -1,6 +1,5 @@
 #include "xchainer/cuda/cuda_device.h"
 
-#include <cassert>
 #include <cstdint>
 #include <memory>
 
@@ -99,24 +98,22 @@ public:
     Array Forward(const Array& x, const Array& gamma, const Array& beta) override {
         if (XCHAINER_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis(), true);
-            (void)reduced_shape;  // maybe unused
-            assert(gamma.shape() == reduced_shape);
-            assert(beta.shape() == reduced_shape);
+            XCHAINER_ASSERT(gamma.shape() == reduced_shape);
+            XCHAINER_ASSERT(beta.shape() == reduced_shape);
 
             int64_t reduced_total_size = reduced_shape.GetTotalSize();
-            (void)reduced_total_size;  // maybe unused
-            assert(running_mean().GetTotalSize() == reduced_total_size);
-            assert(running_var().GetTotalSize() == reduced_total_size);
+            XCHAINER_ASSERT(running_mean().GetTotalSize() == reduced_total_size);
+            XCHAINER_ASSERT(running_var().GetTotalSize() == reduced_total_size);
 
-            assert(&x.device() == &gamma.device());
-            assert(&x.device() == &beta.device());
-            assert(&x.device() == &running_mean().device());
-            assert(&x.device() == &running_var().device());
+            XCHAINER_ASSERT(&x.device() == &gamma.device());
+            XCHAINER_ASSERT(&x.device() == &beta.device());
+            XCHAINER_ASSERT(&x.device() == &running_mean().device());
+            XCHAINER_ASSERT(&x.device() == &running_var().device());
 
-            assert(x.dtype() == gamma.dtype());
-            assert(x.dtype() == beta.dtype());
-            assert(x.dtype() == running_mean().dtype());
-            assert(x.dtype() == running_var().dtype());
+            XCHAINER_ASSERT(x.dtype() == gamma.dtype());
+            XCHAINER_ASSERT(x.dtype() == beta.dtype());
+            XCHAINER_ASSERT(x.dtype() == running_mean().dtype());
+            XCHAINER_ASSERT(x.dtype() == running_var().dtype());
         }
 
         Device& device = x.device();
@@ -132,8 +129,8 @@ public:
         Array gamma_casted_cont = AsContiguousArray(gamma.AsType(gamma_beta_mean_var_dtype, false));
         Array beta_casted_cont = AsContiguousArray(beta.AsType(gamma_beta_mean_var_dtype, false));
 
-        assert(running_mean().IsContiguous());
-        assert(running_var().IsContiguous());
+        XCHAINER_ASSERT(running_mean().IsContiguous());
+        XCHAINER_ASSERT(running_var().IsContiguous());
         Array running_mean_casted = running_mean().AsType(gamma_beta_mean_var_dtype, false);
         Array running_var_casted = running_var().AsType(gamma_beta_mean_var_dtype, false);
 
@@ -167,11 +164,11 @@ public:
         //
         // TODO(sonots): write tests after we supports fp16
         if (dtype != gamma_beta_mean_var_dtype) {
-            assert(false);  // dead code
-            assert(running_mean().IsContiguous());
-            assert(running_mean_casted.IsContiguous());
-            assert(running_var().IsContiguous());
-            assert(running_var_casted.IsContiguous());
+            XCHAINER_ASSERT(false);  // dead code
+            XCHAINER_ASSERT(running_mean().IsContiguous());
+            XCHAINER_ASSERT(running_mean_casted.IsContiguous());
+            XCHAINER_ASSERT(running_var().IsContiguous());
+            XCHAINER_ASSERT(running_var_casted.IsContiguous());
 
             Array running_mean_casted_back = running_mean_casted.AsType(dtype, false);
             Array running_var_casted_back = running_var_casted.AsType(dtype, false);
@@ -200,22 +197,21 @@ public:
         const Array& x_inv_std = this->x_inv_std();
         if (XCHAINER_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x_cont.shape(), axis(), true);
-            (void)reduced_shape;  // maybe unused
-            assert(reduced_shape == gamma.shape());
-            assert(x_cont.shape() == gout.shape());
+            XCHAINER_ASSERT(reduced_shape == gamma.shape());
+            XCHAINER_ASSERT(x_cont.shape() == gout.shape());
 
-            assert(internal::GetArrayBody(x_mean) != nullptr);
-            assert(internal::GetArrayBody(x_inv_std) != nullptr);
+            XCHAINER_ASSERT(internal::GetArrayBody(x_mean) != nullptr);
+            XCHAINER_ASSERT(internal::GetArrayBody(x_inv_std) != nullptr);
 
-            assert(&x_cont.device() == &gamma.device());
-            assert(&x_cont.device() == &gout.device());
-            assert(&x_cont.device() == &x_mean.device());
-            assert(&x_cont.device() == &x_inv_std.device());
+            XCHAINER_ASSERT(&x_cont.device() == &gamma.device());
+            XCHAINER_ASSERT(&x_cont.device() == &gout.device());
+            XCHAINER_ASSERT(&x_cont.device() == &x_mean.device());
+            XCHAINER_ASSERT(&x_cont.device() == &x_inv_std.device());
 
-            assert(x_cont.dtype() == gamma.dtype());
-            assert(x_cont.dtype() == gout.dtype());
+            XCHAINER_ASSERT(x_cont.dtype() == gamma.dtype());
+            XCHAINER_ASSERT(x_cont.dtype() == gout.dtype());
 
-            assert(x_cont.IsContiguous());
+            XCHAINER_ASSERT(x_cont.IsContiguous());
         }
 
         Device& device = x_cont.device();
@@ -234,10 +230,10 @@ public:
         Array gamma_casted_cont = AsContiguousArray(gamma.AsType(gamma_beta_mean_var_dtype, false));
         Array ggamma = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
         Array gbeta = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
-        assert(gamma_beta_mean_var_dtype == x_mean.dtype());
-        assert(gamma_beta_mean_var_dtype == x_inv_std.dtype());
-        assert(x_mean.IsContiguous());
-        assert(x_inv_std.IsContiguous());
+        XCHAINER_ASSERT(gamma_beta_mean_var_dtype == x_mean.dtype());
+        XCHAINER_ASSERT(gamma_beta_mean_var_dtype == x_inv_std.dtype());
+        XCHAINER_ASSERT(x_mean.IsContiguous());
+        XCHAINER_ASSERT(x_inv_std.IsContiguous());
 
         CheckCudnnError(cudnnBatchNormalizationBackward(
                 cudnn_handle_,
@@ -262,7 +258,7 @@ public:
 
         // TODO(niboshi): Write test after fp16 is supported
         if (gamma_beta_mean_var_dtype != dtype) {
-            assert(false);  // dead code
+            XCHAINER_ASSERT(false);  // dead code
             ggamma = ggamma.AsType(dtype, false);
             gbeta = gbeta.AsType(dtype, false);
         }
@@ -289,21 +285,20 @@ Array CudaDevice::FixedBatchNorm(
 
     if (XCHAINER_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
-        (void)reduced_shape;  // maybe unused
-        assert(gamma.shape() == reduced_shape);
-        assert(beta.shape() == reduced_shape);
-        assert(mean.shape() == reduced_shape);
-        assert(var.shape() == reduced_shape);
+        XCHAINER_ASSERT(gamma.shape() == reduced_shape);
+        XCHAINER_ASSERT(beta.shape() == reduced_shape);
+        XCHAINER_ASSERT(mean.shape() == reduced_shape);
+        XCHAINER_ASSERT(var.shape() == reduced_shape);
 
-        assert(&x.device() == &gamma.device());
-        assert(&x.device() == &beta.device());
-        assert(&x.device() == &mean.device());
-        assert(&x.device() == &var.device());
+        XCHAINER_ASSERT(&x.device() == &gamma.device());
+        XCHAINER_ASSERT(&x.device() == &beta.device());
+        XCHAINER_ASSERT(&x.device() == &mean.device());
+        XCHAINER_ASSERT(&x.device() == &var.device());
 
-        assert(x.dtype() == gamma.dtype());
-        assert(x.dtype() == beta.dtype());
-        assert(x.dtype() == mean.dtype());
-        assert(x.dtype() == var.dtype());
+        XCHAINER_ASSERT(x.dtype() == gamma.dtype());
+        XCHAINER_ASSERT(x.dtype() == beta.dtype());
+        XCHAINER_ASSERT(x.dtype() == mean.dtype());
+        XCHAINER_ASSERT(x.dtype() == var.dtype());
     }
 
     Array x_cont = AsContiguousArray(x);

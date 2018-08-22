@@ -1,4 +1,3 @@
-#include <cassert>
 #include <memory>
 #include <set>
 #include <string>
@@ -14,6 +13,7 @@
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/macro.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/native/native_device.h"
 #include "xchainer/testing/array.h"
@@ -78,7 +78,7 @@ public:
     int GetDeviceCount() const override { return 1; }
 
     std::unique_ptr<Device> CreateDevice(int index) override {
-        assert(index == 0);
+        XCHAINER_ASSERT(index == 0);
         return std::make_unique<TestDevice>(*this, index);
     }
 

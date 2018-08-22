@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <ostream>
 
@@ -39,7 +38,7 @@ namespace indexer_detail {
 template <int8_t Ndim, typename IndexSource>
 XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImplBase(
         IndexIterator<Ndim>& it, int8_t processed_dims, const IndexSource& index_source) {
-    assert(processed_dims + index_source.ndim() <= it.ndim());
+    XCHAINER_ASSERT(processed_dims + index_source.ndim() <= it.ndim());
     for (int8_t i = 0; i < index_source.ndim(); ++i) {
         it.index()[processed_dims + i] = index_source.index()[i];
     }
@@ -64,11 +63,10 @@ XCHAINER_HOST_DEVICE inline int8_t CombineIteratorsImpl(
 template <int8_t Ndim, typename... IndexSources>
 XCHAINER_HOST_DEVICE void CombineIterators(IndexIterator<Ndim>& it, IndexSources&&... index_sources) {
     int8_t processed_dims = indexer_detail::CombineIteratorsImpl<Ndim>(it, 0, std::forward<IndexSources>(index_sources)...);
-    (void)processed_dims;  // unused
-    assert(processed_dims == it.ndim());
+    XCHAINER_ASSERT(processed_dims == it.ndim());
     if (XCHAINER_DEBUG) {
         for (int8_t i = 0; i < it.ndim(); ++i) {
-            assert(0 <= it.index()[i]);
+            XCHAINER_ASSERT(0 <= it.index()[i]);
         }
     }
 }
@@ -79,7 +77,7 @@ template <int8_t kNdim = kDynamicNdim>
 class Indexer {
 public:
     explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()} {
-        assert(shape.ndim() == kNdim);
+        XCHAINER_ASSERT(shape.ndim() == kNdim);
         std::copy_n(shape.begin(), kNdim, shape_);
     }
 
@@ -111,9 +109,8 @@ template <>
 class Indexer<0> {
 public:
     explicit Indexer(const Shape& shape) {
-        (void)shape;  // unused
-        assert(shape.ndim() == 0);
-        assert(shape.GetTotalSize() == 1);
+        XCHAINER_ASSERT(shape.ndim() == 0);
+        XCHAINER_ASSERT(shape.GetTotalSize() == 1);
     }
 
     XCHAINER_HOST_DEVICE IndexIterator<0> It(int64_t start, int64_t step = 1) const { return IndexIterator<0>{start, step}; }
@@ -138,7 +135,7 @@ public:
 template <>
 class Indexer<1> {
 public:
-    explicit Indexer(const Shape& shape) : total_size_{shape[0]} { assert(1 == shape.ndim()); }
+    explicit Indexer(const Shape& shape) : total_size_{shape[0]} { XCHAINER_ASSERT(1 == shape.ndim()); }
 
     XCHAINER_HOST_DEVICE IndexIterator<1> It(int64_t start, int64_t step = 1) const { return IndexIterator<1>{total_size_, start, step}; }
 
