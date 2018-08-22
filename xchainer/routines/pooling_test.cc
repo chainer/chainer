@@ -17,6 +17,7 @@
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
+#include "xchainer/testing/routines.h"
 
 namespace xchainer {
 namespace {
@@ -80,8 +81,6 @@ TEST_P(PoolingTest, MaxPool) {
                                0.87756634, 0.3690981,  0.6356852})
                       .WithPadding(1);  // Randomly generated.
 
-    Array out = MaxPool(x, kernel_size, stride, pad);  // cover_all should be true.
-
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
             {0.9677815,  0.9677815,  0.6074731,  0.97462624, 0.97462624, 0.80568856, 0.7416107,  0.34700692, 0.80568856, 0.8825699,
              0.8825699,  0.96131665, 0.8825699,  0.8825699,  0.99313796, 0.72154176, 0.8705839,  0.8913622,  0.56731504, 0.56731504,
@@ -95,7 +94,14 @@ TEST_P(PoolingTest, MaxPool) {
              0.86659664, 0.1641238,  0.94771904, 0.86659664, 0.8357075,  0.7981461,  0.8357075,  0.8357075,  0.09764841, 0.9327884,
              0.9327884,  0.32184523, 0.87756634, 0.87756634, 0.6356852,  0.87756634, 0.87756634, 0.6356852});  // Computed with Chainer.
 
-    EXPECT_ARRAY_EQ(e_out, out);
+    testing::CheckForward(
+            [&kernel_size, &stride, &pad](const std::vector<Array>& xs) {
+                return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad)};  // cover_all should be true
+            },
+            {x},
+            {e_out},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(PoolingTest, MaxPoolNoCoverAll) {
@@ -139,7 +145,6 @@ TEST_P(PoolingTest, MaxPoolNoCoverAll) {
                                0.05052375, 0.05624698, 0.10016874, 0.9320143,  0.09351984, 0.53812116, 0.20279366, 0.22279656, 0.33266315,
                                0.8101899,  0.6632538,  0.64406633})
                       .WithPadding(1);  // Randomly generated.
-    Array out = MaxPool(x, kernel_size, stride, pad, cover_all);
 
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
             {0.951628,   0.8341918,  0.6040584,  0.8674204, 0.9550997,  0.9550997,  0.69606817, 0.5913821,  0.26333022, 0.85048497,
@@ -151,7 +156,14 @@ TEST_P(PoolingTest, MaxPoolNoCoverAll) {
              0.8659653,  0.33170977, 0.86021507, 0.8370784, 0.46001586, 0.86021507, 0.68951994, 0.37592548, 0.9320143,  0.8101899,
              0.8101899,  0.9320143});  // Computed with Chainer.
 
-    EXPECT_ARRAY_EQ(e_out, out);
+    testing::CheckForward(
+            [&kernel_size, &stride, &pad, &cover_all](const std::vector<Array>& xs) {
+                return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad, cover_all)};
+            },
+            {x},
+            {e_out},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
@@ -205,7 +217,6 @@ TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
                                0.8594091,  0.82480854, 0.8240346,  0.7362367,  0.6144636,  0.1727837,  0.50839895, 0.6949624,  0.29187527,
                                0.49906296, 0.255307,   0.520505,   0.4900493,  0.03956361, 0.08103298, 0.64027756, 0.6599848,  0.5945138})
                       .WithPadding(1);  // Randomly generated.
-    Array out = MaxPool(x, kernel_size, stride, pad, cover_all);
 
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
             {0.89991057, 0.89991057, 0.9805615,  0.9805615,  0.56195277, 0.78299475, 0.8657279, 0.92381614, 0.5918304,  0.9132574,
@@ -214,7 +225,14 @@ TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
              0.99647135, 0.99647135, 0.7221806,  0.74232286, 0.978541,   0.978541,   0.8025118, 0.86370593, 0.94351375, 0.9479238,
              0.73393095, 0.84942234, 0.86141664, 0.81095344, 0.8797568,  0.8797568,  0.8240346, 0.6949624});  // Computed with Chainer.
 
-    EXPECT_ARRAY_EQ(e_out, out);
+    testing::CheckForward(
+            [&kernel_size, &stride, &pad, &cover_all](const std::vector<Array>& xs) {
+                return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad, cover_all)};
+            },
+            {x},
+            {e_out},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(PoolingTest, MaxPoolBackward) {
@@ -504,8 +522,6 @@ TEST_P(PoolingTest, AveragePoolPadModeIgnore) {
                                0.1968342,  0.5656382,  0.0296214})
                       .WithPadding(1);  // Randomly generated.
 
-    Array out = AveragePool(x, kernel_size, stride, pad, AveragePoolPadMode::kIgnore);
-
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
             {0.02136722, 0.11548865, 0.29737243, 0.5615185,  0.7379023,  0.24097063, 0.3587226,  0.5367772,  0.6490081,
              0.7009364,  0.6694422,  0.7506107,  0.7199011,  0.73663896, 0.865255,   0.6537985,  0.74261236, 0.6515022,
@@ -522,7 +538,14 @@ TEST_P(PoolingTest, AveragePoolPadModeIgnore) {
              0.69924927, 0.7164636,  0.31257492, 0.3045208,  0.37353006, 0.32604605, 0.20149867, 0.5739569,  0.4754313,
              0.3749856,  0.34619308, 0.31932065});  // Computed with Chainer.
 
-    EXPECT_ARRAY_ALL_CLOSE(e_out, out, 1e-7, 1e-7);
+    testing::CheckForward(
+            [&kernel_size, &stride, &pad](const std::vector<Array>& xs) {
+                return std::vector<Array>{AveragePool(xs[0], kernel_size, stride, pad, AveragePoolPadMode::kIgnore)};
+            },
+            {x},
+            {e_out},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeZero) {
@@ -567,8 +590,6 @@ TEST_P(PoolingTest, AveragePoolPadModeZero) {
                                0.64444274, 0.46360555, 0.34956232})
                       .WithPadding(1);  // Randomly generated.
 
-    Array out = AveragePool(x, kernel_size, stride, pad, AveragePoolPadMode::kZero);
-
     Array e_out = testing::BuildArray(out_shape).WithData<T>(
             {0.14547887, 0.11143565, 0.23709683, 0.43740582, 0.4930414,  0.38481522, 0.3631035,  0.2613494,  0.3619775,  0.46806145,
              0.5351649,  0.56723756, 0.27993715, 0.2603403,  0.25366527, 0.4517298,  0.37294424, 0.28252947, 0.37936988, 0.3807654,
@@ -579,7 +600,14 @@ TEST_P(PoolingTest, AveragePoolPadModeZero) {
              0.32501528, 0.27838096, 0.38496295, 0.48860213, 0.4943433,  0.6386533,  0.3274555,  0.14210498, 0.25845996, 0.46114156,
              0.31804958, 0.46384564});  // Computed with Chainer.
 
-    EXPECT_ARRAY_ALL_CLOSE(e_out, out, 1e-7, 1e-7);
+    testing::CheckForward(
+            [&kernel_size, &stride, &pad](const std::vector<Array>& xs) {
+                return std::vector<Array>{AveragePool(xs[0], kernel_size, stride, pad, AveragePoolPadMode::kZero)};
+            },
+            {x},
+            {e_out},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeIgnoreBackward) {
