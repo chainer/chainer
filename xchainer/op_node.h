@@ -15,6 +15,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -118,7 +119,7 @@ public:
     BackpropId backprop_id() const { return backprop_id_; }
 
     const ArrayProps& GetOutputArrayProps(size_t i) const {
-        assert(i < output_array_props_.size());
+        XCHAINER_ASSERT(i < output_array_props_.size());
         return output_array_props_[i];
     }
 

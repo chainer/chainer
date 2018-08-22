@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -19,6 +18,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 #include "xchainer/op_node.h"
 #include "xchainer/shape.h"
 
@@ -29,7 +29,7 @@ namespace backward_builder_detail {
 // The records are used to create outer graph edges (between op nodes and previous array nodes) when the builder is finalized.
 class RetentionRecord {
 public:
-    explicit RetentionRecord(size_t size) : size_{size} { assert(size_ > 0); }
+    explicit RetentionRecord(size_t size) : size_{size} { XCHAINER_ASSERT(size_ > 0); }
 
     size_t size() const { return size_; }
 
@@ -122,15 +122,15 @@ public:
         : BackwardBuilder{op_name, std::move(inputs), std::vector<ConstArrayRef>{output}} {}
     BackwardBuilder(const char* op_name, const Array& input, const Array& output)
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
-    ~BackwardBuilder() { assert(is_finalized_); }
+    ~BackwardBuilder() { XCHAINER_ASSERT(is_finalized_); }
 
     Target CreateTarget(std::vector<size_t> input_indices) {
         // input_indices shouldn't have duplicates.
-        assert((std::set<size_t>{input_indices.begin(), input_indices.end()}.size() == input_indices.size()));
+        XCHAINER_ASSERT((std::set<size_t>{input_indices.begin(), input_indices.end()}.size() == input_indices.size()));
 
         for (size_t input_index : input_indices) {
-            assert(input_index < inputs_target_created_.size());
-            assert(!inputs_target_created_[input_index]);
+            XCHAINER_ASSERT(input_index < inputs_target_created_.size());
+            XCHAINER_ASSERT(!inputs_target_created_[input_index]);
             inputs_target_created_[input_index] = true;
         }
         return Target{*this, std::move(input_indices)};

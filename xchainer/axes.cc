@@ -1,7 +1,6 @@
 #include "xchainer/axes.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <numeric>
@@ -10,6 +9,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "xchainer/macro.h"
 
 namespace xchainer {
 
@@ -34,7 +35,7 @@ std::ostream& operator<<(std::ostream& os, const Axes& axes) {
 namespace internal {
 
 bool IsAxesPermutation(const Axes& axes, int8_t ndim) {
-    assert(ndim >= 0);
+    XCHAINER_ASSERT(ndim >= 0);
     if (axes.size() != static_cast<size_t>(ndim)) {
         return false;
     }
@@ -71,9 +72,9 @@ Axes GetSortedAxes(const Axes& axis, int8_t ndim) {
     }
 
     // sorted_axis is sorted, unique, and within bounds [0, ndim).
-    assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
-    assert(std::set<int8_t>(sorted_axis.begin(), sorted_axis.end()).size() == sorted_axis.size());
-    assert(std::all_of(sorted_axis.begin(), sorted_axis.end(), [ndim](int8_t x) -> bool { return 0 <= x && x < ndim; }));
+    XCHAINER_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+    XCHAINER_ASSERT(std::set<int8_t>(sorted_axis.begin(), sorted_axis.end()).size() == sorted_axis.size());
+    XCHAINER_ASSERT(std::all_of(sorted_axis.begin(), sorted_axis.end(), [ndim](int8_t x) -> bool { return 0 <= x && x < ndim; }));
     return sorted_axis;
 }
 

@@ -1345,7 +1345,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            assert(bt);
+            ASSERT_TRUE(bt);
             bt.Define([tok1,
                        tok2 = bb.RetainOutput(1),
                        y1_value,
@@ -1735,7 +1735,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
         BackwardBuilder bb{"func", {x1, x2}, y1};
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            assert(bt);
+            ASSERT_TRUE(bt);
             bt.Define([tok1 = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &y1_body, double_backprop_opt](
                               BackwardContext& bctx) {
                 // Test assumption: the bodies of ys must be dead.
@@ -1760,7 +1760,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            assert(bt);
+            ASSERT_TRUE(bt);
             bt.Define([tok1 = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &y1_body, double_backprop_opt](
                               BackwardContext& bctx) {
                 // Test assumption: the bodies of ys must be dead.

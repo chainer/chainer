@@ -64,13 +64,12 @@ ApplyBatchNormResult ApplyBatchNorm(
         const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis) {
     if (XCHAINER_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
-        assert(gamma.shape() == reduced_shape);
-        assert(beta.shape() == reduced_shape);
+        XCHAINER_ASSERT(gamma.shape() == reduced_shape);
+        XCHAINER_ASSERT(beta.shape() == reduced_shape);
 
         int64_t reduced_total_size = reduced_shape.GetTotalSize();
-        (void)reduced_total_size;  // maybe unused
-        assert(mean.GetTotalSize() == reduced_total_size);
-        assert(var.GetTotalSize() == reduced_total_size);
+        XCHAINER_ASSERT(mean.GetTotalSize() == reduced_total_size);
+        XCHAINER_ASSERT(var.GetTotalSize() == reduced_total_size);
     }
     Array inv_std = Reciprocal(Sqrt(var + eps));
 
@@ -86,10 +85,10 @@ GenericBatchNormForwardBackward::GenericBatchNormForwardBackward(
     : running_mean_{running_mean}, running_var_{running_var}, eps_{eps}, decay_{decay}, axis_{std::move(axis)} {}
 
 void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Array x_mean, Array x_inv_std) {
-    assert(internal::GetArrayBody(x)->nodes().empty());
-    assert(internal::GetArrayBody(gamma)->nodes().empty());
-    assert(internal::GetArrayBody(x_mean)->nodes().empty());
-    assert(internal::GetArrayBody(x_inv_std)->nodes().empty());
+    XCHAINER_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+    XCHAINER_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
+    XCHAINER_ASSERT(internal::GetArrayBody(x_mean)->nodes().empty());
+    XCHAINER_ASSERT(internal::GetArrayBody(x_inv_std)->nodes().empty());
     x_ = std::make_shared<Array>(std::move(x));
     gamma_ = std::make_shared<Array>(std::move(gamma));
     x_mean_ = std::make_shared<Array>(std::move(x_mean));
@@ -97,9 +96,9 @@ void GenericBatchNormForwardBackward::SetForwardResults(Array x, Array gamma, Ar
 }
 
 Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamma, const Array& beta) {
-    assert(internal::GetArrayBody(x)->nodes().empty());
-    assert(internal::GetArrayBody(gamma)->nodes().empty());
-    assert(internal::GetArrayBody(beta)->nodes().empty());
+    XCHAINER_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+    XCHAINER_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
+    XCHAINER_ASSERT(internal::GetArrayBody(beta)->nodes().empty());
 
     Array x_mean = Mean(x, axis_, true);
     Array x_var = Var(x, axis_, true);
@@ -121,7 +120,7 @@ Array GenericBatchNormForwardBackward::Forward(const Array& x, const Array& gamm
 }
 
 std::array<Array, 3> GenericBatchNormForwardBackward::Backward(const Array& gout) {
-    assert(internal::GetArrayBody(gout)->nodes().empty());
+    XCHAINER_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
     // Note: x_inv_std_ has the information of eps.
     const Array& x = *x_;

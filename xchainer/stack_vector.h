@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
@@ -42,7 +41,7 @@ public:
 
     template <typename InputIter>
     StackVector(InputIter first, InputIter last) {
-        assert(std::distance(first, last) <= static_cast<difference_type>(N));
+        XCHAINER_ASSERT(std::distance(first, last) <= static_cast<difference_type>(N));
         BaseIterator end = std::copy(first, last, d_.begin());
         n_ = std::distance(d_.begin(), end);
     }
@@ -66,12 +65,12 @@ public:
     }
 
     const_reference operator[](size_type index) const {
-        assert(index < n_);
+        XCHAINER_ASSERT(index < n_);
         return d_[index];
     }
 
     reference operator[](size_type index) {
-        assert(index < n_);
+        XCHAINER_ASSERT(index < n_);
         return d_[index];
     }
 
@@ -107,7 +106,7 @@ public:
     void clear() noexcept { resize(0); }
 
     void resize(size_type count) noexcept {
-        assert(count <= N);
+        XCHAINER_ASSERT(count <= N);
         if (n_ < count) {
             // expanding
             for (size_type i = n_; i < count; ++i) {
@@ -120,30 +119,30 @@ public:
     }
 
     reference front() {
-        assert(n_ > 0);
+        XCHAINER_ASSERT(n_ > 0);
         return d_[0];
     }
 
     const_reference front() const {
-        assert(n_ > 0);
+        XCHAINER_ASSERT(n_ > 0);
         return d_[0];
     }
 
     reference back() {
-        assert(n_ > 0);
+        XCHAINER_ASSERT(n_ > 0);
         return d_[n_ - 1];
     }
 
     const_reference back() const {
-        assert(n_ > 0);
+        XCHAINER_ASSERT(n_ > 0);
         return d_[n_ - 1];
     }
 
     template <typename... Args>
     iterator emplace(const_iterator pos, Args&&... args) {
-        assert(n_ < N);
-        assert(cbegin() <= pos);
-        assert(pos <= cend());
+        XCHAINER_ASSERT(n_ < N);
+        XCHAINER_ASSERT(cbegin() <= pos);
+        XCHAINER_ASSERT(pos <= cend());
         size_type i_pos = pos - cbegin();
         for (size_type i = n_; i > i_pos; --i) {
             d_[i] = std::move(d_[i - 1]);
@@ -168,15 +167,13 @@ public:
 
     template <class InputIter>
     iterator insert(const_iterator pos, InputIter first, InputIter last) {
-#if XCHAINER_DEBUG
         size_type n_old = n_;
-#endif  // XCHAINER_DEBUG
         iterator it_pos0 = begin() + std::distance(cbegin(), pos);
         iterator it_pos = it_pos0;
         for (InputIter it = first; it != last; ++it, ++it_pos) {
             emplace(it_pos, *it);
         }
-        assert(n_ == n_old + std::distance(first, last));
+        XCHAINER_ASSERT(n_ == n_old + std::distance(first, last));
         return it_pos0;
     }
 

@@ -12,6 +12,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 #include "xchainer/routines/math.h"
 #include "xchainer/routines/routines_util.h"
 #include "xchainer/routines/statistics.h"
@@ -75,10 +76,10 @@ PreprocessBatchNormResult PreprocessBatchNorm(
     Array beta_reshaped = ReshapeOrIdentity(beta, reduced_shape);
     Array mean_reshaped = ReshapeOrIdentity(mean, reduced_shape);
     Array var_reshaped = ReshapeOrIdentity(var, reduced_shape);
-    assert(gamma_reshaped.data() == gamma.data());  // No data copy should occur
-    assert(beta_reshaped.data() == beta.data());
-    assert(mean_reshaped.data() == mean.data());
-    assert(var_reshaped.data() == var.data());
+    XCHAINER_ASSERT(gamma_reshaped.data() == gamma.data());  // No data copy should occur
+    XCHAINER_ASSERT(beta_reshaped.data() == beta.data());
+    XCHAINER_ASSERT(mean_reshaped.data() == mean.data());
+    XCHAINER_ASSERT(var_reshaped.data() == var.data());
 
     return {std::move(gamma_reshaped), std::move(beta_reshaped), std::move(mean_reshaped), std::move(var_reshaped), sorted_axis};
 }
@@ -117,9 +118,9 @@ Array BatchNorm(
             const Array& ggamma = ginputs[1];
             const Array& gbeta = ginputs[2];
 
-            assert(internal::GetArrayBody(gx)->nodes().empty());
-            assert(internal::GetArrayBody(ggamma)->nodes().empty());
-            assert(internal::GetArrayBody(gbeta)->nodes().empty());
+            XCHAINER_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
+            XCHAINER_ASSERT(internal::GetArrayBody(ggamma)->nodes().empty());
+            XCHAINER_ASSERT(internal::GetArrayBody(gbeta)->nodes().empty());
 
             if (bctx.next_required()) {
                 const Array& x = bctx.GetRetainedInput(x_tok);

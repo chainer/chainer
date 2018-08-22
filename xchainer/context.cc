@@ -3,7 +3,6 @@
 #include <dlfcn.h>
 
 #include <atomic>
-#include <cassert>
 #include <cstdlib>
 #include <mutex>
 #include <string>
@@ -16,6 +15,7 @@
 #include "xchainer/cuda/cuda_backend.h"
 #endif  // XCHAINER_ENABLE_CUDA
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/native/native_backend.h"
 
 namespace xchainer {
@@ -123,8 +123,7 @@ BackpropId Context::MakeNextBackpropId(std::string backprop_name) {
 
 void Context::ReleaseBackpropId(const BackpropId& backprop_id) {
     // Backprop IDs must be released in the reverse order of creation
-    assert(&backprop_id.context() == this && backprop_id.ordinal() == backprop_stack_.back().ordinal);
-    (void)backprop_id;  // unused
+    XCHAINER_ASSERT(&backprop_id.context() == this && backprop_id.ordinal() == backprop_stack_.back().ordinal);
 
     backprop_stack_.pop_back();
 }

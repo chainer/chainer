@@ -1,11 +1,11 @@
 #include "xchainer/native/native_device.h"
 
-#include <cassert>
 #include <cstdint>
 
 #include "xchainer/array.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/macro.h"
 #include "xchainer/native/reduce.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/shape.h"
@@ -14,8 +14,8 @@ namespace xchainer {
 namespace native {
 
 void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
-    assert(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
-    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
+    XCHAINER_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
+    XCHAINER_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
@@ -40,7 +40,7 @@ void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
 }
 
 void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    XCHAINER_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
     auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
@@ -59,7 +59,7 @@ void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
 }
 
 void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    XCHAINER_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
 
     VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {

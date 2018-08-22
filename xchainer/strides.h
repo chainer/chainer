@@ -15,6 +15,7 @@
 #include "xchainer/constant.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -84,7 +85,7 @@ public:
     // It is the caller's responsibility to ensure validity of permutation.
     // If the permutation is invalid, the behavior is undefined.
     Strides Permute(const Axes& axes) const {
-        assert(axes.size() <= size());
+        XCHAINER_ASSERT(axes.size() <= size());
         Strides new_strides{};
         for (int8_t axe : axes) {
             new_strides.emplace_back(operator[](axe));

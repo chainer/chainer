@@ -1,6 +1,5 @@
 #include "xchainer/cuda/cuda_device.h"
 
-#include <cassert>
 #include <cmath>
 #include <cstdint>
 
@@ -12,6 +11,7 @@
 #include "xchainer/cuda/reduce.cuh"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
+#include "xchainer/macro.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/reduction_kernel_arg.h"
 #include "xchainer/shape.h"
@@ -60,7 +60,7 @@ struct SumImpl {
 }  // namespace
 
 void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    XCHAINER_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
 
@@ -95,7 +95,7 @@ struct AMaxImpl {
 }  // namespace
 
 void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    assert(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    XCHAINER_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {

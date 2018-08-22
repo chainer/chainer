@@ -1,6 +1,5 @@
 #include "xchainer/native/native_device.h"
 
-#include <cassert>
 #include <cstdint>
 
 #ifdef XCHAINER_ENABLE_BLAS
@@ -11,6 +10,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
+#include "xchainer/macro.h"
 #include "xchainer/native/elementwise.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
@@ -47,7 +47,7 @@ struct GemmInputLayout {
 
     // Configure leading dimension and transposition accordingly, and makes the array C contiguous if necessary
     Array Configure(const Array& a) {
-        assert(a.ndim() == 2);
+        XCHAINER_ASSERT(a.ndim() == 2);
         // Row-major
         // Note that this condition is slightly relaxed than Array::IsContiguous() which requires
         // a.strides()[0] == a.item_size() * a.shape()[1]
@@ -68,17 +68,17 @@ struct GemmInputLayout {
 };
 
 void Gemm(const Array& a, const Array& b, const Array& out) {
-    assert(a.ndim() == 2);
-    assert(b.ndim() == 2);
-    assert(out.ndim() == 2);
-    assert(out.dtype() == Dtype::kFloat32 || out.dtype() == Dtype::kFloat64);
+    XCHAINER_ASSERT(a.ndim() == 2);
+    XCHAINER_ASSERT(b.ndim() == 2);
+    XCHAINER_ASSERT(out.ndim() == 2);
+    XCHAINER_ASSERT(out.dtype() == Dtype::kFloat32 || out.dtype() == Dtype::kFloat64);
 
     int64_t m = a.shape()[0];
     int64_t k = a.shape()[1];
     int64_t n = b.shape()[1];
-    assert(b.shape()[0] == k);
-    assert(out.shape()[0] == m);
-    assert(out.shape()[1] == n);
+    XCHAINER_ASSERT(b.shape()[0] == k);
+    XCHAINER_ASSERT(out.shape()[0] == m);
+    XCHAINER_ASSERT(out.shape()[1] == n);
 
     bool is_out_contiguous = out.IsContiguous();
     Array out_contiguous = is_out_contiguous ? out : EmptyLike(out, out.device());
@@ -103,7 +103,7 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
     if (a.dtype() == Dtype::kFloat32) {
         gemm_impl(PrimitiveType<float>{});
     } else {
-        assert(a.dtype() == Dtype::kFloat64);
+        XCHAINER_ASSERT(a.dtype() == Dtype::kFloat64);
         gemm_impl(PrimitiveType<double>{});
     }
 
@@ -140,9 +140,9 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         int64_t m = a.shape()[0];
         int64_t k = a.shape()[1];
         int64_t n = b.shape()[1];
-        assert(b.shape()[0] == k);
-        assert(out.shape()[0] == m);
-        assert(out.shape()[1] == n);
+        XCHAINER_ASSERT(b.shape()[0] == k);
+        XCHAINER_ASSERT(out.shape()[0] == m);
+        XCHAINER_ASSERT(out.shape()[1] == n);
 
         for (int64_t i = 0; i < m; ++i) {
             for (int64_t l = 0; l < k; ++l) {
