@@ -46,9 +46,9 @@ public:
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
         assert(TypeToDtype<T> == array.dtype());
 
-        if (XCHAINER_DEBUG) {
-            std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-        }
+#if XCHAINER_DEBUG
+        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
+#endif
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -145,9 +145,9 @@ public:
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
         assert(TypeToDtype<T> == array.dtype());
 
-        if (XCHAINER_DEBUG) {
-            std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-        }
+#if XCHAINER_DEBUG
+        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
+#endif
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
@@ -194,9 +194,9 @@ public:
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
         assert(TypeToDtype<T> == array.dtype());
 
-        if (XCHAINER_DEBUG) {
-            std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
-        }
+#if XCHAINER_DEBUG
+        std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
+#endif
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
