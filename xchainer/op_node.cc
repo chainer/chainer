@@ -11,6 +11,7 @@
 #include "xchainer/array.h"
 #include "xchainer/array_node.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 
 namespace xchainer {
 namespace internal {

@@ -13,6 +13,7 @@
 #include "xchainer/backward.h"
 #include "xchainer/backward_builder.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/numeric.h"
 #include "xchainer/numerical_gradient.h"
 

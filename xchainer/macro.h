@@ -9,7 +9,7 @@
 #ifndef XCHAINER_HOST_DEVICE
 #ifdef __CUDACC__
 #define XCHAINER_HOST_DEVICE __host__ __device__
-#else
+#else  // __CUDA__
 #define XCHAINER_HOST_DEVICE
 #endif  // __CUDACC__
 #endif  // XCHAINER_HOST_DEVICE
@@ -18,7 +18,7 @@
 #ifdef NDEBUG
 #include <cstdlib>
 #define XCHAINER_NEVER_REACH() (std::abort())
-#else
+#else  // NDEBUG
 #include <cassert>
 #define XCHAINER_NEVER_REACH()                    \
     do {                                          \

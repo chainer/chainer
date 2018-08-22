@@ -13,6 +13,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 
 namespace xchainer {
 namespace internal {
