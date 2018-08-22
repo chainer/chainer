@@ -17,6 +17,7 @@
 #include "xchainer/backprop_mode.h"
 #include "xchainer/device.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 #include "xchainer/op_node.h"
 
 namespace xchainer {

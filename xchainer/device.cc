@@ -7,6 +7,7 @@
 #include "xchainer/array.h"
 #include "xchainer/context.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/math.h"
