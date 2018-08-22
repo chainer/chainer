@@ -208,19 +208,19 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(BackpropTest, BackwardBasic) {
+TEST_F(BackpropTest, BackwardBasic) {
     CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) { return xs[0] * xs[1]; });
     CheckBackpropSingleElement({3.0f, 2.0f, 4.0f}, {8.0f, 12.0f, 6.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[2]; });
     CheckBackpropSingleElement({3.0f, 2.0f}, {12.0f, 9.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[0]; });
     CheckBackpropSingleElement({3.0f, 2.0f}, {1.0f, 2.0f}, [](auto& xs) { return (xs[0] + xs[1]) + xs[1]; });
 }
 
-TEST_P(BackpropTest, BackwardWithExtraInputs) {
+TEST_F(BackpropTest, BackwardWithExtraInputs) {
     CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
     CheckBackpropSingleElementExtraInputs({2.0f}, {4.0f}, {4.0f}, [](auto& xs, auto& ys) { return xs[0] * ys[0]; });
 }
 
-TEST_P(BackpropTest, BackwardMultipleOutputs) {
+TEST_F(BackpropTest, BackwardMultipleOutputs) {
     CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 6.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[0], xs[1] * xs[1]}; });
     CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 3.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[1], xs[0] + xs[1]}; });
     CheckBackpropSingleElement({2.0f, 3.0f}, {21.0f, 16.0f}, [](auto& xs) -> std::vector<Array> {
@@ -229,14 +229,14 @@ TEST_P(BackpropTest, BackwardMultipleOutputs) {
     });
 }
 
-TEST_P(BackpropTest, BackwardWithComplicatedRanks) {
+TEST_F(BackpropTest, BackwardWithComplicatedRanks) {
     CheckBackpropSingleElement({1.0f}, {-2.0f}, [](auto& xs) {
         Array a = -xs[0] + 0;
         return -(-a) + a;
     });
 }
 
-TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
+TEST_F(BackpropTest, TryBackwardFromArrayWithoutNode) {
     auto xs = MakeFullArrays({1}, {2.0f, 3.0f});
     auto y1 = xs[0] * xs[1];  // without graph
     EXPECT_THROW(Backward(y1), XchainerError);
@@ -247,7 +247,7 @@ TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
     EXPECT_THROW(Backward({y1, y2}), XchainerError);
 }
 
-TEST_P(BackpropTest, BackwardSoleArrayNode) {
+TEST_F(BackpropTest, BackwardSoleArrayNode) {
     auto x = Full({1}, 2.0f);
     x.RequireGrad();
     Backward(x);
@@ -255,7 +255,7 @@ TEST_P(BackpropTest, BackwardSoleArrayNode) {
     ExpectEqual<float>(e, *x.GetGrad());
 }
 
-TEST_P(BackpropTest, DoubleBackprop) {
+TEST_F(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
         Backward(z, nonstd::nullopt, DoubleBackpropOption::kEnable);
@@ -266,7 +266,7 @@ TEST_P(BackpropTest, DoubleBackprop) {
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop);
 }
 
-TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
+TEST_F(BackpropTest, BackpropOnNonDefaultDevice) {
     testing::DeviceSession device_session{DeviceId{native::NativeBackend::kDefaultName, 0}};
     CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) {
         auto ret = xs[0] * xs[1];
@@ -276,7 +276,7 @@ TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
     });
 }
 
-TEST_P(BackpropTest, MultipleGraphsBackprop) {
+TEST_F(BackpropTest, MultipleGraphsBackprop) {
     BackpropScope backprop_scope_y{"bp_y"};
     BackpropScope backprop_scope_x{"bp_x"};
     BackpropId bp_x = backprop_scope_x.backprop_id();
@@ -303,7 +303,7 @@ TEST_P(BackpropTest, MultipleGraphsBackprop) {
     ExpectEqual<float>(x_value, gy);  // x
 }
 
-TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
+TEST_F(BackpropTest, MultipleGraphsDoubleBackprop) {
     BackpropScope backprop_scope_y{"bp_y"};
     BackpropScope backprop_scope_x{"bp_x"};
     BackpropId bp_x = backprop_scope_x.backprop_id();
@@ -330,16 +330,16 @@ TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     ExpectEqual<float>(x_value, gy);  // x
 }
 
-TEST_P(BackpropTest, BackwardInputToMultipleOps) {
+TEST_F(BackpropTest, BackwardInputToMultipleOps) {
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {7.0f}, [](auto& xs, auto& ys) { return xs[0] * (xs[0] + ys[0]); });
 }
 
-TEST_P(BackpropTest, BackwardIdenticalInputs) {
+TEST_F(BackpropTest, BackwardIdenticalInputs) {
     CheckBackpropSingleElement({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; });
     CheckBackpropSingleElement({3.0f}, {6.0f}, [](auto& xs) { return xs[0] * xs[0]; });
 }
 
-TEST_P(BackpropTest, BackwardIdenticalIntermediateNodes) {
+TEST_F(BackpropTest, BackwardIdenticalIntermediateNodes) {
     auto fprop = [](auto& xs) {
         auto y = xs[0] + xs[0];
         return y + y;
@@ -347,7 +347,7 @@ TEST_P(BackpropTest, BackwardIdenticalIntermediateNodes) {
     CheckBackpropSingleElement({2.0f}, {4.0f}, fprop);
 }
 
-TEST_P(BackpropTest, BackwardGivenInputGrad) {
+TEST_F(BackpropTest, BackwardGivenInputGrad) {
     auto fprop = [](auto& xs) {
         xs[0].SetGrad(OnesLike(xs[0]));
         return xs[0].Copy();
@@ -355,7 +355,7 @@ TEST_P(BackpropTest, BackwardGivenInputGrad) {
     CheckBackpropSingleElement({1.0f}, {2.0f}, fprop);
 }
 
-TEST_P(BackpropTest, BackwardGivenOutputGrad) {
+TEST_F(BackpropTest, BackwardGivenOutputGrad) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * ys[0];
         z.SetGrad(FullLike(z, 2.0f));
@@ -364,7 +364,7 @@ TEST_P(BackpropTest, BackwardGivenOutputGrad) {
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {6.0f}, fprop);
 }
 
-TEST_P(BackpropTest, MultipleGraphsBasic) {
+TEST_F(BackpropTest, MultipleGraphsBasic) {
     Array x1 = Full({1}, 2.0f);
     Array x2 = Full({1}, 5.0f);
 
@@ -384,7 +384,7 @@ TEST_P(BackpropTest, MultipleGraphsBasic) {
     EXPECT_FALSE(x2.GetGrad(backprop_id_2));
 }
 
-TEST_P(BackpropTest, MultipleGraphsSameInput) {
+TEST_F(BackpropTest, MultipleGraphsSameInput) {
     Array x1 = Full({1}, 3.0f);
 
     BackpropScope backprop_scope1{"bp1"};
@@ -401,7 +401,7 @@ TEST_P(BackpropTest, MultipleGraphsSameInput) {
     EXPECT_TRUE(testing::IsBackpropIdsEqual({}, *x1.GetGrad(backprop_id_1)));
 }
 
-TEST_P(BackpropTest, MultipleGraphsNonExisting) {
+TEST_F(BackpropTest, MultipleGraphsNonExisting) {
     Array x1 = Full({1}, 2.0f);
     Array x2 = Full({1}, 5.0f);
 
@@ -417,7 +417,7 @@ TEST_P(BackpropTest, MultipleGraphsNonExisting) {
     EXPECT_THROW(Backward(y1, backprop_id_2), XchainerError);
 }
 
-TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
+TEST_F(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
     Array x1 = Full({1}, 2.0f);
     Array x2 = Full({1}, 5.0f);
 
@@ -459,7 +459,7 @@ TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
     EXPECT_FALSE(x2.GetGrad(backprop_id));
 }
 
-TEST_P(BackpropTest, MultipleGraphsReuse) {
+TEST_F(BackpropTest, MultipleGraphsReuse) {
     Array x1 = Full({1}, 2.0f);
     Array x2 = Full({1}, 5.0f);
 
@@ -503,7 +503,7 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(backprop_id_inner));
 }
 
-TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
+TEST_F(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
     Array x = Full({1}, 2.0f);
     x.RequireGrad();
 
@@ -521,7 +521,7 @@ TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
     Backward(y);  // no throw
 }
 
-TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
+TEST_F(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
     Array x = Full({1}, 2.0f);
     x.RequireGrad();
 
@@ -539,7 +539,7 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
     EXPECT_THROW(Backward(y, backprop_id), XchainerError);
 }
 
-TEST_P(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
+TEST_F(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
     Array x = Full({1}, 2.0f);
 
     BackpropScope backprop_scope_outer{"bp_outer"};
@@ -559,7 +559,7 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
     EXPECT_THROW(Backward(y, backprop_id_inner), XchainerError);
 }
 
-TEST_P(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
+TEST_F(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
     Array x = Full({1}, 2.0f);
     Array y;
 
@@ -588,7 +588,7 @@ TEST_P(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
     EXPECT_THROW(Backward(y, backprop_id_1), XchainerError);
 }
 
-TEST_P(BackpropTest, BackwardThreeGraphs) {
+TEST_F(BackpropTest, BackwardThreeGraphs) {
     Array x = Full({1}, {2.0f});
     Array y;
 
@@ -619,7 +619,7 @@ TEST_P(BackpropTest, BackwardThreeGraphs) {
     EXPECT_THROW(Backward(y, backprop_id_2), XchainerError);
 }
 
-TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
+TEST_F(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     // This test checks cyclic reference is not formed when the input gradient references the input array.
     // The cycle could happen if input array nodes directly owned their gradients.
 
@@ -656,7 +656,7 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     EXPECT_EQ(nullptr, x_grad_body.lock());
 }
 
-TEST_P(BackpropTest, SomeOfOutputArrayNodesAreGone) {
+TEST_F(BackpropTest, SomeOfOutputArrayNodesAreGone) {
     // This test checks the backward of a multiple-output function where some of the output arrays are gone.
     //
     // (x) <- [forward] <- (y1 := (x-1) exp x) <- [view] <- (z1)
@@ -705,7 +705,7 @@ TEST_P(BackpropTest, SomeOfOutputArrayNodesAreGone) {
     EXPECT_ARRAY_ALL_CLOSE(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
 }
 
-TEST_P(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
+TEST_F(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
     BackpropScope backprop_scope1{"bp1"};
     BackpropScope backprop_scope2{"bp2"};
     BackpropScope backprop_scope3{"bp3"};
