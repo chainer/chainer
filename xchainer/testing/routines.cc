@@ -66,7 +66,7 @@ void CheckOutputArraysEqual(const std::vector<Array>& expected, const std::vecto
     for (size_t i = 0; i < expected.size(); ++i) {
         const Array& e = expected[i];
         const Array& a = actual[i];
-        if (!AllClose(e, a, atol, rtol)) {
+        if (!AllClose(e, a, atol, rtol, true /*equal_nan*/)) {
             failed_input_indices.emplace_back(i);
         }
     }
