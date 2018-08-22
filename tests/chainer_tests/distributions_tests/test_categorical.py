@@ -9,7 +9,8 @@ import numpy
     'shape': [(3, 2), (1,)],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
-    'extreme_values': [True, False],
+    # 'extreme_values': [True, False],
+    'extreme_values': [False],
     'logit_option': [True, False]
 }))
 @testing.fix_random()
