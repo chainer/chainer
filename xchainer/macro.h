@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <cstdlib>
 
 #ifdef NDEBUG
 #define XCHAINER_DEBUG false
@@ -26,10 +27,8 @@
 
 #ifndef XCHAINER_NEVER_REACH
 #ifdef NDEBUG
-#include <cstdlib>
 #define XCHAINER_NEVER_REACH() (std::abort())
 #else  // NDEBUG
-#include <cassert>
 #define XCHAINER_NEVER_REACH()                    \
     do {                                          \
         assert(false); /* NOLINT(cert-dcl03-c) */ \
