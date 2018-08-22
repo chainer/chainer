@@ -102,7 +102,7 @@ TEST(BackwardContextTest, InputGrad) {
 
 // TODO(hvy): Separate tests of backprop stack manipulation into another test class/fixture and parameterize the outermost graph over the
 // default graph and an explicitly scoped graph. Some tests will become redundant. Remove them.
-class BackpropTest : public ::testing::TestWithParam<std::string> {
+class BackpropTest : public ::testing::Test {
 protected:
     void SetUp() override { device_session_.emplace(DeviceId{native::NativeBackend::kDefaultName, 0}); }
 
