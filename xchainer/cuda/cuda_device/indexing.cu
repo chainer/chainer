@@ -1,7 +1,6 @@
 #include "xchainer/cuda/cuda_device.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <numeric>
 
@@ -15,6 +14,7 @@
 #include "xchainer/dtype.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/macro.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -24,9 +24,9 @@ namespace {
 
 // Makes axes for permutation that moves [first_axis, last_axis) to the head.
 Axes MakeRollingPermutation(int8_t first_axis, int8_t last_axis, int8_t ndim) {
-    assert(0 <= first_axis);
-    assert(first_axis < last_axis);
-    assert(last_axis <= ndim);
+    XCHAINER_ASSERT(0 <= first_axis);
+    XCHAINER_ASSERT(first_axis < last_axis);
+    XCHAINER_ASSERT(last_axis <= ndim);
 
     Axes permutation{};
     permutation.resize(ndim);
@@ -58,8 +58,8 @@ __global__ void TakeKernel(
         } else {
             index = index % axis_dim;
         }
-        assert(0 <= index);
-        assert(index < axis_dim);
+        XCHAINER_ASSERT(0 <= index);
+        XCHAINER_ASSERT(index < axis_dim);
 
         out_iarray[it] = a_iarray[a_indexer.It(index * common_total_size + common_pos)];
     }
@@ -90,8 +90,8 @@ __global__ void AddAtKernel(
             } else {
                 index = index % axis_dim;
             }
-            assert(0 <= index);
-            assert(index < axis_dim);
+            XCHAINER_ASSERT(0 <= index);
+            XCHAINER_ASSERT(index < axis_dim);
 
             if (index == axis_pos) {
                 out_value += b_iarray[b_indexer.It(it_indices.raw_index() * common_total_size + common_pos)];
@@ -149,7 +149,7 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
     // TODO(niboshi): Current implementation only distributes output elements in respective threads. Summation on the indices is performed
     // serially in each thread. This implementation can be improved by distributing indices as well, possibly using atomicAdd.
 
-    assert(a.shape() == out.shape());
+    XCHAINER_ASSERT(a.shape() == out.shape());
     CheckDevicesCompatible(a, indices, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {

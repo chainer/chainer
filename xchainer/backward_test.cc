@@ -6,9 +6,6 @@
 #include <tuple>
 #include <vector>
 
-#ifdef XCHAINER_ENABLE_CUDA
-#include <cuda_runtime.h>
-#endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
@@ -16,15 +13,11 @@
 #include "xchainer/array_body_leak_detection.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
+#include "xchainer/backprop_scope.h"
 #include "xchainer/backward_builder.h"
 #include "xchainer/backward_context.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/context.h"
-#ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/cuda_backend.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/backprop_scope.h"
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
@@ -109,12 +102,9 @@ TEST(BackwardContextTest, InputGrad) {
 
 // TODO(hvy): Separate tests of backprop stack manipulation into another test class/fixture and parameterize the outermost graph over the
 // default graph and an explicitly scoped graph. Some tests will become redundant. Remove them.
-class BackpropTest : public ::testing::TestWithParam<std::string> {
+class BackpropTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        std::string backend_name = GetParam();
-        device_session_.emplace(DeviceId{backend_name, 0});
-    }
+    void SetUp() override { device_session_.emplace(DeviceId{native::NativeBackend::kDefaultName, 0}); }
 
     void TearDown() override { device_session_.reset(); }
 
@@ -137,28 +127,11 @@ public:
 
     template <typename T>
     void ExpectDataEqual(const Array& expected, const Array& actual) const {
-#ifdef XCHAINER_ENABLE_CUDA
-        std::string backend_name = GetParam();
-        if (backend_name == "cuda") {
-            cuda::CheckCudaError(cudaDeviceSynchronize());
-        }
-#endif  // XCHAINER_ENABLE_CUDA
         auto total_size = expected.shape().GetTotalSize();
         auto expected_data = static_cast<const T*>(expected.data().get());
         auto actual_data = static_cast<const T*>(actual.data().get());
         for (decltype(total_size) i = 0; i < total_size; ++i) {
             EXPECT_EQ(expected_data[i], actual_data[i]);
-        }
-    }
-
-    void CheckArrayGrad(const Array& a) const {
-        ASSERT_TRUE(a.GetGrad().has_value());
-        EXPECT_EQ(&a.device(), &a.GetGrad()->device());
-    }
-
-    void CheckArrayGrad(const std::vector<Array>& as) const {
-        for (const auto& a : as) {
-            CheckArrayGrad(a);
         }
     }
 
@@ -182,7 +155,6 @@ public:
             EXPECT_EQ(&target_input.device(), &target_input.GetGrad()->device());
             ExpectEqual<float>(expected_grads[i], *target_input.GetGrad());
         }
-        CheckArrayGrad(y);
     }
 
     template <typename Fprop>
@@ -224,19 +196,19 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(BackpropTest, BackwardBasic) {
+TEST_F(BackpropTest, BackwardBasic) {
     CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) { return xs[0] * xs[1]; });
     CheckBackpropSingleElement({3.0f, 2.0f, 4.0f}, {8.0f, 12.0f, 6.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[2]; });
     CheckBackpropSingleElement({3.0f, 2.0f}, {12.0f, 9.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[0]; });
     CheckBackpropSingleElement({3.0f, 2.0f}, {1.0f, 2.0f}, [](auto& xs) { return (xs[0] + xs[1]) + xs[1]; });
 }
 
-TEST_P(BackpropTest, BackwardWithExtraInputs) {
+TEST_F(BackpropTest, BackwardWithExtraInputs) {
     CheckBackpropSingleElementExtraInputs({2.0f, 3.0f}, {4.0f}, {3.0f, 6.0f}, [](auto& xs, auto& ys) { return xs[1] * (xs[0] + ys[0]); });
     CheckBackpropSingleElementExtraInputs({2.0f}, {4.0f}, {4.0f}, [](auto& xs, auto& ys) { return xs[0] * ys[0]; });
 }
 
-TEST_P(BackpropTest, BackwardMultipleOutputs) {
+TEST_F(BackpropTest, BackwardMultipleOutputs) {
     CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 6.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[0], xs[1] * xs[1]}; });
     CheckBackpropSingleElement({2.0f, 3.0f}, {4.0f, 3.0f}, [](auto& xs) -> std::vector<Array> { return {xs[0] * xs[1], xs[0] + xs[1]}; });
     CheckBackpropSingleElement({2.0f, 3.0f}, {21.0f, 16.0f}, [](auto& xs) -> std::vector<Array> {
@@ -245,14 +217,14 @@ TEST_P(BackpropTest, BackwardMultipleOutputs) {
     });
 }
 
-TEST_P(BackpropTest, BackwardWithComplicatedRanks) {
+TEST_F(BackpropTest, BackwardWithComplicatedRanks) {
     CheckBackpropSingleElement({1.0f}, {-2.0f}, [](auto& xs) {
         Array a = -xs[0] + 0;
         return -(-a) + a;
     });
 }
 
-TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
+TEST_F(BackpropTest, TryBackwardFromArrayWithoutNode) {
     auto xs = MakeFullArrays({1}, {2.0f, 3.0f});
     auto y1 = xs[0] * xs[1];  // without graph
     EXPECT_THROW(Backward(y1), XchainerError);
@@ -263,7 +235,7 @@ TEST_P(BackpropTest, TryBackwardFromArrayWithoutNode) {
     EXPECT_THROW(Backward({y1, y2}), XchainerError);
 }
 
-TEST_P(BackpropTest, BackwardSoleArrayNode) {
+TEST_F(BackpropTest, BackwardSoleArrayNode) {
     auto x = Full({1}, 2.0f);
     x.RequireGrad();
     Backward(x);
@@ -271,7 +243,7 @@ TEST_P(BackpropTest, BackwardSoleArrayNode) {
     ExpectEqual<float>(e, *x.GetGrad());
 }
 
-TEST_P(BackpropTest, DoubleBackprop) {
+TEST_F(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
         Backward(z, nonstd::nullopt, DoubleBackpropOption::kEnable);
@@ -282,19 +254,17 @@ TEST_P(BackpropTest, DoubleBackprop) {
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop);
 }
 
-#ifdef XCHAINER_ENABLE_CUDA
-TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
-    std::string another_backend = GetParam() == "cuda" ? "native" : "cuda";
-    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [another_backend](auto& xs) {
+TEST_F(BackpropTest, BackpropOnNonDefaultDevice) {
+    testing::DeviceSession device_session{DeviceId{native::NativeBackend::kDefaultName, 0}};
+    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) {
         auto ret = xs[0] * xs[1];
         // This device switch also affects backward
-        SetDefaultDevice(&GetDefaultContext().GetDevice({another_backend, 0}));
+        SetDefaultDevice(&GetDefaultContext().GetDevice({native::NativeBackend::kDefaultName, 1}));
         return ret;
     });
 }
-#endif  // XCHAINER_ENABLE_CUDA
 
-TEST_P(BackpropTest, MultipleGraphsBackprop) {
+TEST_F(BackpropTest, MultipleGraphsBackprop) {
     BackpropScope backprop_scope_y{"bp_y"};
     BackpropScope backprop_scope_x{"bp_x"};
     BackpropId bp_x = backprop_scope_x.backprop_id();
@@ -310,6 +280,8 @@ TEST_P(BackpropTest, MultipleGraphsBackprop) {
     Backward(z, bp_x, DoubleBackpropOption::kDisable);
 
     Array gx = *x.GetGrad(bp_x);  // 2x + y
+    EXPECT_FALSE(gx.IsGradRequired(bp_x));
+    EXPECT_FALSE(gx.IsGradRequired(bp_y));
     EXPECT_TRUE(testing::IsBackpropIdsEqual({bp_y}, gx));
     EXPECT_ARRAY_EQ(2 * x_value + y_value, gx);
 
@@ -317,11 +289,13 @@ TEST_P(BackpropTest, MultipleGraphsBackprop) {
     Backward(w, bp_y, DoubleBackpropOption::kDisable);
 
     Array gy = *y.GetGrad(bp_y);
+    EXPECT_FALSE(gy.IsGradRequired(bp_x));
+    EXPECT_FALSE(gy.IsGradRequired(bp_y));
     EXPECT_TRUE(testing::IsBackpropIdsEqual({}, gy));
     ExpectEqual<float>(x_value, gy);  // x
 }
 
-TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
+TEST_F(BackpropTest, MultipleGraphsDoubleBackprop) {
     BackpropScope backprop_scope_y{"bp_y"};
     BackpropScope backprop_scope_x{"bp_x"};
     BackpropId bp_x = backprop_scope_x.backprop_id();
@@ -348,16 +322,16 @@ TEST_P(BackpropTest, MultipleGraphsDoubleBackprop) {
     ExpectEqual<float>(x_value, gy);  // x
 }
 
-TEST_P(BackpropTest, BackwardInputToMultipleOps) {
+TEST_F(BackpropTest, BackwardInputToMultipleOps) {
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {7.0f}, [](auto& xs, auto& ys) { return xs[0] * (xs[0] + ys[0]); });
 }
 
-TEST_P(BackpropTest, BackwardIdenticalInputs) {
+TEST_F(BackpropTest, BackwardIdenticalInputs) {
     CheckBackpropSingleElement({2.0f}, {2.0f}, [](auto& xs) { return xs[0] + xs[0]; });
     CheckBackpropSingleElement({3.0f}, {6.0f}, [](auto& xs) { return xs[0] * xs[0]; });
 }
 
-TEST_P(BackpropTest, BackwardIdenticalIntermediateNodes) {
+TEST_F(BackpropTest, BackwardIdenticalIntermediateNodes) {
     auto fprop = [](auto& xs) {
         auto y = xs[0] + xs[0];
         return y + y;
@@ -365,7 +339,7 @@ TEST_P(BackpropTest, BackwardIdenticalIntermediateNodes) {
     CheckBackpropSingleElement({2.0f}, {4.0f}, fprop);
 }
 
-TEST_P(BackpropTest, BackwardGivenInputGrad) {
+TEST_F(BackpropTest, BackwardGivenInputGrad) {
     auto fprop = [](auto& xs) {
         xs[0].SetGrad(OnesLike(xs[0]));
         return xs[0].Copy();
@@ -373,7 +347,7 @@ TEST_P(BackpropTest, BackwardGivenInputGrad) {
     CheckBackpropSingleElement({1.0f}, {2.0f}, fprop);
 }
 
-TEST_P(BackpropTest, BackwardGivenOutputGrad) {
+TEST_F(BackpropTest, BackwardGivenOutputGrad) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * ys[0];
         z.SetGrad(FullLike(z, 2.0f));
@@ -382,7 +356,7 @@ TEST_P(BackpropTest, BackwardGivenOutputGrad) {
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {6.0f}, fprop);
 }
 
-TEST_P(BackpropTest, MultipleGraphsBasic) {
+TEST_F(BackpropTest, MultipleGraphsBasic) {
     Array x1 = Full({1}, 2.0f);
     Array x2 = Full({1}, 5.0f);
 
@@ -402,7 +376,7 @@ TEST_P(BackpropTest, MultipleGraphsBasic) {
     EXPECT_FALSE(x2.GetGrad(backprop_id_2));
 }
 
-TEST_P(BackpropTest, MultipleGraphsSameInput) {
+TEST_F(BackpropTest, MultipleGraphsSameInput) {
     Array x1 = Full({1}, 3.0f);
 
     BackpropScope backprop_scope1{"bp1"};
@@ -419,7 +393,7 @@ TEST_P(BackpropTest, MultipleGraphsSameInput) {
     EXPECT_TRUE(testing::IsBackpropIdsEqual({}, *x1.GetGrad(backprop_id_1)));
 }
 
-TEST_P(BackpropTest, MultipleGraphsNonExisting) {
+TEST_F(BackpropTest, MultipleGraphsNonExisting) {
     Array x1 = Full({1}, 2.0f);
     Array x2 = Full({1}, 5.0f);
 
@@ -435,7 +409,7 @@ TEST_P(BackpropTest, MultipleGraphsNonExisting) {
     EXPECT_THROW(Backward(y1, backprop_id_2), XchainerError);
 }
 
-TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
+TEST_F(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
     Array x1 = Full({1}, 2.0f);
     Array x2 = Full({1}, 5.0f);
 
@@ -477,7 +451,7 @@ TEST_P(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
     EXPECT_FALSE(x2.GetGrad(backprop_id));
 }
 
-TEST_P(BackpropTest, MultipleGraphsReuse) {
+TEST_F(BackpropTest, MultipleGraphsReuse) {
     Array x1 = Full({1}, 2.0f);
     Array x2 = Full({1}, 5.0f);
 
@@ -521,7 +495,7 @@ TEST_P(BackpropTest, MultipleGraphsReuse) {
     EXPECT_FALSE(x2.GetGrad(backprop_id_inner));
 }
 
-TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
+TEST_F(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
     Array x = Full({1}, 2.0f);
     x.RequireGrad();
 
@@ -539,7 +513,7 @@ TEST_P(BackpropTest, BackwardDefaultGraphAfterInnerGraph) {
     Backward(y);  // no throw
 }
 
-TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
+TEST_F(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
     Array x = Full({1}, 2.0f);
     x.RequireGrad();
 
@@ -557,7 +531,7 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
     EXPECT_THROW(Backward(y, backprop_id), XchainerError);
 }
 
-TEST_P(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
+TEST_F(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
     Array x = Full({1}, 2.0f);
 
     BackpropScope backprop_scope_outer{"bp_outer"};
@@ -577,7 +551,7 @@ TEST_P(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
     EXPECT_THROW(Backward(y, backprop_id_inner), XchainerError);
 }
 
-TEST_P(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
+TEST_F(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
     Array x = Full({1}, 2.0f);
     Array y;
 
@@ -606,7 +580,7 @@ TEST_P(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
     EXPECT_THROW(Backward(y, backprop_id_1), XchainerError);
 }
 
-TEST_P(BackpropTest, BackwardThreeGraphs) {
+TEST_F(BackpropTest, BackwardThreeGraphs) {
     Array x = Full({1}, {2.0f});
     Array y;
 
@@ -637,7 +611,7 @@ TEST_P(BackpropTest, BackwardThreeGraphs) {
     EXPECT_THROW(Backward(y, backprop_id_2), XchainerError);
 }
 
-TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
+TEST_F(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     // This test checks cyclic reference is not formed when the input gradient references the input array.
     // The cycle could happen if input array nodes directly owned their gradients.
 
@@ -674,7 +648,7 @@ TEST_P(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
     EXPECT_EQ(nullptr, x_grad_body.lock());
 }
 
-TEST_P(BackpropTest, SomeOfOutputArrayNodesAreGone) {
+TEST_F(BackpropTest, SomeOfOutputArrayNodesAreGone) {
     // This test checks the backward of a multiple-output function where some of the output arrays are gone.
     //
     // (x) <- [forward] <- (y1 := (x-1) exp x) <- [view] <- (z1)
@@ -723,7 +697,7 @@ TEST_P(BackpropTest, SomeOfOutputArrayNodesAreGone) {
     EXPECT_ARRAY_ALL_CLOSE(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
 }
 
-TEST_P(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
+TEST_F(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
     BackpropScope backprop_scope1{"bp1"};
     BackpropScope backprop_scope2{"bp2"};
     BackpropScope backprop_scope3{"bp3"};
@@ -812,15 +786,6 @@ TEST_P(BackpropTest, NoReferenceToOuterGraphsUnlessArraysAreRetained) {
         EXPECT_EQ(y2_node_bp3, map_bp4.at(backprop_id3).at(1));
     }
 }
-
-INSTANTIATE_TEST_CASE_P(
-        ForEachBackend,
-        BackpropTest,
-        ::testing::Values(
-#ifdef XCHAINER_ENABLE_CUDA
-                std::string{"cuda"},
-#endif  // XCHAINER_ENABLE_CUDA
-                std::string{"native"}));
 
 class BackpropFunctionTest : public ::testing::TestWithParam<DoubleBackpropOption> {};
 
@@ -1380,7 +1345,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            assert(bt);
+            ASSERT_TRUE(bt);
             bt.Define([tok1,
                        tok2 = bb.RetainOutput(1),
                        y1_value,
@@ -1770,7 +1735,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
         BackwardBuilder bb{"func", {x1, x2}, y1};
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            assert(bt);
+            ASSERT_TRUE(bt);
             bt.Define([tok1 = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &y1_body, double_backprop_opt](
                               BackwardContext& bctx) {
                 // Test assumption: the bodies of ys must be dead.
@@ -1795,7 +1760,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            assert(bt);
+            ASSERT_TRUE(bt);
             bt.Define([tok1 = bb.RetainOutput(0), y1_value, &backprop_id1, &backprop_id2, &y1_body, double_backprop_opt](
                               BackwardContext& bctx) {
                 // Test assumption: the bodies of ys must be dead.

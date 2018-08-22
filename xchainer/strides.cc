@@ -9,6 +9,7 @@
 #include <gsl/gsl>
 
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/shape.h"
 
 namespace xchainer {
@@ -49,7 +50,7 @@ void CheckEqual(const Strides& lhs, const Strides& rhs) {
 }
 
 std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& strides, size_t item_size) {
-    assert(shape.ndim() == strides.ndim());
+    XCHAINER_ASSERT(shape.ndim() == strides.ndim());
     int64_t first = 0;
     int64_t last = item_size;
 
@@ -60,8 +61,8 @@ std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& str
         }
         first_or_last += (shape[i] - 1) * strides[i];
     }
-    assert(first <= 0);
-    assert(static_cast<int64_t>(item_size) <= last);
+    XCHAINER_ASSERT(first <= 0);
+    XCHAINER_ASSERT(static_cast<int64_t>(item_size) <= last);
     return std::tuple<int64_t, int64_t>{first, last};
 }
 

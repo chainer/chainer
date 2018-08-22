@@ -1,6 +1,5 @@
 #include "xchainer/testing/array.h"
 
-#include <cassert>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -12,6 +11,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 #include "xchainer/testing/array_check.h"
@@ -31,7 +31,7 @@ protected:
     void TearDown() override { device_session_.reset(); }
 
     Device& device() {
-        assert(device_session_.has_value());
+        XCHAINER_ASSERT(device_session_.has_value());
         return device_session_->device();
     }
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <cstdint>
 
 #include "xchainer/constant.h"
@@ -13,8 +12,8 @@ class IndexIterator {
 public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
         : shape_{shape}, total_size_{total_size}, raw_index_{0}, start_{start}, step_{step}, index_{} {
-        assert(start >= 0);
-        assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
+        XCHAINER_ASSERT(start >= 0);
+        XCHAINER_ASSERT(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
         if (total_size > 0) {
             Set(start);
         }
@@ -62,7 +61,7 @@ private:
     // Set raw_index_ and index_.
     // i may be out of bounds, but raw_index_ and index_ are updated anyway.
     XCHAINER_HOST_DEVICE void Set(int64_t i) {
-        assert(total_size_ > 0);
+        XCHAINER_ASSERT(total_size_ > 0);
         raw_index_ = i;
         for (int8_t j = kNdim; --j >= 0;) {
             index_[j] = i % shape_[j];
@@ -85,14 +84,12 @@ public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
         : IndexIterator<0>{start, step} {
         (void)shape;  // unused
-        (void)total_size;  // unused
-        assert(total_size == 1);
+        XCHAINER_ASSERT(total_size == 1);
     }
 
     explicit XCHAINER_HOST_DEVICE IndexIterator(int64_t start, int64_t step) : raw_index_{start} {
-        (void)step;  // unused
-        assert(start >= 0);
-        assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
+        XCHAINER_ASSERT(start >= 0);
+        XCHAINER_ASSERT(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
     }
 
     XCHAINER_HOST_DEVICE IndexIterator<0>& operator++() {
@@ -140,14 +137,13 @@ class IndexIterator<1> {
 public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
         : IndexIterator<1>{total_size, start, step} {
-        assert(shape[0] == total_size);
-        (void)shape;  // unused, except for sanity check.
+        XCHAINER_ASSERT(shape[0] == total_size);
     }
 
     explicit XCHAINER_HOST_DEVICE IndexIterator(int64_t total_size, int64_t start, int64_t step)
         : total_size_{total_size}, raw_index_{start}, start_{start}, step_{step} {
-        assert(start >= 0);
-        assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
+        XCHAINER_ASSERT(start >= 0);
+        XCHAINER_ASSERT(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
     }
 
     XCHAINER_HOST_DEVICE IndexIterator<1>& operator++() {
@@ -199,8 +195,8 @@ class IndexIterator<kDynamicNdim> {
 public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int8_t ndim, int64_t total_size, int64_t start, int64_t step)
         : shape_{shape}, ndim_{ndim}, total_size_{total_size}, raw_index_{0}, start_{start}, step_{step}, index_{} {
-        assert(start >= 0);
-        assert(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
+        XCHAINER_ASSERT(start >= 0);
+        XCHAINER_ASSERT(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
         if (total_size > 0) {
             Set(start);
         }
@@ -248,7 +244,7 @@ private:
     // Set raw_index_ and index_.
     // i may be out of bounds, but raw_index_ and index_ are updated anyway.
     XCHAINER_HOST_DEVICE void Set(int64_t i) {
-        assert(total_size_ > 0);
+        XCHAINER_ASSERT(total_size_ > 0);
         raw_index_ = i;
         for (int8_t j = ndim_; --j >= 0;) {
             index_[j] = i % shape_[j];

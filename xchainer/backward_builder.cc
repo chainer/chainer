@@ -1,7 +1,6 @@
 #include "xchainer/backward_builder.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cstddef>
 #include <initializer_list>
 #include <iterator>
@@ -17,6 +16,7 @@
 #include "xchainer/backprop_mode.h"
 #include "xchainer/device.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 #include "xchainer/op_node.h"
 
 namespace xchainer {
@@ -30,7 +30,7 @@ using internal::OpNode;
 BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> input_indices)
     : builder_{builder}, input_indices_{std::move(input_indices)} {
     // All input arrays must have the same device.
-    assert(std::all_of(input_indices.begin(), input_indices.end(), [this](size_t input_index) {
+    XCHAINER_ASSERT(std::all_of(input_indices.begin(), input_indices.end(), [this](size_t input_index) {
         return &gsl::at(builder_.inputs_, input_index).get().device() == &(builder_.inputs_.front().get().device());
     }));
 
@@ -38,7 +38,7 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> in
 }
 
 void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
-    assert(graph_to_input_array_nodes_.empty());
+    XCHAINER_ASSERT(graph_to_input_array_nodes_.empty());
     for (size_t input_index : input_indices_) {
         // Need to access the input array via the builder.
         const Array& input = gsl::at(builder_.inputs_, input_index);
@@ -64,16 +64,17 @@ void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
     if (XCHAINER_DEBUG) {
         for (auto& pair : graph_to_input_array_nodes_) {
             const BackpropId& backprop_id = pair.first;
+            (void)backprop_id;  // maybe unused
             const InputArrayNodes& input_array_nodes = pair.second;
             for (const std::shared_ptr<ArrayNode>* array_node : input_array_nodes) {
-                assert(array_node == nullptr || backprop_id == (*array_node)->backprop_id());
+                XCHAINER_ASSERT(array_node == nullptr || backprop_id == (*array_node)->backprop_id());
             }
         }
     }
 }
 
 void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
-    assert(is_definition_required());
+    XCHAINER_ASSERT(is_definition_required());
 
     // Find/Create an op node for each graph and register the given backward function to each of them.
     for (const auto& pair : graph_to_input_array_nodes_) {
@@ -103,17 +104,17 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
       outputs_{std::move(outputs)},
       input_retention_record_{inputs_.size()},
       output_retention_record_{outputs_.size()} {
-    assert(!inputs_.empty());
-    assert(!outputs_.empty());
-    assert(inputs_.size() == inputs_target_created_.size());
+    XCHAINER_ASSERT(!inputs_.empty());
+    XCHAINER_ASSERT(!outputs_.empty());
+    XCHAINER_ASSERT(inputs_.size() == inputs_target_created_.size());
     // Outputs requiring grad (e.g. in-place ops.) must have been detected and reported before reaching here.
-    assert(std::all_of(
+    XCHAINER_ASSERT(std::all_of(
             outputs_.begin(), outputs_.end(), [](const Array& output) { return internal::GetArrayBody(output)->nodes().empty(); }));
     // Arrays must be on the same device within inputs / outputs respectively.
-    assert(std::all_of(outputs_.begin(), outputs_.end(), [this](const Array& output) {
+    XCHAINER_ASSERT(std::all_of(outputs_.begin(), outputs_.end(), [this](const Array& output) {
         return &outputs_.begin()->get().device() == &output.device();
     }));
-    assert(std::all_of(
+    XCHAINER_ASSERT(std::all_of(
             inputs_.begin(), inputs_.end(), [this](const Array& input) { return &inputs_.begin()->get().device() == &input.device(); }));
 }
 
@@ -126,26 +127,26 @@ std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const BackpropId& b
         insert_result.first->second = OpNode::CreateWithOutputArrayNodes(op_name_, backprop_id, inputs_.size(), outputs_);
     }
 
-    assert(!op_node_map_.empty());
+    XCHAINER_ASSERT(!op_node_map_.empty());
     return insert_result.first->second;
 }
 
 RetainedInputToken BackwardBuilder::RetainInput(size_t input_index) {
-    assert(input_index < inputs_.size());
+    XCHAINER_ASSERT(input_index < inputs_.size());
     input_retention_record_.Record(input_index);
     return {internal::GetArrayBody(gsl::at(inputs_, input_index))->GetParams(), input_index};
 }
 
 RetainedOutputToken BackwardBuilder::RetainOutput(size_t output_index) {
-    assert(output_index < outputs_.size());
+    XCHAINER_ASSERT(output_index < outputs_.size());
     output_retention_record_.Record(output_index);
     return {internal::GetArrayBody(gsl::at(outputs_, output_index))->GetParams(), output_index};
 }
 
 void BackwardBuilder::Finalize() {
-    assert(!is_finalized_);
+    XCHAINER_ASSERT(!is_finalized_);
     // Checks that the backward definitions cover all the input arrays.
-    assert(std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; }));
+    XCHAINER_ASSERT(std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; }));
 
     AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention();
 
@@ -180,7 +181,7 @@ void AddEdgesFromOpNodeToOutputArrayNodesOfOuterGraph(
     for (size_t i = 0; i < output_retention_record.size(); ++i) {
         if (output_retention_record.IsRecorded(i)) {
             const std::weak_ptr<ArrayNode>& array_node = outer_op_node.output_array_nodes()[i];
-            assert(!array_node.expired());
+            XCHAINER_ASSERT(!array_node.expired());
             output_array_nodes.emplace_back(array_node.lock());
         } else {
             output_array_nodes.emplace_back(nullptr);

@@ -8,6 +8,7 @@
 #include "xchainer/array_body.h"
 #include "xchainer/array_node.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 
 namespace xchainer {
 namespace internal {
@@ -50,7 +51,7 @@ bool ArrayBodyLeakTracker::IsAllArrayBodiesFreed(std::ostream& os) const {
 }
 
 ArrayBodyLeakDetectionScope ::ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& tracker) {
-    assert(array_body_leak_tracker_ == nullptr);  // nested use is not supported
+    XCHAINER_ASSERT(array_body_leak_tracker_ == nullptr);  // nested use is not supported
     array_body_leak_tracker_ = &tracker;
 }
 

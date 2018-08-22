@@ -17,6 +17,7 @@
 #include "xchainer/device.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
@@ -78,7 +79,7 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
             real_axes.emplace_back(a.ndim() - i - 1);
         }
     }
-    assert(real_axes.ndim() == a.ndim());
+    XCHAINER_ASSERT(real_axes.ndim() == a.ndim());
 
     Shape out_shape;
     Strides out_strides;
@@ -153,7 +154,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
             for (; i < in_shape.ndim(); ++i) {
                 int64_t dim = in_shape[i];
                 int64_t st = in_strides[i];
-                assert(dim > 0);
+                XCHAINER_ASSERT(dim > 0);
                 if (dim == 1 && st == 0) {
                     // If the axis has unit-length with no stride, skip this dimension.
                 } else if (dim * st == reduced_strides.back()) {
@@ -167,8 +168,8 @@ Array Reshape(const Array& a, const Shape& newshape) {
                 }
             }
         }
-        assert(reduced_shape.size() == reduced_strides.size());
-        assert(!reduced_shape.empty());
+        XCHAINER_ASSERT(reduced_shape.size() == reduced_strides.size());
+        XCHAINER_ASSERT(!reduced_shape.empty());
 
         // Construct the strides for no-copy reshape.
         // If it's not possible, can_reshape_without_copy will be false.
@@ -199,7 +200,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
             // Copy is required.
             return a.Copy().Reshape(newshape);
         }
-        assert(strides.size() == newshape.size());
+        XCHAINER_ASSERT(strides.size() == newshape.size());
     }
 
     Array out = internal::MakeArray(newshape, strides, a.dtype(), a.device(), a.data(), a.offset());
@@ -210,8 +211,8 @@ Array Reshape(const Array& a, const Shape& newshape) {
     }
     bb.Finalize();
 
-    assert(out.shape() == newshape);
-    assert(out.strides().size() == newshape.size());
+    XCHAINER_ASSERT(out.shape() == newshape);
+    XCHAINER_ASSERT(out.strides().size() == newshape.size());
     return out;
 }
 
@@ -308,8 +309,8 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
             strides[i_out] = int64_t{0};
         }
     }
-    assert(i_in == -1);
-    assert(strides.ndim() == shape.ndim());
+    XCHAINER_ASSERT(i_in == -1);
+    XCHAINER_ASSERT(strides.ndim() == shape.ndim());
 
     Array out = internal::MakeArray(shape, strides, array.dtype(), array.device(), array.data(), array.offset());
 

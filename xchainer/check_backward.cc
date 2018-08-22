@@ -13,6 +13,7 @@
 #include "xchainer/backward.h"
 #include "xchainer/backward_builder.h"
 #include "xchainer/error.h"
+#include "xchainer/macro.h"
 #include "xchainer/numeric.h"
 #include "xchainer/numerical_gradient.h"
 
@@ -208,10 +209,12 @@ void CheckBackwardComputation(
     const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
 
     // If you're trapped in any of these asserts, numerical gradiends must be implemented incorrectly.
-    assert(numerical_grads.size() == inputs.size());
-    for (size_t i = 0; i < inputs.size(); ++i) {
-        assert(numerical_grads[i].shape() == inputs[i].shape());
-        assert(numerical_grads[i].dtype() == inputs[i].dtype());
+    if (XCHAINER_DEBUG) {
+        XCHAINER_ASSERT(numerical_grads.size() == inputs.size());
+        for (size_t i = 0; i < inputs.size(); ++i) {
+            XCHAINER_ASSERT(numerical_grads[i].shape() == inputs[i].shape());
+            XCHAINER_ASSERT(numerical_grads[i].dtype() == inputs[i].dtype());
+        }
     }
 
     // Check numerical consistency between numerical and backward gradients.
@@ -273,17 +276,18 @@ void CheckBackward(
         double rtol,
         const nonstd::optional<BackpropId>& backprop_id) {
     if (XCHAINER_DEBUG) {
-        assert(!inputs.empty());
-        assert(std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
+        XCHAINER_ASSERT(!inputs.empty());
+        XCHAINER_ASSERT(
+                std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-        assert(!grad_outputs.empty());
-        assert(std::none_of(
+        XCHAINER_ASSERT(!grad_outputs.empty());
+        XCHAINER_ASSERT(std::none_of(
                 grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-        assert(eps.size() == inputs.size());
+        XCHAINER_ASSERT(eps.size() == inputs.size());
         for (size_t i = 0; i < inputs.size(); ++i) {
-            assert(eps[i].shape() == inputs[i].shape());
-            assert(&eps[i].device() == &inputs[i].device());
+            XCHAINER_ASSERT(eps[i].shape() == inputs[i].shape());
+            XCHAINER_ASSERT(&eps[i].device() == &inputs[i].device());
         }
     }
 
@@ -395,7 +399,7 @@ void CheckDoubleBackwardComputationImpl(
                 std::back_inserter(backward_grads),
                 [](const nonstd::optional<Array>& optional_backward_grad) { return *optional_backward_grad; });
 
-        assert(backward_grads.size() == nin);
+        XCHAINER_ASSERT(backward_grads.size() == nin);
         return backward_grads;
     };
 
@@ -421,31 +425,32 @@ void CheckDoubleBackwardComputation(
         double rtol,
         const nonstd::optional<BackpropId>& backprop_id) {
     if (XCHAINER_DEBUG) {
-        assert(!inputs.empty());
-        assert(std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
+        XCHAINER_ASSERT(!inputs.empty());
+        XCHAINER_ASSERT(
+                std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-        assert(!grad_outputs.empty());
-        assert(std::all_of(
+        XCHAINER_ASSERT(!grad_outputs.empty());
+        XCHAINER_ASSERT(std::all_of(
                 grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-        assert(grad_grad_inputs.size() == inputs.size());
-        assert(std::none_of(grad_grad_inputs.begin(), grad_grad_inputs.end(), [&backprop_id](const Array& a) {
+        XCHAINER_ASSERT(grad_grad_inputs.size() == inputs.size());
+        XCHAINER_ASSERT(std::none_of(grad_grad_inputs.begin(), grad_grad_inputs.end(), [&backprop_id](const Array& a) {
             return a.IsBackpropRequired(backprop_id);
         }));
         for (size_t i = 0; i < inputs.size(); ++i) {
-            assert(inputs[i].shape() == grad_grad_inputs[i].shape());
-            assert(inputs[i].dtype() == grad_grad_inputs[i].dtype());
-            assert(&inputs[i].device() == &grad_grad_inputs[i].device());
+            XCHAINER_ASSERT(inputs[i].shape() == grad_grad_inputs[i].shape());
+            XCHAINER_ASSERT(inputs[i].dtype() == grad_grad_inputs[i].dtype());
+            XCHAINER_ASSERT(&inputs[i].device() == &grad_grad_inputs[i].device());
         }
 
-        assert(eps.size() == inputs.size() + grad_outputs.size());
+        XCHAINER_ASSERT(eps.size() == inputs.size() + grad_outputs.size());
         for (size_t i = 0; i < inputs.size(); ++i) {
-            assert(eps[i].shape() == inputs[i].shape());
-            assert(&eps[i].device() == &inputs[i].device());
+            XCHAINER_ASSERT(eps[i].shape() == inputs[i].shape());
+            XCHAINER_ASSERT(&eps[i].device() == &inputs[i].device());
         }
         for (size_t i = 0; i < grad_outputs.size(); ++i) {
-            assert(eps[inputs.size() + i].shape() == grad_outputs[i].shape());
-            assert(&eps[inputs.size() + i].device() == &grad_outputs[i].device());
+            XCHAINER_ASSERT(eps[inputs.size() + i].shape() == grad_outputs[i].shape());
+            XCHAINER_ASSERT(&eps[inputs.size() + i].device() == &grad_outputs[i].device());
         }
     }
 

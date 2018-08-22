@@ -1,7 +1,6 @@
 #include "xchainer/cuda/cuda_device.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <memory>
 #include <utility>
@@ -18,6 +17,7 @@
 #include "xchainer/error.h"
 #include "xchainer/indexable_array.h"
 #include "xchainer/indexer.h"
+#include "xchainer/macro.h"
 #include "xchainer/numeric_limits.h"
 #include "xchainer/routines/connection.h"
 #include "xchainer/routines/creation.h"
@@ -102,15 +102,15 @@ public:
             throw DimensionError{"XChainer cuDNN pooling supports only 2 and 3 spatial dimensions."};
         }
 
-        assert(kernel_size_.size() == static_cast<size_t>(ndim));
-        assert(stride_.size() == static_cast<size_t>(ndim));
-        assert(pad_.size() == static_cast<size_t>(ndim));
+        XCHAINER_ASSERT(kernel_size_.size() == static_cast<size_t>(ndim));
+        XCHAINER_ASSERT(stride_.size() == static_cast<size_t>(ndim));
+        XCHAINER_ASSERT(pad_.size() == static_cast<size_t>(ndim));
 
         // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
         Shape out_shape{x.shape()[0], x.shape()[1]};
         for (int8_t i = 0; i < ndim; ++i) {
             out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size_[i], stride_[i], pad_[i], cover_all_));
-            assert(out_shape.back() > 0);
+            XCHAINER_ASSERT(out_shape.back() > 0);
         }
 
         Array y = Empty(out_shape, x.dtype(), x.device());
@@ -143,10 +143,10 @@ public:
             throw DimensionError{"CUDA pooling requires number of spatial dimensions to be greater than or equal to 2"};
         }
 
-        assert(kernel_size_.size() == static_cast<size_t>(ndim));
-        assert(stride_.size() == static_cast<size_t>(ndim));
-        assert(pad_.size() == static_cast<size_t>(ndim));
-        assert(gout.shape() == y_.shape());
+        XCHAINER_ASSERT(kernel_size_.size() == static_cast<size_t>(ndim));
+        XCHAINER_ASSERT(stride_.size() == static_cast<size_t>(ndim));
+        XCHAINER_ASSERT(pad_.size() == static_cast<size_t>(ndim));
+        XCHAINER_ASSERT(gout.shape() == y_.shape());
 
         Array gx = EmptyLike(x_, x_.device());
         Array y_cont = AsContiguousArray(y_);

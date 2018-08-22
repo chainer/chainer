@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <ostream>
 
@@ -37,7 +36,7 @@ template <int8_t kNdim = kDynamicNdim>
 class Indexer {
 public:
     explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()} {
-        assert(shape.ndim() == kNdim);
+        XCHAINER_ASSERT(shape.ndim() == kNdim);
         std::copy_n(shape.begin(), kNdim, shape_);
     }
 
@@ -61,9 +60,8 @@ template <>
 class Indexer<0> {
 public:
     explicit Indexer(const Shape& shape) {
-        (void)shape;  // unused
-        assert(shape.ndim() == 0);
-        assert(shape.GetTotalSize() == 1);
+        XCHAINER_ASSERT(shape.ndim() == 0);
+        XCHAINER_ASSERT(shape.GetTotalSize() == 1);
     }
 
     XCHAINER_HOST_DEVICE IndexIterator<0> It(int64_t start, int64_t step = 1) const { return IndexIterator<0>{start, step}; }
@@ -79,7 +77,7 @@ public:
 template <>
 class Indexer<1> {
 public:
-    explicit Indexer(const Shape& shape) : total_size_{shape[0]} { assert(1 == shape.ndim()); }
+    explicit Indexer(const Shape& shape) : total_size_{shape[0]} { XCHAINER_ASSERT(1 == shape.ndim()); }
 
     XCHAINER_HOST_DEVICE IndexIterator<1> It(int64_t start, int64_t step = 1) const { return IndexIterator<1>{total_size_, start, step}; }
 

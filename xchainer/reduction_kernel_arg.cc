@@ -1,6 +1,5 @@
 #include "xchainer/reduction_kernel_arg.h"
 
-#include <cassert>
 #include <cstdint>
 #include <tuple>
 
@@ -59,12 +58,12 @@ void ReductionArg::Permute(const Axes& axis) {
                 ++i_out_axis;
             }
         }
-        assert(i_out_axis == out_.shape().size());
-        assert(i_axis == axis.size());
+        XCHAINER_ASSERT(i_out_axis == out_.shape().size());
+        XCHAINER_ASSERT(i_axis == axis.size());
     }
     // Inequality because 1-dim axes are eliminated.
-    assert(out_axis_map.size() <= in_.shape().size() - axis.size());
-    assert(out_axis_map.size() == out_shape_.size());
+    XCHAINER_ASSERT(out_axis_map.size() <= in_.shape().size() - axis.size());
+    XCHAINER_ASSERT(out_axis_map.size() == out_shape_.size());
 
     // Calculate source axis permutation
     // - in_.shape():     (12, 13, 14, 15, 16)
@@ -89,7 +88,7 @@ void ReductionArg::Permute(const Axes& axis) {
             }
         }
     }
-    assert(axis_permutes.size() <= in_.shape().size());  // Inequality because 1-dim axes are eliminated.
+    XCHAINER_ASSERT(axis_permutes.size() <= in_.shape().size());  // Inequality because 1-dim axes are eliminated.
 
     // Calculate new source shape
     for (int8_t i : axis_permutes) {
@@ -97,8 +96,8 @@ void ReductionArg::Permute(const Axes& axis) {
     }
 
     // 1-dim axes must be eliminated
-    assert(std::find(in_shape_.begin(), in_shape_.end(), 1) == in_shape_.end());
-    assert(std::find(out_shape_.begin(), out_shape_.end(), 1) == out_shape_.end());
+    XCHAINER_ASSERT(std::find(in_shape_.begin(), in_shape_.end(), 1) == in_shape_.end());
+    XCHAINER_ASSERT(std::find(out_shape_.begin(), out_shape_.end(), 1) == out_shape_.end());
 
     in_strides_ = in_.strides().Permute(axis_permutes);
     out_strides_ = out_.strides().Permute(out_axis_map);
@@ -113,11 +112,11 @@ void ReductionArg::Permute(const Axes& axis) {
 // - out_squashed_shape:    (24)
 void ReductionArg::Squash() {
     if (XCHAINER_DEBUG) {
-        assert(in_shape_.ndim() == in_strides_.ndim());
-        assert(out_shape_.ndim() == out_strides_.ndim());
+        XCHAINER_ASSERT(in_shape_.ndim() == in_strides_.ndim());
+        XCHAINER_ASSERT(out_shape_.ndim() == out_strides_.ndim());
 
         for (int8_t i = -1; i >= -out_shape_.ndim(); --i) {
-            assert(in_shape_[in_shape_.ndim() + i] == out_shape_[out_shape_.ndim() + i]);
+            XCHAINER_ASSERT(in_shape_[in_shape_.ndim() + i] == out_shape_[out_shape_.ndim() + i]);
         }
     }
 
@@ -133,8 +132,8 @@ void ReductionArg::Squash() {
     const Axes& in_keep_axes = std::get<1>(in_squashed_result);
     Strides in_squashed_strides = GetSquashedStrides(in_strides_, in_keep_axes);
 
-    assert(in_squashed_shape.ndim() == in_squashed_strides.ndim());
-    assert(out_squashed_shape.ndim() == out_squashed_strides.ndim());
+    XCHAINER_ASSERT(in_squashed_shape.ndim() == in_squashed_strides.ndim());
+    XCHAINER_ASSERT(out_squashed_shape.ndim() == out_squashed_strides.ndim());
 
     in_strides_ = in_squashed_strides;
     out_strides_ = out_squashed_strides;

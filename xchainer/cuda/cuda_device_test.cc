@@ -59,8 +59,8 @@ TEST(CudaDeviceTest, AllocateZero) {
 }
 
 TEST(CudaDeviceTest, AllocateFreeThreadSafe) {
-    static constexpr size_t kNumThreads = 1024;
-    static constexpr size_t kNumLoopsPerThread = 128;
+    static constexpr size_t kNumThreads = 2;
+    static constexpr size_t kNumLoopsPerThread = 1;
     Context ctx;
     CudaDevice& device = GetCudaDevice(ctx, 0);
 

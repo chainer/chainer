@@ -1,19 +1,19 @@
 #include "xchainer/shape.h"
 
 #include <algorithm>
-#include <cassert>
 #include <functional>
 #include <numeric>
 #include <string>
 
 #include "xchainer/axes.h"
+#include "xchainer/macro.h"
 #include "xchainer/strides.h"
 
 namespace xchainer {
 namespace internal {
 
 bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size) {
-    assert(shape.size() == strides.size());
+    XCHAINER_ASSERT(shape.size() == strides.size());
     int64_t total_size = shape.GetTotalSize();
     if (total_size == 0 || total_size == 1) {
         return true;
@@ -44,7 +44,7 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
     if (shape0.size() < shape1.size()) {
         return BroadcastShapes(shape1, shape0);
     }
-    assert(shape0.size() >= shape1.size());
+    XCHAINER_ASSERT(shape0.size() >= shape1.size());
 
     Shape new_shape;
 
@@ -68,7 +68,7 @@ Shape BroadcastShapes(const Shape& shape0, const Shape& shape1) {
 }
 
 Shape ReduceShape(const Shape& shape, const Axes& axes, bool keepdims) {
-    assert(shape.ndim() >= axes.ndim());
+    XCHAINER_ASSERT(shape.ndim() >= axes.ndim());
     Shape reduced;
     int8_t i_axis = 0;
     for (int8_t i = 0; i < shape.ndim(); ++i) {
@@ -81,8 +81,8 @@ Shape ReduceShape(const Shape& shape, const Axes& axes, bool keepdims) {
             reduced.emplace_back(shape[i]);
         }
     }
-    assert(i_axis == axes.ndim());
-    assert(reduced.ndim() == shape.ndim() - static_cast<int8_t>(!keepdims) * axes.ndim());
+    XCHAINER_ASSERT(i_axis == axes.ndim());
+    XCHAINER_ASSERT(reduced.ndim() == shape.ndim() - static_cast<int8_t>(!keepdims) * axes.ndim());
     return reduced;
 }
 
@@ -100,14 +100,14 @@ Shape ExpandShape(const Shape& shape, const Axes& axes) {
             ++i_shape;
         }
     }
-    assert(i_axis == axes.ndim());
-    assert(i_shape == shape.ndim());
-    assert(expanded.ndim() == shape.ndim() + axes.ndim());
+    XCHAINER_ASSERT(i_axis == axes.ndim());
+    XCHAINER_ASSERT(i_shape == shape.ndim());
+    XCHAINER_ASSERT(expanded.ndim() == shape.ndim() + axes.ndim());
     return expanded;
 }
 
 Shape TransposeShape(const Shape& shape, const Axes& axes) {
-    assert(IsAxesPermutation(axes, shape.ndim()));
+    XCHAINER_ASSERT(IsAxesPermutation(axes, shape.ndim()));
     Shape new_shape;
     for (int8_t axis : axes) {
         new_shape.emplace_back(shape[axis]);

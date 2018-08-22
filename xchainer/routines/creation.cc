@@ -17,6 +17,7 @@
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 #include "xchainer/scalar.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
@@ -25,7 +26,7 @@ namespace xchainer {
 namespace internal {
 
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_size) {
-    assert(shape.ndim() == strides.ndim());
+    XCHAINER_ASSERT(shape.ndim() == strides.ndim());
 
     if (shape.GetTotalSize() == 0) {
         return 0;
@@ -162,7 +163,7 @@ Array Copy(const Array& a) {
     }
     bb.Finalize();
 
-    assert(out.IsContiguous());
+    XCHAINER_ASSERT(out.IsContiguous());
     return out;
 }
 
@@ -232,7 +233,7 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
         bb.Finalize();
     }
 
-    assert(out.IsContiguous());
+    XCHAINER_ASSERT(out.IsContiguous());
     return out;
 }
 

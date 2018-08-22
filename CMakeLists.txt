@@ -16,6 +16,7 @@ include(cmake/third-party.cmake)
 option(XCHAINER_BUILD_PYTHON "Build Python binding" OFF)
 option(XCHAINER_BUILD_TEST "Build test" ON)
 option(XCHAINER_WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" ON)
+option(XCHAINER_ENABLE_THREAD_SANITIZER "Enable thread sanitizer." OFF)
 
 if(DEFINED ENV{XCHAINER_ENABLE_COVERAGE})
     set(DEFAULT_XCHAINER_ENABLE_COVERAGE $ENV{XCHAINER_ENABLE_COVERAGE})
@@ -97,6 +98,11 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     # cmake -DXCHAINER_WARNINGS_AS_ERRORS=ON|OFF
     if (XCHAINER_WARNINGS_AS_ERRORS)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+    endif()
+
+    # cmake -DXCHAINER_ENABLE_THREAD_SANITIZER=ON|OFF
+    if(XCHAINER_ENABLE_THREAD_SANITIZER)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
     endif()
 endif()
 include_directories("${PROJECT_SOURCE_DIR}")

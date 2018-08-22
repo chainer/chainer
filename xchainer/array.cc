@@ -1,7 +1,6 @@
 #include "xchainer/array.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -61,6 +60,8 @@ Array::Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& de
 Array Array::operator-() const { return Negative(*this); }
 
 Array Array::operator==(const Array& rhs) const { return Equal(*this, rhs); }
+
+Array Array::operator>(const Array& rhs) const { return Greater(*this, rhs); }
 
 Array& Array::operator+=(const Array& rhs) {
     internal::IAdd(*this, rhs);
@@ -218,7 +219,7 @@ Array Array::ToDevice(Device& dst_device) const {
         out = Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data)};
     }
 
-    assert(internal::GetArrayBody(out) != nullptr);
+    XCHAINER_ASSERT(internal::GetArrayBody(out) != nullptr);
 
     // Backward operation is implemented as backward-transfer.
     BackwardBuilder bb{"transfer", *this, out};
@@ -278,7 +279,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
         bb.Finalize();
     }
 
-    assert(out.IsContiguous());
+    XCHAINER_ASSERT(out.IsContiguous());
     return out;
 }
 
@@ -286,10 +287,11 @@ void Array::Fill(Scalar value) const { device().Fill(*this, value); }
 
 const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
-    const nonstd::optional<Array>* grad = body_->GetGrad(actual_backprop_id);
-    if (grad == nullptr) {
-        throw XchainerError{"Array does not belong to the graph: '", actual_backprop_id, "'."};
+    if (!IsGradRequired(actual_backprop_id)) {
+        throw XchainerError{"Array is not flagged as requiring gradient for backprop id: '", actual_backprop_id, "'."};
     }
+    const nonstd::optional<Array>* grad = body_->GetGrad(actual_backprop_id);
+    XCHAINER_ASSERT(grad != nullptr);
     return *grad;
 }
 
@@ -297,13 +299,20 @@ void Array::SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id)
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     nonstd::optional<Array>* target_grad = body_->GetGrad(actual_backprop_id);
     if (target_grad == nullptr) {
-        throw XchainerError{"Array does not belong to the graph: '", actual_backprop_id, "'."};
+        throw XchainerError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
     }
+
+    // Setting the gradient flags the array to require gradient, so that it can return the gradient with GetGrad().
+    RequireGrad(actual_backprop_id);
+
     internal::SetGrad(*target_grad, std::move(grad), shape(), dtype(), device());
 }
 
 void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
+    if (!body_->HasArrayNode(actual_backprop_id)) {
+        throw XchainerError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
+    }
     body_->ClearGrad(actual_backprop_id);
 }
 
@@ -319,15 +328,18 @@ bool Array::IsBackpropRequired(AnyGraph /*any_graph*/) const {
     });
 }
 
+bool Array::IsGradRequired(const nonstd::optional<BackpropId>& backprop_id) const {
+    BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
+    return body_->IsGradRequired(actual_backprop_id);
+}
+
 template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id) {
     if (GetKind(array.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"Array with integral dtype (", GetDtypeName(array.dtype()), ") cannot compute gradient"};
     }
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(array, backprop_id);
-    if (xchainer::IsBackpropRequired(actual_backprop_id)) {
-        internal::ArrayBody::CreateArrayNode(internal::GetArrayBody(array), actual_backprop_id);
-    }
+    internal::ArrayBody::RequireGrad(internal::GetArrayBody(array), actual_backprop_id);
     return array;
 }
 
@@ -404,7 +416,7 @@ public:
                 } else {
                     os_ << Indent(indent + 2) << "body=" << body.get() << std::endl;
                     const nonstd::optional<Array>* grad = body->GetGrad(array_node.backprop_id());
-                    assert(grad != nullptr);
+                    XCHAINER_ASSERT(grad != nullptr);
                     if (grad->has_value()) {
                         os_ << Indent(indent + 2) << "grad=<shape=" << (*grad)->shape() << " dtype=" << GetDtypeName((*grad)->dtype())
                             << ">" << std::endl;

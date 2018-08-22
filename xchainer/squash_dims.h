@@ -7,6 +7,7 @@
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/macro.h"
 #include "xchainer/shape.h"
 #include "xchainer/strides.h"
 
@@ -82,7 +83,7 @@ std::tuple<Shape, Axes> SquashShape(const Shape& shape, const PackedStrides&... 
             std::copy_if(compressed.begin(), compressed.end(), std::back_inserter(squashed), [](int64_t dim) { return dim != 1; });
             break;
     }
-    assert(squashed.ndim() == keep.ndim());
+    XCHAINER_ASSERT(squashed.ndim() == keep.ndim());
     return std::make_tuple(squashed, keep);
 }
 

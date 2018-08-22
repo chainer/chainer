@@ -15,6 +15,7 @@
 #include "xchainer/enum.h"
 #include "xchainer/error.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/manipulation.h"
 #include "xchainer/routines/routines_util.h"
@@ -350,7 +351,7 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([sorted_axis, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
-            assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+            XCHAINER_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
             if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
                 Shape out_shape_broadcastable = gout.shape();
@@ -387,7 +388,7 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
         // a and out are used only for restoring the mask. We don't need graph nodes.
         bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
-            assert(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+            XCHAINER_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
             Array reshaped_gout{};
             Array reshaped_out{};

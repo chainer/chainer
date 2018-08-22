@@ -1,7 +1,6 @@
 #include "xchainer/routines/indexing.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <iterator>
 #include <string>
@@ -126,11 +125,11 @@ namespace {
 // It is not in-place operation: the input arrays are not altered.
 // It is differentiable with respect to `a` and `b`.
 Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
-    assert(0 <= axis && axis < a.ndim());
-    assert(b.ndim() == indices.ndim() + a.ndim() - 1);
+    XCHAINER_ASSERT(0 <= axis && axis < a.ndim());
+    XCHAINER_ASSERT(b.ndim() == indices.ndim() + a.ndim() - 1);
     CheckEqual(a.dtype(), b.dtype());
 
-    assert(internal::GetArrayBody(indices)->nodes().empty());
+    XCHAINER_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
 
     Array out = EmptyLike(a, a.device());
 
@@ -145,7 +144,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
             bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            assert(internal::GetArrayBody(indices)->nodes().empty());
+            XCHAINER_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
             bt.Define([indices, axis](BackwardContext& bctx) { bctx.input_grad() = Take(bctx.output_grad(), indices, axis); });
         }
         bb.Finalize();
@@ -164,7 +163,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
                 GetDtypeName(indices.dtype()));
     }
 
-    assert(internal::GetArrayBody(indices)->nodes().empty());
+    XCHAINER_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
 
     int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
 
@@ -181,7 +180,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 
     BackwardBuilder bb{"take", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        assert(internal::GetArrayBody(indices)->nodes().empty());
+        XCHAINER_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
         bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
             const Array& gout = bctx.output_grad();
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);

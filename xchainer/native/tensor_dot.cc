@@ -1,7 +1,6 @@
 #include "xchainer/native/tensor_dot.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <tuple>
 
@@ -10,6 +9,7 @@
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
 #include "xchainer/device.h"
+#include "xchainer/macro.h"
 #include "xchainer/routines/creation.h"
 #include "xchainer/shape.h"
 
@@ -60,16 +60,16 @@ std::tuple<Axes, Shape> GetTensorDotRollAxes(const Shape& shape, const Axes& red
 }  // namespace
 
 Array TensorDot(const Array& a, const Array& b, const Axes& a_axis, const Axes& b_axis) {
-    assert(a_axis.ndim() == b_axis.ndim());
-    assert(a.ndim() >= a_axis.ndim());
-    assert(b.ndim() >= b_axis.ndim());
+    XCHAINER_ASSERT(a_axis.ndim() == b_axis.ndim());
+    XCHAINER_ASSERT(a.ndim() >= a_axis.ndim());
+    XCHAINER_ASSERT(b.ndim() >= b_axis.ndim());
     int8_t axis_ndim = a_axis.ndim();
 
     // Compute the product of reduced dimensions and check that corresponding dimensions in a_axis and b_axis are of equal length.
     int64_t axis_total_size = 1;
     for (int8_t i = 0; i < axis_ndim; ++i) {
         int64_t a_dim = a.shape()[a_axis[i]];
-        assert(a_dim == b.shape()[b_axis[i]]);
+        XCHAINER_ASSERT(a_dim == b.shape()[b_axis[i]]);
         axis_total_size *= a_dim;
     }
 

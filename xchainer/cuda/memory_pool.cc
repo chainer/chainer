@@ -1,11 +1,11 @@
 #include "xchainer/cuda/memory_pool.h"
 
-#include <cassert>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
 
 #include "xchainer/cuda/cuda_runtime.h"
+#include "xchainer/macro.h"
 
 namespace xchainer {
 namespace cuda {
@@ -27,7 +27,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
 
         if (!free_list.empty()) {
             ptr = free_list.back();
-            assert(ptr != nullptr);
+            XCHAINER_ASSERT(ptr != nullptr);
             free_list.pop_back();
         }
     }

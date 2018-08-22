@@ -177,7 +177,7 @@ TEST_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
 
     // The shape of the input array is (2, 1, 3, 4) with strides (48, 0, 16, 4).
     Array a = (*testing::BuildArray(input_shape_before_newaxis).WithLinearData<T>()).At({Slice{}, NewAxis{}, Slice{}, Slice{}});
-    assert(std::find(a.strides().begin(), a.strides().end(), 0) != a.strides().end());
+    ASSERT_TRUE(std::find(a.strides().begin(), a.strides().end(), 0) != a.strides().end());
 
     Array b = Reshape(a, output_shape);
     ASSERT_EQ(output_shape, b.shape());

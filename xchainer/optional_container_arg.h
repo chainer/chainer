@@ -5,6 +5,8 @@
 
 #include <nonstd/optional.hpp>
 
+#include "xchainer/macro.h"
+
 namespace xchainer {
 
 template <typename Container>
@@ -30,22 +32,22 @@ public:
     const Container& value() const { return opt_.value(); }
 
     Container& operator*() {
-        assert(has_value());
+        XCHAINER_ASSERT(has_value());
         return *opt_;
     }
 
     const Container& operator*() const {
-        assert(has_value());
+        XCHAINER_ASSERT(has_value());
         return *opt_;
     }
 
     Container* operator->() {
-        assert(has_value());
+        XCHAINER_ASSERT(has_value());
         return &*opt_;
     }
 
     const Container* operator->() const {
-        assert(has_value());
+        XCHAINER_ASSERT(has_value());
         return &*opt_;
     }
 

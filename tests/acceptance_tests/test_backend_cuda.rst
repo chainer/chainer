@@ -51,6 +51,7 @@ Traceback (most recent call last):
 xchainer.DeviceError: Device (cuda:0) is not compatible with array's device (native:0).
 >>> bg = b.to_device('cuda')
 >>> y = ag * bg
+>>> _ = y.require_grad()
 >>> y.device
 cuda:0
 >>> xc.backward(y)

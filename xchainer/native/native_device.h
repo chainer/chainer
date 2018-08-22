@@ -83,6 +83,10 @@ public:
 
     void Equal(const Array& x1, const Array& x2, const Array& out) override;
 
+    void Greater(const Array& x1, const Array& x2, const Array& out) override;
+
+    void LogicalNot(const Array& x1, const Array& out) override;
+
     // activation.cc
 
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;

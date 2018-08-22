@@ -10,6 +10,7 @@
 #include "xchainer/backprop_mode.h"
 #include "xchainer/context.h"
 #include "xchainer/graph.h"
+#include "xchainer/macro.h"
 
 #include "xchainer/python/common.h"
 #include "xchainer/python/context.h"
@@ -31,7 +32,7 @@ public:
         if (backprop_ids_.has_value()) {
             scope_ = std::make_unique<BackpropModeScope>(*backprop_ids_);
         } else {
-            assert(context_ != nullptr);
+            XCHAINER_ASSERT(context_ != nullptr);
             scope_ = std::make_unique<BackpropModeScope>(*context_);
         }
     }
