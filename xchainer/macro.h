@@ -1,10 +1,20 @@
 #pragma once
 
+#include <cassert>
+
 #ifdef NDEBUG
 #define XCHAINER_DEBUG false
 #else  // NDEBUG
 #define XCHAINER_DEBUG true
 #endif  // NDEBUG
+
+#define XCHAINER_ASSERT(...)                                   \
+    do {                                                       \
+        if (XCHAINER_DEBUG) {                                  \
+            (void)(false && (__VA_ARGS__)); /* maybe unused */ \
+            assert(__VA_ARGS__);                               \
+        }                                                      \
+    } while (false)
 
 #ifndef XCHAINER_HOST_DEVICE
 #ifdef __CUDACC__
