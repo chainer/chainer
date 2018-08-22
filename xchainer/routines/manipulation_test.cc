@@ -20,6 +20,7 @@
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
+#include "xchainer/testing/routines.h"
 
 namespace xchainer {
 namespace {
@@ -41,10 +42,19 @@ TEST_P(ManipulationTest, AsScalar) {
     using T = float;
     T value = 2.0f;
     Array a = testing::BuildArray({1, 1, 1}).WithData<T>({value}).WithPadding(1);
-    Scalar s = AsScalar(a);
 
-    ASSERT_EQ(s.dtype(), TypeToDtype<T>);
-    EXPECT_EQ(static_cast<T>(s), value);
+    testing::CheckForward(
+            [&value](const std::vector<Array>& xs) {
+                using T = float;
+                Scalar s = AsScalar(xs[0]);
+                EXPECT_EQ(s.dtype(), TypeToDtype<T>);
+                EXPECT_EQ(static_cast<T>(s), value);
+                return std::vector<Array>{};
+            },
+            {a},
+            {},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, AsScalarInvalidZeroElement) {
@@ -59,51 +69,77 @@ TEST_P(ManipulationTest, AsScalarInvalidMoreThanOneElements) {
 
 TEST_P(ManipulationTest, RollAxis) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
-    Array b = RollAxis(a, 1);
-
     Array e = testing::BuildArray({3, 2, 4}).WithData<int32_t>(
             {0, 1, 2, 3, 12, 13, 14, 15, 4, 5, 6, 7, 16, 17, 18, 19, 8, 9, 10, 11, 20, 21, 22, 23});
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) { return std::vector<Array>{RollAxis(xs[0], 1)}; },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, RollAxisWithStart) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
-    Array b = RollAxis(a, -3, -1);
-
     Array e = testing::BuildArray({3, 2, 4}).WithData<int32_t>(
             {0, 1, 2, 3, 12, 13, 14, 15, 4, 5, 6, 7, 16, 17, 18, 19, 8, 9, 10, 11, 20, 21, 22, 23});
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) { return std::vector<Array>{RollAxis(xs[0], -3, -1)}; },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, Transpose) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
-    Array b = Transpose(a, {2, 0, 1});
-
-    EXPECT_EQ(Strides({4, 48, 16}), b.strides());
-
     Array e = testing::BuildArray({4, 2, 3}).WithData<int32_t>(
             {0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7, 11, 15, 19, 23});
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                Array y = Transpose(xs[0], {2, 0, 1});
+                EXPECT_EQ(Strides({4, 48, 16}), y.strides());
+                return std::vector<Array>{y};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, TransposeDefaultAxes) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
-    Array b = Transpose(a);
-
-    EXPECT_EQ(Strides({4, 16, 48}), b.strides());
-
     Array e = testing::BuildArray({4, 3, 2}).WithData<int32_t>(
             {0, 12, 4, 16, 8, 20, 1, 13, 5, 17, 9, 21, 2, 14, 6, 18, 10, 22, 3, 15, 7, 19, 11, 23});
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                Array y = Transpose(xs[0]);
+                EXPECT_EQ(Strides({4, 16, 48}), y.strides());
+                return std::vector<Array>{y};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, TransposeNoncontiguous) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>().WithPadding(1);
-    Array b = Transpose(a, {2, 0, 1});
-
     Array e = testing::BuildArray({4, 2, 3}).WithData<int32_t>(
             {0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7, 11, 15, 19, 23});
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                return std::vector<Array>{Transpose(xs[0], {2, 0, 1})};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, TransposeBackward) {
@@ -134,11 +170,18 @@ TEST_P(ManipulationTest, Reshape) {
     Shape output_shape{3, 4, 2};
 
     Array a = testing::BuildArray(input_shape).WithLinearData<T>();
-    Array b = Reshape(a, output_shape);
-    ASSERT_EQ(output_shape, b.shape());
-    EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [&output_shape](const std::vector<Array>& xs) {
+                Array y = Reshape(xs[0], output_shape);
+                EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
+                return std::vector<Array>{y};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 // #461
@@ -148,11 +191,18 @@ TEST_P(ManipulationTest, ReshapeWithStrideOne) {
     Shape output_shape{2, 3};
 
     Array a = testing::BuildArray(input_shape).WithLinearData<T>();
-    Array b = Reshape(a, output_shape);
-    ASSERT_EQ(output_shape, b.shape());
-    EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [&output_shape](const std::vector<Array>& xs) {
+                Array y = Reshape(xs[0], output_shape);
+                EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
+                return std::vector<Array>{y};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 // #461
@@ -162,11 +212,18 @@ TEST_P(ManipulationTest, ReshapeNewAxisAtEnd) {
     Shape output_shape{2, 1, 4, 1};
 
     Array a = testing::BuildArray(input_shape).WithLinearData<T>();
-    Array b = Reshape(a, output_shape);
-    ASSERT_EQ(output_shape, b.shape());
-    EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [&output_shape](const std::vector<Array>& xs) {
+                Array y = Reshape(xs[0], output_shape);
+                EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
+                return std::vector<Array>{y};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 // If an input array has a unit-length axis with 0-stride, that axis should not give rise to any copies.
@@ -178,12 +235,18 @@ TEST_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
     // The shape of the input array is (2, 1, 3, 4) with strides (48, 0, 16, 4).
     Array a = (*testing::BuildArray(input_shape_before_newaxis).WithLinearData<T>()).At({Slice{}, NewAxis{}, Slice{}, Slice{}});
     ASSERT_TRUE(std::find(a.strides().begin(), a.strides().end(), 0) != a.strides().end());
-
-    Array b = Reshape(a, output_shape);
-    ASSERT_EQ(output_shape, b.shape());
-    EXPECT_EQ(a.data().get(), b.data().get()) << "Reshape must be done without copying data";
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [&output_shape](const std::vector<Array>& xs) {
+                Array y = Reshape(xs[0], output_shape);
+                EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
+                return std::vector<Array>{y};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, ReshapeWithCopy) {
@@ -192,11 +255,18 @@ TEST_P(ManipulationTest, ReshapeWithCopy) {
     Shape output_shape{2, 12};
 
     Array a = testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1);
-    Array b = Reshape(a, output_shape);
-    ASSERT_EQ(output_shape, b.shape());
-    EXPECT_NE(a.data().get(), b.data().get()) << "Reshape must be done with copy";
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [&output_shape](const std::vector<Array>& xs) {
+                Array y = Reshape(xs[0], output_shape);
+                EXPECT_NE(xs[0].data().get(), y.data().get()) << "Reshape must be done with copy";
+                return std::vector<Array>{y};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, InvalidReshape) {
@@ -212,64 +282,107 @@ TEST_P(ManipulationTest, SqueezeAllUnitLengthAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    Array b = Squeeze(a);
     Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0])}; },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, SqueezeSpecifiedUnitLenghtAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    Array b = Squeeze(a, Axes{2, 0, 4});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                return std::vector<Array>{Squeeze(xs[0], Axes{2, 0, 4})};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, SqueezeAllAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 1, 1}).WithLinearData<T>();
-    Array b = Squeeze(a);
     Array e = testing::BuildArray({}).WithData<T>({0});
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0])}; },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, SqueezeMultipleCalls) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    Array b = Squeeze(a, Axes{0, 2});
-    Array c = Squeeze(b, Axes{3});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
-    EXPECT_ARRAY_EQ(e, c);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                return std::vector<Array>{Squeeze(Squeeze(xs[0], Axes{0, 2}), Axes{3})};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, SqueezeNonContiguous) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(1);
-    Array b = Squeeze(a, Axes{0, 2, 4});
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                return std::vector<Array>{Squeeze(xs[0], Axes{0, 2, 4})};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, SqueezeNegativeAxis) {
     using T = int32_t;
 
     Array a = testing::BuildArray({2, 3, 4, 1}).WithLinearData<T>();
-    Array b = Squeeze(a, Axes{-1});
     Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{-1})}; },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, SqueezeNoSqueezableAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    Array e = Squeeze(a);
-    EXPECT_ARRAY_EQ(e, a);
-    EXPECT_EQ(internal::GetArrayBody(e), internal::GetArrayBody(a));
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                Array y = Squeeze(xs[0]);
+                EXPECT_EQ(internal::GetArrayBody(y), internal::GetArrayBody(xs[0]));
+                return std::vector<Array>{y};
+            },
+            {a},
+            {a},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ManipulationTest, InvalidSqueezeNonUnitLengthAxis) {
@@ -326,17 +439,24 @@ TEST_P(ManipulationTest, BroadcastTo) {
     Array a = aa.At({Slice(), Slice(), Slice(), NewAxis{}});  // Make a broadcastable axis.
     ASSERT_EQ(Shape({2, 3, 1, 1}), a.shape());  // Check test precondition
 
-    Array b = BroadcastTo(a, output_shape);
-    ASSERT_EQ(output_shape, b.shape());
-    EXPECT_EQ(a.data().get(), b.data().get()) << "BroadcastTo must be done without copying data";
-    ASSERT_EQ(0, b.strides()[1]) << "Stride of broadcasted dimension must be 0";
-
     std::vector<T> output_data;
     for (int i = 0; i < 3; ++i) {
         output_data.insert(output_data.end(), {1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6});
     }
     Array e = testing::BuildArray(output_shape).WithData<T>(output_data);
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [&output_shape](const std::vector<Array>& xs) {
+                Array y = BroadcastTo(xs[0], output_shape);
+                EXPECT_EQ(output_shape, y.shape());
+                EXPECT_EQ(xs[0].data().get(), y.data().get()) << "BroadcastTo must be done without copying data";
+                EXPECT_EQ(0, y.strides()[1]) << "Stride of broadcasted dimension must be 0";
+                return std::vector<Array>{y};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 // Can't broadcast to smaller dimensions
