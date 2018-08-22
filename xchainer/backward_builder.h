@@ -173,7 +173,11 @@ private:
     // These references are required to restore retained inputs/outputs.
     void AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention();
 
+    void RelateBackpropIds();
+
     const char* op_name_;
+
+    Context& context_;
 
     // Input arrays of the op.
     std::vector<ConstArrayRef> inputs_;

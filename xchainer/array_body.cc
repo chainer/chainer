@@ -67,6 +67,11 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
         return *it;  // Do nothing and return the existing ArrayNode if found for this graph.
     }
 
+    // Relate the new backprop ID and the existing backprop IDs in this array body.
+    for (const std::shared_ptr<ArrayNode>& existing_array_node : body->nodes_) {
+        existing_array_node->device().context().RelateBackpropIds(existing_array_node->backprop_id(), array_node->backprop_id());
+    }
+
     array_node->weak_body_ = body;
 
     body->nodes_.emplace_back(std::move(array_node));

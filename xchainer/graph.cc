@@ -20,4 +20,6 @@ std::ostream& operator<<(std::ostream& os, const BackpropId& backprop_id) {
 
 std::string BackpropId::GetName() const { return context_.get().GetBackpropName(*this); }
 
+void BackpropId::CheckValid() const { context_.get().CheckValidBackpropId(*this); }
+
 }  // namespace xchainer

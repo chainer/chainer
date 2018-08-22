@@ -42,6 +42,9 @@ public:
     // XchainerError is thrown if the backprop ID is expired or non-existent in the associated context.
     std::string GetName() const;
 
+    // Throws XchainerError if this backprop ID has already been released.
+    void CheckValid() const;
+
 private:
     // A BackpropId is always constructed by a Context.
     friend class Context;
