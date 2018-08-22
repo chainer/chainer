@@ -6,9 +6,6 @@
 #include <tuple>
 #include <vector>
 
-#ifdef XCHAINER_ENABLE_CUDA
-#include <cuda_runtime.h>
-#endif  // XCHAINER_ENABLE_CUDA
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
@@ -16,15 +13,11 @@
 #include "xchainer/array_body_leak_detection.h"
 #include "xchainer/array_node.h"
 #include "xchainer/backend.h"
+#include "xchainer/backprop_scope.h"
 #include "xchainer/backward_builder.h"
 #include "xchainer/backward_context.h"
 #include "xchainer/check_backward.h"
 #include "xchainer/context.h"
-#ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/cuda_backend.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/backprop_scope.h"
 #include "xchainer/device_id.h"
 #include "xchainer/dtype.h"
 #include "xchainer/error.h"
@@ -134,12 +127,6 @@ public:
 
     template <typename T>
     void ExpectDataEqual(const Array& expected, const Array& actual) const {
-#ifdef XCHAINER_ENABLE_CUDA
-        if (expected.device().backend().GetName() == cuda::CudaBackend::kDefaultName ||
-            actual.device().backend().GetName() == cuda::CudaBackend::kDefaultName) {
-            cuda::CheckCudaError(cudaDeviceSynchronize());
-        }
-#endif  // XCHAINER_ENABLE_CUDA
         auto total_size = expected.shape().GetTotalSize();
         auto expected_data = static_cast<const T*>(expected.data().get());
         auto actual_data = static_cast<const T*>(actual.data().get());
@@ -279,26 +266,15 @@ TEST_P(BackpropTest, DoubleBackprop) {
     CheckBackpropSingleElementExtraInputs({2.0f}, {3.0f}, {2.0f}, fprop);
 }
 
-#ifdef XCHAINER_ENABLE_CUDA
 TEST_P(BackpropTest, BackpropOnNonDefaultDevice) {
-    struct Param {
-        std::string default_backend;
-        std::string another_backend;
-    };
-
-    std::vector<Param> params = {{native::NativeBackend::kDefaultName, cuda::CudaBackend::kDefaultName},
-                                 {cuda::CudaBackend::kDefaultName, native::NativeBackend::kDefaultName}};
-    for (auto param : params) {
-        testing::DeviceSession device_session{DeviceId{param.default_backend, 0}};
-        CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [& another_backend = param.another_backend](auto& xs) {
-            auto ret = xs[0] * xs[1];
-            // This device switch also affects backward
-            SetDefaultDevice(&GetDefaultContext().GetDevice({another_backend, 0}));
-            return ret;
-        });
-    }
+    testing::DeviceSession device_session{DeviceId{native::NativeBackend::kDefaultName, 0}};
+    CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) {
+        auto ret = xs[0] * xs[1];
+        // This device switch also affects backward
+        SetDefaultDevice(&GetDefaultContext().GetDevice({native::NativeBackend::kDefaultName, 1}));
+        return ret;
+    });
 }
-#endif  // XCHAINER_ENABLE_CUDA
 
 TEST_P(BackpropTest, MultipleGraphsBackprop) {
     BackpropScope backprop_scope_y{"bp_y"};
