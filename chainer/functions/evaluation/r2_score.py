@@ -14,7 +14,7 @@ class R2_score(function.Function):
             raise ValueError("invalid multioutput argument")
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('pred', 'true'))
         pred_type, true_type = in_types
 
         type_check.expect(

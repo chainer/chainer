@@ -30,7 +30,7 @@ class Hinge(function.Function):
                 'given' % reduce)
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 't'))
 
         x_type, t_type = in_types
         type_check.expect(

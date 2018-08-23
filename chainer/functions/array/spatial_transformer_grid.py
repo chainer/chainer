@@ -18,8 +18,7 @@ class SpatialTransformerGrid(function.Function):
         self.output_shape = output_shape
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size()
-        type_check.expect(n_in == 1)
+        type_check.argname(in_types, ('theta',))
 
         theta_type = in_types[0]
         type_check.expect(

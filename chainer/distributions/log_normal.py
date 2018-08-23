@@ -1,7 +1,6 @@
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 import math
 
@@ -50,11 +49,9 @@ class LogNormal(distribution.Distribution):
         return ()
 
     def log_prob(self, x):
-        bl = broadcast.broadcast_to(self.mu, x.shape)
-        bs = broadcast.broadcast_to(self.sigma, x.shape)
         logx = exponential.log(x)
-        return LOGPROBC - exponential.log(bs) - logx \
-            - (0.5 * (logx - bl) ** 2 / bs ** 2)
+        return LOGPROBC - exponential.log(self.sigma) - logx \
+            - (0.5 * (logx - self.mu) ** 2 / self.sigma ** 2)
 
     @property
     def mean(self):
@@ -69,8 +66,8 @@ class LogNormal(distribution.Distribution):
             eps = xp.random.standard_normal(
                 (n,)+self.mu.shape).astype(self.mu.dtype)
 
-        noise = broadcast.broadcast_to(self.sigma, eps.shape) * eps
-        noise += broadcast.broadcast_to(self.mu, eps.shape)
+        noise = self.sigma * eps
+        noise += self.mu
 
         return exponential.exp(noise)
 

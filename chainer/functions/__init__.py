@@ -14,6 +14,7 @@ from chainer.functions.activation.lstm import lstm  # NOQA
 from chainer.functions.activation.maxout import maxout  # NOQA
 from chainer.functions.activation.prelu import prelu  # NOQA
 from chainer.functions.activation.relu import relu  # NOQA
+from chainer.functions.activation.rrelu import rrelu  # NOQA
 from chainer.functions.activation.selu import selu  # NOQA
 from chainer.functions.activation.sigmoid import sigmoid  # NOQA
 from chainer.functions.activation.slstm import slstm  # NOQA
@@ -146,6 +147,7 @@ from chainer.functions.math.inv import batch_inv  # NOQA
 from chainer.functions.math.inv import inv  # NOQA
 from chainer.functions.math.lgamma import lgamma  # NOQA
 from chainer.functions.math.linear_interpolate import linear_interpolate  # NOQA
+from chainer.functions.math.log_ndtr import log_ndtr  # NOQA
 from chainer.functions.math.logarithm_1p import log1p  # NOQA
 from chainer.functions.math.logsumexp import logsumexp  # NOQA
 from chainer.functions.math.matmul import batch_matmul  # NOQA
@@ -156,6 +158,8 @@ from chainer.functions.math.minmax import argmax  # NOQA
 from chainer.functions.math.minmax import argmin  # NOQA
 from chainer.functions.math.minmax import max  # NOQA
 from chainer.functions.math.minmax import min  # NOQA
+from chainer.functions.math.ndtr import ndtr  # NOQA
+from chainer.functions.math.ndtri import ndtri  # NOQA
 from chainer.functions.math.polygamma import polygamma  # NOQA
 from chainer.functions.math.prod import prod  # NOQA
 from chainer.functions.math.scale import scale  # NOQA
@@ -195,7 +199,9 @@ from chainer.functions.pooling.average_pooling_2d import average_pooling_2d  # N
 from chainer.functions.pooling.average_pooling_nd import average_pooling_nd  # NOQA
 from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
-from chainer.functions.pooling.roi_align_2d import roi_align_2d  # NOQA
+# TODO(kmaehashi) this alias should be removed in
+# https://github.com/chainer/chainer/pull/5198
+from chainer.functions.pooling.roi_align_2d import roi_align_2d as roi_average_align_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA

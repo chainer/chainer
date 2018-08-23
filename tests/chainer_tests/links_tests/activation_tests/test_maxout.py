@@ -6,6 +6,7 @@ import six
 import chainer
 from chainer.backends import cuda
 from chainer import gradient_check
+from chainer.initializers import constant
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
@@ -120,28 +121,78 @@ class TestInvalidMaxout(unittest.TestCase):
             self.link(chainer.Variable(self.x))
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'initializer': ['Initializer', 'scalar', 'ndarray', 'callable'],
+}))
 class TestInitialization(unittest.TestCase):
 
     def setUp(self):
         self.in_size = 2
         self.out_size = 3
         self.pool_size = 4
-        self.initialW = numpy.random.uniform(
-            -1, 1, (self.out_size, self.pool_size, self.in_size)
-        ).astype(numpy.float32)
-        self.initial_bias = numpy.random.uniform(
-            -1, 1, (self.out_size, self.pool_size)
-        ).astype(numpy.float32)
-        self.link = links.Maxout(
-            self.in_size, self.out_size, self.pool_size,
-            initialW=self.initialW, initial_bias=self.initial_bias)
+
+        if self.initializer == 'Initializer':
+            self.initialW = constant.Constant(1.0)
+            self.initial_bias = constant.Constant(2.0)
+        elif self.initializer == 'scalar':
+            self.initialW = 1.0
+            self.initial_bias = 2.0
+        elif self.initializer == 'ndarray':
+            self.initialW = numpy.random.uniform(
+                -1, 1, (self.out_size, self.pool_size, self.in_size)
+            ).astype(self.dtype)
+            self.initial_bias = numpy.random.uniform(
+                -1, 1, (self.out_size, self.pool_size)
+            ).astype(self.dtype)
+        elif self.initializer == 'callable':
+            def callable_initialW(array):
+                assert array.dtype == self.dtype
+                assert array.shape == (
+                    self.out_size, self.pool_size, self.in_size)
+                array.fill(1.0)
+            self.initialW = callable_initialW
+
+            def callable_initial_bias(array):
+                assert array.dtype == self.dtype
+                assert array.shape == (self.out_size, self.pool_size)
+                array.fill(2.0)
+            self.initial_bias = callable_initial_bias
+        else:
+            raise ValueError('invalid parameter')
+
+        with chainer.using_config('dtype', self.dtype):
+            self.link = links.Maxout(
+                self.in_size, self.out_size, self.pool_size,
+                initialW=self.initialW, initial_bias=self.initial_bias)
 
     def check_param(self):
+        link = self.link
+        dtype = self.dtype
+        assert link.linear.W.dtype == dtype
+        assert link.linear.b.dtype == dtype
+
         linear_out_size = self.out_size * self.pool_size
-        initialW = self.initialW.reshape((linear_out_size, -1))
-        testing.assert_allclose(initialW, self.link.linear.W.data)
-        initial_bias = self.initial_bias.reshape((linear_out_size,))
-        testing.assert_allclose(initial_bias, self.link.linear.b.data)
+        if self.initializer == 'Initializer' or self.initializer == 'callable':
+            W = numpy.empty(
+                (self.out_size, self.pool_size, self.in_size), dtype=dtype)
+            self.initialW(W)
+            bias = numpy.empty((self.out_size, self.pool_size), dtype=dtype)
+            self.initial_bias(bias)
+        elif self.initializer == 'scalar':
+            W = numpy.full((self.out_size, self.pool_size, self.in_size),
+                           self.initialW, dtype=dtype)
+            bias = numpy.full((self.out_size, self.pool_size),
+                              self.initial_bias, dtype=dtype)
+        elif self.initializer == 'ndarray':
+            W = self.initialW
+            bias = self.initial_bias
+        else:
+            raise ValueError('invalid parameter')
+        W = W.reshape(linear_out_size, self.in_size)
+        bias = bias.reshape(linear_out_size)
+        testing.assert_allclose(W, link.linear.W.data)
+        testing.assert_allclose(bias, link.linear.b.data)
 
     def test_param_cpu(self):
         self.check_param()
@@ -152,15 +203,30 @@ class TestInitialization(unittest.TestCase):
         self.check_param()
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float16],
-}))
-class TestScalarInitialBias(unittest.TestCase):
+class TestInvalidInitialization(unittest.TestCase):
 
-    def test_scalar_initial_bias(self):
-        with chainer.using_config('dtype', self.dtype):
-            link = links.Maxout(2, 3, 4, initial_bias=0)
-        assert link.linear.b.dtype == self.dtype
+    def setUp(self):
+        self.in_size = 2
+        self.out_size = 3
+        self.pool_size = 4
+
+    def test_invalid_initialW_ndarray(self):
+        invalid_dim = 1
+        initialW = numpy.random.uniform(
+            -1, 1, (self.out_size, self.pool_size, self.in_size, invalid_dim)
+        ).astype(numpy.float32)
+        with self.assertRaises(ValueError):
+            links.Maxout(
+                self.in_size, self.out_size, self.pool_size, initialW=initialW)
+
+    def test_invalid_initial_bias_ndarray(self):
+        invalid_dim = 1
+        initial_bias = self.initial_bias = numpy.random.uniform(
+            -1, 1, (self.out_size, self.pool_size, invalid_dim)
+        ).astype(numpy.float32)
+        with self.assertRaises(ValueError):
+            links.Maxout(self.in_size, self.out_size, self.pool_size,
+                         initial_bias=initial_bias)
 
 
 testing.run_module(__name__, __file__)

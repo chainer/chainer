@@ -8,6 +8,7 @@ from chainer.functions.array import where
 from chainer.functions.math import clip
 from chainer.functions.math import exponential
 from chainer.functions.math import sqrt
+from chainer import utils
 from chainer.utils import argument
 
 
@@ -19,8 +20,8 @@ class Uniform(distribution.Distribution):
 
     .. math::
         p(x; l, h) = \\begin{cases}
-            \\frac{1}{h - l} (l \\leq x \\leq h) \\\\
-            0 (other)
+            \\frac{1}{h - l} & \\text{if }l \\leq x \\leq h \\\\
+            0 & \\text{otherwise}
           \\end{cases}
 
     Args:
@@ -75,33 +76,31 @@ class Uniform(distribution.Distribution):
         return self.low.shape
 
     def cdf(self, x):
-        return clip.clip((x - self.low)/(self.high - self.low), 0., 1.)
+        return clip.clip((x - self.loc) / self.scale, 0., 1.)
 
     @property
     def entropy(self):
-        return exponential.log(self.high - self.low)
+        return exponential.log(self.scale)
 
     @property
     def event_shape(self):
         return ()
 
     def icdf(self, x):
-        return x * broadcast.broadcast_to(self.high, x.shape) \
-            + (1 - x) * broadcast.broadcast_to(self.low, x.shape)
+        return x * self.scale + self.loc
 
     def log_prob(self, x):
         if not isinstance(x, chainer.Variable):
             x = chainer.Variable(x)
 
-        bl = broadcast.broadcast_to(self.low, x.shape)
-        bh = broadcast.broadcast_to(self.high, x.shape)
-
         xp = cuda.get_array_module(x)
 
-        logp = -exponential.log(bh - bl)
+        logp = broadcast.broadcast_to(
+            -exponential.log(self.scale), x.shape)
         return where.where(
-            xp.asarray((x.data >= bl.data) & (x.data < bh.data)),
-            logp, xp.asarray(-xp.ones_like(x.data)*numpy.inf, dtype=x.dtype))
+            utils.force_array(
+                (x.data >= self.low.data) & (x.data < self.high.data)),
+            logp, xp.full_like(logp.array, -numpy.inf))
 
     @property
     def mean(self):
@@ -111,10 +110,10 @@ class Uniform(distribution.Distribution):
         xp = cuda.get_array_module(self.low)
         if xp is cuda.cupy:
             eps = xp.random.uniform(
-                0, 1, (n,)+self.low.shape, dtype=self.low.dtype)
+                0, 1, (n,) + self.low.shape, dtype=self.low.dtype)
         else:
             eps = xp.random.uniform(
-                0, 1, (n,)+self.low.shape).astype(self.low.dtype)
+                0, 1, (n,) + self.low.shape).astype(self.low.dtype)
 
         noise = self.icdf(eps)
 
@@ -130,7 +129,7 @@ class Uniform(distribution.Distribution):
 
     @property
     def variance(self):
-        return (self.high - self.low) ** 2 / 12
+        return self.scale ** 2 / 12
 
 
 @distribution.register_kl(Uniform, Uniform)
@@ -141,7 +140,6 @@ def _kl_uniform_uniform(dist1, dist2):
                            dist1.low.data < dist2.low.data)
     kl = - exponential.log(dist1.high - dist1.low) \
         + exponential.log(dist2.high - dist2.low)
-    inf = xp.asarray(xp.ones_like(dist1.high.data)*numpy.inf,
-                     dtype=dist1.high.dtype)
+    inf = xp.full_like(dist1.high.data, numpy.inf)
 
     return where.where(is_inf, inf, kl)

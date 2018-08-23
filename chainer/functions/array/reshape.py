@@ -20,10 +20,7 @@ class Reshape(function_node.FunctionNode):
         assert self._cnt <= 1
 
     def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1,
-        )
-
+        type_check.argname(in_types, ('x',))
         x_type, = in_types
 
         if self._cnt == 0:
