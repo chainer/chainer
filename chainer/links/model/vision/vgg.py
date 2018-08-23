@@ -35,13 +35,13 @@ class VGGLayers(link.Chain):
 
     """A pre-trained CNN model provided by VGG team.
 
-    During initialization, this chan model automatically downloads
+    During initialization, this chainer model automatically downloads
     the pre-trained caffemodel, convert to another chainer model,
     stores it on your local directory, and initializes all the parameters
     with it. This model would be useful when you want to extract a semantic
     feature vector from a given image, or fine-tune the model
     on a different dataset.
-    Note that this pre-trained model is released under Creative Commons
+    Note that this pre-trained models are released under Creative Commons
     Attribution License.
 
     If you want to manually convert the pre-trained caffemodel to a chainer
@@ -90,10 +90,9 @@ class VGGLayers(link.Chain):
 
         if n_layers not in [16, 19]:
             raise ValueError(
-                "Invalid number of layers. Expect 16 or 19, Actual {}".format(
-                    n_layers
+                'The n_layers argument should be either 16 or 19,'
+                'but {} was given.'.format(n_layers)
                 )
-            )
 
         with self.init_scope():
             self.conv1_1 = Convolution2D(3, 64, 3, 1, 1, **kwargs)
@@ -114,7 +113,7 @@ class VGGLayers(link.Chain):
             self.fc8 = Linear(4096, 1000, **kwargs)
             if n_layers == 19:
                 self.conv3_4 = Convolution2D(256, 256, 3, 1, 1, **kwargs)
-                self.conv4_4 = Convolution2D(512, 256, 3, 1, 1, **kwargs)
+                self.conv4_4 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
                 self.conv5_4 = Convolution2D(512, 512, 3, 1, 1, **kwargs)
 
         if pretrained_model == 'auto':
@@ -133,11 +132,26 @@ class VGGLayers(link.Chain):
 
     @property
     def functions(self):
+        # This class will not be used directly.
         raise NotImplementedError
 
     @property
     def available_layers(self):
         return list(self.functions.keys())
+
+    def convert_caffemodel_to_npz(cls, path_caffemodel, path_npz):
+        """Converts a pre-trained caffemodel to a chainer model.
+
+        Args:
+            path_caffemodel (str): Path of the pre-trained caffemodel.
+            path_npz (str): Path of the converted chainer model.
+        """
+
+        # As CaffeFunction uses shortcut symbols,
+        # we import CaffeFunction here.
+        from chainer.links.caffe_function import CaffeFunction
+        caffemodel = CaffeFunction(path_caffemodel)
+        npz.save_npz(path_npz, caffemodel, compression=False)
 
     def forward(self, x, layers=None, **kwargs):
         """forward(self, x, layers=['prob'])
@@ -205,7 +219,7 @@ class VGGLayers(link.Chain):
 
          .. code-block:: python
 
-             # model is an instance of VGG16Layers
+             # model is an instance of VGGLayers (16 or 19 layers)
              with chainer.using_config('train', False):
                  with chainer.using_config('enable_backprop', False):
                      feature = model.extract([image])
@@ -293,7 +307,7 @@ class VGGLayers(link.Chain):
         return y
 
 
-class VGG16Layers(link.Chain):
+class VGG16Layers(VGGLayers):
 
     """A pre-trained CNN model with 16 layers provided by VGG team.
 
@@ -336,7 +350,7 @@ class VGG16Layers(link.Chain):
     """
 
     def __init__(self, pretrained_model='auto'):
-        super(VGG16Layers, self).__init__(pretrained_model, n_layers=16)
+        super(VGG16Layers, self).__init__(pretrained_model, 16)
 
     @property
     def functions(self):
@@ -366,7 +380,7 @@ class VGG16Layers(link.Chain):
         ])
 
 
-class VGG19Layers(link.Chain):
+class VGG19Layers(VGGLayers):
 
     """A pre-trained CNN model with 19 layers provided by VGG team.
 
@@ -409,7 +423,7 @@ class VGG19Layers(link.Chain):
     """
 
     def __init__(self, pretrained_model='auto'):
-        super(VGG19Layers, self).__init__(pretrained_model, n_layers=19)
+        super(VGG19Layers, self).__init__(pretrained_model, 19)
 
     @property
     def functions(self):
@@ -491,27 +505,12 @@ def _max_pooling_2d(x):
     return max_pooling_2d(x, ksize=2)
 
 
-def _convert_caffemodel_to_npz(path_caffemodel, path_npz):
-    """Converts a pre-trained caffemodel to a chainer model.
-
-    Args:
-        path_caffemodel (str): Path of the pre-trained caffemodel.
-        path_npz (str): Path of the converted chainer model.
-    """
-
-    # As CaffeFunction uses shortcut symbols,
-    # we import CaffeFunction here.
-    from chainer.links.caffe_function import CaffeFunction
-    caffemodel = CaffeFunction(path_caffemodel)
-    npz.save_npz(path_npz, caffemodel, compression=False)
-
-
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
     sys.stderr.write(
         'Now loading caffemodel (usually it may take few minutes)\n')
     sys.stderr.flush()
-    _convert_caffemodel_to_npz(path_caffemodel, path_npz)
+    VGGLayers.convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model
 

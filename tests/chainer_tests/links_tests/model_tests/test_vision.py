@@ -187,7 +187,10 @@ class TestVGGs(unittest.TestCase):
     def test_available_layers(self):
         result = self.link.available_layers
         assert isinstance(result, list)
-        assert len(result) == 22
+        if self.n_layers == 16:
+            assert len(result) == 22
+        elif self.n_layers == 19:
+            assert len(result) == 25
 
     def check_call(self):
         xp = self.link.xp
@@ -226,7 +229,7 @@ class TestVGGs(unittest.TestCase):
         assert y4.dtype == self.dtype
         y5 = vgg.prepare(x5, size=None)
         assert y5.shape == (3, 160, 120)
-        assert y5.dtype == numpy.float32
+        assert y5.dtype == self.dtype
 
     def check_extract(self):
         x1 = numpy.random.uniform(0, 255, (320, 240, 3)).astype(numpy.uint8)
