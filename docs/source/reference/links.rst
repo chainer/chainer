@@ -112,7 +112,7 @@ Unlike the usual links, these classes automatically load all the
 parameters from the pre-trained models during initialization.
 
 VGG Networks
-~~~~~~~~~~~
+~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/

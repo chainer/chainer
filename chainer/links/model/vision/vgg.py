@@ -35,7 +35,7 @@ class VGGLayers(link.Chain):
 
     """A pre-trained CNN model provided by VGG team.
 
-    During initialization, this chainer model automatically downloads
+    During initialization, this chain model automatically downloads
     the pre-trained caffemodel, convert to another chainer model,
     stores it on your local directory, and initializes all the parameters
     with it. This model would be useful when you want to extract a semantic
@@ -92,7 +92,7 @@ class VGGLayers(link.Chain):
             raise ValueError(
                 'The n_layers argument should be either 16 or 19,'
                 'but {} was given.'.format(n_layers)
-                )
+            )
 
         with self.init_scope():
             self.conv1_1 = Convolution2D(3, 64, 3, 1, 1, **kwargs)
@@ -139,6 +139,7 @@ class VGGLayers(link.Chain):
     def available_layers(self):
         return list(self.functions.keys())
 
+    @classmethod
     def convert_caffemodel_to_npz(cls, path_caffemodel, path_npz):
         """Converts a pre-trained caffemodel to a chainer model.
 
@@ -149,7 +150,7 @@ class VGGLayers(link.Chain):
 
         # As CaffeFunction uses shortcut symbols,
         # we import CaffeFunction here.
-        from chainer.links.caffe_function import CaffeFunction
+        from chainer.links.caffe.caffe_function import CaffeFunction
         caffemodel = CaffeFunction(path_caffemodel)
         npz.save_npz(path_npz, caffemodel, compression=False)
 
@@ -160,9 +161,9 @@ class VGGLayers(link.Chain):
 
         .. warning::
 
-            ``test`` argument is not supported anymore since v2.
-            Instead, use ``chainer.using_config('train', False)``.
-            See :func:`chainer.using_config`.
+           ``test`` argument is not supported anymore since v2.
+           Instead, use ``chainer.using_config('train', False)``.
+           See :func:`chainer.using_config`.
 
         Args:
             x (~chainer.Variable): Input variable. It should be prepared by
@@ -206,7 +207,7 @@ class VGGLayers(link.Chain):
         Extracts all the feature maps of given images.
 
         The difference of directory executing ``forward`` is that
-        it directly accepts images as an input and automaticallyl
+        it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
         ``prepare`` and ``forward`` functions.
