@@ -63,9 +63,10 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
         return out
 
     def check_forward_cpu(self, embeddings, labels, t_data):
-        t_dist, t_var, t_reg = chainer.Variable(t_data[0]), \
-                               chainer.Variable(t_data[1]), \
-                               chainer.Variable(t_data[2])
+        t_dist, t_var, t_reg = \
+            chainer.Variable(t_data[0]), \
+            chainer.Variable(t_data[1]), \
+            chainer.Variable(t_data[2])
         l_dist, l_var, l_reg = self.get_result(embeddings, labels)
 
         numpy.testing.assert_almost_equal(l_dist.data, t_dist.data)
@@ -73,9 +74,10 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
         numpy.testing.assert_almost_equal(l_reg.data, t_reg.data)
 
     def check_forward_gpu(self, embeddings, labels, t_data):
-        t_dist, t_var, t_reg = chainer.Variable(t_data[0]), \
-                               chainer.Variable(t_data[1]), \
-                               chainer.Variable(t_data[2])
+        t_dist, t_var, t_reg = \
+            chainer.Variable(t_data[0]), \
+            chainer.Variable(t_data[1]), \
+            chainer.Variable(t_data[2])
         l_dist, l_var, l_reg = self.get_result(embeddings, labels)
         l_dist.to_cpu()
         l_var.to_cpu()
