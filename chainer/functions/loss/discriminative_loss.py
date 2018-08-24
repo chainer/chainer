@@ -1,9 +1,14 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from chainer import cuda
+from chainer.backends import cuda
+
 from chainer.functions.activation.relu import relu
 from chainer.functions.array.broadcast import broadcast_to
 from chainer.functions.array.expand_dims import expand_dims
 from chainer.functions.math.basic_math import absolute
 from chainer.functions.math.sum import sum as c_sum
+from chainer.functions.math.sqrt import sqrt
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
@@ -13,14 +18,13 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     This is the implementation of the following paper:
     https://arxiv.org/abs/1708.02551
 
-    In segmentation, one of the biggest problem is to have noise at the output
-    of a trained network.
-    For cross-entropy based approaches, if the pixel value is wrong,
-    the loss value will be same independent from the wrong pixel's location.
-    Even though the network gives wrong pixel output, it is desirable
-    to have it as close as possible to the original position.
-    By applying a discriminative loss function,
-    groups of segmentation instances can be moved together.
+    This method is a semi-supervised solution to instance segmentation.
+    It calculates pixel embeddings, and calculates three different terms
+    based on those embeddings and applies them as loss.
+    The main idea is that the pixel embeddings
+    for same instanceshave to be closer to each other (pull force),
+    for different instances, they have to be further away (push force).
+    The loss also brings a weak regularization term to prevent overfitting.
     This loss function calculates the following three parameters:
 
     - Variance Loss:
@@ -35,7 +39,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     Args:
         delta_v (float): Minimum distance to start penalizing variance
         delta_d (float): Maximum distance to stop penalizing distance
-        max_n_clusters (int): Maximum possible number of clusters.
+        max_embedding_dim (int): Maximum number of embedding dimensions.
         norm (int): Norm to calculate pixels and cluster center distances
         alpha (float): Weight for variance loss    (alpha * variance_loss)
         beta (float): Weight for distance loss     (beta * distance_loss)
@@ -44,45 +48,37 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
     def __init__(self,
                  delta_v=0.5, delta_d=1.5,
-                 max_n_clusters=10, norm=1,
+                 max_embedding_dim=10, norm=1,
                  alpha=1.0, beta=1.0, gamma=0.001):
         self.delta_v = delta_v
         self.delta_d = delta_d
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
-        self.max_n_clusters = max_n_clusters
+        self.max_embedding_dim = max_embedding_dim
 
-        if self.max_n_clusters <= 0:
-            raise ValueError("Max number of clusters has to be positive!")
+        if self.max_embedding_dim <= 0:
+            raise ValueError("Max number of embeddings has to be positive!")
 
         # L1 or L2 norm is allowed only
         if norm == 1:
             self.norm = lambda x, axis=None: c_sum(absolute(x), axis=axis)
         elif norm == 2:
-            self.norm = lambda x, axis=None: c_sum(x ** 2, axis=axis)
+            self.norm = lambda x, axis=None: sqrt(c_sum(x ** 2, axis=axis))
         else:
             raise ValueError("For discriminative loss, "
                              "norm can only be 1 or 2. "
                              "Obtained the value : {}".format(norm))
 
-    def __call__(self, prediction, labels):
+    def __call__(self, embeddings, labels):
         """Applies discriminative margin based clustering loss
 
-        The execution steps are:
-
-        - Calculate means
-        - Calculate variance term
-        - Calculate distance term
-        - Calculate regularization term
-        - Add weights to all and return loss value
-
         Args:
-            prediction(:class:`~chainer.Variable` or \
+            embeddings(:class:`~chainer.Variable` or \
                        :class:`numpy.ndarray` or \
                        :class:`cupy.ndarray`) :
                        predicted embedding vectors
-                       (batch size, max cluster count, height, width)
+                       (batch size, max embedding dimension, height, width)
             labels(:class:`numpy.ndarray` or \
                    :class:`cupy.ndarray`) :
                    instance segmentation ground truth
@@ -104,29 +100,29 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                                 regularization loss multiplied by gamma
         """
 
-        assert(self.max_n_clusters == prediction.shape[1])
+        assert(self.max_embedding_dim == embeddings.shape[1])
 
         l_var = 0.0
         l_dist = 0.0
         l_reg = 0.0
         count = 0
         means = []
-        xp = cuda.get_array_module(prediction)
+        xp = cuda.get_array_module(embeddings)
 
-        labels = xp.asarray(labels, dtype=prediction.dtype)
+        zeros = xp.asarray(0.0)
 
         # Calculate cluster means
-        for c in range(self.max_n_clusters):
+        for c in range(self.max_embedding_dim):
             # Create mask for instance
             mask = xp.expand_dims(labels == c + 1, 1)
-            pred_instance = prediction * xp.broadcast_to(mask, prediction.shape)
+            pred_instance = embeddings * xp.broadcast_to(mask, embeddings.shape)
 
             # Calculate the number of pixels belonging to instance c
             nc = xp.sum(mask, (1, 2, 3))
-            if xp.sum(nc) == 0:
+            if xp.sum(nc) == zeros:
                 continue
 
-            nc = xp.asarray(nc, dtype=pred_instance.dtype)
+            nc = nc.astype(pred_instance.dtype)
             mean = c_sum(pred_instance, axis=(2, 3)) / \
                    xp.expand_dims(xp.maximum(nc, 1), 1)
 
@@ -142,39 +138,38 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             l_reg += self.norm(mean)
 
         # Normalize loss by batch and instance count
-        l_var /= self.max_n_clusters * prediction.shape[0]
-        l_reg /= self.max_n_clusters * prediction.shape[0]
+        l_var /= self.max_embedding_dim
+        l_reg /= self.max_embedding_dim * embeddings.shape[0]
 
         # Calculate distance loss
-        for c_a in range(self.max_n_clusters):
-            for c_b in range(c_a + 1, self.max_n_clusters):
+        for c_a in range(len(means)):
+            for c_b in range(c_a + 1, len(means)):
                 m_a = means[c_a]
                 m_b = means[c_b]
                 dist = self.norm(m_a - m_b, 1)  # N
                 l_dist += c_sum((relu(2 * self.delta_d - dist)) ** 2)
                 count += 1
-        l_dist /= xp.maximum(count * prediction.shape[0], 1)
+        l_dist /= max(count * embeddings.shape[0], 1)
 
         return self.alpha * l_var, self.beta * l_dist, self.gamma * l_reg
 
 
 def discriminative_margin_based_clustering_loss(
-        prediction, labels,
-        delta_v, delta_d, max_n_clusters,
+        embeddings, labels,
+        delta_v, delta_d, max_embedding_dim,
         norm=1, alpha=1.0, beta=1.0, gamma=0.001):
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
     https://arxiv.org/abs/1708.02551
 
-    In segmentation, one of the biggest problem is to have noise at the output
-    of a trained network.
-    For cross-entropy based approaches, if the pixel value is wrong,
-    the loss value will be same independent from the wrong pixel's location.
-    Even though the network gives wrong pixel output, it is desirable
-    to have it as close as possible to the original position.
-    By applying a discriminative loss function,
-    groups of segmentation instances can be moved together.
+    This method is a semi-supervised solution to instance segmentation.
+    It calculates pixel embeddings, and calculates three different terms
+    based on those embeddings and applies them as loss.
+    The main idea is that the pixel embeddings
+    for same instanceshave to be closer to each other (pull force),
+    for different instances, they have to be further away (push force).
+    The loss also brings a weak regularization term to prevent overfitting.
     This loss function calculates the following three parameters:
 
     - Variance Loss:
@@ -187,11 +182,11 @@ def discriminative_margin_based_clustering_loss(
         Small regularization loss to penalize weights against overfitting.
 
     Args:
-        prediction(:class:`~chainer.Variable` or \
+        embeddings(:class:`~chainer.Variable` or \
                    :class:`numpy.ndarray` or \
                    :class:`cupy.ndarray`) :
                    predicted embedding vectors
-                   (batch size, max cluster count, height, width)
+                   (batch size, max embedding dimensions, height, width)
         labels(:class:`numpy.ndarray` or \
                :class:`cupy.ndarray`) :
                instance segmentation ground truth
@@ -199,7 +194,7 @@ def discriminative_margin_based_clustering_loss(
                (batch size, height, width)
         delta_v (float): Minimum distance to start penalizing variance
         delta_d (float): Maximum distance to stop penalizing distance
-        max_n_clusters (int): Maximum possible number of clusters.
+        max_embedding_dim (int): Maximum number of embedding dimensions
         norm (int): Norm to calculate pixels and cluster center distances
         alpha (float): Weight for variance loss    (alpha * variance_loss)
         beta (float): Weight for distance loss     (beta * distance_loss)
@@ -220,5 +215,5 @@ def discriminative_margin_based_clustering_loss(
                             regularization loss multiplied by gamma
     """
     loss = DiscriminativeMarginBasedClusteringLoss(
-        delta_v, delta_d, max_n_clusters, norm, alpha, beta, gamma)
-    return loss(prediction, labels)
+        delta_v, delta_d, max_embedding_dim, norm, alpha, beta, gamma)
+    return loss(embeddings, labels)
