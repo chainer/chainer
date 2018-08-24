@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -9,6 +10,7 @@
 
 #include "xchainer/context.h"
 #include "xchainer/native/native_backend.h"
+#include "xchainer/testing/threading.h"
 
 namespace xchainer {
 namespace native {
@@ -26,6 +28,13 @@ void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_pt
 NativeDevice& GetNativeDevice(Context& ctx, int device_index) {
     // Using dynamic_cast to ensure it's actually NativeDevice
     return dynamic_cast<NativeDevice&>(ctx.GetDevice({"native", device_index}));
+}
+
+void RunThreads(const std::function<void(void)>& func) {
+    testing::RunThreads(2, [&func](size_t /*thread_index*/) {
+        func();
+        return nullptr;
+    });
 }
 
 TEST(NativeDeviceTest, Allocate) {
@@ -100,6 +109,58 @@ TEST(NativeDeviceTest, Synchronize) {
     Context ctx;
     NativeDevice& device = GetNativeDevice(ctx, 0);
     device.Synchronize();  // no throw
+}
+
+TEST(NativeDeviceTest, GetDeviceMultiThread) {
+    Context ctx;
+
+    RunThreads([&ctx]() {
+        NativeDevice& device = GetNativeDevice(ctx, 0);
+        (void)device;
+    });
+}
+
+TEST(NativeDeviceTest, GetBackendMultiThread) {
+    Context ctx;
+    NativeDevice& device = GetNativeDevice(ctx, 0);
+    Backend& expected_backend = device.backend();
+
+    RunThreads([&device, &expected_backend]() {
+        Backend& backend = device.backend();
+        EXPECT_EQ(&expected_backend, &backend);
+    });
+}
+
+TEST(NativeDeviceTest, GetIndexMultiThread) {
+    Context ctx;
+    NativeDevice& device = GetNativeDevice(ctx, 0);
+    int expected_index = device.index();
+
+    RunThreads([&device, &expected_index]() {
+        int index = device.index();
+        EXPECT_EQ(expected_index, index);
+    });
+}
+
+TEST(NativeDeviceTest, GetNameMultiThread) {
+    Context ctx;
+    NativeDevice& device = GetNativeDevice(ctx, 0);
+    std::string expected_name = device.name();
+
+    RunThreads([&device, &expected_name]() {
+        std::string name = device.name();
+        EXPECT_EQ(expected_name, name);
+    });
+}
+
+TEST(NativeDeviceTest, GetContextMultiThread) {
+    Context ctx;
+    NativeDevice& device = GetNativeDevice(ctx, 0);
+
+    RunThreads([&ctx, &device]() {
+        Context& context = device.context();
+        EXPECT_EQ(&ctx, &context);
+    });
 }
 
 }  // namespace
