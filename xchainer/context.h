@@ -109,9 +109,9 @@ private:
         BackpropOrdinal ordinal;
         std::string name;
 
-        // True if this backprop ID is prohibited for further backprop, because any lower-ordinal backprop IDs related to this backprop have
-        // been backpropped.
-        bool is_backprop_prohibited{false};
+        // If this member has a value, it indicates that this BackpropIh ID is prohibited for further backprop.
+        // Its value is the backprop ID which caused the prohibition.
+        nonstd::optional<BackpropOrdinal> prohibiting_ordinal{nonstd::nullopt};
     };
 
     // Finds the BackpropSetItem instance.

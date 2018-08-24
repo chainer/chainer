@@ -213,8 +213,12 @@ void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {
     if (item == nullptr) {
         throw XchainerError{"Backprop ID not found: ", backprop_id};
     }
-    if (item->is_backprop_prohibited) {
-        throw XchainerError{"Cannot backward for backprop ID ", backprop_id, ", prohibited by backpropping any earlier backprop IDs "};
+    if (item->prohibiting_ordinal.has_value()) {
+        throw XchainerError{"Cannot backward for backprop ID '",
+                            backprop_id,
+                            "' because an associated backprop ID '",
+                            BackpropId{*this, *item->prohibiting_ordinal},
+                            "' which has been created earlier, has already been backpropped."};
     }
 }
 
@@ -233,7 +237,9 @@ void Context::SetBackpropDone(const BackpropId& backprop_id) {
     // Mark related backprop IDs as prohibited.
     for (BackpropOrdinal ord : ordinals_to_prohibit) {
         BackpropSetItem* item2 = GetBackpropSetItem(ord);
-        item2->is_backprop_prohibited = true;
+        if (!item2->prohibiting_ordinal.has_value()) {
+            item2->prohibiting_ordinal = backprop_id.ordinal();
+        }
     }
 }
 
