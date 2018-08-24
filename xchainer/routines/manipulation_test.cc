@@ -50,7 +50,6 @@ TEST_P(ManipulationTest, AsScalar) {
                 Scalar s = AsScalar(a);
                 EXPECT_EQ(s.dtype(), TypeToDtype<T>);
                 EXPECT_EQ(static_cast<T>(s), value);
-                return std::vector<Array>{};
             },
             // TODO(sonots): Run concurrency test in CUDA
             GetParam() == "cuda" ? 0 : 2);
