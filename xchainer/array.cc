@@ -61,7 +61,15 @@ Array Array::operator-() const { return Negative(*this); }
 
 Array Array::operator==(const Array& rhs) const { return Equal(*this, rhs); }
 
+Array Array::operator!=(const Array& rhs) const { return NotEqual(*this, rhs); }
+
 Array Array::operator>(const Array& rhs) const { return Greater(*this, rhs); }
+
+Array Array::operator>=(const Array& rhs) const { return GreaterEqual(*this, rhs); }
+
+Array Array::operator<(const Array& rhs) const { return Less(*this, rhs); }
+
+Array Array::operator<=(const Array& rhs) const { return LessEqual(*this, rhs); }
 
 Array& Array::operator+=(const Array& rhs) {
     internal::IAdd(*this, rhs);

@@ -44,9 +44,33 @@ Array Equal(const Array& x1, const Array& x2) {
     return BroadcastComparison(func, x1, x2);
 }
 
+Array NotEqual(const Array& x1, const Array& x2) {
+    CheckEqual(x1.dtype(), x2.dtype());
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().NotEqual(x1, x2, out); };
+    return BroadcastComparison(func, x1, x2);
+}
+
 Array Greater(const Array& x1, const Array& x2) {
     CheckEqual(x1.dtype(), x2.dtype());
     auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().Greater(x1, x2, out); };
+    return BroadcastComparison(func, x1, x2);
+}
+
+Array GreaterEqual(const Array& x1, const Array& x2) {
+    CheckEqual(x1.dtype(), x2.dtype());
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().GreaterEqual(x1, x2, out); };
+    return BroadcastComparison(func, x1, x2);
+}
+
+Array Less(const Array& x1, const Array& x2) {
+    CheckEqual(x1.dtype(), x2.dtype());
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().Greater(x2, x1, out); };
+    return BroadcastComparison(func, x1, x2);
+}
+
+Array LessEqual(const Array& x1, const Array& x2) {
+    CheckEqual(x1.dtype(), x2.dtype());
+    auto func = [](const Array& x1, const Array& x2, Array& out) { return x1.device().GreaterEqual(x2, x1, out); };
     return BroadcastComparison(func, x1, x2);
 }
 

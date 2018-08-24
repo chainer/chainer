@@ -153,7 +153,9 @@ public:
     virtual void AsType(const Array& a, const Array& out) = 0;
 
     virtual void Equal(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void NotEqual(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void Greater(const Array& x1, const Array& x2, const Array& out) = 0;
+    virtual void GreaterEqual(const Array& x1, const Array& x2, const Array& out) = 0;
     virtual void LogicalNot(const Array& x1, const Array& out) = 0;
 
     virtual void Add(const Array& x1, const Array& x2, const Array& out) = 0;

@@ -63,7 +63,11 @@ public:
     Array operator-() const;
 
     Array operator==(const Array& rhs) const;
+    Array operator!=(const Array& rhs) const;
     Array operator>(const Array& rhs) const;
+    Array operator>=(const Array& rhs) const;
+    Array operator<(const Array& rhs) const;
+    Array operator<=(const Array& rhs) const;
 
     Array& operator+=(const Array& rhs);
     Array& operator+=(Scalar rhs);

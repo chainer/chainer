@@ -254,8 +254,24 @@ void InitXchainerRoutines(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Equal(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("not_equal",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(NotEqual(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("greater",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Greater(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("greater_equal",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(GreaterEqual(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("less",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Less(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("less_equal",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LessEqual(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
     m.def("logical_not", [](const ArrayBodyPtr& x1) { return MoveArrayBody(LogicalNot(Array{x1})); }, py::arg("x1"));

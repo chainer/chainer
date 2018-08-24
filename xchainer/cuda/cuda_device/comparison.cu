@@ -33,6 +33,24 @@ void CudaDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
 namespace {
 
 template <typename T>
+struct NotEqualImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 != x2; }
+};
+
+}  // namespace
+
+void CudaDevice::NotEqual(const Array& x1, const Array& x2, const Array& out) {
+    CheckDevicesCompatible(x1, x2, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(x1.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, const T, bool>(NotEqualImpl<T>{}, x1, x2, out);
+    });
+}
+
+namespace {
+
+template <typename T>
 struct GreaterImpl {
     __device__ void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 > x2; }
 };
@@ -45,6 +63,24 @@ void CudaDevice::Greater(const Array& x1, const Array& x2, const Array& out) {
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, const T, bool>(GreaterImpl<T>{}, x1, x2, out);
+    });
+}
+
+namespace {
+
+template <typename T>
+struct GreaterEqualImpl {
+    __device__ void operator()(int64_t /*i*/, T x1, T x2, bool& out) { out = x1 >= x2; }
+};
+
+}  // namespace
+
+void CudaDevice::GreaterEqual(const Array& x1, const Array& x2, const Array& out) {
+    CheckDevicesCompatible(x1, x2, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(x1.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, const T, bool>(GreaterEqualImpl<T>{}, x1, x2, out);
     });
 }
 
