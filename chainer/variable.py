@@ -287,6 +287,11 @@ class VariableNode(object):
         var = self._variable()
         return None if var is None else var._grad_var
 
+    def _set_grad_var_if_available(self, g):
+        var = self._variable()
+        if var is not None:
+            var._grad_var = g
+
     @property
     def label(self):
         """Short text that represents the variable node."""
@@ -1036,9 +1041,7 @@ Actual: {0}'''.format(type(data))
             for x in target_inputs:
                 if x not in in_grad:
                     in_grad[x] = grads.get_as_list(x)
-                    x_var = x.get_variable_or_none()
-                    if x_var is not None:
-                        x_var._grad_var = None
+                    x._set_grad_var_if_available(None)
 
             _backprop_utils.backprop_step(
                 func, target_input_indexes, out_grad, in_grad)
@@ -1065,9 +1068,8 @@ Actual: {0}'''.format(type(data))
 
             for y, gy in six.moves.zip(outputs, out_grad):
                 if y is not None and y is not self.node:
-                    y_var = y.get_variable_or_none()
-                    if y_var is not None:
-                        y_var._grad_var = gy if retain_grad else None
+                    y._set_grad_var_if_available(
+                        gy if retain_grad else None)
 
             for x, gx in in_grad.items():
                 if not gx:  # gradient == None
