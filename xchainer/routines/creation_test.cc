@@ -233,7 +233,7 @@ TEST_P(CreationTest, FromContiguousHostData) {
         if (device.backend().GetName() == "native") {
             EXPECT_EQ(data.get(), x.data().get());
         } else {
-            assert(device.backend().GetName() == "cuda");
+            XCHAINER_ASSERT(device.backend().GetName() == "cuda");
             EXPECT_NE(data.get(), x.data().get());
         }
     });
