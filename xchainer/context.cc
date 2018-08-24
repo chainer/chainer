@@ -187,8 +187,7 @@ void Context::RelateBackpropIds(const BackpropId& backprop_id1, const BackpropId
         return;
     }
 
-    std::pair<BackpropOrdinal, BackpropOrdinal> pair{std::min(backprop_id1.ordinal(), backprop_id2.ordinal()),
-                                                     std::max(backprop_id1.ordinal(), backprop_id2.ordinal())};
+    std::pair<BackpropOrdinal, BackpropOrdinal> pair = std::minmax(backprop_id1.ordinal(), backprop_id2.ordinal());
     if (backprop_relations_.end() != std::find(backprop_relations_.begin(), backprop_relations_.end(), pair)) {
         // Already in relation
         return;
