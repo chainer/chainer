@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from chainer import cuda
 from chainer.backends import cuda
 
 from chainer.functions.activation.relu import relu
@@ -12,7 +11,6 @@ from chainer.functions.math.sqrt import sqrt
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
-
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
@@ -100,7 +98,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                                 regularization loss multiplied by gamma
         """
 
-        assert(self.max_embedding_dim == embeddings.shape[1])
+        assert (self.max_embedding_dim == embeddings.shape[1])
 
         l_var = 0.0
         l_dist = 0.0
@@ -115,7 +113,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         for c in range(self.max_embedding_dim):
             # Create mask for instance
             mask = xp.expand_dims(labels == c + 1, 1)
-            pred_instance = embeddings * xp.broadcast_to(mask, embeddings.shape)
+            mask = xp.broadcast_to(mask, embeddings.shape)
+            pred_instance = embeddings * mask
 
             # Calculate the number of pixels belonging to instance c
             nc = xp.sum(mask, (1, 2, 3))
@@ -123,8 +122,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                 continue
 
             nc = nc.astype(pred_instance.dtype)
-            mean = c_sum(pred_instance, axis=(2, 3)) / \
-                   xp.expand_dims(xp.maximum(nc, 1), 1)
+            nc_exp = xp.expand_dims(xp.maximum(nc, 1), 1)
+            mean = c_sum(pred_instance, axis=(2, 3)) / nc_exp
 
             means.append(mean)
 
