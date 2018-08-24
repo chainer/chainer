@@ -4,6 +4,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <nonstd/optional.hpp>
@@ -45,7 +46,7 @@ private:
 // TODO(niboshi): Make BackpropId-related functions thread-safe.
 class Context {
 public:
-    Context() = default;
+    Context();
     ~Context();
 
     Context(const Context&) = delete;
@@ -64,9 +65,18 @@ public:
     // If the backend and/or device do not exist, this function automatically creates them.
     Device& GetDevice(const DeviceId& device_id);
 
-    BackpropId MakeNextBackpropId(std::string backprop_name);
+    BackpropId MakeBackpropId(std::string backprop_name);
 
     void ReleaseBackpropId(const BackpropId& backprop_id);
+
+    void ReleaseBackpropIdNoExcept(const BackpropId& backprop_id) noexcept;
+
+    // Checks the specified backprop ID is valid, i.e. not released.
+    void CheckValidBackpropId(const BackpropId& backprop_id) const;
+
+    // Declares that the two backprop IDs co-exist in any portion of computation graph.
+    // Backpropping on the backprop ID with the lower ordinal will prohibit future backprop on the other.
+    void ConnectBackpropIds(const BackpropId& backprop_id1, const BackpropId& backprop_id2);
 
     // Return the name of the backprop.
     // XchainerError is thrown if the backprop ID is expired or non-existent in the context.
@@ -86,30 +96,48 @@ public:
     std::vector<BackpropId> GetInnerBackpropIds(const BackpropId& backprop_id);
 
     BackpropId default_backprop_id() {
-        // 0 is the backprop ordinal id of the default graph.
-        return BackpropId{*this, 0};
+        // The first entry is always the default backprop ID.
+        XCHAINER_ASSERT(!backprop_set_.empty());
+        return BackpropId{*this, backprop_set_.front().ordinal};
     }
 
 private:
     // TODO(niboshi): Support multi-thread usage
-    struct BackpropStackItem {
-        BackpropStackItem(BackpropOrdinal ordinal, std::string name) : ordinal{ordinal}, name{std::move(name)} {}
+    struct BackpropSetItem {
+        BackpropSetItem(BackpropOrdinal ordinal, std::string name) : ordinal{ordinal}, name{std::move(name)} {}
 
         BackpropOrdinal ordinal;
         std::string name;
 
-        // Indicates whether Backward on any outer graphs (note that this graph is not included) has been called.
-        bool is_outer_graph_backpropped{false};
+        // If this member has a value, it indicates that this Backprop ID is prohibited for further backprop.
+        // Its value is the backprop ID which caused the prohibition.
+        nonstd::optional<BackpropOrdinal> prohibiting_ordinal{nonstd::nullopt};
     };
+
+    // Finds the BackpropSetItem instance.
+    const BackpropSetItem* GetBackpropSetItem(BackpropOrdinal ordinal) const {
+        return GetBackpropSetItemImpl<const Context*, const BackpropSetItem*>(this, ordinal);
+    }
+
+    // Finds the BackpropSetItem instance.
+    BackpropSetItem* GetBackpropSetItem(BackpropOrdinal ordinal) {
+        return GetBackpropSetItemImpl<Context*, BackpropSetItem*>(this, ordinal);
+    }
+
+    template <typename ThisPtr, typename ReturnType>
+    static ReturnType GetBackpropSetItemImpl(ThisPtr this_ptr, BackpropOrdinal ordinal);
 
     std::unordered_map<std::string, std::unique_ptr<Backend, context_detail::BackendDeleter>> backends_;
     std::vector<void*> dlopen_handles_;
     mutable std::mutex mutex_;
 
-    // 1 is the first backprop ordinal id after the default graph whose backprop ordinal id is 0.
-    BackpropOrdinal next_backprop_ordinal_{1};
+    BackpropOrdinal next_backprop_ordinal_{0};
 
-    std::vector<BackpropStackItem> backprop_stack_{};
+    std::vector<BackpropSetItem> backprop_set_{};
+
+    // List of pairs of connected backprop IDs.
+    // The first ordinal is always less than the second, which means backpropping on the first will prohibit future backprop on the second.
+    std::vector<std::pair<BackpropOrdinal, BackpropOrdinal>> backprop_connections_;
 };
 
 // Gets/sets the context that used by default when current context is not set.

@@ -108,6 +108,8 @@ protected:
 
     void TearDown() override { device_session_.reset(); }
 
+    Context& context() { return device_session_->device().context(); }
+
 public:
     std::vector<Array> MakeFullArrays(const Shape& shape, const std::vector<float>& values) const {
         std::vector<Array> ret;
@@ -196,6 +198,112 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
+TEST_F(BackpropTest, CreateAndReleaseSingleBackpropId) {
+    Context ctx{};
+    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
+    EXPECT_EQ(1U, backprop_id1.ordinal());
+    EXPECT_EQ("bp1", backprop_id1.GetName());
+    EXPECT_TRUE(ctx.default_backprop_id() < backprop_id1);
+    ctx.ReleaseBackpropId(backprop_id1);
+
+    // Can't release twice
+    EXPECT_THROW(ctx.ReleaseBackpropId(backprop_id1), XchainerError);
+
+    // Can't require grad after release
+    {
+        Array a = Empty({2, 3}, Dtype::kFloat32, ctx.GetDevice({"native", 0}));
+        EXPECT_THROW(a.IsGradRequired(backprop_id1), XchainerError);
+        EXPECT_THROW(a.RequireGrad(backprop_id1), XchainerError);
+    }
+
+    // String representation after release
+    {
+        std::ostringstream os;
+        os << backprop_id1;
+        EXPECT_EQ("<expired>", os.str());
+    }
+}
+
+TEST_F(BackpropTest, CantReleaseDefaultBackpropId) {
+    Context ctx{};
+    BackpropId backprop_id = ctx.default_backprop_id();
+    EXPECT_THROW(ctx.ReleaseBackpropId(backprop_id), XchainerError);
+}
+
+TEST_F(BackpropTest, DestroyContextWithoutReleasingBackpropId) {
+    Context ctx{};
+    ctx.MakeBackpropId("bp1");
+}
+
+TEST_F(BackpropTest, CreateAnotherBackpropIdAfterRelease) {
+    // Release and create
+    Context ctx{};
+    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
+    ctx.ReleaseBackpropId(backprop_id1);
+
+    BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
+    EXPECT_EQ(2U, backprop_id2.ordinal());
+    EXPECT_EQ("bp2", backprop_id2.GetName());
+
+    // Compare between released and unreleased
+    EXPECT_TRUE(backprop_id1 < backprop_id2);
+
+    ctx.ReleaseBackpropId(backprop_id2);
+
+    // Compare between released
+    EXPECT_TRUE(backprop_id1 < backprop_id2);
+}
+
+TEST_F(BackpropTest, NestedMultipleBackpropIds) {
+    // Create multiple
+    Context ctx{};
+    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
+    BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
+    EXPECT_EQ(1U, backprop_id1.ordinal());
+    EXPECT_EQ(2U, backprop_id2.ordinal());
+    EXPECT_EQ("bp1", backprop_id1.GetName());
+    EXPECT_EQ("bp2", backprop_id2.GetName());
+    EXPECT_TRUE(backprop_id1 < backprop_id2);
+}
+
+TEST_F(BackpropTest, ReleaseBackpropIdsInLifoOrder) {
+    Context ctx{};
+    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
+    BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
+    ctx.ReleaseBackpropId(backprop_id2);
+    ctx.ReleaseBackpropId(backprop_id1);
+}
+
+TEST_F(BackpropTest, ReleaseBackpropIdsInFifoOrder) {
+    Context ctx{};
+    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
+    BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
+    ctx.ReleaseBackpropId(backprop_id1);
+    ctx.ReleaseBackpropId(backprop_id2);
+}
+
+TEST_F(BackpropTest, ArrayWithReleasedBackpropId) {
+    Array x = Full({1}, 2.0f);
+    {
+        BackpropScope backprop_scope1{"bp1"};
+        BackpropId bp1 = backprop_scope1.backprop_id();
+        x.RequireGrad(bp1);
+    }
+
+    // bp1 is released, but it's still in x
+    {
+        BackpropScope backprop_scope2{"bp2"};
+        BackpropId bp2 = backprop_scope2.backprop_id();
+        x.RequireGrad(bp2);
+
+        Array y = (x * x) + 2;
+
+        Backward(y, bp2);
+
+        EXPECT_ARRAY_EQ(2 * x, *x.GetGrad(bp2));
+    }
+}
+
 TEST_F(BackpropTest, BackwardBasic) {
     CheckBackpropSingleElement({3.0f, 2.0f}, {2.0f, 3.0f}, [](auto& xs) { return xs[0] * xs[1]; });
     CheckBackpropSingleElement({3.0f, 2.0f, 4.0f}, {8.0f, 12.0f, 6.0f}, [](auto& xs) { return (xs[0] * xs[1]) * xs[2]; });
@@ -262,6 +370,95 @@ TEST_F(BackpropTest, BackpropOnNonDefaultDevice) {
         SetDefaultDevice(&GetDefaultContext().GetDevice({native::NativeBackend::kDefaultName, 1}));
         return ret;
     });
+}
+
+TEST_F(BackpropTest, BackwardInnerBackpropIdNotProhibitedNoEdge) {
+    BackpropId bp_outer = context().MakeBackpropId("bp_outer");
+    BackpropId bp_inner = context().MakeBackpropId("bp_inner");
+    Array x = Full({1}, 2.0f);
+    x.RequireGrad(bp_outer);
+    x.RequireGrad(bp_inner);
+    Backward(x, bp_inner);
+    Backward(x, bp_outer);  // no throw
+}
+
+TEST_F(BackpropTest, BackwardInnerBackpropIdProhibitedNoEdge) {
+    BackpropId bp_outer = context().MakeBackpropId("bp_outer");
+    BackpropId bp_inner = context().MakeBackpropId("bp_inner");
+    Array x = Full({1}, 2.0f);
+    x.RequireGrad(bp_outer);
+    x.RequireGrad(bp_inner);
+    Backward(x, bp_outer);
+    EXPECT_THROW(Backward(x, bp_inner), XchainerError);
+}
+
+TEST_F(BackpropTest, BackwardOuterBackpropIdNotProhibited) {
+    BackpropId bp_outer = context().MakeBackpropId("bp_outer");
+    BackpropId bp_inner = context().MakeBackpropId("bp_inner");
+    Array x = Full({1}, 2.0f);
+    x.RequireGrad(bp_outer);
+    x.RequireGrad(bp_inner);
+    Array y = (x * x) + 2;
+    Backward(y, bp_inner);
+    Backward(y, bp_outer);  // no throw
+}
+
+TEST_F(BackpropTest, BackwardInnerBackpropIdProhibited) {
+    BackpropId bp_outer = context().MakeBackpropId("bp_outer");
+    BackpropId bp_inner = context().MakeBackpropId("bp_inner");
+    Array x = Full({1}, 2.0f);
+    x.RequireGrad(bp_outer);
+    x.RequireGrad(bp_inner);
+    Array y = (x * x) + 2;
+    Backward(y, bp_outer);
+    EXPECT_THROW(Backward(y, bp_inner), XchainerError);
+}
+
+TEST_F(BackpropTest, BackwardInnerBackpropIdProhibitedByBackwardInDisconnectedGraph) {
+    BackpropId bp_outer = context().MakeBackpropId("bp_outer");
+    BackpropId bp_inner = context().MakeBackpropId("bp_inner");
+    Array x1 = Full({1}, 2.0f);
+    Array x2 = Full({1}, 2.0f);
+    x1.RequireGrad(bp_outer);
+    x1.RequireGrad(bp_inner);
+    x2.RequireGrad(bp_inner);
+    Array y1 = (x1 * x1) + 2;
+    Array y2 = (x2 * x2) + 2;
+    Backward(y1, bp_outer);
+
+    // x2 and y2 only have bp_inner, but bp_inner is prohibited by backward of bp_outer in a disconnected graph.
+    EXPECT_THROW(Backward(y2, bp_inner), XchainerError);
+}
+
+TEST_F(BackpropTest, BackwardDivergedBackpropId) {
+    BackpropScope backprop_scope_base{"bp_base"};
+    BackpropScope backprop_scope_branch1{"bp_branch1"};
+    BackpropScope backprop_scope_branch2{"bp_branch2"};
+    BackpropId bp_base = backprop_scope_base.backprop_id();
+    BackpropId bp_branch1 = backprop_scope_branch1.backprop_id();
+    BackpropId bp_branch2 = backprop_scope_branch2.backprop_id();
+    Array x = Full({1}, 2.0f);
+    x.RequireGrad(bp_base);
+    Array y = (x * x) + 2;
+
+    Array y_branch1 = y.MakeView().RequireGrad(bp_branch1);
+    Array y_branch2 = y.MakeView().RequireGrad(bp_branch2);
+
+    Array z_branch1 = y_branch1 * x + 1;
+    Array z_branch2 = (y_branch2 + 2) * y;
+
+    // Backprop the earlier one
+    Backward(z_branch1, bp_branch1);
+
+    // Still able to backprop the later one
+    Backward(z_branch2, bp_branch2);
+
+    ASSERT_TRUE(y_branch1.GetGrad(bp_branch1).has_value());
+    ASSERT_TRUE(y_branch2.GetGrad(bp_branch2).has_value());
+    ASSERT_FALSE(x.GetGrad(bp_base).has_value());
+
+    EXPECT_ARRAY_EQ(x, *y_branch1.GetGrad(bp_branch1));
+    EXPECT_ARRAY_EQ(y, *y_branch2.GetGrad(bp_branch2));
 }
 
 TEST_F(BackpropTest, MultipleGraphsBackprop) {

@@ -158,7 +158,7 @@ template <int8_t Ndim>
 struct ArrayReprImpl {
     template <typename T>
     void operator()(const Array& array, std::ostream& os) const {
-        Array native_array = array.ToNative();
+        Array native_array = array.AsGradStopped().ToNative();
         Formatter<T> formatter;
 
         // Let formatter scan all elements to print.

@@ -18,6 +18,7 @@
 #include "xchainer/array_repr.h"
 #include "xchainer/axes.h"
 #include "xchainer/constant.h"
+#include "xchainer/context.h"
 #include "xchainer/device.h"
 #include "xchainer/dtype.h"
 #include "xchainer/enum.h"
@@ -225,6 +226,8 @@ public:
     bool IsContiguous() const { return internal::IsContiguous(shape(), strides(), item_size()); }
 
     std::string ToString() const;
+
+    Context& context() const { return body_->device().context(); }
 
     Dtype dtype() const { return body_->dtype(); }
 

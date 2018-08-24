@@ -55,6 +55,7 @@ public:
     // Returns whether the gradient of the specified backprop ID is marked as required.
     // This does not take backprop mode into account.
     bool IsGradRequired(const BackpropId& backprop_id) const {
+        backprop_id.CheckValid();
         return grad_required_backprop_ids_.end() !=
                std::find(grad_required_backprop_ids_.begin(), grad_required_backprop_ids_.end(), backprop_id);
     }
@@ -62,6 +63,7 @@ public:
     // Mark the gradient of the specified backprop ID as required.
     // This does not take backprop mode into account.
     static void RequireGrad(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id) {
+        backprop_id.CheckValid();
         if (body->grad_required_backprop_ids_.end() ==
             std::find(body->grad_required_backprop_ids_.begin(), body->grad_required_backprop_ids_.end(), backprop_id)) {
             body->grad_required_backprop_ids_.emplace_back(backprop_id);

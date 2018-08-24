@@ -99,6 +99,7 @@ void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
 
 BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs)
     : op_name_{op_name},
+      context_{inputs.front().get().context()},
       inputs_{std::move(inputs)},
       inputs_target_created_(inputs_.size()),
       outputs_{std::move(outputs)},
@@ -149,6 +150,10 @@ void BackwardBuilder::Finalize() {
     XCHAINER_ASSERT(std::all_of(inputs_target_created_.begin(), inputs_target_created_.end(), [](bool done) { return done; }));
 
     AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention();
+
+    // Connect each pair of backprop IDs concerned in this op.
+    // If two backprop IDs are connected, backpropping on the one with lower ordinal will prohibit future backprop on the other.
+    ConnectBackpropIds();
 
     is_finalized_ = true;
 }
@@ -235,6 +240,16 @@ void BackwardBuilder::AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention() {
                     AddEdgesFromOpNodeToOutputArrayNodesOfOuterGraph(op_node, other_op_node, output_retention_record_);
                 }
             }
+        }
+    }
+}
+
+void BackwardBuilder::ConnectBackpropIds() {
+    for (auto it1 = op_node_map_.begin(); it1 != op_node_map_.end(); ++it1) {
+        const BackpropId& backprop_id1 = it1->first;
+        for (auto it2 = std::next(it1); it2 != op_node_map_.end(); ++it2) {
+            const BackpropId& backprop_id2 = it2->first;
+            context_.ConnectBackpropIds(backprop_id1, backprop_id2);
         }
     }
 }
