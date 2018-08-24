@@ -198,88 +198,88 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_F(BackpropTest, CreateAndReleaseBackpropIds) {
-    {  // Single
-        Context ctx{};
-        BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
-        EXPECT_EQ(1U, backprop_id1.ordinal());
-        EXPECT_EQ("bp1", backprop_id1.GetName());
-        EXPECT_TRUE(ctx.default_backprop_id() < backprop_id1);
-        ctx.ReleaseBackpropId(backprop_id1);
+TEST_F(BackpropTest, CreateAndReleaseSingleBackpropId) {
+    Context ctx{};
+    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
+    EXPECT_EQ(1U, backprop_id1.ordinal());
+    EXPECT_EQ("bp1", backprop_id1.GetName());
+    EXPECT_TRUE(ctx.default_backprop_id() < backprop_id1);
+    ctx.ReleaseBackpropId(backprop_id1);
 
-        // Can't release twice
-        EXPECT_THROW(ctx.ReleaseBackpropId(backprop_id1), XchainerError);
+    // Can't release twice
+    EXPECT_THROW(ctx.ReleaseBackpropId(backprop_id1), XchainerError);
 
-        // Can't require grad after release
-        {
-            Array a = Empty({2, 3}, Dtype::kFloat32, ctx.GetDevice({"native", 0}));
-            EXPECT_THROW(a.IsGradRequired(backprop_id1), XchainerError);
-            EXPECT_THROW(a.RequireGrad(backprop_id1), XchainerError);
-        }
-
-        // String representation after release
-        {
-            std::ostringstream os;
-            os << backprop_id1;
-            EXPECT_EQ("<expired>", os.str());
-        }
+    // Can't require grad after release
+    {
+        Array a = Empty({2, 3}, Dtype::kFloat32, ctx.GetDevice({"native", 0}));
+        EXPECT_THROW(a.IsGradRequired(backprop_id1), XchainerError);
+        EXPECT_THROW(a.RequireGrad(backprop_id1), XchainerError);
     }
 
-    {  // Can't release the default backprop ID
-        Context ctx{};
-        BackpropId backprop_id = ctx.default_backprop_id();
-        EXPECT_THROW(ctx.ReleaseBackpropId(backprop_id), XchainerError);
+    // String representation after release
+    {
+        std::ostringstream os;
+        os << backprop_id1;
+        EXPECT_EQ("<expired>", os.str());
     }
+}
 
-    {  // OK to destroy context without releasing backprop ID
-        Context ctx{};
-        ctx.MakeBackpropId("bp1");
-    }
+TEST_F(BackpropTest, CantReleaseDefaultBackpropId) {
+    Context ctx{};
+    BackpropId backprop_id = ctx.default_backprop_id();
+    EXPECT_THROW(ctx.ReleaseBackpropId(backprop_id), XchainerError);
+}
 
-    {  // Release and create
-        Context ctx{};
-        BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
-        ctx.ReleaseBackpropId(backprop_id1);
+TEST_F(BackpropTest, DestroyContextWithoutReleasingBackpropId) {
+    Context ctx{};
+    ctx.MakeBackpropId("bp1");
+}
 
-        BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
-        EXPECT_EQ(2U, backprop_id2.ordinal());
-        EXPECT_EQ("bp2", backprop_id2.GetName());
+TEST_F(BackpropTest, CreateAnotherBackpropIdAfterRelease) {
+    // Release and create
+    Context ctx{};
+    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
+    ctx.ReleaseBackpropId(backprop_id1);
 
-        // Compare between released and unreleased
-        EXPECT_TRUE(backprop_id1 < backprop_id2);
+    BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
+    EXPECT_EQ(2U, backprop_id2.ordinal());
+    EXPECT_EQ("bp2", backprop_id2.GetName());
 
-        ctx.ReleaseBackpropId(backprop_id2);
+    // Compare between released and unreleased
+    EXPECT_TRUE(backprop_id1 < backprop_id2);
 
-        // Compare between released
-        EXPECT_TRUE(backprop_id1 < backprop_id2);
-    }
+    ctx.ReleaseBackpropId(backprop_id2);
 
-    {  // Create multiple
-        Context ctx{};
-        BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
-        BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
-        EXPECT_EQ(1U, backprop_id1.ordinal());
-        EXPECT_EQ(2U, backprop_id2.ordinal());
-        EXPECT_EQ("bp1", backprop_id1.GetName());
-        EXPECT_EQ("bp2", backprop_id2.GetName());
-        EXPECT_TRUE(backprop_id1 < backprop_id2);
-    }
+    // Compare between released
+    EXPECT_TRUE(backprop_id1 < backprop_id2);
+}
 
-    {  // Release in LIFO order
-        Context ctx{};
-        BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
-        BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
-        ctx.ReleaseBackpropId(backprop_id2);
-        ctx.ReleaseBackpropId(backprop_id1);
-    }
+TEST_F(BackpropTest, NestedMultipleBackpropIds) {
+    // Create multiple
+    Context ctx{};
+    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
+    BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
+    EXPECT_EQ(1U, backprop_id1.ordinal());
+    EXPECT_EQ(2U, backprop_id2.ordinal());
+    EXPECT_EQ("bp1", backprop_id1.GetName());
+    EXPECT_EQ("bp2", backprop_id2.GetName());
+    EXPECT_TRUE(backprop_id1 < backprop_id2);
+}
 
-    {  // Release in FIFO order
-        Context ctx{};
-        BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
-        BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
-        ctx.ReleaseBackpropId(backprop_id1);
-        ctx.ReleaseBackpropId(backprop_id2);
-    }
+TEST_F(BackpropTest, ReleaseBackpropIdsInLifoOrder) {
+    Context ctx{};
+    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
+    BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
+    ctx.ReleaseBackpropId(backprop_id2);
+    ctx.ReleaseBackpropId(backprop_id1);
+}
+
+TEST_F(BackpropTest, ReleaseBackpropIdsInFifoOrder) {
+    Context ctx{};
+    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
+    BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
+    ctx.ReleaseBackpropId(backprop_id1);
+    ctx.ReleaseBackpropId(backprop_id2);
 }
 
 TEST_F(BackpropTest, ArrayWithReleasedBackpropId) {
