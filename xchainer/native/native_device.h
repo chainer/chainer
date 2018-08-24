@@ -83,7 +83,11 @@ public:
 
     void Equal(const Array& x1, const Array& x2, const Array& out) override;
 
+    void NotEqual(const Array& x1, const Array& x2, const Array& out) override;
+
     void Greater(const Array& x1, const Array& x2, const Array& out) override;
+
+    void GreaterEqual(const Array& x1, const Array& x2, const Array& out) override;
 
     void LogicalNot(const Array& x1, const Array& out) override;
 
