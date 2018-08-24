@@ -79,7 +79,11 @@ def test_cmp(device, cmp_op, xc_cmp, np_cmp, a_object, b_object, dtype):
 ])
 @pytest.mark.parametrize('cmp_op, xc_cmp', [
     (lambda a, b: a == b, xchainer.equal),
+    (lambda a, b: a != b, xchainer.not_equal),
     (lambda a, b: a > b, xchainer.greater),
+    (lambda a, b: a >= b, xchainer.greater_equal),
+    (lambda a, b: a < b, xchainer.less),
+    (lambda a, b: a < b, xchainer.less_equal),
 ])
 def test_cmp_invalid(cmp_op, xc_cmp, a_shape, b_shape):
     def check(x, y):
