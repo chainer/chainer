@@ -1,4 +1,5 @@
 import collections
+import contextlib
 import copy
 import heapq
 import traceback
@@ -16,6 +17,24 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
+
+
+_delay_backward = False
+_delayed_backward_args = None
+
+
+@contextlib.contextmanager
+def delay_backward():
+    global _delay_backward, _delayed_backward_args
+    assert not _delay_backward
+    _delay_backward = True
+    _delayed_backward_args = ([], {})
+    yield
+    nodes, kwargs = _delayed_backward_args
+    enable_double_backprop = kwargs.pop('enable_double_backprop')
+    with chainer.using_config('enable_backprop', enable_double_backprop):
+        _backward_main(nodes, **kwargs)
+    _delay_backward = False
 
 
 def _check_grad_type(func, x, gx):
@@ -982,8 +1001,21 @@ Actual: {0}'''.format(type(data))
             if loss_scale is not None:
                 self.grad *= loss_scale
 
+        if _delay_backward:
+            _delayed_backward_args[0].append(self)
+            kwargs = dict(
+                retain_grad=retain_grad,
+                enable_double_backprop=enable_double_backprop,
+                loss_scale=loss_scale)
+            if _delayed_backward_args[1]:
+                if kwargs != _delayed_backward_args[1]:
+                    raise ValueError()
+            else:
+                _delayed_backward_args[1].update(kwargs)
+            return
+
         with chainer.using_config('enable_backprop', enable_double_backprop):
-            _backward_main([self.node], retain_grad, loss_scale)
+            _backward_main([self], retain_grad, loss_scale)
 
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
@@ -1089,22 +1121,34 @@ Actual: {0}'''.format(type(data))
     __hash__ = None
 
 
-def _backward_main(root_nodes, retain_grad, loss_scale):
+def _backward_main(root_vars, retain_grad, loss_scale):
     cand_funcs = []
     seen_set = set()
-    grads = _backprop_utils.GradTable(load_if_new=True)
 
     def add_cand(cand):
-        if cand not in seen_set:
+        ref_cand = weakref.ref(cand)
+        if ref_cand not in seen_set:
             # Negate since heapq is min-heap
             heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
-            seen_set.add(cand)
+            seen_set.add(ref_cand)
 
-    n = len(root_nodes)
-    for node in root_nodes:
-        add_cand(node.creator_node)
-    root_nodes = set(root_nodes)
-    assert len(root_nodes) == n, 'root_nodes should be distinct'
+    grads = _backprop_utils.GradTable(load_if_new=True)
+
+    root_nodes = set()
+    for y_var in root_vars:
+        y = y_var.node
+        grads[y] = y_var.grad_var
+        y_var.grad_var = None  # to reduce memory usage
+
+        add_cand(y.creator_node)
+        root_nodes.add(weakref.ref(y))
+
+    if len(root_nodes) != len(root_vars):
+        raise ValueError('variables should be distinct')
+
+    # remove references
+    del root_vars[:]
+    y, y_var = None, None
 
     leaf_nodes = set()
 
@@ -1133,12 +1177,12 @@ def _backward_main(root_nodes, retain_grad, loss_scale):
                 hook.backward_preprocess(func, in_data, out_grad_data)
 
             # Collect the current input gradients.
-            target_inputs = [inputs[i] for i in target_input_indexes]
             # Keep the order for the portability, rather than
-            # in_grad = {x: grads.get_as_list(x)
-            #            for x in set(target_inputs)}
+            # target_inputs = [inputs[i] for i in target_input_indexes]
+            # in_grad = {x: grads.get_as_list(x) for x in set(target_inputs)}
             in_grad = collections.OrderedDict()
-            for x in target_inputs:
+            for i in target_input_indexes:
+                x = inputs[i]
                 if x not in in_grad:
                     in_grad[x] = grads.get_as_list(x)
                     # to reduce memory usage
@@ -1150,10 +1194,13 @@ def _backward_main(root_nodes, retain_grad, loss_scale):
             for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad_data)
 
+        del in_data, out_grad_data
+
         for y, gy in six.moves.zip(outputs, out_grad):
-            if y is not None and y not in root_nodes:
+            if y is not None:
                 y._set_grad_var_if_available(
-                    gy if retain_grad else None)
+                    gy if retain_grad or weakref.ref(y) in root_nodes
+                    else None)
         del gy, out_grad  # to reduce memory usage
 
         for x, gx in in_grad.items():
@@ -1169,6 +1216,9 @@ def _backward_main(root_nodes, retain_grad, loss_scale):
             else:
                 add_cand(x.creator_node)
         del gx, in_grad  # to reduce memory usage
+
+        # remove references
+        x, y, inputs, outputs = None, None, None, None
 
     for x in leaf_nodes:
         x_var = x.get_variable_or_none()
