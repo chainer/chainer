@@ -9,13 +9,12 @@
 #define XCHAINER_DEBUG true
 #endif  // NDEBUG
 
-#define XCHAINER_ASSERT(...)                                   \
-    do {                                                       \
-        if (XCHAINER_DEBUG) {                                  \
-            (void)(false && (__VA_ARGS__)); /* maybe unused */ \
-            assert(__VA_ARGS__);                               \
-        }                                                      \
-    } while (false)
+#if XCHAINER_DEBUG
+#define XCHAINER_ASSERT assert
+#else
+// We use a lambda call to bypass clant-tidy's dead-code analysis, which currently does not evaluate non-const expressions.
+#define XCHAINER_ASSERT(...) (void)([] { return false; }() && (__VA_ARGS__))  // maybe unused
+#endif  // XCHAINER_DEBUG
 
 #ifndef XCHAINER_HOST_DEVICE
 #ifdef __CUDACC__
