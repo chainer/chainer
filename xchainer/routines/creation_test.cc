@@ -44,23 +44,9 @@ protected:
     void TearDown() override { device_session_.reset(); }
 
 public:
-    void RunThreads(const std::function<void(void)>& func) {
-        // TODO(sonots): Run concurrency test in CUDA
-        if (GetParam() == "cuda") {
-            func();
-            return;
-        }
-        Context& context = xchainer::GetDefaultContext();
-        testing::RunThreads(2, [&context, &func](size_t /*thread_index*/) {
-            xchainer::SetDefaultContext(&context);
-            func();
-            return nullptr;
-        });
-    }
-
     template <typename T>
     void CheckEmpty() {
-        RunThreads([]() {
+        testing::RunThreads([]() {
             Dtype dtype = TypeToDtype<T>;
             Array x = Empty(Shape{3, 2}, dtype);
             EXPECT_NE(x.data(), nullptr);
@@ -74,7 +60,7 @@ public:
 
     template <typename T>
     void CheckEmptyLike() {
-        RunThreads([]() {
+        testing::RunThreads([]() {
             Dtype dtype = TypeToDtype<T>;
             Array x_orig = Empty(Shape{3, 2}, dtype);
             Array x = EmptyLike(x_orig);
@@ -90,7 +76,7 @@ public:
 
     template <typename T>
     void CheckFullWithGivenDtype(T expected, Scalar scalar) {
-        RunThreads([&expected, &scalar]() {
+        testing::RunThreads([&expected, &scalar]() {
             Dtype dtype = TypeToDtype<T>;
             Array x = Full(Shape{3, 2}, scalar, dtype);
             EXPECT_NE(x.data(), nullptr);
@@ -110,7 +96,7 @@ public:
 
     template <typename T>
     void CheckFullWithScalarDtype(T value) {
-        RunThreads([&value]() {
+        testing::RunThreads([&value]() {
             Scalar scalar = {value};
             Array x = Full(Shape{3, 2}, scalar);
             EXPECT_NE(x.data(), nullptr);
@@ -125,7 +111,7 @@ public:
 
     template <typename T>
     void CheckFullLike(T expected, Scalar scalar) {
-        RunThreads([&expected, &scalar]() {
+        testing::RunThreads([&expected, &scalar]() {
             Dtype dtype = TypeToDtype<T>;
             Array x_orig = Empty(Shape{3, 2}, dtype);
             Array x = FullLike(x_orig, scalar);
@@ -147,7 +133,7 @@ public:
 
     template <typename T>
     void CheckZeros() {
-        RunThreads([]() {
+        testing::RunThreads([]() {
             Dtype dtype = TypeToDtype<T>;
             Array x = Zeros(Shape{3, 2}, dtype);
             EXPECT_NE(x.data(), nullptr);
@@ -163,7 +149,7 @@ public:
 
     template <typename T>
     void CheckZerosLike() {
-        RunThreads([]() {
+        testing::RunThreads([]() {
             Dtype dtype = TypeToDtype<T>;
             Array x_orig = Empty(Shape{3, 2}, dtype);
             Array x = ZerosLike(x_orig);
@@ -181,7 +167,7 @@ public:
 
     template <typename T>
     void CheckOnes() {
-        RunThreads([]() {
+        testing::RunThreads([]() {
             Dtype dtype = TypeToDtype<T>;
             Array x = Ones(Shape{3, 2}, dtype);
             EXPECT_NE(x.data(), nullptr);
@@ -197,7 +183,7 @@ public:
 
     template <typename T>
     void CheckOnesLike() {
-        RunThreads([]() {
+        testing::RunThreads([]() {
             Dtype dtype = TypeToDtype<T>;
             Array x_orig = Empty(Shape{3, 2}, dtype);
             Array x = OnesLike(x_orig);
@@ -226,7 +212,7 @@ TEST_P(CreationTest, FromContiguousHostData) {
 
     Dtype dtype = TypeToDtype<T>;
 
-    RunThreads([&shape, &dtype, &data]() {
+    testing::RunThreads([&shape, &dtype, &data]() {
         Array x = FromContiguousHostData(shape, dtype, data);
 
         // Basic attributes
@@ -289,7 +275,7 @@ TEST_P(CreationTest, FromData) {
     Strides strides{sizeof(T) * 3};
     int64_t offset = sizeof(T);
 
-    RunThreads([&device, &host_data, &raw_data, &shape, &dtype, &strides, &offset, &expected_data]() {
+    testing::RunThreads([&device, &host_data, &raw_data, &shape, &dtype, &strides, &offset, &expected_data]() {
         Array x;
         void* data_ptr{};
         {
@@ -317,7 +303,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
     Strides strides{sizeof(T)};
     int64_t offset = sizeof(T) * 3;
 
-    RunThreads([&device, &host_data, &raw_data, &shape, &dtype, &strides, &offset, &expected_data]() {
+    testing::RunThreads([&device, &host_data, &raw_data, &shape, &dtype, &strides, &offset, &expected_data]() {
         Array x;
         void* data_ptr{};
         {
@@ -365,7 +351,7 @@ TEST_P(CreationTest, FromHostData) {
 
     T expected_data[] = {1, 4};
 
-    RunThreads([&shape, &dtype, &host_data, &strides, &offset, &device, &expected_data]() {
+    testing::RunThreads([&shape, &dtype, &host_data, &strides, &offset, &device, &expected_data]() {
         Array x = internal::FromHostData(shape, dtype, host_data, strides, offset, device);
 
         EXPECT_EQ(shape, x.shape());
@@ -389,7 +375,7 @@ TEST_P(CreationTest, Empty) {
 }
 
 TEST_P(CreationTest, EmptyWithVariousShapes) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         {
             Array x = Empty(Shape{}, Dtype::kFloat32);
             EXPECT_EQ(0, x.ndim());
@@ -534,7 +520,7 @@ TEST_P(CreationTest, OnesLike) {
 }
 
 TEST_P(CreationTest, Arange) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(0, 3, 1);
         Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
         EXPECT_ARRAY_EQ(e, a);
@@ -542,7 +528,7 @@ TEST_P(CreationTest, Arange) {
 }
 
 TEST_P(CreationTest, ArangeStopDtype) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(3, Dtype::kInt32);
         Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
         EXPECT_ARRAY_EQ(e, a);
@@ -550,7 +536,7 @@ TEST_P(CreationTest, ArangeStopDtype) {
 }
 
 TEST_P(CreationTest, ArangeStopDevice) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(Scalar{3, Dtype::kInt32}, GetDefaultDevice());
         Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
         EXPECT_ARRAY_EQ(e, a);
@@ -558,7 +544,7 @@ TEST_P(CreationTest, ArangeStopDevice) {
 }
 
 TEST_P(CreationTest, ArangeStopDtypeDevice) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(3, Dtype::kInt32, GetDefaultDevice());
         Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
         EXPECT_ARRAY_EQ(e, a);
@@ -566,7 +552,7 @@ TEST_P(CreationTest, ArangeStopDtypeDevice) {
 }
 
 TEST_P(CreationTest, ArangeStartStopDtype) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(1, 3, Dtype::kInt32);
         Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
         EXPECT_ARRAY_EQ(e, a);
@@ -574,7 +560,7 @@ TEST_P(CreationTest, ArangeStartStopDtype) {
 }
 
 TEST_P(CreationTest, ArangeStartStopDevice) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(1, 3, GetDefaultDevice());
         Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
         EXPECT_ARRAY_EQ(e, a);
@@ -582,7 +568,7 @@ TEST_P(CreationTest, ArangeStartStopDevice) {
 }
 
 TEST_P(CreationTest, ArangeStartStopDtypeDevice) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(1, 3, Dtype::kInt32, GetDefaultDevice());
         Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
         EXPECT_ARRAY_EQ(e, a);
@@ -590,7 +576,7 @@ TEST_P(CreationTest, ArangeStartStopDtypeDevice) {
 }
 
 TEST_P(CreationTest, ArangeStartStopStepDtype) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(1, 7, 2, Dtype::kInt32);
         Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
         EXPECT_ARRAY_EQ(e, a);
@@ -598,7 +584,7 @@ TEST_P(CreationTest, ArangeStartStopStepDtype) {
 }
 
 TEST_P(CreationTest, ArangeStartStopStepDevice) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(1, 7, 2, GetDefaultDevice());
         Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
         EXPECT_ARRAY_EQ(e, a);
@@ -606,7 +592,7 @@ TEST_P(CreationTest, ArangeStartStopStepDevice) {
 }
 
 TEST_P(CreationTest, ArangeStartStopStepDtypeDevice) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(1, 7, 2, Dtype::kInt32, GetDefaultDevice());
         Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
         EXPECT_ARRAY_EQ(e, a);
@@ -614,7 +600,7 @@ TEST_P(CreationTest, ArangeStartStopStepDtypeDevice) {
 }
 
 TEST_P(CreationTest, ArangeNegativeStep) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(4.f, 0.f, -1.5f, Dtype::kFloat32);
         Array e = testing::BuildArray({3}).WithData<float>({4.f, 2.5f, 1.f});
         EXPECT_ARRAY_EQ(e, a);
@@ -622,7 +608,7 @@ TEST_P(CreationTest, ArangeNegativeStep) {
 }
 
 TEST_P(CreationTest, ArangeLargeStep) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(2, 3, 5, Dtype::kInt32);
         Array e = testing::BuildArray({1}).WithData<int32_t>({2});
         EXPECT_ARRAY_EQ(e, a);
@@ -630,7 +616,7 @@ TEST_P(CreationTest, ArangeLargeStep) {
 }
 
 TEST_P(CreationTest, ArangeEmpty) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(2, 1, 1, Dtype::kInt32);
         Array e = testing::BuildArray({0}).WithData<int32_t>({});
         EXPECT_ARRAY_EQ(e, a);
@@ -638,7 +624,7 @@ TEST_P(CreationTest, ArangeEmpty) {
 }
 
 TEST_P(CreationTest, ArangeNoDtype) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array a = Arange(Scalar{1, Dtype::kUInt8}, Scalar{4, Dtype::kUInt8}, Scalar{1, Dtype::kUInt8});
         Array e = testing::BuildArray({3}).WithData<uint8_t>({1, 2, 3});
         EXPECT_ARRAY_EQ(e, a);
@@ -648,7 +634,7 @@ TEST_P(CreationTest, ArangeNoDtype) {
 TEST_P(CreationTest, InvalidTooLongBooleanArange) { EXPECT_THROW(Arange(0, 3, 1, Dtype::kBool), DtypeError); }
 
 TEST_P(CreationTest, Copy) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         {
             Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
             Array o = Copy(a);
@@ -675,7 +661,7 @@ TEST_P(CreationTest, Copy) {
 }
 
 TEST_P(CreationTest, Identity) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array o = Identity(3, Dtype::kFloat32);
         Array e = testing::BuildArray({3, 3}).WithData<float>({1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
         EXPECT_ARRAY_EQ(e, o);
@@ -685,7 +671,7 @@ TEST_P(CreationTest, Identity) {
 TEST_P(CreationTest, IdentityInvalidN) { EXPECT_THROW(Identity(-1, Dtype::kFloat32), DimensionError); }
 
 TEST_P(CreationTest, Eye) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         {
             Array o = Eye(2, 3, 1, Dtype::kFloat32);
             Array e = testing::BuildArray({2, 3}).WithData<float>({0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
@@ -986,7 +972,7 @@ TEST_P(CreationTest, DiagflatDoubleBackward) {
 }
 
 TEST_P(CreationTest, Linspace) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array o = Linspace(3.0, 10.0, 4, true, Dtype::kInt32);
         Array e = testing::BuildArray({4}).WithData<int32_t>({3, 5, 7, 10});
         EXPECT_ARRAY_EQ(e, o);
@@ -994,7 +980,7 @@ TEST_P(CreationTest, Linspace) {
 }
 
 TEST_P(CreationTest, LinspaceEndPointFalse) {
-    RunThreads([]() {
+    testing::RunThreads([]() {
         Array o = Linspace(3.0, 10.0, 4, false, Dtype::kInt32);
         Array e = testing::BuildArray({4}).WithData<int32_t>({3, 4, 6, 8});
         EXPECT_ARRAY_EQ(e, o);
