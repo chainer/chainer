@@ -75,8 +75,10 @@ inline void RunThreads(const std::function<void(void)>& func, size_t thread_coun
     // Run in multi-threads
     if (thread_count > 0) {
         Context& context = xchainer::GetDefaultContext();
-        RunThreads(thread_count, [&context, &func](size_t /*thread_index*/) {
+        Device& device = xchainer::GetDefaultDevice();
+        RunThreads(thread_count, [&context, &device, &func](size_t /*thread_index*/) {
             xchainer::SetDefaultContext(&context);
+            xchainer::SetDefaultDevice(&device);
             func();
             return nullptr;
         });
