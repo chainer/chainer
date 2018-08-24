@@ -959,17 +959,9 @@ Actual: {0}'''.format(type(data))
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        with chainer.using_config('enable_backprop', enable_double_backprop):
-            self._backward_main(retain_grad, loss_scale)
-
-    def _backward_main(self, retain_grad, loss_scale):
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
-
-        cand_funcs = []
-        seen_set = set()
-        grads = _backprop_utils.GradTable(load_if_new=True)
 
         # Initialize error by 1, if this is a loss variable
         if self.data.size == 1 and self._grad_var is None:
@@ -989,6 +981,15 @@ Actual: {0}'''.format(type(data))
                     self.grad = cuda.cupy.ones_like(self.data)
             if loss_scale is not None:
                 self.grad *= loss_scale
+
+        with chainer.using_config('enable_backprop', enable_double_backprop):
+            self._backward_main(retain_grad, loss_scale)
+
+    def _backward_main(self, retain_grad, loss_scale):
+        cand_funcs = []
+        seen_set = set()
+        grads = _backprop_utils.GradTable(load_if_new=True)
+
         grads[self._node] = self._grad_var
 
         def add_cand(cand):
