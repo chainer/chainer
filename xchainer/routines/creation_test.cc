@@ -201,7 +201,7 @@ public:
 
 private:
     nonstd::optional<testing::DeviceSession> device_session_;
-};  // namespace
+}
 
 TEST_P(CreationTest, FromContiguousHostData) {
     using T = int32_t;
