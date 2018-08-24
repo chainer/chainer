@@ -17,7 +17,7 @@ from chainer.testing import attr
     'beta': [1],
     'gamma': [0.001],
     'norm': [1],
-    'result_l_dist': [1.21553416],
+    'result_l_dist': [6.0776708],
     'result_l_var': [64],
     'result_l_reg': [0.03419368]
 }) + testing.product(({
@@ -28,9 +28,9 @@ from chainer.testing import attr
     'gamma': [0.1],
     'max_n_clusters': [2],
     'norm': [2],
-    'result_l_dist': [0.00561398],
-    'result_l_var': [25.6],
-    'result_l_reg': [141.67655858]
+    'result_l_dist': [0.0],
+    'result_l_var': [26.56423595],
+    'result_l_reg': [1.55665027]
 })))
 class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
 
@@ -55,28 +55,28 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
                   numpy.asarray(self.result_l_var),
                   numpy.asarray(self.result_l_reg))
 
-    def get_result(self, prediction, labels):
+    def get_result(self, embeddings, labels):
         out = functions.discriminative_margin_based_clustering_loss(
-            prediction, labels,
+            embeddings, labels,
             self.delta_v, self.delta_d, self.max_n_clusters,
             self.norm, self.alpha, self.beta, self.gamma)
         return out
 
-    def check_forward_cpu(self, prediction, labels, t_data):
+    def check_forward_cpu(self, embeddings, labels, t_data):
         t_dist, t_var, t_reg = chainer.Variable(t_data[0]), \
                                chainer.Variable(t_data[1]), \
                                chainer.Variable(t_data[2])
-        l_dist, l_var, l_reg = self.get_result(prediction, labels)
+        l_dist, l_var, l_reg = self.get_result(embeddings, labels)
 
         numpy.testing.assert_almost_equal(l_dist.data, t_dist.data)
         numpy.testing.assert_almost_equal(l_var.data, t_var.data)
         numpy.testing.assert_almost_equal(l_reg.data, t_reg.data)
 
-    def check_forward_gpu(self, prediction, labels, t_data):
+    def check_forward_gpu(self, embeddings, labels, t_data):
         t_dist, t_var, t_reg = chainer.Variable(t_data[0]), \
                                chainer.Variable(t_data[1]), \
                                chainer.Variable(t_data[2])
-        l_dist, l_var, l_reg = self.get_result(prediction, labels)
+        l_dist, l_var, l_reg = self.get_result(embeddings, labels)
         l_dist.to_cpu()
         l_var.to_cpu()
         l_reg.to_cpu()
