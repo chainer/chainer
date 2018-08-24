@@ -44,13 +44,16 @@ TEST_P(ManipulationTest, AsScalar) {
     T value = 2.0f;
     Array a = testing::BuildArray({1, 1, 1}).WithData<T>({value}).WithPadding(1);
 
-    testing::RunThreads([&a, &value]() {
-        using T = float;
-        Scalar s = AsScalar(a);
-        EXPECT_EQ(s.dtype(), TypeToDtype<T>);
-        EXPECT_EQ(static_cast<T>(s), value);
-        return std::vector<Array>{};
-    });
+    testing::RunThreads(
+            [&a, &value]() {
+                using T = float;
+                Scalar s = AsScalar(a);
+                EXPECT_EQ(s.dtype(), TypeToDtype<T>);
+                EXPECT_EQ(static_cast<T>(s), value);
+                return std::vector<Array>{};
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, AsScalarInvalidZeroElement) {

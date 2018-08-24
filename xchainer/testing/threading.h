@@ -68,23 +68,19 @@ void CheckThreadSafety(
     }
 }
 
-inline void RunThreads(const std::function<void(void)>& func) {
-    // TODO(sonots): Run concurrency test in CUDA
-    if (xchainer::GetDefaultDevice().backend().GetName() == "cuda") {
-        func();
-        return;
-    }
-
+inline void RunThreads(const std::function<void(void)>& func, size_t thread_count = 2) {
     // Run single-shot
     func();
 
     // Run in multi-threads
-    Context& context = xchainer::GetDefaultContext();
-    RunThreads(2, [&context, &func](size_t /*thread_index*/) {
-        xchainer::SetDefaultContext(&context);
-        func();
-        return nullptr;
-    });
+    if (thread_count > 0) {
+        Context& context = xchainer::GetDefaultContext();
+        RunThreads(thread_count, [&context, &func](size_t /*thread_index*/) {
+            xchainer::SetDefaultContext(&context);
+            func();
+            return nullptr;
+        });
+    }
 }
 
 }  // namespace testing
