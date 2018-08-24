@@ -111,15 +111,6 @@ TEST(NativeDeviceTest, Synchronize) {
     device.Synchronize();  // no throw
 }
 
-TEST(NativeDeviceTest, GetDeviceMultiThread) {
-    Context ctx;
-
-    RunThreads([&ctx]() {
-        NativeDevice& device = GetNativeDevice(ctx, 0);
-        (void)device;
-    });
-}
-
 TEST(NativeDeviceTest, GetBackendMultiThread) {
     Context ctx;
     NativeDevice& device = GetNativeDevice(ctx, 0);
