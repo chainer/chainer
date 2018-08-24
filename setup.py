@@ -109,6 +109,16 @@ def find_any_distribution(pkgs):
     return None
 
 
+mn_pkg = find_any_distribution(['chainermn'])
+if mn_pkg is not None:
+    msg = """
+We detected that ChainerMN is installed in your environment.
+ChainerMN has been integrated to Chainer and no separate installation
+is neessary. Please uninstall the old ChainerMN in advance.
+"""
+    print(msg)
+    exit(1)
+
 # Currently cupy provides source package (cupy) and binary wheel packages
 # (cupy-cudaXX). Chainer can use any one of these packages.
 cupy_pkg = find_any_distribution([
