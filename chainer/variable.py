@@ -1036,6 +1036,9 @@ Actual: {0}'''.format(type(data))
             for x in target_inputs:
                 if x not in in_grad:
                     in_grad[x] = grads.get_as_list(x)
+                    x_var = x.get_variable_or_none()
+                    if x_var is not None:
+                        x_var._grad_var = None
 
             _backprop_utils.backprop_step(
                 func, target_input_indexes, out_grad, in_grad)
