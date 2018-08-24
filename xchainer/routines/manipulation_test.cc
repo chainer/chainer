@@ -44,7 +44,7 @@ TEST_P(ManipulationTest, AsScalar) {
     T value = 2.0f;
     Array a = testing::BuildArray({1, 1, 1}).WithData<T>({value}).WithPadding(1);
 
-    testing::RunThreads(
+    testing::RunTestWithThreads(
             [&a, &value]() {
                 using T = float;
                 Scalar s = AsScalar(a);
