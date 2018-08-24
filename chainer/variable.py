@@ -1052,7 +1052,7 @@ Actual: {0}'''.format(type(data))
                             yield gx_elem
 
                 for gx in iter_gxs(in_grad.values()):
-                    if chainer.utils.contains_nan(gx.data):
+                    if chainer.backends.contains_nan(gx.data):
                         raise RuntimeError(
                             'NaN is detected on backward computation of '
                             '{}'.format(func.label))
