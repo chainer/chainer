@@ -961,13 +961,6 @@ Actual: {0}'''.format(type(data))
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
-        initial_device = None
-        if cuda.available and isinstance(self.data, cuda.ndarray):
-            try:
-                initial_device = cuda.Device()
-            except cuda.cupy.cuda.runtime.CUDARuntimeError as e:
-                if e.status != 38:  # cudaErrorNoDevice
-                    raise
 
         is_debug = chainer.is_debug()
 
@@ -1024,24 +1017,25 @@ Actual: {0}'''.format(type(data))
                 hooks.update(func.local_function_hooks)
             hooks = hooks.values()  # avoid six for performance
 
-            cuda.get_device_from_array(*(in_data + out_grad_data)).use()
-            for hook in hooks:
-                hook.backward_preprocess(func, in_data, out_grad_data)
+            with cuda.get_device_from_array(*(in_data + out_grad_data)):
+                for hook in hooks:
+                    hook.backward_preprocess(func, in_data, out_grad_data)
 
-            # Collect the current input gradients.
-            target_inputs = [inputs[i] for i in target_input_indexes]
-            # Keep the order for the portability, rather than
-            # in_grad = {x: grads.get_as_list(x) for x in set(target_inputs)}
-            in_grad = collections.OrderedDict()
-            for x in target_inputs:
-                if x not in in_grad:
-                    in_grad[x] = grads.get_as_list(x)
+                # Collect the current input gradients.
+                target_inputs = [inputs[i] for i in target_input_indexes]
+                # Keep the order for the portability, rather than
+                # in_grad = {x: grads.get_as_list(x)
+                #            for x in set(target_inputs)}
+                in_grad = collections.OrderedDict()
+                for x in target_inputs:
+                    if x not in in_grad:
+                        in_grad[x] = grads.get_as_list(x)
 
-            _backprop_utils.backprop_step(
-                func, target_input_indexes, out_grad, in_grad)
+                _backprop_utils.backprop_step(
+                    func, target_input_indexes, out_grad, in_grad)
 
-            for hook in hooks:
-                hook.backward_postprocess(func, in_data, out_grad_data)
+                for hook in hooks:
+                    hook.backward_postprocess(func, in_data, out_grad_data)
 
             if is_debug:
                 # each grad is a list of variables
@@ -1054,11 +1048,12 @@ Actual: {0}'''.format(type(data))
                 for gx in iter_gxs(in_grad.values()):
                     gx_data = gx.data
                     if gx_data.dtype.kind == 'f':
-                        cuda.get_device_from_array(gx_data).use()
-                        if cuda.get_array_module(gx_data).isnan(gx_data).any():
-                            raise RuntimeError(
-                                'NaN is detected on backward computation of '
-                                '{}'.format(func.label))
+                        with cuda.get_device_from_array(gx_data):
+                            xp = cuda.get_array_module(gx_data)
+                            if xp.isnan(gx_data).any():
+                                raise RuntimeError(
+                                    'NaN is detected on backward computation '
+                                    'of {}'.format(func.label))
 
             for y, gy in six.moves.zip(outputs, out_grad):
                 if y is not None and y is not self.node:
@@ -1079,8 +1074,6 @@ Actual: {0}'''.format(type(data))
                     add_cand(x.creator_node)
 
             del in_grad  # to reduce memory usage
-            if initial_device is not None:
-                initial_device.use()
 
         for x in leaf_nodes:
             x_var = x.get_variable_or_none()

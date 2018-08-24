@@ -882,16 +882,16 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         in_data = tuple([x.data for x in func.inputs])
         out_grad_data = tuple(
             [None if g is None else g.data for g in gys])
-        cuda.get_device_from_array(*in_data).use()
 
-        for hook in hooks:
-            hook.backward_preprocess(func, in_data, out_grad_data)
+        with cuda.get_device_from_array(*in_data):
+            for hook in hooks:
+                hook.backward_preprocess(func, in_data, out_grad_data)
 
-        _backprop_utils.backprop_step(func, input_indexes, gys, x_grads)
+            _backprop_utils.backprop_step(func, input_indexes, gys, x_grads)
 
-        # Call post-backward hooks
-        for hook in hooks:
-            hook.backward_postprocess(func, in_data, out_grad_data)
+            # Call post-backward hooks
+            for hook in hooks:
+                hook.backward_postprocess(func, in_data, out_grad_data)
 
         # Update grads
         for node, g in x_grads.items():
