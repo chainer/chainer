@@ -12,8 +12,9 @@
 #if XCHAINER_DEBUG
 #define XCHAINER_ASSERT assert
 #else
+// This expression suppresses dead code and unused variable warnings of clang-tidy caused by "unused" __VA_ARGS__.
 // We use a lambda call to bypass clant-tidy's dead-code analysis, which currently does not evaluate non-const expressions.
-#define XCHAINER_ASSERT(...) (void)([] { return false; }() && (__VA_ARGS__))  // maybe unused
+#define XCHAINER_ASSERT(...) (void)([] { return false; }() && (__VA_ARGS__))
 #endif  // XCHAINER_DEBUG
 
 #ifndef XCHAINER_HOST_DEVICE
