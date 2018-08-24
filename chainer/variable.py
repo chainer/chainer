@@ -1100,9 +1100,12 @@ def _backward_main(root_nodes, retain_grad, loss_scale):
             heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
             seen_set.add(cand)
 
-    # TODO(kataoka): assert distinct
+    n = len(root_nodes)
     for node in root_nodes:
         add_cand(node.creator_node)
+    root_nodes = set(root_nodes)
+    assert len(root_nodes) == n, 'root_nodes should be distinct'
+
     leaf_nodes = set()
 
     while cand_funcs:
