@@ -8,6 +8,7 @@ CUDA and Backend Utilities
    :toctree: generated/
    :nosignatures:
 
+   chainer.backends.contains_nan
    chainer.backends.copyto
 
 CUDA

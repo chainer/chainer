@@ -6,17 +6,17 @@ from chainer.backends import intel64
 
 
 def contains_nan(x):
-    """Returns if x has a NaN value
+    """Returns whether the input array has NaN values.
 
     Args:
         x (numpy.ndarray or cupy.ndarray): Array to be checked.
 
     Returns:
-        bool
+        bool: True if the input has NaN values.
 
     """
     if x.dtype.kind in ('f', 'c'):
-        with cuda.get_device_from_array(x)
+        with cuda.get_device_from_array(x):
             return cuda.get_array_module(x).isnan(x).any()
     else:
         return False
