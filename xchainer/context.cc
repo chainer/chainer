@@ -146,15 +146,15 @@ void Context::ReleaseBackpropIdNoExcept(const BackpropId& backprop_id) noexcept 
         return;
     }
 
-    // Remove the relation pairs involving the backprop ID
-    backprop_relations_.erase(
+    // Remove the connection pairs involving the backprop ID
+    backprop_connections_.erase(
             std::remove_if(
-                    backprop_relations_.begin(),
-                    backprop_relations_.end(),
+                    backprop_connections_.begin(),
+                    backprop_connections_.end(),
                     [ordinal = backprop_id.ordinal()](const std::pair<BackpropOrdinal, BackpropOrdinal>& pair) {
                         return pair.first == ordinal || pair.second == ordinal;
                     }),
-            backprop_relations_.end());
+            backprop_connections_.end());
 
     // Remove the backprop ID.
     backprop_set_.erase(
@@ -173,7 +173,7 @@ void Context::CheckValidBackpropId(const BackpropId& backprop_id) const {
     }
 }
 
-void Context::RelateBackpropIds(const BackpropId& backprop_id1, const BackpropId& backprop_id2) {
+void Context::ConnectBackpropIds(const BackpropId& backprop_id1, const BackpropId& backprop_id2) {
     XCHAINER_ASSERT(&backprop_id1.context() == this);
     XCHAINER_ASSERT(&backprop_id2.context() == this);
     if (backprop_id1 == backprop_id2) {
@@ -188,13 +188,13 @@ void Context::RelateBackpropIds(const BackpropId& backprop_id1, const BackpropId
     }
 
     std::pair<BackpropOrdinal, BackpropOrdinal> pair = std::minmax(backprop_id1.ordinal(), backprop_id2.ordinal());
-    if (backprop_relations_.end() != std::find(backprop_relations_.begin(), backprop_relations_.end(), pair)) {
-        // Already in relation
+    if (backprop_connections_.end() != std::find(backprop_connections_.begin(), backprop_connections_.end(), pair)) {
+        // Already in connection
         return;
     }
 
-    // Add a new relation
-    backprop_relations_.emplace_back(pair);
+    // Add a new connection
+    backprop_connections_.emplace_back(pair);
 }
 
 std::string Context::GetBackpropName(const BackpropId& backprop_id) {
@@ -216,7 +216,7 @@ void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {
     if (item->prohibiting_ordinal.has_value()) {
         throw XchainerError{"Cannot backward for backprop ID '",
                             backprop_id,
-                            "' because an associated backprop ID '",
+                            "' because an connected backprop ID '",
                             BackpropId{*this, *item->prohibiting_ordinal},
                             "' which has been created earlier, has already been backpropped."};
     }
@@ -226,15 +226,15 @@ void Context::SetBackpropDone(const BackpropId& backprop_id) {
     BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
     XCHAINER_ASSERT(item != nullptr);
 
-    // Find related backprop IDs
+    // Find connected backprop IDs
     std::vector<BackpropOrdinal> ordinals_to_prohibit;
-    for (const std::pair<BackpropOrdinal, BackpropOrdinal>& pair : backprop_relations_) {
+    for (const std::pair<BackpropOrdinal, BackpropOrdinal>& pair : backprop_connections_) {
         if (pair.first == backprop_id.ordinal()) {
             ordinals_to_prohibit.emplace_back(pair.second);
         }
     }
 
-    // Mark related backprop IDs as prohibited.
+    // Mark connected backprop IDs as prohibited.
     for (BackpropOrdinal ord : ordinals_to_prohibit) {
         BackpropSetItem* item2 = GetBackpropSetItem(ord);
         if (!item2->prohibiting_ordinal.has_value()) {
@@ -246,7 +246,7 @@ void Context::SetBackpropDone(const BackpropId& backprop_id) {
 std::vector<BackpropId> Context::GetInnerBackpropIds(const BackpropId& backprop_id) {
     std::vector<BackpropId> inner_backprop_ids;
     inner_backprop_ids.reserve(backprop_set_.size());
-    for (const std::pair<BackpropOrdinal, BackpropOrdinal>& pair : backprop_relations_) {
+    for (const std::pair<BackpropOrdinal, BackpropOrdinal>& pair : backprop_connections_) {
         if (pair.first == backprop_id.ordinal()) {
             inner_backprop_ids.emplace_back(BackpropId{*this, pair.second});
         }

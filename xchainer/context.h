@@ -76,7 +76,7 @@ public:
 
     // Declares that the two backprop IDs co-exist in any portion of computation graph.
     // Backpropping on the backprop ID with the lower ordinal will prohibit future backprop on the other.
-    void RelateBackpropIds(const BackpropId& backprop_id1, const BackpropId& backprop_id2);
+    void ConnectBackpropIds(const BackpropId& backprop_id1, const BackpropId& backprop_id2);
 
     // Return the name of the backprop.
     // XchainerError is thrown if the backprop ID is expired or non-existent in the context.
@@ -135,9 +135,9 @@ private:
 
     std::vector<BackpropSetItem> backprop_set_{};
 
-    // List of pairs of related backprop IDs.
+    // List of pairs of connected backprop IDs.
     // The first ordinal is always less than the second, which means backpropping on the first will prohibit future backprop on the second.
-    std::vector<std::pair<BackpropOrdinal, BackpropOrdinal>> backprop_relations_;
+    std::vector<std::pair<BackpropOrdinal, BackpropOrdinal>> backprop_connections_;
 };
 
 // Gets/sets the context that used by default when current context is not set.

@@ -173,7 +173,7 @@ private:
     // These references are required to restore retained inputs/outputs.
     void AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention();
 
-    void RelateBackpropIds();
+    void ConnectBackpropIds();
 
     const char* op_name_;
 

@@ -151,9 +151,9 @@ void BackwardBuilder::Finalize() {
 
     AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention();
 
-    // Relate each pair of backprop IDs concerned in this op.
-    // If two backprop IDs are related, backpropping on the one with lower ordinal will prohibit future backprop on the other.
-    RelateBackpropIds();
+    // Connect each pair of backprop IDs concerned in this op.
+    // If two backprop IDs are connected, backpropping on the one with lower ordinal will prohibit future backprop on the other.
+    ConnectBackpropIds();
 
     is_finalized_ = true;
 }
@@ -244,12 +244,12 @@ void BackwardBuilder::AddEdgesFromOpNodeToArrayNodeOfOuterGraphsForRetention() {
     }
 }
 
-void BackwardBuilder::RelateBackpropIds() {
+void BackwardBuilder::ConnectBackpropIds() {
     for (auto it1 = op_node_map_.begin(); it1 != op_node_map_.end(); ++it1) {
         const BackpropId& backprop_id1 = it1->first;
         for (auto it2 = std::next(it1); it2 != op_node_map_.end(); ++it2) {
             const BackpropId& backprop_id2 = it2->first;
-            context_.RelateBackpropIds(backprop_id1, backprop_id2);
+            context_.ConnectBackpropIds(backprop_id1, backprop_id2);
         }
     }
 }
