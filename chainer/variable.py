@@ -1070,6 +1070,7 @@ Actual: {0}'''.format(type(data))
                 if y is not None and y is not self.node:
                     y._set_grad_var_if_available(
                         gy if retain_grad else None)
+            del gy, out_grad  # to reduce memory usage
 
             for x, gx in in_grad.items():
                 if not gx:  # gradient == None
@@ -1077,13 +1078,14 @@ Actual: {0}'''.format(type(data))
 
                 for gx_elem in gx:
                     _check_grad_type(func, x, gx_elem.data)
+                del gx_elem  # to reduce memory usage
 
                 if x.creator_node is None:  # leaf
                     leaf_nodes.add(x)
                 else:
                     add_cand(x.creator_node)
-
             del in_grad  # to reduce memory usage
+
             if initial_device is not None:
                 initial_device.use()
 
