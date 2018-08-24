@@ -129,6 +129,8 @@ class VGGLayers(link.Chain):
                     'http://www.robots.ox.ac.uk/%7Evgg/software/very_deep/'
                     'caffe/VGG_ILSVRC_19_layers.caffemodel',
                     self)
+        elif pretrained_model:
+            npz.load_npz(pretrained_model, self)
 
     @property
     def functions(self):
@@ -206,7 +208,7 @@ class VGGLayers(link.Chain):
 
         Extracts all the feature maps of given images.
 
-        The difference of directory executing ``forward`` is that
+        The difference of directry executing ``forward`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
