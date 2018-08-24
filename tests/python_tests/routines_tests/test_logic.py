@@ -50,7 +50,11 @@ def _to_array_safe(xp, a_object, dtype):
 ])
 @pytest.mark.parametrize('cmp_op, xc_cmp, np_cmp', [
     (lambda a, b: a == b, xchainer.equal, numpy.equal),
+    (lambda a, b: a != b, xchainer.not_equal, numpy.not_equal),
     (lambda a, b: a > b, xchainer.greater, numpy.greater),
+    (lambda a, b: a >= b, xchainer.greater_equal, numpy.greater_equal),
+    (lambda a, b: a < b, xchainer.less, numpy.less),
+    (lambda a, b: a <= b, xchainer.less_equal, numpy.less_equal),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_cmp(device, cmp_op, xc_cmp, np_cmp, a_object, b_object, dtype):
