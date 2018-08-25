@@ -1080,7 +1080,7 @@ Actual: {0}'''.format(type(data))
                     leaf_nodes.add(x)
                 else:
                     add_cand(x.creator_node)
-            del in_grad  # to reduce memory usage
+            del gx, in_grad  # to reduce memory usage
 
         for x in leaf_nodes:
             x_var = x.get_variable_or_none()
