@@ -20,7 +20,7 @@ like 1(very negative), 2(negative), 3(neutral), 4(positive), 5(very positive).
     cited from [1]
 
 Sentiment analysis is implemented with Recursive Neural Networks. Recursive Neural
-Networks are recursive neural nets with a tree structure. NLP often expresses
+Networks are recurrent neural nets with a tree structure. NLP often expresses
 sentences in a tree structure, Recursive Neural Networks are often used in NLP.
 First, we explain the training method of Recursive Neural Networks without
 mini-batch processing. After that, as an advanced story, we explain the training
@@ -34,8 +34,8 @@ In this tutorial, we will learn the following:
     * Training method of a Recursive Neural Network without mini-batches
     * Training method of a mini-batched Recursive Neural Network
 
-1. What is a Recursive Neural Network? [2]
-==========================================
+1. What is a Recursive Neural Network? 
+=======================================
 
 A Recursive Neural Network is a Recurrent Neural Networks that extends to
 a tree structure. As both networks are often written as RNN, we need to be
@@ -65,12 +65,6 @@ elements compared to Recurrent Neural Networks, because the depth is enough with
 
 2. Implementation of sentiment analysis by Recursive Neural Networks
 =====================================================================
-
-As shown below, we explain the implementation with Colaboratory.
-You can immediately run the tutorial with a GPU environment in a browser.
-So, please try it!
-
-`chainer-community/chainer-colab-notebook/OfficialExample(ja)/sentiment_ja.ipynb <https://colab.research.google.com/drive/1NQOxHw-JINkDbY4JDT5Tgy8fOuEcbJbv>`_
 
 2.1 Preparation of training data
 ---------------------------------
@@ -247,7 +241,7 @@ You can easily implement it using :class:`~chainer.training.extensions.MicroAver
      Node accuracy: 46.47 %% (145/312)
      Root accuracy: 40.00 %% (4/10)
 
-3. (Advanced) Mini-batching in Recursive Neural Networks[3]
+3. (Advanced) Mini-batching in Recursive Neural Networks[2]
 ============================================================
 
 Recursive Neural Networks have difficulty computing mini-batched data in parallel because of the following reasons.
@@ -355,5 +349,4 @@ It should get much faster!
 4. Reference
 =============
 * [1] `Socher, Richard; et al. "Recursive Deep Models for Semantic Compositionality Over a Sentiment Treebank". <https://nlp.stanford.edu/~socherr/EMNLP2013_RNTN.pdf>`_
-* [2] 深層学習による自然言語処理 (機械学習プロフェッショナルシリーズ) [Japanese]
-* [3] `A Fast Unified Model for Parsing and Sentence Understanding <http://nlp.stanford.edu/pubs/bowman2016spinn.pdf>`_
+* [2] `A Fast Unified Model for Parsing and Sentence Understanding <http://nlp.stanford.edu/pubs/bowman2016spinn.pdf>`_
