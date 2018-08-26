@@ -287,6 +287,11 @@ class VariableNode(object):
         var = self._variable()
         return None if var is None else var._grad_var
 
+    def _set_grad_var_if_available(self, g):
+        var = self._variable()
+        if var is not None:
+            var._grad_var = g
+
     @property
     def label(self):
         """Short text that represents the variable node."""
@@ -1030,6 +1035,8 @@ Actual: {0}'''.format(type(data))
                 for x in target_inputs:
                     if x not in in_grad:
                         in_grad[x] = grads.get_as_list(x)
+                        # to reduce memory usage
+                        x._set_grad_var_if_available(None)
 
                 _backprop_utils.backprop_step(
                     func, target_input_indexes, out_grad, in_grad)
@@ -1057,9 +1064,9 @@ Actual: {0}'''.format(type(data))
 
             for y, gy in six.moves.zip(outputs, out_grad):
                 if y is not None and y is not self.node:
-                    y_var = y.get_variable_or_none()
-                    if y_var is not None:
-                        y_var._grad_var = gy if retain_grad else None
+                    y._set_grad_var_if_available(
+                        gy if retain_grad else None)
+            del gy, out_grad  # to reduce memory usage
 
             for x, gx in in_grad.items():
                 if not gx:  # gradient == None
@@ -1067,13 +1074,13 @@ Actual: {0}'''.format(type(data))
 
                 for gx_elem in gx:
                     _check_grad_type(func, x, gx_elem.data)
+                del gx_elem  # to reduce memory usage
 
                 if x.creator_node is None:  # leaf
                     leaf_nodes.add(x)
                 else:
                     add_cand(x.creator_node)
-
-            del in_grad  # to reduce memory usage
+            del gx, in_grad  # to reduce memory usage
 
         for x in leaf_nodes:
             x_var = x.get_variable_or_none()
