@@ -552,15 +552,35 @@ Use apply() method instead.\
         len_gxs = len(gxs)
         if len_gxs == len(self.inputs):
             gxs = tuple([gxs[i] for i in target_input_indexes])
-        elif len_gxs != len(target_input_indexes):
-            raise ValueError(
-                'number of gradients returned by %s (%s) is incorrect.'
-                % (self._impl_name, self.label))
+        else:
+            assert len_gxs == len(target_input_indexes)
 
         return tuple([gx if g_input is None else
                       g_input if gx is None else
                       gx + g_input
                       for gx, g_input in six.moves.zip(gxs, grad_inputs)])
+
+    def _get_error_message(self, message):
+        lines = [
+            message,
+            '  function={} ({})'.format(self._impl_name, self.label)
+        ]
+        if self.inputs:
+            for i, input in enumerate(self.inputs):
+                lines.append(
+                    '    input {}: shape={} dtype={}'.format(
+                        i, input.shape, input.dtype))
+        if self.outputs:
+            for i, output_ref in enumerate(self.outputs):
+                output = output_ref()
+                if output is None:
+                    lines.append(
+                        '    output {}: not available')
+                else:
+                    lines.append(
+                        '    output {}: shape={} dtype={}'.format(
+                            i, output.shape, output.dtype))
+        return '\n'.join(lines)
 
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
@@ -573,6 +593,9 @@ Use apply() method instead.\
 
         """
         inputs = self.inputs
+        if self._input_indexes_to_retain is None:
+            raise ValueError(self._get_error_message(
+                'retain_inputs is not called in forward.'))
         return tuple([inputs[index].get_variable()
                       for index in self._input_indexes_to_retain])
 
@@ -593,6 +616,9 @@ Use apply() method instead.\
            node of the function node.
 
         """
+        if self._retained_output_data is None:
+            raise ValueError(self._get_error_message(
+                'retain_outputs is not called in forward.'))
         ret = []
         outputs = self.outputs
 
