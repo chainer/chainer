@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include <tuple>
+#include <vector>
 
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
@@ -16,6 +17,7 @@
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/testing/threading.h"
 #include "xchainer/testing/util.h"
 
 namespace xchainer {
@@ -57,6 +59,21 @@ TEST(CudaBackendTest, GetDeviceCount) {
     EXPECT_EQ(count, CudaBackend(ctx).GetDeviceCount());
 }
 
+TEST(CudaBackendTest, GetDeviceCountGetNameThreadSafe) {
+    Context ctx;
+    CudaBackend backend{ctx};
+    int expected_device_count = backend.GetDeviceCount();
+    std::string expected_backend_name = backend.GetName();
+
+    testing::RunThreads(2, [&backend, expected_device_count, &expected_backend_name](size_t /*thread_index*/) {
+        int device_count = backend.GetDeviceCount();
+        std::string name = backend.GetName();
+        EXPECT_EQ(expected_device_count, device_count);
+        EXPECT_EQ(expected_backend_name, name);
+        return nullptr;
+    });
+}
+
 TEST(CudaBackendTest, GetDevice) {
     Context ctx;
     CudaBackend backend{ctx};
@@ -64,6 +81,19 @@ TEST(CudaBackendTest, GetDevice) {
     Device& device = backend.GetDevice(0);
     EXPECT_EQ(&backend, &device.backend());
     EXPECT_EQ(0, device.index());
+}
+
+TEST(CudaBackendTest, GetDeviceThreadSafe) {
+    Context ctx;
+    CudaBackend backend{ctx};
+
+    testing::RunThreads(4, [&backend](size_t thread_index) {
+        int device_index = thread_index;
+        Device& device = backend.GetDevice(device_index);
+        EXPECT_EQ(&backend, &device.backend());
+        EXPECT_EQ(device_index, device.index());
+        return nullptr;
+    });
 }
 
 TEST(CudaBackendTest, GetDeviceSecondDevice) {
@@ -87,6 +117,40 @@ TEST(CudaBackendTest, GetDeviceOutOfRange) {
 TEST(CudaBackendTest, GetName) {
     Context ctx;
     EXPECT_EQ("cuda", CudaBackend(ctx).GetName());
+}
+
+TEST(CudaBackendTest, SupportsTransferThreadSafe) {
+    struct CheckContext {
+        std::unique_ptr<Context> context0;
+        std::unique_ptr<Context> context1;
+        Backend& context0_backend;
+        Backend& context1_backend;
+        Device& context0_device0;
+        Device& context0_device1;
+        Device& context1_device;
+    };
+
+    auto ctx0 = std::make_unique<Context>();
+    auto ctx1 = std::make_unique<Context>();
+    CudaBackend context0_backend{*ctx0};
+    CudaBackend context1_backend{*ctx1};
+    auto check_ctx = CheckContext{std::move(ctx0),
+                                  std::move(ctx1),
+                                  context0_backend,
+                                  context1_backend,
+                                  context0_backend.GetDevice(0),
+                                  context0_backend.GetDevice(1),
+                                  context1_backend.GetDevice(0)};
+
+    testing::RunThreads(2, [&check_ctx](size_t /*thread_index*/) {
+        Backend& context0_backend = check_ctx.context0_backend;
+        Device& context0_device0 = check_ctx.context0_device0;
+        Device& context0_device1 = check_ctx.context0_device1;
+        Device& context1_device = check_ctx.context1_device;
+        EXPECT_TRUE(context0_backend.SupportsTransfer(context0_device0, context0_device1));
+        EXPECT_FALSE(context0_backend.SupportsTransfer(context0_device0, context1_device));
+        return nullptr;
+    });
 }
 
 TEST(CudaBackendIncompatibleTransferTest, SupportsTransferDifferentContexts) {
