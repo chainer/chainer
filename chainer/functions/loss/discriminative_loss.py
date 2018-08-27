@@ -44,8 +44,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         gamma (float): Weight for regularizer loss (gamma * regularizer_loss)
     """
 
-    def __init__(self,
-                 delta_v=0.5, delta_d=1.5,
+    def __init__(self, delta_v=0.5, delta_d=1.5,
                  max_embedding_dim=10, norm=1,
                  alpha=1.0, beta=1.0, gamma=0.001):
         self.delta_v = delta_v
