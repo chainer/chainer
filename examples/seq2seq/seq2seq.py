@@ -231,6 +231,8 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--resume', '-r', default='',
                         help='resume the training from snapshot')
+    parser.add_argument('--save', '-s', default='',
+                        help='save a snapshot of the training')
     parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='number of units')
     parser.add_argument('--layer', '-l', type=int, default=3,
@@ -371,7 +373,15 @@ def main():
             trigger=(args.validation_interval, 'iteration'))
 
     print('start training')
+    if args.resume:
+        # Resume from a snapshot
+        chainer.serializers.load_npz(args.resume, trainer)
+
     trainer.run()
+
+    if args.save:
+        # Save a snapshot
+        chainer.serializers.save_npz(args.save, trainer)
 
 
 if __name__ == '__main__':

@@ -84,6 +84,14 @@ class Trainer(object):
     can be serialized through the standard serialization protocol of Chainer.
     It enables us to easily suspend and resume the training loop.
 
+    .. code-block:: python
+
+        >>> serializers.save_npz('my.trainer', trainer)  # To suspend and save
+        >>> serializers.load_npz('my.trainer', trainer)  # To load and resume
+
+    The :meth:`~chainer.training.extensions.snapshot` method makes regular
+    snapshots of the :class:`~chainer.training.Trainer` object during training.
+
     .. note::
        The serialization does not recover everything of the training loop. It
        only recovers the states which change over the training (e.g.
