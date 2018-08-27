@@ -1,8 +1,8 @@
+import platform
 import sys
 
 import numpy
 import six
-import platform
 
 import chainer
 from chainer.backends import cuda
