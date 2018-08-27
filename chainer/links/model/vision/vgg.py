@@ -35,13 +35,15 @@ class VGGLayers(link.Chain):
 
     """A pre-trained CNN model provided by VGG team.
 
-    During initialization, this chain model automatically downloads
-    the pre-trained caffemodel, convert to another chainer model,
-    stores it on your local directory, and initializes all the parameters
-    with it. This model would be useful when you want to extract a semantic
+    You can use ``VGG16Layers`` or ``VGG19Layers`` for concrete
+    implementations. During initialization, this chain model
+    automatically downloads the pre-trained caffemodel, convert to
+    another chainer model, stores it on your local directory,
+    and initializes all the parameters with it.
+    This model would be useful when you want to extract a semantic
     feature vector from a given image, or fine-tune the model
     on a different dataset.
-    Note that this pre-trained models are released under Creative Commons
+    Note that these pre-trained models are released under Creative Commons
     Attribution License.
 
     If you want to manually convert the pre-trained caffemodel to a chainer
@@ -75,7 +77,7 @@ class VGGLayers(link.Chain):
 
     """
 
-    def __init__(self, pretrained_model, n_layers):
+    def __init__(self, pretrained_model='auto', n_layers=16):
         super(VGGLayers, self).__init__()
         if pretrained_model:
             # Because a sampling process is time-consuming,
@@ -164,7 +166,8 @@ class VGGLayers(link.Chain):
         .. warning::
 
            ``test`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', False)``.
+           Instead, use ``chainer.using_config('train', False)``
+           to run in test mode.
            See :func:`chainer.using_config`.
 
         Args:
@@ -174,7 +177,7 @@ class VGGLayers(link.Chain):
                 If ``None``, 'prob' will be used as layers.
 
         Returns:
-            Dictionary of ~chainer.Variable: A dictionay in which
+            Dictionary of ~chainer.Variable: A dictionary in which
             the key contains the layer and the value contains the
             corresponding feature map variable.
 
@@ -185,7 +188,7 @@ class VGGLayers(link.Chain):
 
         if kwargs:
             argument.check_unexpected_kwargs(
-                kwargs, test='test argument is not supported anymote. '
+                kwargs, test='test argument is not supported anymore. '
                 'Use chainer.using_config'
             )
             argument.assert_kwargs_empty(kwargs)
@@ -208,7 +211,7 @@ class VGGLayers(link.Chain):
 
         Extracts all the feature maps of given images.
 
-        The difference of directry executing ``forward`` is that
+        The difference of directly executing ``forward`` is that
         it directly accepts images as an input and automatically
         transforms them to a proper variable. That is,
         it is also interpreted as a shortcut method that implicitly calls
