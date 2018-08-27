@@ -11,6 +11,7 @@ from chainer.functions.math.sqrt import sqrt
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
+    
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
