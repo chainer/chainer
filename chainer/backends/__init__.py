@@ -5,7 +5,7 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 
 
-def contains_nan(x):
+def _contains_nan(x):
     """Returns whether the input array has NaN values.
 
     Args:

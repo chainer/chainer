@@ -275,7 +275,7 @@ Use apply() method instead.\
 
         # NaN check of output values
         if is_debug:
-            if any(chainer.backends.contains_nan(out)
+            if any(chainer.backends._contains_nan(out)
                    for out in outputs):
                 msg = ('NaN is detected on forward computation of '
                        '{}'.format(self.label))
