@@ -65,7 +65,7 @@ class TestSigmoidCrossEntropy(unittest.TestCase):
                 'dtype':numpy.float64, 'atol': 5e-2, 'rtol': 5e-2}
             self.check_double_backward_options = {
                 'dtype': numpy.float64, 'atol': 5e-2, 'rtol': 5e-2}
-        elif
+        else:
             self.places = 5
             self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-3}
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-3}
