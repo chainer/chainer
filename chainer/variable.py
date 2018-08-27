@@ -1148,11 +1148,15 @@ def _backward_main(root_vars, retain_grad, loss_scale):
 
     # remove references
     del root_vars[:]
-    y, y_var = None, None
+    y_var = None
 
     leaf_nodes = set()
 
     while cand_funcs:
+        # remove references
+        x, y, inputs, outputs = None, None, None, None
+        del x, y, inputs, outputs
+
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
         target_input_indexes = tuple([
@@ -1216,9 +1220,6 @@ def _backward_main(root_vars, retain_grad, loss_scale):
             else:
                 add_cand(x.creator_node)
         del gx, in_grad  # to reduce memory usage
-
-        # remove references
-        x, y, inputs, outputs = None, None, None, None
 
     for x in leaf_nodes:
         x_var = x.get_variable_or_none()
