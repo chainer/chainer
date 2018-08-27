@@ -1160,9 +1160,16 @@ def _backward_main(outputs, retain_grad, loss_scale):
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
         target_input_indexes = tuple([
-            i for i, x in enumerate(inputs) if x.requires_grad
+            i
+            # TODO(kataoka): remove NOQA if flake8 is fixed
+            for i, x in enumerate(inputs)  # NOQA
+            if x.requires_grad
         ])
-        outputs = [y() for y in func.outputs]  # access via weak ref
+        outputs = [
+            y()  # access via weak ref
+            # TODO(kataoka): remove NOQA if flake8 is fixed
+            for y in func.outputs  # NOQA
+        ]
         out_grad = tuple([grads.pop(y) for y in outputs])
         if not target_input_indexes:
             continue
