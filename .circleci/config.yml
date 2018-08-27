@@ -164,6 +164,32 @@ jobs:
                 ..
             popd
 
+      # clang-tidy (normal source files)
+      # NOTE: We runs this only on master branch because it takes much time.
+      - run:
+          name: clang-tidy (normal source files)
+          command: |
+            if [[ "$CIRCLE_BRANCH" = "master" ]]; then
+              source activate testenv
+
+              pushd build
+              ../scripts/run-clang-tidy.sh normal
+              popd
+            fi
+
+      # clang-tidy (test source files)
+      # NOTE: We runs this only on master branch because it takes much time.
+      - run:
+          name: clang-tidy (test source files)
+          command: |
+            if [[ "$CIRCLE_BRANCH" = "master" ]]; then
+              source activate testenv
+
+              pushd build
+              bash ../scripts/run-clang-tidy.sh test
+              popd
+            fi
+
       # make
       - run:
           name: make
