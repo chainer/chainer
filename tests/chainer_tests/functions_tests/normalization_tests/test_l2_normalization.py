@@ -135,7 +135,10 @@ class TestL2Normalization(unittest.TestCase):
                 indices.append([slice(None)])
         indices_tuple = list(itertools.product(*indices))
         for index in indices_tuple:
-            numerator = numpy.linalg.norm(self.x[index]) + eps
+            # Note: Casting back the result of `numpy.linalg.norm` to `x.dtype`
+            # because old NumPy casts it to float32 when a float16 value is
+            # given.
+            numerator = numpy.linalg.norm(self.x[index]).astype(x.dtype) + eps
             y_expect[index] = self.x[index] / numerator
         testing.assert_allclose(y_expect, y_data, **self.check_forward_options)
 
