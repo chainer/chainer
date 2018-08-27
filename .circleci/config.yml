@@ -10,7 +10,7 @@ jobs:
           name: Setup
           command: |
             apt-get update
-            apt-get install -y g++ cmake clang-5.0 clang-tidy-5.0 clang-6.0 clang-format-6.0 git python3-dev wget lcov
+            apt-get install -y g++ cmake clang-5.0 clang-tidy-5.0 clang-6.0 clang-format-6.0 git python3-dev wget
             apt-get install openssh-client  # To avoid warning on checkout
             apt-get install -y bzip2  # To install miniconda
             apt-get install -y parallel  # Used in scripts
@@ -158,7 +158,6 @@ jobs:
             cmake \
                 -DCMAKE_BUILD_TYPE=Debug \
                 -DXCHAINER_BUILD_PYTHON=1 \
-                -DXCHAINER_ENABLE_COVERAGE=ON \
                 -DXCHAINER_WARNINGS_AS_ERRORS=ON \
                 -DCMAKE_INSTALL_PREFIX=$HOME/local \
                 ..
