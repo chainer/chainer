@@ -47,7 +47,7 @@ def _is_good_param(param):
         {'shape': (), 'axis': ()},
     ],
     [
-        # nonzeros (optional int): max number of nonzero elems in input
+        # nonzeros (optional int): number of nonzero elems in input
         # truezero (bool): flag whether zero elems are exactly zero. If false,
         #     randomly-chosen small values are used.
         {'eps': 1e-5, 'nonzeros': None},
@@ -61,7 +61,10 @@ def _is_good_param(param):
 class TestL2Normalization(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.x = chainer.utils.force_array(
+            numpy.random.uniform(0.1, 1, self.shape)
+            * (1 - 2 * numpy.random.randint(2, size=self.shape)),
+            numpy.float32)
         if self.nonzeros is not None:
             # Make self.x have limited number of large values
 
@@ -83,6 +86,16 @@ class TestL2Normalization(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         self.ggx = numpy.random.uniform(
             -1, 1, self.shape).astype(numpy.float32)
+        self.check_options = {
+            'dtype': numpy.float64,
+        }
+        if self.nonzeros is None:
+            self.check_options['rtol'] = 1e-4
+            self.check_options['atol'] = 1e-4
+        else:
+            self.check_options['rtol'] = 1e-2
+            self.check_options['atol'] = 1e-2
+            self.check_options['eps'] = 1e-4
 
     def check_forward(self, x_data, axis):
         eps = self.eps
@@ -119,7 +132,7 @@ class TestL2Normalization(unittest.TestCase):
             return functions.normalize(x, eps=self.eps, axis=axis)
 
         gradient_check.check_backward(
-            f, x_data, y_grad, dtype='d', atol=1e-2, rtol=3e-2)
+            f, x_data, y_grad, **self.check_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.axis, self.gy)
@@ -137,7 +150,7 @@ class TestL2Normalization(unittest.TestCase):
             return functions.normalize(x, eps=self.eps, axis=axis)
 
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype='d', atol=1e-2, rtol=3e-2)
+            f, x_data, y_grad, x_grad_grad, **self.check_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.axis, self.gy, self.ggx)

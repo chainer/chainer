@@ -97,14 +97,14 @@ class FunctionHook(object):
             raise KeyError('hook %s already exists' % self.name)
 
         function_hooks[self.name] = self
-        self.added()
+        self.added(None)
         return self
 
     def __exit__(self, *_):
-        chainer.get_function_hooks()[self.name].deleted()
+        chainer.get_function_hooks()[self.name].deleted(None)
         del chainer.get_function_hooks()[self.name]
 
-    def added(self, function=None):
+    def added(self, function):
         """Callback function invoked when a function hook is added
 
         Args:
@@ -113,7 +113,7 @@ class FunctionHook(object):
         """
         pass
 
-    def deleted(self, function=None):
+    def deleted(self, function):
         """Callback function invoked when a function hook is deleted
 
         Args:

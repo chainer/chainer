@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
@@ -22,12 +20,12 @@ class Triplet(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 3)
+        type_check.argname(in_types, ('anchor', 'positive', 'negative'))
 
         type_check.expect(
-            in_types[0].dtype == numpy.float32,
-            in_types[1].dtype == numpy.float32,
-            in_types[2].dtype == numpy.float32,
+            in_types[0].dtype.kind == 'f',
+            in_types[0].dtype == in_types[1].dtype,
+            in_types[0].dtype == in_types[2].dtype,
             in_types[0].shape == in_types[1].shape,
             in_types[0].shape == in_types[2].shape,
             in_types[0].shape[0] > 0
@@ -49,7 +47,7 @@ class Triplet(function_node.FunctionNode):
             loss = self.dist_hinge
 
         self.retain_inputs((0, 1, 2))
-        return xp.array(loss, dtype=numpy.float32),
+        return xp.array(loss, dtype=anchor.dtype),
 
     def backward(self, indexes, grad_outputs):
         anchor, positive, negative = self.get_retained_inputs()
@@ -59,7 +57,7 @@ class Triplet(function_node.FunctionNode):
 
         xp = cuda.get_array_module(anchor)
         tmp = xp.repeat(self.dist_hinge[:, None], x_dim, axis=1)
-        mask = xp.array(tmp > 0, dtype=numpy.float32)
+        mask = xp.array(tmp > 0, dtype=anchor.dtype)
 
         gy, = grad_outputs
         if self.reduce == 'mean':

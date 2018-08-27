@@ -10,6 +10,7 @@ import six
 
 import chainer
 from chainer import _backprop_utils
+from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -285,6 +286,11 @@ class VariableNode(object):
         """
         var = self._variable()
         return None if var is None else var._grad_var
+
+    def _set_grad_var_if_available(self, g):
+        var = self._variable()
+        if var is not None:
+            var._grad_var = g
 
     @property
     def label(self):
@@ -851,7 +857,7 @@ Actual: {0}'''.format(type(data))
         elif dst is None:
             self.initialize(src.shape)
             dst = self.data
-        cuda.copyto(dst, src)
+        backends.copyto(dst, src)
 
     def addgrad(self, var):
         """Accumulates the gradient array from given source variable.
@@ -960,13 +966,6 @@ Actual: {0}'''.format(type(data))
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
-        initial_device = None
-        if cuda.available and isinstance(self.data, cuda.ndarray):
-            try:
-                initial_device = cuda.Device()
-            except cuda.cupy.cuda.runtime.CUDARuntimeError as e:
-                if e.status != 38:  # cudaErrorNoDevice
-                    raise
 
         cand_funcs = []
         seen_set = set()
@@ -1021,30 +1020,33 @@ Actual: {0}'''.format(type(data))
                 hooks.update(func.local_function_hooks)
             hooks = hooks.values()  # avoid six for performance
 
-            cuda.get_device_from_array(*(in_data + out_grad_data)).use()
-            for hook in hooks:
-                hook.backward_preprocess(func, in_data, out_grad_data)
+            with cuda.get_device_from_array(*(in_data + out_grad_data)):
+                for hook in hooks:
+                    hook.backward_preprocess(func, in_data, out_grad_data)
 
-            # Collect the current input gradients.
-            target_inputs = [inputs[i] for i in target_input_indexes]
-            # Keep the order for the portability, rather than
-            # in_grad = {x: grads.get_as_list(x) for x in set(target_inputs)}
-            in_grad = collections.OrderedDict()
-            for x in target_inputs:
-                if x not in in_grad:
-                    in_grad[x] = grads.get_as_list(x)
+                # Collect the current input gradients.
+                target_inputs = [inputs[i] for i in target_input_indexes]
+                # Keep the order for the portability, rather than
+                # in_grad = {x: grads.get_as_list(x)
+                #            for x in set(target_inputs)}
+                in_grad = collections.OrderedDict()
+                for x in target_inputs:
+                    if x not in in_grad:
+                        in_grad[x] = grads.get_as_list(x)
+                        # to reduce memory usage
+                        x._set_grad_var_if_available(None)
 
-            _backprop_utils.backprop_step(
-                func, target_input_indexes, out_grad, in_grad)
+                _backprop_utils.backprop_step(
+                    func, target_input_indexes, out_grad, in_grad)
 
-            for hook in hooks:
-                hook.backward_postprocess(func, in_data, out_grad_data)
+                for hook in hooks:
+                    hook.backward_postprocess(func, in_data, out_grad_data)
 
             for y, gy in six.moves.zip(outputs, out_grad):
                 if y is not None and y is not self.node:
-                    y_var = y.get_variable_or_none()
-                    if y_var is not None:
-                        y_var._grad_var = gy if retain_grad else None
+                    y._set_grad_var_if_available(
+                        gy if retain_grad else None)
+            del gy, out_grad  # to reduce memory usage
 
             for x, gx in in_grad.items():
                 if not gx:  # gradient == None
@@ -1052,15 +1054,13 @@ Actual: {0}'''.format(type(data))
 
                 for gx_elem in gx:
                     _check_grad_type(func, x, gx_elem.data)
+                del gx_elem  # to reduce memory usage
 
                 if x.creator_node is None:  # leaf
                     leaf_nodes.add(x)
                 else:
                     add_cand(x.creator_node)
-
-            del in_grad  # to reduce memory usage
-            if initial_device is not None:
-                initial_device.use()
+            del gx, in_grad  # to reduce memory usage
 
         for x in leaf_nodes:
             x_var = x.get_variable_or_none()

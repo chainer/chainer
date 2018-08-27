@@ -4,8 +4,8 @@ import six
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
-from chainer.utils import type_check
 from chainer.utils import collections_abc
+from chainer.utils import type_check
 
 
 def _tensordot(a, b, a_axes, b_axes, c_axes=None):
@@ -72,7 +72,7 @@ class TensorDot(function_node.FunctionNode):
                             'an integer')
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('a', 'b'))
         a_type, b_type = in_types
 
         type_check.expect(
