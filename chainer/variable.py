@@ -19,22 +19,22 @@ from chainer.initializers import constant
 from chainer.utils import argument
 
 
-_delay_backward = False
+_in_delay_backward = False
 _delayed_backward_args = None
 
 
 @contextlib.contextmanager
 def delay_backward():
-    global _delay_backward, _delayed_backward_args
-    assert not _delay_backward
-    _delay_backward = True
+    global _in_delay_backward, _delayed_backward_args
+    assert not _in_delay_backward
+    _in_delay_backward = True
     _delayed_backward_args = ([], {})
     yield
-    nodes, kwargs = _delayed_backward_args
+    var_list, kwargs = _delayed_backward_args
     enable_double_backprop = kwargs.pop('enable_double_backprop')
     with chainer.using_config('enable_backprop', enable_double_backprop):
-        _backward_main(nodes, **kwargs)
-    _delay_backward = False
+        _backward_main(var_list, **kwargs)
+    _in_delay_backward = False
 
 
 def _check_grad_type(func, x, gx):
@@ -1001,7 +1001,7 @@ Actual: {0}'''.format(type(data))
             if loss_scale is not None:
                 self.grad *= loss_scale
 
-        if _delay_backward:
+        if _in_delay_backward:
             _delayed_backward_args[0].append(self)
             kwargs = dict(
                 retain_grad=retain_grad,
@@ -1121,7 +1121,7 @@ Actual: {0}'''.format(type(data))
     __hash__ = None
 
 
-def _backward_main(root_vars, retain_grad, loss_scale):
+def _backward_main(outputs, retain_grad, loss_scale):
     cand_funcs = []
     seen_set = set()
 
@@ -1135,7 +1135,7 @@ def _backward_main(root_vars, retain_grad, loss_scale):
     grads = _backprop_utils.GradTable(load_if_new=True)
 
     root_nodes = set()
-    for y_var in root_vars:
+    for y_var in outputs:
         y = y_var.node
         grads[y] = y_var.grad_var
         y_var.grad_var = None  # to reduce memory usage
@@ -1143,11 +1143,11 @@ def _backward_main(root_vars, retain_grad, loss_scale):
         add_cand(y.creator_node)
         root_nodes.add(weakref.ref(y))
 
-    if len(root_nodes) != len(root_vars):
+    if len(root_nodes) != len(outputs):
         raise ValueError('variables should be distinct')
 
     # remove references
-    del root_vars[:]
+    del outputs[:]
     y_var = None
 
     leaf_nodes = set()
