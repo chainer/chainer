@@ -43,13 +43,12 @@ void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, k
     // Indices over the output image.
     NdimIndex out_image_index{kKernelNdim};
 
-    auto it_batch_channel = batch_channel_indexer.It(0);
     auto it_kernel = kernel_indexer.It(0);
     auto it_in_image_dims = in_image_dims_indexer.It(0);
     auto it_col = col_indexer.It(0);
     auto it_out = out_indexer.It(0);
 
-    for (it_batch_channel.Restart(); it_batch_channel; ++it_batch_channel) {
+    for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
         it_col.CopyIndex(it_batch_channel);
         it_out.CopyIndex(it_batch_channel);
 

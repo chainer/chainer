@@ -12,11 +12,10 @@ namespace reduce_detail {
 
 template <typename In, typename Out, typename ReductionImpl, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
 void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, ReductionImpl&& impl) {
-    auto it_out = arg.out_indexer.It(0);
     auto it_in = arg.in_indexer.It(0, arg.out_indexer.total_size());
 
     // Iterate over output dimensions
-    for (it_out.Restart(); it_out; ++it_out) {
+    for (auto it_out = arg.out_indexer.It(0); it_out; ++it_out) {
         auto accum = impl.Identity();
 
         int64_t i_reduce{0};

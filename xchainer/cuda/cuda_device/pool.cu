@@ -51,11 +51,10 @@ __global__ void MaxPoolDoubleBackwardKernel(
         Indexer<> kernel_indexer,
         CudaStackVector stride,
         CudaStackVector pad) {
-    auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x);
     auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1);
     auto it_x = x_indexer.It(0);
 
-    for (it_y.Restart(); it_y; ++it_y) {
+    for (auto it_y = y_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it_y; ++it_y) {
         it_x.index()[0] = it_y.index()[0];  // batch.
         it_x.index()[1] = it_y.index()[1];  // channel.
 

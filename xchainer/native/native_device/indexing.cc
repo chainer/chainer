@@ -37,14 +37,13 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
         Indexer<> right_indexer{right_shape};
         Indexer<> axis_indexer{axis_shape};
 
-        auto it = indices_indexer.It(0);
         auto it_left = left_indexer.It(0);
         auto it_right = right_indexer.It(0);
         auto it_axis = axis_indexer.It(0);
         auto it_out = out_indexer.It(0);
         auto it_a = a_indexer.It(0);
 
-        for (it.Restart(); it; ++it) {
+        for (auto it = indices_indexer.It(0); it; ++it) {
             int64_t index = indices_iarray[it];
             if (index < 0) {
                 index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
@@ -102,7 +101,6 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
             out_iarray[it] = a_iarray[it];
         }
 
-        auto it = indices_indexer.It(0);
         auto it_left = left_indexer.It(0);
         auto it_right = right_indexer.It(0);
         auto it_axis = axis_indexer.It(0);
@@ -110,7 +108,7 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
         auto it_b = b_indexer.It(0);
 
         // Add
-        for (it.Restart(); it; ++it) {
+        for (auto it = indices_indexer.It(0); it; ++it) {
             int64_t index = indices_iarray[it];
             if (index < 0) {
                 index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
