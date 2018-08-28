@@ -155,6 +155,21 @@ def backprop_step(
                             'incorrect: '
                             'input-index={}, actual {} != expected {}'.format(
                                 i, gx.dtype, g_input.dtype)))
+    del gxs
+
+    if is_debug:
+        # each grad is a list of variables
+        # iter_gxs expands it as a sequence of variables.
+        def iter_gxs(gxs):
+            for gx in gxs:
+                for gx_elem in gx:
+                    yield gx_elem
+
+        for gx in iter_gxs(grad_inputs.values()):
+            if chainer.backends._contains_nan(gx.data):
+                raise RuntimeError(
+                    'NaN is detected on backward computation of {}'
+                    .format(func.label))
 
     if not func.lazy_grad_sum:
         for gx in grad_inputs.values():
