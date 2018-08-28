@@ -94,8 +94,10 @@ Array Eye(
 // Returns a C-contiguous array.
 Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype = nonstd::nullopt);
 
+// TODO(niboshi): Remove device argument and use v.device(). Also fix tests
 Array Diag(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
 
+// TODO(niboshi): Remove device argument and use v.device(). Also fix tests
 Array Diagflat(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
 
 // Creates a 1-d array with evenly spaced numbers.

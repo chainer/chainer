@@ -65,6 +65,7 @@ TEST_P(NormalizationTest, BatchNorm) {
             [&eps, &decay, &reduced_shape, &e_running_mean, &e_running_var](const std::vector<Array>& xs) {
                 using T = float;
 
+                Device& device = xs[0].device();
                 Array running_mean =
                         testing::BuildArray(reduced_shape)
                                 .WithData<T>(
@@ -72,17 +73,19 @@ TEST_P(NormalizationTest, BatchNorm) {
                 Array running_var =
                         testing::BuildArray(reduced_shape)
                                 .WithData<T>({0.8258983, 0.35525382, 0.01103283, 0.843107, 0.09379472, 0., 0.6574457, 0.6707562});
+                running_mean = running_mean.ToDevice(device);
+                running_var = running_var.ToDevice(device);
+
                 Array out = BatchNorm(xs[0], xs[1], xs[2], running_mean, running_var, eps, decay);
 
-                EXPECT_ARRAY_ALL_CLOSE(e_running_mean, running_mean, 1e-6f, 1e-6f);
-                EXPECT_ARRAY_ALL_CLOSE(e_running_var, running_var, 1e-6f, 1e-6f);
+                EXPECT_ARRAY_ALL_CLOSE(e_running_mean.ToDevice(device), running_mean, 1e-6f, 1e-6f);
+                EXPECT_ARRAY_ALL_CLOSE(e_running_var.ToDevice(device), running_var, 1e-6f, 1e-6f);
 
                 return std::vector<Array>{out};
             },
             {x, gamma, beta},
             {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(NormalizationTest, BatchNormWithAxis) {
@@ -114,19 +117,21 @@ TEST_P(NormalizationTest, BatchNormWithAxis) {
             [&eps, &decay, &axis, &reduced_shape, &e_running_mean, &e_running_var](const std::vector<Array>& xs) {
                 using T = float;
 
+                Device& device = xs[0].device();
                 Array running_mean = testing::BuildArray(reduced_shape).WithData<T>({0.34721586, 0.2698823, 0.8581124, 0.74137366});
                 Array running_var = testing::BuildArray(reduced_shape).WithData<T>({0., 0.8622455, 0.18700261, 0.20017703});
+                running_mean = running_mean.ToDevice(device);
+                running_var = running_var.ToDevice(device);
                 Array out = BatchNorm(xs[0], xs[1], xs[2], running_mean, running_var, eps, decay, axis);
 
-                EXPECT_ARRAY_ALL_CLOSE(e_running_mean, running_mean, 1e-6f, 1e-6f);
-                EXPECT_ARRAY_ALL_CLOSE(e_running_var, running_var, 1e-6f, 1e-6f);
+                EXPECT_ARRAY_ALL_CLOSE(e_running_mean.ToDevice(device), running_mean, 1e-6f, 1e-6f);
+                EXPECT_ARRAY_ALL_CLOSE(e_running_var.ToDevice(device), running_var, 1e-6f, 1e-6f);
 
                 return std::vector<Array>{out};
             },
             {x, gamma, beta},
             {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(NormalizationTest, BatchNormBackward) {
@@ -256,8 +261,7 @@ TEST_P(NormalizationTest, FixedBatchNorm) {
             [&eps](const std::vector<Array>& xs) { return std::vector<Array>{FixedBatchNorm(xs[0], xs[1], xs[2], xs[3], xs[4], eps)}; },
             {x, gamma, beta, mean, var},
             {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 INSTANTIATE_TEST_CASE_P(

@@ -1,5 +1,6 @@
 install(FILES
     cublas.h
+    cuda.h
     cuda_backend.h
     cuda_conv.h
     cuda_device.h
@@ -13,6 +14,7 @@ install(FILES
 
 CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cublas.cc
+    cuda.cc
     cuda_conv.cc
     cuda_device.cc
     cuda_device/activation.cu
@@ -32,7 +34,8 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     cuda_backend.cc
     cuda_runtime.cc
     cudnn.cc
-    memory_pool.cc)
+    memory_pool.cc
+    )
 
 CUDA_ADD_CUBLAS_TO_TARGET(xchainer_cuda)
 

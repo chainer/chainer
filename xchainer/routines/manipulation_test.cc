@@ -51,8 +51,7 @@ TEST_P(ManipulationTest, AsScalar) {
                 EXPECT_EQ(s.dtype(), TypeToDtype<T>);
                 EXPECT_EQ(static_cast<T>(s), value);
             },
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+            1);
 }
 
 TEST_P(ManipulationTest, AsScalarInvalidZeroElement) {
@@ -70,12 +69,7 @@ TEST_P(ManipulationTest, RollAxis) {
     Array e = testing::BuildArray({3, 2, 4}).WithData<int32_t>(
             {0, 1, 2, 3, 12, 13, 14, 15, 4, 5, 6, 7, 16, 17, 18, 19, 8, 9, 10, 11, 20, 21, 22, 23});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) { return std::vector<Array>{RollAxis(xs[0], 1)}; },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{RollAxis(xs[0], 1)}; }, {a}, {e}, 1);
 }
 
 TEST_P(ManipulationTest, RollAxisWithStart) {
@@ -83,12 +77,7 @@ TEST_P(ManipulationTest, RollAxisWithStart) {
     Array e = testing::BuildArray({3, 2, 4}).WithData<int32_t>(
             {0, 1, 2, 3, 12, 13, 14, 15, 4, 5, 6, 7, 16, 17, 18, 19, 8, 9, 10, 11, 20, 21, 22, 23});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) { return std::vector<Array>{RollAxis(xs[0], -3, -1)}; },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{RollAxis(xs[0], -3, -1)}; }, {a}, {e}, 1);
 }
 
 TEST_P(ManipulationTest, Transpose) {
@@ -104,8 +93,7 @@ TEST_P(ManipulationTest, Transpose) {
             },
             {a},
             {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(ManipulationTest, TransposeDefaultAxes) {
@@ -121,8 +109,7 @@ TEST_P(ManipulationTest, TransposeDefaultAxes) {
             },
             {a},
             {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(ManipulationTest, TransposeNoncontiguous) {
@@ -130,14 +117,7 @@ TEST_P(ManipulationTest, TransposeNoncontiguous) {
     Array e = testing::BuildArray({4, 2, 3}).WithData<int32_t>(
             {0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7, 11, 15, 19, 23});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                return std::vector<Array>{Transpose(xs[0], {2, 0, 1})};
-            },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Transpose(xs[0], {2, 0, 1})}; }, {a}, {e}, 1);
 }
 
 TEST_P(ManipulationTest, TransposeBackward) {
@@ -178,8 +158,7 @@ TEST_P(ManipulationTest, Reshape) {
             },
             {a},
             {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 // #461
@@ -199,8 +178,7 @@ TEST_P(ManipulationTest, ReshapeWithStrideOne) {
             },
             {a},
             {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 // #461
@@ -220,8 +198,7 @@ TEST_P(ManipulationTest, ReshapeNewAxisAtEnd) {
             },
             {a},
             {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 // If an input array has a unit-length axis with 0-stride, that axis should not give rise to any copies.
@@ -243,8 +220,7 @@ TEST_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
             },
             {a},
             {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(ManipulationTest, ReshapeWithCopy) {
@@ -263,8 +239,7 @@ TEST_P(ManipulationTest, ReshapeWithCopy) {
             },
             {a},
             {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(ManipulationTest, InvalidReshape) {
@@ -282,12 +257,7 @@ TEST_P(ManipulationTest, SqueezeAllUnitLengthAxes) {
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
     Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0])}; },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0])}; }, {a}, {e}, 1);
 }
 
 TEST_P(ManipulationTest, SqueezeSpecifiedUnitLenghtAxes) {
@@ -296,14 +266,7 @@ TEST_P(ManipulationTest, SqueezeSpecifiedUnitLenghtAxes) {
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                return std::vector<Array>{Squeeze(xs[0], Axes{2, 0, 4})};
-            },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{2, 0, 4})}; }, {a}, {e}, 1);
 }
 
 TEST_P(ManipulationTest, SqueezeAllAxes) {
@@ -312,12 +275,7 @@ TEST_P(ManipulationTest, SqueezeAllAxes) {
     Array a = testing::BuildArray({1, 1, 1}).WithLinearData<T>();
     Array e = testing::BuildArray({}).WithData<T>({0});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0])}; },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0])}; }, {a}, {e}, 1);
 }
 
 TEST_P(ManipulationTest, SqueezeMultipleCalls) {
@@ -332,8 +290,7 @@ TEST_P(ManipulationTest, SqueezeMultipleCalls) {
             },
             {a},
             {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(ManipulationTest, SqueezeNonContiguous) {
@@ -342,14 +299,7 @@ TEST_P(ManipulationTest, SqueezeNonContiguous) {
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                return std::vector<Array>{Squeeze(xs[0], Axes{0, 2, 4})};
-            },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{0, 2, 4})}; }, {a}, {e}, 1);
 }
 
 TEST_P(ManipulationTest, SqueezeNegativeAxis) {
@@ -358,12 +308,7 @@ TEST_P(ManipulationTest, SqueezeNegativeAxis) {
     Array a = testing::BuildArray({2, 3, 4, 1}).WithLinearData<T>();
     Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{-1})}; },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{-1})}; }, {a}, {e}, 1);
 }
 
 TEST_P(ManipulationTest, SqueezeNoSqueezableAxes) {
@@ -379,8 +324,7 @@ TEST_P(ManipulationTest, SqueezeNoSqueezableAxes) {
             },
             {a},
             {a},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(ManipulationTest, InvalidSqueezeNonUnitLengthAxis) {
@@ -453,8 +397,7 @@ TEST_P(ManipulationTest, BroadcastTo) {
             },
             {a},
             {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 // Can't broadcast to smaller dimensions

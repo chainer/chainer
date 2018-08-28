@@ -2,12 +2,14 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <mutex>
 #include <numeric>
 
 #include <cuda_runtime.h>
 
 #include "xchainer/array.h"
 #include "xchainer/axes.h"
+#include "xchainer/cuda/cuda.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/cuda/elementwise.cuh"
 #include "xchainer/device.h"
@@ -135,6 +137,8 @@ void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const A
         // size of (Ni..., Nj...) part
         int64_t common_total_size = a_indexer.total_size() / a_shape[0];
 
+        // TODO(niboshi): Calculate kMaxBlockSize per device
+        std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&TakeKernel<T>).block_size;
         int64_t total_size = out_indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;

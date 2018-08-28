@@ -100,8 +100,7 @@ TEST_P(PoolingTest, MaxPool) {
             },
             {x},
             {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(PoolingTest, MaxPoolNoCoverAll) {
@@ -162,8 +161,7 @@ TEST_P(PoolingTest, MaxPoolNoCoverAll) {
             },
             {x},
             {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
@@ -231,8 +229,7 @@ TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
             },
             {x},
             {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(PoolingTest, MaxPoolBackward) {
@@ -544,8 +541,7 @@ TEST_P(PoolingTest, AveragePoolPadModeIgnore) {
             },
             {x},
             {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeZero) {
@@ -606,8 +602,7 @@ TEST_P(PoolingTest, AveragePoolPadModeZero) {
             },
             {x},
             {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeIgnoreBackward) {

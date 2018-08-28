@@ -53,8 +53,7 @@ TEST_P(IndexingTest, At) {
             },
             {a},
             {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            1);
 }
 
 // Index out of bounds
@@ -110,11 +109,7 @@ TEST_P(IndexingTest, Take) {
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 2, 3, 1, 2, 1, 4, 6, 7, 5, 6, 5});
 
     testing::CheckForward(
-            [&indices, &axis](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, axis)}; },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            [&indices, &axis](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, axis)}; }, {a}, {e}, 1);
 }
 
 TEST_P(IndexingTest, TakeBackward) {
@@ -164,12 +159,7 @@ TEST_P(IndexingTest, TakeLongAxis) {
     Array indices = Full({1}, int64_t{10});
     Array e = Full({1}, 10.f);
 
-    testing::CheckForward(
-            [&indices](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, 0)}; },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+    testing::CheckForward([&indices](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, 0)}; }, {a}, {e}, 1);
 }
 
 INSTANTIATE_TEST_CASE_P(
