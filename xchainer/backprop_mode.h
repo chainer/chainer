@@ -35,11 +35,11 @@ private:
     bool backprop_;  // false for NoBackpropMode, and true for ForceBackpropMode
 };
 
+using BackpropModeStack = std::vector<internal::BackpropMode>;
+
 }  // namespace internal
 
 namespace backprop_mode_detail {
-
-using BackpropModeStack = std::vector<internal::BackpropMode>;
 
 template <bool kModeFlag>
 class BackpropModeScope {
@@ -62,11 +62,8 @@ public:
     ~BackpropModeScope();
 
 private:
-    void InitializeBackpropModeStack();
-
     // Number of BackpropMode instances pushed to the stack.
     size_t n_{};
-    bool is_outermost_{false};
 };
 
 extern template class BackpropModeScope<true>;

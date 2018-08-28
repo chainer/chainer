@@ -52,6 +52,7 @@ install(FILES
     squash_dims.h
     stack_vector.h
     strides.h
+    thread_local_state.h
     xchainer.h
     DESTINATION include/xchainer
     )
@@ -80,6 +81,7 @@ add_library(xchainer SHARED
     scalar.cc
     shape.cc
     strides.cc
+    thread_local_state.cc
     )
 
 target_link_libraries(xchainer
@@ -125,6 +127,7 @@ if(${XCHAINER_BUILD_TEST})
         squash_dims_test.cc
         stack_vector_test.cc
         strides_test.cc
+        thread_local_state_test.cc
         )
     if(${CUDA_FOUND})
         CUDA_ADD_EXECUTABLE(xchainer_test ${srcs})
