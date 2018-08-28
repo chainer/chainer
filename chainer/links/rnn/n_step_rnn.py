@@ -5,7 +5,7 @@ import chainer
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.rnn import n_step_rnn as rnn
-from chainer.initializers import normal
+from chainer import initializers
 from chainer import link
 from chainer.utils import argument
 from chainer import variable
@@ -49,14 +49,15 @@ class NStepRNNBase(link.ChainList):
     """
 
     def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
-        if kwargs:
-            argument.check_unexpected_kwargs(
-                kwargs,
-                use_cudnn='use_cudnn argument is not supported anymore. '
-                'Use chainer.using_config',
-                use_bi_direction='use_bi_direction is not supported anymore',
-                activation='activation is not supported anymore')
-            argument.assert_kwargs_empty(kwargs)
+        initialW, initial_bias = argument.parse_kwargs(
+            kwargs,
+            ("initialW", None),
+            ("initiali_bias", None),
+            use_cudnn="use_cudnn argument is not supported anymore. "
+            "Use chainer.using_config",
+            use_bi_direction="use_bi_direction is not supported anymore",
+            activation="activation is not supported anymore",
+        )
 
         weights = []
         if self.use_bi_direction:
@@ -64,6 +65,10 @@ class NStepRNNBase(link.ChainList):
         else:
             direction = 1
 
+        W_initializer = initializers._get_initializer(initialW)
+        if initial_bias is None:
+            initial_bias = 0
+        bias_initializer = initializers._get_initializer(initial_bias)
         for i in six.moves.range(n_layers):
             for di in six.moves.range(direction):
                 weight = link.Link()
@@ -75,34 +80,38 @@ class NStepRNNBase(link.ChainList):
                             w_in = out_size * direction
                         else:
                             w_in = out_size
-                        w = variable.Parameter(
-                            normal.Normal(numpy.sqrt(1. / w_in)),
-                            (out_size, w_in))
-                        b = variable.Parameter(0, (out_size,))
-                        setattr(weight, 'w%d' % j, w)
-                        setattr(weight, 'b%d' % j, b)
+                        w = variable.Parameter(W_initializer, (out_size, w_in))
+                        b = variable.Parameter(bias_initializer, out_size)
+                        setattr(weight, "w%d" % j, w)
+                        setattr(weight, "b%d" % j, b)
                 weights.append(weight)
 
         super(NStepRNNBase, self).__init__(*weights)
 
-        self.ws = [[getattr(layer, 'w%d' % i)
-                    for i in six.moves.range(self.n_weights)]
-                   for layer in self]
-        self.bs = [[getattr(layer, 'b%d' % i)
-                    for i in six.moves.range(self.n_weights)]
-                   for layer in self]
+        self.ws = [
+            [getattr(layer, "w%d" % i) for i in six.moves.range(self.n_weights)]
+            for layer in self
+        ]
+        self.bs = [
+            [getattr(layer, "b%d" % i) for i in six.moves.range(self.n_weights)]
+            for layer in self
+        ]
 
         self.n_layers = n_layers
         self.dropout = dropout
         self.out_size = out_size
         self.direction = direction
 
-    def copy(self, mode='share'):
+    def copy(self, mode="share"):
         ret = super(NStepRNNBase, self).copy(mode)
-        ret.ws = [[getattr(layer, 'w%d' % i)
-                   for i in six.moves.range(ret.n_weights)] for layer in ret]
-        ret.bs = [[getattr(layer, 'b%d' % i)
-                   for i in six.moves.range(ret.n_weights)] for layer in ret]
+        ret.ws = [
+            [getattr(layer, "w%d" % i) for i in six.moves.range(ret.n_weights)]
+            for layer in ret
+        ]
+        ret.bs = [
+            [getattr(layer, "b%d" % i) for i in six.moves.range(ret.n_weights)]
+            for layer in ret
+        ]
         return ret
 
     def init_hx(self, xs):
@@ -176,8 +185,10 @@ class NStepRNNBase(link.ChainList):
         """
         if kwargs:
             argument.check_unexpected_kwargs(
-                kwargs, train='train argument is not supported anymore. '
-                'Use chainer.using_config')
+                kwargs,
+                train="train argument is not supported anymore. "
+                "Use chainer.using_config",
+            )
             argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
@@ -194,12 +205,10 @@ class NStepRNNBase(link.ChainList):
 
         trans_x = transpose_sequence.transpose_sequence(xs)
 
-        args = [self.n_layers, self.dropout] + hxs + \
-               [self.ws, self.bs, trans_x]
+        args = [self.n_layers, self.dropout] + hxs + [self.ws, self.bs, trans_x]
         result = self.rnn(*args)
 
-        hys = [permutate.permutate(h, indices, axis=1, inv=True)
-               for h in result[:-1]]
+        hys = [permutate.permutate(h, indices, axis=1, inv=True) for h in result[:-1]]
         trans_y = result[-1]
         ys = transpose_sequence.transpose_sequence(trans_y)
         ys = permutate_list(ys, indices, inv=True)
@@ -237,7 +246,7 @@ class NStepRNNTanh(NStepRNNBase):
     use_bi_direction = False
 
     def rnn(self, *args):
-        return rnn.n_step_rnn(*args, activation='tanh')
+        return rnn.n_step_rnn(*args, activation="tanh")
 
     @property
     def n_cells(self):
@@ -274,7 +283,7 @@ class NStepRNNReLU(NStepRNNBase):
     use_bi_direction = False
 
     def rnn(self, *args):
-        return rnn.n_step_rnn(*args, activation='relu')
+        return rnn.n_step_rnn(*args, activation="relu")
 
     @property
     def n_cells(self):
@@ -311,7 +320,7 @@ class NStepBiRNNTanh(NStepRNNBase):
     use_bi_direction = True
 
     def rnn(self, *args):
-        return rnn.n_step_birnn(*args, activation='tanh')
+        return rnn.n_step_birnn(*args, activation="tanh")
 
     @property
     def n_cells(self):
@@ -348,7 +357,7 @@ class NStepBiRNNReLU(NStepRNNBase):
     use_bi_direction = True
 
     def rnn(self, *args):
-        return rnn.n_step_birnn(*args, activation='relu')
+        return rnn.n_step_birnn(*args, activation="relu")
 
     @property
     def n_cells(self):
