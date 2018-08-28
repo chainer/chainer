@@ -1,11 +1,12 @@
+import math
+
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.functions.array import broadcast
 from chainer.functions.math import exponential
 from chainer import utils
-import math
-import numpy
 
 
 class LaplaceCDF(chainer.function_node.FunctionNode):
@@ -29,9 +30,8 @@ class LaplaceICDF(chainer.function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
-        x = 1 - 2 * x
-        y = xp.sign(x) * xp.log1p(-abs(x))
-        return utils.force_array(y, x.dtype),
+        h = 1 - 2 * x
+        return utils.force_array(xp.sign(h) * xp.log1p(-abs(h)), x.dtype),
 
     def backward(self, target_input_indexes, grad_outputs):
         gy, = grad_outputs
@@ -78,9 +78,7 @@ class Laplace(distribution.Distribution):
         return self.loc.shape
 
     def cdf(self, x):
-        bl = broadcast.broadcast_to(self.loc, x.shape)
-        bs = broadcast.broadcast_to(self.scale, x.shape)
-        return _laplace_cdf((x - bl) / bs)
+        return _laplace_cdf((x - self.loc) / self.scale)
 
     @property
     def entropy(self):
@@ -98,9 +96,8 @@ class Laplace(distribution.Distribution):
         return isinstance(self.loc.data, cuda.ndarray)
 
     def log_prob(self, x):
-        bl = broadcast.broadcast_to(self.loc, x.shape)
-        bs = broadcast.broadcast_to(self.scale, x.shape)
-        return - exponential.log(2 * bs) - abs(x - bl) / bs
+        scale = self.scale
+        return - exponential.log(2 * scale) - abs(x - self.loc) / scale
 
     @property
     def mean(self):
@@ -111,9 +108,8 @@ class Laplace(distribution.Distribution):
         return self.loc
 
     def prob(self, x):
-        bl = broadcast.broadcast_to(self.loc, x.shape)
-        bs = broadcast.broadcast_to(self.scale, x.shape)
-        return 0.5 / bs * exponential.exp(- abs(x - bl) / bs)
+        scale = self.scale
+        return 0.5 / scale * exponential.exp(- abs(x - self.loc) / scale)
 
     def sample_n(self, n):
         if self._is_gpu:
@@ -123,10 +119,7 @@ class Laplace(distribution.Distribution):
             eps = numpy.random.laplace(
                 size=(n,) + self.loc.shape).astype(numpy.float32)
 
-        noise = broadcast.broadcast_to(self.scale, eps.shape) * eps
-        noise += broadcast.broadcast_to(self.loc, eps.shape)
-
-        return noise
+        return self.scale * eps + self.loc
 
     @property
     def stddev(self):

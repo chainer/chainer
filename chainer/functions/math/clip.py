@@ -20,7 +20,7 @@ class Clip(function_node.FunctionNode):
         self.x_max = x_max
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         x_type, = in_types
         type_check.expect(x_type.dtype.kind == 'f')
 
@@ -44,7 +44,7 @@ class ClipGrad(function_node.FunctionNode):
         self.cond = (x_min < x) * (x < x_max)
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):

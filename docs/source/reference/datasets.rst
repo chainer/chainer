@@ -171,6 +171,7 @@ LabeledImageDataset
    :nosignatures:
 
    chainer.datasets.LabeledImageDataset
+   chainer.datasets.LabeledZippedImageDataset
 
 TextDataset
 ~~~~~~~~~~~
@@ -180,6 +181,18 @@ TextDataset
    :nosignatures:
 
    chainer.datasets.TextDataset
+
+PickleDatase
+~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.PickleDataset
+   chainer.datasets.PickleDatasetWriter
+   chainer.datasets.open_pickle_dataset
+   chainer.datasets.open_pickle_dataset_writer
 
 Concrete Datasets
 -----------------

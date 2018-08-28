@@ -118,8 +118,8 @@ def _cupy_coo_matmul():
     return cuda.elementwise(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, int32 chunk, \
          raw A A_data, raw T A_row, raw T A_col, \
-         raw B _B, raw C _C',
-        '',
+         raw B _B',
+        'raw C _C',
         '''
         int i_n = (i % _n);
         int i0 = (i / _n) * chunk;
@@ -184,7 +184,7 @@ class CooMatMul(function_node.FunctionNode):
         self.dtype = dtype
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('sp', 'dn'))
         sp_type, dn_type = in_types
         # sp_type.shape: ((nb,) ldnz)
         # dn_type.shape: ((nb,) _k, _n) when transb is False
@@ -306,7 +306,7 @@ def _coo_matmul_gradsp_gpu(A, B, C_row, C_col, dtype):
         C_data = cuda.cupy.zeros((nb, ldnz), dtype=dtype)
 
     nthreads = nb * ldnz
-    _cupy_coo_matmul_gradsp()(nb, _m, _n, _k, ldnz, A, B, C_data, C_row, C_col,
+    _cupy_coo_matmul_gradsp()(nb, _m, _n, _k, ldnz, A, B, C_row, C_col, C_data,
                               size=nthreads)
 
     return C_data
@@ -316,8 +316,8 @@ def _cupy_coo_matmul_gradsp():
     return cuda.elementwise(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, \
          raw A _A, raw B _B, \
-         raw C C_data, raw T C_row, raw T C_col',
-        '',
+         raw T C_row, raw T C_col',
+        'raw C C_data',
         '''
         int i_nz = (i % nnz);
         int i_b = (i / nnz);

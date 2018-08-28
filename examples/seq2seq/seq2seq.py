@@ -42,7 +42,7 @@ class Seq2seq(chainer.Chain):
         self.n_layers = n_layers
         self.n_units = n_units
 
-    def __call__(self, xs, ys):
+    def forward(self, xs, ys):
         xs = [x[::-1] for x in xs]
 
         eos = self.xp.array([EOS], numpy.int32)
@@ -136,7 +136,7 @@ class CalculateBleu(chainer.training.Extension):
         self.device = device
         self.max_length = max_length
 
-    def __call__(self, trainer):
+    def forward(self, trainer):
         with chainer.no_backprop_mode():
             references = []
             hypotheses = []
@@ -231,6 +231,8 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--resume', '-r', default='',
                         help='resume the training from snapshot')
+    parser.add_argument('--save', '-s', default='',
+                        help='save a snapshot of the training')
     parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='number of units')
     parser.add_argument('--layer', '-l', type=int, default=3,
@@ -371,7 +373,15 @@ def main():
             trigger=(args.validation_interval, 'iteration'))
 
     print('start training')
+    if args.resume:
+        # Resume from a snapshot
+        chainer.serializers.load_npz(args.resume, trainer)
+
     trainer.run()
+
+    if args.save:
+        # Save a snapshot
+        chainer.serializers.save_npz(args.save, trainer)
 
 
 if __name__ == '__main__':

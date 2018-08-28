@@ -27,7 +27,8 @@ class distribution_unittest(unittest.TestCase):
 
     def setUp(self):
         self.support = 'real'
-        self.event_shape = ()
+        if not hasattr(self, 'event_shape'):
+            self.event_shape = ()
         self.continuous = True
         self.test_targets = set()
 
@@ -175,10 +176,9 @@ class distribution_unittest(unittest.TestCase):
             scipy_prob = self.scipy_dist.logpmf
 
         if self.scipy_onebyone:
-            onebyone_smp = smp.reshape(
-                (int(numpy.prod(self.sample_shape)),
-                 numpy.prod(self.shape),
-                 int(numpy.prod(self.event_shape))))
+            onebyone_smp = smp.reshape(*[
+                int(numpy.prod(sh))
+                for sh in [self.sample_shape, self.shape, self.event_shape]])
             onebyone_smp = numpy.swapaxes(onebyone_smp, 0, 1)
             onebyone_smp = onebyone_smp.reshape((-1,) + self.sample_shape
                                                 + self.event_shape)
@@ -187,7 +187,7 @@ class distribution_unittest(unittest.TestCase):
                     self.scipy_onebyone_params_iter(), onebyone_smp):
                 log_prob2.append(scipy_prob(one_smp, **one_params))
             log_prob2 = numpy.vstack(log_prob2)
-            log_prob2 = log_prob2.reshape(numpy.prod(self.shape), -1).T
+            log_prob2 = log_prob2.reshape(int(numpy.prod(self.shape)), -1).T
             log_prob2 = log_prob2.reshape(self.sample_shape + self.shape)
         else:
             log_prob2 = scipy_prob(smp, **self.scipy_params)
@@ -281,7 +281,7 @@ class distribution_unittest(unittest.TestCase):
                 smp2.append(self.scipy_dist.rvs(
                     size=(100000,)+self.sample_shape, **one_params))
             smp2 = numpy.vstack(smp2)
-            smp2 = smp2.reshape((numpy.prod(self.shape), 100000)
+            smp2 = smp2.reshape((int(numpy.prod(self.shape)), 100000)
                                 + self.sample_shape
                                 + self.cpu_dist.event_shape)
             smp2 = numpy.rollaxis(

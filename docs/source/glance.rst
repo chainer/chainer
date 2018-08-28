@@ -15,7 +15,7 @@ Chainer is a rapidly growing neural network platform. The strengths of Chainer a
 
 
 Mushrooms -- tasty or deathly?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 Let's take a look at a basic program of Chainer to see how it works. For a dataset, we'll work with `Kaggle's edible vs. poisonous mushroom dataset <https://www.kaggle.com/uciml/mushroom-classification>`_, which has over 8,000 examples of mushrooms, labelled by 22 categories including odor, cap color, habitat, etc., in a `mushrooms.csv file <https://raw.githubusercontent.com/chainer/chainer/master/docs/source/mushrooms.csv>`_.
 
@@ -27,7 +27,7 @@ Full Code
 Here's the whole picture of the code:
 
 .. testcode::
-    
+
    import matplotlib
    matplotlib.use('Agg')
 
@@ -37,15 +37,15 @@ Here's the whole picture of the code:
    from chainer import datasets
    from chainer import training
    from chainer.training import extensions
-   
+
    import numpy as np
-   
+
    mushroomsfile = 'mushrooms.csv'
 
 .. testcode::
-    :hide:
+   :hide:
 
-    mushroomsfile = 'source/mushrooms.csv'
+   mushroomsfile = 'source/mushrooms.csv'
 
 .. testcode::
 
@@ -53,19 +53,19 @@ Here's the whole picture of the code:
        mushroomsfile, delimiter=',', dtype=str, skip_header=1)
    for col in range(data_array.shape[1]):
        data_array[:, col] = np.unique(data_array[:, col], return_inverse=True)[1]
-   
+
    X = data_array[:, 1:].astype(np.float32)
    Y = data_array[:, 0].astype(np.int32)[:, None]
    train, test = datasets.split_dataset_random(
        datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
-   
+
    train_iter = chainer.iterators.SerialIterator(train, 100)
    test_iter = chainer.iterators.SerialIterator(
        test, 100, repeat=False, shuffle=False)
-   
-   
+
    # Network definition
    class MLP(chainer.Chain):
+
        def __init__(self, n_units, n_out):
            super(MLP, self).__init__()
            with self.init_scope():
@@ -73,20 +73,19 @@ Here's the whole picture of the code:
                self.l1 = L.Linear(n_units)  # n_in -> n_units
                self.l2 = L.Linear(n_units)  # n_units -> n_units
                self.l3 = L.Linear(n_out)  # n_units -> n_out
-   
+
        def __call__(self, x):
            h1 = F.relu(self.l1(x))
            h2 = F.relu(self.l2(h1))
            return self.l3(h2)
-   
-   
+
    model = L.Classifier(
        MLP(44, 1), lossfun=F.sigmoid_cross_entropy, accfun=F.binary_accuracy)
-   
+
    # Setup an optimizer
    optimizer = chainer.optimizers.SGD()
    optimizer.setup(model)
-   
+
    # Create the updater, using the optimizer
    updater = training.StandardUpdater(train_iter, optimizer, device=-1)
 
@@ -94,25 +93,25 @@ Here's the whole picture of the code:
    trainer = training.Trainer(updater, (50, 'epoch'), out='result')
 
 .. testcode::
-    :hide:
+   :hide:
 
-    # Shortcut for doctests.
-    trainer = training.Trainer(updater, (1, 'epoch'), out='result')
+   # Shortcut for doctests.
+   trainer = training.Trainer(updater, (1, 'epoch'), out='result')
 
 .. testcode::
 
    # Evaluate the model with the test dataset for each epoch
    trainer.extend(extensions.Evaluator(test_iter, model, device=-1))
-   
+
    # Dump a computational graph from 'loss' variable at the first iteration
    # The "main" refers to the target link of the "main" optimizer.
    trainer.extend(extensions.dump_graph('main/loss'))
-   
+
    trainer.extend(extensions.snapshot(), trigger=(20, 'epoch'))
-   
+
    # Write a log of evaluation statistics for each epoch
    trainer.extend(extensions.LogReport())
-   
+
    # Save two plot images to the result dir
    if extensions.PlotReport.available():
        trainer.extend(
@@ -122,26 +121,27 @@ Here's the whole picture of the code:
            extensions.PlotReport(
                ['main/accuracy', 'validation/main/accuracy'],
                'epoch', file_name='accuracy.png'))
-   
+
    # Print selected entries of the log to stdout
    trainer.extend(extensions.PrintReport(
        ['epoch', 'main/loss', 'validation/main/loss',
         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
-   
+
    #  Run the training
    trainer.run()
-   
+
    x, t = test[np.random.randint(len(test))]
 
    predict = model.predictor(x[None]).data
    predict = predict[0][0]
-   
+
    if predict >= 0:
-      print('Predicted Poisonous, Actual ' + ['Edible', 'Poisonous'][t[0]])
+       print('Predicted Poisonous, Actual ' + ['Edible', 'Poisonous'][t[0]])
    else:
-      print('Predicted Edible, Actual ' + ['Edible', 'Poisonous'][t[0]])
-   
+       print('Predicted Edible, Actual ' + ['Edible', 'Poisonous'][t[0]])
+
 .. testoutput::
+   :hide:
 
    Predicted ...
 
@@ -157,38 +157,36 @@ Let's start our python program. Matplotlib is used for the graphs to show traini
 
 .. code-block:: python
 
-   #!/usr/bin/env python
-   
    import matplotlib
    matplotlib.use('Agg')
 
-Typical imports for a Chainer program. :class:`~chainer.links` contain trainable parameters and :class:`~chainer.functions` do not.
+Typical imports for a Chainer program. :mod:`chainer.links` contain trainable parameters and :mod:`chainer.functions` do not.
 
 .. code-block:: python
 
    import chainer
    import chainer.functions as F
    import chainer.links as L
-   from chainer import training
    from chainer import datasets
+   from chainer import training
    from chainer.training import extensions
-   
+
    import numpy as np
-   
+
 Trainer Structure
 ~~~~~~~~~~~~~~~~~
 
-A :class:`chainer.trainer` is used to set up our neural network and data for training. The components of the :class:`chainer.trainer` are generally hierarchical, and are organized as follows:
+A :class:`trainer <chainer.training.Trainer>` is used to set up our neural network and data for training. The components of the :class:`trainer <chainer.training.Trainer>` are generally hierarchical, and are organized as follows:
 
 .. image:: ../image/glance/trainer.png
 
-Each of the components is fed information from the components within it. Setting up the trainer starts at the inner components, and moves outward, with the exception of :class:`~chainer.training.extensions`, which are added after the :class:`chainer.trainer` is defined.
+Each of the components is fed information from the components within it. Setting up the trainer starts at the inner components, and moves outward, with the exception of :ref:`extensions <extensions>`, which are added after the :class:`trainer <chainer.training.Trainer>` is defined.
 
 Dataset
 ~~~~~~~
 .. image:: ../image/glance/trainer-dataset.png
 
-Our first step is to format the :mod:`~chainer.datasets`. From the raw mushrooms.csv, we format the data into a Chainer :class:`~chainer.datasets.TupleDataset`.
+Our first step is to format the :mod:`~chainer.dataset`. From the raw mushrooms.csv, we format the data into a Chainer :class:`~chainer.datasets.TupleDataset`.
 
 .. code-block:: python
 
@@ -196,7 +194,7 @@ Our first step is to format the :mod:`~chainer.datasets`. From the raw mushrooms
        'mushrooms.csv', delimiter=',', dtype=str, skip_header=1)
    for col in range(data_array.shape[1]):
        data_array[:, col] = np.unique(data_array[:, col], return_inverse=True)[1]
-   
+
    X = data_array[:, 1:].astype(np.float32)
    Y = data_array[:, 0].astype(np.int32)[:, None]
    train, test = datasets.split_dataset_random(
@@ -206,7 +204,7 @@ Iterator
 ~~~~~~~~
 .. image:: ../image/glance/trainer-iterator.png
 
-Configure :class:`~chainer.iterators` to step through batches of the data for training and for testing validation. In this case, we'll use a batch size of 100, no repeating, and shuffling not required since we already shuffled the dataset on reading it in.
+Configure :mod:`~chainer.iterators` to step through batches of the data for training and for testing validation. In this case, we'll use a batch size of 100. For the training iterator, repeating and shuffling are implicitly enabled, while they are explicitly disabled for the testing iterator.
 
 .. code-block:: python
 
@@ -220,13 +218,13 @@ Model
 
 Next, we need to define the neural network for inclusion in our model. For our mushrooms, we'll chain together two fully-connected, :class:`~chainer.links.Linear`, hidden layers between the input and output layers.
 
-As an activation function, we'll use standard Rectified Linear Units (:meth:`~chainer.functions.relu`).
+As an activation function, we'll use standard Rectified Linear Units (:func:`~chainer.functions.relu`).
 
 .. code-block:: python
 
    # Network definition
    class MLP(chainer.Chain):
-   
+
        def __init__(self, n_units, n_out):
            super(MLP, self).__init__()
            with self.init_scope():
@@ -234,92 +232,92 @@ As an activation function, we'll use standard Rectified Linear Units (:meth:`~ch
                self.l1 = L.Linear(n_units)  # n_in -> n_units
                self.l2 = L.Linear(n_units)  # n_units -> n_units
                self.l3 = L.Linear(n_out)  # n_units -> n_out
-   
+
        def __call__(self, x):
            h1 = F.relu(self.l1(x))
            h2 = F.relu(self.l2(h1))
            return self.l3(h2)
-   
+
 Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a Link :class:`~chainer.links.Classifier` for the output, with 44 units (double the features of the data) in the hidden layers and a single true/false category for classification.
-   
+
 .. code-block:: python
 
-     model = L.Classifier(
-         MLP(44, 1), lossfun=F.sigmoid_cross_entropy, accfun=F.binary_accuracy)
+   model = L.Classifier(
+       MLP(44, 1), lossfun=F.sigmoid_cross_entropy, accfun=F.binary_accuracy)
 
 Optimizer
 ~~~~~~~~~~~~
 .. image:: ../image/glance/trainer-optimizer.png
 
-Pick an :class:`~chainer.optimizer`, and set up the :class:`~chainer.model` to use it.
+Pick an :class:`optimizer <chainer.Optimizer>`, and set up the ``model`` to use it.
 
 .. code-block:: python
 
    # Setup an optimizer
    optimizer = chainer.optimizers.SGD()
    optimizer.setup(model)
-   
+
 Updater
 ~~~~~~~~~
 .. image:: ../image/glance/trainer-updater.png
 
-Now that we have the training :class:`~chainer.iterator` and :class:`~chainer.optimizer` set up, we link them both together into the :class:`~chainer.updater`. The :class:`~chainer.updater` uses the minibatches from the :class:`~chainer.iterator`, and then does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`~chainer.optimizer`. Setting the ``device=-1`` sets the device as the CPU. To use a GPU, set ``device`` equal to the number of the GPU, usually ``device=0``.
+Now that we have the training :class:`iterator <chainer.dataset.Iterator>` and :class:`optimizer <chainer.Optimizer>` set up, we link them both together into the :class:`updater <chainer.training.Updater>`. The :class:`updater <chainer.training.Updater>` uses the minibatches from the :class:`iterator <chainer.dataset.Iterator>`, and then does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`optimizer <chainer.Optimizer>`. Setting the ``device=-1`` sets the device as the CPU. To use a GPU, set ``device`` equal to the number of the GPU, usually ``device=0``.
 
 .. code-block:: python
 
    # Create the updater, using the optimizer
    updater = training.StandardUpdater(train_iter, optimizer, device=-1)
-   
-Set up the :class:`~chainer.updater` to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory ``result``.
+
+Set up the :class:`updater <chainer.training.Updater>` to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory ``result``.
 
 .. code-block:: python
 
    # Set up a trainer
    trainer = training.Trainer(updater, (50, 'epoch'), out='result')
-   
+
 Extensions
 ~~~~~~~~~~
 .. image:: ../image/glance/trainer-extensions.png
 
-Use the testing :class:`~chainer.iterator` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores.
+Use the testing :class:`iterator <chainer.dataset.Iterator>` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores.
 
 If using a GPU instead of the CPU, set ``device`` to the ID of the GPU, usually ``0``.
 
 .. code-block:: python
 
    trainer.extend(extensions.Evaluator(test_iter, model, device=-1))
-   
-Save a computational graph from ``loss`` variable at the first iteration. ``main`` refers to the target link of the ``main`` :class:`~chainer.optimizer`. The graph is saved in the `Graphviz's <http://www.graphviz.org/>`_ dot format. The output location (directory) to save the graph is set by the :attr:`~chainer.training.Trainer.out` argument of :class:`~chainer.training.Trainer`.
+
+Save a computational graph from ``loss`` variable at the first iteration. ``main`` refers to the target link of the ``main`` :class:`optimizer <chainer.Optimizer>`. The graph is saved in the `Graphviz's <https://www.graphviz.org/>`_ dot format. The output location (directory) to save the graph is set by the ``out`` argument of :class:`trainer <chainer.training.Trainer>`.
 
 .. code-block:: python
 
    trainer.extend(extensions.dump_graph('main/loss'))
-   
-Take a snapshot of the :class:`~chainer.trainer` object every 20 epochs.
+
+Take a snapshot of the :class:`trainer <chainer.training.Trainer>` object every 20 epochs.
 
 .. code-block:: python
 
    trainer.extend(extensions.snapshot(), trigger=(20, 'epoch'))
-   
+
 Write a log of evaluation statistics for each epoch.
 
 .. code-block:: python
 
    trainer.extend(extensions.LogReport())
-   
+
 Save two plot images to the result directory.
 
 .. code-block:: python
 
    if extensions.PlotReport.available():
        trainer.extend(
-   	extensions.PlotReport(['main/loss', 'validation/main/loss'],
-   			      'epoch', file_name='loss.png'))
+           extensions.PlotReport(['main/loss', 'validation/main/loss'],
+                                 'epoch', file_name='loss.png'))
        trainer.extend(
-   	extensions.PlotReport(
-   	    ['main/accuracy', 'validation/main/accuracy'],
-   	    'epoch', file_name='accuracy.png'))
-   
+           extensions.PlotReport(
+               ['main/accuracy', 'validation/main/accuracy'],
+               'epoch', file_name='accuracy.png'))
+
 Print selected entries of the log to standard output.
 
 .. code-block:: python
@@ -327,13 +325,13 @@ Print selected entries of the log to standard output.
    trainer.extend(extensions.PrintReport(
        ['epoch', 'main/loss', 'validation/main/loss',
         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
-   
+
 Run the training.
 
 .. code-block:: python
 
    trainer.run()
-   
+
 Inference
 ~~~~~~~~~
 
@@ -341,15 +339,15 @@ Once the training is complete, only the model is necessary to make predictions. 
 
 .. code-block:: python
 
-    x, t = test[np.random.randint(len(test))]
+   x, t = test[np.random.randint(len(test))]
 
-    predict = model.predictor(x[None]).data
-    predict = predict[0][0]
+   predict = model.predictor(x[None]).data
+   predict = predict[0][0]
 
-    if predict >= 0:
-        print('Predicted Poisonous, Actual ' + ['Edible', 'Poisonous'][t[0]])
-    else:
-        print('Predicted Edible, Actual ' + ['Edible', 'Poisonous'][t[0]])
+   if predict >= 0:
+       print('Predicted Poisonous, Actual ' + ['Edible', 'Poisonous'][t[0]])
+   else:
+       print('Predicted Edible, Actual ' + ['Edible', 'Poisonous'][t[0]])
 
 Output
 -------
@@ -410,7 +408,7 @@ Output for this instance will look like:
    49          0.0634615   0.0762576             0.983333       0.974947                  28.3876       
    50          0.0622394   0.0710278             0.982321       0.981747                  28.9067       
    Predicted Edible Actual Edible
-      
+
 Our prediction was correct. Success!
 
 The loss function:

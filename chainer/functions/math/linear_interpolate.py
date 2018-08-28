@@ -7,7 +7,7 @@ from chainer.utils import type_check
 class LinearInterpolate(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 3)
+        type_check.argname(in_types, ('p', 'x', 'y'))
         p_type, x_type, y_type = in_types
 
         type_check.expect(
