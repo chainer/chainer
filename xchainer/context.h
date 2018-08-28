@@ -73,7 +73,6 @@ public:
     void ReleaseBackpropIdNoExcept(const BackpropId& backprop_id) noexcept;
 
     // Checks the specified backprop ID is valid, i.e. not released.
-    // TODO(sonots): Hide from users
     void CheckValidBackpropId(const BackpropId& backprop_id) const;
 
     // Declares that the two backprop IDs co-exist in any portion of computation graph.
