@@ -426,31 +426,39 @@ TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {
     }
 }
 
+TEST(CudaBackendTest, kCudnnDefaultMaxWorkspaceSizeMultiThread) {
+    Context ctx;
+    CudaBackend backend{ctx};
+
+    testing::RunThreads(2, [&backend](size_t /*thread_index*/) {
+        EXPECT_EQ(CudaBackend::kCudnnDefaultMaxWorkspaceSize, backend.GetCudnnMaxWorkspaceSize());
+        return nullptr;
+    });
+}
+
 TEST(CudaBackendTest, GetCudnnMaxWorkspaceSizeMultiThread) {
     Context ctx;
-    testing::RunThreads(4, [&ctx](size_t /*thread_index*/) {
+    CudaBackend backend{ctx};
+
+    testing::RunThreads(2, [&backend](size_t /*thread_index*/) {
+        backend.SetCudnnMaxWorkspaceSize(10);
+        EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
+        return nullptr;
+    });
+}
+
+TEST(CudaBackendTest, kCudnnMaxWorkspaceSizeEnvVarNameMultiThread) {
+    Context ctx;
+    CudaBackend backend{ctx};
+
+    testing::RunThreads(2, [&backend](size_t /*thread_index*/) {
         {
-            CudaBackend backend{ctx};
-            EXPECT_EQ(CudaBackend::kCudnnDefaultMaxWorkspaceSize, backend.GetCudnnMaxWorkspaceSize());
-        }
-        {
-            CudaBackend backend{ctx};
-            backend.SetCudnnMaxWorkspaceSize(10);
+            EnvVarScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "10"};
             EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
-            backend.SetCudnnMaxWorkspaceSize(0);
-            EXPECT_EQ(size_t{0}, backend.GetCudnnMaxWorkspaceSize());
         }
         {
-            CudaBackend backend{ctx};
-            {
-                EnvVarScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "10"};
-                EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
-            }
-            {
-                // env is cached on the first access, so not reflected.
-                EnvVarScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "0"};
-                EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
-            }
+            EnvVarScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "0"};
+            EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
         }
         return nullptr;
     });
