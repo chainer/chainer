@@ -16,6 +16,7 @@
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
+#include "xchainer/testing/routines.h"
 
 namespace xchainer {
 namespace {
@@ -39,16 +40,21 @@ TEST_P(IndexingTest, At) {
     Shape output_shape{1, 2, 1};
     std::vector<ArrayIndex> indices{-1, NewAxis{}, Slice{1, 3}};
     Array a = testing::BuildArray(input_shape).WithLinearData<T>();
-    Array b = internal::At(a, indices);
-
-    EXPECT_EQ(output_shape, b.shape());
     Array e = testing::BuildArray(output_shape).WithData<T>({4, 5});
-    EXPECT_ARRAY_EQ(e, b);
 
-    // Check if strides are 0 for newaxis.
-    EXPECT_EQ(0, b.strides()[0]);
-    EXPECT_NE(0, b.strides()[1]);
-    EXPECT_NE(0, b.strides()[2]);
+    testing::CheckForward(
+            [&indices](const std::vector<Array>& xs) {
+                Array y = internal::At(xs[0], indices);
+                // Check if strides are 0 for newaxis.
+                EXPECT_EQ(0, y.strides()[0]);
+                EXPECT_NE(0, y.strides()[1]);
+                EXPECT_NE(0, y.strides()[2]);
+                return std::vector<Array>{y};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 // Index out of bounds
@@ -101,11 +107,14 @@ TEST_P(IndexingTest, Take) {
     int8_t axis = 1;
     Array a = testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1);
     Array indices = testing::BuildArray(indices_shape).WithData<int64_t>({0, 14, 3, 1, -10, 1});
-    Array b = Take(a, indices, axis);
-
-    EXPECT_EQ(output_shape, b.shape());
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 2, 3, 1, 2, 1, 4, 6, 7, 5, 6, 5});
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [&indices, &axis](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, axis)}; },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(IndexingTest, TakeBackward) {
@@ -153,11 +162,14 @@ TEST_P(IndexingTest, TakeDoubleBackward) {
 TEST_P(IndexingTest, TakeLongAxis) {
     Array a = testing::BuildArray({128}).WithLinearData<float>();
     Array indices = Full({1}, int64_t{10});
-    Array b = Take(a, indices, 0);
-
-    EXPECT_EQ(Shape{1}, b.shape());
     Array e = Full({1}, 10.f);
-    EXPECT_ARRAY_EQ(e, b);
+
+    testing::CheckForward(
+            [&indices](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, 0)}; },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 INSTANTIATE_TEST_CASE_P(

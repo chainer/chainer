@@ -20,6 +20,8 @@
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
+#include "xchainer/testing/routines.h"
+#include "xchainer/testing/threading.h"
 
 #define EXPECT_ARRAYS_ARE_EQUAL_COPY(orig, copy)             \
     do {                                                     \
@@ -44,41 +46,56 @@ protected:
 public:
     template <typename T>
     void CheckEmpty() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x = Empty(Shape{3, 2}, dtype);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_EQ(x.shape(), Shape({3, 2}));
-        EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.IsContiguous());
-        EXPECT_EQ(0, x.offset());
-        EXPECT_EQ(&GetDefaultDevice(), &x.device());
+        testing::RunTestWithThreads(
+                []() {
+                    Dtype dtype = TypeToDtype<T>;
+                    Array x = Empty(Shape{3, 2}, dtype);
+                    EXPECT_NE(x.data(), nullptr);
+                    EXPECT_EQ(x.shape(), Shape({3, 2}));
+                    EXPECT_EQ(x.dtype(), dtype);
+                    EXPECT_TRUE(x.IsContiguous());
+                    EXPECT_EQ(0, x.offset());
+                    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+                },
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 2);
     }
 
     template <typename T>
     void CheckEmptyLike() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x_orig = Empty(Shape{3, 2}, dtype);
-        Array x = EmptyLike(x_orig);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_NE(x.data(), x_orig.data());
-        EXPECT_EQ(x.shape(), x_orig.shape());
-        EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.IsContiguous());
-        EXPECT_EQ(0, x.offset());
-        EXPECT_EQ(&GetDefaultDevice(), &x.device());
+        testing::RunTestWithThreads(
+                []() {
+                    Dtype dtype = TypeToDtype<T>;
+                    Array x_orig = Empty(Shape{3, 2}, dtype);
+                    Array x = EmptyLike(x_orig);
+                    EXPECT_NE(x.data(), nullptr);
+                    EXPECT_NE(x.data(), x_orig.data());
+                    EXPECT_EQ(x.shape(), x_orig.shape());
+                    EXPECT_EQ(x.dtype(), x_orig.dtype());
+                    EXPECT_TRUE(x.IsContiguous());
+                    EXPECT_EQ(0, x.offset());
+                    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+                },
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 2);
     }
 
     template <typename T>
     void CheckFullWithGivenDtype(T expected, Scalar scalar) {
-        Dtype dtype = TypeToDtype<T>;
-        Array x = Full(Shape{3, 2}, scalar, dtype);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_EQ(x.shape(), Shape({3, 2}));
-        EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.IsContiguous());
-        EXPECT_EQ(0, x.offset());
-        testing::ExpectDataEqual(expected, x);
-        EXPECT_EQ(&GetDefaultDevice(), &x.device());
+        testing::RunTestWithThreads(
+                [&expected, &scalar]() {
+                    Dtype dtype = TypeToDtype<T>;
+                    Array x = Full(Shape{3, 2}, scalar, dtype);
+                    EXPECT_NE(x.data(), nullptr);
+                    EXPECT_EQ(x.shape(), Shape({3, 2}));
+                    EXPECT_EQ(x.dtype(), dtype);
+                    EXPECT_TRUE(x.IsContiguous());
+                    EXPECT_EQ(0, x.offset());
+                    testing::ExpectDataEqual(expected, x);
+                    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+                },
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 2);
     }
 
     template <typename T>
@@ -88,30 +105,40 @@ public:
 
     template <typename T>
     void CheckFullWithScalarDtype(T value) {
-        Scalar scalar = {value};
-        Array x = Full(Shape{3, 2}, scalar);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_EQ(x.shape(), Shape({3, 2}));
-        EXPECT_EQ(x.dtype(), scalar.dtype());
-        EXPECT_TRUE(x.IsContiguous());
-        EXPECT_EQ(0, x.offset());
-        testing::ExpectDataEqual(value, x);
-        EXPECT_EQ(&GetDefaultDevice(), &x.device());
+        testing::RunTestWithThreads(
+                [&value]() {
+                    Scalar scalar = {value};
+                    Array x = Full(Shape{3, 2}, scalar);
+                    EXPECT_NE(x.data(), nullptr);
+                    EXPECT_EQ(x.shape(), Shape({3, 2}));
+                    EXPECT_EQ(x.dtype(), scalar.dtype());
+                    EXPECT_TRUE(x.IsContiguous());
+                    EXPECT_EQ(0, x.offset());
+                    testing::ExpectDataEqual(value, x);
+                    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+                },
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 2);
     }
 
     template <typename T>
     void CheckFullLike(T expected, Scalar scalar) {
-        Dtype dtype = TypeToDtype<T>;
-        Array x_orig = Empty(Shape{3, 2}, dtype);
-        Array x = FullLike(x_orig, scalar);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_NE(x.data(), x_orig.data());
-        EXPECT_EQ(x.shape(), x_orig.shape());
-        EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.IsContiguous());
-        EXPECT_EQ(0, x.offset());
-        testing::ExpectDataEqual(expected, x);
-        EXPECT_EQ(&GetDefaultDevice(), &x.device());
+        testing::RunTestWithThreads(
+                [&expected, &scalar]() {
+                    Dtype dtype = TypeToDtype<T>;
+                    Array x_orig = Empty(Shape{3, 2}, dtype);
+                    Array x = FullLike(x_orig, scalar);
+                    EXPECT_NE(x.data(), nullptr);
+                    EXPECT_NE(x.data(), x_orig.data());
+                    EXPECT_EQ(x.shape(), x_orig.shape());
+                    EXPECT_EQ(x.dtype(), x_orig.dtype());
+                    EXPECT_TRUE(x.IsContiguous());
+                    EXPECT_EQ(0, x.offset());
+                    testing::ExpectDataEqual(expected, x);
+                    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+                },
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 2);
     }
 
     template <typename T>
@@ -121,62 +148,82 @@ public:
 
     template <typename T>
     void CheckZeros() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x = Zeros(Shape{3, 2}, dtype);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_EQ(x.shape(), Shape({3, 2}));
-        EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.IsContiguous());
-        EXPECT_EQ(0, x.offset());
-        T expected{0};
-        testing::ExpectDataEqual(expected, x);
-        EXPECT_EQ(&GetDefaultDevice(), &x.device());
+        testing::RunTestWithThreads(
+                []() {
+                    Dtype dtype = TypeToDtype<T>;
+                    Array x = Zeros(Shape{3, 2}, dtype);
+                    EXPECT_NE(x.data(), nullptr);
+                    EXPECT_EQ(x.shape(), Shape({3, 2}));
+                    EXPECT_EQ(x.dtype(), dtype);
+                    EXPECT_TRUE(x.IsContiguous());
+                    EXPECT_EQ(0, x.offset());
+                    T expected{0};
+                    testing::ExpectDataEqual(expected, x);
+                    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+                },
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 2);
     }
 
     template <typename T>
     void CheckZerosLike() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x_orig = Empty(Shape{3, 2}, dtype);
-        Array x = ZerosLike(x_orig);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_NE(x.data(), x_orig.data());
-        EXPECT_EQ(x.shape(), x_orig.shape());
-        EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.IsContiguous());
-        EXPECT_EQ(0, x.offset());
-        T expected{0};
-        testing::ExpectDataEqual(expected, x);
-        EXPECT_EQ(&GetDefaultDevice(), &x.device());
+        testing::RunTestWithThreads(
+                []() {
+                    Dtype dtype = TypeToDtype<T>;
+                    Array x_orig = Empty(Shape{3, 2}, dtype);
+                    Array x = ZerosLike(x_orig);
+                    EXPECT_NE(x.data(), nullptr);
+                    EXPECT_NE(x.data(), x_orig.data());
+                    EXPECT_EQ(x.shape(), x_orig.shape());
+                    EXPECT_EQ(x.dtype(), x_orig.dtype());
+                    EXPECT_TRUE(x.IsContiguous());
+                    EXPECT_EQ(0, x.offset());
+                    T expected{0};
+                    testing::ExpectDataEqual(expected, x);
+                    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+                },
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 2);
     }
 
     template <typename T>
     void CheckOnes() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x = Ones(Shape{3, 2}, dtype);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_EQ(x.shape(), Shape({3, 2}));
-        EXPECT_EQ(x.dtype(), dtype);
-        EXPECT_TRUE(x.IsContiguous());
-        EXPECT_EQ(0, x.offset());
-        T expected{1};
-        testing::ExpectDataEqual(expected, x);
-        EXPECT_EQ(&GetDefaultDevice(), &x.device());
+        testing::RunTestWithThreads(
+                []() {
+                    Dtype dtype = TypeToDtype<T>;
+                    Array x = Ones(Shape{3, 2}, dtype);
+                    EXPECT_NE(x.data(), nullptr);
+                    EXPECT_EQ(x.shape(), Shape({3, 2}));
+                    EXPECT_EQ(x.dtype(), dtype);
+                    EXPECT_TRUE(x.IsContiguous());
+                    EXPECT_EQ(0, x.offset());
+                    T expected{1};
+                    testing::ExpectDataEqual(expected, x);
+                    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+                },
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 2);
     }
 
     template <typename T>
     void CheckOnesLike() {
-        Dtype dtype = TypeToDtype<T>;
-        Array x_orig = Empty(Shape{3, 2}, dtype);
-        Array x = OnesLike(x_orig);
-        EXPECT_NE(x.data(), nullptr);
-        EXPECT_NE(x.data(), x_orig.data());
-        EXPECT_EQ(x.shape(), x_orig.shape());
-        EXPECT_EQ(x.dtype(), x_orig.dtype());
-        EXPECT_TRUE(x.IsContiguous());
-        EXPECT_EQ(0, x.offset());
-        T expected{1};
-        testing::ExpectDataEqual(expected, x);
-        EXPECT_EQ(&GetDefaultDevice(), &x.device());
+        testing::RunTestWithThreads(
+                []() {
+                    Dtype dtype = TypeToDtype<T>;
+                    Array x_orig = Empty(Shape{3, 2}, dtype);
+                    Array x = OnesLike(x_orig);
+                    EXPECT_NE(x.data(), nullptr);
+                    EXPECT_NE(x.data(), x_orig.data());
+                    EXPECT_EQ(x.shape(), x_orig.shape());
+                    EXPECT_EQ(x.dtype(), x_orig.dtype());
+                    EXPECT_TRUE(x.IsContiguous());
+                    EXPECT_EQ(0, x.offset());
+                    T expected{1};
+                    testing::ExpectDataEqual(expected, x);
+                    EXPECT_EQ(&GetDefaultDevice(), &x.device());
+                },
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 2);
     }
 
 private:
@@ -191,30 +238,35 @@ TEST_P(CreationTest, FromContiguousHostData) {
     std::shared_ptr<T> data{raw_data, [](const T*) {}};
 
     Dtype dtype = TypeToDtype<T>;
-    Array x = FromContiguousHostData(shape, dtype, data);
 
-    // Basic attributes
-    EXPECT_EQ(shape, x.shape());
-    EXPECT_EQ(dtype, x.dtype());
-    EXPECT_EQ(2, x.ndim());
-    EXPECT_EQ(3 * 2, x.GetTotalSize());
-    EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
-    EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
-    EXPECT_TRUE(x.IsContiguous());
-    EXPECT_EQ(0, x.offset());
+    testing::RunTestWithThreads(
+            [&shape, &dtype, &data]() {
+                Array x = FromContiguousHostData(shape, dtype, data);
 
-    // Array::data
-    testing::ExpectDataEqual<T>(data.get(), x);
+                // Basic attributes
+                EXPECT_EQ(shape, x.shape());
+                EXPECT_EQ(dtype, x.dtype());
+                EXPECT_EQ(2, x.ndim());
+                EXPECT_EQ(3 * 2, x.GetTotalSize());
+                EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
+                EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
+                EXPECT_TRUE(x.IsContiguous());
+                EXPECT_EQ(0, x.offset());
 
-    Device& device = GetDefaultDevice();
-    EXPECT_EQ(&device, &x.device());
-    if (device.backend().GetName() == "native") {
-        EXPECT_EQ(data.get(), x.data().get());
-    } else if (device.backend().GetName() == "cuda") {
-        EXPECT_NE(data.get(), x.data().get());
-    } else {
-        FAIL() << "invalid device_id";
-    }
+                // Array::data
+                testing::ExpectDataEqual<T>(data.get(), x);
+
+                Device& device = GetDefaultDevice();
+                EXPECT_EQ(&device, &x.device());
+                if (device.backend().GetName() == "native") {
+                    EXPECT_EQ(data.get(), x.data().get());
+                } else {
+                    XCHAINER_ASSERT(device.backend().GetName() == "cuda");
+                    EXPECT_NE(data.get(), x.data().get());
+                }
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 namespace {
@@ -253,16 +305,21 @@ TEST_P(CreationTest, FromData) {
     Strides strides{sizeof(T) * 3};
     int64_t offset = sizeof(T);
 
-    Array x;
-    void* data_ptr{};
-    {
-        // test potential freed memory
-        std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
-        data_ptr = data.get();
-        x = FromData(shape, dtype, data, strides, offset);
-    }
+    testing::RunTestWithThreads(
+            [&device, &host_data, &raw_data, &shape, &dtype, &strides, &offset, &expected_data]() {
+                Array x;
+                void* data_ptr{};
+                {
+                    // test potential freed memory
+                    std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
+                    data_ptr = data.get();
+                    x = FromData(shape, dtype, data, strides, offset);
+                }
 
-    CheckFromData<T>(x, shape, dtype, strides, offset, expected_data, data_ptr);
+                CheckFromData<T>(x, shape, dtype, strides, offset, expected_data, data_ptr);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, FromData_Contiguous) {
@@ -279,17 +336,22 @@ TEST_P(CreationTest, FromData_Contiguous) {
     Strides strides{sizeof(T)};
     int64_t offset = sizeof(T) * 3;
 
-    Array x;
-    void* data_ptr{};
-    {
-        // test potential freed memory
-        std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
-        data_ptr = data.get();
-        // nullopt strides creates an array from a contiguous data
-        x = FromData(shape, dtype, data, nonstd::nullopt, offset);
-    }
+    testing::RunTestWithThreads(
+            [&device, &host_data, &raw_data, &shape, &dtype, &strides, &offset, &expected_data]() {
+                Array x;
+                void* data_ptr{};
+                {
+                    // test potential freed memory
+                    std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
+                    data_ptr = data.get();
+                    // nullopt strides creates an array from a contiguous data
+                    x = FromData(shape, dtype, data, nonstd::nullopt, offset);
+                }
 
-    CheckFromData<T>(x, shape, dtype, strides, offset, expected_data, data_ptr);
+                CheckFromData<T>(x, shape, dtype, strides, offset, expected_data, data_ptr);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 // TODO(sonots): Checking `MakeDataFromForeignPointer` called is enough as a unit-test here. Use mock library if it becomes available.
@@ -320,19 +382,24 @@ TEST_P(CreationTest, FromHostData) {
     Strides strides{sizeof(T) * 3};
     int64_t offset = sizeof(T);
 
-    Array x;
     T raw_data[] = {0, 1, 2, 3, 4, 5};
     std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
 
-    x = internal::FromHostData(shape, dtype, host_data, strides, offset, device);
-
     T expected_data[] = {1, 4};
-    EXPECT_EQ(shape, x.shape());
-    EXPECT_EQ(dtype, x.dtype());
-    EXPECT_EQ(strides, x.strides());
-    EXPECT_EQ(offset, x.offset());
-    EXPECT_EQ(&device, &x.device());
-    testing::ExpectDataEqual<T>(expected_data, x);
+
+    testing::RunTestWithThreads(
+            [&shape, &dtype, &host_data, &strides, &offset, &device, &expected_data]() {
+                Array x = internal::FromHostData(shape, dtype, host_data, strides, offset, device);
+
+                EXPECT_EQ(shape, x.shape());
+                EXPECT_EQ(dtype, x.dtype());
+                EXPECT_EQ(strides, x.strides());
+                EXPECT_EQ(offset, x.offset());
+                EXPECT_EQ(&device, &x.device());
+                testing::ExpectDataEqual<T>(expected_data, x);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, Empty) {
@@ -347,48 +414,53 @@ TEST_P(CreationTest, Empty) {
 }
 
 TEST_P(CreationTest, EmptyWithVariousShapes) {
-    {
-        Array x = Empty(Shape{}, Dtype::kFloat32);
-        EXPECT_EQ(0, x.ndim());
-        EXPECT_EQ(1, x.GetTotalSize());
-        EXPECT_EQ(int64_t{sizeof(float)}, x.GetNBytes());
-        EXPECT_TRUE(x.IsContiguous());
-    }
-    {
-        Array x = Empty(Shape{0}, Dtype::kFloat32);
-        EXPECT_EQ(1, x.ndim());
-        EXPECT_EQ(0, x.GetTotalSize());
-        EXPECT_EQ(0, x.GetNBytes());
-        EXPECT_TRUE(x.IsContiguous());
-    }
-    {
-        Array x = Empty(Shape{1}, Dtype::kFloat32);
-        EXPECT_EQ(1, x.ndim());
-        EXPECT_EQ(1, x.GetTotalSize());
-        EXPECT_EQ(int64_t{sizeof(float)}, x.GetNBytes());
-        EXPECT_TRUE(x.IsContiguous());
-    }
-    {
-        Array x = Empty(Shape{2, 3}, Dtype::kFloat32);
-        EXPECT_EQ(2, x.ndim());
-        EXPECT_EQ(6, x.GetTotalSize());
-        EXPECT_EQ(6 * int64_t{sizeof(float)}, x.GetNBytes());
-        EXPECT_TRUE(x.IsContiguous());
-    }
-    {
-        Array x = Empty(Shape{1, 1, 1}, Dtype::kFloat32);
-        EXPECT_EQ(3, x.ndim());
-        EXPECT_EQ(1, x.GetTotalSize());
-        EXPECT_EQ(int64_t{sizeof(float)}, x.GetNBytes());
-        EXPECT_TRUE(x.IsContiguous());
-    }
-    {
-        Array x = Empty(Shape{2, 0, 3}, Dtype::kFloat32);
-        EXPECT_EQ(3, x.ndim());
-        EXPECT_EQ(0, x.GetTotalSize());
-        EXPECT_EQ(0, x.GetNBytes());
-        EXPECT_TRUE(x.IsContiguous());
-    }
+    testing::RunTestWithThreads(
+            []() {
+                {
+                    Array x = Empty(Shape{}, Dtype::kFloat32);
+                    EXPECT_EQ(0, x.ndim());
+                    EXPECT_EQ(1, x.GetTotalSize());
+                    EXPECT_EQ(int64_t{sizeof(float)}, x.GetNBytes());
+                    EXPECT_TRUE(x.IsContiguous());
+                }
+                {
+                    Array x = Empty(Shape{0}, Dtype::kFloat32);
+                    EXPECT_EQ(1, x.ndim());
+                    EXPECT_EQ(0, x.GetTotalSize());
+                    EXPECT_EQ(0, x.GetNBytes());
+                    EXPECT_TRUE(x.IsContiguous());
+                }
+                {
+                    Array x = Empty(Shape{1}, Dtype::kFloat32);
+                    EXPECT_EQ(1, x.ndim());
+                    EXPECT_EQ(1, x.GetTotalSize());
+                    EXPECT_EQ(int64_t{sizeof(float)}, x.GetNBytes());
+                    EXPECT_TRUE(x.IsContiguous());
+                }
+                {
+                    Array x = Empty(Shape{2, 3}, Dtype::kFloat32);
+                    EXPECT_EQ(2, x.ndim());
+                    EXPECT_EQ(6, x.GetTotalSize());
+                    EXPECT_EQ(6 * int64_t{sizeof(float)}, x.GetNBytes());
+                    EXPECT_TRUE(x.IsContiguous());
+                }
+                {
+                    Array x = Empty(Shape{1, 1, 1}, Dtype::kFloat32);
+                    EXPECT_EQ(3, x.ndim());
+                    EXPECT_EQ(1, x.GetTotalSize());
+                    EXPECT_EQ(int64_t{sizeof(float)}, x.GetNBytes());
+                    EXPECT_TRUE(x.IsContiguous());
+                }
+                {
+                    Array x = Empty(Shape{2, 0, 3}, Dtype::kFloat32);
+                    EXPECT_EQ(3, x.ndim());
+                    EXPECT_EQ(0, x.GetTotalSize());
+                    EXPECT_EQ(0, x.GetNBytes());
+                    EXPECT_TRUE(x.IsContiguous());
+                }
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, EmptyLike) {
@@ -490,135 +562,220 @@ TEST_P(CreationTest, OnesLike) {
 }
 
 TEST_P(CreationTest, Arange) {
-    Array a = Arange(0, 3, 1);
-    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(0, 3, 1);
+                Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeStopDtype) {
-    Array a = Arange(3, Dtype::kInt32);
-    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(3, Dtype::kInt32);
+                Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeStopDevice) {
-    Array a = Arange(Scalar{3, Dtype::kInt32}, GetDefaultDevice());
-    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(Scalar{3, Dtype::kInt32}, GetDefaultDevice());
+                Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeStopDtypeDevice) {
-    Array a = Arange(3, Dtype::kInt32, GetDefaultDevice());
-    Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(3, Dtype::kInt32, GetDefaultDevice());
+                Array e = testing::BuildArray({3}).WithData<int32_t>({0, 1, 2});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeStartStopDtype) {
-    Array a = Arange(1, 3, Dtype::kInt32);
-    Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(1, 3, Dtype::kInt32);
+                Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeStartStopDevice) {
-    Array a = Arange(1, 3, GetDefaultDevice());
-    Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(1, 3, GetDefaultDevice());
+                Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeStartStopDtypeDevice) {
-    Array a = Arange(1, 3, Dtype::kInt32, GetDefaultDevice());
-    Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(1, 3, Dtype::kInt32, GetDefaultDevice());
+                Array e = testing::BuildArray({2}).WithData<int32_t>({1, 2});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeStartStopStepDtype) {
-    Array a = Arange(1, 7, 2, Dtype::kInt32);
-    Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(1, 7, 2, Dtype::kInt32);
+                Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeStartStopStepDevice) {
-    Array a = Arange(1, 7, 2, GetDefaultDevice());
-    Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(1, 7, 2, GetDefaultDevice());
+                Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeStartStopStepDtypeDevice) {
-    Array a = Arange(1, 7, 2, Dtype::kInt32, GetDefaultDevice());
-    Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(1, 7, 2, Dtype::kInt32, GetDefaultDevice());
+                Array e = testing::BuildArray({3}).WithData<int32_t>({1, 3, 5});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeNegativeStep) {
-    Array a = Arange(4.f, 0.f, -1.5f, Dtype::kFloat32);
-    Array e = testing::BuildArray({3}).WithData<float>({4.f, 2.5f, 1.f});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(4.f, 0.f, -1.5f, Dtype::kFloat32);
+                Array e = testing::BuildArray({3}).WithData<float>({4.f, 2.5f, 1.f});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeLargeStep) {
-    Array a = Arange(2, 3, 5, Dtype::kInt32);
-    Array e = testing::BuildArray({1}).WithData<int32_t>({2});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(2, 3, 5, Dtype::kInt32);
+                Array e = testing::BuildArray({1}).WithData<int32_t>({2});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeEmpty) {
-    Array a = Arange(2, 1, 1, Dtype::kInt32);
-    Array e = testing::BuildArray({0}).WithData<int32_t>({});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(2, 1, 1, Dtype::kInt32);
+                Array e = testing::BuildArray({0}).WithData<int32_t>({});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, ArangeNoDtype) {
-    Array a = Arange(Scalar{1, Dtype::kUInt8}, Scalar{4, Dtype::kUInt8}, Scalar{1, Dtype::kUInt8});
-    Array e = testing::BuildArray({3}).WithData<uint8_t>({1, 2, 3});
-    EXPECT_ARRAY_EQ(e, a);
+    testing::RunTestWithThreads(
+            []() {
+                Array a = Arange(Scalar{1, Dtype::kUInt8}, Scalar{4, Dtype::kUInt8}, Scalar{1, Dtype::kUInt8});
+                Array e = testing::BuildArray({3}).WithData<uint8_t>({1, 2, 3});
+                EXPECT_ARRAY_EQ(e, a);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, InvalidTooLongBooleanArange) { EXPECT_THROW(Arange(0, 3, 1, Dtype::kBool), DtypeError); }
 
 TEST_P(CreationTest, Copy) {
-    {
-        Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
-        Array o = Copy(a);
-        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
-    }
-    {
-        Array a = testing::BuildArray({3, 1}).WithData<int8_t>({1, 2, 3});
-        Array o = Copy(a);
-        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
-    }
-    {
-        Array a = testing::BuildArray({3, 1}).WithData<float>({1.0f, 2.0f, 3.0f});
-        Array o = Copy(a);
-        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
-    }
+    testing::RunTestWithThreads(
+            []() {
+                {
+                    Array a = testing::BuildArray({4, 1}).WithData<bool>({true, true, false, false});
+                    Array o = Copy(a);
+                    EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
+                }
+                {
+                    Array a = testing::BuildArray({3, 1}).WithData<int8_t>({1, 2, 3});
+                    Array o = Copy(a);
+                    EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
+                }
+                {
+                    Array a = testing::BuildArray({3, 1}).WithData<float>({1.0f, 2.0f, 3.0f});
+                    Array o = Copy(a);
+                    EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
+                }
 
-    // with padding
-    {
-        Array a = testing::BuildArray({3, 1}).WithData<float>({1.0f, 2.0f, 3.0f}).WithPadding(1);
-        Array o = Copy(a);
-        EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
-    }
+                // with padding
+                {
+                    Array a = testing::BuildArray({3, 1}).WithData<float>({1.0f, 2.0f, 3.0f}).WithPadding(1);
+                    Array o = Copy(a);
+                    EXPECT_ARRAYS_ARE_EQUAL_COPY(a, o);
+                }
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, Identity) {
-    Array o = Identity(3, Dtype::kFloat32);
-    Array e = testing::BuildArray({3, 3}).WithData<float>({1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
-    EXPECT_ARRAY_EQ(e, o);
+    testing::RunTestWithThreads(
+            []() {
+                Array o = Identity(3, Dtype::kFloat32);
+                Array e = testing::BuildArray({3, 3}).WithData<float>({1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
+                EXPECT_ARRAY_EQ(e, o);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, IdentityInvalidN) { EXPECT_THROW(Identity(-1, Dtype::kFloat32), DimensionError); }
 
 TEST_P(CreationTest, Eye) {
-    {
-        Array o = Eye(2, 3, 1, Dtype::kFloat32);
-        Array e = testing::BuildArray({2, 3}).WithData<float>({0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
-        EXPECT_ARRAY_EQ(e, o);
-    }
-    {
-        Array o = Eye(3, 2, -2, Dtype::kFloat32);
-        Array e = testing::BuildArray({3, 2}).WithData<float>({0.f, 0.f, 0.f, 0.f, 1.f, 0.f});
-        EXPECT_ARRAY_EQ(e, o);
-    }
+    testing::RunTestWithThreads(
+            []() {
+                {
+                    Array o = Eye(2, 3, 1, Dtype::kFloat32);
+                    Array e = testing::BuildArray({2, 3}).WithData<float>({0.f, 1.f, 0.f, 0.f, 0.f, 1.f});
+                    EXPECT_ARRAY_EQ(e, o);
+                }
+                {
+                    Array o = Eye(3, 2, -2, Dtype::kFloat32);
+                    Array e = testing::BuildArray({3, 2}).WithData<float>({0.f, 0.f, 0.f, 0.f, 1.f, 0.f});
+                    EXPECT_ARRAY_EQ(e, o);
+                }
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, EyeInvalidNM) {
@@ -630,29 +787,52 @@ TEST_P(CreationTest, EyeInvalidNM) {
 TEST_P(CreationTest, AsContiguousArray) {
     Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>().WithPadding(1);
     ASSERT_FALSE(a.IsContiguous());  // test precondition
-    Array b = AsContiguousArray(a);
 
-    EXPECT_TRUE(b.IsContiguous());
-    EXPECT_ARRAY_EQ(b, a);
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                Array y = AsContiguousArray(xs[0]);
+                EXPECT_TRUE(y.IsContiguous());
+                return std::vector<Array>{y};
+            },
+            {a},
+            {a},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(CreationTest, AsContiguousArrayNoCopy) {
     Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>();
     ASSERT_TRUE(a.IsContiguous());  // test precondition
-    Array b = AsContiguousArray(a);
 
-    EXPECT_EQ(internal::GetArrayBody(b), internal::GetArrayBody(a));
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                Array y = AsContiguousArray(xs[0]);
+                EXPECT_EQ(internal::GetArrayBody(y), internal::GetArrayBody(xs[0]));
+                return std::vector<Array>{y};
+            },
+            {a},
+            {a},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
     Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>();
     ASSERT_TRUE(a.IsContiguous());  // test precondition
-    Array b = AsContiguousArray(a, Dtype::kInt64);
 
-    EXPECT_NE(internal::GetArrayBody(b), internal::GetArrayBody(a));
-    EXPECT_TRUE(b.IsContiguous());
-    EXPECT_EQ(Dtype::kInt64, b.dtype());
-    EXPECT_ARRAY_EQ(b, a.AsType(Dtype::kInt64));
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                Array y = AsContiguousArray(xs[0], Dtype::kInt64);
+                EXPECT_NE(internal::GetArrayBody(y), internal::GetArrayBody(xs[0]));
+                EXPECT_TRUE(y.IsContiguous());
+                EXPECT_EQ(Dtype::kInt64, y.dtype());
+                EXPECT_ARRAY_EQ(y, xs[0].AsType(Dtype::kInt64));
+                return std::vector<Array>{};
+            },
+            {a},
+            {},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(CreationTest, AsContiguousArrayBackward) {
@@ -680,47 +860,86 @@ TEST_P(CreationTest, AsContiguousArrayDoubleBackward) {
 TEST_P(CreationTest, DiagVecToMat) {
     {
         Array v = Arange(1, 3, Dtype::kFloat32);
-        Array o = Diag(v);
         Array e = testing::BuildArray({2, 2}).WithData<float>({1.f, 0.f, 0.f, 2.f});
-        EXPECT_ARRAY_EQ(e, o);
+
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) { return std::vector<Array>{Diag(xs[0])}; },
+                {v},
+                {e},
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 1);
     }
     {
         Array v = Arange(1, 4, Dtype::kFloat32);
-        Array o = Diag(v, 1);
         Array e = testing::BuildArray({4, 4}).WithData<float>(
                 {0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 3.f, 0.f, 0.f, 0.f, 0.f});
-        EXPECT_ARRAY_EQ(e, o);
+
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) { return std::vector<Array>{Diag(xs[0], 1)}; },
+                {v},
+                {e},
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 1);
     }
     {
         Array v = Arange(1, 3, Dtype::kFloat32);
-        Array o = Diag(v, -2);
         Array e = testing::BuildArray({4, 4}).WithData<float>(
                 {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f});
-        EXPECT_ARRAY_EQ(e, o);
+
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) { return std::vector<Array>{Diag(xs[0], -2)}; },
+                {v},
+                {e},
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 1);
     }
 }
 
 TEST_P(CreationTest, DiagMatToVec) {
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
-        Array o = Diag(v);
         Array e = testing::BuildArray({2}).WithData<float>({0.f, 4.f});
-        EXPECT_ARRAY_EQ(e, o);
-        EXPECT_EQ(v.data().get(), o.data().get());
+
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Diag(xs[0]);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get());
+                    return std::vector<Array>{y};
+                },
+                {v},
+                {e},
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 1);
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
-        Array o = Diag(v, 1);
         Array e = testing::BuildArray({2}).WithData<float>({1.f, 5.f});
-        EXPECT_ARRAY_EQ(e, o);
-        EXPECT_EQ(v.data().get(), o.data().get());
+
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Diag(xs[0], 1);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get());
+                    return std::vector<Array>{y};
+                },
+                {v},
+                {e},
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 1);
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
-        Array o = Diag(v, -1);
         Array e = testing::BuildArray({1}).WithData<float>({3.f});
-        EXPECT_ARRAY_EQ(e, o);
-        EXPECT_EQ(v.data().get(), o.data().get());
+
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Diag(xs[0], -1);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get());
+                    return std::vector<Array>{y};
+                },
+                {v},
+                {e},
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 1);
     }
 }
 
@@ -783,22 +1002,37 @@ TEST_P(CreationTest, DiagMatToVecDoubleBackward) {
 TEST_P(CreationTest, Diagflat) {
     {
         Array v = Arange(1, 3, Dtype::kFloat32);
-        Array o = Diagflat(v);
         Array e = testing::BuildArray({2, 2}).WithData<float>({1.f, 0.f, 0.f, 2.f});
-        EXPECT_ARRAY_EQ(e, o);
+
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) { return std::vector<Array>{Diagflat(xs[0])}; },
+                {v},
+                {e},
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 1);
     }
     {
         Array v = Arange(1, 5, Dtype::kFloat32).Reshape({2, 2});
-        Array o = Diagflat(v, 1);
         Array e = testing::BuildArray({5, 5}).WithData<float>({0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 0.f,
                                                                3.f, 0.f, 0.f, 0.f, 0.f, 0.f, 4.f, 0.f, 0.f, 0.f, 0.f, 0.f});
-        EXPECT_ARRAY_EQ(e, o);
+
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) { return std::vector<Array>{Diagflat(xs[0], 1)}; },
+                {v},
+                {e},
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 1);
     }
     {
         Array v = Arange(1, 3, Dtype::kFloat32).Reshape({1, 2});
-        Array o = Diagflat(v, -1);
         Array e = testing::BuildArray({3, 3}).WithData<float>({0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 2.f, 0.f});
-        EXPECT_ARRAY_EQ(e, o);
+
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) { return std::vector<Array>{Diagflat(xs[0], -1)}; },
+                {v},
+                {e},
+                // TODO(sonots): Run concurrency test in CUDA
+                GetParam() == "cuda" ? 0 : 1);
     }
 }
 
@@ -831,15 +1065,25 @@ TEST_P(CreationTest, DiagflatDoubleBackward) {
 }
 
 TEST_P(CreationTest, Linspace) {
-    Array o = Linspace(3.0, 10.0, 4, true, Dtype::kInt32);
-    Array e = testing::BuildArray({4}).WithData<int32_t>({3, 5, 7, 10});
-    EXPECT_ARRAY_EQ(e, o);
+    testing::RunTestWithThreads(
+            []() {
+                Array o = Linspace(3.0, 10.0, 4, true, Dtype::kInt32);
+                Array e = testing::BuildArray({4}).WithData<int32_t>({3, 5, 7, 10});
+                EXPECT_ARRAY_EQ(e, o);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, LinspaceEndPointFalse) {
-    Array o = Linspace(3.0, 10.0, 4, false, Dtype::kInt32);
-    Array e = testing::BuildArray({4}).WithData<int32_t>({3, 4, 6, 8});
-    EXPECT_ARRAY_EQ(e, o);
+    testing::RunTestWithThreads(
+            []() {
+                Array o = Linspace(3.0, 10.0, 4, false, Dtype::kInt32);
+                Array e = testing::BuildArray({4}).WithData<int32_t>({3, 4, 6, 8});
+                EXPECT_ARRAY_EQ(e, o);
+            },
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 INSTANTIATE_TEST_CASE_P(

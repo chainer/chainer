@@ -16,6 +16,7 @@
 #include "xchainer/testing/array.h"
 #include "xchainer/testing/array_check.h"
 #include "xchainer/testing/device_session.h"
+#include "xchainer/testing/routines.h"
 
 namespace xchainer {
 namespace {
@@ -59,11 +60,18 @@ TEST_P(LogicTest, Equal) {
     Array a = testing::BuildArray(shape).WithData<T>(a_data);
     Array b = testing::BuildArray(shape).WithData<T>(b_data);
     Array e = testing::BuildArray(shape).WithData<bool>(e_data);
-    Array c = Equal(a, b);
 
-    ASSERT_EQ(c.dtype(), Dtype::kBool);
-    EXPECT_TRUE(c.IsContiguous());
-    EXPECT_ARRAY_EQ(e, c);
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                Array y = Equal(xs[0], xs[1]);
+                EXPECT_EQ(y.dtype(), Dtype::kBool);
+                EXPECT_TRUE(y.IsContiguous());
+                return std::vector<Array>{y};
+            },
+            {a, b},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(LogicTest, EqualBroadcast) {
@@ -72,8 +80,13 @@ TEST_P(LogicTest, EqualBroadcast) {
     Array a = testing::BuildArray({2, 3}).WithData<T>({1, 2, 3, 4, 3, 2});
     Array b = testing::BuildArray({2, 1}).WithData<T>({3, 2});
     Array e = testing::BuildArray({2, 3}).WithData<bool>({false, false, true, false, false, true});
-    Array o = Equal(a, b);
-    EXPECT_ARRAY_EQ(e, o);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) { return std::vector<Array>{Equal(xs[0], xs[1])}; },
+            {a, b},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(LogicTest, NotEqual) {
@@ -147,11 +160,18 @@ TEST_P(LogicTest, Greater) {
     Array a = testing::BuildArray(shape).WithData<T>(a_data);
     Array b = testing::BuildArray(shape).WithData<T>(b_data);
     Array e = testing::BuildArray(shape).WithData<bool>(e_data);
-    Array c = Greater(a, b);
 
-    ASSERT_EQ(c.dtype(), Dtype::kBool);
-    EXPECT_TRUE(c.IsContiguous());
-    EXPECT_ARRAY_EQ(e, c);
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                Array y = Greater(xs[0], xs[1]);
+                EXPECT_EQ(y.dtype(), Dtype::kBool);
+                EXPECT_TRUE(y.IsContiguous());
+                return std::vector<Array>{y};
+            },
+            {a, b},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(LogicTest, GreaterBroadcast) {
@@ -160,8 +180,13 @@ TEST_P(LogicTest, GreaterBroadcast) {
     Array a = testing::BuildArray({2, 3}).WithData<T>({1, 2, 3, 4, 3, 2});
     Array b = testing::BuildArray({2, 1}).WithData<T>({2, 2});
     Array e = testing::BuildArray({2, 3}).WithData<bool>({false, false, true, true, true, false});
-    Array o = Greater(a, b);
-    EXPECT_ARRAY_EQ(e, o);
+
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) { return std::vector<Array>{Greater(xs[0], xs[1])}; },
+            {a, b},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(LogicTest, GreaterEqual) {
@@ -316,11 +341,18 @@ TEST_P(LogicTest, LogicalNot) {
     Shape shape{static_cast<int64_t>(data.size())};
     Array a = testing::BuildArray(shape).WithData<T>(a_data);
     Array e = testing::BuildArray(shape).WithData<bool>(e_data);
-    Array c = LogicalNot(a);
 
-    ASSERT_EQ(c.dtype(), Dtype::kBool);
-    EXPECT_TRUE(c.IsContiguous());
-    EXPECT_ARRAY_EQ(e, c);
+    testing::CheckForward(
+            [](const std::vector<Array>& xs) {
+                Array y = LogicalNot(xs[0]);
+                EXPECT_EQ(y.dtype(), Dtype::kBool);
+                EXPECT_TRUE(y.IsContiguous());
+                return std::vector<Array>{y};
+            },
+            {a},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 INSTANTIATE_TEST_CASE_P(

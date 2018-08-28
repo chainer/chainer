@@ -68,5 +68,25 @@ void CheckThreadSafety(
     }
 }
 
+// TODO(sonots): Reconsider the function name.
+// TODO(sonots): Do single-shot and multi-threads tests in seperated test-cases.
+// TODO(sonots): Make it possible to use different contexts and/or devices in different threads.
+inline void RunTestWithThreads(const std::function<void(void)>& func, size_t thread_count = 2) {
+    // Run single-shot
+    func();
+
+    // Run in multi-threads
+    if (thread_count > 0) {
+        Context& context = xchainer::GetDefaultContext();
+        Device& device = xchainer::GetDefaultDevice();
+        RunThreads(thread_count, [&context, &device, &func](size_t /*thread_index*/) {
+            xchainer::SetDefaultContext(&context);
+            xchainer::SetDefaultDevice(&device);
+            func();
+            return nullptr;
+        });
+    }
+}
+
 }  // namespace testing
 }  // namespace xchainer

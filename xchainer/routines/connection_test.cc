@@ -98,14 +98,18 @@ TEST_P(ConnectionTest, ConvNd) {
     Array x = testing::BuildArray(x_shape).WithLinearData<double>(-x_shape.GetTotalSize() / 2, 1.0).WithPadding(1);
     Array w = testing::BuildArray(w_shape).WithLinearData<double>(-w_shape.GetTotalSize() / 2, 1.0);
     Array b = testing::BuildArray(b_shape).WithData<double>({-0.2, 1.3});
-    Array y = Conv(x, w, b, stride, pad, false);
 
     Array e = testing::BuildArray(out_shape).WithData<double>(
             {-2.00000e-01, -2.00000e-01, -2.00000e-01, 4.58278e+04,  6.09178e+04,  4.55038e+04,  1.30000e+00,  1.30000e+00,  1.30000e+00,
              -1.44347e+04, -1.81367e+04, -1.28147e+04, -2.00000e-01, -2.00000e-01, -2.00000e-01, -3.58202e+04, -4.92422e+04, -3.80882e+04,
              1.30000e+00,  1.30000e+00,  1.30000e+00,  4.38853e+04,  5.83273e+04,  4.35613e+04});  // Computed with Chainer.
 
-    EXPECT_ARRAY_EQ(e, y);
+    testing::CheckForward(
+            [&stride, &pad](const std::vector<Array>& xs) { return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, false)}; },
+            {x, w, b},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ConnectionTest, ConvCoverAll) {
@@ -134,7 +138,6 @@ TEST_P(ConnectionTest, ConvCoverAll) {
     Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
     Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
-    Array y = Conv(x, w, b, stride, pad, cover_all);
 
     Array e =
             testing::BuildArray(out_shape).WithData<float>(
@@ -151,7 +154,12 @@ TEST_P(ConnectionTest, ConvCoverAll) {
                      2.43943e+04,  1.56763e+04,  2.74543e+04,  2.77603e+04,  2.80663e+04,  1.79803e+04,  1.30000e+00,
                      1.30000e+00,  1.30000e+00,  1.30000e+00});  // Computed with Chainer.
 
-    EXPECT_ARRAY_EQ(e, y);
+    testing::CheckForward(
+            [&stride, &pad, &cover_all](const std::vector<Array>& xs) {
+                return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, cover_all)};
+            },
+            {x, w, b},
+            {e});
 }
 
 TEST_P(ConnectionTest, ConvBackward) {
@@ -367,7 +375,6 @@ TEST_P(ConnectionTest, ConvTranspose) {
     Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
     Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
-    Array y = ConvTranspose(x, w, b, stride, pad);
 
     Array e = testing::BuildArray(out_shape).WithData<float>(
             {-2.0000e-01, -2.0000e-01, -2.0000e-01, -2.0000e-01, -2.0000e-01, -2.0000e-01, -2.0000e-01, 8.4580e+02,  7.6480e+02,
@@ -403,7 +410,12 @@ TEST_P(ConnectionTest, ConvTranspose) {
              1.3303e+03,  6.7330e+02,  7.5130e+02,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,
              1.3000e+00});  // Computed with Chainer.
 
-    EXPECT_ARRAY_EQ(e, y);
+    testing::CheckForward(
+            [&stride, &pad](const std::vector<Array>& xs) { return std::vector<Array>{ConvTranspose(xs[0], xs[1], xs[2], stride, pad)}; },
+            {x, w, b},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ConnectionTest, ConvTransposeOutSize) {
@@ -431,7 +443,6 @@ TEST_P(ConnectionTest, ConvTransposeOutSize) {
     Array x = testing::BuildArray(x_shape).WithLinearData<float>(-x_shape.GetTotalSize() / 2, 1.0f).WithPadding(1);
     Array w = testing::BuildArray(w_shape).WithLinearData<float>(-w_shape.GetTotalSize() / 2, 1.0f);
     Array b = testing::BuildArray(b_shape).WithData<float>({-0.2f, 1.3f});
-    Array y = ConvTranspose(x, w, b, stride, pad, out_dims);
 
     Array e = testing::BuildArray(out_shape).WithData<float>(
             {-2.0000e-01, -2.0000e-01, -2.0000e-01, -2.0000e-01, -2.0000e-01, -2.0000e-01, -2.0000e-01, -2.0000e-01, 1.1278e+03,
@@ -471,7 +482,14 @@ TEST_P(ConnectionTest, ConvTransposeOutSize) {
              1.7383e+03,  8.7730e+02,  1.7623e+03,  8.8930e+02,  1.7863e+03,  9.0130e+02,  1.3000e+00,  1.3000e+00,  1.3000e+00,
              1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00});  // Computed with Chainer.
 
-    EXPECT_ARRAY_EQ(e, y);
+    testing::CheckForward(
+            [&stride, &pad, &out_dims](const std::vector<Array>& xs) {
+                return std::vector<Array>{ConvTranspose(xs[0], xs[1], xs[2], stride, pad, out_dims)};
+            },
+            {x, w, b},
+            {e},
+            // TODO(sonots): Run concurrency test in CUDA
+            GetParam() == "cuda" ? 0 : 1);
 }
 
 TEST_P(ConnectionTest, ConvTransposeBackward) {
