@@ -2076,9 +2076,13 @@ class LoggedFunc(chainer.FunctionNode):
     def backward(self, target_input_indexes, grad_outputs):
         for gy in grad_outputs:
             assert gy is not None
-        return LoggedFunc(
+        gx = LoggedFunc(
             'grad ' + self.name, self.len_x, self.log
         ).apply(grad_outputs)
+        if six.PY2:
+            import gc
+            gc.collect()
+        return gx
 
 
 class TestDelayBackward(unittest.TestCase):
