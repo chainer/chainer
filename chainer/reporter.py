@@ -340,7 +340,7 @@ class DictSummary(object):
                 w = v[1]
                 v = v[0]
                 if isinstance(w, variable.Variable):
-                    w = w.data
+                    w = w.array
                 if not numpy.isscalar(w) and not getattr(w, 'ndim', -1) == 0:
                     raise ValueError(
                         'Given weight to {} was not scalar.'.format(k))
