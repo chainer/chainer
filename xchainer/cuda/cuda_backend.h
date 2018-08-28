@@ -46,6 +46,7 @@ public:
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;
     nonstd::optional<size_t> cudnn_max_workspace_size_{};
+    mutable std::mutex mutex_;
 };
 
 }  // namespace cuda
