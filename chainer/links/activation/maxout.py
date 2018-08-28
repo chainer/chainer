@@ -1,7 +1,8 @@
 import numpy
 
-from chainer.backends import cuda
+import chainer
 from chainer.functions.activation import maxout
+from chainer import initializer
 from chainer import link
 from chainer.links.connection import linear
 
@@ -58,18 +59,38 @@ class Maxout(link.Chain):
         super(Maxout, self).__init__()
 
         linear_out_size = out_size * pool_size
-        if initialW is not None:
-            initialW = initialW.reshape(linear_out_size, in_size)
 
-        if initial_bias is not None:
-            if numpy.isscalar(initial_bias):
-                initial_bias = numpy.full(
-                    (linear_out_size,), initial_bias, dtype=numpy.float32)
-            elif isinstance(initial_bias, (numpy.ndarray, cuda.ndarray)):
-                initial_bias = initial_bias.reshape(linear_out_size)
-            else:
-                raise ValueError(
-                    'initial bias must be float, ndarray, or None')
+        if initialW is None or \
+           numpy.isscalar(initialW) or \
+           isinstance(initialW, initializer.Initializer):
+            pass
+        elif chainer.is_arrays_compatible([initialW]):
+            if initialW.ndim != 3:
+                raise ValueError('initialW.ndim should be 3')
+            initialW = initialW.reshape(linear_out_size, in_size)
+        elif callable(initialW):
+            initialW_orig = initialW
+
+            def initialW(array):
+                array.shape = (out_size, pool_size, in_size)
+                initialW_orig(array)
+                array.shape = (linear_out_size, in_size)
+
+        if initial_bias is None or \
+           numpy.isscalar(initial_bias) or \
+           isinstance(initial_bias, initializer.Initializer):
+            pass
+        elif chainer.is_arrays_compatible([initial_bias]):
+            if initial_bias.ndim != 2:
+                raise ValueError('initial_bias.ndim should be 2')
+            initial_bias = initial_bias.reshape(linear_out_size)
+        elif callable(initial_bias):
+            initial_bias_orig = initial_bias
+
+            def initial_bias(array):
+                array.shape = (out_size, pool_size)
+                initial_bias_orig(array)
+                array.shape = linear_out_size,
 
         with self.init_scope():
             self.linear = linear.Linear(
@@ -80,7 +101,7 @@ class Maxout(link.Chain):
         self.out_size = out_size
         self.pool_size = pool_size
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the maxout layer.
 
         Args:

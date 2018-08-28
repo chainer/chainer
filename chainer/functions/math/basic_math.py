@@ -65,7 +65,7 @@ class Neg(function_node.FunctionNode):
         return '__neg__'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
 
     def forward(self, x):
         self.retain_inputs(())
@@ -91,7 +91,7 @@ class Absolute(function_node.FunctionNode):
         return '|_|'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -110,7 +110,7 @@ class AbsoluteGrad(function_node.FunctionNode):
         self.x = x
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -143,7 +143,7 @@ class Add(function_node.FunctionNode):
         return '_ + _'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype == in_types[1].dtype,
         )
@@ -170,6 +170,7 @@ class AddConstant(function_node.FunctionNode):
         return '_ + %s' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types.size() == 1)
 
     def forward(self, x):
@@ -184,19 +185,19 @@ class AddConstant(function_node.FunctionNode):
 class MultiAdd(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
-        for in_type in in_types:
+        for i, in_type in enumerate(in_types):
+            type_check.argname((in_type,), ('x{}'.format(i),))
             type_check.expect(in_types[0].dtype == in_type.dtype)
 
     def forward(self, xs):
         self.len = len(xs)
         if len(xs) == 1:
             return xs
-        y = None
-        if intel64.should_use_ideep('>=auto'):
-            bxs = numpy.broadcast_arrays(*xs)
-            if intel64.inputs_all_ready(bxs):
-                y = intel64.ideep.multi_add(bxs)
-        if y is None:
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(xs)
+                and all(x.shape == xs[0].shape for x in xs[1:])):
+            y = intel64.ideep.multi_add(xs)
+        else:
             # The output should be a new array. Add the first 2 arrays
             # and get the result y. Then add the rest arrays to y.
             y = xs[0] + xs[1]
@@ -236,7 +237,7 @@ class Sub(function_node.FunctionNode):
         return '_ - _'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('lhs', 'rhs'))
         type_check.expect(in_types[0].dtype == in_types[1].dtype)
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
@@ -277,7 +278,7 @@ class SubFromConstant(function_node.FunctionNode):
         return '%s - _' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
 
     def forward(self, x):
         value = _preprocess_const(x[0], self.value)
@@ -307,7 +308,7 @@ class Mul(function_node.FunctionNode):
         return '_ * _'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -338,7 +339,7 @@ class MulConstant(function_node.FunctionNode):
         return '_ * %s' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
 
     def forward(self, x):
         value = _preprocess_const(x[0], self.value)
@@ -369,7 +370,7 @@ class Div(function_node.FunctionNode):
         return '_ / _'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -468,7 +469,7 @@ class DivFromConstant(function_node.FunctionNode):
         return '%s / _' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -553,7 +554,7 @@ class PowVarVar(function_node.FunctionNode):
         return '_ ** _'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('lhs', 'rhs'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -578,7 +579,7 @@ class PowVarVarGrad(function_node.FunctionNode):
         self.y = y
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 3)
+        type_check.argname(in_types, ('lhs', 'rhs', 'gy'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -654,7 +655,7 @@ class PowVarConst(function_node.FunctionNode):
         return '_ ** %s' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -674,7 +675,7 @@ class PowVarConstGrad(function_node.FunctionNode):
         self.val = self.val_1 = None
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 'gy'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
@@ -741,7 +742,7 @@ class PowConstVar(function_node.FunctionNode):
         return '%s ** _' % _convert_value_to_string(self.value)
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -761,7 +762,7 @@ class PowConstVarGrad(function_node.FunctionNode):
         self.value = value
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('y', 'gy'))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,

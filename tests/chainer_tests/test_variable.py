@@ -640,6 +640,12 @@ class TestVariable(unittest.TestCase):
                             np.ones(3, dtype=np.float32),
                             cp.ones(3, dtype=np.float32))
 
+    @attr.ideep
+    def test_copydata_cpu_to_ideep(self):
+        self.check_copydata(intel64.ideep.array(np.zeros(3, dtype=np.float32)),
+                            np.ones(3, dtype=np.float32),
+                            np.ones(3, dtype=np.float32))
+
     @attr.gpu
     def test_copydata_gpu_to_gpu(self):
         cp = cuda.cupy
@@ -652,6 +658,12 @@ class TestVariable(unittest.TestCase):
         cp = cuda.cupy
         self.check_copydata(np.zeros(3, dtype=np.float32),
                             cp.ones(3, dtype=np.float32),
+                            np.ones(3, dtype=np.float32))
+
+    @attr.ideep
+    def test_copydata_ideep_to_cpu(self):
+        self.check_copydata(np.zeros(3, dtype=np.float32),
+                            intel64.ideep.array(np.ones(3, dtype=np.float32)),
                             np.ones(3, dtype=np.float32))
 
     @attr.multi_gpu(2)
@@ -986,6 +998,15 @@ class TestUninitializedParameter(unittest.TestCase):
         x.initialize((2, 3))
         assert x.data.dtype == np.float64
         assert x.grad.dtype == np.float64
+
+    def test_initialize_by_callable_default_dtype(self):
+        def initializer(array):
+            array.fill(1.0)
+        x = chainer.Parameter(initializer=initializer)
+        with chainer.using_config('dtype', np.float16):
+            x.initialize((3, 2))
+        assert x.data.dtype == np.float16
+        assert x.grad.dtype == np.float16
 
     def test_initialize_node(self):
         initializer = initializers.Zero(np.float64)

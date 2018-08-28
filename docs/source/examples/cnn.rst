@@ -55,7 +55,7 @@ digit images in 1998. In Chainer, the model can be written as follows:
                 self.fc4 = L.Linear(None, 84)
                 self.fc5 = L.Linear(84, 10)
 
-        def __call__(self, x):
+        def forward(self, x):
             h = F.sigmoid(self.conv1(x))
             h = F.max_pooling_2d(h, 2, 2)
             h = F.sigmoid(self.conv2(h))
@@ -73,7 +73,7 @@ by assigning the objects of :class:`~chainer.Link` as an attribute.
 
 The model class is instantiated before the forward and backward computations.
 To give input images and label vectors simply by calling the model object
-like a function, :meth:`__call__` is usually defined in the model class.
+like a function, :meth:`forward` is usually defined in the model class.
 This method performs the forward computation of the model. Chainer uses
 the powerful autograd system for any computational graphs written with
 :class:`~chainer.FunctionNode`\ s and :class:`~chainer.Link`\ s (actually a
@@ -82,10 +82,10 @@ inside of it), so that you don't need to explicitly write the code for backward
 computations in the model. Just prepare the data, then give it to the model.
 The way this works is the resulting output :class:`~chainer.Variable` from the
 forward computation has a :meth:`~chainer.Variable.backward` method to perform
-autograd. In the above model, :meth:`__call__` has a ``if`` statement at the
+autograd. In the above model, :meth:`forward` has a ``if`` statement at the
 end to switch its behavior by the Chainer's running mode, i.e., training mode or
 not. Chainer presents the running mode as a global variable ``chainer.config.train``.
-When it's in training mode, :meth:`__call__` returns the output value of the
+When it's in training mode, :meth:`forward` returns the output value of the
 last layer as is to compute the loss later on, otherwise it returns a
 prediction result by calculating :meth:`~chainer.functions.softmax`.
 
@@ -124,10 +124,10 @@ can also write the same model like in this way:
                 for n in net:
                     if not n[0].startswith('_'):
                         setattr(self, n[0], n[1])
-            self.forward = net
+            self.layers = net
 
-        def __call__(self, x):
-            for n, f in self.forward:
+        def forward(self, x):
+            for n, f in self.layers:
                 if not n.startswith('_'):
                     x = getattr(self, n)(x)
                 else:
@@ -147,11 +147,11 @@ This code creates a list of pairs of component name (e.g., ``conv1``, ``_sigm1``
 In this case, components whose name start with ``_`` are functions (:class:`~chainer.FunctionNode`), which doesn't have any trainable parameters, so that we don't register (``setattr``) it to the model.
 Others (``conv1``, ``fc4``, etc.) are :class:`~chainer.Link`\ s, which are trainable layers that hold parameters.
 This operation can be freely replaced with many other ways because those component names are just designed to select :class:`~chainer.Link`\ s only from the list ``net`` easily.
-The list ``net`` is stored as an attribute :attr:`forward` to refer it in
-:meth:`__call__`. In :meth:`__call__`, it retrieves all layers in the network
+The list ``net`` is stored as an attribute :attr:`layers` to refer it in
+:meth:`forward`. In :meth:`forward`, it retrieves all layers in the network
 from :attr:`self.forward` sequentially and gives the
 input variable or the intermediate output from the previous layer to the
-current layer. The last part of the :meth:`__call__` to switch its behavior
+current layer. The last part of the :meth:`forward` to switch its behavior
 by the training/inference mode is the same as the former way.
 
 Ways to calculate loss
@@ -230,7 +230,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
                 VGGBlock(512, 3),
                 VGGBlock(512, 3, True))
 
-        def __call__(self, x):
+        def forward(self, x):
             for f in self.children():
                 x = f(x)
             if chainer.config.train:
@@ -257,7 +257,7 @@ useful. First, let's see how to write a VGG16 [Simonyan14]_ model.
             self.n_convs = n_convs
             self.fc = fc
 
-        def __call__(self, x):
+        def forward(self, x):
             h = F.relu(self.conv1(x))
             h = F.relu(self.conv2(h))
             if self.n_convs == 3:
@@ -305,7 +305,7 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
                 self.res5 = ResBlock(n_blocks[3], 1024, 512, 2048)
                 self.fc6 = L.Linear(2048, 1000)
 
-        def __call__(self, x):
+        def forward(self, x):
             h = self.bn1(self.conv1(x))
             h = F.max_pooling_2d(F.relu(h), 2, 2)
             h = self.res2(h)
@@ -326,7 +326,7 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
             for _ in range(n_layers - 1):
                 self.add_link(BottleNeck(n_out, n_mid, n_out))
 
-        def __call__(self, x):
+        def forward(self, x):
             for f in self.children():
                 x = f(x)
             return x
@@ -352,7 +352,7 @@ In the other words, it's easy. One possible way to write ResNet-152 is:
                     self.bn_r = L.BatchNormalization(n_out)
             self.proj = proj
 
-        def __call__(self, x):
+        def forward(self, x):
             h = F.relu(self.bn_a(self.conv1x1a(x)))
             h = F.relu(self.bn_b(self.conv3x3b(h)))
             h = self.bn_c(self.conv1x1c(h))

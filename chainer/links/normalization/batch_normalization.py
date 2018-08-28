@@ -53,6 +53,22 @@ class BatchNormalization(link.Link):
             option, numbers in the tuple must be being sorted in ascending
             order. For example, (0, 2) is OK, but (2, 0) is not.
 
+        initial_gamma: Initializer of the scaling parameter. The default value
+            is ``1``.
+        initial_beta: Initializer of the shifting parameter. The default value
+            is ``0``.
+        initial_avg_mean: Initializer of the moving average of population mean.
+            The default value is ``0``.
+        initial_avg_var: Initializer of the moving average of population
+            variance. The default value is ``1``.
+
+    .. note::
+
+        From v5.0.0, the initial value of the population variance is changed to
+        1. It does not change the behavior of training, but the resulting model
+        may have a slightly different behavior on inference. To emulate the
+        old behavior, pass ``initial_avg_var=0`` for training.
+
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
@@ -171,11 +187,14 @@ class BatchNormalization(link.Link):
 
     def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=None,
                  use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None, axis=None):
+                 initial_gamma=None, initial_beta=None, axis=None,
+                 initial_avg_mean=None, initial_avg_var=None):
         super(BatchNormalization, self).__init__()
 
         if size is None and axis is None:
             raise RuntimeError('size or axis is required')
+        self._initial_avg_mean = initial_avg_mean
+        self._initial_avg_var = initial_avg_var
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
@@ -204,17 +223,20 @@ class BatchNormalization(link.Link):
             self._initialize_params(size)
 
     def _initialize_params(self, shape):
-        self.avg_mean = numpy.zeros(shape, dtype=self._dtype)
+        dtype = self._dtype
+        self.avg_mean = _init_array(self._initial_avg_mean, 0, shape, dtype)
+        self._initial_avg_mean = None
         self.register_persistent('avg_mean')
-        self.avg_var = numpy.zeros(shape, dtype=self._dtype)
+        self.avg_var = _init_array(self._initial_avg_var, 1, shape, dtype)
+        self._initial_avg_var = None
         self.register_persistent('avg_var')
         if self.gamma is not None:
             self.gamma.initialize(shape)
         if self.beta is not None:
             self.beta.initialize(shape)
 
-    def __call__(self, x, **kwargs):
-        """__call__(self, x, finetune=False)
+    def forward(self, x, **kwargs):
+        """forward(self, x, finetune=False)
 
         Invokes the forward propagation of BatchNormalization.
 
@@ -288,3 +310,10 @@ class BatchNormalization(link.Link):
 
         """
         self.N = 0
+
+
+def _init_array(initializer, default_value, size, dtype):
+    if initializer is None:
+        initializer = default_value
+    initializer = initializers._get_initializer(initializer)
+    return initializers.generate_array(initializer, size, numpy, dtype=dtype)

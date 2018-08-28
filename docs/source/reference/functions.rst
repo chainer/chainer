@@ -65,6 +65,7 @@ Activation functions
    chainer.functions.lstm
    chainer.functions.maxout
    chainer.functions.prelu
+   chainer.functions.rrelu
    chainer.functions.relu
    chainer.functions.selu
    chainer.functions.sigmoid
@@ -216,11 +217,16 @@ Mathematical functions
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh
+   chainer.functions.cumprod
    chainer.functions.cumsum
    chainer.functions.det
    chainer.functions.batch_det
+   chainer.functions.digamma
+   chainer.functions.einsum
    chainer.functions.erf
    chainer.functions.erfc
+   chainer.functions.erfcinv
+   chainer.functions.erfcx
    chainer.functions.erfinv
    chainer.functions.exp
    chainer.functions.expm1
@@ -231,11 +237,13 @@ Mathematical functions
    chainer.functions.identity
    chainer.functions.ifft
    chainer.functions.inv
+   chainer.functions.lgamma
    chainer.functions.linear_interpolate
    chainer.functions.log
    chainer.functions.log10
    chainer.functions.log1p
    chainer.functions.log2
+   chainer.functions.log_ndtr
    chainer.functions.logsumexp
    chainer.functions.matmul
    chainer.functions.max
@@ -243,7 +251,10 @@ Mathematical functions
    chainer.functions.mean
    chainer.functions.min
    chainer.functions.minimum
+   chainer.functions.ndtr
+   chainer.functions.ndtri
    chainer.functions.prod
+   chainer.functions.polygamma
    chainer.functions.rsqrt
    chainer.functions.scale
    chainer.functions.sin
@@ -300,6 +311,7 @@ Spatial pooling
    chainer.functions.average_pooling_nd
    chainer.functions.max_pooling_2d
    chainer.functions.max_pooling_nd
+   chainer.functions.roi_average_align_2d
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
    chainer.functions.unpooling_2d

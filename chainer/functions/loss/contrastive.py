@@ -1,5 +1,3 @@
-import numpy
-
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
@@ -22,12 +20,12 @@ class Contrastive(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 3)
+        type_check.argname(in_types, ('x0', 'x1', 'y'))
 
         x0_type, x1_type, y_type = in_types
         type_check.expect(
-            x0_type.dtype == numpy.float32,
-            x1_type.dtype == numpy.float32,
+            x0_type.dtype.kind == 'f',
+            x0_type.dtype == x1_type.dtype,
             y_type.dtype.kind == 'i',
             x0_type.shape == x1_type.shape,
             x1_type.shape[0] == y_type.shape[0],
@@ -50,7 +48,7 @@ class Contrastive(function_node.FunctionNode):
         loss = (y * dist_sq + (1 - y) * dist * dist) * .5
         if self.reduce == 'mean':
             loss = xp.sum(loss) / x0.shape[0]
-        return xp.array(loss, dtype=xp.float32),
+        return xp.array(loss, dtype=x0.dtype),
 
     def backward(self, indexes, grad_outputs):
         x0, x1, y = self.get_retained_inputs()
@@ -72,9 +70,10 @@ class Contrastive(function_node.FunctionNode):
             alpha = gy[:, None]
         alpha = chainer.functions.broadcast_to(alpha, y.shape)
         dist = chainer.functions.repeat(dist[:, None], x_dim, axis=1)
-        # avoid division by zero
+        # avoid division by zero, 1e-7 is enoughly small value that can be
+        # represented even in half precision
         dist = chainer.functions.maximum(
-            dist, xp.full(dist.shape, 1e-8, dtype=dist.dtype))
+            dist, xp.full(dist.shape, 1e-7, dtype=dist.dtype))
         # similar pair
         gx0 = alpha * y.astype(alpha.dtype) * diff
         # dissimilar pair
@@ -82,7 +81,7 @@ class Contrastive(function_node.FunctionNode):
         mdist = chainer.functions.maximum(
             d, xp.zeros(shape=d.shape, dtype=d.dtype))
         gx0 += alpha * (1 - y) * mdist * -(diff / dist)
-        gx0 = chainer.functions.cast(gx0, xp.float32)
+        gx0 = chainer.functions.cast(gx0, x0.dtype)
 
         return gx0, -gx0, None
 

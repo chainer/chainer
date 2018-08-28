@@ -58,8 +58,8 @@ class Moveaxis(function_node.FunctionNode):
             self.destination = destination
 
     def check_type_forward(self, in_types):
+        type_check.argname(in_types, ('x',))
         type_check.expect(
-            in_types.size() == 1,
             in_types[0].dtype.kind == 'f',
         )
 

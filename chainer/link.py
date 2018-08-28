@@ -1,4 +1,3 @@
-import collections
 import contextlib
 import copy
 import warnings
@@ -7,16 +6,18 @@ import numpy
 import six
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
+from chainer.utils import collections_abc
 from chainer import variable
 
 
 def _is_shape(value):
     if value is None:
         return True
-    elif isinstance(value, collections.Sequence):
+    elif isinstance(value, collections_abc.Sequence):
         try:
             return all(int(x) for x in value)
         except TypeError:
@@ -108,11 +109,11 @@ class Link(object):
                       self.b = chainer.Parameter(
                           initializers.Zero(), (n_out,))
 
-              def __call__(self, x):
+              def forward(self, x):
                   return F.linear(x, self.W, self.b)
 
        This example shows that a user can define arbitrary parameters and use
-       them in any methods. Links typically implement the ``__call__``
+       them in any methods. Links typically implement the ``forward``
        operator, although they can also provide other methods to implement the
        forward propagation.
 
@@ -194,12 +195,12 @@ class Link(object):
             self._within_init_scope = old_flag
 
     def __call__(self, *args, **kwargs):
-        try:
+        # (See #5078) super().__call__ is used when the method is injected by a
+        # mixin class. To keep backward compatibility, the injected one is
+        # prioritized over forward().
+        forward = getattr(super(Link, self), '__call__', None)
+        if forward is None:
             forward = self.forward
-        except AttributeError:
-            raise TypeError(
-                '{} object has neither \'Link.__call__\' method overridden'
-                ' nor \'forward\' method defined.'.format(self))
         return forward(*args, **kwargs)
 
     def __setattr__(self, name, value):
@@ -448,7 +449,7 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         d = self.__dict__
-        for name in self._params:
+        for name in sorted(self._params):
             if include_uninit or d[name].data is not None:
                 yield d[name]
 
@@ -465,7 +466,7 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         d = self.__dict__
-        for name in self._params:
+        for name in sorted(self._params):
             if include_uninit or d[name].data is not None:
                 yield '/' + name, d[name]
 
@@ -536,7 +537,7 @@ Assign a Parameter object directly to an attribute within a \
                 d = dst[name]
                 s = src[name]
                 if isinstance(d, array_types) and isinstance(s, array_types):
-                    cuda.copyto(d, s)
+                    backends.copyto(d, s)
                 else:
                     dst[name] = copy.deepcopy(s)
 
@@ -659,7 +660,7 @@ Assign a Parameter object directly to an attribute within a \
                                 None, 64, 3, 1, 1, nobias=True)
                             self.bn = L.BatchNormalization(64)
 
-                    def __call__(self, x):
+                    def forward(self, x):
                         return F.relu(self.bn(self.conv(x)))
 
                 net = ConvBNReLU().repeat(16, mode='init')
@@ -788,7 +789,7 @@ class Chain(Link):
                       self.layer2 = L.Linear(n_hidden, n_hidden)
                       self.layer3 = L.Linear(n_hidden, n_out)
 
-              def __call__(self, x):
+              def forward(self, x):
                   # Forward propagation
                   h1 = F.relu(self.layer1(x))
                   h2 = F.relu(self.layer2(h1))
@@ -796,7 +797,7 @@ class Chain(Link):
 
        Child links are registered via the assignment within a
        ``with self.init_scope():`` block. The forward propagation is often
-       implemented as the ``__call__`` operator as the above example, though
+       implemented as the ``forward`` operator as the above example, though
        it is not mandatory.
 
     Args:
@@ -912,7 +913,7 @@ Assign a Link object directly to an attribute within a \
         for param in super(Chain, self).params(include_uninit):
             yield param
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             for param in d[name].params(include_uninit):
                 yield param
 
@@ -920,7 +921,7 @@ Assign a Link object directly to an attribute within a \
         for ret in super(Chain, self).namedparams(include_uninit):
             yield ret
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             prefix = '/' + name
             for path, param in d[name].namedparams(include_uninit):
                 yield prefix + path, param
@@ -929,7 +930,7 @@ Assign a Link object directly to an attribute within a \
         if not skipself:
             yield self
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             for link in d[name].links():
                 yield link
 
@@ -937,7 +938,7 @@ Assign a Link object directly to an attribute within a \
         if not skipself:
             yield '/', self
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             child = d[name]
             prefix = '/' + name
             yield prefix, child
@@ -946,7 +947,7 @@ Assign a Link object directly to an attribute within a \
 
     def children(self):
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             yield d[name]
 
     def copyparams(self, link, copy_persistent=True):
@@ -970,7 +971,7 @@ Assign a Link object directly to an attribute within a \
             d[name].serialize(serializer[name])
 
 
-class ChainList(Link, collections.MutableSequence):
+class ChainList(Link, collections_abc.MutableSequence):
 
     """Composable link with list-like interface.
 
@@ -982,7 +983,7 @@ class ChainList(Link, collections.MutableSequence):
     links, e.g. an arbitrarily deep multi-layer perceptron.
 
     This class inherits the methods `index`, `count`, `append`, `reverse`,
-    `extend`, `pop`, `remove` from `collections.abi.MutableSequence` and
+    `extend`, `pop`, `remove` from `collections.abc.MutableSequence` and
     can be accessed and assigned by index or slice.
 
     Args:

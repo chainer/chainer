@@ -124,7 +124,7 @@ class ROIPooling2D(function.Function):
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
                                     self.outw), dtype=numpy.float32)
         self.argmax_data = cuda.cupy.empty(top_data.shape, numpy.int32)
-        cuda.cupy.ElementwiseKernel(
+        cuda.elementwise(
             '''
             raw float32 bottom_data, float32 spatial_scale, int32 channels,
             int32 height, int32 width, int32 pooled_height, int32 pooled_width,
@@ -236,7 +236,7 @@ class ROIPooling2D(function.Function):
         bottom_rois = inputs[1]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, numpy.float32)
-        cuda.cupy.ElementwiseKernel(
+        cuda.elementwise(
             '''
             raw float32 top_diff, raw int32 argmax_data, int32 num_rois,
             float32 spatial_scale, int32 channels, int32 height, int32 width,

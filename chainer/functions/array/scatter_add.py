@@ -27,7 +27,7 @@ class ScatterAdd(function_node.FunctionNode):
         self.slices = slices
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('a', 'b'))
         n_nones = len([item for item in self.slices if item is None])
         valid_slice = len(self.slices) - n_nones
         type_check.expect(in_types[0].ndim >= valid_slice)
