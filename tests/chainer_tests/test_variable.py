@@ -2057,4 +2057,59 @@ class TestLazyGradSum(unittest.TestCase):
             self.check_backward()
 
 
+class LoggedFunc(chainer.FunctionNode):
+
+    def __init__(self, label, retain_x, retain_y, log):
+        self.label = label
+        self.retain_x = retain_x
+        self.retain_y = retain_y
+        self.log = log
+
+    def __del__(self):
+        self.log.append('del {}'.format(self.label))
+
+    def check_type_forward(self, in_types):
+        n = len(self.retain_x)
+        chainer.utils.type_check.expect(in_types.size() == n)
+        chainer.utils.type_check.expect(in_types[0].ndim >= 1)
+        )
+        for i in range(1, n):
+            chainer.utils.type_check.expect(
+                in_types[0].shape == in_types[i].shape,
+                in_types[0].dtype == in_types[i].dtype,
+            )
+
+    def forward(self, inputs):
+        self.retain_inputs(tuple([
+            i for i, b in enumerate(self.retain_x) if b]))
+        self.retain_outputs(tuple([
+            i for i, b in enumerate(self.retain_y) if b]))
+        h = sum(inputs)
+        m = len(self.retain_y)
+        return tuple([h.copy() for _ in range(m)])
+
+    def backward(self, target_input_indexes, grad_outputs):
+        return LoggedFunc(
+            'g' + self.label, self.retain_y, self.retain_x, self.log
+        ).apply(grad_outputs)
+
+
+class TestDelayBackward(unittest.TestCase):
+
+    def setUp(self):
+        self.log = []
+
+    def var(self):
+        return chainer.Variable(np.array([2, 3], np.float32))
+
+    def func(self, label, retain_x, retain_y):
+        def f(x):
+            return LoggedFunc(label, retain_x, retain_y, self.log).apply(x)
+
+        return f
+
+    def test_simple(self):
+        x = self.var()
+
+
 testing.run_module(__name__, __file__)
