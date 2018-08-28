@@ -58,6 +58,7 @@ void InitXchainerGraph(pybind11::module& m) {
         return stream.str();
     });
     c.def_property_readonly("context", &BackpropId::context);
+    c.def_property_readonly("name", &BackpropId::GetName);
 }
 
 void InitXchainerBackpropScope(pybind11::module& m) {
