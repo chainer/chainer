@@ -2094,7 +2094,7 @@ class TestDelayBackward(unittest.TestCase):
         y = LoggedFunc(name, len_y, self.log).apply(x)
         return list(y)
 
-    def test_simple(self):
+    def test_simple_backward(self):
         xs = []
         xs.append(self.var())
         xs.extend(self.func('f', xs[0:1], 1))
@@ -2111,7 +2111,7 @@ class TestDelayBackward(unittest.TestCase):
             'del f',
         ]
 
-    def test_simple2(self):
+    def test_simple_backward2(self):
         xs = []
         xs.append(self.var())
         xs.extend(self.func('f', xs[0:1], 1))
@@ -2120,11 +2120,48 @@ class TestDelayBackward(unittest.TestCase):
             xs[2].grad_var = self.var()
             xs[2].backward(enable_double_backprop=True)
             del xs[1:]
-        assert xs[0].grad is not None
+            assert not self.log
         assert self.log == [
             'del g',
             'del f',
         ]
+        del self.log[:]
+        assert xs[0].grad is not None
+        del xs[:]
+        assert self.log == [
+            'del grad f',
+            'del grad g',
+        ]
+
+    def test_simple_double_backward(self):
+        xs = []
+        xs.append(self.var())
+        xs.extend(self.func('f', xs[0:1], 1))
+        xs.extend(self.func('g', xs[1:2], 1))
+        with chainer.variable.delay_backward():
+            gy = self.var()
+            xs[2].grad_var = gy
+            xs[2].backward(enable_double_backprop=True)
+            del xs[1:]
+            assert not self.log
+        assert self.log == [
+            'del g',
+            'del f',
+        ]
+        del self.log[:]
+        assert xs[0].grad is not None
+
+        with chainer.variable.delay_backward():
+            xs[0].grad_var.grad_var = self.var()
+            xs[0].grad_var.backward()
+            del xs[:]
+        assert self.log == [
+            'del grad grad f',
+            'del grad f',
+            'del grad grad g',
+            'del grad g',
+        ]
+        assert gy.grad is not None
 
 
 testing.run_module(__name__, __file__)
