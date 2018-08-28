@@ -348,7 +348,6 @@ class TestDictSummary(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.summary.add({'a': (4., chainer.Variable(numpy.array([0.5])))})
 
-
     def test_serialize(self):
         self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 1, 'float': 4.})
         self.summary.add({'numpy': numpy.array(1, 'f'), 'int': 5, 'float': 9.})
