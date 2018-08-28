@@ -1053,14 +1053,10 @@ Actual: {0}'''.format(type(data))
                             yield gx_elem
 
                 for gx in iter_gxs(in_grad.values()):
-                    gx_data = gx.data
-                    if gx_data.dtype.kind == 'f':
-                        with cuda.get_device_from_array(gx_data):
-                            xp = cuda.get_array_module(gx_data)
-                            if xp.isnan(gx_data).any():
-                                raise RuntimeError(
-                                    'NaN is detected on backward computation '
-                                    'of {}'.format(func.label))
+                    if chainer.backends._contains_nan(gx.data):
+                        raise RuntimeError(
+                            'NaN is detected on backward computation of '
+                            '{}'.format(func.label))
 
             for y, gy in six.moves.zip(outputs, out_grad):
                 if y is not None and y is not self.node:
