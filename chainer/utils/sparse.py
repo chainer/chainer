@@ -168,7 +168,7 @@ def get_order(row, col):
 
 def _is_c_order(row, col):
     """Check if a coo matrix with given row and col is c_order"""
-    if not (row.shape == col.shape):
+    if row.shape != col.shape:
         raise ValueError('shape of row and col must be the same.')
     if row.ndim != 1:
         for i in range(row.shape[0]):
