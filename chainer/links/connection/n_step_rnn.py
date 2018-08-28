@@ -5,7 +5,7 @@ import chainer
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.connection import n_step_rnn as rnn
-from chainer.initializers import normal
+from chainer import initializers
 from chainer import link
 from chainer.utils import argument
 from chainer import variable
@@ -49,14 +49,12 @@ class NStepRNNBase(link.ChainList):
     """
 
     def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
-        if kwargs:
-            argument.check_unexpected_kwargs(
-                kwargs,
-                use_cudnn='use_cudnn argument is not supported anymore. '
-                'Use chainer.using_config',
-                use_bi_direction='use_bi_direction is not supported anymore',
-                activation='activation is not supported anymore')
-            argument.assert_kwargs_empty(kwargs)
+        initialW, initial_bias = argument.parse_kwargs(
+            kwargs, ('initialW', None), ('initiali_bias', None),
+            use_cudnn='use_cudnn argument is not supported anymore. '
+            'Use chainer.using_config',
+            use_bi_direction='use_bi_direction is not supported anymore',
+            activation='activation is not supported anymore')
 
         weights = []
         if self.use_bi_direction:
@@ -64,6 +62,10 @@ class NStepRNNBase(link.ChainList):
         else:
             direction = 1
 
+        W_initializer = initializers._get_initializer(initialW)
+        if initial_bias is None:
+            initial_bias = 0
+        bias_initializer = initializers._get_initializer(initial_bias)
         for i in six.moves.range(n_layers):
             for di in six.moves.range(direction):
                 weight = link.Link()
@@ -75,10 +77,8 @@ class NStepRNNBase(link.ChainList):
                             w_in = out_size * direction
                         else:
                             w_in = out_size
-                        w = variable.Parameter(
-                            normal.Normal(numpy.sqrt(1. / w_in)),
-                            (out_size, w_in))
-                        b = variable.Parameter(0, (out_size,))
+                        w = variable.Parameter(W_initializer, (out_size, w_in))
+                        b = variable.Parameter(bias_initializer, out_size)
                         setattr(weight, 'w%d' % j, w)
                         setattr(weight, 'b%d' % j, b)
                 weights.append(weight)
