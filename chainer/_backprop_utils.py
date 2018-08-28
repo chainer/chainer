@@ -165,15 +165,11 @@ def backprop_step(
                 for gx_elem in gx:
                     yield gx_elem
 
-        cuda = chainer.backends.cuda
         for gx in iter_gxs(grad_inputs.values()):
-            gx_data = gx.data
-            if gx_data.dtype.kind == 'f':
-                cuda.get_device_from_array(gx_data).use()
-                if cuda.get_array_module(gx_data).isnan(gx_data).any():
-                    raise RuntimeError(
-                        'NaN is detected on backward computation of '
-                        '{}'.format(func.label))
+            if chainer.backends._contains_nan(gx.data):
+                raise RuntimeError(
+                    'NaN is detected on backward computation of {}'
+                    .format(func.label))
 
     if not func.lazy_grad_sum:
         for gx in grad_inputs.values():
