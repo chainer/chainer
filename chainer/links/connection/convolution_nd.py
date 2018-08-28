@@ -19,6 +19,8 @@ class ConvolutionND(link.Link):
     Args:
         ndim (int): Number of spatial dimensions.
         in_channels (int): Number of channels of input arrays.
+            If ``None``, parameter initialization will be deferred until the
+            first forward data pass at which time the size will be determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or tuple of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k, ..., k)`` are equivalent.
@@ -49,22 +51,71 @@ class ConvolutionND(link.Link):
         b (~chainer.Variable): Bias parameter. If ``initial_bias`` is ``None``,
             set to ``None``.
 
-    """
+    .. admonition:: Example
 
-    def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, initialW=None, initial_bias=None,
+        There are several ways to make a ConvolutionND link.
+
+        Let an input vector ``x`` be:
+
+        >>> x = np.arange(2 * 5 * 5 * 5, dtype='f').reshape(1, 2, 5, 5, 5)
+
+        1. Give the first four arguments explicitly:
+
+            >>> l = L.ConvolutionND(3, 2, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2, 2)
+
+        2. Omit ``in_channels`` or fill it with ``None``:
+
+            The below two cases are the same.
+
+            >>> l = L.ConvolutionND(3, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2, 2)
+
+            >>> l = L.ConvolutionND(3, None, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2, 2)
+
+            When you omit the second argument, you need to specify the other
+            subsequent arguments from ``stride`` as keyword auguments. So the
+            below two cases are the same.
+
+            >>> l = L.ConvolutionND(3, 7, 4, stride=1, pad=0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2, 2)
+
+            >>> l = L.ConvolutionND(3, None, 7, 4, 1, 0)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 2, 2, 2)
+
+    """  # NOQA
+
+    def __init__(self, ndim, in_channels, out_channels, ksize=None, stride=1,
+                 pad=0, nobias=False, initialW=None, initial_bias=None,
                  cover_all=False):
         super(ConvolutionND, self).__init__()
 
-        ksize = conv_nd.as_tuple(ksize, ndim)
+        if ksize is None:
+            out_channels, ksize, in_channels = \
+                in_channels, out_channels, None
+
+        self.out_channels = out_channels
+        self.ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
         self.cover_all = cover_all
 
         with self.init_scope():
-            W_shape = (out_channels, in_channels) + ksize
-            self.W = variable.Parameter(
-                initializers._get_initializer(initialW), W_shape)
+            W_initializer = initializers._get_initializer(initialW)
+            self.W = variable.Parameter(W_initializer)
+            if in_channels is not None:
+                self._initialize_params(in_channels)
 
             if nobias:
                 self.b = None
@@ -73,6 +124,10 @@ class ConvolutionND(link.Link):
                     initial_bias = 0
                 initial_bias = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(initial_bias, out_channels)
+
+    def _initialize_params(self, in_channels):
+        W_shape = (self.out_channels, in_channels) + self.ksize
+        self.W.initialize(W_shape)
 
     def __call__(self, x):
         """Applies N-dimensional convolution layer.
@@ -84,5 +139,7 @@ class ConvolutionND(link.Link):
             ~chainer.Variable: Output of convolution.
 
         """
+        if self.W.data is None:
+            self._initialize_params(x.shape[1])
         return convolution_nd.convolution_nd(
             x, self.W, self.b, self.stride, self.pad, cover_all=self.cover_all)
