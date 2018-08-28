@@ -105,15 +105,13 @@ __global__ void SetVecInMat(
         IndexableArray<const T, 1> vec_iarray,
         IndexableArray<T, 2> mat_iarray,
         Indexer<1> vec_indexer,
-        Indexer<1> mat_row_indexer,
-        Indexer<1> mat_col_indexer,
         Indexer<2> mat_indexer,
         int64_t mat_row_start,
         int64_t mat_col_start) {
+    auto mat_it = mat_indexer.It(0);
     for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
-        auto mat_row_it = mat_row_indexer.It(mat_row_start + vec_it.raw_index());
-        auto mat_col_it = mat_col_indexer.It(mat_col_start + vec_it.raw_index());
-        auto mat_it = mat_indexer.At(mat_row_it, mat_col_it);
+        mat_it.index()[0] = mat_row_start + vec_it.raw_index();
+        mat_it.index()[1] = mat_col_start + vec_it.raw_index();
         mat_iarray[mat_it] = vec_iarray[vec_it];
     }
 }
@@ -144,8 +142,6 @@ void CudaDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
         IndexableArray<const T, 1> v_iarray{v};
         IndexableArray<T, 2> out_iarray{out};
         Indexer<1> v_indexer{v.shape()};
-        Indexer<1> out_row_indexer{Shape{out.shape()[0]}};
-        Indexer<1> out_col_indexer{Shape{out.shape()[1]}};
         Indexer<2> out_indexer{out.shape()};
 
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SetVecInMat<T>).block_size;
@@ -153,8 +149,7 @@ void CudaDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
-        SetVecInMat<<<grid_size, block_size>>>(
-                v_iarray, out_iarray, v_indexer, out_row_indexer, out_col_indexer, out_indexer, row_start, col_start);
+        SetVecInMat<<<grid_size, block_size>>>(v_iarray, out_iarray, v_indexer, out_indexer, row_start, col_start);
     });
 }
 

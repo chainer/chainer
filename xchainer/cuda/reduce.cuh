@@ -43,12 +43,13 @@ __global__ void ReductionKernel(
     int64_t out_base = blockIdx.x * out_block_size;
     int64_t out_stride = gridDim.x * out_block_size;
 
+    auto it_in = arg.in_indexer.It(0, reduce_stride);
+
     for (auto it_out = arg.out_indexer.It(out_base + out_offset, out_stride); it_out; ++it_out) {
         T accum = impl.Identity();
 
         int64_t i_reduce = reduce_block_offset;
-        for (auto it_in = arg.in_indexer.It(it_out.raw_index() + reduce_offset, reduce_stride); it_in;
-             ++it_in, i_reduce += reduce_block_size) {
+        for (it_in.Restart(it_out.raw_index() + reduce_offset); it_in; ++it_in, i_reduce += reduce_block_size) {
             impl.Reduce(impl.MapIn(arg.in[it_in], i_reduce), accum);
         }
 

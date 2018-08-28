@@ -12,12 +12,14 @@ namespace reduce_detail {
 
 template <typename In, typename Out, typename ReductionImpl, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
 void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, ReductionImpl&& impl) {
+    auto it_in = arg.in_indexer.It(0, arg.out_indexer.total_size());
+
     // Iterate over output dimensions
     for (auto it_out = arg.out_indexer.It(0); it_out; ++it_out) {
         auto accum = impl.Identity();
 
-        for (auto it_in = arg.in_indexer.It(it_out.raw_index(), arg.out_indexer.total_size()); it_in; ++it_in) {
-            int64_t i_reduce = it_in.raw_index() / arg.out_indexer.total_size();
+        int64_t i_reduce{0};
+        for (it_in.Restart(it_out.raw_index()); it_in; ++it_in, ++i_reduce) {
             impl.Reduce(impl.MapIn(arg.in[it_in], i_reduce), accum);
         }
 
@@ -54,6 +56,10 @@ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, Reduction
 //     Then, it can be passed to Reduce like: Reduce(input, axis, output, SumImpl{});
 template <typename In, typename Out, typename ReductionImpl>
 void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&& impl) {
+    if (out.GetTotalSize() == 0) {
+        return;
+    }
+
     ReductionArg arg{in, axis, out};
 
     // TODO(sonots): Reconsider the number of statically-optimized kernels in terms of speed and binary size trade-offs.
