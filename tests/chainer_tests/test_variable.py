@@ -2103,13 +2103,14 @@ class TestDelayBackward(unittest.TestCase):
             xs[2].grad_var = self.var()
             xs[2].backward()
             del xs[1:]
-        assert xs[0].grad is not None
+            assert not self.log
         assert self.log == [
             'del grad g',
             'del g',
             'del grad f',
             'del f',
         ]
+        assert xs[0].grad is not None
 
     def test_simple_backward2(self):
         xs = []
@@ -2162,6 +2163,70 @@ class TestDelayBackward(unittest.TestCase):
             'del grad g',
         ]
         assert gy.grad is not None
+
+    def test_simple_backward_retain(self):
+        xs = []
+        xs.append(self.var())
+        xs.extend(self.func('f', xs[0:1], 1))
+        xs.extend(self.func('g', xs[1:2], 1))
+        xs.extend(self.func('h', xs[2:3], 1))
+        with chainer.variable.delay_backward():
+            xs[3].grad_var = self.var()
+            xs[3].backward(retain_grad=True)
+            del xs[2:]
+            assert not self.log
+        assert self.log == [
+            'del grad h',
+            'del h',
+            'del grad g',
+            'del g',
+            'del grad f',
+        ]
+        assert xs[0].grad is not None
+        assert xs[1].grad is not None
+
+    def test_merged_backward(self):
+        xs = []
+        xs.append(self.var())
+        xs.extend(self.func('f', xs[0:1], 1))
+        xs.extend(self.func('g0', xs[1:2], 1))
+        xs.extend(self.func('g1', xs[1:2], 1))
+        with chainer.variable.delay_backward():
+            xs[2].grad_var = self.var()
+            xs[2].backward()
+            xs[3].grad_var = self.var()
+            xs[3].backward()
+            del xs[1:]
+            assert not self.log
+        assert sorted([self.log[0:2], self.log[2:4]]) == [
+            [
+                'del grad g0',
+                'del g0',
+            ],
+            [
+                'del grad g1',
+                'del g1',
+            ],
+        ]
+        assert self.log[4:] == [
+            'del grad f',
+            'del f',
+        ]
+        assert xs[0].grad is not None
+
+    def test_raise_dup_backward(self):
+        x = self.var()
+        y, = self.func('f', [x], 1)
+        with pytest.raises(RuntimeError):
+            with chainer.variable.delay_backward():
+                y.backward()
+                y.backward()
+
+    def test_raise_reenter(self):
+        with pytest.raises(RuntimeError):
+            with chainer.variable.delay_backward():
+                with chainer.variable.delay_backward():
+                    pass
 
 
 testing.run_module(__name__, __file__)

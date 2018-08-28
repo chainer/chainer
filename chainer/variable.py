@@ -26,15 +26,19 @@ _delayed_backward_args = None
 @contextlib.contextmanager
 def delay_backward():
     global _in_delay_backward, _delayed_backward_args
-    assert not _in_delay_backward
+    if _in_delay_backward:
+        raise RuntimeError(
+            'reentering delay_backward is not allowed')
     _in_delay_backward = True
     _delayed_backward_args = ([], {})
-    yield
-    var_list, kwargs = _delayed_backward_args
-    enable_double_backprop = kwargs.pop('enable_double_backprop')
-    with chainer.using_config('enable_backprop', enable_double_backprop):
-        _backward_main(var_list, **kwargs)
-    _in_delay_backward = False
+    try:
+        yield
+        var_list, kwargs = _delayed_backward_args
+        enable_double_backprop = kwargs.pop('enable_double_backprop')
+        with chainer.using_config('enable_backprop', enable_double_backprop):
+            _backward_main(var_list, **kwargs)
+    finally:
+        _in_delay_backward = False
 
 
 def _check_grad_type(func, x, gx):
@@ -1144,7 +1148,7 @@ def _backward_main(outputs, retain_grad, loss_scale):
         root_nodes.add(weakref.ref(y))
 
     if len(root_nodes) != len(outputs):
-        raise ValueError('variables should be distinct')
+        raise RuntimeError('variables should be distinct')
 
     # remove references
     del outputs[:]
