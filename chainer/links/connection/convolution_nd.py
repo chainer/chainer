@@ -108,8 +108,8 @@ class ConvolutionND(link.Link):
         super(ConvolutionND, self).__init__()
 
         if ksize is None:
-            ndim, out_channels, ksize, in_channels = \
-                ndim, in_channels, out_channels, None
+            out_channels, ksize, in_channels = \
+                in_channels, out_channels, None
 
         self.out_channels = out_channels
         self.ksize = conv_nd.as_tuple(ksize, ndim)
