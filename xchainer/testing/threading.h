@@ -70,7 +70,7 @@ void CheckThreadSafety(
 
 // TODO(sonots): Reconsider the function name.
 // TODO(sonots): Do single-shot and multi-threads tests in seperated test-cases.
-// TODO(sonots): Make it possible to use another context and device in another thread.
+// TODO(sonots): Make it possible to use different contexts and/or devices in different threads.
 inline void RunTestWithThreads(const std::function<void(void)>& func, size_t thread_count = 2) {
     // Run single-shot
     func();
