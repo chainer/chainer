@@ -205,3 +205,13 @@ $ genhtml build/coverage.info -o build/coverage
 ```
 
 See `build/coverage/index.html` with any browsers.
+
+### Thread sanitizer
+
+Thread sanitizer can be used to detect thread-related bugs, such as data races.
+To enable thread sanitizer, pass `-DXCHAINER_ENABLE_THREAD_SANITIZER=ON` to `cmake`.
+
+You can run the test with `ctest -V` as usual and you will get warnings if the thread sanitizer detects any issues.
+
+CUDA runtime is known to cause a thread leak error as a false alarm.
+In such case, disable the thread leak detection using environment variable `TSAN_OPTIONS='report_thread_leaks=0'`.
