@@ -1013,7 +1013,7 @@ Actual: {0}'''.format(type(data))
                 loss_scale=loss_scale)
             if _delayed_backward_args[1]:
                 if kwargs != _delayed_backward_args[1]:
-                    raise ValueError()
+                    raise ValueError('backward options cannot be mixed')
             else:
                 _delayed_backward_args[1].update(kwargs)
             return
