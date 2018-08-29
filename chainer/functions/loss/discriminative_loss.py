@@ -11,12 +11,11 @@ from chainer.functions.math.sqrt import sqrt
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
-    
+
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
     https://arxiv.org/abs/1708.02551
-
     This method is a semi-supervised solution to instance segmentation.
     It calculates pixel embeddings, and calculates three different terms
     based on those embeddings and applies them as loss.
@@ -69,6 +68,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                              "Obtained the value : {}".format(norm))
 
     def __call__(self, embeddings, labels):
+
         """Applies discriminative margin based clustering loss
 
         Args:
@@ -157,11 +157,11 @@ def discriminative_margin_based_clustering_loss(
         embeddings, labels,
         delta_v, delta_d, max_embedding_dim,
         norm=1, alpha=1.0, beta=1.0, gamma=0.001):
+
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
     https://arxiv.org/abs/1708.02551
-
     This method is a semi-supervised solution to instance segmentation.
     It calculates pixel embeddings, and calculates three different terms
     based on those embeddings and applies them as loss.
@@ -213,6 +213,7 @@ def discriminative_margin_based_clustering_loss(
                             :class:`cupy.ndarray`):
                             regularization loss multiplied by gamma
     """
+
     loss = DiscriminativeMarginBasedClusteringLoss(
         delta_v, delta_d, max_embedding_dim, norm, alpha, beta, gamma)
     return loss(embeddings, labels)
