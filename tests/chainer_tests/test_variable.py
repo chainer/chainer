@@ -2285,13 +2285,14 @@ class TestDelayBackward(unittest.TestCase):
         assert x.grad is not None
         log = self.watcher.get_log()
         assert log[0:3] == ['f', 'g0', 'g1']
-        assert sorted([log[3:5], log[5:7]]) == [
-            ['grad g0', {'g0(f(x))', 'gy0'}],
-            ['grad g1', {'g1(f(x))', 'gy1'}],
-        ]
-        assert log[7:] == [
-            '+',
-            {'grad g0(gy0)', 'grad g1(gy1)'},
+        assert log[3:-2] in ([
+            'grad g0', {'g0(f(x))', 'gy0'}, 'grad g1', '+',
+            {'g1(f(x))', 'gy1', 'grad g0(gy0)', 'grad g1(gy1)'},
+        ], [
+            'grad g1', {'g1(f(x))', 'gy1'}, 'grad g0', '+',
+            {'g0(f(x))', 'gy0', 'grad g1(gy1)', 'grad g0(gy0)'},
+        ])
+        assert log[-2:] == [
             'grad f',
             {'f(x)', '(grad g0(gy0)+grad g1(gy1))'},
         ]
