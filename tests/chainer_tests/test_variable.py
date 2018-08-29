@@ -2065,24 +2065,6 @@ class LoggedFunc(chainer.FunctionNode):
         self.len_y = len_y
         self.watcher = watcher
 
-    """
-    def __del__(self):
-        self.log.append('del {}'.format(self.name))
-    """
-
-    def apply(self, inputs):
-        outputs = super(LoggedFunc, self).apply(inputs)
-        names = [x.name for x in inputs]
-        if len(outputs) == 1:
-            y, = outputs
-            y.name = '{}({})'.format(
-                self.name, ','.join(names))
-        else:
-            for i, y in enumerate(outputs):
-                y.name = '{}_{}({})'.format(
-                    self.name, i, ','.join(names))
-        return outputs
-
     def forward(self, inputs):
         self.watcher.update(self.name)
         self.len_x = len(inputs)
@@ -2094,14 +2076,27 @@ class LoggedFunc(chainer.FunctionNode):
         for gy in grad_outputs:
             assert gy is not None
             self.watcher.add_target(gy)
-        grad_inputs = LoggedFunc(
-            'grad ' + self.name, self.len_x, self.watcher
-        ).apply(grad_outputs)
+        grad_inputs = logged_func(
+            'grad ' + self.name, self.len_x, self.watcher, grad_outputs)
         """
         for gx in grad_inputs:
             self.watcher.add_target(gx)
         """
         return grad_inputs
+
+
+def logged_func(name, len_y, watcher, inputs):
+    outputs = LoggedFunc(name, len_y, watcher).apply(inputs)
+    names = [x.name for x in inputs]
+    if len(outputs) == 1:
+        y, = outputs
+        y.name = '{}({})'.format(
+            name, ','.join(names))
+    else:
+        for i, y in enumerate(outputs):
+            y.name = '{}_{}({})'.format(
+                self.name, i, ','.join(names))
+    return outputs
 
 
 class VariableWatcher(object):
@@ -2173,7 +2168,7 @@ class TestDelayBackward(unittest.TestCase):
 
     def func(self, name, xs, len_y):
         xs = tuple(xs)
-        ys = LoggedFunc(name, len_y, self.watcher).apply(xs)
+        ys = logged_func(name, len_y, self.watcher, xs)
         ys = list(ys)
         for y in ys:
             self.watcher.add_target(y)
