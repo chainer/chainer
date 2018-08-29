@@ -869,7 +869,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
 
         # Collect the gradients w.r.t. the outputs
         ys = [y() for y in func.outputs]  # access via weak ref
-        gys = tuple([grads.pop(y) for y in ys])
+        gys = [grads.pop(y) for y in ys]
 
         for node, gy in six.moves.zip(ys, gys):
             if node is not None:
@@ -922,9 +922,6 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         for node, g in x_grads.items():
             if not g:  # gradient == None
                 continue
-
-            if not func.lazy_grad_sum:
-                _backprop_utils._reduce(g)
 
             creator = node.creator_node
             if creator is not None:

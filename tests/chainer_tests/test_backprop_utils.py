@@ -165,7 +165,7 @@ class TestFunctionNode(unittest.TestCase):
         x2 = chainer.Variable(self.x2)
         self.f.inputs = (x1.node, x2.node)
         gxrefs = [[gx] if gx is not None else [] for gx in gxs]
-        grad_outputs = (self.gy1, self.gy2)
+        grad_outputs = [self.gy1, self.gy2]
         grad_inputs = dict(zip(self.f.inputs, gxrefs))
         _backprop_utils.backprop_step(
             self.f, (0, 1), grad_outputs, grad_inputs)

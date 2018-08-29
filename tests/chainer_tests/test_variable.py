@@ -2283,14 +2283,16 @@ class TestDelayBackward(unittest.TestCase):
         assert log[:4] == [
             'f', 'g0', 'g1', {'f(x)', 'g0(f(x))', 'g1(f(x))'},
         ]
-        del log[:4]
-        assert sorted([log[:2], log[2:4]]) == [
-            ['grad g0', {'g0', 'grad g0', 'gy0'}],
-            ['grad g1', {'g1', 'grad g1', 'gy1'}],
-        ]
-        del log[:4]
-        assert log == [
-            '+', {'grad g0(gy0)', 'grad g1(gy1)'},
+        assert log[4:10] in ([
+            'grad g0', {'g0', 'grad g0', 'gy0'},
+            'grad g1', {'grad g1', 'gy1'},
+            '+', {'g1', 'grad g0(gy0)', 'grad g1(gy1)'},
+        ], [
+            'grad g1', {'g1', 'grad g1', 'gy1'},
+            'grad g0', {'grad g0', 'gy0'},
+            '+', {'g0', 'grad g0(gy0)', 'grad g1(gy1)'},
+        ])
+        assert log[10:] == [
             'grad f', {'f', 'grad f', '(grad g0(gy0)+grad g1(gy1))'},
         ]
 

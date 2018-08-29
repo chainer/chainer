@@ -1169,16 +1169,25 @@ def _backward_main(outputs, retain_grad, loss_scale):
             for i, x in enumerate(inputs)  # NOQA
             if x.requires_grad
         ])
-        out_grad = tuple([
+        out_grad = [
             grads.pop(y())  # access via weak ref
             for y in func.outputs  # NOQA
-        ])
+        ]
         if not target_input_indexes:
             continue
 
         in_data = tuple([x.data for x in inputs])
         out_grad_data = tuple(
             [None if gy is None else gy.data for gy in out_grad])
+
+        for y, gy in six.moves.zip(func.outputs, out_grad):
+            y = y()
+            if y is not None:
+                y._set_grad_var_if_available(
+                    gy if retain_grad or weakref.ref(y) in root_nodes
+                    else None)
+            del y, gy  # remove references
+
         hooks = chainer.get_function_hooks()
         if func._n_local_function_hooks != 0:
             hooks = collections.OrderedDict(hooks)
@@ -1209,24 +1218,13 @@ def _backward_main(outputs, retain_grad, loss_scale):
 
         del in_data, out_grad_data
 
-        for y, gy in six.moves.zip(func.outputs, out_grad):
-            y = y()
-            if y is not None:
-                y._set_grad_var_if_available(
-                    gy if retain_grad or weakref.ref(y) in root_nodes
-                    else None)
-            del y  # remove references
-        del gy, out_grad  # to reduce memory usage
-
-        grad_sum = not func.lazy_grad_sum
-        del func
-
         for x, gx in in_grad.items():
             if not gx:  # gradient == None
                 continue
 
-            if grad_sum:
-                _backprop_utils._reduce(gx)
+            for gx_elem in gx:
+                _check_grad_type(func, x, gx_elem.data)
+            del gx_elem
 
             if x.creator_node is None:  # leaf
                 leaf_nodes.add(x)

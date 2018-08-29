@@ -81,9 +81,10 @@ def backprop_step(
         target_input_indexes (tuple of int): Sorted indices of the input
             variables w.r.t. which the gradients are required. It is
             guaranteed that this tuple contains at least one element.
-        grad_outputs (tuple of Variable): Gradients w.r.t. the output
+        grad_outputs (list of Variable): Gradients w.r.t. the output
             variables. If the gradient w.r.t. an output variable is not
-            given, the corresponding element is ``None``.
+            given, the corresponding element is ``None``. The gradients
+            are removed from the list to reduce memory consumption.
         grad_inputs (dict): References of radients w.r.t. the input variables.
 
     """
@@ -91,7 +92,7 @@ def backprop_step(
     if is_debug:
         assert isinstance(target_input_indexes, tuple)
         assert target_input_indexes == tuple(sorted(target_input_indexes))
-        assert isinstance(grad_outputs, tuple)
+        assert isinstance(grad_outputs, list)
     if func.backward_accumulate.__code__ \
             is not chainer.FunctionNode.backward_accumulate.__code__:
         # backward_accumulate is overridden
@@ -100,10 +101,10 @@ def backprop_step(
             for i in target_input_indexes
         ])
         gxs = func.backward_accumulate(
-            target_input_indexes, grad_outputs, grad_inputs_tuple)
+            target_input_indexes, tuple(grad_outputs), grad_inputs_tuple)
     else:  # otherwise, backward should be overridden
         gxs = func.backward(
-            target_input_indexes, grad_outputs)
+            target_input_indexes, tuple(grad_outputs))
 
         if is_debug:
             for gx in gxs:
@@ -127,6 +128,7 @@ def backprop_step(
                     '%s != expected %s or %s'
                     % (len_gxs, len(func.inputs), len(target_input_indexes)))
             raise ValueError(func._get_error_message(msg))
+    del grad_outputs[:]
 
     for i, gx in six.moves.zip(target_input_indexes, gxs):
         if gx is not None:
@@ -170,3 +172,7 @@ def backprop_step(
                 raise RuntimeError(
                     'NaN is detected on backward computation of {}'
                     .format(func.label))
+
+    if not func.lazy_grad_sum:
+        for gx in grad_inputs.values():
+            _reduce(gx)
