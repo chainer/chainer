@@ -1142,14 +1142,13 @@ def _backward_main(outputs, retain_grad, loss_scale):
     for y_var in outputs:
         y = y_var.node
         grads[y] = y_var.grad_var
-        y_var.grad_var = None  # to reduce memory usage
 
         add_cand(y.creator_node)
         root_nodes.add(weakref.ref(y))
         del y_var, y
 
     if len(root_nodes) != len(outputs):
-        raise RuntimeError('variables should be distinct')
+        raise RuntimeError('output variables should be distinct')
 
     # remove references
     del outputs[:]
@@ -1170,10 +1169,9 @@ def _backward_main(outputs, retain_grad, loss_scale):
         ]
         for y, gy in six.moves.zip(func.outputs, out_grad):
             y = y()
-            if y is not None:
+            if y is not None and weakref.ref(y) not in root_nodes:
                 y._set_grad_var_if_available(
-                    gy if retain_grad or weakref.ref(y) in root_nodes
-                    else None)
+                    gy if retain_grad else None)
             del y, gy
 
         if not target_input_indexes:
@@ -1205,6 +1203,10 @@ def _backward_main(outputs, retain_grad, loss_scale):
             for i in target_input_indexes:
                 x = inputs[i]
                 if x not in in_grad:
+                    if weakref.ref(x) in root_nodes:
+                        raise RuntimeError(
+                            'an output variable depends on another output '
+                            'variable')
                     in_grad[x] = grads.get_as_list(x)
                     # to reduce memory usage
                     x._set_grad_var_if_available(None)

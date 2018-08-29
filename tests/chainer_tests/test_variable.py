@@ -2300,10 +2300,21 @@ class TestDelayBackward(unittest.TestCase):
     def test_raise_dup_backward(self):
         x = self.var('x')
         y, = self.func('f', [x], 1)
-        with pytest.raises(RuntimeError):
+        with six.assertRaisesRegex(self, RuntimeError, 'distinct'):
             with chainer.variable.delay_backward():
                 y.backward()
                 y.backward()
+
+    def test_raise_overlap(self):
+        x = self.var('x')
+        y0, = self.func('f0', [x], 1)
+        y0.grad_var = self.var('gy0')
+        y1, = self.func('f1', [y0], 1)
+        y1.grad_var = self.var('gy1')
+        with six.assertRaisesRegex(self, RuntimeError, 'depends'):
+            with chainer.variable.delay_backward():
+                y0.backward(retain_grad=True)
+                y1.backward(retain_grad=True)
 
     def test_raise_reenter(self):
         with pytest.raises(RuntimeError):
