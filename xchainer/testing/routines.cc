@@ -102,7 +102,6 @@ void CheckForward(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
         const std::vector<Array>& expected_outputs,
-        size_t concurrent_check_repeat_count,
         size_t concurrent_check_thread_count,
         double atol,
         double rtol) {
@@ -111,20 +110,15 @@ void CheckForward(
     CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
 
     // Run thread safety check
-    if (concurrent_check_repeat_count > 0) {
+    if (concurrent_check_thread_count > 0) {
         Context& context = xchainer::GetDefaultContext();
 
-        CheckThreadSafety(
-                concurrent_check_repeat_count,
-                concurrent_check_thread_count,
-                [](size_t /*repeat_index*/) { return nullptr; },
-                [&func, &inputs, &expected_outputs, &atol, &rtol, &context](size_t /*thread_index*/, std::nullptr_t) {
-                    xchainer::SetDefaultContext(&context);
-                    std::vector<Array> outputs = func(inputs);
-                    CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
-                    return nullptr;
-                },
-                [](const std::vector<std::nullptr_t>&) {});
+        RunThreads(concurrent_check_thread_count, [&func, &inputs, &expected_outputs, &atol, &rtol, &context](size_t /*thread_index*/) {
+            xchainer::SetDefaultContext(&context);
+            std::vector<Array> outputs = func(inputs);
+            CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
+            return nullptr;
+        });
     }
 }
 
