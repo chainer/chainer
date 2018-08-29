@@ -73,29 +73,29 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         Args:
             embeddings(:class:`~chainer.Variable` or \
-                       :class:`numpy.ndarray` or \
-                       :class:`cupy.ndarray`) :
-                       predicted embedding vectors
-                       (batch size, max embedding dimension, height, width)
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`) :
+                predicted embedding vectors
+                (batch size, max embedding dimension, height, width)
             labels(:class:`numpy.ndarray` or \
-                   :class:`cupy.ndarray`) :
-                   instance segmentation ground truth
-                   each unique value has to be denoting one instance
-                   (batch size, height, width)
+            :class:`cupy.ndarray`) :
+                instance segmentation ground truth
+                each unique value has to be denoting one instance
+                (batch size, height, width)
 
         Returns:
             Variance Loss(:class:`~chainer.Variable` or \
-                          :class:`numpy.ndarray` or \
-                          :class:`cupy.ndarray`):
-                          variance loss multiplied by alpha
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`):
+                variance loss multiplied by alpha
             Distance Loss(:class:`~chainer.Variable` or \
-                          :class:`numpy.ndarray` or \
-                          :class:`cupy.ndarray`):
-                          distance loss multiplied by beta
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`):
+                distance loss multiplied by beta
             Regularization Loss(:class:`~chainer.Variable` or \
-                                :class:`numpy.ndarray` or \
-                                :class:`cupy.ndarray`):
-                                regularization loss multiplied by gamma
+            :class:`numpy.ndarray` or \
+            :class:`cupy.ndarray`):
+                regularization loss multiplied by gamma
         """
 
         assert (self.max_embedding_dim == embeddings.shape[1])
@@ -182,15 +182,15 @@ def discriminative_margin_based_clustering_loss(
 
     Args:
         embeddings(:class:`~chainer.Variable` or \
-                   :class:`numpy.ndarray` or \
-                   :class:`cupy.ndarray`) :
-                   predicted embedding vectors
-                   (batch size, max embedding dimensions, height, width)
+        :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`) :
+            predicted embedding vectors
+        (batch size, max embedding dimensions, height, width)
         labels(:class:`numpy.ndarray` or \
-               :class:`cupy.ndarray`) :
-               instance segmentation ground truth
-               each unique value has to be denoting one instance
-               (batch size, height, width)
+        :class:`cupy.ndarray`) :
+            instance segmentation ground truth
+            each unique value has to be denoting one instance
+            (batch size, height, width)
         delta_v (float): Minimum distance to start penalizing variance
         delta_d (float): Maximum distance to stop penalizing distance
         max_embedding_dim (int): Maximum number of embedding dimensions
@@ -201,17 +201,17 @@ def discriminative_margin_based_clustering_loss(
 
     Returns:
         Variance Loss(:class:`~chainer.Variable` or \
-                      :class:`numpy.ndarray` or \
-                      :class:`cupy.ndarray`):
-                      variance loss multiplied by alpha
+        :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            variance loss multiplied by alpha
         Distance Loss(:class:`~chainer.Variable` or \
-                      :class:`numpy.ndarray` or \
-                      :class:`cupy.ndarray`):
-                      distance loss multiplied by beta
+        :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            distance loss multiplied by beta
         Regularization Loss(:class:`~chainer.Variable` or \
-                            :class:`numpy.ndarray` or \
-                            :class:`cupy.ndarray`):
-                            regularization loss multiplied by gamma
+        :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`):
+            regularization loss multiplied by gamma
     """
 
     loss = DiscriminativeMarginBasedClusteringLoss(
