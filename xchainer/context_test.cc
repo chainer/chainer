@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <future>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
@@ -32,24 +33,18 @@ TEST(ContextTest, NativeBackend) {
 }
 
 TEST(ContextTest, GetBackendThreadSafe) {
-    static constexpr size_t kRepeat = 1;
     static constexpr size_t kThreadCount = 2;
+    Context ctx{};
     std::string backend_name{"native"};
 
-    xchainer::testing::CheckThreadSafety(
-            kRepeat,
-            kThreadCount,
-            [](size_t /*repeat*/) { return std::make_unique<Context>(); },
-            [&backend_name](size_t /*thread_index*/, const std::unique_ptr<Context>& ctx) {
-                Backend& backend = ctx->GetBackend(backend_name);
-                return &backend;
-            },
-            [&backend_name](const std::vector<Backend*>& results) {
-                for (Backend* backend : results) {
-                    ASSERT_EQ(backend, results.front());
-                    ASSERT_EQ(backend_name, backend->GetName());
-                }
-            });
+    std::vector<Backend*> backends = testing::RunThreads(kThreadCount, [&ctx, &backend_name](size_t /*thread_index*/) {
+        Backend& backend = ctx.GetBackend(backend_name);
+        return &backend;
+    });
+    for (Backend* backend : backends) {
+        ASSERT_EQ(backend, backends.front());
+        ASSERT_EQ(backend_name, backend->GetName());
+    }
 }
 
 TEST(ContextTest, BackendNotFound) {
@@ -64,35 +59,29 @@ TEST(ContextTest, GetDevice) {
 }
 
 TEST(ContextTest, GetDeviceThreadSafe) {
-    static constexpr size_t kRepeat = 1;
     static constexpr int kDeviceCount = 4;
     static constexpr size_t kThreadCountPerDevice = 2;
     static constexpr size_t kThreadCount = kDeviceCount * kThreadCountPerDevice;
+    Context ctx{};
 
-    xchainer::testing::CheckThreadSafety(
-            kRepeat,
-            kThreadCount,
-            [](size_t /*repeat*/) { return std::make_unique<Context>(); },
-            [](size_t thread_index, const std::unique_ptr<Context>& ctx) {
-                int device_index = thread_index / kThreadCountPerDevice;
-                Device& device = ctx->GetDevice({"native", device_index});
-                return &device;
-            },
-            [](const std::vector<Device*>& results) {
-                // Check device pointers are identical within each set of threads corresponding to one device
-                for (int device_index = 0; device_index < kDeviceCount; ++device_index) {
-                    auto it_first = std::next(results.begin(), device_index * kThreadCountPerDevice);
-                    auto it_last = std::next(results.begin(), (device_index + 1) * kThreadCountPerDevice);
-                    Device* ref_device = *it_first;
+    std::vector<Device*> devices = testing::RunThreads(kThreadCount, [&ctx](size_t thread_index) {
+        int device_index = thread_index / kThreadCountPerDevice;
+        Device& device = ctx.GetDevice({"native", device_index});
+        return &device;
+    });
+    // Check device pointers are identical within each set of threads corresponding to one device
+    for (int device_index = 0; device_index < kDeviceCount; ++device_index) {
+        auto it_first = std::next(devices.begin(), device_index * kThreadCountPerDevice);
+        auto it_last = std::next(devices.begin(), (device_index + 1) * kThreadCountPerDevice);
+        Device* ref_device = *it_first;
 
-                    // Check the device index
-                    ASSERT_EQ(device_index, ref_device->index());
+        // Check the device index
+        ASSERT_EQ(device_index, ref_device->index());
 
-                    for (auto it = it_first; it != it_last; ++it) {
-                        ASSERT_EQ(ref_device, *it);
-                    }
-                }
-            });
+        for (auto it = it_first; it != it_last; ++it) {
+            ASSERT_EQ(ref_device, *it);
+        }
+    }
 }
 
 TEST(ContextTest, DefaultContext) {
@@ -116,41 +105,30 @@ TEST(ContextTest, DefaultContext) {
 }
 
 TEST(ContextTest, DefaultContextThreadSafe) {
-    static constexpr size_t kRepeat = 1;
-    static constexpr size_t kThreadCount = 2;
+    static constexpr int kThreadCount = 2;
 
-    xchainer::testing::CheckThreadSafety(
-            kRepeat,
-            kThreadCount,
-            [](size_t /*repeat*/) { return nullptr; },
-            [](size_t /*thread_index*/, std::nullptr_t) {
-                Context ctx{};
-                SetDefaultContext(&ctx);
-                Context& ctx2 = GetDefaultContext();
-                EXPECT_EQ(&ctx, &ctx2);
-                return nullptr;
-            },
-            [](const std::vector<std::nullptr_t>& /*results*/) {});
+    testing::RunThreads(kThreadCount, [](size_t /*thread_index*/) {
+        Context ctx{};
+        SetDefaultContext(&ctx);
+        Context& ctx2 = GetDefaultContext();
+        EXPECT_EQ(&ctx, &ctx2);
+        return nullptr;
+    });
 }
 
 TEST(ContextTest, GlobalDefaultContextThreadSafe) {
-    static constexpr size_t kRepeat = 1;
-    static constexpr size_t kThreadCount = 2;
+    static constexpr int kThreadCount = 2;
+    Context ctx{};
 
-    // Each of SetGlobalDefaultContext() and GetGlobalDefaultContext() must be thread-safe, but a pair of these calls is not guaranteed to
-    // be so. In this check, a single context is set as the global context simultaneously in many threads and it only checks that
-    // the succeeding Get...() call returns the same instance.
-    xchainer::testing::CheckThreadSafety(
-            kRepeat,
-            kThreadCount,
-            [](size_t /*repeat*/) { return std::make_unique<Context>(); },
-            [](size_t /*thread_index*/, const std::unique_ptr<Context>& ctx) {
-                SetGlobalDefaultContext(ctx.get());
-                Context& ctx2 = GetGlobalDefaultContext();
-                EXPECT_EQ(ctx.get(), &ctx2);
-                return nullptr;
-            },
-            [](const std::vector<std::nullptr_t>& /*results*/) {});
+    // Each of SetGlobalDefaultContext() and GetGlobalDefaultContext() must be thread-safe, but a pair of these calls is not guaranteed
+    // to be so. In this check, a single context is set as the global context simultaneously in many threads and it only checks that the
+    // succeeding Get...() call returns the same instance.
+    testing::RunThreads(kThreadCount, [&ctx](size_t /*thread_index*/) {
+        SetGlobalDefaultContext(&ctx);
+        Context& ctx2 = GetGlobalDefaultContext();
+        EXPECT_EQ(&ctx, &ctx2);
+        return nullptr;
+    });
 }
 
 TEST(ContextTest, GlobalDefaultContext) {
