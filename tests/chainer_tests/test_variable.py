@@ -2079,7 +2079,9 @@ class LoggedFunc(chainer.FunctionNode):
 
 def logged_func(name, len_y, watcher, inputs):
     watcher.update(name)
-    outputs = LoggedFunc(name, len_y, watcher).apply(inputs)
+    func = LoggedFunc(name, len_y, watcher)
+    watcher.add_func(func)
+    outputs = func.apply(inputs)
     names = [x.name for x in inputs]
     if len(outputs) == 1:
         y, = outputs
@@ -2090,39 +2092,45 @@ def logged_func(name, len_y, watcher, inputs):
             y.name = '{}_{}({})'.format(
                 name, i, ','.join(names))
     for y in outputs:
-        watcher.add_target(y)
+        watcher.add_variable(y)
     return outputs
 
 
 class VariableWatcher(object):
 
     def __init__(self):
-        self._seen = set()
-        self.variables = {}
+        self._seen_nodes = weakref.WeakSet()
+        self._seen_funcs = weakref.WeakSet()
+        self.targets = {}
         self._log = []
 
-    def add_target(self, v):
-        v = v.node
-        ref_v = weakref.ref(v)
-        if ref_v in self._seen:
-            return
-        self._seen.add(ref_v)
+    def add_variable(self, v):
+        assert v.node not in self._seen_nodes
+        self._seen_nodes.add(v.node)
         name = v.name
         assert name is not None
-        assert name not in self.variables
-        self.variables[name] = ref_v
+        assert name not in self.targets
+        self.targets[name] = weakref.ref(v)
+
+    def add_func(self, func):
+        assert func not in self._seen_funcs
+        self._seen_funcs.add(func)
+        name = func.name
+        assert name is not None
+        assert name not in self.targets
+        self.targets[name] = weakref.ref(func)
 
     def _update(self):
         if six.PY2:
             import gc
             gc.collect()
         deleted = set()
-        for name, ref_v in self.variables.items():
-            v = ref_v()
-            if v is None:
+        for name, ref in self.targets.items():
+            obj = ref()
+            if obj is None:
                 deleted.add(name)
         for name in deleted:
-            del self.variables[name]
+            del self.targets[name]
         if deleted:
             self._log.append(deleted)
 
@@ -2150,7 +2158,7 @@ class TestDelayBackward(unittest.TestCase):
             # Sort names because we don't care orders of operands of
             # additions in backward
             y.name = '({})'.format('+'.join(sorted(names)))
-            self.watcher.add_target(y)
+            self.watcher.add_variable(y)
             return y
 
         chainer.functions.add = add_patched
@@ -2160,15 +2168,13 @@ class TestDelayBackward(unittest.TestCase):
 
     def var(self, name):
         v = chainer.Variable(np.array([2, 3], np.float32), name=name)
-        self.watcher.add_target(v)
+        self.watcher.add_variable(v)
         return v
 
     def func(self, name, xs, len_y):
         xs = tuple(xs)
         ys = logged_func(name, len_y, self.watcher, xs)
         ys = list(ys)
-        for y in ys:
-            self.watcher.add_target(y)
         return ys
 
     def test_simple_backward(self):
@@ -2182,12 +2188,9 @@ class TestDelayBackward(unittest.TestCase):
             del y
         assert x.grad is not None
         assert self.watcher.get_log() == [
-            'f',
-            'g',
-            'grad g',
-            {'g(f(x))', 'gy'},
-            'grad f',
-            {'f(x)', 'grad g(gy)'},
+            'f', 'g', {'f(x)', 'g(f(x))'},
+            'grad g', {'g', 'grad g', 'gy'},
+            'grad f', {'f', 'grad f', 'grad g(gy)'},
         ]
 
     def test_simple_backward2(self):
@@ -2201,17 +2204,14 @@ class TestDelayBackward(unittest.TestCase):
             del y
         assert x.grad is not None
         assert self.watcher.get_log() == [
-            'f',
-            'g',
-            'grad g',
-            {'g(f(x))'},
-            'grad f',
-            {'f(x)'},
+            'f', 'g', {'f(x)', 'g(f(x))'},
+            'grad g', {'g', 'gy'},
+            'grad f', {'f', 'grad g(gy)'},
         ]
 
         del x
         assert self.watcher.get_log() == [
-            {'x', 'gy', 'grad g(gy)', 'grad f(grad g(gy))'},
+            {'grad f', 'grad g', 'x', 'grad f(grad g(gy))'},
         ]
 
     def test_simple_double_backward(self):
@@ -2226,12 +2226,9 @@ class TestDelayBackward(unittest.TestCase):
             del y
         assert x.grad is not None
         assert self.watcher.get_log() == [
-            'f',
-            'g',
-            'grad g',
-            {'g(f(x))'},
-            'grad f',
-            {'f(x)'},
+            'f', 'g', {'f(x)', 'g(f(x))'},
+            'grad g', {'g'},
+            'grad f', {'f', 'grad g(gy)'},
         ]
 
         x.grad_var.grad_var = self.var('ggx')
@@ -2240,11 +2237,11 @@ class TestDelayBackward(unittest.TestCase):
             del x
         assert gy.grad is not None
         assert self.watcher.get_log() == [
-            {'x'},
+            {'x', 'grad f(grad g(gy))'},
             'grad grad f',
-            {'grad f(grad g(gy))', 'ggx'},
+            {'grad f', 'grad grad f', 'ggx'},
             'grad grad g',
-            {'grad g(gy)', 'grad grad f(ggx)'},
+            {'grad g', 'grad grad g', 'grad grad f(ggx)'},
         ]
 
     def test_simple_backward_retain(self):
@@ -2260,14 +2257,13 @@ class TestDelayBackward(unittest.TestCase):
         assert x.grad is not None
         assert x1.grad is not None
         assert self.watcher.get_log() == [
-            'f',
-            'g',
-            'h',
+            'f', 'g', 'h', {'g(f(x))', 'h(g(f(x)))'},
             'grad h',
-            {'h(g(f(x)))', 'gy'},
+            {'h', 'grad h', 'gy'},
             'grad g',
-            {'g(f(x))', 'grad h(gy)'},
+            {'g', 'grad g', 'grad h(gy)'},
             'grad f',
+            {'grad f'},
         ]
 
     def test_merged_backward(self):
@@ -2284,16 +2280,18 @@ class TestDelayBackward(unittest.TestCase):
             del y0, y1
         assert x.grad is not None
         log = self.watcher.get_log()
-        assert log[0:3] == ['f', 'g0', 'g1']
-        assert sorted([log[3:5], log[5:7]]) == [
-            ['grad g0', {'g0(f(x))', 'gy0'}],
-            ['grad g1', {'g1(f(x))', 'gy1'}],
+        assert log[:4] == [
+            'f', 'g0', 'g1', {'f(x)', 'g0(f(x))', 'g1(f(x))'},
         ]
-        assert log[7:] == [
-            '+',
-            {'grad g0(gy0)', 'grad g1(gy1)'},
-            'grad f',
-            {'f(x)', '(grad g0(gy0)+grad g1(gy1))'},
+        del log[:4]
+        assert sorted([log[:2], log[2:4]]) == [
+            ['grad g0', {'g0', 'grad g0', 'gy0'}],
+            ['grad g1', {'g1', 'grad g1', 'gy1'}],
+        ]
+        del log[:4]
+        assert log == [
+            '+', {'grad g0(gy0)', 'grad g1(gy1)'},
+            'grad f', {'f', 'grad f', '(grad g0(gy0)+grad g1(gy1))'},
         ]
 
     def test_raise_dup_backward(self):
