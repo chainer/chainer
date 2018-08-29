@@ -1218,16 +1218,15 @@ def _backward_main(outputs, retain_grad, loss_scale):
             del y  # remove references
         del gy, out_grad  # to reduce memory usage
 
+        grad_sum = not func.lazy_grad_sum
+        del func
+
         for x, gx in in_grad.items():
             if not gx:  # gradient == None
                 continue
 
-            if not func.lazy_grad_sum:
+            if grad_sum:
                 _backprop_utils._reduce(gx)
-
-            for gx_elem in gx:
-                _check_grad_type(func, x, gx_elem.data)
-            del gx_elem  # to reduce memory usage
 
             if x.creator_node is None:  # leaf
                 leaf_nodes.add(x)
