@@ -44,8 +44,9 @@ class NormalizeL2(function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
-        # Note: Passing dtype argument to numpy.sqrt() because NumPy in Python 2
-        # looks to return a casted value to float32 when it takes a float16 value.
+        # Note: Passing dtype argument to numpy.sqrt() because NumPy in
+        # Python 2 looks to return a casted value to float32 when it takes a
+        # float16 value.
         norm = (xp.sqrt(xp.sum(xp.square(x), axis=self.axis, keepdims=True),
                         dtype=x.dtype)
                 + x.dtype.type(self.eps))
