@@ -114,7 +114,7 @@ class TestCooMatMul(unittest.TestCase):
     def check_SPDN_backward(self, a_data, b_data, c_grad, atol, rtol):
         sp_a = utils.to_coo(a_data)
         func = F.math.sparse_matmul.CooMatMul(
-            sp_a.row, sp_a.col, sp_a.shape,
+            sp_a.row, sp_a.col, sp_a.shape, sp_a.order,
             transa=self.transa, transb=self.transb, transc=False)
 
         def op(a, b):
@@ -141,7 +141,7 @@ class TestCooMatMul(unittest.TestCase):
         sp_a = utils.to_coo(a_data)
         sp_gga = utils.to_coo(a_grad_grad)
         func = F.math.sparse_matmul.CooMatMul(
-            sp_a.row, sp_a.col, sp_a.shape,
+            sp_a.row, sp_a.col, sp_a.shape, sp_a.order,
             transa=self.transa, transb=self.transb, transc=False)
 
         def op(a, b):
@@ -194,7 +194,7 @@ class TestCooMatMul(unittest.TestCase):
     def check_DNSP_backward(self, a_data, b_data, c_grad, atol, rtol):
         sp_b = utils.to_coo(b_data)
         func = F.math.sparse_matmul.CooMatMul(
-            sp_b.row, sp_b.col, sp_b.shape,
+            sp_b.row, sp_b.col, sp_b.shape, sp_b.order,
             transa=not self.transb, transb=not self.transa, transc=True)
 
         def op(b, a):
@@ -221,7 +221,7 @@ class TestCooMatMul(unittest.TestCase):
         sp_b = utils.to_coo(b_data)
         sp_ggb = utils.to_coo(b_grad_grad)
         func = F.math.sparse_matmul.CooMatMul(
-            sp_b.row, sp_b.col, sp_b.shape,
+            sp_b.row, sp_b.col, sp_b.shape, sp_b.order,
             transa=not self.transb, transb=not self.transa, transc=True)
 
         def op(b, a):
