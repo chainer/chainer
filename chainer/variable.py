@@ -1146,33 +1146,27 @@ def _backward_main(outputs, retain_grad, loss_scale):
 
         add_cand(y.creator_node)
         root_nodes.add(weakref.ref(y))
+        del y_var, y
 
     if len(root_nodes) != len(outputs):
         raise RuntimeError('variables should be distinct')
 
     # remove references
     del outputs[:]
-    y_var = None
 
     leaf_nodes = set()
 
     while cand_funcs:
-        # remove references
-        x, y, inputs, outputs = None, None, None, None
-        del x, y, inputs, outputs
-
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
         target_input_indexes = tuple([
             i
-            # TODO(kataoka): remove NOQA if flake8 is fixed
-            for i, x in enumerate(inputs)  # NOQA
+            for i, x in enumerate(inputs)
             if x.requires_grad
         ])
         out_grad = [
             grads.pop(y())  # access via weak ref
-            # TODO(kataoka): remove NOQA if flake8 is fixed
-            for y in func.outputs  # NOQA
+            for y in func.outputs
         ]
         for y, gy in six.moves.zip(func.outputs, out_grad):
             y = y()
@@ -1180,15 +1174,18 @@ def _backward_main(outputs, retain_grad, loss_scale):
                 y._set_grad_var_if_available(
                     gy if retain_grad or weakref.ref(y) in root_nodes
                     else None)
-            del y, gy  # remove references
+            del y, gy
 
         if not target_input_indexes:
             del out_grad
+            x = None  # fix Python 2
             continue
 
-        in_data = tuple([x.data for x in inputs])
+        # TODO(kataoka): remove NOQA if flake8 is fixed
+        in_data = tuple([x.data for x in inputs])  # NOQA
         out_grad_data = tuple(
             [None if gy is None else gy.data for gy in out_grad])
+        gy = None  # fix Python 2
 
         hooks = chainer.get_function_hooks()
         if func._n_local_function_hooks != 0:
@@ -1217,7 +1214,6 @@ def _backward_main(outputs, retain_grad, loss_scale):
 
             for hook in hooks:
                 hook.backward_postprocess(func, in_data, out_grad_data)
-
         del in_data, out_grad_data
 
         for x, gx in in_grad.items():
@@ -1232,7 +1228,7 @@ def _backward_main(outputs, retain_grad, loss_scale):
                 leaf_nodes.add(x)
             else:
                 add_cand(x.creator_node)
-        del gx, in_grad  # to reduce memory usage
+        del x, gx, in_grad  # to reduce memory usage
 
     for x in leaf_nodes:
         x_var = x.get_variable_or_none()
