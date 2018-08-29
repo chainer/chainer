@@ -2088,7 +2088,7 @@ def logged_func(name, len_y, watcher, inputs):
     else:
         for i, y in enumerate(outputs):
             y.name = '{}_{}({})'.format(
-                self.name, i, ','.join(names))
+                name, i, ','.join(names))
     for y in outputs:
         watcher.add_target(y)
     return outputs
