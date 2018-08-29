@@ -170,7 +170,3 @@ def backprop_step(
                 raise RuntimeError(
                     'NaN is detected on backward computation of {}'
                     .format(func.label))
-
-    if not func.lazy_grad_sum:
-        for gx in grad_inputs.values():
-            _reduce(gx)

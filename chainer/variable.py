@@ -1217,10 +1217,14 @@ def _backward_main(outputs, retain_grad, loss_scale):
                     gy if retain_grad or weakref.ref(y) in root_nodes
                     else None)
         del gy, out_grad  # to reduce memory usage
+        del y, outputs  # remove references
 
         for x, gx in in_grad.items():
             if not gx:  # gradient == None
                 continue
+
+            if not func.lazy_grad_sum:
+                _backprop_utils._reduce(gx)
 
             for gx_elem in gx:
                 _check_grad_type(func, x, gx_elem.data)

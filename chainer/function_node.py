@@ -923,6 +923,9 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
             if not g:  # gradient == None
                 continue
 
+            if not func.lazy_grad_sum:
+                _backprop_utils._reduce(g)
+
             creator = node.creator_node
             if creator is not None:
                 push_candidate(creator)
