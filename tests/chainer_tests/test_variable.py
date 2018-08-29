@@ -2066,26 +2066,19 @@ class LoggedFunc(chainer.FunctionNode):
         self.watcher = watcher
 
     def forward(self, inputs):
-        self.watcher.update(self.name)
         self.len_x = len(inputs)
         h = sum(inputs)
         m = self.len_y
         return tuple([h.copy() for _ in range(m)])
 
     def backward(self, target_input_indexes, grad_outputs):
-        for gy in grad_outputs:
-            assert gy is not None
-            self.watcher.add_target(gy)
         grad_inputs = logged_func(
             'grad ' + self.name, self.len_x, self.watcher, grad_outputs)
-        """
-        for gx in grad_inputs:
-            self.watcher.add_target(gx)
-        """
         return grad_inputs
 
 
 def logged_func(name, len_y, watcher, inputs):
+    watcher.update(name)
     outputs = LoggedFunc(name, len_y, watcher).apply(inputs)
     names = [x.name for x in inputs]
     if len(outputs) == 1:
@@ -2096,6 +2089,8 @@ def logged_func(name, len_y, watcher, inputs):
         for i, y in enumerate(outputs):
             y.name = '{}_{}({})'.format(
                 self.name, i, ','.join(names))
+    for y in outputs:
+        watcher.add_target(y)
     return outputs
 
 
@@ -2149,11 +2144,13 @@ class TestDelayBackward(unittest.TestCase):
         self._add_orig = chainer.functions.add
 
         def add_patched(*xs):
+            self.watcher.update('+')
             y = self._add_orig(*xs)
             names = [x.name for x in xs]
             # Sort names because we don't care orders of operands of
             # additions in backward
             y.name = '({})'.format('+'.join(sorted(names)))
+            self.watcher.add_target(y)
             return y
 
         chainer.functions.add = add_patched
@@ -2214,7 +2211,7 @@ class TestDelayBackward(unittest.TestCase):
 
         del x
         assert self.watcher.get_log() == [
-            {'x', 'gy', 'grad g(gy)'},
+            {'x', 'gy', 'grad g(gy)', 'grad f(grad g(gy))'},
         ]
 
     def test_simple_double_backward(self):
@@ -2245,7 +2242,7 @@ class TestDelayBackward(unittest.TestCase):
         assert self.watcher.get_log() == [
             {'x'},
             'grad grad f',
-            {'ggx'},
+            {'grad f(grad g(gy))', 'ggx'},
             'grad grad g',
             {'grad g(gy)', 'grad grad f(ggx)'},
         ]
@@ -2293,6 +2290,8 @@ class TestDelayBackward(unittest.TestCase):
             ['grad g1', {'g1(f(x))', 'gy1'}],
         ]
         assert log[7:] == [
+            '+',
+            {'grad g0(gy0)', 'grad g1(gy1)'},
             'grad f',
             {'f(x)', '(grad g0(gy0)+grad g1(gy1))'},
         ]
