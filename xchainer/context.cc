@@ -283,7 +283,7 @@ Context* GetDefaultContextNoExcept() noexcept { return internal::GetInternalThre
 }  // namespace internal
 
 Context& GetDefaultContext() {
-    Context*& default_context = internal::GetInternalThreadLocalState().default_context;
+    Context* default_context = internal::GetInternalThreadLocalState().default_context;
     if (default_context == nullptr) {
         return GetGlobalDefaultContext();
     }

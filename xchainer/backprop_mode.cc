@@ -15,8 +15,11 @@
 #include "xchainer/thread_local_state.h"
 
 namespace xchainer {
+namespace {
 
 using internal::BackpropModeStack;
+
+}  // namespace
 
 namespace backprop_mode_detail {
 

@@ -1,7 +1,5 @@
 #include "xchainer/thread_local_state.h"
 
-#include <type_traits>
-
 namespace xchainer {
 namespace internal {
 
