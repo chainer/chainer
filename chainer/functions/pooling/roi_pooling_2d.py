@@ -124,14 +124,13 @@ class ROIPooling2D(function.Function):
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
                                     self.outw), dtype=bottom_data.dtype)
         self.argmax_data = cuda.cupy.empty(top_data.shape, numpy.int32)
-        ctype = 'float' + str(bottom_data.itemsize * 8)
         cuda.elementwise(
             '''
-            raw {ctype} bottom_data, {ctype} spatial_scale,
+            raw T bottom_data, T spatial_scale,
             int32 channels, int32 height, int32 width, int32 pooled_height,
-            int32 pooled_width, raw {ctype} bottom_rois
-            '''.format(ctype=ctype),
-            '{ctype} top_data, int32 argmax_data'.format(ctype=ctype),
+            int32 pooled_width, raw T bottom_rois
+            ''',
+            'T top_data, int32 argmax_data',
             '''
             // pos in output filter
             int pw = i % pooled_width;
@@ -239,15 +238,14 @@ class ROIPooling2D(function.Function):
         bottom_diff = cuda.cupy.zeros(
             self._bottom_data_shape, bottom_rois.dtype)
 
-        ctype = 'float' + str(bottom_rois.itemsize * 8)
         cuda.elementwise(
             '''
-            raw {ctype} top_diff, raw int32 argmax_data, int32 num_rois,
-            {ctype} spatial_scale, int32 channels, int32 height,
+            raw T top_diff, raw int32 argmax_data, int32 num_rois,
+            T spatial_scale, int32 channels, int32 height,
             int32 width, int32 pooled_height, int32 pooled_width,
-            raw {ctype} bottom_rois
-            '''.format(ctype=ctype),
-            '{ctype} bottom_diff'.format(ctype=ctype),
+            raw T bottom_rois
+            ''',
+            'T bottom_diff',
             '''
             int w = i % width;
             int h = (i / width) % height;
