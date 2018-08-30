@@ -1195,6 +1195,9 @@ def _backward_main(outputs, retain_grad, loss_scale):
             for hook in hooks:
                 hook.backward_preprocess(func, in_data, out_grad_data)
 
+            if not hooks:
+                in_data, out_grad_data = None, None  # to reduce memory usage
+
             # Collect the current input gradients.
             # Keep the order for the portability, rather than
             # target_inputs = [inputs[i] for i in target_input_indexes]
