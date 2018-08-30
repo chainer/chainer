@@ -48,8 +48,8 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
                 It has the same shape as ``hx``.
             xs (list of ~chainer.Variable): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
-                a sequence. Its shape is ``(L_t, I)``, where ``L_t`` is the
-                length of a sequence for time ``t``, and ``I`` is the size of
+                a sequence. Its shape is ``(L_i, I)``, where ``L_i`` is the
+                length of a sequence for batch ``i``, and ``I`` is the size of
                 the input and is equal to ``in_size``.
 
         Returns:
@@ -62,9 +62,9 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
               ``cx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
-              to an input ``xs[t]``. Its shape is ``(L_t, N)`` for
-              uni-directional LSTM and ``(L_t, 2N)`` for bi-directional LSTM
-              where ``L_t`` is the length of a sequence for time ``t``,
+              to an input ``xs[t]``. Its shape is ``(L_i, N)`` for
+              uni-directional LSTM and ``(L_i, 2N)`` for bi-directional LSTM
+              where ``L_i`` is the length of a sequence for batch ``i``,
               and ``N`` is size of hidden units.
         """
         (hy, cy), ys = self._call([hx, cx], xs, **kwargs)
