@@ -11,7 +11,7 @@ template <int8_t kNdim = kDynamicNdim>
 class IndexIterator {
 public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start, int64_t step)
-        : shape_{shape}, total_size_{total_size}, raw_index_{0}, step_{step}, index_{} {
+        : shape_{shape}, total_size_{total_size}, raw_index_{0}, start_{start}, step_{step}, index_{} {
         XCHAINER_ASSERT(start >= 0);
         XCHAINER_ASSERT(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
         if (total_size > 0) {
@@ -27,6 +27,24 @@ public:
     XCHAINER_HOST_DEVICE IndexIterator<kNdim>& operator--() {
         Set(raw_index_ - step_);
         return *this;
+    }
+
+    XCHAINER_HOST_DEVICE void Restart() { Set(start_); }
+
+    XCHAINER_HOST_DEVICE void Restart(int64_t start) {
+        assert(start >= 0);
+        start_ = start;
+        if (total_size_ > 0) {
+            Set(start_);
+        }
+    }
+
+    // TODO(sonots): Set raw_index_
+    template <typename IndexSource>
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
+        for (int i = 0; i < index_source.ndim(); ++i) {
+            index_[i + offset_dim] = index_source.index()[i];
+        }
     }
 
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
@@ -54,6 +72,7 @@ private:
     const int64_t* shape_;
     int64_t total_size_{};
     int64_t raw_index_{};
+    int64_t start_{};
     int64_t step_{};
     int64_t index_[kNdim];
 };
@@ -83,6 +102,21 @@ public:
         return *this;
     }
 
+    XCHAINER_HOST_DEVICE void Restart() { raw_index_ = 0; }
+
+    XCHAINER_HOST_DEVICE void Restart(int64_t start) {
+        assert(start >= 0);
+        raw_index_ = start;
+    }
+
+    template <typename IndexSource>
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
+        (void)index_source;  // unused
+        (void)offset_dim;  // unused
+        assert(index_source.ndim() == 0);
+        assert(offset_dim == 0);
+    }
+
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < 1; }
 
     XCHAINER_HOST_DEVICE static constexpr int8_t ndim() { return 0; }
@@ -107,7 +141,7 @@ public:
     }
 
     explicit XCHAINER_HOST_DEVICE IndexIterator(int64_t total_size, int64_t start, int64_t step)
-        : total_size_{total_size}, raw_index_{start}, step_{step} {
+        : total_size_{total_size}, raw_index_{start}, start_{start}, step_{step} {
         XCHAINER_ASSERT(start >= 0);
         XCHAINER_ASSERT(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
     }
@@ -120,6 +154,22 @@ public:
     XCHAINER_HOST_DEVICE IndexIterator<1>& operator--() {
         raw_index_ -= step_;
         return *this;
+    }
+
+    XCHAINER_HOST_DEVICE void Restart() { raw_index_ = start_; }
+
+    XCHAINER_HOST_DEVICE void Restart(int64_t start) {
+        assert(start >= 0);
+        raw_index_ = start;
+    }
+
+    template <typename IndexSource>
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
+        (void)index_source;  // unused
+        (void)offset_dim;  // unused
+        assert(index_source.ndim() == 1);
+        assert(offset_dim == 0);
+        raw_index_ = index_source.index()[0];
     }
 
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
@@ -135,6 +185,7 @@ public:
 private:
     int64_t total_size_{};
     int64_t raw_index_{};
+    int64_t start_{};
     int64_t step_{};
 };
 
@@ -143,7 +194,7 @@ template <>
 class IndexIterator<kDynamicNdim> {
 public:
     explicit XCHAINER_HOST_DEVICE IndexIterator(const int64_t* shape, int8_t ndim, int64_t total_size, int64_t start, int64_t step)
-        : shape_{shape}, ndim_{ndim}, total_size_{total_size}, raw_index_{0}, step_{step}, index_{} {
+        : shape_{shape}, ndim_{ndim}, total_size_{total_size}, raw_index_{0}, start_{start}, step_{step}, index_{} {
         XCHAINER_ASSERT(start >= 0);
         XCHAINER_ASSERT(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
         if (total_size > 0) {
@@ -159,6 +210,24 @@ public:
     XCHAINER_HOST_DEVICE IndexIterator<kDynamicNdim>& operator--() {
         Set(raw_index_ - step_);
         return *this;
+    }
+
+    XCHAINER_HOST_DEVICE void Restart() { Set(start_); }
+
+    XCHAINER_HOST_DEVICE void Restart(int64_t start) {
+        assert(start >= 0);
+        start_ = start;
+        if (total_size_ > 0) {
+            Set(start_);
+        }
+    }
+
+    // TODO(sonots): Set raw_index_
+    template <typename IndexSource>
+    XCHAINER_HOST_DEVICE void CopyIndex(IndexSource index_source, int8_t offset_dim = 0) {
+        for (int i = 0; i < index_source.ndim(); ++i) {
+            index_[i + offset_dim] = index_source.index()[i];
+        }
     }
 
     XCHAINER_HOST_DEVICE operator bool() const { return raw_index_ < total_size_; }
@@ -187,6 +256,7 @@ private:
     int8_t ndim_{};
     int64_t total_size_{};
     int64_t raw_index_{};
+    int64_t start_{};
     int64_t step_{};
     int64_t index_[kMaxNdim];
 };

@@ -4,6 +4,7 @@
 
 #include <cstdlib>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 
@@ -56,9 +57,13 @@ bool CudaBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
     return false;
 }
 
-void CudaBackend::SetCudnnMaxWorkspaceSize(size_t max_workspace_size) { cudnn_max_workspace_size_ = max_workspace_size; }
+void CudaBackend::SetCudnnMaxWorkspaceSize(size_t max_workspace_size) {
+    std::lock_guard<std::mutex> lock{mutex_};
+    cudnn_max_workspace_size_ = max_workspace_size;
+}
 
 size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
+    std::lock_guard<std::mutex> lock{mutex_};
     if (cudnn_max_workspace_size_) {
         return *cudnn_max_workspace_size_;
     }

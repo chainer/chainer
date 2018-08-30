@@ -56,6 +56,16 @@ void InitXchainerContext(pybind11::module& m) {
               return self.GetDevice({backend_name, index});
           },
           py::return_value_policy::reference);
+    c.def("make_backprop_id",
+          [](Context& self, std::string backprop_name) { return self.MakeBackpropId(std::move(backprop_name)); },
+          py::arg("backprop_name"));
+    c.def("release_backprop_id",
+          [](Context& self, const BackpropId& backprop_id) { return self.ReleaseBackpropId(backprop_id); },
+          py::arg("backprop_id"));
+    // For testing
+    c.def("_check_valid_backprop_id",
+          [](Context& self, const BackpropId& backprop_id) { return self.CheckValidBackpropId(backprop_id); },
+          py::arg("backprop_id"));
 
     m.def("get_backend", &GetBackend, py::return_value_policy::reference);
     m.def("get_device",

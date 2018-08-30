@@ -84,8 +84,7 @@ TEST_P(NormalizationTest, BatchNorm) {
                 return std::vector<Array>{out};
             },
             {x, gamma, beta},
-            {e_out},
-            1);
+            {e_out});
 }
 
 TEST_P(NormalizationTest, BatchNormWithAxis) {
@@ -130,8 +129,7 @@ TEST_P(NormalizationTest, BatchNormWithAxis) {
                 return std::vector<Array>{out};
             },
             {x, gamma, beta},
-            {e_out},
-            1);
+            {e_out});
 }
 
 TEST_P(NormalizationTest, BatchNormBackward) {
@@ -260,8 +258,7 @@ TEST_P(NormalizationTest, FixedBatchNorm) {
     testing::CheckForward(
             [&eps](const std::vector<Array>& xs) { return std::vector<Array>{FixedBatchNorm(xs[0], xs[1], xs[2], xs[3], xs[4], eps)}; },
             {x, gamma, beta, mean, var},
-            {e_out},
-            1);
+            {e_out});
 }
 
 INSTANTIATE_TEST_CASE_P(

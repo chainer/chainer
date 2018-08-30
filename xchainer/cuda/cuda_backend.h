@@ -39,13 +39,22 @@ public:
 
     bool SupportsTransfer(Device& src_device, Device& dst_device) override;
 
+    // TODO(hvy): Move to CudaDevice.
+    // Sets maximum cuDNN workspace size.
+    // This value is shared across threads.
     void SetCudnnMaxWorkspaceSize(size_t max_workspace_size);
 
+    // TODO(hvy): Move to CudaDevice.
+    // Gets maximum cuDNN workspace size.
     size_t GetCudnnMaxWorkspaceSize();
 
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;
+
+    // TODO(hvy): Move to CudaDevice.
     nonstd::optional<size_t> cudnn_max_workspace_size_{};
+
+    std::mutex mutex_;
 };
 
 }  // namespace cuda

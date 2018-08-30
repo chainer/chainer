@@ -702,8 +702,7 @@ TEST_P(CreationTest, AsContiguousArray) {
                 return std::vector<Array>{y};
             },
             {a},
-            {a},
-            1);
+            {a});
 }
 
 TEST_P(CreationTest, AsContiguousArrayNoCopy) {
@@ -717,8 +716,7 @@ TEST_P(CreationTest, AsContiguousArrayNoCopy) {
                 return std::vector<Array>{y};
             },
             {a},
-            {a},
-            1);
+            {a});
 }
 
 TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
@@ -735,8 +733,7 @@ TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
                 return std::vector<Array>{};
             },
             {a},
-            {},
-            1);
+            {});
 }
 
 TEST_P(CreationTest, AsContiguousArrayBackward) {
@@ -787,8 +784,7 @@ TEST_P(CreationTest, DiagVecToMat) {
                 return std::vector<Array>{Diag(xs[0], 1)};
             },
             {v},
-            {e},
-            1);
+            {e});
 }
 
 TEST_P(CreationTest, DiagVecToMatNegativeK) {
@@ -801,8 +797,7 @@ TEST_P(CreationTest, DiagVecToMatNegativeK) {
                 return std::vector<Array>{Diag(xs[0], -2)};
             },
             {v},
-            {e},
-            1);
+            {e});
 }
 
 TEST_P(CreationTest, DiagMatToVecDefaultK) {
@@ -817,8 +812,7 @@ TEST_P(CreationTest, DiagMatToVecDefaultK) {
                 return std::vector<Array>{y};
             },
             {v},
-            {e},
-            1);
+            {e});
 }
 
 TEST_P(CreationTest, DiagMatToVec) {
@@ -833,8 +827,7 @@ TEST_P(CreationTest, DiagMatToVec) {
                 return std::vector<Array>{y};
             },
             {v},
-            {e},
-            1);
+            {e});
 }
 
 TEST_P(CreationTest, DiagMatToVecNegativeK) {
@@ -849,8 +842,7 @@ TEST_P(CreationTest, DiagMatToVecNegativeK) {
                 return std::vector<Array>{y};
             },
             {v},
-            {e},
-            1);
+            {e});
 }
 
 TEST_P(CreationTest, DiagVecToMatBackward) {
@@ -927,8 +919,7 @@ TEST_P(CreationTest, Diagflat) {
                     return std::vector<Array>{Diagflat(xs[0])};
                 },
                 {v},
-                {e},
-                1);
+                {e});
     }
     {
         Array v = Arange(1, 5, Dtype::kFloat32).Reshape({2, 2});
@@ -941,8 +932,7 @@ TEST_P(CreationTest, Diagflat) {
                     return std::vector<Array>{Diagflat(xs[0], 1)};
                 },
                 {v},
-                {e},
-                1);
+                {e});
     }
     {
         Array v = Arange(1, 3, Dtype::kFloat32).Reshape({1, 2});
@@ -954,8 +944,7 @@ TEST_P(CreationTest, Diagflat) {
                     return std::vector<Array>{Diagflat(xs[0], -1)};
                 },
                 {v},
-                {e},
-                1);
+                {e});
     }
 }
 

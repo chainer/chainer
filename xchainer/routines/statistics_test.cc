@@ -53,7 +53,7 @@ TEST_P(StatisticsTest, MeanAllAxes) {
     Array a = testing::BuildArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({8.5f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, MeanZero) {
@@ -62,7 +62,7 @@ TEST_P(StatisticsTest, MeanZero) {
     Array a = testing::BuildArray({0}).WithData<T>({});
     Array e = testing::BuildArray({}).WithData<T>({std::nanf("")});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, MeanOne) {
@@ -71,7 +71,7 @@ TEST_P(StatisticsTest, MeanOne) {
     Array a = testing::BuildArray({}).WithData<T>({42.0f}).WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({42.0f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, MeanTwo) {
@@ -80,7 +80,7 @@ TEST_P(StatisticsTest, MeanTwo) {
     Array a = testing::BuildArray({2}).WithData<T>({42.0f, 37.0f}).WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({39.5f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, MeanLarge) {
@@ -89,7 +89,7 @@ TEST_P(StatisticsTest, MeanLarge) {
     Array a = testing::BuildArray({0x100000}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({524287.5f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0], Axes{0})}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0], Axes{0})}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, MeanKeepDims) {
@@ -106,8 +106,7 @@ TEST_P(StatisticsTest, MeanKeepDims) {
                 return std::vector<Array>{y};
             },
             {a},
-            {e},
-            1);
+            {e});
 }
 
 TEST_P(StatisticsTest, InvalidMeanDuplicateAxes) {
@@ -170,7 +169,7 @@ TEST_P(StatisticsTest, Var) {
     Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({2}).WithData<T>({107.91666667f, 107.91666667f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0], Axes{2, 1, -1})}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0], Axes{2, 1, -1})}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, VarAllAxes) {
@@ -179,7 +178,7 @@ TEST_P(StatisticsTest, VarAllAxes) {
     Array a = testing::BuildArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({26.91666667f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, VarZero) {
@@ -188,7 +187,7 @@ TEST_P(StatisticsTest, VarZero) {
     Array a = testing::BuildArray({0}).WithData<T>({});
     Array e = testing::BuildArray({}).WithData<T>({std::nanf("")});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, VarOne) {
@@ -197,7 +196,7 @@ TEST_P(StatisticsTest, VarOne) {
     Array a = testing::BuildArray({}).WithData<T>({42.0f}).WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({0.f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, VarTwo) {
@@ -206,7 +205,7 @@ TEST_P(StatisticsTest, VarTwo) {
     Array a = testing::BuildArray({2}).WithData<T>({42.0f, 37.0f}).WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({6.25f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, VarLarge) {
@@ -215,7 +214,7 @@ TEST_P(StatisticsTest, VarLarge) {
     Array a = testing::BuildArray({0x100000}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({91625968981.25});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0], Axes{0})}; }, {a}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0], Axes{0})}; }, {a}, {e});
 }
 
 TEST_P(StatisticsTest, VarKeepDims) {
@@ -232,8 +231,7 @@ TEST_P(StatisticsTest, VarKeepDims) {
                 return std::vector<Array>{y};
             },
             {a},
-            {e},
-            1);
+            {e});
 }
 
 TEST_P(StatisticsTest, InvalidVarDuplicateAxes) {

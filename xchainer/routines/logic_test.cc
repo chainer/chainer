@@ -69,8 +69,7 @@ TEST_P(LogicTest, Equal) {
                 return std::vector<Array>{y};
             },
             {a, b},
-            {e},
-            1);
+            {e});
 }
 
 TEST_P(LogicTest, EqualBroadcast) {
@@ -80,7 +79,7 @@ TEST_P(LogicTest, EqualBroadcast) {
     Array b = testing::BuildArray({2, 1}).WithData<T>({3, 2});
     Array e = testing::BuildArray({2, 3}).WithData<bool>({false, false, true, false, false, true});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Equal(xs[0], xs[1])}; }, {a, b}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Equal(xs[0], xs[1])}; }, {a, b}, {e});
 }
 
 TEST_P(LogicTest, NotEqual) {
@@ -163,8 +162,7 @@ TEST_P(LogicTest, Greater) {
                 return std::vector<Array>{y};
             },
             {a, b},
-            {e},
-            1);
+            {e});
 }
 
 TEST_P(LogicTest, GreaterBroadcast) {
@@ -174,7 +172,7 @@ TEST_P(LogicTest, GreaterBroadcast) {
     Array b = testing::BuildArray({2, 1}).WithData<T>({2, 2});
     Array e = testing::BuildArray({2, 3}).WithData<bool>({false, false, true, true, true, false});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Greater(xs[0], xs[1])}; }, {a, b}, {e}, 1);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Greater(xs[0], xs[1])}; }, {a, b}, {e});
 }
 
 TEST_P(LogicTest, GreaterEqual) {
@@ -338,8 +336,7 @@ TEST_P(LogicTest, LogicalNot) {
                 return std::vector<Array>{y};
             },
             {a},
-            {e},
-            1);
+            {e});
 }
 
 INSTANTIATE_TEST_CASE_P(

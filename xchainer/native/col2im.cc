@@ -43,15 +43,25 @@ void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, k
     // Indices over the output image.
     NdimIndex out_image_index{kKernelNdim};
 
+    auto it_kernel = kernel_indexer.It(0);
+    auto it_in_image_dims = in_image_dims_indexer.It(0);
+    auto it_col = col_indexer.It(0);
+    auto it_out = out_indexer.It(0);
+
     for (auto it_batch_channel = batch_channel_indexer.It(0); it_batch_channel; ++it_batch_channel) {
-        for (auto it_kernel = kernel_indexer.It(0); it_kernel; ++it_kernel) {
-            for (auto it_in_image_dims = in_image_dims_indexer.It(0); it_in_image_dims; ++it_in_image_dims) {
+        it_col.CopyIndex(it_batch_channel);
+        it_out.CopyIndex(it_batch_channel);
+
+        for (it_kernel.Restart(); it_kernel; ++it_kernel) {
+            it_col.CopyIndex(it_kernel, 2);
+
+            for (it_in_image_dims.Restart(); it_in_image_dims; ++it_in_image_dims) {
                 for (int8_t i = 0; i < kKernelNdim; ++i) {
                     out_image_index.index()[i] = it_in_image_dims.index()[i] * stride[i] + it_kernel.index()[i];
                 }
+                it_col.CopyIndex(it_in_image_dims, 2 + kKernelNdim);
+                it_out.CopyIndex(out_image_index, 2);
 
-                auto it_col = col_indexer.At(it_batch_channel, it_kernel, it_in_image_dims);
-                auto it_out = out_indexer.At(it_batch_channel, out_image_index);
                 out_iarray[it_out] += col_iarray[it_col];
             }
         }
