@@ -44,13 +44,12 @@ TEST_P(ManipulationTest, AsScalar) {
     T value = 2.0f;
     Array a = testing::BuildArray({1, 1, 1}).WithData<T>({value}).WithPadding(1);
 
-    testing::RunTestWithThreads(
-            [&a, &value]() {
-                using T = float;
-                Scalar s = AsScalar(a);
-                EXPECT_EQ(s.dtype(), TypeToDtype<T>);
-                EXPECT_EQ(static_cast<T>(s), value);
-            });
+    testing::RunTestWithThreads([&a, &value]() {
+        using T = float;
+        Scalar s = AsScalar(a);
+        EXPECT_EQ(s.dtype(), TypeToDtype<T>);
+        EXPECT_EQ(static_cast<T>(s), value);
+    });
 }
 
 TEST_P(ManipulationTest, AsScalarInvalidZeroElement) {
