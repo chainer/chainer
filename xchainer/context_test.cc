@@ -105,7 +105,7 @@ TEST(ContextTest, DefaultContext) {
 }
 
 TEST(ContextTest, DefaultContextThreadSafe) {
-    static constexpr int kThreadCount = 2;
+    static constexpr size_t kThreadCount = 2;
 
     testing::RunThreads(kThreadCount, [](size_t /*thread_index*/) {
         Context ctx{};
@@ -117,7 +117,7 @@ TEST(ContextTest, DefaultContextThreadSafe) {
 }
 
 TEST(ContextTest, GlobalDefaultContextThreadSafe) {
-    static constexpr int kThreadCount = 2;
+    static constexpr size_t kThreadCount = 2;
     Context ctx{};
 
     // Each of SetGlobalDefaultContext() and GetGlobalDefaultContext() must be thread-safe, but a pair of these calls is not guaranteed

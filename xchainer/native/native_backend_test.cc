@@ -46,7 +46,7 @@ TEST(NativeBackendTest, GetDeviceCount) {
 }
 
 TEST(NativeBackendTest, GetDeviceCountGetNameThreadSafe) {
-    static constexpr int kThreadCount = 2;
+    static constexpr size_t kThreadCount = 2;
 
     int expected_device_count = Context{}.GetNativeBackend().GetDeviceCount();
     std::string expected_backend_name = Context{}.GetNativeBackend().GetName();
@@ -107,7 +107,7 @@ TEST(NativeBackendTest, GetName) {
 }
 
 TEST(NativeBackendTest, SupportsTransferThreadSafe) {
-    static constexpr int kThreadCount = 2;
+    static constexpr size_t kThreadCount = 2;
 
     Context ctx0{};
     Context ctx1{};
