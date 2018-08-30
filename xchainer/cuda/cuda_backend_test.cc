@@ -426,16 +426,6 @@ TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {
     }
 }
 
-TEST(CudaBackendTest, kCudnnDefaultMaxWorkspaceSizeThreadSafe) {
-    Context ctx;
-    CudaBackend backend{ctx};
-
-    testing::RunThreads(2, [&backend](size_t /*thread_index*/) {
-        EXPECT_EQ(CudaBackend::kCudnnDefaultMaxWorkspaceSize, backend.GetCudnnMaxWorkspaceSize());
-        return nullptr;
-    });
-}
-
 TEST(CudaBackendTest, GetCudnnMaxWorkspaceSizeThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};
@@ -443,23 +433,6 @@ TEST(CudaBackendTest, GetCudnnMaxWorkspaceSizeThreadSafe) {
     testing::RunThreads(2, [&backend](size_t /*thread_index*/) {
         backend.SetCudnnMaxWorkspaceSize(10);
         EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
-        return nullptr;
-    });
-}
-
-TEST(CudaBackendTest, kCudnnMaxWorkspaceSizeEnvVarNameThreadSafe) {
-    Context ctx;
-    CudaBackend backend{ctx};
-
-    testing::RunThreads(2, [&backend](size_t /*thread_index*/) {
-        {
-            EnvVarScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "10"};
-            EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
-        }
-        {
-            EnvVarScope scope{CudaBackend::kCudnnMaxWorkspaceSizeEnvVarName, "0"};
-            EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
-        }
         return nullptr;
     });
 }
