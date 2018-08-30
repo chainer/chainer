@@ -120,35 +120,21 @@ TEST(CudaBackendTest, GetName) {
 }
 
 TEST(CudaBackendTest, SupportsTransferThreadSafe) {
-    struct CheckContext {
-        std::unique_ptr<Context> context0;
-        std::unique_ptr<Context> context1;
-        Backend& context0_backend;
-        Backend& context1_backend;
-        Device& context0_device0;
-        Device& context0_device1;
-        Device& context1_device;
-    };
+    static constexpr size_t kThreadCount = 2;
 
-    auto ctx0 = std::make_unique<Context>();
-    auto ctx1 = std::make_unique<Context>();
-    CudaBackend context0_backend{*ctx0};
-    CudaBackend context1_backend{*ctx1};
-    auto check_ctx = CheckContext{std::move(ctx0),
-                                  std::move(ctx1),
-                                  context0_backend,
-                                  context1_backend,
-                                  context0_backend.GetDevice(0),
-                                  context0_backend.GetDevice(1),
-                                  context1_backend.GetDevice(0)};
+    XCHAINER_REQUIRE_DEVICE("cuda", 2);
 
-    testing::RunThreads(2, [&check_ctx](size_t /*thread_index*/) {
-        Backend& context0_backend = check_ctx.context0_backend;
-        Device& context0_device0 = check_ctx.context0_device0;
-        Device& context0_device1 = check_ctx.context0_device1;
-        Device& context1_device = check_ctx.context1_device;
-        EXPECT_TRUE(context0_backend.SupportsTransfer(context0_device0, context0_device1));
-        EXPECT_FALSE(context0_backend.SupportsTransfer(context0_device0, context1_device));
+    Context ctx0{};
+    Context ctx1{};
+    Backend& ctx0_backend = ctx0.GetBackend("cuda");
+    Backend& ctx1_backend = ctx1.GetBackend("cuda");
+    Device& ctx0_device0 = ctx0_backend.GetDevice(0);
+    Device& ctx0_device1 = ctx0_backend.GetDevice(1);
+    Device& ctx1_device = ctx1_backend.GetDevice(0);
+
+    testing::RunThreads(kThreadCount, [&ctx0_backend, &ctx0_device0, &ctx0_device1, &ctx1_device](size_t /*thread_index*/) {
+        EXPECT_TRUE(ctx0_backend.SupportsTransfer(ctx0_device0, ctx0_device1));
+        EXPECT_FALSE(ctx0_backend.SupportsTransfer(ctx0_device0, ctx1_device));
         return nullptr;
     });
 }
