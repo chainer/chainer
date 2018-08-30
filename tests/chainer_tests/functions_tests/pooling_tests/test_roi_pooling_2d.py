@@ -19,7 +19,8 @@ class TestROIPooling2D(unittest.TestCase):
         N = 3
         n_channels = 3
         self.x = numpy.arange(
-            N * n_channels * 12 * 8).reshape((N, n_channels, 12, 8))
+            N * n_channels * 12 * 8,
+            dtype=numpy.float32).reshape((N, n_channels, 12, 8))
         numpy.random.shuffle(self.x)
         self.x = (2 * self.x / self.x.size - 1).astype(self.dtype)
         self.rois = numpy.array([
