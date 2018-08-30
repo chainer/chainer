@@ -2,11 +2,13 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <mutex>
 
 #include <cuda_runtime.h>
 
 #include "xchainer/array.h"
 #include "xchainer/cuda/cast.cuh"
+#include "xchainer/cuda/cuda.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/cuda/elementwise.cuh"
 #include "xchainer/dtype.h"
@@ -144,6 +146,8 @@ void CudaDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
         Indexer<1> v_indexer{v.shape()};
         Indexer<2> out_indexer{out.shape()};
 
+        // TODO(niboshi): Calculate kMaxBlockSize per device
+        std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&SetVecInMat<T>).block_size;
         int64_t total_size = out_indexer.total_size();
         int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;

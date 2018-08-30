@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <mutex>
 #include <type_traits>
 
+#include "xchainer/cuda/cuda.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/macro.h"
 #include "xchainer/reduction_kernel_arg.h"
@@ -15,7 +17,7 @@ namespace reduce_detail {
 static constexpr int kMaxReductionBlockSize{512};
 static constexpr int64_t kMaxGridSize{0x7fffffff};
 
-int64_t RoundUpToPowerOf2(int64_t x) {
+inline int64_t RoundUpToPowerOf2(int64_t x) {
     --x;
     x |= x >> 1;
     x |= x >> 2;
@@ -109,6 +111,8 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
 
     ReductionArg arg{in, axis, out};
 
+    // TODO(niboshi): Calculate kMaxBlockSize per device
+    std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};
     static const int64_t kMaxBlockSize = std::min(
             reduce_detail::kMaxReductionBlockSize,
             CudaOccupancyMaxPotentialBlockSize(&reduce_detail::ReductionKernel<In, Out, ReductionImpl>).block_size);

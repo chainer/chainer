@@ -99,9 +99,7 @@ TEST_P(PoolingTest, MaxPool) {
                 return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad)};  // cover_all should be true
             },
             {x},
-            {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+            {e_out});
 }
 
 TEST_P(PoolingTest, MaxPoolNoCoverAll) {
@@ -161,9 +159,7 @@ TEST_P(PoolingTest, MaxPoolNoCoverAll) {
                 return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad, cover_all)};
             },
             {x},
-            {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+            {e_out});
 }
 
 TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
@@ -230,9 +226,7 @@ TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
                 return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad, cover_all)};
             },
             {x},
-            {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+            {e_out});
 }
 
 TEST_P(PoolingTest, MaxPoolBackward) {
@@ -543,9 +537,7 @@ TEST_P(PoolingTest, AveragePoolPadModeIgnore) {
                 return std::vector<Array>{AveragePool(xs[0], kernel_size, stride, pad, AveragePoolPadMode::kIgnore)};
             },
             {x},
-            {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+            {e_out});
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeZero) {
@@ -605,9 +597,7 @@ TEST_P(PoolingTest, AveragePoolPadModeZero) {
                 return std::vector<Array>{AveragePool(xs[0], kernel_size, stride, pad, AveragePoolPadMode::kZero)};
             },
             {x},
-            {e_out},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+            {e_out});
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeIgnoreBackward) {

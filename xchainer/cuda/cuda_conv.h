@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <unordered_map>
 #include <utility>
 
@@ -24,6 +25,7 @@ namespace cuda_internal {
 
 class CudaConvTest;  // for unit-tests
 
+// All the public operations in this class are guaranteed to be thread safe.
 class CudaConv {
 public:
     Array Conv(
@@ -120,6 +122,7 @@ private:
 
     friend class CudaConvTest;  // for unit-tests
 
+    std::mutex algo_cache_mutex_;
     FwdAlgoCacheMap fwd_algo_cache_map_{};
     BwdDataAlgoCacheMap bwd_data_algo_cache_map_{};
     BwdFilterAlgoCacheMap bwd_filter_algo_cache_map_{};

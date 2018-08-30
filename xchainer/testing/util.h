@@ -16,6 +16,8 @@
 //
 //        // Write your tests here
 //     }
+
+// TODO(imanishi): Do not depend on the default context being set when the backend argument is a string
 #define XCHAINER_REQUIRE_DEVICE(backend, required_num)                                                 \
     do {                                                                                               \
         if (xchainer::testing::testing_internal::SkipIfDeviceUnavailable((backend), (required_num))) { \

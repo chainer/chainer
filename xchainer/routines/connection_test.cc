@@ -72,9 +72,7 @@ TEST_P(ConnectionTest, Conv2d) {
                 return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, cover_all)};
             },
             {x, w, b},
-            {e},
-            // TODO(niboshi): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+            {e});
 }
 
 TEST_P(ConnectionTest, ConvNd) {
@@ -107,9 +105,7 @@ TEST_P(ConnectionTest, ConvNd) {
     testing::CheckForward(
             [&stride, &pad](const std::vector<Array>& xs) { return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, false)}; },
             {x, w, b},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+            {e});
 }
 
 TEST_P(ConnectionTest, ConvCoverAll) {
@@ -413,9 +409,7 @@ TEST_P(ConnectionTest, ConvTranspose) {
     testing::CheckForward(
             [&stride, &pad](const std::vector<Array>& xs) { return std::vector<Array>{ConvTranspose(xs[0], xs[1], xs[2], stride, pad)}; },
             {x, w, b},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+            {e});
 }
 
 TEST_P(ConnectionTest, ConvTransposeOutSize) {
@@ -487,9 +481,7 @@ TEST_P(ConnectionTest, ConvTransposeOutSize) {
                 return std::vector<Array>{ConvTranspose(xs[0], xs[1], xs[2], stride, pad, out_dims)};
             },
             {x, w, b},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+            {e});
 }
 
 TEST_P(ConnectionTest, ConvTransposeBackward) {

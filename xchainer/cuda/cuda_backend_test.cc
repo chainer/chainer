@@ -122,12 +122,11 @@ TEST(CudaBackendTest, GetName) {
 TEST(CudaBackendTest, SupportsTransferThreadSafe) {
     static constexpr size_t kThreadCount = 2;
 
-    XCHAINER_REQUIRE_DEVICE("cuda", 2);
-
     Context ctx0{};
     Context ctx1{};
     Backend& ctx0_backend = ctx0.GetBackend("cuda");
     Backend& ctx1_backend = ctx1.GetBackend("cuda");
+    XCHAINER_REQUIRE_DEVICE(ctx0_backend, 2);
     Device& ctx0_device0 = ctx0_backend.GetDevice(0);
     Device& ctx0_device1 = ctx0_backend.GetDevice(1);
     Device& ctx1_device = ctx1_backend.GetDevice(0);

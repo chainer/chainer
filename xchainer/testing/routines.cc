@@ -1,7 +1,6 @@
 #include "xchainer/testing/routines.h"
 
 #include <functional>
-#include <iostream>
 #include <sstream>
 #include <vector>
 

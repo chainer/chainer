@@ -36,36 +36,21 @@ TEST_P(SortingTest, ArgMax) {
     Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4}).WithPadding(1);
     Array e = testing::BuildArray({3}).WithData<int64_t>({0, 0, 1});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) { return std::vector<Array>{ArgMax(xs[0], 0)}; },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{ArgMax(xs[0], 0)}; }, {a}, {e});
 }
 
 TEST_P(SortingTest, ArgMaxNegativeAxis) {
     Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
     Array e = testing::BuildArray({2}).WithData<int64_t>({1, 2});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) { return std::vector<Array>{ArgMax(xs[0], -1)}; },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{ArgMax(xs[0], -1)}; }, {a}, {e});
 }
 
 TEST_P(SortingTest, ArgMaxAllAxes) {
     Array a = testing::BuildArray({2, 3}).WithData<float>({1, 4, 3, 0, 1, 4});
     Array e = testing::BuildArray({}).WithData<int64_t>({1});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) { return std::vector<Array>{ArgMax(xs[0])}; },
-            {a},
-            {e},
-            // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 2);
+    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{ArgMax(xs[0])}; }, {a}, {e});
 }
 
 TEST_P(SortingTest, ArgMaxInvalidAxis) {

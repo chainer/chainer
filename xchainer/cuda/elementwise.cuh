@@ -2,10 +2,12 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <mutex>
 #include <tuple>
 #include <utility>
 
 #include "xchainer/constant.h"
+#include "xchainer/cuda/cuda.h"
 #include "xchainer/cuda/cuda_runtime.h"
 #include "xchainer/index_iterator.h"
 #include "xchainer/indexable_array.h"
@@ -26,6 +28,9 @@ __global__ void ElementwiseKernel(Op op, Indexer<Ndim> indexer, IndexableArray<T
 
 template <int8_t Ndim, typename Op, typename... Ts, typename... Arrays>
 void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Axes& keep, const Arrays&... args) {
+    // TODO(niboshi): Calculate kMaxBlockSize per device
+    std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};
+
     static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&ElementwiseKernel<Ndim, Op, Ts...>).block_size;
 
     int64_t total_size = shape.GetTotalSize();
