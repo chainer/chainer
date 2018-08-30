@@ -1,0 +1,13 @@
+---
+BasedOnStyle: Google
+AccessModifierOffset: -4
+ColumnLimit: 140
+IndentWidth: 4
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+AlignAfterOpenBracket: AlwaysBreak
+AlignTrailingComments: false
+BinPackArguments: false
+BinPackParameters: false
+ContinuationIndentWidth: 8
