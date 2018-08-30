@@ -759,10 +759,8 @@ TEST_P(CreationTest, AsContiguousArrayDoubleBackward) {
 }
 
 TEST_P(CreationTest, DiagVecToMatDefaultK) {
-    std::cout << "!!!" << GetDefaultDevice().name() << std::endl;
     Array v = Arange(1, 3, Dtype::kFloat32);
     Array e = testing::BuildArray({2, 2}).WithData<float>({1.f, 0.f, 0.f, 2.f});
-    std::cout << "!!!" << e.device().name() << std::endl;
 
     testing::CheckForward(
             [](const std::vector<Array>& xs) {
@@ -770,8 +768,7 @@ TEST_P(CreationTest, DiagVecToMatDefaultK) {
                 return std::vector<Array>{Diag(xs[0])};
             },
             {v},
-            {e},
-            1);
+            {e});
 }
 
 TEST_P(CreationTest, DiagVecToMat) {
