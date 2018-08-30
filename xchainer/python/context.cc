@@ -62,7 +62,8 @@ void InitXchainerContext(pybind11::module& m) {
     c.def("release_backprop_id",
           [](Context& self, const BackpropId& backprop_id) { return self.ReleaseBackpropId(backprop_id); },
           py::arg("backprop_id"));
-    c.def("check_valid_backprop_id",
+    // For testing
+    c.def("_check_valid_backprop_id",
           [](Context& self, const BackpropId& backprop_id) { return self.CheckValidBackpropId(backprop_id); },
           py::arg("backprop_id"));
 
