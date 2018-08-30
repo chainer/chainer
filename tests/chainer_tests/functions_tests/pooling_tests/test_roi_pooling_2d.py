@@ -34,8 +34,11 @@ class TestROIPooling2D(unittest.TestCase):
         self.gy = numpy.random.uniform(
             -1, 1, (n_rois, n_channels,
                     self.outh, self.outw)).astype(self.dtype)
-        self.check_backward_options = {
-            'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
+        if self.dtype == numpy.float16:
+            self.check_backward_options = {
+                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
+        else:
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, x_data, roi_data):
         x = chainer.Variable(x_data)
