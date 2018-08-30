@@ -69,6 +69,7 @@ public:
 
     void ReleaseBackpropId(const BackpropId& backprop_id);
 
+    // TODO(sonots): Hide from users
     void ReleaseBackpropIdNoExcept(const BackpropId& backprop_id) noexcept;
 
     // Checks the specified backprop ID is valid, i.e. not released.
@@ -76,23 +77,28 @@ public:
 
     // Declares that the two backprop IDs co-exist in any portion of computation graph.
     // Backpropping on the backprop ID with the lower ordinal will prohibit future backprop on the other.
+    // TODO(sonots): Hide from users
     void ConnectBackpropIds(const BackpropId& backprop_id1, const BackpropId& backprop_id2);
 
     // Return the name of the backprop.
     // XchainerError is thrown if the backprop ID is expired or non-existent in the context.
+    // TODO(sonots): Hide from users
     std::string GetBackpropName(const BackpropId& backprop_id);
 
     // Checks if the backprop ID is allowed to be backpropped.
     // Backprop is allowed if the order of backprop IDs which have been backpropped is not reversed in any of the previous backprop scopes.
     // XchainerError is thrown if the check fails.
+    // TODO(sonots): Hide from users
     void CheckBackpropAllowed(const BackpropId& backprop_id);
 
     // Flags the backprop ID that it has been backpropped.
+    // TODO(sonots): Hide from users
     void SetBackpropDone(const BackpropId& backprop_id);
 
     // Returns all backprop IDs created after the queried graph.
     // In many cases, these are also the graphs created in inner scopes.
     // The queried graph is excluded from the returned container.
+    // TODO(sonots): Hide from users
     std::vector<BackpropId> GetInnerBackpropIds(const BackpropId& backprop_id);
 
     BackpropId default_backprop_id() {

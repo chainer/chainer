@@ -442,3 +442,15 @@ def test_backward_multiple_outputs():
         return (x0 + x1, x0 * x1)
 
     _check_backprop(xs, expected_gxs, fprop, ())
+
+
+def test_create_and_release_backprop_id():
+    context = xchainer.Context()
+    backprop_id = context.make_backprop_id("bp1")
+    assert "bp1" == backprop_id.name
+    assert context == backprop_id.context
+    context._check_valid_backprop_id(backprop_id)
+
+    context.release_backprop_id(backprop_id)
+    with pytest.raises(xchainer.XchainerError):
+        context._check_valid_backprop_id(backprop_id)
