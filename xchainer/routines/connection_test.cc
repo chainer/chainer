@@ -74,7 +74,7 @@ TEST_P(ConnectionTest, Conv2d) {
             {x, w, b},
             {e},
             // TODO(niboshi): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ConnectionTest, ConvNd) {
@@ -109,7 +109,7 @@ TEST_P(ConnectionTest, ConvNd) {
             {x, w, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ConnectionTest, ConvCoverAll) {
@@ -415,7 +415,7 @@ TEST_P(ConnectionTest, ConvTranspose) {
             {x, w, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ConnectionTest, ConvTransposeOutSize) {
@@ -489,7 +489,7 @@ TEST_P(ConnectionTest, ConvTransposeOutSize) {
             {x, w, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ConnectionTest, ConvTransposeBackward) {

@@ -58,7 +58,7 @@ TEST_P(StatisticsTest, MeanAllAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, MeanZero) {
@@ -72,7 +72,7 @@ TEST_P(StatisticsTest, MeanZero) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, MeanOne) {
@@ -86,7 +86,7 @@ TEST_P(StatisticsTest, MeanOne) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, MeanTwo) {
@@ -100,7 +100,7 @@ TEST_P(StatisticsTest, MeanTwo) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, MeanLarge) {
@@ -114,7 +114,7 @@ TEST_P(StatisticsTest, MeanLarge) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, MeanKeepDims) {
@@ -133,7 +133,7 @@ TEST_P(StatisticsTest, MeanKeepDims) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, InvalidMeanDuplicateAxes) {
@@ -203,7 +203,7 @@ TEST_P(StatisticsTest, Var) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, VarAllAxes) {
@@ -217,7 +217,7 @@ TEST_P(StatisticsTest, VarAllAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, VarZero) {
@@ -231,7 +231,7 @@ TEST_P(StatisticsTest, VarZero) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, VarOne) {
@@ -245,7 +245,7 @@ TEST_P(StatisticsTest, VarOne) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, VarTwo) {
@@ -259,7 +259,7 @@ TEST_P(StatisticsTest, VarTwo) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, VarLarge) {
@@ -273,7 +273,7 @@ TEST_P(StatisticsTest, VarLarge) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, VarKeepDims) {
@@ -292,7 +292,7 @@ TEST_P(StatisticsTest, VarKeepDims) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(StatisticsTest, InvalidVarDuplicateAxes) {

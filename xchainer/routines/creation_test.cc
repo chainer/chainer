@@ -797,7 +797,7 @@ TEST_P(CreationTest, AsContiguousArray) {
             {a},
             {a},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, AsContiguousArrayNoCopy) {
@@ -813,7 +813,7 @@ TEST_P(CreationTest, AsContiguousArrayNoCopy) {
             {a},
             {a},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
@@ -832,7 +832,7 @@ TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
             {a},
             {},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(CreationTest, AsContiguousArrayBackward) {
@@ -867,7 +867,7 @@ TEST_P(CreationTest, DiagVecToMat) {
                 {v},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
     {
         Array v = Arange(1, 4, Dtype::kFloat32);
@@ -879,7 +879,7 @@ TEST_P(CreationTest, DiagVecToMat) {
                 {v},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
     {
         Array v = Arange(1, 3, Dtype::kFloat32);
@@ -891,7 +891,7 @@ TEST_P(CreationTest, DiagVecToMat) {
                 {v},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
 }
 
@@ -909,7 +909,7 @@ TEST_P(CreationTest, DiagMatToVec) {
                 {v},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
@@ -924,7 +924,7 @@ TEST_P(CreationTest, DiagMatToVec) {
                 {v},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
     {
         Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
@@ -939,7 +939,7 @@ TEST_P(CreationTest, DiagMatToVec) {
                 {v},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
 }
 
@@ -1009,7 +1009,7 @@ TEST_P(CreationTest, Diagflat) {
                 {v},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
     {
         Array v = Arange(1, 5, Dtype::kFloat32).Reshape({2, 2});
@@ -1021,7 +1021,7 @@ TEST_P(CreationTest, Diagflat) {
                 {v},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
     {
         Array v = Arange(1, 3, Dtype::kFloat32).Reshape({1, 2});
@@ -1032,7 +1032,7 @@ TEST_P(CreationTest, Diagflat) {
                 {v},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
 }
 
