@@ -50,8 +50,7 @@ TEST_P(ManipulationTest, AsScalar) {
                 Scalar s = AsScalar(a);
                 EXPECT_EQ(s.dtype(), TypeToDtype<T>);
                 EXPECT_EQ(static_cast<T>(s), value);
-            },
-            1);
+            });
 }
 
 TEST_P(ManipulationTest, AsScalarInvalidZeroElement) {

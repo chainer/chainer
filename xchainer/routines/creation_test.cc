@@ -848,14 +848,7 @@ TEST_P(CreationTest, DiagVecToMatBackward) {
     Array go = testing::BuildArray({4, 4}).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
     Array eps = Full({3}, 1e-3);
 
-    CheckBackward(
-            [](const std::vector<Array>& xs) -> std::vector<Array> {
-                DeviceScope scope{xs[0].device()};
-                return {Diag(xs[0], -1)};
-            },
-            {v},
-            {go},
-            {eps});
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Diag(xs[0], -1)}; }, {v}, {go}, {eps});
 }
 
 TEST_P(CreationTest, DiagMatToVecBackward) {
@@ -974,23 +967,19 @@ TEST_P(CreationTest, DiagflatDoubleBackward) {
 }
 
 TEST_P(CreationTest, Linspace) {
-    testing::RunTestWithThreads(
-            []() {
-                Array o = Linspace(3.0, 10.0, 4, true, Dtype::kInt32);
-                Array e = testing::BuildArray({4}).WithData<int32_t>({3, 5, 7, 10});
-                EXPECT_ARRAY_EQ(e, o);
-            },
-            1);
+    testing::RunTestWithThreads([]() {
+        Array o = Linspace(3.0, 10.0, 4, true, Dtype::kInt32);
+        Array e = testing::BuildArray({4}).WithData<int32_t>({3, 5, 7, 10});
+        EXPECT_ARRAY_EQ(e, o);
+    });
 }
 
 TEST_P(CreationTest, LinspaceEndPointFalse) {
-    testing::RunTestWithThreads(
-            []() {
-                Array o = Linspace(3.0, 10.0, 4, false, Dtype::kInt32);
-                Array e = testing::BuildArray({4}).WithData<int32_t>({3, 4, 6, 8});
-                EXPECT_ARRAY_EQ(e, o);
-            },
-            1);
+    testing::RunTestWithThreads([]() {
+        Array o = Linspace(3.0, 10.0, 4, false, Dtype::kInt32);
+        Array e = testing::BuildArray({4}).WithData<int32_t>({3, 4, 6, 8});
+        EXPECT_ARRAY_EQ(e, o);
+    });
 }
 
 INSTANTIATE_TEST_CASE_P(

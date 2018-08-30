@@ -25,7 +25,7 @@ namespace cuda_internal {
 
 class CudaConvTest;  // for unit-tests
 
-// All the public operations in this class is guaranteed to be thread safe.
+// All the public operations in this class are guaranteed to be thread safe.
 class CudaConv {
 public:
     Array Conv(
