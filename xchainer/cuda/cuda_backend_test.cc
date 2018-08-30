@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include <tuple>
+#include <vector>
 
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
@@ -16,6 +17,7 @@
 #include "xchainer/indexer.h"
 #include "xchainer/native/native_backend.h"
 #include "xchainer/routines/creation.h"
+#include "xchainer/testing/threading.h"
 #include "xchainer/testing/util.h"
 
 namespace xchainer {
@@ -57,6 +59,21 @@ TEST(CudaBackendTest, GetDeviceCount) {
     EXPECT_EQ(count, CudaBackend(ctx).GetDeviceCount());
 }
 
+TEST(CudaBackendTest, GetDeviceCountGetNameThreadSafe) {
+    Context ctx;
+    CudaBackend backend{ctx};
+    int expected_device_count = backend.GetDeviceCount();
+    std::string expected_backend_name = backend.GetName();
+
+    testing::RunThreads(2, [&backend, expected_device_count, &expected_backend_name](size_t /*thread_index*/) {
+        int device_count = backend.GetDeviceCount();
+        std::string name = backend.GetName();
+        EXPECT_EQ(expected_device_count, device_count);
+        EXPECT_EQ(expected_backend_name, name);
+        return nullptr;
+    });
+}
+
 TEST(CudaBackendTest, GetDevice) {
     Context ctx;
     CudaBackend backend{ctx};
@@ -64,6 +81,19 @@ TEST(CudaBackendTest, GetDevice) {
     Device& device = backend.GetDevice(0);
     EXPECT_EQ(&backend, &device.backend());
     EXPECT_EQ(0, device.index());
+}
+
+TEST(CudaBackendTest, GetDeviceThreadSafe) {
+    Context ctx;
+    CudaBackend backend{ctx};
+
+    testing::RunThreads(4, [&backend](size_t thread_index) {
+        int device_index = thread_index;
+        Device& device = backend.GetDevice(device_index);
+        EXPECT_EQ(&backend, &device.backend());
+        EXPECT_EQ(device_index, device.index());
+        return nullptr;
+    });
 }
 
 TEST(CudaBackendTest, GetDeviceSecondDevice) {
@@ -87,6 +117,26 @@ TEST(CudaBackendTest, GetDeviceOutOfRange) {
 TEST(CudaBackendTest, GetName) {
     Context ctx;
     EXPECT_EQ("cuda", CudaBackend(ctx).GetName());
+}
+
+TEST(CudaBackendTest, SupportsTransferThreadSafe) {
+    static constexpr size_t kThreadCount = 2;
+
+    XCHAINER_REQUIRE_DEVICE("cuda", 2);
+
+    Context ctx0{};
+    Context ctx1{};
+    Backend& ctx0_backend = ctx0.GetBackend("cuda");
+    Backend& ctx1_backend = ctx1.GetBackend("cuda");
+    Device& ctx0_device0 = ctx0_backend.GetDevice(0);
+    Device& ctx0_device1 = ctx0_backend.GetDevice(1);
+    Device& ctx1_device = ctx1_backend.GetDevice(0);
+
+    testing::RunThreads(kThreadCount, [&ctx0_backend, &ctx0_device0, &ctx0_device1, &ctx1_device](size_t /*thread_index*/) {
+        EXPECT_TRUE(ctx0_backend.SupportsTransfer(ctx0_device0, ctx0_device1));
+        EXPECT_FALSE(ctx0_backend.SupportsTransfer(ctx0_device0, ctx1_device));
+        return nullptr;
+    });
 }
 
 TEST(CudaBackendIncompatibleTransferTest, SupportsTransferDifferentContexts) {
@@ -360,6 +410,17 @@ TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {
             EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
         }
     }
+}
+
+TEST(CudaBackendTest, SetAndGetCudnnMaxWorkspaceSizeThreadSafe) {
+    Context ctx;
+    CudaBackend backend{ctx};
+
+    testing::RunThreads(2, [&backend](size_t /*thread_index*/) {
+        backend.SetCudnnMaxWorkspaceSize(10);
+        EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
+        return nullptr;
+    });
 }
 
 }  // namespace
