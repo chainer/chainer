@@ -75,7 +75,7 @@ TEST_P(ManipulationTest, RollAxis) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, RollAxisWithStart) {
@@ -88,7 +88,7 @@ TEST_P(ManipulationTest, RollAxisWithStart) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, Transpose) {
@@ -105,7 +105,7 @@ TEST_P(ManipulationTest, Transpose) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, TransposeDefaultAxes) {
@@ -122,7 +122,7 @@ TEST_P(ManipulationTest, TransposeDefaultAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, TransposeNoncontiguous) {
@@ -137,7 +137,7 @@ TEST_P(ManipulationTest, TransposeNoncontiguous) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, TransposeBackward) {
@@ -179,7 +179,7 @@ TEST_P(ManipulationTest, Reshape) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 // #461
@@ -200,7 +200,7 @@ TEST_P(ManipulationTest, ReshapeWithStrideOne) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 // #461
@@ -221,7 +221,7 @@ TEST_P(ManipulationTest, ReshapeNewAxisAtEnd) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 // If an input array has a unit-length axis with 0-stride, that axis should not give rise to any copies.
@@ -244,7 +244,7 @@ TEST_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, ReshapeWithCopy) {
@@ -264,7 +264,7 @@ TEST_P(ManipulationTest, ReshapeWithCopy) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, InvalidReshape) {
@@ -287,7 +287,7 @@ TEST_P(ManipulationTest, SqueezeAllUnitLengthAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, SqueezeSpecifiedUnitLenghtAxes) {
@@ -303,7 +303,7 @@ TEST_P(ManipulationTest, SqueezeSpecifiedUnitLenghtAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, SqueezeAllAxes) {
@@ -317,7 +317,7 @@ TEST_P(ManipulationTest, SqueezeAllAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, SqueezeMultipleCalls) {
@@ -333,7 +333,7 @@ TEST_P(ManipulationTest, SqueezeMultipleCalls) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, SqueezeNonContiguous) {
@@ -349,7 +349,7 @@ TEST_P(ManipulationTest, SqueezeNonContiguous) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, SqueezeNegativeAxis) {
@@ -363,7 +363,7 @@ TEST_P(ManipulationTest, SqueezeNegativeAxis) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, SqueezeNoSqueezableAxes) {
@@ -380,7 +380,7 @@ TEST_P(ManipulationTest, SqueezeNoSqueezableAxes) {
             {a},
             {a},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(ManipulationTest, InvalidSqueezeNonUnitLengthAxis) {
@@ -454,7 +454,7 @@ TEST_P(ManipulationTest, BroadcastTo) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 // Can't broadcast to smaller dimensions

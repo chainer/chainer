@@ -71,7 +71,7 @@ TEST_P(LogicTest, Equal) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(LogicTest, EqualBroadcast) {
@@ -86,7 +86,7 @@ TEST_P(LogicTest, EqualBroadcast) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(LogicTest, NotEqual) {
@@ -171,7 +171,7 @@ TEST_P(LogicTest, Greater) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(LogicTest, GreaterBroadcast) {
@@ -186,7 +186,7 @@ TEST_P(LogicTest, GreaterBroadcast) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(LogicTest, GreaterEqual) {
@@ -352,7 +352,7 @@ TEST_P(LogicTest, LogicalNot) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 INSTANTIATE_TEST_CASE_P(

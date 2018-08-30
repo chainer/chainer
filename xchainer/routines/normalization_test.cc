@@ -82,7 +82,7 @@ TEST_P(NormalizationTest, BatchNorm) {
             {x, gamma, beta},
             {e_out},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(NormalizationTest, BatchNormWithAxis) {
@@ -126,7 +126,7 @@ TEST_P(NormalizationTest, BatchNormWithAxis) {
             {x, gamma, beta},
             {e_out},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(NormalizationTest, BatchNormBackward) {
@@ -257,7 +257,7 @@ TEST_P(NormalizationTest, FixedBatchNorm) {
             {x, gamma, beta, mean, var},
             {e_out},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 INSTANTIATE_TEST_CASE_P(

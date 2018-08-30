@@ -54,7 +54,7 @@ TEST_P(IndexingTest, At) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 // Index out of bounds
@@ -114,7 +114,7 @@ TEST_P(IndexingTest, Take) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(IndexingTest, TakeBackward) {
@@ -169,7 +169,7 @@ TEST_P(IndexingTest, TakeLongAxis) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 INSTANTIATE_TEST_CASE_P(

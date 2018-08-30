@@ -41,7 +41,7 @@ TEST_P(SortingTest, ArgMax) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(SortingTest, ArgMaxNegativeAxis) {
@@ -53,7 +53,7 @@ TEST_P(SortingTest, ArgMaxNegativeAxis) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(SortingTest, ArgMaxAllAxes) {
@@ -65,7 +65,7 @@ TEST_P(SortingTest, ArgMaxAllAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(SortingTest, ArgMaxInvalidAxis) {

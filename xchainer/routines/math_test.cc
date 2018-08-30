@@ -48,7 +48,7 @@ TEST_P(MathTest, Negative) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, InvalidNegative) {
@@ -323,7 +323,7 @@ TEST_P(MathTest, Add) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, AddNonContiguous) {
@@ -336,7 +336,7 @@ TEST_P(MathTest, AddNonContiguous) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, AddBroadcast1) {
@@ -349,7 +349,7 @@ TEST_P(MathTest, AddBroadcast1) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, AddBroadcast2) {
@@ -362,7 +362,7 @@ TEST_P(MathTest, AddBroadcast2) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, AddBroadcast3) {
@@ -375,7 +375,7 @@ TEST_P(MathTest, AddBroadcast3) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, AddBroadcast4) {
@@ -388,7 +388,7 @@ TEST_P(MathTest, AddBroadcast4) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, AddInvalidBroadcast) {
@@ -407,13 +407,13 @@ TEST_P(MathTest, AddScalar) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
     testing::CheckForward(
             [&b](const std::vector<Array>& xs) { return std::vector<Array>{Add(b, xs[0])}; },
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, AddBackward) {
@@ -502,7 +502,7 @@ TEST_P(MathTest, Subtract) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SubtractNonContiguous) {
@@ -515,7 +515,7 @@ TEST_P(MathTest, SubtractNonContiguous) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SubtractBroadcast1) {
@@ -528,7 +528,7 @@ TEST_P(MathTest, SubtractBroadcast1) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SubtractBroadcast2) {
@@ -541,7 +541,7 @@ TEST_P(MathTest, SubtractBroadcast2) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SubtractBroadcast3) {
@@ -554,7 +554,7 @@ TEST_P(MathTest, SubtractBroadcast3) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SubtractBroadcast4) {
@@ -567,7 +567,7 @@ TEST_P(MathTest, SubtractBroadcast4) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SubtractInvalidBroadcast) {
@@ -593,7 +593,7 @@ TEST_P(MathTest, SubtractScalar) {
                 {a},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
     {
         Array e = testing::BuildArray({3, 1}).WithData<float>({1, 0, -1});
@@ -602,7 +602,7 @@ TEST_P(MathTest, SubtractScalar) {
                 {a},
                 {e},
                 // TODO(sonots): Run concurrency test in CUDA
-                GetParam() == "cuda" ? 0 : 1);
+                GetParam() == "cuda" ? 0 : 2);
     }
 }
 
@@ -697,7 +697,7 @@ TEST_P(MathTest, Multiply) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, MultiplyNonContiguous) {
@@ -710,7 +710,7 @@ TEST_P(MathTest, MultiplyNonContiguous) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, MultiplyBroadcast1) {
@@ -723,7 +723,7 @@ TEST_P(MathTest, MultiplyBroadcast1) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, MultiplyBroadcast2) {
@@ -736,7 +736,7 @@ TEST_P(MathTest, MultiplyBroadcast2) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, MultiplyBroadcast3) {
@@ -749,7 +749,7 @@ TEST_P(MathTest, MultiplyBroadcast3) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, MultiplyBroadcast4) {
@@ -762,7 +762,7 @@ TEST_P(MathTest, MultiplyBroadcast4) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, MultiplyInvalidBroadcast) {
@@ -781,14 +781,14 @@ TEST_P(MathTest, MultiplyScalar) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 
     testing::CheckForward(
             [&b](const std::vector<Array>& xs) { return std::vector<Array>{Multiply(b, xs[0])}; },
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, MultiplyBackward) {
@@ -877,7 +877,7 @@ TEST_P(MathTest, Divide) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, DivideBroadcast1) {
@@ -890,7 +890,7 @@ TEST_P(MathTest, DivideBroadcast1) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, DivideBroadcast2) {
@@ -903,7 +903,7 @@ TEST_P(MathTest, DivideBroadcast2) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, DivideBroadcast3) {
@@ -916,7 +916,7 @@ TEST_P(MathTest, DivideBroadcast3) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, DivideBroadcast4) {
@@ -929,7 +929,7 @@ TEST_P(MathTest, DivideBroadcast4) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, DivideInvalidBroadcast) {
@@ -947,7 +947,7 @@ TEST_P(MathTest, DivideScalar) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, DivideBackward) {
@@ -1025,7 +1025,7 @@ TEST_P(MathTest, ChainedMath) {
             {a, b},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, ChainedInplaceMath) {
@@ -1046,7 +1046,7 @@ TEST_P(MathTest, Reciprocal) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, ReciprocalZero) {
@@ -1058,7 +1058,7 @@ TEST_P(MathTest, ReciprocalZero) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, ReciprocalBackward) {
@@ -1096,7 +1096,7 @@ TEST_P(MathTest, Sum) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SumAllAxes) {
@@ -1110,7 +1110,7 @@ TEST_P(MathTest, SumAllAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SumZero) {
@@ -1124,7 +1124,7 @@ TEST_P(MathTest, SumZero) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SumOne) {
@@ -1138,7 +1138,7 @@ TEST_P(MathTest, SumOne) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SumTwo) {
@@ -1152,7 +1152,7 @@ TEST_P(MathTest, SumTwo) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SumLarge) {
@@ -1166,7 +1166,7 @@ TEST_P(MathTest, SumLarge) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SumKeepDims) {
@@ -1185,7 +1185,7 @@ TEST_P(MathTest, SumKeepDims) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SumSignedInt) {
@@ -1201,7 +1201,7 @@ TEST_P(MathTest, SumSignedInt) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SumUnsignedInt) {
@@ -1218,7 +1218,7 @@ TEST_P(MathTest, SumUnsignedInt) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SumBool) {
@@ -1234,7 +1234,7 @@ TEST_P(MathTest, SumBool) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, InvalidSumDuplicateAxes) {
@@ -1302,7 +1302,7 @@ TEST_P(MathTest, AMax) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, AMaxAllAxes) {
@@ -1314,7 +1314,7 @@ TEST_P(MathTest, AMaxAllAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, AMaxZeroSized) {
@@ -1326,7 +1326,7 @@ TEST_P(MathTest, AMaxZeroSized) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, AMaxAlongZeroSized) {
@@ -1384,14 +1384,14 @@ TEST_P(MathTest, MaximumScalar) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 
     testing::CheckForward(
             [](const std::vector<Array>& xs) { return std::vector<Array>{Maximum(Scalar{0.f}, xs[0])}; },
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, MaximumScalarEmpty) {
@@ -1403,7 +1403,7 @@ TEST_P(MathTest, MaximumScalarEmpty) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, MaximumScalarBackward) {
@@ -1461,7 +1461,7 @@ TEST_P(MathTest, Exp) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, ExpBackward) {
@@ -1496,7 +1496,7 @@ TEST_P(MathTest, Log) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogBackward) {
@@ -1533,7 +1533,7 @@ TEST_P(MathTest, LogSumExp) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogSumExpReduceFirstAxis) {
@@ -1549,7 +1549,7 @@ TEST_P(MathTest, LogSumExpReduceFirstAxis) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogSumExpReduceSecondAxis) {
@@ -1564,7 +1564,7 @@ TEST_P(MathTest, LogSumExpReduceSecondAxis) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogSumExpReduceMultipleAxes) {
@@ -1582,7 +1582,7 @@ TEST_P(MathTest, LogSumExpReduceMultipleAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogSumExpKeepdims) {
@@ -1597,7 +1597,7 @@ TEST_P(MathTest, LogSumExpKeepdims) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogSumExpReduceMultipleAxesKeepdims) {
@@ -1614,7 +1614,7 @@ TEST_P(MathTest, LogSumExpReduceMultipleAxesKeepdims) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogSumExpBackward) {
@@ -1653,14 +1653,14 @@ TEST_P(MathTest, LogSoftmax) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 
     testing::CheckForward(
             [](const std::vector<Array>& xs) { return std::vector<Array>{LogSoftmax(xs[0], Axes{1})}; },
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogSoftmaxAlongFirstAxis) {
@@ -1679,7 +1679,7 @@ TEST_P(MathTest, LogSoftmaxAlongFirstAxis) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogSoftmaxAlongMultipleAxes) {
@@ -1699,7 +1699,7 @@ TEST_P(MathTest, LogSoftmaxAlongMultipleAxes) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogSoftmaxHighDimAlongDefaultSecondAxis) {
@@ -1717,14 +1717,14 @@ TEST_P(MathTest, LogSoftmaxHighDimAlongDefaultSecondAxis) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 
     testing::CheckForward(
             [](const std::vector<Array>& xs) { return std::vector<Array>{LogSoftmax(xs[0], Axes{1})}; },
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, LogSoftmaxBackward) {
@@ -1758,7 +1758,7 @@ TEST_P(MathTest, Sqrt) {
             {a},
             {e},
             // TODO(sonots): Run concurrency test in CUDA
-            GetParam() == "cuda" ? 0 : 1);
+            GetParam() == "cuda" ? 0 : 2);
 }
 
 TEST_P(MathTest, SqrtBackward) {
