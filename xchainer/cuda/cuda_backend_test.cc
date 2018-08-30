@@ -59,7 +59,7 @@ TEST(CudaBackendTest, GetDeviceCount) {
     EXPECT_EQ(count, CudaBackend(ctx).GetDeviceCount());
 }
 
-TEST(CudaBackendTest, GetDeviceCountGetNameMultiThread) {
+TEST(CudaBackendTest, GetDeviceCountGetNameThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};
     int expected_device_count = backend.GetDeviceCount();
@@ -83,7 +83,7 @@ TEST(CudaBackendTest, GetDevice) {
     EXPECT_EQ(0, device.index());
 }
 
-TEST(CudaBackendTest, GetDeviceMultiThread) {
+TEST(CudaBackendTest, GetDeviceThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};
 
@@ -119,7 +119,7 @@ TEST(CudaBackendTest, GetName) {
     EXPECT_EQ("cuda", CudaBackend(ctx).GetName());
 }
 
-TEST(CudaBackendTest, SupportsTransferMultiThread) {
+TEST(CudaBackendTest, SupportsTransferThreadSafe) {
     struct CheckContext {
         std::unique_ptr<Context> context0;
         std::unique_ptr<Context> context1;
@@ -426,7 +426,7 @@ TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {
     }
 }
 
-TEST(CudaBackendTest, kCudnnDefaultMaxWorkspaceSizeMultiThread) {
+TEST(CudaBackendTest, kCudnnDefaultMaxWorkspaceSizeThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};
 
@@ -436,7 +436,7 @@ TEST(CudaBackendTest, kCudnnDefaultMaxWorkspaceSizeMultiThread) {
     });
 }
 
-TEST(CudaBackendTest, GetCudnnMaxWorkspaceSizeMultiThread) {
+TEST(CudaBackendTest, GetCudnnMaxWorkspaceSizeThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};
 
@@ -447,7 +447,7 @@ TEST(CudaBackendTest, GetCudnnMaxWorkspaceSizeMultiThread) {
     });
 }
 
-TEST(CudaBackendTest, kCudnnMaxWorkspaceSizeEnvVarNameMultiThread) {
+TEST(CudaBackendTest, kCudnnMaxWorkspaceSizeEnvVarNameThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};
 
