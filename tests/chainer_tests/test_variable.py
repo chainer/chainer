@@ -2328,6 +2328,46 @@ class TestDelayBackward(unittest.TestCase):
             '+', {'f', 'grad f(grad g0(gy0))', 'grad f(grad g1(gy1))'}
         ]
 
+    def test_complex1_backward(self):
+        # resnet
+        x = self.var('x')
+        params = [self.var('p{}'.format(i)) for i in range(4)]
+        h, = self.func('a0', self.func('f0', [x, params[0]], 1), 1)
+        z, = self.func('r1', [x] + self.func('f1', [h, params[1]], 1), 1)
+        del x, h
+        h, = self.func('a2', self.func('f2', [z, params[2]], 1), 1)
+        y, = self.func('r3', [z] + self.func('f3', [h, params[3]], 1), 1)
+        del z, h
+        y.grad_var = self.var('gy')
+        with chainer.variable.delay_backward():
+            y.backward()
+            del y
+        for p in params:
+            assert p.grad is not None
+        log = self.watcher.get_log()
+        h0 = 'a0(f0(x,p0))'
+        z = 'r1(x,f1({h0},p1))'.format(h0=h0)
+        h1 = 'a2(f2({z},p2))'.format(z=z)
+        gh1 = 'grad a2(grad f3_0(grad r3_1(gy)))'
+        gz = '(grad f2_0({gh1})+grad r3_0(gy))'.format(gh1=gh1)
+        gh0 = 'grad a0(grad f1_0(grad r1_1({gz})))'.format(gz=gz)
+        gx = '(grad f0_0({gh0})+grad r1_0({gz}))'.format(gh0=gh0, gz=gz)
+        assert log == [
+            'f0', 'a0', {'f0(x,p0)'}, 'f1', 'r1', {'x', h0, 'f1('+h0+',p1)'},
+            'f2', 'a2', {'f2('+z+',p2)'},
+            'f3', 'r3', {z, h1, 'f3('+h1+',p3)', 'r3('+z+',f3('+h1+',p3))'},
+            'grad r3', {'r3', 'grad r3', 'gy'},
+            'grad f3', {'f3', 'grad f3', 'grad r3_1(gy)'},
+            'grad a2', {'a2', 'grad a2', 'grad f3_0(grad r3_1(gy))'},
+            'grad f2', {'grad f2', gh1},
+            '+', {'f2', 'grad r3_0(gy)', 'grad f2_0('+gh1+')'},
+            'grad r1', {'r1', 'grad r1', gz},
+            'grad f1', {'f1', 'grad f1', 'grad r1_1('+gz+')'},
+            'grad a0', {'a0', 'grad a0', 'grad f1_0(grad r1_1('+gz+'))'},
+            'grad f0', {'grad f0', gh0},
+            '+', {'f0', 'grad r1_0('+gz+')', 'grad f0_0('+gh0+')', gx},
+        ]
+
     def test_raise_dup_backward(self):
         x = self.var('x')
         y, = self.func('f', [x], 1)
