@@ -412,7 +412,7 @@ TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {
     }
 }
 
-TEST(CudaBackendTest, GetCudnnMaxWorkspaceSizeThreadSafe) {
+TEST(CudaBackendTest, SetAndGetCudnnMaxWorkspaceSizeThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};
 
