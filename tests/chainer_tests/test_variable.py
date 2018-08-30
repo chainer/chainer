@@ -2122,9 +2122,6 @@ class VariableWatcher(object):
         self.targets[name] = weakref.ref(func)
 
     def _update(self):
-        if six.PY2:
-            import gc
-            gc.collect()
         deleted = set()
         for name, ref in self.targets.items():
             obj = ref()
