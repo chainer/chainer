@@ -12,14 +12,9 @@
 #include "xchainer/routines/creation.h"
 #include "xchainer/routines/math.h"
 #include "xchainer/routines/statistics.h"
+#include "xchainer/thread_local_state.h"
 
 namespace xchainer {
-namespace {
-
-thread_local Device* t_default_device = nullptr;
-static_assert(std::is_pod<decltype(t_default_device)>::value, "t_default_device must be POD");
-
-}  // namespace
 
 void Device::CheckDevicesCompatible(const Array& array) {
     if (this != &array.device()) {
@@ -29,22 +24,24 @@ void Device::CheckDevicesCompatible(const Array& array) {
 
 namespace internal {
 
-Device* GetDefaultDeviceNoExcept() noexcept { return t_default_device; }
+Device* GetDefaultDeviceNoExcept() noexcept { return internal::GetInternalThreadLocalState().default_device; }
 
 }  // namespace internal
 
 Device& GetDefaultDevice() {
-    if (t_default_device == nullptr) {
-        t_default_device = &GetDefaultContext().GetDevice({native::NativeBackend::kDefaultName, 0});
+    Device*& default_device = internal::GetInternalThreadLocalState().default_device;
+    if (default_device == nullptr) {
+        default_device = &GetDefaultContext().GetDevice({native::NativeBackend::kDefaultName, 0});
     }
-    return *t_default_device;
+    return *default_device;
 }
 
 void SetDefaultDevice(Device* device) {
     if (device != nullptr && &device->backend().context() != &GetDefaultContext()) {
         throw ContextError{"Context mismatch between default device and default context."};
     }
-    t_default_device = device;
+    Device*& default_device = internal::GetInternalThreadLocalState().default_device;
+    default_device = device;
 }
 
 void CheckEqual(const Device& lhs, const Device& rhs) {

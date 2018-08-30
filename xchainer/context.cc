@@ -19,12 +19,12 @@
 #include "xchainer/error.h"
 #include "xchainer/macro.h"
 #include "xchainer/native/native_backend.h"
+#include "xchainer/thread_local_state.h"
 
 namespace xchainer {
 namespace {
 
 std::atomic<Context*> g_global_default_context{nullptr};
-thread_local Context* t_default_context{nullptr};
 
 std::string GetXchainerPath() {
     char* xchainer_path = std::getenv("XCHAINER_PATH");
@@ -278,20 +278,22 @@ void SetGlobalDefaultContext(Context* context) { g_global_default_context = cont
 
 namespace internal {
 
-Context* GetDefaultContextNoExcept() noexcept { return t_default_context; }
+Context* GetDefaultContextNoExcept() noexcept { return internal::GetInternalThreadLocalState().default_context; }
 
 }  // namespace internal
 
 Context& GetDefaultContext() {
-    if (t_default_context == nullptr) {
+    Context* default_context = internal::GetInternalThreadLocalState().default_context;
+    if (default_context == nullptr) {
         return GetGlobalDefaultContext();
     }
-    return *t_default_context;
+    return *default_context;
 }
 
 void SetDefaultContext(Context* context) {
-    if (t_default_context != context) {
-        t_default_context = context;
+    Context*& default_context = internal::GetInternalThreadLocalState().default_context;
+    if (default_context != context) {
+        default_context = context;
         SetDefaultDevice(nullptr);
     }
 }
