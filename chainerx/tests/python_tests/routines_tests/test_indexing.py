@@ -1,14 +1,14 @@
 import numpy
 import pytest
 
-import xchainer
-import xchainer.testing
+import chainerx
+import chainerx.testing
 
 from tests import array_utils
 
 
 # TODO(niboshi): Remove strides_check=False
-@xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
+@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
 @pytest.mark.parametrize("shape,indices", [
     # empty indexing
     ((), ()),
@@ -80,22 +80,22 @@ from tests import array_utils
     ((2, 3), (slice(1, 2), slice(None, None, 2))),
     ((2, 3, 4), (slice(1), slice(-2, 3), slice(1, None, -1))),
     # newaxis indexing - non-tuple indexing
-    ((), xchainer.newaxis),
-    ((3,), xchainer.newaxis),
+    ((), chainerx.newaxis),
+    ((3,), chainerx.newaxis),
     # newaxis indexing - tuple indexing
-    ((), (xchainer.newaxis,)),
-    ((3,), (xchainer.newaxis,)),
-    ((2, 3), (xchainer.newaxis, xchainer.newaxis)),
+    ((), (chainerx.newaxis,)),
+    ((3,), (chainerx.newaxis,)),
+    ((2, 3), (chainerx.newaxis, chainerx.newaxis)),
     # mixed indexing - tuple indexing
     ((2, 3), (0, slice(1, 3))),
     ((4, 3), (slice(1, 3), 1)),
     ((2, 3, 4), (1, slice(2,), slice(1, 3))),
-    ((2, 3), (1, xchainer.newaxis, slice(1, 3))),
-    ((2, 3, 4), (slice(0, 1), slice(1, 2), slice(1, 3), xchainer.newaxis)),
-    ((2, 3, 4), (slice(0, 1), slice(1, 2), xchainer.newaxis, slice(1, 3))),
-    ((2, 3, 4), (slice(0, 1), xchainer.newaxis, slice(1, 2), slice(1, 3))),
-    ((2, 3, 4), (xchainer.newaxis, slice(0, 1), slice(1, 2), slice(1, 3))),
-    ((2, 3, 4), (1, slice(2,), xchainer.newaxis, slice(1, 3), xchainer.newaxis)),
+    ((2, 3), (1, chainerx.newaxis, slice(1, 3))),
+    ((2, 3, 4), (slice(0, 1), slice(1, 2), slice(1, 3), chainerx.newaxis)),
+    ((2, 3, 4), (slice(0, 1), slice(1, 2), chainerx.newaxis, slice(1, 3))),
+    ((2, 3, 4), (slice(0, 1), chainerx.newaxis, slice(1, 2), slice(1, 3))),
+    ((2, 3, 4), (chainerx.newaxis, slice(0, 1), slice(1, 2), slice(1, 3))),
+    ((2, 3, 4), (1, slice(2,), chainerx.newaxis, slice(1, 3), chainerx.newaxis)),
 ])
 def test_getitem(xp, shape, indices):
     a = array_utils.create_dummy_ndarray(xp, shape, 'int32')
@@ -126,15 +126,15 @@ _take_invalid_params = [
 ]
 
 
-@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False, accept_error=(xchainer.DimensionError, numpy.AxisError))
+@chainerx.testing.numpy_chainerx_array_equal(dtype_check=False, accept_error=(chainerx.DimensionError, numpy.AxisError))
 @pytest.mark.parametrize("shape,indices,axis", _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_take(is_module, xp, shape, indices, axis, device):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
 
     # First convert to ndarray since some indices are nested lists which
-    # xchainer cannot convert. Additionally, dtype is cast to int64 since no
-    # other dtypes are currently supported by xchainer.take
+    # chainerx cannot convert. Additionally, dtype is cast to int64 since no
+    # other dtypes are currently supported by chainerx.take
     indices = numpy.array(indices).astype('int64')
 
     if is_module:

@@ -1,7 +1,7 @@
 Acceptance tests for Backprop on GPU
 ====================================
 
->>> import xchainer as xc
+>>> import chainerx as xc
 
 >>> a = xc.ndarray((2, 3), xc.float32, [0, 1, 2, 3, 4, 5], device='cuda:0').require_grad()
 >>> b = xc.full_like(a, 2, device='cuda:0')

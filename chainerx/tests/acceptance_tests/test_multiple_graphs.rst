@@ -4,7 +4,7 @@ Acceptance tests for multiple graphs
 Double backprop with different graphs
 -------------------------------------
 
->>> import xchainer as xc
+>>> import chainerx as xc
 
 >>> with xc.backprop_scope('weight') as weight_backprop:
 ...     with xc.backprop_scope('input') as input_backprop:
@@ -28,7 +28,7 @@ array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=[
 ...         w.get_grad(input_backprop)
 Traceback (most recent call last):
   ...
-xchainer.XchainerError: Array does not belong to the graph: 'input'.
+chainerx.ChainerxError: Array does not belong to the graph: 'input'.
 
 ...     z = gx * w  # == w * w
 ...     xc.backward(z, backprop_id=weight_backprop)
@@ -38,7 +38,7 @@ array([ 8., 10., 12.], shape=(3,), dtype=float32, device='native:0')
 ...     x.get_grad(weight_backprop)
 Traceback (most recent call last):
   ...
-xchainer.XchainerError: Array does not belong to the graph: 'weight'.
+chainerx.ChainerxError: Array does not belong to the graph: 'weight'.
 
 Double backprop with single graph
 ---------------------------------

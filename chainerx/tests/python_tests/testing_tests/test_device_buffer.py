@@ -1,11 +1,11 @@
 import pytest
 
-import xchainer
+import chainerx
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_device_buffer(device):
-    buf = xchainer.testing._DeviceBuffer([1, 2, 3, 4, 5, 6], (2, 3), xchainer.float32, device)
+    buf = chainerx.testing._DeviceBuffer([1, 2, 3, 4, 5, 6], (2, 3), chainerx.float32, device)
     mv = memoryview(buf)
     assert mv.format == 'f'
     assert mv.itemsize == 4

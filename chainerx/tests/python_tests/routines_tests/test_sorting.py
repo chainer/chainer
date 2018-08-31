@@ -1,7 +1,7 @@
 import numpy
 import pytest
 
-import xchainer.testing
+import chainerx.testing
 
 
 _min_max_single_axis_params = [
@@ -32,7 +32,7 @@ _min_max_single_axis_params = [
 
 @pytest.mark.parametrize('input,axis', _min_max_single_axis_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError))
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.DimensionError))
 def test_argmax(is_module, xp, device, input, axis, dtype):
     try:
         a_np = input.astype(dtype)

@@ -1,5 +1,5 @@
-import xchainer
+import chainerx
 
 
 def test_anygraph():
-    assert hasattr(xchainer, 'anygraph')
+    assert hasattr(chainerx, 'anygraph')

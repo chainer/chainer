@@ -3,7 +3,7 @@ import operator
 
 import numpy
 
-import xchainer
+import chainerx
 
 
 def total_size(shape):
@@ -12,7 +12,7 @@ def total_size(shape):
 
 # TODO(beam2d): Think better way to make multiple different arrays
 def create_dummy_ndarray(xp, shape, dtype, device=None, pattern=1, padding=True, start=None):
-    dtype = xchainer.dtype(dtype).name
+    dtype = chainerx.dtype(dtype).name
     size = total_size(shape)
 
     if dtype in ('bool', 'bool_'):
@@ -22,7 +22,7 @@ def create_dummy_ndarray(xp, shape, dtype, device=None, pattern=1, padding=True,
             data = [i % 3 == 0 for i in range(size)]
     else:
         if start is None:
-            if dtype in xchainer.testing.unsigned_dtypes:
+            if dtype in chainerx.testing.unsigned_dtypes:
                 start = 0 if pattern == 1 else 1
             else:
                 start = -1 if pattern == 1 else -2
@@ -69,16 +69,16 @@ def create_dummy_ndarray(xp, shape, dtype, device=None, pattern=1, padding=True,
 
         numpy.testing.assert_array_equal(a_np, a_unpad)
 
-    # Convert to NumPy or xchainer array
-    if xp is xchainer:
-        a = xchainer.testing._fromnumpy(a_np, keepstrides=True, device=device)
+    # Convert to NumPy or chainerx array
+    if xp is chainerx:
+        a = chainerx.testing._fromnumpy(a_np, keepstrides=True, device=device)
         assert a.strides == a_np.strides
     else:
         a = a_np
 
     # Checks
     if padding == 0 or all(pad == 0 for pad in padding):
-        if xp is xchainer:
+        if xp is chainerx:
             assert a.is_contiguous
         else:
             assert a.flags.c_contiguous
@@ -89,7 +89,7 @@ def create_dummy_ndarray(xp, shape, dtype, device=None, pattern=1, padding=True,
 
 def check_device(a, device=None):
     if device is None:
-        device = xchainer.get_default_device()
+        device = chainerx.get_default_device()
     elif isinstance(device, str):
-        device = xchainer.get_device(device)
+        device = chainerx.get_device(device)
     assert a.device is device

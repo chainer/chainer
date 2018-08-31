@@ -26,12 +26,12 @@ class CMakeBuild(build_ext.build_ext):
         try:
             out = subprocess.check_output(['cmake', '--version'])
         except OSError:
-            raise RuntimeError('CMake must be installed to build xChainer')
+            raise RuntimeError('CMake must be installed to build ChainerX')
 
         cmake_version = distutils.version.LooseVersion(
             re.search(r'version\s*([\d.]+)', out.decode()).group(1))
         if cmake_version < '3.1.0':
-            raise RuntimeError('CMake >= 3.1.0 is required to build xChainer')
+            raise RuntimeError('CMake >= 3.1.0 is required to build ChainerX')
 
         for ext in self.extensions:
             self.build_extension(ext)
@@ -39,10 +39,10 @@ class CMakeBuild(build_ext.build_ext):
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = [
-            '-DXCHAINER_BUILD_PYTHON=1',
+            '-DCHAINERX_BUILD_PYTHON=1',
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
             '-DPYTHON_EXECUTABLE=' + sys.executable,
-            '-DXCHAINER_BUILD_TEST=OFF',
+            '-DCHAINERX_BUILD_TEST=OFF',
         ]
 
         if self.debug:  # python setup.py build --debug
@@ -76,14 +76,14 @@ install_requires = ['numpy']
 
 
 setuptools.setup(
-    name='xchainer',
+    name='chainerx',
     version='0.0.1',
-    author='xChainer authors',
+    author='ChainerX authors',
     author_email='beam.web@gmail.com',
     description='',
     long_description='',
-    ext_modules=[CMakeExtension('xchainer._core', ['_core.so'])],
-    packages=['xchainer', 'xchainer.creation', 'xchainer.testing'],
+    ext_modules=[CMakeExtension('chainerx._core', ['_core.so'])],
+    packages=['chainerx', 'chainerx.creation', 'chainerx.testing'],
     package_dir={'': 'python'},
     cmdclass={'build_ext': CMakeBuild},
     zip_safe=False,

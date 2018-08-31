@@ -46,8 +46,8 @@ jobs:
                 # Checkout master and merge PR head ref. If conflicts occur, exit with non-zero.
                 echo "git checkout master"
                 git checkout master
-                git config user.name 'xchainer' # need to configure something to git merge
-                git config user.email 'xchainer@xchainer.org'
+                git config user.name 'chainerx' # need to configure something to git merge
+                git config user.email 'chainerx@chainerx.org'
                 echo "git merge --no-commit \"pr/${CIRCLE_PR_NUMBER}/head\""
                 git merge --no-commit "pr/${CIRCLE_PR_NUMBER}/head"
             fi
@@ -161,8 +161,8 @@ jobs:
             pushd build
             cmake \
                 -DCMAKE_BUILD_TYPE=Debug \
-                -DXCHAINER_BUILD_PYTHON=1 \
-                -DXCHAINER_WARNINGS_AS_ERRORS=ON \
+                -DCHAINERX_BUILD_PYTHON=1 \
+                -DCHAINERX_WARNINGS_AS_ERRORS=ON \
                 -DCMAKE_INSTALL_PREFIX=$HOME/local \
                 ..
             popd

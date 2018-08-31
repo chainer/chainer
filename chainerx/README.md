@@ -1,10 +1,10 @@
-# xChainer
+# ChainerX
 
 ## Build instruction
 
 ### Build the core library
 
-Build `build/xchainer/libxchainer.so` with the following commands.
+Build `build/chainerx/libchainerx.so` with the following commands.
 
 ```shell-session
 $ mkdir -p build
@@ -26,7 +26,7 @@ To specify the installation path, pass `-DCMAKE_INSTALL_PREFIX=<...>` to `cmake`
 
 ### Build the Python binding
 
-To install the `xchainer` Python package, run the following at the repository root:
+To install the `chainerx` Python package, run the following at the repository root:
 
 ```shell-session
 $ pip install .
@@ -34,14 +34,14 @@ $ pip install .
 
 You could set `MAKEFLAGS=-j8` environment variable (with a number to fit in your environment) to speed up the installation.
 
-To build the Python binding as a C++ project, pass `-DXCHAINER_BUILD_PYTHON=1` to `cmake`,
+To build the Python binding as a C++ project, pass `-DCHAINERX_BUILD_PYTHON=1` to `cmake`,
 then `make` will automatically build the Python binding.
 
 ## CUDA support
 
 CUDA support is enabled by default.
 
-xChainer currently requires cuDNN and you need to specify its path.
+ChainerX currently requires cuDNN and you need to specify its path.
 For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run `cmake` like this:
 
 ```shell-session
@@ -50,7 +50,7 @@ $ cmake -DCUDNN_ROOT_DIR=$HOME/.cudnn/active ..
 
 For Python binding, set `CUDNN_ROOT_DIR` environment variable.
 
-To disable CUDA support, either set `XCHAINER_BUILD_CUDA=0` as environment variable or specify `-DXCHAINER_BUILD_CUDA=0` in `cmake`.
+To disable CUDA support, either set `CHAINERX_BUILD_CUDA=0` as environment variable or specify `-DCHAINERX_BUILD_CUDA=0` in `cmake`.
 
 ## Information for developers
 
@@ -115,20 +115,20 @@ Build C++ project beforehand, then run the lint:
 ```
 $ mkdir -p build
 $ cd build
-$ cmake -DXCHAINER_BUILD_PYTHON=1 ..
+$ cmake -DCHAINERX_BUILD_PYTHON=1 ..
 
 $ make clang-tidy
 ```
 
 ### Run the Python test suite
 
-xChainer requires `chainer` package for Python tests. To install the `chainer` Python package of up-to-date beta version, run the following:
+ChainerX requires `chainer` package for Python tests. To install the `chainer` Python package of up-to-date beta version, run the following:
 
 ```shell-session
 $ pip install chainer --pre
 ```
 
-To build the `xchainer` Python package in `develop` mode, run the following at the repository root:
+To build the `chainerx` Python package in `develop` mode, run the following at the repository root:
 
 ```shell-session
 $ pip install -e .
@@ -154,7 +154,7 @@ $ pytest -m 'not cuda'
 
 ### Run the C++ test suite
 
-The test suite is built by default unless `-DXCHAINER_BUILD_TEST=OFF` is passed to `cmake`.
+The test suite is built by default unless `-DCHAINERX_BUILD_TEST=OFF` is passed to `cmake`.
 Run the tests with the following command from within `build`.
 
 ```shell-session
@@ -170,7 +170,7 @@ Build Python package in `Debug` mode, and build C++ test suite as:
 $ python setup.py build --debug --build-temp ./build --build-lib ./build develop
 $ mkdir -p build
 $ cd build
-$ cmake -DXCHAINER_BUILD_PYTHON=1 -DXCHAINER_ENABLE_COVERAGE ..
+$ cmake -DCHAINERX_BUILD_PYTHON=1 -DCHAINERX_ENABLE_COVERAGE ..
 $ make
 ```
 
@@ -192,7 +192,7 @@ $ find build -name '*.gcda'
 Use `gcov` command to get coverage:
 
 ```shell-session
-$ gcov ./build/xchainer/CMakeFiles/xchainer.dir/xchainer.gcda
+$ gcov ./build/chainerx/CMakeFiles/chainerx.dir/chainerx.gcda
 ```
 
 See generated .gcov files.
@@ -200,7 +200,7 @@ See generated .gcov files.
 You can also genearte HTML coverage reports with `lcov`. After running tests:
 
 ```shell-session
-$ lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
+$ lcov -c -b chainerx -d build/chainerx/ --no-external -o build/coverage.info
 $ genhtml build/coverage.info -o build/coverage
 ```
 
@@ -209,7 +209,7 @@ See `build/coverage/index.html` with any browsers.
 ### Thread sanitizer
 
 Thread sanitizer can be used to detect thread-related bugs, such as data races.
-To enable thread sanitizer, pass `-DXCHAINER_ENABLE_THREAD_SANITIZER=ON` to `cmake`.
+To enable thread sanitizer, pass `-DCHAINERX_ENABLE_THREAD_SANITIZER=ON` to `cmake`.
 
 You can run the test with `ctest -V` as usual and you will get warnings if the thread sanitizer detects any issues.
 

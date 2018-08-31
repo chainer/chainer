@@ -1,7 +1,7 @@
 Acceptance tests for introducing CUDA
 =====================================
 
->>> import xchainer as xc
+>>> import chainerx as xc
 
 Create array from python list
 -----------------------------

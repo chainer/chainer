@@ -29,4 +29,4 @@ while [ $# -gt 0 ]; do
 done
 
 
-find "${root_dir}"/xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' -o -name '*.cuh' \) -type f -print0 | xargs -0 -n1 -P"${parallel_jobs}" "${cpplint}"
+find "${root_dir}"/chainerx \( -name '*.cc' -o -name '*.h' -o -name '*.cu' -o -name '*.cuh' \) -type f -print0 | xargs -0 -n1 -P"${parallel_jobs}" "${cpplint}"
