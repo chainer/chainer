@@ -1,5 +1,7 @@
 #include "chainerx/cuda/cuda_device.h"
 
+#include <mutex>
+
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cudnn.h>
@@ -22,6 +24,7 @@ CudaDevice::~CudaDevice() {
 }
 
 cublasHandle_t CudaDevice::cublas_handle() {
+    std::lock_guard<std::mutex> lock{cublas_handle_mutex_};
     if (cublas_handle_ == nullptr) {
         CheckCudaError(cudaSetDevice(index()));
         CheckCublasError(cublasCreate(&cublas_handle_));
@@ -30,6 +33,7 @@ cublasHandle_t CudaDevice::cublas_handle() {
 }
 
 cudnnHandle_t CudaDevice::cudnn_handle() {
+    std::lock_guard<std::mutex> lock{cudnn_handle_mutex_};
     if (cudnn_handle_ == nullptr) {
         CheckCudaError(cudaSetDevice(index()));
         CheckCudnnError(cudnnCreate(&cudnn_handle_));

@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 
 #include <nonstd/optional.hpp>
 
@@ -189,7 +190,9 @@ private:
     friend class cuda_internal::CudaConvTest;  // for unit-tests
 
     MemoryPool memory_pool_;
+    std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};
+    std::mutex cudnn_handle_mutex_;
     cudnnHandle_t cudnn_handle_{};
     cuda_internal::CudaConv cuda_conv_{};
 };
