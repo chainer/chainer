@@ -1,9 +1,10 @@
 #include "chainerx/cuda/cuda_device.h"
 
+#include <mutex>
+
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cudnn.h>
-#include <mutex>
 
 #include "chainerx/cuda/cublas.h"
 #include "chainerx/cuda/cuda_runtime.h"
