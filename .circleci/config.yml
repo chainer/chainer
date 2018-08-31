@@ -110,6 +110,7 @@ jobs:
       # Python PEP-8 check
       - run:
           name: Python PEP-8 check
+          working_directory: chainerx
           command: |
             source activate testenv
 
@@ -123,12 +124,14 @@ jobs:
       # ClangFormat
       - run:
           name: ClangFormat
+          working_directory: chainerx
           command: |
             scripts/run-clang-format.sh --jobs 4
 
       # cpplint
       - run:
           name: cpplint
+          working_directory: chainerx
           command: |
             source activate testenv
 
@@ -150,6 +153,7 @@ jobs:
       # cmake
       - run:
           name: cmake
+          working_directory: chainerx
           command: |
             source activate testenv
 
@@ -167,6 +171,7 @@ jobs:
       # NOTE: We runs this only on master branch because it takes much time.
       - run:
           name: clang-tidy (normal source files)
+          working_directory: chainerx
           command: |
             if [[ "$CIRCLE_BRANCH" = "master" ]]; then
               source activate testenv
@@ -180,6 +185,7 @@ jobs:
       # NOTE: We runs this only on master branch because it takes much time.
       - run:
           name: clang-tidy (test source files)
+          working_directory: chainerx
           command: |
             if [[ "$CIRCLE_BRANCH" = "master" ]]; then
               source activate testenv
@@ -192,6 +198,7 @@ jobs:
       # make
       - run:
           name: make
+          working_directory: chainerx
           command: |
             source activate testenv
 
@@ -202,6 +209,7 @@ jobs:
       # make install
       - run:
           name: make install
+          working_directory: chainerx
           command: |
             source activate testenv
 
@@ -212,6 +220,7 @@ jobs:
       # C++ test
       - run:
           name: C++ test
+          working_directory: chainerx
           command: |
             source activate testenv
 
@@ -223,6 +232,7 @@ jobs:
       # NOTE: `python setup.py build` should be done after `make` so that we can reuse compiled object files.
       - run:
           name: Python test
+          working_directory: chainerx
           command: |
             source activate testenv
 
