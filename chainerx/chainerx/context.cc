@@ -34,7 +34,7 @@ std::string GetChainerxPath() {
 
     char* home_path = std::getenv("HOME");
     if (home_path == nullptr) {
-        throw ChainerxError{"Chainerx path is not defined. Set either CHAINERX_PATH or HOME."};
+        throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
     }
     return std::string(home_path) + "/.chainerx";
 }

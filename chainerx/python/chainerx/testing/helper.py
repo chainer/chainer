@@ -96,7 +96,7 @@ def _check_chainerx_numpy_result_array(check_result_func, chainerx_result, numpy
 
     if chainerx_result.device is not chainerx.get_default_device():
         raise _ResultsCheckFailure(
-            'Chainerx bad device', indices,
+            'ChainerX bad device', indices,
             lambda np_r, xc_r: f'default: {chainerx.get_default_device()}, chainerx: {xc_r.device}')
 
     try:
@@ -182,7 +182,7 @@ def _make_decorator(check_result_func, name, accept_error):
                                             accept_error=accept_error)
                 return
             assert chainerx_result is not None and numpy_result is not None, (
-                f'Either or both of Chainerx and numpy returned None. chainerx: {chainerx_result}, numpy: {numpy_result}')
+                f'Either or both of ChainerX and numpy returned None. chainerx: {chainerx_result}, numpy: {numpy_result}')
             _check_chainerx_numpy_result(check_result_func, chainerx_result, numpy_result)
         # Apply dummy parametrization on `name` (e.g. 'xp') to avoid pytest error when collecting test functions.
         return pytest.mark.parametrize(name, [None])(test_func)

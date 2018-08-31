@@ -132,7 +132,7 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
     }
     py::array np_array = array_func(object, py::arg("copy") = copy, py::arg("dtype") = dtype_name);
 
-    // Convert NumPy array to Chainerx array
+    // Convert NumPy array to ChainerX array
     return MakeArrayFromNumpyArray(np_array, dev);
 }
 

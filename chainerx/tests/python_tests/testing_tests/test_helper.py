@@ -30,14 +30,14 @@ def test_numpy_chainerx_array_equal_both_return_nonarray(xp, np_result, xc_resul
 @pytest.mark.parametrize('np_result, xc_result', [
     (None, None),  # Both return None
     (None, chainerx.full((1,), 1.0, chainerx.float32)),  # NumPy returns None
-    (numpy.full((1,), 1.0, numpy.float32), None),  # Chainerx returns None
+    (numpy.full((1,), 1.0, numpy.float32), None),  # ChainerX returns None
     (numpy.full((1,), 1.0, numpy.float32), chainerx.full((1,), 2.0, chainerx.float32)),  # Value mismatch
     (1.0, chainerx.full((1,), 1.0, chainerx.float64)),  # NumPy returns non-array
-    (numpy.full((1,), 1.0, numpy.float64), 1.0),  # Chainerx returns non-array
+    (numpy.full((1,), 1.0, numpy.float64), 1.0),  # ChainerX returns non-array
     (1.0, 1),  # Scalar type mismatch
-    (numpy.int64(1), numpy.int64(1)),  # Chainerx returns NumPy scalar
+    (numpy.int64(1), numpy.int64(1)),  # ChainerX returns NumPy scalar
     (numpy.full((1,), 1.0, numpy.float64), numpy.full((1,), 1.0, numpy.float64)),  # Both return NumPy array
-    (chainerx.full((1,), 1.0, chainerx.float64), chainerx.full((1,), 1.0, chainerx.float64)),  # Both return Chainerx array
+    (chainerx.full((1,), 1.0, chainerx.float64), chainerx.full((1,), 1.0, chainerx.float64)),  # Both return ChainerX array
     (chainerx.full((1,), 1.0, chainerx.float64), numpy.full((1,), 1.0, numpy.float64)),  # Return arrays wrong way around
     (numpy.full((1,), 1.0, numpy.float64), chainerx.full((1,), 1.0, chainerx.float32)),  # Dtype mismatch
     (numpy.full((1,), 1.0, numpy.float64), chainerx.full((), 1.0, chainerx.float32)),  # Shape mismatch
@@ -57,7 +57,7 @@ def test_numpy_chainerx_array_equal_fail_both_raise(xp):
     if xp is numpy:
         raise TypeError('NumPy error')
     else:
-        raise TypeError('Chainerx error')
+        raise TypeError('ChainerX error')
 
 
 @pytest.mark.xfail(strict=True)
@@ -75,7 +75,7 @@ def test_numpy_chainerx_array_equal_fail_chainerx_raise(xp):
     if xp is numpy:
         return numpy.full((1,), 1.0, numpy.float32)
     else:
-        raise TypeError('Chainerx error')
+        raise TypeError('ChainerX error')
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
