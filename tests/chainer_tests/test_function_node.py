@@ -4,12 +4,14 @@ import unittest
 
 import mock
 import numpy
+import pytest
 import six
 
 import chainer
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
 from chainer.utils import type_check
 
 
@@ -362,50 +364,148 @@ class TestFunctionNodeForwardDebug(unittest.TestCase):
         self.check_debug_forward(cuda.to_gpu(self.one))
 
 
-@testing.parameterize(
-    {'return_data': (numpy.array(float('nan'), numpy.float32),),
-     'valid': False},
-    {'return_data': (None,), 'valid': True},
-)
-class TestFunctionNodeBackwardDebug(unittest.TestCase):
+@backend.inject_backend_tests(
+    None,
+    testing.product({'use_cuda': [True, False]}))
+class TestFunctionNodeInvalidBackwardChecks(unittest.TestCase):
+    """Tests FunctionNode.backward correctness checks"""
 
     def setUp(self):
-        self.original_debug = chainer.is_debug()
-        chainer.set_debug(True)
-        self.one = numpy.array(1, numpy.float32)
         self.f = chainer.FunctionNode()
-        self.return_value = tuple(None if x is None else chainer.Variable(x)
-                                  for x in self.return_data)
 
-    def tearDown(self):
-        chainer.set_debug(self.original_debug)
+    def _dummy_func(self, bwd_return_data):
+        # Create a dummy func that returns `bwd_return_data` in the
+        # `backward` method.
 
-    def check_debug_backward_accumulate(self, *xs_data):
-        xs = [chainer.Variable(x) for x in xs_data]
-        y, = self.f.apply(xs)
-        if self.valid:
-            # check if backard throws nothing
-            y.backward()
-        else:
-            with self.assertRaises(RuntimeError):
-                y.backward()
+        def one(xp):
+            return xp.array(1, numpy.float32)
 
-    def test_debug_backward_accumulate_cpu(self):
-        self.f.forward_cpu = mock.MagicMock(return_value=(self.one,))
-        self.f.backward = mock.MagicMock(return_value=self.return_value)
-        input_value = (self.one,) * len(self.return_value)
-        self.check_debug_backward_accumulate(*input_value)
+        class DummyFunc(chainer.FunctionNode):
+            def forward_cpu(self, inputs):
+                return one(numpy),
 
-    @attr.gpu
-    def test_debug_backward_accumulate_gpu(self):
-        self.f.forward_gpu = mock.MagicMock(
-            return_value=(cuda.to_gpu(self.one),))
-        for x in self.return_value:
-            if x is not None:
-                x.to_gpu()
-        input_value = (cuda.to_gpu(self.one),) * len(self.return_value)
-        self.f.backward = mock.MagicMock(return_value=self.return_value)
-        self.check_debug_backward_accumulate(*input_value)
+            def forward_gpu(self, inputs):
+                return one(cuda.cupy),
+
+            def backward(self, indexes, grad_outputs):
+                return bwd_return_data
+
+        return DummyFunc()
+
+    def check_debug_backward_accumulate(
+            self, backend_config, f, xs_data, errors, initial_gxs=None):
+        # `errors` is a dict, where keys are True or False indicating the
+        # debug mode to run the test, and values are tuple of expected
+        # exception type and error message pattern.
+
+        for debug_mode, error in errors.items():
+
+            def to_xp(arrs):
+                if backend_config.use_cuda:
+                    return cuda.to_gpu(arrs)
+                else:
+                    return arrs
+
+            # Convert arrays to GPU
+            xs_data = to_xp(xs_data)
+            if initial_gxs is not None:
+                initial_gxs = to_xp(initial_gxs)
+
+            # Call forward
+            xs = [chainer.Variable(x) for x in xs_data]
+            y, = f.apply(xs)
+
+            # Set initial input grads, if given
+            if initial_gxs is not None:
+                assert len(xs) == len(initial_gxs)
+                for x, gx in zip(xs, initial_gxs):
+                    x.grad = gx
+
+            # Call backward & check error
+            with chainer.using_config('debug', debug_mode):
+                if error is None:
+                    y.backward()  # no error should be raised
+                else:
+                    error_type, error_regex = error
+                    with pytest.raises(error_type, match=error_regex):
+                        y.backward()
+
+    def test_ok(self, backend_config):
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((
+                chainer.Variable(numpy.array([2.0], numpy.float32)),)),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={False: None, True: None})
+
+    def test_gradients_has_nan(self, backend_config):
+        # Returns a gradient that has NaN value
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((chainer.Variable(numpy.array(
+                [float('nan')], numpy.float32)),)),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={True: (RuntimeError,
+                           'NaN is detected on backward computation')})
+
+    def test_invalid_number_of_gradients(self, backend_config):
+        # Returns more gradients than expected
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((
+                chainer.Variable(numpy.array([2.0], numpy.float32)),
+                chainer.Variable(numpy.array([1.0], numpy.float32)))),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={True: (ValueError,
+                           'number of gradients returned from backward is '
+                           'incorrect')})
+
+    def test_invalid_zero_gradients(self, backend_config):
+        # Returns 0 gradients while 1 expected
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func(()),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={True: (ValueError,
+                           'number of gradients returned from backward is '
+                           'incorrect')})
+
+    def test_invalid_gradient_shape(self, backend_config):
+        # Returns gradient of incorrect shape
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((
+                chainer.Variable(
+                    backend_config.xp.array([2, 3], numpy.float32)),)),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={True: (ValueError,
+                           'shape of gradients returned from backward is '
+                           'incorrect')})
+
+    def test_invalid_gradient_type(self, backend_config):
+        # Incorrectly returns a gradient as ndarray instead of variable
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((
+                backend_config.xp.array([2.0], numpy.float32))),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={True: (ValueError,
+                           'type of gradients returned from backward is '
+                           'incorrect')})
+
+    def test_invalid_gradient_dtype(self, backend_config):
+        # Incorrectly returns a gradient with incorrect dtype, compared to
+        # initially set gradients.
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((
+                chainer.Variable(
+                    backend_config.xp.array([2.0], numpy.int64)),)),
+            xs_data=(numpy.array([1], numpy.float32),),
+            initial_gxs=(numpy.array([1], numpy.float32),),
+            errors={True: (ValueError,
+                           'dtype of gradients returned from backward is '
+                           'incorrect')})
 
 
 class TestNoBackpropMode(unittest.TestCase):

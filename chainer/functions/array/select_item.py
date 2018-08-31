@@ -12,7 +12,7 @@ class SelectItem(function_node.FunctionNode):
     """Select elements stored in given indices."""
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 't'))
 
         x_type, t_type = in_types
         type_check.expect(

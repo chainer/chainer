@@ -1,5 +1,5 @@
-import contextlib
 import collections
+import contextlib
 import shutil
 import tempfile
 
@@ -11,6 +11,7 @@ from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
 from chainer.utils.experimental import experimental  # NOQA
 from chainer.utils.sparse import CooMatrix  # NOQA
+from chainer.utils.sparse import get_order  # NOQA
 from chainer.utils.sparse import to_coo  # NOQA
 from chainer.utils.walker_alias import WalkerAlias  # NOQA
 

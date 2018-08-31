@@ -6,11 +6,12 @@ import numpy
 import six
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
-from chainer import variable
 from chainer.utils import collections_abc
+from chainer import variable
 
 
 def _is_shape(value):
@@ -448,7 +449,7 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         d = self.__dict__
-        for name in self._params:
+        for name in sorted(self._params):
             if include_uninit or d[name].data is not None:
                 yield d[name]
 
@@ -465,7 +466,7 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         d = self.__dict__
-        for name in self._params:
+        for name in sorted(self._params):
             if include_uninit or d[name].data is not None:
                 yield '/' + name, d[name]
 
@@ -536,7 +537,7 @@ Assign a Parameter object directly to an attribute within a \
                 d = dst[name]
                 s = src[name]
                 if isinstance(d, array_types) and isinstance(s, array_types):
-                    cuda.copyto(d, s)
+                    backends.copyto(d, s)
                 else:
                     dst[name] = copy.deepcopy(s)
 
@@ -912,7 +913,7 @@ Assign a Link object directly to an attribute within a \
         for param in super(Chain, self).params(include_uninit):
             yield param
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             for param in d[name].params(include_uninit):
                 yield param
 
@@ -920,7 +921,7 @@ Assign a Link object directly to an attribute within a \
         for ret in super(Chain, self).namedparams(include_uninit):
             yield ret
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             prefix = '/' + name
             for path, param in d[name].namedparams(include_uninit):
                 yield prefix + path, param
@@ -929,7 +930,7 @@ Assign a Link object directly to an attribute within a \
         if not skipself:
             yield self
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             for link in d[name].links():
                 yield link
 
@@ -937,7 +938,7 @@ Assign a Link object directly to an attribute within a \
         if not skipself:
             yield '/', self
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             child = d[name]
             prefix = '/' + name
             yield prefix, child
@@ -946,7 +947,7 @@ Assign a Link object directly to an attribute within a \
 
     def children(self):
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             yield d[name]
 
     def copyparams(self, link, copy_persistent=True):

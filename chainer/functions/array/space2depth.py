@@ -12,7 +12,7 @@ class Space2Depth(function_node.FunctionNode):
         self.r = r
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].ndim == 4

@@ -15,7 +15,7 @@ class DiGamma(function_node.FunctionNode):
         return 'digamma'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):

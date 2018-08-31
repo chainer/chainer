@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
@@ -28,7 +26,7 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         x_type, t_type = in_types
 
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             t_type.dtype.kind == 'i',
             x_type.shape == t_type.shape
         )
@@ -54,8 +52,10 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
             count = max(1, len(x))
         self.count = count
 
+        # TODO(takagi): Fix to perform division in a specific dtype. See
+        # cupy/cupy#1534.
         return utils.force_array(
-            xp.divide(xp.sum(loss), self.count, dtype=x.dtype)),
+            xp.divide(xp.sum(loss), self.count), dtype=x.dtype),
 
     def backward(self, inputs, grad_outputs):
         x, t = self.get_retained_inputs()
@@ -83,9 +83,11 @@ class SigmoidCrossEntropyGrad(function_node.FunctionNode):
 
         y, = sigmoid.Sigmoid().forward((x,))
         if self.reduce == 'mean':
+            # TODO(takagi): Fix to perform division in a specific dtype. See
+            # cupy/cupy#1534.
             gx = xp.divide(
-                gy * self.ignore_mask * (y - self.t), self.count,
-                dtype=y.dtype)
+                gy * self.ignore_mask * (y - self.t), self.count).astype(
+                    y.dtype)
         else:
             gx = (gy * self.ignore_mask * (y - self.t)).astype(y.dtype)
 

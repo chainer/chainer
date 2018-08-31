@@ -275,8 +275,7 @@ Use apply() method instead.\
 
         # NaN check of output values
         if is_debug:
-            if any(out.dtype.kind == 'f' and
-                   cuda.get_array_module(out).isnan(out).any()
+            if any(chainer.backends._contains_nan(out)
                    for out in outputs):
                 msg = ('NaN is detected on forward computation of '
                        '{}'.format(self.label))
@@ -552,15 +551,35 @@ Use apply() method instead.\
         len_gxs = len(gxs)
         if len_gxs == len(self.inputs):
             gxs = tuple([gxs[i] for i in target_input_indexes])
-        elif len_gxs != len(target_input_indexes):
-            raise ValueError(
-                'number of gradients returned by %s (%s) is incorrect.'
-                % (self._impl_name, self.label))
+        else:
+            assert len_gxs == len(target_input_indexes)
 
         return tuple([gx if g_input is None else
                       g_input if gx is None else
                       gx + g_input
                       for gx, g_input in six.moves.zip(gxs, grad_inputs)])
+
+    def _get_error_message(self, message):
+        lines = [
+            message,
+            '  function={} ({})'.format(self._impl_name, self.label)
+        ]
+        if self.inputs:
+            for i, input in enumerate(self.inputs):
+                lines.append(
+                    '    input {}: shape={} dtype={}'.format(
+                        i, input.shape, input.dtype))
+        if self.outputs:
+            for i, output_ref in enumerate(self.outputs):
+                output = output_ref()
+                if output is None:
+                    lines.append(
+                        '    output {}: not available')
+                else:
+                    lines.append(
+                        '    output {}: shape={} dtype={}'.format(
+                            i, output.shape, output.dtype))
+        return '\n'.join(lines)
 
     def get_retained_inputs(self):
         """Returns a tuple of retained input variables.
@@ -573,6 +592,9 @@ Use apply() method instead.\
 
         """
         inputs = self.inputs
+        if self._input_indexes_to_retain is None:
+            raise ValueError(self._get_error_message(
+                'retain_inputs is not called in forward.'))
         return tuple([inputs[index].get_variable()
                       for index in self._input_indexes_to_retain])
 
@@ -593,6 +615,9 @@ Use apply() method instead.\
            node of the function node.
 
         """
+        if self._retained_output_data is None:
+            raise ValueError(self._get_error_message(
+                'retain_outputs is not called in forward.'))
         ret = []
         outputs = self.outputs
 
@@ -644,7 +669,7 @@ Use apply() method instead.\
         if name in hooks:
             raise KeyError('Hook %s already exists' % name)
         hooks[name] = hook
-        hook.added(function=self)
+        hook.added(self)
 
     def delete_hook(self, name):
         """Unregisters the function hook.
@@ -654,7 +679,7 @@ Use apply() method instead.\
 
         """
         if name in self.local_function_hooks:
-            self.local_function_hooks[name].deleted(function=self)
+            self.local_function_hooks[name].deleted(self)
             del self.local_function_hooks[name]
         else:
             raise KeyError('Hook %s does not exist' % name)
@@ -882,16 +907,16 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         in_data = tuple([x.data for x in func.inputs])
         out_grad_data = tuple(
             [None if g is None else g.data for g in gys])
-        cuda.get_device_from_array(*in_data).use()
 
-        for hook in hooks:
-            hook.backward_preprocess(func, in_data, out_grad_data)
+        with cuda.get_device_from_array(*in_data):
+            for hook in hooks:
+                hook.backward_preprocess(func, in_data, out_grad_data)
 
-        _backprop_utils.backprop_step(func, input_indexes, gys, x_grads)
+            _backprop_utils.backprop_step(func, input_indexes, gys, x_grads)
 
-        # Call post-backward hooks
-        for hook in hooks:
-            hook.backward_postprocess(func, in_data, out_grad_data)
+            # Call post-backward hooks
+            for hook in hooks:
+                hook.backward_postprocess(func, in_data, out_grad_data)
 
         # Update grads
         for node, g in x_grads.items():
