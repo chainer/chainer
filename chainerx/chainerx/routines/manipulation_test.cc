@@ -327,7 +327,7 @@ TEST_P(ManipulationTest, InvalidSqueezeDuplicateAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
-    EXPECT_THROW(Squeeze(a, Axes{0, 2, 2}), XchainerError);
+    EXPECT_THROW(Squeeze(a, Axes{0, 2, 2}), ChainerxError);
 }
 
 TEST_P(ManipulationTest, InvalidSqueezeOutOfRangeAxes) {

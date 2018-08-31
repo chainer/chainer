@@ -108,7 +108,7 @@ Dtype GetDtype(py::handle handle) {
     throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
 }
 
-void InitXchainerDtype(pybind11::module& m) {
+void InitChainerxDtype(pybind11::module& m) {
     py::enum_<Dtype> e{m, "dtype"};
     for (Dtype dtype : GetAllDtypes()) {
         e.value(dtype == Dtype::kBool ? "bool_" : GetDtypeName(dtype), dtype);

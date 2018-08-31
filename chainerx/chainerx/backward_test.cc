@@ -169,7 +169,7 @@ public:
             std::vector<Array>& target_inputs, std::vector<Array>& other_inputs, std::vector<Array>& expected_grads, Fprop&& fprop) const {
         CheckBackpropImpl(target_inputs, expected_grads, fprop, other_inputs);
         for (const Array& other_input : other_inputs) {
-            EXPECT_THROW(other_input.GetGrad(), XchainerError);
+            EXPECT_THROW(other_input.GetGrad(), ChainerxError);
         }
     }
 
@@ -207,13 +207,13 @@ TEST_F(BackpropTest, CreateAndReleaseSingleBackpropId) {
     ctx.ReleaseBackpropId(backprop_id1);
 
     // Can't release twice
-    EXPECT_THROW(ctx.ReleaseBackpropId(backprop_id1), XchainerError);
+    EXPECT_THROW(ctx.ReleaseBackpropId(backprop_id1), ChainerxError);
 
     // Can't require grad after release
     {
         Array a = Empty({2, 3}, Dtype::kFloat32, ctx.GetDevice({"native", 0}));
-        EXPECT_THROW(a.IsGradRequired(backprop_id1), XchainerError);
-        EXPECT_THROW(a.RequireGrad(backprop_id1), XchainerError);
+        EXPECT_THROW(a.IsGradRequired(backprop_id1), ChainerxError);
+        EXPECT_THROW(a.RequireGrad(backprop_id1), ChainerxError);
     }
 
     // String representation after release
@@ -227,7 +227,7 @@ TEST_F(BackpropTest, CreateAndReleaseSingleBackpropId) {
 TEST_F(BackpropTest, CantReleaseDefaultBackpropId) {
     Context ctx{};
     BackpropId backprop_id = ctx.default_backprop_id();
-    EXPECT_THROW(ctx.ReleaseBackpropId(backprop_id), XchainerError);
+    EXPECT_THROW(ctx.ReleaseBackpropId(backprop_id), ChainerxError);
 }
 
 TEST_F(BackpropTest, DestroyContextWithoutReleasingBackpropId) {
@@ -335,12 +335,12 @@ TEST_F(BackpropTest, BackwardWithComplicatedRanks) {
 TEST_F(BackpropTest, TryBackwardFromArrayWithoutNode) {
     auto xs = MakeFullArrays({1}, {2.0f, 3.0f});
     auto y1 = xs[0] * xs[1];  // without graph
-    EXPECT_THROW(Backward(y1), XchainerError);
+    EXPECT_THROW(Backward(y1), ChainerxError);
     for (auto& x : xs) {
         x.RequireGrad();
     }
     auto y2 = xs[0] * xs[1];  // with graph
-    EXPECT_THROW(Backward({y1, y2}), XchainerError);
+    EXPECT_THROW(Backward({y1, y2}), ChainerxError);
 }
 
 TEST_F(BackpropTest, BackwardSoleArrayNode) {
@@ -389,7 +389,7 @@ TEST_F(BackpropTest, BackwardInnerBackpropIdProhibitedNoEdge) {
     x.RequireGrad(bp_outer);
     x.RequireGrad(bp_inner);
     Backward(x, bp_outer);
-    EXPECT_THROW(Backward(x, bp_inner), XchainerError);
+    EXPECT_THROW(Backward(x, bp_inner), ChainerxError);
 }
 
 TEST_F(BackpropTest, BackwardOuterBackpropIdNotProhibited) {
@@ -411,7 +411,7 @@ TEST_F(BackpropTest, BackwardInnerBackpropIdProhibited) {
     x.RequireGrad(bp_inner);
     Array y = (x * x) + 2;
     Backward(y, bp_outer);
-    EXPECT_THROW(Backward(y, bp_inner), XchainerError);
+    EXPECT_THROW(Backward(y, bp_inner), ChainerxError);
 }
 
 TEST_F(BackpropTest, BackwardInnerBackpropIdProhibitedByBackwardInDisconnectedGraph) {
@@ -427,7 +427,7 @@ TEST_F(BackpropTest, BackwardInnerBackpropIdProhibitedByBackwardInDisconnectedGr
     Backward(y1, bp_outer);
 
     // x2 and y2 only have bp_inner, but bp_inner is prohibited by backward of bp_outer in a disconnected graph.
-    EXPECT_THROW(Backward(y2, bp_inner), XchainerError);
+    EXPECT_THROW(Backward(y2, bp_inner), ChainerxError);
 }
 
 TEST_F(BackpropTest, BackwardDivergedBackpropId) {
@@ -603,7 +603,7 @@ TEST_F(BackpropTest, MultipleGraphsNonExisting) {
     x2.RequireGrad(backprop_id_1);
 
     Array y1 = x1 * x2;
-    EXPECT_THROW(Backward(y1, backprop_id_2), XchainerError);
+    EXPECT_THROW(Backward(y1, backprop_id_2), ChainerxError);
 }
 
 TEST_F(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
@@ -725,7 +725,7 @@ TEST_F(BackpropTest, BackwardInnerGraphAfterDefaultGraph) {
 
     EXPECT_TRUE(testing::IsBackpropIdsEqual({}, *x.GetGrad()));
 
-    EXPECT_THROW(Backward(y, backprop_id), XchainerError);
+    EXPECT_THROW(Backward(y, backprop_id), ChainerxError);
 }
 
 TEST_F(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
@@ -745,7 +745,7 @@ TEST_F(BackpropTest, BackwardInnerGraphAfterOuterGraph) {
 
     EXPECT_TRUE(testing::IsBackpropIdsEqual({}, *x.GetGrad(backprop_id_outer)));
 
-    EXPECT_THROW(Backward(y, backprop_id_inner), XchainerError);
+    EXPECT_THROW(Backward(y, backprop_id_inner), ChainerxError);
 }
 
 TEST_F(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
@@ -774,7 +774,7 @@ TEST_F(BackpropTest, BackwardThreeGraphsIncludingDefaultGraph) {
     }
 
     // Default graph backward is already finished in a deeper scope.
-    EXPECT_THROW(Backward(y, backprop_id_1), XchainerError);
+    EXPECT_THROW(Backward(y, backprop_id_1), ChainerxError);
 }
 
 TEST_F(BackpropTest, BackwardThreeGraphs) {
@@ -805,7 +805,7 @@ TEST_F(BackpropTest, BackwardThreeGraphs) {
     }
 
     // Outer scope graph backward is already finished in a deeper scope.
-    EXPECT_THROW(Backward(y, backprop_id_2), XchainerError);
+    EXPECT_THROW(Backward(y, backprop_id_2), ChainerxError);
 }
 
 TEST_F(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
@@ -1395,7 +1395,7 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
     } else {
         EXPECT_TRUE(testing::IsBackpropIdsEqual({}, *x2.GetGrad(backprop_id1)));
     }
-    EXPECT_THROW({ x1.GetGrad(backprop_id1); }, XchainerError);
+    EXPECT_THROW({ x1.GetGrad(backprop_id1); }, ChainerxError);
 }
 
 TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {

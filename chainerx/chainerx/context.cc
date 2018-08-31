@@ -26,7 +26,7 @@ namespace {
 
 std::atomic<Context*> g_global_default_context{nullptr};
 
-std::string GetXchainerPath() {
+std::string GetChainerxPath() {
     char* chainerx_path = std::getenv("CHAINERX_PATH");
     if (chainerx_path != nullptr) {
         return chainerx_path;
@@ -34,7 +34,7 @@ std::string GetXchainerPath() {
 
     char* home_path = std::getenv("HOME");
     if (home_path == nullptr) {
-        throw XchainerError{"Xchainer path is not defined. Set either CHAINERX_PATH or HOME."};
+        throw ChainerxError{"Chainerx path is not defined. Set either CHAINERX_PATH or HOME."};
     }
     return std::string(home_path) + "/.chainerx";
 }
@@ -82,7 +82,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
 #endif  // CHAINERX_ENABLE_CUDA
     } else {
         // Load .so file
-        std::string so_file_path = GetXchainerPath() + "/backends/" + backend_name + ".so";
+        std::string so_file_path = GetChainerxPath() + "/backends/" + backend_name + ".so";
         void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (handle == nullptr) {
             throw BackendError{"Backend not found: '", backend_name, "'"};
@@ -134,7 +134,7 @@ void Context::ReleaseBackpropId(const BackpropId& backprop_id) {
     CheckValidBackpropId(backprop_id);
 
     if (backprop_id.ordinal() == 0) {
-        throw XchainerError{"The default backprop ID cannot be released."};
+        throw ChainerxError{"The default backprop ID cannot be released."};
     }
 
     ReleaseBackpropIdNoExcept(backprop_id);
@@ -165,11 +165,11 @@ void Context::ReleaseBackpropIdNoExcept(const BackpropId& backprop_id) noexcept 
 
 void Context::CheckValidBackpropId(const BackpropId& backprop_id) const {
     if (&backprop_id.context() != this) {
-        throw XchainerError{"Invalid context in backprop ID: ", backprop_id};
+        throw ChainerxError{"Invalid context in backprop ID: ", backprop_id};
     }
     const BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
     if (item == nullptr) {
-        throw XchainerError{"Invalid backprop ID, maybe already expired: ", backprop_id};
+        throw ChainerxError{"Invalid backprop ID, maybe already expired: ", backprop_id};
     }
 }
 
@@ -203,7 +203,7 @@ std::string Context::GetBackpropName(const BackpropId& backprop_id) {
 
     BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
     if (item == nullptr) {
-        throw XchainerError{"Backprop not found in the context. Ordinal:", backprop_id.ordinal()};
+        throw ChainerxError{"Backprop not found in the context. Ordinal:", backprop_id.ordinal()};
     }
     return item->name;
 }
@@ -211,10 +211,10 @@ std::string Context::GetBackpropName(const BackpropId& backprop_id) {
 void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {
     BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
     if (item == nullptr) {
-        throw XchainerError{"Backprop ID not found: ", backprop_id};
+        throw ChainerxError{"Backprop ID not found: ", backprop_id};
     }
     if (item->prohibiting_ordinal.has_value()) {
-        throw XchainerError{"Cannot backward for backprop ID '",
+        throw ChainerxError{"Cannot backward for backprop ID '",
                             backprop_id,
                             "' because an connected backprop ID '",
                             BackpropId{*this, *item->prohibiting_ordinal},

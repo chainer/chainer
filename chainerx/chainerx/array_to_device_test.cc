@@ -221,7 +221,7 @@ TEST(ArrayToDeviceIncompatibleTest, ToDeviceIncompatible) {
     Array a = FromContiguousHostData({2, 1}, Dtype::kFloat32, std::shared_ptr<float>(data, nop), src_dev);
 
     // Transfer
-    EXPECT_THROW(a.ToDevice(dst_dev), XchainerError) << "Array::ToDevice must throw if incompatible device is given.";
+    EXPECT_THROW(a.ToDevice(dst_dev), ChainerxError) << "Array::ToDevice must throw if incompatible device is given.";
 }
 
 TEST(ArrayToDeviceArithmeticTest, Arithmetic) {

@@ -182,15 +182,15 @@ public:
 
     // Returns the gradient of the array.
     //
-    // XchainerError is thrown if the array is constant with respect to the computation for the specified backprop ID.
-    // XchainerError is thrown if the array is not flagged as requiring gradient.
+    // ChainerxError is thrown if the array is constant with respect to the computation for the specified backprop ID.
+    // ChainerxError is thrown if the array is not flagged as requiring gradient.
     // This function ignores no/force-backprop mode.
     const nonstd::optional<Array>& GetGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
     // Sets the gradient of the array.
     // This function also flags the array as requiring gradient, so that preceding GetGrad() can return the gradient.
     //
-    // XchainerError is thrown if the array is constant with respect to the computation for the specified backprop ID.
+    // ChainerxError is thrown if the array is constant with respect to the computation for the specified backprop ID.
     // This function ignores no/force-backprop mode.
     void SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
@@ -198,7 +198,7 @@ public:
     // This function does not change the state of the array other than that. For example, if the array is flagged as requiring gradient,
     // that will not change.
     //
-    // XchainerError is thrown if the array is constant with respect to the computation for the specified backprop ID.
+    // ChainerxError is thrown if the array is constant with respect to the computation for the specified backprop ID.
     // This function ignores no/force-backprop mode.
     void ClearGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 

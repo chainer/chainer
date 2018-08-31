@@ -10,9 +10,9 @@ namespace python_internal {
 
 Context& GetContext(pybind11::handle handle);
 
-void InitXchainerContext(pybind11::module&);
+void InitChainerxContext(pybind11::module&);
 
-void InitXchainerContextScope(pybind11::module&);
+void InitChainerxContextScope(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python

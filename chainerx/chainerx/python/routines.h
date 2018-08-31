@@ -6,7 +6,7 @@ namespace chainerx {
 namespace python {
 namespace python_internal {
 
-void InitXchainerRoutines(pybind11::module&);
+void InitChainerxRoutines(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python

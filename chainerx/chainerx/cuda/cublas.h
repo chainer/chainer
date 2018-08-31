@@ -7,7 +7,7 @@
 namespace chainerx {
 namespace cuda {
 
-class CublasError : public XchainerError {
+class CublasError : public ChainerxError {
 public:
     explicit CublasError(cublasStatus_t status);
     cublasStatus_t error() const noexcept { return status_; }

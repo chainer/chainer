@@ -132,11 +132,11 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
     }
     py::array np_array = array_func(object, py::arg("copy") = copy, py::arg("dtype") = dtype_name);
 
-    // Convert NumPy array to Xchainer array
+    // Convert NumPy array to Chainerx array
     return MakeArrayFromNumpyArray(np_array, dev);
 }
 
-void InitXchainerArray(pybind11::module& m) {
+void InitChainerxArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
     // TODO(hvy): Remove list accepting bindings and replace calls with chainerx.array.
     // For multidimensional arrays, nested lists should be passed to chainerx.array.
@@ -204,7 +204,7 @@ void InitXchainerArray(pybind11::module& m) {
     });
     c.def("reshape", [](const ArrayBodyPtr& self, py::args args) {
         if (args.size() == 0) {
-            throw XchainerError("Reshape takes exactly 1 argument (0 given).");
+            throw ChainerxError("Reshape takes exactly 1 argument (0 given).");
         }
         return MoveArrayBody(Array{self}.Reshape(ToShape(args)));
     });

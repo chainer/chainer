@@ -74,7 +74,7 @@ public:
         : outputs_{outputs}, backprop_id_{backprop_id}, double_backprop_{double_backprop} {
         for (const Array& output : outputs) {
             if (!output.IsBackpropRequired(backprop_id)) {
-                throw XchainerError{"Cannot start backprop from an array whose gradient is not required (on graph '", backprop_id, "')"};
+                throw ChainerxError{"Cannot start backprop from an array whose gradient is not required (on graph '", backprop_id, "')"};
             }
             output_array_nodes_.emplace_back(internal::GetArrayBody(output)->GetArrayNode(backprop_id));
         }

@@ -222,7 +222,7 @@ Array Array::ToDevice(Device& dst_device) const {
             dst_data = dst_device.TransferDataFrom(src_device, src_contig.data(), src_contig.offset(), src_contig.GetNBytes());
         } else {
             // Neither backends support transfer.
-            throw XchainerError{"Transfer between devices is not supported: src='", src_device.name(), "' dst='", dst_device.name(), "'."};
+            throw ChainerxError{"Transfer between devices is not supported: src='", src_device.name(), "' dst='", dst_device.name(), "'."};
         }
         out = Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data)};
     }
@@ -296,7 +296,7 @@ void Array::Fill(Scalar value) const { device().Fill(*this, value); }
 const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     if (!IsGradRequired(actual_backprop_id)) {
-        throw XchainerError{"Array is not flagged as requiring gradient for backprop id: '", actual_backprop_id, "'."};
+        throw ChainerxError{"Array is not flagged as requiring gradient for backprop id: '", actual_backprop_id, "'."};
     }
     const nonstd::optional<Array>* grad = body_->GetGrad(actual_backprop_id);
     CHAINERX_ASSERT(grad != nullptr);
@@ -307,7 +307,7 @@ void Array::SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id)
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     nonstd::optional<Array>* target_grad = body_->GetGrad(actual_backprop_id);
     if (target_grad == nullptr) {
-        throw XchainerError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
+        throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
     }
 
     // Setting the gradient flags the array to require gradient, so that it can return the gradient with GetGrad().
@@ -319,7 +319,7 @@ void Array::SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id)
 void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     if (!body_->HasArrayNode(actual_backprop_id)) {
-        throw XchainerError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
+        throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
     }
     body_->ClearGrad(actual_backprop_id);
 }

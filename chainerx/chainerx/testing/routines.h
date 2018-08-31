@@ -10,9 +10,9 @@
 namespace chainerx {
 namespace testing {
 
-class RoutinesCheckError : public XchainerError {
+class RoutinesCheckError : public ChainerxError {
 public:
-    using XchainerError::XchainerError;
+    using ChainerxError::ChainerxError;
 };
 
 // Checks forward implementation of a routine.

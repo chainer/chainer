@@ -118,13 +118,13 @@ TEST_P(MathTest, IAddBroadcast2) {
 TEST_P(MathTest, IAddInvalidBroadcast1) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
     Array b = Ones({4}, Dtype::kInt32);
-    EXPECT_THROW(internal::IAdd(a, b), XchainerError);
+    EXPECT_THROW(internal::IAdd(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, IAddInvalidBroadcast2) {
     Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
     Array b = Ones({3, 3}, Dtype::kInt32);
-    EXPECT_THROW(internal::IAdd(a, b), XchainerError);
+    EXPECT_THROW(internal::IAdd(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, IAddScalar) {
@@ -172,13 +172,13 @@ TEST_P(MathTest, ISubtractBroadcast2) {
 TEST_P(MathTest, ISubtractInvalidBroadcast1) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
     Array b = Ones({4}, Dtype::kInt32);
-    EXPECT_THROW(internal::ISubtract(a, b), XchainerError);
+    EXPECT_THROW(internal::ISubtract(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, ISubtractInvalidBroadcast2) {
     Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
     Array b = Ones({3, 3}, Dtype::kInt32);
-    EXPECT_THROW(internal::ISubtract(a, b), XchainerError);
+    EXPECT_THROW(internal::ISubtract(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, ISubtractInvalidDtype) {
@@ -238,13 +238,13 @@ TEST_P(MathTest, IMultiplyInvalidBroadcast1) {
     Array a = testing::BuildArray({3}).WithLinearData<int32_t>();
     Array b = Full({3, 3}, 2, Dtype::kInt32);
     Array e = testing::BuildArray({3, 3}).WithData<int32_t>({0, 2, 4, 0, 2, 4, 0, 2, 4});
-    EXPECT_THROW(internal::IMultiply(a, b), XchainerError);
+    EXPECT_THROW(internal::IMultiply(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, IMultiplyInvalidBroadcast2) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
     Array b = Full({4}, 2, Dtype::kInt32);
-    EXPECT_THROW(internal::IMultiply(a, b), XchainerError);
+    EXPECT_THROW(internal::IMultiply(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, IMultiplyScalar) {
@@ -292,13 +292,13 @@ TEST_P(MathTest, IDivideBroacast2) {
 TEST_P(MathTest, IDivideInvalidBroadcast1) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<float>();
     Array b = Full({4}, 2.0f, Dtype::kFloat32);
-    EXPECT_THROW(internal::IDivide(a, b), XchainerError);
+    EXPECT_THROW(internal::IDivide(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, IDivideInvalidBroadcast2) {
     Array a = testing::BuildArray({3}).WithLinearData<float>();
     Array b = Ones({3, 3}, Dtype::kFloat32);
-    EXPECT_THROW(internal::IDivide(a, b), XchainerError);
+    EXPECT_THROW(internal::IDivide(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, IDivideScalar) {
@@ -359,7 +359,7 @@ TEST_P(MathTest, AddBroadcast4) {
 TEST_P(MathTest, AddInvalidBroadcast) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
     Array b = Ones({4}, Dtype::kInt32);
-    EXPECT_THROW(Add(a, b), XchainerError);
+    EXPECT_THROW(Add(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, AddScalar) {
@@ -498,7 +498,7 @@ TEST_P(MathTest, SubtractBroadcast4) {
 TEST_P(MathTest, SubtractInvalidBroadcast) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
     Array b = Ones({4}, Dtype::kInt32);
-    EXPECT_THROW(Subtract(a, b), XchainerError);
+    EXPECT_THROW(Subtract(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, SubtractInvalidDtype) {
@@ -653,7 +653,7 @@ TEST_P(MathTest, MultiplyBroadcast4) {
 TEST_P(MathTest, MultiplyInvalidBroadcast) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<int32_t>();
     Array b = Full({4}, 2, Dtype::kInt32);
-    EXPECT_THROW(Multiply(a, b), XchainerError);
+    EXPECT_THROW(Multiply(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, MultiplyScalar) {
@@ -785,7 +785,7 @@ TEST_P(MathTest, DivideBroadcast4) {
 TEST_P(MathTest, DivideInvalidBroadcast) {
     Array a = testing::BuildArray({3, 3}).WithLinearData<float>();
     Array b = Ones({4}, Dtype::kFloat32);
-    EXPECT_THROW(Divide(a, b), XchainerError);
+    EXPECT_THROW(Divide(a, b), ChainerxError);
 }
 
 TEST_P(MathTest, DivideScalar) {
@@ -1016,7 +1016,7 @@ TEST_P(MathTest, InvalidSumDuplicateAxes) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(Sum(a, Axes{1, 1}), XchainerError);
+    EXPECT_THROW(Sum(a, Axes{1, 1}), ChainerxError);
 }
 
 TEST_P(MathTest, InvalidSumOutOfRangeAxes) {

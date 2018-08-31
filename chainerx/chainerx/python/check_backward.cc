@@ -37,7 +37,7 @@ struct ForwardInPython {
 
 }  // namespace
 
-void InitXchainerCheckBackward(pybind11::module& m) {
+void InitChainerxCheckBackward(pybind11::module& m) {
     m.def("check_backward",
           [](py::object func,
              const std::vector<ArrayBodyPtr>& inputs,

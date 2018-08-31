@@ -105,7 +105,7 @@ Array Ones(const Shape& shape, Dtype dtype, Device& device) { return Full(shape,
 Array Arange(Scalar start, Scalar stop, Scalar step, Dtype dtype, Device& device) {
     // TODO(hvy): Simplify comparison if Scalar::operator== supports dtype conversion.
     if (step == Scalar{0, step.dtype()}) {
-        throw XchainerError("Cannot create an arange array with 0 step size.");
+        throw ChainerxError("Cannot create an arange array with 0 step size.");
     }
 
     // Compute the size of the output.
@@ -303,7 +303,7 @@ Array Linspace(
     int64_t num_a = num.value_or(kDefaultNum);
 
     if (num_a < 0) {
-        throw XchainerError{"Number of samples, ", num_a, ", must be non-negative"};
+        throw ChainerxError{"Number of samples, ", num_a, ", must be non-negative"};
     }
 
     Array out = Empty(Shape{num_a}, dtype_a, device);

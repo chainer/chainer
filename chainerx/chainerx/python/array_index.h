@@ -14,7 +14,7 @@ namespace py = pybind11;
 
 std::vector<ArrayIndex> MakeArrayIndices(py::handle handle);
 
-void InitXchainerArrayIndex(py::module&);
+void InitChainerxArrayIndex(py::module&);
 
 }  // namespace python_internal
 }  // namespace python

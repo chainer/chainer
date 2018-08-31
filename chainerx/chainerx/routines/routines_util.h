@@ -10,7 +10,7 @@ namespace chainerx {
 namespace internal {
 
 // Checks for unsafe inplace operation on arrays.
-// This functions throws XchainerError if at least one of the following conditions is met.
+// This functions throws ChainerxError if at least one of the following conditions is met.
 // * The output array has any array nodes. Rewriting its data may affect other arrays in the graph.
 // * At least one input array is identical to the output array, and the input array is to be backpropped in the current no/force backprop
 // mode. In this case, if the backward computation of the operation retains and uses the input array, the retained input will not reflect
@@ -21,7 +21,7 @@ namespace internal {
 inline void CheckNoUnsafeInplace(const Array& out, std::initializer_list<std::reference_wrapper<const Array>> inputs) {
     const std::shared_ptr<ArrayBody>& out_body = internal::GetArrayBody(out);
     if (!out_body->nodes().empty()) {
-        throw XchainerError{"In-place assignment to output array requiring grad is not allowed."};
+        throw ChainerxError{"In-place assignment to output array requiring grad is not allowed."};
     }
 
     bool any_input_grad_required = false;
@@ -32,7 +32,7 @@ inline void CheckNoUnsafeInplace(const Array& out, std::initializer_list<std::re
     }
 
     if (any_input_grad_required && any_inplace) {
-        throw XchainerError{"In-place assignment that involves input arrays requiring grad is not allowed."};
+        throw ChainerxError{"In-place assignment that involves input arrays requiring grad is not allowed."};
     }
 }
 

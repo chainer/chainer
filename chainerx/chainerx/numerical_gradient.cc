@@ -62,15 +62,15 @@ Arrays CalculateNumericalGradient(
     std::transform(inputs.begin(), inputs.end(), std::back_inserter(xs), [](const Array& x) { return x.MakeView(); });
 
     if (eps.size() != static_cast<size_t>(nin)) {
-        throw XchainerError{"Invalid number of eps arrays where number of inputs: ", nin, ", eps: ", eps.size()};
+        throw ChainerxError{"Invalid number of eps arrays where number of inputs: ", nin, ", eps: ", eps.size()};
     }
 
     for (int i = 0; i < nin; ++i) {
         if (xs.at(i).shape() != eps.at(i).shape()) {
-            throw XchainerError{"Invalid eps shape"};
+            throw ChainerxError{"Invalid eps shape"};
         }
         if (xs.at(i).dtype() != eps.at(i).dtype()) {
-            throw XchainerError{"Invalid eps dtype"};
+            throw ChainerxError{"Invalid eps dtype"};
         }
         // TODO(niboshi): Check: eps must not contain zeros.
     }

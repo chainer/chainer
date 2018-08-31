@@ -12,7 +12,7 @@ std::ostream& operator<<(std::ostream& os, const BackpropId& backprop_id) {
     static constexpr const char* kExpiredBackpropDisplayName = "<expired>";
     try {
         os << backprop_id.GetName();
-    } catch (const XchainerError&) {
+    } catch (const ChainerxError&) {
         os << kExpiredBackpropDisplayName;
     }
     return os;

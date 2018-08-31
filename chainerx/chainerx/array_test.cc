@@ -293,8 +293,8 @@ TEST_P(ArrayTest, InvalidSetGradNoGraph) {
     Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
     Array g = testing::BuildArray(shape).WithData<T>({8, 4, 6, 3, 2, 1});
 
-    EXPECT_THROW(x.SetGrad(g), XchainerError);  // x does not belong to the default graph.
-    EXPECT_THROW(x.SetGrad(g, backprop_id), XchainerError);  // x does not belong to the given graph.
+    EXPECT_THROW(x.SetGrad(g), ChainerxError);  // x does not belong to the default graph.
+    EXPECT_THROW(x.SetGrad(g, backprop_id), ChainerxError);  // x does not belong to the given graph.
 }
 
 // TODO(niboshi): Move to ArrayGradTest
@@ -724,7 +724,7 @@ TEST_P(ArrayTest, InplaceWithArrayNodes) {
         Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
         x.RequireGrad(backprop_id);
         y.RequireGrad(backprop_id);
-        EXPECT_THROW({ y += x; }, XchainerError);
+        EXPECT_THROW({ y += x; }, ChainerxError);
     }
 
     {
@@ -732,7 +732,7 @@ TEST_P(ArrayTest, InplaceWithArrayNodes) {
         Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
         x.RequireGrad(backprop_id);
         y.RequireGrad(backprop_id);
-        EXPECT_THROW({ y *= x; }, XchainerError);
+        EXPECT_THROW({ y *= x; }, ChainerxError);
     }
 
     // Only output array has nodes
@@ -740,7 +740,7 @@ TEST_P(ArrayTest, InplaceWithArrayNodes) {
         Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
         Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
         y.RequireGrad(backprop_id);
-        EXPECT_THROW({ y *= x; }, XchainerError);
+        EXPECT_THROW({ y *= x; }, ChainerxError);
     }
 
     // Only input array has nodes
@@ -748,7 +748,7 @@ TEST_P(ArrayTest, InplaceWithArrayNodes) {
         Array x = testing::BuildArray({4, 1}).WithLinearData<float>();
         Array y = testing::BuildArray({4, 1}).WithLinearData<float>();
         x.RequireGrad(backprop_id);
-        EXPECT_THROW({ y *= x; }, XchainerError);
+        EXPECT_THROW({ y *= x; }, ChainerxError);
     }
 
     // Only output arrays has nodes, with no backprop scope
@@ -758,7 +758,7 @@ TEST_P(ArrayTest, InplaceWithArrayNodes) {
         y.RequireGrad(backprop_id);
 
         NoBackpropModeScope scope{backprop_id};
-        EXPECT_THROW({ y *= x; }, XchainerError);
+        EXPECT_THROW({ y *= x; }, ChainerxError);
     }
 
     // Only input arrays has nodes, with no backprop scope
@@ -1219,7 +1219,7 @@ TEST(ArrayGradTest, InvalidGetGradNoGraph) {
     Array x = testing::BuildArray(shape).WithData<T>({5, 3, 2, 1, 4, 6});
 
     ASSERT_FALSE(x.IsGradRequired(backprop_id));
-    EXPECT_THROW(x.GetGrad(backprop_id), XchainerError);  // x does not belong to the default graph.
+    EXPECT_THROW(x.GetGrad(backprop_id), ChainerxError);  // x does not belong to the default graph.
 }
 
 TEST(ArrayGradTest, InvalidGetGradOnOutputArray) {
@@ -1235,7 +1235,7 @@ TEST(ArrayGradTest, InvalidGetGradOnOutputArray) {
     Array y = x * 2;
 
     ASSERT_FALSE(y.IsGradRequired(backprop_id));
-    EXPECT_THROW(y.GetGrad(backprop_id), XchainerError);
+    EXPECT_THROW(y.GetGrad(backprop_id), ChainerxError);
 }
 
 TEST(ArrayGradTest, ClearGradDoesNotClearIsGradRequired) {
@@ -1275,13 +1275,13 @@ TEST(ArrayGradTest, ClearGradThrow) {
 
     Array x = testing::BuildArray({2, 1}).WithLinearData<float>();
 
-    EXPECT_THROW(x.ClearGrad(), XchainerError);
-    EXPECT_THROW(x.ClearGrad(backprop_id1), XchainerError);
+    EXPECT_THROW(x.ClearGrad(), ChainerxError);
+    EXPECT_THROW(x.ClearGrad(backprop_id1), ChainerxError);
 
     x.RequireGrad(backprop_id1);
 
-    EXPECT_THROW(x.ClearGrad(), XchainerError);
-    EXPECT_THROW(x.ClearGrad(backprop_id2), XchainerError);
+    EXPECT_THROW(x.ClearGrad(), ChainerxError);
+    EXPECT_THROW(x.ClearGrad(backprop_id2), ChainerxError);
     x.ClearGrad(backprop_id1);  // no throw
 }
 

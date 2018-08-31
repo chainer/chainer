@@ -10,8 +10,8 @@ namespace python_internal {
 
 namespace py = pybind11;  // standard convention
 
-void InitXchainerError(pybind11::module& m) {
-    py::register_exception<XchainerError>(m, "XchainerError");
+void InitChainerxError(pybind11::module& m) {
+    py::register_exception<ChainerxError>(m, "ChainerxError");
     py::register_exception<ContextError>(m, "ContextError");
     py::register_exception<BackendError>(m, "BackendError");
     py::register_exception<DeviceError>(m, "DeviceError");

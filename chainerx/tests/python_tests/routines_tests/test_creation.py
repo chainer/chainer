@@ -656,7 +656,7 @@ def test_arange_invalid_zero_step(device):
         with pytest.raises(err):
             xp.arange(1, 3, 0)
 
-    check(chainerx, chainerx.XchainerError)
+    check(chainerx, chainerx.ChainerxError)
     check(numpy, ZeroDivisionError)
 
 
@@ -847,7 +847,7 @@ def test_linspace_with_device(device):
     chainerx.testing.assert_array_equal_ex(a, b)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.XchainerError))
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.ChainerxError))
 @pytest.mark.parametrize('device', ['native:0', 'native:0'])
 def test_linspace_invalid_num(xp, device):
     xp.linspace(2, 4, -1)
@@ -876,17 +876,17 @@ def test_frombuffer_from_numpy_array(device):
 @pytest.mark.parametrize_device(['cuda:0'])
 def test_frombuffer_from_numpy_array_with_cuda(device):
     obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')
-    with pytest.raises(chainerx.XchainerError):
+    with pytest.raises(chainerx.ChainerxError):
         chainerx.frombuffer(obj, obj.dtype)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.XchainerError))
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.ChainerxError))
 def test_frombuffer_from_numpy_array_with_noncontiguous(xp):
     obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32', padding=True)
     return xp.frombuffer(obj, obj.dtype)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.XchainerError))
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.ChainerxError))
 @pytest.mark.parametrize('count', [-1, 0, 1, 3, 4])
 @pytest.mark.parametrize('offset', [-1, 0, 1, 4, 3 * 4, 3 * 4 + 4])
 def test_frombuffer_from_numpy_array_with_offset_count(xp, count, offset):

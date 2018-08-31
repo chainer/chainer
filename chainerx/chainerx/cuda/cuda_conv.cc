@@ -31,17 +31,17 @@ namespace {
 void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array>& b) {
     // TODO(sonots): Support float16
     if (x.dtype() != Dtype::kFloat32 && x.dtype() != Dtype::kFloat64) {
-        throw XchainerError{"ChainerX cuDNN supports only float32 or float64 arrays, but the input array dtype is: ", x.dtype()};
+        throw ChainerxError{"ChainerX cuDNN supports only float32 or float64 arrays, but the input array dtype is: ", x.dtype()};
     }
     if (w.dtype() != x.dtype()) {
-        throw XchainerError{"ChainerX cuDNN requires the filter (kernel) array dtype: ",
+        throw ChainerxError{"ChainerX cuDNN requires the filter (kernel) array dtype: ",
                             w.dtype(),
                             " and the input array dtype: ",
                             x.dtype(),
                             " to be the same"};
     }
     if (b && b->dtype() != x.dtype()) {
-        throw XchainerError{
+        throw ChainerxError{
                 "ChainerX cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " to be the same"};
     }
 }
@@ -245,7 +245,7 @@ Array CudaConv::Conv(
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
     if (cover_all) {
-        throw XchainerError{"CUDA convolution does not support cover_all"};
+        throw ChainerxError{"CUDA convolution does not support cover_all"};
     }
 
     if (b) {
@@ -410,7 +410,7 @@ Array CudaConv::ConvGradWeight(
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
     if (cover_all) {
-        throw XchainerError{"CUDA convolution does not support cover_all"};
+        throw ChainerxError{"CUDA convolution does not support cover_all"};
     }
 
     device.CheckDevicesCompatible(x, gy);

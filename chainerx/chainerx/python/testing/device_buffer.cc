@@ -46,7 +46,7 @@ private:
     std::shared_ptr<py::buffer_info> info_;
 };
 
-void InitXchainerDeviceBuffer(pybind11::module& m) {
+void InitChainerxDeviceBuffer(pybind11::module& m) {
     py::class_<PyDeviceBuffer> c{m, "_DeviceBuffer", py::buffer_protocol()};
     c.def(py::init([](const py::list& list, const py::tuple& shape_tup, const py::handle& dtype_handle, const py::handle& device) {
               Shape shape = python_internal::ToShape(shape_tup);

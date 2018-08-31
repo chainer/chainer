@@ -45,52 +45,52 @@ std::string MakeMessage(const Args&... args) {
 }  // namespace error_detail
 
 // All the exceptions defined in ChainerX must inherit this class.
-class XchainerError : public std::runtime_error {
+class ChainerxError : public std::runtime_error {
 public:
     template <typename... Args>
-    explicit XchainerError(const Args&... args) : runtime_error{error_detail::MakeMessage(args...)} {}
+    explicit ChainerxError(const Args&... args) : runtime_error{error_detail::MakeMessage(args...)} {}
 };
 
 // Error on using invalid contexts.
-class ContextError : public XchainerError {
+class ContextError : public ChainerxError {
 public:
-    using XchainerError::XchainerError;
+    using ChainerxError::ChainerxError;
 };
 
 // Error on using invalid backends.
-class BackendError : public XchainerError {
+class BackendError : public ChainerxError {
 public:
-    using XchainerError::XchainerError;
+    using ChainerxError::ChainerxError;
 };
 
 // Error on using invalid devices.
-class DeviceError : public XchainerError {
+class DeviceError : public ChainerxError {
 public:
-    using XchainerError::XchainerError;
+    using ChainerxError::ChainerxError;
 };
 
 // Error on shape mismatch, invalid strides, and so on.
-class DimensionError : public XchainerError {
+class DimensionError : public ChainerxError {
 public:
-    using XchainerError::XchainerError;
+    using ChainerxError::ChainerxError;
 };
 
 // Error on dtype mismatch.
-class DtypeError : public XchainerError {
+class DtypeError : public ChainerxError {
 public:
-    using XchainerError::XchainerError;
+    using ChainerxError::ChainerxError;
 };
 
 // Error on calling not-yet-implemented functionality
-class NotImplementedError : public XchainerError {
+class NotImplementedError : public ChainerxError {
 public:
-    using XchainerError::XchainerError;
+    using ChainerxError::ChainerxError;
 };
 
 // Error on failing gradient check
-class GradientCheckError : public XchainerError {
+class GradientCheckError : public ChainerxError {
 public:
-    using XchainerError::XchainerError;
+    using ChainerxError::ChainerxError;
 };
 
 }  // namespace chainerx

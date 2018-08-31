@@ -52,21 +52,21 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
 
     int64_t n_bytes = info.size * info.itemsize;
     if (offset < 0 || offset > n_bytes) {
-        throw XchainerError{"offset must be non-negative and no greater than buffer length (", n_bytes, ")"};
+        throw ChainerxError{"offset must be non-negative and no greater than buffer length (", n_bytes, ")"};
     }
 
     if (!internal::IsContiguous(Shape{info.shape}, Strides{info.strides}, info.itemsize)) {
-        throw XchainerError{"ndarray is not C-contiguous"};
+        throw ChainerxError{"ndarray is not C-contiguous"};
     }
 
     n_bytes -= offset;
     if (count < 0) {
         if (n_bytes % info.itemsize != 0) {
-            throw XchainerError{"buffer size must be a multiple of element size"};
+            throw ChainerxError{"buffer size must be a multiple of element size"};
         }
         count = n_bytes / info.itemsize;
     } else if (n_bytes < count * info.itemsize) {
-        throw XchainerError{"buffer is smaller than requested size"};
+        throw ChainerxError{"buffer is smaller than requested size"};
     }
 
     Shape shape{count};
@@ -77,7 +77,7 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
 
 }  // namespace
 
-void InitXchainerRoutines(pybind11::module& m) {
+void InitChainerxRoutines(pybind11::module& m) {
     // creation routines
     m.def("array",
           [](py::handle object, py::handle dtype, bool copy, py::handle device) { return MakeArray(object, dtype, copy, device); },
@@ -317,7 +317,7 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("reshape",
           [](const ArrayBodyPtr& a, py::args args) {
               if (args.size() == 0) {
-                  throw XchainerError("Reshape is missing shape argument.");
+                  throw ChainerxError("Reshape is missing shape argument.");
               }
               return MoveArrayBody(Reshape(Array{a}, ToShape(args)));
           },

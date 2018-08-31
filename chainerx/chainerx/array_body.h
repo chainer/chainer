@@ -95,7 +95,7 @@ public:
     static const std::shared_ptr<ArrayNode>& AddNode(const std::shared_ptr<ArrayBody>& body, std::shared_ptr<ArrayNode> array_node);
 
     // Creates a new array node on the specified graph.
-    // XchainerError is thrown if an array node is already registered on the graph.
+    // ChainerxError is thrown if an array node is already registered on the graph.
     // The returned reference is only valid until the next call of CreateArrayNode (or AddNode) on the same ArrayBody instance.
     static const std::shared_ptr<ArrayNode>& CreateArrayNode(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id);
 

@@ -17,7 +17,7 @@ std::string BuildErrorMessage(cudaError_t error) {
 
 }  // namespace
 
-RuntimeError::RuntimeError(cudaError_t error) : XchainerError(BuildErrorMessage(error)), error_(error) {}
+RuntimeError::RuntimeError(cudaError_t error) : ChainerxError(BuildErrorMessage(error)), error_(error) {}
 
 void CheckCudaError(cudaError_t error) {
     if (error != cudaSuccess) {
@@ -33,7 +33,7 @@ bool IsPointerCudaMemory(const void* ptr) {
     switch (status) {
         case cudaSuccess:
             if (attr.isManaged == 0) {
-                throw XchainerError{"Non-managed GPU memory is not supported"};
+                throw ChainerxError{"Non-managed GPU memory is not supported"};
             }
             return true;
         case cudaErrorInvalidValue:

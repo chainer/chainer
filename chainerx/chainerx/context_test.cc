@@ -87,7 +87,7 @@ TEST(ContextTest, GetDeviceThreadSafe) {
 TEST(ContextTest, DefaultContext) {
     SetGlobalDefaultContext(nullptr);
     SetDefaultContext(nullptr);
-    ASSERT_THROW(GetDefaultContext(), XchainerError);
+    ASSERT_THROW(GetDefaultContext(), ChainerxError);
 
     Context ctx;
     SetGlobalDefaultContext(nullptr);
@@ -133,7 +133,7 @@ TEST(ContextTest, GlobalDefaultContextThreadSafe) {
 
 TEST(ContextTest, GlobalDefaultContext) {
     SetGlobalDefaultContext(nullptr);
-    ASSERT_THROW(GetGlobalDefaultContext(), XchainerError);
+    ASSERT_THROW(GetGlobalDefaultContext(), ChainerxError);
 
     Context ctx;
     SetGlobalDefaultContext(&ctx);
@@ -161,7 +161,7 @@ TEST(ContextTest, ContextScopeCtor) {
         ContextScope scope(ctx1);
         EXPECT_EQ(&ctx1, &GetDefaultContext());
     }
-    ASSERT_THROW(GetDefaultContext(), XchainerError);
+    ASSERT_THROW(GetDefaultContext(), ChainerxError);
     SetDefaultContext(&ctx1);
     {
         Context ctx2;

@@ -21,31 +21,31 @@ namespace python {
 namespace python_internal {
 namespace {
 
-void InitXchainerModule(pybind11::module& m) {
+void InitChainerxModule(pybind11::module& m) {
     m.doc() = "ChainerX";
     m.attr("__name__") = "chainerx";  // Show each member as "chainerx.*" instead of "chainerx.core.*"
 
     // chainerx
-    InitXchainerContext(m);
-    InitXchainerContextScope(m);
-    InitXchainerGraph(m);
-    InitXchainerBackpropScope(m);
-    InitXchainerBackend(m);
-    InitXchainerBackpropMode(m);
-    InitXchainerDevice(m);
-    InitXchainerDeviceScope(m);
-    InitXchainerDtype(m);
-    InitXchainerError(m);
-    InitXchainerScalar(m);
-    InitXchainerArrayIndex(m);
-    InitXchainerArray(m);
-    InitXchainerBackward(m);
-    InitXchainerCheckBackward(m);
-    InitXchainerRoutines(m);
+    InitChainerxContext(m);
+    InitChainerxContextScope(m);
+    InitChainerxGraph(m);
+    InitChainerxBackpropScope(m);
+    InitChainerxBackend(m);
+    InitChainerxBackpropMode(m);
+    InitChainerxDevice(m);
+    InitChainerxDeviceScope(m);
+    InitChainerxDtype(m);
+    InitChainerxError(m);
+    InitChainerxScalar(m);
+    InitChainerxArrayIndex(m);
+    InitChainerxArray(m);
+    InitChainerxBackward(m);
+    InitChainerxCheckBackward(m);
+    InitChainerxRoutines(m);
 
     // chainerx.testing
     pybind11::module m_testing = m.def_submodule("testing");
-    testing::testing_internal::InitXchainerTestingModule(m_testing);
+    testing::testing_internal::InitChainerxTestingModule(m_testing);
 }
 
 }  // namespace
@@ -54,5 +54,5 @@ void InitXchainerModule(pybind11::module& m) {
 }  // namespace chainerx
 
 PYBIND11_MODULE(_core, m) {  // NOLINT
-    chainerx::python::python_internal::InitXchainerModule(m);
+    chainerx::python::python_internal::InitChainerxModule(m);
 }

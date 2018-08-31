@@ -24,10 +24,10 @@ public:
     explicit PyBackpropScope(std::string backprop_name, Context& context) : backprop_name_{std::move(backprop_name)}, context_{context} {}
     BackpropId Enter() {
         if (scope_ != nullptr) {
-            throw XchainerError{"Backprop scope cannot be nested."};
+            throw ChainerxError{"Backprop scope cannot be nested."};
         }
         if (exited_) {
-            throw XchainerError{"Exited backprop scope cannot be reused."};
+            throw ChainerxError{"Exited backprop scope cannot be reused."};
         }
         scope_ = std::make_unique<BackpropScope>(backprop_name_, context_);
         return scope_->backprop_id();
@@ -45,7 +45,7 @@ private:
     bool exited_{false};
 };
 
-void InitXchainerGraph(pybind11::module& m) {
+void InitChainerxGraph(pybind11::module& m) {
     py::class_<AnyGraph>{m, "AnyGraph"};  // NOLINT(misc-unused-raii)
 
     // TODO(imanishi): Add module function to retrieve default backprop id.
@@ -61,7 +61,7 @@ void InitXchainerGraph(pybind11::module& m) {
     c.def_property_readonly("name", &BackpropId::GetName);
 }
 
-void InitXchainerBackpropScope(pybind11::module& m) {
+void InitChainerxBackpropScope(pybind11::module& m) {
     py::class_<PyBackpropScope> c{m, "BackpropScope"};
     c.def("__enter__", &PyBackpropScope::Enter);
     c.def("__exit__", &PyBackpropScope::Exit);

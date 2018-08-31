@@ -55,7 +55,7 @@ void MemoryPool::Free(void* ptr) {
         std::lock_guard<std::mutex> lock{in_use_mutex_};
         auto it = in_use_.find(ptr);
         if (it == in_use_.end()) {
-            throw XchainerError{"Cannot free out-of-pool memory"};
+            throw ChainerxError{"Cannot free out-of-pool memory"};
         }
         index = it->second;
         in_use_.erase(it);

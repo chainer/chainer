@@ -44,7 +44,7 @@ private:
     Context& target_;
 };
 
-void InitXchainerContext(pybind11::module& m) {
+void InitChainerxContext(pybind11::module& m) {
     py::class_<Context> c{m, "Context"};
     c.def(py::init());
     c.def("get_backend", &Context::GetBackend, py::return_value_policy::reference);
@@ -85,7 +85,7 @@ void InitXchainerContext(pybind11::module& m) {
     m.def("set_global_default_context", &SetGlobalDefaultContext);
 }
 
-void InitXchainerContextScope(pybind11::module& m) {
+void InitChainerxContextScope(pybind11::module& m) {
     py::class_<PyContextScope> c(m, "ContextScope");
     c.def("__enter__", &PyContextScope::Enter);
     c.def("__exit__", &PyContextScope::Exit);

@@ -332,7 +332,7 @@ TEST(CreationTest, FromData_FromAnotherDevice) {
     int64_t offset = 0;
     std::shared_ptr<void> data = native_device.Allocate(3 * sizeof(T));
 
-    EXPECT_THROW(FromData(shape, dtype, data, strides, offset, cuda_device), XchainerError);
+    EXPECT_THROW(FromData(shape, dtype, data, strides, offset, cuda_device), ChainerxError);
 }
 #endif  // CHAINERX_ENABLE_CUDA
 

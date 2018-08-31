@@ -14,8 +14,8 @@ namespace testing_internal {
 
 namespace py = pybind11;
 
-void InitXchainerTestingModule(pybind11::module& m) {
-    InitXchainerDeviceBuffer(m);
+void InitChainerxTestingModule(pybind11::module& m) {
+    InitChainerxDeviceBuffer(m);
 
     // Converts from NumPy array. It supports keepstrides option.
     m.def("_fromnumpy",

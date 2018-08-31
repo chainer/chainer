@@ -25,14 +25,14 @@ public:
 
     int64_t index() const {
         if (tag_ != ArrayIndexTag::kSingleElement) {
-            throw XchainerError{"Array index is not a single element."};
+            throw ChainerxError{"Array index is not a single element."};
         }
         return index_;
     }
 
     Slice slice() const {
         if (tag_ != ArrayIndexTag::kSlice) {
-            throw XchainerError{"Array index is not a slice."};
+            throw ChainerxError{"Array index is not a slice."};
         }
         return slice_;
     }

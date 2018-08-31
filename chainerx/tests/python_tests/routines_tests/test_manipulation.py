@@ -173,7 +173,7 @@ def test_reshape(is_module, xp, a_shape, b_shape, shape_type, padding):
     return copied, b
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(TypeError, chainerx.XchainerError))
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(TypeError, chainerx.ChainerxError))
 @pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
 def test_reshape_args(is_module, xp, a_shape, b_shape):
     # TODO(niboshi): Remove padding=False
@@ -183,9 +183,9 @@ def test_reshape_args(is_module, xp, a_shape, b_shape):
             # Skipping tests where the 'order' argument is unintentionally given a shape value, since numpy won't raise any errors in
             # this case which you might expect at first.
             return xp.array([])
-        b = xp.reshape(a, *b_shape)  # TypeError/chainerx.XchainerError in case b_shape is empty.
+        b = xp.reshape(a, *b_shape)  # TypeError/chainerx.ChainerxError in case b_shape is empty.
     else:
-        b = a.reshape(*b_shape)  # TypeError/chainerx.XchainerError in case b_shape is empty.
+        b = a.reshape(*b_shape)  # TypeError/chainerx.ChainerxError in case b_shape is empty.
 
     if xp is chainerx:
         assert b.is_contiguous

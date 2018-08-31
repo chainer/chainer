@@ -42,7 +42,7 @@ std::vector<ArrayIndex> MakeArrayIndices(py::handle handle) {
     return {MakeArrayIndex(handle)};
 }
 
-void InitXchainerArrayIndex(py::module& m) { m.attr("newaxis") = py::none(); }
+void InitChainerxArrayIndex(py::module& m) { m.attr("newaxis") = py::none(); }
 
 }  // namespace python_internal
 }  // namespace python

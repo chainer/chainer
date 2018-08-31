@@ -20,7 +20,7 @@ def _check_backprop(xs, expected_gxs, fprop, extra_xs, gys=None, backprop_id=Non
     assert isinstance(extra_xs, tuple)
     assert len(xs) == len(expected_gxs)
     assert all([isinstance(a, chainerx.ndarray) for a in xs])
-    assert all([(isinstance(a, chainerx.ndarray) or a == chainerx.XchainerError) for a in expected_gxs])
+    assert all([(isinstance(a, chainerx.ndarray) or a == chainerx.ChainerxError) for a in expected_gxs])
     assert all([isinstance(a, chainerx.ndarray) for a in extra_xs])
 
     # Forward
@@ -40,8 +40,8 @@ def _check_backprop(xs, expected_gxs, fprop, extra_xs, gys=None, backprop_id=Non
     # Check gradients of input arrays
     for i, expected_gx in enumerate(expected_gxs):
         x = xs[i]
-        if expected_gx is chainerx.XchainerError:
-            with pytest.raises(chainerx.XchainerError):
+        if expected_gx is chainerx.ChainerxError:
+            with pytest.raises(chainerx.ChainerxError):
                 x.get_grad(backprop_id)
         else:
             gx = x.get_grad(backprop_id)
@@ -51,7 +51,7 @@ def _check_backprop(xs, expected_gxs, fprop, extra_xs, gys=None, backprop_id=Non
     for output, gy in zip(outputs, gys):
         if gy is None:
             assert not output.is_grad_required(backprop_id)
-            with pytest.raises(chainerx.XchainerError):
+            with pytest.raises(chainerx.ChainerxError):
                 output.get_grad(backprop_id)
         else:
             assert output.is_grad_required(backprop_id)
@@ -350,7 +350,7 @@ def test_backward_multiple_graphs_basic():
         x2.require_grad(backprop_id2)
 
         xs = (x1, x2)
-        expected_gxs = (chainerx.full(shape, 5, dtype), chainerx.XchainerError)
+        expected_gxs = (chainerx.full(shape, 5, dtype), chainerx.ChainerxError)
 
         def fprop(xs_, extra_xs_):
             x1, x2 = xs_
@@ -374,7 +374,7 @@ def test_backward_multiple_graphs_non_existing():
         x2.require_grad(backprop_id1)
 
         y = x1 * x2
-        with pytest.raises(chainerx.XchainerError):
+        with pytest.raises(chainerx.ChainerxError):
             chainerx.backward(y, backprop_id2)
 
 
@@ -398,7 +398,7 @@ def test_backward_multiple_graphs_reuse():
             y = x1 * x2
             return y,
 
-        expected_gxs = (chainerx.full(shape, 5, dtype), chainerx.XchainerError)
+        expected_gxs = (chainerx.full(shape, 5, dtype), chainerx.ChainerxError)
         _check_backprop(xs, expected_gxs, fprop, (), backprop_id=backprop_id1)
 
         x1.cleargrad(backprop_id1)
@@ -407,7 +407,7 @@ def test_backward_multiple_graphs_reuse():
         assert x1.get_grad(backprop_id1) is None
         assert x2.get_grad(backprop_id2) is None
 
-        expected_gxs = (chainerx.XchainerError, chainerx.full(shape, 2, dtype))
+        expected_gxs = (chainerx.ChainerxError, chainerx.full(shape, 2, dtype))
         _check_backprop(xs, expected_gxs, fprop, (), backprop_id=backprop_id2)
 
         x1.cleargrad(backprop_id1)
@@ -452,5 +452,5 @@ def test_create_and_release_backprop_id():
     context._check_valid_backprop_id(backprop_id)
 
     context.release_backprop_id(backprop_id)
-    with pytest.raises(chainerx.XchainerError):
+    with pytest.raises(chainerx.ChainerxError):
         context._check_valid_backprop_id(backprop_id)

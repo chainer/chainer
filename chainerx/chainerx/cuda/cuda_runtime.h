@@ -7,7 +7,7 @@
 namespace chainerx {
 namespace cuda {
 
-class RuntimeError : public XchainerError {
+class RuntimeError : public ChainerxError {
 public:
     explicit RuntimeError(cudaError_t error);
     cudaError_t error() const noexcept { return error_; }

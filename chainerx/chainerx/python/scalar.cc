@@ -24,7 +24,7 @@ Scalar MakeScalar(T value, py::handle dtype) {
 
 }  // namespace
 
-void InitXchainerScalar(pybind11::module& m) {
+void InitChainerxScalar(pybind11::module& m) {
     py::class_<Scalar> c{m, "Scalar"};
     c.def(py::init<bool>());
     c.def(py::init<int64_t>());

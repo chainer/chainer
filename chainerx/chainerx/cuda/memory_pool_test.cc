@@ -46,13 +46,13 @@ TEST(MemoryPoolTest, DoubleFree) {
     MemoryPool memory_pool{0};
     void* ptr = memory_pool.Malloc(1);
     memory_pool.Free(ptr);
-    EXPECT_THROW(memory_pool.Free(ptr), XchainerError);
+    EXPECT_THROW(memory_pool.Free(ptr), ChainerxError);
 }
 
 TEST(MemoryPoolTest, FreeForeignPointer) {
     MemoryPool memory_pool{0};
     void* ptr = &memory_pool;
-    EXPECT_THROW(memory_pool.Free(ptr), XchainerError);
+    EXPECT_THROW(memory_pool.Free(ptr), ChainerxError);
 }
 
 }  // namespace cuda

@@ -98,7 +98,7 @@ TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonCudaMemory) {
     CudaDevice& device = GetCudaDevice(ctx, 0);
 
     std::shared_ptr<void> cpu_data = std::make_unique<uint8_t[]>(3);
-    EXPECT_THROW(device.MakeDataFromForeignPointer(cpu_data), XchainerError) << "must throw an exception if non CUDA memory is given";
+    EXPECT_THROW(device.MakeDataFromForeignPointer(cpu_data), ChainerxError) << "must throw an exception if non CUDA memory is given";
 }
 
 TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonUnifiedMemory) {
@@ -108,7 +108,7 @@ TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonUnifiedMemory) {
     void* raw_ptr = nullptr;
     cuda::CheckCudaError(cudaMalloc(&raw_ptr, 3));
     auto cuda_data = std::shared_ptr<void>{raw_ptr, cudaFree};
-    EXPECT_THROW(device.MakeDataFromForeignPointer(cuda_data), XchainerError)
+    EXPECT_THROW(device.MakeDataFromForeignPointer(cuda_data), ChainerxError)
             << "must throw an exception if non-managed CUDA memory is given";
 }
 
@@ -121,7 +121,7 @@ TEST(CudaDeviceTest, MakeDataFromForeignPointer_FromAnotherDevice) {
     CudaDevice& another_device = GetCudaDevice(ctx, 1);
 
     std::shared_ptr<void> cuda_data = another_device.Allocate(3);
-    EXPECT_THROW(device.MakeDataFromForeignPointer(cuda_data), XchainerError)
+    EXPECT_THROW(device.MakeDataFromForeignPointer(cuda_data), ChainerxError)
             << "must throw an exception if CUDA memory resides on another device";
 }
 

@@ -91,7 +91,7 @@ public:
           cover_all_{cover_all},
           cudnn_pooling_mode_{cudnn_pooling_mode} {
         if (cover_all_) {
-            throw XchainerError{"CUDA pooling does not support cover_all"};
+            throw ChainerxError{"CUDA pooling does not support cover_all"};
         }
     }
 

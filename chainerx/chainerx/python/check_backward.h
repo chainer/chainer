@@ -6,7 +6,7 @@ namespace chainerx {
 namespace python {
 namespace python_internal {
 
-void InitXchainerCheckBackward(pybind11::module&);
+void InitChainerxCheckBackward(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python

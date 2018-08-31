@@ -328,7 +328,7 @@ void CheckDoubleBackwardComputationImpl(
     const std::size_t nout = grad_outputs.size();
 
     if (grad_grad_inputs.size() != nin) {
-        throw XchainerError{"Number of input arrays and grad_grad_input arrays do not match."};
+        throw ChainerxError{"Number of input arrays and grad_grad_input arrays do not match."};
     }
 
     // LIMITATION: All inputs must require gradients unlike CheckBackwardComputation
@@ -336,14 +336,14 @@ void CheckDoubleBackwardComputationImpl(
     // Check all the input arrays require gradients
     for (size_t i = 0; i < nin; ++i) {
         if (!inputs[i].IsBackpropRequired(actual_backprop_id)) {
-            throw XchainerError{"Input array ", i, " / ", nin, " is not differentiable w.r.t. the backprop ID '", actual_backprop_id, "'."};
+            throw ChainerxError{"Input array ", i, " / ", nin, " is not differentiable w.r.t. the backprop ID '", actual_backprop_id, "'."};
         }
     }
 
     // Check all the output gradient arrays require gradients
     for (size_t i = 0; i < nout; ++i) {
         if (!grad_outputs[i].IsBackpropRequired(actual_backprop_id)) {
-            throw XchainerError{
+            throw ChainerxError{
                     "Output gradient array ", i, " / ", nout, " is not differentiable w.r.t. the backprop ID '", actual_backprop_id, "'."};
         }
     }

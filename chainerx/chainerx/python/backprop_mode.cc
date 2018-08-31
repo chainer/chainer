@@ -49,7 +49,7 @@ private:
 };
 
 template <class BackpropModeScope>
-void InitXchainerBackpropModeScope(pybind11::module& m, const char* class_name, const char* function_name) {
+void InitChainerxBackpropModeScope(pybind11::module& m, const char* class_name, const char* function_name) {
     py::class_<PyBackpropModeScope<BackpropModeScope>> c{m, class_name};
     c.def("__enter__", &PyBackpropModeScope<BackpropModeScope>::Enter);
     c.def("__exit__", &PyBackpropModeScope<BackpropModeScope>::Exit);
@@ -63,9 +63,9 @@ void InitXchainerBackpropModeScope(pybind11::module& m, const char* class_name, 
 
 }  // namespace
 
-void InitXchainerBackpropMode(pybind11::module& m) {
-    InitXchainerBackpropModeScope<NoBackpropModeScope>(m, "NoBackpropMode", "no_backprop_mode");
-    InitXchainerBackpropModeScope<ForceBackpropModeScope>(m, "ForceBackpropMode", "force_backprop_mode");
+void InitChainerxBackpropMode(pybind11::module& m) {
+    InitChainerxBackpropModeScope<NoBackpropModeScope>(m, "NoBackpropMode", "no_backprop_mode");
+    InitChainerxBackpropModeScope<ForceBackpropModeScope>(m, "ForceBackpropMode", "force_backprop_mode");
 
     m.def("is_backprop_required", [](const BackpropId& backprop_id) { return IsBackpropRequired(backprop_id); }, py::arg("backprop_id"));
     m.def("is_backprop_required",

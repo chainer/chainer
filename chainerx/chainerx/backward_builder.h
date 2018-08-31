@@ -155,7 +155,7 @@ public:
     // Reusing the token for higher-order backward functions results in undefined behavior.
     //
     // `output` must be one of the arrays specified in the constructor of BackwardBuilder as output arrays.
-    // If invalid array is specified, XchainerError will be thrown.
+    // If invalid array is specified, ChainerxError will be thrown.
     RetainedOutputToken RetainOutput(size_t output_index);
 
     // Finalizes the builder.

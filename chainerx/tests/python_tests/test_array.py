@@ -380,11 +380,11 @@ def test_array_grad_without_backprop_id(backprop_args):
     array = chainerx.ndarray((3, 1), chainerx.float32, [1., 1., 1.])
     grad = chainerx.ndarray((3, 1), chainerx.float32, [0.5, 0.5, 0.5])
 
-    with pytest.raises(chainerx.XchainerError):
+    with pytest.raises(chainerx.ChainerxError):
         array.get_grad(*backprop_args)
-    with pytest.raises(chainerx.XchainerError):
+    with pytest.raises(chainerx.ChainerxError):
         array.set_grad(grad, *backprop_args)
-    with pytest.raises(chainerx.XchainerError):
+    with pytest.raises(chainerx.ChainerxError):
         array.cleargrad(*backprop_args)
 
     # Gradient methods
@@ -416,11 +416,11 @@ def test_array_grad_with_backprop_id():
     grad = chainerx.ndarray((3, 1), chainerx.float32, [0.5, 0.5, 0.5])
 
     with chainerx.backprop_scope('bp1') as bp1:
-        with pytest.raises(chainerx.XchainerError):
+        with pytest.raises(chainerx.ChainerxError):
             array.get_grad(bp1)
-        with pytest.raises(chainerx.XchainerError):
+        with pytest.raises(chainerx.ChainerxError):
             array.set_grad(grad, bp1)
-        with pytest.raises(chainerx.XchainerError):
+        with pytest.raises(chainerx.ChainerxError):
             array.cleargrad(bp1)
 
         array.require_grad(bp1).set_grad(grad, bp1)
@@ -432,11 +432,11 @@ def test_array_grad_with_backprop_id():
 
     # keyword arguments
     with chainerx.backprop_scope('bp2') as bp2:
-        with pytest.raises(chainerx.XchainerError):
+        with pytest.raises(chainerx.ChainerxError):
             array.get_grad(backprop_id=bp2)
-        with pytest.raises(chainerx.XchainerError):
+        with pytest.raises(chainerx.ChainerxError):
             array.set_grad(grad, backprop_id=bp2)
-        with pytest.raises(chainerx.XchainerError):
+        with pytest.raises(chainerx.ChainerxError):
             array.cleargrad(backprop_id=bp2)
 
         array.require_grad(backprop_id=bp2).set_grad(grad, backprop_id=bp2)
@@ -572,7 +572,7 @@ def test_array_backward():
         x1.set_grad(None, backprop_id=bp1)
 
         gx1.backward(backprop_id=bp1)
-        with pytest.raises(chainerx.XchainerError):
+        with pytest.raises(chainerx.ChainerxError):
             gx1.get_grad(backprop_id=bp1)
 
 

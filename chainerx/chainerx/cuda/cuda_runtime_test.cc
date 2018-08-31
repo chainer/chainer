@@ -25,7 +25,7 @@ TEST(CudaRuntimeTest, IsPointerCudaMemory) {
         void* raw_ptr = nullptr;
         cuda::CheckCudaError(cudaMalloc(&raw_ptr, size));
         auto cuda_ptr = std::shared_ptr<void>{raw_ptr, cudaFree};
-        EXPECT_THROW(IsPointerCudaMemory(cuda_ptr.get()), XchainerError)
+        EXPECT_THROW(IsPointerCudaMemory(cuda_ptr.get()), ChainerxError)
                 << "IsPointerCudaMemory must throw an exception if non-managed CUDA memory is given";
     }
 }

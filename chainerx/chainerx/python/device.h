@@ -10,9 +10,9 @@ namespace python_internal {
 
 Device& GetDevice(pybind11::handle handle);
 
-void InitXchainerDevice(pybind11::module&);
+void InitChainerxDevice(pybind11::module&);
 
-void InitXchainerDeviceScope(pybind11::module&);
+void InitChainerxDeviceScope(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python

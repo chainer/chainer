@@ -6,9 +6,9 @@ namespace chainerx {
 namespace python {
 namespace python_internal {
 
-void InitXchainerGraph(pybind11::module&);
+void InitChainerxGraph(pybind11::module&);
 
-void InitXchainerBackpropScope(pybind11::module&);
+void InitChainerxBackpropScope(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python

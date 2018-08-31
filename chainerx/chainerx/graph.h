@@ -39,10 +39,10 @@ public:
     BackpropOrdinal ordinal() const { return ordinal_; }
 
     // Returns the backprop name.
-    // XchainerError is thrown if the backprop ID is expired or non-existent in the associated context.
+    // ChainerxError is thrown if the backprop ID is expired or non-existent in the associated context.
     std::string GetName() const;
 
-    // Throws XchainerError if this backprop ID has already been released.
+    // Throws ChainerxError if this backprop ID has already been released.
     void CheckValid() const;
 
 private:

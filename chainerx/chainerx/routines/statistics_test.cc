@@ -113,7 +113,7 @@ TEST_P(StatisticsTest, InvalidMeanDuplicateAxes) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(Mean(a, Axes{1, 1}), XchainerError);
+    EXPECT_THROW(Mean(a, Axes{1, 1}), ChainerxError);
 }
 
 TEST_P(StatisticsTest, InvalidMeanOutOfRangeAxes) {
@@ -238,7 +238,7 @@ TEST_P(StatisticsTest, InvalidVarDuplicateAxes) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
-    EXPECT_THROW(Var(a, Axes{1, 1}), XchainerError);
+    EXPECT_THROW(Var(a, Axes{1, 1}), ChainerxError);
 }
 
 TEST_P(StatisticsTest, InvalidVarOutOfRangeAxes) {

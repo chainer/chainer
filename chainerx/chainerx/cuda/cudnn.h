@@ -12,9 +12,9 @@
 namespace chainerx {
 namespace cuda {
 
-class CudnnError : public XchainerError {
+class CudnnError : public ChainerxError {
 public:
-    using XchainerError::XchainerError;
+    using ChainerxError::ChainerxError;
 
     explicit CudnnError(cudnnStatus_t status);
     cudnnStatus_t error() const noexcept { return status_; }

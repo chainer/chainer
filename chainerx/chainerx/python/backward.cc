@@ -22,7 +22,7 @@ namespace py = pybind11;
 
 using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
-void InitXchainerBackward(pybind11::module& m) {
+void InitChainerxBackward(pybind11::module& m) {
     m.def("backward",
           [](const ArrayBodyPtr& body, const nonstd::optional<BackpropId>& backprop_id, bool enable_double_backprop) {
               Array array{body};

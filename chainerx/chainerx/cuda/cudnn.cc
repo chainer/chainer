@@ -12,7 +12,7 @@
 namespace chainerx {
 namespace cuda {
 
-CudnnError::CudnnError(cudnnStatus_t status) : XchainerError{cudnnGetErrorString(status)}, status_{status} {}
+CudnnError::CudnnError(cudnnStatus_t status) : ChainerxError{cudnnGetErrorString(status)}, status_{status} {}
 
 void CheckCudnnError(cudnnStatus_t status) {
     if (status != CUDNN_STATUS_SUCCESS) {
@@ -40,7 +40,7 @@ template <typename T, typename U, typename... ErrorArgs>
 T narrow(U u, const ErrorArgs&... error_args) {
     auto t = static_cast<T>(u);
     if (static_cast<U>(t) != u) {
-        throw XchainerError{error_args...};
+        throw ChainerxError{error_args...};
     }
     return t;
 }

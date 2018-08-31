@@ -6,7 +6,7 @@ namespace chainerx {
 namespace python {
 namespace python_internal {
 
-void InitXchainerScalar(pybind11::module&);
+void InitChainerxScalar(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python
