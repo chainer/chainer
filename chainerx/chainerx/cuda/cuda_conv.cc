@@ -77,7 +77,8 @@ std::size_t CudaConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) cons
     return seed;
 }
 
-void CudaConv::AddBias(cudnnHandle_t handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
+void CudaConv::AddBias(
+        std::mutex& handle_mutex, cudnnHandle_t handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
     CHAINERX_ASSERT(&b.device() == &y.device());
     CHAINERX_ASSERT(b.dtype() == y.dtype());
 
@@ -93,6 +94,7 @@ void CudaConv::AddBias(cudnnHandle_t handle, const CudnnTensorDescriptor& y_desc
     Array b_cont = AsContiguousArray(b).Reshape(new_shape);
 
     CudnnTensorDescriptor b_desc{b_cont};
+    std::lock_guard<std::mutex> lock{handle_mutex};
     CheckCudnnError(cudnnAddTensor(
             handle,
             GetValuePtr<1>(y.dtype()),
@@ -104,6 +106,7 @@ void CudaConv::AddBias(cudnnHandle_t handle, const CudnnTensorDescriptor& y_desc
 }
 
 std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlgorithm(
+        std::mutex& handle_mutex,
         cudnnHandle_t handle,
         const CudnnTensorDescriptor& x_desc,
         const Array& x,
@@ -130,21 +133,24 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlg
     cudnnConvolutionFwdAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    CheckCudnnError(cudnnFindConvolutionForwardAlgorithmEx(
-            handle,
-            *x_desc,
-            internal::GetRawOffsetData<void>(x),
-            *filter_desc,
-            internal::GetRawOffsetData<void>(w),
-            *conv_desc,
-            *y_desc,
-            internal::GetRawOffsetData<void>(y),
-            1,  // requested algo count,
-            &returned_algo_count,
-            &perf_result,
-            workspace.get(),
-            max_workspace_size));
-    CHAINERX_ASSERT(returned_algo_count == 1);
+    {
+        std::lock_guard<std::mutex> lock{handle_mutex};
+        CheckCudnnError(cudnnFindConvolutionForwardAlgorithmEx(
+                handle,
+                *x_desc,
+                internal::GetRawOffsetData<void>(x),
+                *filter_desc,
+                internal::GetRawOffsetData<void>(w),
+                *conv_desc,
+                *y_desc,
+                internal::GetRawOffsetData<void>(y),
+                1,  // requested algo count,
+                &returned_algo_count,
+                &perf_result,
+                workspace.get(),
+                max_workspace_size));
+        CHAINERX_ASSERT(returned_algo_count == 1);
+    }
 
     {
         std::lock_guard<std::mutex> lock{fwd_algo_cache_mutex_};
@@ -153,6 +159,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlg
 }
 
 std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwardDataAlgorithm(
+        std::mutex& handle_mutex,
         cudnnHandle_t handle,
         const CudnnFilterDescriptor& filter_desc,
         const Array& w,
@@ -179,21 +186,24 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwa
     cudnnConvolutionBwdDataAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    CheckCudnnError(cudnnFindConvolutionBackwardDataAlgorithmEx(
-            handle,
-            *filter_desc,
-            internal::GetRawOffsetData<void>(w),
-            *x_desc,
-            internal::GetRawOffsetData<void>(x),
-            *conv_desc,
-            *y_desc,
-            internal::GetRawOffsetData<void>(y),
-            1,  // requested algo count,
-            &returned_algo_count,
-            &perf_result,
-            workspace.get(),
-            max_workspace_size));
-    CHAINERX_ASSERT(returned_algo_count == 1);
+    {
+        std::lock_guard<std::mutex> lock{handle_mutex};
+        CheckCudnnError(cudnnFindConvolutionBackwardDataAlgorithmEx(
+                handle,
+                *filter_desc,
+                internal::GetRawOffsetData<void>(w),
+                *x_desc,
+                internal::GetRawOffsetData<void>(x),
+                *conv_desc,
+                *y_desc,
+                internal::GetRawOffsetData<void>(y),
+                1,  // requested algo count,
+                &returned_algo_count,
+                &perf_result,
+                workspace.get(),
+                max_workspace_size));
+        CHAINERX_ASSERT(returned_algo_count == 1);
+    }
 
     {
         std::lock_guard<std::mutex> lock{bwd_data_algo_cache_mutex_};
@@ -202,6 +212,7 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwa
 }
 
 std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBackwardFilterAlgorithm(
+        std::mutex& handle_mutex,
         cudnnHandle_t handle,
         const CudnnTensorDescriptor& x_desc,
         const Array& x,
@@ -228,21 +239,24 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBack
     cudnnConvolutionBwdFilterAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    CheckCudnnError(cudnnFindConvolutionBackwardFilterAlgorithmEx(
-            handle,
-            *x_desc,
-            internal::GetRawOffsetData<void>(x),
-            *gy_desc,
-            internal::GetRawOffsetData<void>(gy),
-            *conv_desc,
-            *gw_desc,
-            internal::GetRawOffsetData<void>(gw),
-            1,  // requested algo count,
-            &returned_algo_count,
-            &perf_result,
-            workspace.get(),
-            max_workspace_size));
-    CHAINERX_ASSERT(returned_algo_count == 1);
+    {
+        std::lock_guard<std::mutex> lock{handle_mutex};
+        CheckCudnnError(cudnnFindConvolutionBackwardFilterAlgorithmEx(
+                handle,
+                *x_desc,
+                internal::GetRawOffsetData<void>(x),
+                *gy_desc,
+                internal::GetRawOffsetData<void>(gy),
+                *conv_desc,
+                *gw_desc,
+                internal::GetRawOffsetData<void>(gw),
+                1,  // requested algo count,
+                &returned_algo_count,
+                &perf_result,
+                workspace.get(),
+                max_workspace_size));
+        CHAINERX_ASSERT(returned_algo_count == 1);
+    }
 
     {
         std::lock_guard<std::mutex> lock{bwd_filter_algo_cache_mutex_};
@@ -304,32 +318,36 @@ Array CudaConv::Conv(
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
     cudnnHandle_t handle = device.cudnn_handle();
+    std::mutex& handle_mutex = device.cudnn_handle_mutex();
 
     // auto tune
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size = FindConvolutionForwardAlgorithm(
-            handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
+            handle_mutex, handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
 
     cudnnConvolutionFwdAlgo_t algo = std::get<0>(algo_workspace_size);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    CheckCudnnError(cudnnConvolutionForward(
-            handle,
-            GetValuePtr<1>(x.dtype()),
-            *x_desc,
-            internal::GetRawOffsetData<void>(x_cont),
-            *filter_desc,
-            internal::GetRawOffsetData<void>(w_cont),
-            *conv_desc,
-            algo,
-            workspace.get(),
-            workspace_size,
-            GetValuePtr<0>(x.dtype()),
-            *y_desc,
-            internal::GetRawOffsetData<void>(y)));
+    {
+        std::lock_guard<std::mutex> lock{handle_mutex};
+        CheckCudnnError(cudnnConvolutionForward(
+                handle,
+                GetValuePtr<1>(x.dtype()),
+                *x_desc,
+                internal::GetRawOffsetData<void>(x_cont),
+                *filter_desc,
+                internal::GetRawOffsetData<void>(w_cont),
+                *conv_desc,
+                algo,
+                workspace.get(),
+                workspace_size,
+                GetValuePtr<0>(x.dtype()),
+                *y_desc,
+                internal::GetRawOffsetData<void>(y)));
+    }
 
     if (b) {
-        AddBias(handle, y_desc, y, *b);
+        AddBias(handle_mutex, handle, y_desc, y, *b);
     }
 
     return y;
@@ -384,32 +402,36 @@ Array CudaConv::ConvTranspose(
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
     cudnnHandle_t handle = device.cudnn_handle();
+    std::mutex& handle_mutex = device.cudnn_handle_mutex();
 
     // auto tune
     std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardDataAlgorithm(
-            handle, filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
+            handle_mutex, handle, filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
 
     cudnnConvolutionBwdDataAlgo_t algo = std::get<0>(algo_workspace_size);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    CheckCudnnError(cudnnConvolutionBackwardData(
-            handle,
-            GetValuePtr<1>(x.dtype()),
-            *filter_desc,
-            internal::GetRawOffsetData<void>(w_cont),
-            *x_desc,
-            internal::GetRawOffsetData<void>(x_cont),
-            *conv_desc,
-            algo,
-            workspace.get(),
-            workspace_size,
-            GetValuePtr<0>(x.dtype()),
-            *y_desc,
-            internal::GetRawOffsetData<void>(y)));
+    {
+        std::lock_guard<std::mutex> lock{handle_mutex};
+        CheckCudnnError(cudnnConvolutionBackwardData(
+                handle,
+                GetValuePtr<1>(x.dtype()),
+                *filter_desc,
+                internal::GetRawOffsetData<void>(w_cont),
+                *x_desc,
+                internal::GetRawOffsetData<void>(x_cont),
+                *conv_desc,
+                algo,
+                workspace.get(),
+                workspace_size,
+                GetValuePtr<0>(x.dtype()),
+                *y_desc,
+                internal::GetRawOffsetData<void>(y)));
+    }
 
     if (b) {
-        AddBias(handle, y_desc, y, *b);
+        AddBias(handle_mutex, handle, y_desc, y, *b);
     }
 
     return y;
@@ -472,29 +494,33 @@ Array CudaConv::ConvGradWeight(
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
     cudnnHandle_t handle = device.cudnn_handle();
+    std::mutex& handle_mutex = device.cudnn_handle_mutex();
 
     // auto tune
-    std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size =
-            FindConvolutionBackwardFilterAlgorithm(handle, x_desc, x, gy_desc, gy, conv_desc, gw_desc, gw, max_workspace_size, pad, stride);
+    std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardFilterAlgorithm(
+            handle_mutex, handle, x_desc, x, gy_desc, gy, conv_desc, gw_desc, gw, max_workspace_size, pad, stride);
 
     cudnnConvolutionBwdFilterAlgo_t algo = std::get<0>(algo_workspace_size);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    CheckCudnnError(cudnnConvolutionBackwardFilter(
-            handle,
-            GetValuePtr<1>(x.dtype()),
-            *x_desc,
-            internal::GetRawOffsetData<void>(x_cont),
-            *gy_desc,
-            internal::GetRawOffsetData<void>(gy_cont),
-            *conv_desc,
-            algo,
-            workspace.get(),
-            workspace_size,
-            GetValuePtr<0>(x.dtype()),
-            *gw_desc,
-            internal::GetRawOffsetData<void>(gw)));
+    {
+        std::lock_guard<std::mutex> lock{handle_mutex};
+        CheckCudnnError(cudnnConvolutionBackwardFilter(
+                handle,
+                GetValuePtr<1>(x.dtype()),
+                *x_desc,
+                internal::GetRawOffsetData<void>(x_cont),
+                *gy_desc,
+                internal::GetRawOffsetData<void>(gy_cont),
+                *conv_desc,
+                algo,
+                workspace.get(),
+                workspace_size,
+                GetValuePtr<0>(x.dtype()),
+                *gw_desc,
+                internal::GetRawOffsetData<void>(gw)));
+    }
 
     return gw;
 }

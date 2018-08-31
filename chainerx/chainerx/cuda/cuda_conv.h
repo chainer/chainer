@@ -55,9 +55,10 @@ public:
             bool cover_all);
 
 private:
-    void AddBias(cudnnHandle_t handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b);
+    void AddBias(std::mutex& handle_mutex, cudnnHandle_t handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b);
 
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
+            std::mutex& handle_mutex,
             cudnnHandle_t handle,
             const CudnnTensorDescriptor& x_desc,
             const Array& x,
@@ -70,6 +71,7 @@ private:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
     std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> FindConvolutionBackwardDataAlgorithm(
+            std::mutex& handle_mutex,
             cudnnHandle_t handle,
             const CudnnFilterDescriptor& filter_desc,
             const Array& w,
@@ -82,6 +84,7 @@ private:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
     std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> FindConvolutionBackwardFilterAlgorithm(
+            std::mutex& handle_mutex,
             cudnnHandle_t handle,
             const CudnnTensorDescriptor& x_desc,
             const Array& x,
