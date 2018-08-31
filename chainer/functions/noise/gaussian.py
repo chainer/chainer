@@ -58,8 +58,8 @@ class Gaussian(function_node.FunctionNode):
                 self.eps = cuda.cupy.random.standard_normal(
                     ln_var.shape, dtype=mean.dtype)
             else:
-                # Draw samples in FP32 then cast them to FP16 because cupy.random
-                # does not support FP16 currently.
+                # Draw samples in FP32 then cast them to FP16 because
+                # cupy.random does not support FP16 currently.
                 self.eps = cuda.cupy.random.standard_normal(
                     ln_var.shape, dtype=numpy.float32).astype(numpy.float16)
 

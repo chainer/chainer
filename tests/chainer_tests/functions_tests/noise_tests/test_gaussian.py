@@ -55,9 +55,9 @@ class TestGaussian(unittest.TestCase):
         gaussian = functions.noise.gaussian.Gaussian()
 
         def f(m, v):
-            # In case numerical gradient computation is held in more precise dtype
-            # than that of backward computation, cast the eps to reuse before the
-            # numerical computation.
+            # In case numerical gradient computation is held in more precise
+            # dtype than that of backward computation, cast the eps to reuse
+            # before the numerical computation.
             if gaussian.eps is not None and gaussian.eps.dtype != m.dtype:
                 gaussian.eps = gaussian.eps.astype(m.dtype)
             return gaussian.apply((m, v))[0]
