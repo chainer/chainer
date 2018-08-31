@@ -2,10 +2,10 @@
 
 #include <cstdint>
 
-#include "xchainer/constant.h"
-#include "xchainer/macro.h"
+#include "chainerx/constant.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 
 template <int8_t kNdim = kDynamicNdim>
 class IndexIterator {
@@ -261,4 +261,4 @@ private:
     int64_t index_[kMaxNdim];
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,4 +1,4 @@
-#include "xchainer/native/native_device.h"
+#include "chainerx/native/native_device.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -6,25 +6,25 @@
 #include <numeric>
 #include <utility>
 
-#include "xchainer/array.h"
-#include "xchainer/constant.h"
-#include "xchainer/dtype.h"
-#include "xchainer/macro.h"
-#include "xchainer/native/col2im.h"
-#include "xchainer/native/elementwise.h"
-#include "xchainer/native/im2col.h"
-#include "xchainer/native/tensor_dot.h"
-#include "xchainer/numeric_limits.h"
-#include "xchainer/routines/connection.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/indexing.h"
-#include "xchainer/routines/math.h"
-#include "xchainer/routines/pooling.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/constant.h"
+#include "chainerx/dtype.h"
+#include "chainerx/macro.h"
+#include "chainerx/native/col2im.h"
+#include "chainerx/native/elementwise.h"
+#include "chainerx/native/im2col.h"
+#include "chainerx/native/tensor_dot.h"
+#include "chainerx/numeric_limits.h"
+#include "chainerx/routines/connection.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
+#include "chainerx/routines/math.h"
+#include "chainerx/routines/pooling.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 namespace {
 
@@ -49,7 +49,7 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
     return axes;
 }
 
-class NativeMaxPoolForwardBackward : public xchainer::MaxPoolForwardBackward {
+class NativeMaxPoolForwardBackward : public chainerx::MaxPoolForwardBackward {
 public:
     explicit NativeMaxPoolForwardBackward(
             StackVector<int64_t, kMaxNdim> kernel_size,
@@ -196,7 +196,7 @@ Array GetPadModeIgnorePoolingWidths(
     return widths;
 }
 
-class NativeAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {
+class NativeAveragePoolForwardBackward : public chainerx::AveragePoolForwardBackward {
 public:
     explicit NativeAveragePoolForwardBackward(
             StackVector<int64_t, kMaxNdim> kernel_size,
@@ -282,4 +282,4 @@ std::unique_ptr<AveragePoolForwardBackward> NativeDevice::GetAveragePoolForwardB
 }
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

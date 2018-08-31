@@ -2,9 +2,9 @@
 
 #include <pybind11/pybind11.h>
 
-#include "xchainer/device.h"
+#include "chainerx/device.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -16,4 +16,4 @@ void InitXchainerDeviceScope(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

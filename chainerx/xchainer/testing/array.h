@@ -7,17 +7,17 @@
 #include <utility>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
+#include "chainerx/array.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
 
-#include "xchainer/routines/creation.h"
+#include "chainerx/routines/creation.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 namespace array_detail {
 
@@ -157,4 +157,4 @@ private:
 inline array_detail::ArrayBuilder BuildArray(const Shape& shape) { return array_detail::ArrayBuilder{shape}; }
 
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

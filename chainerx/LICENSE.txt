@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 ######################################################################
 # ChainerX borrowed boost::hash_combine from boost.
-# It is included in xchainer/hash_combine.h.
+# It is included in chainerx/hash_combine.h.
 ######################################################################
 Boost Software License - Version 1.0 - August 17th, 2003
 

@@ -1,4 +1,4 @@
-#include "xchainer/stack_vector.h"
+#include "chainerx/stack_vector.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 static_assert(
@@ -572,4 +572,4 @@ TEST(StackVectorTest, CtorCallCounts) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

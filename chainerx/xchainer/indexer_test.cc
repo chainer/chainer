@@ -1,4 +1,4 @@
-#include "xchainer/indexer.h"
+#include "chainerx/indexer.h"
 
 #include <cstdint>
 #include <sstream>
@@ -6,7 +6,7 @@
 
 #include <gtest/gtest.h>
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 template <int8_t kNdim>
@@ -71,4 +71,4 @@ TEST(DynamicIndexerTest, Rank3) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

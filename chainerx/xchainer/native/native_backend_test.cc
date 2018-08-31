@@ -1,4 +1,4 @@
-#include "xchainer/native/native_backend.h"
+#include "chainerx/native/native_backend.h"
 
 #include <cstring>
 #include <tuple>
@@ -6,13 +6,13 @@
 
 #include <gtest/gtest.h>
 
-#include "xchainer/array.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/testing/threading.h"
+#include "chainerx/array.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/testing/threading.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 namespace {
 
@@ -260,4 +260,4 @@ TEST_P(NativeBackendTransferTest, ArrayToDevice) {
 
 }  // namespace
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

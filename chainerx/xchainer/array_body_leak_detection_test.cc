@@ -1,4 +1,4 @@
-#include "xchainer/array_body_leak_detection.h"
+#include "chainerx/array_body_leak_detection.h"
 
 #include <cstddef>
 #include <memory>
@@ -6,14 +6,14 @@
 
 #include <gtest/gtest.h>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body.h"
-#include "xchainer/dtype.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/shape.h"
-#include "xchainer/testing/context_session.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body.h"
+#include "chainerx/dtype.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/shape.h"
+#include "chainerx/testing/context_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 TEST(ArrayBodyLeakDetectionTest, NoLeak) {
@@ -43,4 +43,4 @@ TEST(ArrayBodyLeakDetectionTest, Leak) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

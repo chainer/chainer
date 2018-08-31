@@ -1,4 +1,4 @@
-#include "xchainer/context.h"
+#include "chainerx/context.h"
 
 #include <cstdlib>
 #include <future>
@@ -7,13 +7,13 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/backend.h"
-#include "xchainer/device.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/native/native_device.h"
-#include "xchainer/testing/threading.h"
+#include "chainerx/backend.h"
+#include "chainerx/device.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/native/native_device.h"
+#include "chainerx/testing/threading.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 TEST(ContextTest, Ctor) {
@@ -223,7 +223,7 @@ TEST(ContextTest, UserDefinedBackend) {
 }
 
 TEST(ContextTest, GetBackendOnDefaultContext) {
-    // xchainer::GetBackend
+    // chainerx::GetBackend
     Context ctx;
     SetDefaultContext(&ctx);
     Backend& backend = GetBackend("native");
@@ -232,7 +232,7 @@ TEST(ContextTest, GetBackendOnDefaultContext) {
 }
 
 TEST(ContextTest, GetNativeBackendOnDefaultContext) {
-    // xchainer::GetNativeBackend
+    // chainerx::GetNativeBackend
     Context ctx;
     SetDefaultContext(&ctx);
     native::NativeBackend& backend = GetNativeBackend();
@@ -240,7 +240,7 @@ TEST(ContextTest, GetNativeBackendOnDefaultContext) {
 }
 
 TEST(ContextTest, GetDeviceOnDefaultContext) {
-    // xchainer::GetDevice
+    // chainerx::GetDevice
     Context ctx;
     SetDefaultContext(&ctx);
     Device& device = GetDevice({"native:0"});
@@ -249,4 +249,4 @@ TEST(ContextTest, GetDeviceOnDefaultContext) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

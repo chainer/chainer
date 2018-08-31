@@ -1,23 +1,23 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <cstdint>
 #include <memory>
 
 #include <cudnn.h>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/backend_util.h"
-#include "xchainer/cuda/cudnn.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/backend_util.h"
+#include "chainerx/cuda/cudnn.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -79,7 +79,7 @@ private:
     cudnnTensorDescriptor_t desc_{};
 };
 
-class CudaBatchNormForwardBackward : public xchainer::GenericBatchNormForwardBackward {
+class CudaBatchNormForwardBackward : public chainerx::GenericBatchNormForwardBackward {
 public:
     explicit CudaBatchNormForwardBackward(
             cudnnHandle_t cudnn_handle, const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis)
@@ -335,4 +335,4 @@ Array CudaDevice::FixedBatchNorm(
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

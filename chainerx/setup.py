@@ -76,14 +76,14 @@ install_requires = ['numpy']
 
 
 setuptools.setup(
-    name='xchainer',
+    name='chainerx',
     version='0.0.1',
     author='ChainerX authors',
     author_email='beam.web@gmail.com',
     description='',
     long_description='',
-    ext_modules=[CMakeExtension('xchainer._core', ['_core.so'])],
-    packages=['xchainer', 'xchainer.creation', 'xchainer.testing'],
+    ext_modules=[CMakeExtension('chainerx._core', ['_core.so'])],
+    packages=['chainerx', 'chainerx.creation', 'chainerx.testing'],
     package_dir={'': 'python'},
     cmdclass={'build_ext': CMakeBuild},
     zip_safe=False,

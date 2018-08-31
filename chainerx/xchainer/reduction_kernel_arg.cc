@@ -1,15 +1,15 @@
-#include "xchainer/reduction_kernel_arg.h"
+#include "chainerx/reduction_kernel_arg.h"
 
 #include <cstdint>
 #include <tuple>
 
-#include "xchainer/array.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
-#include "xchainer/squash_dims.h"
-#include "xchainer/strides.h"
+#include "chainerx/array.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
+#include "chainerx/squash_dims.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 
 ReductionArg::ReductionArg(const Array& in, const Axes& axis, const Array& out) : in_{in}, out_{out} {
     Permute(axis);
@@ -141,4 +141,4 @@ void ReductionArg::Squash() {
     out_shape_ = out_squashed_shape;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

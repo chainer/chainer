@@ -1,7 +1,7 @@
 Acceptance tests for Transpose
 ==============================
 
->>> import xchainer as xc
+>>> import chainerx as xc
 
 Using the method
 ----------------

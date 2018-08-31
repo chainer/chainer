@@ -5,10 +5,10 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/constant.h"
+#include "chainerx/array.h"
+#include "chainerx/constant.h"
 
-namespace xchainer {
+namespace chainerx {
 
 // Tests differentiation of a given procedure.
 //
@@ -53,4 +53,4 @@ void CheckDoubleBackwardComputation(
         double rtol = 1e-4,
         const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt);
 
-}  // namespace xchainer
+}  // namespace chainerx

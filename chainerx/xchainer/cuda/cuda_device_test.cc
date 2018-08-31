@@ -1,4 +1,4 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <cstddef>
 #include <memory>
@@ -8,16 +8,16 @@
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
-#include "xchainer/array.h"
-#include "xchainer/context.h"
-#include "xchainer/cuda/cuda_backend.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/array_check.h"
-#include "xchainer/testing/device_session.h"
-#include "xchainer/testing/util.h"
+#include "chainerx/array.h"
+#include "chainerx/context.h"
+#include "chainerx/cuda/cuda_backend.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/array_check.h"
+#include "chainerx/testing/device_session.h"
+#include "chainerx/testing/util.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -166,4 +166,4 @@ TEST(CudaDeviceTest, Synchronize) {
 
 }  // namespace
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

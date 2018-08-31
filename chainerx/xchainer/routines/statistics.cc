@@ -1,16 +1,16 @@
-#include "xchainer/routines/statistics.h"
+#include "chainerx/routines/statistics.h"
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
 
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/creation.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/creation.h"
 
-namespace xchainer {
+namespace chainerx {
 
 Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
@@ -52,4 +52,4 @@ Array Var(const Array& a, const OptionalAxes& axis, bool keepdims) {
     return Mean(diff * diff, sorted_axis, keepdims);
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

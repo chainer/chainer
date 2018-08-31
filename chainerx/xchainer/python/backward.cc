@@ -1,4 +1,4 @@
-#include "xchainer/python/backward.h"
+#include "chainerx/python/backward.h"
 
 #include <algorithm>
 #include <iterator>
@@ -7,14 +7,14 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body.h"
-#include "xchainer/backward.h"
-#include "xchainer/graph.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body.h"
+#include "chainerx/backward.h"
+#include "chainerx/graph.h"
 
-#include "xchainer/python/common.h"
+#include "chainerx/python/common.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -49,4 +49,4 @@ void InitXchainerBackward(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

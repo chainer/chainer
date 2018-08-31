@@ -4,9 +4,9 @@
 #include <ostream>
 #include <vector>
 
-#include "xchainer/array_body.h"
+#include "chainerx/array_body.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 // Keep track of array body allocation.
@@ -47,4 +47,4 @@ private:
 };
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

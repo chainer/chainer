@@ -41,4 +41,4 @@ else
     cmd=(bash -c 'diff -u {} <('"${clang_format}"' {})')
 fi
 
-find "${root_dir}"/xchainer \( -name '*.cc' -o -name '*.h' -o -name '*.cu' -o -name '*.cuh' \) -type f -print0 | xargs -0 -n1 -P"${parallel_jobs}" -I{} "${cmd[@]}"
+find "${root_dir}"/chainerx \( -name '*.cc' -o -name '*.h' -o -name '*.cu' -o -name '*.cuh' \) -type f -print0 | xargs -0 -n1 -P"${parallel_jobs}" -I{} "${cmd[@]}"

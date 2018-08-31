@@ -1,10 +1,10 @@
-#include "xchainer/dtype.h"
+#include "chainerx/dtype.h"
 
 #include <cstring>
 #include <ostream>
 #include <sstream>
 
-namespace xchainer {
+namespace chainerx {
 
 std::ostream& operator<<(std::ostream& os, Dtype dtype) { return os << GetDtypeName(dtype); }
 
@@ -66,4 +66,4 @@ void CheckEqual(Dtype lhs, Dtype rhs) {
     }
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

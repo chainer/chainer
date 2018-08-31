@@ -2,11 +2,11 @@
 
 #include <memory>
 
-#include "xchainer/device.h"
-#include "xchainer/device_id.h"
-#include "xchainer/testing/context_session.h"
+#include "chainerx/device.h"
+#include "chainerx/device_id.h"
+#include "chainerx/testing/context_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 
 class DeviceSession {
@@ -22,4 +22,4 @@ private:
 };
 
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

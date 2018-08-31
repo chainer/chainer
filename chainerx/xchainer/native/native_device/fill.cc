@@ -1,18 +1,18 @@
-#include "xchainer/native/native_device.h"
+#include "chainerx/native/native_device.h"
 
 #include <cstdint>
 
-#include "xchainer/array.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/macro.h"
-#include "xchainer/native/elementwise.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/macro.h"
+#include "chainerx/native/elementwise.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 void NativeDevice::Fill(const Array& out, Scalar value) {
@@ -125,4 +125,4 @@ void NativeDevice::Linspace(double start, double stop, const Array& out) {
 }
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

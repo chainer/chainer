@@ -1,13 +1,13 @@
-#include "xchainer/device_id.h"
+#include "chainerx/device_id.h"
 
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 
-#include "xchainer/error.h"
+#include "chainerx/error.h"
 
-namespace xchainer {
+namespace chainerx {
 
 DeviceId::DeviceId(const std::string& device_name) {
     size_t pos = device_name.find(':');
@@ -39,4 +39,4 @@ std::ostream& operator<<(std::ostream& os, const DeviceId& device_id) {
     return os;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

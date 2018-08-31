@@ -3,9 +3,9 @@
 #include <memory>
 #include <vector>
 
-#include "xchainer/array.h"
+#include "chainerx/array.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace numerical_gradient_internal {
 
 using Arrays = std::vector<Array>;
@@ -17,4 +17,4 @@ Arrays CalculateNumericalGradient(
 
 using numerical_gradient_internal::CalculateNumericalGradient;
 
-}  // namespace xchainer
+}  // namespace chainerx

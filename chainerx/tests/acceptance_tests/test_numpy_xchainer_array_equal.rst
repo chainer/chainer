@@ -1,9 +1,9 @@
-Acceptance tests for xchainer.testing.numpy_xchainer_array_equal
+Acceptance tests for chainerx.testing.numpy_chainerx_array_equal
 ================================================================
 
->>> import xchainer as xc
+>>> import chainerx as xc
 >>> import numpy as np
->>> import xchainer.testing
+>>> import chainerx.testing
 >>> import pytest
 
 Arange
@@ -30,7 +30,7 @@ array([0, 1, 2], shape=(3,), dtype=int64, device='native:0')
 >>> xc.squeeze(a, axis=(2, 3))
 array([[0, 1, 2]], shape=(1, 3), dtype=int64, device='native:0')
 
-xchainer.array
+chainerx.array
 --------------
 
 >>> xc.array([0.5, 1, 2])
@@ -43,11 +43,11 @@ array([0, 1, 2], shape=(3,), dtype=int64, device='native:0')
 array([0, 1, 2], shape=(3,), dtype=int64, device='native:0')
 
 
-xchainer.testing.assert_array_equal
+chainerx.testing.assert_array_equal
 -----------------------------------
 
->>> xchainer.testing.assert_array_equal(xc.arange(3), np.arange(3))
->>> xchainer.testing.assert_array_equal(xc.array([0, 1]), np.array([0, 2]))
+>>> chainerx.testing.assert_array_equal(xc.arange(3), np.arange(3))
+>>> chainerx.testing.assert_array_equal(xc.array([0, 1]), np.array([0, 2]))
 Traceback (most recent call last):
   ...
 AssertionError: 
@@ -55,10 +55,10 @@ Arrays are not equal
 ...
 
 
-xchainer.testing.numpy_xchainer_array_equal
+chainerx.testing.numpy_chainerx_array_equal
 -------------------------------------------
 
->>> @xchainer.testing.numpy_xchainer_array_equal()
+>>> @chainerx.testing.numpy_chainerx_array_equal()
 ... @pytest.mark.parametrize('xp', [xc, np])
 ... def test_array(xp):
 ...     return xp.array([1, 2, 3], dtype='int32')

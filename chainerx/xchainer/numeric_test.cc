@@ -1,4 +1,4 @@
-#include "xchainer/numeric.h"
+#include "chainerx/numeric.h"
 
 #include <cmath>
 #include <memory>
@@ -8,15 +8,15 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/context.h"
-#include "xchainer/error.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/device_session.h"
+#include "chainerx/array.h"
+#include "chainerx/context.h"
+#include "chainerx/error.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/device_session.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class NumericTest : public ::testing::TestWithParam<std::string> {
 protected:
@@ -171,4 +171,4 @@ INSTANTIATE_TEST_CASE_P(
 #endif  // XCHAINER_ENABLE_CUDA
                 std::string{"native"}));
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "xchainer/backend.h"
+#include "chainerx/backend.h"
 
 // Skip a test if required number of devices are unavailable.
 //
@@ -20,12 +20,12 @@
 // TODO(imanishi): Do not depend on the default context being set when the backend argument is a string
 #define XCHAINER_REQUIRE_DEVICE(backend, required_num)                                                 \
     do {                                                                                               \
-        if (xchainer::testing::testing_internal::SkipIfDeviceUnavailable((backend), (required_num))) { \
+        if (chainerx::testing::testing_internal::SkipIfDeviceUnavailable((backend), (required_num))) { \
             return;                                                                                    \
         }                                                                                              \
     } while (0)
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 namespace testing_internal {
 
@@ -41,4 +41,4 @@ bool SkipIfDeviceUnavailable(const std::string& backend_name, int required_num);
 
 }  // namespace testing_internal
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

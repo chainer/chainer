@@ -1,21 +1,21 @@
-#include "xchainer/routines/linalg.h"
+#include "chainerx/routines/linalg.h"
 
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 Array Dot(const Array& a, const Array& b) {
     if (a.ndim() == 0 || b.ndim() == 0) {
@@ -77,4 +77,4 @@ Array Dot(const Array& a, const Array& b) {
     return out_matrix.Reshape(out_shape);
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

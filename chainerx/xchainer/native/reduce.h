@@ -2,11 +2,11 @@
 
 #include <cstdint>
 
-#include "xchainer/array.h"
-#include "xchainer/macro.h"
-#include "xchainer/reduction_kernel_arg.h"
+#include "chainerx/array.h"
+#include "chainerx/macro.h"
+#include "chainerx/reduction_kernel_arg.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 namespace reduce_detail {
 
@@ -111,4 +111,4 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
 }
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

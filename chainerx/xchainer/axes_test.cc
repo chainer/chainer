@@ -1,4 +1,4 @@
-#include "xchainer/axes.h"
+#include "chainerx/axes.h"
 
 #include <cstdint>
 #include <tuple>
@@ -8,9 +8,9 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/error.h"
+#include "chainerx/error.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 void CheckSpanEqual(std::initializer_list<int8_t> expect, gsl::span<const int8_t> actual) {
@@ -192,4 +192,4 @@ INSTANTIATE_TEST_CASE_P(
                 GetSortedAxesOrAllTestParam{4, {0, 1, 2, 3}}));
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

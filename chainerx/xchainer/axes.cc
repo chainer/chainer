@@ -1,4 +1,4 @@
-#include "xchainer/axes.h"
+#include "chainerx/axes.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -10,9 +10,9 @@
 #include <string>
 #include <vector>
 
-#include "xchainer/macro.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 
 std::string Axes::ToString() const {
     std::ostringstream os;
@@ -90,4 +90,4 @@ Axes GetSortedAxesOrAll(const OptionalAxes& axis, int8_t ndim) {
 }
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace xchainer {
+namespace chainerx {
 
 class Context;
 class Device;
@@ -52,4 +52,4 @@ private:
     std::mutex devices_mutex_;
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

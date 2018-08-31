@@ -1,4 +1,4 @@
-#include "xchainer/thread_local_state.h"
+#include "chainerx/thread_local_state.h"
 
 #include <condition_variable>
 #include <mutex>
@@ -6,15 +6,15 @@
 
 #include <gtest/gtest.h>
 
-#include "xchainer/backprop_mode.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
-#include "xchainer/testing/threading.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
+#include "chainerx/testing/threading.h"
 
 // In the following tests, main test logic of each test case is run on a different thread than the main thread (where the test is invoked),
 // because the thread local storage of the main thread may be dirty.
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 TEST(ThreadLocalStateTest, SingleThreadGetAndSet) {
@@ -209,4 +209,4 @@ TEST(ThreadLocalStateTest, SourceThreadStateInvalidated) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

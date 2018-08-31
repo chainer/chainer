@@ -1,4 +1,4 @@
-#include "xchainer/strides.h"
+#include "chainerx/strides.h"
 
 #include <cstdint>
 #include <ostream>
@@ -8,11 +8,11 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 Strides::Strides(const Shape& shape, int64_t item_size) {
     int64_t stride = item_size;
@@ -66,4 +66,4 @@ std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& str
     return std::tuple<int64_t, int64_t>{first, last};
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

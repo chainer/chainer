@@ -1,4 +1,4 @@
-#include "xchainer/shape.h"
+#include "chainerx/shape.h"
 
 #include <numeric>
 #include <tuple>
@@ -7,10 +7,10 @@
 #include <gtest/gtest.h>
 #include <gsl/gsl>
 
-#include "xchainer/dtype.h"
-#include "xchainer/strides.h"
+#include "chainerx/dtype.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 void CheckSpanEqual(std::initializer_list<int64_t> expect, gsl::span<const int64_t> actual) {
@@ -274,4 +274,4 @@ TEST(TransposeShapeTest, LongAxis) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

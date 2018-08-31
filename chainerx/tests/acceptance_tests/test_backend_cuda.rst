@@ -4,7 +4,7 @@ Acceptance tests for pluggable backend system on GPU
 Using two backends in one script
 --------------------------------
 
->>> import xchainer as xc
+>>> import chainerx as xc
 
 >>> a = xc.ones((3,), xc.float32)
 >>> a
@@ -48,7 +48,7 @@ Backward on a graph with multiple devices
 >>> y = ag * b  # Arithmetics between different devices is not allowed
 Traceback (most recent call last):
 ...
-xchainer.DeviceError: Device (cuda:0) is not compatible with array's device (native:0).
+chainerx.DeviceError: Device (cuda:0) is not compatible with array's device (native:0).
 >>> bg = b.to_device('cuda')
 >>> y = ag * bg
 >>> _ = y.require_grad()

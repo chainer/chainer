@@ -1,14 +1,14 @@
-#include "xchainer/numeric.h"
+#include "chainerx/numeric.h"
 
 #include <cmath>
 
-#include "xchainer/array.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
+#include "chainerx/array.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
 
-namespace xchainer {
+namespace chainerx {
 
 bool AllClose(const Array& a, const Array& b, double rtol, double atol, bool equal_nan) {
     if (a.shape() != b.shape()) {
@@ -42,4 +42,4 @@ bool AllClose(const Array& a, const Array& b, double rtol, double atol, bool equ
     });
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

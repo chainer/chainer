@@ -1,4 +1,4 @@
-#include "xchainer/python/routines.h"
+#include "chainerx/python/routines.h"
 
 #include <cstdint>
 #include <string>
@@ -6,38 +6,38 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/constant.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/connection.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/indexing.h"
-#include "xchainer/routines/linalg.h"
-#include "xchainer/routines/logic.h"
-#include "xchainer/routines/manipulation.h"
-#include "xchainer/routines/math.h"
-#include "xchainer/routines/normalization.h"
-#include "xchainer/routines/pooling.h"
-#include "xchainer/routines/sorting.h"
-#include "xchainer/scalar.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/constant.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/connection.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
+#include "chainerx/routines/linalg.h"
+#include "chainerx/routines/logic.h"
+#include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/math.h"
+#include "chainerx/routines/normalization.h"
+#include "chainerx/routines/pooling.h"
+#include "chainerx/routines/sorting.h"
+#include "chainerx/scalar.h"
+#include "chainerx/stack_vector.h"
 
-#include "xchainer/python/array.h"
-#include "xchainer/python/array_index.h"
-#include "xchainer/python/axes.h"
-#include "xchainer/python/common.h"
-#include "xchainer/python/device.h"
-#include "xchainer/python/dtype.h"
-#include "xchainer/python/shape.h"
-#include "xchainer/python/stack_vector.h"
-#include "xchainer/python/strides.h"
+#include "chainerx/python/array.h"
+#include "chainerx/python/array_index.h"
+#include "chainerx/python/axes.h"
+#include "chainerx/python/common.h"
+#include "chainerx/python/device.h"
+#include "chainerx/python/dtype.h"
+#include "chainerx/python/shape.h"
+#include "chainerx/python/stack_vector.h"
+#include "chainerx/python/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -72,7 +72,7 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     Shape shape{count};
     std::shared_ptr<void> data{info.ptr, [](void*) {}};
 
-    return MoveArrayBody(xchainer::FromData(shape, GetDtype(dtype), data, nonstd::nullopt, offset, GetDevice(device)));
+    return MoveArrayBody(chainerx::FromData(shape, GetDtype(dtype), data, nonstd::nullopt, offset, GetDevice(device)));
 }
 
 }  // namespace
@@ -235,7 +235,7 @@ void InitXchainerRoutines(pybind11::module& m) {
     m.def("take",
           [](const ArrayBodyPtr& a, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
-                  throw NotImplementedError{"axis=None is not yet supported for xchainer.take."};
+                  throw NotImplementedError{"axis=None is not yet supported for chainerx.take."};
               }
               return MoveArrayBody(Take(Array{a}, Array{indices}, axis.value()));
           },
@@ -577,4 +577,4 @@ void InitXchainerRoutines(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

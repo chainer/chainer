@@ -1,17 +1,17 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <cmath>
 #include <cstdint>
 
 #include <cuda_runtime.h>
 
-#include "xchainer/array.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/cuda/elementwise.cuh"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
+#include "chainerx/array.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -32,4 +32,4 @@ void CudaDevice::Sqrt(const Array& x, const Array& out) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

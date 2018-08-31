@@ -1,4 +1,4 @@
-#include "xchainer/array.h"
+#include "chainerx/array.h"
 
 #include <algorithm>
 #include <array>
@@ -16,31 +16,31 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array_node.h"
-#include "xchainer/axes.h"
-#include "xchainer/backend.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backprop_scope.h"
-#include "xchainer/backward.h"
-#include "xchainer/check_backward.h"
-#include "xchainer/constant.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
-#include "xchainer/device_id.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/op_node.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
-#include "xchainer/slice.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/array_check.h"
-#include "xchainer/testing/context_session.h"
-#include "xchainer/testing/device_session.h"
-#include "xchainer/testing/util.h"
+#include "chainerx/array_node.h"
+#include "chainerx/axes.h"
+#include "chainerx/backend.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backprop_scope.h"
+#include "chainerx/backward.h"
+#include "chainerx/check_backward.h"
+#include "chainerx/constant.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
+#include "chainerx/device_id.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/op_node.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
+#include "chainerx/slice.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/array_check.h"
+#include "chainerx/testing/context_session.h"
+#include "chainerx/testing/device_session.h"
+#include "chainerx/testing/util.h"
 
 #define EXPECT_ARRAYS_ARE_EQUAL_COPY(orig, copy)             \
     do {                                                     \
@@ -59,7 +59,7 @@
         EXPECT_ARRAY_EQ((orig), (view));                         \
     } while (0)
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 class ArrayTest : public ::testing::TestWithParam<std::string> {
@@ -1599,4 +1599,4 @@ TEST(ArrayIsBackpropRequiredTest, IsBackpropRequiredAnotherContext) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

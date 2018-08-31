@@ -1,4 +1,4 @@
-#include "xchainer/numerical_gradient.h"
+#include "chainerx/numerical_gradient.h"
 
 #include <memory>
 #include <string>
@@ -8,15 +8,15 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/array_repr.h"
-#include "xchainer/context.h"
-#include "xchainer/device_id.h"
-#include "xchainer/shape.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/device_session.h"
+#include "chainerx/array.h"
+#include "chainerx/array_repr.h"
+#include "chainerx/context.h"
+#include "chainerx/device_id.h"
+#include "chainerx/shape.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/device_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 class NumericalGradientTest : public ::testing::TestWithParam<std::string> {
@@ -139,4 +139,4 @@ INSTANTIATE_TEST_CASE_P(
                 std::string{"native"}));
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

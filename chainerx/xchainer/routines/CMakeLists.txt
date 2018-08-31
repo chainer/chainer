@@ -1,4 +1,4 @@
-add_library(xchainer_routines STATIC
+add_library(chainerx_routines STATIC
     connection.cc
     creation.cc
     indexing.cc
@@ -25,11 +25,11 @@ install(FILES
     routines_util.h
     sorting.h
     statistics.h
-    DESTINATION include/xchainer/routines
+    DESTINATION include/chainerx/routines
     )
 
 if(${XCHAINER_BUILD_TEST})
-  add_executable(xchainer_routines_test
+  add_executable(chainerx_routines_test
       connection_test.cc
       creation_test.cc
       indexing_test.cc
@@ -42,10 +42,10 @@ if(${XCHAINER_BUILD_TEST})
       sorting_test.cc
       statistics_test.cc
   )
-  target_link_libraries(xchainer_routines_test
-      xchainer
-      xchainer_routines
-      xchainer_testing
+  target_link_libraries(chainerx_routines_test
+      chainerx
+      chainerx_routines
+      chainerx_testing
       gtest)
-  add_test(NAME xchainer_routines_test COMMAND xchainer_routines_test)
+  add_test(NAME chainerx_routines_test COMMAND chainerx_routines_test)
 endif()

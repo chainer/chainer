@@ -1,4 +1,4 @@
-#include "xchainer/routines/statistics.h"
+#include "chainerx/routines/statistics.h"
 
 #include <cmath>
 #include <limits>
@@ -8,20 +8,20 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/check_backward.h"
-#include "xchainer/device_id.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/scalar.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/array_check.h"
-#include "xchainer/testing/device_session.h"
-#include "xchainer/testing/routines.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/check_backward.h"
+#include "chainerx/device_id.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/scalar.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/array_check.h"
+#include "chainerx/testing/device_session.h"
+#include "chainerx/testing/routines.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 class StatisticsTest : public ::testing::TestWithParam<std::string> {
@@ -296,4 +296,4 @@ INSTANTIATE_TEST_CASE_P(
                 std::string{"native"}));
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

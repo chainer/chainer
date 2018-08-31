@@ -1,9 +1,9 @@
-#include "xchainer/python/strides.h"
+#include "chainerx/python/strides.h"
 
 #include <algorithm>
 #include <cstdint>
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -25,4 +25,4 @@ py::tuple ToTuple(const Strides& strides) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

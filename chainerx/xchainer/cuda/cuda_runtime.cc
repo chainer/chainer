@@ -1,11 +1,11 @@
-#include "xchainer/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_runtime.h"
 
 #include <sstream>
 #include <string>
 
-#include "xchainer/macro.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -46,4 +46,4 @@ bool IsPointerCudaMemory(const void* ptr) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

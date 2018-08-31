@@ -11,14 +11,14 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/axes.h"
-#include "xchainer/constant.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
+#include "chainerx/axes.h"
+#include "chainerx/constant.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class Strides : public StackVector<int64_t, kMaxNdim> {
     using BaseVector = StackVector<int64_t, kMaxNdim>;
@@ -102,4 +102,4 @@ void CheckEqual(const Strides& lhs, const Strides& rhs);
 // This forumula always holds: lower <= 0 < item_size <= upper
 std::tuple<int64_t, int64_t> GetDataRange(const Shape& shape, const Strides& strides, size_t item_size);
 
-}  // namespace xchainer
+}  // namespace chainerx

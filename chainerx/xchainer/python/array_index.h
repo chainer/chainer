@@ -4,9 +4,9 @@
 
 #include <pybind11/pybind11.h>
 
-#include "xchainer/array_index.h"
+#include "chainerx/array_index.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -18,4 +18,4 @@ void InitXchainerArrayIndex(py::module&);
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

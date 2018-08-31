@@ -6,13 +6,13 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/graph.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/graph.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class Array;
 
@@ -163,4 +163,4 @@ std::shared_ptr<ArrayBody> CreateArrayBody(
 std::shared_ptr<ArrayBody> CreateArrayBody(ArrayBody::Params params);
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

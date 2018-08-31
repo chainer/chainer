@@ -1,4 +1,4 @@
-#include "xchainer/python/backprop_mode.h"
+#include "chainerx/python/backprop_mode.h"
 
 #include <memory>
 #include <string>
@@ -7,15 +7,15 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/backprop_mode.h"
-#include "xchainer/context.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/context.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
 
-#include "xchainer/python/common.h"
-#include "xchainer/python/context.h"
+#include "chainerx/python/common.h"
+#include "chainerx/python/context.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 namespace {
@@ -75,4 +75,4 @@ void InitXchainerBackpropMode(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

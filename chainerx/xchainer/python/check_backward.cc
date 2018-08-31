@@ -1,17 +1,17 @@
-#include "xchainer/python/check_backward.h"
+#include "chainerx/python/check_backward.h"
 
 #include <algorithm>
 #include <iterator>
 #include <utility>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body.h"
-#include "xchainer/check_backward.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body.h"
+#include "chainerx/check_backward.h"
 
-#include "xchainer/python/common.h"
+#include "chainerx/python/common.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -94,4 +94,4 @@ void InitXchainerCheckBackward(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

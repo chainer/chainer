@@ -4,10 +4,10 @@
 #include <functional>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/error.h"
+#include "chainerx/array.h"
+#include "chainerx/error.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 
 class RoutinesCheckError : public XchainerError {
@@ -26,4 +26,4 @@ void CheckForward(
         double rtol = 1e-4);
 
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

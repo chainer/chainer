@@ -6,17 +6,17 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/device.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/routines/pooling.h"
-#include "xchainer/scalar.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/device.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/routines/pooling.h"
+#include "chainerx/scalar.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 class NativeDevice : public Device {
@@ -163,4 +163,4 @@ private:
 };
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

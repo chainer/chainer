@@ -10,9 +10,9 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/error.h"
+#include "chainerx/error.h"
 
-namespace xchainer {
+namespace chainerx {
 
 // NOTE: The dtype list is not fixed yet!!!
 enum class Dtype {
@@ -34,21 +34,21 @@ inline bool IsValidDtype(Dtype dtype) {
 
 std::ostream& operator<<(std::ostream& os, Dtype dtype);
 
-}  // namespace xchainer
+}  // namespace chainerx
 
 namespace std {
 
 template <>
-struct hash<::xchainer::Dtype> {
-    size_t operator()(::xchainer::Dtype dtype) const {
-        using T = std::underlying_type_t<::xchainer::Dtype>;
+struct hash<::chainerx::Dtype> {
+    size_t operator()(::chainerx::Dtype dtype) const {
+        using T = std::underlying_type_t<::chainerx::Dtype>;
         return hash<T>()(static_cast<T>(dtype));
     }
 };
 
 }  // namespace std
 
-namespace xchainer {
+namespace chainerx {
 
 // Kind of dtypes.
 enum class DtypeKind {
@@ -209,4 +209,4 @@ std::vector<Dtype> GetAllDtypes();
 // Throws an exception if two dtypes mismatch.
 void CheckEqual(Dtype lhs, Dtype rhs);
 
-}  // namespace xchainer
+}  // namespace chainerx

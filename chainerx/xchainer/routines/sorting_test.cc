@@ -1,4 +1,4 @@
-#include "xchainer/routines/sorting.h"
+#include "chainerx/routines/sorting.h"
 
 #include <cstdint>
 #include <string>
@@ -7,16 +7,16 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/device.h"
-#include "xchainer/device_id.h"
-#include "xchainer/error.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/array_check.h"
-#include "xchainer/testing/device_session.h"
-#include "xchainer/testing/routines.h"
+#include "chainerx/array.h"
+#include "chainerx/device.h"
+#include "chainerx/device_id.h"
+#include "chainerx/error.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/array_check.h"
+#include "chainerx/testing/device_session.h"
+#include "chainerx/testing/routines.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 class SortingTest : public ::testing::TestWithParam<std::string> {
@@ -73,4 +73,4 @@ INSTANTIATE_TEST_CASE_P(
                 std::string{"native"}));
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

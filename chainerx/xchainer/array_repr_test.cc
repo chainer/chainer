@@ -1,4 +1,4 @@
-#include "xchainer/array_repr.h"
+#include "chainerx/array_repr.h"
 
 #include <gtest/gtest.h>
 
@@ -9,18 +9,18 @@
 #include <string>
 #include <vector>
 
-#include "xchainer/backprop_scope.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
-#include "xchainer/device_id.h"
-#include "xchainer/graph.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/native/native_device.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/device_session.h"
+#include "chainerx/backprop_scope.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
+#include "chainerx/device_id.h"
+#include "chainerx/graph.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/native/native_device.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/device_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 template <typename T>
@@ -281,4 +281,4 @@ TEST(ArrayReprTest, ExpiredBackprop) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

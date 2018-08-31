@@ -1,24 +1,24 @@
-#include "xchainer/native/col2im.h"
+#include "chainerx/native/col2im.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/array_index.h"
-#include "xchainer/constant.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
-#include "xchainer/slice.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/array_index.h"
+#include "chainerx/constant.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
+#include "chainerx/slice.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 namespace native_internal {
 
@@ -124,4 +124,4 @@ Array Col2Im(
 
 }  // namespace native_internal
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

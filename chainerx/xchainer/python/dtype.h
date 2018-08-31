@@ -5,9 +5,9 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
-#include "xchainer/dtype.h"
+#include "chainerx/dtype.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -21,4 +21,4 @@ Dtype GetDtype(pybind11::handle handle);
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

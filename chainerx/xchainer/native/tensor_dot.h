@@ -1,12 +1,12 @@
 #pragma once
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 Array TensorDot(const Array& a, const Array& b, const Axes& a_axis, const Axes& b_axis);
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

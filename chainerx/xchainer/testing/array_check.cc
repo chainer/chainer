@@ -1,15 +1,15 @@
-#include "xchainer/testing/array_check.h"
+#include "chainerx/testing/array_check.h"
 
 #include <memory>
 
 #include <gtest/gtest.h>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body.h"
-#include "xchainer/array_node.h"
-#include "xchainer/numeric.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body.h"
+#include "chainerx/array_node.h"
+#include "chainerx/numeric.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 namespace testing_internal {
 namespace {
@@ -68,4 +68,4 @@ inline bool IsAllClose(const Array& a, const Array& b, double rtol, double atol,
 
 }  // namespace testing_internal
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

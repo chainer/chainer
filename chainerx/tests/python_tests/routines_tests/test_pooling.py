@@ -2,7 +2,7 @@ import chainer
 import numpy
 import pytest
 
-import xchainer
+import chainerx
 
 from tests import array_utils
 
@@ -39,22 +39,22 @@ def _create_max_pool_args(xp, device, x_shape, ksize, stride, pad, cover_all, fl
 def test_max_pool(device, x_shape, ksize, stride, pad, cover_all, float_dtype):
     if device.backend.name == 'cuda' and len(ksize) != 2 and len(ksize) != 3:
         # cuDNN supports only 2 and 3 spatial dimensions.
-        return xchainer.testing.ignore()
+        return chainerx.testing.ignore()
 
     def create_args(xp):
         return _create_max_pool_args(xp, device, x_shape, ksize, stride, pad, cover_all, float_dtype)
 
-    def xchainer_max_pool():
-        y = xchainer.max_pool(**create_args(xchainer))
+    def chainerx_max_pool():
+        y = chainerx.max_pool(**create_args(chainerx))
         # In the case of CUDA, we get huge negative numbers instead of -inf around boundaries.
         # Align them to chainer (native) results.
         if device.backend.name == 'cuda':
-            y = xchainer.tonumpy(y)
+            y = chainerx.tonumpy(y)
             y[y < -3.e+34] = -float('inf')
-            y = xchainer.array(y)
+            y = chainerx.array(y)
         return y
 
-    xchainer.testing.assert_allclose(xchainer_max_pool(), chainer.functions.max_pooling_nd(**create_args(numpy)).data)
+    chainerx.testing.assert_allclose(chainerx_max_pool(), chainer.functions.max_pooling_nd(**create_args(numpy)).data)
 
 
 @pytest.mark.parametrize('x_shape,ksize,stride,pad', [
@@ -66,8 +66,8 @@ def test_max_pool(device, x_shape, ksize, stride, pad, cover_all, float_dtype):
 @pytest.mark.parametrize('cover_all', [True, False])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_max_pool_invalid(device, x_shape, ksize, stride, pad, cover_all, float_dtype):
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.max_pool(**_create_max_pool_args(xchainer, device, x_shape, ksize, stride, pad, cover_all, float_dtype))
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.max_pool(**_create_max_pool_args(chainerx, device, x_shape, ksize, stride, pad, cover_all, float_dtype))
 
 
 def _create_average_pool_args(xp, device, x_shape, ksize, stride, pad, pad_mode, float_dtype):
@@ -79,11 +79,11 @@ def _create_average_pool_args(xp, device, x_shape, ksize, stride, pad, pad_mode,
         ret_args['pad'] = pad
 
     if pad_mode is None:
-        # xchainer defaults to 'ignore', which is equivalent with pad_value=None in chainer
-        if xp is not xchainer:
+        # chainerx defaults to 'ignore', which is equivalent with pad_value=None in chainer
+        if xp is not chainerx:
             ret_args['pad_value'] = None
     else:
-        if xp is xchainer:
+        if xp is chainerx:
             ret_args['pad_mode'] = pad_mode
         else:
             if pad_mode == 'zero':
@@ -115,12 +115,12 @@ def _create_average_pool_args(xp, device, x_shape, ksize, stride, pad, pad_mode,
 def test_average_pool(device, x_shape, ksize, stride, pad, pad_mode, float_dtype):
     if device.backend.name == 'cuda' and len(ksize) != 2 and len(ksize) != 3:
         # cuDNN supports only 2 and 3 spatial dimensions.
-        return xchainer.testing.ignore()
+        return chainerx.testing.ignore()
 
     def create_args(xp):
         return _create_average_pool_args(xp, device, x_shape, ksize, stride, pad, pad_mode, float_dtype)
 
-    xchainer.testing.assert_allclose(xchainer.average_pool(**create_args(xchainer)),
+    chainerx.testing.assert_allclose(chainerx.average_pool(**create_args(chainerx)),
                                      chainer.functions.average_pooling_nd(**create_args(numpy)).data)
 
 
@@ -133,5 +133,5 @@ def test_average_pool(device, x_shape, ksize, stride, pad, pad_mode, float_dtype
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('pad_mode', ['zero', 'ignore', None])
 def test_average_pool_invalid(device, x_shape, ksize, stride, pad, pad_mode, float_dtype):
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.average_pool(**_create_average_pool_args(xchainer, device, x_shape, ksize, stride, pad, pad_mode, float_dtype))
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.average_pool(**_create_average_pool_args(chainerx, device, x_shape, ksize, stride, pad, pad_mode, float_dtype))

@@ -1,4 +1,4 @@
-#include "xchainer/routines/math.h"
+#include "chainerx/routines/math.h"
 
 #include <cstdint>
 #include <numeric>
@@ -6,23 +6,23 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/dtype.h"
-#include "xchainer/enum.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/manipulation.h"
-#include "xchainer/routines/routines_util.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/dtype.h"
+#include "chainerx/enum.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/routines_util.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 Array Negative(const Array& x) {
     if (x.dtype() == Dtype::kBool) {
@@ -515,4 +515,4 @@ Array Sqrt(const Array& x) {
     return out;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

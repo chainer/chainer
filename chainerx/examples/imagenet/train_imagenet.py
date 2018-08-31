@@ -15,7 +15,7 @@ import time
 import chainer.iterators
 import numpy as np
 
-import xchainer as xc
+import chainerx as xc
 
 from image_dataset import PreprocessedDataset
 import resnet50

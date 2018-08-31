@@ -2,12 +2,12 @@
 
 #include <cstdint>
 
-#include "xchainer/array.h"
-#include "xchainer/constant.h"
-#include "xchainer/scalar.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/constant.h"
+#include "chainerx/scalar.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 namespace native_internal {
 
@@ -21,4 +21,4 @@ Array Im2Col(
 
 }  // namespace native_internal
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,11 +1,11 @@
-#include "xchainer/scalar.h"
+#include "chainerx/scalar.h"
 
 #include <sstream>
 #include <string>
 
-#include "xchainer/macro.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 
 std::string Scalar::ToString() const {
     std::ostringstream os;
@@ -35,4 +35,4 @@ std::ostream& operator<<(std::ostream& os, Scalar value) {
     return os;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,4 +1,4 @@
-#include "xchainer/optional_container_arg.h"
+#include "chainerx/optional_container_arg.h"
 
 #include <algorithm>
 #include <vector>
@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 template <typename T>
@@ -166,4 +166,4 @@ TEST(OptionalContainerArgTest, ModifyVectorAssign) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

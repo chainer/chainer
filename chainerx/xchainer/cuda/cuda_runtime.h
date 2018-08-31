@@ -2,9 +2,9 @@
 
 #include <cuda_runtime.h>
 
-#include "xchainer/error.h"
+#include "chainerx/error.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 class RuntimeError : public XchainerError {
@@ -40,4 +40,4 @@ GridBlockSize CudaOccupancyMaxPotentialBlockSize(const T& func, size_t dynamic_s
 #endif  // __CUDACC__
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

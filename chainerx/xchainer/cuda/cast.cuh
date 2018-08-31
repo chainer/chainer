@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 // If float value is directly casted to unsigned, it's representation would be different from that of native.
@@ -21,4 +21,4 @@ __device__ auto cuda_numeric_cast(From from)
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

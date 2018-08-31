@@ -1,4 +1,4 @@
-#include "xchainer/python/array.h"
+#include "chainerx/python/array.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -9,37 +9,37 @@
 #include <pybind11/operators.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/array_index.h"
-#include "xchainer/axes.h"
-#include "xchainer/backend_util.h"
-#include "xchainer/backward.h"
-#include "xchainer/constant.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/indexing.h"
-#include "xchainer/routines/manipulation.h"
-#include "xchainer/routines/sorting.h"
-#include "xchainer/shape.h"
-#include "xchainer/slice.h"
-#include "xchainer/strides.h"
+#include "chainerx/array.h"
+#include "chainerx/array_index.h"
+#include "chainerx/axes.h"
+#include "chainerx/backend_util.h"
+#include "chainerx/backward.h"
+#include "chainerx/constant.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
+#include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/sorting.h"
+#include "chainerx/shape.h"
+#include "chainerx/slice.h"
+#include "chainerx/strides.h"
 
-#include "xchainer/python/array_index.h"
-#include "xchainer/python/axes.h"
-#include "xchainer/python/common.h"
-#include "xchainer/python/device.h"
-#include "xchainer/python/dtype.h"
-#include "xchainer/python/shape.h"
-#include "xchainer/python/strides.h"
+#include "chainerx/python/array_index.h"
+#include "chainerx/python/axes.h"
+#include "chainerx/python/common.h"
+#include "chainerx/python/device.h"
+#include "chainerx/python/dtype.h"
+#include "chainerx/python/shape.h"
+#include "chainerx/python/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 namespace {
@@ -105,7 +105,7 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
 ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
     Device& dev = GetDevice(device);
 
-    // object is xchainer.ndarray
+    // object is chainerx.ndarray
     if (py::isinstance<ArrayBody>(object)) {
         Array a = Array{py::cast<ArrayBodyPtr>(object)};
         Dtype dtype_ = dtype.is_none() ? a.dtype() : GetDtype(dtype);
@@ -138,8 +138,8 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
 
 void InitXchainerArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
-    // TODO(hvy): Remove list accepting bindings and replace calls with xchainer.array.
-    // For multidimensional arrays, nested lists should be passed to xchainer.array.
+    // TODO(hvy): Remove list accepting bindings and replace calls with chainerx.array.
+    // For multidimensional arrays, nested lists should be passed to chainerx.array.
     c.def(py::init([](const py::tuple& shape, py::handle dtype, const py::list& list, py::handle device) {
               return MakeArray(shape, GetDtype(dtype), list, GetDevice(device));
           }),
@@ -186,7 +186,7 @@ void InitXchainerArray(pybind11::module& m) {
     c.def("take",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
               if (!axis.has_value()) {
-                  throw NotImplementedError{"axis=None is not yet supported for xchainer.ndarray.take."};
+                  throw NotImplementedError{"axis=None is not yet supported for chainerx.ndarray.take."};
               }
               return MoveArrayBody(Array{self}.Take(Array{indices}, axis.value()));
           },
@@ -384,4 +384,4 @@ void InitXchainerArray(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

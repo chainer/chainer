@@ -3,10 +3,10 @@
 #include <memory>
 #include <string>
 
-#include "xchainer/backend.h"
-#include "xchainer/device.h"
+#include "chainerx/backend.h"
+#include "chainerx/device.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 class NativeDevice;
@@ -39,4 +39,4 @@ private:
 };
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

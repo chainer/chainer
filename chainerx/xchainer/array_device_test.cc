@@ -1,4 +1,4 @@
-#include "xchainer/array.h"
+#include "chainerx/array.h"
 
 #include <initializer_list>
 
@@ -8,20 +8,20 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
+#include "chainerx/backend.h"
+#include "chainerx/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/cuda_backend.h"
-#include "xchainer/cuda/cuda_device.h"
-#include "xchainer/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_backend.h"
+#include "chainerx/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_runtime.h"
 #endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/device.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/native/native_device.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/testing/context_session.h"
+#include "chainerx/device.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/native/native_device.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/testing/context_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 class ArrayDeviceTest : public ::testing::Test {
@@ -244,4 +244,4 @@ TEST_F(ArrayDeviceTest, CheckDevicesCompatibleBasicArithmetics) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,10 +1,10 @@
 #pragma once
 
-namespace xchainer {
+namespace chainerx {
 
 enum class DoubleBackpropOption : bool {
     kDisable = false,
     kEnable = true,
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

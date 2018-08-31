@@ -4,14 +4,14 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array_fwd.h"
-#include "xchainer/backward_fwd.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/graph.h"
-#include "xchainer/shape.h"
+#include "chainerx/array_fwd.h"
+#include "chainerx/backward_fwd.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/graph.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class BackwardContext;
 
@@ -36,4 +36,4 @@ void Backward(
         const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
-}  // namespace xchainer
+}  // namespace chainerx

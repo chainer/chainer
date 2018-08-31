@@ -1,17 +1,17 @@
-#include "xchainer/python/context.h"
+#include "chainerx/python/context.h"
 
 #include <memory>
 #include <sstream>
 #include <string>
 
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
+#include "chainerx/backend.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
 
-#include "xchainer/python/common.h"
-#include "xchainer/python/device.h"
+#include "chainerx/python/common.h"
+#include "chainerx/python/device.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -74,7 +74,7 @@ void InitXchainerContext(pybind11::module& m) {
           py::return_value_policy::reference);
     m.def("get_device",
           [](const std::string& backend_name, int index) -> Device& {
-              return xchainer::GetDevice({backend_name, index});
+              return chainerx::GetDevice({backend_name, index});
           },
           py::return_value_policy::reference);
 
@@ -95,4 +95,4 @@ void InitXchainerContextScope(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,4 +1,4 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -7,19 +7,19 @@
 
 #include <cuda_runtime.h>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/cuda/cuda.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/cuda/elementwise.cuh"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/cuda/cuda.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 namespace {
@@ -202,4 +202,4 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

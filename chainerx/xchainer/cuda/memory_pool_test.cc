@@ -1,10 +1,10 @@
-#include "xchainer/cuda/memory_pool.h"
+#include "chainerx/cuda/memory_pool.h"
 
 #include <gtest/gtest.h>
 
-#include "xchainer/error.h"
+#include "chainerx/error.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 TEST(MemoryPoolTest, Malloc) {
@@ -56,4 +56,4 @@ TEST(MemoryPoolTest, FreeForeignPointer) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

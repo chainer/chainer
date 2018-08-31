@@ -1,4 +1,4 @@
-#include "xchainer/op_node.h"
+#include "chainerx/op_node.h"
 
 #include <algorithm>
 #include <functional>
@@ -7,12 +7,12 @@
 #include <utility>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/array_node.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
+#include "chainerx/array.h"
+#include "chainerx/array_node.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 ArrayProps::ArrayProps(const Array& array) : shape{array.shape()}, dtype{array.dtype()}, device{array.device()} {}
@@ -218,4 +218,4 @@ void OpNode::AddEdgesToOutputArrayNodesOfOuterGraph(
 }
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

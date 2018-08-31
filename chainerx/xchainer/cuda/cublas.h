@@ -2,9 +2,9 @@
 
 #include <cublas_v2.h>
 
-#include "xchainer/error.h"
+#include "chainerx/error.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 class CublasError : public XchainerError {
@@ -19,4 +19,4 @@ private:
 void CheckCublasError(cublasStatus_t status);
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

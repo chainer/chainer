@@ -1,14 +1,14 @@
-#include "xchainer/routines/logic.h"
+#include "chainerx/routines/logic.h"
 
-#include "xchainer/array.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/manipulation.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/manipulation.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 namespace {
 
@@ -83,4 +83,4 @@ Array LogicalNot(const Array& x1) {
     return out;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

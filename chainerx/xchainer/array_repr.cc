@@ -1,4 +1,4 @@
-#include "xchainer/array_repr.h"
+#include "chainerx/array_repr.h"
 
 #include <cassert>
 #include <cmath>
@@ -10,16 +10,16 @@
 #include <utility>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/array_node.h"
-#include "xchainer/constant.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/array_node.h"
+#include "chainerx/constant.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 namespace {
 
@@ -261,4 +261,4 @@ std::string ArrayRepr(const Array& array) {
     return os.str();
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

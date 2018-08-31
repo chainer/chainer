@@ -1,15 +1,15 @@
-#include "xchainer/python/device.h"
+#include "chainerx/python/device.h"
 
 #include <memory>
 #include <string>
 
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
+#include "chainerx/backend.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
 
-#include "xchainer/python/common.h"
+#include "chainerx/python/common.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -76,4 +76,4 @@ void InitXchainerDeviceScope(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

@@ -4,7 +4,7 @@
 
 ### Build the core library
 
-Build `build/xchainer/libxchainer.so` with the following commands.
+Build `build/chainerx/libchainerx.so` with the following commands.
 
 ```shell-session
 $ mkdir -p build
@@ -26,7 +26,7 @@ To specify the installation path, pass `-DCMAKE_INSTALL_PREFIX=<...>` to `cmake`
 
 ### Build the Python binding
 
-To install the `xchainer` Python package, run the following at the repository root:
+To install the `chainerx` Python package, run the following at the repository root:
 
 ```shell-session
 $ pip install .
@@ -128,7 +128,7 @@ ChainerX requires `chainer` package for Python tests. To install the `chainer` P
 $ pip install chainer --pre
 ```
 
-To build the `xchainer` Python package in `develop` mode, run the following at the repository root:
+To build the `chainerx` Python package in `develop` mode, run the following at the repository root:
 
 ```shell-session
 $ pip install -e .
@@ -192,7 +192,7 @@ $ find build -name '*.gcda'
 Use `gcov` command to get coverage:
 
 ```shell-session
-$ gcov ./build/xchainer/CMakeFiles/xchainer.dir/xchainer.gcda
+$ gcov ./build/chainerx/CMakeFiles/chainerx.dir/chainerx.gcda
 ```
 
 See generated .gcov files.
@@ -200,7 +200,7 @@ See generated .gcov files.
 You can also genearte HTML coverage reports with `lcov`. After running tests:
 
 ```shell-session
-$ lcov -c -b xchainer -d build/xchainer/ --no-external -o build/coverage.info
+$ lcov -c -b chainerx -d build/chainerx/ --no-external -o build/coverage.info
 $ genhtml build/coverage.info -o build/coverage
 ```
 

@@ -1,31 +1,31 @@
 #include <pybind11/pybind11.h>
 
-#include "xchainer/python/array.h"
-#include "xchainer/python/array_index.h"
-#include "xchainer/python/backend.h"
-#include "xchainer/python/backprop_mode.h"
-#include "xchainer/python/backward.h"
-#include "xchainer/python/check_backward.h"
-#include "xchainer/python/common.h"
-#include "xchainer/python/context.h"
-#include "xchainer/python/device.h"
-#include "xchainer/python/dtype.h"
-#include "xchainer/python/error.h"
-#include "xchainer/python/graph.h"
-#include "xchainer/python/routines.h"
-#include "xchainer/python/scalar.h"
-#include "xchainer/python/testing/testing_module.h"
+#include "chainerx/python/array.h"
+#include "chainerx/python/array_index.h"
+#include "chainerx/python/backend.h"
+#include "chainerx/python/backprop_mode.h"
+#include "chainerx/python/backward.h"
+#include "chainerx/python/check_backward.h"
+#include "chainerx/python/common.h"
+#include "chainerx/python/context.h"
+#include "chainerx/python/device.h"
+#include "chainerx/python/dtype.h"
+#include "chainerx/python/error.h"
+#include "chainerx/python/graph.h"
+#include "chainerx/python/routines.h"
+#include "chainerx/python/scalar.h"
+#include "chainerx/python/testing/testing_module.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 namespace {
 
 void InitXchainerModule(pybind11::module& m) {
     m.doc() = "ChainerX";
-    m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
+    m.attr("__name__") = "chainerx";  // Show each member as "chainerx.*" instead of "chainerx.core.*"
 
-    // xchainer
+    // chainerx
     InitXchainerContext(m);
     InitXchainerContextScope(m);
     InitXchainerGraph(m);
@@ -43,7 +43,7 @@ void InitXchainerModule(pybind11::module& m) {
     InitXchainerCheckBackward(m);
     InitXchainerRoutines(m);
 
-    // xchainer.testing
+    // chainerx.testing
     pybind11::module m_testing = m.def_submodule("testing");
     testing::testing_internal::InitXchainerTestingModule(m_testing);
 }
@@ -51,8 +51,8 @@ void InitXchainerModule(pybind11::module& m) {
 }  // namespace
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx
 
 PYBIND11_MODULE(_core, m) {  // NOLINT
-    xchainer::python::python_internal::InitXchainerModule(m);
+    chainerx::python::python_internal::InitXchainerModule(m);
 }

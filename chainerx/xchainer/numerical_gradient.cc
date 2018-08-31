@@ -1,20 +1,20 @@
-#include "xchainer/numerical_gradient.h"
+#include "chainerx/numerical_gradient.h"
 
 #include <algorithm>
 #include <functional>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/array_repr.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/device.h"
-#include "xchainer/error.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/manipulation.h"
+#include "chainerx/array.h"
+#include "chainerx/array_repr.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/device.h"
+#include "chainerx/error.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/manipulation.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace numerical_gradient_internal {
 
 // TODO(niboshi): These temporary implementation for primitive operations depend on that the data in arrays can be accessed directly
@@ -113,4 +113,4 @@ Arrays CalculateNumericalGradient(
 }
 
 }  // namespace numerical_gradient_internal
-}  // namespace xchainer
+}  // namespace chainerx

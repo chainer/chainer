@@ -1,9 +1,9 @@
-#include "xchainer/native/native_device.h"
+#include "chainerx/native/native_device.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 void NativeDevice::Synchronize() {}
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

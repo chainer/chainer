@@ -5,11 +5,11 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
+#include "chainerx/backend.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 class CudaDevice;
@@ -58,4 +58,4 @@ private:
 };
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

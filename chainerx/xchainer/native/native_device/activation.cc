@@ -1,14 +1,14 @@
-#include "xchainer/native/native_device.h"
+#include "chainerx/native/native_device.h"
 
 #include <cstdint>
 
-#include "xchainer/array.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/native/elementwise.h"
-#include "xchainer/scalar.h"
+#include "chainerx/array.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/native/elementwise.h"
+#include "chainerx/scalar.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
@@ -25,4 +25,4 @@ void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const 
 }
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

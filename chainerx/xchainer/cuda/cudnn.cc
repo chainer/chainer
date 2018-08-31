@@ -1,15 +1,15 @@
-#include "xchainer/cuda/cudnn.h"
+#include "chainerx/cuda/cudnn.h"
 
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 CudnnError::CudnnError(cudnnStatus_t status) : XchainerError{cudnnGetErrorString(status)}, status_{status} {}
@@ -222,4 +222,4 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
 
 }  // namespace cuda_internal
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

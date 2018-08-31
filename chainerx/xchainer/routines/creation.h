@@ -6,20 +6,20 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/array_index.h"
-#include "xchainer/axes.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/graph.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/array_index.h"
+#include "chainerx/axes.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/graph.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 // Returns the minimum number of bytes required to pack the data with specified strides and shape.
-// TODO(niboshi): Replace this with xchainer::GetDataRange()
+// TODO(niboshi): Replace this with chainerx::GetDataRange()
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_size);
 
 // Creates an array with given data packed with specified strides
@@ -109,4 +109,4 @@ Array Linspace(
         const nonstd::optional<Dtype>& dtype = nonstd::nullopt,
         Device& device = GetDefaultDevice());
 
-}  // namespace xchainer
+}  // namespace chainerx

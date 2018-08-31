@@ -1,11 +1,11 @@
-#include "xchainer/python/backend.h"
+#include "chainerx/python/backend.h"
 
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
+#include "chainerx/backend.h"
+#include "chainerx/context.h"
 
-#include "xchainer/python/common.h"
+#include "chainerx/python/common.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -21,4 +21,4 @@ void InitXchainerBackend(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

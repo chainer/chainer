@@ -1,22 +1,22 @@
-#include "xchainer/cuda/cuda_conv.h"
+#include "chainerx/cuda/cuda_conv.h"
 
 #include <algorithm>
 #include <cstdint>
 
 #include <gtest/gtest.h>
 
-#include "xchainer/array.h"
-#include "xchainer/constant.h"
-#include "xchainer/cuda/cuda_device.h"
-#include "xchainer/device_id.h"
-#include "xchainer/routines/connection.h"
-#include "xchainer/shape.h"
-#include "xchainer/stack_vector.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/array_check.h"
-#include "xchainer/testing/device_session.h"
+#include "chainerx/array.h"
+#include "chainerx/constant.h"
+#include "chainerx/cuda/cuda_device.h"
+#include "chainerx/device_id.h"
+#include "chainerx/routines/connection.h"
+#include "chainerx/shape.h"
+#include "chainerx/stack_vector.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/array_check.h"
+#include "chainerx/testing/device_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace cuda_internal {
 
@@ -176,4 +176,4 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

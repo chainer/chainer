@@ -2,9 +2,9 @@
 
 #include <memory>
 
-#include "xchainer/context.h"
+#include "chainerx/context.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 
 class ContextSession {
@@ -19,4 +19,4 @@ private:
 };
 
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

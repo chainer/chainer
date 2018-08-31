@@ -7,15 +7,15 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array_fwd.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_fwd.h"
-#include "xchainer/constant.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/op_node.h"
+#include "chainerx/array_fwd.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_fwd.h"
+#include "chainerx/constant.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/op_node.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 class ArrayBody;
@@ -143,4 +143,4 @@ private:
     DoubleBackpropOption double_backprop_option_;
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

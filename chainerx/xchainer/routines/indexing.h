@@ -5,10 +5,10 @@
 
 #include "nonstd/optional.hpp"
 
-#include "xchainer/array.h"
-#include "xchainer/array_index.h"
+#include "chainerx/array.h"
+#include "chainerx/array_index.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 // Returns a view selected with the indices.
@@ -24,4 +24,4 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices);
 // TODO(niboshi): Support indices dtype other than int64.
 Array Take(const Array& a, const Array& indices, int8_t axis);
 
-}  // namespace xchainer
+}  // namespace chainerx

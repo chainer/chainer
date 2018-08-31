@@ -1,20 +1,20 @@
 import numpy.testing
 
-import xchainer
+import chainerx
 
 # NumPy-like assertion functions that accept both NumPy and ChainerX arrays
 
 
-def _check_xchainer_array(x):
+def _check_chainerx_array(x):
     # Checks basic conditions that are assumed to hold true for any given ChainerX array passed to assert_array_close and
     # assert_array_equal.
-    assert isinstance(x, xchainer.ndarray)
+    assert isinstance(x, chainerx.ndarray)
     assert not x.is_backprop_required()
 
 
 def _as_numpy(x):
-    if isinstance(x, xchainer.ndarray):
-        return xchainer.tonumpy(x)
+    if isinstance(x, chainerx.ndarray):
+        return chainerx.tonumpy(x)
     assert isinstance(x, numpy.ndarray) or numpy.isscalar(x)
     return x
 
@@ -27,7 +27,7 @@ def _check_dtype_and_strides(x, y, dtype_check, strides_check):
     if strides_check is None:
         strides_check = dtype_check
 
-    if isinstance(x, (numpy.ndarray, xchainer.ndarray)) and isinstance(y, (numpy.ndarray, xchainer.ndarray)):
+    if isinstance(x, (numpy.ndarray, chainerx.ndarray)) and isinstance(y, (numpy.ndarray, chainerx.ndarray)):
         if strides_check:
             assert x.strides == y.strides, f'Strides mismatch: x: {x.strides}, y: {y.strides}'
         if dtype_check:
@@ -35,13 +35,13 @@ def _check_dtype_and_strides(x, y, dtype_check, strides_check):
 
 
 def _preprocess_input(a):
-    # Convert xchainer.Scalar to Python scalar
-    if isinstance(a, xchainer.Scalar):
+    # Convert chainerx.Scalar to Python scalar
+    if isinstance(a, chainerx.Scalar):
         a = a.tolist()
 
-    # Check conditions for xchainer.ndarray
-    if isinstance(a, xchainer.ndarray):
-        _check_xchainer_array(a)
+    # Check conditions for chainerx.ndarray
+    if isinstance(a, chainerx.ndarray):
+        _check_chainerx_array(a)
 
     # Convert to something NumPy can handle
     a = _as_numpy(a)
@@ -52,8 +52,8 @@ def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose
     """Raises an AssertionError if two array_like objects are not equal up to a tolerance.
 
     Args:
-         x(numpy.ndarray or xchainer.ndarray): The actual object to check.
-         y(numpy.ndarray or xchainer.ndarray): The desired, expected object.
+         x(numpy.ndarray or chainerx.ndarray): The actual object to check.
+         y(numpy.ndarray or chainerx.ndarray): The desired, expected object.
          rtol(float): Relative tolerance.
          atol(float): Absolute tolerance.
          equal_nan(bool): Allow NaN values if True. Otherwise, fail the assertion if any NaN is found.
@@ -72,8 +72,8 @@ def assert_array_equal(x, y, err_msg='', verbose=True):
     """Raises an AssertionError if two array_like objects are not equal.
 
     Args:
-         x(numpy.ndarray or xchainer.ndarray): The actual object to check.
-         y(numpy.ndarray or xchainer.ndarray): The desired, expected object.
+         x(numpy.ndarray or chainerx.ndarray): The actual object to check.
+         y(numpy.ndarray or chainerx.ndarray): The desired, expected object.
          err_msg(str): The error message to be printed in case of failure.
          verbose(bool): If ``True``, the conflicting values
              are appended to the error message.
@@ -91,8 +91,8 @@ def assert_allclose_ex(x, y, *args, dtype_check=None, strides_check=None, **kwar
     Raises an AssertionError if two array_like objects are not equal up to a tolerance.
 
     Args:
-         x(numpy.ndarray or xchainer.ndarray): The actual object to check.
-         y(numpy.ndarray or xchainer.ndarray): The desired, expected object.
+         x(numpy.ndarray or chainerx.ndarray): The actual object to check.
+         y(numpy.ndarray or chainerx.ndarray): The desired, expected object.
          rtol(float): Relative tolerance.
          atol(float): Absolute tolerance.
          equal_nan(bool): Allow NaN values if True. Otherwise, fail the assertion if any NaN is found.
@@ -114,8 +114,8 @@ def assert_array_equal_ex(x, y, *args, dtype_check=None, strides_check=None, **k
     Raises an AssertionError if two array_like objects are not equal.
 
     Args:
-         x(numpy.ndarray or xchainer.ndarray): The actual object to check.
-         y(numpy.ndarray or xchainer.ndarray): The desired, expected object.
+         x(numpy.ndarray or chainerx.ndarray): The actual object to check.
+         y(numpy.ndarray or chainerx.ndarray): The desired, expected object.
          err_msg(str): The error message to be printed in case of failure.
          verbose(bool): If ``True``, the conflicting values
              are appended to the error message.

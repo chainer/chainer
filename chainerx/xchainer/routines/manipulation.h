@@ -4,11 +4,11 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 // Retrieves a scalar from a single-element array.
 //
@@ -35,4 +35,4 @@ Array Squeeze(const Array& a, const OptionalAxes& axis = nonstd::nullopt);
 // Returned array is always a view to this array.
 Array BroadcastTo(const Array& array, const Shape& shape);
 
-}  // namespace xchainer
+}  // namespace chainerx

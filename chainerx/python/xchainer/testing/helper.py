@@ -5,8 +5,8 @@ import warnings
 import numpy
 import pytest
 
-import xchainer
-from xchainer.testing import array
+import chainerx
+from chainerx.testing import array
 
 
 # A test returning this object will have its return value ignored.
@@ -15,7 +15,7 @@ from xchainer.testing import array
 # For instance, you might parametrize over shapes (tuples) which are unpacked and passed to a function.
 # While you might want to test empty tuples for module functions, they should maybe be ignored for ndarray functions.
 #
-# If either xchainer or numpy returns this object, the other module should too.
+# If either chainerx or numpy returns this object, the other module should too.
 # Otherwise, the test will be considered inconsistent and be treated as a failure.
 _ignored_result = object()
 
@@ -31,12 +31,12 @@ class _ResultsCheckFailure(Exception):
         self.indices = tuple(indices)
         if condense_results_func is None:
             def condense_results_func(np_r, xc_r):
-                return f'xchainer: {xc_r} numpy: {np_r}'
+                return f'chainerx: {xc_r} numpy: {np_r}'
         self.condense_results_func = condense_results_func
 
-    def condense_results(self, numpy_result, xchainer_result):
-        # Generates a condensed error message for a pair of lowest-level numpy and xchainer results.
-        return self.condense_results_func(numpy_result, xchainer_result)
+    def condense_results(self, numpy_result, chainerx_result):
+        # Generates a condensed error message for a pair of lowest-level numpy and chainerx results.
+        return self.condense_results_func(numpy_result, chainerx_result)
 
 
 def _call_func(impl, args, kw):
@@ -52,24 +52,24 @@ def _call_func(impl, args, kw):
     return result, error, tb
 
 
-def _check_xchainer_numpy_error(xchainer_error, xchainer_tb, numpy_error,
+def _check_chainerx_numpy_error(chainerx_error, chainerx_tb, numpy_error,
                                 numpy_tb, accept_error=()):
     # TODO(sonots): Change error class names of ChainerX to be similar with NumPy, and check names.
-    if xchainer_error is None and numpy_error is None:
-        pytest.fail('Both xchainer and numpy are expected to raise errors, but not')
-    elif xchainer_error is None:
+    if chainerx_error is None and numpy_error is None:
+        pytest.fail('Both chainerx and numpy are expected to raise errors, but not')
+    elif chainerx_error is None:
         pytest.fail('Only numpy raises error\n\n' + numpy_tb)
     elif numpy_error is None:
-        pytest.fail('Only xchainer raises error\n\n' + xchainer_tb)
-    elif not (isinstance(xchainer_error, accept_error) and
+        pytest.fail('Only chainerx raises error\n\n' + chainerx_tb)
+    elif not (isinstance(chainerx_error, accept_error) and
               isinstance(numpy_error, accept_error)):
-        msg = '''Both xchainer and numpy raise exceptions
+        msg = '''Both chainerx and numpy raise exceptions
 
-xchainer
+chainerx
 %s
 numpy
 %s
-''' % (xchainer_tb, numpy_tb)
+''' % (chainerx_tb, numpy_tb)
         pytest.fail(msg)
 
 
@@ -77,69 +77,69 @@ def _is_numpy_type(result):
     return isinstance(result, (numpy.ndarray, numpy.generic))
 
 
-def _check_xchainer_numpy_result_array(check_result_func, xchainer_result, numpy_result, indices):
-    # Compares `xchainer_result` and `numpy_result` as arrays.
+def _check_chainerx_numpy_result_array(check_result_func, chainerx_result, numpy_result, indices):
+    # Compares `chainerx_result` and `numpy_result` as arrays.
 
-    is_xchainer_valid_type = isinstance(xchainer_result, xchainer.ndarray)
+    is_chainerx_valid_type = isinstance(chainerx_result, chainerx.ndarray)
     is_numpy_valid_type = _is_numpy_type(numpy_result)
 
-    if not (is_xchainer_valid_type and is_numpy_valid_type):
+    if not (is_chainerx_valid_type and is_numpy_valid_type):
         raise _ResultsCheckFailure(
             'Using decorator without returning ndarrays. '
             'If you want to explicitly ignore certain tests, '
-            'return xchainer.testing.ignore() to avoid this error', indices)
+            'return chainerx.testing.ignore() to avoid this error', indices)
 
-    if xchainer_result.shape != numpy_result.shape:
+    if chainerx_result.shape != numpy_result.shape:
         raise _ResultsCheckFailure(
             'Shape mismatch', indices,
-            lambda np_r, xc_r: f'xchainer: {xc_r.shape}, numpy: {np_r.shape}')
+            lambda np_r, xc_r: f'chainerx: {xc_r.shape}, numpy: {np_r.shape}')
 
-    if xchainer_result.device is not xchainer.get_default_device():
+    if chainerx_result.device is not chainerx.get_default_device():
         raise _ResultsCheckFailure(
             'Xchainer bad device', indices,
-            lambda np_r, xc_r: f'default: {xchainer.get_default_device()}, xchainer: {xc_r.device}')
+            lambda np_r, xc_r: f'default: {chainerx.get_default_device()}, chainerx: {xc_r.device}')
 
     try:
-        check_result_func(xchainer_result, numpy_result)
+        check_result_func(chainerx_result, numpy_result)
     except AssertionError as e:
         # Convert AssertionError to _ResultsCheckFailure
         raise _ResultsCheckFailure(str(e), indices)
 
 
-def _check_xchainer_numpy_result_impl(check_result_func, xchainer_result, numpy_result, indices):
+def _check_chainerx_numpy_result_impl(check_result_func, chainerx_result, numpy_result, indices):
     # This function raises _ResultsCheckFailure if any failure occurs.
-    # `indices` is a tuple of indices to reach both `xchainer_results` and `numpy_results` from top-level results.
+    # `indices` is a tuple of indices to reach both `chainerx_results` and `numpy_results` from top-level results.
 
-    if xchainer_result is _ignored_result and numpy_result is _ignored_result:
+    if chainerx_result is _ignored_result and numpy_result is _ignored_result:
         return
 
-    if isinstance(xchainer_result, tuple):
+    if isinstance(chainerx_result, tuple):
         if not isinstance(numpy_result, tuple):
             raise _ResultsCheckFailure('Different result types', indices)
-        if len(xchainer_result) != len(numpy_result):
+        if len(chainerx_result) != len(numpy_result):
             raise _ResultsCheckFailure('Result length mismatch', indices)
-        for i, (xc_r, np_r) in enumerate(zip(xchainer_result, numpy_result)):
-            _check_xchainer_numpy_result_impl(check_result_func, xc_r, np_r, indices + (i,))
+        for i, (xc_r, np_r) in enumerate(zip(chainerx_result, numpy_result)):
+            _check_chainerx_numpy_result_impl(check_result_func, xc_r, np_r, indices + (i,))
 
-    elif isinstance(xchainer_result, xchainer.ndarray):
-        _check_xchainer_numpy_result_array(check_result_func, xchainer_result, numpy_result, indices)
+    elif isinstance(chainerx_result, chainerx.ndarray):
+        _check_chainerx_numpy_result_array(check_result_func, chainerx_result, numpy_result, indices)
 
     else:
-        if _is_numpy_type(xchainer_result):
-            raise _ResultsCheckFailure('xchainer result should not be a NumPy type', indices)
-        if type(xchainer_result) != type(numpy_result):
+        if _is_numpy_type(chainerx_result):
+            raise _ResultsCheckFailure('chainerx result should not be a NumPy type', indices)
+        if type(chainerx_result) != type(numpy_result):
             raise _ResultsCheckFailure('Type mismatch', indices)
-        if xchainer_result != numpy_result:
+        if chainerx_result != numpy_result:
             raise _ResultsCheckFailure('Not equal', indices)
 
 
-def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result):
+def _check_chainerx_numpy_result(check_result_func, chainerx_result, numpy_result):
     # Catch _ResultsCheckFailure and generate a comprehensible error message.
     try:
-        _check_xchainer_numpy_result_impl(check_result_func, xchainer_result, numpy_result, indices=())
+        _check_chainerx_numpy_result_impl(check_result_func, chainerx_result, numpy_result, indices=())
     except _ResultsCheckFailure as e:
         indices = e.indices
-        xc_r = xchainer_result
+        xc_r = chainerx_result
         np_r = numpy_result
         i = 0
         while len(indices[i:]) > 0:
@@ -151,12 +151,12 @@ def _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_resul
             indices_str = ''.join(f'[{i}]' for i in indices)
             s = f'{e.msg}: {e.condense_results(np_r, xc_r)}\n\n'
             if len(indices) > 0:
-                s += f'xchainer results{indices_str}: {type(xc_r)}\n'
+                s += f'chainerx results{indices_str}: {type(xc_r)}\n'
                 s += f'{xc_r}\n\n'
                 s += f'numpy results{indices_str}: {type(np_r)}\n'
                 s += f'{np_r}\n\n'
-            s += f'xchainer results: {type(xchainer_result)}\n'
-            s += f'{xchainer_result}\n\n'
+            s += f'chainerx results: {type(chainerx_result)}\n'
+            s += f'{chainerx_result}\n\n'
             s += f'numpy results: {type(numpy_result)}\n'
             s += f'{numpy_result}\n\n'
             return s
@@ -168,30 +168,30 @@ def _make_decorator(check_result_func, name, accept_error):
     def decorator(impl):
         @functools.wraps(impl)
         def test_func(*args, **kw):
-            kw[name] = xchainer
-            xchainer_result, xchainer_error, xchainer_tb = _call_func(impl, args, kw)
+            kw[name] = chainerx
+            chainerx_result, chainerx_error, chainerx_tb = _call_func(impl, args, kw)
 
             kw[name] = numpy
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore', RuntimeWarning)
                 numpy_result, numpy_error, numpy_tb = _call_func(impl, args, kw)
 
-            if xchainer_error or numpy_error:
-                _check_xchainer_numpy_error(xchainer_error, xchainer_tb,
+            if chainerx_error or numpy_error:
+                _check_chainerx_numpy_error(chainerx_error, chainerx_tb,
                                             numpy_error, numpy_tb,
                                             accept_error=accept_error)
                 return
-            assert xchainer_result is not None and numpy_result is not None, (
-                f'Either or both of Xchainer and numpy returned None. xchainer: {xchainer_result}, numpy: {numpy_result}')
-            _check_xchainer_numpy_result(check_result_func, xchainer_result, numpy_result)
+            assert chainerx_result is not None and numpy_result is not None, (
+                f'Either or both of Xchainer and numpy returned None. chainerx: {chainerx_result}, numpy: {numpy_result}')
+            _check_chainerx_numpy_result(check_result_func, chainerx_result, numpy_result)
         # Apply dummy parametrization on `name` (e.g. 'xp') to avoid pytest error when collecting test functions.
         return pytest.mark.parametrize(name, [None])(test_func)
     return decorator
 
 
-def numpy_xchainer_allclose(
+def numpy_chainerx_allclose(
         *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', dtype_check=None, strides_check=None, accept_error=()):
-    """numpy_xchainer_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', dtype_check=True, strides_check=True, accept_error=())
+    """numpy_chainerx_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', dtype_check=True, strides_check=True, accept_error=())
 
     Decorator that checks that NumPy and ChainerX results are equal up to a tolerance.
 
@@ -202,7 +202,7 @@ def numpy_xchainer_allclose(
          err_msg(str): The error message to be printed in case of failure.
          verbose(bool): If ``True``, the conflicting values are
              appended to the error message.
-         name(str): Argument name whose value is either ``numpy`` or ``xchainer`` module.
+         name(str): Argument name whose value is either ``numpy`` or ``chainerx`` module.
          dtype_check(bool): If ``True``, consistency of dtype is also checked.
              Disabling ``dtype_check`` also implies ``strides_check=False``.
          strides_check(bool): If ``True``, consistency of strides is also checked.
@@ -212,10 +212,10 @@ def numpy_xchainer_allclose(
              this argument, the errors are ignored and not raised.
 
     Decorated test fixture is required to return the same arrays
-    in the sense of :func:`numpy_xchainer_allclose`
-    (except the type of array module) even if ``xp`` is ``numpy`` or ``xchainer``.
+    in the sense of :func:`numpy_chainerx_allclose`
+    (except the type of array module) even if ``xp`` is ``numpy`` or ``chainerx``.
 
-    .. seealso:: :func:`xchainer.testing.assert_allclose_ex`
+    .. seealso:: :func:`chainerx.testing.assert_allclose_ex`
     """  # NOQA
     def check_result_func(x, y):
         array.assert_allclose_ex(x, y, rtol, atol, equal_nan, err_msg, verbose, dtype_check=dtype_check, strides_check=strides_check)
@@ -223,8 +223,8 @@ def numpy_xchainer_allclose(
     return _make_decorator(check_result_func, name, accept_error)
 
 
-def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', dtype_check=None, strides_check=None, accept_error=()):
-    """numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', dtype_check=True, strides_check=True, accept_error=()):
+def numpy_chainerx_array_equal(*, err_msg='', verbose=True, name='xp', dtype_check=None, strides_check=None, accept_error=()):
+    """numpy_chainerx_array_equal(*, err_msg='', verbose=True, name='xp', dtype_check=True, strides_check=True, accept_error=()):
 
     Decorator that checks that NumPy and ChainerX results are equal.
 
@@ -232,7 +232,7 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', dtype_che
          err_msg(str): The error message to be printed in case of failure.
          verbose(bool): If ``True``, the conflicting values are
              appended to the error message.
-         name(str): Argument name whose value is either ``numpy`` or ``xchainer`` module.
+         name(str): Argument name whose value is either ``numpy`` or ``chainerx`` module.
          dtype_check(bool): If ``True``, consistency of dtype is also checked.
              Disabling ``dtype_check`` also implies ``strides_check=False``
          strides_check(bool): If ``True``, consistency of strides is also checked.
@@ -242,10 +242,10 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', dtype_che
              this argument, the errors are ignored and not raised.
 
     Decorated test fixture is required to return the same arrays
-    in the sense of :func:`numpy_xchainer_array_equal`
-    (except the type of array module) even if ``xp`` is ``numpy`` or ``xchainer``.
+    in the sense of :func:`numpy_chainerx_array_equal`
+    (except the type of array module) even if ``xp`` is ``numpy`` or ``chainerx``.
 
-    .. seealso:: :func:`xchainer.testing.assert_array_equal_ex`
+    .. seealso:: :func:`chainerx.testing.assert_array_equal_ex`
     """
     def check_result_func(x, y):
         array.assert_array_equal_ex(x, y, err_msg, verbose, dtype_check=dtype_check, strides_check=strides_check)

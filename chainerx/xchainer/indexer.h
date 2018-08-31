@@ -4,12 +4,12 @@
 #include <cstdint>
 #include <ostream>
 
-#include "xchainer/constant.h"
-#include "xchainer/index_iterator.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
+#include "chainerx/constant.h"
+#include "chainerx/index_iterator.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class NdimIndex {
 public:
@@ -121,4 +121,4 @@ inline std::ostream& operator<<(std::ostream& os, const Indexer<Ndim>& indexer) 
     return os << "Indexer(shape=" << shape << ")";
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

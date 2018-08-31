@@ -1,8 +1,8 @@
 #pragma once
 
-#include "xchainer/array.h"
+#include "chainerx/array.h"
 
-namespace xchainer {
+namespace chainerx {
 
 // Returns an elementwise equality array.
 //
@@ -37,4 +37,4 @@ Array LessEqual(const Array& x1, const Array& x2);
 // Returns an elementwise logical negation of an array.
 Array LogicalNot(const Array& x1);
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -3,13 +3,13 @@
 #include <algorithm>
 #include <cstdint>
 
-#include "xchainer/array.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
+#include "chainerx/array.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 
 // Argument to reduction kernels.
 //
@@ -69,4 +69,4 @@ ReductionKernelArg<In, Out, InNdim, OutNdim> MakeReductionKernelArg(const Reduct
                                                         Indexer<OutNdim>{arg.out_shape()}};
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

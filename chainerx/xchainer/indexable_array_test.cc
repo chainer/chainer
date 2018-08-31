@@ -1,4 +1,4 @@
-#include "xchainer/indexable_array.h"
+#include "chainerx/indexable_array.h"
 
 #include <array>
 #include <cstdint>
@@ -7,9 +7,9 @@
 #include <gtest/gtest.h>
 #include <gsl/gsl>
 
-#include "xchainer/strides.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 TEST(IndexableArrayTest, Rank0) {
@@ -97,4 +97,4 @@ TEST(DynamicIndexableArrayTest, Rank3) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

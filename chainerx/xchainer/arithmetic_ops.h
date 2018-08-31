@@ -1,8 +1,8 @@
 #pragma once
 
-#include "xchainer/macro.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 
 template <typename T>
 class ArithmeticOps {
@@ -24,4 +24,4 @@ public:
     XCHAINER_HOST_DEVICE static bool Divide(bool lhs, bool rhs) { return lhs && rhs; }
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,4 +1,4 @@
-#include "xchainer/native/native_device.h"
+#include "chainerx/native/native_device.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -9,23 +9,23 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/macro.h"
-#include "xchainer/native/col2im.h"
-#include "xchainer/native/im2col.h"
-#include "xchainer/native/tensor_dot.h"
-#include "xchainer/routines/connection.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/manipulation.h"
-#include "xchainer/shape.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/macro.h"
+#include "chainerx/native/col2im.h"
+#include "chainerx/native/im2col.h"
+#include "chainerx/native/tensor_dot.h"
+#include "chainerx/routines/connection.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/manipulation.h"
+#include "chainerx/shape.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 Array NativeDevice::Conv(
@@ -118,4 +118,4 @@ Array NativeDevice::ConvTranspose(
 }
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

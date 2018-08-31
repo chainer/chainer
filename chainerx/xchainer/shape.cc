@@ -1,15 +1,15 @@
-#include "xchainer/shape.h"
+#include "chainerx/shape.h"
 
 #include <algorithm>
 #include <functional>
 #include <numeric>
 #include <string>
 
-#include "xchainer/axes.h"
-#include "xchainer/macro.h"
-#include "xchainer/strides.h"
+#include "chainerx/axes.h"
+#include "chainerx/macro.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 bool IsContiguous(const Shape& shape, const Strides& strides, int64_t item_size) {
@@ -143,4 +143,4 @@ void CheckEqual(const Shape& lhs, const Shape& rhs) {
     }
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "xchainer/array.h"
+#include "chainerx/array.h"
 
-namespace xchainer {
+namespace chainerx {
 
 Array Dot(const Array& a, const Array& b);
 
-}  // namespace xchainer
+}  // namespace chainerx

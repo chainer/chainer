@@ -1,7 +1,7 @@
 Acceptance tests for single GPU
 ===============================
 
->>> import xchainer as xc
+>>> import chainerx as xc
 
 Addition
 --------

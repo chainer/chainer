@@ -1,4 +1,4 @@
-#include "xchainer/backprop_mode.h"
+#include "chainerx/backprop_mode.h"
 
 #include <algorithm>
 #include <memory>
@@ -6,15 +6,15 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/array_node.h"
-#include "xchainer/constant.h"
-#include "xchainer/context.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/thread_local_state.h"
+#include "chainerx/array.h"
+#include "chainerx/array_node.h"
+#include "chainerx/constant.h"
+#include "chainerx/context.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/thread_local_state.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 using internal::BackpropModeStack;
@@ -76,4 +76,4 @@ bool IsBackpropRequired(const BackpropId& backprop_id) {
     return true;  // Per default.
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

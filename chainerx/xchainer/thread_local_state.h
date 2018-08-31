@@ -1,10 +1,10 @@
 #pragma once
 
-#include "xchainer/backprop_mode.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 struct InternalThreadLocalState {
@@ -35,4 +35,4 @@ private:
     internal::InternalThreadLocalState state_{};
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

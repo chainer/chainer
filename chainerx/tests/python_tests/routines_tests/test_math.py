@@ -1,17 +1,17 @@
 import numpy
 import pytest
 
-import xchainer
-import xchainer.testing
+import chainerx
+import chainerx.testing
 
 from tests import array_utils
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_negative(xp, device, shape, dtype, is_module):
     if dtype == 'bool_':  # Checked in test_invalid_bool_neg
-        return xchainer.testing.ignore()
+        return chainerx.testing.ignore()
     x = array_utils.create_dummy_ndarray(xp, shape, dtype)
     if is_module:
         return xp.negative(x)
@@ -19,7 +19,7 @@ def test_negative(xp, device, shape, dtype, is_module):
         return -x
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DtypeError, TypeError))
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(chainerx.DtypeError, TypeError))
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_negative_invalid_bool(xp, device, is_module):
     x = xp.array([True, False], dtype='bool_')
@@ -29,7 +29,7 @@ def test_negative_invalid_bool(xp, device, is_module):
         -x
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_add(xp, device, shape, dtype, is_module):
     lhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=1)
@@ -40,7 +40,7 @@ def test_add(xp, device, shape, dtype, is_module):
         return lhs + rhs
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_iadd(xp, device, shape, dtype):
     lhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=1)
@@ -59,19 +59,19 @@ def test_add_scalar(scalar, device, shape, dtype):
     # before the multiplication for NumPy.
     expected = x_np + numpy.dtype(dtype).type(scalar)
 
-    x = xchainer.array(x_np)
-    scalar_xc = xchainer.Scalar(scalar, dtype)
-    xchainer.testing.assert_array_equal_ex(x + scalar, expected)
-    xchainer.testing.assert_array_equal_ex(x + scalar_xc, expected)
-    xchainer.testing.assert_array_equal_ex(scalar + x, expected)
-    xchainer.testing.assert_array_equal_ex(scalar_xc + x, expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.add(x, scalar), expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.add(x, scalar_xc), expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.add(scalar, x), expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.add(scalar_xc, x), expected)
+    x = chainerx.array(x_np)
+    scalar_xc = chainerx.Scalar(scalar, dtype)
+    chainerx.testing.assert_array_equal_ex(x + scalar, expected)
+    chainerx.testing.assert_array_equal_ex(x + scalar_xc, expected)
+    chainerx.testing.assert_array_equal_ex(scalar + x, expected)
+    chainerx.testing.assert_array_equal_ex(scalar_xc + x, expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.add(x, scalar), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.add(x, scalar_xc), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.add(scalar, x), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.add(scalar_xc, x), expected)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('scalar', [0, -1, 1, 2])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_iadd_scalar(xp, scalar, device, shape, dtype):
@@ -83,7 +83,7 @@ def test_iadd_scalar(xp, scalar, device, shape, dtype):
     return lhs
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_sub(xp, device, shape, numeric_dtype, is_module):
     lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype, pattern=1)
@@ -94,7 +94,7 @@ def test_sub(xp, device, shape, numeric_dtype, is_module):
         return lhs - rhs
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_isub(xp, device, shape, numeric_dtype):
     lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype, pattern=1)
@@ -108,7 +108,7 @@ def test_isub(xp, device, shape, numeric_dtype):
 def test_sub_scalar(scalar, device, shape, dtype):
     if dtype == 'bool_':
         # Boolean subtract is deprecated.
-        return xchainer.testing.ignore()
+        return chainerx.testing.ignore()
     x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
     # Implicit casting in NumPy's multiply depends on the 'casting' argument,
     # which is not yet supported (ChainerX always casts).
@@ -117,25 +117,25 @@ def test_sub_scalar(scalar, device, shape, dtype):
     expected = x_np - numpy.dtype(dtype).type(scalar)
     expected_rev = numpy.dtype(dtype).type(scalar) - x_np
 
-    x = xchainer.array(x_np)
-    scalar_xc = xchainer.Scalar(scalar, dtype)
-    xchainer.testing.assert_array_equal_ex(x - scalar, expected)
-    xchainer.testing.assert_array_equal_ex(x - scalar_xc, expected)
-    xchainer.testing.assert_array_equal_ex(scalar - x, expected_rev)
-    xchainer.testing.assert_array_equal_ex(scalar_xc - x, expected_rev)
-    xchainer.testing.assert_array_equal_ex(xchainer.subtract(x, scalar), expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.subtract(x, scalar_xc), expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.subtract(scalar, x), expected_rev)
-    xchainer.testing.assert_array_equal_ex(xchainer.subtract(scalar_xc, x), expected_rev)
+    x = chainerx.array(x_np)
+    scalar_xc = chainerx.Scalar(scalar, dtype)
+    chainerx.testing.assert_array_equal_ex(x - scalar, expected)
+    chainerx.testing.assert_array_equal_ex(x - scalar_xc, expected)
+    chainerx.testing.assert_array_equal_ex(scalar - x, expected_rev)
+    chainerx.testing.assert_array_equal_ex(scalar_xc - x, expected_rev)
+    chainerx.testing.assert_array_equal_ex(chainerx.subtract(x, scalar), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.subtract(x, scalar_xc), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.subtract(scalar, x), expected_rev)
+    chainerx.testing.assert_array_equal_ex(chainerx.subtract(scalar_xc, x), expected_rev)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('scalar', [0, -1, 1, 2])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_isub_scalar(xp, scalar, device, shape, dtype):
     if dtype == 'bool_':
         # Boolean subtract is deprecated.
-        return xchainer.testing.ignore()
+        return chainerx.testing.ignore()
     lhs = array_utils.create_dummy_ndarray(xp, shape, dtype)
     rhs = scalar
     if xp is numpy:
@@ -144,7 +144,7 @@ def test_isub_scalar(xp, scalar, device, shape, dtype):
     return lhs
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_mul(xp, device, shape, dtype, is_module):
     lhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=1)
@@ -155,7 +155,7 @@ def test_mul(xp, device, shape, dtype, is_module):
         return lhs * rhs
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_imul(xp, device, shape, dtype):
     lhs = array_utils.create_dummy_ndarray(xp, shape, dtype, pattern=1)
@@ -174,19 +174,19 @@ def test_mul_scalar(scalar, device, shape, dtype):
     # before the multiplication for NumPy.
     expected = x_np * numpy.dtype(dtype).type(scalar)
 
-    x = xchainer.array(x_np)
-    scalar_xc = xchainer.Scalar(scalar, dtype)
-    xchainer.testing.assert_array_equal_ex(x * scalar, expected)
-    xchainer.testing.assert_array_equal_ex(x * scalar_xc, expected)
-    xchainer.testing.assert_array_equal_ex(scalar * x, expected)
-    xchainer.testing.assert_array_equal_ex(scalar_xc * x, expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.multiply(x, scalar), expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.multiply(x, scalar_xc), expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.multiply(scalar, x), expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.multiply(scalar_xc, x), expected)
+    x = chainerx.array(x_np)
+    scalar_xc = chainerx.Scalar(scalar, dtype)
+    chainerx.testing.assert_array_equal_ex(x * scalar, expected)
+    chainerx.testing.assert_array_equal_ex(x * scalar_xc, expected)
+    chainerx.testing.assert_array_equal_ex(scalar * x, expected)
+    chainerx.testing.assert_array_equal_ex(scalar_xc * x, expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.multiply(x, scalar), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.multiply(x, scalar_xc), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.multiply(scalar, x), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.multiply(scalar_xc, x), expected)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('scalar', [0, -1, 1, 2])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_imul_scalar(xp, scalar, device, shape, dtype):
@@ -198,7 +198,7 @@ def test_imul_scalar(xp, scalar, device, shape, dtype):
     return lhs
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_truediv(xp, device, shape, numeric_dtype, is_module):
     lhs = array_utils.create_dummy_ndarray(xp, shape, numeric_dtype)
@@ -210,7 +210,7 @@ def test_truediv(xp, device, shape, numeric_dtype, is_module):
         return (lhs / rhs).astype(numeric_dtype)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_itruediv(xp, device, shape, numeric_dtype):
     # TODO(niboshi): Remove padding=False
@@ -226,7 +226,7 @@ def test_itruediv(xp, device, shape, numeric_dtype):
 
 
 # TODO(hvy): Support and test zero division and mixed dtypes (dtype kinds).
-# TODO(hvy): Support and test xchainer.Scalar / xchainer.ndarray.
+# TODO(hvy): Support and test chainerx.Scalar / chainerx.ndarray.
 @pytest.mark.parametrize('scalar', [1, 2])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_truediv_scalar(scalar, device, shape, numeric_dtype):
@@ -237,15 +237,15 @@ def test_truediv_scalar(scalar, device, shape, numeric_dtype):
     else:
         expected = x_np / scalar
 
-    x = xchainer.array(x_np)
-    scalar_xc = xchainer.Scalar(scalar, numeric_dtype)
-    xchainer.testing.assert_array_equal_ex(x / scalar, expected)
-    xchainer.testing.assert_array_equal_ex(x / scalar_xc, expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.divide(x, scalar), expected)
-    xchainer.testing.assert_array_equal_ex(xchainer.divide(x, scalar_xc), expected)
+    x = chainerx.array(x_np)
+    scalar_xc = chainerx.Scalar(scalar, numeric_dtype)
+    chainerx.testing.assert_array_equal_ex(x / scalar, expected)
+    chainerx.testing.assert_array_equal_ex(x / scalar_xc, expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.divide(x, scalar), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.divide(x, scalar_xc), expected)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('scalar', [1, 2])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_itruediv_scalar(xp, scalar, device, shape, numeric_dtype):
@@ -262,7 +262,7 @@ def test_itruediv_scalar(xp, scalar, device, shape, numeric_dtype):
 
 
 # TODO(niboshi): Remove strides_check=False
-@xchainer.testing.numpy_xchainer_array_equal(strides_check=False)
+@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
 @pytest.mark.parametrize('keepdims', [False, True])
 @pytest.mark.parametrize('shape,axis', [
     ((), None),
@@ -300,13 +300,13 @@ def test_sum(is_module, xp, device, shape, axis, keepdims, dtype):
     else:
         out = a.sum(axis=axis, keepdims=keepdims)
 
-    # TODO(niboshi): Unsigned integer dtypes should result in uint64. Currently xchainer returns int64.
+    # TODO(niboshi): Unsigned integer dtypes should result in uint64. Currently chainerx returns int64.
     if xp is numpy and numpy.dtype(dtype).kind == 'u':
         out = out.astype(numpy.int64)
     return out
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize('keepdims', [False, True])
 @pytest.mark.parametrize('shape,axis', [
     # ((), 0), # TODO(sonots): Fix compatibility
@@ -331,7 +331,7 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
 
 
 # TODO(sonots): Fix type compatibility for when shape is ()
-@xchainer.testing.numpy_xchainer_array_equal(dtype_check=False)
+@chainerx.testing.numpy_chainerx_array_equal(dtype_check=False)
 @pytest.mark.parametrize("shape,value", [
     ((), -1),
     ((), 1),
@@ -355,7 +355,7 @@ def _create_dummy_array_for_dot(xp, shape, dtype):
     return xp.array(x)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
     numpy.asarray(0), numpy.asarray(-4), numpy.asarray(4),
@@ -369,7 +369,7 @@ def test_exp(xp, device, input, float_dtype):
     return xp.exp(a)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('input', [
     numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
@@ -413,7 +413,7 @@ _invalid_logsumexp_params = [
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
 @pytest.mark.parametrize('keepdims', [True, False])
-@xchainer.testing.numpy_xchainer_allclose(rtol=1e-7, atol=0, dtype_check=False)
+@chainerx.testing.numpy_chainerx_allclose(rtol=1e-7, atol=0, dtype_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
     a = array_utils.create_dummy_ndarray(xp, a_shape, float_dtype)
@@ -428,14 +428,14 @@ def test_logsumexp(xp, device, a_shape, axis, float_dtype, keepdims):
 # TODO(hvy): Dtype promotion is not supported yet.
 # TODO(hvy): Should not overflow for large numbers, add tests
 def test_logsumexp_invalid(device, a_shape, axis, float_dtype, keepdims):
-    a = array_utils.create_dummy_ndarray(xchainer, a_shape, float_dtype)
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.logsumexp(a, axis=axis, keepdims=keepdims)
+    a = array_utils.create_dummy_ndarray(chainerx, a_shape, float_dtype)
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.logsumexp(a, axis=axis, keepdims=keepdims)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('a_shape,axis', _logsumexp_params)
-@xchainer.testing.numpy_xchainer_allclose(rtol=1e-7, atol=1e-5, dtype_check=False)
+@chainerx.testing.numpy_chainerx_allclose(rtol=1e-7, atol=1e-5, dtype_check=False)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_log_softmax(xp, device, a_shape, axis, float_dtype):
     a = array_utils.create_dummy_ndarray(xp, a_shape, float_dtype)
@@ -450,16 +450,16 @@ def test_log_softmax(xp, device, a_shape, axis, float_dtype):
 @pytest.mark.parametrize('a_shape,axis', _invalid_logsumexp_params)
 # TODO(hvy): Dtype promotion is not supported yet.
 def test_log_softmax_invalid(device, a_shape, axis, float_dtype):
-    a = array_utils.create_dummy_ndarray(xchainer, a_shape, float_dtype)
-    with pytest.raises(xchainer.DimensionError):
-        return xchainer.log_softmax(a, axis=axis)
+    a = array_utils.create_dummy_ndarray(chainerx, a_shape, float_dtype)
+    with pytest.raises(chainerx.DimensionError):
+        return chainerx.log_softmax(a, axis=axis)
 
 
 def test_max_amax():
-    assert xchainer.amax is xchainer.max
+    assert chainerx.amax is chainerx.max
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(ValueError, xchainer.DimensionError), strides_check=False)
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.DimensionError), strides_check=False)
 @pytest.mark.parametrize('input,axis', [
     # --- single axis
     # input, axis

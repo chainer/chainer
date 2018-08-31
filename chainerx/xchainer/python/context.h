@@ -2,9 +2,9 @@
 
 #include <pybind11/pybind11.h>
 
-#include "xchainer/context.h"
+#include "chainerx/context.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -16,4 +16,4 @@ void InitXchainerContextScope(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

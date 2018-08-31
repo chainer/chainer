@@ -1,4 +1,4 @@
-#include "xchainer/native/tensor_dot.h"
+#include "chainerx/native/tensor_dot.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -6,14 +6,14 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/device.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/device.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 namespace {
 
@@ -97,4 +97,4 @@ Array TensorDot(const Array& a, const Array& b, const Axes& a_axis, const Axes& 
 }
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

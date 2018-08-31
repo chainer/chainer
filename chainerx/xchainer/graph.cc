@@ -1,12 +1,12 @@
-#include "xchainer/graph.h"
+#include "chainerx/graph.h"
 
 #include <ostream>
 #include <string>
 
-#include "xchainer/context.h"
-#include "xchainer/error.h"
+#include "chainerx/context.h"
+#include "chainerx/error.h"
 
-namespace xchainer {
+namespace chainerx {
 
 std::ostream& operator<<(std::ostream& os, const BackpropId& backprop_id) {
     static constexpr const char* kExpiredBackpropDisplayName = "<expired>";
@@ -22,4 +22,4 @@ std::string BackpropId::GetName() const { return context_.get().GetBackpropName(
 
 void BackpropId::CheckValid() const { context_.get().CheckValidBackpropId(*this); }
 
-}  // namespace xchainer
+}  // namespace chainerx

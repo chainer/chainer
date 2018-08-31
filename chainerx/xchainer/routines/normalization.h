@@ -2,13 +2,13 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/constant.h"
-#include "xchainer/scalar.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/constant.h"
+#include "chainerx/scalar.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 
 // Computes the batch normalization along the given axis.
 // If axis is omitted, the first axis is treated as the batch axis and will be reduced during normalization.
@@ -35,4 +35,4 @@ Array FixedBatchNorm(
         Scalar eps,
         const OptionalAxes& axis = nonstd::nullopt);
 
-}  // namespace xchainer
+}  // namespace chainerx

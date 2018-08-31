@@ -6,14 +6,14 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/axes.h"
-#include "xchainer/backend.h"
-#include "xchainer/constant.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/axes.h"
+#include "chainerx/backend.h"
+#include "chainerx/constant.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class Array;
 enum class AveragePoolPadMode;
@@ -346,4 +346,4 @@ private:
     bool exited_;
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

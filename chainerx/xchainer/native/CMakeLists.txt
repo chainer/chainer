@@ -6,10 +6,10 @@ install(FILES
     col2im.h
     im2col.h
     tensor_dot.h
-    DESTINATION include/xchainer/native
+    DESTINATION include/chainerx/native
     )
 
-add_library(xchainer_native STATIC
+add_library(chainerx_native STATIC
     native_device.cc
     native_device/activation.cc
     native_device/arithmetic.cc
@@ -32,18 +32,18 @@ add_library(xchainer_native STATIC
 if(${BLAS_FOUND})
     # TODO(sonots): Fix that CMake built-in FindBLAS.cmake does not declare BLAS_INCLUDE_DIR
     # include_directories(${BLAS_INCLUDE_DIR})
-    target_link_libraries(xchainer_native ${BLAS_LIBRARIES})
+    target_link_libraries(chainerx_native ${BLAS_LIBRARIES})
 endif()
 
 if(${XCHAINER_BUILD_TEST})
-  add_executable(xchainer_native_test
+  add_executable(chainerx_native_test
       native_backend_test.cc
       native_device_test.cc
   )
-  target_link_libraries(xchainer_native_test
-      xchainer
-      xchainer_native
-      xchainer_testing
+  target_link_libraries(chainerx_native_test
+      chainerx
+      chainerx_native
+      chainerx_testing
       gtest)
-  add_test(NAME xchainer_native_test COMMAND xchainer_native_test)
+  add_test(NAME chainerx_native_test COMMAND chainerx_native_test)
 endif()

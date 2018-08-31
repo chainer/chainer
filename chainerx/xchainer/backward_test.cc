@@ -1,4 +1,4 @@
-#include "xchainer/backward.h"
+#include "chainerx/backward.h"
 
 #include <algorithm>
 #include <map>
@@ -9,29 +9,29 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body_leak_detection.h"
-#include "xchainer/array_node.h"
-#include "xchainer/backend.h"
-#include "xchainer/backprop_scope.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/check_backward.h"
-#include "xchainer/context.h"
-#include "xchainer/device_id.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/op_node.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/math.h"
-#include "xchainer/shape.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/array_check.h"
-#include "xchainer/testing/device_session.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body_leak_detection.h"
+#include "chainerx/array_node.h"
+#include "chainerx/backend.h"
+#include "chainerx/backprop_scope.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/check_backward.h"
+#include "chainerx/context.h"
+#include "chainerx/device_id.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/op_node.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/math.h"
+#include "chainerx/shape.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/array_check.h"
+#include "chainerx/testing/device_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 // Asserts all the array bodies are freed in the leak tracker.
@@ -2640,4 +2640,4 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

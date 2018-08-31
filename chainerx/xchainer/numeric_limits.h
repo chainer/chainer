@@ -3,9 +3,9 @@
 #include <cmath>
 #include <cstdint>
 
-#include "xchainer/macro.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 
 // Numerical limit values used in native and CUDA kernel implementations.
 template <typename T>
@@ -59,4 +59,4 @@ struct NumericLimits<double> {
     XCHAINER_HOST_DEVICE static constexpr double MaxOrInf() noexcept { return HUGE_VAL; }
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

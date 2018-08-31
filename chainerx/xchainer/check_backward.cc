@@ -1,4 +1,4 @@
-#include "xchainer/check_backward.h"
+#include "chainerx/check_backward.h"
 
 #include <algorithm>
 #include <functional>
@@ -6,18 +6,18 @@
 #include <string>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body_leak_detection.h"
-#include "xchainer/array_node.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/numeric.h"
-#include "xchainer/numerical_gradient.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body_leak_detection.h"
+#include "chainerx/array_node.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/numeric.h"
+#include "chainerx/numerical_gradient.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 // Disconnects the graphs of input arrays.
@@ -463,4 +463,4 @@ void CheckDoubleBackwardComputation(
     CheckAllArrayBodiesFreed(tracker);
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

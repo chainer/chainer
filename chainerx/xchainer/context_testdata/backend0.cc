@@ -1,12 +1,12 @@
 #include <memory>
 #include <string>
 
-#include "xchainer/context.h"
-#include "xchainer/native/native_backend.h"
+#include "chainerx/context.h"
+#include "chainerx/native/native_backend.h"
 
 namespace {
 
-class Backend0 : public xchainer::native::NativeBackend {
+class Backend0 : public chainerx::native::NativeBackend {
 public:
     using NativeBackend::NativeBackend;
 
@@ -15,6 +15,6 @@ public:
 
 }  // namespace
 
-extern "C" xchainer::Backend* CreateBackend(xchainer::Context& ctx) { return new Backend0{ctx}; }
+extern "C" chainerx::Backend* CreateBackend(chainerx::Context& ctx) { return new Backend0{ctx}; }
 
-extern "C" void DestroyBackend(xchainer::Backend* backend) { delete backend; }
+extern "C" void DestroyBackend(chainerx::Backend* backend) { delete backend; }

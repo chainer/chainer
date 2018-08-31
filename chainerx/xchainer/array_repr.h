@@ -3,9 +3,9 @@
 #include <iostream>
 #include <string>
 
-#include "xchainer/array.h"
+#include "chainerx/array.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class Array;
 
@@ -13,4 +13,4 @@ std::string ArrayRepr(const Array& array);
 
 std::ostream& operator<<(std::ostream& os, const Array& array);
 
-}  // namespace xchainer
+}  // namespace chainerx

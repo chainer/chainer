@@ -1,17 +1,17 @@
-#include "xchainer/squash_dims.h"
+#include "chainerx/squash_dims.h"
 
 #include <tuple>
 
 #include <gtest/gtest.h>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/context_session.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/context_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 TEST(SquashDimsTest, GetSquashedStrides) {
@@ -63,4 +63,4 @@ TEST(SquashDimsTest, SquashMultipleArraysDimensions) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

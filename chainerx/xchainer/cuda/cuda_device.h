@@ -9,17 +9,17 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/cuda/cuda_backend.h"
-#include "xchainer/cuda/cuda_conv.h"
-#include "xchainer/cuda/memory_pool.h"
-#include "xchainer/device.h"
-#include "xchainer/routines/pooling.h"
-#include "xchainer/scalar.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/cuda/cuda_backend.h"
+#include "chainerx/cuda/cuda_conv.h"
+#include "chainerx/cuda/memory_pool.h"
+#include "chainerx/device.h"
+#include "chainerx/routines/pooling.h"
+#include "chainerx/scalar.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace cuda_internal {
 
@@ -195,4 +195,4 @@ private:
 };
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,10 +1,10 @@
-#include "xchainer/python/error.h"
+#include "chainerx/python/error.h"
 
-#include "xchainer/error.h"
+#include "chainerx/error.h"
 
-#include "xchainer/python/common.h"
+#include "chainerx/python/common.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -23,4 +23,4 @@ void InitXchainerError(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

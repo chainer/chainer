@@ -1,23 +1,23 @@
-#include "xchainer/routines/connection.h"
+#include "chainerx/routines/connection.h"
 
 #include <cstdint>
 #include <vector>
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/constant.h"
-#include "xchainer/device.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/math.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/constant.h"
+#include "chainerx/device.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/math.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
@@ -277,4 +277,4 @@ Array ConvTranspose(
     return out;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

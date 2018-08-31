@@ -1,4 +1,4 @@
-#include "xchainer/cuda/cuda_backend.h"
+#include "chainerx/cuda/cuda_backend.h"
 
 #include <cuda_runtime.h>
 
@@ -8,13 +8,13 @@
 #include <stdexcept>
 #include <string>
 
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
-#include "xchainer/cuda/cuda_device.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/native/native_backend.h"
+#include "chainerx/backend.h"
+#include "chainerx/context.h"
+#include "chainerx/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/native/native_backend.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 constexpr const char* CudaBackend::kDefaultName;
@@ -77,4 +77,4 @@ size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

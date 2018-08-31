@@ -1,11 +1,11 @@
-#include "xchainer/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_runtime.h"
 
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
 #include <memory>
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -32,4 +32,4 @@ TEST(CudaRuntimeTest, IsPointerCudaMemory) {
 
 }  // namespace
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

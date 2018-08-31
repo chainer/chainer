@@ -2,9 +2,9 @@
 
 #include <pybind11/pybind11.h>
 
-#include "xchainer/shape.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -14,4 +14,4 @@ pybind11::tuple ToTuple(const Shape& shape);
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

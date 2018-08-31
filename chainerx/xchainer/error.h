@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace xchainer {
+namespace chainerx {
 namespace error_detail {
 
 inline void MakeMessageImpl(std::ostringstream& /*os*/) {}
@@ -93,4 +93,4 @@ public:
     using XchainerError::XchainerError;
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 constexpr size_t kAllocationUnitSize = 512;
@@ -27,4 +27,4 @@ private:
 };
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

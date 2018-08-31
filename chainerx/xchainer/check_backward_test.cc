@@ -1,4 +1,4 @@
-#include "xchainer/numerical_gradient.h"
+#include "chainerx/numerical_gradient.h"
 
 #include <algorithm>
 #include <memory>
@@ -12,22 +12,22 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/backprop_scope.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/check_backward.h"
-#include "xchainer/context.h"
-#include "xchainer/graph.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/op_node.h"
-#include "xchainer/shape.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/device_session.h"
+#include "chainerx/array.h"
+#include "chainerx/backprop_scope.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/check_backward.h"
+#include "chainerx/context.h"
+#include "chainerx/graph.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/op_node.h"
+#include "chainerx/shape.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/device_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 using Arrays = std::vector<Array>;
@@ -193,4 +193,4 @@ TEST_F(CheckDoubleBackwardTest, CorrectBackward) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

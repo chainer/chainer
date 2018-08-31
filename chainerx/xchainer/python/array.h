@@ -5,9 +5,9 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 
-#include "xchainer/array_body.h"
+#include "chainerx/array_body.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -29,4 +29,4 @@ void InitXchainerArray(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

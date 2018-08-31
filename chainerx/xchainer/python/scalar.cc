@@ -1,15 +1,15 @@
-#include "xchainer/python/scalar.h"
+#include "chainerx/python/scalar.h"
 
 #include <pybind11/operators.h>
 
-#include "xchainer/dtype.h"
-#include "xchainer/macro.h"
-#include "xchainer/scalar.h"
+#include "chainerx/dtype.h"
+#include "chainerx/macro.h"
+#include "chainerx/scalar.h"
 
-#include "xchainer/python/common.h"
-#include "xchainer/python/dtype.h"
+#include "chainerx/python/common.h"
+#include "chainerx/python/dtype.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -65,4 +65,4 @@ void InitXchainerScalar(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,14 +1,14 @@
-#include "xchainer/native/native_device.h"
+#include "chainerx/native/native_device.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 
-#include "xchainer/device.h"
-#include "xchainer/macro.h"
+#include "chainerx/device.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
@@ -41,4 +41,4 @@ std::shared_ptr<void> NativeDevice::FromHostMemory(const std::shared_ptr<void>& 
 }
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

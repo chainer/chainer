@@ -5,12 +5,12 @@
 #include <mutex>
 #include <type_traits>
 
-#include "xchainer/cuda/cuda.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/macro.h"
-#include "xchainer/reduction_kernel_arg.h"
+#include "chainerx/cuda/cuda.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/macro.h"
+#include "chainerx/reduction_kernel_arg.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace reduce_detail {
 
@@ -188,4 +188,4 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

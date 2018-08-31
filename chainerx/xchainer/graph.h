@@ -6,10 +6,10 @@
 #include <ostream>
 #include <string>
 
-#include "xchainer/error.h"
-#include "xchainer/hash_combine.h"
+#include "chainerx/error.h"
+#include "chainerx/hash_combine.h"
 
-namespace xchainer {
+namespace chainerx {
 
 using BackpropOrdinal = uint64_t;
 
@@ -70,15 +70,15 @@ std::ostream& operator<<(std::ostream& os, const BackpropId& backprop_id);
 // Used to represent any graph (id).
 class AnyGraph {};
 
-}  // namespace xchainer
+}  // namespace chainerx
 
 namespace std {
 
 template <>
-struct hash<xchainer::BackpropId> {
-    size_t operator()(const xchainer::BackpropId& backprop_id) const {
-        size_t seed = std::hash<xchainer::Context*>()(&backprop_id.context());
-        xchainer::internal::HashCombine(seed, std::hash<xchainer::BackpropOrdinal>()(backprop_id.ordinal()));
+struct hash<chainerx::BackpropId> {
+    size_t operator()(const chainerx::BackpropId& backprop_id) const {
+        size_t seed = std::hash<chainerx::Context*>()(&backprop_id.context());
+        chainerx::internal::HashCombine(seed, std::hash<chainerx::BackpropOrdinal>()(backprop_id.ordinal()));
         return seed;
     }
 };

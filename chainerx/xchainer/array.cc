@@ -1,4 +1,4 @@
-#include "xchainer/array.h"
+#include "chainerx/array.h"
 
 #include <algorithm>
 #include <cmath>
@@ -14,33 +14,33 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array_body.h"
-#include "xchainer/array_node.h"
-#include "xchainer/array_repr.h"
-#include "xchainer/axes.h"
-#include "xchainer/backend.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/op_node.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/indexing.h"
-#include "xchainer/routines/linalg.h"
-#include "xchainer/routines/logic.h"
-#include "xchainer/routines/manipulation.h"
-#include "xchainer/routines/math.h"
-#include "xchainer/routines/sorting.h"
-#include "xchainer/scalar.h"
+#include "chainerx/array_body.h"
+#include "chainerx/array_node.h"
+#include "chainerx/array_repr.h"
+#include "chainerx/axes.h"
+#include "chainerx/backend.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/op_node.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
+#include "chainerx/routines/linalg.h"
+#include "chainerx/routines/logic.h"
+#include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/math.h"
+#include "chainerx/routines/sorting.h"
+#include "chainerx/scalar.h"
 
-namespace xchainer {
+namespace chainerx {
 
 namespace internal {
 
@@ -151,43 +151,43 @@ const Array& Array::operator/=(Scalar rhs) const {
     return *this;
 }
 
-Array Array::operator+(const Array& rhs) const { return xchainer::Add(*this, rhs); }
+Array Array::operator+(const Array& rhs) const { return chainerx::Add(*this, rhs); }
 
-Array Array::operator+(Scalar rhs) const { return xchainer::Add(*this, rhs); }
+Array Array::operator+(Scalar rhs) const { return chainerx::Add(*this, rhs); }
 
-Array Array::operator-(const Array& rhs) const { return xchainer::Subtract(*this, rhs); }
+Array Array::operator-(const Array& rhs) const { return chainerx::Subtract(*this, rhs); }
 
-Array Array::operator-(Scalar rhs) const { return xchainer::Subtract(*this, rhs); }
+Array Array::operator-(Scalar rhs) const { return chainerx::Subtract(*this, rhs); }
 
 Array Array::operator*(const Array& rhs) const { return Multiply(*this, rhs); }
 
 Array Array::operator*(Scalar rhs) const { return Multiply(*this, rhs); }
 
-Array Array::operator/(const Array& rhs) const { return xchainer::Divide(*this, rhs); }
+Array Array::operator/(const Array& rhs) const { return chainerx::Divide(*this, rhs); }
 
-Array Array::operator/(Scalar rhs) const { return xchainer::Divide(*this, rhs); }
+Array Array::operator/(Scalar rhs) const { return chainerx::Divide(*this, rhs); }
 
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 
-Array Array::Transpose(const OptionalAxes& axes) const { return xchainer::Transpose(*this, axes); }
+Array Array::Transpose(const OptionalAxes& axes) const { return chainerx::Transpose(*this, axes); }
 
-Array Array::Reshape(const Shape& newshape) const { return xchainer::Reshape(*this, newshape); }
+Array Array::Reshape(const Shape& newshape) const { return chainerx::Reshape(*this, newshape); }
 
-Array Array::Squeeze(const OptionalAxes& axis) const { return xchainer::Squeeze(*this, axis); }
+Array Array::Squeeze(const OptionalAxes& axis) const { return chainerx::Squeeze(*this, axis); }
 
-Array Array::BroadcastTo(const Shape& shape) const { return xchainer::BroadcastTo(*this, shape); }
+Array Array::BroadcastTo(const Shape& shape) const { return chainerx::BroadcastTo(*this, shape); }
 
-Array Array::ArgMax(const OptionalAxes& axis) const { return xchainer::ArgMax(*this, axis); }
+Array Array::ArgMax(const OptionalAxes& axis) const { return chainerx::ArgMax(*this, axis); }
 
-Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return xchainer::Sum(*this, axis, keepdims); }
+Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return chainerx::Sum(*this, axis, keepdims); }
 
-Array Array::Max(const OptionalAxes& axis, bool keepdims) const { return xchainer::AMax(*this, axis, keepdims); }
+Array Array::Max(const OptionalAxes& axis, bool keepdims) const { return chainerx::AMax(*this, axis, keepdims); }
 
-Array Array::Dot(const Array& b) const { return xchainer::Dot(*this, b); }
+Array Array::Dot(const Array& b) const { return chainerx::Dot(*this, b); }
 
-Array Array::Take(const Array& indices, int8_t axis) const { return xchainer::Take(*this, indices, axis); }
+Array Array::Take(const Array& indices, int8_t axis) const { return chainerx::Take(*this, indices, axis); }
 
-Array Array::Copy() const { return xchainer::Copy(*this); }
+Array Array::Copy() const { return chainerx::Copy(*this); }
 
 Array Array::MakeView() const {
     Array out{shape(), strides(), dtype(), device(), data(), offset()};
@@ -326,13 +326,13 @@ void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
 
 bool Array::IsBackpropRequired(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
-    return body_->HasArrayNode(actual_backprop_id) && xchainer::IsBackpropRequired(actual_backprop_id);
+    return body_->HasArrayNode(actual_backprop_id) && chainerx::IsBackpropRequired(actual_backprop_id);
 }
 
 bool Array::IsBackpropRequired(AnyGraph /*any_graph*/) const {
     const std::vector<std::shared_ptr<internal::ArrayNode>>& array_nodes = body_->nodes();
     return std::any_of(array_nodes.begin(), array_nodes.end(), [](const std::shared_ptr<const internal::ArrayNode>& array_node) {
-        return xchainer::IsBackpropRequired(array_node->backprop_id());
+        return chainerx::IsBackpropRequired(array_node->backprop_id());
     });
 }
 
@@ -476,4 +476,4 @@ void DebugDumpComputationalGraph(
     impl.Run(*internal::GetArrayBody(array)->GetArrayNode(actual_backprop_id), indent);
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

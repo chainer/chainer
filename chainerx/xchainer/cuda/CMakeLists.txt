@@ -9,10 +9,10 @@ install(FILES
     elementwise.cuh
     memory_pool.h
     reduce.cuh
-    DESTINATION include/xchainer/cuda
+    DESTINATION include/chainerx/cuda
     )
 
-CUDA_ADD_LIBRARY(xchainer_cuda STATIC
+CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cublas.cc
     cuda.cc
     cuda_conv.cc
@@ -37,23 +37,23 @@ CUDA_ADD_LIBRARY(xchainer_cuda STATIC
     memory_pool.cc
     )
 
-CUDA_ADD_CUBLAS_TO_TARGET(xchainer_cuda)
+CUDA_ADD_CUBLAS_TO_TARGET(chainerx_cuda)
 
 include_directories(${CUDNN_INCLUDE_DIRS})
-target_link_libraries(xchainer_cuda ${CUDNN_LIBRARIES})
+target_link_libraries(chainerx_cuda ${CUDNN_LIBRARIES})
 
 if(${XCHAINER_BUILD_TEST})
-    add_executable(xchainer_cuda_test
+    add_executable(chainerx_cuda_test
         cuda_backend_test.cc
         cuda_conv_test.cc
         cuda_device_test.cc
         cuda_runtime_test.cc
         memory_pool_test.cc
         )
-    target_link_libraries(xchainer_cuda_test
-        xchainer
-        xchainer_cuda
-        xchainer_testing
+    target_link_libraries(chainerx_cuda_test
+        chainerx
+        chainerx_cuda
+        chainerx_testing
         gtest)
-    add_test(NAME xchainer_cuda_test COMMAND xchainer_cuda_test)
+    add_test(NAME chainerx_cuda_test COMMAND chainerx_cuda_test)
 endif()

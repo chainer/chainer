@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-import xchainer
+import chainerx
 
 
 def _check_cast_scalar_equals_data(scalar, data):
@@ -16,18 +16,18 @@ all_scalar_values = [
 
 
 @pytest.mark.parametrize('value,dtype', [
-    (0, xchainer.int64),
-    (-1, xchainer.int64),
-    (0x7fffffffffffffff, xchainer.int64),
-    (-0x8000000000000000, xchainer.int64),
-    (0.0, xchainer.float64),
-    (float('inf'), xchainer.float64),
-    (float('nan'), xchainer.float64),
-    (True, xchainer.bool_),
-    (False, xchainer.bool_),
+    (0, chainerx.int64),
+    (-1, chainerx.int64),
+    (0x7fffffffffffffff, chainerx.int64),
+    (-0x8000000000000000, chainerx.int64),
+    (0.0, chainerx.float64),
+    (float('inf'), chainerx.float64),
+    (float('nan'), chainerx.float64),
+    (True, chainerx.bool_),
+    (False, chainerx.bool_),
 ])
 def test_init_without_dtype(value, dtype):
-    scalar = xchainer.Scalar(value)
+    scalar = chainerx.Scalar(value)
     assert scalar.dtype == dtype
     if math.isnan(value):
         assert math.isnan(scalar.tolist())
@@ -37,73 +37,73 @@ def test_init_without_dtype(value, dtype):
 
 
 @pytest.mark.parametrize('value,cast_dtype,expected_value', [
-    (0, xchainer.bool_, False),
-    (0, xchainer.int8, 0),
-    (0, xchainer.int16, 0),
-    (0, xchainer.int32, 0),
-    (0, xchainer.int64, 0),
-    (0, xchainer.uint8, 0),
-    (0, xchainer.float32, 0.0),
-    (0, xchainer.float64, 0.0),
-    (0.0, xchainer.bool_, False),
-    (0.0, xchainer.int8, 0),
-    (0.0, xchainer.int16, 0),
-    (0.0, xchainer.int32, 0),
-    (0.0, xchainer.int64, 0),
-    (0.0, xchainer.uint8, 0),
-    (0.0, xchainer.float32, 0.0),
-    (0.0, xchainer.float64, 0.0),
-    (1, xchainer.bool_, True),
-    (1, xchainer.int8, 1),
-    (1, xchainer.int16, 1),
-    (1, xchainer.int32, 1),
-    (1, xchainer.int64, 1),
-    (1, xchainer.uint8, 1),
-    (1, xchainer.float32, 1.0),
-    (1, xchainer.float64, 1.0),
-    (1.0, xchainer.bool_, True),
-    (1.0, xchainer.int8, 1),
-    (1.0, xchainer.int16, 1),
-    (1.0, xchainer.int32, 1),
-    (1.0, xchainer.int64, 1),
-    (1.0, xchainer.uint8, 1),
-    (1.0, xchainer.float32, 1.0),
-    (1.0, xchainer.float64, 1.0),
-    (-1, xchainer.bool_, True),
-    (-1, xchainer.int8, -1),
-    (-1, xchainer.int16, -1),
-    (-1, xchainer.int32, -1),
-    (-1, xchainer.int64, -1),
-    (-1, xchainer.uint8, 0xff),
-    (-1, xchainer.float32, -1.0),
-    (-1, xchainer.float64, -1.0),
-    (0x100, xchainer.bool_, True),
-    (0x100, xchainer.int8, 0),
-    (0x100, xchainer.int16, 0x100),
-    (0x100, xchainer.int32, 0x100),
-    (0x100, xchainer.int64, 0x100),
-    (0x100, xchainer.uint8, 0),
-    (0x10000, xchainer.bool_, True),
-    (0x10000, xchainer.int8, 0),
-    (0x10000, xchainer.int16, 0),
-    (0x10000, xchainer.int32, 0x10000),
-    (0x10000, xchainer.int64, 0x10000),
-    (0x10000, xchainer.uint8, 0),
-    (0x100000000, xchainer.bool_, True),
-    (0x100000000, xchainer.int8, 0),
-    (0x100000000, xchainer.int16, 0),
-    (0x100000000, xchainer.int32, 0),
-    (0x100000000, xchainer.int64, 0x100000000),
-    (0x100000000, xchainer.uint8, 0),
-    (0x7fffffffffffffff, xchainer.bool_, True),
-    (0x7fffffffffffffff, xchainer.int8, -1),
-    (0x7fffffffffffffff, xchainer.int16, -1),
-    (0x7fffffffffffffff, xchainer.int32, -1),
-    (0x7fffffffffffffff, xchainer.int64, 0x7fffffffffffffff),
-    (0x7fffffffffffffff, xchainer.uint8, 255),
+    (0, chainerx.bool_, False),
+    (0, chainerx.int8, 0),
+    (0, chainerx.int16, 0),
+    (0, chainerx.int32, 0),
+    (0, chainerx.int64, 0),
+    (0, chainerx.uint8, 0),
+    (0, chainerx.float32, 0.0),
+    (0, chainerx.float64, 0.0),
+    (0.0, chainerx.bool_, False),
+    (0.0, chainerx.int8, 0),
+    (0.0, chainerx.int16, 0),
+    (0.0, chainerx.int32, 0),
+    (0.0, chainerx.int64, 0),
+    (0.0, chainerx.uint8, 0),
+    (0.0, chainerx.float32, 0.0),
+    (0.0, chainerx.float64, 0.0),
+    (1, chainerx.bool_, True),
+    (1, chainerx.int8, 1),
+    (1, chainerx.int16, 1),
+    (1, chainerx.int32, 1),
+    (1, chainerx.int64, 1),
+    (1, chainerx.uint8, 1),
+    (1, chainerx.float32, 1.0),
+    (1, chainerx.float64, 1.0),
+    (1.0, chainerx.bool_, True),
+    (1.0, chainerx.int8, 1),
+    (1.0, chainerx.int16, 1),
+    (1.0, chainerx.int32, 1),
+    (1.0, chainerx.int64, 1),
+    (1.0, chainerx.uint8, 1),
+    (1.0, chainerx.float32, 1.0),
+    (1.0, chainerx.float64, 1.0),
+    (-1, chainerx.bool_, True),
+    (-1, chainerx.int8, -1),
+    (-1, chainerx.int16, -1),
+    (-1, chainerx.int32, -1),
+    (-1, chainerx.int64, -1),
+    (-1, chainerx.uint8, 0xff),
+    (-1, chainerx.float32, -1.0),
+    (-1, chainerx.float64, -1.0),
+    (0x100, chainerx.bool_, True),
+    (0x100, chainerx.int8, 0),
+    (0x100, chainerx.int16, 0x100),
+    (0x100, chainerx.int32, 0x100),
+    (0x100, chainerx.int64, 0x100),
+    (0x100, chainerx.uint8, 0),
+    (0x10000, chainerx.bool_, True),
+    (0x10000, chainerx.int8, 0),
+    (0x10000, chainerx.int16, 0),
+    (0x10000, chainerx.int32, 0x10000),
+    (0x10000, chainerx.int64, 0x10000),
+    (0x10000, chainerx.uint8, 0),
+    (0x100000000, chainerx.bool_, True),
+    (0x100000000, chainerx.int8, 0),
+    (0x100000000, chainerx.int16, 0),
+    (0x100000000, chainerx.int32, 0),
+    (0x100000000, chainerx.int64, 0x100000000),
+    (0x100000000, chainerx.uint8, 0),
+    (0x7fffffffffffffff, chainerx.bool_, True),
+    (0x7fffffffffffffff, chainerx.int8, -1),
+    (0x7fffffffffffffff, chainerx.int16, -1),
+    (0x7fffffffffffffff, chainerx.int32, -1),
+    (0x7fffffffffffffff, chainerx.int64, 0x7fffffffffffffff),
+    (0x7fffffffffffffff, chainerx.uint8, 255),
 ])
 def test_init_casted(value, cast_dtype, expected_value):
-    scalar = xchainer.Scalar(value, cast_dtype)
+    scalar = chainerx.Scalar(value, cast_dtype)
     assert scalar.dtype == cast_dtype
     if math.isnan(expected_value):
         assert math.isnan(scalar.tolist())
@@ -113,12 +113,12 @@ def test_init_casted(value, cast_dtype, expected_value):
 
 
 @pytest.mark.parametrize('value', [0, 0.0, 1, 1.0, -1, 0x100, 0x10000, 0x100000000, 0x7fffffffffffffff])
-@xchainer.testing.parametrize_dtype_specifier('dtype_spec')
+@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
 def test_init_with_dtype(value, dtype_spec):
-    expected_dtype = xchainer.dtype(dtype_spec)
-    scalar = xchainer.Scalar(value, dtype_spec)
+    expected_dtype = chainerx.dtype(dtype_spec)
+    scalar = chainerx.Scalar(value, dtype_spec)
     assert scalar.dtype == expected_dtype
-    assert scalar == xchainer.Scalar(value, expected_dtype)
+    assert scalar == chainerx.Scalar(value, expected_dtype)
 
 
 @pytest.mark.parametrize('value1,value2', [
@@ -137,8 +137,8 @@ def test_init_with_dtype(value, dtype_spec):
     # (float('inf'), float('inf')),
 ])
 def test_equality(value1, value2):
-    scalar1 = xchainer.Scalar(value1)
-    scalar2 = xchainer.Scalar(value2)
+    scalar1 = chainerx.Scalar(value1)
+    scalar2 = chainerx.Scalar(value2)
 
     assert scalar1 == scalar2
     assert scalar2 == scalar1
@@ -167,8 +167,8 @@ def test_equality(value1, value2):
     (float('nan'), float('nan')),
 ])
 def test_inequality(value1, value2):
-    scalar1 = xchainer.Scalar(value1)
-    scalar2 = xchainer.Scalar(value2)
+    scalar1 = chainerx.Scalar(value1)
+    scalar2 = chainerx.Scalar(value2)
 
     assert scalar1 != scalar2
     assert scalar2 != scalar1
@@ -184,12 +184,12 @@ def test_inequality(value1, value2):
     -2, 1, -1.5, 2.3, True, False
 ])
 def test_cast(value):
-    scalar = xchainer.Scalar(value)
+    scalar = chainerx.Scalar(value)
 
     _check_cast_scalar_equals_data(scalar, value)
     _check_cast_scalar_equals_data(+scalar, +value)
     if isinstance(value, bool):
-        with pytest.raises(xchainer.DtypeError):
+        with pytest.raises(chainerx.DtypeError):
             -scalar  # should not be able to negate bool
     else:
         _check_cast_scalar_equals_data(-scalar, -value)
@@ -197,21 +197,21 @@ def test_cast(value):
 
 @pytest.mark.parametrize('value', all_scalar_values)
 def test_dtype(value):
-    scalar = xchainer.Scalar(value)
+    scalar = chainerx.Scalar(value)
 
     if isinstance(value, bool):
-        assert scalar.dtype == xchainer.bool_
+        assert scalar.dtype == chainerx.bool_
     elif isinstance(value, int):
-        assert scalar.dtype == xchainer.int64
+        assert scalar.dtype == chainerx.int64
     elif isinstance(value, float):
-        assert scalar.dtype == xchainer.float64
+        assert scalar.dtype == chainerx.float64
     else:
         assert False
 
 
 @pytest.mark.parametrize('value', all_scalar_values)
 def test_repr(value):
-    scalar = xchainer.Scalar(value)
+    scalar = chainerx.Scalar(value)
 
     assert repr(scalar) == repr(value)
     assert str(scalar) == str(value)
@@ -219,4 +219,4 @@ def test_repr(value):
 
 def test_init_invalid():
     with pytest.raises(TypeError):
-        xchainer.Scalar("1")  # string, which is not a numeric
+        chainerx.Scalar("1")  # string, which is not a numeric

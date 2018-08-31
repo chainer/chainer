@@ -1,4 +1,4 @@
-#include "xchainer/backward_builder.h"
+#include "chainerx/backward_builder.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -11,15 +11,15 @@
 #include <utility>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/array_node.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/device.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/op_node.h"
+#include "chainerx/array.h"
+#include "chainerx/array_node.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/device.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/op_node.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 using internal::ArrayNode;
@@ -254,4 +254,4 @@ void BackwardBuilder::ConnectBackpropIds() {
     }
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

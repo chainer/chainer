@@ -1,20 +1,20 @@
-#include "xchainer/device.h"
+#include "chainerx/device.h"
 
 #include <algorithm>
 #include <type_traits>
 #include <utility>
 
-#include "xchainer/array.h"
-#include "xchainer/context.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/math.h"
-#include "xchainer/routines/statistics.h"
-#include "xchainer/thread_local_state.h"
+#include "chainerx/array.h"
+#include "chainerx/context.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/math.h"
+#include "chainerx/routines/statistics.h"
+#include "chainerx/thread_local_state.h"
 
-namespace xchainer {
+namespace chainerx {
 
 void Device::CheckDevicesCompatible(const Array& array) {
     if (this != &array.device()) {
@@ -140,4 +140,4 @@ Array Device::FixedBatchNorm(
     return std::move(result.out);
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

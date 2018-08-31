@@ -1,7 +1,7 @@
 import numpy
 import pytest
 
-import xchainer
+import chainerx
 
 from tests import array_utils
 
@@ -18,7 +18,7 @@ def test_total_size(expected, shape):
     assert expected == array_utils.total_size(shape)
 
 
-@pytest.mark.parametrize('xp', [numpy, xchainer])
+@pytest.mark.parametrize('xp', [numpy, chainerx])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('shape', [
     (),
@@ -28,7 +28,7 @@ def test_total_size(expected, shape):
     (1, 1, 1),
     (2, 0, 3),
 ])
-@pytest.mark.parametrize('dtype', xchainer.testing.all_dtypes)
+@pytest.mark.parametrize('dtype', chainerx.testing.all_dtypes)
 @pytest.mark.parametrize('pattern', [1, 2])
 @pytest.mark.parametrize('padding', [True, False])
 def test_dummy_ndarray(xp, device, shape, dtype, pattern, padding):
@@ -39,31 +39,31 @@ def test_dummy_ndarray(xp, device, shape, dtype, pattern, padding):
     assert a.shape == shape
 
     # Check values
-    if xp is xchainer:
-        a_np = xchainer.tonumpy(a)
+    if xp is chainerx:
+        a_np = chainerx.tonumpy(a)
     else:
         a_np = a
     if pattern == 1:
         if a.dtype.name == 'bool':
             expected_data = [i % 2 == 1 for i in range(a.size)]
-        elif a.dtype.name in xchainer.testing.unsigned_dtypes:
+        elif a.dtype.name in chainerx.testing.unsigned_dtypes:
             expected_data = list(range(a.size))
         else:
             expected_data = list(range(-1, a.size - 1))
     else:
         if a.dtype.name == 'bool':
             expected_data = [i % 3 == 0 for i in range(a.size)]
-        elif a.dtype.name in xchainer.testing.unsigned_dtypes:
+        elif a.dtype.name in chainerx.testing.unsigned_dtypes:
             expected_data = list(range(1, a.size + 1))
         else:
             expected_data = list(range(-2, a.size - 2))
     numpy.testing.assert_equal(a_np.ravel(), expected_data)
 
     # Check strides
-    if xp is xchainer:
+    if xp is chainerx:
         assert a.device is device
     if not padding:
-        if xp is xchainer:
+        if xp is chainerx:
             assert a.is_contiguous
         else:
             assert a.flags.c_contiguous
@@ -71,11 +71,11 @@ def test_dummy_ndarray(xp, device, shape, dtype, pattern, padding):
 
 @pytest.mark.parametrize('device_spec', [None, 'native', 'native:0'])
 def test_dummy_ndarray_device_spec(device_spec):
-    a = array_utils.create_dummy_ndarray(xchainer, (2, 3), 'float32', device=device_spec)
-    assert a.device is xchainer.get_device(device_spec)
+    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'float32', device=device_spec)
+    assert a.device is chainerx.get_device(device_spec)
 
 
-@pytest.mark.parametrize('xp', [numpy, xchainer])
+@pytest.mark.parametrize('xp', [numpy, chainerx])
 @pytest.mark.parametrize('shape,dtype,padding,expected_strides', [
     # padding=None means unspecified.
     ((), 'bool_', (), ()),
@@ -131,7 +131,7 @@ def test_dummy_ndarray_padding(xp, shape, dtype, padding, expected_strides):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_check_device(shape, device):
     dtype = 'float32'
-    a = xchainer.empty(shape, dtype, device=device)
+    a = chainerx.empty(shape, dtype, device=device)
 
     array_utils.check_device(a, device.name)
     array_utils.check_device(a, device)
@@ -140,8 +140,8 @@ def test_check_device(shape, device):
 @pytest.mark.parametrize('device_spec', [None, 'native', 'native:0'])
 def test_check_device_device_spec(shape, device_spec):
     dtype = 'float32'
-    a = xchainer.empty(shape, dtype, device=device_spec)
-    device = xchainer.get_device(device_spec)
+    a = chainerx.empty(shape, dtype, device=device_spec)
+    device = chainerx.get_device(device_spec)
 
     array_utils.check_device(a, device_spec)
     array_utils.check_device(a, device)
@@ -156,8 +156,8 @@ def test_check_device_device_spec(shape, device_spec):
 ])
 def test_check_device_fail(shape, device, compare_device_spec):
     dtype = 'float32'
-    a = xchainer.empty(shape, dtype, device=device)
+    a = chainerx.empty(shape, dtype, device=device)
 
-    with xchainer.device_scope('native:1'):
+    with chainerx.device_scope('native:1'):
         with pytest.raises(AssertionError):
             array_utils.check_device(a, compare_device_spec)

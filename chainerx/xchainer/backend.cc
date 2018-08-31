@@ -1,9 +1,9 @@
-#include "xchainer/backend.h"
+#include "chainerx/backend.h"
 
 #include <string>
-#include "xchainer/device.h"
+#include "chainerx/device.h"
 
-namespace xchainer {
+namespace chainerx {
 
 Backend::~Backend() = default;
 
@@ -24,4 +24,4 @@ Device& Backend::GetDevice(int index) {
     return *devices_[index];
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

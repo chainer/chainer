@@ -1,4 +1,4 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -6,19 +6,19 @@
 
 #include <cuda_runtime.h>
 
-#include "xchainer/array.h"
-#include "xchainer/cuda/cast.cuh"
-#include "xchainer/cuda/cuda.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/cuda/elementwise.cuh"
-#include "xchainer/dtype.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/macro.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/cuda/cast.cuh"
+#include "chainerx/cuda/cuda.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/dtype.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/macro.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -185,4 +185,4 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

@@ -9,14 +9,14 @@
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/constant.h"
-#include "xchainer/cuda/cudnn.h"
-#include "xchainer/dtype.h"
-#include "xchainer/shape.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/constant.h"
+#include "chainerx/cuda/cudnn.h"
+#include "chainerx/dtype.h"
+#include "chainerx/shape.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 class CudaDevice;
@@ -130,4 +130,4 @@ private:
 
 }  // namespace cuda_internal
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

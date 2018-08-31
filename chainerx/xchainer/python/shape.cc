@@ -1,12 +1,12 @@
-#include "xchainer/python/shape.h"
+#include "chainerx/python/shape.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
-#include "xchainer/shape.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -28,4 +28,4 @@ py::tuple ToTuple(const Shape& shape) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

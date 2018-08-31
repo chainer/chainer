@@ -5,11 +5,11 @@
 
 #include <pybind11/pybind11.h>
 
-#include "xchainer/constant.h"
-#include "xchainer/error.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/constant.h"
+#include "chainerx/error.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -45,4 +45,4 @@ StackVector<T, kMaxNdim> ToStackVector(pybind11::handle handle, size_t size) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

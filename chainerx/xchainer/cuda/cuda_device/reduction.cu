@@ -1,22 +1,22 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <cmath>
 #include <cstdint>
 
 #include <cuda_runtime.h>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/cuda/reduce.cuh"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/macro.h"
-#include "xchainer/numeric_limits.h"
-#include "xchainer/reduction_kernel_arg.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/reduce.cuh"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/macro.h"
+#include "chainerx/numeric_limits.h"
+#include "chainerx/reduction_kernel_arg.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -105,4 +105,4 @@ void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

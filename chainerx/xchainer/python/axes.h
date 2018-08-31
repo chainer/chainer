@@ -6,9 +6,9 @@
 #include <pybind11/pybind11.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/axes.h"
+#include "chainerx/axes.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -32,4 +32,4 @@ inline OptionalAxes ToAxes(const nonstd::optional<int8_t>& vec) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

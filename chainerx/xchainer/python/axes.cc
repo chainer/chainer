@@ -1,13 +1,13 @@
-#include "xchainer/python/axes.h"
+#include "chainerx/python/axes.h"
 
 #include <algorithm>
 #include <cstdint>
 
 #include <pybind11/pybind11.h>
 
-#include "xchainer/axes.h"
+#include "chainerx/axes.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -21,4 +21,4 @@ Axes ToAxes(const py::tuple& tup) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

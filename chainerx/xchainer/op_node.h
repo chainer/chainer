@@ -11,14 +11,14 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array_fwd.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
+#include "chainerx/array_fwd.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class BackwardContext;
 class Device;
@@ -172,4 +172,4 @@ private:
 };
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

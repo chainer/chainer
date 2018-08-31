@@ -1,4 +1,4 @@
-#include "xchainer/routines/indexing.h"
+#include "chainerx/routines/indexing.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -8,22 +8,22 @@
 
 #include "nonstd/optional.hpp"
 
-#include "xchainer/array.h"
-#include "xchainer/array_index.h"
-#include "xchainer/axes.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/constant.h"
-#include "xchainer/dtype.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/shape.h"
-#include "xchainer/slice.h"
-#include "xchainer/strides.h"
+#include "chainerx/array.h"
+#include "chainerx/array_index.h"
+#include "chainerx/axes.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/constant.h"
+#include "chainerx/dtype.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/shape.h"
+#include "chainerx/slice.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 namespace {
 
@@ -191,4 +191,4 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
     return out;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

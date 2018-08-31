@@ -1,4 +1,4 @@
-#include "xchainer/testing/array.h"
+#include "chainerx/testing/array.h"
 
 #include <cstdint>
 #include <functional>
@@ -8,16 +8,16 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
-#include "xchainer/testing/array_check.h"
-#include "xchainer/testing/device_session.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
+#include "chainerx/testing/array_check.h"
+#include "chainerx/testing/device_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 namespace {
 
@@ -212,4 +212,4 @@ INSTANTIATE_TEST_CASE_P(
 
 }  // namespace
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,5 +1,5 @@
-import xchainer
+import chainerx
 
 
 def test_newaxis():
-    assert xchainer.newaxis is None
+    assert chainerx.newaxis is None

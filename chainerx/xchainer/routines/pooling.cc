@@ -1,23 +1,23 @@
-#include "xchainer/routines/pooling.h"
+#include "chainerx/routines/pooling.h"
 
 #include <cstdint>
 #include <memory>
 #include <utility>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/constant.h"
-#include "xchainer/device.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/routines/math.h"
-#include "xchainer/routines/routines_util.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/constant.h"
+#include "chainerx/device.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/routines/math.h"
+#include "chainerx/routines/routines_util.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 void CheckPoolInputs(
@@ -140,4 +140,4 @@ Array AveragePool(
     return out;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

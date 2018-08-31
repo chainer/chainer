@@ -3,8 +3,8 @@ import math
 import numpy
 import pytest
 
-import xchainer
-import xchainer.testing
+import chainerx
+import chainerx.testing
 
 from tests import array_utils
 
@@ -24,7 +24,7 @@ def test_asscalar(device, value, shape, dtype):
         return
 
     a_np = numpy.asarray([np_value], dtype).reshape(shape)
-    a_xc = xchainer.array(a_np)
+    a_xc = chainerx.array(a_np)
 
     def should_cast_succeed(typ):
         try:
@@ -49,12 +49,12 @@ def test_asscalar(device, value, shape, dtype):
         assert type(bool(a_xc)) is bool
         assert bool(a_np) == bool(a_xc)
 
-    # xchainer.asscalar
-    assert isinstance(xchainer.asscalar(a_xc), type(numpy.asscalar(a_np)))
+    # chainerx.asscalar
+    assert isinstance(chainerx.asscalar(a_xc), type(numpy.asscalar(a_np)))
     if math.isnan(numpy.asscalar(a_np)):
-        assert math.isnan(xchainer.asscalar(a_xc))
+        assert math.isnan(chainerx.asscalar(a_xc))
     else:
-        assert xchainer.asscalar(a_xc) == numpy.asscalar(a_np)
+        assert chainerx.asscalar(a_xc) == numpy.asscalar(a_np)
 
 
 @pytest.mark.parametrize('shape', [
@@ -62,26 +62,26 @@ def test_asscalar(device, value, shape, dtype):
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_asscalar_invalid(device, shape):
-    dtype = xchainer.float32
+    dtype = chainerx.float32
 
-    a = xchainer.ones(shape, dtype)
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.asscalar(a)
+    a = chainerx.ones(shape, dtype)
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.asscalar(a)
 
-    a = xchainer.ones(shape, dtype)
-    with pytest.raises(xchainer.DimensionError):
+    a = chainerx.ones(shape, dtype)
+    with pytest.raises(chainerx.DimensionError):
         float(a)
 
-    a = xchainer.ones(shape, dtype)
-    with pytest.raises(xchainer.DimensionError):
+    a = chainerx.ones(shape, dtype)
+    with pytest.raises(chainerx.DimensionError):
         int(a)
 
-    a = xchainer.ones(shape, dtype)
-    with pytest.raises(xchainer.DimensionError):
+    a = chainerx.ones(shape, dtype)
+    with pytest.raises(chainerx.DimensionError):
         bool(a)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 def test_transpose(is_module, xp, shape, dtype):
     array = array_utils.create_dummy_ndarray(xp, shape, dtype)
     if is_module:
@@ -90,7 +90,7 @@ def test_transpose(is_module, xp, shape, dtype):
         return array.transpose()
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('shape,axes', [
     ((1,), 0),
     ((1,), (0,)),
@@ -113,14 +113,14 @@ def test_transpose_axes(is_module, xp, shape, axes, dtype):
     ((2, 3), (1, 0, 2)),
 ])
 def test_transpose_invalid_axes(shape, axes):
-    a = array_utils.create_dummy_ndarray(xchainer, shape, 'float32')
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.transpose(a, axes)
-    with pytest.raises(xchainer.DimensionError):
+    a = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.transpose(a, axes)
+    with pytest.raises(chainerx.DimensionError):
         a.transpose(axes)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 def test_T(xp, shape, dtype):
     array = array_utils.create_dummy_ndarray(xp, shape, dtype)
     return array.T
@@ -148,7 +148,7 @@ _reshape_shape = [
 
 # TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
 # TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
 @pytest.mark.parametrize('shape_type', [tuple, list])
 @pytest.mark.parametrize('padding', [False, True])
@@ -159,13 +159,13 @@ def test_reshape(is_module, xp, a_shape, b_shape, shape_type, padding):
     else:
         b = a.reshape(shape_type(b_shape))
 
-    if xp is xchainer:
+    if xp is chainerx:
         copied = a._debug_data_memory_address != b._debug_data_memory_address
     else:
         copied = a.ctypes.data != b.ctypes.data
 
     if copied:
-        if xp is xchainer:
+        if xp is chainerx:
             assert b.is_contiguous
         else:
             assert b.flags.c_contiguous
@@ -173,7 +173,7 @@ def test_reshape(is_module, xp, a_shape, b_shape, shape_type, padding):
     return copied, b
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(TypeError, xchainer.XchainerError))
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(TypeError, chainerx.XchainerError))
 @pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
 def test_reshape_args(is_module, xp, a_shape, b_shape):
     # TODO(niboshi): Remove padding=False
@@ -183,11 +183,11 @@ def test_reshape_args(is_module, xp, a_shape, b_shape):
             # Skipping tests where the 'order' argument is unintentionally given a shape value, since numpy won't raise any errors in
             # this case which you might expect at first.
             return xp.array([])
-        b = xp.reshape(a, *b_shape)  # TypeError/xchainer.XchainerError in case b_shape is empty.
+        b = xp.reshape(a, *b_shape)  # TypeError/chainerx.XchainerError in case b_shape is empty.
     else:
-        b = a.reshape(*b_shape)  # TypeError/xchainer.XchainerError in case b_shape is empty.
+        b = a.reshape(*b_shape)  # TypeError/chainerx.XchainerError in case b_shape is empty.
 
-    if xp is xchainer:
+    if xp is chainerx:
         assert b.is_contiguous
         assert a._debug_data_memory_address == b._debug_data_memory_address, 'Reshape must be done without copy'
         assert numpy.arange(a.size).reshape(b_shape).strides == b.strides, 'Strides after reshape must match NumPy behavior'
@@ -206,15 +206,15 @@ def test_reshape_args(is_module, xp, a_shape, b_shape):
 ])
 def test_reshape_invalid(shape1, shape2):
     def check(a_shape, b_shape):
-        a = array_utils.create_dummy_ndarray(xchainer, a_shape, 'float32')
-        with pytest.raises(xchainer.DimensionError):
+        a = array_utils.create_dummy_ndarray(chainerx, a_shape, 'float32')
+        with pytest.raises(chainerx.DimensionError):
             a.reshape(b_shape)
 
     check(shape1, shape2)
     check(shape2, shape1)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('shape,axis', [
     ((), None),
     ((0,), None),
@@ -240,7 +240,7 @@ def test_squeeze(is_module, xp, shape, axis):
         return a.squeeze(axis)
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize('shape,axis', [
     ((2, 1, 3), 0),
     ((2, 1, 3), -1),
@@ -256,7 +256,7 @@ def test_squeeze_invalid(is_module, xp, shape, axis):
         return a.squeeze(axis)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('src_shape,dst_shape', [
     ((), ()),
     ((1,), (2,)),
@@ -268,13 +268,13 @@ def test_broadcast_to(xp, src_shape, dst_shape):
     return xp.broadcast_to(a, dst_shape)
 
 
-@xchainer.testing.numpy_xchainer_array_equal()
+@chainerx.testing.numpy_chainerx_array_equal()
 def test_broadcast_to_auto_prefix(xp):
     a = xp.arange(2, dtype='float32')
     return xp.broadcast_to(a, (3, 2))
 
 
-@xchainer.testing.numpy_xchainer_array_equal(accept_error=(xchainer.DimensionError, ValueError))
+@chainerx.testing.numpy_chainerx_array_equal(accept_error=(chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize(('src_shape,dst_shape'), [
     ((3,), (2,)),
     ((3,), (3, 2)),

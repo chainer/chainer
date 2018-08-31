@@ -7,13 +7,13 @@
 
 #include <gtest/gtest.h>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body.h"
-#include "xchainer/array_node.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body.h"
+#include "chainerx/array_node.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 namespace testing_internal {
 
@@ -132,4 +132,4 @@ void ExpectDataEqual(T expected, const Array& actual) {
 // Expects that the arrays a and b have distint array bodies.
 #define EXPECT_ARRAY_HAVE_DISTINCT_ARRAY_NODES(a, b) EXPECT_PRED_FORMAT2(testing::testing_internal::HaveDistinctArrayNodes, a, b)
 
-}  // namespace xchainer
+}  // namespace chainerx

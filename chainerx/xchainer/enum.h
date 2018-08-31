@@ -1,9 +1,9 @@
 #pragma once
 
-namespace xchainer {
+namespace chainerx {
 
 enum class CopyKind {
     kCopy = 1,
     kView,
 };
-}  // namespace xchainer
+}  // namespace chainerx

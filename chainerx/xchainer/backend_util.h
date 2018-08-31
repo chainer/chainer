@@ -2,9 +2,9 @@
 
 #include <cstdint>
 
-#include "xchainer/array.h"
+#include "chainerx/array.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 template <typename T>
@@ -14,4 +14,4 @@ T* GetRawOffsetData(const Array& a) {
 }
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,16 +1,16 @@
-#include "xchainer/array_body_leak_detection.h"
+#include "chainerx/array_body_leak_detection.h"
 
 #include <memory>
 #include <ostream>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body.h"
-#include "xchainer/array_node.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body.h"
+#include "chainerx/array_node.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 ArrayBodyLeakTracker* ArrayBodyLeakDetectionScope::array_body_leak_tracker_ = nullptr;
@@ -58,4 +58,4 @@ ArrayBodyLeakDetectionScope ::ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& 
 ArrayBodyLeakDetectionScope ::~ArrayBodyLeakDetectionScope() { array_body_leak_tracker_ = nullptr; }
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

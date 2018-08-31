@@ -2,7 +2,7 @@
 
 #include <pybind11/pybind11.h>
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -12,4 +12,4 @@ void InitXchainerBackpropScope(pybind11::module&);
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

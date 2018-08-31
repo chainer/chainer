@@ -1,25 +1,25 @@
-#include "xchainer/routines/normalization.h"
+#include "chainerx/routines/normalization.h"
 
 #include <cstdint>
 #include <memory>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/math.h"
-#include "xchainer/routines/routines_util.h"
-#include "xchainer/routines/statistics.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/math.h"
+#include "chainerx/routines/routines_util.h"
+#include "chainerx/routines/statistics.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 struct PreprocessBatchNormResult {
@@ -31,7 +31,7 @@ struct PreprocessBatchNormResult {
     Axes sorted_axis;
 };
 
-// Reshapes the array. If the shape is unchanged, an array with identical array body is returned. Note that xchainer::Reshape() returns
+// Reshapes the array. If the shape is unchanged, an array with identical array body is returned. Note that chainerx::Reshape() returns
 // a view with different array body if the shape is unchanged.
 Array ReshapeOrIdentity(const Array& a, const Shape& shape) {
     if (a.shape() == shape) {
@@ -197,4 +197,4 @@ Array FixedBatchNorm(
     }
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

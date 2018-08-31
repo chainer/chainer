@@ -1,4 +1,4 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <cublas_v2.h>
 
@@ -6,17 +6,17 @@
 
 #include <cuda_runtime.h>
 
-#include "xchainer/array.h"
-#include "xchainer/backend_util.h"
-#include "xchainer/cuda/cublas.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/creation.h"
+#include "chainerx/array.h"
+#include "chainerx/backend_util.h"
+#include "chainerx/cuda/cublas.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/creation.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -127,4 +127,4 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

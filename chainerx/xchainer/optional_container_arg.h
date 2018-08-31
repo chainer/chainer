@@ -5,9 +5,9 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/macro.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 
 template <typename Container>
 class OptionalContainerArg {
@@ -57,4 +57,4 @@ private:
     nonstd::optional<Container> opt_;
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

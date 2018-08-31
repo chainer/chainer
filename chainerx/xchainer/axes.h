@@ -10,12 +10,12 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/constant.h"
-#include "xchainer/error.h"
-#include "xchainer/optional_container_arg.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/constant.h"
+#include "chainerx/error.h"
+#include "chainerx/optional_container_arg.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class Axes : public StackVector<int8_t, kMaxNdim> {
     using BaseVector = StackVector<int8_t, kMaxNdim>;
@@ -91,4 +91,4 @@ Axes GetSortedAxes(const Axes& axis, int8_t ndim);
 Axes GetSortedAxesOrAll(const OptionalAxes& axis, int8_t ndim);
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

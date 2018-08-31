@@ -2,7 +2,7 @@ import chainer
 import numpy
 import pytest
 
-import xchainer
+import chainerx
 
 from tests import array_utils
 
@@ -39,11 +39,11 @@ def test_conv(device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_d
     if device.backend.name == 'cuda' and len(x_shape) <= 3:
         # cuDNN does not support 1 dimensional convolution and throws DimensionError.
         # TODO(hvy): Support 1 dimensional convolution with CUDA.
-        return xchainer.testing.ignore()
+        return chainerx.testing.ignore()
 
     def create_args(xp):
         return _create_conv_args(xp, device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype)
-    xchainer.testing.assert_allclose(xchainer.conv(*create_args(xchainer)), chainer.functions.convolution_nd(*create_args(numpy)).data)
+    chainerx.testing.assert_allclose(chainerx.conv(*create_args(chainerx)), chainer.functions.convolution_nd(*create_args(numpy)).data)
 
 
 @pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad', [
@@ -56,8 +56,8 @@ def test_conv(device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_d
 @pytest.mark.parametrize('cover_all', [True, False])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_conv_invalid(device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype):
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.conv(*_create_conv_args(xchainer, device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype))
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.conv(*_create_conv_args(chainerx, device, x_shape, w_shape, b_shape, stride, pad, cover_all, float_dtype))
 
 
 def _get_conv_transpose_outsize(x_shape, w_shape, stride, pad, cover_all):
@@ -100,10 +100,10 @@ def test_conv_transpose(device, x_shape, w_shape, b_shape, stride, pad, cover_al
     if device.backend.name == 'cuda' and len(x_shape) <= 3:
         # cuDNN does not support 1 dimensional convolution and throws DimensionError.
         # TODO(sonots): Support 1 dimensional convolution with CUDA.
-        return xchainer.testing.ignore()
+        return chainerx.testing.ignore()
     if device.backend.name == 'cuda' and cover_all is True:
         # outsize (for cover_all=True) is not supported by CUDA.
-        return xchainer.testing.ignore()
+        return chainerx.testing.ignore()
 
     def create_args(xp):
         if cover_all is None:
@@ -112,7 +112,7 @@ def test_conv_transpose(device, x_shape, w_shape, b_shape, stride, pad, cover_al
             outsize = _get_conv_transpose_outsize(x_shape, w_shape, stride, pad, cover_all)
         return _create_conv_transpose_args(xp, device, x_shape, w_shape, b_shape, stride, pad, outsize, float_dtype)
 
-    xchainer.testing.assert_allclose(xchainer.conv_transpose(*create_args(xchainer)),
+    chainerx.testing.assert_allclose(chainerx.conv_transpose(*create_args(chainerx)),
                                      chainer.functions.deconvolution_nd(*create_args(numpy)).data)
 
 
@@ -128,6 +128,6 @@ def test_conv_transpose(device, x_shape, w_shape, b_shape, stride, pad, cover_al
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_conv_transpose_invalid(device, x_shape, w_shape, b_shape, stride, pad, outsize, float_dtype):
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.conv_transpose(*_create_conv_transpose_args(
-            xchainer, device, x_shape, w_shape, b_shape, stride, pad, outsize, float_dtype))
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.conv_transpose(*_create_conv_transpose_args(
+            chainerx, device, x_shape, w_shape, b_shape, stride, pad, outsize, float_dtype))

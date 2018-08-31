@@ -2,7 +2,7 @@
 
 #include <pybind11/pybind11.h>
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace testing {
 namespace testing_internal {
@@ -12,4 +12,4 @@ void InitXchainerTestingModule(pybind11::module&);
 }  // namespace testing_internal
 }  // namespace testing
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

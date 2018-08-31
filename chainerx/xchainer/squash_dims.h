@@ -5,13 +5,13 @@
 #include <tuple>
 #include <utility>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace squash_dims_detail {
 
 // Returns true if dimension i can be squashed for all strides, false otherwise.
@@ -92,4 +92,4 @@ std::tuple<Shape, Axes> SquashShape(const Array& array, Arrays&&... arrays) {
     return SquashShape(array.shape(), array.strides(), arrays.strides()...);
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,4 +1,4 @@
-#include "xchainer/testing/util.h"
+#include "chainerx/testing/util.h"
 
 #include <atomic>
 #include <cstdlib>
@@ -6,12 +6,12 @@
 
 #include <gtest/gtest.h>
 
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
+#include "chainerx/backend.h"
+#include "chainerx/context.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 namespace {
 
@@ -95,4 +95,4 @@ bool SkipIfDeviceUnavailable(const std::string& backend_name, int required_num) 
 
 }  // namespace testing_internal
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

@@ -8,17 +8,17 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/backend_util.h"
-#include "xchainer/constant.h"
-#include "xchainer/dtype.h"
-#include "xchainer/indexer.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/backend_util.h"
+#include "chainerx/constant.h"
+#include "chainerx/dtype.h"
+#include "chainerx/indexer.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace indexable_array_detail {
 
 // Adds `const` to To if From is const
@@ -26,7 +26,7 @@ template <typename To, typename From>
 using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_const_t<To>, std::remove_const_t<To>>;
 
 static inline std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
-    std::tuple<int64_t, int64_t> range = xchainer::GetDataRange(a.shape(), a.strides(), a.item_size());
+    std::tuple<int64_t, int64_t> range = chainerx::GetDataRange(a.shape(), a.strides(), a.item_size());
     int64_t lower = std::get<0>(range);
     int64_t upper = std::get<1>(range);
     const uint8_t* base = internal::GetRawOffsetData<const uint8_t>(a);
@@ -248,4 +248,4 @@ private:
     int8_t ndim_;
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,4 +1,4 @@
-#include "xchainer/routines/creation.h"
+#include "chainerx/routines/creation.h"
 
 #include <algorithm>
 #include <cmath>
@@ -9,20 +9,20 @@
 #include <utility>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/constant.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
+#include "chainerx/array.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/constant.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_size) {
@@ -321,4 +321,4 @@ Array Linspace(
     return out;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,12 +1,12 @@
-#include "xchainer/native/native_backend.h"
+#include "chainerx/native/native_backend.h"
 
 #include <memory>
 #include <stdexcept>
 #include <string>
 
-#include "xchainer/native/native_device.h"
+#include "chainerx/native/native_device.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 constexpr const char* NativeBackend::kDefaultName;
@@ -36,4 +36,4 @@ bool NativeBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
 }
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

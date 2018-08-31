@@ -4,11 +4,11 @@
 #include <ostream>
 #include <string>
 
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 
 // Type safe, dynamically typed scalar value.
 class Scalar {
@@ -175,4 +175,4 @@ private:
 
 std::ostream& operator<<(std::ostream& os, Scalar value);
 
-}  // namespace xchainer
+}  // namespace chainerx

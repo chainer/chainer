@@ -7,12 +7,12 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/constant.h"
-#include "xchainer/context.h"
-#include "xchainer/graph.h"
+#include "chainerx/array.h"
+#include "chainerx/constant.h"
+#include "chainerx/context.h"
+#include "chainerx/graph.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 class BackpropMode {
@@ -80,4 +80,4 @@ using ForceBackpropModeScope = backprop_mode_detail::BackpropModeScope<true>;
 bool IsBackpropRequired(Context& context = GetDefaultContext());
 bool IsBackpropRequired(const BackpropId& backprop_id);
 
-}  // namespace xchainer
+}  // namespace chainerx

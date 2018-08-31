@@ -4,7 +4,7 @@ Acceptance tests for pluggable backend system
 Using two contexts in one script
 --------------------------------
 
->>> import xchainer as xc
+>>> import chainerx as xc
 
 >>> a = xc.ones((3,), xc.float32)
 >>> a

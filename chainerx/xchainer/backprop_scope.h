@@ -3,10 +3,10 @@
 #include <string>
 #include <utility>
 
-#include "xchainer/context.h"
-#include "xchainer/graph.h"
+#include "chainerx/context.h"
+#include "chainerx/graph.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class BackpropScope {
 public:
@@ -26,4 +26,4 @@ private:
     BackpropId backprop_id_;
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

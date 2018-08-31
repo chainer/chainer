@@ -1,10 +1,10 @@
-#include "xchainer/dtype.h"
+#include "chainerx/dtype.h"
 
 #include <type_traits>
 
 #include <gtest/gtest.h>
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 // Tests on all dtypes
@@ -77,4 +77,4 @@ TEST(DtypeTest, FloatingPointDtypeMapping) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

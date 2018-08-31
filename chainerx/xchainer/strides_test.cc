@@ -1,4 +1,4 @@
-#include "xchainer/strides.h"
+#include "chainerx/strides.h"
 
 #include <numeric>
 #include <vector>
@@ -6,9 +6,9 @@
 #include <gtest/gtest.h>
 #include <gsl/gsl>
 
-#include "xchainer/axes.h"
+#include "chainerx/axes.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 void CheckSpanEqual(std::initializer_list<int64_t> expect, gsl::span<const int64_t> actual) {
@@ -185,4 +185,4 @@ TEST_P(GetDataRangeTest, GetDataRange) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

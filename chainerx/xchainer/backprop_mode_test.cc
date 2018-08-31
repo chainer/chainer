@@ -1,19 +1,19 @@
-#include "xchainer/backprop_mode.h"
+#include "chainerx/backprop_mode.h"
 
 #include <string>
 
 #include <gtest/gtest.h>
 
-#include "xchainer/backprop_scope.h"
-#include "xchainer/constant.h"
-#include "xchainer/context.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/context_session.h"
-#include "xchainer/testing/device_session.h"
+#include "chainerx/backprop_scope.h"
+#include "chainerx/constant.h"
+#include "chainerx/context.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/context_session.h"
+#include "chainerx/testing/device_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 TEST(BackpropModeScopeTest, NoBackpropModeScopeSingle) {
@@ -439,4 +439,4 @@ TEST(BackpropModeScopeTest, BackpropModeScopeWithAnotherContext) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

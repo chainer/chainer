@@ -2,7 +2,7 @@ import chainer
 import numpy
 import pytest
 
-import xchainer
+import chainerx
 
 from tests import array_utils
 
@@ -57,7 +57,7 @@ def test_batch_norm(device, x_shape, reduced_shape, eps, decay, axis, float_dtyp
         return _create_batch_norm_ndarray_args(
             xp, device, x_shape, reduced_shape, reduced_shape, reduced_shape, reduced_shape, float_dtype)
 
-    x_xc, gamma_xc, beta_xc, running_mean_xc, running_var_xc = create_args(xchainer)
+    x_xc, gamma_xc, beta_xc, running_mean_xc, running_var_xc = create_args(chainerx)
     x_np, gamma_np, beta_np, running_mean_np, running_var_np = create_args(numpy)
 
     # Save copies of running values before updating to later check that they are updated.
@@ -72,27 +72,27 @@ def test_batch_norm(device, x_shape, reduced_shape, eps, decay, axis, float_dtyp
     if axis is not None:
         optional_args['axis'] = axis
 
-    y_xc = xchainer.batch_norm(x_xc, gamma_xc, beta_xc, running_mean=running_mean_xc, running_var=running_var_xc, **optional_args)
+    y_xc = chainerx.batch_norm(x_xc, gamma_xc, beta_xc, running_mean=running_mean_xc, running_var=running_var_xc, **optional_args)
     y_np = chainer.functions.batch_normalization(
         x_np, gamma_np, beta_np, running_mean=running_mean_np, running_var=running_var_np, **optional_args).data
 
     # Check that the running values are updated.
-    assert not numpy.allclose(xchainer.tonumpy(initial_running_mean), xchainer.tonumpy(running_mean_xc))
-    assert not numpy.allclose(xchainer.tonumpy(initial_running_var), xchainer.tonumpy(running_var_xc))
+    assert not numpy.allclose(chainerx.tonumpy(initial_running_mean), chainerx.tonumpy(running_mean_xc))
+    assert not numpy.allclose(chainerx.tonumpy(initial_running_var), chainerx.tonumpy(running_var_xc))
 
-    xchainer.testing.assert_allclose_ex(y_xc, y_np, rtol=1e-6, atol=1e-5)
-    xchainer.testing.assert_allclose_ex(running_mean_xc, running_mean_np, rtol=1e-6, atol=1e-6)
-    xchainer.testing.assert_allclose_ex(running_var_xc, running_var_np, rtol=1e-6, atol=1e-6)
+    chainerx.testing.assert_allclose_ex(y_xc, y_np, rtol=1e-6, atol=1e-5)
+    chainerx.testing.assert_allclose_ex(running_mean_xc, running_mean_np, rtol=1e-6, atol=1e-6)
+    chainerx.testing.assert_allclose_ex(running_var_xc, running_var_np, rtol=1e-6, atol=1e-6)
 
 
 @pytest.mark.parametrize('x_shape,gamma_shape,beta_shape,running_mean_shape,running_var_shape,axis', _batch_norm_invalid_dimensions_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_batch_norm_invalid_dimensions(device, x_shape, gamma_shape, beta_shape, running_mean_shape, running_var_shape, axis, float_dtype):
     x, gamma, beta, running_mean, running_var = _create_batch_norm_ndarray_args(
-        xchainer, device, x_shape, gamma_shape, beta_shape, running_mean_shape, running_var_shape, float_dtype)
+        chainerx, device, x_shape, gamma_shape, beta_shape, running_mean_shape, running_var_shape, float_dtype)
 
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.batch_norm(x, gamma, beta, running_mean=running_mean, running_var=running_var, eps=1e-2, decay=0.9, axis=axis)
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.batch_norm(x, gamma, beta, running_mean=running_mean, running_var=running_var, eps=1e-2, decay=0.9, axis=axis)
 
 
 @pytest.mark.parametrize('x_shape,reduced_shape,axis', _batch_norm_params)
@@ -103,7 +103,7 @@ def test_fixed_batch_norm(device, x_shape, reduced_shape, eps, axis, float_dtype
         return _create_batch_norm_ndarray_args(
             xp, device, x_shape, reduced_shape, reduced_shape, reduced_shape, reduced_shape, float_dtype)
 
-    x_xc, gamma_xc, beta_xc, mean_xc, var_xc = create_args(xchainer)
+    x_xc, gamma_xc, beta_xc, mean_xc, var_xc = create_args(chainerx)
     x_np, gamma_np, beta_np, mean_np, var_np = create_args(numpy)
 
     optional_args = {}
@@ -112,18 +112,18 @@ def test_fixed_batch_norm(device, x_shape, reduced_shape, eps, axis, float_dtype
     if axis is not None:
         optional_args['axis'] = axis
 
-    y_xc = xchainer.fixed_batch_norm(x_xc, gamma_xc, beta_xc, mean=mean_xc, var=var_xc, **optional_args)
+    y_xc = chainerx.fixed_batch_norm(x_xc, gamma_xc, beta_xc, mean=mean_xc, var=var_xc, **optional_args)
     y_np = chainer.functions.fixed_batch_normalization(
         x_np, gamma_np, beta_np, mean=mean_np, var=var_np, **optional_args).data
 
-    xchainer.testing.assert_allclose_ex(y_xc, y_np, rtol=1e-6, atol=1e-5)
+    chainerx.testing.assert_allclose_ex(y_xc, y_np, rtol=1e-6, atol=1e-5)
 
 
 @pytest.mark.parametrize('x_shape,gamma_shape,beta_shape,mean_shape,var_shape,axis', _batch_norm_invalid_dimensions_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_fixed_batch_norm_invalid_dimensions(device, x_shape, gamma_shape, beta_shape, mean_shape, var_shape, axis, float_dtype):
     x, gamma, beta, mean, var = _create_batch_norm_ndarray_args(
-        xchainer, device, x_shape, gamma_shape, beta_shape, mean_shape, var_shape, float_dtype)
+        chainerx, device, x_shape, gamma_shape, beta_shape, mean_shape, var_shape, float_dtype)
 
-    with pytest.raises(xchainer.DimensionError):
-        xchainer.fixed_batch_norm(x, gamma, beta, mean=mean, var=var, eps=1e-2, axis=axis)
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.fixed_batch_norm(x, gamma, beta, mean=mean, var=var, eps=1e-2, axis=axis)

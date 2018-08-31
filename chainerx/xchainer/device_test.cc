@@ -1,4 +1,4 @@
-#include "xchainer/device.h"
+#include "chainerx/device.h"
 
 #include <future>
 
@@ -6,18 +6,18 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/backend.h"
-#include "xchainer/context.h"
+#include "chainerx/backend.h"
+#include "chainerx/context.h"
 #ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/cuda_backend.h"
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_backend.h"
+#include "chainerx/cuda/cuda_device.h"
 #endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/error.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/native/native_device.h"
-#include "xchainer/testing/context_session.h"
+#include "chainerx/error.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/native/native_device.h"
+#include "chainerx/testing/context_session.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 class DeviceTest : public ::testing::Test {
@@ -136,4 +136,4 @@ TEST_F(DeviceTest, DeviceScopeCtor) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

@@ -7,9 +7,9 @@
 #include <iterator>
 #include <type_traits>
 
-#include "xchainer/macro.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace stack_vector_detail {
 
 using size_type = size_t;
@@ -194,4 +194,4 @@ private:
     BaseContainer d_{};
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

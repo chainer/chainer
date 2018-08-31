@@ -1,4 +1,4 @@
-#include "xchainer/routines/normalization.h"
+#include "chainerx/routines/normalization.h"
 
 #include <string>
 #include <vector>
@@ -6,17 +6,17 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/check_backward.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/array_check.h"
-#include "xchainer/testing/device_session.h"
-#include "xchainer/testing/routines.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/check_backward.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/array_check.h"
+#include "chainerx/testing/device_session.h"
+#include "chainerx/testing/routines.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 class NormalizationTest : public ::testing::TestWithParam<std::string> {
@@ -271,4 +271,4 @@ INSTANTIATE_TEST_CASE_P(
                 std::string{"native"}));
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

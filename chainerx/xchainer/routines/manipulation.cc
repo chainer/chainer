@@ -1,4 +1,4 @@
-#include "xchainer/routines/manipulation.h"
+#include "chainerx/routines/manipulation.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -10,18 +10,18 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/backward_builder.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/device.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/backward_builder.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/device.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 
 Scalar AsScalar(const Array& a) {
     if (a.GetTotalSize() != 1) {
@@ -349,4 +349,4 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
     return out;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -6,7 +6,7 @@
 #include <future>
 #include <vector>
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 
 template <typename Func, typename... Args>
@@ -62,11 +62,11 @@ inline void RunTestWithThreads(const std::function<void(void)>& func, size_t thr
 
     // Run in multi-threads
     if (thread_count > 0) {
-        Context& context = xchainer::GetDefaultContext();
-        Device& device = xchainer::GetDefaultDevice();
+        Context& context = chainerx::GetDefaultContext();
+        Device& device = chainerx::GetDefaultDevice();
         RunThreads(thread_count, [&context, &device, &func](size_t /*thread_index*/) {
-            xchainer::SetDefaultContext(&context);
-            xchainer::SetDefaultDevice(&device);
+            chainerx::SetDefaultContext(&context);
+            chainerx::SetDefaultDevice(&device);
             func();
             return nullptr;
         });
@@ -74,4 +74,4 @@ inline void RunTestWithThreads(const std::function<void(void)>& func, size_t thr
 }
 
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

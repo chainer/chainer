@@ -1,8 +1,8 @@
-#include "xchainer/scalar.h"
+#include "chainerx/scalar.h"
 
 #include <gtest/gtest.h>
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 TEST(ScalarTest, Dtype) {
@@ -134,4 +134,4 @@ TEST(ScalarTest, ToString) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

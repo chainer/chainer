@@ -1,4 +1,4 @@
-#include "xchainer/backward.h"
+#include "chainerx/backward.h"
 
 #include <algorithm>
 #include <functional>
@@ -10,23 +10,23 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body.h"
-#include "xchainer/array_node.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/backward_context.h"
-#include "xchainer/backward_fwd.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/op_node.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body.h"
+#include "chainerx/array_node.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/backward_context.h"
+#include "chainerx/backward_fwd.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/op_node.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 using internal::ArrayBody;
@@ -394,4 +394,4 @@ void Backward(
     BackwardImpl{outputs, actual_backprop_id, double_backprop}.Run();
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

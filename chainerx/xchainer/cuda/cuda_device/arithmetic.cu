@@ -1,18 +1,18 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <cstdint>
 
 #include <cuda_runtime.h>
 
-#include "xchainer/arithmetic_ops.h"
-#include "xchainer/array.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/cuda/elementwise.cuh"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/scalar.h"
+#include "chainerx/arithmetic_ops.h"
+#include "chainerx/array.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/scalar.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -165,4 +165,4 @@ void CudaDevice::DivideAS(const Array& x1, Scalar x2, const Array& out) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

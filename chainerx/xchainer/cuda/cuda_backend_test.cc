@@ -1,4 +1,4 @@
-#include "xchainer/cuda/cuda_backend.h"
+#include "chainerx/cuda/cuda_backend.h"
 
 // NOLINTNEXTLINE(modernize-deprecated-headers): clang-tidy recommends to use cstdlib, but setenv is not included in cstdlib
 #include <stdlib.h>
@@ -9,18 +9,18 @@
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
-#include "xchainer/array.h"
-#include "xchainer/context.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/device.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/testing/threading.h"
-#include "xchainer/testing/util.h"
+#include "chainerx/array.h"
+#include "chainerx/context.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/device.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/testing/threading.h"
+#include "chainerx/testing/util.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -424,4 +424,4 @@ TEST(CudaBackendTest, SetAndGetCudnnMaxWorkspaceSizeThreadSafe) {
 
 }  // namespace
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

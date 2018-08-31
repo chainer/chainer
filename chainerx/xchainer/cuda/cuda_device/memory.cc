@@ -1,17 +1,17 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <cstddef>
 #include <memory>
 
 #include <cuda_runtime.h>
 
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/device.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/native/native_device.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/device.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/native/native_device.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
@@ -98,4 +98,4 @@ std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& sr
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

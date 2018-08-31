@@ -6,22 +6,22 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/backend.h"
-#include "xchainer/backward.h"
-#include "xchainer/device.h"
-#include "xchainer/error.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/macro.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/native/native_device.h"
-#include "xchainer/testing/array.h"
-#include "xchainer/testing/array_check.h"
-#include "xchainer/testing/context_session.h"
-#include "xchainer/testing/util.h"
+#include "chainerx/array.h"
+#include "chainerx/backend.h"
+#include "chainerx/backward.h"
+#include "chainerx/device.h"
+#include "chainerx/error.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/macro.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/native/native_device.h"
+#include "chainerx/testing/array.h"
+#include "chainerx/testing/array_check.h"
+#include "chainerx/testing/context_session.h"
+#include "chainerx/testing/util.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 // Test configuration class
@@ -296,4 +296,4 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

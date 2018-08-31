@@ -1,4 +1,4 @@
-#include "xchainer/native/native_device.h"
+#include "chainerx/native/native_device.h"
 
 #include <cstddef>
 #include <memory>
@@ -8,11 +8,11 @@
 
 #include <gtest/gtest.h>
 
-#include "xchainer/context.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/testing/threading.h"
+#include "chainerx/context.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/testing/threading.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 namespace {
 
@@ -156,4 +156,4 @@ TEST(NativeDeviceTest, GetContextMultiThread) {
 
 }  // namespace
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

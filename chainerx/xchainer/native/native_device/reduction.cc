@@ -1,16 +1,16 @@
-#include "xchainer/native/native_device.h"
+#include "chainerx/native/native_device.h"
 
 #include <cstdint>
 
-#include "xchainer/array.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/macro.h"
-#include "xchainer/native/reduce.h"
-#include "xchainer/numeric_limits.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/macro.h"
+#include "chainerx/native/reduce.h"
+#include "chainerx/numeric_limits.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 void NativeDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
@@ -79,4 +79,4 @@ void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
 }
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

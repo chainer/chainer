@@ -11,24 +11,24 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array_body.h"
-#include "xchainer/array_fwd.h"
-#include "xchainer/array_index.h"
-#include "xchainer/array_node.h"
-#include "xchainer/array_repr.h"
-#include "xchainer/axes.h"
-#include "xchainer/constant.h"
-#include "xchainer/context.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/enum.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/scalar.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
+#include "chainerx/array_body.h"
+#include "chainerx/array_fwd.h"
+#include "chainerx/array_index.h"
+#include "chainerx/array_node.h"
+#include "chainerx/array_repr.h"
+#include "chainerx/axes.h"
+#include "chainerx/constant.h"
+#include "chainerx/context.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/enum.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/scalar.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 BackpropId GetArrayBackpropId(const Array& array, const nonstd::optional<BackpropId>& backprop_id);
@@ -122,7 +122,7 @@ public:
     // Returns a sum of the array.
     // If `axis` is set, it will be summed over the specified axes.
     // Otherwise, it will be summed over all the existing axes.
-    // Note: When implementing xchainer::Sum(), be careful of the semantics of the default value of `keepdims`. See NumPy documentation.
+    // Note: When implementing chainerx::Sum(), be careful of the semantics of the default value of `keepdims`. See NumPy documentation.
     Array Sum(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
 
     // Returns the maximum value of the array.
@@ -285,4 +285,4 @@ void DebugDumpComputationalGraph(
         int indent = 0,
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map = {});
 
-}  // namespace xchainer
+}  // namespace chainerx

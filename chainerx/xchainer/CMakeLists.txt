@@ -53,11 +53,11 @@ install(FILES
     stack_vector.h
     strides.h
     thread_local_state.h
-    xchainer.h
-    DESTINATION include/xchainer
+    chainerx.h
+    DESTINATION include/chainerx
     )
 
-add_library(xchainer SHARED
+add_library(chainerx SHARED
     array.cc
     array_body.cc
     array_body_leak_detection.cc
@@ -84,21 +84,21 @@ add_library(xchainer SHARED
     thread_local_state.cc
     )
 
-target_link_libraries(xchainer
+target_link_libraries(chainerx
     PUBLIC
     ${CMAKE_DL_LIBS}
     PRIVATE
     -Wl,--whole-archive)
-target_link_libraries(xchainer PRIVATE xchainer_routines)
-target_link_libraries(xchainer PRIVATE xchainer_native)
-target_link_libraries(xchainer PRIVATE xchainer_testing)
+target_link_libraries(chainerx PRIVATE chainerx_routines)
+target_link_libraries(chainerx PRIVATE chainerx_native)
+target_link_libraries(chainerx PRIVATE chainerx_testing)
 if(${CUDA_FOUND})
-    target_link_libraries(xchainer PRIVATE xchainer_cuda)
+    target_link_libraries(chainerx PRIVATE chainerx_cuda)
 endif()
-target_link_libraries(xchainer
+target_link_libraries(chainerx
     PRIVATE
     -Wl,--no-whole-archive)
-install(TARGETS xchainer DESTINATION lib)
+install(TARGETS chainerx DESTINATION lib)
 
 if(${XCHAINER_BUILD_TEST})
     add_subdirectory(context_testdata)
@@ -130,16 +130,16 @@ if(${XCHAINER_BUILD_TEST})
         thread_local_state_test.cc
         )
     if(${CUDA_FOUND})
-        CUDA_ADD_EXECUTABLE(xchainer_test ${srcs})
+        CUDA_ADD_EXECUTABLE(chainerx_test ${srcs})
     else()
-        add_executable(xchainer_test ${srcs})
+        add_executable(chainerx_test ${srcs})
     endif()
 
-    target_compile_definitions(xchainer_test PRIVATE
+    target_compile_definitions(chainerx_test PRIVATE
         XCHAINER_TEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 
-    target_link_libraries(xchainer_test
-        xchainer
+    target_link_libraries(chainerx_test
+        chainerx
         gtest)
-    add_test(NAME xchainer_test COMMAND xchainer_test)
+    add_test(NAME chainerx_test COMMAND chainerx_test)
 endif()

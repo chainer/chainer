@@ -1,4 +1,4 @@
-#include "xchainer/context.h"
+#include "chainerx/context.h"
 
 #include <dlfcn.h>
 
@@ -14,29 +14,29 @@
 #include <nonstd/optional.hpp>
 
 #ifdef XCHAINER_ENABLE_CUDA
-#include "xchainer/cuda/cuda_backend.h"
+#include "chainerx/cuda/cuda_backend.h"
 #endif  // XCHAINER_ENABLE_CUDA
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/thread_local_state.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/thread_local_state.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 std::atomic<Context*> g_global_default_context{nullptr};
 
 std::string GetXchainerPath() {
-    char* xchainer_path = std::getenv("XCHAINER_PATH");
-    if (xchainer_path != nullptr) {
-        return xchainer_path;
+    char* chainerx_path = std::getenv("XCHAINER_PATH");
+    if (chainerx_path != nullptr) {
+        return chainerx_path;
     }
 
     char* home_path = std::getenv("HOME");
     if (home_path == nullptr) {
         throw XchainerError{"Xchainer path is not defined. Set either XCHAINER_PATH or HOME."};
     }
-    return std::string(home_path) + "/.xchainer";
+    return std::string(home_path) + "/.chainerx";
 }
 
 }  // namespace
@@ -298,4 +298,4 @@ void SetDefaultContext(Context* context) {
     }
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,4 +1,4 @@
-#include "xchainer/testing/routines.h"
+#include "chainerx/testing/routines.h"
 
 #include <functional>
 #include <sstream>
@@ -6,12 +6,12 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/array.h"
-#include "xchainer/context.h"
-#include "xchainer/numeric.h"
-#include "xchainer/testing/threading.h"
+#include "chainerx/array.h"
+#include "chainerx/context.h"
+#include "chainerx/numeric.h"
+#include "chainerx/testing/threading.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 namespace {
 
@@ -112,10 +112,10 @@ void CheckForward(
 
     // Run thread safety check
     if (concurrent_check_thread_count > 0) {
-        Context& context = xchainer::GetDefaultContext();
+        Context& context = chainerx::GetDefaultContext();
 
         RunThreads(concurrent_check_thread_count, [&func, &inputs, &expected_outputs, &atol, &rtol, &context](size_t /*thread_index*/) {
-            xchainer::SetDefaultContext(&context);
+            chainerx::SetDefaultContext(&context);
             std::vector<Array> outputs = func(inputs);
             CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
             return nullptr;
@@ -124,4 +124,4 @@ void CheckForward(
 }
 
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

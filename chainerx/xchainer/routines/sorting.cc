@@ -1,18 +1,18 @@
-#include "xchainer/routines/sorting.h"
+#include "chainerx/routines/sorting.h"
 
 #include <cstdint>
 #include <numeric>
 #include <vector>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
-#include "xchainer/backprop_mode.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
+#include "chainerx/backprop_mode.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 
 Array ArgMax(const Array& a, const OptionalAxes& axis) {
     Axes sorted_axis{};
@@ -47,4 +47,4 @@ Array ArgMax(const Array& a, const OptionalAxes& axis) {
     return out;
 }
 
-}  // namespace xchainer
+}  // namespace chainerx

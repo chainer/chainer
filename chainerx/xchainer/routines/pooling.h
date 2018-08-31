@@ -2,11 +2,11 @@
 
 #include <cstdint>
 
-#include "xchainer/array.h"
-#include "xchainer/constant.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/constant.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 
 Array MaxPool(
         const Array& x,
@@ -27,4 +27,4 @@ Array AveragePool(
         const StackVector<int64_t, kMaxNdim>& pad,
         AveragePoolPadMode pad_mode = AveragePoolPadMode::kIgnore);
 
-}  // namespace xchainer
+}  // namespace chainerx

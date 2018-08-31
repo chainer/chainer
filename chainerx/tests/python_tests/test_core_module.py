@@ -1,5 +1,5 @@
-import xchainer
+import chainerx
 
 
 def test_core():
-    assert xchainer.__name__ == 'xchainer'
+    assert chainerx.__name__ == 'chainerx'

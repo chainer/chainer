@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 
-namespace xchainer {
+namespace chainerx {
 
 class Backend;
 
@@ -32,4 +32,4 @@ inline bool operator!=(const DeviceId& lhs, const DeviceId& rhs) { return !(lhs 
 
 std::ostream& operator<<(std::ostream&, const DeviceId&);
 
-}  // namespace xchainer
+}  // namespace chainerx

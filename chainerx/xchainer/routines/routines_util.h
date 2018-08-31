@@ -3,10 +3,10 @@
 #include <functional>
 #include <initializer_list>
 
-#include "xchainer/array.h"
-#include "xchainer/error.h"
+#include "chainerx/array.h"
+#include "chainerx/error.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 // Checks for unsafe inplace operation on arrays.
@@ -48,4 +48,4 @@ void MakeViewForForwardBackwardOutput(std::array<Array, N>& outputs) {
 inline void MakeViewForForwardBackwardOutput(Array& output) { output = output.MakeView(); }
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

@@ -5,9 +5,9 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/error.h"
+#include "chainerx/error.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class Slice {
 public:
@@ -59,4 +59,4 @@ private:
     int64_t step_{1};
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

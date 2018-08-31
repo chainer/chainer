@@ -2,10 +2,10 @@
 
 #include <cstdint>
 
-#include "xchainer/error.h"
-#include "xchainer/slice.h"
+#include "chainerx/error.h"
+#include "chainerx/slice.h"
 
-namespace xchainer {
+namespace chainerx {
 
 enum class ArrayIndexTag {
     kSingleElement = 1,
@@ -43,4 +43,4 @@ private:
     Slice slice_;
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

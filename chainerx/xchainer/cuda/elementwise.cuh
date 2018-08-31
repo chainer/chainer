@@ -6,16 +6,16 @@
 #include <tuple>
 #include <utility>
 
-#include "xchainer/constant.h"
-#include "xchainer/cuda/cuda.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/index_iterator.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/shape.h"
-#include "xchainer/squash_dims.h"
+#include "chainerx/constant.h"
+#include "chainerx/cuda/cuda.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/index_iterator.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/shape.h"
+#include "chainerx/squash_dims.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace elementwise_detail {
 
@@ -73,4 +73,4 @@ void Elementwise(Op&& op, const Arrays&... args) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

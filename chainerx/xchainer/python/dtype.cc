@@ -1,13 +1,13 @@
-#include "xchainer/python/dtype.h"
+#include "chainerx/python/dtype.h"
 
 #include <string>
 
-#include "xchainer/dtype.h"
-#include "xchainer/scalar.h"
+#include "chainerx/dtype.h"
+#include "chainerx/scalar.h"
 
-#include "xchainer/python/common.h"
+#include "chainerx/python/common.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -33,7 +33,7 @@ Dtype GetDtypeFromString(const std::string& name) {
     }
 
     // From Dtype names
-    return xchainer::GetDtype(name);
+    return chainerx::GetDtype(name);
 }
 
 Dtype GetDtypeFromNumpyDtype(const py::dtype& npdtype) {
@@ -79,7 +79,7 @@ Dtype GetDtypeFromNumpyDtype(const py::dtype& npdtype) {
 }
 
 Dtype GetDtype(py::handle handle) {
-    // From xchainer::Dtype
+    // From chainerx::Dtype
     if (py::isinstance<Dtype>(handle)) {
         return py::cast<Dtype>(handle);
     }
@@ -167,4 +167,4 @@ void InitXchainerDtype(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,6 +1,6 @@
-#include "xchainer/thread_local_state.h"
+#include "chainerx/thread_local_state.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 internal::InternalThreadLocalState& GetInternalThreadLocalState() {
@@ -14,4 +14,4 @@ ThreadLocalState ThreadLocalState::Get() { return ThreadLocalState{internal::Get
 
 void ThreadLocalState::Set(const ThreadLocalState& state) { internal::GetInternalThreadLocalState() = state.state_; }
 
-}  // namespace xchainer
+}  // namespace chainerx

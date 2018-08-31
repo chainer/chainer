@@ -1,20 +1,20 @@
-#include "xchainer/array_body.h"
+#include "chainerx/array_body.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <utility>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body_leak_detection.h"
-#include "xchainer/array_node.h"
-#include "xchainer/backward.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body_leak_detection.h"
+#include "chainerx/array_node.h"
+#include "chainerx/backward.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 std::shared_ptr<ArrayBody> CreateArrayBody(
@@ -153,4 +153,4 @@ template const nonstd::optional<Array>* ArrayBody::GetGradImpl<const ArrayBody*,
         const ArrayBody*, const BackpropId&);
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

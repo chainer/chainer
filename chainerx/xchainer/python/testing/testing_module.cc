@@ -1,13 +1,13 @@
-#include "xchainer/python/testing/testing_module.h"
+#include "chainerx/python/testing/testing_module.h"
 
-#include "xchainer/python/testing/device_buffer.h"
+#include "chainerx/python/testing/device_buffer.h"
 
 #include <pybind11/pybind11.h>
 
-#include "xchainer/python/array.h"
-#include "xchainer/python/device.h"
+#include "chainerx/python/array.h"
+#include "chainerx/python/device.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace testing {
 namespace testing_internal {
@@ -33,4 +33,4 @@ void InitXchainerTestingModule(pybind11::module& m) {
 }  // namespace testing_internal
 }  // namespace testing
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

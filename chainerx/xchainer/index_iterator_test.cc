@@ -1,11 +1,11 @@
-#include "xchainer/index_iterator.h"
+#include "chainerx/index_iterator.h"
 
 #include <array>
 #include <cstdint>
 
 #include <gtest/gtest.h>
 
-namespace xchainer {
+namespace chainerx {
 namespace {
 
 TEST(IndexIteratorTest, Rank0) {
@@ -255,4 +255,4 @@ TEST(DynamicIndexIteratorTest, Rank3) {
 }
 
 }  // namespace
-}  // namespace xchainer
+}  // namespace chainerx

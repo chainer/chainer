@@ -1,9 +1,9 @@
-#include "xchainer/cuda/cuda.h"
+#include "chainerx/cuda/cuda.h"
 
 #include <mutex>
 #include <type_traits>
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace cuda_internal {
 
@@ -12,4 +12,4 @@ static_assert(std::is_pod<decltype(g_mutex)>::value, "");
 
 }  // namespace cuda_internal
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

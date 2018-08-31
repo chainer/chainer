@@ -1,15 +1,15 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/constant.h"
-#include "xchainer/cuda/cuda_conv.h"
-#include "xchainer/dtype.h"
-#include "xchainer/shape.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/constant.h"
+#include "chainerx/cuda/cuda_conv.h"
+#include "chainerx/dtype.h"
+#include "chainerx/shape.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 Array CudaDevice::Conv(
@@ -44,4 +44,4 @@ Array CudaDevice::ConvGradWeight(
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

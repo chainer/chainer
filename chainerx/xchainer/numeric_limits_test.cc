@@ -1,9 +1,9 @@
-#include "xchainer/numeric_limits.h"
+#include "chainerx/numeric_limits.h"
 
 #include <cstdint>
 #include <limits>
 
-namespace xchainer {
+namespace chainerx {
 
 // LowestOrInf
 static_assert(NumericLimits<bool>::LowestOrInf() == std::numeric_limits<bool>::lowest(), "");
@@ -25,4 +25,4 @@ static_assert(NumericLimits<int64_t>::MaxOrInf() == std::numeric_limits<int64_t>
 static_assert(NumericLimits<float>::MaxOrInf() == std::numeric_limits<float>::infinity(), "");
 static_assert(NumericLimits<double>::MaxOrInf() == std::numeric_limits<double>::infinity(), "");
 
-}  // namespace xchainer
+}  // namespace chainerx

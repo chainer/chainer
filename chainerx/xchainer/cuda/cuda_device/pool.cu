@@ -1,4 +1,4 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -7,25 +7,25 @@
 
 #include <cudnn.h>
 
-#include "xchainer/array.h"
-#include "xchainer/backend_util.h"
-#include "xchainer/constant.h"
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/cuda/cudnn.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/indexer.h"
-#include "xchainer/macro.h"
-#include "xchainer/numeric_limits.h"
-#include "xchainer/routines/connection.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/routines/pooling.h"
-#include "xchainer/shape.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/backend_util.h"
+#include "chainerx/constant.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cudnn.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/indexer.h"
+#include "chainerx/macro.h"
+#include "chainerx/numeric_limits.h"
+#include "chainerx/routines/connection.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/routines/pooling.h"
+#include "chainerx/shape.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -223,7 +223,7 @@ private:
     Array y_;
 };
 
-class CudaMaxPoolForwardBackward : public xchainer::MaxPoolForwardBackward {
+class CudaMaxPoolForwardBackward : public chainerx::MaxPoolForwardBackward {
 public:
     explicit CudaMaxPoolForwardBackward(
             cudnnHandle_t cudnn_handle,
@@ -266,7 +266,7 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
     }
 }
 
-class CudaAveragePoolForwardBackward : public xchainer::AveragePoolForwardBackward {
+class CudaAveragePoolForwardBackward : public chainerx::AveragePoolForwardBackward {
 public:
     explicit CudaAveragePoolForwardBackward(
             cudnnHandle_t cudnn_handle,
@@ -295,4 +295,4 @@ std::unique_ptr<AveragePoolForwardBackward> CudaDevice::GetAveragePoolForwardBac
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

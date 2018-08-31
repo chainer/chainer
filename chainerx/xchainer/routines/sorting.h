@@ -2,11 +2,11 @@
 
 #include <cstdint>
 
-#include "xchainer/array.h"
-#include "xchainer/axes.h"
+#include "chainerx/array.h"
+#include "chainerx/axes.h"
 
-namespace xchainer {
+namespace chainerx {
 
 Array ArgMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt);
 
-}  // namespace xchainer
+}  // namespace chainerx

@@ -1,6 +1,6 @@
 import pytest
 
-import xchainer.testing
+import chainerx.testing
 
 from tests import cuda_utils
 
@@ -64,8 +64,8 @@ def device(request):
     if cuda_device_count > cuda_utils.get_cuda_limit():
         pytest.skip()
 
-    device = xchainer.get_device(device_name)
-    device_scope = xchainer.device_scope(device)
+    device = chainerx.get_device(device_name)
+    device_scope = chainerx.device_scope(device)
 
     def finalize():
         device_scope.__exit__()
@@ -75,22 +75,22 @@ def device(request):
     return device
 
 
-@pytest.fixture(params=xchainer.testing.all_dtypes)
+@pytest.fixture(params=chainerx.testing.all_dtypes)
 def dtype(request):
     return request.param
 
 
-@pytest.fixture(params=xchainer.testing.float_dtypes)
+@pytest.fixture(params=chainerx.testing.float_dtypes)
 def float_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=xchainer.testing.signed_dtypes)
+@pytest.fixture(params=chainerx.testing.signed_dtypes)
 def signed_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=xchainer.testing.numeric_dtypes)
+@pytest.fixture(params=chainerx.testing.numeric_dtypes)
 def numeric_dtype(request):
     return request.param
 

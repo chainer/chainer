@@ -1,13 +1,13 @@
-#include "xchainer/cuda/memory_pool.h"
+#include "chainerx/cuda/memory_pool.h"
 
 #include <mutex>
 #include <unordered_map>
 #include <vector>
 
-#include "xchainer/cuda/cuda_runtime.h"
-#include "xchainer/macro.h"
+#include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 void* MemoryPool::Malloc(size_t bytesize) {
@@ -69,4 +69,4 @@ void MemoryPool::Free(void* ptr) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

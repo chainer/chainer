@@ -1,4 +1,4 @@
-#include "xchainer/cuda/cuda_conv.h"
+#include "chainerx/cuda/cuda_conv.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -9,22 +9,22 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/backend_util.h"
-#include "xchainer/cuda/cuda_backend.h"
-#include "xchainer/cuda/cuda_device.h"
-#include "xchainer/cuda/cudnn.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/hash_combine.h"
-#include "xchainer/macro.h"
-#include "xchainer/routines/connection.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/shape.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/backend_util.h"
+#include "chainerx/cuda/cuda_backend.h"
+#include "chainerx/cuda/cuda_device.h"
+#include "chainerx/cuda/cudnn.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/hash_combine.h"
+#include "chainerx/macro.h"
+#include "chainerx/routines/connection.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/shape.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -486,4 +486,4 @@ Array CudaConv::ConvGradWeight(
 
 }  // namespace cuda_internal
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

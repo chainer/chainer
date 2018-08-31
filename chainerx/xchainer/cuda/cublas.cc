@@ -1,13 +1,13 @@
-#include "xchainer/cuda/cublas.h"
+#include "chainerx/cuda/cublas.h"
 
 #include <cublas_v2.h>
 
 #include <string>
 
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 namespace {
 
@@ -44,4 +44,4 @@ void CheckCublasError(cublasStatus_t status) {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

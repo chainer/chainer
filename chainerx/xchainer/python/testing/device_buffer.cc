@@ -1,21 +1,21 @@
-#include "xchainer/python/testing/device_buffer.h"
+#include "chainerx/python/testing/device_buffer.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <string>
 
-#include "xchainer/device.h"
-#include "xchainer/error.h"
-#include "xchainer/python/device.h"
-#include "xchainer/python/dtype.h"
-#include "xchainer/python/shape.h"
-#include "xchainer/shape.h"
-#include "xchainer/strides.h"
+#include "chainerx/device.h"
+#include "chainerx/error.h"
+#include "chainerx/python/device.h"
+#include "chainerx/python/dtype.h"
+#include "chainerx/python/shape.h"
+#include "chainerx/shape.h"
+#include "chainerx/strides.h"
 
-#include "xchainer/python/common.h"
+#include "chainerx/python/common.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace testing {
 namespace testing_internal {
@@ -63,7 +63,7 @@ void InitXchainerDeviceBuffer(pybind11::module& m) {
               std::string format = VisitDtype(dtype, [&host_data, &list](auto pt) {
                   using T = typename decltype(pt)::type;
                   std::transform(list.begin(), list.end(), static_cast<T*>(host_data.get()), [](auto& item) { return py::cast<T>(item); });
-                  return py::format_descriptor<T>::format();  // Return the dtype format, e.g. "f" for xchainer.float32.
+                  return py::format_descriptor<T>::format();  // Return the dtype format, e.g. "f" for chainerx.float32.
               });
 
               // Copy the data on the host buffer to the target device.
@@ -84,4 +84,4 @@ void InitXchainerDeviceBuffer(pybind11::module& m) {
 }  // namespace testing_internal
 }  // namespace testing
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

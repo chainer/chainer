@@ -1,8 +1,8 @@
-#include "xchainer/python/slice.h"
+#include "chainerx/python/slice.h"
 
 #include <nonstd/optional.hpp>
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -22,4 +22,4 @@ Slice MakeSlice(const py::slice& slice) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

@@ -6,15 +6,15 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array_body.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/op_node.h"
-#include "xchainer/shape.h"
+#include "chainerx/array_body.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/op_node.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace internal {
 
 class ArrayNode {
@@ -69,4 +69,4 @@ private:
 };
 
 }  // namespace internal
-}  // namespace xchainer
+}  // namespace chainerx

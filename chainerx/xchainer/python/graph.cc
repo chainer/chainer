@@ -1,19 +1,19 @@
-#include "xchainer/python/graph.h"
+#include "chainerx/python/graph.h"
 
 #include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
 
-#include "xchainer/backprop_scope.h"
-#include "xchainer/context.h"
-#include "xchainer/error.h"
-#include "xchainer/graph.h"
+#include "chainerx/backprop_scope.h"
+#include "chainerx/context.h"
+#include "chainerx/error.h"
+#include "chainerx/graph.h"
 
-#include "xchainer/python/common.h"
-#include "xchainer/python/context.h"
+#include "chainerx/python/common.h"
+#include "chainerx/python/context.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -74,4 +74,4 @@ void InitXchainerBackpropScope(pybind11::module& m) {
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

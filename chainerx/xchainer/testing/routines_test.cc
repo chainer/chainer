@@ -1,4 +1,4 @@
-#include "xchainer/testing/array.h"
+#include "chainerx/testing/array.h"
 
 #include <cassert>
 #include <cstdint>
@@ -9,14 +9,14 @@
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/native/native_backend.h"
-#include "xchainer/shape.h"
-#include "xchainer/testing/device_session.h"
-#include "xchainer/testing/routines.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/native/native_backend.h"
+#include "chainerx/shape.h"
+#include "chainerx/testing/device_session.h"
+#include "chainerx/testing/routines.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace testing {
 namespace {
 
@@ -87,4 +87,4 @@ TEST(CheckForward, IncorrectOutputValue) {
 
 }  // namespace
 }  // namespace testing
-}  // namespace xchainer
+}  // namespace chainerx

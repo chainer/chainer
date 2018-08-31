@@ -1,4 +1,4 @@
 #pragma once
 
-#include "xchainer/array.h"
-#include "xchainer/dtype.h"
+#include "chainerx/array.h"
+#include "chainerx/dtype.h"

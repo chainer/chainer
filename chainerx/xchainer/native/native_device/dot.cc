@@ -1,4 +1,4 @@
-#include "xchainer/native/native_device.h"
+#include "chainerx/native/native_device.h"
 
 #include <cstdint>
 
@@ -6,16 +6,16 @@
 #include <cblas.h>
 #endif  // XCHAINER_ENABLE_BLAS
 
-#include "xchainer/array.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/indexable_array.h"
-#include "xchainer/macro.h"
-#include "xchainer/native/elementwise.h"
-#include "xchainer/routines/creation.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/indexable_array.h"
+#include "chainerx/macro.h"
+#include "chainerx/native/elementwise.h"
+#include "chainerx/routines/creation.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 #ifdef XCHAINER_ENABLE_BLAS
@@ -159,4 +159,4 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
 }
 
 }  // namespace native
-}  // namespace xchainer
+}  // namespace chainerx

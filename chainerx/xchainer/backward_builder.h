@@ -11,18 +11,18 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/array.h"
-#include "xchainer/array_body.h"
-#include "xchainer/array_node.h"
-#include "xchainer/constant.h"
-#include "xchainer/device.h"
-#include "xchainer/dtype.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
-#include "xchainer/op_node.h"
-#include "xchainer/shape.h"
+#include "chainerx/array.h"
+#include "chainerx/array_body.h"
+#include "chainerx/array_node.h"
+#include "chainerx/constant.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
+#include "chainerx/op_node.h"
+#include "chainerx/shape.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace backward_builder_detail {
 
 // This class is used by the BackwardBuilder to record retained inputs and outputs.
@@ -60,7 +60,7 @@ public:
     RetainedArrayToken& operator=(RetainedArrayToken&&) = default;
 
 private:
-    friend class xchainer::BackwardContext;
+    friend class chainerx::BackwardContext;
 
     // Returns the array index.
     size_t index() const { return index_; }
@@ -200,4 +200,4 @@ private:
     bool is_finalized_{false};
 };
 
-}  // namespace xchainer
+}  // namespace chainerx

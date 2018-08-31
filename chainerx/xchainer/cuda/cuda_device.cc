@@ -1,13 +1,13 @@
-#include "xchainer/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_device.h"
 
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cudnn.h>
 
-#include "xchainer/cuda/cublas.h"
-#include "xchainer/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cublas.h"
+#include "chainerx/cuda/cuda_runtime.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 CudaDevice::~CudaDevice() {
@@ -43,4 +43,4 @@ void CudaDevice::Synchronize() {
 }
 
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

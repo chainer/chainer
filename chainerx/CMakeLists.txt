@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(xchainer CXX C)
+project(chainerx CXX C)
 
 # CMake setup
 if(POLICY ${CMP0054})
@@ -148,4 +148,4 @@ if(${XCHAINER_BUILD_TEST})
     enable_testing()
 endif()
 
-add_subdirectory(xchainer)
+add_subdirectory(chainerx)

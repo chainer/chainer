@@ -3,13 +3,13 @@
 #include <cudnn.h>
 #include <nonstd/optional.hpp>
 
-#include "xchainer/array.h"
-#include "xchainer/dtype.h"
-#include "xchainer/error.h"
-#include "xchainer/macro.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/array.h"
+#include "chainerx/dtype.h"
+#include "chainerx/error.h"
+#include "chainerx/macro.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace cuda {
 
 class CudnnError : public XchainerError {
@@ -107,4 +107,4 @@ private:
 
 }  // namespace cuda_internal
 }  // namespace cuda
-}  // namespace xchainer
+}  // namespace chainerx

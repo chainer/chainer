@@ -1,10 +1,10 @@
-#include "xchainer/python/array_index.h"
+#include "chainerx/python/array_index.h"
 
-#include "xchainer/array_index.h"
+#include "chainerx/array_index.h"
 
-#include "xchainer/python/slice.h"
+#include "chainerx/python/slice.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace python {
 namespace python_internal {
 
@@ -22,7 +22,7 @@ ArrayIndex MakeArrayIndex(py::handle handle) {
     if (py::slice::check_(handle)) {
         return ArrayIndex{MakeSlice(py::cast<py::slice>(handle))};
     }
-    throw py::index_error{"only integers, slices (`:`), and xchainer.newaxis (`None`) are valid indices"};
+    throw py::index_error{"only integers, slices (`:`), and chainerx.newaxis (`None`) are valid indices"};
 }
 
 std::vector<ArrayIndex> MakeArrayIndicesFromTuple(py::tuple tup) {
@@ -46,4 +46,4 @@ void InitXchainerArrayIndex(py::module& m) { m.attr("newaxis") = py::none(); }
 
 }  // namespace python_internal
 }  // namespace python
-}  // namespace xchainer
+}  // namespace chainerx

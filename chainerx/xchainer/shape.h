@@ -10,12 +10,12 @@
 
 #include <gsl/gsl>
 
-#include "xchainer/axes.h"
-#include "xchainer/constant.h"
-#include "xchainer/error.h"
-#include "xchainer/stack_vector.h"
+#include "chainerx/axes.h"
+#include "chainerx/constant.h"
+#include "chainerx/error.h"
+#include "chainerx/stack_vector.h"
 
-namespace xchainer {
+namespace chainerx {
 
 class Strides;
 
@@ -105,4 +105,4 @@ std::ostream& operator<<(std::ostream&, const Shape&);
 
 void CheckEqual(const Shape& lhs, const Shape& rhs);
 
-}  // namespace xchainer
+}  // namespace chainerx

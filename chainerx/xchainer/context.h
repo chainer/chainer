@@ -9,13 +9,13 @@
 
 #include <nonstd/optional.hpp>
 
-#include "xchainer/backend.h"
-#include "xchainer/device.h"
-#include "xchainer/device_id.h"
-#include "xchainer/graph.h"
-#include "xchainer/macro.h"
+#include "chainerx/backend.h"
+#include "chainerx/device.h"
+#include "chainerx/device_id.h"
+#include "chainerx/graph.h"
+#include "chainerx/macro.h"
 
-namespace xchainer {
+namespace chainerx {
 namespace native {
 
 class NativeBackend;
@@ -204,4 +204,4 @@ private:
     bool exited_;
 };
 
-}  // namespace xchainer
+}  // namespace chainerx
