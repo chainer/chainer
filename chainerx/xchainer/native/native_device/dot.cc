@@ -120,7 +120,7 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
 
     // TODO(sonots): Support ndim >= 2
     if (a.ndim() != 2 || b.ndim() != 2 || out.ndim() != 2) {
-        throw DimensionError{"XChainer dot supports only 2-dimensional arrays."};
+        throw DimensionError{"ChainerX dot supports only 2-dimensional arrays."};
     }
 
 #ifdef CHAINERX_ENABLE_BLAS

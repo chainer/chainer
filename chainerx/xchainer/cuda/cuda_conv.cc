@@ -31,10 +31,10 @@ namespace {
 void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array>& b) {
     // TODO(sonots): Support float16
     if (x.dtype() != Dtype::kFloat32 && x.dtype() != Dtype::kFloat64) {
-        throw XchainerError{"XChainer cuDNN supports only float32 or float64 arrays, but the input array dtype is: ", x.dtype()};
+        throw XchainerError{"ChainerX cuDNN supports only float32 or float64 arrays, but the input array dtype is: ", x.dtype()};
     }
     if (w.dtype() != x.dtype()) {
-        throw XchainerError{"XChainer cuDNN requires the filter (kernel) array dtype: ",
+        throw XchainerError{"ChainerX cuDNN requires the filter (kernel) array dtype: ",
                             w.dtype(),
                             " and the input array dtype: ",
                             x.dtype(),
@@ -42,7 +42,7 @@ void ConvCheckDtype(const Array& x, const Array& w, const nonstd::optional<Array
     }
     if (b && b->dtype() != x.dtype()) {
         throw XchainerError{
-                "XChainer cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " to be the same"};
+                "ChainerX cuDNN requires the bias array dtype: ", b->dtype(), " and the input array dtype: ", x.dtype(), " to be the same"};
     }
 }
 

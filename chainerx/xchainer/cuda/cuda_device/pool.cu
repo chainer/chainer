@@ -98,7 +98,7 @@ public:
     Array Forward(const Array& x) {
         int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions
         if (ndim != 2 && ndim != 3) {
-            throw DimensionError{"XChainer cuDNN pooling supports only 2 and 3 spatial dimensions."};
+            throw DimensionError{"ChainerX cuDNN pooling supports only 2 and 3 spatial dimensions."};
         }
 
         CHAINERX_ASSERT(kernel_size_.size() == static_cast<size_t>(ndim));
