@@ -1,0 +1,302 @@
+============================= test session starts ==============================
+platform linux -- Python 3.6.3, pytest-3.3.1, py-1.5.2, pluggy-0.6.0
+rootdir: /home/masayuki.takagi/chainer, inifile: setup.cfg
+collected 28 items
+
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py .
+mean: float16
+ln_var: float16
+eps: float16
+
+mean: float64
+ln_var: float64
+eps: float16
+F.
+mean: float16
+ln_var: float16
+eps: float16
+..
+mean: float16
+ln_var: float16
+eps: float16
+
+mean: float64
+ln_var: float64
+eps: float16
+F. [ 25%]
+
+mean: float16
+ln_var: float16
+eps: float16
+..
+mean: float32
+ln_var: float32
+eps: float32
+
+mean: float64
+ln_var: float64
+eps: float32
+F.
+mean: float32
+ln_var: float32
+eps: float32
+..
+mean: float32
+ln_var: float32
+eps: float32
+
+mean: float64
+ln_var: float64
+eps: float32
+F.
+mean: float32
+ln_var: float32
+eps: float32
+..
+mean: float64
+ln_var: float64
+eps: float64
+
+mean: float64
+ln_var: float64
+eps: float64
+
+mean: float64
+ln_var: float64
+eps: float64
+..
+mean: float64
+ln_var: float64
+eps: float64
+..
+mean: float64
+ln_var: float64
+eps: float64
+
+mean: float64
+ln_var: float64
+eps: float64
+
+mean: float64
+ln_var: float64
+eps: float64
+..
+mean: float64
+ln_var: float64
+eps: float64
+..
+mean: float32
+ln_var: float32
+eps: float32
+
+mean: float32
+ln_var: float32
+eps: float32
+..
+mean: float32
+ln_var: float32
+eps: float32
+
+mean: float32
+ln_var: float32
+eps: float32
+.                                                    [100%]
+
+=================================== FAILURES ===================================
+____________________ TestGaussian_param_0.test_backward_gpu ____________________
+
+self = <chainer.testing.parameterized.TestGaussian_param_0 testMethod=test_backward_gpu>
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.m),
+                            cuda.to_gpu(self.v),
+>                           cuda.to_gpu(self.gy))
+
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:57: in check_backward
+    f, (m_data, v_data), y_grad, **self.check_backward_options)
+chainer/gradient_check.py:563: in check_backward
+    center_outputs=y0_data)
+chainer/gradient_check.py:268: in numerical_grad
+    iterate_single_input(i_in, x, orig_x, i)
+chainer/gradient_check.py:135: in iterate_single_input
+    eval_func(x, i, -eps * 1, orig),
+chainer/gradient_check.py:116: in eval_func
+    y = _copy_arrays(f())
+chainer/gradient_check.py:553: in g
+    ys = func(*xs)
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:54: in f
+    return gaussian.apply((m, v))[0]
+chainer/function_node.py:257: in apply
+    outputs = self.forward(in_data)
+chainer/function_node.py:363: in forward
+    return self.forward_gpu(inputs)
+chainer/functions/noise/gaussian.py:77: in forward_gpu
+    )(ln_var, self.eps)
+cupy/core/elementwise.pxi:507: in cupy.core.core.ElementwiseKernel.__call__
+    ???
+cupy/core/elementwise.pxi:549: in cupy.core.core.ElementwiseKernel._decide_params_type
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   ???
+E   AssertionError: Parameterized test failed.
+E   
+E   Base test method: TestGaussian.test_backward_gpu
+E   Test parameters:
+E     dtype: <class 'numpy.float16'>
+E     shape: (3, 2)
+E   
+E   TypeError: Type is mismatched. e <class 'numpy.float16'> <class 'numpy.float64'> T
+
+cupy/core/elementwise.pxi:260: AssertionError
+____________________ TestGaussian_param_1.test_backward_gpu ____________________
+
+self = <chainer.testing.parameterized.TestGaussian_param_1 testMethod=test_backward_gpu>
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.m),
+                            cuda.to_gpu(self.v),
+>                           cuda.to_gpu(self.gy))
+
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:57: in check_backward
+    f, (m_data, v_data), y_grad, **self.check_backward_options)
+chainer/gradient_check.py:563: in check_backward
+    center_outputs=y0_data)
+chainer/gradient_check.py:268: in numerical_grad
+    iterate_single_input(i_in, x, orig_x, i)
+chainer/gradient_check.py:135: in iterate_single_input
+    eval_func(x, i, -eps * 1, orig),
+chainer/gradient_check.py:116: in eval_func
+    y = _copy_arrays(f())
+chainer/gradient_check.py:553: in g
+    ys = func(*xs)
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:54: in f
+    return gaussian.apply((m, v))[0]
+chainer/function_node.py:257: in apply
+    outputs = self.forward(in_data)
+chainer/function_node.py:363: in forward
+    return self.forward_gpu(inputs)
+chainer/functions/noise/gaussian.py:77: in forward_gpu
+    )(ln_var, self.eps)
+cupy/core/elementwise.pxi:507: in cupy.core.core.ElementwiseKernel.__call__
+    ???
+cupy/core/elementwise.pxi:549: in cupy.core.core.ElementwiseKernel._decide_params_type
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   ???
+E   AssertionError: Parameterized test failed.
+E   
+E   Base test method: TestGaussian.test_backward_gpu
+E   Test parameters:
+E     dtype: <class 'numpy.float16'>
+E     shape: ()
+E   
+E   TypeError: Type is mismatched. e <class 'numpy.float16'> <class 'numpy.float64'> T
+
+cupy/core/elementwise.pxi:260: AssertionError
+____________________ TestGaussian_param_2.test_backward_gpu ____________________
+
+self = <chainer.testing.parameterized.TestGaussian_param_2 testMethod=test_backward_gpu>
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.m),
+                            cuda.to_gpu(self.v),
+>                           cuda.to_gpu(self.gy))
+
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:57: in check_backward
+    f, (m_data, v_data), y_grad, **self.check_backward_options)
+chainer/gradient_check.py:563: in check_backward
+    center_outputs=y0_data)
+chainer/gradient_check.py:268: in numerical_grad
+    iterate_single_input(i_in, x, orig_x, i)
+chainer/gradient_check.py:135: in iterate_single_input
+    eval_func(x, i, -eps * 1, orig),
+chainer/gradient_check.py:116: in eval_func
+    y = _copy_arrays(f())
+chainer/gradient_check.py:553: in g
+    ys = func(*xs)
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:54: in f
+    return gaussian.apply((m, v))[0]
+chainer/function_node.py:257: in apply
+    outputs = self.forward(in_data)
+chainer/function_node.py:363: in forward
+    return self.forward_gpu(inputs)
+chainer/functions/noise/gaussian.py:77: in forward_gpu
+    )(ln_var, self.eps)
+cupy/core/elementwise.pxi:507: in cupy.core.core.ElementwiseKernel.__call__
+    ???
+cupy/core/elementwise.pxi:549: in cupy.core.core.ElementwiseKernel._decide_params_type
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   ???
+E   AssertionError: Parameterized test failed.
+E   
+E   Base test method: TestGaussian.test_backward_gpu
+E   Test parameters:
+E     dtype: <class 'numpy.float32'>
+E     shape: (3, 2)
+E   
+E   TypeError: Type is mismatched. e <class 'numpy.float32'> <class 'numpy.float64'> T
+
+cupy/core/elementwise.pxi:260: AssertionError
+____________________ TestGaussian_param_3.test_backward_gpu ____________________
+
+self = <chainer.testing.parameterized.TestGaussian_param_3 testMethod=test_backward_gpu>
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.m),
+                            cuda.to_gpu(self.v),
+>                           cuda.to_gpu(self.gy))
+
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:57: in check_backward
+    f, (m_data, v_data), y_grad, **self.check_backward_options)
+chainer/gradient_check.py:563: in check_backward
+    center_outputs=y0_data)
+chainer/gradient_check.py:268: in numerical_grad
+    iterate_single_input(i_in, x, orig_x, i)
+chainer/gradient_check.py:135: in iterate_single_input
+    eval_func(x, i, -eps * 1, orig),
+chainer/gradient_check.py:116: in eval_func
+    y = _copy_arrays(f())
+chainer/gradient_check.py:553: in g
+    ys = func(*xs)
+tests/chainer_tests/functions_tests/noise_tests/test_gaussian.py:54: in f
+    return gaussian.apply((m, v))[0]
+chainer/function_node.py:257: in apply
+    outputs = self.forward(in_data)
+chainer/function_node.py:363: in forward
+    return self.forward_gpu(inputs)
+chainer/functions/noise/gaussian.py:77: in forward_gpu
+    )(ln_var, self.eps)
+cupy/core/elementwise.pxi:507: in cupy.core.core.ElementwiseKernel.__call__
+    ???
+cupy/core/elementwise.pxi:549: in cupy.core.core.ElementwiseKernel._decide_params_type
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+>   ???
+E   AssertionError: Parameterized test failed.
+E   
+E   Base test method: TestGaussian.test_backward_gpu
+E   Test parameters:
+E     dtype: <class 'numpy.float32'>
+E     shape: ()
+E   
+E   TypeError: Type is mismatched. e <class 'numpy.float32'> <class 'numpy.float64'> T
+
+cupy/core/elementwise.pxi:260: AssertionError
+===================== 4 failed, 24 passed in 1.53 seconds ======================
