@@ -87,11 +87,10 @@ TEST(CudaBackendTest, GetDeviceThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};
 
-    testing::RunThreads(4, [&backend](size_t thread_index) {
-        int device_index = thread_index;
-        Device& device = backend.GetDevice(device_index);
+    testing::RunThreads(2, [&backend](size_t /*thread_index*/) {
+        Device& device = backend.GetDevice(0);
         EXPECT_EQ(&backend, &device.backend());
-        EXPECT_EQ(device_index, device.index());
+        EXPECT_EQ(0, device.index());
         return nullptr;
     });
 }
