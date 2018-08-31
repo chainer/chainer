@@ -85,7 +85,7 @@ def backprop_step(
             variables. If the gradient w.r.t. an output variable is not
             given, the corresponding element is ``None``. The gradients
             are removed from the list to reduce memory consumption.
-        grad_inputs (dict): References of radients w.r.t. the input variables.
+        grad_inputs (dict): References of gradients w.r.t. the input variables.
 
     """
     is_debug = chainer.is_debug()
