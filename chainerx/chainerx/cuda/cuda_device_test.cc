@@ -15,6 +15,7 @@
 #include "chainerx/testing/array.h"
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
+#include "chainerx/testing/threading.h"
 #include "chainerx/testing/util.h"
 
 namespace chainerx {
@@ -159,9 +160,29 @@ TEST(CudaDeviceTest, DotNonContiguousOut) {
 
 // TODO(sonots): Any ways to test cudaDeviceSynchronize()?
 TEST(CudaDeviceTest, Synchronize) {
-    Context ctx;
+    Context ctx{};
     CudaDevice& device = GetCudaDevice(ctx, 0);
     device.Synchronize();  // no throw
+}
+
+TEST(CudaDeviceTest, GetCublasHandleThreadSafe) {
+    Context ctx{};
+    CudaDevice& device = GetCudaDevice(ctx, 0);
+
+    testing::RunThreads(2, [&device](size_t /*thread_index*/) {
+        device.cublas_handle();
+        return nullptr;
+    });
+}
+
+TEST(CudaDeviceTest, GetCudnnHandleThreadSafe) {
+    Context ctx{};
+    CudaDevice& device = GetCudaDevice(ctx, 0);
+
+    testing::RunThreads(2, [&device](size_t /*thread_index*/) {
+        device.cudnn_handle();
+        return nullptr;
+    });
 }
 
 }  // namespace
