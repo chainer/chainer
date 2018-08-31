@@ -4,35 +4,35 @@
 #include <cstdlib>
 
 #ifdef NDEBUG
-#define XCHAINER_DEBUG false
+#define CHAINERX_DEBUG false
 #else  // NDEBUG
-#define XCHAINER_DEBUG true
+#define CHAINERX_DEBUG true
 #endif  // NDEBUG
 
-#if XCHAINER_DEBUG
-#define XCHAINER_ASSERT assert
+#if CHAINERX_DEBUG
+#define CHAINERX_ASSERT assert
 #else
 // This expression suppresses dead code and unused variable warnings of clang-tidy caused by "unused" __VA_ARGS__.
 // We use a lambda call to bypass clant-tidy's dead-code analysis, which currently does not evaluate non-const expressions.
-#define XCHAINER_ASSERT(...) (void)([] { return false; }() && (__VA_ARGS__))
-#endif  // XCHAINER_DEBUG
+#define CHAINERX_ASSERT(...) (void)([] { return false; }() && (__VA_ARGS__))
+#endif  // CHAINERX_DEBUG
 
-#ifndef XCHAINER_HOST_DEVICE
+#ifndef CHAINERX_HOST_DEVICE
 #ifdef __CUDACC__
-#define XCHAINER_HOST_DEVICE __host__ __device__
+#define CHAINERX_HOST_DEVICE __host__ __device__
 #else  // __CUDA__
-#define XCHAINER_HOST_DEVICE
+#define CHAINERX_HOST_DEVICE
 #endif  // __CUDACC__
-#endif  // XCHAINER_HOST_DEVICE
+#endif  // CHAINERX_HOST_DEVICE
 
-#ifndef XCHAINER_NEVER_REACH
+#ifndef CHAINERX_NEVER_REACH
 #ifdef NDEBUG
-#define XCHAINER_NEVER_REACH() (std::abort())
+#define CHAINERX_NEVER_REACH() (std::abort())
 #else  // NDEBUG
-#define XCHAINER_NEVER_REACH()                    \
+#define CHAINERX_NEVER_REACH()                    \
     do {                                          \
         assert(false); /* NOLINT(cert-dcl03-c) */ \
         std::abort();                             \
     } while (false)
 #endif  // NDEBUG
-#endif  // XCHAINER_NEVER_REACH
+#endif  // CHAINERX_NEVER_REACH

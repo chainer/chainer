@@ -38,9 +38,9 @@ public:
     std::shared_ptr<OpNode> move_creator_op_node() { return std::move(creator_op_node_); }
 
     void set_creator_op_node(std::shared_ptr<OpNode> creator_op_node) {
-        XCHAINER_ASSERT(creator_op_node != nullptr);
-        XCHAINER_ASSERT(creator_op_node_ == nullptr);
-        XCHAINER_ASSERT(backprop_id() == creator_op_node->backprop_id());
+        CHAINERX_ASSERT(creator_op_node != nullptr);
+        CHAINERX_ASSERT(creator_op_node_ == nullptr);
+        CHAINERX_ASSERT(backprop_id() == creator_op_node->backprop_id());
         creator_op_node_ = std::move(creator_op_node);
     }
 

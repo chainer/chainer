@@ -30,22 +30,22 @@ public:
     Array operator*() const { return Build(); }
 
     Array Build() const {
-        XCHAINER_ASSERT(create_array_ != nullptr);
+        CHAINERX_ASSERT(create_array_ != nullptr);
         return create_array_(*this);
     }
 
     template <typename T>
     ArrayBuilder& WithData(const std::vector<T>& data) {
-        XCHAINER_ASSERT(static_cast<size_t>(shape_.GetTotalSize()) == data.size());
+        CHAINERX_ASSERT(static_cast<size_t>(shape_.GetTotalSize()) == data.size());
         return WithData<T>(data.begin(), data.end());
     }
 
     template <typename T, typename InputIter>
     ArrayBuilder& WithData(InputIter first, InputIter last) {
-        XCHAINER_ASSERT(create_array_ == nullptr);
+        CHAINERX_ASSERT(create_array_ == nullptr);
         std::vector<T> data(first, last);
 
-        XCHAINER_ASSERT(data.size() == static_cast<size_t>(shape_.GetTotalSize()));
+        CHAINERX_ASSERT(data.size() == static_cast<size_t>(shape_.GetTotalSize()));
 
         // Define create_array_ here to type-erase T of `data`.
         // Note: ArrayBuilder must be specified as an argument instead of capturing `this` pointer, because the ArrayBuilder instance could
@@ -53,7 +53,7 @@ public:
         create_array_ = [data](const ArrayBuilder& builder) -> Array {
             Dtype dtype = TypeToDtype<T>;
             const Shape& shape = builder.shape_;
-            XCHAINER_ASSERT(static_cast<size_t>(shape.GetTotalSize()) == data.size());
+            CHAINERX_ASSERT(static_cast<size_t>(shape.GetTotalSize()) == data.size());
             Strides strides = builder.GetStrides<T>();
             int64_t total_size = shape.GetTotalSize();
             size_t n_bytes = internal::GetRequiredBytes(shape, strides, sizeof(T));
@@ -66,7 +66,7 @@ public:
                 Shape counter = shape;
                 for (const T& value : data) {
                     // Copy a single value
-                    XCHAINER_ASSERT((raw_ptr - ptr.get()) < static_cast<ptrdiff_t>(n_bytes));
+                    CHAINERX_ASSERT((raw_ptr - ptr.get()) < static_cast<ptrdiff_t>(n_bytes));
                     *reinterpret_cast<T*>(raw_ptr) = value;
                     // Advance the counter and the pointer
                     int8_t i_dim = shape.ndim() - 1;
@@ -101,14 +101,14 @@ public:
     }
 
     ArrayBuilder& WithPadding(const std::vector<int64_t>& padding) {
-        XCHAINER_ASSERT(padding_.empty());
-        XCHAINER_ASSERT(padding.size() == shape_.size());
+        CHAINERX_ASSERT(padding_.empty());
+        CHAINERX_ASSERT(padding.size() == shape_.size());
         padding_ = padding;
         return *this;
     }
 
     ArrayBuilder& WithPadding(int64_t padding) {
-        XCHAINER_ASSERT(padding_.empty());
+        CHAINERX_ASSERT(padding_.empty());
         std::fill_n(std::back_inserter(padding_), shape_.size(), padding);
         return *this;
     }
@@ -127,7 +127,7 @@ private:
         }
 
         // Create strides with extra space specified by `padding`.
-        XCHAINER_ASSERT(padding.size() == shape_.size());
+        CHAINERX_ASSERT(padding.size() == shape_.size());
 
         Strides strides{};
         strides.resize(shape_.ndim());

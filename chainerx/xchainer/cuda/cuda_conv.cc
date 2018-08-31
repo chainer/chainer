@@ -78,11 +78,11 @@ std::size_t CudaConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) cons
 }
 
 void CudaConv::AddBias(cudnnHandle_t handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
-    XCHAINER_ASSERT(&b.device() == &y.device());
-    XCHAINER_ASSERT(b.dtype() == y.dtype());
+    CHAINERX_ASSERT(&b.device() == &y.device());
+    CHAINERX_ASSERT(b.dtype() == y.dtype());
 
     int8_t ndim = y.ndim() - 2;  // Number of spatial dimensions
-    XCHAINER_ASSERT(ndim > 0);
+    CHAINERX_ASSERT(ndim > 0);
 
     Shape new_shape{};
     new_shape.emplace_back(1);
@@ -142,7 +142,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlg
             &perf_result,
             workspace.get(),
             max_workspace_size));
-    XCHAINER_ASSERT(returned_algo_count == 1);
+    CHAINERX_ASSERT(returned_algo_count == 1);
 
     return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
@@ -186,7 +186,7 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwa
             &perf_result,
             workspace.get(),
             max_workspace_size));
-    XCHAINER_ASSERT(returned_algo_count == 1);
+    CHAINERX_ASSERT(returned_algo_count == 1);
 
     return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
@@ -230,7 +230,7 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBack
             &perf_result,
             workspace.get(),
             max_workspace_size));
-    XCHAINER_ASSERT(returned_algo_count == 1);
+    CHAINERX_ASSERT(returned_algo_count == 1);
 
     return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
 }
@@ -260,9 +260,9 @@ Array CudaConv::Conv(
     if (ndim < 2) {
         throw DimensionError{"CUDA convolution requires number of spatial dimensions to be greater than or equal to 2"};
     }
-    XCHAINER_ASSERT(w.ndim() == x.ndim());
-    XCHAINER_ASSERT(stride.size() == static_cast<size_t>(ndim));
-    XCHAINER_ASSERT(pad.size() == static_cast<size_t>(ndim));
+    CHAINERX_ASSERT(w.ndim() == x.ndim());
+    CHAINERX_ASSERT(stride.size() == static_cast<size_t>(ndim));
+    CHAINERX_ASSERT(pad.size() == static_cast<size_t>(ndim));
 
     // w.shape = (out_channels, _, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[0];
@@ -273,7 +273,7 @@ Array CudaConv::Conv(
     Shape out_shape{batch_size, out_channels};
     for (int8_t i = 0; i < ndim; ++i) {
         out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i], cover_all));
-        XCHAINER_ASSERT(out_shape.back() > 0);
+        CHAINERX_ASSERT(out_shape.back() > 0);
     }
     Array y = Empty(out_shape, x.dtype(), device);
 
@@ -340,10 +340,10 @@ Array CudaConv::ConvTranspose(
     if (ndim < 2) {
         throw DimensionError{"CUDA convolution requires number of spatial dimensions to be greater than or equal to 2"};
     }
-    XCHAINER_ASSERT(w.ndim() == x.ndim());
-    XCHAINER_ASSERT(stride.size() == static_cast<size_t>(ndim));
-    XCHAINER_ASSERT(pad.size() == static_cast<size_t>(ndim));
-    XCHAINER_ASSERT(out_size.size() == static_cast<size_t>(ndim));
+    CHAINERX_ASSERT(w.ndim() == x.ndim());
+    CHAINERX_ASSERT(stride.size() == static_cast<size_t>(ndim));
+    CHAINERX_ASSERT(pad.size() == static_cast<size_t>(ndim));
+    CHAINERX_ASSERT(out_size.size() == static_cast<size_t>(ndim));
 
     // w.shape = (in_channels, out_channels, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[1];
@@ -420,15 +420,15 @@ Array CudaConv::ConvGradWeight(
         throw DimensionError{"CUDA convolution requires number of spatial dimensions to be greater than or equal to 2"};
     }
 
-    XCHAINER_ASSERT(x.ndim() == w_shape.ndim());
-    XCHAINER_ASSERT(stride.size() == static_cast<size_t>(ndim));
-    XCHAINER_ASSERT(pad.size() == static_cast<size_t>(ndim));
-    XCHAINER_ASSERT(gy.ndim() == w_shape.ndim());
+    CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
+    CHAINERX_ASSERT(stride.size() == static_cast<size_t>(ndim));
+    CHAINERX_ASSERT(pad.size() == static_cast<size_t>(ndim));
+    CHAINERX_ASSERT(gy.ndim() == w_shape.ndim());
 
-    XCHAINER_ASSERT(x.dtype() == w_dtype);
-    XCHAINER_ASSERT(x.dtype() == gy.dtype());
+    CHAINERX_ASSERT(x.dtype() == w_dtype);
+    CHAINERX_ASSERT(x.dtype() == gy.dtype());
 
-    if (XCHAINER_DEBUG) {
+    if (CHAINERX_DEBUG) {
         // w_shape = (out_channels, in_channels, k_1, k_2, ..., k_N)
         int64_t out_channels = w_shape[0];
         // x.shape = (batch_size, in_channels, d_1, d_2, ..., d_N)
@@ -437,9 +437,9 @@ Array CudaConv::ConvGradWeight(
         Shape out_shape{batch_size, out_channels};
         for (int8_t i = 0; i < ndim; ++i) {
             out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], w_shape[i + 2], stride[i], pad[i], cover_all));
-            XCHAINER_ASSERT(out_shape.back() > 0);
+            CHAINERX_ASSERT(out_shape.back() > 0);
         }
-        XCHAINER_ASSERT(gy.shape() == out_shape);
+        CHAINERX_ASSERT(gy.shape() == out_shape);
     }
 
     Array gw = Empty(w_shape, w_dtype, device);

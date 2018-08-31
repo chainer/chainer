@@ -28,7 +28,7 @@ install(FILES
     DESTINATION include/chainerx/routines
     )
 
-if(${XCHAINER_BUILD_TEST})
+if(${CHAINERX_BUILD_TEST})
   add_executable(chainerx_routines_test
       connection_test.cc
       creation_test.cc

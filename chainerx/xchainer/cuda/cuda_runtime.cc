@@ -42,7 +42,7 @@ bool IsPointerCudaMemory(const void* ptr) {
             CheckCudaError(status);
             break;
     }
-    XCHAINER_NEVER_REACH();
+    CHAINERX_NEVER_REACH();
 }
 
 }  // namespace cuda

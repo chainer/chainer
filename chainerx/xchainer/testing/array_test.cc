@@ -31,7 +31,7 @@ protected:
     void TearDown() override { device_session_.reset(); }
 
     Device& device() {
-        XCHAINER_ASSERT(device_session_.has_value());
+        CHAINERX_ASSERT(device_session_.has_value());
         return device_session_->device();
     }
 
@@ -205,9 +205,9 @@ INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         TestingArrayTest,
         ::testing::Values(
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
                 std::string{"cuda"},
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
                 std::string{"native"}));
 
 }  // namespace

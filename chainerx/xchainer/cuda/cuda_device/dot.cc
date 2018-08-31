@@ -46,7 +46,7 @@ struct GemmInputLayout {
 
     // Configure leading dimension and transposition accordingly, and makes the array C contiguous if necessary.
     Array Configure(const Array& a) {
-        XCHAINER_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(a.ndim() == 2);
         // Row-major
         // Note that this condition is slightly relaxed than Array::IsContiguous() which requires
         // a.strides()[0] == a.item_size() * a.shape()[1]
@@ -73,16 +73,16 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
     CheckCudaError(cudaSetDevice(index()));
 
-    XCHAINER_ASSERT(a.ndim() == 2);
-    XCHAINER_ASSERT(b.ndim() == 2);
-    XCHAINER_ASSERT(out.ndim() == 2);
+    CHAINERX_ASSERT(a.ndim() == 2);
+    CHAINERX_ASSERT(b.ndim() == 2);
+    CHAINERX_ASSERT(out.ndim() == 2);
 
     int64_t m = a.shape()[0];
     int64_t k = a.shape()[1];
     int64_t n = b.shape()[1];
-    XCHAINER_ASSERT(b.shape()[0] == k);
-    XCHAINER_ASSERT(out.shape()[0] == m);
-    XCHAINER_ASSERT(out.shape()[1] == n);
+    CHAINERX_ASSERT(b.shape()[0] == k);
+    CHAINERX_ASSERT(out.shape()[0] == m);
+    CHAINERX_ASSERT(out.shape()[1] == n);
 
     if (m == 1 && n == 1) {
         // TODO(beam2d): Write a custom reduction kernel.

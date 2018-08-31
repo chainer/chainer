@@ -32,7 +32,7 @@ public:
         if (backprop_ids_.has_value()) {
             scope_ = std::make_unique<BackpropModeScope>(*backprop_ids_);
         } else {
-            XCHAINER_ASSERT(context_ != nullptr);
+            CHAINERX_ASSERT(context_ != nullptr);
             scope_ = std::make_unique<BackpropModeScope>(*context_);
         }
     }

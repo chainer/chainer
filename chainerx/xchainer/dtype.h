@@ -80,7 +80,7 @@ inline char GetDtypeKindChar(DtypeKind kind) {
 template <typename T>
 struct PrimitiveType;
 
-#define XCHAINER_DEFINE_PRIMITIVE_TYPE(name, code, dtype, kind, t) \
+#define CHAINERX_DEFINE_PRIMITIVE_TYPE(name, code, dtype, kind, t) \
     template <>                                                    \
     struct PrimitiveType<t> {                                      \
         using type = t;                                            \
@@ -93,16 +93,16 @@ struct PrimitiveType;
 
 // TODO(niboshi): Char codes are mapped according to current development environment. They should be remapped depending on the executing
 // environment, as in NumPy.
-XCHAINER_DEFINE_PRIMITIVE_TYPE("bool", '?', Dtype::kBool, DtypeKind::kBool, bool);
-XCHAINER_DEFINE_PRIMITIVE_TYPE("int8", 'b', Dtype::kInt8, DtypeKind::kInt, int8_t);
-XCHAINER_DEFINE_PRIMITIVE_TYPE("int16", 'h', Dtype::kInt16, DtypeKind::kInt, int16_t);
-XCHAINER_DEFINE_PRIMITIVE_TYPE("int32", 'i', Dtype::kInt32, DtypeKind::kInt, int32_t);
-XCHAINER_DEFINE_PRIMITIVE_TYPE("int64", 'l', Dtype::kInt64, DtypeKind::kInt, int64_t);
-XCHAINER_DEFINE_PRIMITIVE_TYPE("uint8", 'B', Dtype::kUInt8, DtypeKind::kUInt, uint8_t);
-XCHAINER_DEFINE_PRIMITIVE_TYPE("float32", 'f', Dtype::kFloat32, DtypeKind::kFloat, float);
-XCHAINER_DEFINE_PRIMITIVE_TYPE("float64", 'd', Dtype::kFloat64, DtypeKind::kFloat, double);
+CHAINERX_DEFINE_PRIMITIVE_TYPE("bool", '?', Dtype::kBool, DtypeKind::kBool, bool);
+CHAINERX_DEFINE_PRIMITIVE_TYPE("int8", 'b', Dtype::kInt8, DtypeKind::kInt, int8_t);
+CHAINERX_DEFINE_PRIMITIVE_TYPE("int16", 'h', Dtype::kInt16, DtypeKind::kInt, int16_t);
+CHAINERX_DEFINE_PRIMITIVE_TYPE("int32", 'i', Dtype::kInt32, DtypeKind::kInt, int32_t);
+CHAINERX_DEFINE_PRIMITIVE_TYPE("int64", 'l', Dtype::kInt64, DtypeKind::kInt, int64_t);
+CHAINERX_DEFINE_PRIMITIVE_TYPE("uint8", 'B', Dtype::kUInt8, DtypeKind::kUInt, uint8_t);
+CHAINERX_DEFINE_PRIMITIVE_TYPE("float32", 'f', Dtype::kFloat32, DtypeKind::kFloat, float);
+CHAINERX_DEFINE_PRIMITIVE_TYPE("float64", 'd', Dtype::kFloat64, DtypeKind::kFloat, double);
 
-#undef XCHAINER_DEFINE_PRIMITIVE_TYPE
+#undef CHAINERX_DEFINE_PRIMITIVE_TYPE
 
 // Dtype mapped from primitive type.
 template <typename T>

@@ -30,7 +30,7 @@ def _setup_cuda_marker(item):
     declare that one NVIDIA GPU is required to run.
 
     Tests can also be annotated as ``@pytest.mark.cuda(2)`` to declare number of
-    NVIDIA GPUs required to run. When running tests, if ``XCHAINER_TEST_CUDA_DEVICE_LIMIT``
+    NVIDIA GPUs required to run. When running tests, if ``CHAINERX_TEST_CUDA_DEVICE_LIMIT``
     environment variable is set to value greater than or equals to 0, test cases
     that require GPUs more than the limit will be skipped.
     """

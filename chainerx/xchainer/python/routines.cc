@@ -290,7 +290,7 @@ void InitXchainerRoutines(pybind11::module& m) {
                   case DtypeKind::kFloat:
                       return py::float_{static_cast<double>(s)};
                   default:
-                      XCHAINER_NEVER_REACH();
+                      CHAINERX_NEVER_REACH();
               }
           },
           py::arg("a"));

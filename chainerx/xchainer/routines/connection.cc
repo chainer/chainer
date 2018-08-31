@@ -46,11 +46,11 @@ Array ConvGradW(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    XCHAINER_ASSERT(w_shape.ndim() > 2);
-    XCHAINER_ASSERT(x.ndim() == w_shape.ndim());
-    XCHAINER_ASSERT(gy.ndim() == w_shape.ndim());
-    XCHAINER_ASSERT(stride.size() == static_cast<size_t>(w_shape.ndim() - 2));
-    XCHAINER_ASSERT(pad.size() == static_cast<size_t>(w_shape.ndim() - 2));
+    CHAINERX_ASSERT(w_shape.ndim() > 2);
+    CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
+    CHAINERX_ASSERT(gy.ndim() == w_shape.ndim());
+    CHAINERX_ASSERT(stride.size() == static_cast<size_t>(w_shape.ndim() - 2));
+    CHAINERX_ASSERT(pad.size() == static_cast<size_t>(w_shape.ndim() - 2));
 
     Array out{};
     {
@@ -66,7 +66,7 @@ Array ConvGradW(
                 const Array& gy = bctx.GetRetainedInput(gy_tok);
                 const Array& gout = bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
-                XCHAINER_ASSERT(out_size.size() == stride.size());
+                CHAINERX_ASSERT(out_size.size() == stride.size());
                 bctx.input_grad() = ConvTranspose(gy, gout, nonstd::nullopt, stride, pad, out_size);
             });
         }

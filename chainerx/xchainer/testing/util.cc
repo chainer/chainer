@@ -19,36 +19,36 @@ std::atomic<int> g_skipped_native_test_count{0};
 std::atomic<int> g_skipped_cuda_test_count{0};
 
 int GetNativeDeviceLimit(Backend& backend) {
-    XCHAINER_ASSERT(backend.GetName() == "native");
+    CHAINERX_ASSERT(backend.GetName() == "native");
     static int limit = -1;
     if (limit >= 0) {
         return limit;
     }
-    const char* env = std::getenv("XCHAINER_TEST_NATIVE_DEVICE_LIMIT");
+    const char* env = std::getenv("CHAINERX_TEST_NATIVE_DEVICE_LIMIT");
     if (env == nullptr) {
         limit = backend.GetDeviceCount();
     } else {
         limit = std::stoi(env);
         if (limit < 0) {
-            throw XchainerError{"XCHAINER_TEST_NATIVE_DEVICE_LIMIT must be non-negative integer: ", env};
+            throw XchainerError{"CHAINERX_TEST_NATIVE_DEVICE_LIMIT must be non-negative integer: ", env};
         }
     }
     return limit;
 }
 
 int GetCudaDeviceLimit(Backend& backend) {
-    XCHAINER_ASSERT(backend.GetName() == "cuda");
+    CHAINERX_ASSERT(backend.GetName() == "cuda");
     static int limit = -1;
     if (limit >= 0) {
         return limit;
     }
-    const char* env = std::getenv("XCHAINER_TEST_CUDA_DEVICE_LIMIT");
+    const char* env = std::getenv("CHAINERX_TEST_CUDA_DEVICE_LIMIT");
     if (env == nullptr) {
         limit = backend.GetDeviceCount();
     } else {
         limit = std::stoi(env);
         if (limit < 0) {
-            throw XchainerError{"XCHAINER_TEST_CUDA_DEVICE_LIMIT must be non-negative integer: ", env};
+            throw XchainerError{"CHAINERX_TEST_CUDA_DEVICE_LIMIT must be non-negative integer: ", env};
         }
     }
     return limit;

@@ -99,7 +99,7 @@ TEST(CudaBackendTest, GetDeviceThreadSafe) {
 TEST(CudaBackendTest, GetDeviceSecondDevice) {
     Context ctx;
     CudaBackend backend{ctx};
-    XCHAINER_REQUIRE_DEVICE(backend, 2);
+    CHAINERX_REQUIRE_DEVICE(backend, 2);
 
     Device& device1 = backend.GetDevice(1);
     EXPECT_EQ(&backend, &device1.backend());
@@ -126,7 +126,7 @@ TEST(CudaBackendTest, SupportsTransferThreadSafe) {
     Context ctx1{};
     Backend& ctx0_backend = ctx0.GetBackend("cuda");
     Backend& ctx1_backend = ctx1.GetBackend("cuda");
-    XCHAINER_REQUIRE_DEVICE(ctx0_backend, 2);
+    CHAINERX_REQUIRE_DEVICE(ctx0_backend, 2);
     Device& ctx0_device0 = ctx0_backend.GetDevice(0);
     Device& ctx0_device1 = ctx0_backend.GetDevice(1);
     Device& ctx1_device = ctx1_backend.GetDevice(0);
@@ -189,7 +189,7 @@ INSTANTIATE_TEST_CASE_P(
 TEST_P(CudaBackendTransferTest, SupportsTransfer) {
     Context ctx;
     Backend& backend = ctx.GetBackend("cuda");
-    XCHAINER_REQUIRE_DEVICE(backend, ::testing::get<2>(GetParam()));
+    CHAINERX_REQUIRE_DEVICE(backend, ::testing::get<2>(GetParam()));
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
     EXPECT_TRUE(backend.SupportsTransfer(device0, device1));
@@ -202,7 +202,7 @@ TEST_P(CudaBackendTransferTest, MemoryCopyFrom) {
     std::shared_ptr<void> src_orig(raw_data, [](float*) {});
 
     Context ctx;
-    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
+    CHAINERX_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
@@ -218,7 +218,7 @@ TEST_P(CudaBackendTransferTest, MemoryCopyFromZeroByte) {
     std::shared_ptr<void> src_orig(nullptr, [](float*) {});
 
     Context ctx;
-    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
+    CHAINERX_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
@@ -235,7 +235,7 @@ TEST_P(CudaBackendTransferTest, MemoryCopyTo) {
     std::shared_ptr<void> src_orig(raw_data, [](float*) {});
 
     Context ctx;
-    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
+    CHAINERX_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
@@ -251,7 +251,7 @@ TEST_P(CudaBackendTransferTest, MemoryCopyToZeroByte) {
     std::shared_ptr<void> src_orig(nullptr, [](float*) {});
 
     Context ctx;
-    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
+    CHAINERX_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
@@ -263,7 +263,7 @@ TEST_P(CudaBackendTransferTest, MemoryCopyToZeroByte) {
 
 TEST_P(CudaBackendTransferTest, TransferDataFrom) {
     Context ctx;
-    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
+    CHAINERX_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
@@ -284,7 +284,7 @@ TEST_P(CudaBackendTransferTest, TransferDataFrom) {
 
 TEST_P(CudaBackendTransferTest, TransferDataTo) {
     Context ctx;
-    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
+    CHAINERX_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
@@ -310,7 +310,7 @@ TEST_P(CudaBackendTransferTest, TransferDataTo) {
 
 TEST_P(CudaBackendTransferTest, ArrayToDeviceFrom) {
     Context ctx;
-    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
+    CHAINERX_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
@@ -337,7 +337,7 @@ TEST_P(CudaBackendTransferTest, ArrayToDeviceFrom) {
 
 TEST_P(CudaBackendTransferTest, ArrayToDeviceTo) {
     Context ctx;
-    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
+    CHAINERX_REQUIRE_DEVICE(ctx.GetBackend("cuda"), ::testing::get<2>(GetParam()));
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 

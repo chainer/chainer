@@ -41,7 +41,7 @@ public:
 
     template <typename InputIter>
     StackVector(InputIter first, InputIter last) {
-        XCHAINER_ASSERT(std::distance(first, last) <= static_cast<difference_type>(N));
+        CHAINERX_ASSERT(std::distance(first, last) <= static_cast<difference_type>(N));
         BaseIterator end = std::copy(first, last, d_.begin());
         n_ = std::distance(d_.begin(), end);
     }
@@ -65,12 +65,12 @@ public:
     }
 
     const_reference operator[](size_type index) const {
-        XCHAINER_ASSERT(index < n_);
+        CHAINERX_ASSERT(index < n_);
         return d_[index];
     }
 
     reference operator[](size_type index) {
-        XCHAINER_ASSERT(index < n_);
+        CHAINERX_ASSERT(index < n_);
         return d_[index];
     }
 
@@ -106,7 +106,7 @@ public:
     void clear() noexcept { resize(0); }
 
     void resize(size_type count) noexcept {
-        XCHAINER_ASSERT(count <= N);
+        CHAINERX_ASSERT(count <= N);
         if (n_ < count) {
             // expanding
             for (size_type i = n_; i < count; ++i) {
@@ -119,30 +119,30 @@ public:
     }
 
     reference front() {
-        XCHAINER_ASSERT(n_ > 0);
+        CHAINERX_ASSERT(n_ > 0);
         return d_[0];
     }
 
     const_reference front() const {
-        XCHAINER_ASSERT(n_ > 0);
+        CHAINERX_ASSERT(n_ > 0);
         return d_[0];
     }
 
     reference back() {
-        XCHAINER_ASSERT(n_ > 0);
+        CHAINERX_ASSERT(n_ > 0);
         return d_[n_ - 1];
     }
 
     const_reference back() const {
-        XCHAINER_ASSERT(n_ > 0);
+        CHAINERX_ASSERT(n_ > 0);
         return d_[n_ - 1];
     }
 
     template <typename... Args>
     iterator emplace(const_iterator pos, Args&&... args) {
-        XCHAINER_ASSERT(n_ < N);
-        XCHAINER_ASSERT(cbegin() <= pos);
-        XCHAINER_ASSERT(pos <= cend());
+        CHAINERX_ASSERT(n_ < N);
+        CHAINERX_ASSERT(cbegin() <= pos);
+        CHAINERX_ASSERT(pos <= cend());
         size_type i_pos = pos - cbegin();
         for (size_type i = n_; i > i_pos; --i) {
             d_[i] = std::move(d_[i - 1]);
@@ -173,7 +173,7 @@ public:
         for (InputIter it = first; it != last; ++it, ++it_pos) {
             emplace(it_pos, *it);
         }
-        XCHAINER_ASSERT(n_ == n_old + std::distance(first, last));
+        CHAINERX_ASSERT(n_ == n_old + std::distance(first, last));
         return it_pos0;
     }
 

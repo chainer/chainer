@@ -104,7 +104,7 @@ void CheckForward(
         size_t concurrent_check_thread_count,
         double atol,
         double rtol) {
-    XCHAINER_ASSERT(concurrent_check_thread_count != 1 && "concurrent_check_thread_count == 1 is meaningless.");
+    CHAINERX_ASSERT(concurrent_check_thread_count != 1 && "concurrent_check_thread_count == 1 is meaningless.");
 
     // Run single-shot test
     std::vector<Array> outputs = func(inputs);

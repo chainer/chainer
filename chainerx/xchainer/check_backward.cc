@@ -209,11 +209,11 @@ void CheckBackwardComputation(
     const std::vector<Array> numerical_grads = CalculateNumericalGradient(func, inputs, grad_outputs, eps);
 
     // If you're trapped in any of these asserts, numerical gradiends must be implemented incorrectly.
-    if (XCHAINER_DEBUG) {
-        XCHAINER_ASSERT(numerical_grads.size() == inputs.size());
+    if (CHAINERX_DEBUG) {
+        CHAINERX_ASSERT(numerical_grads.size() == inputs.size());
         for (size_t i = 0; i < inputs.size(); ++i) {
-            XCHAINER_ASSERT(numerical_grads[i].shape() == inputs[i].shape());
-            XCHAINER_ASSERT(numerical_grads[i].dtype() == inputs[i].dtype());
+            CHAINERX_ASSERT(numerical_grads[i].shape() == inputs[i].shape());
+            CHAINERX_ASSERT(numerical_grads[i].dtype() == inputs[i].dtype());
         }
     }
 
@@ -275,19 +275,19 @@ void CheckBackward(
         double atol,
         double rtol,
         const nonstd::optional<BackpropId>& backprop_id) {
-    if (XCHAINER_DEBUG) {
-        XCHAINER_ASSERT(!inputs.empty());
-        XCHAINER_ASSERT(
+    if (CHAINERX_DEBUG) {
+        CHAINERX_ASSERT(!inputs.empty());
+        CHAINERX_ASSERT(
                 std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-        XCHAINER_ASSERT(!grad_outputs.empty());
-        XCHAINER_ASSERT(std::none_of(
+        CHAINERX_ASSERT(!grad_outputs.empty());
+        CHAINERX_ASSERT(std::none_of(
                 grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-        XCHAINER_ASSERT(eps.size() == inputs.size());
+        CHAINERX_ASSERT(eps.size() == inputs.size());
         for (size_t i = 0; i < inputs.size(); ++i) {
-            XCHAINER_ASSERT(eps[i].shape() == inputs[i].shape());
-            XCHAINER_ASSERT(&eps[i].device() == &inputs[i].device());
+            CHAINERX_ASSERT(eps[i].shape() == inputs[i].shape());
+            CHAINERX_ASSERT(&eps[i].device() == &inputs[i].device());
         }
     }
 
@@ -399,7 +399,7 @@ void CheckDoubleBackwardComputationImpl(
                 std::back_inserter(backward_grads),
                 [](const nonstd::optional<Array>& optional_backward_grad) { return *optional_backward_grad; });
 
-        XCHAINER_ASSERT(backward_grads.size() == nin);
+        CHAINERX_ASSERT(backward_grads.size() == nin);
         return backward_grads;
     };
 
@@ -424,33 +424,33 @@ void CheckDoubleBackwardComputation(
         double atol,
         double rtol,
         const nonstd::optional<BackpropId>& backprop_id) {
-    if (XCHAINER_DEBUG) {
-        XCHAINER_ASSERT(!inputs.empty());
-        XCHAINER_ASSERT(
+    if (CHAINERX_DEBUG) {
+        CHAINERX_ASSERT(!inputs.empty());
+        CHAINERX_ASSERT(
                 std::all_of(inputs.begin(), inputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-        XCHAINER_ASSERT(!grad_outputs.empty());
-        XCHAINER_ASSERT(std::all_of(
+        CHAINERX_ASSERT(!grad_outputs.empty());
+        CHAINERX_ASSERT(std::all_of(
                 grad_outputs.begin(), grad_outputs.end(), [&backprop_id](const Array& a) { return a.IsBackpropRequired(backprop_id); }));
 
-        XCHAINER_ASSERT(grad_grad_inputs.size() == inputs.size());
-        XCHAINER_ASSERT(std::none_of(grad_grad_inputs.begin(), grad_grad_inputs.end(), [&backprop_id](const Array& a) {
+        CHAINERX_ASSERT(grad_grad_inputs.size() == inputs.size());
+        CHAINERX_ASSERT(std::none_of(grad_grad_inputs.begin(), grad_grad_inputs.end(), [&backprop_id](const Array& a) {
             return a.IsBackpropRequired(backprop_id);
         }));
         for (size_t i = 0; i < inputs.size(); ++i) {
-            XCHAINER_ASSERT(inputs[i].shape() == grad_grad_inputs[i].shape());
-            XCHAINER_ASSERT(inputs[i].dtype() == grad_grad_inputs[i].dtype());
-            XCHAINER_ASSERT(&inputs[i].device() == &grad_grad_inputs[i].device());
+            CHAINERX_ASSERT(inputs[i].shape() == grad_grad_inputs[i].shape());
+            CHAINERX_ASSERT(inputs[i].dtype() == grad_grad_inputs[i].dtype());
+            CHAINERX_ASSERT(&inputs[i].device() == &grad_grad_inputs[i].device());
         }
 
-        XCHAINER_ASSERT(eps.size() == inputs.size() + grad_outputs.size());
+        CHAINERX_ASSERT(eps.size() == inputs.size() + grad_outputs.size());
         for (size_t i = 0; i < inputs.size(); ++i) {
-            XCHAINER_ASSERT(eps[i].shape() == inputs[i].shape());
-            XCHAINER_ASSERT(&eps[i].device() == &inputs[i].device());
+            CHAINERX_ASSERT(eps[i].shape() == inputs[i].shape());
+            CHAINERX_ASSERT(&eps[i].device() == &inputs[i].device());
         }
         for (size_t i = 0; i < grad_outputs.size(); ++i) {
-            XCHAINER_ASSERT(eps[inputs.size() + i].shape() == grad_outputs[i].shape());
-            XCHAINER_ASSERT(&eps[inputs.size() + i].device() == &grad_outputs[i].device());
+            CHAINERX_ASSERT(eps[inputs.size() + i].shape() == grad_outputs[i].shape());
+            CHAINERX_ASSERT(&eps[inputs.size() + i].device() == &grad_outputs[i].device());
         }
     }
 

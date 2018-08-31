@@ -76,10 +76,10 @@ PreprocessBatchNormResult PreprocessBatchNorm(
     Array beta_reshaped = ReshapeOrIdentity(beta, reduced_shape);
     Array mean_reshaped = ReshapeOrIdentity(mean, reduced_shape);
     Array var_reshaped = ReshapeOrIdentity(var, reduced_shape);
-    XCHAINER_ASSERT(gamma_reshaped.data() == gamma.data());  // No data copy should occur
-    XCHAINER_ASSERT(beta_reshaped.data() == beta.data());
-    XCHAINER_ASSERT(mean_reshaped.data() == mean.data());
-    XCHAINER_ASSERT(var_reshaped.data() == var.data());
+    CHAINERX_ASSERT(gamma_reshaped.data() == gamma.data());  // No data copy should occur
+    CHAINERX_ASSERT(beta_reshaped.data() == beta.data());
+    CHAINERX_ASSERT(mean_reshaped.data() == mean.data());
+    CHAINERX_ASSERT(var_reshaped.data() == var.data());
 
     return {std::move(gamma_reshaped), std::move(beta_reshaped), std::move(mean_reshaped), std::move(var_reshaped), sorted_axis};
 }
@@ -118,9 +118,9 @@ Array BatchNorm(
             const Array& ggamma = ginputs[1];
             const Array& gbeta = ginputs[2];
 
-            XCHAINER_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
-            XCHAINER_ASSERT(internal::GetArrayBody(ggamma)->nodes().empty());
-            XCHAINER_ASSERT(internal::GetArrayBody(gbeta)->nodes().empty());
+            CHAINERX_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
+            CHAINERX_ASSERT(internal::GetArrayBody(ggamma)->nodes().empty());
+            CHAINERX_ASSERT(internal::GetArrayBody(gbeta)->nodes().empty());
 
             if (bctx.next_required()) {
                 const Array& x = bctx.GetRetainedInput(x_tok);

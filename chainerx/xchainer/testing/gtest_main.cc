@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
                   << " NATIVE tests requiring devices more than " << chainerx::testing::testing_internal::GetDeviceLimit(backend) << "."
                   << std::endl;
     }
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
     if (chainerx::testing::testing_internal::GetSkippedCudaTestCount() > 0) {
         chainerx::Context ctx;
         chainerx::Backend& backend = ctx.GetBackend("cuda");
@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
                   << " CUDA tests requiring devices more than " << chainerx::testing::testing_internal::GetDeviceLimit(backend) << "."
                   << std::endl;
     }
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
 
     return status;
 }

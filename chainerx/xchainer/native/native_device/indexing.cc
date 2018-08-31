@@ -50,8 +50,8 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
             } else {
                 index = index % axis_dim;
             }
-            XCHAINER_ASSERT(0 <= index);
-            XCHAINER_ASSERT(index < axis_dim);
+            CHAINERX_ASSERT(0 <= index);
+            CHAINERX_ASSERT(index < axis_dim);
             it_axis.Restart(index);
 
             it_out.CopyIndex(it, it_left.ndim());
@@ -73,7 +73,7 @@ void NativeDevice::Take(const Array& a, const Array& indices, int8_t axis, const
 
 void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, indices, b);
-    XCHAINER_ASSERT(a.shape() == out.shape());
+    CHAINERX_ASSERT(a.shape() == out.shape());
     VisitDtype(a.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -115,8 +115,8 @@ void NativeDevice::AddAt(const Array& a, const Array& indices, int8_t axis, cons
             } else {
                 index = index % axis_dim;
             }
-            XCHAINER_ASSERT(0 <= index);
-            XCHAINER_ASSERT(index < axis_dim);
+            CHAINERX_ASSERT(0 <= index);
+            CHAINERX_ASSERT(index < axis_dim);
             it_axis.Restart(index);
 
             it_out.CopyIndex(it_axis, it_left.ndim());

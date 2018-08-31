@@ -13,9 +13,9 @@
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
 #include "chainerx/cuda/cuda_backend.h"
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
@@ -27,14 +27,14 @@ namespace {
 std::atomic<Context*> g_global_default_context{nullptr};
 
 std::string GetXchainerPath() {
-    char* chainerx_path = std::getenv("XCHAINER_PATH");
+    char* chainerx_path = std::getenv("CHAINERX_PATH");
     if (chainerx_path != nullptr) {
         return chainerx_path;
     }
 
     char* home_path = std::getenv("HOME");
     if (home_path == nullptr) {
-        throw XchainerError{"Xchainer path is not defined. Set either XCHAINER_PATH or HOME."};
+        throw XchainerError{"Xchainer path is not defined. Set either CHAINERX_PATH or HOME."};
     }
     return std::string(home_path) + "/.chainerx";
 }
@@ -75,11 +75,11 @@ Backend& Context::GetBackend(const std::string& backend_name) {
     if (backend_name == native::NativeBackend::kDefaultName) {
         backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
                 new native::NativeBackend{*this}, context_detail::BackendDeleter{[](Backend* ptr) { delete ptr; }}};
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
     } else if (backend_name == cuda::CudaBackend::kDefaultName) {
         backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
                 new cuda::CudaBackend{*this}, context_detail::BackendDeleter{[](Backend* ptr) { delete ptr; }}};
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
     } else {
         // Load .so file
         std::string so_file_path = GetXchainerPath() + "/backends/" + backend_name + ".so";
@@ -174,8 +174,8 @@ void Context::CheckValidBackpropId(const BackpropId& backprop_id) const {
 }
 
 void Context::ConnectBackpropIds(const BackpropId& backprop_id1, const BackpropId& backprop_id2) {
-    XCHAINER_ASSERT(&backprop_id1.context() == this);
-    XCHAINER_ASSERT(&backprop_id2.context() == this);
+    CHAINERX_ASSERT(&backprop_id1.context() == this);
+    CHAINERX_ASSERT(&backprop_id2.context() == this);
     if (backprop_id1 == backprop_id2) {
         // They are identical
         return;
@@ -224,7 +224,7 @@ void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {
 
 void Context::SetBackpropDone(const BackpropId& backprop_id) {
     BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
-    XCHAINER_ASSERT(item != nullptr);
+    CHAINERX_ASSERT(item != nullptr);
 
     // Find connected backprop IDs
     std::vector<BackpropOrdinal> ordinals_to_prohibit;

@@ -30,7 +30,7 @@ std::ostream& operator<<(std::ostream& os, Scalar value) {
             os << static_cast<double>(value);
             break;
         default:
-            XCHAINER_NEVER_REACH();
+            CHAINERX_NEVER_REACH();
     }
     return os;
 }

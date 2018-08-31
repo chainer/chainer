@@ -60,7 +60,7 @@ struct SumImpl {
 }  // namespace
 
 void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    XCHAINER_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
 
@@ -95,7 +95,7 @@ struct AMaxImpl {
 }  // namespace
 
 void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    XCHAINER_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {

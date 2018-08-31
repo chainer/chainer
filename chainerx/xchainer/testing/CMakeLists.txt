@@ -18,7 +18,7 @@ add_library(chainerx_testing STATIC
 target_link_libraries(chainerx_testing
     gtest)
 
-if(${XCHAINER_BUILD_TEST})
+if(${CHAINERX_BUILD_TEST})
     target_sources(chainerx_testing PRIVATE
         gtest_main.cc)
 

@@ -50,7 +50,7 @@ public:
                 float64_ = v;
                 break;
             default:
-                XCHAINER_NEVER_REACH();
+                CHAINERX_NEVER_REACH();
         }
     }
 
@@ -99,7 +99,7 @@ public:
             case Dtype::kFloat64:
                 return -float64_;
             default:
-                XCHAINER_NEVER_REACH();
+                CHAINERX_NEVER_REACH();
         }
         return 0;
     }
@@ -115,7 +115,7 @@ public:
 
     Scalar operator+(const Scalar& rhs) const {
         // TODO(niboshi): Support dtype conversion
-        XCHAINER_ASSERT(dtype_ == rhs.dtype_);
+        CHAINERX_ASSERT(dtype_ == rhs.dtype_);
 
         return VisitDtype(dtype_, [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -125,7 +125,7 @@ public:
 
     Scalar operator*(const Scalar& rhs) const {
         // TODO(niboshi): Support dtype conversion
-        XCHAINER_ASSERT(dtype_ == rhs.dtype_);
+        CHAINERX_ASSERT(dtype_ == rhs.dtype_);
 
         return VisitDtype(dtype_, [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -154,7 +154,7 @@ private:
             case Dtype::kFloat64:
                 return float64_;
             default:
-                XCHAINER_NEVER_REACH();
+                CHAINERX_NEVER_REACH();
         }
         return T{};
     }

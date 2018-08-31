@@ -209,7 +209,7 @@ TEST(ContextTest, ContextScopeResetDevice) {
 }
 
 TEST(ContextTest, UserDefinedBackend) {
-    ::setenv("XCHAINER_PATH", XCHAINER_TEST_DIR "/context_testdata", 1);
+    ::setenv("CHAINERX_PATH", CHAINERX_TEST_DIR "/context_testdata", 1);
     Context ctx;
     Backend& backend0 = ctx.GetBackend("backend0");
     EXPECT_EQ("backend0", backend0.GetName());

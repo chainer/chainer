@@ -74,7 +74,7 @@ Array NativeDevice::ConvGradWeight(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    XCHAINER_ASSERT(x.ndim() == w_shape.ndim());
+    CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
 
     // Compute the kernel size

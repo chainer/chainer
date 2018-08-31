@@ -325,7 +325,7 @@ TEST_P(ArrayTest, InvalidSetGradMismatchedDtype) {
 
 // TODO(niboshi): Move to ArrayGradTest
 TEST_P(ArrayTest, InvalidSetGradMismatchedDevice) {
-    XCHAINER_REQUIRE_DEVICE(GetParam(), 2);
+    CHAINERX_REQUIRE_DEVICE(GetParam(), 2);
     using T = float;
     Shape shape{2, 3};
     Device& device = GetDefaultDevice();
@@ -1189,9 +1189,9 @@ INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         ArrayTest,
         ::testing::Values(
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
                 std::string{"cuda"},
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
                 std::string{"native"}));
 
 TEST(ArrayGradTest, SetGradFlagsIsGradRequired) {

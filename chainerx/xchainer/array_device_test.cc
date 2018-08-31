@@ -2,19 +2,19 @@
 
 #include <initializer_list>
 
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
 #include <cuda_runtime.h>
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
 #include <gtest/gtest.h>
 #include <nonstd/optional.hpp>
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_device.h"
 #include "chainerx/cuda/cuda_runtime.h"
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
 #include "chainerx/device.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/native/native_device.h"
@@ -44,7 +44,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
         Array array = create_array_func();
         EXPECT_EQ(&cpu_device, &array.device());
     }
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
     // Fallback to default device which is GPU
     {
         Context& ctx = GetDefaultContext();
@@ -53,7 +53,7 @@ void CheckDeviceFallback(const std::function<Array()>& create_array_func) {
         Array array = create_array_func();
         EXPECT_EQ(&cuda_device, &array.device());
     }
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
 }
 
 // Check that Arrays are created on the specified device, if specified, without taking into account the default device
@@ -71,7 +71,7 @@ void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_arra
         Array array = create_array_func(cpu_device);
         EXPECT_EQ(&cpu_device, &array.device());
     }
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
     auto& cuda_device = dynamic_cast<cuda::CudaDevice&>(ctx.GetDevice({"cuda", 0}));
 
     {
@@ -94,7 +94,7 @@ void CheckDeviceExplicit(const std::function<Array(Device& device)>& create_arra
         Array array = create_array_func(cuda_device);
         EXPECT_EQ(&cuda_device, &array.device());
     }
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
 }
 
 TEST_F(ArrayDeviceTest, FromContiguousHostData) {

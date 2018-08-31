@@ -29,9 +29,9 @@ void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, k
     static constexpr int8_t kColNdim = 2 + 2 * kKernelNdim;
     static constexpr int8_t kOutNdim = 2 + kKernelNdim;
 
-    XCHAINER_ASSERT(kKernelNdim == static_cast<int8_t>(stride.size()));
-    XCHAINER_ASSERT(kColNdim == col.ndim());
-    XCHAINER_ASSERT(kOutNdim == out.ndim());
+    CHAINERX_ASSERT(kKernelNdim == static_cast<int8_t>(stride.size()));
+    CHAINERX_ASSERT(kColNdim == col.ndim());
+    CHAINERX_ASSERT(kOutNdim == out.ndim());
 
     Indexer<kKernelNdim> kernel_indexer{Shape{col.shape().begin() + 2, col.shape().begin() + 2 + kKernelNdim}};
     Indexer<kKernelNdim> in_image_dims_indexer{Shape{col.shape().begin() + 2 + kKernelNdim, col.shape().end()}};
@@ -78,14 +78,14 @@ Array Col2Im(
     int64_t batch_size = col.shape()[0];
     int64_t channels = col.shape()[1];
     auto ndim = static_cast<int8_t>(stride.size());
-    XCHAINER_ASSERT(ndim * 2 + 2 == col.ndim());
+    CHAINERX_ASSERT(ndim * 2 + 2 == col.ndim());
 
     Shape padded_shape{batch_size, channels};
     for (int8_t i = 0; i < ndim; ++i) {
         padded_shape.emplace_back(out_size[i] + 2 * pad[i] + stride[i] - 1);
     }
     Array padded_out = Zeros(padded_shape, col.dtype(), col.device());
-    XCHAINER_ASSERT(ndim + 2 == padded_out.ndim());
+    CHAINERX_ASSERT(ndim + 2 == padded_out.ndim());
 
     // Write to the output array
     VisitDtype(col.dtype(), [&](auto pt) {
@@ -110,7 +110,7 @@ Array Col2Im(
                 Col2ImImpl<T, 4>(col, padded_out, stride, batch_channel_indexer);
                 break;
             default:
-                XCHAINER_NEVER_REACH();  // Never col.ndim() > kMaxNdim
+                CHAINERX_NEVER_REACH();  // Never col.ndim() > kMaxNdim
                 break;
         }
     });

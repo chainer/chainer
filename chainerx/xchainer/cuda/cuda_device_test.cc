@@ -115,7 +115,7 @@ TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonUnifiedMemory) {
 TEST(CudaDeviceTest, MakeDataFromForeignPointer_FromAnotherDevice) {
     Context ctx;
 
-    XCHAINER_REQUIRE_DEVICE(ctx.GetBackend("cuda"), 2);
+    CHAINERX_REQUIRE_DEVICE(ctx.GetBackend("cuda"), 2);
 
     CudaDevice& device = GetCudaDevice(ctx, 0);
     CudaDevice& another_device = GetCudaDevice(ctx, 1);

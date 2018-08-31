@@ -83,7 +83,7 @@ std::tuple<Shape, Axes> SquashShape(const Shape& shape, const PackedStrides&... 
             std::copy_if(compressed.begin(), compressed.end(), std::back_inserter(squashed), [](int64_t dim) { return dim != 1; });
             break;
     }
-    XCHAINER_ASSERT(squashed.ndim() == keep.ndim());
+    CHAINERX_ASSERT(squashed.ndim() == keep.ndim());
     return std::make_tuple(squashed, keep);
 }
 

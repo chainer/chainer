@@ -58,7 +58,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
 
     // The body must be either unset (the array node is being created normally) or dead (the body is being replaced with a fabricated one,
     // as a retained output of backward)
-    XCHAINER_ASSERT(array_node->weak_body().expired());
+    CHAINERX_ASSERT(array_node->weak_body().expired());
 
     auto it = std::find_if(body->nodes_.begin(), body->nodes_.end(), [&array_node](const std::shared_ptr<ArrayNode>& existing_node) {
         return existing_node->backprop_id() == array_node->backprop_id();
@@ -82,30 +82,30 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
 }
 
 const std::shared_ptr<ArrayNode>& ArrayBody::CreateArrayNode(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id) {
-    XCHAINER_ASSERT(GetKind(body->dtype()) == DtypeKind::kFloat);
+    CHAINERX_ASSERT(GetKind(body->dtype()) == DtypeKind::kFloat);
     return AddNode(body, std::make_shared<ArrayNode>(body->shape_, body->dtype_, body->device_, backprop_id));
 }
 
 void ArrayBody::AssertConsistency() const {
-    if (XCHAINER_DEBUG) {
+    if (CHAINERX_DEBUG) {
         // Array with integral dtypes can neither have array nodes nor gradients.
         if (GetKind(dtype()) != DtypeKind::kFloat) {
-            XCHAINER_ASSERT(nodes_.empty());
-            XCHAINER_ASSERT(grads_.empty());
+            CHAINERX_ASSERT(nodes_.empty());
+            CHAINERX_ASSERT(grads_.empty());
         }
 
-        XCHAINER_ASSERT(nodes_.size() == grads_.size());
+        CHAINERX_ASSERT(nodes_.size() == grads_.size());
         for (size_t i = 0; i < nodes_.size(); ++i) {
             const std::shared_ptr<ArrayNode>& array_node = nodes_[i];
             const nonstd::optional<Array>& grad = *grads_[i];
-            XCHAINER_ASSERT(array_node != nullptr);
-            XCHAINER_ASSERT(this == array_node->weak_body().lock().get());
+            CHAINERX_ASSERT(array_node != nullptr);
+            CHAINERX_ASSERT(this == array_node->weak_body().lock().get());
 
             if (grad.has_value()) {
-                XCHAINER_ASSERT(internal::GetArrayBody(*grad) != nullptr);
-                XCHAINER_ASSERT(grad->shape() == array_node->shape());
-                XCHAINER_ASSERT(grad->dtype() == array_node->dtype());
-                XCHAINER_ASSERT(&grad->device() == &array_node->device());
+                CHAINERX_ASSERT(internal::GetArrayBody(*grad) != nullptr);
+                CHAINERX_ASSERT(grad->shape() == array_node->shape());
+                CHAINERX_ASSERT(grad->dtype() == array_node->dtype());
+                CHAINERX_ASSERT(&grad->device() == &array_node->device());
             }
         }
     }
@@ -122,19 +122,19 @@ nonstd::optional<size_t> ArrayBody::GetNodeIndex(const BackpropId& backprop_id) 
 
 void ArrayBody::SetGrad(Array grad, const BackpropId& backprop_id) {
     nonstd::optional<Array>* target_grad = GetGrad(backprop_id);
-    XCHAINER_ASSERT(target_grad != nullptr);
+    CHAINERX_ASSERT(target_grad != nullptr);
     internal::SetGrad(*target_grad, std::move(grad), shape_, dtype_, device_);
 }
 
 void ArrayBody::AccumulateGrad(Array partial_grad, const BackpropId& backprop_id) {
     nonstd::optional<Array>* target_grad = GetGrad(backprop_id);
-    XCHAINER_ASSERT(target_grad != nullptr);
+    CHAINERX_ASSERT(target_grad != nullptr);
     internal::AccumulateGrad(*target_grad, std::move(partial_grad), shape_, dtype_, device_);
 }
 
 void ArrayBody::ClearGrad(const BackpropId& backprop_id) {
     nonstd::optional<Array>* grad = GetGrad(backprop_id);
-    XCHAINER_ASSERT(grad != nullptr);
+    CHAINERX_ASSERT(grad != nullptr);
     grad->reset();
 }
 
@@ -144,7 +144,7 @@ ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_i
     if (!i.has_value()) {
         return nullptr;
     }
-    XCHAINER_ASSERT(*i < this_ptr->grads_.size());
+    CHAINERX_ASSERT(*i < this_ptr->grads_.size());
     return this_ptr->grads_[*i].get();
 }
 

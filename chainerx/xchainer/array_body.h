@@ -137,7 +137,7 @@ private:
 
     // Asserts consistency of this instance.
     //
-    // This function is no-op if XCHAINER_DEBUG is set.
+    // This function is no-op if CHAINERX_DEBUG is set.
     void AssertConsistency() const;
 
     template <typename ThisPtr, typename ReturnType>

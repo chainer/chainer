@@ -8,10 +8,10 @@
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_device.h"
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
 #include "chainerx/error.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/native/native_device.h"
@@ -54,12 +54,12 @@ TEST_F(DeviceTest, SetDefaultDevice) {
     SetDefaultDevice(&native_device);
     ASSERT_EQ(&native_device, &GetDefaultDevice());
 
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
     cuda::CudaBackend cuda_backend{ctx};
     Device& cuda_device = cuda_backend.GetDevice(0);
     SetDefaultDevice(&cuda_device);
     ASSERT_EQ(&cuda_device, &GetDefaultDevice());
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
 
     Device& native_device2 = ctx.GetDevice({"native", 2});
     SetDefaultDevice(&native_device2);

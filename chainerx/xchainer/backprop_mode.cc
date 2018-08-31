@@ -46,7 +46,7 @@ BackpropModeScope<kModeFlag>::BackpropModeScope(const std::vector<BackpropId>& b
 template <bool kModeFlag>
 BackpropModeScope<kModeFlag>::~BackpropModeScope() {
     BackpropModeStack& backprop_mode_stack = internal::GetInternalThreadLocalState().backprop_mode_stack;
-    XCHAINER_ASSERT(backprop_mode_stack.size() >= n_);
+    CHAINERX_ASSERT(backprop_mode_stack.size() >= n_);
 
     backprop_mode_stack.erase(backprop_mode_stack.end() - n_, backprop_mode_stack.end());
 }

@@ -27,7 +27,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
 
         if (!free_list.empty()) {
             ptr = free_list.back();
-            XCHAINER_ASSERT(ptr != nullptr);
+            CHAINERX_ASSERT(ptr != nullptr);
             free_list.pop_back();
         }
     }

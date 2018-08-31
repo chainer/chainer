@@ -59,7 +59,7 @@ public:
         : kernel_size_{std::move(kernel_size)}, stride_{std::move(stride)}, pad_{std::move(pad)}, cover_all_{cover_all} {}
 
     Array Forward(const Array& x) override {
-        XCHAINER_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+        CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
         col_ = native_internal::Im2Col(x, kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x.dtype()));
@@ -70,10 +70,10 @@ public:
     }
 
     Array Backward(const Array& gout) override {
-        XCHAINER_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
+        CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
         indices_ = col_.ArgMax(axes_);
-        XCHAINER_ASSERT(indices_.shape() == gout.shape());
+        CHAINERX_ASSERT(indices_.shape() == gout.shape());
 
         // Compute flattened col gradients.
         int64_t kernel_total_size = std::accumulate(kernel_size_.begin(), kernel_size_.end(), int64_t{1}, std::multiplies<>());
@@ -97,7 +97,7 @@ public:
     }
 
     Array DoubleBackward(const Array& ggx) override {
-        XCHAINER_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
+        CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
 
         Array col = native_internal::Im2Col(ggx, kernel_size_, stride_, pad_, cover_all_, GetLowestOrInf(x_.dtype()));
         return Take(
@@ -144,10 +144,10 @@ Array GetPadModeIgnorePoolingWidths(
         const StackVector<int64_t, kMaxNdim>& pad,
         Dtype dtype) {
     int8_t n = shape.ndim() - 2;
-    XCHAINER_ASSERT(n == static_cast<int8_t>(kernel_size.size()));
-    XCHAINER_ASSERT(n == static_cast<int8_t>(stride.size()));
-    XCHAINER_ASSERT(n == static_cast<int8_t>(pad.size()));
-    XCHAINER_ASSERT(GetKind(dtype) == DtypeKind::kFloat);
+    CHAINERX_ASSERT(n == static_cast<int8_t>(kernel_size.size()));
+    CHAINERX_ASSERT(n == static_cast<int8_t>(stride.size()));
+    CHAINERX_ASSERT(n == static_cast<int8_t>(pad.size()));
+    CHAINERX_ASSERT(GetKind(dtype) == DtypeKind::kFloat);
 
     Array widths;
     for (int64_t i = 0; i < n; ++i) {
@@ -206,7 +206,7 @@ public:
         : kernel_size_{std::move(kernel_size)}, stride_{std::move(stride)}, pad_{std::move(pad)}, pad_mode_{pad_mode} {}
 
     Array Forward(const Array& x) override {
-        XCHAINER_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+        CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         Array col = native_internal::Im2Col(x, kernel_size_, stride_, pad_, false, 0);
 
@@ -229,7 +229,7 @@ public:
                 break;
             }
             default:
-                XCHAINER_NEVER_REACH();
+                CHAINERX_NEVER_REACH();
         }
         x_ = x;
         gcol_shape_ = col.shape();
@@ -237,7 +237,7 @@ public:
     }
 
     Array Backward(const Array& gout) override {
-        XCHAINER_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
+        CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
         Shape reshape_to = gcol_shape_;
         std::fill(reshape_to.begin() + 2, reshape_to.begin() + x_.ndim(), int64_t{1});
@@ -256,7 +256,7 @@ public:
                 break;
             }
             default:
-                XCHAINER_NEVER_REACH();
+                CHAINERX_NEVER_REACH();
         }
         return gx;
     }

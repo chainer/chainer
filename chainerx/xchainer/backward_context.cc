@@ -72,13 +72,13 @@ BackwardContext::BackwardContext(
       input_grads_{input_grads},
       zero_output_grads_{output_array_nodes_.size()},
       double_backprop_option_{double_backprop_option} {
-    XCHAINER_ASSERT(op_node.get() == &backward_entry.op_node());
-    XCHAINER_ASSERT(output_array_nodes_.size() == output_grads_.size());
-    XCHAINER_ASSERT(input_grads_.size() == op_node->input_array_node_count());
+    CHAINERX_ASSERT(op_node.get() == &backward_entry.op_node());
+    CHAINERX_ASSERT(output_array_nodes_.size() == output_grads_.size());
+    CHAINERX_ASSERT(input_grads_.size() == op_node->input_array_node_count());
 
     // Input grads must be initialized with null-body arrays.
     const std::vector<size_t>& input_grad_indices = backward_entry.input_array_node_indices();
-    XCHAINER_ASSERT(std::all_of(input_grad_indices.begin(), input_grad_indices.end(), [&](const size_t& index) {
+    CHAINERX_ASSERT(std::all_of(input_grad_indices.begin(), input_grad_indices.end(), [&](const size_t& index) {
         return internal::GetArrayBody(gsl::at(input_grads_, index)) == nullptr;
     }));
 
@@ -92,7 +92,7 @@ bool BackwardContext::HasOutputGrad(size_t output_index) const { return gsl::at(
 
 bool BackwardContext::is_input_grad_required(size_t input_index) const {
     const std::vector<size_t>& input_grad_indices = backward_entry_.input_array_node_indices();
-    XCHAINER_ASSERT(std::find(input_grad_indices.begin(), input_grad_indices.end(), input_index) != input_grad_indices.end());
+    CHAINERX_ASSERT(std::find(input_grad_indices.begin(), input_grad_indices.end(), input_index) != input_grad_indices.end());
 
     return op_node_->HasInputArrayNode(input_index);
 }
@@ -104,7 +104,7 @@ const Array& BackwardContext::output_grad(size_t output_index) const {
     }
 
     // If there already is a zero-filled gradient allocated, return it.
-    XCHAINER_ASSERT(output_index < output_count());
+    CHAINERX_ASSERT(output_index < output_count());
     nonstd::optional<Array>& zero_grad = zero_output_grads_[output_index];
     if (zero_grad.has_value()) {
         return *zero_grad;
@@ -118,7 +118,7 @@ const Array& BackwardContext::output_grad(size_t output_index) const {
 
 Array& BackwardContext::input_grad() {
     const std::vector<size_t>& input_grad_indices = backward_entry_.input_array_node_indices();
-    XCHAINER_ASSERT(input_grad_indices.size() == 1);
+    CHAINERX_ASSERT(input_grad_indices.size() == 1);
     return input_grad(input_grad_indices.front());
 }
 
@@ -147,7 +147,7 @@ std::vector<const std::shared_ptr<ArrayNode>*> GetInputArrayNodesForIndex(const 
 }  // namespace
 
 Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
-    XCHAINER_ASSERT(token.index() < op_node_->input_array_node_count());
+    CHAINERX_ASSERT(token.index() < op_node_->input_array_node_count());
     size_t input_index = token.index();
 
     // Retrieve the kept array body for retained input.
@@ -182,19 +182,19 @@ Array BackwardContext::GetRetainedInput(const RetainedInputToken& token) {
             }
         }
 
-        XCHAINER_ASSERT(array_body != nullptr);
+        CHAINERX_ASSERT(array_body != nullptr);
         // Cut graphs of the array body
         // TODO(hvy): Avoid temporary array
         // TODO(hvy): Avoid view
         kept_body = internal::MoveArrayBody(Array{std::move(array_body)}.MakeView());
     }
 
-    XCHAINER_ASSERT(kept_body != nullptr);
+    CHAINERX_ASSERT(kept_body != nullptr);
     return Array{kept_body};
 }
 
 Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
-    XCHAINER_ASSERT(token.index() < output_count());
+    CHAINERX_ASSERT(token.index() < output_count());
     size_t output_index = token.index();
 
     // Retrieve the kept array body for retained output.
@@ -231,7 +231,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
         kept_body = internal::MoveArrayBody(Array{std::move(array_body)}.MakeView());
     }
 
-    XCHAINER_ASSERT(kept_body != nullptr);
+    CHAINERX_ASSERT(kept_body != nullptr);
     return Array{kept_body};
 }
 
@@ -242,7 +242,7 @@ std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(cons
     for (const auto& tup : op_node_->outer_graphs_output_array_nodes()) {
         const std::vector<std::shared_ptr<ArrayNode>>& output_array_nodes = std::get<1>(tup);
         const std::shared_ptr<ArrayNode>& output_array_node = output_array_nodes[token.index()];
-        XCHAINER_ASSERT(output_array_node->weak_body().expired());
+        CHAINERX_ASSERT(output_array_node->weak_body().expired());
         new_output_array_nodes.emplace_back(output_array_node);
     }
 
@@ -264,7 +264,7 @@ std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(cons
     // TODO(niboshi): Avoid unnecessary copy of array body params.
     std::shared_ptr<ArrayBody> fabricated_array_body = internal::CreateArrayBody(token.array_params());
     for (const std::shared_ptr<ArrayNode>& output_array_node : new_output_array_nodes) {
-        XCHAINER_ASSERT(output_array_node->weak_body().expired());
+        CHAINERX_ASSERT(output_array_node->weak_body().expired());
         ArrayBody::AddNode(fabricated_array_body, output_array_node);
     }
 

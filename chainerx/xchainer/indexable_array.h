@@ -43,41 +43,41 @@ public:
     IndexableArray(T* data, const Strides& strides) : data_{data} { std::copy(strides.begin(), strides.end(), strides_); }
 
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
-        XCHAINER_ASSERT(TypeToDtype<T> == array.dtype());
+        CHAINERX_ASSERT(TypeToDtype<T> == array.dtype());
 
-#if XCHAINER_DEBUG
+#if CHAINERX_DEBUG
         std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
 #endif
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
 
-    XCHAINER_HOST_DEVICE int8_t ndim() const { return kNdim; }
+    CHAINERX_HOST_DEVICE int8_t ndim() const { return kNdim; }
 
-    XCHAINER_HOST_DEVICE const int64_t* strides() const { return strides_; }
+    CHAINERX_HOST_DEVICE const int64_t* strides() const { return strides_; }
 
-    XCHAINER_HOST_DEVICE T* data() const { return data_; }
+    CHAINERX_HOST_DEVICE T* data() const { return data_; }
 
-    XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
+    CHAINERX_HOST_DEVICE T& operator[](const int64_t* index) const {
         auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_);
         for (int8_t dim = 0; dim < kNdim; ++dim) {
             data_ptr += strides_[dim] * index[dim];
         }
-#if XCHAINER_DEBUG
-        XCHAINER_ASSERT(first_ == nullptr || first_ <= data_ptr);
-        XCHAINER_ASSERT(last_ == nullptr || data_ptr <= last_ - sizeof(T));
-#endif  // XCHAINER_DEBUG
+#if CHAINERX_DEBUG
+        CHAINERX_ASSERT(first_ == nullptr || first_ <= data_ptr);
+        CHAINERX_ASSERT(last_ == nullptr || data_ptr <= last_ - sizeof(T));
+#endif  // CHAINERX_DEBUG
         return *reinterpret_cast<T*>(data_ptr);
     }
 
-    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<kNdim>& it) const { return operator[](it.index()); }
+    CHAINERX_HOST_DEVICE T& operator[](const IndexIterator<kNdim>& it) const { return operator[](it.index()); }
 
     // Permutes the axes.
     //
     // It is the caller's responsibility to ensure validity of permutation.
     // If the permutation is invalid, the behavior is undefined.
     IndexableArray<T, kNdim>& Permute(const Axes& axes) {
-        XCHAINER_ASSERT(axes.size() == static_cast<size_t>(kNdim));
+        CHAINERX_ASSERT(axes.size() == static_cast<size_t>(kNdim));
         int64_t c[kNdim]{};
         std::copy(std::begin(strides_), std::end(strides_), c);
         for (size_t i = 0; i < kNdim; ++i) {
@@ -88,10 +88,10 @@ public:
 
 private:
     T* data_;
-#if XCHAINER_DEBUG
+#if CHAINERX_DEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
-#endif  // XCHAINER_DEBUG
+#endif  // CHAINERX_DEBUG
     int64_t strides_[kNdim];
 };
 
@@ -101,26 +101,26 @@ class IndexableArray<T, 0> {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_{data} { XCHAINER_ASSERT(0 == strides.ndim()); }
+    IndexableArray(T* data, const Strides& strides) : data_{data} { CHAINERX_ASSERT(0 == strides.ndim()); }
 
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
-        XCHAINER_ASSERT(TypeToDtype<T> == array.dtype());
+        CHAINERX_ASSERT(TypeToDtype<T> == array.dtype());
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
 
-    XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return 0; }
+    CHAINERX_HOST_DEVICE constexpr int8_t ndim() const { return 0; }
 
-    XCHAINER_HOST_DEVICE constexpr const int64_t* strides() const { return nullptr; }
+    CHAINERX_HOST_DEVICE constexpr const int64_t* strides() const { return nullptr; }
 
-    XCHAINER_HOST_DEVICE T* data() const { return data_; }
+    CHAINERX_HOST_DEVICE T* data() const { return data_; }
 
-    XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
-        XCHAINER_ASSERT(index == nullptr || index[0] == 0);
+    CHAINERX_HOST_DEVICE T& operator[](const int64_t* index) const {
+        CHAINERX_ASSERT(index == nullptr || index[0] == 0);
         return *data_;
     }
 
-    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<0>& it) const { return operator[](it.index()); }
+    CHAINERX_HOST_DEVICE T& operator[](const IndexIterator<0>& it) const { return operator[](it.index()); }
 
     IndexableArray<T, 0>& Permute(const Axes& /*axes*/) {
         // NOOP for 1-dimensional array.
@@ -137,34 +137,34 @@ class IndexableArray<T, 1> {
 public:
     using ElementType = T;
 
-    IndexableArray(T* data, const Strides& strides) : data_{data}, stride_{strides[0]} { XCHAINER_ASSERT(1 == strides.ndim()); }
+    IndexableArray(T* data, const Strides& strides) : data_{data}, stride_{strides[0]} { CHAINERX_ASSERT(1 == strides.ndim()); }
 
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
-        XCHAINER_ASSERT(TypeToDtype<T> == array.dtype());
+        CHAINERX_ASSERT(TypeToDtype<T> == array.dtype());
 
-#if XCHAINER_DEBUG
+#if CHAINERX_DEBUG
         std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
 #endif
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
 
-    XCHAINER_HOST_DEVICE constexpr int8_t ndim() const { return 1; }
+    CHAINERX_HOST_DEVICE constexpr int8_t ndim() const { return 1; }
 
-    XCHAINER_HOST_DEVICE const int64_t* strides() const { return &stride_; }
+    CHAINERX_HOST_DEVICE const int64_t* strides() const { return &stride_; }
 
-    XCHAINER_HOST_DEVICE T* data() const { return data_; }
+    CHAINERX_HOST_DEVICE T* data() const { return data_; }
 
-    XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
+    CHAINERX_HOST_DEVICE T& operator[](const int64_t* index) const {
         auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_) + stride_ * index[0];
-#if XCHAINER_DEBUG
-        XCHAINER_ASSERT(first_ == nullptr || first_ <= data_ptr);
-        XCHAINER_ASSERT(last_ == nullptr || data_ptr <= last_ - sizeof(T));
-#endif  // XCHAINER_DEBUG
+#if CHAINERX_DEBUG
+        CHAINERX_ASSERT(first_ == nullptr || first_ <= data_ptr);
+        CHAINERX_ASSERT(last_ == nullptr || data_ptr <= last_ - sizeof(T));
+#endif  // CHAINERX_DEBUG
         return *reinterpret_cast<T*>(data_ptr);
     }
 
-    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<1>& it) const { return operator[](it.index()); }
+    CHAINERX_HOST_DEVICE T& operator[](const IndexIterator<1>& it) const { return operator[](it.index()); }
 
     IndexableArray<T, 1>& Permute(const Axes& /*axes*/) {
         // NOOP for 1-dimensional array.
@@ -173,10 +173,10 @@ public:
 
 private:
     T* data_;
-#if XCHAINER_DEBUG
+#if CHAINERX_DEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
-#endif  // XCHAINER_DEBUG
+#endif  // CHAINERX_DEBUG
     int64_t stride_{};
 };
 
@@ -191,34 +191,34 @@ public:
     }
 
     IndexableArray(const Array& array, const Strides& strides) : IndexableArray{internal::GetRawOffsetData<T>(array), strides} {
-        XCHAINER_ASSERT(TypeToDtype<T> == array.dtype());
+        CHAINERX_ASSERT(TypeToDtype<T> == array.dtype());
 
-#if XCHAINER_DEBUG
+#if CHAINERX_DEBUG
         std::tie(first_, last_) = indexable_array_detail::GetDataRange(array);
 #endif
     }
 
     explicit IndexableArray(const Array& array) : IndexableArray{array, array.strides()} {}
 
-    XCHAINER_HOST_DEVICE int8_t ndim() const { return ndim_; }
+    CHAINERX_HOST_DEVICE int8_t ndim() const { return ndim_; }
 
-    XCHAINER_HOST_DEVICE const int64_t* strides() const { return strides_; }
+    CHAINERX_HOST_DEVICE const int64_t* strides() const { return strides_; }
 
-    XCHAINER_HOST_DEVICE T* data() const { return data_; }
+    CHAINERX_HOST_DEVICE T* data() const { return data_; }
 
-    XCHAINER_HOST_DEVICE T& operator[](const int64_t* index) const {
+    CHAINERX_HOST_DEVICE T& operator[](const int64_t* index) const {
         auto data_ptr = reinterpret_cast<indexable_array_detail::WithConstnessOf<uint8_t, T>*>(data_);
         for (int8_t dim = 0; dim < ndim_; ++dim) {
             data_ptr += strides_[dim] * index[dim];
         }
-#if XCHAINER_DEBUG
-        XCHAINER_ASSERT(first_ == nullptr || first_ <= data_ptr);
-        XCHAINER_ASSERT(last_ == nullptr || data_ptr <= last_ - sizeof(T));
-#endif  // XCHAINER_DEBUG
+#if CHAINERX_DEBUG
+        CHAINERX_ASSERT(first_ == nullptr || first_ <= data_ptr);
+        CHAINERX_ASSERT(last_ == nullptr || data_ptr <= last_ - sizeof(T));
+#endif  // CHAINERX_DEBUG
         return *reinterpret_cast<T*>(data_ptr);
     }
 
-    XCHAINER_HOST_DEVICE T& operator[](const IndexIterator<kDynamicNdim>& it) const { return operator[](it.index()); }
+    CHAINERX_HOST_DEVICE T& operator[](const IndexIterator<kDynamicNdim>& it) const { return operator[](it.index()); }
 
     // Permutes the axes.
     //
@@ -228,7 +228,7 @@ public:
     // It is the caller's responsibility to ensure validity of permutation.
     // If the permutation is invalid, the behavior is undefined.
     IndexableArray<T, kDynamicNdim>& Permute(const Axes& axes) {
-        XCHAINER_ASSERT(axes.size() <= static_cast<size_t>(ndim_));
+        CHAINERX_ASSERT(axes.size() <= static_cast<size_t>(ndim_));
         int64_t c[kMaxNdim]{};
         std::copy(std::begin(strides_), std::end(strides_), c);
         for (size_t i = 0; i < axes.size(); ++i) {
@@ -240,10 +240,10 @@ public:
 
 private:
     T* data_;
-#if XCHAINER_DEBUG
+#if CHAINERX_DEBUG
     const uint8_t* first_{nullptr};
     const uint8_t* last_{nullptr};
-#endif  // XCHAINER_DEBUG
+#endif  // CHAINERX_DEBUG
     int64_t strides_[kMaxNdim];
     int8_t ndim_;
 };

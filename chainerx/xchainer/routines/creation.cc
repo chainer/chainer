@@ -26,7 +26,7 @@ namespace chainerx {
 namespace internal {
 
 size_t GetRequiredBytes(const Shape& shape, const Strides& strides, size_t item_size) {
-    XCHAINER_ASSERT(shape.ndim() == strides.ndim());
+    CHAINERX_ASSERT(shape.ndim() == strides.ndim());
 
     if (shape.GetTotalSize() == 0) {
         return 0;
@@ -163,7 +163,7 @@ Array Copy(const Array& a) {
     }
     bb.Finalize();
 
-    XCHAINER_ASSERT(out.IsContiguous());
+    CHAINERX_ASSERT(out.IsContiguous());
     return out;
 }
 
@@ -233,7 +233,7 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
         bb.Finalize();
     }
 
-    XCHAINER_ASSERT(out.IsContiguous());
+    CHAINERX_ASSERT(out.IsContiguous());
     return out;
 }
 

@@ -53,7 +53,7 @@ void InitXchainerScalar(pybind11::module& m) {
             case DtypeKind::kFloat:
                 return py::float_{static_cast<double>(scalar)};
             default:
-                XCHAINER_NEVER_REACH();
+                CHAINERX_NEVER_REACH();
         }
         return {};
     });

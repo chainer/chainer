@@ -39,10 +39,10 @@ class CMakeBuild(build_ext.build_ext):
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = [
-            '-DXCHAINER_BUILD_PYTHON=1',
+            '-DCHAINERX_BUILD_PYTHON=1',
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
             '-DPYTHON_EXECUTABLE=' + sys.executable,
-            '-DXCHAINER_BUILD_TEST=OFF',
+            '-DCHAINERX_BUILD_TEST=OFF',
         ]
 
         if self.debug:  # python setup.py build --debug

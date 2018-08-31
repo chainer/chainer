@@ -69,8 +69,8 @@ struct IdentityImpl {
 }  // namespace
 
 void CudaDevice::Identity(const Array& out) {
-    XCHAINER_ASSERT(out.ndim() == 2);
-    XCHAINER_ASSERT(out.shape()[0] == out.shape()[1]);
+    CHAINERX_ASSERT(out.ndim() == 2);
+    CHAINERX_ASSERT(out.shape()[0] == out.shape()[1]);
 
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -121,8 +121,8 @@ __global__ void SetVecInMat(
 }  // namespace
 
 void CudaDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
-    XCHAINER_ASSERT(v.ndim() == 1);
-    XCHAINER_ASSERT(out.ndim() == 2);
+    CHAINERX_ASSERT(v.ndim() == 1);
+    CHAINERX_ASSERT(out.ndim() == 2);
 
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -173,8 +173,8 @@ struct LinspaceImpl {
 }  // namespace
 
 void CudaDevice::Linspace(double start, double stop, const Array& out) {
-    XCHAINER_ASSERT(out.ndim() == 1);
-    XCHAINER_ASSERT(out.shape()[0] > 0);
+    CHAINERX_ASSERT(out.ndim() == 1);
+    CHAINERX_ASSERT(out.shape()[0] > 0);
 
     CheckCudaError(cudaSetDevice(index()));
     VisitDtype(out.dtype(), [&](auto pt) {

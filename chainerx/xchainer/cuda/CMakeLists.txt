@@ -42,7 +42,7 @@ CUDA_ADD_CUBLAS_TO_TARGET(chainerx_cuda)
 include_directories(${CUDNN_INCLUDE_DIRS})
 target_link_libraries(chainerx_cuda ${CUDNN_LIBRARIES})
 
-if(${XCHAINER_BUILD_TEST})
+if(${CHAINERX_BUILD_TEST})
     add_executable(chainerx_cuda_test
         cuda_backend_test.cc
         cuda_conv_test.cc

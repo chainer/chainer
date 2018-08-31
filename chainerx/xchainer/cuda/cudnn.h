@@ -39,7 +39,7 @@ const void* GetValuePtr(Dtype dtype) {
         case Dtype::kFloat32:
             return &kFloat32Value;
         default:
-            XCHAINER_NEVER_REACH();
+            CHAINERX_NEVER_REACH();
     }
 }
 

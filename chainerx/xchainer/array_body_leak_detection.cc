@@ -51,7 +51,7 @@ bool ArrayBodyLeakTracker::IsAllArrayBodiesFreed(std::ostream& os) const {
 }
 
 ArrayBodyLeakDetectionScope ::ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& tracker) {
-    XCHAINER_ASSERT(array_body_leak_tracker_ == nullptr);  // nested use is not supported
+    CHAINERX_ASSERT(array_body_leak_tracker_ == nullptr);  // nested use is not supported
     array_body_leak_tracker_ = &tracker;
 }
 

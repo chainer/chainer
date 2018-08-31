@@ -35,7 +35,7 @@ if(${BLAS_FOUND})
     target_link_libraries(chainerx_native ${BLAS_LIBRARIES})
 endif()
 
-if(${XCHAINER_BUILD_TEST})
+if(${CHAINERX_BUILD_TEST})
   add_executable(chainerx_native_test
       native_backend_test.cc
       native_device_test.cc

@@ -146,7 +146,7 @@ public:
                 auto range = output_array_node_keeper_.equal_range(op_node.get());
                 for (auto it = range.first; it != range.second; ++it) {
                     size_t n_removed = array_node_grad_map_.erase(it->second.get());
-                    XCHAINER_ASSERT(n_removed > 0);
+                    CHAINERX_ASSERT(n_removed > 0);
                 }
             }
         }
@@ -161,7 +161,7 @@ private:
         // A single op node has multiple backward functions, each of which computes the gradients of a subset of the inputs.
         // They are responsible for non-overlapping subsets of inputs.
         // This function calls these backward functions, collects the gradients computed by them and returns the collected gradients.
-        XCHAINER_ASSERT(op_node != nullptr);
+        CHAINERX_ASSERT(op_node != nullptr);
 
         // Output array nodes. May be nullptr if the node is gone.
         std::vector<std::shared_ptr<ArrayNode>> output_array_nodes;
@@ -282,7 +282,7 @@ private:
             // Set grads at the appropriate index in the vector containing all the input grads of the op node.
             {
                 const std::shared_ptr<ArrayNode>& input_array_node = gsl::at(op_node->input_array_nodes(), i_input_grad);
-                XCHAINER_ASSERT(input_array_node != nullptr);
+                CHAINERX_ASSERT(input_array_node != nullptr);
                 nonstd::optional<Array>& input_grad = input_grads[i_input_grad];
 
                 internal::SetGrad(
@@ -321,11 +321,11 @@ private:
 
     void AccumulateInputGradients(const OpNode& op_node, std::vector<nonstd::optional<Array>> gxs) {
         gsl::span<const std::shared_ptr<ArrayNode>> input_array_nodes = op_node.input_array_nodes();
-        XCHAINER_ASSERT(input_array_nodes.size() == gxs.size());
+        CHAINERX_ASSERT(input_array_nodes.size() == gxs.size());
         for (size_t i = 0; i < input_array_nodes.size(); ++i) {
             nonstd::optional<Array>& gx = gxs[i];
             if (gx.has_value()) {
-                XCHAINER_ASSERT(input_array_nodes[i] != nullptr);
+                CHAINERX_ASSERT(input_array_nodes[i] != nullptr);
                 const ArrayNode& input_array_node = *input_array_nodes[i];
                 // Retrieve the pointer to the input gradient.
                 internal::GradRef& input_grad = array_node_grad_map_.at(input_array_nodes[i].get());

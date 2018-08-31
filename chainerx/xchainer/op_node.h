@@ -119,7 +119,7 @@ public:
     BackpropId backprop_id() const { return backprop_id_; }
 
     const ArrayProps& GetOutputArrayProps(size_t i) const {
-        XCHAINER_ASSERT(i < output_array_props_.size());
+        CHAINERX_ASSERT(i < output_array_props_.size());
         return output_array_props_[i];
     }
 

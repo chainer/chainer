@@ -29,7 +29,7 @@ class CudaBackend : public Backend {
 public:
     static constexpr const char* kDefaultName = "cuda";
     static constexpr const size_t kCudnnDefaultMaxWorkspaceSize = 8 * 1024 * 1024;
-    static constexpr const char* kCudnnMaxWorkspaceSizeEnvVarName = "XCHAINER_CUDNN_MAX_WORKSPACE_SIZE";
+    static constexpr const char* kCudnnMaxWorkspaceSizeEnvVarName = "CHAINERX_CUDNN_MAX_WORKSPACE_SIZE";
 
     using Backend::Backend;
 

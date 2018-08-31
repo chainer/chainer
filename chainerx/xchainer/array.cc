@@ -227,7 +227,7 @@ Array Array::ToDevice(Device& dst_device) const {
         out = Array{src_contig.shape(), src_contig.strides(), src_contig.dtype(), dst_device, std::move(dst_data)};
     }
 
-    XCHAINER_ASSERT(internal::GetArrayBody(out) != nullptr);
+    CHAINERX_ASSERT(internal::GetArrayBody(out) != nullptr);
 
     // Backward operation is implemented as backward-transfer.
     BackwardBuilder bb{"transfer", *this, out};
@@ -254,7 +254,7 @@ Array CopyOrMakeView(const Array& array, CopyKind kind) {
         case CopyKind::kView:
             return array.MakeView();
         default:
-            XCHAINER_NEVER_REACH();
+            CHAINERX_NEVER_REACH();
     }
 }
 
@@ -287,7 +287,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
         bb.Finalize();
     }
 
-    XCHAINER_ASSERT(out.IsContiguous());
+    CHAINERX_ASSERT(out.IsContiguous());
     return out;
 }
 
@@ -299,7 +299,7 @@ const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>
         throw XchainerError{"Array is not flagged as requiring gradient for backprop id: '", actual_backprop_id, "'."};
     }
     const nonstd::optional<Array>* grad = body_->GetGrad(actual_backprop_id);
-    XCHAINER_ASSERT(grad != nullptr);
+    CHAINERX_ASSERT(grad != nullptr);
     return *grad;
 }
 
@@ -424,7 +424,7 @@ public:
                 } else {
                     os_ << Indent(indent + 2) << "body=" << body.get() << std::endl;
                     const nonstd::optional<Array>* grad = body->GetGrad(array_node.backprop_id());
-                    XCHAINER_ASSERT(grad != nullptr);
+                    CHAINERX_ASSERT(grad != nullptr);
                     if (grad->has_value()) {
                         os_ << Indent(indent + 2) << "grad=<shape=" << (*grad)->shape() << " dtype=" << GetDtypeName((*grad)->dtype())
                             << ">" << std::endl;

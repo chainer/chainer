@@ -4,7 +4,7 @@ add_subdirectory(testing)
 if(${CUDA_FOUND})
     add_subdirectory(cuda)
 endif()
-if(${XCHAINER_BUILD_PYTHON})
+if(${CHAINERX_BUILD_PYTHON})
     add_subdirectory(python)
 endif()
 
@@ -100,7 +100,7 @@ target_link_libraries(chainerx
     -Wl,--no-whole-archive)
 install(TARGETS chainerx DESTINATION lib)
 
-if(${XCHAINER_BUILD_TEST})
+if(${CHAINERX_BUILD_TEST})
     add_subdirectory(context_testdata)
     set(srcs
         array_body_leak_detection_test.cc
@@ -136,7 +136,7 @@ if(${XCHAINER_BUILD_TEST})
     endif()
 
     target_compile_definitions(chainerx_test PRIVATE
-        XCHAINER_TEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
+        CHAINERX_TEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 
     target_link_libraries(chainerx_test
         chainerx

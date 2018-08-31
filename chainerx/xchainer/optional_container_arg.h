@@ -32,22 +32,22 @@ public:
     const Container& value() const { return opt_.value(); }
 
     Container& operator*() {
-        XCHAINER_ASSERT(has_value());
+        CHAINERX_ASSERT(has_value());
         return *opt_;
     }
 
     const Container& operator*() const {
-        XCHAINER_ASSERT(has_value());
+        CHAINERX_ASSERT(has_value());
         return *opt_;
     }
 
     Container* operator->() {
-        XCHAINER_ASSERT(has_value());
+        CHAINERX_ASSERT(has_value());
         return &*opt_;
     }
 
     const Container* operator->() const {
-        XCHAINER_ASSERT(has_value());
+        CHAINERX_ASSERT(has_value());
         return &*opt_;
     }
 

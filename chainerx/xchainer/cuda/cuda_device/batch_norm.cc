@@ -96,24 +96,24 @@ public:
     }
 
     Array Forward(const Array& x, const Array& gamma, const Array& beta) override {
-        if (XCHAINER_DEBUG) {
+        if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis(), true);
-            XCHAINER_ASSERT(gamma.shape() == reduced_shape);
-            XCHAINER_ASSERT(beta.shape() == reduced_shape);
+            CHAINERX_ASSERT(gamma.shape() == reduced_shape);
+            CHAINERX_ASSERT(beta.shape() == reduced_shape);
 
             int64_t reduced_total_size = reduced_shape.GetTotalSize();
-            XCHAINER_ASSERT(running_mean().GetTotalSize() == reduced_total_size);
-            XCHAINER_ASSERT(running_var().GetTotalSize() == reduced_total_size);
+            CHAINERX_ASSERT(running_mean().GetTotalSize() == reduced_total_size);
+            CHAINERX_ASSERT(running_var().GetTotalSize() == reduced_total_size);
 
-            XCHAINER_ASSERT(&x.device() == &gamma.device());
-            XCHAINER_ASSERT(&x.device() == &beta.device());
-            XCHAINER_ASSERT(&x.device() == &running_mean().device());
-            XCHAINER_ASSERT(&x.device() == &running_var().device());
+            CHAINERX_ASSERT(&x.device() == &gamma.device());
+            CHAINERX_ASSERT(&x.device() == &beta.device());
+            CHAINERX_ASSERT(&x.device() == &running_mean().device());
+            CHAINERX_ASSERT(&x.device() == &running_var().device());
 
-            XCHAINER_ASSERT(x.dtype() == gamma.dtype());
-            XCHAINER_ASSERT(x.dtype() == beta.dtype());
-            XCHAINER_ASSERT(x.dtype() == running_mean().dtype());
-            XCHAINER_ASSERT(x.dtype() == running_var().dtype());
+            CHAINERX_ASSERT(x.dtype() == gamma.dtype());
+            CHAINERX_ASSERT(x.dtype() == beta.dtype());
+            CHAINERX_ASSERT(x.dtype() == running_mean().dtype());
+            CHAINERX_ASSERT(x.dtype() == running_var().dtype());
         }
 
         Device& device = x.device();
@@ -129,8 +129,8 @@ public:
         Array gamma_casted_cont = AsContiguousArray(gamma.AsType(gamma_beta_mean_var_dtype, false));
         Array beta_casted_cont = AsContiguousArray(beta.AsType(gamma_beta_mean_var_dtype, false));
 
-        XCHAINER_ASSERT(running_mean().IsContiguous());
-        XCHAINER_ASSERT(running_var().IsContiguous());
+        CHAINERX_ASSERT(running_mean().IsContiguous());
+        CHAINERX_ASSERT(running_var().IsContiguous());
         Array running_mean_casted = running_mean().AsType(gamma_beta_mean_var_dtype, false);
         Array running_var_casted = running_var().AsType(gamma_beta_mean_var_dtype, false);
 
@@ -164,11 +164,11 @@ public:
         //
         // TODO(sonots): write tests after we supports fp16
         if (dtype != gamma_beta_mean_var_dtype) {
-            XCHAINER_ASSERT(false);  // dead code
-            XCHAINER_ASSERT(running_mean().IsContiguous());
-            XCHAINER_ASSERT(running_mean_casted.IsContiguous());
-            XCHAINER_ASSERT(running_var().IsContiguous());
-            XCHAINER_ASSERT(running_var_casted.IsContiguous());
+            CHAINERX_ASSERT(false);  // dead code
+            CHAINERX_ASSERT(running_mean().IsContiguous());
+            CHAINERX_ASSERT(running_mean_casted.IsContiguous());
+            CHAINERX_ASSERT(running_var().IsContiguous());
+            CHAINERX_ASSERT(running_var_casted.IsContiguous());
 
             Array running_mean_casted_back = running_mean_casted.AsType(dtype, false);
             Array running_var_casted_back = running_var_casted.AsType(dtype, false);
@@ -195,23 +195,23 @@ public:
         const Array& gamma = this->gamma();
         const Array& x_mean = this->x_mean();
         const Array& x_inv_std = this->x_inv_std();
-        if (XCHAINER_DEBUG) {
+        if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x_cont.shape(), axis(), true);
-            XCHAINER_ASSERT(reduced_shape == gamma.shape());
-            XCHAINER_ASSERT(x_cont.shape() == gout.shape());
+            CHAINERX_ASSERT(reduced_shape == gamma.shape());
+            CHAINERX_ASSERT(x_cont.shape() == gout.shape());
 
-            XCHAINER_ASSERT(internal::GetArrayBody(x_mean) != nullptr);
-            XCHAINER_ASSERT(internal::GetArrayBody(x_inv_std) != nullptr);
+            CHAINERX_ASSERT(internal::GetArrayBody(x_mean) != nullptr);
+            CHAINERX_ASSERT(internal::GetArrayBody(x_inv_std) != nullptr);
 
-            XCHAINER_ASSERT(&x_cont.device() == &gamma.device());
-            XCHAINER_ASSERT(&x_cont.device() == &gout.device());
-            XCHAINER_ASSERT(&x_cont.device() == &x_mean.device());
-            XCHAINER_ASSERT(&x_cont.device() == &x_inv_std.device());
+            CHAINERX_ASSERT(&x_cont.device() == &gamma.device());
+            CHAINERX_ASSERT(&x_cont.device() == &gout.device());
+            CHAINERX_ASSERT(&x_cont.device() == &x_mean.device());
+            CHAINERX_ASSERT(&x_cont.device() == &x_inv_std.device());
 
-            XCHAINER_ASSERT(x_cont.dtype() == gamma.dtype());
-            XCHAINER_ASSERT(x_cont.dtype() == gout.dtype());
+            CHAINERX_ASSERT(x_cont.dtype() == gamma.dtype());
+            CHAINERX_ASSERT(x_cont.dtype() == gout.dtype());
 
-            XCHAINER_ASSERT(x_cont.IsContiguous());
+            CHAINERX_ASSERT(x_cont.IsContiguous());
         }
 
         Device& device = x_cont.device();
@@ -230,10 +230,10 @@ public:
         Array gamma_casted_cont = AsContiguousArray(gamma.AsType(gamma_beta_mean_var_dtype, false));
         Array ggamma = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
         Array gbeta = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
-        XCHAINER_ASSERT(gamma_beta_mean_var_dtype == x_mean.dtype());
-        XCHAINER_ASSERT(gamma_beta_mean_var_dtype == x_inv_std.dtype());
-        XCHAINER_ASSERT(x_mean.IsContiguous());
-        XCHAINER_ASSERT(x_inv_std.IsContiguous());
+        CHAINERX_ASSERT(gamma_beta_mean_var_dtype == x_mean.dtype());
+        CHAINERX_ASSERT(gamma_beta_mean_var_dtype == x_inv_std.dtype());
+        CHAINERX_ASSERT(x_mean.IsContiguous());
+        CHAINERX_ASSERT(x_inv_std.IsContiguous());
 
         CheckCudnnError(cudnnBatchNormalizationBackward(
                 cudnn_handle_,
@@ -258,7 +258,7 @@ public:
 
         // TODO(niboshi): Write test after fp16 is supported
         if (gamma_beta_mean_var_dtype != dtype) {
-            XCHAINER_ASSERT(false);  // dead code
+            CHAINERX_ASSERT(false);  // dead code
             ggamma = ggamma.AsType(dtype, false);
             gbeta = gbeta.AsType(dtype, false);
         }
@@ -283,22 +283,22 @@ Array CudaDevice::FixedBatchNorm(
         throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
     }
 
-    if (XCHAINER_DEBUG) {
+    if (CHAINERX_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
-        XCHAINER_ASSERT(gamma.shape() == reduced_shape);
-        XCHAINER_ASSERT(beta.shape() == reduced_shape);
-        XCHAINER_ASSERT(mean.shape() == reduced_shape);
-        XCHAINER_ASSERT(var.shape() == reduced_shape);
+        CHAINERX_ASSERT(gamma.shape() == reduced_shape);
+        CHAINERX_ASSERT(beta.shape() == reduced_shape);
+        CHAINERX_ASSERT(mean.shape() == reduced_shape);
+        CHAINERX_ASSERT(var.shape() == reduced_shape);
 
-        XCHAINER_ASSERT(&x.device() == &gamma.device());
-        XCHAINER_ASSERT(&x.device() == &beta.device());
-        XCHAINER_ASSERT(&x.device() == &mean.device());
-        XCHAINER_ASSERT(&x.device() == &var.device());
+        CHAINERX_ASSERT(&x.device() == &gamma.device());
+        CHAINERX_ASSERT(&x.device() == &beta.device());
+        CHAINERX_ASSERT(&x.device() == &mean.device());
+        CHAINERX_ASSERT(&x.device() == &var.device());
 
-        XCHAINER_ASSERT(x.dtype() == gamma.dtype());
-        XCHAINER_ASSERT(x.dtype() == beta.dtype());
-        XCHAINER_ASSERT(x.dtype() == mean.dtype());
-        XCHAINER_ASSERT(x.dtype() == var.dtype());
+        CHAINERX_ASSERT(x.dtype() == gamma.dtype());
+        CHAINERX_ASSERT(x.dtype() == beta.dtype());
+        CHAINERX_ASSERT(x.dtype() == mean.dtype());
+        CHAINERX_ASSERT(x.dtype() == var.dtype());
     }
 
     Array x_cont = AsContiguousArray(x);

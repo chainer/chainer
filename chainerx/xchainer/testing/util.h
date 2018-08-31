@@ -11,14 +11,14 @@
 // EXAMPLE:
 //
 //     TEST(ArrayTest, FooTest) {
-//        XCHAINER_REQUIRE_DEVICE(cuda_backend, 2);  // backend instance
-//        // XCHAINER_REQUIRE_DEVICE("cuda", 2);  // backend name for default context
+//        CHAINERX_REQUIRE_DEVICE(cuda_backend, 2);  // backend instance
+//        // CHAINERX_REQUIRE_DEVICE("cuda", 2);  // backend name for default context
 //
 //        // Write your tests here
 //     }
 
 // TODO(imanishi): Do not depend on the default context being set when the backend argument is a string
-#define XCHAINER_REQUIRE_DEVICE(backend, required_num)                                                 \
+#define CHAINERX_REQUIRE_DEVICE(backend, required_num)                                                 \
     do {                                                                                               \
         if (chainerx::testing::testing_internal::SkipIfDeviceUnavailable((backend), (required_num))) { \
             return;                                                                                    \

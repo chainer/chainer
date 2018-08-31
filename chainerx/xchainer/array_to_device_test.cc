@@ -78,7 +78,7 @@ public:
     int GetDeviceCount() const override { return 1; }
 
     std::unique_ptr<Device> CreateDevice(int index) override {
-        XCHAINER_ASSERT(index == 0);
+        CHAINERX_ASSERT(index == 0);
         return std::make_unique<TestDevice>(*this, index);
     }
 
@@ -228,7 +228,7 @@ TEST(ArrayToDeviceArithmeticTest, Arithmetic) {
     testing::ContextSession context_session;
     native::NativeBackend backend{context_session.context()};
 
-    XCHAINER_REQUIRE_DEVICE(backend, 3);
+    CHAINERX_REQUIRE_DEVICE(backend, 3);
 
     Device& dev0 = backend.GetDevice(0);
     Device& dev1 = backend.GetDevice(1);

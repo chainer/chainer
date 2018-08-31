@@ -161,8 +161,8 @@ jobs:
             pushd build
             cmake \
                 -DCMAKE_BUILD_TYPE=Debug \
-                -DXCHAINER_BUILD_PYTHON=1 \
-                -DXCHAINER_WARNINGS_AS_ERRORS=ON \
+                -DCHAINERX_BUILD_PYTHON=1 \
+                -DCHAINERX_WARNINGS_AS_ERRORS=ON \
                 -DCMAKE_INSTALL_PREFIX=$HOME/local \
                 ..
             popd

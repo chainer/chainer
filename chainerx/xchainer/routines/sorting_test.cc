@@ -67,9 +67,9 @@ INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         SortingTest,
         ::testing::Values(
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
                 std::string{"cuda"},
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
                 std::string{"native"}));
 
 }  // namespace

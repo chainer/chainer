@@ -29,7 +29,7 @@ class BackendDeleter {
 public:
     BackendDeleter()
         : destroy_backend_func_{[](Backend*) {
-              XCHAINER_NEVER_REACH();  // Default-ctor is only for default-constructed unique_ptr which never calls deleter.
+              CHAINERX_NEVER_REACH();  // Default-ctor is only for default-constructed unique_ptr which never calls deleter.
           }} {}
     explicit BackendDeleter(void (*destroy_backend_func)(Backend*)) : destroy_backend_func_{destroy_backend_func} {}
 
@@ -103,7 +103,7 @@ public:
 
     BackpropId default_backprop_id() {
         // The first entry is always the default backprop ID.
-        XCHAINER_ASSERT(!backprop_set_.empty());
+        CHAINERX_ASSERT(!backprop_set_.empty());
         return BackpropId{*this, backprop_set_.front().ordinal};
     }
 

@@ -233,7 +233,7 @@ TEST_P(CreationTest, FromContiguousHostData) {
         if (device.backend().GetName() == "native") {
             EXPECT_EQ(data.get(), x.data().get());
         } else {
-            XCHAINER_ASSERT(device.backend().GetName() == "cuda");
+            CHAINERX_ASSERT(device.backend().GetName() == "cuda");
             EXPECT_NE(data.get(), x.data().get());
         }
     });
@@ -319,7 +319,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
 }
 
 // TODO(sonots): Checking `MakeDataFromForeignPointer` called is enough as a unit-test here. Use mock library if it becomes available.
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
 TEST(CreationTest, FromData_FromAnotherDevice) {
     Context ctx;
     Device& cuda_device = ctx.GetDevice({"cuda", 0});
@@ -334,7 +334,7 @@ TEST(CreationTest, FromData_FromAnotherDevice) {
 
     EXPECT_THROW(FromData(shape, dtype, data, strides, offset, cuda_device), XchainerError);
 }
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
 
 TEST_P(CreationTest, FromHostData) {
     using T = int32_t;
@@ -986,9 +986,9 @@ INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         CreationTest,
         ::testing::Values(
-#ifdef XCHAINER_ENABLE_CUDA
+#ifdef CHAINERX_ENABLE_CUDA
                 std::string{"cuda"},
-#endif  // XCHAINER_ENABLE_CUDA
+#endif  // CHAINERX_ENABLE_CUDA
                 std::string{"native"}));
 
 }  // namespace

@@ -2,9 +2,9 @@
 
 #include <cstdint>
 
-#ifdef XCHAINER_ENABLE_BLAS
+#ifdef CHAINERX_ENABLE_BLAS
 #include <cblas.h>
-#endif  // XCHAINER_ENABLE_BLAS
+#endif  // CHAINERX_ENABLE_BLAS
 
 #include "chainerx/array.h"
 #include "chainerx/device.h"
@@ -18,7 +18,7 @@
 namespace chainerx {
 namespace native {
 
-#ifdef XCHAINER_ENABLE_BLAS
+#ifdef CHAINERX_ENABLE_BLAS
 namespace {
 
 // Dispatch gemm routines based on the element type T
@@ -47,7 +47,7 @@ struct GemmInputLayout {
 
     // Configure leading dimension and transposition accordingly, and makes the array C contiguous if necessary
     Array Configure(const Array& a) {
-        XCHAINER_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(a.ndim() == 2);
         // Row-major
         // Note that this condition is slightly relaxed than Array::IsContiguous() which requires
         // a.strides()[0] == a.item_size() * a.shape()[1]
@@ -68,17 +68,17 @@ struct GemmInputLayout {
 };
 
 void Gemm(const Array& a, const Array& b, const Array& out) {
-    XCHAINER_ASSERT(a.ndim() == 2);
-    XCHAINER_ASSERT(b.ndim() == 2);
-    XCHAINER_ASSERT(out.ndim() == 2);
-    XCHAINER_ASSERT(out.dtype() == Dtype::kFloat32 || out.dtype() == Dtype::kFloat64);
+    CHAINERX_ASSERT(a.ndim() == 2);
+    CHAINERX_ASSERT(b.ndim() == 2);
+    CHAINERX_ASSERT(out.ndim() == 2);
+    CHAINERX_ASSERT(out.dtype() == Dtype::kFloat32 || out.dtype() == Dtype::kFloat64);
 
     int64_t m = a.shape()[0];
     int64_t k = a.shape()[1];
     int64_t n = b.shape()[1];
-    XCHAINER_ASSERT(b.shape()[0] == k);
-    XCHAINER_ASSERT(out.shape()[0] == m);
-    XCHAINER_ASSERT(out.shape()[1] == n);
+    CHAINERX_ASSERT(b.shape()[0] == k);
+    CHAINERX_ASSERT(out.shape()[0] == m);
+    CHAINERX_ASSERT(out.shape()[1] == n);
 
     bool is_out_contiguous = out.IsContiguous();
     Array out_contiguous = is_out_contiguous ? out : EmptyLike(out, out.device());
@@ -103,7 +103,7 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
     if (a.dtype() == Dtype::kFloat32) {
         gemm_impl(PrimitiveType<float>{});
     } else {
-        XCHAINER_ASSERT(a.dtype() == Dtype::kFloat64);
+        CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
         gemm_impl(PrimitiveType<double>{});
     }
 
@@ -113,7 +113,7 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
 }
 
 }  // namespace
-#endif  // XCHAINER_ENABLE_BLAS
+#endif  // CHAINERX_ENABLE_BLAS
 
 void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
@@ -123,12 +123,12 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         throw DimensionError{"XChainer dot supports only 2-dimensional arrays."};
     }
 
-#ifdef XCHAINER_ENABLE_BLAS
+#ifdef CHAINERX_ENABLE_BLAS
     if (out.dtype() == Dtype::kFloat32 || out.dtype() == Dtype::kFloat64) {
         Gemm(a, b, out);
         return;
     }
-#endif  // XCHAINER_ENABLE_BLAS
+#endif  // CHAINERX_ENABLE_BLAS
 
     out.Fill(0);
     VisitDtype(out.dtype(), [&](auto pt) {
@@ -140,9 +140,9 @@ void NativeDevice::Dot(const Array& a, const Array& b, const Array& out) {
         int64_t m = a.shape()[0];
         int64_t k = a.shape()[1];
         int64_t n = b.shape()[1];
-        XCHAINER_ASSERT(b.shape()[0] == k);
-        XCHAINER_ASSERT(out.shape()[0] == m);
-        XCHAINER_ASSERT(out.shape()[1] == n);
+        CHAINERX_ASSERT(b.shape()[0] == k);
+        CHAINERX_ASSERT(out.shape()[0] == m);
+        CHAINERX_ASSERT(out.shape()[1] == n);
 
         for (int64_t i = 0; i < m; ++i) {
             for (int64_t l = 0; l < k; ++l) {

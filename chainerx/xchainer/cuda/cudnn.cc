@@ -93,7 +93,7 @@ CudnnTensorDescriptor::~CudnnTensorDescriptor() {
 }
 
 CudnnTensorDescriptor::CudnnTensorDescriptor(const Array& arr) : CudnnTensorDescriptor{} {
-    XCHAINER_ASSERT(arr.IsContiguous());
+    CHAINERX_ASSERT(arr.IsContiguous());
 
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
@@ -115,7 +115,7 @@ CudnnFilterDescriptor::~CudnnFilterDescriptor() {
 }
 
 CudnnFilterDescriptor::CudnnFilterDescriptor(const Array& w) : CudnnFilterDescriptor{} {
-    XCHAINER_ASSERT(w.IsContiguous());
+    CHAINERX_ASSERT(w.IsContiguous());
 
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(w.dtype());
     if (w.shape().ndim() == 4) {
@@ -143,8 +143,8 @@ CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
         int groups)
     : CudnnConvolutionDescriptor{} {
     size_t ndim = pad.size();
-    XCHAINER_ASSERT(ndim == stride.size());
-    XCHAINER_ASSERT(!dilation || ndim == dilation->size());
+    CHAINERX_ASSERT(ndim == stride.size());
+    CHAINERX_ASSERT(!dilation || ndim == dilation->size());
 
     StackVector<int, kMaxNdim> int_stride = GetIntStride(stride);
     StackVector<int, kMaxNdim> int_pad = GetIntPad(pad);
@@ -196,8 +196,8 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
         const StackVector<int64_t, kMaxNdim>& stride)
     : CudnnPoolingDescriptor{} {
     size_t ndim = kernel_size.size();
-    XCHAINER_ASSERT(ndim == pad.size());
-    XCHAINER_ASSERT(ndim == stride.size());
+    CHAINERX_ASSERT(ndim == pad.size());
+    CHAINERX_ASSERT(ndim == stride.size());
 
     StackVector<int, kMaxNdim> int_kernel_size = GetIntKernelSize(kernel_size);
     StackVector<int, kMaxNdim> int_pad = GetIntPad(pad);
