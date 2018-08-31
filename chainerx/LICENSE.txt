@@ -1,5 +1,5 @@
 ######################################################################
-# xChainer borrowed cmake/FindCuDNN.cmake from pytorch.
+# ChainerX borrowed cmake/FindCuDNN.cmake from pytorch.
 # https://github.com/pytorch/pytorch/blob/3414475653c2b429d570a79f87e8a2138592d396/cmake/Modules/FindCuDNN.cmake
 ######################################################################
 All rights reserved.
@@ -32,7 +32,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 ######################################################################
-# xChainer borrowed boost::hash_combine from boost.
+# ChainerX borrowed boost::hash_combine from boost.
 # It is included in xchainer/hash_combine.h.
 ######################################################################
 Boost Software License - Version 1.0 - August 17th, 2003

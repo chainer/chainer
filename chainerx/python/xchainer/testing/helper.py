@@ -54,7 +54,7 @@ def _call_func(impl, args, kw):
 
 def _check_xchainer_numpy_error(xchainer_error, xchainer_tb, numpy_error,
                                 numpy_tb, accept_error=()):
-    # TODO(sonots): Change error class names of xChainer to be similar with NumPy, and check names.
+    # TODO(sonots): Change error class names of ChainerX to be similar with NumPy, and check names.
     if xchainer_error is None and numpy_error is None:
         pytest.fail('Both xchainer and numpy are expected to raise errors, but not')
     elif xchainer_error is None:
@@ -193,7 +193,7 @@ def numpy_xchainer_allclose(
         *, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', dtype_check=None, strides_check=None, accept_error=()):
     """numpy_xchainer_allclose(*, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True, name='xp', dtype_check=True, strides_check=True, accept_error=())
 
-    Decorator that checks that NumPy and xChainer results are equal up to a tolerance.
+    Decorator that checks that NumPy and ChainerX results are equal up to a tolerance.
 
     Args:
          rtol(float): Relative tolerance.
@@ -207,7 +207,7 @@ def numpy_xchainer_allclose(
              Disabling ``dtype_check`` also implies ``strides_check=False``.
          strides_check(bool): If ``True``, consistency of strides is also checked.
          accept_error(Exception or tuple of Exception): Specify
-             acceptable errors. When both NumPy test and xChainer test raises the
+             acceptable errors. When both NumPy test and ChainerX test raises the
              same type of errors, and the type of the errors is specified with
              this argument, the errors are ignored and not raised.
 
@@ -226,7 +226,7 @@ def numpy_xchainer_allclose(
 def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', dtype_check=None, strides_check=None, accept_error=()):
     """numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', dtype_check=True, strides_check=True, accept_error=()):
 
-    Decorator that checks that NumPy and xChainer results are equal.
+    Decorator that checks that NumPy and ChainerX results are equal.
 
     Args:
          err_msg(str): The error message to be printed in case of failure.
@@ -237,7 +237,7 @@ def numpy_xchainer_array_equal(*, err_msg='', verbose=True, name='xp', dtype_che
              Disabling ``dtype_check`` also implies ``strides_check=False``
          strides_check(bool): If ``True``, consistency of strides is also checked.
          accept_error(Exception or tuple of Exception): Specify
-             acceptable errors. When both NumPy test and xChainer test raises the
+             acceptable errors. When both NumPy test and ChainerX test raises the
              same type of errors, and the type of the errors is specified with
              this argument, the errors are ignored and not raised.
 

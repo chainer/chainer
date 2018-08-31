@@ -20,7 +20,7 @@ Dtype GetDtypeFromString(const std::string& name) {
     }
     if (name == "int") {
         // NumPy returns the dtype corresponding to C long.
-        // xChainer does not follow that.
+        // ChainerX does not follow that.
         return Dtype::kInt64;
     }
     if (name == "float") {

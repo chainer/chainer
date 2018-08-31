@@ -54,7 +54,7 @@ def test_iadd(xp, device, shape, dtype):
 def test_add_scalar(scalar, device, shape, dtype):
     x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
     # Implicit casting in NumPy's multiply depends on the 'casting' argument,
-    # which is not yet supported (xChainer always casts).
+    # which is not yet supported (ChainerX always casts).
     # Therefore, we explicitly cast the scalar to the dtype of the ndarray
     # before the multiplication for NumPy.
     expected = x_np + numpy.dtype(dtype).type(scalar)
@@ -111,7 +111,7 @@ def test_sub_scalar(scalar, device, shape, dtype):
         return xchainer.testing.ignore()
     x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
     # Implicit casting in NumPy's multiply depends on the 'casting' argument,
-    # which is not yet supported (xChainer always casts).
+    # which is not yet supported (ChainerX always casts).
     # Therefore, we explicitly cast the scalar to the dtype of the ndarray
     # before the multiplication for NumPy.
     expected = x_np - numpy.dtype(dtype).type(scalar)
@@ -169,7 +169,7 @@ def test_imul(xp, device, shape, dtype):
 def test_mul_scalar(scalar, device, shape, dtype):
     x_np = array_utils.create_dummy_ndarray(numpy, shape, dtype)
     # Implicit casting in NumPy's multiply depends on the 'casting' argument,
-    # which is not yet supported (xChainer always casts).
+    # which is not yet supported (ChainerX always casts).
     # Therefore, we explicitly cast the scalar to the dtype of the ndarray
     # before the multiplication for NumPy.
     expected = x_np * numpy.dtype(dtype).type(scalar)

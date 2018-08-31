@@ -1,4 +1,4 @@
-# xChainer
+# ChainerX
 
 ## Build instruction
 
@@ -41,7 +41,7 @@ then `make` will automatically build the Python binding.
 
 CUDA support is enabled by default.
 
-xChainer currently requires cuDNN and you need to specify its path.
+ChainerX currently requires cuDNN and you need to specify its path.
 For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run `cmake` like this:
 
 ```shell-session
@@ -122,7 +122,7 @@ $ make clang-tidy
 
 ### Run the Python test suite
 
-xChainer requires `chainer` package for Python tests. To install the `chainer` Python package of up-to-date beta version, run the following:
+ChainerX requires `chainer` package for Python tests. To install the `chainer` Python package of up-to-date beta version, run the following:
 
 ```shell-session
 $ pip install chainer --pre

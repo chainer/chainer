@@ -26,12 +26,12 @@ class CMakeBuild(build_ext.build_ext):
         try:
             out = subprocess.check_output(['cmake', '--version'])
         except OSError:
-            raise RuntimeError('CMake must be installed to build xChainer')
+            raise RuntimeError('CMake must be installed to build ChainerX')
 
         cmake_version = distutils.version.LooseVersion(
             re.search(r'version\s*([\d.]+)', out.decode()).group(1))
         if cmake_version < '3.1.0':
-            raise RuntimeError('CMake >= 3.1.0 is required to build xChainer')
+            raise RuntimeError('CMake >= 3.1.0 is required to build ChainerX')
 
         for ext in self.extensions:
             self.build_extension(ext)
@@ -78,7 +78,7 @@ install_requires = ['numpy']
 setuptools.setup(
     name='xchainer',
     version='0.0.1',
-    author='xChainer authors',
+    author='ChainerX authors',
     author_email='beam.web@gmail.com',
     description='',
     long_description='',

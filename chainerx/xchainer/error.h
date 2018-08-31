@@ -44,7 +44,7 @@ std::string MakeMessage(const Args&... args) {
 
 }  // namespace error_detail
 
-// All the exceptions defined in xChainer must inherit this class.
+// All the exceptions defined in ChainerX must inherit this class.
 class XchainerError : public std::runtime_error {
 public:
     template <typename... Args>

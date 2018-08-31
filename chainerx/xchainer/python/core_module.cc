@@ -22,7 +22,7 @@ namespace python_internal {
 namespace {
 
 void InitXchainerModule(pybind11::module& m) {
-    m.doc() = "xChainer";
+    m.doc() = "ChainerX";
     m.attr("__name__") = "xchainer";  // Show each member as "xchainer.*" instead of "xchainer.core.*"
 
     // xchainer

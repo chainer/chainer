@@ -2,11 +2,11 @@ import numpy.testing
 
 import xchainer
 
-# NumPy-like assertion functions that accept both NumPy and xChainer arrays
+# NumPy-like assertion functions that accept both NumPy and ChainerX arrays
 
 
 def _check_xchainer_array(x):
-    # Checks basic conditions that are assumed to hold true for any given xChainer array passed to assert_array_close and
+    # Checks basic conditions that are assumed to hold true for any given ChainerX array passed to assert_array_close and
     # assert_array_equal.
     assert isinstance(x, xchainer.ndarray)
     assert not x.is_backprop_required()
