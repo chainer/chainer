@@ -19,6 +19,8 @@ class DeconvolutionND(link.Link):
     Args:
         ndim (int): Number of spatial dimensions.
         in_channels (int): Number of channels of input arrays.
+            If ``None``, parameter initialization will be deferred until the
+            first forward data pass at which time the size will be determined.
         out_channels (int): Number of channels of output arrays.
         ksize (int or tuple of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k, ..., k)`` are equivalent.
@@ -47,22 +49,72 @@ class DeconvolutionND(link.Link):
         b (~chainer.Variable): Bias parameter. If ``initial_bias`` is ``None``,
             set to ``None``.
 
-    """
+    .. admonition:: Example
 
-    def __init__(self, ndim, in_channels, out_channels, ksize, stride=1, pad=0,
-                 nobias=False, outsize=None,
-                 initialW=None, initial_bias=None):
+        There are several ways to make a DeconvolutionND link.
+
+        Let an input vector ``x`` be:
+
+        >>> x = np.arange(2 * 5 * 5 * 5, dtype='f').reshape(1, 2, 5, 5, 5)
+
+        1. Give the first four arguments explicitly:
+
+            >>> l = L.DeconvolutionND(3, 2, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 8, 8, 8)
+
+        2. Omit ``in_channels`` or fill it with ``None``:
+
+            The below two cases are the same.
+
+            >>> l = L.DeconvolutionND(3, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 8, 8, 8)
+
+            >>> l = L.DeconvolutionND(3, None, 7, 4)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 8, 8, 8)
+
+            When you omit the second argument, you need to specify the other
+            subsequent arguments from ``stride`` as keyword auguments. So the
+            below two cases are the same.
+
+            >>> l = L.DeconvolutionND(3, 7, 4, stride=2, pad=1)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 10, 10, 10)
+
+            >>> l = L.DeconvolutionND(3, None, 7, 4, 2, 1)
+            >>> y = l(x)
+            >>> y.shape
+            (1, 7, 10, 10, 10)
+
+    """  # NOQA
+
+    def __init__(self, ndim, in_channels, out_channels, ksize=None, stride=1,
+                 pad=0, nobias=False, outsize=None, initialW=None,
+                 initial_bias=None):
         super(DeconvolutionND, self).__init__()
 
-        ksize = conv_nd.as_tuple(ksize, ndim)
+        if ksize is None:
+            out_channels, ksize, in_channels = \
+                in_channels, out_channels, None
+
+        self.out_channels = out_channels
+        self.ksize = conv_nd.as_tuple(ksize, ndim)
         self.stride = stride
         self.pad = pad
         self.outsize = outsize
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
-            self.W = variable.Parameter(W_initializer,
-                                        (in_channels, out_channels) + ksize)
+            self.W = variable.Parameter(W_initializer)
+            if in_channels is not None:
+                self._initialize_params(in_channels)
+
             if nobias:
                 self.b = None
             else:
@@ -71,7 +123,13 @@ class DeconvolutionND(link.Link):
                 initial_bias = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(initial_bias, out_channels)
 
+    def _initialize_params(self, in_channels):
+        W_shape = (in_channels, self.out_channels) + self.ksize
+        self.W.initialize(W_shape)
+
     def __call__(self, x):
+        if self.W.data is None:
+            self._initialize_params(x.shape[1])
         return deconvolution_nd.deconvolution_nd(
             x, self.W, b=self.b, stride=self.stride, pad=self.pad,
             outsize=self.outsize)
