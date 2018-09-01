@@ -1,4 +1,3 @@
-import collections
 import numpy
 import six
 
@@ -6,6 +5,7 @@ import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer import utils
+from chainer.utils import collections_abc
 from chainer.utils import type_check
 
 
@@ -117,7 +117,8 @@ class ConnectionistTemporalClassification(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 4)
+        type_check.argname(
+            in_types, ('input_length', 'label_length', 't', 'x'))
         input_length_type, label_length_type, t_type, x_type = in_types
         type_check.expect(
             input_length_type.dtype == numpy.int32,
@@ -140,7 +141,7 @@ class ConnectionistTemporalClassification(function.Function):
         if xp == numpy:
             res = numpy.ma.log(x).filled(fill_value=self.zero_padding)
         else:
-            create_recurrence_relation = cuda.cupy.ElementwiseKernel(
+            create_recurrence_relation = cuda.elementwise(
                 'T x, T e', 'T y',
                 'y = x == 0 ? e : log(x)',
                 'create_recurrence_relation')
@@ -164,7 +165,7 @@ class ConnectionistTemporalClassification(function.Function):
                         multiply_seq[:, b, 0:path_length[b]]
                         [:, target_path == c], axis=1)
         else:
-            cuda.cupy.ElementwiseKernel(
+            cuda.elementwise(
                 'T prob, I path, I path_length, I max_path_length',
                 'raw T cum_prob',
                 '''
@@ -388,7 +389,7 @@ def connectionist_temporal_classification(
     <https://www.cs.toronto.edu/~graves/preprint.pdf>`_
 
     """
-    if not isinstance(x, collections.Sequence):
+    if not isinstance(x, collections_abc.Sequence):
         raise TypeError('x must be a list of Variables')
     if not isinstance(blank_symbol, int):
         raise TypeError('blank_symbol must be non-negative integer.')

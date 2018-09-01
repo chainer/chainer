@@ -96,7 +96,7 @@ class TestKeepGraphOnReportFlag(unittest.TestCase):
 
     def test_keep_graph_default(self):
         x = chainer.Variable(numpy.array([1], numpy.float32))
-        y, = functions.Sigmoid().apply((x,))
+        y = functions.sigmoid(x)
         reporter = chainer.Reporter()
         with self._scope(None):
             reporter.report({'y': y})
@@ -104,16 +104,15 @@ class TestKeepGraphOnReportFlag(unittest.TestCase):
 
     def test_keep_graph(self):
         x = chainer.Variable(numpy.array([1], numpy.float32))
-        y, = functions.Sigmoid().apply((x,))
+        y = functions.sigmoid(x)
         reporter = chainer.Reporter()
         with self._scope(True):
             reporter.report({'y': y})
-        self.assertIsInstance(reporter.observation['y'].creator,
-                              functions.Sigmoid)
+        assert reporter.observation['y'].creator is not None
 
     def test_not_keep_graph(self):
         x = chainer.Variable(numpy.array([1], numpy.float32))
-        y, = functions.Sigmoid().apply((x,))
+        y = functions.sigmoid(x)
         reporter = chainer.Reporter()
         with self._scope(False):
             reporter.report({'y': y})
@@ -216,6 +215,15 @@ class TestSummary(unittest.TestCase):
         mean, std = self.summary.make_statistics()
         testing.assert_allclose(mean, 2.)
         testing.assert_allclose(std, numpy.sqrt(2. / 3.))
+
+    def test_weight(self):
+        self.summary.add(1., 0.5)
+        self.summary.add(2., numpy.array(0.4))
+        self.summary.add(3., chainer.Variable(numpy.array(0.3)))
+
+        mean = self.summary.compute_mean().array
+        val = (1 * 0.5 + 2 * 0.4 + 3 * 0.3) / (0.5 + 0.4 + 0.3)
+        testing.assert_allclose(mean, val)
 
     def test_serialize(self):
         self.summary.add(1.)
@@ -323,6 +331,21 @@ class TestDictSummary(unittest.TestCase):
             'b': (1., 5., 6., 5.),
             'c': (9., 8.),
         })
+
+    def test_weight(self):
+        self.summary.add({'a': (1., 0.5)})
+        self.summary.add({'a': (2., numpy.array(0.4))})
+        self.summary.add({'a': (3., chainer.Variable(numpy.array(0.3)))})
+
+        mean = self.summary.compute_mean()
+        val = (1 * 0.5 + 2 * 0.4 + 3 * 0.3) / (0.5 + 0.4 + 0.3)
+        testing.assert_allclose(mean['a'], val)
+
+        with self.assertRaises(ValueError):
+            self.summary.add({'a': (4., numpy.array([0.5]))})
+
+        with self.assertRaises(ValueError):
+            self.summary.add({'a': (4., chainer.Variable(numpy.array([0.5])))})
 
     def test_serialize(self):
         self.summary.add({'numpy': numpy.array(3, 'f'), 'int': 1, 'float': 4.})

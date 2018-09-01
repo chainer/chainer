@@ -1,10 +1,27 @@
-import numpy
-
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
+
+
+class _SetItemZero(function_node.FunctionNode):
+
+    """Write values to mask of zero-initialized array"""
+
+    def __init__(self, mask):
+        self.mask = mask
+
+    def forward(self, inputs):
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        y = xp.zeros(self.mask.shape, x.dtype)
+        y[self.mask] = x
+        return y,
+
+    def backward(self, indices, grad_outputs):
+        g, = grad_outputs
+        return g[self.mask],
 
 
 class NormalizeL2(function_node.FunctionNode):
@@ -21,15 +38,17 @@ class NormalizeL2(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
 
-        type_check.expect(
-            x_type.dtype == numpy.float32,
-        )
+        type_check.expect(x_type.dtype.kind == 'f')
 
     def forward(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
-        norm = (xp.sqrt(xp.sum(xp.square(x), axis=self.axis, keepdims=True))
+        # Note: Passing dtype argument to numpy.sqrt() because NumPy in
+        # Python 2 looks to return a casted value to float32 when it takes a
+        # float16 value.
+        norm = (xp.sqrt(xp.sum(xp.square(x), axis=self.axis, keepdims=True),
+                        dtype=x.dtype)
                 + x.dtype.type(self.eps))
         return utils.force_array(x / norm),
 
@@ -43,7 +62,14 @@ class NormalizeL2(function_node.FunctionNode):
         norm = F.broadcast_to(norm, gy.shape)
 
         x_gy_reduced = F.sum((x * gy), axis=self.axis, keepdims=True)
-        x_gy_reduced /= norm_noeps
+
+        # L2 normalize with eps has continuous backward. However,
+        # the backward is not differentiable for the indices of zero vectors.
+        # To avoid nan in double backward, do not compute outside of mask.
+        mask = norm_noeps.array != 0
+        x_gy_reduced, = _SetItemZero(mask).apply((
+            x_gy_reduced[mask] / norm_noeps[mask],))
+
         x_gy_reduced = F.broadcast_to(x_gy_reduced, gy.shape)
         gx = gy * norm - x_gy_reduced * x
         gx = gx / norm ** 2

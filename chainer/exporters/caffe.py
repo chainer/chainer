@@ -192,6 +192,7 @@ class _RetrieveAsCaffeModel(object):
                 params['type'] = 'Convolution'
             else:
                 params['type'] = 'Deconvolution'
+                convolution_param['num_output'] = n_in
             params['convolution_param'] = convolution_param
 
             if net is not None:
@@ -287,6 +288,14 @@ class _RetrieveAsCaffeModel(object):
 
         elif func.label == 'ReLU':
             params['type'] = 'ReLU'
+
+        elif func.label == 'LeakyReLU':
+            relu_param = {'negative_slope': func.slope}
+            params['type'] = 'ReLU'
+            params['relu_param'] = relu_param
+            if net is not None:
+                for k, v in six.iteritems(relu_param):
+                    setattr(layer.relu_param, k, v)
 
         elif func.label == 'Concat':
             axis = func.axis
@@ -398,6 +407,7 @@ def export(model, args, directory=None,
         - :func:`~chainer.functions.batch_normalization`
         - :func:`~chainer.functions.local_response_normalization`
         - :func:`~chainer.functions.relu`
+        - :func:`~chainer.functions.leaky_relu`
         - :func:`~chainer.functions.concat`
         - :func:`~chainer.functions.softmax`
         - :func:`~chainer.functions.reshape`

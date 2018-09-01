@@ -43,7 +43,7 @@ class Log(function_node.FunctionNode):
         return 'log'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
@@ -71,7 +71,7 @@ class Log2(function_node.FunctionNode):
         return 'log2'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, inputs):
@@ -107,7 +107,7 @@ class Log10(function_node.FunctionNode):
         return 'log10'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, inputs):

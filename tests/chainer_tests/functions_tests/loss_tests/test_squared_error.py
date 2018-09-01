@@ -10,39 +10,42 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(
-    {'shape': (4, 3)},
-    {'shape': (4, 3, 2)},
-    {'shape': (4,)},
-    {'shape': ()},
-    {'shape': (1,)},
-    {'shape': (1, 1)},
-)
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'shape': [(4, 3), (4, 3, 2), (4,), (), (1,), (1, 1)],
+}))
 class TestSquaredError(unittest.TestCase):
 
     def setUp(self):
-        self.x0 = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        self.x1 = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        self.gy = numpy.random.random(self.shape).astype(numpy.float32)
+        self.x0 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.x1 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.gy = numpy.random.random(self.shape).astype(self.dtype)
         self.ggx0 = numpy.random.uniform(-1, 1, self.shape) \
-            .astype(numpy.float32)
+            .astype(self.dtype)
         self.ggx1 = numpy.random.uniform(-1, 1, self.shape) \
-            .astype(numpy.float32)
+            .astype(self.dtype)
 
-        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
+        if self.dtype == numpy.float16:
+            self.places = 2
+            self.check_backward_options = {'atol': 5e-1, 'rtol': 5e-1}
+            self.check_double_backward_options = {'atol': 4e-1, 'rtol': 4e-1}
+        else:
+            self.places = 5
+            self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
+            self.check_double_backward_options = {}
 
     def check_forward(self, x0_data, x1_data):
         x0 = chainer.Variable(x0_data)
         x1 = chainer.Variable(x1_data)
         loss = functions.squared_error(x0, x1)
         loss_value = cuda.to_cpu(loss.data)
-        assert loss_value.dtype == numpy.float32
+        assert loss_value.dtype == self.dtype
         assert loss_value.shape == x0_data.shape
 
         for i in numpy.ndindex(self.x0.shape):
             # Compute expected value
             loss_expect = (self.x0[i] - self.x1[i]) ** 2
-            assert round(loss_value[i] - loss_expect, 5) == 0
+            assert round(loss_value[i] - loss_expect, self.places) == 0
 
     def test_forward_cpu(self):
         self.check_forward(self.x0, self.x1)
@@ -67,13 +70,10 @@ class TestSquaredError(unittest.TestCase):
 
     def check_double_backward(self, x0_data, x1_data, y_grad, ggx0_data,
                               ggx1_data):
-        def f(*xs):
-            y = functions.squared_error(*xs)
-            return y * y
-
         gradient_check.check_double_backward(
             functions.squared_error,
-            (x0_data, x1_data), y_grad, (ggx0_data, ggx1_data), eps=1e-2)
+            (x0_data, x1_data), y_grad, (ggx0_data, ggx1_data), eps=1e-2,
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(

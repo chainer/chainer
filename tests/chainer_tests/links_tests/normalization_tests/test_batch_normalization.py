@@ -264,8 +264,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
             expander, gamma, beta, self.x, mean, var, self.link.eps, self.test)
 
     def test_no_gamma_and_beta(self):
-        self.assertFalse(hasattr(self.link, 'gamma'))
-        self.assertFalse(hasattr(self.link, 'beta'))
+        assert self.link.gamma is None
+        assert self.link.beta is None
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
@@ -317,6 +317,10 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
             self.test_backward_gpu()
 
 
+def _generate_uniform(low, high, shape, dtype=numpy.float32):
+    return numpy.random.uniform(low, high, shape).astype(dtype)
+
+
 @testing.parameterize(*testing.product({
     'size': [3, (2, 3)],
 }))
@@ -324,18 +328,24 @@ class TestInitialize(unittest.TestCase):
 
     def setUp(self):
         self.decay = 0.9
-        self.initial_gamma = numpy.random.uniform(-1, 1, self.size)
-        self.initial_gamma = self.initial_gamma.astype(numpy.float32)
-        self.initial_beta = numpy.random.uniform(-1, 1, self.size)
-        self.initial_beta = self.initial_beta.astype(numpy.float32)
-        self.link = links.BatchNormalization(self.size, self.decay,
-                                             initial_gamma=self.initial_gamma,
-                                             initial_beta=self.initial_beta)
+        self.initial_gamma = _generate_uniform(-1, 1, self.size)
+        self.initial_beta = _generate_uniform(-1, 1, self.size)
+        self.initial_avg_mean = _generate_uniform(-1, 1, self.size)
+        self.initial_avg_var = _generate_uniform(-1, 1, self.size)
+        self.link = links.BatchNormalization(
+            self.size, self.decay,
+            initial_gamma=self.initial_gamma,
+            initial_beta=self.initial_beta,
+            initial_avg_mean=self.initial_avg_mean,
+            initial_avg_var=self.initial_avg_var,
+        )
 
     @condition.retry(3)
     def test_initialize_cpu(self):
         testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
         testing.assert_allclose(self.initial_beta, self.link.beta.data)
+        testing.assert_allclose(self.initial_avg_mean, self.link.avg_mean)
+        testing.assert_allclose(self.initial_avg_var, self.link.avg_var)
 
     @attr.gpu
     @condition.retry(3)
@@ -343,24 +353,43 @@ class TestInitialize(unittest.TestCase):
         self.link.to_gpu()
         testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
         testing.assert_allclose(self.initial_beta, self.link.beta.data)
+        testing.assert_allclose(self.initial_avg_mean, self.link.avg_mean)
+        testing.assert_allclose(self.initial_avg_var, self.link.avg_var)
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float32, numpy.float16],
+}))
 class TestDefaultInitializer(unittest.TestCase):
 
     def setUp(self):
         self.decay = 0.9
         self.size = 3
-        self.link = links.BatchNormalization(self.size, self.decay)
+        with chainer.using_config('dtype', self.dtype):
+            self.link = links.BatchNormalization(self.size, self.decay)
+        assert self.link.beta.dtype == self.dtype
+        assert self.link.gamma.dtype == self.dtype
+        assert self.link.avg_mean.dtype == self.dtype
+        assert self.link.avg_var.dtype == self.dtype
+
+        self.x = numpy.arange(6, dtype=self.dtype).reshape(2, 3)
+
+    def check_initialize(self):
+        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.array)
+        testing.assert_allclose(numpy.zeros(self.size), self.link.beta.array)
+        testing.assert_allclose(0, self.link.avg_mean)
+        testing.assert_allclose(1, self.link.avg_var)
+        y = self.link(self.x)
+        assert y.dtype == self.dtype
 
     def test_initialize_cpu(self):
-        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
-        testing.assert_allclose(numpy.zeros(self.size), self.link.beta.data)
+        self.check_initialize()
 
     @attr.gpu
     def test_initialize_gpu(self):
         self.link.to_gpu()
-        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
-        testing.assert_allclose(numpy.zeros(self.size), self.link.beta.data)
+        self.x = cuda.to_gpu(self.x)
+        self.check_initialize()
 
 
 @testing.parameterize(*testing.product({
@@ -407,6 +436,58 @@ class TestInvalidArgument(unittest.TestCase):
     def test_redundant_argument(self):
         with self.assertRaises(TypeError):
             self.link(self.x, unknown_argument=1)
+
+
+@testing.parameterize(
+    {'shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
+    {'shape': (5, 4), 'axis': 0},
+    {'shape': (5, 4, 3), 'axis': (0, 1)},
+)
+class TestChannalSizeInference(unittest.TestCase):
+
+    def setUp(self):
+        self.x = numpy.random.randn(*self.shape).astype('f')
+
+        axis = self.axis
+        if isinstance(axis, int):
+            axis = (axis,)
+        self.expected_size = tuple(
+            n
+            for i, n in enumerate(self.shape)
+            if i not in axis
+        )
+
+    def test_no_inference(self):
+        bn = links.BatchNormalization(self.expected_size)
+        assert bn.avg_mean is not None
+        assert bn.avg_var is not None
+
+    def test_inference(self):
+        bn = links.BatchNormalization(axis=self.axis)
+        bn(self.x)
+        assert bn.beta.shape == self.expected_size
+        assert bn.gamma.shape == self.expected_size
+        assert bn.avg_mean.shape == self.expected_size
+        assert bn.avg_var.shape == self.expected_size
+
+    def test_no_gamma(self):
+        bn = links.BatchNormalization(axis=self.axis, use_gamma=False)
+        assert bn.gamma is None
+        bn(self.x)
+        assert bn.gamma is None
+
+    def test_no_beta(self):
+        bn = links.BatchNormalization(axis=self.axis, use_beta=False)
+        assert bn.beta is None
+        bn(self.x)
+        assert bn.beta is None
+
+
+class TestFailChannalSizeInference(unittest.TestCase):
+
+    def test_fail_inference(self):
+        with self.assertRaises(RuntimeError):
+            links.BatchNormalization()
 
 
 testing.run_module(__name__, __file__)

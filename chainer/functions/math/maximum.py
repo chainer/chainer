@@ -11,8 +11,8 @@ class Maximum(function_node.FunctionNode):
     """Element-wise maximum of input variables."""
 
     def check_type_forward(self, in_types):
+        type_check.argname(in_types, ('x1', 'x2'))
         type_check.expect(
-            in_types.size() == 2,
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
             in_types[0].shape == in_types[1].shape

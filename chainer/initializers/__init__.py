@@ -19,7 +19,7 @@ from chainer.initializers.uniform import LeCunUniform  # NOQA
 from chainer.initializers.uniform import Uniform  # NOQA
 
 
-def generate_array(initializer, shape, xp):
+def generate_array(initializer, shape, xp, dtype=None):
     """Return initialized array.
 
     The algorithms used to make the new values depend on the
@@ -32,12 +32,20 @@ def generate_array(initializer, shape, xp):
              or :class:`cupy.ndarray` and edits its value.
         shape (tuple): Shape of a return array.
         xp (module): :mod:`cupy` or :mod:`numpy`.
+        dtype: Dtype specifier. If omitted, ``initializer.dtype`` is used.
 
     Returns:
         numpy.ndarray or cupy.ndarray: An initialized array.
 
     """
-    dtype = chainer.get_dtype(getattr(initializer, 'dtype', None))
+    dtype_attr = getattr(initializer, 'dtype', None)
+    if dtype is not None and dtype_attr is not None \
+            and numpy.dtype(dtype) != numpy.dtype(dtype_attr):
+        raise ValueError(
+            'dtype mismatch: {} != {}'.format(dtype, dtype_attr))
+    if dtype is None:
+        dtype = dtype_attr
+    dtype = chainer.get_dtype(dtype)
     array = xp.empty(shape, dtype=dtype)
     initializer(array)
     return array

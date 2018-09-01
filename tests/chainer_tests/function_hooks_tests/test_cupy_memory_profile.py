@@ -29,7 +29,7 @@ class SimpleLink(chainer.Link):
                 numpy.float32)
             self.w = chainer.Parameter(init_w)
 
-    def __call__(self, x):
+    def forward(self, x):
         return self.w * x
 
 
@@ -80,7 +80,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
 
     def setUp(self):
         self.h = function_hooks.CupyMemoryProfileHook()
-        self.f = functions.Exp()
+        self.f = functions.math.exponential.Exp()
         self.f.add_hook(self.h)
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         self.gy = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
@@ -92,7 +92,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         self.f.apply((chainer.Variable(x),))
         self.assertEqual(1, len(self.h.call_history))
         check_history(self, self.h.call_history[0],
-                      functions.Exp, int, int)
+                      functions.math.exponential.Exp, int, int)
 
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
@@ -104,7 +104,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         y.backward()
         self.assertEqual(2, len(self.h.call_history))
         check_history(self, self.h.call_history[1],
-                      functions.Exp, int, int)
+                      functions.math.exponential.Exp, int, int)
 
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
@@ -113,7 +113,8 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         # In/grad data are random; these do not simulate the actually possible
         # cases.
         f = self.f
-        g = functions.Identity()  # any function other than f: Exp is ok
+        # any function other than f: Exp is ok
+        g = functions.math.identity.Identity()
 
         self.h.backward_preprocess(f, (self.x,), (self.gy,))
         self.h.forward_preprocess(g, (self.x,))
@@ -137,7 +138,7 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
 
     def test_reentrant_total_bytes(self):
         f = self.f
-        g = functions.Identity()
+        g = functions.math.identity.Identity()
 
         self.h.backward_preprocess(f, (self.x,), (self.gy,))
         self.h.forward_preprocess(g, (self.x,))
@@ -158,8 +159,8 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
     def setUp(self):
         cuda.memory_pool.free_all_blocks()
         self.h = function_hooks.CupyMemoryProfileHook()
-        self.f1 = functions.Exp()
-        self.f2 = functions.ReLU()
+        self.f1 = functions.math.exponential.Exp()
+        self.f2 = functions.activation.relu.ReLU()
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         x = cuda.to_gpu(self.x)
         with self.h:

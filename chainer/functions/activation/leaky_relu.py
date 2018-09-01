@@ -23,7 +23,7 @@ class LeakyReLU(function_node.FunctionNode):
         self.slope = slope
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         x_type, = in_types
         type_check.expect(x_type.dtype.kind == 'f')
 
