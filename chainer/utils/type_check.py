@@ -522,9 +522,6 @@ class _MissingArgument(object):
     def __getitem__(self, *args, **kwargs):
         return self
 
-    def __len__(self):
-        return self
-
     def __nonzero__(self):
         return True
 
