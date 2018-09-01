@@ -555,6 +555,9 @@ class _MissingArgument(object):
     def __div__(self, other):
         return self
 
+    def __truediv__(self, other):
+        return self
+
 
 _missing_argument = _MissingArgument()
 
