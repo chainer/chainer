@@ -50,9 +50,14 @@ class ROIPooling2D(function.Function):
 
     """RoI pooling over a set of 2d planes."""
 
-    def __init__(self, outh, outw, spatial_scale):
+    def __init__(self, outh, outw, spatial_scale, order='xy'):
         self.outh, self.outw = outh, outw
         self.spatial_scale = spatial_scale
+        if not isinstance(order, str) or order not in ['xy', 'yx']:
+            raise TypeError(
+                'order must be string and \'xy\' or \'yx\': {}, {}'
+                .format(type(order), order))
+        self.order = order
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -71,6 +76,8 @@ class ROIPooling2D(function.Function):
         self._bottom_data_shape = inputs[0].shape
 
         bottom_data, bottom_rois = inputs
+        if self.order == 'yx':
+            bottom_rois = bottom_rois[:, [0, 2, 1, 4, 3]]
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
         # `numpy.zeros` needs to be used because the arrays can be
@@ -119,6 +126,8 @@ class ROIPooling2D(function.Function):
         self._bottom_data_shape = inputs[0].shape
 
         bottom_data, bottom_rois = inputs
+        if self.order == 'yx':
+            bottom_rois = bottom_rois[:, [0, 2, 1, 4, 3]]
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
@@ -193,6 +202,8 @@ class ROIPooling2D(function.Function):
 
     def backward_cpu(self, inputs, gy):
         bottom_rois = inputs[1]
+        if self.order == 'yx':
+            bottom_rois = bottom_rois[:, [0, 2, 1, 4, 3]]
         channels, height, width = self._bottom_data_shape[1:]
         n_rois = bottom_rois.shape[0]
         bottom_delta = numpy.zeros(self._bottom_data_shape, bottom_rois.dtype)
@@ -234,6 +245,8 @@ class ROIPooling2D(function.Function):
 
     def backward_gpu(self, inputs, gy):
         bottom_rois = inputs[1]
+        if self.order == 'yx':
+            bottom_rois = bottom_rois[:, [0, 2, 1, 4, 3]]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(
             self._bottom_data_shape, bottom_rois.dtype)
@@ -322,7 +335,7 @@ class ROIPooling2D(function.Function):
         return bottom_diff, None
 
 
-def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
+def roi_pooling_2d(x, rois, outh, outw, spatial_scale, order='xy'):
     """Spatial Region of Interest (ROI) pooling function.
 
     This function acts similarly to :func:`~chainer.functions.max_pooling_2d`,
@@ -338,6 +351,8 @@ def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
         outh (int): Height of output image after pooled.
         outw (int): Width of output image after pooled.
         spatial_scale (float): Scale of the roi is resized.
+        order (string): RoI order. Default is 'xy':
+            (x_min, y_min, x_max, y_max) and 'yx' is supported.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -346,4 +361,4 @@ def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
     `Fast R-CNN <https://arxiv.org/abs/1504.08083>`_.
 
     """
-    return ROIPooling2D(outh, outw, spatial_scale)(x, rois)
+    return ROIPooling2D(outh, outw, spatial_scale, order)(x, rois)
