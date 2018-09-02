@@ -10,6 +10,7 @@ from chainer.backends import cuda
 import chainerx
 
 # import class and function
+from chainer.initializers.bilinear import Bilinear  # NOQA
 from chainer.initializers.constant import Constant
 from chainer.initializers.constant import Identity  # NOQA
 from chainer.initializers.constant import NaN  # NOQA
