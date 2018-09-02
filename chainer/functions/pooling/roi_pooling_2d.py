@@ -82,11 +82,11 @@ class ROIPooling2D(function.Function):
         for i_roi in six.moves.range(n_rois):
             idx, xmin, ymin, xmax, ymax = bottom_rois[i_roi]
             xmin = int(round(xmin * self.spatial_scale))
-            xmax = int(round(xmax * self.spatial_scale))
+            xmax = int(round((xmax + 1.) * self.spatial_scale))
             ymin = int(round(ymin * self.spatial_scale))
-            ymax = int(round(ymax * self.spatial_scale))
-            roi_width = max(xmax - xmin + 1, 1)
-            roi_height = max(ymax - ymin + 1, 1)
+            ymax = int(round((ymax + 1.) * self.spatial_scale))
+            roi_width = max(xmax - xmin, 1)
+            roi_height = max(ymax - ymin, 1)
             strideh = 1. * roi_height / self.outh
             stridew = 1. * roi_width / self.outw
 
@@ -141,12 +141,12 @@ class ROIPooling2D(function.Function):
             int roi_batch_ind = bottom_rois[num * 5 + 0];
             int roi_start_w = round(bottom_rois[num * 5 + 1] * spatial_scale);
             int roi_start_h = round(bottom_rois[num * 5 + 2] * spatial_scale);
-            int roi_end_w = round(bottom_rois[num * 5 + 3] * spatial_scale);
-            int roi_end_h = round(bottom_rois[num * 5 + 4] * spatial_scale);
+            int roi_end_w = round((bottom_rois[num * 5 + 3] + 1.0) * spatial_scale);
+            int roi_end_h = round((bottom_rois[num * 5 + 4] + 1.0) * spatial_scale);
 
             // Force malformed ROIs to be 1x1
-            int roi_width = max(roi_end_w - roi_start_w + 1, 1);
-            int roi_height = max(roi_end_h - roi_start_h + 1, 1);
+            int roi_width = max(roi_end_w - roi_start_w, 1);
+            int roi_height = max(roi_end_h - roi_start_h, 1);
             float bin_size_h = static_cast<float>(roi_height)
                            / static_cast<float>(pooled_height);
             float bin_size_w = static_cast<float>(roi_width)
@@ -201,11 +201,11 @@ class ROIPooling2D(function.Function):
             idx, xmin, ymin, xmax, ymax = bottom_rois[i_roi]
             idx = int(idx)
             xmin = int(round(xmin * self.spatial_scale))
-            xmax = int(round(xmax * self.spatial_scale))
+            xmax = int(round((xmax + 1.0) * self.spatial_scale))
             ymin = int(round(ymin * self.spatial_scale))
-            ymax = int(round(ymax * self.spatial_scale))
-            roi_width = max(xmax - xmin + 1, 1)
-            roi_height = max(ymax - ymin + 1, 1)
+            ymax = int(round((ymax + 1.0) * self.spatial_scale))
+            roi_width = max(xmax - xmin, 1)
+            roi_height = max(ymax - ymin, 1)
 
             strideh = float(roi_height) / float(self.outh)
             stridew = float(roi_width) / float(self.outw)
@@ -263,9 +263,9 @@ class ROIPooling2D(function.Function):
                                         * spatial_scale);
                 int roi_start_h = round(bottom_rois[roi_n * 5 + 2]
                                         * spatial_scale);
-                int roi_end_w = round(bottom_rois[roi_n * 5 + 3]
+                int roi_end_w = round((bottom_rois[roi_n * 5 + 3] + 1.0)
                                       * spatial_scale);
-                int roi_end_h = round(bottom_rois[roi_n * 5 + 4]
+                int roi_end_h = round((bottom_rois[roi_n * 5 + 4] + 1.0)
                                       * spatial_scale);
 
                 // Skip if ROI doesn't include (h, w)
@@ -282,8 +282,8 @@ class ROIPooling2D(function.Function):
                 // this bottom unit
 
                 // Force malformed ROIs to be 1x1
-                int roi_width = max(roi_end_w - roi_start_w + 1, 1);
-                int roi_height = max(roi_end_h - roi_start_h + 1, 1);
+                int roi_width = max(roi_end_w - roi_start_w, 1);
+                int roi_height = max(roi_end_h - roi_start_h, 1);
 
                 float bin_size_h = static_cast<float>(roi_height)
                                / static_cast<float>(pooled_height);
