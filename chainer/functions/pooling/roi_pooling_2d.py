@@ -141,8 +141,10 @@ class ROIPooling2D(function.Function):
             int roi_batch_ind = bottom_rois[num * 5 + 0];
             int roi_start_w = round(bottom_rois[num * 5 + 1] * spatial_scale);
             int roi_start_h = round(bottom_rois[num * 5 + 2] * spatial_scale);
-            int roi_end_w = round((bottom_rois[num * 5 + 3] + 1.0) * spatial_scale);
-            int roi_end_h = round((bottom_rois[num * 5 + 4] + 1.0) * spatial_scale);
+            int roi_end_w = round(
+                (bottom_rois[num * 5 + 3] + 1.0) * spatial_scale);
+            int roi_end_h = round(
+                (bottom_rois[num * 5 + 4] + 1.0) * spatial_scale);
 
             // Force malformed ROIs to be 1x1
             int roi_width = max(roi_end_w - roi_start_w, 1);
