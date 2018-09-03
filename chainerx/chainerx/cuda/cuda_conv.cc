@@ -115,12 +115,14 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlg
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
-    std::lock_guard<std::mutex> lock{algo_cache_mutex_};
     auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
     auto& algo_cache_map = fwd_algo_cache_map_;
-    auto it = algo_cache_map.find(key);
-    if (it != algo_cache_map.end()) {
-        return it->second;
+    {
+        std::lock_guard<std::mutex> lock{fwd_algo_cache_mutex_};
+        auto it = algo_cache_map.find(key);
+        if (it != algo_cache_map.end()) {
+            return it->second;
+        }
     }
 
     std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
@@ -144,7 +146,10 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlg
             max_workspace_size));
     CHAINERX_ASSERT(returned_algo_count == 1);
 
-    return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
+    {
+        std::lock_guard<std::mutex> lock{fwd_algo_cache_mutex_};
+        return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
+    }
 }
 
 std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwardDataAlgorithm(
@@ -159,12 +164,14 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwa
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
-    std::lock_guard<std::mutex> lock{algo_cache_mutex_};
     auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
     auto& algo_cache_map = bwd_data_algo_cache_map_;
-    auto it = algo_cache_map.find(key);
-    if (it != algo_cache_map.end()) {
-        return it->second;
+    {
+        std::lock_guard<std::mutex> lock{bwd_data_algo_cache_mutex_};
+        auto it = algo_cache_map.find(key);
+        if (it != algo_cache_map.end()) {
+            return it->second;
+        }
     }
 
     std::shared_ptr<void> workspace = y.device().Allocate(max_workspace_size);
@@ -188,7 +195,10 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwa
             max_workspace_size));
     CHAINERX_ASSERT(returned_algo_count == 1);
 
-    return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
+    {
+        std::lock_guard<std::mutex> lock{bwd_data_algo_cache_mutex_};
+        return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
+    }
 }
 
 std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBackwardFilterAlgorithm(
@@ -203,12 +213,14 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBack
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride) {
-    std::lock_guard<std::mutex> lock{algo_cache_mutex_};
     auto key = AlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, x.dtype(), max_workspace_size};
     auto& algo_cache_map = bwd_filter_algo_cache_map_;
-    auto it = algo_cache_map.find(key);
-    if (it != algo_cache_map.end()) {
-        return it->second;
+    {
+        std::lock_guard<std::mutex> lock{bwd_filter_algo_cache_mutex_};
+        auto it = algo_cache_map.find(key);
+        if (it != algo_cache_map.end()) {
+            return it->second;
+        }
     }
 
     std::shared_ptr<void> workspace = x.device().Allocate(max_workspace_size);
@@ -232,7 +244,10 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBack
             max_workspace_size));
     CHAINERX_ASSERT(returned_algo_count == 1);
 
-    return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
+    {
+        std::lock_guard<std::mutex> lock{bwd_filter_algo_cache_mutex_};
+        return algo_cache_map[key] = {perf_result.algo, perf_result.memory};
+    }
 }
 
 // TODO(sonots): Support tensor core
