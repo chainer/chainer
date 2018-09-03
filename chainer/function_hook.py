@@ -17,7 +17,7 @@ class FunctionHook(object):
     :meth:`~chainer.FunctionHook.backward_postprocess`.
     By default, these methods do nothing.
 
-    Specifically, when :meth:`~chainer.FunctionNode.__call__`
+    Specifically, when the :meth:`~chainer.FunctionNode.__call__`
     method of some function is invoked,
     :meth:`~chainer.FunctionHook.forward_preprocess`
     (resp. :meth:`~chainer.FunctionHook.forward_postprocess`)
@@ -34,7 +34,7 @@ class FunctionHook(object):
     There are two ways to register :class:`~chainer.FunctionHook`
     objects to :class:`~chainer.FunctionNode` objects.
 
-    First one is to use ``with`` statement. Function hooks hooked
+    The first one is to use ``with`` statement. Function hooks hooked
     in this way are registered to all functions within ``with`` statement
     and are unregistered at the end of ``with`` statement.
 
@@ -77,7 +77,7 @@ class FunctionHook(object):
        are different depending on threads.
 
     The other one is to register directly to
-    :class:`~chainer.FunctionNode` object with
+    a :class:`~chainer.FunctionNode` object by calling its
     :meth:`~chainer.Function.add_hook` method.
     Function hooks registered in this way can be removed by
     :meth:`~chainer.Function.delete_hook` method.

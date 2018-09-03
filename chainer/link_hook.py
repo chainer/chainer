@@ -51,7 +51,7 @@ class LinkHook(object):
 
     By default, these methods do nothing.
 
-    Specifically, when :meth:`~chainer.Link.__call__`
+    Specifically, when the :meth:`~chainer.Link.__call__`
     method of some link is invoked,
     :meth:`~chainer.LinkHook.forward_preprocess`
     (resp. :meth:`~chainer.LinkHook.forward_postprocess`)
@@ -61,7 +61,7 @@ class LinkHook(object):
     There are two ways to register :class:`~chainer.LinkHook`
     objects to :class:`~chainer.Link` objects.
 
-    First one is to use ``with`` statement. Link hooks hooked
+    The first one is to use ``with`` statement. Link hooks hooked
     in this way are registered to all links within ``with`` statement
     and are unregistered at the end of ``with`` statement.
 
@@ -74,7 +74,7 @@ class LinkHook(object):
        are different depending on threads.
 
     The other one is to register directly to
-    :class:`~chainer.Link` object with
+    a :class:`~chainer.Link` object by calling its
     :meth:`~chainer.Link.add_hook` method.
     Link hooks registered in this way can be removed by
     :meth:`~chainer.Link.delete_hook` method.
