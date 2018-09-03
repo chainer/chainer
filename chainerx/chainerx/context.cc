@@ -197,7 +197,6 @@ void Context::ConnectBackpropIds(const BackpropId& backprop_id1, const BackpropI
     }
 
     std::pair<BackpropOrdinal, BackpropOrdinal> pair = std::minmax(backprop_id1.ordinal(), backprop_id2.ordinal());
-
     if (backprop_connections_.end() != std::find(backprop_connections_.begin(), backprop_connections_.end(), pair)) {
         // Already in connection
         return;
