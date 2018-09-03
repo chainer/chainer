@@ -372,40 +372,27 @@ class TestMissingArgument(unittest.TestCase):
         assert (x / 1.0) is x   # __div__ in Py2, __truediv__ in Py3
 
 
-class TestOptionalArguments(unittest.TestCase):
+class TestArgname(unittest.TestCase):
 
-    def test_no_optional_argument(self):
-        data = (numpy.zeros((1, 2, 3)).astype(numpy.float32),)
+    def test_required_arguments(self):
+        data = (numpy.zeros((1, 2, 3)).astype(numpy.float32),
+                numpy.zeros((4, 5, 6)).astype(numpy.float32),)
         ts = T.get_types(data, 'name', False)
-        x_type, = T.argname(ts, ('x',), ())
+        x_type, y_type = T.argname(ts, ('x', 'y'))
+        assert x_type.shape.eval() == data[0].shape
         assert x_type.name == 'x'
-
-    def test_one_optional_argument(self):
-        data = (numpy.zeros((1, 2, 3)).astype(numpy.float32),) * 2
-        ts = T.get_types(data, 'name', False)
-        x_type, y_type = T.argname(ts, ('x',), ('y',))
-        assert x_type.name == 'x'
+        assert y_type.shape.eval() == data[1].shape
         assert y_type.name == 'y'
 
-        data = (numpy.zeros((1, 2, 3)).astype(numpy.float32),)
-        ts = T.get_types(data, 'name', False)
-        x_type, y_type = T.argname(ts, ('x',), ('y',))
-        assert x_type.name == 'x'
-        assert y_type is T._missing_argument
-
-    def test_more_than_one_optional_arguments(self):
-        data = (numpy.zeros((1, 2, 3)).astype(numpy.float32),) * 3
+    def test_optional_arguments(self):
+        data = (numpy.zeros((1, 2, 3)).astype(numpy.float32),
+                numpy.zeros((4, 5, 6)).astype(numpy.float32),)
         ts = T.get_types(data, 'name', False)
         x_type, y_type, z_type = T.argname(ts, ('x',), ('y', 'z'))
+        assert x_type.shape.eval() == data[0].shape
         assert x_type.name == 'x'
+        assert y_type.shape.eval() == data[1].shape
         assert y_type.name == 'y'
-        assert z_type.name == 'z'
-
-        data = (numpy.zeros((1, 2, 3)).astype(numpy.float32),)
-        ts = T.get_types(data, 'name', False)
-        x_type, y_type, z_type = T.argname(ts, ('x',), ('y', 'z'))
-        assert x_type.name == 'x'
-        assert y_type is T._missing_argument
         assert z_type is T._missing_argument
 
     def test_too_less_arguments(self):
