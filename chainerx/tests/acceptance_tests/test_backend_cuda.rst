@@ -4,7 +4,7 @@ Acceptance tests for pluggable backend system on GPU
 Using two backends in one script
 --------------------------------
 
->>> import chainerx as xc
+>>> import chainerx as chx
 
 >>> a = xc.ones((3,), xc.float32)
 >>> a

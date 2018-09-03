@@ -1,7 +1,7 @@
 Acceptance tests for chainerx.testing.numpy_chainerx_array_equal
 ================================================================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 >>> import numpy as np
 >>> import chainerx.testing
 >>> import pytest

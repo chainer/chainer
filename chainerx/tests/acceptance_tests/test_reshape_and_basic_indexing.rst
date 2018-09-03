@@ -1,7 +1,7 @@
 Acceptance tests for reshape and basic indexing
 ===============================================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 >>> import numpy as np
 
 >>> a_np = np.arange(30).reshape(2, 3, 5)

@@ -1,7 +1,7 @@
 Acceptance tests for operations required in MNIST
 =================================================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 >>> import numpy as np
 
 Dot

@@ -1,7 +1,7 @@
 Acceptance tests for sum and broadcast
 ======================================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 >>> import numpy as np
 
 sum

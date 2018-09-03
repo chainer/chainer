@@ -1,7 +1,7 @@
 Acceptance tests for basic math
 ===============================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 
 Addition
 --------

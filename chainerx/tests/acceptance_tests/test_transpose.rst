@@ -1,7 +1,7 @@
 Acceptance tests for Transpose
 ==============================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 
 Using the method
 ----------------

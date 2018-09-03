@@ -1,7 +1,7 @@
 Acceptance tests for elementwise operations
 ===========================================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 >>> import numpy as np
 
 Array equality

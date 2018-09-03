@@ -4,7 +4,7 @@ Acceptance tests for multiple graphs
 Double backprop with different graphs
 -------------------------------------
 
->>> import chainerx as xc
+>>> import chainerx as chx
 
 >>> with xc.backprop_scope('weight') as weight_backprop:
 ...     with xc.backprop_scope('input') as input_backprop:

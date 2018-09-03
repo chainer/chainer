@@ -1,7 +1,7 @@
 Acceptance tests for introducing CUDA
 =====================================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 
 Create array from python list
 -----------------------------

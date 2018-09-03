@@ -7,7 +7,7 @@ import time
 
 import numpy as np
 
-import chainerx as xc
+import chainerx as chx
 
 
 class MLP:

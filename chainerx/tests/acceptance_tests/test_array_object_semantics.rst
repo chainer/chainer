@@ -1,7 +1,7 @@
 Acceptance tests for ndarray object semantics
 =============================================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 
 >>> with xc.backprop_scope('bp1') as bp1:
 ...     a = xc.ndarray((3,), xc.float32, [1, 2, 3]).require_grad(bp1)
