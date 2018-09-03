@@ -23,13 +23,13 @@ import resnet50
 
 def get_imagenet(dataset_iter):
     x, t = zip(*next(dataset_iter))
-    return xc.array(np.array(x)), xc.array(np.array(t))
+    return chx.array(np.array(x)), chx.array(np.array(t))
 
 
 def compute_loss(y, t):
     # softmax cross entropy
-    score = xc.log_softmax(y, axis=1)
-    mask = (t[:, xc.newaxis] == xc.arange(1000, dtype=t.dtype)).astype(score.dtype)
+    score = chx.log_softmax(y, axis=1)
+    mask = (t[:, chx.newaxis] == chx.arange(1000, dtype=t.dtype)).astype(score.dtype)
     # TODO(beam2d): implement mean
     return -(score * mask).sum() * (1 / y.shape[0])
 
@@ -42,16 +42,16 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
 
     model.no_grad()
 
-    # TODO(beam2d): make xc.array(0, dtype=...) work
-    total_loss = xc.zeros((), dtype=xc.float32)
-    num_correct = xc.zeros((), dtype=xc.int64)
+    # TODO(beam2d): make chx.array(0, dtype=...) work
+    total_loss = chx.zeros((), dtype=chx.float32)
+    num_correct = chx.zeros((), dtype=chx.int64)
     for i in range(0, N_test, batch_size):
         x = X_test[i:min(i + batch_size, N_test)]
         t = Y_test[i:min(i + batch_size, N_test)]
 
         y = model(x)
         total_loss += compute_loss(y, t) * batch_size
-        num_correct += (y.argmax(axis=1).astype(t.dtype) == t).astype(xc.int32).sum()
+        num_correct += (y.argmax(axis=1).astype(t.dtype) == t).astype(chx.int32).sum()
 
     model.require_grad()
 
@@ -85,7 +85,7 @@ def main():
 
     args = parser.parse_args()
 
-    xc.set_default_device(args.device)
+    chx.set_default_device(args.device)
     batch_size = args.batchsize
     eval_size = args.val_batchsize
 

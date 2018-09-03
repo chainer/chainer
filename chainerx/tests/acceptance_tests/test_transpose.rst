@@ -6,7 +6,7 @@ Acceptance tests for Transpose
 Using the method
 ----------------
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6])
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6])
 >>> b = a.transpose()
 >>> b
 array([[1., 4.],
@@ -16,7 +16,7 @@ array([[1., 4.],
 Using the T alias
 -----------------
 
->>> a = xc.ndarray((2, 1, 3), xc.float32, [1, 2, 3, 4, 5, 6])
+>>> a = chx.ndarray((2, 1, 3), chx.float32, [1, 2, 3, 4, 5, 6])
 >>> b = a.T
 >>> b
 array([[[1., 4.]],
@@ -28,7 +28,7 @@ array([[[1., 4.]],
 Copy a non-contiguous array
 ---------------------------
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6])
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6])
 >>> b = a.transpose()
 >>> b.is_contiguous
 False
@@ -44,12 +44,12 @@ True
 Mixed contiguity arithmetics and Backprop
 -----------------------------------------
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 >>> b = a.transpose()
 >>> b.is_contiguous
 False
 
->>> c = xc.ndarray((3, 2), xc.float32, [-2, 1, 3, -1, 1, 0])
+>>> c = chx.ndarray((3, 2), chx.float32, [-2, 1, 3, -1, 1, 0])
 >>> c
 array([[-2.,  1.],
        [ 3., -1.],
@@ -64,8 +64,8 @@ array([[-2.,  4.],
        [ 3.,  0.]], shape=(3, 2), dtype=float32, device='native:0', backprop_ids=['<default>'])
 >>> y.is_contiguous
 True
->>> y.set_grad(xc.full_like(y, 0.5))
->>> xc.backward(y)
+>>> y.set_grad(chx.full_like(y, 0.5))
+>>> chx.backward(y)
 
 >>> a.get_grad()
 array([[-1. ,  1.5,  0.5],

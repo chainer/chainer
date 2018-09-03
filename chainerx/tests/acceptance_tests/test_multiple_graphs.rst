@@ -6,10 +6,10 @@ Double backprop with different graphs
 
 >>> import chainerx as chx
 
->>> with xc.backprop_scope('weight') as weight_backprop:
-...     with xc.backprop_scope('input') as input_backprop:
-...         x = xc.ndarray((3,), xc.float32, [1, 2, 3]).require_grad(input_backprop)
-...         w = xc.ndarray((3,), xc.float32, [4, 5, 6]).require_grad(weight_backprop)
+>>> with chx.backprop_scope('weight') as weight_backprop:
+...     with chx.backprop_scope('input') as input_backprop:
+...         x = chx.ndarray((3,), chx.float32, [1, 2, 3]).require_grad(input_backprop)
+...         w = chx.ndarray((3,), chx.float32, [4, 5, 6]).require_grad(weight_backprop)
 ...         y = x * w
 ...         y.is_backprop_required(input_backprop)
 True
@@ -20,7 +20,7 @@ True
 ...         y.is_backprop_required()  # 'default'
 False
 
-...         xc.backward(y, backprop_id=input_backprop)
+...         chx.backward(y, backprop_id=input_backprop)
 ...         gx = x.get_grad(input_backprop)
 ...         gx  # == w
 array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['weight'])
@@ -31,7 +31,7 @@ Traceback (most recent call last):
 chainerx.ChainerxError: Array does not belong to the graph: 'input'.
 
 ...     z = gx * w  # == w * w
-...     xc.backward(z, backprop_id=weight_backprop)
+...     chx.backward(z, backprop_id=weight_backprop)
 ...     w.get_grad(weight_backprop)  # == 2 * w
 array([ 8., 10., 12.], shape=(3,), dtype=float32, device='native:0')
 
@@ -43,16 +43,16 @@ chainerx.ChainerxError: Array does not belong to the graph: 'weight'.
 Double backprop with single graph
 ---------------------------------
 
->>> x = xc.ndarray((3,), xc.float32, [1, 2, 3]).require_grad()
->>> w = xc.ndarray((3,), xc.float32, [4, 5, 6]).require_grad()
+>>> x = chx.ndarray((3,), chx.float32, [1, 2, 3]).require_grad()
+>>> w = chx.ndarray((3,), chx.float32, [4, 5, 6]).require_grad()
 >>> y = x * w
 >>> y.is_backprop_required()
 True
->>> with xc.backprop_scope('foo') as foo:
+>>> with chx.backprop_scope('foo') as foo:
 ...     y.is_backprop_required(foo)  # unknown backprop name
 False
 
->>> xc.backward(y, enable_double_backprop=True)
+>>> chx.backward(y, enable_double_backprop=True)
 >>> gx = x.get_grad()
 >>> gx  # == w
 array([4., 5., 6.], shape=(3,), dtype=float32, device='native:0', backprop_ids=['<default>'])
@@ -61,7 +61,7 @@ array([1., 2., 3.], shape=(3,), dtype=float32, device='native:0', backprop_ids=[
 
 >>> w.cleargrad()
 >>> z = gx * w  # == w * w
->>> xc.backward(z)
+>>> chx.backward(z)
 >>> w.get_grad()  # == 2 * w
 array([ 8., 10., 12.], shape=(3,), dtype=float32, device='native:0')
 >>> x.get_grad()  # the second backprop does not reach here

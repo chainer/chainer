@@ -22,8 +22,8 @@ class MLP:
         return self.W1, self.b1, self.W2, self.b2, self.W3, self.b3
 
     def forward(self, x):
-        h = xc.maximum(0, x.dot(self.W1) + self.b1)
-        h = xc.maximum(0, h.dot(self.W2) + self.b2)
+        h = chx.maximum(0, x.dot(self.W1) + self.b1)
+        h = chx.maximum(0, h.dot(self.W2) + self.b2)
         return h.dot(self.W3) + self.b3
 
     def update(self, lr):
@@ -50,16 +50,16 @@ class MLP:
 def new_linear_params(n_in, n_out):
     W = np.random.randn(n_in, n_out).astype(np.float32)  # TODO(beam2d): not supported in xc
     W /= np.sqrt(n_in)  # TODO(beam2d): not supported in xc
-    W = xc.array(W)
+    W = chx.array(W)
     # TODO(beam2d): make zeros accept int as shape
-    b = xc.zeros((n_out,), dtype=xc.float32)
+    b = chx.zeros((n_out,), dtype=chx.float32)
     return W, b
 
 
 def compute_loss(y, t):
     # softmax cross entropy
-    score = xc.log_softmax(y, axis=1)
-    mask = (t[:, xc.newaxis] == xc.arange(10, dtype=t.dtype)).astype(score.dtype)
+    score = chx.log_softmax(y, axis=1)
+    mask = (t[:, chx.newaxis] == chx.arange(10, dtype=t.dtype)).astype(score.dtype)
     # TODO(beam2d): implement mean
     return -(score * mask).sum() * (1 / y.shape[0])
 
@@ -72,16 +72,16 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
 
     model.no_grad()
 
-    # TODO(beam2d): make xc.array(0, dtype=...) work
-    total_loss = xc.zeros((), dtype=xc.float32)
-    num_correct = xc.zeros((), dtype=xc.int64)
+    # TODO(beam2d): make chx.array(0, dtype=...) work
+    total_loss = chx.zeros((), dtype=chx.float32)
+    num_correct = chx.zeros((), dtype=chx.int64)
     for i in range(0, N_test, batch_size):
         x = X_test[i:min(i + batch_size, N_test)]
         t = Y_test[i:min(i + batch_size, N_test)]
 
         y = model.forward(x)
         total_loss += compute_loss(y, t) * batch_size
-        num_correct += (y.argmax(axis=1).astype(t.dtype) == t).astype(xc.int32).sum()
+        num_correct += (y.argmax(axis=1).astype(t.dtype) == t).astype(chx.int32).sum()
 
     model.require_grad()
 
@@ -102,7 +102,7 @@ def main():
                         help='Number of samples to use from the test set for evaluation. None to use all.')
     args = parser.parse_args()
 
-    xc.set_default_device(args.device)
+    chx.set_default_device(args.device)
 
     # Prepare dataset
     X, Y = get_mnist(args.data, 'train')
@@ -127,7 +127,7 @@ def main():
 
     while not is_finished:
         np.random.shuffle(all_indices_np)  # TODO(beam2d): not suupported in xc
-        all_indices = xc.array(all_indices_np)
+        all_indices = chx.array(all_indices_np)
 
         for i in range(0, N, batch_size):
             indices = all_indices[i:i + batch_size]
@@ -179,7 +179,7 @@ def get_mnist(path, name):
     x = x.astype(np.float32)
     x /= 255
     y = y.astype(np.int32)
-    return xc.array(x), xc.array(y)
+    return chx.array(x), chx.array(y)
 
 
 if __name__ == '__main__':
