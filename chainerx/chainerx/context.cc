@@ -209,16 +209,12 @@ void Context::ConnectBackpropIds(const BackpropId& backprop_id1, const BackpropI
 std::string Context::GetBackpropName(const BackpropId& backprop_id) {
     // Note: backprop name cannot be returned by reference, as the reference may be invalidated when a new graph is pushed to the backprop
     // set.
-    std::string name{};
-    {
-        std::lock_guard<std::mutex> lock{mutex_};
-        BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
-        if (item == nullptr) {
-            throw ChainerxError{"Backprop not found in the context. Ordinal:", backprop_id.ordinal()};
-        }
-        name = item->name;
+    std::lock_guard<std::mutex> lock{mutex_};
+    BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
+    if (item == nullptr) {
+        throw ChainerxError{"Backprop not found in the context. Ordinal:", backprop_id.ordinal()};
     }
-    return name;
+    return item->name;
 }
 
 void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {
