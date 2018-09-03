@@ -122,9 +122,11 @@ private:
 
     friend class CudaConvTest;  // for unit-tests
 
-    std::mutex algo_cache_mutex_;
+    std::mutex fwd_algo_cache_mutex_;
     FwdAlgoCacheMap fwd_algo_cache_map_{};
+    std::mutex bwd_data_algo_cache_mutex_;
     BwdDataAlgoCacheMap bwd_data_algo_cache_map_{};
+    std::mutex bwd_filter_algo_cache_mutex_;
     BwdFilterAlgoCacheMap bwd_filter_algo_cache_map_{};
 };
 
