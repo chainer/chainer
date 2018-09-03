@@ -351,25 +351,55 @@ class TestMissingArgument(unittest.TestCase):
     def test_missing_argument(self):
         x = T._MissingArgument()
 
+        # Typical attributes
         assert x.shape is x
         assert x.dtype is x
         assert x.kind is x
         assert x.ndim is x
         assert x.size is x
+
         assert x.foo is x       # __getattr__
-        assert bool(x)          # __nonzero__ in Py2, __bool__ in Py3
-        assert x() is x         # __call__
         assert x[0] is x        # __getitem__
-        assert (x == 1) is x    # __eq__
-        assert (x != 1) is x    # __ne__
-        assert (x < 1) is x     # __lt__
-        assert (x > 1) is x     # __gt__
-        assert (x <= 1) is x    # __le__
-        assert (x >= 1) is x    # __ge__
-        assert (x + 1) is x     # __add__
-        assert (x - 1) is x     # __sub__
-        assert (x * 1) is x     # __mul__
-        assert (x / 1.0) is x   # __div__ in Py2, __truediv__ in Py3
+        assert x() is x         # __call__
+        assert bool(x)
+
+        # Boolean operators
+        assert (x == 1) is x
+        assert (x != 1) is x
+        assert (x < 1) is x
+        assert (x <= 1) is x
+        assert (x > 1) is x
+        assert (x >= 1) is x
+
+        # Binary operators
+        assert (x + 1) is x
+        assert (1 + x) is x
+        assert (x - 1) is x
+        assert (1 - x) is x
+        assert (x * 1) is x
+        assert (1 * x) is x
+        assert (x / 1) is x
+        assert (1 / x) is x
+        assert (x // 1) is x
+        assert (1 // x) is x
+        assert (x % 1) is x
+        assert (1 % x) is x
+        assert (x ** 1) is x
+        assert (x << 1) is x
+        assert (1 << x) is x
+        assert (x >> 1) is x
+        assert (1 >> x) is x
+        assert (x & 1) is x
+        assert (1 & x) is x
+        assert (x ^ 1) is x
+        assert (1 ^ x) is x
+        assert (x | 1) is x
+        assert (1 | x) is x
+
+        # Unary operators
+        assert -x is x
+        assert +x is x
+        assert ~x is x
 
 
 class TestArgname(unittest.TestCase):

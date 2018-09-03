@@ -506,58 +506,48 @@ Invalid operation is performed in: {0} (Forward)
 
 class _MissingArgument(object):
     def __init__(self):
-        # typical attributes
+        # typical attributes for efficiency
         for name in ('shape', 'dtype', 'kind', 'ndim', 'size'):
             setattr(self, name, self)
 
     def __getattr__(self, name):
         return self
 
-    def __bool__(self):
-        return True
-
-    def __call__(self, *args, **kwargs):
+    def __getitem__(self, *args, **kwargs):
         return self
 
-    def __getitem__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         return self
 
     def __nonzero__(self):
         return True
 
-    def __eq__(self, other):
-        return self
+    def __bool__(self):
+        return True
 
-    def __ne__(self, other):
-        return self
 
-    def __lt__(self, other):
-        return self
+# Set boolean operators to _MissingArgument
+_bool_ops = ['__eq__', '__ne__', '__lt__', '__le__', '__gt__', '__ge__']
+for op in _bool_ops:
+    setattr(_MissingArgument, op, lambda self, other: self)
 
-    def __gt__(self, other):
-        return self
+# Set binary operators to _MissingArgument
+_bin_ops = ['__add__', '__radd__', '__sub__', '__rsub__', '__mul__',
+            '__rmul__']
+if sys.version_info < (3, 0, 0):
+    _bin_ops += ['__div__', '__rdiv__']
+else:
+    _bin_ops += ['__truediv__', '__rtruediv__']
+_bin_ops += ['__floordiv__', '__rfloordiv__', '__mod__', '__rmod__', '__pow__',
+             '__lshift__', '__rlshift__', '__rshift__', '__rrshift__',
+             '__and__', '__rand__', '__xor__', '__rxor__', '__or__', '__ror__']
+for op in _bin_ops:
+    setattr(_MissingArgument, op, lambda self, other: self)
 
-    def __le__(self, other):
-        return self
-
-    def __ge__(self, other):
-        return self
-
-    def __add__(self, other):
-        return self
-
-    def __sub__(self, other):
-        return self
-
-    def __mul__(self, other):
-        return self
-
-    def __div__(self, other):
-        return self
-
-    def __truediv__(self, other):
-        return self
-
+# Set unary operators to _MissingArgument
+_un_ops = ['__neg__', '__pos__', '__invert__']
+for op in _un_ops:
+    setattr(_MissingArgument, op, lambda self: self)
 
 _missing_argument = _MissingArgument()
 
