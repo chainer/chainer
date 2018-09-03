@@ -237,15 +237,9 @@ void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {
 }
 
 void Context::SetBackpropDone(const BackpropId& backprop_id) {
-#if CHAINERX_DEBUG
-    {
-        std::lock_guard<std::mutex> lock{mutex_};
-        BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
-        CHAINERX_ASSERT(item != nullptr);
-    }
-#endif  // CHAINERX_DEBUG
-
     std::lock_guard<std::mutex> lock{mutex_};
+
+    CHAINERX_ASSERT(GetBackpropSetItem(backprop_id.ordinal()) != nullptr);
 
     // Find connected backprop IDs
     std::vector<BackpropOrdinal> ordinals_to_prohibit;
