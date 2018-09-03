@@ -553,15 +553,17 @@ _missing_argument = _MissingArgument()
 
 
 def argname(in_types, names, optional_names=()):
-    """Assigns user friendly names for the input types.
+    """Destructures the input types with assigning them user friendly names
 
-    This function also asserts that lenghts of in_types and names are the
-    same.
+    This function also asserts that in_types has the appropriate length with
+    that of names.
 
     Args:
-        in_types (tuple of TypeInfoTuple): Tuple of type information to assign
-            name to.
-        names (tuple of str): Human-readabel names of ``in_types``.
+        in_types (TypeInfoTuple): Tuple of type information to destructure.
+        names (tuple of str): Human-readable names of required arguments in
+            ``in_types``.
+        optional_names (tuple of str): Human-readable names of optional
+            arguments in ``in_types``.
     """
     min_len = len(names)
     max_len = min_len + len(optional_names)
