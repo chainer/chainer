@@ -76,13 +76,13 @@ def test_array_from_python_tuple_or_list_with_device(obj, device):
     array_utils.check_device(a, device)
 
 
-def _check_array_from_numpy_array(a_xc, a_np, device=None):
-    assert a_xc.offset == 0
-    array_utils.check_device(a_xc, device)
+def _check_array_from_numpy_array(a_chx, a_np, device=None):
+    assert a_chx.offset == 0
+    array_utils.check_device(a_chx, device)
 
     # recovered data should be equal
-    a_np_recovered = chainerx.tonumpy(a_xc)
-    chainerx.testing.assert_array_equal_ex(a_xc, a_np_recovered, strides_check=False)
+    a_np_recovered = chainerx.tonumpy(a_chx)
+    chainerx.testing.assert_array_equal_ex(a_chx, a_np_recovered, strides_check=False)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -857,20 +857,20 @@ def test_linspace_invalid_num(xp, device):
 def test_frombuffer_from_numpy_array(device):
     obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32', padding=False)
 
-    a_xc = chainerx.frombuffer(obj, obj.dtype)
+    a_chx = chainerx.frombuffer(obj, obj.dtype)
     a_np = numpy.frombuffer(obj, obj.dtype)
 
-    chainerx.testing.assert_array_equal_ex(a_np, a_xc)
-    assert a_xc.device is chainerx.get_device(device)
+    chainerx.testing.assert_array_equal_ex(a_np, a_chx)
+    assert a_chx.device is chainerx.get_device(device)
 
     # test buffer is shared
     obj += obj
-    chainerx.testing.assert_array_equal_ex(obj.ravel(), a_xc)
+    chainerx.testing.assert_array_equal_ex(obj.ravel(), a_chx)
 
     # test possibly freed memory
     obj_copy = obj.copy()
     del obj
-    chainerx.testing.assert_array_equal_ex(obj_copy.ravel(), a_xc)
+    chainerx.testing.assert_array_equal_ex(obj_copy.ravel(), a_chx)
 
 
 @pytest.mark.parametrize_device(['cuda:0'])

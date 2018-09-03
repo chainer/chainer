@@ -63,13 +63,13 @@ def test_cmp(device, cmp_op, chx_cmp, np_cmp, a_object, b_object, dtype):
     if a_np is None or b_np is None:
         return
 
-    a_xc = chainerx.array(a_np)
-    b_xc = chainerx.array(b_np)
+    a_chx = chainerx.array(a_np)
+    b_chx = chainerx.array(b_np)
 
-    chainerx.testing.assert_array_equal_ex(cmp_op(a_xc, b_xc), cmp_op(a_np, b_np))
-    chainerx.testing.assert_array_equal_ex(cmp_op(b_xc, a_xc), cmp_op(b_np, a_np))
-    chainerx.testing.assert_array_equal_ex(chx_cmp(a_xc, b_xc), np_cmp(a_np, b_np))
-    chainerx.testing.assert_array_equal_ex(chx_cmp(b_xc, a_xc), np_cmp(b_np, a_np))
+    chainerx.testing.assert_array_equal_ex(cmp_op(a_chx, b_chx), cmp_op(a_np, b_np))
+    chainerx.testing.assert_array_equal_ex(cmp_op(b_chx, a_chx), cmp_op(b_np, a_np))
+    chainerx.testing.assert_array_equal_ex(chx_cmp(a_chx, b_chx), np_cmp(a_np, b_np))
+    chainerx.testing.assert_array_equal_ex(chx_cmp(b_chx, a_chx), np_cmp(b_np, a_np))
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
