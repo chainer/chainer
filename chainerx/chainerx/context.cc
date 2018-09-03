@@ -260,13 +260,12 @@ void Context::SetBackpropDone(const BackpropId& backprop_id) {
 
 std::vector<BackpropId> Context::GetInnerBackpropIds(const BackpropId& backprop_id) {
     std::vector<BackpropId> inner_backprop_ids;
-    {
-        std::lock_guard<std::mutex> lock{mutex_};
-        inner_backprop_ids.reserve(backprop_set_.size());
-        for (const std::pair<BackpropOrdinal, BackpropOrdinal>& pair : backprop_connections_) {
-            if (pair.first == backprop_id.ordinal()) {
-                inner_backprop_ids.emplace_back(BackpropId{*this, pair.second});
-            }
+
+    std::lock_guard<std::mutex> lock{mutex_};
+    inner_backprop_ids.reserve(backprop_set_.size());
+    for (const std::pair<BackpropOrdinal, BackpropOrdinal>& pair : backprop_connections_) {
+        if (pair.first == backprop_id.ordinal()) {
+            inner_backprop_ids.emplace_back(BackpropId{*this, pair.second});
         }
     }
     return inner_backprop_ids;
