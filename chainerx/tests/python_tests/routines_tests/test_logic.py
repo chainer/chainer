@@ -48,7 +48,7 @@ def _to_array_safe(xp, a_object, dtype):
     ([0], [[0, 1, 2], [3, 4, 5]]),
     ([[0], [1]], [0, 1, 2]),
 ])
-@pytest.mark.parametrize('cmp_op, xc_cmp, np_cmp', [
+@pytest.mark.parametrize('cmp_op, chx_cmp, np_cmp', [
     (lambda a, b: a == b, chainerx.equal, numpy.equal),
     (lambda a, b: a != b, chainerx.not_equal, numpy.not_equal),
     (lambda a, b: a > b, chainerx.greater, numpy.greater),
@@ -57,7 +57,7 @@ def _to_array_safe(xp, a_object, dtype):
     (lambda a, b: a <= b, chainerx.less_equal, numpy.less_equal),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_cmp(device, cmp_op, xc_cmp, np_cmp, a_object, b_object, dtype):
+def test_cmp(device, cmp_op, chx_cmp, np_cmp, a_object, b_object, dtype):
     a_np = _to_array_safe(numpy, a_object, dtype)
     b_np = _to_array_safe(numpy, b_object, dtype)
     if a_np is None or b_np is None:
@@ -68,8 +68,8 @@ def test_cmp(device, cmp_op, xc_cmp, np_cmp, a_object, b_object, dtype):
 
     chainerx.testing.assert_array_equal_ex(cmp_op(a_xc, b_xc), cmp_op(a_np, b_np))
     chainerx.testing.assert_array_equal_ex(cmp_op(b_xc, a_xc), cmp_op(b_np, a_np))
-    chainerx.testing.assert_array_equal_ex(xc_cmp(a_xc, b_xc), np_cmp(a_np, b_np))
-    chainerx.testing.assert_array_equal_ex(xc_cmp(b_xc, a_xc), np_cmp(b_np, a_np))
+    chainerx.testing.assert_array_equal_ex(chx_cmp(a_xc, b_xc), np_cmp(a_np, b_np))
+    chainerx.testing.assert_array_equal_ex(chx_cmp(b_xc, a_xc), np_cmp(b_np, a_np))
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [
@@ -77,7 +77,7 @@ def test_cmp(device, cmp_op, xc_cmp, np_cmp, a_object, b_object, dtype):
     ((2,), (2, 3)),
     ((1, 2, 3), (1, 2, 3, 4)),
 ])
-@pytest.mark.parametrize('cmp_op, xc_cmp', [
+@pytest.mark.parametrize('cmp_op, chx_cmp', [
     (lambda a, b: a == b, chainerx.equal),
     (lambda a, b: a != b, chainerx.not_equal),
     (lambda a, b: a > b, chainerx.greater),
@@ -85,13 +85,13 @@ def test_cmp(device, cmp_op, xc_cmp, np_cmp, a_object, b_object, dtype):
     (lambda a, b: a < b, chainerx.less),
     (lambda a, b: a < b, chainerx.less_equal),
 ])
-def test_cmp_invalid(cmp_op, xc_cmp, a_shape, b_shape):
+def test_cmp_invalid(cmp_op, chx_cmp, a_shape, b_shape):
     def check(x, y):
         with pytest.raises(chainerx.DimensionError):
             cmp_op(x, y)
 
         with pytest.raises(chainerx.DimensionError):
-            xc_cmp(x, y)
+            chx_cmp(x, y)
 
     a = array_utils.create_dummy_ndarray(chainerx, a_shape, 'float32')
     b = array_utils.create_dummy_ndarray(chainerx, b_shape, 'float32')

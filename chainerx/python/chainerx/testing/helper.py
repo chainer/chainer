@@ -30,8 +30,8 @@ class _ResultsCheckFailure(Exception):
         self.msg = msg
         self.indices = tuple(indices)
         if condense_results_func is None:
-            def condense_results_func(np_r, xc_r):
-                return f'chainerx: {xc_r} numpy: {np_r}'
+            def condense_results_func(np_r, chx_r):
+                return f'chainerx: {chx_r} numpy: {np_r}'
         self.condense_results_func = condense_results_func
 
     def condense_results(self, numpy_result, chainerx_result):
@@ -92,12 +92,12 @@ def _check_chainerx_numpy_result_array(check_result_func, chainerx_result, numpy
     if chainerx_result.shape != numpy_result.shape:
         raise _ResultsCheckFailure(
             'Shape mismatch', indices,
-            lambda np_r, xc_r: f'chainerx: {xc_r.shape}, numpy: {np_r.shape}')
+            lambda np_r, chx_r: f'chainerx: {chx_r.shape}, numpy: {np_r.shape}')
 
     if chainerx_result.device is not chainerx.get_default_device():
         raise _ResultsCheckFailure(
             'ChainerX bad device', indices,
-            lambda np_r, xc_r: f'default: {chainerx.get_default_device()}, chainerx: {xc_r.device}')
+            lambda np_r, chx_r: f'default: {chainerx.get_default_device()}, chainerx: {chx_r.device}')
 
     try:
         check_result_func(chainerx_result, numpy_result)
@@ -118,8 +118,8 @@ def _check_chainerx_numpy_result_impl(check_result_func, chainerx_result, numpy_
             raise _ResultsCheckFailure('Different result types', indices)
         if len(chainerx_result) != len(numpy_result):
             raise _ResultsCheckFailure('Result length mismatch', indices)
-        for i, (xc_r, np_r) in enumerate(zip(chainerx_result, numpy_result)):
-            _check_chainerx_numpy_result_impl(check_result_func, xc_r, np_r, indices + (i,))
+        for i, (chx_r, np_r) in enumerate(zip(chainerx_result, numpy_result)):
+            _check_chainerx_numpy_result_impl(check_result_func, chx_r, np_r, indices + (i,))
 
     elif isinstance(chainerx_result, chainerx.ndarray):
         _check_chainerx_numpy_result_array(check_result_func, chainerx_result, numpy_result, indices)
@@ -139,20 +139,20 @@ def _check_chainerx_numpy_result(check_result_func, chainerx_result, numpy_resul
         _check_chainerx_numpy_result_impl(check_result_func, chainerx_result, numpy_result, indices=())
     except _ResultsCheckFailure as e:
         indices = e.indices
-        xc_r = chainerx_result
+        chx_r = chainerx_result
         np_r = numpy_result
         i = 0
         while len(indices[i:]) > 0:
-            xc_r = xc_r[indices[i]]
+            chx_r = chx_r[indices[i]]
             np_r = np_r[indices[i]]
             i += 1
 
         def make_message(e):
             indices_str = ''.join(f'[{i}]' for i in indices)
-            s = f'{e.msg}: {e.condense_results(np_r, xc_r)}\n\n'
+            s = f'{e.msg}: {e.condense_results(np_r, chx_r)}\n\n'
             if len(indices) > 0:
-                s += f'chainerx results{indices_str}: {type(xc_r)}\n'
-                s += f'{xc_r}\n\n'
+                s += f'chainerx results{indices_str}: {type(chx_r)}\n'
+                s += f'{chx_r}\n\n'
                 s += f'numpy results{indices_str}: {type(np_r)}\n'
                 s += f'{np_r}\n\n'
             s += f'chainerx results: {type(chainerx_result)}\n'
