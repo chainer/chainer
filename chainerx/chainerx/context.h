@@ -103,6 +103,7 @@ public:
 
     BackpropId default_backprop_id() {
         // The first entry is always the default backprop ID.
+        std::lock_guard<std::mutex> lock{mutex_};
         CHAINERX_ASSERT(!backprop_set_.empty());
         return BackpropId{*this, backprop_set_.front().ordinal};
     }
@@ -121,11 +122,13 @@ private:
     };
 
     // Finds the BackpropSetItem instance.
+    // Note that this function is not thread safe.
     const BackpropSetItem* GetBackpropSetItem(BackpropOrdinal ordinal) const {
         return GetBackpropSetItemImpl<const Context*, const BackpropSetItem*>(this, ordinal);
     }
 
     // Finds the BackpropSetItem instance.
+    // Note that this function is not thread safe.
     BackpropSetItem* GetBackpropSetItem(BackpropOrdinal ordinal) {
         return GetBackpropSetItemImpl<Context*, BackpropSetItem*>(this, ordinal);
     }
