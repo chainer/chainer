@@ -48,8 +48,8 @@ class MLP:
 
 
 def new_linear_params(n_in, n_out):
-    W = np.random.randn(n_in, n_out).astype(np.float32)  # TODO(beam2d): not supported in xc
-    W /= np.sqrt(n_in)  # TODO(beam2d): not supported in xc
+    W = np.random.randn(n_in, n_out).astype(np.float32)  # TODO(beam2d): not supported in chx
+    W /= np.sqrt(n_in)  # TODO(beam2d): not supported in chx
     W = chx.array(W)
     # TODO(beam2d): make zeros accept int as shape
     b = chx.zeros((n_out,), dtype=chx.float32)
@@ -126,7 +126,7 @@ def main():
     start = time.time()
 
     while not is_finished:
-        np.random.shuffle(all_indices_np)  # TODO(beam2d): not suupported in xc
+        np.random.shuffle(all_indices_np)  # TODO(beam2d): not suupported in chx
         all_indices = chx.array(all_indices_np)
 
         for i in range(0, N, batch_size):
