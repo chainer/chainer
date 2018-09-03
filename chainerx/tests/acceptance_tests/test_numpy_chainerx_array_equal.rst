@@ -59,7 +59,7 @@ chainerx.testing.numpy_chainerx_array_equal
 -------------------------------------------
 
 >>> @chainerx.testing.numpy_chainerx_array_equal()
-... @pytest.mark.parametrize('xp', [xc, np])
+... @pytest.mark.parametrize('xp', [chx, np])
 ... def test_array(xp):
 ...     return xp.array([1, 2, 3], dtype='int32')
 >>>
