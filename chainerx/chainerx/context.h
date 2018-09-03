@@ -136,10 +136,10 @@ private:
     template <typename ThisPtr, typename ReturnType>
     static ReturnType GetBackpropSetItemImpl(ThisPtr this_ptr, BackpropOrdinal ordinal);
 
-    // Returns a string representation of the backprop ID.
-    // A special string is returned if the given backprop ID has already expired.
+    // Returns a string representation of a backprop ID given its ordinal.
+    // A special string is returned if the given ordinal has already expired.
     // Note that this function is not thread safe.
-    std::string ToBackpropIdString(const BackpropId& backprop_id) const;
+    std::string ToBackpropIdString(BackpropOrdinal ordinal) const;
 
     std::unordered_map<std::string, std::unique_ptr<Backend, context_detail::BackendDeleter>> backends_;
     std::vector<void*> dlopen_handles_;
