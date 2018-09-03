@@ -32,8 +32,8 @@ def test_assert_array_equal(shape, transpose, dtype1, dtype2):
     else:
         np_b = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype2).reshape(shape)
 
-    xc_a = chainerx.array(np_a)
-    xc_b = chainerx.array(np_b)
+    chx_a = chainerx.array(np_a)
+    chx_b = chainerx.array(np_b)
 
     # Test precondition checks
     assert np_a.shape == np_b.shape
@@ -42,11 +42,11 @@ def test_assert_array_equal(shape, transpose, dtype1, dtype2):
 
     # Test checks
     chainerx.testing.assert_array_equal(np_a, np_a)  # np-np (same obj)
-    chainerx.testing.assert_array_equal(xc_a, xc_a)  # xc-xc (same obj)
+    chainerx.testing.assert_array_equal(chx_a, chx_a)  # chx-chx (same obj)
     chainerx.testing.assert_array_equal(np_a, np_b)  # np-np (diff. obj)
-    chainerx.testing.assert_array_equal(xc_a, xc_b)  # xc-xc (diff. obj)
-    chainerx.testing.assert_array_equal(np_a, xc_b)  # np-xc
-    chainerx.testing.assert_array_equal(xc_a, np_b)  # xc-np
+    chainerx.testing.assert_array_equal(chx_a, chx_b)  # chx-chx (diff. obj)
+    chainerx.testing.assert_array_equal(np_a, chx_b)  # np-chx
+    chainerx.testing.assert_array_equal(chx_a, np_b)  # chx-np
 
 
 @pytest.mark.parametrize('shape', [(), (1,), (2, 3)])
@@ -113,8 +113,8 @@ def test_assert_allclose(shape, transpose, dtype1, dtype2):
     if np_b.dtype.kind in ('f', 'c'):
         np_b -= atol * 1e-1
 
-    xc_a = chainerx.array(np_a)
-    xc_b = chainerx.array(np_b)
+    chx_a = chainerx.array(np_a)
+    chx_b = chainerx.array(np_b)
 
     # Test precondition checks
     assert np_a.shape == np_b.shape
@@ -123,11 +123,11 @@ def test_assert_allclose(shape, transpose, dtype1, dtype2):
 
     # Test checks
     chainerx.testing.assert_allclose(np_a, np_a, atol=atol)  # np-np (same obj)
-    chainerx.testing.assert_allclose(xc_a, xc_a, atol=atol)  # xc-xc (same obj)
+    chainerx.testing.assert_allclose(chx_a, chx_a, atol=atol)  # chx-chx (same obj)
     chainerx.testing.assert_allclose(np_a, np_b, atol=atol)  # np-np (diff. obj)
-    chainerx.testing.assert_allclose(xc_a, xc_b, atol=atol)  # xc-xc (diff. obj)
-    chainerx.testing.assert_allclose(np_a, xc_b, atol=atol)  # np-xc
-    chainerx.testing.assert_allclose(xc_a, np_b, atol=atol)  # xc-np
+    chainerx.testing.assert_allclose(chx_a, chx_b, atol=atol)  # chx-chx (diff. obj)
+    chainerx.testing.assert_allclose(np_a, chx_b, atol=atol)  # np-chx
+    chainerx.testing.assert_allclose(chx_a, np_b, atol=atol)  # chx-np
 
 
 @pytest.mark.parametrize('shape', [(), (1,), (2, 3)])

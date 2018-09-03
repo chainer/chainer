@@ -2,7 +2,7 @@
 
 import numpy as np
 
-import chainerx as xc
+import chainerx as chx
 
 
 class Convolution2D:
@@ -10,11 +10,11 @@ class Convolution2D:
     def __init__(self, in_channels, out_channels, ksize, stride, pad,
                  initialW=None, nobias=False, groups=1):
         W_shape = out_channels, int(in_channels / groups), ksize, ksize
-        self.W = xc.array(np.random.normal(size=W_shape).astype(np.float32))
+        self.W = chx.array(np.random.normal(size=W_shape).astype(np.float32))
         if nobias:
             self.b = None
         else:
-            self.b = xc.array(np.random.normal(size=out_channels).astype(np.float32))
+            self.b = chx.array(np.random.normal(size=out_channels).astype(np.float32))
         self.stride = stride
         self.pad = pad
 
@@ -24,9 +24,9 @@ class Convolution2D:
 
     def __call__(self, x):
         if self.b is not None:
-            return xc.conv(x, self.W, self.b, stride=self.stride, pad=self.pad)
+            return chx.conv(x, self.W, self.b, stride=self.stride, pad=self.pad)
         else:
-            return xc.conv(x, self.W, stride=self.stride, pad=self.pad)
+            return chx.conv(x, self.W, stride=self.stride, pad=self.pad)
 
     def no_grad(self):
         self.W = self.W.as_grad_stopped()
@@ -48,18 +48,18 @@ class Convolution2D:
 
 class BatchNormalization:
 
-    def __init__(self, size, dtype=xc.float32):
+    def __init__(self, size, dtype=chx.float32):
         shape = size,
-        self.avg_mean = xc.zeros(shape, dtype)
-        self.avg_var = xc.zeros(shape, dtype)
-        self.gamma = xc.ones(shape, dtype)
-        self.beta = xc.zeros(shape, dtype)
+        self.avg_mean = chx.zeros(shape, dtype)
+        self.avg_var = chx.zeros(shape, dtype)
+        self.gamma = chx.ones(shape, dtype)
+        self.beta = chx.zeros(shape, dtype)
 
     def __call__(self, x):
-        return xc.batch_norm(x, self.gamma, self.beta,
-                             running_mean=self.avg_mean,
-                             running_var=self.avg_var,
-                             axis=(0, 2, 3))
+        return chx.batch_norm(x, self.gamma, self.beta,
+                              running_mean=self.avg_mean,
+                              running_var=self.avg_var,
+                              axis=(0, 2, 3))
 
     @property
     def params(self):
@@ -85,8 +85,8 @@ class Linear:
     def __init__(self, n_in, n_out):
         W = np.random.randn(n_in, n_out).astype(np.float32)
         W /= np.sqrt(n_in)
-        self.W = xc.array(W)
-        self.b = xc.zeros((n_out,), dtype=xc.float32)
+        self.W = chx.array(W)
+        self.b = chx.zeros((n_out,), dtype=chx.float32)
 
     def __call__(self, x):
         x = x.reshape(x.shape[:2])
@@ -131,11 +131,11 @@ class BottleNeckA:
         self.bn4 = BatchNormalization(out_size)
 
     def __call__(self, x):
-        h1 = xc.maximum(0, self.bn1(self.conv1(x)))
-        h1 = xc.maximum(0, self.bn2(self.conv2(h1)))
+        h1 = chx.maximum(0, self.bn1(self.conv1(x)))
+        h1 = chx.maximum(0, self.bn2(self.conv2(h1)))
         h1 = self.bn3(self.conv3(h1))
         h2 = self.bn4(self.conv4(x))
-        return xc.maximum(0, h1 + h2)
+        return chx.maximum(0, h1 + h2)
 
     @property
     def params(self):
@@ -171,10 +171,10 @@ class BottleNeckB:
         self.bn3 = BatchNormalization(in_size)
 
     def __call__(self, x):
-        h = xc.maximum(0, self.bn1(self.conv1(x)))
-        h = xc.maximum(0, self.bn2(self.conv2(h)))
+        h = chx.maximum(0, self.bn1(self.conv1(x)))
+        h = chx.maximum(0, self.bn2(self.conv2(h)))
         h = self.bn3(self.conv3(h))
-        return xc.maximum(0, h + x)
+        return chx.maximum(0, h + x)
 
     @property
     def params(self):
@@ -237,12 +237,12 @@ class ResNet50:
 
     def __call__(self, x):
         h = self.bn1(self.conv1(x))
-        h = xc.max_pool(xc.maximum(0, h), 3, stride=2)
+        h = chx.max_pool(chx.maximum(0, h), 3, stride=2)
         h = self.res2(h)
         h = self.res3(h)
         h = self.res4(h)
         h = self.res5(h)
-        h = xc.average_pool(h, 7, stride=1)
+        h = chx.average_pool(h, 7, stride=1)
         h = self.fc(h)
 
         return h

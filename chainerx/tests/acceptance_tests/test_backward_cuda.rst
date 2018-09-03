@@ -1,10 +1,10 @@
 Acceptance tests for Backprop on GPU
 ====================================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 
->>> a = xc.ndarray((2, 3), xc.float32, [0, 1, 2, 3, 4, 5], device='cuda:0').require_grad()
->>> b = xc.full_like(a, 2, device='cuda:0')
+>>> a = chx.ndarray((2, 3), chx.float32, [0, 1, 2, 3, 4, 5], device='cuda:0').require_grad()
+>>> b = chx.full_like(a, 2, device='cuda:0')
 >>> a.is_grad_required()
 True
 >>> b.is_grad_required()
@@ -14,10 +14,10 @@ False
 False
 >>> y.is_backprop_required()
 True
->>> y.set_grad(xc.full_like(a, 0.5, device='cuda:0'))
+>>> y.set_grad(chx.full_like(a, 0.5, device='cuda:0'))
 >>> y.is_grad_required()
 True
->>> xc.backward(y)
+>>> chx.backward(y)
 
 Access gradients through attribute
 ----------------------------------

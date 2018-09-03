@@ -60,15 +60,15 @@ def test_add_scalar(scalar, device, shape, dtype):
     expected = x_np + numpy.dtype(dtype).type(scalar)
 
     x = chainerx.array(x_np)
-    scalar_xc = chainerx.Scalar(scalar, dtype)
+    scalar_chx = chainerx.Scalar(scalar, dtype)
     chainerx.testing.assert_array_equal_ex(x + scalar, expected)
-    chainerx.testing.assert_array_equal_ex(x + scalar_xc, expected)
+    chainerx.testing.assert_array_equal_ex(x + scalar_chx, expected)
     chainerx.testing.assert_array_equal_ex(scalar + x, expected)
-    chainerx.testing.assert_array_equal_ex(scalar_xc + x, expected)
+    chainerx.testing.assert_array_equal_ex(scalar_chx + x, expected)
     chainerx.testing.assert_array_equal_ex(chainerx.add(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(chainerx.add(x, scalar_xc), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.add(x, scalar_chx), expected)
     chainerx.testing.assert_array_equal_ex(chainerx.add(scalar, x), expected)
-    chainerx.testing.assert_array_equal_ex(chainerx.add(scalar_xc, x), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.add(scalar_chx, x), expected)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -118,15 +118,15 @@ def test_sub_scalar(scalar, device, shape, dtype):
     expected_rev = numpy.dtype(dtype).type(scalar) - x_np
 
     x = chainerx.array(x_np)
-    scalar_xc = chainerx.Scalar(scalar, dtype)
+    scalar_chx = chainerx.Scalar(scalar, dtype)
     chainerx.testing.assert_array_equal_ex(x - scalar, expected)
-    chainerx.testing.assert_array_equal_ex(x - scalar_xc, expected)
+    chainerx.testing.assert_array_equal_ex(x - scalar_chx, expected)
     chainerx.testing.assert_array_equal_ex(scalar - x, expected_rev)
-    chainerx.testing.assert_array_equal_ex(scalar_xc - x, expected_rev)
+    chainerx.testing.assert_array_equal_ex(scalar_chx - x, expected_rev)
     chainerx.testing.assert_array_equal_ex(chainerx.subtract(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(chainerx.subtract(x, scalar_xc), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.subtract(x, scalar_chx), expected)
     chainerx.testing.assert_array_equal_ex(chainerx.subtract(scalar, x), expected_rev)
-    chainerx.testing.assert_array_equal_ex(chainerx.subtract(scalar_xc, x), expected_rev)
+    chainerx.testing.assert_array_equal_ex(chainerx.subtract(scalar_chx, x), expected_rev)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -175,15 +175,15 @@ def test_mul_scalar(scalar, device, shape, dtype):
     expected = x_np * numpy.dtype(dtype).type(scalar)
 
     x = chainerx.array(x_np)
-    scalar_xc = chainerx.Scalar(scalar, dtype)
+    scalar_chx = chainerx.Scalar(scalar, dtype)
     chainerx.testing.assert_array_equal_ex(x * scalar, expected)
-    chainerx.testing.assert_array_equal_ex(x * scalar_xc, expected)
+    chainerx.testing.assert_array_equal_ex(x * scalar_chx, expected)
     chainerx.testing.assert_array_equal_ex(scalar * x, expected)
-    chainerx.testing.assert_array_equal_ex(scalar_xc * x, expected)
+    chainerx.testing.assert_array_equal_ex(scalar_chx * x, expected)
     chainerx.testing.assert_array_equal_ex(chainerx.multiply(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(chainerx.multiply(x, scalar_xc), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.multiply(x, scalar_chx), expected)
     chainerx.testing.assert_array_equal_ex(chainerx.multiply(scalar, x), expected)
-    chainerx.testing.assert_array_equal_ex(chainerx.multiply(scalar_xc, x), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.multiply(scalar_chx, x), expected)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -238,11 +238,11 @@ def test_truediv_scalar(scalar, device, shape, numeric_dtype):
         expected = x_np / scalar
 
     x = chainerx.array(x_np)
-    scalar_xc = chainerx.Scalar(scalar, numeric_dtype)
+    scalar_chx = chainerx.Scalar(scalar, numeric_dtype)
     chainerx.testing.assert_array_equal_ex(x / scalar, expected)
-    chainerx.testing.assert_array_equal_ex(x / scalar_xc, expected)
+    chainerx.testing.assert_array_equal_ex(x / scalar_chx, expected)
     chainerx.testing.assert_array_equal_ex(chainerx.divide(x, scalar), expected)
-    chainerx.testing.assert_array_equal_ex(chainerx.divide(x, scalar_xc), expected)
+    chainerx.testing.assert_array_equal_ex(chainerx.divide(x, scalar_chx), expected)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()

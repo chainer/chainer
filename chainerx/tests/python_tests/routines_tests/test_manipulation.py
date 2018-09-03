@@ -24,7 +24,7 @@ def test_asscalar(device, value, shape, dtype):
         return
 
     a_np = numpy.asarray([np_value], dtype).reshape(shape)
-    a_xc = chainerx.array(a_np)
+    a_chx = chainerx.array(a_np)
 
     def should_cast_succeed(typ):
         try:
@@ -35,26 +35,26 @@ def test_asscalar(device, value, shape, dtype):
 
     # Cast to float
     if should_cast_succeed(float):
-        assert type(float(a_xc)) is float
+        assert type(float(a_chx)) is float
         if math.isnan(float(a_np)):
-            assert math.isnan(float(a_xc))
+            assert math.isnan(float(a_chx))
         else:
-            assert float(a_np) == float(a_xc)
+            assert float(a_np) == float(a_chx)
     # Cast to int
     if should_cast_succeed(int):
-        assert type(int(a_xc)) is int
-        assert int(a_np) == int(a_xc)
+        assert type(int(a_chx)) is int
+        assert int(a_np) == int(a_chx)
     # Cast to bool
     if should_cast_succeed(bool):
-        assert type(bool(a_xc)) is bool
-        assert bool(a_np) == bool(a_xc)
+        assert type(bool(a_chx)) is bool
+        assert bool(a_np) == bool(a_chx)
 
     # chainerx.asscalar
-    assert isinstance(chainerx.asscalar(a_xc), type(numpy.asscalar(a_np)))
+    assert isinstance(chainerx.asscalar(a_chx), type(numpy.asscalar(a_np)))
     if math.isnan(numpy.asscalar(a_np)):
-        assert math.isnan(chainerx.asscalar(a_xc))
+        assert math.isnan(chainerx.asscalar(a_chx))
     else:
-        assert chainerx.asscalar(a_xc) == numpy.asscalar(a_np)
+        assert chainerx.asscalar(a_chx) == numpy.asscalar(a_np)
 
 
 @pytest.mark.parametrize('shape', [

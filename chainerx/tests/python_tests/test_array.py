@@ -97,33 +97,33 @@ def test_to_device():
     chainerx.testing.assert_array_equal_ex(a, b2)
 
 
-def _check_tonumpy(a_np, a_xc):
-    chainerx.testing.assert_array_equal_ex(a_xc, a_np, strides_check=False)
+def _check_tonumpy(a_np, a_chx):
+    chainerx.testing.assert_array_equal_ex(a_chx, a_np, strides_check=False)
     if a_np.size > 0:
         # test buffer is not shared
         a_np.fill(1)
-        assert not numpy.array_equal(a_np, chainerx.tonumpy(a_xc))
+        assert not numpy.array_equal(a_np, chainerx.tonumpy(a_chx))
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_tonumpy(shape, dtype, device):
-    a_xc = array_utils.create_dummy_ndarray(chainerx, shape, dtype)
-    a_np = chainerx.tonumpy(a_xc)
-    _check_tonumpy(a_np, a_xc)
+    a_chx = array_utils.create_dummy_ndarray(chainerx, shape, dtype)
+    a_np = chainerx.tonumpy(a_chx)
+    _check_tonumpy(a_np, a_chx)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_tonumpy_non_contiguous(shape, dtype, device):
-    a_xc = array_utils.create_dummy_ndarray(chainerx, shape, dtype).T
-    a_np = chainerx.tonumpy(a_xc)
-    _check_tonumpy(a_np, a_xc)
+    a_chx = array_utils.create_dummy_ndarray(chainerx, shape, dtype).T
+    a_np = chainerx.tonumpy(a_chx)
+    _check_tonumpy(a_np, a_chx)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_tonumpy_positive_offset(device):
-    a_xc = chainerx.arange(6).reshape(2, 3)[:, 1:]
-    a_np = chainerx.tonumpy(a_xc)
-    _check_tonumpy(a_np, a_xc)
+    a_chx = chainerx.arange(6).reshape(2, 3)[:, 1:]
+    a_np = chainerx.tonumpy(a_chx)
+    _check_tonumpy(a_np, a_chx)
 
 
 def test_view(shape, dtype):

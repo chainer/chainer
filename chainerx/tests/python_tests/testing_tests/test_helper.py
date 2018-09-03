@@ -14,20 +14,20 @@ class BarError(Exception):
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('np_result, xc_result', [
+@pytest.mark.parametrize('np_result, chx_result', [
     (1.0, 1.0),
     (numpy.full((1,), 1.0, numpy.float32), chainerx.full((1,), 1.0, chainerx.float32)),
 ])
-def test_numpy_chainerx_array_equal_both_return_nonarray(xp, np_result, xc_result):
+def test_numpy_chainerx_array_equal_both_return_nonarray(xp, np_result, chx_result):
     if xp is numpy:
         return np_result
     else:
-        return xc_result
+        return chx_result
 
 
 @pytest.mark.xfail(strict=True)
 @chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('np_result, xc_result', [
+@pytest.mark.parametrize('np_result, chx_result', [
     (None, None),  # Both return None
     (None, chainerx.full((1,), 1.0, chainerx.float32)),  # NumPy returns None
     (numpy.full((1,), 1.0, numpy.float32), None),  # ChainerX returns None
@@ -44,11 +44,11 @@ def test_numpy_chainerx_array_equal_both_return_nonarray(xp, np_result, xc_resul
     (numpy.array([[0, 1, 2, 0], [0, 3, 4, 0], [0, 0, 0, 0]], numpy.float32)[0:2, 1:3],
      chainerx.array(numpy.array([[0, 0, 0], [1, 2, 0], [3, 4, 0]], numpy.float32))[1:3, 0:2]),  # Strides mismatch
 ])
-def test_numpy_chainerx_array_equal_fail_invalid_return(xp, np_result, xc_result):
+def test_numpy_chainerx_array_equal_fail_invalid_return(xp, np_result, chx_result):
     if xp is numpy:
         return np_result
     else:
-        return xc_result
+        return chx_result
 
 
 @pytest.mark.xfail(strict=True)

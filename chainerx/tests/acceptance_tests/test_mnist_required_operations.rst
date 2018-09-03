@@ -1,14 +1,14 @@
 Acceptance tests for operations required in MNIST
 =================================================
 
->>> import chainerx as xc
+>>> import chainerx as chx
 >>> import numpy as np
 
 Dot
 ---
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
->>> b = xc.ndarray((3, 2), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> b = chx.ndarray((3, 2), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
 >>> y = a.dot(b)
 >>> y
@@ -27,8 +27,8 @@ array([[5., 5.],
 Subtract
 --------
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
->>> b = xc.ndarray((1, 3), xc.float32, [2, 2, 2]).require_grad()
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> b = chx.ndarray((1, 3), chx.float32, [2, 2, 2]).require_grad()
 
 >>> y = a - b
 >>> y
@@ -45,8 +45,8 @@ array([[-2., -2., -2.]], shape=(1, 3), dtype=float32, device='native:0')
 Divide
 ------
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
->>> b = xc.ndarray((1, 3), xc.float32, [4, 5, 6]).require_grad()
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> b = chx.ndarray((1, 3), chx.float32, [4, 5, 6]).require_grad()
 
 >>> y = a / b
 >>> y
@@ -63,9 +63,9 @@ array([[-0.3125, -0.28  , -0.25  ]], shape=(1, 3), dtype=float32, device='native
 Max
 ---
 
->>> a = xc.ndarray((2, 3), xc.float32, [3, 2, 1, 4, 5, 6]).require_grad()
+>>> a = chx.ndarray((2, 3), chx.float32, [3, 2, 1, 4, 5, 6]).require_grad()
 
->>> y = xc.amax(a, axis=(1,), keepdims=True)
+>>> y = chx.amax(a, axis=(1,), keepdims=True)
 >>> y
 array([[3.],
        [6.]], shape=(2, 1), dtype=float32, device='native:0', backprop_ids=['<default>'])
@@ -78,18 +78,18 @@ array([[1., 0., 0.],
 Argmax
 ------
 
->>> a = xc.ndarray((2, 3), xc.float32, [3, 2, 1, 4, 5, 6])
+>>> a = chx.ndarray((2, 3), chx.float32, [3, 2, 1, 4, 5, 6])
 
->>> y = xc.argmax(a, axis=1)
+>>> y = chx.argmax(a, axis=1)
 >>> y
 array([0, 2], shape=(2,), dtype=int64, device='native:0')
 
 Log
 ---
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
->>> y = xc.log(a)
+>>> y = chx.log(a)
 >>> y
 array([[0.        , 0.69314718, 1.0986123 ],
        [1.38629436, 1.60943794, 1.79175949]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
@@ -102,9 +102,9 @@ array([[1.        , 0.5       , 0.33333334],
 Exp
 ---
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
->>> y = xc.exp(a)
+>>> y = chx.exp(a)
 >>> y
 array([[  2.71828175,   7.3890562 ,  20.08553696],
        [ 54.59814835, 148.41316223, 403.42880249]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
@@ -117,7 +117,7 @@ array([[  2.71828175,   7.3890562 ,  20.08553696],
 Negative
 --------
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
 >>> y = -a
 >>> y
@@ -132,9 +132,9 @@ array([[-1., -1., -1.],
 Log of Softmax
 --------------
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
->>> y = xc.log_softmax(a)
+>>> y = chx.log_softmax(a)
 >>> y
 array([[-2.40760589, -1.40760589, -0.40760589],
        [-2.40760612, -1.40760612, -0.40760612]], shape=(2, 3), dtype=float32, device='native:0', backprop_ids=['<default>'])
@@ -147,19 +147,19 @@ array([[0.72990829, 0.26581454, -0.99572289],
 AsType
 ------
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
 
->>> y = a.astype(xc.float32)
+>>> y = a.astype(chx.float32)
 >>> y is a
 False
->>> y = a.astype(xc.float32, copy=False)
+>>> y = a.astype(chx.float32, copy=False)
 >>> y is a
 True
->>> y = a.astype(xc.float64, copy=False)
+>>> y = a.astype(chx.float64, copy=False)
 >>> y is a
 False
 
->>> y = a.astype(xc.float64)
+>>> y = a.astype(chx.float64)
 >>> y
 array([[1., 2., 3.],
        [4., 5., 6.]], shape=(2, 3), dtype=float64, device='native:0', backprop_ids=['<default>'])
@@ -168,7 +168,7 @@ array([[1., 2., 3.],
 array([[1., 1., 1.],
        [1., 1., 1.]], shape=(2, 3), dtype=float32, device='native:0')
 
->>> y = a.astype(xc.int32)
+>>> y = a.astype(chx.int32)
 >>> y  # not backpropagatable
 array([[1, 2, 3],
        [4, 5, 6]], shape=(2, 3), dtype=int32, device='native:0')
@@ -176,8 +176,8 @@ array([[1, 2, 3],
 Take
 ----
 
->>> a = xc.ndarray((2, 3), xc.float32, [1, 2, 3, 4, 5, 6]).require_grad()
->>> indicies = xc.ndarray((2,), xc.int64, [1, 2])
+>>> a = chx.ndarray((2, 3), chx.float32, [1, 2, 3, 4, 5, 6]).require_grad()
+>>> indicies = chx.ndarray((2,), chx.int64, [1, 2])
 >>> y = a.take(indicies, axis=1)
 >>> y
 array([[2., 3.],
