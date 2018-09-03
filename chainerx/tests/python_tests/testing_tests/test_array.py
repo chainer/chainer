@@ -42,11 +42,11 @@ def test_assert_array_equal(shape, transpose, dtype1, dtype2):
 
     # Test checks
     chainerx.testing.assert_array_equal(np_a, np_a)  # np-np (same obj)
-    chainerx.testing.assert_array_equal(chx_a, chx_a)  # xc-xc (same obj)
+    chainerx.testing.assert_array_equal(chx_a, chx_a)  # chx-chx (same obj)
     chainerx.testing.assert_array_equal(np_a, np_b)  # np-np (diff. obj)
-    chainerx.testing.assert_array_equal(chx_a, chx_b)  # xc-xc (diff. obj)
-    chainerx.testing.assert_array_equal(np_a, chx_b)  # np-xc
-    chainerx.testing.assert_array_equal(chx_a, np_b)  # xc-np
+    chainerx.testing.assert_array_equal(chx_a, chx_b)  # chx-chx (diff. obj)
+    chainerx.testing.assert_array_equal(np_a, chx_b)  # np-chx
+    chainerx.testing.assert_array_equal(chx_a, np_b)  # chx-np
 
 
 @pytest.mark.parametrize('shape', [(), (1,), (2, 3)])
@@ -123,11 +123,11 @@ def test_assert_allclose(shape, transpose, dtype1, dtype2):
 
     # Test checks
     chainerx.testing.assert_allclose(np_a, np_a, atol=atol)  # np-np (same obj)
-    chainerx.testing.assert_allclose(chx_a, chx_a, atol=atol)  # xc-xc (same obj)
+    chainerx.testing.assert_allclose(chx_a, chx_a, atol=atol)  # chx-chx (same obj)
     chainerx.testing.assert_allclose(np_a, np_b, atol=atol)  # np-np (diff. obj)
-    chainerx.testing.assert_allclose(chx_a, chx_b, atol=atol)  # xc-xc (diff. obj)
-    chainerx.testing.assert_allclose(np_a, chx_b, atol=atol)  # np-xc
-    chainerx.testing.assert_allclose(chx_a, np_b, atol=atol)  # xc-np
+    chainerx.testing.assert_allclose(chx_a, chx_b, atol=atol)  # chx-chx (diff. obj)
+    chainerx.testing.assert_allclose(np_a, chx_b, atol=atol)  # np-chx
+    chainerx.testing.assert_allclose(chx_a, np_b, atol=atol)  # chx-np
 
 
 @pytest.mark.parametrize('shape', [(), (1,), (2, 3)])
