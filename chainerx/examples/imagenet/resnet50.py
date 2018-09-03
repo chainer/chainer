@@ -57,9 +57,9 @@ class BatchNormalization:
 
     def __call__(self, x):
         return chx.batch_norm(x, self.gamma, self.beta,
-                             running_mean=self.avg_mean,
-                             running_var=self.avg_var,
-                             axis=(0, 2, 3))
+                              running_mean=self.avg_mean,
+                              running_var=self.avg_var,
+                              axis=(0, 2, 3))
 
     @property
     def params(self):
