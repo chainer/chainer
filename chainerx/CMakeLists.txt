@@ -117,10 +117,11 @@ endif()
 if(${CHAINERX_BUILD_PYTHON})
     get_third_party(pybind11)
     include_directories(${CMAKE_BINARY_DIR}/pybind11/include)
-    add_subdirectory(${CMAKE_BINARY_DIR}/pybind11)
+    add_subdirectory(${CMAKE_BINARY_DIR}/pybind11 ${CMAKE_BINARY_DIR}/pybind11-build)
 endif()
 
 # gsl-lite
+# gsl-lite is a header-only library, we do not need to build and run tests
 get_third_party(gsl-lite)
 include_directories(${CMAKE_BINARY_DIR}/gsl-lite/include)
 # ref. https://github.com/martinmoene/gsl-lite#api-macro
@@ -130,8 +131,6 @@ add_definitions(-Dgsl_api=)
 if(${CUDA_FOUND})
     list(APPEND CUDA_NVCC_FLAGS "-Dgsl_api=")
 endif()
-# gsl-lite is a header-only library, we do not need to build and run tests
-# add_subdirectory(${CMAKE_BINARY_DIR}/gsl-lite)
 
 # optional-lite
 get_third_party(optional-lite)
