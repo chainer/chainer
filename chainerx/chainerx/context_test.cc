@@ -106,7 +106,6 @@ TEST(ContextTest, BackpropIdThreadSafe) {
 
         // Post-process backprop IDs.
         ctx.SetBackpropDone(backprop_id);
-        ctx.ReleaseBackpropIdNoExcept(default_backprop_id);
         ctx.ReleaseBackpropId(backprop_id);
 
         return nullptr;
