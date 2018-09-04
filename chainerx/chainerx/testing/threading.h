@@ -73,5 +73,48 @@ inline void RunTestWithThreads(const std::function<void(void)>& func, size_t thr
     }
 }
 
+#define CHAINERX_TEST_BASE_CLASS_NAME_(test_case_name, test_name) test_case_name##_##test_name##_Base
+#define CHAINERX_TEST_SINGLE_THREAD_CLASS_NAME_(test_case_name, test_name) test_case_name##_##test_name##_SingleThread
+#define CHAINERX_TEST_MULTI_THREAD_CLASS_NAME_(test_case_name, test_name) test_case_name##_##test_name##_MultiThread
+
+#define TEST_THREAD_SAFE(test_case_name, test_name)                                                             \
+    class CHAINERX_TEST_BASE_CLASS_NAME_(test_case_name, test_name) : public ::testing::Test {                  \
+    protected:                                                                                                  \
+        void RunTestBody();                                                                                     \
+                                                                                                                \
+    private:                                                                                                    \
+        virtual size_t thread_count() = 0;                                                                      \
+    };                                                                                                          \
+                                                                                                                \
+    class CHAINERX_TEST_SINGLE_THREAD_CLASS_NAME_(test_case_name, test_name)                                    \
+        : public CHAINERX_TEST_BASE_CLASS_NAME_(test_case_name, test_name) {                                    \
+    private:                                                                                                    \
+        size_t thread_count() override { return 1; }                                                            \
+    };                                                                                                          \
+                                                                                                                \
+    class CHAINERX_TEST_MULTI_THREAD_CLASS_NAME_(test_case_name, test_name)                                     \
+        : public CHAINERX_TEST_BASE_CLASS_NAME_(test_case_name, test_name) {                                    \
+    private:                                                                                                    \
+        size_t thread_count() override { return 2; }                                                            \
+    };                                                                                                          \
+                                                                                                                \
+    TEST_F(CHAINERX_TEST_SINGLE_THREAD_CLASS_NAME_(test_case_name, test_name), SingleThread) { RunTestBody(); } \
+                                                                                                                \
+    TEST_F(CHAINERX_TEST_MULTI_THREAD_CLASS_NAME_(test_case_name, test_name), MultiThread) { RunTestBody(); }   \
+                                                                                                                \
+    void CHAINERX_TEST_BASE_CLASS_NAME_(test_case_name, test_name)::RunTestBody()
+
+#define TASK(...)                                                          \
+    if (thread_count() > 1) {                                              \
+        testing::RunThreads(thread_count(), [&](size_t /*thread_index*/) { \
+            std::cout << "MULTI" << std::endl;                             \
+            { __VA_ARGS__ }                                                \
+            return nullptr;                                                \
+        });                                                                \
+    } else {                                                               \
+        std::cout << "SINGLE" << std::endl;                                \
+        { __VA_ARGS__ }                                                    \
+    }
+
 }  // namespace testing
 }  // namespace chainerx
