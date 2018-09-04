@@ -14,7 +14,7 @@ import numpy
     'shape': [(5, 5, 3, 3), (5, 1, 3, 3)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestUniform(unittest.TestCase):
+class TestBilinear(unittest.TestCase):
 
     def check_initializer(self, w):
         initializer = self.target()
