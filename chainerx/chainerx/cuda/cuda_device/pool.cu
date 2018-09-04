@@ -78,13 +78,13 @@ __global__ void MaxPoolDoubleBackwardKernel(
 class PoolImpl {
 public:
     PoolImpl(
-            cudnnHandle_t cudnn_handle,
+            CudaDevice& device,
             StackVector<int64_t, kMaxNdim> kernel_size,
             StackVector<int64_t, kMaxNdim> stride,
             StackVector<int64_t, kMaxNdim> pad,
             bool cover_all,
             cudnnPoolingMode_t cudnn_pooling_mode)
-        : cudnn_handle_{cudnn_handle},
+        : device_{device},
           kernel_size_{std::move(kernel_size)},
           stride_{std::move(stride)},
           pad_{std::move(pad)},
@@ -120,15 +120,18 @@ public:
 
         cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
-        CheckCudnnError(cudnnPoolingForward(
-                cudnn_handle_,
-                *pool_desc,
-                cuda_internal::GetValuePtr<1>(x.dtype()),
-                *x_desc,
-                internal::GetRawOffsetData<void>(x_cont),
-                cuda_internal::GetValuePtr<0>(x.dtype()),
-                *y_desc,
-                internal::GetRawOffsetData<void>(y)));
+        {
+            std::lock_guard<std::mutex> lock{device_.cudnn_handle_mutex()};
+            CheckCudnnError(cudnnPoolingForward(
+                    device_.cudnn_handle(),
+                    *pool_desc,
+                    cuda_internal::GetValuePtr<1>(x.dtype()),
+                    *x_desc,
+                    internal::GetRawOffsetData<void>(x_cont),
+                    cuda_internal::GetValuePtr<0>(x.dtype()),
+                    *y_desc,
+                    internal::GetRawOffsetData<void>(y)));
+        }
 
         x_ = x;
         y_ = y;
@@ -159,19 +162,22 @@ public:
 
         cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
-        CheckCudnnError(cudnnPoolingBackward(
-                cudnn_handle_,
-                *pool_desc,
-                cuda_internal::GetValuePtr<1>(x_.dtype()),
-                *y_desc,
-                internal::GetRawOffsetData<void>(y_cont),
-                *gout_desc,
-                internal::GetRawOffsetData<void>(gout_cont),
-                *x_desc,
-                internal::GetRawOffsetData<void>(x_cont),
-                cuda_internal::GetValuePtr<0>(x_.dtype()),
-                *gx_desc,
-                internal::GetRawOffsetData<void>(gx)));
+        {
+            std::lock_guard<std::mutex> lock{device_.cudnn_handle_mutex()};
+            CheckCudnnError(cudnnPoolingBackward(
+                    device_.cudnn_handle(),
+                    *pool_desc,
+                    cuda_internal::GetValuePtr<1>(x_.dtype()),
+                    *y_desc,
+                    internal::GetRawOffsetData<void>(y_cont),
+                    *gout_desc,
+                    internal::GetRawOffsetData<void>(gout_cont),
+                    *x_desc,
+                    internal::GetRawOffsetData<void>(x_cont),
+                    cuda_internal::GetValuePtr<0>(x_.dtype()),
+                    *gx_desc,
+                    internal::GetRawOffsetData<void>(gx)));
+        }
 
         return gx;
     }
@@ -213,7 +219,7 @@ public:
     }
 
 private:
-    cudnnHandle_t cudnn_handle_;
+    CudaDevice& device_;
     const StackVector<int64_t, kMaxNdim> kernel_size_;
     const StackVector<int64_t, kMaxNdim> stride_;
     const StackVector<int64_t, kMaxNdim> pad_;
@@ -226,12 +232,12 @@ private:
 class CudaMaxPoolForwardBackward : public chainerx::MaxPoolForwardBackward {
 public:
     explicit CudaMaxPoolForwardBackward(
-            cudnnHandle_t cudnn_handle,
+            CudaDevice& device,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all)
-        : pool_impl_{cudnn_handle, kernel_size, stride, pad, cover_all, CUDNN_POOLING_MAX} {}
+        : pool_impl_{device, kernel_size, stride, pad, cover_all, CUDNN_POOLING_MAX} {}
 
     Array Forward(const Array& x) override { return pool_impl_.Forward(x); }
 
@@ -250,7 +256,7 @@ std::unique_ptr<MaxPoolForwardBackward> CudaDevice::GetMaxPoolForwardBackward(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         bool cover_all) {
-    return std::make_unique<CudaMaxPoolForwardBackward>(cudnn_handle(), kernel_size, stride, pad, cover_all);
+    return std::make_unique<CudaMaxPoolForwardBackward>(*this, kernel_size, stride, pad, cover_all);
 }
 
 namespace {
@@ -269,12 +275,12 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
 class CudaAveragePoolForwardBackward : public chainerx::AveragePoolForwardBackward {
 public:
     explicit CudaAveragePoolForwardBackward(
-            cudnnHandle_t cudnn_handle,
+            CudaDevice& device,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
             AveragePoolPadMode pad_mode)
-        : pool_impl_{cudnn_handle, kernel_size, stride, pad, false, GetCudnnPoolingMode(pad_mode)} {}
+        : pool_impl_{device, kernel_size, stride, pad, false, GetCudnnPoolingMode(pad_mode)} {}
 
     Array Forward(const Array& x) override { return pool_impl_.Forward(x); }
 
@@ -291,7 +297,7 @@ std::unique_ptr<AveragePoolForwardBackward> CudaDevice::GetAveragePoolForwardBac
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         AveragePoolPadMode pad_mode) {
-    return std::make_unique<CudaAveragePoolForwardBackward>(cudnn_handle(), kernel_size, stride, pad, pad_mode);
+    return std::make_unique<CudaAveragePoolForwardBackward>(*this, kernel_size, stride, pad, pad_mode);
 }
 
 }  // namespace cuda
