@@ -7,6 +7,7 @@ please take a look at [our contribution guide](https://docs.chainer.org/en/stabl
 Specifically, if it is a bug report, these information are very helpful:
 
 * Conditions
+<!-- If you're using Chainer 4.0+, you can also get this information by typing `python -c 'import chainer; chainer.print_runtime_info()'. -->
   - Chainer version
   - CuPy version
   - OS/Platform
