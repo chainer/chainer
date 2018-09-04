@@ -24,7 +24,7 @@ CudaDevice::~CudaDevice() {
 }
 
 cublasHandle_t CudaDevice::cublas_handle() {
-    std::lock_guard<std::mutex> lock{cublas_handle_mutex_};
+    std::lock_guard<std::mutex> lock{cublas_handle_creation_mutex_};
     if (cublas_handle_ == nullptr) {
         CheckCudaError(cudaSetDevice(index()));
         CheckCublasError(cublasCreate(&cublas_handle_));
