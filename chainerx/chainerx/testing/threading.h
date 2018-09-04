@@ -9,7 +9,7 @@
 
 namespace chainerx {
 namespace testing {
-namespace {
+namespace threading_detail {
 
 // Called by thread dispatcher.
 template <typename Func>
@@ -23,11 +23,11 @@ auto CallFunc(const Func& func, size_t /*thread_index*/) -> decltype(func()) {
     return func();
 }
 
-}  // namespace
+}  // namespace threading_detail
 
 template <
         typename Func,
-        typename ResultType = decltype(CallFunc(std::declval<Func>(), size_t{})),
+        typename ResultType = decltype(threading_detail::CallFunc(std::declval<Func>(), size_t{})),
         std::enable_if_t<!std::is_void<ResultType>::value, std::nullptr_t> = nullptr>
 std::vector<ResultType> RunThreads(size_t thread_count, const Func& func) {
     std::mutex mutex;
@@ -50,7 +50,7 @@ std::vector<ResultType> RunThreads(size_t thread_count, const Func& func) {
             }
         }
 
-        return CallFunc(func, thread_index);
+        return threading_detail::CallFunc(func, thread_index);
     };
 
     // Launch threads
@@ -72,12 +72,12 @@ std::vector<ResultType> RunThreads(size_t thread_count, const Func& func) {
 
 template <
         typename Func,
-        typename ResultType = decltype(CallFunc(std::declval<Func>(), size_t{})),
+        typename ResultType = decltype(threading_detail::CallFunc(std::declval<Func>(), size_t{})),
         std::enable_if_t<std::is_void<ResultType>::value, std::nullptr_t> = nullptr>
 void RunThreads(size_t thread_count, const Func& func) {
     // Call overload by wrapping the given function that returns void with a lambda that returns a nullptr.
     RunThreads(thread_count, [&func](size_t thread_index) {
-        CallFunc(func, thread_index);
+        threading_detail::CallFunc(func, thread_index);
         return nullptr;
     });
 }
@@ -88,7 +88,7 @@ void RunThreads(size_t thread_count, const Func& func) {
 template <typename Func>
 inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
     // Run single-shot
-    CallFunc(func, -1);
+    threading_detail::CallFunc(func, -1);
 
     // Run in multi-threads
     if (thread_count > 0) {
@@ -97,7 +97,7 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
         RunThreads(thread_count, [&context, &device, &func](size_t thread_index) {
             chainerx::SetDefaultContext(&context);
             chainerx::SetDefaultDevice(&device);
-            CallFunc(func, thread_index);
+            threading_detail::CallFunc(func, thread_index);
         });
     }
 }
