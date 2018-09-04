@@ -239,12 +239,31 @@ def test_asarray_from_python_tuple_or_list():
     assert e.device is a.device
 
 
-def test_asarray_from_numpy_array():
+def test_asarray_from_numpy_array_with_zero_copy():
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'float32', padding=False)
+    a = chainerx.asarray(obj, dtype='float32')
+    chainerx.testing.assert_array_equal_ex(obj, a)
+
+    # test buffer is shared (zero copy)
+    a += a
+    chainerx.testing.assert_array_equal_ex(obj, a)
+
+    # test possibly freed memory
+    obj_copy = obj.copy()
+    del obj
+    chainerx.testing.assert_array_equal_ex(obj_copy, a)
+
+
+def test_asarray_from_numpy_array_with_copy():
     obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')
     a = chainerx.asarray(obj, dtype='float32')
     e = chainerx.array(obj, dtype='float32', copy=False)
     chainerx.testing.assert_array_equal_ex(e, a)
     assert e.device is a.device
+
+    # test buffer is not shared
+    a += a
+    assert not numpy.array_equal(obj, chainerx.tonumpy(a))
 
 
 @pytest.mark.parametrize('dtype', ['int32', 'float32'])
