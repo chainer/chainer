@@ -84,107 +84,31 @@ TEST(ContextTest, GetDeviceThreadSafe) {
     }
 }
 
-TEST(ContextTest, MakeBackpropIdThreadSafe) {
+TEST(ContextTest, BackpropIdThreadSafe) {
     Context ctx{};
 
     testing::RunThreads(2, [&ctx](size_t /*thread_index*/) {
-        ctx.MakeBackpropId("bp1");
-        return nullptr;
-    });
-}
+        // Prepare backprop IDs.
+        BackpropId default_backprop_id = ctx.default_backprop_id();
+        ctx.CheckValidBackpropId(default_backprop_id);
+        ctx.GetBackpropName(default_backprop_id);
+        ctx.CheckBackpropAllowed(default_backprop_id);
 
-TEST(ContextTest, ReleaseBackpropIdThreadSafe) {
-    Context ctx{};
-    BackpropId backprop_id = ctx.MakeBackpropId("bp1");
-
-    testing::RunThreads(2, [&ctx, &backprop_id](size_t /*thread_index*/) {
-        try {
-            ctx.ReleaseBackpropId(backprop_id);
-        } catch (const ChainerxError&) {
-            // Exception will be raised for repeatedly releasing the same backprop ID.
-            // This is however less relevant to this test since we are only concerned with the race conditions.
-        }
-        return nullptr;
-    });
-}
-
-TEST(ContextTest, ReleaseBackpropIdNoExceptThreadSafe) {
-    Context ctx{};
-    BackpropId backprop_id = ctx.MakeBackpropId("bp1");
-
-    testing::RunThreads(2, [&ctx, &backprop_id](size_t /*thread_index*/) {
-        ctx.ReleaseBackpropIdNoExcept(backprop_id);
-        return nullptr;
-    });
-}
-
-TEST(ContextTest, CheckValidBackpropIdThreadSafe) {
-    Context ctx{};
-    BackpropId backprop_id = ctx.MakeBackpropId("bp1");
-
-    testing::RunThreads(2, [&ctx, &backprop_id](size_t /*thread_index*/) {
+        BackpropId backprop_id = ctx.MakeBackpropId("bp");
         ctx.CheckValidBackpropId(backprop_id);
-        return nullptr;
-    });
-}
-
-TEST(ContextTest, ConnectBackpropIdsThreadSafe) {
-    Context ctx{};
-    BackpropId backprop_id1 = ctx.MakeBackpropId("bp1");
-    BackpropId backprop_id2 = ctx.MakeBackpropId("bp2");
-
-    testing::RunThreads(2, [&ctx, &backprop_id1, &backprop_id2](size_t /*thread_index*/) {
-        ctx.ConnectBackpropIds(backprop_id1, backprop_id2);
-        return nullptr;
-    });
-}
-
-TEST(ContextTest, GetBackpropNameThreadSafe) {
-    Context ctx{};
-    BackpropId backprop_id = ctx.MakeBackpropId("bp1");
-
-    testing::RunThreads(2, [&ctx, &backprop_id](size_t /*thread_index*/) {
         ctx.GetBackpropName(backprop_id);
-        return nullptr;
-    });
-}
-
-TEST(ContextTest, CheckBackpropAllowedThreadSafe) {
-    Context ctx{};
-    BackpropId backprop_id = ctx.MakeBackpropId("bp1");
-
-    testing::RunThreads(2, [&ctx, &backprop_id](size_t /*thread_index*/) {
         ctx.CheckBackpropAllowed(backprop_id);
-        return nullptr;
-    });
-}
 
-TEST(ContextTest, SetBackpropDoneThreadSafe) {
-    Context ctx{};
-    BackpropId backprop_id = ctx.MakeBackpropId("bp1");
-
-    testing::RunThreads(2, [&ctx, &backprop_id](size_t /*thread_index*/) {
-        ctx.SetBackpropDone(backprop_id);
-        return nullptr;
-    });
-}
-
-TEST(ContextTest, GetInnerBackpropIdsThreadSafe) {
-    Context ctx{};
-    BackpropId backprop_id = ctx.MakeBackpropId("bp1");
-
-    testing::RunThreads(2, [&ctx, &backprop_id](size_t /*thread_index*/) {
+        // Connect backprop IDs.
+        ctx.ConnectBackpropIds(default_backprop_id, backprop_id);
+        ctx.GetInnerBackpropIds(default_backprop_id);
         ctx.GetInnerBackpropIds(backprop_id);
-        return nullptr;
-    });
-}
 
-TEST(ContextTest, DefaultBackpropIdThreadSafe) {
-    Context ctx{};
-    BackpropId backprop_id = ctx.MakeBackpropId("bp1");
+        // Post-process backprop IDs.
+        ctx.SetBackpropDone(backprop_id);
+        ctx.ReleaseBackpropIdNoExcept(default_backprop_id);
+        ctx.ReleaseBackpropId(backprop_id);
 
-    testing::RunThreads(2, [&ctx, &backprop_id](size_t /*thread_index*/) {
-        ctx.default_backprop_id();
         return nullptr;
     });
 }
