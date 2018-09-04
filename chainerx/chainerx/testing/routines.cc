@@ -114,11 +114,10 @@ void CheckForward(
     if (concurrent_check_thread_count > 0) {
         Context& context = chainerx::GetDefaultContext();
 
-        RunThreads(concurrent_check_thread_count, [&func, &inputs, &expected_outputs, &atol, &rtol, &context](size_t /*thread_index*/) {
+        RunThreads(concurrent_check_thread_count, [&func, &inputs, &expected_outputs, &atol, &rtol, &context]() {
             chainerx::SetDefaultContext(&context);
             std::vector<Array> outputs = func(inputs);
             CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
-            return nullptr;
         });
     }
 }

@@ -54,12 +54,11 @@ TEST(NativeBackendTest, GetDeviceCountGetNameThreadSafe) {
     Context ctx{};
     Backend& backend = ctx.GetNativeBackend();
 
-    testing::RunThreads(kThreadCount, [&backend, &expected_device_count, &expected_backend_name](size_t /*thread_index*/) {
+    testing::RunThreads(kThreadCount, [&backend, &expected_device_count, &expected_backend_name]() {
         int device_count = backend.GetDeviceCount();
         std::string name = backend.GetName();
         EXPECT_EQ(expected_device_count, device_count);
         EXPECT_EQ(expected_backend_name, name);
-        return nullptr;
     });
 }
 
@@ -97,7 +96,6 @@ TEST(NativeBackendTest, GetDeviceThreadSafe) {
         Device& device = backend.GetDevice(device_index);
         EXPECT_EQ(&backend, &device.backend());
         EXPECT_EQ(device_index, device.index());
-        return nullptr;
     });
 }
 
@@ -117,10 +115,9 @@ TEST(NativeBackendTest, SupportsTransferThreadSafe) {
     Device& ctx0_device1 = ctx0_backend.GetDevice(1);
     Device& ctx1_device = ctx1_backend.GetDevice(0);
 
-    testing::RunThreads(kThreadCount, [&ctx0_backend, &ctx0_device0, &ctx0_device1, &ctx1_device](size_t /*thread_index*/) {
+    testing::RunThreads(kThreadCount, [&ctx0_backend, &ctx0_device0, &ctx0_device1, &ctx1_device]() {
         EXPECT_TRUE(ctx0_backend.SupportsTransfer(ctx0_device0, ctx0_device1));
         EXPECT_FALSE(ctx0_backend.SupportsTransfer(ctx0_device0, ctx1_device));
-        return nullptr;
     });
 }
 

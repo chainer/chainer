@@ -169,20 +169,14 @@ TEST(CudaDeviceTest, GetCublasHandleThreadSafe) {
     Context ctx{};
     CudaDevice& device = GetCudaDevice(ctx, 0);
 
-    testing::RunThreads(2, [&device](size_t /*thread_index*/) {
-        device.cublas_handle();
-        return nullptr;
-    });
+    testing::RunThreads(2, [&device]() { device.cublas_handle(); });
 }
 
 TEST(CudaDeviceTest, GetCudnnHandleThreadSafe) {
     Context ctx{};
     CudaDevice& device = GetCudaDevice(ctx, 0);
 
-    testing::RunThreads(2, [&device](size_t /*thread_index*/) {
-        device.cudnn_handle();
-        return nullptr;
-    });
+    testing::RunThreads(2, [&device]() { device.cudnn_handle(); });
 }
 
 }  // namespace

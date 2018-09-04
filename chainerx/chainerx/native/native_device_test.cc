@@ -30,13 +30,6 @@ NativeDevice& GetNativeDevice(Context& ctx, int device_index) {
     return dynamic_cast<NativeDevice&>(ctx.GetDevice({"native", device_index}));
 }
 
-void RunThreads(const std::function<void(void)>& func) {
-    testing::RunThreads(2, [&func](size_t /*thread_index*/) {
-        func();
-        return nullptr;
-    });
-}
-
 TEST(NativeDeviceTest, Allocate) {
     Context ctx;
     NativeDevice& device = GetNativeDevice(ctx, 0);
@@ -116,7 +109,7 @@ TEST(NativeDeviceTest, GetBackendMultiThread) {
     NativeDevice& device = GetNativeDevice(ctx, 0);
     Backend& expected_backend = device.backend();
 
-    RunThreads([&device, &expected_backend]() {
+    testing::RunThreads(2, [&device, &expected_backend]() {
         Backend& backend = device.backend();
         EXPECT_EQ(&expected_backend, &backend);
     });
@@ -127,7 +120,7 @@ TEST(NativeDeviceTest, GetIndexMultiThread) {
     NativeDevice& device = GetNativeDevice(ctx, 0);
     int expected_index = device.index();
 
-    RunThreads([&device, &expected_index]() {
+    testing::RunThreads(2, [&device, &expected_index]() {
         int index = device.index();
         EXPECT_EQ(expected_index, index);
     });
@@ -138,7 +131,7 @@ TEST(NativeDeviceTest, GetNameMultiThread) {
     NativeDevice& device = GetNativeDevice(ctx, 0);
     std::string expected_name = device.name();
 
-    RunThreads([&device, &expected_name]() {
+    testing::RunThreads(2, [&device, &expected_name]() {
         std::string name = device.name();
         EXPECT_EQ(expected_name, name);
     });
@@ -148,7 +141,7 @@ TEST(NativeDeviceTest, GetContextMultiThread) {
     Context ctx;
     NativeDevice& device = GetNativeDevice(ctx, 0);
 
-    RunThreads([&ctx, &device]() {
+    testing::RunThreads(2, [&ctx, &device]() {
         Context& context = device.context();
         EXPECT_EQ(&ctx, &context);
     });

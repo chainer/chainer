@@ -65,12 +65,11 @@ TEST(CudaBackendTest, GetDeviceCountGetNameThreadSafe) {
     int expected_device_count = backend.GetDeviceCount();
     std::string expected_backend_name = backend.GetName();
 
-    testing::RunThreads(2, [&backend, expected_device_count, &expected_backend_name](size_t /*thread_index*/) {
+    testing::RunThreads(2, [&backend, expected_device_count, &expected_backend_name]() {
         int device_count = backend.GetDeviceCount();
         std::string name = backend.GetName();
         EXPECT_EQ(expected_device_count, device_count);
         EXPECT_EQ(expected_backend_name, name);
-        return nullptr;
     });
 }
 
@@ -87,11 +86,10 @@ TEST(CudaBackendTest, GetDeviceThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};
 
-    testing::RunThreads(2, [&backend](size_t /*thread_index*/) {
+    testing::RunThreads(2, [&backend]() {
         Device& device = backend.GetDevice(0);
         EXPECT_EQ(&backend, &device.backend());
         EXPECT_EQ(0, device.index());
-        return nullptr;
     });
 }
 
@@ -130,10 +128,9 @@ TEST(CudaBackendTest, SupportsTransferThreadSafe) {
     Device& ctx0_device1 = ctx0_backend.GetDevice(1);
     Device& ctx1_device = ctx1_backend.GetDevice(0);
 
-    testing::RunThreads(kThreadCount, [&ctx0_backend, &ctx0_device0, &ctx0_device1, &ctx1_device](size_t /*thread_index*/) {
+    testing::RunThreads(kThreadCount, [&ctx0_backend, &ctx0_device0, &ctx0_device1, &ctx1_device]() {
         EXPECT_TRUE(ctx0_backend.SupportsTransfer(ctx0_device0, ctx0_device1));
         EXPECT_FALSE(ctx0_backend.SupportsTransfer(ctx0_device0, ctx1_device));
-        return nullptr;
     });
 }
 
@@ -414,10 +411,9 @@ TEST(CudaBackendTest, SetAndGetCudnnMaxWorkspaceSizeThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};
 
-    testing::RunThreads(2, [&backend](size_t /*thread_index*/) {
+    testing::RunThreads(2, [&backend]() {
         backend.SetCudnnMaxWorkspaceSize(10);
         EXPECT_EQ(size_t{10}, backend.GetCudnnMaxWorkspaceSize());
-        return nullptr;
     });
 }
 
