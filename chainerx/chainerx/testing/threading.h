@@ -107,12 +107,10 @@ inline void RunTestWithThreads(const std::function<void(void)>& func, size_t thr
 #define TASK(...)                                                          \
     if (thread_count() > 1) {                                              \
         testing::RunThreads(thread_count(), [&](size_t /*thread_index*/) { \
-            std::cout << "MULTI" << std::endl;                             \
             { __VA_ARGS__ }                                                \
             return nullptr;                                                \
         });                                                                \
     } else {                                                               \
-        std::cout << "SINGLE" << std::endl;                                \
         { __VA_ARGS__ }                                                    \
     }
 
