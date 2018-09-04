@@ -109,7 +109,7 @@ void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
         const T* a_ptr = internal::GetRawOffsetData<const T>(a_config);
         const T* b_ptr = internal::GetRawOffsetData<const T>(b_config);
         T* out_ptr = internal::GetRawOffsetData<T>(out_contiguous);
-        std::lock_guard<std::mutex> lock{cublas_handle_mutex()};
+        std::lock_guard<std::mutex> lock{cublas_handle_mutex_};
         Gemm<T>{}(
                 cublas_handle(), b_layout.trans, a_layout.trans, n, m, k, &one, b_ptr, b_layout.ld, a_ptr, a_layout.ld, &zero, out_ptr, n);
     };
