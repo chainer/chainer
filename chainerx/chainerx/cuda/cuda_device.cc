@@ -32,7 +32,7 @@ cublasHandle_t CudaDevice::cublas_handle() {
 }
 
 cudnnHandle_t CudaDevice::cudnn_handle() {
-    std::lock_guard<std::mutex> lock{cudnn_handle_mutex_};
+    std::lock_guard<std::mutex> lock{cudnn_handle_creation_mutex_};
     if (cudnn_handle_ == nullptr) {
         CheckCudaError(cudaSetDevice(index()));
         CheckCudnnError(cudnnCreate(&cudnn_handle_));

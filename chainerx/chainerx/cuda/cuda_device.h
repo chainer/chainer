@@ -35,6 +35,7 @@ public:
 
     void Synchronize() override;
 
+    std::mutex& cudnn_handle_mutex() { return cudnn_handle_mutex_; }
     cudnnHandle_t cudnn_handle();
 
     // memory.cc
@@ -194,8 +195,11 @@ private:
 
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};
+
+    std::mutex cudnn_handle_creation_mutex_;
     std::mutex cudnn_handle_mutex_;
     cudnnHandle_t cudnn_handle_{};
+
     cuda_internal::CudaConv cuda_conv_{};
 };
 
