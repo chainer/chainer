@@ -80,11 +80,12 @@ class VGGLayers(link.Chain):
     def __init__(self, pretrained_model='auto', n_layers=16):
         super(VGGLayers, self).__init__()
         if pretrained_model:
-            # Because a sampling process is time-consuming,
+            # As a sampling process is time-consuming,
             # we employ a zero initializer for faster computation.
             init = constant.Zero()
             kwargs = {'initialW': init, 'initial_bias': init}
         else:
+            # employ default initializers used in the original paper
             kwargs = {
                 'initialW': normal.Normal(0.01),
                 'initial_bias': constant.Zero(),
