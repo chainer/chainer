@@ -29,7 +29,7 @@ class BatchNormalization(link.Link):
     statistics*. In order to correctly compute the population statistics, a
     user must use this mode to feed mini-batches running through whole training
     dataset. Finetuning mode is enabled when ``chainer.config.train`` is set to
-    ``True`` and :meth:`__call___` is invoked with ``finetune=True``.
+    ``True`` and :meth:`__call__` is invoked with ``finetune=True``.
 
     In testing mode, it uses pre-computed population statistics to normalize
     the input variable. The population statistics is approximated if it is
