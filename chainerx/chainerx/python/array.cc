@@ -61,9 +61,8 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     py::buffer_info info = array.request();
 
     // Some backends may perform zero copy, so increment refcount of numpy ndarray not to be released in user codes.
-    // The refcount will be decremented by the deleter of the data shared_ptr.
-    array.inc_ref();
-    std::shared_ptr<void> data{static_cast<char*>(info.ptr) + first, [array](void*) { array.dec_ref(); }};
+    // Note that inc_ref() / dec_ref() is performed by the lambda capture.
+    std::shared_ptr<void> data{static_cast<char*>(info.ptr) + first, [array](void*) {}};
 
     return MoveArrayBody(internal::FromHostData(shape, dtype, data, strides, -first, device));
 }
