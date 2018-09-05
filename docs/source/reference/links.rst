@@ -111,14 +111,15 @@ where ``fc7`` denotes a layer before the last fully-connected layer.
 Unlike the usual links, these classes automatically load all the
 parameters from the pre-trained models during initialization.
 
-VGG16Layers
-~~~~~~~~~~~
+VGG Networks
+~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
    chainer.links.VGG16Layers
+   chainer.links.VGG19Layers
    chainer.links.model.vision.vgg.prepare
 
 GoogLeNet
