@@ -84,6 +84,34 @@ TEST(ContextTest, GetDeviceThreadSafe) {
     }
 }
 
+TEST(ContextTest, BackpropIdThreadSafe) {
+    Context ctx{};
+
+    testing::RunThreads(2, [&ctx](size_t /*thread_index*/) {
+        // Prepare backprop IDs.
+        BackpropId default_backprop_id = ctx.default_backprop_id();
+        ctx.CheckValidBackpropId(default_backprop_id);
+        ctx.GetBackpropName(default_backprop_id);
+        ctx.CheckBackpropAllowed(default_backprop_id);
+
+        BackpropId backprop_id = ctx.MakeBackpropId("bp");
+        ctx.CheckValidBackpropId(backprop_id);
+        ctx.GetBackpropName(backprop_id);
+        ctx.CheckBackpropAllowed(backprop_id);
+
+        // Connect backprop IDs.
+        ctx.ConnectBackpropIds(default_backprop_id, backprop_id);
+        ctx.GetInnerBackpropIds(default_backprop_id);
+        ctx.GetInnerBackpropIds(backprop_id);
+
+        // Post-process backprop IDs.
+        ctx.SetBackpropDone(backprop_id);
+        ctx.ReleaseBackpropId(backprop_id);
+
+        return nullptr;
+    });
+}
+
 TEST(ContextTest, DefaultContext) {
     SetGlobalDefaultContext(nullptr);
     SetDefaultContext(nullptr);

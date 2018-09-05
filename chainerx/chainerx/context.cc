@@ -125,8 +125,8 @@ Device& Context::GetDevice(const DeviceId& device_id) {
 
 BackpropId Context::MakeBackpropId(std::string backprop_name) {
     // Create new backprop ID
+    std::lock_guard<std::mutex> lock{mutex_};
     backprop_set_.emplace_back(next_backprop_ordinal_, std::move(backprop_name));
-
     return BackpropId{*this, next_backprop_ordinal_++};
 }
 
@@ -141,6 +141,7 @@ void Context::ReleaseBackpropId(const BackpropId& backprop_id) {
 }
 
 void Context::ReleaseBackpropIdNoExcept(const BackpropId& backprop_id) noexcept {
+    std::lock_guard<std::mutex> lock{mutex_};
     BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
     if (item == nullptr) {
         return;
@@ -167,9 +168,10 @@ void Context::CheckValidBackpropId(const BackpropId& backprop_id) const {
     if (&backprop_id.context() != this) {
         throw ChainerxError{"Invalid context in backprop ID: ", backprop_id};
     }
-    const BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
-    if (item == nullptr) {
-        throw ChainerxError{"Invalid backprop ID, maybe already expired: ", backprop_id};
+
+    std::lock_guard<std::mutex> lock{mutex_};
+    if (GetBackpropSetItem(backprop_id.ordinal()) == nullptr) {
+        throw ChainerxError{"Invalid backprop ID, maybe already expired: ", ToBackpropIdString(backprop_id.ordinal())};
     }
 }
 
@@ -180,6 +182,9 @@ void Context::ConnectBackpropIds(const BackpropId& backprop_id1, const BackpropI
         // They are identical
         return;
     }
+
+    std::lock_guard<std::mutex> lock{mutex_};
+
     BackpropSetItem* item1 = GetBackpropSetItem(backprop_id1.ordinal());
     BackpropSetItem* item2 = GetBackpropSetItem(backprop_id2.ordinal());
     if (item1 == nullptr || item2 == nullptr) {
@@ -200,31 +205,29 @@ void Context::ConnectBackpropIds(const BackpropId& backprop_id1, const BackpropI
 std::string Context::GetBackpropName(const BackpropId& backprop_id) {
     // Note: backprop name cannot be returned by reference, as the reference may be invalidated when a new graph is pushed to the backprop
     // set.
-
-    BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
-    if (item == nullptr) {
-        throw ChainerxError{"Backprop not found in the context. Ordinal:", backprop_id.ordinal()};
-    }
-    return item->name;
+    std::lock_guard<std::mutex> lock{mutex_};
+    return ToBackpropIdString(backprop_id.ordinal());
 }
 
 void Context::CheckBackpropAllowed(const BackpropId& backprop_id) {
+    std::lock_guard<std::mutex> lock{mutex_};
     BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
     if (item == nullptr) {
-        throw ChainerxError{"Backprop ID not found: ", backprop_id};
+        throw ChainerxError{"Backprop ID not found: ", ToBackpropIdString(backprop_id.ordinal())};
     }
     if (item->prohibiting_ordinal.has_value()) {
         throw ChainerxError{"Cannot backward for backprop ID '",
-                            backprop_id,
+                            ToBackpropIdString(backprop_id.ordinal()),
                             "' because an connected backprop ID '",
-                            BackpropId{*this, *item->prohibiting_ordinal},
+                            ToBackpropIdString(*item->prohibiting_ordinal),
                             "' which has been created earlier, has already been backpropped."};
     }
 }
 
 void Context::SetBackpropDone(const BackpropId& backprop_id) {
-    BackpropSetItem* item = GetBackpropSetItem(backprop_id.ordinal());
-    CHAINERX_ASSERT(item != nullptr);
+    std::lock_guard<std::mutex> lock{mutex_};
+
+    CHAINERX_ASSERT(GetBackpropSetItem(backprop_id.ordinal()) != nullptr);
 
     // Find connected backprop IDs
     std::vector<BackpropOrdinal> ordinals_to_prohibit;
@@ -245,6 +248,8 @@ void Context::SetBackpropDone(const BackpropId& backprop_id) {
 
 std::vector<BackpropId> Context::GetInnerBackpropIds(const BackpropId& backprop_id) {
     std::vector<BackpropId> inner_backprop_ids;
+
+    std::lock_guard<std::mutex> lock{mutex_};
     inner_backprop_ids.reserve(backprop_set_.size());
     for (const std::pair<BackpropOrdinal, BackpropOrdinal>& pair : backprop_connections_) {
         if (pair.first == backprop_id.ordinal()) {
@@ -264,6 +269,16 @@ ReturnType Context::GetBackpropSetItemImpl(ThisPtr this_ptr, BackpropOrdinal ord
         return nullptr;
     }
     return &*it;
+}
+
+std::string Context::ToBackpropIdString(BackpropOrdinal ordinal) const {
+    static constexpr const char* kExpiredBackpropDisplayName = "<expired>";
+
+    const BackpropSetItem* item = GetBackpropSetItem(ordinal);
+    if (item == nullptr) {
+        return kExpiredBackpropDisplayName;
+    }
+    return item->name;
 }
 
 Context& GetGlobalDefaultContext() {
