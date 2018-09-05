@@ -165,13 +165,6 @@ TEST(CudaDeviceTest, Synchronize) {
     device.Synchronize();  // no throw
 }
 
-TEST(CudaDeviceTest, GetCublasHandleThreadSafe) {
-    Context ctx{};
-    CudaDevice& device = GetCudaDevice(ctx, 0);
-
-    testing::RunThreads(2, [&device]() { device.cublas_handle(); });
-}
-
 TEST(CudaDeviceTest, GetCudnnHandleThreadSafe) {
     Context ctx{};
     CudaDevice& device = GetCudaDevice(ctx, 0);
