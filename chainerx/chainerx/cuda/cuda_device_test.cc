@@ -114,9 +114,8 @@ TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonUnifiedMemory) {
 }
 
 TEST(CudaDeviceTest, MakeDataFromForeignPointer_FromAnotherDevice) {
+    CHAINERX_REQUIRE_DEVICE("cuda", 2);
     Context ctx;
-
-    CHAINERX_REQUIRE_DEVICE(ctx.GetBackend("cuda"), 2);
 
     CudaDevice& device = GetCudaDevice(ctx, 0);
     CudaDevice& another_device = GetCudaDevice(ctx, 1);
@@ -165,24 +164,11 @@ TEST(CudaDeviceTest, Synchronize) {
     device.Synchronize();  // no throw
 }
 
-TEST(CudaDeviceTest, GetCublasHandleThreadSafe) {
-    Context ctx{};
-    CudaDevice& device = GetCudaDevice(ctx, 0);
-
-    testing::RunThreads(2, [&device](size_t /*thread_index*/) {
-        device.cublas_handle();
-        return nullptr;
-    });
-}
-
 TEST(CudaDeviceTest, GetCudnnHandleThreadSafe) {
     Context ctx{};
     CudaDevice& device = GetCudaDevice(ctx, 0);
 
-    testing::RunThreads(2, [&device](size_t /*thread_index*/) {
-        device.cudnn_handle();
-        return nullptr;
-    });
+    testing::RunThreads(2, [&device]() { device.cudnn_handle(); });
 }
 
 }  // namespace

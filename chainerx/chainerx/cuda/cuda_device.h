@@ -35,7 +35,6 @@ public:
 
     void Synchronize() override;
 
-    cublasHandle_t cublas_handle();
     cudnnHandle_t cudnn_handle();
 
     // memory.cc
@@ -185,11 +184,14 @@ protected:
     CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
 
 private:
+    cublasHandle_t cublas_handle();  // not thread-safe
+
     friend CudaDevice* cuda_internal::CreateDevice(CudaBackend&, int);
 
     friend class cuda_internal::CudaConvTest;  // for unit-tests
 
     MemoryPool memory_pool_;
+
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};
     std::mutex cudnn_handle_mutex_;

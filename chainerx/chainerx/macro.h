@@ -29,10 +29,10 @@
 #ifdef NDEBUG
 #define CHAINERX_NEVER_REACH() (std::abort())
 #else  // NDEBUG
-#define CHAINERX_NEVER_REACH()                    \
-    do {                                          \
-        assert(false); /* NOLINT(cert-dcl03-c) */ \
-        std::abort();                             \
+#define CHAINERX_NEVER_REACH()                                        \
+    do {                                                              \
+        assert(false); /* NOLINT(cert-dcl03-c, misc-static-assert) */ \
+        std::abort();                                                 \
     } while (false)
 #endif  // NDEBUG
 #endif  // CHAINERX_NEVER_REACH

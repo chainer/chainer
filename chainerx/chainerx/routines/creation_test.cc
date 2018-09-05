@@ -275,7 +275,7 @@ TEST_P(CreationTest, FromData) {
     Strides strides{sizeof(T) * 3};
     int64_t offset = sizeof(T);
 
-    testing::RunTestWithThreads([&device, &host_data, &raw_data, &shape, &dtype, &strides, &offset, &expected_data]() {
+    testing::RunTestWithThreads([&device, &host_data, &shape, &dtype, &strides, &offset, &expected_data]() {
         Array x;
         void* data_ptr{};
         {
@@ -303,7 +303,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
     Strides strides{sizeof(T)};
     int64_t offset = sizeof(T) * 3;
 
-    testing::RunTestWithThreads([&device, &host_data, &raw_data, &shape, &dtype, &strides, &offset, &expected_data]() {
+    testing::RunTestWithThreads([&device, &host_data, &shape, &dtype, &strides, &offset, &expected_data]() {
         Array x;
         void* data_ptr{};
         {

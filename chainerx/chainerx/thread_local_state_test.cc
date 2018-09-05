@@ -146,7 +146,6 @@ TEST(ThreadLocalStateTest, CopyAcrossThreads) {
                         EXPECT_FALSE(IsBackpropRequired(backprop_id_main));
                         EXPECT_FALSE(IsBackpropRequired(backprop_id_this_thread));
                         EXPECT_TRUE(IsBackpropRequired(backprop_id_another_thread));
-                        return nullptr;
                     });
         }
     }};

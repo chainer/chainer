@@ -90,7 +90,7 @@ bool SkipIfDeviceUnavailable(Backend& backend, int required_num) {
 }
 
 bool SkipIfDeviceUnavailable(const std::string& backend_name, int required_num) {
-    return SkipIfDeviceUnavailable(GetDefaultContext().GetBackend(backend_name), required_num);
+    return SkipIfDeviceUnavailable(Context{}.GetBackend(backend_name), required_num);
 }
 
 }  // namespace testing_internal
