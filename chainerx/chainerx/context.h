@@ -103,6 +103,7 @@ public:
 
     BackpropId default_backprop_id() {
         // The first entry is always the default backprop ID.
+        std::lock_guard<std::mutex> lock{mutex_};
         CHAINERX_ASSERT(!backprop_set_.empty());
         return BackpropId{*this, backprop_set_.front().ordinal};
     }
@@ -121,17 +122,24 @@ private:
     };
 
     // Finds the BackpropSetItem instance.
+    // Note that this function is not thread safe.
     const BackpropSetItem* GetBackpropSetItem(BackpropOrdinal ordinal) const {
         return GetBackpropSetItemImpl<const Context*, const BackpropSetItem*>(this, ordinal);
     }
 
     // Finds the BackpropSetItem instance.
+    // Note that this function is not thread safe.
     BackpropSetItem* GetBackpropSetItem(BackpropOrdinal ordinal) {
         return GetBackpropSetItemImpl<Context*, BackpropSetItem*>(this, ordinal);
     }
 
     template <typename ThisPtr, typename ReturnType>
     static ReturnType GetBackpropSetItemImpl(ThisPtr this_ptr, BackpropOrdinal ordinal);
+
+    // Returns a string representation of a backprop ID given its ordinal.
+    // A special string is returned if the given ordinal has already expired.
+    // Note that this function is not thread safe.
+    std::string ToBackpropIdString(BackpropOrdinal ordinal) const;
 
     std::unordered_map<std::string, std::unique_ptr<Backend, context_detail::BackendDeleter>> backends_;
     std::vector<void*> dlopen_handles_;
