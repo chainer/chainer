@@ -184,7 +184,7 @@ protected:
     CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
 
 private:
-    cublasHandle_t cublas_handle();
+    cublasHandle_t cublas_handle();  // not thread-safe
 
     friend CudaDevice* cuda_internal::CreateDevice(CudaBackend&, int);
 
