@@ -253,6 +253,12 @@ def test_asarray_from_numpy_array_with_zero_copy():
     del obj
     chainerx.testing.assert_array_equal_ex(obj_copy, a)
 
+    # test possibly freed memory (the other way)
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'float32', padding=False)
+    a = chainerx.asarray(obj, dtype='float32')
+    del a
+    chainerx.testing.assert_array_equal_ex(obj_copy, obj)
+
 
 def test_asarray_from_numpy_array_with_copy():
     obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32')
