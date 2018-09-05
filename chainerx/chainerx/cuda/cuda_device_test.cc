@@ -5,7 +5,6 @@
 #include <thread>
 #include <vector>
 
-#include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
@@ -21,15 +20,6 @@
 
 namespace chainerx {
 namespace cuda {
-namespace cuda_internal {
-
-class CudaDeviceTest {
-public:
-    static cublasHandle_t cublas_handle(CudaDevice& device) { return device.cublas_handle(); }
-};
-
-}  // namespace cuda_internal
-
 namespace {
 
 template <typename T>
@@ -180,7 +170,7 @@ TEST(CudaDeviceTest, GetCublasHandleThreadSafe) {
     CudaDevice& device = GetCudaDevice(ctx, 0);
 
     testing::RunThreads(2, [&device](size_t /*thread_index*/) {
-        cuda_internal::CudaDeviceTest::cublas_handle(device);
+        device.cublas_handle();
         return nullptr;
     });
 }
