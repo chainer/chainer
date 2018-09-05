@@ -240,7 +240,7 @@ def test_asarray_from_python_tuple_or_list():
 
 
 def test_asarray_from_numpy_array_with_zero_copy():
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'float32', padding=False)
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'float32', padding=True)
     a = chainerx.asarray(obj, dtype='float32')
     chainerx.testing.assert_array_equal_ex(obj, a)
 
@@ -251,13 +251,14 @@ def test_asarray_from_numpy_array_with_zero_copy():
     # test possibly freed memory
     obj_copy = obj.copy()
     del obj
-    chainerx.testing.assert_array_equal_ex(obj_copy, a)
+    chainerx.testing.assert_array_equal_ex(obj_copy, a, strides_check=False)
 
     # test possibly freed memory (the other way)
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'float32', padding=False)
+    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'float32', padding=True)
     a = chainerx.asarray(obj, dtype='float32')
+    a_copy = a.copy()
     del a
-    chainerx.testing.assert_array_equal_ex(obj_copy, obj)
+    chainerx.testing.assert_array_equal_ex(a_copy, obj, strides_check=False)
 
 
 def test_asarray_from_numpy_array_with_copy():
