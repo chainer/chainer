@@ -55,18 +55,15 @@ ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Dtype dtype = GetDtypeFromNumpyDtype(array.dtype());
     Strides strides{array.strides(), array.strides() + array.ndim()};
 
-    // Copy to a newly allocated data
     int64_t first{};
     int64_t last{};
     std::tie(first, last) = GetDataRange(shape, strides, array.itemsize());
-    auto bytesize = static_cast<size_t>(last - first);
-    std::shared_ptr<void> data = std::make_unique<uint8_t[]>(bytesize);
-    {
-        py::buffer_info info = array.request();
-        std::memcpy(data.get(), static_cast<char*>(info.ptr) + first, bytesize);
-    }
+    py::buffer_info info = array.request();
 
-    // Create and return the array
+    // Some backends may perform zero copy, so increment refcount of numpy ndarray not to be released in user codes.
+    // Note that inc_ref() / dec_ref() is performed by the lambda capture.
+    std::shared_ptr<void> data{static_cast<char*>(info.ptr) + first, [array](void*) {}};
+
     return MoveArrayBody(internal::FromHostData(shape, dtype, data, strides, -first, device));
 }
 
