@@ -159,11 +159,14 @@ jobs:
 
             mkdir -p build
             pushd build
+
+            # -DPYTHON_EXECUTABLE:FILEPATH is specified in order to use the created environment when building pybind11 instead of the default Python in miniconda
             cmake \
                 -DCMAKE_BUILD_TYPE=Debug \
                 -DCHAINERX_BUILD_PYTHON=1 \
                 -DCHAINERX_WARNINGS_AS_ERRORS=ON \
                 -DCMAKE_INSTALL_PREFIX=$HOME/local \
+                -DPYTHON_EXECUTABLE:FILEPATH=${CONDA_PREFIX}/bin/python \
                 ..
             popd
 
