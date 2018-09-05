@@ -132,25 +132,30 @@ TEST(ContextTest, DefaultContext) {
     ASSERT_EQ(&ctx, &GetDefaultContext());
 }
 
-TEST_THREAD_SAFE(ContextTest, DefaultContextThreadSafe) {
-    TASK({
+TEST(ContextTest, DefaultContextThreadSafe) {
+    static constexpr size_t kThreadCount = 2;
+
+    testing::RunThreads(kThreadCount, [](size_t /*thread_index*/) {
         Context ctx{};
         SetDefaultContext(&ctx);
         Context& ctx2 = GetDefaultContext();
         EXPECT_EQ(&ctx, &ctx2);
+        return nullptr;
     });
 }
 
-TEST_THREAD_SAFE(ContextTest, GlobalDefaultContextThreadSafe) {
+TEST(ContextTest, GlobalDefaultContextThreadSafe) {
+    static constexpr size_t kThreadCount = 2;
     Context ctx{};
 
     // Each of SetGlobalDefaultContext() and GetGlobalDefaultContext() must be thread-safe, but a pair of these calls is not guaranteed
     // to be so. In this check, a single context is set as the global context simultaneously in many threads and it only checks that the
     // succeeding Get...() call returns the same instance.
-    TASK({
+    testing::RunThreads(kThreadCount, [&ctx](size_t /*thread_index*/) {
         SetGlobalDefaultContext(&ctx);
         Context& ctx2 = GetGlobalDefaultContext();
         EXPECT_EQ(&ctx, &ctx2);
+        return nullptr;
     });
 }
 
