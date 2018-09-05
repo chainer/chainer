@@ -51,6 +51,7 @@ void InitChainerxCheckBackward(pybind11::module& m) {
                       {inputs.begin(), inputs.end()},
                       {grad_outputs.begin(), grad_outputs.end()},
                       {eps.begin(), eps.end()},
+                      2,
                       atol,
                       rtol,
                       backprop_id);
