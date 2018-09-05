@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <vector>
 
@@ -17,13 +18,14 @@ public:
 
     // Returns the array bodies which are still alive.
     // It is useful to detect unreleased array bodies, leaking from the scope of ArrayBodyLeakDetectionScope.
-    std::vector<std::shared_ptr<ArrayBody>> GetAliveArrayBodies() const;
+    std::vector<std::shared_ptr<ArrayBody>> GetAliveArrayBodies();
 
     // Asserts all the array bodies are freed in the leak tracker.
-    bool IsAllArrayBodiesFreed(std::ostream& os) const;
+    bool IsAllArrayBodiesFreed(std::ostream& os);
 
 private:
     std::vector<std::weak_ptr<ArrayBody>> weak_ptrs_;
+    std::mutex mutex_;
 };
 
 // A scope object to detect array body leaks.
