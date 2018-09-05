@@ -25,6 +25,7 @@ namespace cuda {
 namespace cuda_internal {
 
 class CudaConvTest;  // for unit-tests
+class CudaDeviceTest;  // for unit-tests
 
 }  // namespace cuda_internal
 
@@ -189,6 +190,7 @@ private:
     friend CudaDevice* cuda_internal::CreateDevice(CudaBackend&, int);
 
     friend class cuda_internal::CudaConvTest;  // for unit-tests
+    friend class cuda_internal::CudaDeviceTest;  // for unit-tests
 
     MemoryPool memory_pool_;
 
