@@ -7,6 +7,7 @@
 #include <gsl/gsl>
 
 #include "chainerx/array.h"
+#include "chainerx/array_body_leak_detection.h"
 #include "chainerx/context.h"
 #include "chainerx/numeric.h"
 #include "chainerx/testing/threading.h"
@@ -112,13 +113,17 @@ void CheckForward(
 
     // Run thread safety check
     if (concurrent_check_thread_count > 0) {
-        Context& context = chainerx::GetDefaultContext();
+        chainerx::internal::ArrayBodyLeakTracker tracker{};
+        {
+            chainerx::internal::ArrayBodyLeakDetectionScope scope{tracker};
+            Context& context = chainerx::GetDefaultContext();
 
-        RunThreads(concurrent_check_thread_count, [&func, &inputs, &expected_outputs, &atol, &rtol, &context]() {
-            chainerx::SetDefaultContext(&context);
-            std::vector<Array> outputs = func(inputs);
-            CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
-        });
+            RunThreads(concurrent_check_thread_count, [&func, &inputs, &expected_outputs, &atol, &rtol, &context]() {
+                chainerx::SetDefaultContext(&context);
+                std::vector<Array> outputs = func(inputs);
+                CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
+            });
+        }
     }
 }
 
