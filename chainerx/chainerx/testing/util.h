@@ -6,18 +6,17 @@
 
 // Skip a test if required number of devices are unavailable.
 //
-// If `backend` is a string, the global default context must be set in advance.
+// `backend` can be either a string or a Backend instance.
+// If it is a string, a temporary context is created to see the number of devices of that backend.
 //
 // EXAMPLE:
 //
 //     TEST(ArrayTest, FooTest) {
 //        CHAINERX_REQUIRE_DEVICE(cuda_backend, 2);  // backend instance
-//        // CHAINERX_REQUIRE_DEVICE("cuda", 2);  // backend name for default context
+//        // CHAINERX_REQUIRE_DEVICE("cuda", 2);  // backend name
 //
 //        // Write your tests here
 //     }
-
-// TODO(imanishi): Do not depend on the default context being set when the backend argument is a string
 #define CHAINERX_REQUIRE_DEVICE(backend, required_num)                                                 \
     do {                                                                                               \
         if (chainerx::testing::testing_internal::SkipIfDeviceUnavailable((backend), (required_num))) { \
