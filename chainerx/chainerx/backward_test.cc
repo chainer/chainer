@@ -1484,8 +1484,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
     std::weak_ptr<internal::ArrayBody> y1_body{};
     std::weak_ptr<internal::ArrayBody> y2_body{};
 
-    auto forward = [&backprop_id1, &backprop_id2, &y1_body, &y2_body, double_backprop_opt](
-                           const Array& x1, const Array& x2, Array& y1, Array& y2) {
+    auto forward = [&backprop_id1, &y1_body, &y2_body, double_backprop_opt](const Array& x1, const Array& x2, Array& y1, Array& y2) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         y1 = Exp(x1_c + 2 * x2_c) + Exp(2 * x1_c + x2_c);
@@ -1502,15 +1501,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
 
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            bt.Define([tok1,
-                       tok2 = bb.RetainOutput(1),
-                       y1_value,
-                       y2_value,
-                       &backprop_id1,
-                       &backprop_id2,
-                       &y1_body,
-                       &y2_body,
-                       double_backprop_opt](BackwardContext& bctx) {
+            bt.Define([tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt](
+                              BackwardContext& bctx) {
                 // Test assumption: the bodies of ys must be still alive.
                 ASSERT_NE(nullptr, y1_body.lock());
                 ASSERT_NE(nullptr, y2_body.lock());
@@ -1543,15 +1535,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
             ASSERT_TRUE(bt);
-            bt.Define([tok1,
-                       tok2 = bb.RetainOutput(1),
-                       y1_value,
-                       y2_value,
-                       &backprop_id1,
-                       &backprop_id2,
-                       &y1_body,
-                       &y2_body,
-                       double_backprop_opt](BackwardContext& bctx) {
+            bt.Define([tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt](
+                              BackwardContext& bctx) {
                 // Test assumption: the bodies of ys must be still alive.
                 ASSERT_NE(nullptr, y1_body.lock());
                 ASSERT_NE(nullptr, y2_body.lock());
@@ -1628,8 +1613,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
     std::weak_ptr<internal::ArrayBody> y1_body{};
     std::weak_ptr<internal::ArrayBody> y2_body{};
 
-    auto forward = [&backprop_id1, &backprop_id2, &y1_body, &y2_body, double_backprop_opt](
-                           const Array& x1, const Array& x2, Array& y1, Array& y2) {
+    auto forward = [&backprop_id1, &y1_body, &y2_body, double_backprop_opt](const Array& x1, const Array& x2, Array& y1, Array& y2) {
         Array x1_c = x1.AsGradStopped();
         Array x2_c = x2.AsGradStopped();
         y1 = Exp(x1_c + 2 * x2_c) + Exp(2 * x1_c + x2_c);
@@ -1646,15 +1630,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
 
         {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
-            bt.Define([tok1,
-                       tok2 = bb.RetainOutput(1),
-                       y1_value,
-                       y2_value,
-                       &backprop_id1,
-                       &backprop_id2,
-                       &y1_body,
-                       &y2_body,
-                       double_backprop_opt](BackwardContext& bctx) {
+            bt.Define([tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt](
+                              BackwardContext& bctx) {
                 // Test assumption: the bodies of ys must be dead.
                 ASSERT_EQ(nullptr, y1_body.lock());
                 ASSERT_EQ(nullptr, y2_body.lock());
@@ -1686,15 +1663,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
         }
         {
             BackwardBuilder::Target bt = bb.CreateTarget(1);
-            bt.Define([tok1,
-                       tok2 = bb.RetainOutput(1),
-                       y1_value,
-                       y2_value,
-                       &backprop_id1,
-                       &backprop_id2,
-                       &y1_body,
-                       &y2_body,
-                       double_backprop_opt](BackwardContext& bctx) {
+            bt.Define([tok1, tok2 = bb.RetainOutput(1), y1_value, y2_value, &backprop_id1, &y1_body, &y2_body, double_backprop_opt](
+                              BackwardContext& bctx) {
                 // Test assumption: the bodies of ys must be dead.
                 ASSERT_EQ(nullptr, y1_body.lock());
                 ASSERT_EQ(nullptr, y2_body.lock());
