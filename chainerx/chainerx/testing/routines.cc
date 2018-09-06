@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 
+#include <gtest/gtest.h>
 #include <gsl/gsl>
 
 #include "chainerx/array.h"
@@ -95,6 +96,14 @@ void CheckOutputArraysEqual(const std::vector<Array>& expected, const std::vecto
     }
 }
 
+::testing::AssertionResult IsAllArrayBodiesFreed(chainerx::internal::ArrayBodyLeakTracker& tracker) {
+    std::ostringstream os;
+    if (tracker.IsAllArrayBodiesFreed(os)) {
+        return ::testing::AssertionSuccess();
+    }
+    return ::testing::AssertionFailure() << os.str();
+}
+
 }  // namespace
 
 // TODO(niboshi): Check array nodes of output arrays to ensure the implementation takes backprop mode into account
@@ -108,8 +117,12 @@ void CheckForward(
     CHAINERX_ASSERT(concurrent_check_thread_count != 1 && "concurrent_check_thread_count == 1 is meaningless.");
 
     // Run single-shot test
-    std::vector<Array> outputs = func(inputs);
-    CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
+    {
+        chainerx::internal::ArrayBodyLeakTracker tracker{};
+        std::vector<Array> outputs = func(inputs);
+        CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
+        EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
+    }
 
     // Run thread safety check
     if (concurrent_check_thread_count > 0) {
@@ -124,6 +137,7 @@ void CheckForward(
                 CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
             });
         }
+        EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
     }
 }
 
