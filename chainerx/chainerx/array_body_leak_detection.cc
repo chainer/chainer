@@ -35,7 +35,6 @@ std::vector<std::shared_ptr<ArrayBody>> ArrayBodyLeakTracker::GetAliveArrayBodie
 
 bool ArrayBodyLeakTracker::IsAllArrayBodiesFreed(std::ostream& os) {
     std::vector<std::shared_ptr<internal::ArrayBody>> alive_arr_bodies = GetAliveArrayBodies();
-    std::lock_guard<std::mutex> lock{mutex_};
     if (!alive_arr_bodies.empty()) {
         // TODO(niboshi): Output only array bodies that are not referenced from other array bodies
         os << "Some array bodies are not freed.\n";
