@@ -12,6 +12,8 @@ namespace internal {
 
 // Keep track of array body allocation.
 // Used in combination with ArrayBodyLeakDetectionScope to detect leaks.
+// This class is thread safe.
+// Only one leak detection scope can exist at any given moment
 class ArrayBodyLeakTracker {
 public:
     void operator()(const std::shared_ptr<ArrayBody>& array_body);
