@@ -744,8 +744,7 @@ class Chain(Link):
     The registered child link is saved and loaded on serialization and
     deserialization, and involved in the optimization. The registered link
     is called a child. The child link is accessible via :meth:`children`
-    generator, which returns a generator running through the children in
-    registered order.
+    generator, which returns a generator running through the children.
 
     On registration of a child link, its :attr:`~Link.name` attribute is also
     set (or overwritten if the link has already been registered to another
