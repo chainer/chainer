@@ -119,8 +119,11 @@ void CheckForward(
     // Run single-shot test
     {
         chainerx::internal::ArrayBodyLeakTracker tracker{};
-        std::vector<Array> outputs = func(inputs);
-        CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
+        {
+            chainerx::internal::ArrayBodyLeakDetectionScope scope{tracker};
+            std::vector<Array> outputs = func(inputs);
+            CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
+        }
         EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
     }
 
