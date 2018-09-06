@@ -152,6 +152,23 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("tonumpy", &MakeNumpyArrayFromArray);
+    // This is currently for internal use (from Chainer).
+    // TODO(niboshi): Make it apparent that this is internal. Prefixing with '_' prevents it from being exported.
+    m.def("fromrawpointer",
+          [](intptr_t ptr,
+             const py::tuple& shape,
+             py::handle dtype,
+             const py::tuple& strides,
+             py::handle device,
+             int64_t offset,
+             py::handle base) -> ArrayBodyPtr {
+              // TODO(niboshi): Expose `base` as `ndarray.base` attribute.
+              void* c_ptr = reinterpret_cast<void*>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+              // Note that inc_ref() / dec_ref() is performed by the lambda capture.
+              std::shared_ptr<void> data{c_ptr, [base](void*) {}};
+              return MoveArrayBody(
+                      FromData(ToShape(shape), GetDtype(dtype), std::move(data), ToStrides(strides), offset, GetDevice(device)));
+          });
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });

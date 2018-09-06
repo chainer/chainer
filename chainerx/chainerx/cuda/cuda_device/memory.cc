@@ -27,9 +27,6 @@ std::shared_ptr<void> CudaDevice::MakeDataFromForeignPointer(const std::shared_p
     cudaError_t status = cudaPointerGetAttributes(&attr, ptr);
     switch (status) {
         case cudaSuccess:
-            if (attr.isManaged == 0) {
-                throw ChainerxError{"CUDA memory: ", ptr, " must be a managed (unified) memory"};
-            }
             if (attr.device != index()) {
                 throw ChainerxError{"CUDA memory: ", ptr, " must reside on the device: ", index()};
             }
