@@ -31,6 +31,7 @@
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -55,22 +56,25 @@ class ROIPooling2D(function.Function):
         self.spatial_scale = spatial_scale
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.expect(in_types.size() == 3)
 
-        x_type, roi_type = in_types
+        x_type, roi_type, roi_index_type = in_types
         type_check.expect(
             x_type.dtype.kind == 'f',
             x_type.ndim == 4,
             x_type.dtype == roi_type.dtype,
             roi_type.ndim == 2,
-            roi_type.shape[1] == 5,
+            roi_type.shape[1] == 4,
+            roi_index_type.dtype == numpy.int32,
+            roi_index_type.ndim == 1,
+            roi_type.shape[0] == roi_index_type.shape[0],
         )
 
     def forward_cpu(self, inputs):
-        self.retain_inputs((1,))
+        self.retain_inputs((1, 2))
         self._bottom_data_shape = inputs[0].shape
 
-        bottom_data, bottom_rois = inputs
+        bottom_data, bottom_rois, bottom_roi_indices = inputs
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
         # `numpy.zeros` needs to be used because the arrays can be
@@ -80,7 +84,8 @@ class ROIPooling2D(function.Function):
         self.argmax_data = numpy.zeros(top_data.shape, numpy.int32)
 
         for i_roi in six.moves.range(n_rois):
-            idx, xmin, ymin, xmax, ymax = bottom_rois[i_roi]
+            idx = bottom_roi_indices[i_roi]
+            xmin, ymin, xmax, ymax = bottom_rois[i_roi]
             xmin = int(round(xmin * self.spatial_scale))
             xmax = int(round(xmax * self.spatial_scale))
             ymin = int(round(ymin * self.spatial_scale))
@@ -115,10 +120,10 @@ class ROIPooling2D(function.Function):
         return top_data,
 
     def forward_gpu(self, inputs):
-        self.retain_inputs((1,))
+        self.retain_inputs((1, 2))
         self._bottom_data_shape = inputs[0].shape
 
-        bottom_data, bottom_rois = inputs
+        bottom_data, bottom_rois, bottom_roi_indices = inputs
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
@@ -128,7 +133,7 @@ class ROIPooling2D(function.Function):
             '''
             raw T bottom_data, T spatial_scale, int32 channels,
             int32 height, int32 width, int32 pooled_height, int32 pooled_width,
-            raw T bottom_rois
+            raw T bottom_rois, raw int32 bottom_roi_indices
             ''',
             'T top_data, int32 argmax_data',
             '''
@@ -138,11 +143,11 @@ class ROIPooling2D(function.Function):
             int c = (i / pooled_width / pooled_height) % channels;
             int num = i / pooled_width / pooled_height / channels;
 
-            int roi_batch_ind = bottom_rois[num * 5 + 0];
-            int roi_start_w = round(bottom_rois[num * 5 + 1] * spatial_scale);
-            int roi_start_h = round(bottom_rois[num * 5 + 2] * spatial_scale);
-            int roi_end_w = round(bottom_rois[num * 5 + 3] * spatial_scale);
-            int roi_end_h = round(bottom_rois[num * 5 + 4] * spatial_scale);
+            int roi_batch_ind = bottom_roi_indices[num];
+            int roi_start_w = round(bottom_rois[num * 4 + 0] * spatial_scale);
+            int roi_start_h = round(bottom_rois[num * 4 + 1] * spatial_scale);
+            int roi_end_w = round(bottom_rois[num * 4 + 2] * spatial_scale);
+            int roi_end_h = round(bottom_rois[num * 4 + 3] * spatial_scale);
 
             // Force malformed ROIs to be 1x1
             int roi_width = max(roi_end_w - roi_start_w + 1, 1);
@@ -186,20 +191,20 @@ class ROIPooling2D(function.Function):
             argmax_data = maxidx;
             ''', 'roi_pooling_2d_fwd'
         )(bottom_data, self.spatial_scale, channels, height, width,
-          self.outh, self.outw, bottom_rois, top_data,
-          self.argmax_data)
+          self.outh, self.outw, bottom_rois, bottom_roi_indices,
+          top_data, self.argmax_data)
 
         return top_data,
 
     def backward_cpu(self, inputs, gy):
-        bottom_rois = inputs[1]
+        bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
         n_rois = bottom_rois.shape[0]
         bottom_delta = numpy.zeros(self._bottom_data_shape, bottom_rois.dtype)
 
         for i_roi in six.moves.range(n_rois):
-            idx, xmin, ymin, xmax, ymax = bottom_rois[i_roi]
-            idx = int(idx)
+            idx = bottom_roi_indices[i_roi]
+            xmin, ymin, xmax, ymax = bottom_rois[i_roi]
             xmin = int(round(xmin * self.spatial_scale))
             xmax = int(round(xmax * self.spatial_scale))
             ymin = int(round(ymin * self.spatial_scale))
@@ -230,10 +235,10 @@ class ROIPooling2D(function.Function):
                                 if max_idx_tmp[c] == (h * width + w):
                                     bottom_delta[idx, c, h, w] += \
                                         gy[0][i_roi, c, ph, pw]
-        return bottom_delta, None
+        return bottom_delta, None, None
 
     def backward_gpu(self, inputs, gy):
-        bottom_rois = inputs[1]
+        bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(
             self._bottom_data_shape, bottom_rois.dtype)
@@ -242,7 +247,8 @@ class ROIPooling2D(function.Function):
             '''
             raw T top_diff, raw int32 argmax_data, int32 num_rois,
             T spatial_scale, int32 channels, int32 height, int32 width,
-            int32 pooled_height, int32 pooled_width, raw T bottom_rois
+            int32 pooled_height, int32 pooled_width,
+            raw T bottom_rois, raw int32 bottom_roi_indices
             ''',
             'T bottom_diff',
             '''
@@ -255,17 +261,17 @@ class ROIPooling2D(function.Function):
             // Accumulate gradient over all ROIs that pooled this element
             for (int roi_n = 0; roi_n < num_rois; ++roi_n) {
                 // Skip if ROI's batch index doesn't match num
-                if (num != static_cast<int>(bottom_rois[roi_n * 5])) {
+                if (num != static_cast<int>(bottom_roi_indices[roi_n])) {
                     continue;
                 }
 
-                int roi_start_w = round(bottom_rois[roi_n * 5 + 1]
+                int roi_start_w = round(bottom_rois[roi_n * 4 + 0]
                                         * spatial_scale);
-                int roi_start_h = round(bottom_rois[roi_n * 5 + 2]
+                int roi_start_h = round(bottom_rois[roi_n * 4 + 1]
                                         * spatial_scale);
-                int roi_end_w = round(bottom_rois[roi_n * 5 + 3]
+                int roi_end_w = round(bottom_rois[roi_n * 4 + 2]
                                       * spatial_scale);
-                int roi_end_h = round(bottom_rois[roi_n * 5 + 4]
+                int roi_end_h = round(bottom_rois[roi_n * 4 + 3]
                                       * spatial_scale);
 
                 // Skip if ROI doesn't include (h, w)
@@ -317,12 +323,12 @@ class ROIPooling2D(function.Function):
             ''', 'roi_pooling_2d_bwd'
         )(gy[0], self.argmax_data, bottom_rois.shape[0], self.spatial_scale,
           channels, height, width, self.outh, self.outw,
-          bottom_rois, bottom_diff)
+          bottom_rois, bottom_roi_indices, bottom_diff)
 
-        return bottom_diff, None
+        return bottom_diff, None, None
 
 
-def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
+def roi_pooling_2d(x, rois, outh, outw, spatial_scale, roi_indices=None):
     """Spatial Region of Interest (ROI) pooling function.
 
     This function acts similarly to :func:`~chainer.functions.max_pooling_2d`,
@@ -332,12 +338,17 @@ def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
     Args:
         x (~chainer.Variable): Input variable. The shape is expected to be
             4 dimentional: (n: batch, c: channel, h, height, w: width).
-        rois (~chainer.Variable): Input roi variable. The shape is expected to
-            be (n: data size, 5), and each datum is set as below:
-            (batch_index, x_min, y_min, x_max, y_max).
+        rois (~chainer.Variable): Input roi variable. When `roi_indices` is
+            `None`, the shape is expected to be (n: data size, 5)  and each
+            datum is set as below: (batch_index, x_min, y_min, x_max, y_max).
+            Whe `roi_indices` is passed, the shape is expected to be
+            (n: data size, 4)  and each datum is set as below:
+            (x_min, y_min, x_max, y_max).
         outh (int): Height of output image after pooled.
         outw (int): Width of output image after pooled.
         spatial_scale (float): Scale of the roi is resized.
+        roi_indices (~chainer.Variable): Input roi variable. The shape is
+            expected to be (n: data size, ). Default value is `None`.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -346,4 +357,11 @@ def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
     `Fast R-CNN <https://arxiv.org/abs/1504.08083>`_.
 
     """
-    return ROIPooling2D(outh, outw, spatial_scale)(x, rois)
+
+    if roi_indices is None:
+        if isinstance(rois, chainer.Variable):
+            roi_indices = rois[:, 0].array.astype(numpy.int32)
+        else:
+            roi_indices = rois[:, 0].astype(numpy.int32)
+        rois = rois[:, 1:]
+    return ROIPooling2D(outh, outw, spatial_scale)(x, rois, roi_indices)

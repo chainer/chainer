@@ -20,6 +20,7 @@ import collections
 import numpy
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -152,22 +153,25 @@ class ROIAlign2D(function.Function):
         self.sampling_ratio = sampling_ratio
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.expect(in_types.size() == 3)
 
-        x_type, roi_type = in_types
+        x_type, roi_type, roi_index_type = in_types
         type_check.expect(
             x_type.dtype == numpy.float32,
             x_type.ndim == 4,
             roi_type.dtype == numpy.float32,
             roi_type.ndim == 2,
-            roi_type.shape[1] == 5,
+            roi_type.shape[1] == 4,
+            roi_index_type.dtype == numpy.int32,
+            roi_index_type.ndim == 1,
+            roi_type.shape[0] == roi_index_type.shape[0],
         )
 
     def forward_cpu(self, inputs):
-        self.retain_inputs((1,))
+        self.retain_inputs((1, 2))
         self._bottom_data_shape = inputs[0].shape
 
-        bottom_data, bottom_rois = inputs
+        bottom_data, bottom_rois, bottom_roi_indices = inputs
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
         top_data = numpy.empty((n_rois, channels, self.outh,
@@ -182,11 +186,11 @@ class ROIAlign2D(function.Function):
             c = int(i / pooled_width / pooled_height) % channels
             n = int(i / pooled_width / pooled_height / channels)
 
-            roi_batch_ind = int(bottom_rois[n, 0])
-            roi_start_w = bottom_rois[n, 1] * spatial_scale
-            roi_start_h = bottom_rois[n, 2] * spatial_scale
-            roi_end_w = bottom_rois[n, 3] * spatial_scale
-            roi_end_h = bottom_rois[n, 4] * spatial_scale
+            roi_batch_ind = bottom_roi_indices[n]
+            roi_start_w = bottom_rois[n, 0] * spatial_scale
+            roi_start_h = bottom_rois[n, 1] * spatial_scale
+            roi_end_w = bottom_rois[n, 2] * spatial_scale
+            roi_end_h = bottom_rois[n, 3] * spatial_scale
 
             roi_width = max(roi_end_w - roi_start_w, 1.)
             roi_height = max(roi_end_h - roi_start_h, 1.)
@@ -239,10 +243,10 @@ class ROIAlign2D(function.Function):
         return top_data,
 
     def forward_gpu(self, inputs):
-        self.retain_inputs((1,))
+        self.retain_inputs((1, 2))
         self._bottom_data_shape = inputs[0].shape
 
-        bottom_data, bottom_rois = inputs
+        bottom_data, bottom_rois, bottom_roi_indices = inputs
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
@@ -252,7 +256,7 @@ class ROIAlign2D(function.Function):
             raw T bottom_data, T spatial_scale, int32 channels,
             int32 height, int32 width, int32 pooled_height, int32 pooled_width,
             int32 sampling_ratio_h, int32 sampling_ratio_w,
-            raw T bottom_rois
+            raw T bottom_rois, raw int32 bottom_roi_indices
             ''',
             'T top_data',
             '''
@@ -261,12 +265,12 @@ class ROIAlign2D(function.Function):
             int c = (i / pooled_width / pooled_height) % channels;
             int n = i / pooled_width / pooled_height / channels;
 
-            int roi_batch_ind = bottom_rois[n * 5 + 0];
+            int roi_batch_ind = bottom_roi_indices[n];
 
-            T roi_start_w = bottom_rois[n * 5 + 1] * spatial_scale;
-            T roi_start_h = bottom_rois[n * 5 + 2] * spatial_scale;
-            T roi_end_w = bottom_rois[n * 5 + 3] * spatial_scale;
-            T roi_end_h = bottom_rois[n * 5 + 4] * spatial_scale;
+            T roi_start_w = bottom_rois[n * 4 + 0] * spatial_scale;
+            T roi_start_h = bottom_rois[n * 4 + 1] * spatial_scale;
+            T roi_end_w = bottom_rois[n * 4 + 2] * spatial_scale;
+            T roi_end_h = bottom_rois[n * 4 + 3] * spatial_scale;
 
             // Force malformed ROIs to be 1x1
             T roi_width = max(roi_end_w - roi_start_w, (T)1.);
@@ -335,12 +339,12 @@ class ROIAlign2D(function.Function):
             preamble=_GET_BILINEAR_INTERP_KERNEL,
         )(bottom_data, self.spatial_scale, channels, height, width,
           self.outh, self.outw, self.sampling_ratio[0], self.sampling_ratio[1],
-          bottom_rois, top_data)
+          bottom_rois, bottom_roi_indices, top_data)
 
         return top_data,
 
     def backward_cpu(self, inputs, gy):
-        bottom_rois = inputs[1]
+        bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = numpy.zeros(self._bottom_data_shape, gy[0].dtype)
 
@@ -355,11 +359,11 @@ class ROIAlign2D(function.Function):
             c = int(i / pooled_width / pooled_height) % channels
             n = int(i / pooled_width / pooled_height / channels)
 
-            roi_batch_ind = int(bottom_rois[n, 0])
-            roi_start_w = bottom_rois[n, 1] * spatial_scale
-            roi_start_h = bottom_rois[n, 2] * spatial_scale
-            roi_end_w = bottom_rois[n, 3] * spatial_scale
-            roi_end_h = bottom_rois[n, 4] * spatial_scale
+            roi_batch_ind = bottom_roi_indices[n]
+            roi_start_w = bottom_rois[n, 0] * spatial_scale
+            roi_start_h = bottom_rois[n, 1] * spatial_scale
+            roi_end_w = bottom_rois[n, 2] * spatial_scale
+            roi_end_h = bottom_rois[n, 3] * spatial_scale
 
             roi_width = max(roi_end_w - roi_start_w, 1.)
             roi_height = max(roi_end_h - roi_start_h, 1.)
@@ -412,10 +416,10 @@ class ROIAlign2D(function.Function):
                     ix += 1
                 iy += 1
 
-        return bottom_diff, None
+        return bottom_diff, None, None
 
     def backward_gpu(self, inputs, gy):
-        bottom_rois = inputs[1]
+        bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, gy[0].dtype)
         cuda.elementwise(
@@ -425,7 +429,7 @@ class ROIAlign2D(function.Function):
             int32 channels, int32 height, int32 width,
             int32 pooled_height, int32 pooled_width,
             int32 sampling_ratio_h, int32 sampling_ratio_w,
-            raw T bottom_rois
+            raw T bottom_rois, raw int32 bottom_roi_indices
             ''',
             'raw T bottom_diff',
             '''
@@ -436,11 +440,11 @@ class ROIAlign2D(function.Function):
             int n = i / pooled_width / pooled_height / channels;
 
             // Do not using rounding; this implementation detail is critical
-            int roi_batch_ind = bottom_rois[n * 5 + 0];
-            T roi_start_w = bottom_rois[n * 5 + 1] * spatial_scale;
-            T roi_start_h = bottom_rois[n * 5 + 2] * spatial_scale;
-            T roi_end_w = bottom_rois[n * 5 + 3] * spatial_scale;
-            T roi_end_h = bottom_rois[n * 5 + 4] * spatial_scale;
+            int roi_batch_ind = bottom_roi_indices[n];
+            T roi_start_w = bottom_rois[n * 4 + 0] * spatial_scale;
+            T roi_start_h = bottom_rois[n * 4 + 1] * spatial_scale;
+            T roi_end_w = bottom_rois[n * 4 + 2] * spatial_scale;
+            T roi_end_h = bottom_rois[n * 4 + 3] * spatial_scale;
 
             // Force malformed ROIs to be 1x1
             T roi_width = max(roi_end_w - roi_start_w, (T)1.);
@@ -515,12 +519,15 @@ class ROIAlign2D(function.Function):
         )(gy[0], bottom_rois.shape[0],
           self.spatial_scale, channels, height, width, self.outh, self.outw,
           self.sampling_ratio[0], self.sampling_ratio[1],
-          bottom_rois, bottom_diff, size=gy[0].size)
+          bottom_rois, bottom_roi_indices, bottom_diff, size=gy[0].size)
 
-        return bottom_diff, None
+        return bottom_diff, None, None
 
 
-def roi_align_2d(x, rois, outh, outw, spatial_scale, sampling_ratio=0):
+def roi_align_2d(
+        x, rois, outh, outw, spatial_scale,
+        sampling_ratio=0, roi_indices=None
+):
     """Spatial Region of Interest (ROI) align function.
 
     This function acts similarly to :class:`~functions.ROIPooling2D`, but
@@ -530,9 +537,12 @@ def roi_align_2d(x, rois, outh, outw, spatial_scale, sampling_ratio=0):
     Args:
         x (~chainer.Variable): Input variable. The shape is expected to be
             4 dimentional: (n: batch, c: channel, h, height, w: width).
-        rois (~chainer.Variable): Input roi variable. The shape is expected to
-            be (n: data size, 5), and each datum is set as below:
-            (batch_index, x_min, y_min, x_max, y_max).
+        rois (~chainer.Variable): Input roi variable. When `roi_indices` is
+            `None`, the shape is expected to be (n: data size, 5)  and each
+            datum is set as below: (batch_index, x_min, y_min, x_max, y_max).
+            Whe `roi_indices` is passed, the shape is expected to be
+            (n: data size, 4)  and each datum is set as below:
+            (x_min, y_min, x_max, y_max).
         outh (int): Height of output image after pooled.
         outw (int): Width of output image after pooled.
         spatial_scale (float): Scale of the roi is resized.
@@ -540,6 +550,8 @@ def roi_align_2d(x, rois, outh, outw, spatial_scale, sampling_ratio=0):
             It must meet >=0 and is automatically decided when 0 is passed.
             Use of different ratio in height and width axis is also supported
             by passing tuple of int as (sampling_ratio_h, sampling_ratio_w).
+        roi_indices (~chainer.Variable): Input roi variable. The shape is
+            expected to be (n: data size, ). Default value is `None`.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -548,4 +560,11 @@ def roi_align_2d(x, rois, outh, outw, spatial_scale, sampling_ratio=0):
     `Mask R-CNN <https://arxiv.org/abs/1703.06870>`_.
 
     """
-    return ROIAlign2D(outh, outw, spatial_scale, sampling_ratio)(x, rois)
+    if roi_indices is None:
+        if isinstance(rois, chainer.Variable):
+            roi_indices = rois[:, 0].array.astype(numpy.int32)
+        else:
+            roi_indices = rois[:, 0].astype(numpy.int32)
+        rois = rois[:, 1:]
+    return ROIAlign2D(
+        outh, outw, spatial_scale, sampling_ratio)(x, rois, roi_indices)
