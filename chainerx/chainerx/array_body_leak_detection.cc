@@ -22,7 +22,7 @@ void ArrayBodyLeakTracker::operator()(const std::shared_ptr<ArrayBody>& array_bo
     weak_ptrs_.emplace_back(array_body);
 }
 
-std::vector<std::shared_ptr<ArrayBody>> ArrayBodyLeakTracker::GetAliveArrayBodies() {
+std::vector<std::shared_ptr<ArrayBody>> ArrayBodyLeakTracker::GetAliveArrayBodies() const {
     std::lock_guard<std::mutex> lock{mutex_};
     std::vector<std::shared_ptr<ArrayBody>> alive_ptrs;
     for (const std::weak_ptr<ArrayBody>& weak_ptr : weak_ptrs_) {
@@ -33,7 +33,7 @@ std::vector<std::shared_ptr<ArrayBody>> ArrayBodyLeakTracker::GetAliveArrayBodie
     return alive_ptrs;
 }
 
-bool ArrayBodyLeakTracker::IsAllArrayBodiesFreed(std::ostream& os) {
+bool ArrayBodyLeakTracker::IsAllArrayBodiesFreed(std::ostream& os) const {
     std::vector<std::shared_ptr<internal::ArrayBody>> alive_arr_bodies = GetAliveArrayBodies();
     if (!alive_arr_bodies.empty()) {
         // TODO(niboshi): Output only array bodies that are not referenced from other array bodies
