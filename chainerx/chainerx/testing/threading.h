@@ -134,21 +134,18 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
 
 // Thread safety test macros that replaces TEST, TEST_F, TEST_P.
 // The body of the test should include a call to Run(func) where func is a lambda function that optionally accepts a size_t thread index as
-// arugment and defines the logic that is executed on multiple threads.
+// argument and defines the logic that is executed on multiple threads.
 //
 // Example:
 //
 // TEST_THREAD_SAFE(MyTestCase, MyTest) {
-//     // Setup.
 //     Context ctx{};
 //
-//     Run([&](size_t thread_index){
-//         // Code that is executed on multiple threads.
+//     Run([&](size_t thread_index) {
+//         // Define logic that is to be executed on multiple threads.
 //         BackpropId backprop_id = ctx.MakeBackpropId(std::to_string(thread_index));
 //         EXPECT_EQ(std::to_string(thread_index), ctx.GetBackpropName(backprop_id));
 //     });
-//
-//     // Any cleanups.
 // }
 #define TEST_THREAD_SAFE(test_case_name, test_name) TEST_THREAD_SAFE_(TEST, test_case_name, test_name)
 #define TEST_THREAD_SAFE_F(test_case_name, test_name) TEST_THREAD_SAFE_(TEST_F, test_case_name, test_name)
