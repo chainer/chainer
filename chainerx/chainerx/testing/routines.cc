@@ -10,6 +10,7 @@
 #include "chainerx/array.h"
 #include "chainerx/array_body_leak_detection.h"
 #include "chainerx/context.h"
+#include "chainerx/error.h"
 #include "chainerx/numeric.h"
 #include "chainerx/testing/threading.h"
 
@@ -96,12 +97,11 @@ void CheckOutputArraysEqual(const std::vector<Array>& expected, const std::vecto
     }
 }
 
-::testing::AssertionResult IsAllArrayBodiesFreed(chainerx::internal::ArrayBodyLeakTracker& tracker) {
+void CheckAllArrayBodiesFreed(chainerx::internal::ArrayBodyLeakTracker& tracker) {
     std::ostringstream os;
-    if (tracker.IsAllArrayBodiesFreed(os)) {
-        return ::testing::AssertionSuccess();
+    if (!tracker.IsAllArrayBodiesFreed(os)) {
+        throw GradientCheckError{os.str()};
     }
-    return ::testing::AssertionFailure() << os.str();
 }
 
 }  // namespace
@@ -124,7 +124,7 @@ void CheckForward(
             std::vector<Array> outputs = func(inputs);
             CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
         }
-        EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
+        CheckAllArrayBodiesFreed(tracker);
     }
 
     // Run thread safety check
@@ -140,7 +140,7 @@ void CheckForward(
                 CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
             });
         }
-        EXPECT_TRUE(IsAllArrayBodiesFreed(tracker));
+        CheckAllArrayBodiesFreed(tracker);
     }
 }
 
