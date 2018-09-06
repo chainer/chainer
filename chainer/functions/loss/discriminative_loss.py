@@ -106,13 +106,14 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         for c in range(self.max_embedding_dim):
             # Create mask for instance
             mask = xp.expand_dims(labels == c + 1, 1)
-            mask = xp.broadcast_to(mask, embeddings.shape)
-            pred_instance = embeddings * mask
 
             # Calculate the number of pixels belonging to instance c
             nc = xp.sum(mask, (1, 2, 3))
             if xp.sum(nc) == zeros:
                 continue
+
+            mask = xp.broadcast_to(mask, embeddings.shape)
+            pred_instance = embeddings * mask
 
             nc = nc.astype(pred_instance.dtype)
             nc_exp = xp.expand_dims(xp.maximum(nc, 1), 1)
