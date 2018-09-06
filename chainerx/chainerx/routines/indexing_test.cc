@@ -17,6 +17,7 @@
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
 #include "chainerx/testing/routines.h"
+#include "chainerx/testing/threading.h"
 
 namespace chainerx {
 namespace {
@@ -97,7 +98,7 @@ TEST_P(IndexingTest, AtDoubleBackward) {
             {Full({2, 3}, 1e-3f), Full({1, 2}, 1e-3f)});
 }
 
-TEST_P(IndexingTest, Take) {
+TEST_THREAD_SAFE_P(IndexingTest, Take) {
     using T = int8_t;
     Shape input_shape{2, 4};
     Shape indices_shape{2, 3};
@@ -107,8 +108,12 @@ TEST_P(IndexingTest, Take) {
     Array indices = testing::BuildArray(indices_shape).WithData<int64_t>({0, 14, 3, 1, -10, 1});
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 2, 3, 1, 2, 1, 4, 6, 7, 5, 6, 5});
 
-    testing::CheckForward(
-            [&indices, &axis](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, axis)}; }, {a}, {e});
+    Run([&](size_t idx) {
+        std::cout << idx << " " << GetParam() << std::endl;
+        testing::DeviceSession device_session{DeviceId{GetParam(), 0}};
+        testing::CheckForward(
+                [&indices, &axis](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, axis)}; }, {a}, {e});
+    });
 }
 
 TEST_P(IndexingTest, TakeBackward) {

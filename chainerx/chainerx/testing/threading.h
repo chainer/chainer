@@ -107,7 +107,7 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
 // Helper to generate a thread safety test of type TEST, TEST_F or TEST_P.
 // TODO(hvy): Consider making the thread count and argument to the macro.
 #define TEST_THREAD_SAFE_(test_type, test_case_name, test_name)                                                                       \
-    class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) {                                                                \
+    class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public test_case_name {                                        \
     public:                                                                                                                           \
         CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)(size_t thread_count) : thread_count_{thread_count} {}              \
                                                                                                                                       \
