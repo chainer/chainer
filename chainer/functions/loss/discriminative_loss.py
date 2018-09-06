@@ -11,7 +11,6 @@ from chainer.functions.math.sqrt import sqrt
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
-
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
@@ -84,17 +83,11 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                 (batch size, height, width)
 
         Returns:
-            Variance Loss(:class:`~chainer.Variable` or \
-            :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`):
+            Variance Loss(:class:`~chainer.Variable` or float):
                 variance loss multiplied by alpha
-            Distance Loss(:class:`~chainer.Variable` or \
-            :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`):
+            Distance Loss(:class:`~chainer.Variable` or float):
                 distance loss multiplied by beta
-            Regularization Loss(:class:`~chainer.Variable` or \
-            :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`):
+            Regularization Loss(:class:`~chainer.Variable` or float):
                 regularization loss multiplied by gamma
         """
 
@@ -200,17 +193,11 @@ def discriminative_margin_based_clustering_loss(
         gamma (float): Weight for regularizer loss (gamma * regularizer_loss)
 
     Returns:
-        Variance Loss(:class:`~chainer.Variable` or \
-        :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        Variance Loss(:class:`~chainer.Variable` or float):
             variance loss multiplied by alpha
-        Distance Loss(:class:`~chainer.Variable` or \
-        :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        Distance Loss(:class:`~chainer.Variable` or float):
             distance loss multiplied by beta
-        Regularization Loss(:class:`~chainer.Variable` or \
-        :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        Regularization Loss(:class:`~chainer.Variable` or float):
             regularization loss multiplied by gamma
     """
 
