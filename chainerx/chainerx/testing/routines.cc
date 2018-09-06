@@ -4,13 +4,11 @@
 #include <sstream>
 #include <vector>
 
-#include <gtest/gtest.h>
 #include <gsl/gsl>
 
 #include "chainerx/array.h"
 #include "chainerx/array_body_leak_detection.h"
 #include "chainerx/context.h"
-#include "chainerx/error.h"
 #include "chainerx/numeric.h"
 #include "chainerx/testing/threading.h"
 
@@ -100,7 +98,7 @@ void CheckOutputArraysEqual(const std::vector<Array>& expected, const std::vecto
 void CheckAllArrayBodiesFreed(chainerx::internal::ArrayBodyLeakTracker& tracker) {
     std::ostringstream os;
     if (!tracker.IsAllArrayBodiesFreed(os)) {
-        throw GradientCheckError{os.str()};
+        throw RoutinesCheckError{os.str()};
     }
 }
 
