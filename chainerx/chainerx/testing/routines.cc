@@ -7,6 +7,7 @@
 #include <gsl/gsl>
 
 #include "chainerx/array.h"
+#include "chainerx/array_body_leak_detection.h"
 #include "chainerx/context.h"
 #include "chainerx/numeric.h"
 #include "chainerx/testing/threading.h"
@@ -94,6 +95,13 @@ void CheckOutputArraysEqual(const std::vector<Array>& expected, const std::vecto
     }
 }
 
+void CheckAllArrayBodiesFreed(chainerx::internal::ArrayBodyLeakTracker& tracker) {
+    std::ostringstream os;
+    if (!tracker.IsAllArrayBodiesFreed(os)) {
+        throw RoutinesCheckError{os.str()};
+    }
+}
+
 }  // namespace
 
 // TODO(niboshi): Check array nodes of output arrays to ensure the implementation takes backprop mode into account
@@ -107,18 +115,30 @@ void CheckForward(
     CHAINERX_ASSERT(concurrent_check_thread_count != 1 && "concurrent_check_thread_count == 1 is meaningless.");
 
     // Run single-shot test
-    std::vector<Array> outputs = func(inputs);
-    CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
+    {
+        chainerx::internal::ArrayBodyLeakTracker tracker{};
+        {
+            chainerx::internal::ArrayBodyLeakDetectionScope scope{tracker};
+            std::vector<Array> outputs = func(inputs);
+            CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
+        }
+        CheckAllArrayBodiesFreed(tracker);
+    }
 
     // Run thread safety check
     if (concurrent_check_thread_count > 0) {
-        Context& context = chainerx::GetDefaultContext();
+        chainerx::internal::ArrayBodyLeakTracker tracker{};
+        {
+            chainerx::internal::ArrayBodyLeakDetectionScope scope{tracker};
+            Context& context = chainerx::GetDefaultContext();
 
-        RunThreads(concurrent_check_thread_count, [&func, &inputs, &expected_outputs, &atol, &rtol, &context]() {
-            chainerx::SetDefaultContext(&context);
-            std::vector<Array> outputs = func(inputs);
-            CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
-        });
+            RunThreads(concurrent_check_thread_count, [&func, &inputs, &expected_outputs, &atol, &rtol, &context]() {
+                chainerx::SetDefaultContext(&context);
+                std::vector<Array> outputs = func(inputs);
+                CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
+            });
+        }
+        CheckAllArrayBodiesFreed(tracker);
     }
 }
 

@@ -1,6 +1,7 @@
 #include "chainerx/array_body_leak_detection.h"
 
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <vector>
 
@@ -16,11 +17,13 @@ namespace internal {
 ArrayBodyLeakTracker* ArrayBodyLeakDetectionScope::array_body_leak_tracker_ = nullptr;
 
 void ArrayBodyLeakTracker::operator()(const std::shared_ptr<ArrayBody>& array_body) {
+    std::lock_guard<std::mutex> lock{mutex_};
     // Keep weak pointer
     weak_ptrs_.emplace_back(array_body);
 }
 
 std::vector<std::shared_ptr<ArrayBody>> ArrayBodyLeakTracker::GetAliveArrayBodies() const {
+    std::lock_guard<std::mutex> lock{mutex_};
     std::vector<std::shared_ptr<ArrayBody>> alive_ptrs;
     for (const std::weak_ptr<ArrayBody>& weak_ptr : weak_ptrs_) {
         if (std::shared_ptr<ArrayBody> ptr = weak_ptr.lock()) {
