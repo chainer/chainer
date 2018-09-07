@@ -109,7 +109,7 @@ private:
 // This class ensures that the API calls are serialized using mutex lock.
 class CudnnHandle {
 public:
-    explicit CudnnHandle(int index) : index_{index} {}
+    explicit CudnnHandle(int device_index) : device_index_{device_index} {}
     ~CudnnHandle();
 
     template <class Func, class... Args>
@@ -121,7 +121,7 @@ public:
 private:
     cudnnHandle_t handle();
 
-    int index_;
+    int device_index_;
     std::mutex handle_mutex_{};
     cudnnHandle_t handle_{};
 };
