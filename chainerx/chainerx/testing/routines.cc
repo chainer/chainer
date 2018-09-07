@@ -105,21 +105,20 @@ void CheckForward(
         double atol,
         double rtol) {
     CHAINERX_ASSERT(concurrent_check_thread_count != 1 && "concurrent_check_thread_count == 1 is meaningless.");
+    Context& context = inputs.front().context();
+    CHAINERX_ASSERT(std::all_of(inputs.begin(), inputs.end(), [&context](const Array& array) { return &array.context() == &context; }));
+    CHAINERX_ASSERT(std::all_of(
+            expected_outputs.begin(), expected_outputs.end(), [&context](const Array& array) { return &array.context() == &context; }));
 
-    // Run single-shot test
+    // Use thread local or global default context if it is set. Else, use the context of the given arrays.
+    try {
+        chainerx::SetDefaultContext(&GetDefaultContext());
+    } catch (ContextError) {
+        chainerx::SetDefaultContext(&context);
+    }
+
     std::vector<Array> outputs = func(inputs);
     CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
-
-    // Run thread safety check
-    if (concurrent_check_thread_count > 0) {
-        Context& context = chainerx::GetDefaultContext();
-
-        RunThreads(concurrent_check_thread_count, [&func, &inputs, &expected_outputs, &atol, &rtol, &context]() {
-            chainerx::SetDefaultContext(&context);
-            std::vector<Array> outputs = func(inputs);
-            CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
-        });
-    }
 }
 
 }  // namespace testing

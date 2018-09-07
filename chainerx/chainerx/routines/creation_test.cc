@@ -691,18 +691,20 @@ TEST_P(CreationTest, EyeInvalidNM) {
     EXPECT_THROW(Eye(-1, -2, 1, Dtype::kFloat32), DimensionError);
 }
 
-TEST_P(CreationTest, AsContiguousArray) {
+TEST_THREAD_SAFE_P(CreationTest, AsContiguousArray) {
     Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>().WithPadding(1);
     ASSERT_FALSE(a.IsContiguous());  // test precondition
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = AsContiguousArray(xs[0]);
-                EXPECT_TRUE(y.IsContiguous());
-                return std::vector<Array>{y};
-            },
-            {a},
-            {a});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = AsContiguousArray(xs[0]);
+                    EXPECT_TRUE(y.IsContiguous());
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {a});
+    });
 }
 
 TEST_P(CreationTest, AsContiguousArrayNoCopy) {
