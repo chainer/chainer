@@ -93,7 +93,8 @@ void CudaConv::AddBias(CudaDevice& device, const CudnnTensorDescriptor& y_desc, 
     Array b_cont = AsContiguousArray(b).Reshape(new_shape);
 
     CudnnTensorDescriptor b_desc{b_cont};
-    device.cudnn().CudnnAddTensor(
+    device.cudnn().Call(
+            cudnnAddTensor,
             GetValuePtr<1>(y.dtype()),
             *b_desc,
             internal::GetRawOffsetData<void>(b_cont),
@@ -129,7 +130,8 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlg
     cudnnConvolutionFwdAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    device.cudnn().CudnnFindConvolutionForwardAlgorithmEx(
+    device.cudnn().Call(
+            cudnnFindConvolutionForwardAlgorithmEx,
             *x_desc,
             internal::GetRawOffsetData<void>(x),
             *filter_desc,
@@ -177,7 +179,8 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwa
     cudnnConvolutionBwdDataAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    device.cudnn().CudnnFindConvolutionBackwardDataAlgorithmEx(
+    device.cudnn().Call(
+            cudnnFindConvolutionBackwardDataAlgorithmEx,
             *filter_desc,
             internal::GetRawOffsetData<void>(w),
             *x_desc,
@@ -225,7 +228,8 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBack
     cudnnConvolutionBwdFilterAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    device.cudnn().CudnnFindConvolutionBackwardFilterAlgorithmEx(
+    device.cudnn().Call(
+            cudnnFindConvolutionBackwardFilterAlgorithmEx,
             *x_desc,
             internal::GetRawOffsetData<void>(x),
             *gy_desc,
@@ -308,7 +312,8 @@ Array CudaConv::Conv(
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    device.cudnn().CudnnConvolutionForward(
+    device.cudnn().Call(
+            cudnnConvolutionForward,
             GetValuePtr<1>(x.dtype()),
             *x_desc,
             internal::GetRawOffsetData<void>(x_cont),
@@ -386,7 +391,8 @@ Array CudaConv::ConvTranspose(
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    device.cudnn().CudnnConvolutionBackwardData(
+    device.cudnn().Call(
+            cudnnConvolutionBackwardData,
             GetValuePtr<1>(x.dtype()),
             *filter_desc,
             internal::GetRawOffsetData<void>(w_cont),
@@ -472,7 +478,8 @@ Array CudaConv::ConvGradWeight(
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    device.cudnn().CudnnConvolutionBackwardFilter(
+    device.cudnn().Call(
+            cudnnConvolutionBackwardFilter,
             GetValuePtr<1>(x.dtype()),
             *x_desc,
             internal::GetRawOffsetData<void>(x_cont),
