@@ -50,6 +50,7 @@ void CheckDoubleBackwardComputation(
         const std::vector<Array>& grad_outputs,
         const std::vector<Array>& grad_grad_inputs,
         const std::vector<Array>& eps,
+        size_t concurrent_check_thread_count = 2U,
         double atol = 1e-5,
         double rtol = 1e-4,
         const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt);

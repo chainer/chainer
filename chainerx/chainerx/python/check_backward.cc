@@ -75,12 +75,14 @@ void InitChainerxCheckBackward(pybind11::module& m) {
              double atol,
              double rtol,
              const nonstd::optional<BackpropId>& backprop_id) {
+              py::gil_scoped_release release;
               CheckDoubleBackwardComputation(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
                       {grad_outputs.begin(), grad_outputs.end()},
                       {grad_grad_inputs.begin(), grad_grad_inputs.end()},
                       {eps.begin(), eps.end()},
+                      2,
                       atol,
                       rtol,
                       backprop_id);

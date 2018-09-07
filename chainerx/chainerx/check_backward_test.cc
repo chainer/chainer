@@ -130,7 +130,7 @@ protected:
         }
 
         // A failure occurs if backward computation and numerical gradients have differences
-        CheckDoubleBackwardComputation(fprop, inputs, grad_outputs, grad_grad_inputs, eps, atol, rtol, backprop_scope.backprop_id());
+        CheckDoubleBackwardComputation(fprop, inputs, grad_outputs, grad_grad_inputs, eps, 2, atol, rtol, backprop_scope.backprop_id());
     }
 
 private:

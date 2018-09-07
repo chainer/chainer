@@ -451,6 +451,7 @@ void CheckDoubleBackwardComputation(
         const std::vector<Array>& grad_outputs,
         const std::vector<Array>& grad_grad_inputs,
         const std::vector<Array>& eps,
+        size_t concurrent_check_thread_count,
         double atol,
         double rtol,
         const nonstd::optional<BackpropId>& backprop_id) {
@@ -484,13 +485,72 @@ void CheckDoubleBackwardComputation(
         }
     }
 
-    internal::ArrayBodyLeakTracker tracker{};
+    // Run single-shot test
     {
-        internal::ArrayBodyLeakDetectionScope scope{tracker};
-        CheckDoubleBackwardComputationImpl(
-                func, DisconnectInputArrays(inputs), DisconnectInputArrays(grad_outputs), grad_grad_inputs, eps, atol, rtol, backprop_id);
+        internal::ArrayBodyLeakTracker tracker{};
+        {
+            internal::ArrayBodyLeakDetectionScope scope{tracker};
+            CheckDoubleBackwardComputationImpl(
+                    func,
+                    DisconnectInputArrays(inputs),
+                    DisconnectInputArrays(grad_outputs),
+                    grad_grad_inputs,
+                    eps,
+                    atol,
+                    rtol,
+                    backprop_id);
+        }
+        CheckAllArrayBodiesFreed(tracker);
     }
-    CheckAllArrayBodiesFreed(tracker);
+
+    // Run thread safety check
+    if (concurrent_check_thread_count > 0) {
+        internal::ArrayBodyLeakTracker tracker{};
+        {
+            internal::ArrayBodyLeakDetectionScope scope{tracker};
+            Context& context = chainerx::GetDefaultContext();
+            Device& device = chainerx::GetDefaultDevice();
+
+            std::vector<std::vector<Array>> broadcasted_inputs(concurrent_check_thread_count);
+            std::vector<std::vector<Array>> broadcasted_grad_outputs(concurrent_check_thread_count);
+
+            for (size_t i = 0; i < concurrent_check_thread_count; i++) {
+                std::transform(inputs.begin(), inputs.end(), std::back_inserter(broadcasted_inputs[i]), [](const Array& ary) {
+                    return ary.Copy();
+                });
+                std::transform(
+                        grad_outputs.begin(), grad_outputs.end(), std::back_inserter(broadcasted_grad_outputs[i]), [](const Array& ary) {
+                            return ary.Copy();
+                        });
+            }
+            testing::RunThreads(
+                    concurrent_check_thread_count,
+                    [&func,
+                     &broadcasted_inputs,
+                     &broadcasted_grad_outputs,
+                     &grad_grad_inputs,
+                     &eps,
+                     &atol,
+                     &rtol,
+                     &backprop_id,
+                     &context,
+                     &device](size_t thread_index) {
+                        chainerx::SetDefaultContext(&context);
+                        chainerx::SetDefaultDevice(&device);
+                        CheckDoubleBackwardComputationImpl(
+                                func,
+                                DisconnectInputArrays(broadcasted_inputs[thread_index]),
+                                DisconnectInputArrays(broadcasted_grad_outputs[thread_index]),
+                                grad_grad_inputs,
+                                eps,
+                                atol,
+                                rtol,
+                                backprop_id);
+                        return nullptr;
+                    });
+        }
+        CheckAllArrayBodiesFreed(tracker);
+    }
 }
 
 }  // namespace chainerx
