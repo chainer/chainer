@@ -9,6 +9,7 @@ from chainer.functions.math.sqrt import sqrt
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
+
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
@@ -34,7 +35,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     Args:
         delta_v (float): Minimum distance to start penalizing variance
         delta_d (float): Maximum distance to stop penalizing distance
-        max_embedding_dim (int): Maximum number of embedding dimensions.
+        max_embedding_dim (int): Maximum number of embedding dimensions
         norm (int): Norm to calculate pixels and cluster center distances
         alpha (float): Weight for variance loss    (alpha * variance_loss)
         beta (float): Weight for distance loss     (beta * distance_loss)
