@@ -33,6 +33,8 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
+    parser.add_argument('--model', '-m', default='MLP',
+                        help='Choose the model: MLP or MLPSideEffect')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1000,
@@ -46,7 +48,10 @@ def main():
     print('')
 
     # Set up a neural network to train
-    model = L.Classifier(train_mnist.MLP(args.unit, 10))
+    if args.model == 'MLP':
+        model = L.Classifier(train_mnist.MLP(args.unit, 10))
+    elif args.model == 'MLPSideEffect':
+        model = L.Classifier(train_mnist.MLPSideEffect(args.unit, 10))
     if args.gpu >= 0:
         # Make a speciied GPU current
         chainer.cuda.get_device_from_id(args.gpu).use()

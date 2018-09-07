@@ -1,13 +1,14 @@
 """Recurrent neural network language model with static graph optimizations.
 
-This is a modified version of the standard Chainer ptb example that
+This is a modified version of the standard Chainer Penn Tree Bank (ptb)
+example that
 includes static subgraph optimizations. It is mostly unchanged
-from the original model that the RNN is unrolled for `bproplen`
+from the original model except that that the RNN is unrolled for `bproplen`
 slices inside of a static chain.
 
 This was required because the `LSTM` link used by the ptb example
-is not currently fully compatible with the static subgraph
-optimizations feature. Specifically, it does not yet support
+is not fully compatible with the static subgraph
+optimizations feature. Specifically, it does not support
 multiple calls in the same iteration unless it is called from
 inside a single static chain.
 

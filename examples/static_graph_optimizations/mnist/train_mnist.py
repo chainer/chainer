@@ -22,8 +22,35 @@ from chainer.training import extensions
 # Network definition
 class MLP(chainer.Chain):
 
+    """A fully-connected neural network for digit classification.
+
+    """
+
     def __init__(self, n_units, n_out):
         super(MLP, self).__init__()
+        with self.init_scope():
+            # the size of the inputs to each layer will be inferred
+            self.l1 = L.Linear(None, n_units)  # n_in -> n_units
+            self.l2 = L.Linear(None, n_units)  # n_units -> n_units
+            self.l3 = L.Linear(None, n_out)  # n_units -> n_out
+
+    @static_graph
+    def __call__(self, x):
+        h1 = F.relu(self.l1(x))
+        h2 = F.relu(self.l2(h1))
+        return self.l3(h2)
+
+
+class MLPSideEffect(chainer.Chain):
+
+    """An example of a model with side-effects.
+
+    This uses the same network as ``MLP`` except that it includes an
+    example of side-effect code. 
+    """
+
+    def __init__(self, n_units, n_out):
+        super(MLPSideEffect, self).__init__()
         with self.init_scope():
             # the size of the inputs to each layer will be inferred
             self.l1 = L.Linear(None, n_units)  # n_in -> n_units
@@ -62,6 +89,8 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
+    parser.add_argument('--model', '-m', default='MLP',
+                        help='Choose the model: MLP or MLPSideEffect')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1000,
@@ -79,7 +108,10 @@ def main():
     # Set up a neural network to train
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
-    model = L.Classifier(MLP(args.unit, 10))
+    if args.model == 'MLP':
+        model = L.Classifier(MLP(args.unit, 10))
+    elif args.model == 'MLPSideEffect':
+        model = L.Classifier(MLPSideEffect(args.unit, 10))
     if args.gpu >= 0:
         # Make a specified GPU current
         chainer.cuda.get_device_from_id(args.gpu).use()
