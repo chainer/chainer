@@ -82,8 +82,13 @@ private:
 class CudaBatchNormForwardBackward : public chainerx::GenericBatchNormForwardBackward {
 public:
     explicit CudaBatchNormForwardBackward(
-            CudaDevice& device, const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis)
-        : GenericBatchNormForwardBackward{running_mean, running_var, eps, decay, axis}, device_{device} {
+            cuda_internal::CudnnHandle& cudnn_handle,
+            const Array& running_mean,
+            const Array& running_var,
+            Scalar eps,
+            Scalar decay,
+            const Axes& axis)
+        : GenericBatchNormForwardBackward{running_mean, running_var, eps, decay, axis}, cudnn_handle_{cudnn_handle} {
         if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
             throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
         }
@@ -138,7 +143,7 @@ public:
         Array x_mean = EmptyLike(gamma_casted_cont, device);
         Array x_inv_std = EmptyLike(gamma_casted_cont, device);
 
-        device_.cudnn_handle().Call(
+        cudnn_handle_.Call(
                 cudnnBatchNormalizationForwardTraining,
                 mode,
                 cuda_internal::GetValuePtr<1>(dtype),
@@ -235,7 +240,7 @@ public:
         CHAINERX_ASSERT(x_mean.IsContiguous());
         CHAINERX_ASSERT(x_inv_std.IsContiguous());
 
-        device_.cudnn_handle().Call(
+        cudnn_handle_.Call(
                 cudnnBatchNormalizationBackward,
                 mode,
                 cuda_internal::GetValuePtr<1>(dtype),
@@ -267,14 +272,14 @@ public:
     }
 
 private:
-    CudaDevice& device_;
+    cuda_internal::CudnnHandle& cudnn_handle_;
 };
 
 }  // namespace
 
 std::unique_ptr<BatchNormForwardBackward> CudaDevice::GetBatchNormForwardBackward(
         const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) {
-    return std::make_unique<CudaBatchNormForwardBackward>(*this, running_mean, running_var, eps, decay, axis);
+    return std::make_unique<CudaBatchNormForwardBackward>(cudnn_handle(), running_mean, running_var, eps, decay, axis);
 }
 
 Array CudaDevice::FixedBatchNorm(

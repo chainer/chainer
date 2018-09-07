@@ -77,7 +77,7 @@ std::size_t CudaConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) cons
     return seed;
 }
 
-void CudaConv::AddBias(CudaDevice& device, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
+void CudaConv::AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
     CHAINERX_ASSERT(&b.device() == &y.device());
     CHAINERX_ASSERT(b.dtype() == y.dtype());
 
@@ -93,7 +93,7 @@ void CudaConv::AddBias(CudaDevice& device, const CudnnTensorDescriptor& y_desc, 
     Array b_cont = AsContiguousArray(b).Reshape(new_shape);
 
     CudnnTensorDescriptor b_desc{b_cont};
-    device.cudnn_handle().Call(
+    handle.Call(
             cudnnAddTensor,
             GetValuePtr<1>(y.dtype()),
             *b_desc,
@@ -104,7 +104,7 @@ void CudaConv::AddBias(CudaDevice& device, const CudnnTensorDescriptor& y_desc, 
 }
 
 std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlgorithm(
-        CudaDevice& device,
+        CudnnHandle& handle,
         const CudnnTensorDescriptor& x_desc,
         const Array& x,
         const CudnnFilterDescriptor& filter_desc,
@@ -130,7 +130,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlg
     cudnnConvolutionFwdAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    device.cudnn_handle().Call(
+    handle.Call(
             cudnnFindConvolutionForwardAlgorithmEx,
             *x_desc,
             internal::GetRawOffsetData<void>(x),
@@ -153,7 +153,7 @@ std::pair<cudnnConvolutionFwdAlgo_t, size_t> CudaConv::FindConvolutionForwardAlg
 }
 
 std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwardDataAlgorithm(
-        CudaDevice& device,
+        CudnnHandle& handle,
         const CudnnFilterDescriptor& filter_desc,
         const Array& w,
         const CudnnTensorDescriptor& x_desc,
@@ -179,7 +179,7 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwa
     cudnnConvolutionBwdDataAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    device.cudnn_handle().Call(
+    handle.Call(
             cudnnFindConvolutionBackwardDataAlgorithmEx,
             *filter_desc,
             internal::GetRawOffsetData<void>(w),
@@ -202,7 +202,7 @@ std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> CudaConv::FindConvolutionBackwa
 }
 
 std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBackwardFilterAlgorithm(
-        CudaDevice& device,
+        CudnnHandle& handle,
         const CudnnTensorDescriptor& x_desc,
         const Array& x,
         const CudnnTensorDescriptor& gy_desc,
@@ -228,7 +228,7 @@ std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> CudaConv::FindConvolutionBack
     cudnnConvolutionBwdFilterAlgoPerf_t perf_result{};
     int returned_algo_count{};
 
-    device.cudnn_handle().Call(
+    handle.Call(
             cudnnFindConvolutionBackwardFilterAlgorithmEx,
             *x_desc,
             internal::GetRawOffsetData<void>(x),
@@ -303,16 +303,17 @@ Array CudaConv::Conv(
     CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
+    CudnnHandle& handle = device.cudnn_handle();
 
     // auto tune
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size = FindConvolutionForwardAlgorithm(
-            device, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
+            handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
 
     cudnnConvolutionFwdAlgo_t algo = std::get<0>(algo_workspace_size);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    device.cudnn_handle().Call(
+    handle.Call(
             cudnnConvolutionForward,
             GetValuePtr<1>(x.dtype()),
             *x_desc,
@@ -328,7 +329,7 @@ Array CudaConv::Conv(
             internal::GetRawOffsetData<void>(y));
 
     if (b) {
-        AddBias(device, y_desc, y, *b);
+        AddBias(handle, y_desc, y, *b);
     }
 
     return y;
@@ -382,16 +383,17 @@ Array CudaConv::ConvTranspose(
     CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
+    CudnnHandle& handle = device.cudnn_handle();
 
     // auto tune
     std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardDataAlgorithm(
-            device, filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
+            handle, filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
 
     cudnnConvolutionBwdDataAlgo_t algo = std::get<0>(algo_workspace_size);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    device.cudnn_handle().Call(
+    handle.Call(
             cudnnConvolutionBackwardData,
             GetValuePtr<1>(x.dtype()),
             *filter_desc,
@@ -407,7 +409,7 @@ Array CudaConv::ConvTranspose(
             internal::GetRawOffsetData<void>(y));
 
     if (b) {
-        AddBias(device, y_desc, y, *b);
+        AddBias(handle, y_desc, y, *b);
     }
 
     return y;
@@ -469,16 +471,17 @@ Array CudaConv::ConvGradWeight(
     CudnnConvolutionDescriptor conv_desc{x.dtype(), pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
+    CudnnHandle& handle = device.cudnn_handle();
 
     // auto tune
     std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size =
-            FindConvolutionBackwardFilterAlgorithm(device, x_desc, x, gy_desc, gy, conv_desc, gw_desc, gw, max_workspace_size, pad, stride);
+            FindConvolutionBackwardFilterAlgorithm(handle, x_desc, x, gy_desc, gy, conv_desc, gw_desc, gw, max_workspace_size, pad, stride);
 
     cudnnConvolutionBwdFilterAlgo_t algo = std::get<0>(algo_workspace_size);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_workspace_size));
     std::shared_ptr<void> workspace = device.Allocate(workspace_size);
 
-    device.cudnn_handle().Call(
+    handle.Call(
             cudnnConvolutionBackwardFilter,
             GetValuePtr<1>(x.dtype()),
             *x_desc,

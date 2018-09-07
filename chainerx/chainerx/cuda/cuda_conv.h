@@ -55,10 +55,10 @@ public:
             bool cover_all);
 
 private:
-    void AddBias(CudaDevice& device, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b);
+    void AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b);
 
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
-            CudaDevice& device,
+            CudnnHandle& handle,
             const CudnnTensorDescriptor& x_desc,
             const Array& x,
             const CudnnFilterDescriptor& filter_desc,
@@ -70,7 +70,7 @@ private:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
     std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> FindConvolutionBackwardDataAlgorithm(
-            CudaDevice& device,
+            CudnnHandle& handle,
             const CudnnFilterDescriptor& filter_desc,
             const Array& w,
             const CudnnTensorDescriptor& x_desc,
@@ -82,7 +82,7 @@ private:
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
     std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> FindConvolutionBackwardFilterAlgorithm(
-            CudaDevice& device,
+            CudnnHandle& handle,
             const CudnnTensorDescriptor& x_desc,
             const Array& x,
             const CudnnTensorDescriptor& gy_desc,
