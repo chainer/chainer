@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "chainerx/array_body_leak_detection.h"
+
 namespace chainerx {
 namespace testing {
 namespace threading_detail {
@@ -148,21 +150,25 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
 // TODO(hvy): Define macros TEST_THREAD_SAFE and TEST_THREAD_SAFE_P.
 #define TEST_THREAD_SAFE_P(test_case_name, test_name)                                                                        \
     class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public test_case_name {                               \
-    public:                                                                                                                  \
-        CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)(){};                                                      \
-                                                                                                                             \
-        void ThreadSafeTestBody();                                                                                           \
-                                                                                                                             \
     protected:                                                                                                               \
-        size_t thread_count() { return thread_count_; }                                                                      \
+        void RunThreadSafeTestBodyWithLeakDetection(size_t thread_count) {                                                   \
+            thread_count_ = thread_count;                                                                                    \
                                                                                                                              \
-        void set_thread_count(size_t thread_count) { thread_count_ = thread_count; }                                         \
+            internal::ArrayBodyLeakTracker tracker{};                                                                        \
+            {                                                                                                                \
+                internal::ArrayBodyLeakDetectionScope scope{tracker};                                                        \
+                ThreadSafeTestBody();                                                                                        \
+            }                                                                                                                \
+            CheckAllArrayBodiesFreed(tracker);                                                                               \
+        }                                                                                                                    \
                                                                                                                              \
     private:                                                                                                                 \
+        void ThreadSafeTestBody();                                                                                           \
+                                                                                                                             \
         template <typename Func>                                                                                             \
         void Run(const Func& func) {                                                                                         \
-            if (thread_count() > 1) {                                                                                        \
-                testing::RunThreads(thread_count(), func);                                                                   \
+            if (thread_count_ > 1) {                                                                                         \
+                testing::RunThreads(thread_count_, func);                                                                    \
             } else {                                                                                                         \
                 testing::threading_detail::CallFunc(func, 0);                                                                \
             }                                                                                                                \
@@ -172,13 +178,11 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
     };                                                                                                                       \
                                                                                                                              \
     CHAINERX_TEST_P_(test_case_name, test_name##_SingleThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) { \
-        set_thread_count(1);                                                                                                 \
-        ThreadSafeTestBody();                                                                                                \
+        RunThreadSafeTestBodyWithLeakDetection(1);                                                                           \
     }                                                                                                                        \
                                                                                                                              \
     CHAINERX_TEST_P_(test_case_name, test_name##_MultiThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) {  \
-        set_thread_count(2);                                                                                                 \
-        ThreadSafeTestBody();                                                                                                \
+        RunThreadSafeTestBodyWithLeakDetection(2);                                                                           \
     }                                                                                                                        \
                                                                                                                              \
     void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::ThreadSafeTestBody()

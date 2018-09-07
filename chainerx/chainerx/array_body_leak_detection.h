@@ -50,5 +50,8 @@ private:
     static ArrayBodyLeakTracker* array_body_leak_tracker_;
 };
 
+// Throws an ChainerxError if any leakage is detected. Else, does nothing.
+void CheckAllArrayBodiesFreed(ArrayBodyLeakTracker& tracker);
+
 }  // namespace internal
 }  // namespace chainerx

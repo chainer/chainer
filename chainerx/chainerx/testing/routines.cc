@@ -95,13 +95,6 @@ void CheckOutputArraysEqual(const std::vector<Array>& expected, const std::vecto
     }
 }
 
-void CheckAllArrayBodiesFreed(chainerx::internal::ArrayBodyLeakTracker& tracker) {
-    std::ostringstream os;
-    if (!tracker.IsAllArrayBodiesFreed(os)) {
-        throw RoutinesCheckError{os.str()};
-    }
-}
-
 }  // namespace
 
 // TODO(niboshi): Check array nodes of output arrays to ensure the implementation takes backprop mode into account
@@ -125,13 +118,8 @@ void CheckForward(
         chainerx::SetDefaultContext(&context);
     }
 
-    chainerx::internal::ArrayBodyLeakTracker tracker{};
-    {
-        chainerx::internal::ArrayBodyLeakDetectionScope scope{tracker};
-        std::vector<Array> outputs = func(inputs);
-        CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
-    }
-    CheckAllArrayBodiesFreed(tracker);
+    std::vector<Array> outputs = func(inputs);
+    CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
 }
 
 }  // namespace testing

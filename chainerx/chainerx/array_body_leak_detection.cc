@@ -3,11 +3,13 @@
 #include <memory>
 #include <mutex>
 #include <ostream>
+#include <sstream>
 #include <vector>
 
 #include "chainerx/array.h"
 #include "chainerx/array_body.h"
 #include "chainerx/array_node.h"
+#include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
 
@@ -59,6 +61,13 @@ ArrayBodyLeakDetectionScope ::ArrayBodyLeakDetectionScope(ArrayBodyLeakTracker& 
 }
 
 ArrayBodyLeakDetectionScope ::~ArrayBodyLeakDetectionScope() { array_body_leak_tracker_ = nullptr; }
+
+void CheckAllArrayBodiesFreed(ArrayBodyLeakTracker& tracker) {
+    std::ostringstream os;
+    if (!tracker.IsAllArrayBodiesFreed(os)) {
+        throw ChainerxError{os.str()};
+    }
+}
 
 }  // namespace internal
 }  // namespace chainerx
