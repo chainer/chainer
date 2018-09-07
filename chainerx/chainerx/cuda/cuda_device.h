@@ -28,14 +28,13 @@ class CudaConvTest;  // for unit-tests
 
 }  // namespace cuda_internal
 
-// TODO(sonots): Support thread-safety
 class CudaDevice : public Device {
 public:
     ~CudaDevice() override;
 
-    void Synchronize() override;
+    cuda_internal::CudnnHandle& cudnn_handle() { return cudnn_handle_; }
 
-    cudnnHandle_t cudnn_handle();
+    void Synchronize() override;
 
     // memory.cc
 
@@ -181,7 +180,7 @@ public:
             override;
 
 protected:
-    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
+    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_handle_{index} {}
 
 private:
     cublasHandle_t cublas_handle();  // not thread-safe
@@ -194,8 +193,9 @@ private:
 
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};
-    std::mutex cudnn_handle_mutex_;
-    cudnnHandle_t cudnn_handle_{};
+
+    cuda_internal::CudnnHandle cudnn_handle_;
+
     cuda_internal::CudaConv cuda_conv_{};
 };
 

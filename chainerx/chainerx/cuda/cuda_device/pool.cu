@@ -78,7 +78,7 @@ __global__ void MaxPoolDoubleBackwardKernel(
 class PoolImpl {
 public:
     PoolImpl(
-            cudnnHandle_t cudnn_handle,
+            cuda_internal::CudnnHandle& cudnn_handle,
             StackVector<int64_t, kMaxNdim> kernel_size,
             StackVector<int64_t, kMaxNdim> stride,
             StackVector<int64_t, kMaxNdim> pad,
@@ -120,15 +120,15 @@ public:
 
         cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
-        CheckCudnnError(cudnnPoolingForward(
-                cudnn_handle_,
+        cudnn_handle_.Call(
+                cudnnPoolingForward,
                 *pool_desc,
                 cuda_internal::GetValuePtr<1>(x.dtype()),
                 *x_desc,
                 internal::GetRawOffsetData<void>(x_cont),
                 cuda_internal::GetValuePtr<0>(x.dtype()),
                 *y_desc,
-                internal::GetRawOffsetData<void>(y)));
+                internal::GetRawOffsetData<void>(y));
 
         x_ = x;
         y_ = y;
@@ -159,8 +159,8 @@ public:
 
         cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
-        CheckCudnnError(cudnnPoolingBackward(
-                cudnn_handle_,
+        cudnn_handle_.Call(
+                cudnnPoolingBackward,
                 *pool_desc,
                 cuda_internal::GetValuePtr<1>(x_.dtype()),
                 *y_desc,
@@ -171,7 +171,7 @@ public:
                 internal::GetRawOffsetData<void>(x_cont),
                 cuda_internal::GetValuePtr<0>(x_.dtype()),
                 *gx_desc,
-                internal::GetRawOffsetData<void>(gx)));
+                internal::GetRawOffsetData<void>(gx));
 
         return gx;
     }
@@ -213,7 +213,7 @@ public:
     }
 
 private:
-    cudnnHandle_t cudnn_handle_;
+    cuda_internal::CudnnHandle& cudnn_handle_;
     const StackVector<int64_t, kMaxNdim> kernel_size_;
     const StackVector<int64_t, kMaxNdim> stride_;
     const StackVector<int64_t, kMaxNdim> pad_;
@@ -226,7 +226,7 @@ private:
 class CudaMaxPoolForwardBackward : public chainerx::MaxPoolForwardBackward {
 public:
     explicit CudaMaxPoolForwardBackward(
-            cudnnHandle_t cudnn_handle,
+            cuda_internal::CudnnHandle& cudnn_handle,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
@@ -269,7 +269,7 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
 class CudaAveragePoolForwardBackward : public chainerx::AveragePoolForwardBackward {
 public:
     explicit CudaAveragePoolForwardBackward(
-            cudnnHandle_t cudnn_handle,
+            cuda_internal::CudnnHandle& cudnn_handle,
             const StackVector<int64_t, kMaxNdim>& kernel_size,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,

@@ -17,10 +17,6 @@ CudaDevice::~CudaDevice() {
         cudaSetDevice(index());
         cublasDestroy(cublas_handle_);
     }
-    if (cudnn_handle_ != nullptr) {
-        cudaSetDevice(index());
-        cudnnDestroy(cudnn_handle_);
-    }
 }
 
 cublasHandle_t CudaDevice::cublas_handle() {
@@ -29,15 +25,6 @@ cublasHandle_t CudaDevice::cublas_handle() {
         CheckCublasError(cublasCreate(&cublas_handle_));
     }
     return cublas_handle_;
-}
-
-cudnnHandle_t CudaDevice::cudnn_handle() {
-    std::lock_guard<std::mutex> lock{cudnn_handle_mutex_};
-    if (cudnn_handle_ == nullptr) {
-        CheckCudaError(cudaSetDevice(index()));
-        CheckCudnnError(cudnnCreate(&cudnn_handle_));
-    }
-    return cudnn_handle_;
 }
 
 void CudaDevice::Synchronize() {

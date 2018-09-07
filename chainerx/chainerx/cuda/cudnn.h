@@ -105,6 +105,27 @@ private:
     cudnnPoolingDescriptor_t desc_{};
 };
 
+// cuDNN API calls using same handle is not thread-safe.
+// This class ensures that the API calls are serialized using mutex lock.
+class CudnnHandle {
+public:
+    explicit CudnnHandle(int device_index) : device_index_{device_index} {}
+    ~CudnnHandle();
+
+    template <class Func, class... Args>
+    void Call(Func&& func, Args&&... args) {
+        std::lock_guard<std::mutex> lock{handle_mutex_};
+        CheckCudnnError(func(handle(), args...));
+    }
+
+private:
+    cudnnHandle_t handle();
+
+    int device_index_;
+    std::mutex handle_mutex_{};
+    cudnnHandle_t handle_{};
+};
+
 }  // namespace cuda_internal
 }  // namespace cuda
 }  // namespace chainerx
