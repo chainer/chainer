@@ -14,7 +14,7 @@ Chainer
 
 ChainerMN adds distributed training features to Chainer;
 thus it naturally requires Chainer.
-Please refer to `Chainer's official instructions <http://docs.chainer.org/en/latest/install.html>`__ to install.
+Please refer to `the official instructions <http://docs.chainer.org/en/latest/install.html>`_ to install.
 
 .. _mpi-install:
 
@@ -29,13 +29,13 @@ For details about CUDA-aware MPI, see `this introduction article <https://devblo
 The CUDA-aware features depend on several MPI packages, which need to be configured and built properly.
 The following are examples of Open MPI and MVAPICH.
 
-Open MPI (for details, see `Open MPI's official instructions <https://www.open-mpi.org/faq/?category=building#build-cuda>`__)::
+Open MPI (for details, see `the official instructions <https://www.open-mpi.org/faq/?category=building#build-cuda>`_)::
 
   $ ./configure --with-cuda
   $ make -j4
   $ sudo make install
 
-MVAPICH (for details, see `Mvapich's official instructions <http://mvapich.cse.ohio-state.edu/static/media/mvapich/mvapich2-2.0-userguide.html#x1-120004.5>`__)::
+MVAPICH (for details, see `the official instructions <http://mvapich.cse.ohio-state.edu/static/media/mvapich/mvapich2-2.0-userguide.html#x1-120004.5>`_)::
 
   $ ./configure --enable-cuda
   $ make -j4
@@ -49,7 +49,7 @@ NCCL
 
 To enable efficient intra- and inter-node GPU-to-GPU communication,
 we use `NVIDIA Collective Communications Library (NCCL) <https://developer.nvidia.com/nccl>`_.
-See `NCCL's official instructions <http://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/index.html#downloadnccl>`__ for installation.
+See `the official instructions <http://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/index.html#downloadnccl>`_ for installation.
 
 ChainerMN requires NCCL even if you have only one GPU per node. The
 only exception is when you run ChainerMN on CPU-only environments. See
@@ -69,7 +69,7 @@ only exception is when you run ChainerMN on CPU-only environments. See
      export LIBRARY_PATH=$NCCL_ROOT/lib/:$LIBRARY_PATH
 
    If you change the version of NCCL installed, you have to reinstall CuPy. Because, current ChainerMN applies CuPy to use NCCL.
-   See `CuPy official instructions <https://docs-cupy.chainer.org/en/stable/install.html#id13>`__ for reinstalltion.
+   See `the official instructions <https://docs-cupy.chainer.org/en/stable/install.html#id13>`_ for reinstalltion.
    
 .. _mpi4py-install:
 
@@ -94,7 +94,7 @@ CuPy
 ~~~~
 
 Chainer and ChainerMN rely on CuPy to use GPUs. 
-Please refer to `Chainer's official instructions <https://docs-cupy.chainer.org/en/stable/install.html>`__ to install.
+Please refer to `the official instructions <https://docs-cupy.chainer.org/en/stable/install.html>`_ to install.
 CuPy requires NCCL to be enabled.
 See :ref:`check-nccl`, if you want to check whether NCCL is enabled in CuPy.
 
@@ -110,16 +110,17 @@ We tested ChainerMN on all the following environments.
 * OS
   
   * Ubuntu 14.04 LTS 64bit
+  * Ubuntu 16.04 LTS 64bit
 
 * Python 2.7.13 3.5.1 3.6.1
-* Chainer 3.5.0 4.0.0 4.1.0
-* CuPy 2.5.0 4.0.0 4.1.0
+* Chainer 3.5.0 4.4.0
+* CuPy 2.5.0 4.4.0
 * MPI
 
-  * openmpi 1.6.5 1.10.3 2.1.1
+  * openmpi 1.10.7 2.1.2
 
 * MPI4py 3.0.0
-* NCCL 1.3.4 2.0.4 2.1.15
+* NCCL 2.2.13
   
 .. _chainermn-install:
 

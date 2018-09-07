@@ -40,7 +40,7 @@ Using FP16
 ~~~~~~~~~~
 FP16 (16-bit half precision floating point values) is supported in ``pure_nccl`` of a ChainerMN communicator.
 
-.. _faq-global-except-hook:
+.. _faq-global-exc-hook:
 
 MPI process hangs after an unhandled Python exception.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,7 +88,6 @@ you can inject the following code snippet into your script file ::
     import sys
     try:
         import mpi4py.MPI
-        MPI.Abort()
 
   $ mpiexec -n 2 -x CHAINERMN_FORCE_ABORT_ON_EXCEPTION=1 python yourscript.py ...
 
