@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gtest/gtest.h>
+
 #include <algorithm>
 #include <condition_variable>
 #include <cstddef>
@@ -104,32 +106,28 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
 
 #define CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) test_case_name##_##test_name##_Dummy
 
-// Helper to generate a thread safety test of type TEST, TEST_F or TEST_P.
-// TODO(hvy): Consider making the thread count and argument to the macro.
-#define TEST_THREAD_SAFE_(test_type, test_case_name, test_name)                                                                       \
-    class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public test_case_name {                                        \
+#define CHAINERX_TEST_P_(test_case_name, test_name, parent_class)                                                                     \
+    class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public parent_class {                                          \
     public:                                                                                                                           \
-        CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)(size_t thread_count) : thread_count_{thread_count} {}              \
-                                                                                                                                      \
-        void TestBody();                                                                                                              \
+        CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)() {}                                                               \
                                                                                                                                       \
     private:                                                                                                                          \
-        template <typename Func>                                                                                                      \
-        void Run(const Func& func) {                                                                                                  \
-            if (thread_count_ > 1) {                                                                                                  \
-                testing::RunThreads(thread_count_, func);                                                                             \
-            } else {                                                                                                                  \
-                testing::threading_detail::CallFunc(func, 0);                                                                         \
-            }                                                                                                                         \
+        virtual void TestBody();                                                                                                      \
+        static int AddToRegistry() {                                                                                                  \
+            ::testing::UnitTest::GetInstance()                                                                                        \
+                    ->parameterized_test_registry()                                                                                   \
+                    .GetTestCasePatternHolder<test_case_name>(#test_case_name, ::testing::internal::CodeLocation(__FILE__, __LINE__)) \
+                    ->AddTestPattern(                                                                                                 \
+                            #test_case_name,                                                                                          \
+                            #test_name,                                                                                               \
+                            new ::testing::internal::TestMetaFactory<CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)>());  \
+            return 0;                                                                                                                 \
         }                                                                                                                             \
-                                                                                                                                      \
-        size_t thread_count_;                                                                                                         \
+        static int registering_dummy_ GTEST_ATTRIBUTE_UNUSED_;                                                                        \
+        GTEST_DISALLOW_COPY_AND_ASSIGN_(CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name));                                  \
     };                                                                                                                                \
-                                                                                                                                      \
-    test_type(test_case_name, test_name##_SingleThread) { CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name){0}.TestBody(); } \
-                                                                                                                                      \
-    test_type(test_case_name, test_name##_MultiThread) { CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name){2}.TestBody(); }  \
-                                                                                                                                      \
+    int CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::registering_dummy_ =                                              \
+            CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::AddToRegistry();                                              \
     void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::TestBody()
 
 // Thread safety test macros that replaces TEST, TEST_F, TEST_P.
@@ -147,9 +145,43 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
 //         EXPECT_EQ(std::to_string(thread_index), ctx.GetBackpropName(backprop_id));
 //     });
 // }
-#define TEST_THREAD_SAFE(test_case_name, test_name) TEST_THREAD_SAFE_(TEST, test_case_name, test_name)
-#define TEST_THREAD_SAFE_F(test_case_name, test_name) TEST_THREAD_SAFE_(TEST_F, test_case_name, test_name)
-#define TEST_THREAD_SAFE_P(test_case_name, test_name) TEST_THREAD_SAFE_(TEST_P, test_case_name, test_name)
+// TODO(hvy): Define macros TEST_THREAD_SAFE and TEST_THREAD_SAFE_P.
+#define TEST_THREAD_SAFE_P(test_case_name, test_name)                                                                        \
+    class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public test_case_name {                               \
+    public:                                                                                                                  \
+        CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)(){};                                                      \
+                                                                                                                             \
+        void ThreadSafeTestBody();                                                                                           \
+                                                                                                                             \
+    protected:                                                                                                               \
+        size_t thread_count() { return thread_count_; }                                                                      \
+                                                                                                                             \
+        void set_thread_count(size_t thread_count) { thread_count_ = thread_count; }                                         \
+                                                                                                                             \
+    private:                                                                                                                 \
+        template <typename Func>                                                                                             \
+        void Run(const Func& func) {                                                                                         \
+            if (thread_count() > 1) {                                                                                        \
+                testing::RunThreads(thread_count(), func);                                                                   \
+            } else {                                                                                                         \
+                testing::threading_detail::CallFunc(func, 0);                                                                \
+            }                                                                                                                \
+        }                                                                                                                    \
+                                                                                                                             \
+        size_t thread_count_{0};                                                                                             \
+    };                                                                                                                       \
+                                                                                                                             \
+    CHAINERX_TEST_P_(test_case_name, test_name##_SingleThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) { \
+        set_thread_count(1);                                                                                                 \
+        ThreadSafeTestBody();                                                                                                \
+    }                                                                                                                        \
+                                                                                                                             \
+    CHAINERX_TEST_P_(test_case_name, test_name##_MultiThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) {  \
+        set_thread_count(2);                                                                                                 \
+        ThreadSafeTestBody();                                                                                                \
+    }                                                                                                                        \
+                                                                                                                             \
+    void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::ThreadSafeTestBody()
 
 }  // namespace testing
 }  // namespace chainerx
