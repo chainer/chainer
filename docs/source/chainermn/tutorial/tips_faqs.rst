@@ -40,7 +40,7 @@ Using FP16
 ~~~~~~~~~~
 FP16 (16-bit half precision floating point values) is supported in ``pure_nccl`` of a ChainerMN communicator.
 
-.. _faq-global-exc-hook:
+.. _faq-global-except-hook:
 
 MPI process hangs after an unhandled Python exception.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
