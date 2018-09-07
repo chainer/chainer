@@ -164,13 +164,6 @@ TEST(CudaDeviceTest, Synchronize) {
     device.Synchronize();  // no throw
 }
 
-TEST(CudaDeviceTest, GetCudnnHandleThreadSafe) {
-    Context ctx{};
-    CudaDevice& device = GetCudaDevice(ctx, 0);
-
-    testing::RunThreads(2, [&device]() { device.cudnn_handle(); });
-}
-
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx

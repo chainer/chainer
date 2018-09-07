@@ -82,7 +82,12 @@ private:
 class CudaBatchNormForwardBackward : public chainerx::GenericBatchNormForwardBackward {
 public:
     explicit CudaBatchNormForwardBackward(
-            cudnnHandle_t cudnn_handle, const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis)
+            cuda_internal::CudnnHandle& cudnn_handle,
+            const Array& running_mean,
+            const Array& running_var,
+            Scalar eps,
+            Scalar decay,
+            const Axes& axis)
         : GenericBatchNormForwardBackward{running_mean, running_var, eps, decay, axis}, cudnn_handle_{cudnn_handle} {
         if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
             throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
@@ -138,8 +143,8 @@ public:
         Array x_mean = EmptyLike(gamma_casted_cont, device);
         Array x_inv_std = EmptyLike(gamma_casted_cont, device);
 
-        CheckCudnnError(cudnnBatchNormalizationForwardTraining(
-                cudnn_handle_,
+        cudnn_handle_.Call(
+                cudnnBatchNormalizationForwardTraining,
                 mode,
                 cuda_internal::GetValuePtr<1>(dtype),
                 cuda_internal::GetValuePtr<0>(dtype),
@@ -155,7 +160,7 @@ public:
                 internal::GetRawOffsetData<void>(running_var_casted),
                 static_cast<double>(eps()),
                 internal::GetRawOffsetData<void>(x_mean),
-                internal::GetRawOffsetData<void>(x_inv_std)));
+                internal::GetRawOffsetData<void>(x_inv_std));
 
         // When data type of prameters is converted, say, from fp16
         // to fp32, the values of fp32 arrays of running_mean and
@@ -235,8 +240,8 @@ public:
         CHAINERX_ASSERT(x_mean.IsContiguous());
         CHAINERX_ASSERT(x_inv_std.IsContiguous());
 
-        CheckCudnnError(cudnnBatchNormalizationBackward(
-                cudnn_handle_,
+        cudnn_handle_.Call(
+                cudnnBatchNormalizationBackward,
                 mode,
                 cuda_internal::GetValuePtr<1>(dtype),
                 cuda_internal::GetValuePtr<0>(dtype),
@@ -254,7 +259,7 @@ public:
                 internal::GetRawOffsetData<void>(gbeta),
                 static_cast<double>(eps()),
                 internal::GetRawOffsetData<void>(x_mean),
-                internal::GetRawOffsetData<void>(x_inv_std)));
+                internal::GetRawOffsetData<void>(x_inv_std));
 
         // TODO(niboshi): Write test after fp16 is supported
         if (gamma_beta_mean_var_dtype != dtype) {
@@ -267,7 +272,7 @@ public:
     }
 
 private:
-    cudnnHandle_t cudnn_handle_;
+    cuda_internal::CudnnHandle& cudnn_handle_;
 };
 
 }  // namespace
@@ -315,8 +320,8 @@ Array CudaDevice::FixedBatchNorm(
 
     Array out = EmptyLike(x, x.device());
 
-    CheckCudnnError(cudnnBatchNormalizationForwardInference(
-            cudnn_handle(),
+    cudnn_handle_.Call(
+            cudnnBatchNormalizationForwardInference,
             GetBatchNormMode(axis),
             cuda_internal::GetValuePtr<1>(x.dtype()),
             cuda_internal::GetValuePtr<0>(x.dtype()),
@@ -329,7 +334,7 @@ Array CudaDevice::FixedBatchNorm(
             internal::GetRawOffsetData<void>(beta_casted_cont),
             internal::GetRawOffsetData<void>(mean_casted_cont),
             internal::GetRawOffsetData<void>(var_casted_cont),
-            static_cast<double>(eps)));
+            static_cast<double>(eps));
 
     return out;
 }
