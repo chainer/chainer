@@ -45,7 +45,8 @@ class InstanceNormalization(function_node.FunctionNode):
     mean = None
     inv_std = None
 
-    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9, axis=None):
+    def __init__(self, eps=2e-5, use_running_stats=False, mean=None, var=None, decay=0.9, axis=None):
+        self.use_running_stats = use_running_stats
         self.running_mean = mean
         self.running_var = var
         # Note: cuDNN requires that eps be greater than or equals to
@@ -71,8 +72,28 @@ class InstanceNormalization(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        # TODO (crcrpar)
-        pass
+        type_check.expect(in_types.size() == 3)
+        x_type, gamma_type, beta_type = in_types
+        type_check.expect(
+            x_type.dtype.kind == 'f',
+            gamma_type.dtype == x_type.dtype,
+            beta_type.dtype == x_type.dtype,
+            gamma_type.shape == beta_type.shape,
+        )
+        _x_ndim = type_check.eval(x_type.ndim)
+        _gamma_ndim = type_check.eval(gamma_type.ndim)
+        _axis = _compute_axis(_x_ndim, _gamma_ndim, self.axis)
+        type_check.expect(
+            x_type.ndim >= len(_axis),
+        )
+        _key_axis = _compute_key_axis(_x_ndim, _gamma_ndim, _axis)
+        type_check.expect(
+            gamma_type.ndim == len(_key_axis),
+        )
+        for i in range(len(_key_axis)):
+            type_check.expect(
+                x_type.shape[_key_axis[i]] == gamma_type.shape[i],
+            )
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
@@ -138,7 +159,7 @@ class InstanceNormalization(function_node.FunctionNode):
         m = x.size // (gamma.size / self.org_shape[0])
         adjus = m / max(m - 1., 1.)
 
-        if isinstance(self.running_mean, intel64.ideep.mdarray):
+        if self.use_running_stats and isinstance(self.running_mean, intel64.ideep.mdarray):
             # Update running_mean
             if isinstance(self.running_mean, intel64.ideep.mdarray):
                 mean = self.mean.reshape(
@@ -226,7 +247,9 @@ class InstanceNormalization(function_node.FunctionNode):
                     'A numerical overflow might have happend in cuDNN'
                     'batch normalization (status:{})'.format(rstatus))
 
-        self._update_running_statistics(mean.astype(dtype), var.astype(dtype), x, gamma)
+        if self.use_running_stats:
+            self._update_running_statistics(
+                mean.astype(dtype), var.astype(dtype), x, gamma)
 
         return y.reshape(self.org_shape),
 
@@ -243,9 +266,13 @@ class InstanceNormalization(function_node.FunctionNode):
             )
         else:
             self.inv_std = cuda.cupyx.rsqrt(var + self.eps)
-        self._update_running_statistics(mean, var, x, gamma)
 
-        y_ = _apply_in_fwd(xp, x, self.mean[self.expander], self.inv_std[self.expander], gamma, beta)
+        y_ = _apply_in_fwd(
+            xp, x, self.mean[self.expander], self.inv_std[self.expander],
+            gamma, beta
+        )
+        if self.use_running_stats:
+            self._update_running_statistics(mean, var, x, gamma)
         y = y_.reshape(self.org_shape)
         return y,
 
@@ -406,14 +433,17 @@ class InstanceNormalizationGrad(function.Function):
         return gx, ggamma, gbeta
 
     def backward(self, inputs, grad_outputs):
-        # TODO (crcrpar): Implement.
-        '''
         expander = self.expander
 
         x, gamma, gy = inputs
         gx1, ggamma1, _ = self.output_data
         ggx1, ggamma1, ggbeta1 = grad_outputs
         xp = cuda.get_array_module(x)
+
+        batch_size = len(x)
+        x, gamma, gy = x.reshape(self.new_shape), xp.repeat(gamma, batch_size, 0), gy.reshape(self.new_shape)
+        gx1, ggamma1 = gx1.reshape(self.new_shape), xp.repeat(ggamma1, batch_size, 0)
+        ggx1, ggamma1, ggbeta1 = ggx1.reshape(self.new_shape), xp.repeat(ggamma1, batch_size, 0), xp.repeat(ggbeta1, batch_size, 0)
 
         # auxiliary values
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
@@ -441,9 +471,7 @@ class InstanceNormalizationGrad(function.Function):
         ggy2 = (gggamma2[expander] * x_hat + ggbeta2[expander]
                 + coeff[expander] * ggx1)
 
-        return gx2, ggamma2, ggy2
-        '''
-        raise NotImplementedError
+        return gx2.reshape(self.org_shape), ggamma2.reshape((batch_size, -1)).mean(axis=0), ggy2.reshape(self.org_shape)
 
 
 class FixedInstanceNormalization(function_node.FunctionNode):
@@ -468,14 +496,38 @@ class FixedInstanceNormalization(function_node.FunctionNode):
                     msg = 'numbers in axis must be sorted in ascending order'
                     raise RuntimeError(msg)
         elif isinstance(axis, int):
-            axis = axis,
+            axis = (axis,)
         elif axis is not None:
             raise RuntimeError('axis must be int, tuple of int or None')
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        # TODO (crcrpar): Implement this.
-        pass
+        type_check.expect(in_types.size() == 5)
+        x_type, gamma_type, beta_type, mean_type, var_type = in_types
+        type_check.expect(
+            x_type.dtype.kind == 'f',
+            gamma_type.dtype == x_type.dtype,
+            beta_type.dtype == x_type.dtype,
+            gamma_type.shape == beta_type.shape,
+            mean_type.dtype == x_type.dtype,
+            mean_type.shape == gamma_type.shape,
+            var_type.dtype == x_type.dtype,
+            var_type.shape == gamma_type.shape,
+        )
+        _x_ndim = type_check.eval(x_type.ndim)
+        _gamma_ndim = type_check.eval(gamma_type.ndim)
+        _axis = _compute_axis(_x_ndim, _gamma_ndim, self.axis)
+        type_check.expect(
+            x_type.ndim >= len(_axis),
+        )
+        _key_axis = _compute_key_axis(_x_ndim, _gamma_ndim, _axis)
+        type_check.expect(
+            gamma_type.ndim == len(_key_axis),
+        )
+        for i in range(len(_key_axis)):
+            type_check.expect(
+                x_type.shape[_key_axis[i]] == gamma_type.shape[i],
+            )
 
     def forward(self, inputs):
         self.retain_inputs((0, 1, 3, 4))
@@ -745,44 +797,123 @@ def _get_dtype_of_tensor_descriptor(desc):
 
 
 def instance_normalization(x, gamma, beta, **kwargs):
-    # TODO(crcrpar): Write the document.
-    """Instance normalization function.
+    """instance_normalization(x, gamma, beta, eps=2e-5, update_running_stats=False, running_mean=None, running_var=None, decay=0.9, axis=None)
+
+    Instance normalization function.
+
+    It takes the input variable ``x`` and two parameter variables ``gamma`` and
+    ``beta``. The parameter variables must both have the same dimensionality,
+    which is referred to as the channel shape. This channel shape corresponds
+    to the dimensions in the input which are not averaged over. Since the
+    first dimension of the input corresponds to the batch size, the second
+    dimension of ``x`` will correspond to the first dimension of the channel
+    shape, the third dimension of ``x`` will correspond to the second channel
+    dimension (if it exists) and so on. Therefore, the dimensionality of the
+    input must be at least one plus the number of channel dimensions. The
+    total effective "batch size" will then be considered to be the product of
+    all dimensions in ``x`` except for the channel dimensions.
+
+    As an example, if the input is four dimensional and the parameter
+    variables are one dimensional, then it is assumed that the first
+    dimension of the input is the batch size, the second dimension is the
+    channel size, and the remaining two dimensions are considered
+    to be spatial dimensions that will be averaged over along with the
+    batch size in the batch normalization computations. That is,
+    the total batch size will be considered to be the product of all
+    input dimensions except the second dimension.
+
+    .. warning::
+
+       ``train`` argument is not supported anymore since v2.
+       Instead, use ``chainer.using_config('train', train)``.
+       See :func:`chainer.using_config`.
 
     Args:
-        x
-        gamma
-        beta
-        running_mean
-        running_var
-        decay
-        axis
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Scaling parameter of normalized data.
+        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
+        eps (float): Epsilon value for numerical stability.
+        use_running_stats (bool): Update running statistics or not.
+            If ``True``, `running_mean` and `running_var` are updated
+            using approximated mean and variance.
+        running_mean (numpy.ndarray or cupy.ndarray):
+            Running average of the mean. This is a running average of
+            the mean over several mini-batches using the decay parameter.
+            The function takes a previous running average, and updates
+            the array in-place by the new running average.
+            If ``None``, the running average is not computed. If this is
+            ``None``, then ``runnng_var`` must also be ``None``.
+        running_var (numpy.ndarray or cupy.ndarray):
+            Running average of the variance. This is a running average of
+            the variance over several mini-batches using the decay parameter.
+            The function takes a previous running average, and updates
+            the array in-place by the new running average.
+            If ``None``, the running average is not computed. If this is
+            ``None``, then ``running_mean`` must also be ``None``.
+        decay (float): Decay rate of moving average. It is used during
+            training.
+        axis (int, tuple of int or None): Axis over which normalization is
+            performed. When axis is ``None``, it is determined from input
+            dimensions. For example, if ``x.ndim`` is 4, axis becomes (0, 2, 3)
+            and normalization is performed over 0th, 2nd and 3rd axis of input.
+            If it is 2, axis becomes (0) and normalization is performed
+            over 0th axis of input. When a tuple of int is given to this
+            option, numbers in the tuple must be being sorted in ascending
+            order. For example, (0, 2) is OK, but (2, 0) is not.
 
-    """
+    See: `Instance Normalization: The Missing Ingredient for Fast Stylization\
+          <https://arxiv.org/abs/1607.08022>`_
 
-    eps, running_mean, running_var, decay, axis = argument.parse_kwargs(
-        kwargs, ('eps', 2e-5), ('running_mean', None),
+    .. seealso:: :class:`~chainer.links.InstanceNormalization`
+
+    """  # NOQA
+
+    use_running_stats, eps, running_mean, running_var, decay, axis = argument.parse_kwargs(
+        kwargs, ('use_running_stats', False), ('eps', 2e-5), ('running_mean', None),
         ('running_var', None), ('decay', 0.9), ('axis', None),
         train='train argument is not supported anymore. '
         'Use chainer.using_config')
 
     return InstanceNormalization(eps, running_mean, running_var, decay,
-                              axis).apply((x, gamma, beta))[0]
+                                 axis).apply((x, gamma, beta))[0]
 
 
 def fixed_instance_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
-    # TODO(crcrpar): Write the document.
-
     """Instance normalization function with fixed statistics.
 
+    This is a variant of instance normalization, where the mean and variance
+    statistics are given by the caller as fixed variables. This is
+    used on testing mode of the batch normalization layer, where batch
+    statistics cannot be used for prediction consistency.
+
     Args:
-        x
-        gamma
-        beta
-        mean
-        var
-        eps
-        axis
+        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Input variable.
+        gamma (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Scaling parameter of normalized data.
+        beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
+        mean (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Shifting parameter of input.
+        var (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Square of scaling parameter of input.
+        eps (float): Epsilon value for numerical stability.
+        axis (int, tuple of int or None): Axis over which normalization is
+            performed. When axis is ``None``, it is determined from input
+            dimensions. For example, if ``x.ndim is 4``, axis becomes (0, 2, 3)
+            and normalization is performed over 0th, 2nd and 3rd axis of input.
+            If it is 2, axis becomes (0) and normalization is performed
+            over 0th axis of input. When a tuple of int is given to this
+            option, numbers in the tuple must be being sorted in ascending
+            order. For example, (0, 2) is OK, but (2, 0) is not.
+
+    .. seealso::
+       :func:`~chainer.functions.instance_normalization`,
+       :class:`~chainer.links.InstanceNormalization`
 
     """
-
-    return FixedInstanceNormalization(eps, axis).apply((x, gamma, beta, mean, var))[0]
+    return FixedInstanceNormalization(eps, axis).apply((x, gamma, beta, mean,
+                                                        var))[0]
