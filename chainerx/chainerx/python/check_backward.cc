@@ -25,6 +25,7 @@ struct ForwardInPython {
     py::object& func;
 
     std::vector<Array> operator()(const std::vector<Array>& xs_array) const {
+        py::gil_scoped_acquire acquire;
         std::vector<ArrayBodyPtr> xs;
         xs.reserve(xs_array.size());
         std::transform(
@@ -46,6 +47,7 @@ void InitChainerxCheckBackward(pybind11::module& m) {
              double atol,
              double rtol,
              const nonstd::optional<BackpropId>& backprop_id) {
+              py::gil_scoped_release release;
               CheckBackward(
                       ForwardInPython{func},
                       {inputs.begin(), inputs.end()},
