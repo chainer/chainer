@@ -66,29 +66,6 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
     def __call__(self, embeddings, labels):
 
-        """Applies discriminative margin based clustering loss
-
-        Args:
-            embeddings(:class:`~chainer.Variable` or \
-            :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`) :
-                predicted embedding vectors
-                (batch size, max embedding dimension, height, width)
-            labels(:class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`) :
-                instance segmentation ground truth
-                each unique value has to be denoting one instance
-                (batch size, height, width)
-
-        Returns:
-            Variance Loss(:class:`~chainer.Variable` or float):
-                variance loss multiplied by alpha
-            Distance Loss(:class:`~chainer.Variable` or float):
-                distance loss multiplied by beta
-            Regularization Loss(:class:`~chainer.Variable` or float):
-                regularization loss multiplied by gamma
-        """
-
         assert (self.max_embedding_dim == embeddings.shape[1])
 
         l_dist = 0.0
