@@ -46,7 +46,7 @@ class MLPSideEffect(chainer.Chain):
     """An example of a model with side-effects.
 
     This uses the same network as ``MLP`` except that it includes an
-    example of side-effect code. 
+    example of side-effect code.
     """
 
     def __init__(self, n_units, n_out):
