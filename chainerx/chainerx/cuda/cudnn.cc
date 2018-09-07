@@ -221,14 +221,14 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
     }
 }
 
-Cudnn::~Cudnn() {
+CudnnHandle::~CudnnHandle() {
     if (handle_ != nullptr) {
         cudaSetDevice(index_);
         cudnnDestroy(handle_);
     }
 }
 
-cudnnHandle_t Cudnn::handle() {
+cudnnHandle_t CudnnHandle::handle() {
     if (handle_ == nullptr) {
         CheckCudaError(cudaSetDevice(index_));
         CheckCudnnError(cudnnCreate(&handle_));

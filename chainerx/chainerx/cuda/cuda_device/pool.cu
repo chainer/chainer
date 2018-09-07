@@ -120,7 +120,7 @@ public:
 
         cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
-        device_.cudnn().Call(
+        device_.cudnn_handle().Call(
                 cudnnPoolingForward,
                 *pool_desc,
                 cuda_internal::GetValuePtr<1>(x.dtype()),
@@ -159,7 +159,7 @@ public:
 
         cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
-        device_.cudnn().Call(
+        device_.cudnn_handle().Call(
                 cudnnPoolingBackward,
                 *pool_desc,
                 cuda_internal::GetValuePtr<1>(x_.dtype()),

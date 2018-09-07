@@ -138,7 +138,7 @@ public:
         Array x_mean = EmptyLike(gamma_casted_cont, device);
         Array x_inv_std = EmptyLike(gamma_casted_cont, device);
 
-        device_.cudnn().Call(
+        device_.cudnn_handle().Call(
                 cudnnBatchNormalizationForwardTraining,
                 mode,
                 cuda_internal::GetValuePtr<1>(dtype),
@@ -235,7 +235,7 @@ public:
         CHAINERX_ASSERT(x_mean.IsContiguous());
         CHAINERX_ASSERT(x_inv_std.IsContiguous());
 
-        device_.cudnn().Call(
+        device_.cudnn_handle().Call(
                 cudnnBatchNormalizationBackward,
                 mode,
                 cuda_internal::GetValuePtr<1>(dtype),
@@ -315,7 +315,7 @@ Array CudaDevice::FixedBatchNorm(
 
     Array out = EmptyLike(x, x.device());
 
-    cudnn_.Call(
+    cudnn_handle_.Call(
             cudnnBatchNormalizationForwardInference,
             GetBatchNormMode(axis),
             cuda_internal::GetValuePtr<1>(x.dtype()),

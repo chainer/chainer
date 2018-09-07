@@ -107,10 +107,10 @@ private:
 
 // cuDNN API calls using same handle is not thread-safe.
 // This class ensures that the API calls are serialized using mutex lock.
-class Cudnn {
+class CudnnHandle {
 public:
-    explicit Cudnn(int index) : index_{index} {}
-    ~Cudnn();
+    explicit CudnnHandle(int index) : index_{index} {}
+    ~CudnnHandle();
 
     template <class Func, class... Args>
     void Call(Func&& func, Args&&... args) {
