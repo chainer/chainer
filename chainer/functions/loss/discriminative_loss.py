@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from chainer.backends import cuda
-
 from chainer.functions.activation.relu import relu
 from chainer.functions.array.broadcast import broadcast_to
-from chainer.functions.array.expand_dims import expand_dims
 from chainer.functions.math.basic_math import absolute
 from chainer.functions.math.sum import sum as c_sum
 from chainer.functions.math.sqrt import sqrt
@@ -93,52 +91,42 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         assert (self.max_embedding_dim == embeddings.shape[1])
 
-        l_var = 0.0
         l_dist = 0.0
-        l_reg = 0.0
         count = 0
-        means = []
         xp = cuda.get_array_module(embeddings)
 
-        zeros = xp.asarray(0.0)
-
-        # Calculate cluster means
+        emb = embeddings[None, :]
+        emb = broadcast_to(emb, (emb.shape[1],
+                                 emb.shape[1],
+                                 emb.shape[2],
+                                 emb.shape[3],
+                                 emb.shape[4]))
+        ms = []
         for c in range(self.max_embedding_dim):
             # Create mask for instance
             mask = xp.expand_dims(labels == c + 1, 1)
+            ms.append(mask)
+        ms = xp.stack(ms, 0)
+        mns = c_sum(emb * ms, axis=(3, 4))
+        mns = mns / xp.maximum(xp.sum(ms, (2, 3, 4))[:, :, None], 1)
+        mns_exp = mns[:, :, :, None, None]
 
-            # Calculate the number of pixels belonging to instance c
-            nc = xp.sum(mask, (1, 2, 3))
-            if xp.sum(nc) == zeros:
-                continue
+        # Calculate regularization term
+        l_reg = c_sum(self.norm(mns, (1, 2)))
+        l_reg = l_reg / (self.max_embedding_dim * embeddings.shape[0])
 
-            mask = xp.broadcast_to(mask, embeddings.shape)
-            pred_instance = embeddings * mask
-
-            nc = nc.astype(pred_instance.dtype)
-            nc_exp = xp.expand_dims(xp.maximum(nc, 1), 1)
-            mean = c_sum(pred_instance, axis=(2, 3)) / nc_exp
-
-            means.append(mean)
-
-            # Calculate variance term
-            xi = broadcast_to(expand_dims(expand_dims(mean, 2), 3),
-                              pred_instance.shape) * mask
-            dist = relu(self.norm(xi - pred_instance, 1) - self.delta_v) ** 2
-            l_var += c_sum(dist) / xp.maximum(xp.sum(nc), 1.0)
-
-            # Calculate regularization term
-            l_reg += self.norm(mean)
-
-        # Normalize loss by batch and instance count
-        l_var /= self.max_embedding_dim
-        l_reg /= self.max_embedding_dim * embeddings.shape[0]
+        # Calculate variance term
+        l_var = self.norm((mns_exp - emb) * ms, 2)
+        l_var = relu(l_var - self.delta_v) ** 2
+        l_var = c_sum(l_var, (1, 2, 3))
+        l_var = l_var / xp.maximum(xp.sum(ms, (1, 2, 3, 4)), 1)
+        l_var = c_sum(l_var) / self.max_embedding_dim
 
         # Calculate distance loss
-        for c_a in range(len(means)):
-            for c_b in range(c_a + 1, len(means)):
-                m_a = means[c_a]
-                m_b = means[c_b]
+        for c_a in range(len(mns)):
+            for c_b in range(c_a + 1, len(mns)):
+                m_a = mns[c_a]
+                m_b = mns[c_b]
                 dist = self.norm(m_a - m_b, 1)  # N
                 l_dist += c_sum((relu(2 * self.delta_d - dist)) ** 2)
                 count += 1
