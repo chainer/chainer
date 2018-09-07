@@ -4,6 +4,7 @@
 #include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
+#include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
@@ -218,6 +219,21 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
         CheckCudnnError(
                 cudnnSetPoolingNdDescriptor(desc_, mode, max_pooling_nan_opt, ndim, &int_kernel_size[0], &int_pad[0], &int_stride[0]));
     }
+}
+
+Cudnn::~Cudnn() {
+    if (handle_ != nullptr) {
+        cudaSetDevice(index_);
+        cudnnDestroy(handle_);
+    }
+}
+
+cudnnHandle_t Cudnn::handle() {
+    if (handle_ == nullptr) {
+        CheckCudaError(cudaSetDevice(index_));
+        CheckCudnnError(cudnnCreate(&handle_));
+    }
+    return handle_;
 }
 
 }  // namespace cuda_internal

@@ -138,27 +138,23 @@ public:
         Array x_mean = EmptyLike(gamma_casted_cont, device);
         Array x_inv_std = EmptyLike(gamma_casted_cont, device);
 
-        {
-            std::lock_guard<std::mutex> lock{device_.cudnn_handle_mutex()};
-            CheckCudnnError(cudnnBatchNormalizationForwardTraining(
-                    device_.cudnn_handle(),
-                    mode,
-                    cuda_internal::GetValuePtr<1>(dtype),
-                    cuda_internal::GetValuePtr<0>(dtype),
-                    *x_desc,
-                    internal::GetRawOffsetData<void>(x_cont),
-                    *x_desc,
-                    internal::GetRawOffsetData<void>(out),
-                    *gamma_beta_mean_var_desc,
-                    internal::GetRawOffsetData<void>(gamma_casted_cont),
-                    internal::GetRawOffsetData<void>(beta_casted_cont),
-                    1.0 - static_cast<double>(decay()),
-                    internal::GetRawOffsetData<void>(running_mean_casted),
-                    internal::GetRawOffsetData<void>(running_var_casted),
-                    static_cast<double>(eps()),
-                    internal::GetRawOffsetData<void>(x_mean),
-                    internal::GetRawOffsetData<void>(x_inv_std)));
-        }
+        device_.cudnn().CudnnBatchNormalizationForwardTraining(
+                mode,
+                cuda_internal::GetValuePtr<1>(dtype),
+                cuda_internal::GetValuePtr<0>(dtype),
+                *x_desc,
+                internal::GetRawOffsetData<void>(x_cont),
+                *x_desc,
+                internal::GetRawOffsetData<void>(out),
+                *gamma_beta_mean_var_desc,
+                internal::GetRawOffsetData<void>(gamma_casted_cont),
+                internal::GetRawOffsetData<void>(beta_casted_cont),
+                1.0 - static_cast<double>(decay()),
+                internal::GetRawOffsetData<void>(running_mean_casted),
+                internal::GetRawOffsetData<void>(running_var_casted),
+                static_cast<double>(eps()),
+                internal::GetRawOffsetData<void>(x_mean),
+                internal::GetRawOffsetData<void>(x_inv_std));
 
         // When data type of prameters is converted, say, from fp16
         // to fp32, the values of fp32 arrays of running_mean and
@@ -238,29 +234,25 @@ public:
         CHAINERX_ASSERT(x_mean.IsContiguous());
         CHAINERX_ASSERT(x_inv_std.IsContiguous());
 
-        {
-            std::lock_guard<std::mutex> lock{device_.cudnn_handle_mutex()};
-            CheckCudnnError(cudnnBatchNormalizationBackward(
-                    device_.cudnn_handle(),
-                    mode,
-                    cuda_internal::GetValuePtr<1>(dtype),
-                    cuda_internal::GetValuePtr<0>(dtype),
-                    cuda_internal::GetValuePtr<1>(dtype),
-                    cuda_internal::GetValuePtr<0>(dtype),
-                    *x_desc,
-                    internal::GetRawOffsetData<void>(x_cont),
-                    *x_desc,
-                    internal::GetRawOffsetData<void>(gout_cont),
-                    *x_desc,
-                    internal::GetRawOffsetData<void>(gx),
-                    *gamma_beta_mean_var_desc,
-                    internal::GetRawOffsetData<void>(gamma_casted_cont),
-                    internal::GetRawOffsetData<void>(ggamma),
-                    internal::GetRawOffsetData<void>(gbeta),
-                    static_cast<double>(eps()),
-                    internal::GetRawOffsetData<void>(x_mean),
-                    internal::GetRawOffsetData<void>(x_inv_std)));
-        }
+        device_.cudnn().CudnnBatchNormalizationBackward(
+                mode,
+                cuda_internal::GetValuePtr<1>(dtype),
+                cuda_internal::GetValuePtr<0>(dtype),
+                cuda_internal::GetValuePtr<1>(dtype),
+                cuda_internal::GetValuePtr<0>(dtype),
+                *x_desc,
+                internal::GetRawOffsetData<void>(x_cont),
+                *x_desc,
+                internal::GetRawOffsetData<void>(gout_cont),
+                *x_desc,
+                internal::GetRawOffsetData<void>(gx),
+                *gamma_beta_mean_var_desc,
+                internal::GetRawOffsetData<void>(gamma_casted_cont),
+                internal::GetRawOffsetData<void>(ggamma),
+                internal::GetRawOffsetData<void>(gbeta),
+                static_cast<double>(eps()),
+                internal::GetRawOffsetData<void>(x_mean),
+                internal::GetRawOffsetData<void>(x_inv_std));
 
         // TODO(niboshi): Write test after fp16 is supported
         if (gamma_beta_mean_var_dtype != dtype) {
@@ -321,24 +313,20 @@ Array CudaDevice::FixedBatchNorm(
 
     Array out = EmptyLike(x, x.device());
 
-    {
-        std::lock_guard<std::mutex> lock{cudnn_handle_mutex_};
-        CheckCudnnError(cudnnBatchNormalizationForwardInference(
-                cudnn_handle(),
-                GetBatchNormMode(axis),
-                cuda_internal::GetValuePtr<1>(x.dtype()),
-                cuda_internal::GetValuePtr<0>(x.dtype()),
-                *x_desc,
-                internal::GetRawOffsetData<void>(x_cont),
-                *x_desc,
-                internal::GetRawOffsetData<void>(out),
-                *gamma_beta_mean_var_desc,
-                internal::GetRawOffsetData<void>(gamma_casted_cont),
-                internal::GetRawOffsetData<void>(beta_casted_cont),
-                internal::GetRawOffsetData<void>(mean_casted_cont),
-                internal::GetRawOffsetData<void>(var_casted_cont),
-                static_cast<double>(eps)));
-    }
+    cudnn_.CudnnBatchNormalizationForwardInference(
+            GetBatchNormMode(axis),
+            cuda_internal::GetValuePtr<1>(x.dtype()),
+            cuda_internal::GetValuePtr<0>(x.dtype()),
+            *x_desc,
+            internal::GetRawOffsetData<void>(x_cont),
+            *x_desc,
+            internal::GetRawOffsetData<void>(out),
+            *gamma_beta_mean_var_desc,
+            internal::GetRawOffsetData<void>(gamma_casted_cont),
+            internal::GetRawOffsetData<void>(beta_casted_cont),
+            internal::GetRawOffsetData<void>(mean_casted_cont),
+            internal::GetRawOffsetData<void>(var_casted_cont),
+            static_cast<double>(eps));
 
     return out;
 }

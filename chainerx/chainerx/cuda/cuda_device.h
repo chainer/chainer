@@ -33,10 +33,9 @@ class CudaDevice : public Device {
 public:
     ~CudaDevice() override;
 
-    void Synchronize() override;
+    cuda_internal::Cudnn& cudnn() { return cudnn_; }
 
-    std::mutex& cudnn_handle_mutex() { return cudnn_handle_mutex_; }
-    cudnnHandle_t cudnn_handle();
+    void Synchronize() override;
 
     // memory.cc
 
@@ -182,7 +181,7 @@ public:
             override;
 
 protected:
-    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index} {}
+    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_{index} {}
 
 private:
     cublasHandle_t cublas_handle();  // not thread-safe
@@ -196,9 +195,7 @@ private:
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};
 
-    std::mutex cudnn_handle_creation_mutex_;
-    std::mutex cudnn_handle_mutex_;
-    cudnnHandle_t cudnn_handle_{};
+    cuda_internal::Cudnn cudnn_;
 
     cuda_internal::CudaConv cuda_conv_{};
 };

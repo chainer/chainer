@@ -120,18 +120,14 @@ public:
 
         cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
-        {
-            std::lock_guard<std::mutex> lock{device_.cudnn_handle_mutex()};
-            CheckCudnnError(cudnnPoolingForward(
-                    device_.cudnn_handle(),
-                    *pool_desc,
-                    cuda_internal::GetValuePtr<1>(x.dtype()),
-                    *x_desc,
-                    internal::GetRawOffsetData<void>(x_cont),
-                    cuda_internal::GetValuePtr<0>(x.dtype()),
-                    *y_desc,
-                    internal::GetRawOffsetData<void>(y)));
-        }
+        device_.cudnn().CudnnPoolingForward(
+                *pool_desc,
+                cuda_internal::GetValuePtr<1>(x.dtype()),
+                *x_desc,
+                internal::GetRawOffsetData<void>(x_cont),
+                cuda_internal::GetValuePtr<0>(x.dtype()),
+                *y_desc,
+                internal::GetRawOffsetData<void>(y));
 
         x_ = x;
         y_ = y;
@@ -162,22 +158,18 @@ public:
 
         cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode_, CUDNN_NOT_PROPAGATE_NAN, kernel_size_, pad_, stride_};
 
-        {
-            std::lock_guard<std::mutex> lock{device_.cudnn_handle_mutex()};
-            CheckCudnnError(cudnnPoolingBackward(
-                    device_.cudnn_handle(),
-                    *pool_desc,
-                    cuda_internal::GetValuePtr<1>(x_.dtype()),
-                    *y_desc,
-                    internal::GetRawOffsetData<void>(y_cont),
-                    *gout_desc,
-                    internal::GetRawOffsetData<void>(gout_cont),
-                    *x_desc,
-                    internal::GetRawOffsetData<void>(x_cont),
-                    cuda_internal::GetValuePtr<0>(x_.dtype()),
-                    *gx_desc,
-                    internal::GetRawOffsetData<void>(gx)));
-        }
+        device_.cudnn().CudnnPoolingBackward(
+                *pool_desc,
+                cuda_internal::GetValuePtr<1>(x_.dtype()),
+                *y_desc,
+                internal::GetRawOffsetData<void>(y_cont),
+                *gout_desc,
+                internal::GetRawOffsetData<void>(gout_cont),
+                *x_desc,
+                internal::GetRawOffsetData<void>(x_cont),
+                cuda_internal::GetValuePtr<0>(x_.dtype()),
+                *gx_desc,
+                internal::GetRawOffsetData<void>(gx));
 
         return gx;
     }
