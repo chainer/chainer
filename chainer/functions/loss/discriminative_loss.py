@@ -182,11 +182,11 @@ def discriminative_margin_based_clustering_loss(
         gamma (float): Weight for regularizer loss (gamma * regularizer_loss)
 
     Returns:
-        Variance Loss(:class:`~chainer.Variable` or float):
+        ~chainer.Variable:
             variance loss multiplied by alpha
-        Distance Loss(:class:`~chainer.Variable` or float):
+        ~chainer.Variable:
             distance loss multiplied by beta
-        Regularization Loss(:class:`~chainer.Variable` or float):
+        ~chainer.Variable:
             regularization loss multiplied by gamma
     """
 
