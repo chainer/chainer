@@ -211,6 +211,7 @@ from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
 # https://github.com/chainer/chainer/pull/5198
 from chainer.functions.pooling.roi_average_align_2d import roi_average_align_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
+from chainer.functions.pooling.roi_average_pooling_2d import roi_average_pooling_2d  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_nd import unpooling_1d  # NOQA
