@@ -50,9 +50,14 @@ class ROIPooling2D(function.Function):
 
     """RoI pooling over a set of 2d planes."""
 
-    def __init__(self, outh, outw, spatial_scale):
+    def __init__(self, outh, outw, spatial_scale, bounds):
         self.outh, self.outw = outh, outw
         self.spatial_scale = spatial_scale
+        if not isinstance(bounds, str) or bounds not in ['inner', 'outer']:
+            raise TypeError(
+                'bounds must be string and \'inner\' or \'outer\': {}, {}'
+                .format(type(bounds), bounds))
+        self.bounds = bounds
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 2)
@@ -81,10 +86,13 @@ class ROIPooling2D(function.Function):
 
         for i_roi in six.moves.range(n_rois):
             idx, xmin, ymin, xmax, ymax = bottom_rois[i_roi]
+            if self.bounds == 'inner':
+                xmax += 1.0
+                ymax += 1.0
             xmin = int(round(xmin * self.spatial_scale))
-            xmax = int(round((xmax + 1.) * self.spatial_scale))
+            xmax = int(round(xmax * self.spatial_scale))
             ymin = int(round(ymin * self.spatial_scale))
-            ymax = int(round((ymax + 1.) * self.spatial_scale))
+            ymax = int(round(ymax * self.spatial_scale))
             roi_width = max(xmax - xmin, 1)
             roi_height = max(ymax - ymin, 1)
             strideh = 1. * roi_height / self.outh
@@ -128,7 +136,7 @@ class ROIPooling2D(function.Function):
             '''
             raw T bottom_data, T spatial_scale, int32 channels,
             int32 height, int32 width, int32 pooled_height, int32 pooled_width,
-            raw T bottom_rois
+            bool inner_bounds, raw T bottom_rois
             ''',
             'T top_data, int32 argmax_data',
             '''
@@ -141,14 +149,19 @@ class ROIPooling2D(function.Function):
             int roi_batch_ind = bottom_rois[num * 5 + 0];
             int roi_start_w = round(bottom_rois[num * 5 + 1] * spatial_scale);
             int roi_start_h = round(bottom_rois[num * 5 + 2] * spatial_scale);
-            int roi_end_w = round(
-                (bottom_rois[num * 5 + 3] + 1.0) * spatial_scale);
-            int roi_end_h = round(
-                (bottom_rois[num * 5 + 4] + 1.0) * spatial_scale);
+            int roi_end_w = bottom_rois[num * 5 + 3];
+            int roi_end_h = bottom_rois[num * 5 + 4];
+            if (inner_bounds) {
+                roi_end_w += 1.0;
+                roi_end_h += 1.0;
+            }
+            roi_end_w = round(roi_end_w * spatial_scale);
+            roi_end_h = round(roi_end_h * spatial_scale);
 
             // Force malformed ROIs to be 1x1
             int roi_width = max(roi_end_w - roi_start_w, 1);
             int roi_height = max(roi_end_h - roi_start_h, 1);
+
             float bin_size_h = static_cast<float>(roi_height)
                            / static_cast<float>(pooled_height);
             float bin_size_w = static_cast<float>(roi_width)
@@ -188,8 +201,8 @@ class ROIPooling2D(function.Function):
             argmax_data = maxidx;
             ''', 'roi_pooling_2d_fwd'
         )(bottom_data, self.spatial_scale, channels, height, width,
-          self.outh, self.outw, bottom_rois, top_data,
-          self.argmax_data)
+          self.outh, self.outw, self.bounds == 'inner', bottom_rois,
+          top_data, self.argmax_data)
 
         return top_data,
 
@@ -201,11 +214,14 @@ class ROIPooling2D(function.Function):
 
         for i_roi in six.moves.range(n_rois):
             idx, xmin, ymin, xmax, ymax = bottom_rois[i_roi]
+            if self.bounds == 'inner':
+                xmax += 1.0
+                ymax += 1.0
             idx = int(idx)
             xmin = int(round(xmin * self.spatial_scale))
-            xmax = int(round((xmax + 1.0) * self.spatial_scale))
+            xmax = int(round(xmax * self.spatial_scale))
             ymin = int(round(ymin * self.spatial_scale))
-            ymax = int(round((ymax + 1.0) * self.spatial_scale))
+            ymax = int(round(ymax * self.spatial_scale))
             roi_width = max(xmax - xmin, 1)
             roi_height = max(ymax - ymin, 1)
 
@@ -244,7 +260,8 @@ class ROIPooling2D(function.Function):
             '''
             raw T top_diff, raw int32 argmax_data, int32 num_rois,
             T spatial_scale, int32 channels, int32 height, int32 width,
-            int32 pooled_height, int32 pooled_width, raw T bottom_rois
+            int32 pooled_height, int32 pooled_width, bool inner_bounds,
+            raw T bottom_rois
             ''',
             'T bottom_diff',
             '''
@@ -265,10 +282,14 @@ class ROIPooling2D(function.Function):
                                         * spatial_scale);
                 int roi_start_h = round(bottom_rois[roi_n * 5 + 2]
                                         * spatial_scale);
-                int roi_end_w = round((bottom_rois[roi_n * 5 + 3] + 1.0)
-                                      * spatial_scale);
-                int roi_end_h = round((bottom_rois[roi_n * 5 + 4] + 1.0)
-                                      * spatial_scale);
+                int roi_end_w = bottom_rois[roi_n * 5 + 3];
+                int roi_end_h = bottom_rois[roi_n * 5 + 4];
+                if (inner_bounds) {
+                    roi_end_w += 1.0;
+                    roi_end_h += 1.0;
+                }
+                roi_end_w = round(roi_end_w * spatial_scale);
+                roi_end_h = round(roi_end_h * spatial_scale);
 
                 // Skip if ROI doesn't include (h, w)
                 const bool in_roi = (w >= roi_start_w && w <= roi_end_w &&
@@ -319,12 +340,12 @@ class ROIPooling2D(function.Function):
             ''', 'roi_pooling_2d_bwd'
         )(gy[0], self.argmax_data, bottom_rois.shape[0], self.spatial_scale,
           channels, height, width, self.outh, self.outw,
-          bottom_rois, bottom_diff)
+          self.bounds == 'inner', bottom_rois, bottom_diff)
 
         return bottom_diff, None
 
 
-def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
+def roi_pooling_2d(x, rois, outh, outw, spatial_scale, bounds='inner'):
     """Spatial Region of Interest (ROI) pooling function.
 
     This function acts similarly to :func:`~chainer.functions.max_pooling_2d`,
@@ -340,6 +361,8 @@ def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
         outh (int): Height of output image after pooled.
         outw (int): Width of output image after pooled.
         spatial_scale (float): Scale of the roi is resized.
+        bounds (str): Bounding box represents inner or outer bounds.
+            Default is `inner`.
 
     Returns:
         ~chainer.Variable: Output variable.
@@ -348,4 +371,4 @@ def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
     `Fast R-CNN <https://arxiv.org/abs/1504.08083>`_.
 
     """
-    return ROIPooling2D(outh, outw, spatial_scale)(x, rois)
+    return ROIPooling2D(outh, outw, spatial_scale, bounds)(x, rois)
