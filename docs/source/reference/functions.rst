@@ -320,6 +320,7 @@ Spatial pooling
    chainer.functions.max_pooling_3d
    chainer.functions.max_pooling_nd
    chainer.functions.roi_average_align_2d
+   chainer.functions.roi_max_align_2d
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
    chainer.functions.unpooling_1d
