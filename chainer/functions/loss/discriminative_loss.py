@@ -149,12 +149,10 @@ def discriminative_margin_based_clustering_loss(
         gamma (float): Weight for regularizer loss (gamma * regularizer_loss)
 
     Returns:
-        ~chainer.Variable:
-            variance loss multiplied by alpha
-        ~chainer.Variable:
-            distance loss multiplied by beta
-        ~chainer.Variable:
-            regularization loss multiplied by gamma
+        tuple of chainer.Variable:
+            - Variance loss : variance loss multiplied by alpha
+            - Distance loss : distance loss multiplied by beta
+            - Regularization loss : regularization loss multiplied by gamma
     """
     loss = DiscriminativeMarginBasedClusteringLoss(
         delta_v, delta_d, max_embedding_dim, norm, alpha, beta, gamma)
