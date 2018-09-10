@@ -140,10 +140,9 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         mask = xp.random.rand(*mask_shape) >= self.ratio
 
         def f(x, W, b=None):
-            y = functions.simplified_dropconnect(
+            return functions.simplified_dropconnect(
                 x, W, b, self.ratio, self.train, mask,
                 self.use_batchwise_mask)
-            return y * y
 
         gradient_check.check_double_backward(
             f, args, y_grad, grads, eps=1e-2,

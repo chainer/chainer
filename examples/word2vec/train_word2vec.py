@@ -31,7 +31,7 @@ class ContinuousBoW(chainer.Chain):
                 n_vocab, n_units, initialW=I.Uniform(1. / n_units))
             self.loss_func = loss_func
 
-    def __call__(self, x, contexts):
+    def forward(self, x, contexts):
         e = self.embed(contexts)
         h = F.sum(e, axis=1) * (1. / contexts.shape[1])
         loss = self.loss_func(h, x)
@@ -50,7 +50,7 @@ class SkipGram(chainer.Chain):
                 n_vocab, n_units, initialW=I.Uniform(1. / n_units))
             self.loss_func = loss_func
 
-    def __call__(self, x, contexts):
+    def forward(self, x, contexts):
         e = self.embed(contexts)
         batch_size, n_context, n_units = e.shape
         x = F.broadcast_to(x[:, None], (batch_size, n_context))
@@ -71,7 +71,7 @@ class SoftmaxCrossEntropyLoss(chainer.Chain):
         with self.init_scope():
             self.out = L.Linear(n_in, n_out, initialW=0)
 
-    def __call__(self, x, t):
+    def forward(self, x, t):
         return F.softmax_cross_entropy(self.out(x), t)
 
 
@@ -188,9 +188,6 @@ def main():
     print('Training model: {}'.format(args.model))
     print('Output type: {}'.format(args.out_type))
     print('')
-
-    if args.gpu >= 0:
-        cuda.get_device_from_id(args.gpu).use()
 
     # Load the dataset
     train, val, _ = chainer.datasets.get_ptb_words()

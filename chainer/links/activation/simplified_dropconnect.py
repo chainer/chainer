@@ -71,7 +71,7 @@ class SimplifiedDropconnect(link.Link):
     def _initialize_params(self, in_size):
         self.W.initialize((self.out_size, in_size))
 
-    def __call__(self, x, train=True, mask=None, use_batchwise_mask=True):
+    def forward(self, x, train=True, mask=None, use_batchwise_mask=True):
         """Applies the simplified dropconnect layer.
 
         Args:

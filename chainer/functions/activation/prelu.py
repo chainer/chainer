@@ -25,7 +25,7 @@ class PReLUFunction(function_node.FunctionNode):
     """Parametric Rectified Linear Unit function."""
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 'W'))
         x_type, W_type = in_types
         type_check.expect(
             x_type.dtype.kind == 'f',
@@ -68,7 +68,7 @@ class PReLUFunctionGrad(function_node.FunctionNode):
         self.extended_shape = extended_shape
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 3)
+        type_check.argname(in_types, ('x', 'W', 'gy'))
         x_type, W_type, gy_type = in_types
         type_check.expect(
             x_type.dtype.kind == 'f',

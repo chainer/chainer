@@ -15,12 +15,6 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
-        initial_bias (:ref:`initializer <initializer>`): Initializer to
-            initialize the bias. If ``None``, the bias will be initialized to
-            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
         use_bi_direction (bool): if ``True``, use Bi-directional LSTM.
 
     .. seealso::
@@ -31,8 +25,8 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
 
     n_weights = 8
 
-    def __call__(self, hx, cx, xs, **kwargs):
-        """__call__(self, hx, cx, xs)
+    def forward(self, hx, cx, xs, **kwargs):
+        """forward(self, hx, cx, xs)
 
         Calculate all hidden states and cell states.
 
@@ -102,12 +96,6 @@ class NStepLSTM(NStepLSTMBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
-        initial_bias (:ref:`initializer <initializer>`): Initializer to
-            initialize the bias. If ``None``, the bias will be initialized to
-            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`
@@ -149,12 +137,6 @@ class NStepBiLSTM(NStepLSTMBase):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        initialW (:ref:`initializer <initializer>`): Initializer to
-            initialize the weight. When it is :class:`numpy.ndarray`,
-            its ``ndim`` should be 2.
-        initial_bias (:ref:`initializer <initializer>`): Initializer to
-            initialize the bias. If ``None``, the bias will be initialized to
-            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.functions.n_step_bilstm`

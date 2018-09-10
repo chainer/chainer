@@ -27,6 +27,7 @@ Learnable connections
    chainer.links.ConvolutionND
    chainer.links.Deconvolution2D
    chainer.links.DeconvolutionND
+   chainer.links.DeformableConvolution2D
    chainer.links.DepthwiseConvolution2D
    chainer.links.DilatedConvolution2D
    chainer.links.EmbedID
@@ -66,6 +67,7 @@ Activation/loss/normalization functions with parameters
 
    chainer.links.BatchNormalization
    chainer.links.BatchRenormalization
+   chainer.links.GroupNormalization
    chainer.links.LayerNormalization
    chainer.links.BinaryHierarchicalSoftmax
    chainer.links.BlackOut
@@ -109,14 +111,15 @@ where ``fc7`` denotes a layer before the last fully-connected layer.
 Unlike the usual links, these classes automatically load all the
 parameters from the pre-trained models during initialization.
 
-VGG16Layers
-~~~~~~~~~~~
+VGG Networks
+~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
    chainer.links.VGG16Layers
+   chainer.links.VGG19Layers
    chainer.links.model.vision.vgg.prepare
 
 GoogLeNet
@@ -163,3 +166,4 @@ Link and Chain base classes
    chainer.Link
    chainer.Chain
    chainer.ChainList
+   chainer.Sequential

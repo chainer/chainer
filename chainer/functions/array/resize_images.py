@@ -12,8 +12,7 @@ class ResizeImages(function_node.FunctionNode):
         self.out_W = output_shape[1]
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size()
-        type_check.expect(n_in == 1)
+        type_check.argname(in_types, ('x',))
 
         x_type = in_types[0]
         type_check.expect(
@@ -72,13 +71,12 @@ class ResizeImagesGrad(function_node.FunctionNode):
         self.input_shape = input_shape
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size()
-        type_check.expect(n_in == 1)
+        type_check.argname(in_types, ('gy',))
 
-        x_type = in_types[0]
+        gy_type = in_types[0]
         type_check.expect(
-            x_type.dtype.char == 'f',
-            x_type.ndim == 4
+            gy_type.dtype.char == 'f',
+            gy_type.ndim == 4
         )
 
     def forward(self, inputs):

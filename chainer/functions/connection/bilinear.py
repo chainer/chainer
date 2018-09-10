@@ -80,7 +80,8 @@ class BilinearFunction(function_node.FunctionNode):
         W = inputs[2]
 
         xp = cuda.get_array_module(*inputs)
-        y = xp.einsum('ij,ik,jkl->il', e1, e2, W)
+        # optimize: y = xp.einsum('ij,ik,jkl->il', e1, e2, W)
+        y = xp.tensordot(xp.einsum('ij,ik->ijk', e1, e2), W, axes=2)
 
         if len(inputs) == 6:
             V1, V2, b = inputs[3:]
@@ -110,9 +111,14 @@ class BilinearFunctionGrad(function_node.FunctionNode):
         W, gy = inputs[2], inputs[-1]
 
         xp = cuda.get_array_module(*inputs)
-        ge1 = xp.einsum('ik,jkl,il->ij', e2, W, gy)
-        ge2 = xp.einsum('ij,jkl,il->ik', e1, W, gy)
-        gW = xp.einsum('ij,ik,il->jkl', e1, e2, gy)
+        # optimize: gW = xp.einsum('ij,ik,il->jkl', e1, e2, gy)
+        gW = xp.einsum('ij,ik->jki', e1, e2).dot(gy)
+
+        gy_W = xp.tensordot(gy, W, axes=(1, 2))  # 'il,jkl->ijk'
+        # optimize: ge1 = xp.einsum('ik,jkl,il->ij', e2, W, gy)
+        ge1 = xp.einsum('ik,ijk->ij', e2, gy_W)
+        # optimize: ge2 = xp.einsum('ij,jkl,il->ik', e1, W, gy)
+        ge2 = xp.einsum('ij,ijk->ik', e1, gy_W)
 
         ret = ge1.reshape(inputs[0].shape), ge2.reshape(inputs[1].shape), gW
 

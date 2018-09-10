@@ -19,7 +19,7 @@ After reading this section, you will be able to:
 Differentiable Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Chainer provides a collection of functions in the :mod:`~chainer.functions` module.
+Chainer provides a collection of functions in the :mod:`chainer.functions` module.
 It covers typical use cases in deep learning, so many existing works can be implemented with them.
 On the other hand, deep learning is evolving rapidly and we cannot cover all possible functions to define unseen architectures.
 So it is important to learn how to define your own functions.
@@ -454,7 +454,7 @@ It can be defined as follows:
            with self.init_scope():
                self.W = chainer.Parameter(initializers.Normal(scale=1.), shape)
 
-       def __call__(self, x):
+       def forward(self, x):
            return self.W * x
 
 For another example, assume we want to define a simple linear layer.
@@ -496,7 +496,7 @@ In order to make a convenient module, let's wrap it into a link:
                    (out_size, in_size))
                self.b = chainer.Parameter(0, (out_size,))
 
-       def __call__(self, x):
+       def forward(self, x):
            return linear(x, self.W, self.b)
 
 This link hides the parameters of the linear layer.

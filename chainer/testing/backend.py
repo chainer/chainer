@@ -15,6 +15,7 @@ class BackendConfig(object):
         ('cudnn_deterministic', False),
         ('autotune', False),
         ('use_ideep', 'never'),
+        ('cudnn_fast_batch_normalization', False),
     ]
 
     def __init__(self, params):
@@ -111,15 +112,20 @@ def _wrap_backend_test_method(impl, param, method_name):
 
 
 def inject_backend_tests(method_names, params):
-    if not isinstance(method_names, list):
-        raise TypeError('method_names must be a list.')
+    if not (method_names is None or isinstance(method_names, list)):
+        raise TypeError('method_names must be either None or a list.')
     if not isinstance(params, list):
         raise TypeError('params must be a list of dicts.')
     if not all(isinstance(d, dict) for d in params):
         raise TypeError('params must be a list of dicts.')
 
     def wrap(case):
-        for method_name in method_names:
+        if method_names is None:
+            meth_names = [_ for _ in dir(case) if _.startswith('test_')]
+        else:
+            meth_names = method_names
+
+        for method_name in meth_names:
             impl = getattr(case, method_name)
             delattr(case, method_name)
             for i_param, param in enumerate(params):

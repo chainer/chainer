@@ -17,7 +17,7 @@ class Sigmoid(function_node.FunctionNode):
     """Logistic sigmoid function."""
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -62,7 +62,7 @@ class SigmoidGrad(function_node.FunctionNode):
         self.x = inputs[0]
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('y', 'gy'))
         type_check.expect(in_types[0].dtype.kind == 'f')
         type_check.expect(in_types[1].dtype.kind == 'f')
 

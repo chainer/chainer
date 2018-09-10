@@ -34,7 +34,7 @@ class Repeat(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
 
     def forward(self, inputs):
         self.retain_inputs((0,))
@@ -102,7 +102,7 @@ class RepeatGrad(function_node.FunctionNode):
             for (i, r) in enumerate(repeats):
                 src[-1] = slice(pos, pos + r)
                 dst[-1] = slice(i, i + 1)
-                gx[dst] = gy[src].sum(axis=axis, keepdims=True)
+                gx[tuple(dst)] = gy[tuple(src)].sum(axis=axis, keepdims=True)
                 pos += r
         return gx,
 
