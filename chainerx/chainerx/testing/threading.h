@@ -1,13 +1,13 @@
 #pragma once
 
-#include <gtest/gtest.h>
-
 #include <algorithm>
 #include <condition_variable>
 #include <cstddef>
 #include <future>
 #include <type_traits>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #include "chainerx/array_body_leak_detection.h"
 #include "chainerx/macro.h"
