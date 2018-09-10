@@ -301,6 +301,7 @@ TEST_P(ConnectionTest, ConvDoubleBackward) {
             {go},
             {ggx, ggw, ggb},
             {x_eps, w_eps, b_eps, go_eps},
+            2,
             1e-2,
             1e-3);
 }
@@ -354,6 +355,7 @@ TEST_P(ConnectionTest, ConvCoverAllDoubleBackward) {
             {go},
             {ggx, ggw, ggb},
             {x_eps, w_eps, b_eps, go_eps},
+            2,
             1e-2,
             1e-3);
 }
@@ -585,6 +587,7 @@ TEST_P(ConnectionTest, ConvTransposeDoubleBackward) {
             {go},
             {ggx, ggw, ggb},
             {x_eps, w_eps, b_eps, go_eps},
+            2,
             1e-2,
             1e-3);
 }

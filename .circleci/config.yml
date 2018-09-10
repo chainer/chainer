@@ -3,6 +3,7 @@ jobs:
   build:
     docker:
       - image: ubuntu:xenial
+    working_directory: ~/work
     steps:
 
       # Setup
@@ -21,13 +22,19 @@ jobs:
             # To avoid configuring PATH environment variable in every steps
             echo 'export PATH="$HOME"/miniconda/bin:"$PATH"' >> $BASH_ENV
 
+            echo 'export REPO_DIR=~/repo' >> $BASH_ENV
+            echo 'export CHAINERX_DIR="$REPO_DIR"/chainerx' >> $BASH_ENV
+
       # Checkout
-      - checkout
+      - checkout:
+          path: ~/repo
 
       # Checkout postprocess
       - run:
           name: Checkout postprocess
           command: |
+            pushd "$REPO_DIR"
+
             if [[ -n "${CIRCLE_PULL_REQUEST}" ]]
             then
                 # CIRCLE_PR_NUMBER is available only if PR is created from a fork (unavailable if created from a branch).
@@ -51,6 +58,8 @@ jobs:
                 echo "git merge --no-commit \"pr/${CIRCLE_PR_NUMBER}/head\""
                 git merge --no-commit "pr/${CIRCLE_PR_NUMBER}/head"
             fi
+
+            popd
 
       # Setup conda
       - run:
@@ -105,37 +114,42 @@ jobs:
 
             pip install -U pytest pytest-cov coveralls
             pip install -U cpplint
-            pip install -U chainer --pre
 
       # Python PEP-8 check
       - run:
           name: Python PEP-8 check
-          working_directory: chainerx
           command: |
             source activate testenv
 
+            check_targets=(
+              "$CHAINERX_DIR"/python
+              "$CHAINERX_DIR"/tests
+              "$CHAINERX_DIR"/examples
+            )
+
+            # Check all targets exist
+            for f in "${check_targets[@]}"; do test -e "$f"; done
+
             flake8 --version
-            flake8 setup.py python tests examples
+            flake8 "${check_targets[@]}"
 
             autopep8 --version
-            autopep8 setup.py python tests examples -r --global-config .pep8 --diff | tee check_autopep8
+            autopep8 "${check_targets[@]}" -r --global-config .pep8 --diff | tee check_autopep8
             test ! -s check_autopep8
 
       # ClangFormat
       - run:
           name: ClangFormat
-          working_directory: chainerx
           command: |
-            scripts/run-clang-format.sh --jobs 4
+            "$CHAINERX_DIR"/scripts/run-clang-format.sh --jobs 4
 
       # cpplint
       - run:
           name: cpplint
-          working_directory: chainerx
           command: |
             source activate testenv
 
-            scripts/run-cpplint.sh --jobs 4
+            "$CHAINERX_DIR"/scripts/run-cpplint.sh --jobs 4
 
       # Setup openblas
       - run:
@@ -153,7 +167,6 @@ jobs:
       # cmake
       - run:
           name: cmake
-          working_directory: chainerx
           command: |
             source activate testenv
 
@@ -163,24 +176,22 @@ jobs:
             # -DPYTHON_EXECUTABLE:FILEPATH is specified in order to use the created environment when building pybind11 instead of the default Python in miniconda
             cmake \
                 -DCMAKE_BUILD_TYPE=Debug \
-                -DCHAINERX_BUILD_PYTHON=1 \
+                -DCHAINERX_BUILD_PYTHON=OFF \
                 -DCHAINERX_WARNINGS_AS_ERRORS=ON \
                 -DCMAKE_INSTALL_PREFIX=$HOME/local \
-                -DPYTHON_EXECUTABLE:FILEPATH=${CONDA_PREFIX}/bin/python \
-                ..
+                "$CHAINERX_DIR"
             popd
 
       # clang-tidy (normal source files)
       # NOTE: We runs this only on master branch because it takes much time.
       - run:
           name: clang-tidy (normal source files)
-          working_directory: chainerx
           command: |
             if [[ "$CIRCLE_BRANCH" = "master" ]]; then
               source activate testenv
 
               pushd build
-              ../scripts/run-clang-tidy.sh normal
+              "$CHAINERX_DIR"/scripts/run-clang-tidy.sh normal
               popd
             fi
 
@@ -188,20 +199,18 @@ jobs:
       # NOTE: We runs this only on master branch because it takes much time.
       - run:
           name: clang-tidy (test source files)
-          working_directory: chainerx
           command: |
             if [[ "$CIRCLE_BRANCH" = "master" ]]; then
               source activate testenv
 
               pushd build
-              bash ../scripts/run-clang-tidy.sh test
+              bash "$CHAINERX_DIR"/scripts/run-clang-tidy.sh test
               popd
             fi
 
       # make
       - run:
           name: make
-          working_directory: chainerx
           command: |
             source activate testenv
 
@@ -212,7 +221,6 @@ jobs:
       # make install
       - run:
           name: make install
-          working_directory: chainerx
           command: |
             source activate testenv
 
@@ -223,7 +231,6 @@ jobs:
       # C++ test
       - run:
           name: C++ test
-          working_directory: chainerx
           command: |
             source activate testenv
 
@@ -231,22 +238,29 @@ jobs:
             ctest -V
             popd
 
-      # Python test
-      # NOTE: `python setup.py build` should be done after `make` so that we can reuse compiled object files.
+      # Python build
       - run:
-          name: Python test
-          working_directory: chainerx
+          name: Python build
           command: |
             source activate testenv
 
-            python setup.py build --debug --build-temp ./build --build-lib ./build develop
+            CHAINER_BUILD_CHAINERX=1 \
+            XCHAINER_BUILD_CUDA=0 \
+            MAKEFLAGS=-j6 \
+            pip install "$REPO_DIR"
+
+      # Python test
+      - run:
+          name: Python test
+          command: |
+            source activate testenv
 
             # Run all non-CUDA tests except doctests
             # TODO(niboshi): threshold is temporarily lowered from 80 to 50. Restore it after writing tests for testing package.
-            pytest -m='not cuda' -p no:doctest --cov --no-cov-on-fail --cov-fail-under=50 --cov-report html:build/coverage/python
+            pytest "$CHAINERX_DIR" -m='not cuda' -p no:doctest --cov=chainerx --no-cov-on-fail --cov-fail-under=50 --cov-report html:coverage-html/python
 
             # Run all non-CUDA doctests
-            find tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
+            find "$CHAINERX_DIR"/tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
 
 experimental:
   notify:

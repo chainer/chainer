@@ -384,6 +384,7 @@ TEST_P(ManipulationTest, SqueezeDoubleBackward) {
             {(*testing::BuildArray({2, 3, 1, 4}).WithLinearData<float>(0.f, 0.1f)).RequireGrad()},
             {testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<float>()},
             {Full({1, 2, 1, 3, 1, 1, 4}, 1e-2f), Full({2, 3, 1, 4}, 1e-2f)},
+            2,
             1e-4f,
             1e-3f);
 }
