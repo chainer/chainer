@@ -916,6 +916,52 @@ TEST_P(CreationTest, DiagMatToVecDoubleBackward) {
             {eps_v, eps_go});
 }
 
+TEST_THREAD_SAFE_P(CreationTest, Diagflat1) {
+    Array v = Arange(1, 3, Dtype::kFloat32);
+    Array e = testing::BuildArray({2, 2}).WithData<float>({1.f, 0.f, 0.f, 2.f});
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    DeviceScope scope{xs[0].device()};
+                    return std::vector<Array>{Diagflat(xs[0])};
+                },
+                {v},
+                {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(CreationTest, Diagflat2) {
+    Array v = Arange(1, 5, Dtype::kFloat32).Reshape({2, 2});
+    Array e = testing::BuildArray({5, 5}).WithData<float>(
+            {0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 0.f, 3.f, 0.f, 0.f, 0.f, 0.f, 0.f, 4.f, 0.f, 0.f, 0.f, 0.f, 0.f});
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    DeviceScope scope{xs[0].device()};
+                    return std::vector<Array>{Diagflat(xs[0], 1)};
+                },
+                {v},
+                {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(CreationTest, Diagflat3) {
+    Array v = Arange(1, 3, Dtype::kFloat32).Reshape({1, 2});
+    Array e = testing::BuildArray({3, 3}).WithData<float>({0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 2.f, 0.f});
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    DeviceScope scope{xs[0].device()};
+                    return std::vector<Array>{Diagflat(xs[0], -1)};
+                },
+                {v},
+                {e});
+    });
+}
+
 TEST_P(CreationTest, DiagflatBackward) {
     using T = double;
     Array v = (*testing::BuildArray({3}).WithLinearData<T>(-3).WithPadding(1)).RequireGrad();
