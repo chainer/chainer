@@ -57,18 +57,7 @@ class Recv(chainer.Function):
 
         if inputs == ():
             # Expected to be invoked without any args in usual case.
-            if chainer.__version__.startswith('1.'):
-                # For backward compatibility.
-                dummy_var = chainer.Variable(
-                    xp.array([], dtype=xp.float32),
-                    volatile='auto')
-            else:
-                # This variable is necessary to backprop correctly
-                # in Chainer v2. This trick relies on the fact
-                # chainer.Variable.requires_grad is True by default
-                # in Chainer v2.0.0.
-                dummy_var = chainer.Variable(xp.array([], dtype=xp.float32))
-
+            dummy_var = chainer.Variable(xp.array([], dtype=xp.float32))
             dummy_var.name = 'dummy_var'
             return super(Recv, self).__call__(dummy_var)
 
