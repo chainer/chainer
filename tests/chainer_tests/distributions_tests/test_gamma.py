@@ -31,9 +31,12 @@ class TestGamma(testing.distribution_unittest):
         self.params = {"k": k, "theta": theta}
         self.scipy_params = {"a": k, "scale": theta}
 
+        self.support = "positive"
+
     def sample_for_test(self):
         smp = numpy.random.gamma(
-            shape=5., size=self.sample_shape).astype(numpy.float32)
+            shape=5., size=self.sample_shape + self.shape
+        ).astype(numpy.float32)
         return smp
 
 

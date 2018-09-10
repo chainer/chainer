@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
@@ -52,25 +50,26 @@ class Gamma(distribution.Distribution):
         return isinstance(self.k.data, cuda.ndarray)
 
     def log_prob(self, x):
-        bk = broadcast.broadcast_to(self.k, x.shape)
-        btheta = broadcast.broadcast_to(self.theta, x.shape)
-
-        logp = - lgamma.lgamma(bk) - bk * exponential.log(btheta) \
-            + (bk - 1) * exponential.log(x) - x / btheta
-        return where.where(x.data >= 0, logp, -numpy.inf)
+        logp = - lgamma.lgamma(self.k) - self.k * exponential.log(self.theta) \
+            + (self.k - 1) * exponential.log(x) - x / self.theta
+        xp = logp.xp
+        inf = xp.full_like(logp.array, xp.inf)
+        if isinstance(x, chainer.Variable):
+            x = x.array
+        return where.where(xp.asarray(x >= 0), logp, xp.asarray(-inf))
 
     @property
     def mean(self):
         return self.k * self.theta
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.low)
+        xp = cuda.get_array_module(self.k)
         if xp is cuda.cupy:
             eps = xp.random.gamma(
-                self.k.data, size=(n,) + self.low.shape, dtype=self.low.dtype)
+                self.k.data, size=(n,) + self.batch_shape, dtype=self.k.dtype)
         else:
             eps = xp.random.gamma(
-                self.k.data, size=(n,) + self.low.shape).astype(self.low.dtype)
+                self.k.data, size=(n,) + self.batch_shape).astype(self.k.dtype)
         noise = broadcast.broadcast_to(self.theta, eps.shape) * eps
         return noise
 
