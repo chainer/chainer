@@ -116,7 +116,7 @@ TEST_THREAD_SAFE_P(ConnectionTest, ConvNd) {
 TEST_THREAD_SAFE_P(ConnectionTest, ConvCoverAll) {
     if (GetParam() == "cuda") {
         // CuDNN convolution does not support cover_all
-        Run([]() {});
+        SkipRun();
         return;
     }
     int64_t batch_size = 2;
@@ -427,7 +427,7 @@ TEST_THREAD_SAFE_P(ConnectionTest, ConvTranspose) {
 TEST_THREAD_SAFE_P(ConnectionTest, ConvTransposeOutSize) {
     if (GetParam() == "cuda") {
         // CUDA Convolution does not support out_size
-        Run([]() {});
+        SkipRun();
         return;
     }
     int64_t batch_size = 2;

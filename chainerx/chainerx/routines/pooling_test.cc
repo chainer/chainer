@@ -39,7 +39,7 @@ private:
 TEST_THREAD_SAFE_P(PoolingTest, MaxPool) {
     if (GetParam() == "cuda") {
         // CuDNN convolution does not support cover_all, which is true by default.
-        Run([]() {});
+        SkipRun();
         return;
     }
     using T = float;

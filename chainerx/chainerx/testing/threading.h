@@ -163,11 +163,14 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
             CheckAllArrayBodiesFreed(tracker);                                                                               \
         }                                                                                                                    \
                                                                                                                              \
-        bool is_run_called() { return is_run_called_; }                                                                      \
+        size_t run_count() { return run_count_; }                                                                            \
+                                                                                                                             \
+        bool is_run_skipped() { return is_run_skipped_; }                                                                    \
                                                                                                                              \
     private:                                                                                                                 \
         void ThreadSafeTestBody();                                                                                           \
                                                                                                                              \
+        /* Runs the given function on either a single or multiple threads. */                                                \
         template <typename Func>                                                                                             \
         void Run(const Func& func) {                                                                                         \
             if (thread_count_ > 1) {                                                                                         \
@@ -175,21 +178,25 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
             } else {                                                                                                         \
                 testing::threading_detail::CallFunc(func, 0);                                                                \
             }                                                                                                                \
-            is_run_called_ = true;                                                                                           \
+            ++run_count_;                                                                                                    \
         }                                                                                                                    \
                                                                                                                              \
+        /* Marks this test as skipped, i.e. that Run is not called. */                                                        \
+        void SkipRun() { is_run_skipped_ = true; }                                                                           \
+                                                                                                                             \
         size_t thread_count_{0};                                                                                             \
-        bool is_run_called_{false};                                                                                          \
+        size_t run_count_{0};                                                                                                \
+        bool is_run_skipped_{false};                                                                                         \
     };                                                                                                                       \
                                                                                                                              \
     CHAINERX_TEST_P_(test_case_name, test_name##_SingleThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) { \
         RunThreadSafeTestBodyWithLeakDetection(1);                                                                           \
-        CHAINERX_ASSERT(is_run_called());                                                                                    \
+        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                                                              \
     }                                                                                                                        \
                                                                                                                              \
     CHAINERX_TEST_P_(test_case_name, test_name##_MultiThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) {  \
         RunThreadSafeTestBodyWithLeakDetection(2);                                                                           \
-        CHAINERX_ASSERT(is_run_called());                                                                                    \
+        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                                                              \
     }                                                                                                                        \
                                                                                                                              \
     void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::ThreadSafeTestBody()
