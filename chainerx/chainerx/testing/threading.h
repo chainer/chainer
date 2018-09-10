@@ -107,32 +107,57 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
     }
 }
 
+#define CHAINERX_TEST_THREAD_SAFE_COMMON_CLASS_(test_case_name, parent_class) \
+    class test_case_name : public parent_class {                              \
+    public:                                                                   \
+        void RunThreadSafeTestBodyWithLeakDetection(size_t thread_count) {    \
+            thread_count_ = thread_count;                                     \
+                                                                              \
+            internal::ArrayBodyLeakTracker tracker{};                         \
+            {                                                                 \
+                internal::ArrayBodyLeakDetectionScope scope{tracker};         \
+                ThreadSafeTestBody();                                         \
+            }                                                                 \
+            CheckAllArrayBodiesFreed(tracker);                                \
+        }                                                                     \
+                                                                              \
+        size_t run_count() { return run_count_; }                             \
+                                                                              \
+        bool is_run_skipped() { return is_run_skipped_; }                     \
+                                                                              \
+    private:                                                                  \
+        void ThreadSafeTestBody();                                            \
+                                                                              \
+        /* Runs the given function on either a single or multiple threads. */ \
+        template <typename Func>                                              \
+        void Run(const Func& func) {                                          \
+            if (thread_count_ > 1) {                                          \
+                testing::RunThreads(thread_count_, func);                     \
+            } else {                                                          \
+                testing::threading_detail::CallFunc(func, 0);                 \
+            }                                                                 \
+            ++run_count_;                                                     \
+        }                                                                     \
+                                                                              \
+        /* Marks this test as skipped, i.e. that Run is not called. */        \
+        void SkipRun() { is_run_skipped_ = true; }                            \
+                                                                              \
+        size_t thread_count_{0};                                              \
+        size_t run_count_{0};                                                 \
+        bool is_run_skipped_{false};                                          \
+    };
+
 #define CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) test_case_name##_##test_name##_Dummy
 
-#define CHAINERX_TEST_F_(test_case_name, test_name, parent_class, parent_id)                                               \
-    class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public parent_class {                               \
-    public:                                                                                                                \
-        CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)() {}                                                    \
-                                                                                                                           \
-    private:                                                                                                               \
-        virtual void TestBody();                                                                                           \
-        static ::testing::TestInfo* const test_info_ GTEST_ATTRIBUTE_UNUSED_;                                              \
-        GTEST_DISALLOW_COPY_AND_ASSIGN_(CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name));                       \
-    };                                                                                                                     \
-                                                                                                                           \
-    ::testing::TestInfo* const CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::test_info_ =                    \
-            ::testing::internal::MakeAndRegisterTestInfo(                                                                  \
-                    #test_case_name,                                                                                       \
-                    #test_name,                                                                                            \
-                    NULL,                                                                                                  \
-                    NULL,                                                                                                  \
-                    ::testing::internal::CodeLocation(__FILE__, __LINE__),                                                 \
-                    (parent_id),                                                                                           \
-                    parent_class::SetUpTestCase,                                                                           \
-                    parent_class::TearDownTestCase,                                                                        \
-                    new ::testing::internal::TestFactoryImpl<CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)>); \
-    void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::TestBody()
+// Replaces the TEST macro.
+#define CHAINERX_TEST_(test_case_name, test_name, parent_class) \
+    GTEST_TEST_(test_case_name, test_name, parent_class, ::testing::internal::GetTestTypeId())
 
+// Replaces the TEST_F macro.
+#define CHAINERX_TEST_F_(test_fixture, test_name, parent_class) \
+    GTEST_TEST_(test_fixture, test_name, parent_class, ::testing::internal::GetTypeId<test_fixture>())
+
+// Replaces the TEST_P macro.
 #define CHAINERX_TEST_P_(test_case_name, test_name, parent_class)                                                                     \
     class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public parent_class {                                          \
     public:                                                                                                                           \
@@ -157,9 +182,25 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
             CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::AddToRegistry();                                              \
     void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::TestBody()
 
+// Defines a test class base and expands to CHAINERX_TEST_, CHAINERX_TEST_F_ or CHAINERX_TEST_P_, based on the given test_type.
+#define CHAINERX_TEST_THREAD_SAFE_(test_type, test_case_name, test_name, base_class)                                                \
+    CHAINERX_TEST_THREAD_SAFE_COMMON_CLASS_(CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name), base_class)                 \
+                                                                                                                                    \
+    CHAINERX_##test_type##_(test_case_name, test_name##_SingleThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) { \
+        RunThreadSafeTestBodyWithLeakDetection(1);                                                                                  \
+        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                                                                     \
+    }                                                                                                                               \
+                                                                                                                                    \
+    CHAINERX_##test_type##_(test_case_name, test_name##_MultiThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) {  \
+        RunThreadSafeTestBodyWithLeakDetection(2);                                                                                  \
+        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                                                                     \
+    }                                                                                                                               \
+                                                                                                                                    \
+    void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::ThreadSafeTestBody()
+
 // Thread safety test macros that replaces TEST, TEST_F, TEST_P.
-// The body of the test should include a call to Run(func) where func is a lambda function that optionally accepts a size_t thread index as
-// argument and defines the logic that is executed on multiple threads.
+// The body of the test should include a call to Run(func) where func is a lambda function that optionally accepts a size_t thread index
+// as argument and defines the logic that is executed on multiple threads.
 //
 // Example:
 //
@@ -172,118 +213,9 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
 //         EXPECT_EQ(std::to_string(thread_index), ctx.GetBackpropName(backprop_id));
 //     });
 // }
-// TODO(hvy): Define macros TEST_THREAD_SAFE and TEST_THREAD_SAFE_F.
-#define TEST_THREAD_SAFE_F(test_fixture, test_name)                                        \
-    class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_fixture, test_name) : public test_fixture { \
-    protected:                                                                             \
-        void RunThreadSafeTestBodyWithLeakDetection(size_t thread_count) {                 \
-            thread_count_ = thread_count;                                                  \
-                                                                                           \
-            internal::ArrayBodyLeakTracker tracker{};                                      \
-            {                                                                              \
-                internal::ArrayBodyLeakDetectionScope scope{tracker};                      \
-                ThreadSafeTestBody();                                                      \
-            }                                                                              \
-            CheckAllArrayBodiesFreed(tracker);                                             \
-        }                                                                                  \
-                                                                                           \
-        size_t run_count() { return run_count_; }                                          \
-                                                                                           \
-        bool is_run_skipped() { return is_run_skipped_; }                                  \
-                                                                                           \
-    private:                                                                               \
-        void ThreadSafeTestBody();                                                         \
-                                                                                           \
-        /* Runs the given function on either a single or multiple threads. */              \
-        template <typename Func>                                                           \
-        void Run(const Func& func) {                                                       \
-            if (thread_count_ > 1) {                                                       \
-                testing::RunThreads(thread_count_, func);                                  \
-            } else {                                                                       \
-                testing::threading_detail::CallFunc(func, 0);                              \
-            }                                                                              \
-            ++run_count_;                                                                  \
-        }                                                                                  \
-                                                                                           \
-        /* Marks this test as skipped, i.e. that Run is not called. */                     \
-        void SkipRun() { is_run_skipped_ = true; }                                         \
-                                                                                           \
-        size_t thread_count_{0};                                                           \
-        size_t run_count_{0};                                                              \
-        bool is_run_skipped_{false};                                                       \
-    };                                                                                     \
-                                                                                           \
-    CHAINERX_TEST_F_(                                                                      \
-            test_fixture,                                                                  \
-            test_name##_SingleThread,                                                      \
-            CHAINERX_TEST_DUMMY_CLASS_NAME_(test_fixture, test_name),                      \
-            ::testing::internal::GetTypeId<test_fixture>()) {                              \
-        RunThreadSafeTestBodyWithLeakDetection(1);                                         \
-        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                            \
-    }                                                                                      \
-                                                                                           \
-    CHAINERX_TEST_F_(                                                                      \
-            test_fixture,                                                                  \
-            test_name##_MultiThread,                                                       \
-            CHAINERX_TEST_DUMMY_CLASS_NAME_(test_fixture, test_name),                      \
-            ::testing::internal::GetTypeId<test_fixture>()) {                              \
-        RunThreadSafeTestBodyWithLeakDetection(2);                                         \
-        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                            \
-    }                                                                                      \
-                                                                                           \
-    void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_fixture, test_name)::ThreadSafeTestBody()
-
-#define TEST_THREAD_SAFE_P(test_case_name, test_name)                                                                        \
-    class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public test_case_name {                               \
-    protected:                                                                                                               \
-        void RunThreadSafeTestBodyWithLeakDetection(size_t thread_count) {                                                   \
-            thread_count_ = thread_count;                                                                                    \
-                                                                                                                             \
-            internal::ArrayBodyLeakTracker tracker{};                                                                        \
-            {                                                                                                                \
-                internal::ArrayBodyLeakDetectionScope scope{tracker};                                                        \
-                ThreadSafeTestBody();                                                                                        \
-            }                                                                                                                \
-            CheckAllArrayBodiesFreed(tracker);                                                                               \
-        }                                                                                                                    \
-                                                                                                                             \
-        size_t run_count() { return run_count_; }                                                                            \
-                                                                                                                             \
-        bool is_run_skipped() { return is_run_skipped_; }                                                                    \
-                                                                                                                             \
-    private:                                                                                                                 \
-        void ThreadSafeTestBody();                                                                                           \
-                                                                                                                             \
-        /* Runs the given function on either a single or multiple threads. */                                                \
-        template <typename Func>                                                                                             \
-        void Run(const Func& func) {                                                                                         \
-            if (thread_count_ > 1) {                                                                                         \
-                testing::RunThreads(thread_count_, func);                                                                    \
-            } else {                                                                                                         \
-                testing::threading_detail::CallFunc(func, 0);                                                                \
-            }                                                                                                                \
-            ++run_count_;                                                                                                    \
-        }                                                                                                                    \
-                                                                                                                             \
-        /* Marks this test as skipped, i.e. that Run is not called. */                                                       \
-        void SkipRun() { is_run_skipped_ = true; }                                                                           \
-                                                                                                                             \
-        size_t thread_count_{0};                                                                                             \
-        size_t run_count_{0};                                                                                                \
-        bool is_run_skipped_{false};                                                                                         \
-    };                                                                                                                       \
-                                                                                                                             \
-    CHAINERX_TEST_P_(test_case_name, test_name##_SingleThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) { \
-        RunThreadSafeTestBodyWithLeakDetection(1);                                                                           \
-        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                                                              \
-    }                                                                                                                        \
-                                                                                                                             \
-    CHAINERX_TEST_P_(test_case_name, test_name##_MultiThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) {  \
-        RunThreadSafeTestBodyWithLeakDetection(2);                                                                           \
-        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                                                              \
-    }                                                                                                                        \
-                                                                                                                             \
-    void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::ThreadSafeTestBody()
+#define TEST_THREAD_SAFE(test_case_name, test_name) CHAINERX_TEST_THREAD_SAFE_(TEST, test_case_name, test_name, ::testing::Test)
+#define TEST_THREAD_SAFE_F(test_fixture, test_name) CHAINERX_TEST_THREAD_SAFE_(TEST_F, test_fixture, test_name, test_fixture)
+#define TEST_THREAD_SAFE_P(test_case_name, test_name) CHAINERX_TEST_THREAD_SAFE_(TEST_P, test_case_name, test_name, test_case_name)
 
 }  // namespace testing
 }  // namespace chainerx
