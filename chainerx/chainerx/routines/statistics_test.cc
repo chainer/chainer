@@ -20,6 +20,7 @@
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
 #include "chainerx/testing/routines.h"
+#include "chainerx/testing/threading.h"
 
 namespace chainerx {
 namespace {
@@ -47,66 +48,68 @@ TEST_P(StatisticsTest, Mean) {
     EXPECT_ARRAY_EQ(e, b);
 }
 
-TEST_P(StatisticsTest, MeanAllAxes) {
+TEST_THREAD_SAFE_P(StatisticsTest, MeanAllAxes) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({8.5f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e}); });
 }
 
-TEST_P(StatisticsTest, MeanZero) {
+TEST_THREAD_SAFE_P(StatisticsTest, MeanZero) {
     using T = float;
 
     Array a = testing::BuildArray({0}).WithData<T>({});
     Array e = testing::BuildArray({}).WithData<T>({std::nanf("")});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e}); });
 }
 
-TEST_P(StatisticsTest, MeanOne) {
+TEST_THREAD_SAFE_P(StatisticsTest, MeanOne) {
     using T = float;
 
     Array a = testing::BuildArray({}).WithData<T>({42.0f}).WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({42.0f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e}); });
 }
 
-TEST_P(StatisticsTest, MeanTwo) {
+TEST_THREAD_SAFE_P(StatisticsTest, MeanTwo) {
     using T = float;
 
     Array a = testing::BuildArray({2}).WithData<T>({42.0f, 37.0f}).WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({39.5f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0])}; }, {a}, {e}); });
 }
 
-TEST_P(StatisticsTest, MeanLarge) {
+TEST_THREAD_SAFE_P(StatisticsTest, MeanLarge) {
     using T = double;
 
     Array a = testing::BuildArray({0x100000}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({524287.5f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0], Axes{0})}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Mean(xs[0], Axes{0})}; }, {a}, {e}); });
 }
 
-TEST_P(StatisticsTest, MeanKeepDims) {
+TEST_THREAD_SAFE_P(StatisticsTest, MeanKeepDims) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 2, 4}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({2, 1, 2, 1}).WithData<T>({9.5f, 13.5f, 33.5f, 37.5f});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = Mean(xs[0], Axes{-1, 1}, true);
-                EXPECT_EQ(0, y.strides()[1]);
-                EXPECT_EQ(0, y.strides()[3]);
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Mean(xs[0], Axes{-1, 1}, true);
+                    EXPECT_EQ(0, y.strides()[1]);
+                    EXPECT_EQ(0, y.strides()[3]);
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
 TEST_P(StatisticsTest, InvalidMeanDuplicateAxes) {
@@ -163,75 +166,79 @@ TEST_P(StatisticsTest, MeanDoubleBackward_NoKeepdims) {
             {Full({2, 3, 4, 3}, 1e-3), Full({2, 4}, 1e-3)});
 }
 
-TEST_P(StatisticsTest, Var) {
+TEST_THREAD_SAFE_P(StatisticsTest, Var) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({2}).WithData<T>({107.91666667f, 107.91666667f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0], Axes{2, 1, -1})}; }, {a}, {e});
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0], Axes{2, 1, -1})}; }, {a}, {e});
+    });
 }
 
-TEST_P(StatisticsTest, VarAllAxes) {
+TEST_THREAD_SAFE_P(StatisticsTest, VarAllAxes) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 3}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({26.91666667f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e}); });
 }
 
-TEST_P(StatisticsTest, VarZero) {
+TEST_THREAD_SAFE_P(StatisticsTest, VarZero) {
     using T = float;
 
     Array a = testing::BuildArray({0}).WithData<T>({});
     Array e = testing::BuildArray({}).WithData<T>({std::nanf("")});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e}); });
 }
 
-TEST_P(StatisticsTest, VarOne) {
+TEST_THREAD_SAFE_P(StatisticsTest, VarOne) {
     using T = float;
 
     Array a = testing::BuildArray({}).WithData<T>({42.0f}).WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({0.f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e}); });
 }
 
-TEST_P(StatisticsTest, VarTwo) {
+TEST_THREAD_SAFE_P(StatisticsTest, VarTwo) {
     using T = float;
 
     Array a = testing::BuildArray({2}).WithData<T>({42.0f, 37.0f}).WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({6.25f});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0])}; }, {a}, {e}); });
 }
 
-TEST_P(StatisticsTest, VarLarge) {
+TEST_THREAD_SAFE_P(StatisticsTest, VarLarge) {
     using T = double;
 
     Array a = testing::BuildArray({0x100000}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({}).WithData<T>({91625968981.25});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0], Axes{0})}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Var(xs[0], Axes{0})}; }, {a}, {e}); });
 }
 
-TEST_P(StatisticsTest, VarKeepDims) {
+TEST_THREAD_SAFE_P(StatisticsTest, VarKeepDims) {
     using T = float;
 
     Array a = testing::BuildArray({2, 3, 2, 4}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({2, 1, 2, 1}).WithData<T>({43.91666667f, 43.91666667f, 43.91666667f, 43.91666667f});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = Var(xs[0], Axes{-1, 1}, true);
-                EXPECT_EQ(0, y.strides()[1]);
-                EXPECT_EQ(0, y.strides()[3]);
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Var(xs[0], Axes{-1, 1}, true);
+                    EXPECT_EQ(0, y.strides()[1]);
+                    EXPECT_EQ(0, y.strides()[3]);
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
 TEST_P(StatisticsTest, InvalidVarDuplicateAxes) {

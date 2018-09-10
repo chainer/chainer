@@ -17,6 +17,7 @@
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
 #include "chainerx/testing/routines.h"
+#include "chainerx/testing/threading.h"
 
 namespace chainerx {
 namespace {
@@ -34,7 +35,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(IndexingTest, At) {
+TEST_THREAD_SAFE_P(IndexingTest, At) {
     using T = int32_t;
     Shape input_shape{2, 3, 1};
     Shape output_shape{1, 2, 1};
@@ -42,17 +43,19 @@ TEST_P(IndexingTest, At) {
     Array a = testing::BuildArray(input_shape).WithLinearData<T>();
     Array e = testing::BuildArray(output_shape).WithData<T>({4, 5});
 
-    testing::CheckForward(
-            [&indices](const std::vector<Array>& xs) {
-                Array y = internal::At(xs[0], indices);
-                // Check if strides are 0 for newaxis.
-                EXPECT_EQ(0, y.strides()[0]);
-                EXPECT_NE(0, y.strides()[1]);
-                EXPECT_NE(0, y.strides()[2]);
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&indices](const std::vector<Array>& xs) {
+                    Array y = internal::At(xs[0], indices);
+                    // Check if strides are 0 for newaxis.
+                    EXPECT_EQ(0, y.strides()[0]);
+                    EXPECT_NE(0, y.strides()[1]);
+                    EXPECT_NE(0, y.strides()[2]);
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
 // Index out of bounds
@@ -97,7 +100,7 @@ TEST_P(IndexingTest, AtDoubleBackward) {
             {Full({2, 3}, 1e-3f), Full({1, 2}, 1e-3f)});
 }
 
-TEST_P(IndexingTest, Take) {
+TEST_THREAD_SAFE_P(IndexingTest, Take) {
     using T = int8_t;
     Shape input_shape{2, 4};
     Shape indices_shape{2, 3};
@@ -107,8 +110,10 @@ TEST_P(IndexingTest, Take) {
     Array indices = testing::BuildArray(indices_shape).WithData<int64_t>({0, 14, 3, 1, -10, 1});
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 2, 3, 1, 2, 1, 4, 6, 7, 5, 6, 5});
 
-    testing::CheckForward(
-            [&indices, &axis](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, axis)}; }, {a}, {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&indices, &axis](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, axis)}; }, {a}, {e});
+    });
 }
 
 TEST_P(IndexingTest, TakeBackward) {
@@ -153,12 +158,14 @@ TEST_P(IndexingTest, TakeDoubleBackward) {
             {epsi, epso});
 }
 
-TEST_P(IndexingTest, TakeLongAxis) {
+TEST_THREAD_SAFE_P(IndexingTest, TakeLongAxis) {
     Array a = testing::BuildArray({128}).WithLinearData<float>();
     Array indices = Full({1}, int64_t{10});
     Array e = Full({1}, 10.f);
 
-    testing::CheckForward([&indices](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, 0)}; }, {a}, {e});
+    Run([&]() {
+        testing::CheckForward([&indices](const std::vector<Array>& xs) { return std::vector<Array>{Take(xs[0], indices, 0)}; }, {a}, {e});
+    });
 }
 
 INSTANTIATE_TEST_CASE_P(

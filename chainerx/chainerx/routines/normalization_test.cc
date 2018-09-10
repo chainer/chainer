@@ -15,6 +15,7 @@
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
 #include "chainerx/testing/routines.h"
+#include "chainerx/testing/threading.h"
 
 namespace chainerx {
 namespace {
@@ -32,7 +33,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(NormalizationTest, BatchNorm) {
+TEST_THREAD_SAFE_P(NormalizationTest, BatchNorm) {
     using T = float;
 
     Shape x_shape{3, 4, 2, 1};
@@ -61,33 +62,35 @@ TEST_P(NormalizationTest, BatchNorm) {
             testing::BuildArray(reduced_shape)
                     .WithData<T>({0.7451742, 0.33908403, 0.01705596, 0.76526403, 0.08779196, 0.00319096, 0.6016993, 0.60400796});
 
-    testing::CheckForward(
-            [&eps, &decay, &reduced_shape, &e_running_mean, &e_running_var](const std::vector<Array>& xs) {
-                using T = float;
+    Run([&]() {
+        testing::CheckForward(
+                [&eps, &decay, &reduced_shape, &e_running_mean, &e_running_var](const std::vector<Array>& xs) {
+                    using T = float;
 
-                Device& device = xs[0].device();
-                Array running_mean =
-                        testing::BuildArray(reduced_shape)
-                                .WithData<T>(
-                                        {0.27891612, 0.83984816, 0.20299992, 0.3024816, 0.59901035, 0.9280579, 0.07075989, 0.31253654});
-                Array running_var =
-                        testing::BuildArray(reduced_shape)
-                                .WithData<T>({0.8258983, 0.35525382, 0.01103283, 0.843107, 0.09379472, 0., 0.6574457, 0.6707562});
-                running_mean = running_mean.ToDevice(device);
-                running_var = running_var.ToDevice(device);
+                    Device& device = xs[0].device();
+                    Array running_mean =
+                            testing::BuildArray(reduced_shape)
+                                    .WithData<T>(
+                                            {0.27891612, 0.83984816, 0.20299992, 0.3024816, 0.59901035, 0.9280579, 0.07075989, 0.31253654});
+                    Array running_var =
+                            testing::BuildArray(reduced_shape)
+                                    .WithData<T>({0.8258983, 0.35525382, 0.01103283, 0.843107, 0.09379472, 0., 0.6574457, 0.6707562});
+                    running_mean = running_mean.ToDevice(device);
+                    running_var = running_var.ToDevice(device);
 
-                Array out = BatchNorm(xs[0], xs[1], xs[2], running_mean, running_var, eps, decay);
+                    Array out = BatchNorm(xs[0], xs[1], xs[2], running_mean, running_var, eps, decay);
 
-                EXPECT_ARRAY_ALL_CLOSE(e_running_mean.ToDevice(device), running_mean, 1e-6f, 1e-6f);
-                EXPECT_ARRAY_ALL_CLOSE(e_running_var.ToDevice(device), running_var, 1e-6f, 1e-6f);
+                    EXPECT_ARRAY_ALL_CLOSE(e_running_mean.ToDevice(device), running_mean, 1e-6f, 1e-6f);
+                    EXPECT_ARRAY_ALL_CLOSE(e_running_var.ToDevice(device), running_var, 1e-6f, 1e-6f);
 
-                return std::vector<Array>{out};
-            },
-            {x, gamma, beta},
-            {e_out});
+                    return std::vector<Array>{out};
+                },
+                {x, gamma, beta},
+                {e_out});
+    });
 }
 
-TEST_P(NormalizationTest, BatchNormWithAxis) {
+TEST_THREAD_SAFE_P(NormalizationTest, BatchNormWithAxis) {
     using T = float;
 
     Shape x_shape{3, 4, 2, 1};
@@ -112,24 +115,26 @@ TEST_P(NormalizationTest, BatchNormWithAxis) {
     Array e_running_mean = testing::BuildArray(reduced_shape).WithData<T>({0.35380796, 0.3172636, 0.79048187, 0.6975811});
     Array e_running_var = testing::BuildArray(reduced_shape).WithData<T>({0.01976142, 0.7138863, 0.16801749, 0.18175972});
 
-    testing::CheckForward(
-            [&eps, &decay, &axis, &reduced_shape, &e_running_mean, &e_running_var](const std::vector<Array>& xs) {
-                using T = float;
+    Run([&]() {
+        testing::CheckForward(
+                [&eps, &decay, &axis, &reduced_shape, &e_running_mean, &e_running_var](const std::vector<Array>& xs) {
+                    using T = float;
 
-                Device& device = xs[0].device();
-                Array running_mean = testing::BuildArray(reduced_shape).WithData<T>({0.34721586, 0.2698823, 0.8581124, 0.74137366});
-                Array running_var = testing::BuildArray(reduced_shape).WithData<T>({0., 0.8622455, 0.18700261, 0.20017703});
-                running_mean = running_mean.ToDevice(device);
-                running_var = running_var.ToDevice(device);
-                Array out = BatchNorm(xs[0], xs[1], xs[2], running_mean, running_var, eps, decay, axis);
+                    Device& device = xs[0].device();
+                    Array running_mean = testing::BuildArray(reduced_shape).WithData<T>({0.34721586, 0.2698823, 0.8581124, 0.74137366});
+                    Array running_var = testing::BuildArray(reduced_shape).WithData<T>({0., 0.8622455, 0.18700261, 0.20017703});
+                    running_mean = running_mean.ToDevice(device);
+                    running_var = running_var.ToDevice(device);
+                    Array out = BatchNorm(xs[0], xs[1], xs[2], running_mean, running_var, eps, decay, axis);
 
-                EXPECT_ARRAY_ALL_CLOSE(e_running_mean.ToDevice(device), running_mean, 1e-6f, 1e-6f);
-                EXPECT_ARRAY_ALL_CLOSE(e_running_var.ToDevice(device), running_var, 1e-6f, 1e-6f);
+                    EXPECT_ARRAY_ALL_CLOSE(e_running_mean.ToDevice(device), running_mean, 1e-6f, 1e-6f);
+                    EXPECT_ARRAY_ALL_CLOSE(e_running_var.ToDevice(device), running_var, 1e-6f, 1e-6f);
 
-                return std::vector<Array>{out};
-            },
-            {x, gamma, beta},
-            {e_out});
+                    return std::vector<Array>{out};
+                },
+                {x, gamma, beta},
+                {e_out});
+    });
 }
 
 TEST_P(NormalizationTest, BatchNormBackward) {
@@ -229,7 +234,7 @@ TEST_P(NormalizationTest, BatchNormDoubleBackward) {
             1e-2);
 }
 
-TEST_P(NormalizationTest, FixedBatchNorm) {
+TEST_THREAD_SAFE_P(NormalizationTest, FixedBatchNorm) {
     using T = float;
 
     Shape x_shape{3, 4, 2, 1};
@@ -255,10 +260,12 @@ TEST_P(NormalizationTest, FixedBatchNorm) {
                                                             0.14779580, -7.23801136, 0.36471885,  0.70745426,  0.98528314, 0.73192370,
                                                             1.95030916, 0.78064066,  -0.01417956, -3.72501326, 0.69175488, 0.67471159});
 
-    testing::CheckForward(
-            [&eps](const std::vector<Array>& xs) { return std::vector<Array>{FixedBatchNorm(xs[0], xs[1], xs[2], xs[3], xs[4], eps)}; },
-            {x, gamma, beta, mean, var},
-            {e_out});
+    Run([&]() {
+        testing::CheckForward(
+                [&eps](const std::vector<Array>& xs) { return std::vector<Array>{FixedBatchNorm(xs[0], xs[1], xs[2], xs[3], xs[4], eps)}; },
+                {x, gamma, beta, mean, var},
+                {e_out});
+    });
 }
 
 INSTANTIATE_TEST_CASE_P(

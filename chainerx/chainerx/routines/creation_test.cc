@@ -707,35 +707,39 @@ TEST_THREAD_SAFE_P(CreationTest, AsContiguousArray) {
     });
 }
 
-TEST_P(CreationTest, AsContiguousArrayNoCopy) {
+TEST_THREAD_SAFE_P(CreationTest, AsContiguousArrayNoCopy) {
     Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>();
     ASSERT_TRUE(a.IsContiguous());  // test precondition
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = AsContiguousArray(xs[0]);
-                EXPECT_EQ(internal::GetArrayBody(y), internal::GetArrayBody(xs[0]));
-                return std::vector<Array>{y};
-            },
-            {a},
-            {a});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = AsContiguousArray(xs[0]);
+                    EXPECT_EQ(internal::GetArrayBody(y), internal::GetArrayBody(xs[0]));
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {a});
+    });
 }
 
-TEST_P(CreationTest, AsContiguousArrayDtypeMismatch) {
+TEST_THREAD_SAFE_P(CreationTest, AsContiguousArrayDtypeMismatch) {
     Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>();
     ASSERT_TRUE(a.IsContiguous());  // test precondition
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = AsContiguousArray(xs[0], Dtype::kInt64);
-                EXPECT_NE(internal::GetArrayBody(y), internal::GetArrayBody(xs[0]));
-                EXPECT_TRUE(y.IsContiguous());
-                EXPECT_EQ(Dtype::kInt64, y.dtype());
-                EXPECT_ARRAY_EQ(y, xs[0].AsType(Dtype::kInt64));
-                return std::vector<Array>{};
-            },
-            {a},
-            {});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = AsContiguousArray(xs[0], Dtype::kInt64);
+                    EXPECT_NE(internal::GetArrayBody(y), internal::GetArrayBody(xs[0]));
+                    EXPECT_TRUE(y.IsContiguous());
+                    EXPECT_EQ(Dtype::kInt64, y.dtype());
+                    EXPECT_ARRAY_EQ(y, xs[0].AsType(Dtype::kInt64));
+                    return std::vector<Array>{};
+                },
+                {a},
+                {});
+    });
 }
 
 TEST_P(CreationTest, AsContiguousArrayBackward) {
@@ -760,88 +764,100 @@ TEST_P(CreationTest, AsContiguousArrayDoubleBackward) {
             {Full({2, 3}, 1e-1f), Full({2, 3}, 1e-1f)});
 }
 
-TEST_P(CreationTest, DiagVecToMatDefaultK) {
+TEST_THREAD_SAFE_P(CreationTest, DiagVecToMatDefaultK) {
     Array v = Arange(1, 3, Dtype::kFloat32);
     Array e = testing::BuildArray({2, 2}).WithData<float>({1.f, 0.f, 0.f, 2.f});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                DeviceScope scope{xs[0].device()};
-                return std::vector<Array>{Diag(xs[0])};
-            },
-            {v},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    DeviceScope scope{xs[0].device()};
+                    return std::vector<Array>{Diag(xs[0])};
+                },
+                {v},
+                {e});
+    });
 }
 
-TEST_P(CreationTest, DiagVecToMat) {
+TEST_THREAD_SAFE_P(CreationTest, DiagVecToMat) {
     Array v = Arange(1, 4, Dtype::kFloat32);
     Array e = testing::BuildArray({4, 4}).WithData<float>({0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 3.f, 0.f, 0.f, 0.f, 0.f});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                DeviceScope scope{xs[0].device()};
-                return std::vector<Array>{Diag(xs[0], 1)};
-            },
-            {v},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    DeviceScope scope{xs[0].device()};
+                    return std::vector<Array>{Diag(xs[0], 1)};
+                },
+                {v},
+                {e});
+    });
 }
 
-TEST_P(CreationTest, DiagVecToMatNegativeK) {
+TEST_THREAD_SAFE_P(CreationTest, DiagVecToMatNegativeK) {
     Array v = Arange(1, 3, Dtype::kFloat32);
     Array e = testing::BuildArray({4, 4}).WithData<float>({0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                DeviceScope scope{xs[0].device()};
-                return std::vector<Array>{Diag(xs[0], -2)};
-            },
-            {v},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    DeviceScope scope{xs[0].device()};
+                    return std::vector<Array>{Diag(xs[0], -2)};
+                },
+                {v},
+                {e});
+    });
 }
 
-TEST_P(CreationTest, DiagMatToVecDefaultK) {
+TEST_THREAD_SAFE_P(CreationTest, DiagMatToVecDefaultK) {
     Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
     Array e = testing::BuildArray({2}).WithData<float>({0.f, 4.f});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                DeviceScope scope{xs[0].device()};
-                Array y = Diag(xs[0]);
-                EXPECT_EQ(xs[0].data().get(), y.data().get());
-                return std::vector<Array>{y};
-            },
-            {v},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    DeviceScope scope{xs[0].device()};
+                    Array y = Diag(xs[0]);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get());
+                    return std::vector<Array>{y};
+                },
+                {v},
+                {e});
+    });
 }
 
-TEST_P(CreationTest, DiagMatToVec) {
+TEST_THREAD_SAFE_P(CreationTest, DiagMatToVec) {
     Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
     Array e = testing::BuildArray({2}).WithData<float>({1.f, 5.f});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                DeviceScope scope{xs[0].device()};
-                Array y = Diag(xs[0], 1);
-                EXPECT_EQ(xs[0].data().get(), y.data().get());
-                return std::vector<Array>{y};
-            },
-            {v},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    DeviceScope scope{xs[0].device()};
+                    Array y = Diag(xs[0], 1);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get());
+                    return std::vector<Array>{y};
+                },
+                {v},
+                {e});
+    });
 }
 
-TEST_P(CreationTest, DiagMatToVecNegativeK) {
+TEST_THREAD_SAFE_P(CreationTest, DiagMatToVecNegativeK) {
     Array v = Arange(6, Dtype::kFloat32).Reshape({2, 3});
     Array e = testing::BuildArray({1}).WithData<float>({3.f});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                DeviceScope scope{xs[0].device()};
-                Array y = Diag(xs[0], -1);
-                EXPECT_EQ(xs[0].data().get(), y.data().get());
-                return std::vector<Array>{y};
-            },
-            {v},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    DeviceScope scope{xs[0].device()};
+                    Array y = Diag(xs[0], -1);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get());
+                    return std::vector<Array>{y};
+                },
+                {v},
+                {e});
+    });
 }
 
 TEST_P(CreationTest, DiagVecToMatBackward) {
@@ -900,43 +916,49 @@ TEST_P(CreationTest, DiagMatToVecDoubleBackward) {
             {eps_v, eps_go});
 }
 
-TEST_P(CreationTest, Diagflat) {
+TEST_THREAD_SAFE_P(CreationTest, Diagflat) {
     {
         Array v = Arange(1, 3, Dtype::kFloat32);
         Array e = testing::BuildArray({2, 2}).WithData<float>({1.f, 0.f, 0.f, 2.f});
 
-        testing::CheckForward(
-                [](const std::vector<Array>& xs) {
-                    DeviceScope scope{xs[0].device()};
-                    return std::vector<Array>{Diagflat(xs[0])};
-                },
-                {v},
-                {e});
+        Run([&]() {
+            testing::CheckForward(
+                    [](const std::vector<Array>& xs) {
+                        DeviceScope scope{xs[0].device()};
+                        return std::vector<Array>{Diagflat(xs[0])};
+                    },
+                    {v},
+                    {e});
+        });
     }
     {
         Array v = Arange(1, 5, Dtype::kFloat32).Reshape({2, 2});
         Array e = testing::BuildArray({5, 5}).WithData<float>({0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f, 0.f, 0.f, 0.f,
                                                                3.f, 0.f, 0.f, 0.f, 0.f, 0.f, 4.f, 0.f, 0.f, 0.f, 0.f, 0.f});
 
-        testing::CheckForward(
-                [](const std::vector<Array>& xs) {
-                    DeviceScope scope{xs[0].device()};
-                    return std::vector<Array>{Diagflat(xs[0], 1)};
-                },
-                {v},
-                {e});
+        Run([&]() {
+            testing::CheckForward(
+                    [](const std::vector<Array>& xs) {
+                        DeviceScope scope{xs[0].device()};
+                        return std::vector<Array>{Diagflat(xs[0], 1)};
+                    },
+                    {v},
+                    {e});
+        });
     }
     {
         Array v = Arange(1, 3, Dtype::kFloat32).Reshape({1, 2});
         Array e = testing::BuildArray({3, 3}).WithData<float>({0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 2.f, 0.f});
 
-        testing::CheckForward(
-                [](const std::vector<Array>& xs) {
-                    DeviceScope scope{xs[0].device()};
-                    return std::vector<Array>{Diagflat(xs[0], -1)};
-                },
-                {v},
-                {e});
+        Run([&]() {
+            testing::CheckForward(
+                    [](const std::vector<Array>& xs) {
+                        DeviceScope scope{xs[0].device()};
+                        return std::vector<Array>{Diagflat(xs[0], -1)};
+                    },
+                    {v},
+                    {e});
+        });
     }
 }
 

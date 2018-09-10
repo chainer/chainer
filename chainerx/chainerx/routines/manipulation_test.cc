@@ -62,58 +62,66 @@ TEST_P(ManipulationTest, AsScalarInvalidMoreThanOneElements) {
     EXPECT_THROW(AsScalar(a), DimensionError);
 }
 
-TEST_P(ManipulationTest, RollAxis) {
+TEST_THREAD_SAFE_P(ManipulationTest, RollAxis) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
     Array e = testing::BuildArray({3, 2, 4}).WithData<int32_t>(
             {0, 1, 2, 3, 12, 13, 14, 15, 4, 5, 6, 7, 16, 17, 18, 19, 8, 9, 10, 11, 20, 21, 22, 23});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{RollAxis(xs[0], 1)}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{RollAxis(xs[0], 1)}; }, {a}, {e}); });
 }
 
-TEST_P(ManipulationTest, RollAxisWithStart) {
+TEST_THREAD_SAFE_P(ManipulationTest, RollAxisWithStart) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
     Array e = testing::BuildArray({3, 2, 4}).WithData<int32_t>(
             {0, 1, 2, 3, 12, 13, 14, 15, 4, 5, 6, 7, 16, 17, 18, 19, 8, 9, 10, 11, 20, 21, 22, 23});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{RollAxis(xs[0], -3, -1)}; }, {a}, {e});
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{RollAxis(xs[0], -3, -1)}; }, {a}, {e});
+    });
 }
 
-TEST_P(ManipulationTest, Transpose) {
+TEST_THREAD_SAFE_P(ManipulationTest, Transpose) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
     Array e = testing::BuildArray({4, 2, 3}).WithData<int32_t>(
             {0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7, 11, 15, 19, 23});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = Transpose(xs[0], {2, 0, 1});
-                EXPECT_EQ(Strides({4, 48, 16}), y.strides());
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Transpose(xs[0], {2, 0, 1});
+                    EXPECT_EQ(Strides({4, 48, 16}), y.strides());
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
-TEST_P(ManipulationTest, TransposeDefaultAxes) {
+TEST_THREAD_SAFE_P(ManipulationTest, TransposeDefaultAxes) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>();
     Array e = testing::BuildArray({4, 3, 2}).WithData<int32_t>(
             {0, 12, 4, 16, 8, 20, 1, 13, 5, 17, 9, 21, 2, 14, 6, 18, 10, 22, 3, 15, 7, 19, 11, 23});
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = Transpose(xs[0]);
-                EXPECT_EQ(Strides({4, 16, 48}), y.strides());
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Transpose(xs[0]);
+                    EXPECT_EQ(Strides({4, 16, 48}), y.strides());
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
-TEST_P(ManipulationTest, TransposeNoncontiguous) {
+TEST_THREAD_SAFE_P(ManipulationTest, TransposeNoncontiguous) {
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<int32_t>().WithPadding(1);
     Array e = testing::BuildArray({4, 2, 3}).WithData<int32_t>(
             {0, 4, 8, 12, 16, 20, 1, 5, 9, 13, 17, 21, 2, 6, 10, 14, 18, 22, 3, 7, 11, 15, 19, 23});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Transpose(xs[0], {2, 0, 1})}; }, {a}, {e});
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Transpose(xs[0], {2, 0, 1})}; }, {a}, {e});
+    });
 }
 
 TEST_P(ManipulationTest, TransposeBackward) {
@@ -138,7 +146,7 @@ TEST_P(ManipulationTest, TransposeDoubleBackward) {
             {Full({2, 3, 4}, 0.01f), Full({4, 2, 3}, 0.01f)});
 }
 
-TEST_P(ManipulationTest, Reshape) {
+TEST_THREAD_SAFE_P(ManipulationTest, Reshape) {
     using T = int32_t;
     Shape input_shape{2, 3, 4};
     Shape output_shape{3, 4, 2};
@@ -146,18 +154,20 @@ TEST_P(ManipulationTest, Reshape) {
     Array a = testing::BuildArray(input_shape).WithLinearData<T>();
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
 
-    testing::CheckForward(
-            [&output_shape](const std::vector<Array>& xs) {
-                Array y = Reshape(xs[0], output_shape);
-                EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&output_shape](const std::vector<Array>& xs) {
+                    Array y = Reshape(xs[0], output_shape);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
 // #461
-TEST_P(ManipulationTest, ReshapeWithStrideOne) {
+TEST_THREAD_SAFE_P(ManipulationTest, ReshapeWithStrideOne) {
     using T = bool;
     Shape input_shape{6};
     Shape output_shape{2, 3};
@@ -165,18 +175,20 @@ TEST_P(ManipulationTest, ReshapeWithStrideOne) {
     Array a = testing::BuildArray(input_shape).WithLinearData<T>();
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
 
-    testing::CheckForward(
-            [&output_shape](const std::vector<Array>& xs) {
-                Array y = Reshape(xs[0], output_shape);
-                EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&output_shape](const std::vector<Array>& xs) {
+                    Array y = Reshape(xs[0], output_shape);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
 // #461
-TEST_P(ManipulationTest, ReshapeNewAxisAtEnd) {
+TEST_THREAD_SAFE_P(ManipulationTest, ReshapeNewAxisAtEnd) {
     using T = double;
     Shape input_shape{2, 4};
     Shape output_shape{2, 1, 4, 1};
@@ -184,18 +196,20 @@ TEST_P(ManipulationTest, ReshapeNewAxisAtEnd) {
     Array a = testing::BuildArray(input_shape).WithLinearData<T>();
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
 
-    testing::CheckForward(
-            [&output_shape](const std::vector<Array>& xs) {
-                Array y = Reshape(xs[0], output_shape);
-                EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&output_shape](const std::vector<Array>& xs) {
+                    Array y = Reshape(xs[0], output_shape);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
 // If an input array has a unit-length axis with 0-stride, that axis should not give rise to any copies.
-TEST_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
+TEST_THREAD_SAFE_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
     using T = int32_t;
     Shape input_shape_before_newaxis{2, 3, 4};
     Shape output_shape{3, 4, 2};
@@ -205,17 +219,19 @@ TEST_P(ManipulationTest, ReshapeNoCopyZeroStrideAxis) {
     ASSERT_TRUE(std::find(a.strides().begin(), a.strides().end(), 0) != a.strides().end());
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
 
-    testing::CheckForward(
-            [&output_shape](const std::vector<Array>& xs) {
-                Array y = Reshape(xs[0], output_shape);
-                EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&output_shape](const std::vector<Array>& xs) {
+                    Array y = Reshape(xs[0], output_shape);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
-TEST_P(ManipulationTest, ReshapeWithCopy) {
+TEST_THREAD_SAFE_P(ManipulationTest, ReshapeWithCopy) {
     using T = int32_t;
     Shape input_shape{2, 3, 4};
     Shape output_shape{2, 12};
@@ -223,14 +239,16 @@ TEST_P(ManipulationTest, ReshapeWithCopy) {
     Array a = testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray(output_shape).WithLinearData<T>();
 
-    testing::CheckForward(
-            [&output_shape](const std::vector<Array>& xs) {
-                Array y = Reshape(xs[0], output_shape);
-                EXPECT_NE(xs[0].data().get(), y.data().get()) << "Reshape must be done with copy";
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&output_shape](const std::vector<Array>& xs) {
+                    Array y = Reshape(xs[0], output_shape);
+                    EXPECT_NE(xs[0].data().get(), y.data().get()) << "Reshape must be done with copy";
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
 TEST_P(ManipulationTest, InvalidReshape) {
@@ -242,78 +260,88 @@ TEST_P(ManipulationTest, InvalidReshape) {
     EXPECT_THROW(Reshape(a, output_shape), DimensionError);
 }
 
-TEST_P(ManipulationTest, SqueezeAllUnitLengthAxes) {
+TEST_THREAD_SAFE_P(ManipulationTest, SqueezeAllUnitLengthAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
     Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0])}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0])}; }, {a}, {e}); });
 }
 
-TEST_P(ManipulationTest, SqueezeSpecifiedUnitLenghtAxes) {
+TEST_THREAD_SAFE_P(ManipulationTest, SqueezeSpecifiedUnitLenghtAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{2, 0, 4})}; }, {a}, {e});
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{2, 0, 4})}; }, {a}, {e});
+    });
 }
 
-TEST_P(ManipulationTest, SqueezeAllAxes) {
+TEST_THREAD_SAFE_P(ManipulationTest, SqueezeAllAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 1, 1}).WithLinearData<T>();
     Array e = testing::BuildArray({}).WithData<T>({0});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0])}; }, {a}, {e});
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0])}; }, {a}, {e}); });
 }
 
-TEST_P(ManipulationTest, SqueezeMultipleCalls) {
+TEST_THREAD_SAFE_P(ManipulationTest, SqueezeMultipleCalls) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>();
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                return std::vector<Array>{Squeeze(Squeeze(xs[0], Axes{0, 2}), Axes{3})};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    return std::vector<Array>{Squeeze(Squeeze(xs[0], Axes{0, 2}), Axes{3})};
+                },
+                {a},
+                {e});
+    });
 }
 
-TEST_P(ManipulationTest, SqueezeNonContiguous) {
+TEST_THREAD_SAFE_P(ManipulationTest, SqueezeNonContiguous) {
     using T = int32_t;
 
     Array a = testing::BuildArray({1, 2, 1, 3, 1, 1, 4}).WithLinearData<T>().WithPadding(1);
     Array e = testing::BuildArray({2, 3, 1, 4}).WithLinearData<T>();
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{0, 2, 4})}; }, {a}, {e});
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{0, 2, 4})}; }, {a}, {e});
+    });
 }
 
-TEST_P(ManipulationTest, SqueezeNegativeAxis) {
+TEST_THREAD_SAFE_P(ManipulationTest, SqueezeNegativeAxis) {
     using T = int32_t;
 
     Array a = testing::BuildArray({2, 3, 4, 1}).WithLinearData<T>();
     Array e = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{-1})}; }, {a}, {e});
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Squeeze(xs[0], Axes{-1})}; }, {a}, {e});
+    });
 }
 
-TEST_P(ManipulationTest, SqueezeNoSqueezableAxes) {
+TEST_THREAD_SAFE_P(ManipulationTest, SqueezeNoSqueezableAxes) {
     using T = int32_t;
 
     Array a = testing::BuildArray({2, 3, 4}).WithLinearData<T>();
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = Squeeze(xs[0]);
-                EXPECT_EQ(internal::GetArrayBody(y), internal::GetArrayBody(xs[0]));
-                return std::vector<Array>{y};
-            },
-            {a},
-            {a});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Squeeze(xs[0]);
+                    EXPECT_EQ(internal::GetArrayBody(y), internal::GetArrayBody(xs[0]));
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {a});
+    });
 }
 
 TEST_P(ManipulationTest, InvalidSqueezeNonUnitLengthAxis) {
@@ -361,7 +389,7 @@ TEST_P(ManipulationTest, SqueezeDoubleBackward) {
             1e-3f);
 }
 
-TEST_P(ManipulationTest, BroadcastTo) {
+TEST_THREAD_SAFE_P(ManipulationTest, BroadcastTo) {
     using T = int32_t;
     Shape input_shape{2, 3, 1};
     Shape output_shape{3, 1, 2, 3, 1, 2};
@@ -376,16 +404,18 @@ TEST_P(ManipulationTest, BroadcastTo) {
     }
     Array e = testing::BuildArray(output_shape).WithData<T>(output_data);
 
-    testing::CheckForward(
-            [&output_shape](const std::vector<Array>& xs) {
-                Array y = BroadcastTo(xs[0], output_shape);
-                EXPECT_EQ(output_shape, y.shape());
-                EXPECT_EQ(xs[0].data().get(), y.data().get()) << "BroadcastTo must be done without copying data";
-                EXPECT_EQ(0, y.strides()[1]) << "Stride of broadcasted dimension must be 0";
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&output_shape](const std::vector<Array>& xs) {
+                    Array y = BroadcastTo(xs[0], output_shape);
+                    EXPECT_EQ(output_shape, y.shape());
+                    EXPECT_EQ(xs[0].data().get(), y.data().get()) << "BroadcastTo must be done without copying data";
+                    EXPECT_EQ(0, y.strides()[1]) << "Stride of broadcasted dimension must be 0";
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
 // Can't broadcast to smaller dimensions
