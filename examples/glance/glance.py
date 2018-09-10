@@ -1,4 +1,4 @@
-import chainer
+import chainer as ch
 from chainer import datasets
 import chainer.functions as F
 import chainer.links as L
@@ -21,33 +21,25 @@ Y = data_array[:, 0].astype(np.int32)[:, None]
 train, test = datasets.split_dataset_random(
     datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
 
-train_iter = chainer.iterators.SerialIterator(train, 100)
-test_iter = chainer.iterators.SerialIterator(
+train_iter = ch.iterators.SerialIterator(train, 100)
+test_iter = ch.iterators.SerialIterator(
     test, 100, repeat=False, shuffle=False)
 
 
 # Network definition
-class MLP(chainer.Chain):
-    def __init__(self, n_units, n_out):
-        super(MLP, self).__init__()
-        with self.init_scope():
-            # the input size to each layer inferred from the layer before
-            self.l1 = L.Linear(n_units)  # n_in -> n_units
-            self.l2 = L.Linear(n_units)  # n_units -> n_units
-            self.l3 = L.Linear(n_out)  # n_units -> n_out
+def MLP(n_units, n_out):
+    layer = ch.Sequential(L.Linear(n_units), F.relu)
+    model = layer.repeat(1)
+    model.append(L.Linear(n_out))
 
-    def __call__(self, x):
-        h1 = F.relu(self.l1(x))
-        h2 = F.relu(self.l2(h1))
-        return self.l3(h2)
+    return model
 
 
 model = L.Classifier(
     MLP(44, 1), lossfun=F.sigmoid_cross_entropy, accfun=F.binary_accuracy)
 
 # Setup an optimizer
-optimizer = chainer.optimizers.SGD()
-optimizer.setup(model)
+optimizer = ch.optimizers.SGD().setup(model)
 
 # Create the updater, using the optimizer
 updater = training.StandardUpdater(train_iter, optimizer, device=-1)

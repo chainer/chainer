@@ -29,18 +29,18 @@ Code Breakdown
 Initialization
 ~~~~~~~~~~~~~~
 
-Typical imports for a Chainer program. :mod:`chainer.links` contain trainable parameters and :mod:`chainer.functions` do not.
+Let's start the program. Here are the typical imports for a Chainer program. :mod:`chainer.links` contain trainable parameters and :mod:`chainer.functions` do not.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
-   :end-before: :matplotlib
+   :end-before: matplotlib
 
-Let's start our python program. Matplotlib is used for the graphs to show training progress.
+We'll use Matplotlib for the graphs to show training progress.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
-   :start-after: matplotlib
-   :end-before: 
+   :start-after: numpy
+   :end-before: csv
 
 Trainer Structure
 ~~~~~~~~~~~~~~~~~
@@ -54,169 +54,157 @@ Each of the components is fed information from the components within it. Setting
 Dataset
 ~~~~~~~
 .. image:: ../image/glance/trainer-dataset.png
+   :scale: 50 %
+   :width: 835px
+   :height: 353px
 
 Our first step is to format the :mod:`~chainer.dataset`. From the raw mushrooms.csv, we format the data into a Chainer :class:`~chainer.datasets.TupleDataset`.
 
-.. code-block:: python
-
-   data_array = np.genfromtxt(
-       'mushrooms.csv', delimiter=',', dtype=str, skip_header=1)
-   for col in range(data_array.shape[1]):
-       data_array[:, col] = np.unique(data_array[:, col], return_inverse=True)[1]
-
-   X = data_array[:, 1:].astype(np.float32)
-   Y = data_array[:, 0].astype(np.int32)[:, None]
-   train, test = datasets.split_dataset_random(
-       datasets.TupleDataset(X, Y), int(data_array.shape[0] * .7))
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: Agg
+   :end-before: SerialIterator
 
 Iterator
 ~~~~~~~~
 .. image:: ../image/glance/trainer-iterator.png
+   :scale: 50 %
+   :width: 835px
+   :height: 353px
 
 Configure :mod:`~chainer.iterators` to step through batches of the data for training and for testing validation. In this case, we'll use a batch size of 100. For the training iterator, repeating and shuffling are implicitly enabled, while they are explicitly disabled for the testing iterator.
 
-.. code-block:: python
-
-   train_iter = chainer.iterators.SerialIterator(train, 100)
-   test_iter = chainer.iterators.SerialIterator(
-       test, 100, repeat=False, shuffle=False)
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: TupleDataset
+   :end-before: Network definition
 
 Model
 ~~~~~~~~~~
 .. image:: ../image/glance/trainer-model.png
+   :scale: 50 %
+   :width: 835px
+   :height: 353px
 
 Next, we need to define the neural network for inclusion in our model. For our mushrooms, we'll chain together two fully-connected, :class:`~chainer.links.Linear`, hidden layers between the input and output layers.
 
 As an activation function, we'll use standard Rectified Linear Units (:func:`~chainer.functions.relu`).
 
-.. code-block:: python
+Using the :class:`~chainer.Sequential` allows us to define the neural network model in a compact format.
 
-   # Network definition
-   class MLP(chainer.Chain):
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: shuffle
+   :end-before: Classifier
 
-       def __init__(self, n_units, n_out):
-           super(MLP, self).__init__()
-           with self.init_scope():
-               # the input size to each layer inferred from the layer before
-               self.l1 = L.Linear(n_units)  # n_in -> n_units
-               self.l2 = L.Linear(n_units)  # n_units -> n_units
-               self.l3 = L.Linear(n_out)  # n_units -> n_out
+Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a Link :class:`~chainer.links.Classifier` for the output, with 44 units (double the features of the data) in the hidden layers and a single edible/poisonous category for classification.
 
-       def __call__(self, x):
-           h1 = F.relu(self.l1(x))
-           h2 = F.relu(self.l2(h1))
-           return self.l3(h2)
-
-Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a Link :class:`~chainer.links.Classifier` for the output, with 44 units (double the features of the data) in the hidden layers and a single true/false category for classification.
-
-.. code-block:: python
-
-   model = L.Classifier(
-       MLP(44, 1), lossfun=F.sigmoid_cross_entropy, accfun=F.binary_accuracy)
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: return model
+   :end-before: Setup an optimizer
 
 Optimizer
 ~~~~~~~~~~~~
 .. image:: ../image/glance/trainer-optimizer.png
+   :scale: 50 %
+   :width: 835px
+   :height: 353px
 
 Pick an :class:`optimizer <chainer.Optimizer>`, and set up the ``model`` to use it.
 
-.. code-block:: python
-
-   # Setup an optimizer
-   optimizer = chainer.optimizers.SGD()
-   optimizer.setup(model)
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: sigmoid_cross_entropy
+   :end-before: Create the updater
 
 Updater
 ~~~~~~~~~
 .. image:: ../image/glance/trainer-updater.png
+   :scale: 50 %
+   :width: 835px
+   :height: 353px
 
 Now that we have the training :class:`iterator <chainer.dataset.Iterator>` and :class:`optimizer <chainer.Optimizer>` set up, we link them both together into the :class:`updater <chainer.training.Updater>`. The :class:`updater <chainer.training.Updater>` uses the minibatches from the :class:`iterator <chainer.dataset.Iterator>`, and then does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`optimizer <chainer.Optimizer>`. Setting the ``device=-1`` sets the device as the CPU. To use a GPU, set ``device`` equal to the number of the GPU, usually ``device=0``.
 
-.. code-block:: python
-
-   # Create the updater, using the optimizer
-   updater = training.StandardUpdater(train_iter, optimizer, device=-1)
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: .setup
+   :end-before: Set up a trainer
 
 Set up the :class:`updater <chainer.training.Updater>` to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory ``result``.
 
-.. code-block:: python
-
-   # Set up a trainer
-   trainer = training.Trainer(updater, (50, 'epoch'), out='result')
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: StandardUpdater
+   :end-before: Evaluate the model
 
 Extensions
 ~~~~~~~~~~
 .. image:: ../image/glance/trainer-extensions.png
+   :scale: 50 %
+   :width: 835px
+   :height: 353px
 
 Use the testing :class:`iterator <chainer.dataset.Iterator>` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores.
 
 If using a GPU instead of the CPU, set ``device`` to the ID of the GPU, usually ``0``.
 
-.. code-block:: python
-
-   trainer.extend(extensions.Evaluator(test_iter, model, device=-1))
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: training.Trainer
+   :end-before: Dump a computational
 
 Save a computational graph from ``loss`` variable at the first iteration. ``main`` refers to the target link of the ``main`` :class:`optimizer <chainer.Optimizer>`. The graph is saved in the `Graphviz's <https://www.graphviz.org/>`_ dot format. The output location (directory) to save the graph is set by the ``out`` argument of :class:`trainer <chainer.training.Trainer>`.
 
-.. code-block:: python
-
-   trainer.extend(extensions.dump_graph('main/loss'))
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: target link
+   :end-before: snapshot
 
 Take a snapshot of the :class:`trainer <chainer.training.Trainer>` object every 20 epochs.
 
-.. code-block:: python
-
-   trainer.extend(extensions.snapshot(), trigger=(20, 'epoch'))
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: dump_graph
+   :end-before: LogReport
 
 Write a log of evaluation statistics for each epoch.
 
-.. code-block:: python
-
-   trainer.extend(extensions.LogReport())
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: snapshot
+   :end-before: plot images
 
 Save two plot images to the result directory.
 
-.. code-block:: python
-
-   if extensions.PlotReport.available():
-       trainer.extend(
-           extensions.PlotReport(['main/loss', 'validation/main/loss'],
-                                 'epoch', file_name='loss.png'))
-       trainer.extend(
-           extensions.PlotReport(
-               ['main/accuracy', 'validation/main/accuracy'],
-               'epoch', file_name='accuracy.png'))
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: LogReport
+   :end-before: selected entries
 
 Print selected entries of the log to standard output.
 
-.. code-block:: python
-
-   trainer.extend(extensions.PrintReport(
-       ['epoch', 'main/loss', 'validation/main/loss',
-        'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: accuracy.png
+   :end-before: Run the training
 
 Run the training.
 
-.. code-block:: python
-
-   trainer.run()
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: elapsed_time
+   :end-before: randint
 
 Inference
 ~~~~~~~~~
 
 Once the training is complete, only the model is necessary to make predictions. Let's check that a random line from the test data set and see if the inference is correct:
 
-.. code-block:: python
-
-   x, t = test[np.random.randint(len(test))]
-
-   predict = model.predictor(x[None]).data
-   predict = predict[0][0]
-
-   if predict >= 0:
-       print('Predicted Poisonous, Actual ' + ['Edible', 'Poisonous'][t[0]])
-   else:
-       print('Predicted Edible, Actual ' + ['Edible', 'Poisonous'][t[0]])
+.. literalinclude:: ../../examples/glance/glance.py
+   :language: python
+   :start-after: trainer.run
 
 Output
 -------
