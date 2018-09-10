@@ -199,8 +199,9 @@ class TestFixedBatchRenormalization(unittest.TestCase):
                 'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
 
     def _forward(self, *args):
-        return batch_renormalization.fixed_batch_renormalization(
-            *args, eps=self.eps)
+        with testing.assert_warns(DeprecationWarning):
+            return batch_renormalization.fixed_batch_renormalization(
+                *args, eps=self.eps)
 
     def check_forward(self, args):
         with chainer.using_config('train',  self.train):
