@@ -80,15 +80,18 @@ class Convolution2DFunction(function_node.FunctionNode):
         return out_h, out_w
 
     def forward_cpu(self, inputs):
+        if (self.groups == 1
+                and intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs)):
+            # iDeep implementation
+            self._use_ideep = True
+            return self._forward_ideep(inputs)
+
         self.retain_inputs((0, 1))  # retain only x and W
         if len(inputs) == 2:
             (x, W), b = inputs, None
         else:
             x, W, b = inputs
-
-        if (intel64.should_use_ideep('>=auto')
-                and intel64.inputs_all_ready(inputs)):
-            self._use_ideep = True
 
         if self.groups > 1:
             return self._forward_grouped_convolution(x, W, b)
@@ -96,9 +99,6 @@ class Convolution2DFunction(function_node.FunctionNode):
             return self._forward_cpu_core(x, W, b)
 
     def _forward_cpu_core(self, x, W, b):
-        if self._use_ideep:
-            return self._forward_ideep(x, W, b)
-
         kh, kw = W.shape[2:]
         col = conv.im2col_cpu(
             x, kh, kw, self.sy, self.sx, self.ph, self.pw,
@@ -110,11 +110,16 @@ class Convolution2DFunction(function_node.FunctionNode):
         y = numpy.rollaxis(y, 3, 1)
         return y,
 
-    def _forward_ideep(self, x, W, b):
+    def _forward_ideep(self, inputs):
+        self.retain_inputs((0, 1))
+        if len(inputs) == 3:
+            x, W, b = inputs
+        else:
+            (x, W), b = inputs, None
         out_c, input_c, kh, kw = W.shape
         n, c, h, w = x.shape
 
-        out_h, out_w = self._get_out_size((x, W))
+        out_h, out_w = self._get_out_size(inputs)
         pd = (self.sy * (out_h - 1)
               + (kh + (kh - 1) * (self.dy - 1)) - h - self.ph)
         pr = (self.sx * (out_w - 1)
@@ -191,33 +196,22 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         xp = cuda.get_array_module(x)
 
-        _x = x.reshape((N, G, iCg, iH, iW))
+        _x = x.reshape(N, G, iCg, iH, iW)
         _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
-
-        _W = W.reshape((G, oCg, iCg, kH, kW))
+        _W = W.reshape(G, oCg, iCg, kH, kW)
         if b is not None:
-            _b = b.reshape((G, oCg))
+            _b = b.reshape(G, oCg)
 
         _ys = []
-
         for g in six.moves.range(G):
             _bg = None if b is None else _b[g, ]
             if xp is numpy:
                 _y, = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
             else:
                 _y, = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
-
             _ys.append(_y)
 
-        # (N, oC, oH, oW)
-        if self._use_ideep:
-            __ys = intel64.ideep.mdarrayVector()
-            for _y in _ys:
-                __ys.push_back(_y)
-            y = intel64.ideep._ideep4py.concat.Forward(__ys, 1)
-        else:
-            y = xp.concatenate(_ys, axis=1)
-
+        y = xp.concatenate(_ys, axis=1)  # (N, oC, oH, oW)
         return y,
 
     def _forward_cudnn(self, x, W, b, y):
@@ -268,8 +262,12 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.W_dtype = W_node.dtype
         self.groups = conv2d.groups
         self._use_ideep = conv2d._use_ideep
+        assert self.groups == 1 or not self._use_ideep
 
     def forward_cpu(self, inputs):
+        if self._use_ideep:
+            return self._forward_ideep(inputs)
+
         self.retain_inputs((0, 1))
         x, gy = inputs
 
@@ -286,9 +284,6 @@ class Convolution2DGradW(function_node.FunctionNode):
             return self._forward_cpu_core(x, gy)
 
     def _forward_cpu_core(self, x, gy):
-        if self._use_ideep:
-            return self._forward_ideep(x, gy)
-
         col = conv.im2col_cpu(
             x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
             cover_all=self.cover_all, dy=self.dy, dx=self.dx)
@@ -296,7 +291,10 @@ class Convolution2DGradW(function_node.FunctionNode):
                              ).astype(self.W_dtype, copy=False)
         return gW,
 
-    def _forward_ideep(self, x, gy):
+    def _forward_ideep(self, inputs):
+        self.retain_inputs((0, 1))
+        x, gy = inputs
+
         n, input_c, h, w = x.shape
         n, out_c, out_h, out_w = gy.shape
         pd = (self.sy * (out_h - 1)
@@ -364,9 +362,9 @@ class Convolution2DGradW(function_node.FunctionNode):
 
         xp = cuda.get_array_module(x)
 
-        _x = x.reshape((N, G, iCg, iH, iW))
+        _x = x.reshape(N, G, iCg, iH, iW)
         _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
-        _gy = gy.reshape((N, G, oCg, oH, oW))
+        _gy = gy.reshape(N, G, oCg, oH, oW)
         _gy = xp.rollaxis(_gy, 1)  # (G, N, oCg, oH, oW)
         # Work-around for NumPy's bug?
         if xp is numpy:
@@ -518,12 +516,9 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
         dilate (:class:`int` or pair of :class:`int` s):
             Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
-        groups (:class:`int`): Number of groups of channels. If the number
-            is greater than 1, input tensor :math:`W` is divided into some
-            blocks by this value. For each tensor blocks, convolution
-            operation will be executed independently. Input channel size
-            :math:`c_I` and output channel size :math:`c_O` must be exactly
-            divisible by this value.
+        groups (:class:`int`):
+            The number of groups to use grouped convolution.
+            The default is one, where grouped convolution is not used.
 
     Returns:
         ~chainer.Variable:

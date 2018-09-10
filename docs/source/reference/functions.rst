@@ -135,7 +135,6 @@ Neural network connections
    chainer.functions.deconvolution_2d
    chainer.functions.deconvolution_nd
    chainer.functions.depthwise_convolution_2d
-   chainer.functions.deformable_convolution_2d_sampler
    chainer.functions.dilated_convolution_2d
    chainer.functions.embed_id
    chainer.functions.linear
@@ -181,7 +180,6 @@ Loss functions
    chainer.functions.argmax_crf1d
    chainer.functions.cross_covariance
    chainer.functions.decov
-   chainer.functions.discriminative_margin_based_clustering_loss
    chainer.functions.gaussian_kl_divergence
    chainer.functions.gaussian_nll
    chainer.functions.hinge
@@ -287,7 +285,6 @@ Normalization functions
    chainer.functions.batch_renormalization
    chainer.functions.fixed_batch_normalization
    chainer.functions.fixed_batch_renormalization
-   chainer.functions.group_normalization
    chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
    chainer.functions.normalize

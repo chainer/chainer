@@ -161,7 +161,3 @@ class SerialIterator(iterator.Iterator):
             return len(self.dataset)
         else:
             return len(self._order)
-
-    @property
-    def repeat(self):
-        return self._repeat
