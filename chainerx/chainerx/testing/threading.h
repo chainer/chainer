@@ -148,7 +148,7 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
 //         EXPECT_EQ(std::to_string(thread_index), ctx.GetBackpropName(backprop_id));
 //     });
 // }
-// TODO(hvy): Define macros TEST_THREAD_SAFE and TEST_THREAD_SAFE_P.
+// TODO(hvy): Define macros TEST_THREAD_SAFE and TEST_THREAD_SAFE_F.
 #define TEST_THREAD_SAFE_P(test_case_name, test_name)                                                                        \
     class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public test_case_name {                               \
     protected:                                                                                                               \
