@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 from chainer.backends import cuda
 from chainer.functions.activation.relu import relu
 from chainer.functions.array.broadcast import broadcast_to
@@ -18,28 +16,20 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     It calculates pixel embeddings, and calculates three different terms
     based on those embeddings and applies them as loss.
     The main idea is that the pixel embeddings
-    for same instanceshave to be closer to each other (pull force),
+    for same instances have to be closer to each other (pull force),
     for different instances, they have to be further away (push force).
     The loss also brings a weak regularization term to prevent overfitting.
     This loss function calculates the following three parameters:
 
-    - Variance Loss:
-        Loss to penalize distances between pixels which are belonging
-        to the same instance. (Pull force)
-    - Distance loss:
-        Loss to penalize distances between the centers of instances.
-        (Push force)
-    - Regularization loss:
-        Small regularization loss to penalize weights against overfitting.
-
-    Args:
-        delta_v (float): Minimum distance to start penalizing variance
-        delta_d (float): Maximum distance to stop penalizing distance
-        max_embedding_dim (int): Maximum number of embedding dimensions
-        norm (int): Norm to calculate pixels and cluster center distances
-        alpha (float): Weight for variance loss    (alpha * variance_loss)
-        beta (float): Weight for distance loss     (beta * distance_loss)
-        gamma (float): Weight for regularizer loss (gamma * regularizer_loss)
+    Losses:
+        Variance loss:
+            Loss to penalize distances between pixels which are belonging
+            to the same instance. (Pull force)
+        Distance loss:
+            Loss to penalize distances between the centers of instances.
+            (Push force)
+        Regularization loss:
+            Small regularization loss to penalize weights against overfitting.
     """
 
     def __init__(self, delta_v=0.5, delta_d=1.5,
@@ -117,7 +107,6 @@ def discriminative_margin_based_clustering_loss(
         embeddings, labels,
         delta_v, delta_d, max_embedding_dim,
         norm=1, alpha=1.0, beta=1.0, gamma=0.001):
-
     """Discriminative margin-based clustering loss function
 
     This is the implementation of the following paper:
@@ -167,7 +156,6 @@ def discriminative_margin_based_clustering_loss(
         ~chainer.Variable:
             regularization loss multiplied by gamma
     """
-
     loss = DiscriminativeMarginBasedClusteringLoss(
         delta_v, delta_d, max_embedding_dim, norm, alpha, beta, gamma)
     return loss(embeddings, labels)
