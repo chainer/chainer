@@ -35,6 +35,15 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     def __init__(self, delta_v=0.5, delta_d=1.5,
                  max_embedding_dim=10, norm=1,
                  alpha=1.0, beta=1.0, gamma=0.001):
+        """
+        :param delta_v: (float) Minimum distance to start penalizing variance
+        :param delta_d: (float) Maximum distance to stop penalizing distance
+        :param max_embedding_dim: (int) Maximum number of embedding dimensions
+        :param norm: (int) Norm to calculate pixels and cluster center distances
+        :param alpha: (float) Weight for variance loss
+        :param beta: (float) Weight for distance loss
+        :param gamma: (float): Weight for regularizer loss
+        """
         self.delta_v = delta_v
         self.delta_d = delta_d
         self.alpha = alpha
@@ -140,26 +149,24 @@ def discriminative_margin_based_clustering_loss(
     - Regularization loss:
         Small regularization loss to penalize weights against overfitting.
 
-    Args:
-        embeddings(:class:`~chainer.Variable` or \
-        :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`) :
-            predicted embedding vectors
+    :param embeddings:
+        :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`
+        predicted embedding vectors
         (batch size, max embedding dimensions, height, width)
-        labels(:class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`) :
-            instance segmentation ground truth
-            each unique value has to be denoting one instance
-            (batch size, height, width)
-        delta_v (float): Minimum distance to start penalizing variance
-        delta_d (float): Maximum distance to stop penalizing distance
-        max_embedding_dim (int): Maximum number of embedding dimensions
-        norm (int): Norm to calculate pixels and cluster center distances
-        alpha (float): Weight for variance loss    (alpha * variance_loss)
-        beta (float): Weight for distance loss     (beta * distance_loss)
-        gamma (float): Weight for regularizer loss (gamma * regularizer_loss)
-
-    Returns:
+    :param labels:
+        :class:`numpy.ndarray` or :class:`cupy.ndarray`
+        instance segmentation ground truth
+        each unique value has to be denoting one instance
+        (batch size, height, width)
+    :param delta_v: (float) Minimum distance to start penalizing variance
+    :param delta_d: (float) Maximum distance to stop penalizing distance
+    :param max_embedding_dim: (int) Maximum number of embedding dimensions
+    :param norm: (int) Norm to calculate pixels and cluster center distances
+    :param alpha: (float) Weight for variance loss
+    :param beta: (float) Weight for distance loss
+    :param gamma: (float): Weight for regularizer loss
+    :return:
         tuple of chainer.Variable:
             - Variance loss : variance loss multiplied by alpha
             - Distance loss : distance loss multiplied by beta
