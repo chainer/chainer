@@ -39,7 +39,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         :param delta_v: (float) Minimum distance to start penalizing variance
         :param delta_d: (float) Maximum distance to stop penalizing distance
         :param max_embedding_dim: (int) Maximum number of embedding dimensions
-        :param norm: (int) Norm to calculate pixels and cluster center distances
+        :param norm: (int) Norm to be used across loss calculation
         :param alpha: (float) Weight for variance loss
         :param beta: (float) Weight for distance loss
         :param gamma: (float): Weight for regularizer loss
