@@ -408,6 +408,7 @@ TEST_P(PoolingTest, MaxPoolDoubleBackward) {
             {go},
             {ggx},
             {x_eps, go_eps},
+            2,
             1e-2,
             1e-3);
 }
@@ -470,6 +471,7 @@ TEST_P(PoolingTest, MaxPoolDoubleBackwardNoCoverAll) {
             {go},
             {ggx},
             {x_eps, go_eps},
+            2,
             1e-2,
             1e-3);
 }
@@ -773,6 +775,7 @@ TEST_P(PoolingTest, AveragePoolPadModeIgnoreDoubleBackward) {
             {go},
             {ggx},
             {x_eps, go_eps},
+            2,
             1e-6,
             1e-3);
 }
@@ -835,6 +838,7 @@ TEST_P(PoolingTest, AveragePoolPadModeZeroDoubleBackward) {
             {go},
             {ggx},
             {x_eps, go_eps},
+            2,
             1e-6,
             1e-3);
 }

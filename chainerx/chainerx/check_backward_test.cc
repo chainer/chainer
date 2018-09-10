@@ -87,9 +87,9 @@ protected:
         Arrays eps{testing::BuildArray(shape).WithData(eps_data)};
 
         if (expect_correct) {
-            CheckBackward(fprop, {input}, grad_outputs, eps, atol, rtol, backprop_scope.backprop_id());
+            CheckBackward(fprop, {input}, grad_outputs, eps, 2, atol, rtol, backprop_scope.backprop_id());
         } else {
-            EXPECT_THROW(CheckBackward(fprop, {input}, grad_outputs, eps, atol, rtol, backprop_scope.backprop_id()), GradientCheckError);
+            EXPECT_THROW(CheckBackward(fprop, {input}, grad_outputs, eps, 2, atol, rtol, backprop_scope.backprop_id()), GradientCheckError);
         }
     }
 
@@ -130,7 +130,7 @@ protected:
         }
 
         // A failure occurs if backward computation and numerical gradients have differences
-        CheckDoubleBackwardComputation(fprop, inputs, grad_outputs, grad_grad_inputs, eps, atol, rtol, backprop_scope.backprop_id());
+        CheckDoubleBackwardComputation(fprop, inputs, grad_outputs, grad_grad_inputs, eps, 2, atol, rtol, backprop_scope.backprop_id());
     }
 
 private:
