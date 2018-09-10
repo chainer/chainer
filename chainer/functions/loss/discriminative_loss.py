@@ -35,15 +35,6 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     def __init__(self, delta_v=0.5, delta_d=1.5,
                  max_embedding_dim=10, norm=1,
                  alpha=1.0, beta=1.0, gamma=0.001):
-        """
-        :param delta_v: (float) Minimum distance to start penalizing variance
-        :param delta_d: (float) Maximum distance to stop penalizing distance
-        :param max_embedding_dim: (int) Maximum number of embedding dimensions
-        :param norm: (int) Norm to be used across loss calculation
-        :param alpha: (float) Weight for variance loss
-        :param beta: (float) Weight for distance loss
-        :param gamma: (float): Weight for regularizer loss
-        """
         self.delta_v = delta_v
         self.delta_d = delta_d
         self.alpha = alpha
