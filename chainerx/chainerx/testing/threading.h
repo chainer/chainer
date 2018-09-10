@@ -150,15 +150,15 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
 #define CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) test_case_name##_##test_name##_Dummy
 
 // Replaces the TEST macro.
-#define CHAINERX_TEST_(test_case_name, test_name, parent_class) \
+#define CHAINERX_TEST_THREAD_SAFE_TEST_(test_case_name, test_name, parent_class) \
     GTEST_TEST_(test_case_name, test_name, parent_class, ::testing::internal::GetTestTypeId())
 
 // Replaces the TEST_F macro.
-#define CHAINERX_TEST_F_(test_fixture, test_name, parent_class) \
+#define CHAINERX_TEST_THREAD_SAFE_TEST_F_(test_fixture, test_name, parent_class) \
     GTEST_TEST_(test_fixture, test_name, parent_class, ::testing::internal::GetTypeId<test_fixture>())
 
 // Replaces the TEST_P macro.
-#define CHAINERX_TEST_P_(test_case_name, test_name, parent_class)                                                                     \
+#define CHAINERX_TEST_THREAD_SAFE_TEST_P_(test_case_name, test_name, parent_class)                                                    \
     class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public parent_class {                                          \
     public:                                                                                                                           \
         CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)() {}                                                               \
@@ -183,19 +183,21 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
     void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::TestBody()
 
 // Defines a test class base and expands to CHAINERX_TEST_, CHAINERX_TEST_F_ or CHAINERX_TEST_P_, based on the given test_type.
-#define CHAINERX_TEST_THREAD_SAFE_(test_type, test_case_name, test_name, base_class)                                                \
-    CHAINERX_TEST_THREAD_SAFE_COMMON_CLASS_(CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name), base_class)                 \
-                                                                                                                                    \
-    CHAINERX_##test_type##_(test_case_name, test_name##_SingleThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) { \
-        RunThreadSafeTestBodyWithLeakDetection(1);                                                                                  \
-        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                                                                     \
-    }                                                                                                                               \
-                                                                                                                                    \
-    CHAINERX_##test_type##_(test_case_name, test_name##_MultiThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) {  \
-        RunThreadSafeTestBodyWithLeakDetection(2);                                                                                  \
-        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                                                                     \
-    }                                                                                                                               \
-                                                                                                                                    \
+#define CHAINERX_TEST_THREAD_SAFE_(test_type, test_case_name, test_name, base_class)                                \
+    CHAINERX_TEST_THREAD_SAFE_COMMON_CLASS_(CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name), base_class) \
+                                                                                                                    \
+    CHAINERX_TEST_THREAD_SAFE_##test_type##_(                                                                       \
+            test_case_name, test_name##_SingleThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) { \
+        RunThreadSafeTestBodyWithLeakDetection(1);                                                                  \
+        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                                                     \
+    }                                                                                                               \
+                                                                                                                    \
+    CHAINERX_TEST_THREAD_SAFE_##test_type##_(                                                                       \
+            test_case_name, test_name##_MultiThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) {  \
+        RunThreadSafeTestBodyWithLeakDetection(2);                                                                  \
+        CHAINERX_ASSERT(is_run_skipped() ^ (run_count() == 1));                                                     \
+    }                                                                                                               \
+                                                                                                                    \
     void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::ThreadSafeTestBody()
 
 // Thread safety test macros that replaces TEST, TEST_F, TEST_P.
