@@ -206,7 +206,7 @@ jobs:
             source activate testenv
 
             pushd build
-            make -j 6 --output-sync
+            make -j 1 --output-sync
             popd
 
       # make install
