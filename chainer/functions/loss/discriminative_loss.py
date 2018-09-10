@@ -56,7 +56,18 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                              "Obtained the value : {}".format(norm))
 
     def __call__(self, embeddings, labels):
-
+        """
+        :param embeddings: predicted embedding vectors
+        (batch size, max embedding dimensions, height, width)
+        :param labels: instance segmentation ground truth
+        each unique value has to be denoting one instance
+        (batch size, height, width)
+        :return:
+        tuple of chainer.Variable:
+            - Variance loss : variance loss multiplied by alpha
+            - Distance loss : distance loss multiplied by beta
+            - Regularization loss : regularization loss multiplied by gamma
+        """
         assert (self.max_embedding_dim == embeddings.shape[1])
 
         l_dist = 0.0
