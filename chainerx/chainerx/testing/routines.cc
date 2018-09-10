@@ -102,10 +102,8 @@ void CheckForward(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
         const std::vector<Array>& expected_outputs,
-        size_t concurrent_check_thread_count,
         double atol,
         double rtol) {
-    CHAINERX_ASSERT(concurrent_check_thread_count != 1 && "concurrent_check_thread_count == 1 is meaningless.");
     Context& context = inputs.front().context();
     CHAINERX_ASSERT(std::all_of(inputs.begin(), inputs.end(), [&context](const Array& array) { return &array.context() == &context; }));
     CHAINERX_ASSERT(std::all_of(

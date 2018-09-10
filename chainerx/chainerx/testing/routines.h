@@ -17,12 +17,10 @@ public:
 
 // Checks forward implementation of a routine.
 // If concurrent_check_thread_count is nonzero, this function calls RunThreads() for concurrency test.
-// TODO(hvy): Remove concurrent_check_thread_count.
 void CheckForward(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
         const std::vector<Array>& expected_outputs,
-        size_t concurrent_check_thread_count = 2U,
         double atol = 1e-5,
         double rtol = 1e-4);
 
