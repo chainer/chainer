@@ -39,13 +39,12 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(ManipulationTest, AsScalar) {
+TEST_THREAD_SAFE_P(ManipulationTest, AsScalar) {
     using T = float;
     T value = 2.0f;
     Array a = testing::BuildArray({1, 1, 1}).WithData<T>({value}).WithPadding(1);
 
-    testing::RunTestWithThreads([&a, &value]() {
-        using T = float;
+    Run([&a, &value]() {
         Scalar s = AsScalar(a);
         EXPECT_EQ(s.dtype(), TypeToDtype<T>);
         EXPECT_EQ(static_cast<T>(s), value);
