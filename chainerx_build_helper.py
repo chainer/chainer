@@ -72,20 +72,10 @@ class CMakeBuild(build_ext.build_ext):
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
 
-install_requires = ['numpy']
-
-
-setuptools.setup(
-    name='chainerx',
-    version='0.0.1',
-    author='ChainerX authors',
-    author_email='beam.web@gmail.com',
-    description='',
-    long_description='',
-    ext_modules=[CMakeExtension('chainerx._core', ['_core.so'])],
-    packages=['chainerx', 'chainerx.creation', 'chainerx.testing'],
-    package_dir={'': 'python'},
-    cmdclass={'build_ext': CMakeBuild},
-    zip_safe=False,
-    install_requires=install_requires
-)
+ext_modules = [CMakeExtension(
+    name='chainerx._core',
+    build_targets=['_core.so'],
+    sourcedir='chainerx')]
+cmdclass = {'build_ext': CMakeBuild}
+packages = ['chainerx', 'chainerx.creation', 'chainerx.testing']
+package_dir = {'chainerx': 'chainerx/python/chainerx'}
