@@ -335,7 +335,6 @@ void CheckBackward(
                         chainerx::SetDefaultContext(&context);
                         chainerx::SetDefaultDevice(&device);
                         CheckBackwardComputation(func, broadcasted_inputs[thread_index], grad_outputs, eps, atol, rtol, backprop_id);
-                        return nullptr;
                     });
         }
         CheckAllArrayBodiesFreed(tracker);
@@ -546,7 +545,6 @@ void CheckDoubleBackwardComputation(
                                 atol,
                                 rtol,
                                 backprop_id);
-                        return nullptr;
                     });
         }
         CheckAllArrayBodiesFreed(tracker);
