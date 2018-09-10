@@ -68,10 +68,10 @@ def test_cupy_to_chainerx_delete_chainerx_first():
         0,
         a_cupy)
 
-    del a_cupy
+    del a_chx
 
-    a_chx += 1
-    chainerx.testing.assert_array_equal_ex(a_chx, numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
+    a_cupy += 1
+    chainerx.testing.assert_array_equal_ex(a_cupy.get(), numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
 
 
 @pytest.mark.cuda()
