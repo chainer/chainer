@@ -9,6 +9,17 @@ from chainer import utils
 from chainer.utils import type_check
 
 
+_xgetrfBatched = {
+    numpy.float32: cuda.cublas.sgetrfBatched,
+    numpy.float64: cuda.cublas.dgetrfBatched,
+}
+
+_xgetriBatched = {
+    numpy.float32: cuda.cublas.sgetriBatched,
+    numpy.float64: cuda.cublas.dgetriBatched,
+}
+
+
 def _inv_gpu(b):
     # We do a batched LU decomposition on the GPU to compute the inverse
     # Change the shape of the array to be size=1 minibatch if necessary
@@ -28,9 +39,10 @@ def _inv_gpu(b):
     _, lda = matmul._get_ld(a)
     _, ldc = matmul._get_ld(c)
     handle = cuda.Device().cublas_handle
-    cuda.cublas.sgetrfBatched(
+    dtype = numpy.dtype(b.dtype).type
+    _xgetrfBatched[dtype](
         handle, n, ap.data.ptr, lda, p.data.ptr, info.data.ptr, n_matrices)
-    cuda.cublas.sgetriBatched(
+    _xgetriBatched[dtype](
         handle, n, ap.data.ptr, lda, p.data.ptr, cp.data.ptr, ldc,
         info.data.ptr, n_matrices)
     return c, info
@@ -41,12 +53,13 @@ class Inv(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('a',))
         a_type, = in_types
-        type_check.expect(a_type.dtype == numpy.float32)
+        type_check.expect(a_type.dtype.kind == 'f')
         # Only 2D array shapes allowed
         type_check.expect(a_type.ndim == 2)
         # Matrix inversion only allowed for square matrices
         type_check.expect(a_type.shape[0] == a_type.shape[1])
 
+    @utils.mixed_precision
     def forward_cpu(self, x):
         self.retain_outputs((0,))
         try:
@@ -55,6 +68,7 @@ class Inv(function_node.FunctionNode):
             raise ValueError('Input has singular matrices.')
         return invx,
 
+    @utils.mixed_precision
     def forward_gpu(self, x):
         self.retain_outputs((0,))
         shape = x[0].shape
@@ -79,13 +93,14 @@ class BatchInv(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('a',))
         a_type, = in_types
-        type_check.expect(a_type.dtype == numpy.float32)
+        type_check.expect(a_type.dtype.kind == 'f')
         # Only a minibatch of 2D array shapes allowed
         type_check.expect(a_type.ndim == 3)
         # Matrix inversion only allowed for square matrices
         # so assert the last two dimensions are equal
         type_check.expect(a_type.shape[-1] == a_type.shape[-2])
 
+    @utils.mixed_precision
     def forward_cpu(self, x):
         self.retain_outputs((0,))
         try:
@@ -94,6 +109,7 @@ class BatchInv(function_node.FunctionNode):
             raise ValueError('Input has singular matrices.')
         return invx,
 
+    @utils.mixed_precision
     def forward_gpu(self, x):
         self.retain_outputs((0,))
         invx, info = _inv_gpu(x[0])

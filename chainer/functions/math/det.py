@@ -9,6 +9,12 @@ from chainer import utils
 from chainer.utils import type_check
 
 
+_xgetrfBatched = {
+    numpy.float32: cuda.cublas.sgetrfBatched,
+    numpy.float64: cuda.cublas.dgetrfBatched,
+}
+
+
 def _det_gpu(b):
     # We do a batched LU decomposition on the GPU to compute
     # and compute the determinant by multiplying the diagonal.
@@ -25,15 +31,16 @@ def _det_gpu(b):
     info = cuda.cupy.zeros(n_matrices, dtype=numpy.intp)
     ap = matmul._mat_ptrs(a)
     _, lda = matmul._get_ld(a)
-    cuda.cublas.sgetrfBatched(cuda.Device().cublas_handle, n, ap.data.ptr, lda,
-                              p.data.ptr, info.data.ptr, n_matrices)
+    dtype = numpy.dtype(b.dtype).type
+    _xgetrfBatched[dtype](cuda.Device().cublas_handle, n, ap.data.ptr,
+                          lda, p.data.ptr, info.data.ptr, n_matrices)
     det = cuda.cupy.prod(a.diagonal(axis1=1, axis2=2), axis=1)
     # The determinant is equal to the product of the diagonal entries
     # of `a` where the sign of `a` is flipped depending on whether
     # the pivot array is equal to its index.
     rng = cuda.cupy.arange(1, n + 1, dtype='int32')
     parity = cuda.cupy.sum(p != rng, axis=1) % 2
-    sign = 1. - 2. * parity.astype('float32')
+    sign = 1. - 2. * parity.astype(b.dtype, copy=False)
     return det * sign, info
 
 
@@ -53,12 +60,14 @@ class BatchDet(function_node.FunctionNode):
         # so assert the last two dimensions are equal.
         type_check.expect(a_type.shape[-1] == a_type.shape[-2])
 
+    @utils.mixed_precision
     def forward_cpu(self, x):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
         detx = utils.force_array(numpy.linalg.det(x[0]))
         return detx,
 
+    @utils.mixed_precision
     def forward_gpu(self, x):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
