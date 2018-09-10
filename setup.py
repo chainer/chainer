@@ -40,7 +40,7 @@ requirements = {
         'pycodestyle==2.3.1',
     ],
     'test': [
-        'pytest',
+        'pytest<3.8',
         'mock',
     ],
     'doctest': [
