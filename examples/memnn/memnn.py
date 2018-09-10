@@ -21,7 +21,7 @@ def bow_encode(embed, sentences):
 
     .. math::
 
-       m = \sum_j A x_j,
+       m = \\sum_j A x_j,
 
     where :math:`A` is an embed matrix, and :math:`x_j` is :math:`j`-th word
     ID.
