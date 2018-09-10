@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "chainerx/array_body_leak_detection.h"
+#include "chainerx/macro.h"
 
 namespace chainerx {
 namespace testing {
@@ -162,6 +163,8 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
             CheckAllArrayBodiesFreed(tracker);                                                                               \
         }                                                                                                                    \
                                                                                                                              \
+        bool is_run_called() { return is_run_called_; }                                                                      \
+                                                                                                                             \
     private:                                                                                                                 \
         void ThreadSafeTestBody();                                                                                           \
                                                                                                                              \
@@ -172,17 +175,21 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
             } else {                                                                                                         \
                 testing::threading_detail::CallFunc(func, 0);                                                                \
             }                                                                                                                \
+            is_run_called_ = true;                                                                                           \
         }                                                                                                                    \
                                                                                                                              \
         size_t thread_count_{0};                                                                                             \
+        bool is_run_called_{false};                                                                                          \
     };                                                                                                                       \
                                                                                                                              \
     CHAINERX_TEST_P_(test_case_name, test_name##_SingleThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) { \
         RunThreadSafeTestBodyWithLeakDetection(1);                                                                           \
+        CHAINERX_ASSERT(is_run_called());                                                                                     \
     }                                                                                                                        \
                                                                                                                              \
     CHAINERX_TEST_P_(test_case_name, test_name##_MultiThread, CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)) {  \
         RunThreadSafeTestBodyWithLeakDetection(2);                                                                           \
+        CHAINERX_ASSERT(is_run_called());                                                                                     \
     }                                                                                                                        \
                                                                                                                              \
     void CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)::ThreadSafeTestBody()
