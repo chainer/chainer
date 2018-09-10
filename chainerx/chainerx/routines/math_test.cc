@@ -1439,10 +1439,6 @@ TEST_THREAD_SAFE_P(MathTest, LogSoftmax) {
             {adata[0] - log_z[0], adata[1] - log_z[0], adata[2] - log_z[0], adata[3] - log_z[1], adata[4] - log_z[1], adata[5] - log_z[1]});
 
     Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSoftmax(xs[0])}; }, {a}, {e}); });
-
-    Run([&]() {
-        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSoftmax(xs[0], Axes{1})}; }, {a}, {e});
-    });
 }
 
 TEST_THREAD_SAFE_P(MathTest, LogSoftmaxAlongFirstAxis) {
@@ -1458,6 +1454,21 @@ TEST_THREAD_SAFE_P(MathTest, LogSoftmaxAlongFirstAxis) {
 
     Run([&]() {
         testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSoftmax(xs[0], Axes{0})}; }, {a}, {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(MathTest, LogSoftmaxAlongSecondAxis) {
+    using T = double;
+    Shape shape{2, 3};
+    std::vector<T> adata{-1, 0, 1, 2, 3, 4};
+    std::vector<T> log_z{std::log(std::exp(adata[0]) + std::exp(adata[1]) + std::exp(adata[2])),
+                         std::log(std::exp(adata[3]) + std::exp(adata[4]) + std::exp(adata[5]))};
+    Array a = testing::BuildArray(shape).WithData<T>(adata).WithPadding(1);
+    Array e = testing::BuildArray(shape).WithData<T>(
+            {adata[0] - log_z[0], adata[1] - log_z[0], adata[2] - log_z[0], adata[3] - log_z[1], adata[4] - log_z[1], adata[5] - log_z[1]});
+
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{LogSoftmax(xs[0], Axes{1})}; }, {a}, {e});
     });
 }
 
