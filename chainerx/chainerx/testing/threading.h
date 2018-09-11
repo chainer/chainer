@@ -140,7 +140,7 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
         }                                                                     \
                                                                               \
         /* Marks this test as skipped, i.e. that Run is not called. */        \
-        void SkipRun() { is_run_skipped_ = true; }                            \
+        void Skip() { is_run_skipped_ = true; }                               \
                                                                               \
         size_t thread_count_{0};                                              \
         size_t run_count_{0};                                                 \
