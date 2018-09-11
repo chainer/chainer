@@ -95,13 +95,6 @@ void CheckOutputArraysEqual(const std::vector<Array>& expected, const std::vecto
     }
 }
 
-void CheckAllArrayBodiesFreed(chainerx::internal::ArrayBodyLeakTracker& tracker) {
-    std::ostringstream os;
-    if (!tracker.IsAllArrayBodiesFreed(os)) {
-        throw RoutinesCheckError{os.str()};
-    }
-}
-
 }  // namespace
 
 // TODO(niboshi): Check array nodes of output arrays to ensure the implementation takes backprop mode into account
@@ -109,37 +102,22 @@ void CheckForward(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
         const std::vector<Array>& expected_outputs,
-        size_t concurrent_check_thread_count,
         double atol,
         double rtol) {
-    CHAINERX_ASSERT(concurrent_check_thread_count != 1 && "concurrent_check_thread_count == 1 is meaningless.");
+    Context& context = inputs.front().context();
+    CHAINERX_ASSERT(std::all_of(inputs.begin(), inputs.end(), [&context](const Array& array) { return &array.context() == &context; }));
+    CHAINERX_ASSERT(std::all_of(
+            expected_outputs.begin(), expected_outputs.end(), [&context](const Array& array) { return &array.context() == &context; }));
 
-    // Run single-shot test
-    {
-        chainerx::internal::ArrayBodyLeakTracker tracker{};
-        {
-            chainerx::internal::ArrayBodyLeakDetectionScope scope{tracker};
-            std::vector<Array> outputs = func(inputs);
-            CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
-        }
-        CheckAllArrayBodiesFreed(tracker);
+    // Use thread local or global default context if it is set. Else, use the context of the given arrays.
+    try {
+        chainerx::SetDefaultContext(&GetDefaultContext());
+    } catch (ContextError) {
+        chainerx::SetDefaultContext(&context);
     }
 
-    // Run thread safety check
-    if (concurrent_check_thread_count > 0) {
-        chainerx::internal::ArrayBodyLeakTracker tracker{};
-        {
-            chainerx::internal::ArrayBodyLeakDetectionScope scope{tracker};
-            Context& context = chainerx::GetDefaultContext();
-
-            RunThreads(concurrent_check_thread_count, [&func, &inputs, &expected_outputs, &atol, &rtol, &context]() {
-                chainerx::SetDefaultContext(&context);
-                std::vector<Array> outputs = func(inputs);
-                CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
-            });
-        }
-        CheckAllArrayBodiesFreed(tracker);
-    }
+    std::vector<Array> outputs = func(inputs);
+    CheckOutputArraysEqual(expected_outputs, outputs, atol, rtol);
 }
 
 }  // namespace testing

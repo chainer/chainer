@@ -256,18 +256,6 @@ void CheckBackwardComputation(
 
 }  // namespace
 
-namespace {
-
-// Asserts all the array bodies are freed in the leak tracker.
-void CheckAllArrayBodiesFreed(internal::ArrayBodyLeakTracker& tracker) {
-    std::ostringstream os;
-    if (!tracker.IsAllArrayBodiesFreed(os)) {
-        throw GradientCheckError{os.str()};
-    }
-}
-
-}  // namespace
-
 void CheckBackward(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,

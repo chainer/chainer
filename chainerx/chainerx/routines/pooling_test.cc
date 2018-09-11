@@ -18,6 +18,7 @@
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
 #include "chainerx/testing/routines.h"
+#include "chainerx/testing/threading.h"
 
 namespace chainerx {
 namespace {
@@ -35,9 +36,10 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(PoolingTest, MaxPool) {
+TEST_THREAD_SAFE_P(PoolingTest, MaxPool) {
     if (GetParam() == "cuda") {
         // CuDNN convolution does not support cover_all, which is true by default.
+        Skip();
         return;
     }
     using T = float;
@@ -94,15 +96,17 @@ TEST_P(PoolingTest, MaxPool) {
              0.86659664, 0.1641238,  0.94771904, 0.86659664, 0.8357075,  0.7981461,  0.8357075,  0.8357075,  0.09764841, 0.9327884,
              0.9327884,  0.32184523, 0.87756634, 0.87756634, 0.6356852,  0.87756634, 0.87756634, 0.6356852});  // Computed with Chainer.
 
-    testing::CheckForward(
-            [&kernel_size, &stride, &pad](const std::vector<Array>& xs) {
-                return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad)};  // cover_all should be true
-            },
-            {x},
-            {e_out});
+    Run([&]() {
+        testing::CheckForward(
+                [&kernel_size, &stride, &pad](const std::vector<Array>& xs) {
+                    return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad)};  // cover_all should be true
+                },
+                {x},
+                {e_out});
+    });
 }
 
-TEST_P(PoolingTest, MaxPoolNoCoverAll) {
+TEST_THREAD_SAFE_P(PoolingTest, MaxPoolNoCoverAll) {
     using T = float;
 
     int64_t batch_size = 3;
@@ -154,15 +158,17 @@ TEST_P(PoolingTest, MaxPoolNoCoverAll) {
              0.8659653,  0.33170977, 0.86021507, 0.8370784, 0.46001586, 0.86021507, 0.68951994, 0.37592548, 0.9320143,  0.8101899,
              0.8101899,  0.9320143});  // Computed with Chainer.
 
-    testing::CheckForward(
-            [&kernel_size, &stride, &pad, &cover_all](const std::vector<Array>& xs) {
-                return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad, cover_all)};
-            },
-            {x},
-            {e_out});
+    Run([&]() {
+        testing::CheckForward(
+                [&kernel_size, &stride, &pad, &cover_all](const std::vector<Array>& xs) {
+                    return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad, cover_all)};
+                },
+                {x},
+                {e_out});
+    });
 }
 
-TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
+TEST_THREAD_SAFE_P(PoolingTest, MaxPoolNdNoCoverAll) {
     using T = float;
 
     int64_t batch_size = 3;
@@ -221,12 +227,14 @@ TEST_P(PoolingTest, MaxPoolNdNoCoverAll) {
              0.99647135, 0.99647135, 0.7221806,  0.74232286, 0.978541,   0.978541,   0.8025118, 0.86370593, 0.94351375, 0.9479238,
              0.73393095, 0.84942234, 0.86141664, 0.81095344, 0.8797568,  0.8797568,  0.8240346, 0.6949624});  // Computed with Chainer.
 
-    testing::CheckForward(
-            [&kernel_size, &stride, &pad, &cover_all](const std::vector<Array>& xs) {
-                return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad, cover_all)};
-            },
-            {x},
-            {e_out});
+    Run([&]() {
+        testing::CheckForward(
+                [&kernel_size, &stride, &pad, &cover_all](const std::vector<Array>& xs) {
+                    return std::vector<Array>{MaxPool(xs[0], kernel_size, stride, pad, cover_all)};
+                },
+                {x},
+                {e_out});
+    });
 }
 
 TEST_P(PoolingTest, MaxPoolBackward) {
@@ -476,7 +484,7 @@ TEST_P(PoolingTest, MaxPoolDoubleBackwardNoCoverAll) {
             1e-3);
 }
 
-TEST_P(PoolingTest, AveragePoolPadModeIgnore) {
+TEST_THREAD_SAFE_P(PoolingTest, AveragePoolPadModeIgnore) {
     using T = float;
 
     int64_t batch_size = 3;
@@ -534,15 +542,17 @@ TEST_P(PoolingTest, AveragePoolPadModeIgnore) {
              0.69924927, 0.7164636,  0.31257492, 0.3045208,  0.37353006, 0.32604605, 0.20149867, 0.5739569,  0.4754313,
              0.3749856,  0.34619308, 0.31932065});  // Computed with Chainer.
 
-    testing::CheckForward(
-            [&kernel_size, &stride, &pad](const std::vector<Array>& xs) {
-                return std::vector<Array>{AveragePool(xs[0], kernel_size, stride, pad, AveragePoolPadMode::kIgnore)};
-            },
-            {x},
-            {e_out});
+    Run([&]() {
+        testing::CheckForward(
+                [&kernel_size, &stride, &pad](const std::vector<Array>& xs) {
+                    return std::vector<Array>{AveragePool(xs[0], kernel_size, stride, pad, AveragePoolPadMode::kIgnore)};
+                },
+                {x},
+                {e_out});
+    });
 }
 
-TEST_P(PoolingTest, AveragePoolPadModeZero) {
+TEST_THREAD_SAFE_P(PoolingTest, AveragePoolPadModeZero) {
     using T = float;
 
     int64_t batch_size = 3;
@@ -594,12 +604,14 @@ TEST_P(PoolingTest, AveragePoolPadModeZero) {
              0.32501528, 0.27838096, 0.38496295, 0.48860213, 0.4943433,  0.6386533,  0.3274555,  0.14210498, 0.25845996, 0.46114156,
              0.31804958, 0.46384564});  // Computed with Chainer.
 
-    testing::CheckForward(
-            [&kernel_size, &stride, &pad](const std::vector<Array>& xs) {
-                return std::vector<Array>{AveragePool(xs[0], kernel_size, stride, pad, AveragePoolPadMode::kZero)};
-            },
-            {x},
-            {e_out});
+    Run([&]() {
+        testing::CheckForward(
+                [&kernel_size, &stride, &pad](const std::vector<Array>& xs) {
+                    return std::vector<Array>{AveragePool(xs[0], kernel_size, stride, pad, AveragePoolPadMode::kZero)};
+                },
+                {x},
+                {e_out});
+    });
 }
 
 TEST_P(PoolingTest, AveragePoolPadModeIgnoreBackward) {

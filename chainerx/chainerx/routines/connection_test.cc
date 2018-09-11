@@ -18,6 +18,7 @@
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
 #include "chainerx/testing/routines.h"
+#include "chainerx/testing/threading.h"
 
 namespace chainerx {
 namespace {
@@ -35,7 +36,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(ConnectionTest, Conv2d) {
+TEST_THREAD_SAFE_P(ConnectionTest, Conv2d) {
     int64_t batch_size = 2;
     int64_t in_channels = 3;
     int64_t out_channels = 2;
@@ -67,15 +68,17 @@ TEST_P(ConnectionTest, Conv2d) {
              1.30000e+00,  1.30000e+00,  1.30000e+00,  1.76173e+04,  1.79233e+04,  1.82293e+04,  2.08303e+04,  2.11363e+04,  2.14423e+04,
              2.40433e+04,  2.43493e+04,  2.46553e+04,  1.30000e+00,  1.30000e+00,  1.30000e+00});  // Computed with Chainer.
 
-    testing::CheckForward(
-            [&stride, &pad, &cover_all](const std::vector<Array>& xs) {
-                return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, cover_all)};
-            },
-            {x, w, b},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&stride, &pad, &cover_all](const std::vector<Array>& xs) {
+                    return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, cover_all)};
+                },
+                {x, w, b},
+                {e});
+    });
 }
 
-TEST_P(ConnectionTest, ConvNd) {
+TEST_THREAD_SAFE_P(ConnectionTest, ConvNd) {
     int64_t batch_size = 2;
     int64_t in_channels = 3;
     int64_t out_channels = 2;
@@ -102,15 +105,18 @@ TEST_P(ConnectionTest, ConvNd) {
              -1.44347e+04, -1.81367e+04, -1.28147e+04, -2.00000e-01, -2.00000e-01, -2.00000e-01, -3.58202e+04, -4.92422e+04, -3.80882e+04,
              1.30000e+00,  1.30000e+00,  1.30000e+00,  4.38853e+04,  5.83273e+04,  4.35613e+04});  // Computed with Chainer.
 
-    testing::CheckForward(
-            [&stride, &pad](const std::vector<Array>& xs) { return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, false)}; },
-            {x, w, b},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&stride, &pad](const std::vector<Array>& xs) { return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, false)}; },
+                {x, w, b},
+                {e});
+    });
 }
 
-TEST_P(ConnectionTest, ConvCoverAll) {
+TEST_THREAD_SAFE_P(ConnectionTest, ConvCoverAll) {
     if (GetParam() == "cuda") {
         // CuDNN convolution does not support cover_all
+        Skip();
         return;
     }
     int64_t batch_size = 2;
@@ -150,12 +156,14 @@ TEST_P(ConnectionTest, ConvCoverAll) {
                      2.43943e+04,  1.56763e+04,  2.74543e+04,  2.77603e+04,  2.80663e+04,  1.79803e+04,  1.30000e+00,
                      1.30000e+00,  1.30000e+00,  1.30000e+00});  // Computed with Chainer.
 
-    testing::CheckForward(
-            [&stride, &pad, &cover_all](const std::vector<Array>& xs) {
-                return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, cover_all)};
-            },
-            {x, w, b},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&stride, &pad, &cover_all](const std::vector<Array>& xs) {
+                    return std::vector<Array>{Conv(xs[0], xs[1], xs[2], stride, pad, cover_all)};
+                },
+                {x, w, b},
+                {e});
+    });
 }
 
 TEST_P(ConnectionTest, ConvBackward) {
@@ -352,7 +360,7 @@ TEST_P(ConnectionTest, ConvCoverAllDoubleBackward) {
             1e-3);
 }
 
-TEST_P(ConnectionTest, ConvTranspose) {
+TEST_THREAD_SAFE_P(ConnectionTest, ConvTranspose) {
     int64_t batch_size = 2;
     int64_t in_channels = 3;
     int64_t out_channels = 2;
@@ -408,15 +416,20 @@ TEST_P(ConnectionTest, ConvTranspose) {
              1.3303e+03,  6.7330e+02,  7.5130e+02,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,
              1.3000e+00});  // Computed with Chainer.
 
-    testing::CheckForward(
-            [&stride, &pad](const std::vector<Array>& xs) { return std::vector<Array>{ConvTranspose(xs[0], xs[1], xs[2], stride, pad)}; },
-            {x, w, b},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&stride, &pad](const std::vector<Array>& xs) {
+                    return std::vector<Array>{ConvTranspose(xs[0], xs[1], xs[2], stride, pad)};
+                },
+                {x, w, b},
+                {e});
+    });
 }
 
-TEST_P(ConnectionTest, ConvTransposeOutSize) {
+TEST_THREAD_SAFE_P(ConnectionTest, ConvTransposeOutSize) {
     if (GetParam() == "cuda") {
         // CUDA Convolution does not support out_size
+        Skip();
         return;
     }
     int64_t batch_size = 2;
@@ -478,12 +491,14 @@ TEST_P(ConnectionTest, ConvTransposeOutSize) {
              1.7383e+03,  8.7730e+02,  1.7623e+03,  8.8930e+02,  1.7863e+03,  9.0130e+02,  1.3000e+00,  1.3000e+00,  1.3000e+00,
              1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00,  1.3000e+00});  // Computed with Chainer.
 
-    testing::CheckForward(
-            [&stride, &pad, &out_dims](const std::vector<Array>& xs) {
-                return std::vector<Array>{ConvTranspose(xs[0], xs[1], xs[2], stride, pad, out_dims)};
-            },
-            {x, w, b},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [&stride, &pad, &out_dims](const std::vector<Array>& xs) {
+                    return std::vector<Array>{ConvTranspose(xs[0], xs[1], xs[2], stride, pad, out_dims)};
+                },
+                {x, w, b},
+                {e});
+    });
 }
 
 TEST_P(ConnectionTest, ConvTransposeBackward) {

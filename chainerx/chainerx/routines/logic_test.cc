@@ -17,6 +17,7 @@
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
 #include "chainerx/testing/routines.h"
+#include "chainerx/testing/threading.h"
 
 namespace chainerx {
 namespace {
@@ -34,7 +35,7 @@ private:
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
-TEST_P(LogicTest, Equal) {
+TEST_THREAD_SAFE_P(LogicTest, Equal) {
     using T = float;
 
     struct Param {
@@ -61,25 +62,29 @@ TEST_P(LogicTest, Equal) {
     Array b = testing::BuildArray(shape).WithData<T>(b_data);
     Array e = testing::BuildArray(shape).WithData<bool>(e_data);
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = Equal(xs[0], xs[1]);
-                EXPECT_EQ(y.dtype(), Dtype::kBool);
-                EXPECT_TRUE(y.IsContiguous());
-                return std::vector<Array>{y};
-            },
-            {a, b},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Equal(xs[0], xs[1]);
+                    EXPECT_EQ(y.dtype(), Dtype::kBool);
+                    EXPECT_TRUE(y.IsContiguous());
+                    return std::vector<Array>{y};
+                },
+                {a, b},
+                {e});
+    });
 }
 
-TEST_P(LogicTest, EqualBroadcast) {
+TEST_THREAD_SAFE_P(LogicTest, EqualBroadcast) {
     using T = int32_t;
 
     Array a = testing::BuildArray({2, 3}).WithData<T>({1, 2, 3, 4, 3, 2});
     Array b = testing::BuildArray({2, 1}).WithData<T>({3, 2});
     Array e = testing::BuildArray({2, 3}).WithData<bool>({false, false, true, false, false, true});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Equal(xs[0], xs[1])}; }, {a, b}, {e});
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Equal(xs[0], xs[1])}; }, {a, b}, {e});
+    });
 }
 
 TEST_P(LogicTest, NotEqual) {
@@ -125,7 +130,7 @@ TEST_P(LogicTest, NotEqualBroadcast) {
     EXPECT_ARRAY_EQ(e, o);
 }
 
-TEST_P(LogicTest, Greater) {
+TEST_THREAD_SAFE_P(LogicTest, Greater) {
     using T = float;
 
     struct Param {
@@ -154,25 +159,29 @@ TEST_P(LogicTest, Greater) {
     Array b = testing::BuildArray(shape).WithData<T>(b_data);
     Array e = testing::BuildArray(shape).WithData<bool>(e_data);
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = Greater(xs[0], xs[1]);
-                EXPECT_EQ(y.dtype(), Dtype::kBool);
-                EXPECT_TRUE(y.IsContiguous());
-                return std::vector<Array>{y};
-            },
-            {a, b},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Greater(xs[0], xs[1]);
+                    EXPECT_EQ(y.dtype(), Dtype::kBool);
+                    EXPECT_TRUE(y.IsContiguous());
+                    return std::vector<Array>{y};
+                },
+                {a, b},
+                {e});
+    });
 }
 
-TEST_P(LogicTest, GreaterBroadcast) {
+TEST_THREAD_SAFE_P(LogicTest, GreaterBroadcast) {
     using T = int32_t;
 
     Array a = testing::BuildArray({2, 3}).WithData<T>({1, 2, 3, 4, 3, 2});
     Array b = testing::BuildArray({2, 1}).WithData<T>({2, 2});
     Array e = testing::BuildArray({2, 3}).WithData<bool>({false, false, true, true, true, false});
 
-    testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Greater(xs[0], xs[1])}; }, {a, b}, {e});
+    Run([&]() {
+        testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Greater(xs[0], xs[1])}; }, {a, b}, {e});
+    });
 }
 
 TEST_P(LogicTest, GreaterEqual) {
@@ -310,7 +319,7 @@ TEST_P(LogicTest, LessEqualBroadcast) {
     EXPECT_ARRAY_EQ(e, o);
 }
 
-TEST_P(LogicTest, LogicalNot) {
+TEST_THREAD_SAFE_P(LogicTest, LogicalNot) {
     using T = float;
 
     struct Param {
@@ -328,15 +337,17 @@ TEST_P(LogicTest, LogicalNot) {
     Array a = testing::BuildArray(shape).WithData<T>(a_data);
     Array e = testing::BuildArray(shape).WithData<bool>(e_data);
 
-    testing::CheckForward(
-            [](const std::vector<Array>& xs) {
-                Array y = LogicalNot(xs[0]);
-                EXPECT_EQ(y.dtype(), Dtype::kBool);
-                EXPECT_TRUE(y.IsContiguous());
-                return std::vector<Array>{y};
-            },
-            {a},
-            {e});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = LogicalNot(xs[0]);
+                    EXPECT_EQ(y.dtype(), Dtype::kBool);
+                    EXPECT_TRUE(y.IsContiguous());
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
 }
 
 INSTANTIATE_TEST_CASE_P(
