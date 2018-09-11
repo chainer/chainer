@@ -189,13 +189,7 @@ setup_kwargs = dict(
 
 
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
-if build_chainerx:
-    setup_kwargs.update(dict(
-        cmdclass=chainerx_build_helper.cmdclass,
-        package_dir=chainerx_build_helper.package_dir,
-        ext_modules=chainerx_build_helper.ext_modules,
-    ))
-    setup_kwargs['packages'] += chainerx_build_helper.packages
+chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
 
 
 setup(**setup_kwargs)
