@@ -11,11 +11,14 @@ except Exception:
     cupy = None
 
 
+_fromrawpointer = chainerx._core._fromrawpointer
+
+
 @pytest.mark.cuda()
 def test_cupy_to_chainerx_contiguous():
     dtype = numpy.float32
     a_cupy = cupy.arange(6, dtype=dtype).reshape((2, 3))
-    a_chx = chainerx.fromrawpointer(
+    a_chx = _fromrawpointer(
         a_cupy.data.mem.ptr,
         a_cupy.shape,
         a_cupy.dtype,
@@ -40,7 +43,7 @@ def test_cupy_to_chainerx_contiguous():
 def test_cupy_to_chainerx_delete_cupy_first():
     dtype = numpy.float32
     a_cupy = cupy.arange(6, dtype=dtype).reshape((2, 3))
-    a_chx = chainerx.fromrawpointer(
+    a_chx = _fromrawpointer(
         a_cupy.data.mem.ptr,
         a_cupy.shape,
         a_cupy.dtype,
@@ -59,7 +62,7 @@ def test_cupy_to_chainerx_delete_cupy_first():
 def test_cupy_to_chainerx_delete_chainerx_first():
     dtype = numpy.float32
     a_cupy = cupy.arange(6, dtype=dtype).reshape((2, 3))
-    a_chx = chainerx.fromrawpointer(
+    a_chx = _fromrawpointer(
         a_cupy.data.mem.ptr,
         a_cupy.shape,
         a_cupy.dtype,
@@ -79,7 +82,7 @@ def test_cupy_to_chainerx_from_invalid_pointer():
     dtype = numpy.float32
     a_numpy = numpy.arange(6, dtype=dtype).reshape((2, 3))
     with pytest.raises(chainerx.ChainerxError):
-        chainerx.fromrawpointer(
+        _fromrawpointer(
             a_numpy.ctypes.data,
             a_numpy.shape,
             a_numpy.dtype,
@@ -99,7 +102,7 @@ def test_cupy_to_chainerx_noncontiguous_with_offset():
     assert offset > 0
     assert not a_cupy.flags.c_contiguous
 
-    a_chx = chainerx.fromrawpointer(
+    a_chx = _fromrawpointer(
         a_cupy.data.mem.ptr,
         a_cupy.shape,
         a_cupy.dtype,
@@ -127,7 +130,7 @@ def test_cupy_to_chainerx_noncontiguous_without_offset():
     assert a_cupy.data.mem.ptr < a_cupy.data.ptr
     assert not a_cupy.flags.c_contiguous
 
-    a_chx = chainerx.fromrawpointer(
+    a_chx = _fromrawpointer(
         a_cupy.data.ptr,
         a_cupy.shape,
         a_cupy.dtype,

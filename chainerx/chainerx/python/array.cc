@@ -153,8 +153,7 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("tonumpy", &MakeNumpyArrayFromArray);
     // This is currently for internal use (from Chainer).
-    // TODO(niboshi): Make it apparent that this is internal. Prefixing with '_' prevents it from being exported.
-    m.def("fromrawpointer",
+    m.def("_fromrawpointer",
           [](intptr_t ptr,
              const py::tuple& shape,
              py::handle dtype,
