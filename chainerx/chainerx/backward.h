@@ -26,11 +26,17 @@ void SetGrad(nonstd::optional<Array>& target_grad, Array grad, const Shape& shap
 
 }  // namespace internal
 
+// Computes the gradients by back propagation.
+//
+// This functions is not thread safe.
 void Backward(
         const Array& output,
         const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
 
+// Computes the gradients by back propagation.
+//
+// This functions is not thread safe.
 void Backward(
         const std::vector<ConstArrayRef>& outputs,
         const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt,
