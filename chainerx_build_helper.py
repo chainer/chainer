@@ -79,3 +79,14 @@ ext_modules = [CMakeExtension(
 cmdclass = {'build_ext': CMakeBuild}
 packages = ['chainerx', 'chainerx.creation', 'chainerx.testing']
 package_dir = {'chainerx': 'chainerx/python/chainerx'}
+
+
+def config_setup_kwargs(setup_kwargs, build_chainerx):
+    setup_kwargs['package_dir'] = package_dir
+    setup_kwargs['packages'] += packages
+
+    if build_chainerx:
+        setup_kwargs.update(dict(
+            cmdclass=cmdclass,
+            ext_modules=ext_modules,
+        ))
