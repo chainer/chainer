@@ -109,8 +109,7 @@ TEST(CudaDeviceTest, MakeDataFromForeignPointer_NonUnifiedMemory) {
     void* raw_ptr = nullptr;
     cuda::CheckCudaError(cudaMalloc(&raw_ptr, 3));
     auto cuda_data = std::shared_ptr<void>{raw_ptr, cudaFree};
-    EXPECT_THROW(device.MakeDataFromForeignPointer(cuda_data), ChainerxError)
-            << "must throw an exception if non-managed CUDA memory is given";
+    EXPECT_EQ(cuda_data.get(), device.MakeDataFromForeignPointer(cuda_data).get());
 }
 
 TEST(CudaDeviceTest, MakeDataFromForeignPointer_FromAnotherDevice) {
