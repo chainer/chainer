@@ -58,6 +58,11 @@ private:
 
 }  // namespace internal
 
+// A class that holds the context information for a backward operation such as the upstream gradients.
+// An instance of this class is passed to the actual backward definition and the backward definition is responsible for updating the context
+// by i.e. setting the input gradients.
+//
+// This class is not thread safe.
 class BackwardContext {
 public:
     // Ctor

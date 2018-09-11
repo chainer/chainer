@@ -84,6 +84,9 @@ using RetainedInputToken = backward_builder_detail::RetainedArrayToken<struct In
 // See BackwardBuilder::RetainOutput() for details.
 using RetainedOutputToken = backward_builder_detail::RetainedArrayToken<struct OutputTag>;
 
+// A class that is used to define backward operations and connect the graph.
+//
+// This class is not thread safe.
 class BackwardBuilder {
 public:
     // Target is responsible to define edges from OpNode to input ArrayNodes with given BackwardFunction.
