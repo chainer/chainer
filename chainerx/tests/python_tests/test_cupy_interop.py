@@ -166,4 +166,20 @@ def test_cupy_to_chainerx_nondefault_device():
     chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get())
 
 
+@pytest.mark.cuda(2)
+def test_cupy_to_chainerx_invalid_device():
+    dtype = numpy.float32
+    with cupy.cuda.Device(1):
+        a_cupy = cupy.arange(6, dtype=dtype).reshape((2, 3))
+    with pytest.raises(chainerx.ChainerxError):
+        _fromrawpointer(
+            a_cupy.data.mem.ptr,
+            a_cupy.shape,
+            a_cupy.dtype,
+            a_cupy.strides,
+            'cuda:0',
+            0,
+            a_cupy)
+
+
 # TODO(niboshi): Write tests for conversion from chainerx to cupy
