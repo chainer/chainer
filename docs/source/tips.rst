@@ -34,18 +34,95 @@ vecLib is the default BLAS library installed on Mac OS X.
 We recommend using other BLAS libraries such as `OpenBLAS <http://www.openblas.net/>`_.
 
 To use an alternative BLAS library, it is necessary to reinstall NumPy.
-Here is an instruction to install NumPy with OpenBLAS using `Homebrew <https://brew.sh/>`_.
-
-For details of the issue, please see
-https://docs.chainer.org/en/stable/tips.html#mnist-example-does-not-converge-in-cpu-mode-on-mac-os-x.
+Here are instructions to install NumPy with OpenBLAS using `Conda <https://conda.io/docs/user-guide/install/index.html>`_.
 
 ::
 
-   $ brew tap homebrew/science
-   $ brew install openblas
-   $ brew install numpy --with-openblas
+   $ conda install -c conda-forge numpy
 
-If you want to install NumPy with pip, use `site.cfg <https://github.com/numpy/numpy/blob/master/site.cfg.example>`_ file.
+Otherwise, to install NumPy without Conda, you may need to install NumPy from source.
+
+Use `Homebrew <https://brew.sh/>`_ to install OpenBLAS.
+
+::
+
+   $ brew install openblas
+
+Uninstall existing NumPy installation
+
+::
+
+   $ pip uninstall numpy
+
+Install NumPy from the source code
+
+::
+
+   $ git clone https://github.com/numpy/numpy
+   $ cd numpy
+   $ git checkout refs/tags/v1.13.3
+   $ cp site.cfg.example site.cfg
+
+You'll need to edit the site.cfg file around line 128 to set the library to OpenBLAS by removing the comment #s.
+
+::
+
+   [openblas]
+   libraries = openblas
+   library_dirs = /usr/local/opt/openblas/lib
+   include_dirs = /usr/local/opt/openblas/include
+   runtime_library_dirs = /usr/local/opt/openblas/lib
+
+Check the setup config file.
+
+::
+
+   $ python setup.py config
+
+If you see these settings in the log, it should be ok:
+
+::
+
+    openblas_info:
+      FOUND:
+        libraries = ['openblas', 'openblas']
+        library_dirs = ['/usr/local/opt/openblas/lib']
+        language = c
+        define_macros = [('HAVE_CBLAS', None)]
+        runtime_library_dirs = ['/usr/local/opt/openblas/lib']
+
+Continue with the build. This takes a few minutes.
+
+::
+
+   $ python setup.py build
+   $ python setup.py install
+
+Confirm NumPy has been installed with OpenBLAS by running this command:
+
+::
+
+   $ python -c "import numpy; print(numpy.show_config())"
+
+You should see the following information:
+
+::
+
+   blas_mkl_info:
+     NOT AVAILABLE
+   blis_info:
+     NOT AVAILABLE
+   openblas_info:
+     libraries = ['openblas', 'openblas']
+     library_dirs = ['/usr/local/opt/openblas/lib']
+     language = c
+     define_macros = [('HAVE_CBLAS', None)]
+     runtime_library_dirs = ['/usr/local/opt/openblas/lib']
+    ...
+
+Once this is done, you should be able to `import chainer` without OpenBLAS errors.
+
+Thanks for this guide to the Japanese site, `kumilog.net <https://www.kumilog.net/entry/openblas-numpy>`_.
 
 For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
 
