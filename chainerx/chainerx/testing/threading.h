@@ -107,44 +107,52 @@ inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
     }
 }
 
-#define CHAINERX_TEST_THREAD_SAFE_COMMON_CLASS_(test_case_name, parent_class) \
-    class test_case_name : public parent_class {                              \
-    public:                                                                   \
-        void RunThreadSafeTestBodyWithLeakDetection(size_t thread_count) {    \
-            thread_count_ = thread_count;                                     \
-                                                                              \
-            internal::ArrayBodyLeakTracker tracker{};                         \
-            {                                                                 \
-                internal::ArrayBodyLeakDetectionScope scope{tracker};         \
-                ThreadSafeTestBody();                                         \
-            }                                                                 \
-            CheckAllArrayBodiesFreed(tracker);                                \
-        }                                                                     \
-                                                                              \
-        size_t run_count() { return run_count_; }                             \
-                                                                              \
-        bool is_run_skipped() { return is_run_skipped_; }                     \
-                                                                              \
-    private:                                                                  \
-        void ThreadSafeTestBody();                                            \
-                                                                              \
-        /* Runs the given function on either a single or multiple threads. */ \
-        template <typename Func>                                              \
-        void Run(const Func& func) {                                          \
-            if (thread_count_ > 1) {                                          \
-                testing::RunThreads(thread_count_, func);                     \
-            } else {                                                          \
-                testing::threading_detail::CallFunc(func, 0);                 \
-            }                                                                 \
-            ++run_count_;                                                     \
-        }                                                                     \
-                                                                              \
-        /* Marks this test as skipped, i.e. that Run is not called. */        \
-        void Skip() { is_run_skipped_ = true; }                               \
-                                                                              \
-        size_t thread_count_{0};                                              \
-        size_t run_count_{0};                                                 \
-        bool is_run_skipped_{false};                                          \
+class ThreadSafeTestBase {
+protected:
+    size_t run_count() { return run_count_; }
+
+    bool is_run_skipped() { return is_run_skipped_; }
+
+    virtual void ThreadSafeTestBody() = 0;
+
+    void RunThreadSafeTestBodyWithLeakDetection(size_t thread_count) {
+        thread_count_ = thread_count;
+
+        internal::ArrayBodyLeakTracker tracker{};
+        {
+            internal::ArrayBodyLeakDetectionScope scope{tracker};
+            ThreadSafeTestBody();
+        }
+        CheckAllArrayBodiesFreed(tracker);
+    }
+
+    // Runs the given function on either a single or multiple threads.
+    template <typename Func>
+    void Run(const Func& func) {
+        if (thread_count_ > 1) {
+            testing::RunThreads(thread_count_, func);
+        } else {
+            testing::threading_detail::CallFunc(func, 0);
+        }
+        ++run_count_;
+    }
+
+    // Marks this test as skipped, i.e. that Run is not called.
+    void Skip() { is_run_skipped_ = true; }
+
+private:
+    size_t thread_count_{0};
+    size_t run_count_{0};
+    bool is_run_skipped_{false};
+};
+
+#define CHAINERX_TEST_THREAD_SAFE_COMMON_CLASS_(test_case_name, parent_class)        \
+    class test_case_name : public parent_class, public testing::ThreadSafeTestBase { \
+    protected:                                                                       \
+        using ThreadSafeTestBase::Run;                                               \
+        using ThreadSafeTestBase::Skip;                                              \
+                                                                                     \
+        void ThreadSafeTestBody() override;                                          \
     };
 
 #define CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) test_case_name##_##test_name##_Dummy
