@@ -1,5 +1,5 @@
 # `testing` needs to be imported before `_core`, because importing `_core` would populate sys.modules['chainerx.testing'].
-import chainerx.testing  # NOQA
+from chainerx import testing  # NOQA
 
 try:
     from chainerx._core import *  # NOQA
