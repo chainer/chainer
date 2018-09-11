@@ -61,7 +61,7 @@ script:
   - flake8
   - autopep8 -r . --diff | tee check_autopep8
   - test ! -s check_autopep8
-  - python -Werror::DeprecationWarning -m compileall -f -q chainer chainermn examples tests
+  - python -Werror::DeprecationWarning -m compileall -f -q chainer chainermn examples tests docs
   - pushd tests
   - pytest -m "not slow and not gpu and not cudnn and not ideep" chainer_tests
   - export OMP_NUM_THREADS=1
