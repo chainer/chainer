@@ -49,7 +49,8 @@ def create_communicator(
             import mpi4py.MPI
         except ImportError as e:
             raise ImportError(str(e) + ": "
-                              "ChainerMN requires mpi4py for distributed training. "
+                              "ChainerMN requires mpi4py for"
+                              "distributed training. "
                               "Please read the Chaier official document "
                               "and setup MPI and mpi4py.")
         mpi_comm = mpi4py.MPI.COMM_WORLD
