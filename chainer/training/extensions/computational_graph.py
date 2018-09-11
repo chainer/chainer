@@ -4,14 +4,15 @@ from chainer import computational_graph
 from chainer import configuration
 from chainer.training import extension
 from chainer import variable
+from chainer.utils import argument
 
 
 _var_style = {'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}
 _func_style = {'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}
 
 
-def dump_graph(root_name, out_name='cg.dot',
-               variable_style=None, function_style=None):
+def dump_graph(root_name, filename=None,
+               variable_style=None, function_style=None, **kwargs):
     """Returns a trainer extension to dump a computational graph.
 
     This extension dumps a computational graph. The graph is output in DOT
@@ -49,7 +50,10 @@ def dump_graph(root_name, out_name='cg.dot',
         root_name (str): Name of the root of the computational graph. The
             root variable is retrieved by this name from the observation
             dictionary of the trainer.
-        out_name (str): Output file name.
+        filename (str): Output file name. It is recommended to use this
+            argument though, instead of `filename` you can specify name of
+            the output file by `out_name` for backward compatibility.
+            If both `filename` and `out_name` are specified, `filename` is used.
         variable_style (dict): Dot node style for variables. Each variable is
             rendered by an octagon by default.
         function_style (dict): Dot node style for functions. Each function is
@@ -62,6 +66,12 @@ def dump_graph(root_name, out_name='cg.dot',
     """
     def trigger(trainer):
         return trainer.updater.iteration == 1
+
+    out_name = argument.parse_kwargs(
+        kwargs, ('out_name', 'cg.dot'),
+    )
+    if filename is None:
+        filename = out_name
 
     if variable_style is None:
         variable_style = _var_style

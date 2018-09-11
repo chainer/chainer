@@ -9,6 +9,7 @@ import chainer
 from chainer.backends import cuda
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
+from chainer.utils import argument
 
 
 try:
@@ -106,13 +107,14 @@ class Statistician(object):
 
         if self.percentile_sigmas:
             xp = cuda.get_array_module(x)
-            if xp is numpy:
-                p = numpy.percentile(x, self.percentile_sigmas, axis=axis)
-            else:
-                # TODO(hvy): Use percentile from CuPy once it is supported
-                p = cuda.to_gpu(
-                    numpy.percentile(
-                        cuda.to_cpu(x), self.percentile_sigmas, axis=axis))
+            # if xp is numpy:
+            #     p = numpy.percentile(x, self.percentile_sigmas, axis=axis)
+            # else:
+            #     # TODO(hvy): Use percentile from CuPy once it is supported
+            #     p = cuda.to_gpu(
+            #         numpy.percentile(
+            #             cuda.to_cpu(x), self.percentile_sigmas, axis=axis))
+            p = xp.percentile(x, self.percentile_sigmas, axis=axis)
             out['percentile'] = p
 
         return out
@@ -161,8 +163,12 @@ class VariableStatisticsPlot(extension.Extension):
             distinct from the trigger of this extension itself. If it is a
             tuple in the form ``<int>, 'epoch'`` or ``<int>, 'iteration'``, it
             is passed to :class:`IntervalTrigger`.
-        file_name (str):
+        filename (str):
             Name of the output image file under the output directory.
+            It is recommended to use `filename` though, instead of this,
+            you can specify the output image file name by `file_name` for
+            backward compatibility. However if both `filename` and `file_name`
+            are specified, `filename` will be used.
         figsize (tuple of int):
             Matlotlib ``figsize`` argument that specifies the size of the
             output image.
@@ -179,10 +185,16 @@ class VariableStatisticsPlot(extension.Extension):
                  plot_mean=True, plot_std=True,
                  percentile_sigmas=(
                      0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87, 100),
-                 trigger=(1, 'epoch'), file_name='statistics.png',
-                 figsize=None, marker=None, grid=True):
+                 trigger=(1, 'epoch'), filename='statistics.png',
+                 figsize=None, marker=None, grid=True, **kwargs):
 
-        if file_name is None:
+        file_name = argument.parse_kwargs(
+            kwargs, ('file_name', 'statistics.png'),
+        )
+        if filename is None:
+            filename = file_name
+
+        if filename is None:
             raise ValueError('Missing output file name of statstics plot')
 
         self._vars = _unpack_variables(targets)
