@@ -29,7 +29,7 @@ test_iter = ch.iterators.SerialIterator(
 # Network definition
 def MLP(n_units, n_out):
     layer = ch.Sequential(L.Linear(n_units), F.relu)
-    model = layer.repeat(1)
+    model = layer.repeat(2)
     model.append(L.Linear(n_out))
 
     return model
