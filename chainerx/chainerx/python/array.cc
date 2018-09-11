@@ -1,6 +1,7 @@
 #include "chainerx/python/array.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <tuple>
@@ -175,6 +176,10 @@ void InitChainerxArray(pybind11::module& m) {
               return MoveArrayBody(
                       FromData(ToShape(shape), GetDtype(dtype), std::move(data), ToStrides(strides), offset, GetDevice(device)));
           });
+    c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
+        // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.
+        return Array{self}.shape().front();
+    });
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });

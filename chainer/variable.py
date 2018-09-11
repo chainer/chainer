@@ -76,6 +76,7 @@ def variable_repr(var):
     if arr is None:
         lst = 'None'
     elif arr.size > 0 or arr.shape == (0,):
+        # TODO(hvy): Do no call this line if var has chainerx ndarray.
         lst = numpy.array2string(arr, None, None, None, ', ', prefix + '(')
     else:  # show zero-length shape unless it is (0,)
         lst = '[], shape=%s' % (repr(arr.shape),)
@@ -479,11 +480,13 @@ class Variable(object):
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
             volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
-        if (data is not None and
-                not isinstance(data, chainer.get_array_types())):
-            msg = '''numpy.ndarray or cuda.ndarray are expected.
-Actual: {0}'''.format(type(data))
-            raise TypeError(msg)
+        if data is not None:
+            array_types = chainer.get_array_types()
+            if not isinstance(data, array_types):
+                msg = '{} or {}. Actual: {}'.format(
+                    ', '.join(map(str, array_types[:-1])),
+                    array_types[-1], type(data))
+                raise TypeError(msg)
 
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
