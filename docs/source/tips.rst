@@ -100,30 +100,30 @@ In this case, the function expects that ``x.shape[0]`` is equal to ``y.shape[0]`
 
 See :doc:`guides/type_checks` for the detailed behavior of type checking system in Chainer.
 
-How do I accelerate my model using iDeep on Intel CPU?
-------------------------------------------------------
+How do I accelerate my model using Chainer Backend for Intel Architecture?
+--------------------------------------------------------------------------
 
-Follow these steps to utilize iDeep in your model.
+Follow these steps to utilize Chainer Backend for Intel Architecture in your model.
 
-Install iDeep
-~~~~~~~~~~~~~
+Install Chainer Backend for Intel Architecture
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The following environments are recommended by `iDeep <https://github.com/intel/ideep>`_.
+The following environments are recommended by `Chainer Backend for Intel Architecture <https://github.com/intel/ideep>`_.
 
 * Ubuntu 14.04 / 16.04 LTS (64-bit) and CentOS 7 (64-bit)
 * Python 2.7.5+, 3.5.2+, and 3.6.0+
 
-On recommended systems, you can install iDeep wheel (binary distribution) by:
+On recommended systems, you can install Chainer Backend for Intel Architecture wheel (binary distribution) by:
 
 .. code-block:: console
 
     $ pip install 'ideep4py<2'
 
-Enable iDeep Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Enable Chainer Backend for Intel Architecture Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Currently iDeep is disabled by default because it is an experimental feature.
-You need to manually enable iDeep by changing ``chainer.config.use_ideep`` configuration to ``'auto'``.
+Currently Chainer Backend for Intel Architecture is disabled by default because it is an experimental feature.
+You need to manually enable it by changing ``chainer.config.use_ideep`` configuration to ``'auto'``.
 See :ref:`configuration` for details.
 
 The easiest way to change the configuration is to set environment variable as follows:
@@ -141,22 +141,28 @@ You can also use :func:`chainer.using_config` to change the configuration.
         y = chainer.functions.relu(x)
     print(type(y.data))
 
-.. testoutput::
+.. code-block:: none
 
     <class 'ideep4py.mdarray'>
 
-Convert Your Model to iDeep
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. Avoid dependency to Chainer Backend for Intel Architecture module in doctest.
+.. testoutput::
+   :hide:
 
-You need to call ``model.to_intel64()`` (in the same way you call ``model.to_gpu()`` to transfer your link to GPU) to convert the link to iDeep.
+   <class '...'>
+
+Convert Your Model to Chainer Backend for Intel Architecture
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You need to call ``model.to_intel64()`` (in the same way you call ``model.to_gpu()`` to transfer your link to GPU) to convert the link to Chainer Backend for Intel Architecture.
 
 Run Your Model
 ~~~~~~~~~~~~~~
 
-Now your model is accelerated by iDeep!
+Now your model is accelerated by Chainer Backend for Intel Architecture!
 
-Please note that not all functions and optimizers support iDeep acceleration.
-Also note that iDeep will not be used depending on the shape and data type of the input data.
+Please note that not all functions and optimizers support Chainer Backend for Intel Architecture acceleration.
+Also note that Chainer Backend for Intel Architecture will not be used depending on the shape and data type of the input data.
 
 My training process gets stuck when using MultiprocessIterator
 --------------------------------------------------------------

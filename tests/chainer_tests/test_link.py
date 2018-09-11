@@ -343,25 +343,25 @@ class TestLink(unittest.TestCase):
 
     def test_params(self):
         params = list(self.link.params())
-        self.assertEqual({id(p) for p in params},
-                         {id(self.link.x), id(self.link.y),
-                          id(self.link.u), id(self.link.v)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.link.u), id(self.link.v),
+                          id(self.link.x), id(self.link.y)])
 
     def test_params_skip_uninit(self):
         params = list(self.link.params(include_uninit=False))
-        self.assertEqual({id(p) for p in params},
-                         {id(self.link.x), id(self.link.y)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.link.x), id(self.link.y)])
 
     def test_namedparams(self):
         namedparams = list(self.link.namedparams())
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/x', id(self.link.x)), ('/y', id(self.link.y)),
-                          ('/u', id(self.link.u)), ('/v', id(self.link.v))})
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/u', id(self.link.u)), ('/v', id(self.link.v)),
+                          ('/x', id(self.link.x)), ('/y', id(self.link.y))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.link.namedparams(include_uninit=False))
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/x', id(self.link.x)), ('/y', id(self.link.y))})
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/x', id(self.link.x)), ('/y', id(self.link.y))])
 
     def test_links(self):
         links = list(self.link.links())
@@ -894,58 +894,60 @@ class TestChain(unittest.TestCase):
 
     def test_params(self):
         params = list(self.c2.params())
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l2.x), id(self.l3.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l2.x), id(self.l3.x)])
 
     def test_params_skip_uninit(self):
         params = list(self.c2.params(include_uninit=False))
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l2.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l2.x)])
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/c1/l1/x', id(self.l1.x)),
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/c1/l1/x', id(self.l1.x)),
                           ('/c1/l2/x', id(self.l2.x)),
-                          ('/l3/x', id(self.l3.x))})
+                          ('/l3/x', id(self.l3.x))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.c2.namedparams(include_uninit=False))
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/c1/l1/x', id(self.l1.x)),
-                          ('/c1/l2/x', id(self.l2.x))})
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/c1/l1/x', id(self.l1.x)),
+                          ('/c1/l2/x', id(self.l2.x))])
 
     def test_links(self):
         links = list(self.c2.links())
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3,
-                                          self.c1, self.c2]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c2,
+                                          self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_links_skipself(self):
         links = list(self.c2.links(skipself=True))
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3, self.c1]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_namedlinks(self):
         namedlinks = list(self.c2.namedlinks())
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/', id(self.c2)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/', id(self.c2)),
                           ('/c1', id(self.c1)),
                           ('/c1/l1', id(self.l1)),
                           ('/c1/l2', id(self.l2)),
-                          ('/l3', id(self.l3))})
+                          ('/l3', id(self.l3))])
 
     def test_namedlinks_skipself(self):
         namedlinks = list(self.c2.namedlinks(skipself=True))
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/c1', id(self.c1)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/c1', id(self.c1)),
                           ('/c1/l1', id(self.l1)),
                           ('/c1/l2', id(self.l2)),
-                          ('/l3', id(self.l3))})
+                          ('/l3', id(self.l3))])
 
     def test_children(self):
         children = list(self.c2.children())
-        self.assertEqual({id(c) for c in children}, {id(self.c1), id(self.l3)})
+        self.assertEqual([id(c) for c in children], [id(self.c1), id(self.l3)])
 
     def test_copyparams(self):
         l1 = chainer.Link()
@@ -1416,57 +1418,59 @@ class TestChainList(unittest.TestCase):
 
     def test_params(self):
         params = list(self.c2.params())
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l1.y),
-                          id(self.l2.x), id(self.l3.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l1.y),
+                          id(self.l2.x), id(self.l3.x)])
 
     def test_params_skip_uninit(self):
         params = list(self.c2.params(include_uninit=False))
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l2.x), id(self.l3.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l2.x), id(self.l3.x)])
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/0/0/x', id(self.l1.x)),
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/0/0/x', id(self.l1.x)),
                           ('/0/0/y', id(self.l1.y)),
                           ('/0/1/x', id(self.l2.x)),
-                          ('/1/x', id(self.l3.x))})
+                          ('/1/x', id(self.l3.x))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.c2.namedparams(include_uninit=False))
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/0/0/x', id(self.l1.x)),
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/0/0/x', id(self.l1.x)),
                           ('/0/1/x', id(self.l2.x)),
-                          ('/1/x', id(self.l3.x))})
+                          ('/1/x', id(self.l3.x))])
 
     def test_links(self):
         links = list(self.c2.links())
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3,
-                                          self.c1, self.c2]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c2,
+                                          self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_links_skipself(self):
         links = list(self.c2.links(skipself=True))
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3, self.c1]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_namedlinks(self):
         namedlinks = list(self.c2.namedlinks())
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/', id(self.c2)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/', id(self.c2)),
                           ('/0', id(self.c1)),
                           ('/0/0', id(self.l1)),
                           ('/0/1', id(self.l2)),
-                          ('/1', id(self.l3))})
+                          ('/1', id(self.l3))])
 
     def test_namedlinks_skipself(self):
         namedlinks = list(self.c2.namedlinks(skipself=True))
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/0', id(self.c1)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/0', id(self.c1)),
                           ('/0/0', id(self.l1)),
                           ('/0/1', id(self.l2)),
-                          ('/1', id(self.l3))})
+                          ('/1', id(self.l3))])
 
     def test_children(self):
         self.assertEqual(tuple(id(c) for c in self.c2.children()),

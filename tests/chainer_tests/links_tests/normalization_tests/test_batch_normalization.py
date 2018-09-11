@@ -317,6 +317,10 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
             self.test_backward_gpu()
 
 
+def _generate_uniform(low, high, shape, dtype=numpy.float32):
+    return numpy.random.uniform(low, high, shape).astype(dtype)
+
+
 @testing.parameterize(*testing.product({
     'size': [3, (2, 3)],
 }))
@@ -324,18 +328,24 @@ class TestInitialize(unittest.TestCase):
 
     def setUp(self):
         self.decay = 0.9
-        self.initial_gamma = numpy.random.uniform(-1, 1, self.size)
-        self.initial_gamma = self.initial_gamma.astype(numpy.float32)
-        self.initial_beta = numpy.random.uniform(-1, 1, self.size)
-        self.initial_beta = self.initial_beta.astype(numpy.float32)
-        self.link = links.BatchNormalization(self.size, self.decay,
-                                             initial_gamma=self.initial_gamma,
-                                             initial_beta=self.initial_beta)
+        self.initial_gamma = _generate_uniform(-1, 1, self.size)
+        self.initial_beta = _generate_uniform(-1, 1, self.size)
+        self.initial_avg_mean = _generate_uniform(-1, 1, self.size)
+        self.initial_avg_var = _generate_uniform(-1, 1, self.size)
+        self.link = links.BatchNormalization(
+            self.size, self.decay,
+            initial_gamma=self.initial_gamma,
+            initial_beta=self.initial_beta,
+            initial_avg_mean=self.initial_avg_mean,
+            initial_avg_var=self.initial_avg_var,
+        )
 
     @condition.retry(3)
     def test_initialize_cpu(self):
         testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
         testing.assert_allclose(self.initial_beta, self.link.beta.data)
+        testing.assert_allclose(self.initial_avg_mean, self.link.avg_mean)
+        testing.assert_allclose(self.initial_avg_var, self.link.avg_var)
 
     @attr.gpu
     @condition.retry(3)
@@ -343,6 +353,8 @@ class TestInitialize(unittest.TestCase):
         self.link.to_gpu()
         testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
         testing.assert_allclose(self.initial_beta, self.link.beta.data)
+        testing.assert_allclose(self.initial_avg_mean, self.link.avg_mean)
+        testing.assert_allclose(self.initial_avg_var, self.link.avg_var)
 
 
 @testing.parameterize(*testing.product({
@@ -365,6 +377,8 @@ class TestDefaultInitializer(unittest.TestCase):
     def check_initialize(self):
         testing.assert_allclose(numpy.ones(self.size), self.link.gamma.array)
         testing.assert_allclose(numpy.zeros(self.size), self.link.beta.array)
+        testing.assert_allclose(0, self.link.avg_mean)
+        testing.assert_allclose(1, self.link.avg_var)
         y = self.link(self.x)
         assert y.dtype == self.dtype
 

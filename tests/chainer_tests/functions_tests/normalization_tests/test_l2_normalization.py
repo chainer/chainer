@@ -35,6 +35,11 @@ def _is_good_param(param):
 
 @testing.parameterize(*filter(_is_good_param, testing.product([
     [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64},
+    ],
+    [
         {'shape': (4, 15), 'axis': 1},
         {'shape': (4,), 'axis': 0},
         {'shape': (4, 3, 2, 5), 'axis': 0},
@@ -47,7 +52,7 @@ def _is_good_param(param):
         {'shape': (), 'axis': ()},
     ],
     [
-        # nonzeros (optional int): max number of nonzero elems in input
+        # nonzeros (optional int): number of nonzero elems in input
         # truezero (bool): flag whether zero elems are exactly zero. If false,
         #     randomly-chosen small values are used.
         {'eps': 1e-5, 'nonzeros': None},
@@ -61,7 +66,10 @@ def _is_good_param(param):
 class TestL2Normalization(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.x = chainer.utils.force_array(
+            numpy.random.uniform(0.1, 1, self.shape)
+            * (1 - 2 * numpy.random.randint(2, size=self.shape)),
+            self.dtype)
         if self.nonzeros is not None:
             # Make self.x have limited number of large values
 
@@ -80,16 +88,40 @@ class TestL2Normalization(unittest.TestCase):
                 zero_scale = 10. ** numpy.random.randint(-40, -3)
                 self.x[mask] = numpy.random.uniform(
                     -zero_scale, zero_scale, zeros)
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
+        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         self.ggx = numpy.random.uniform(
-            -1, 1, self.shape).astype(numpy.float32)
+            -1, 1, self.shape).astype(self.dtype)
+
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        else:
+            self.check_forward_options = {}
+
+        if self.nonzeros is None:
+            if self.dtype == numpy.float16:
+                self.check_backward_options = {
+                    'dtype': numpy.float64, 'atol': 5e-3, 'rtol': 5e-3}
+                self.check_double_backward_options = {
+                    'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
+            else:
+                self.check_backward_options = {
+                    'dtype': numpy.float64, 'atol': 1e-4, 'rtol': 1e-4}
+                self.check_double_backward_options = {
+                    'dtype': numpy.float64, 'atol': 1e-4, 'rtol': 1e-4}
+        else:
+            self.check_backward_options = {
+                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2,
+                'eps': 1e-4}
+            self.check_backward_options = {
+                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2,
+                'eps': 1e-4}
 
     def check_forward(self, x_data, axis):
         eps = self.eps
         x = chainer.Variable(x_data)
 
         y = functions.normalize(x, eps=eps, axis=axis)
-        self.assertEqual(y.data.dtype, numpy.float32)
+        self.assertEqual(y.data.dtype, self.dtype)
         y_data = cuda.to_cpu(y.data)
 
         y_expect = numpy.empty_like(self.x)
@@ -103,9 +135,12 @@ class TestL2Normalization(unittest.TestCase):
                 indices.append([slice(None)])
         indices_tuple = list(itertools.product(*indices))
         for index in indices_tuple:
-            numerator = numpy.linalg.norm(self.x[index]) + eps
+            # Note: Casting back the result of `numpy.linalg.norm` to `x.dtype`
+            # because old NumPy casts it to float32 when a float16 value is
+            # given.
+            numerator = numpy.linalg.norm(self.x[index]).astype(x.dtype) + eps
             y_expect[index] = self.x[index] / numerator
-        testing.assert_allclose(y_expect, y_data)
+        testing.assert_allclose(y_expect, y_data, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.x, self.axis)
@@ -119,7 +154,7 @@ class TestL2Normalization(unittest.TestCase):
             return functions.normalize(x, eps=self.eps, axis=axis)
 
         gradient_check.check_backward(
-            f, x_data, y_grad, dtype='d', atol=1e-2, rtol=3e-2)
+            f, x_data, y_grad, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.axis, self.gy)
@@ -137,7 +172,8 @@ class TestL2Normalization(unittest.TestCase):
             return functions.normalize(x, eps=self.eps, axis=axis)
 
         gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype='d', atol=1e-2, rtol=3e-2)
+            f, x_data, y_grad, x_grad_grad,
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x, self.axis, self.gy, self.ggx)
@@ -152,7 +188,7 @@ class TestL2Normalization(unittest.TestCase):
         x = chainer.Variable(x_data)
 
         y = functions.normalize(x, axis=self.axis)
-        self.assertEqual(y.data.dtype, numpy.float32)
+        self.assertEqual(y.data.dtype, self.dtype)
         y_data = cuda.to_cpu(y.data)
 
         y_expect = numpy.zeros_like(self.x)

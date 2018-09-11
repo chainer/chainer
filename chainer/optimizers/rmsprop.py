@@ -8,6 +8,7 @@ _default_hyperparam = optimizer.Hyperparameter()
 _default_hyperparam.lr = 0.01
 _default_hyperparam.alpha = 0.99
 _default_hyperparam.eps = 1e-8
+_default_hyperparam.eps_inside_sqrt = False
 
 
 class RMSpropRule(optimizer.UpdateRule):
@@ -23,11 +24,19 @@ class RMSpropRule(optimizer.UpdateRule):
         lr (float): Learning rate.
         alpha (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
+        eps_inside_sqrt (bool): When ``True``, gradient will be divided by
+            :math:`\\sqrt{ms + eps}` where ``ms`` is the mean square. When
+            ``False`` (default), gradient will be divided by
+            :math:`\\sqrt{ms} + eps` instead.
+            This option may be convenient for users porting code from other
+            frameworks;
+            see `#4754 <https://github.com/chainer/chainer/issues/4754>`__ for
+            details.
 
     """
-    _kernel = None
 
-    def __init__(self, parent_hyperparam=None, lr=None, alpha=None, eps=None):
+    def __init__(self, parent_hyperparam=None, lr=None, alpha=None, eps=None,
+                 eps_inside_sqrt=None):
         super(RMSpropRule, self).__init__(
             parent_hyperparam or _default_hyperparam)
         if lr is not None:
@@ -36,6 +45,8 @@ class RMSpropRule(optimizer.UpdateRule):
             self.hyperparam.alpha = alpha
         if eps is not None:
             self.hyperparam.eps = eps
+        if eps_inside_sqrt is not None:
+            self.hyperparam.eps_inside_sqrt = eps_inside_sqrt
 
     def init_state(self, param):
         xp = cuda.get_array_module(param.data)
@@ -56,7 +67,11 @@ class RMSpropRule(optimizer.UpdateRule):
 
         ms *= hp.alpha
         ms += (1 - hp.alpha) * grad * grad
-        param.data -= hp.lr * grad / (numpy.sqrt(ms) + eps)
+        if hp.eps_inside_sqrt:
+            denom = numpy.sqrt(ms + eps)
+        else:
+            denom = numpy.sqrt(ms) + eps
+        param.data -= hp.lr * grad / denom
 
     def update_core_gpu(self, param):
         grad = param.grad
@@ -68,15 +83,18 @@ class RMSpropRule(optimizer.UpdateRule):
             raise ValueError(
                 'eps of RMSprop optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
-        if RMSpropRule._kernel is None:
-            RMSpropRule._kernel = cuda.elementwise(
-                'T grad, T lr, T alpha, T eps',
-                'T param, T ms',
-                '''ms = alpha * ms + (1 - alpha) * grad * grad;
-                   param -= lr * grad / (sqrt(ms) + eps);''',
-                'rmsprop')
-        RMSpropRule._kernel(grad, self.hyperparam.lr, self.hyperparam.alpha,
-                            eps, param.data, self.state['ms'])
+        if hp.eps_inside_sqrt:
+            denom = 'sqrt(ms + eps)'
+        else:
+            denom = 'sqrt(ms) + eps'
+        kernel = cuda.elementwise(
+            'T grad, T lr, T alpha, T eps',
+            'T param, T ms',
+            '''ms = alpha * ms + (1 - alpha) * grad * grad;
+               param -= lr * grad / ({});'''.format(denom),
+            'rmsprop')
+        kernel(grad, self.hyperparam.lr, self.hyperparam.alpha,
+               eps, param.data, self.state['ms'])
 
 
 class RMSprop(optimizer.GradientMethod):
@@ -90,19 +108,30 @@ class RMSprop(optimizer.GradientMethod):
         lr (float): Learning rate.
         alpha (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
+        eps_inside_sqrt (bool): When ``True``, gradient will be divided by
+            :math:`\\sqrt{ms + eps}` where ``ms`` is the mean square. When
+            ``False`` (default), gradient will be divided by
+            :math:`\\sqrt{ms} + eps` instead.
+            This option may be convenient for users porting code from other
+            frameworks;
+            see `#4754 <https://github.com/chainer/chainer/issues/4754>`__ for
+            details.
 
     """
 
     def __init__(self, lr=_default_hyperparam.lr,
-                 alpha=_default_hyperparam.alpha, eps=_default_hyperparam.eps):
+                 alpha=_default_hyperparam.alpha, eps=_default_hyperparam.eps,
+                 eps_inside_sqrt=_default_hyperparam.eps_inside_sqrt):
         super(RMSprop, self).__init__()
         self.hyperparam.lr = lr
         self.hyperparam.alpha = alpha
         self.hyperparam.eps = eps
+        self.hyperparam.eps_inside_sqrt = eps_inside_sqrt
 
     lr = optimizer.HyperparameterProxy('lr')
     alpha = optimizer.HyperparameterProxy('alpha')
     eps = optimizer.HyperparameterProxy('eps')
+    eps_inside_sqrt = optimizer.HyperparameterProxy('eps_inside_sqrt')
 
     def create_update_rule(self):
         return RMSpropRule(self.hyperparam)
