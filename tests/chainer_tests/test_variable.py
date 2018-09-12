@@ -10,6 +10,8 @@ import numpy as np
 import pytest
 import six
 
+import chainerx
+
 import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
@@ -186,6 +188,12 @@ class TestVariable(unittest.TestCase):
         self.a = np.random.uniform(0.1, 10, self.x_shape).astype(np.float32)
         self.size = int(np.prod(self.x_shape))
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
+
+    @pytest.mark.chainerx
+    def test_chainerx_init(self):
+        a = chainerx.asarray(self.x)
+        x = chainer.Variable(a)
+        assert a is x.array
 
     def check_attributes(self, gpu):
         a = self.x
