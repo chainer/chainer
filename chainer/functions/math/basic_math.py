@@ -9,6 +9,7 @@ from chainer.functions.math import floor as _floor
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
+import chainerx
 
 
 def _convert_value_to_string(value):
@@ -20,23 +21,25 @@ def _convert_value_to_string(value):
             return '({})'.format(value)
         else:
             return str(value)
-    elif isinstance(value, (numpy.ndarray, cuda.ndarray)):
+    elif isinstance(value, (numpy.ndarray, cuda.ndarray, chainerx.ndarray)):
         return 'constant array'
     else:
         raise ValueError(
-            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
-            'or a `Variable`.\nActual: {}'.format(type(value)))
+            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray`, '
+            '`chainerx.ndarray` or a `Variable`.\n'
+            'Actual: {}'.format(type(value)))
 
 
 def _check_constant_type(value):
     if numpy.isscalar(value):
         return
-    elif isinstance(value, (numpy.ndarray, cuda.ndarray)):
+    elif isinstance(value, (numpy.ndarray, cuda.ndarray, chainerx.ndarray)):
         return
     else:
         raise TypeError(
             'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
-            'or a `Variable`.\nActual: {}'.format(type(value)))
+            '`chainerx.ndarray` or a `Variable`.\n'
+            'Actual: {}'.format(type(value)))
 
 
 def _preprocess_const(x, value):
