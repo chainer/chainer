@@ -25,7 +25,7 @@ MNIST example does not converge in CPU mode on Mac OS X
 
 .. note::
 
-    Mac OS X is not an officially supported OS.
+   Mac OS X is not an officially supported OS.
 
 Many users have reported that MNIST example does not work correctly
 when using vecLib as NumPy backend on Mac OS X.
@@ -91,7 +91,7 @@ You should see the following information:
      runtime_library_dirs = ['/usr/local/opt/openblas/lib']
     ...
 
-Once this is done, you should be able to `import chainer` without OpenBLAS errors.
+Once this is done, you should be able to ``import chainer`` without OpenBLAS errors.
 
 For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
 
