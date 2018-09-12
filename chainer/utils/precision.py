@@ -10,13 +10,25 @@ def mixed_precision(fn):
     @functools.wraps(fn)
     def wrapper(self, in_data):
         flag = any([x.dtype == numpy.float16 for x in in_data])
-        in_data = tuple([
-            x.astype(numpy.float32) if x.dtype == numpy.float16 else x
-            for x in in_data])
-        out_data = fn(self, in_data)
+
+        in_data1 = []
+        for x in in_data:
+            if x.dtype == numpy.float16:
+                in_data1.append(x.astype(numpy.float32))
+            else:
+                in_data1.append(x)
+        in_data1 = tuple(in_data1)
+
+        out_data = fn(self, in_data1)
+
         if flag:
-            out_data = tuple([
-                y.astype(numpy.float16) if y.dtype == numpy.float32 else y
-                for y in out_data])
+            out_data1 = []
+            for y in out_data:
+                if y is not None and y.dtype == numpy.float32:
+                    out_data1.append(y.astype(numpy.float16))
+                else:
+                    out_data1.append(y)
+            out_data = tuple(out_data1)
+
         return out_data
     return wrapper

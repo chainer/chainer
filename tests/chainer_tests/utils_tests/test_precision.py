@@ -15,6 +15,13 @@ class F(function_node.FunctionNode):
         return x
 
 
+class G(function_node.FunctionNode):
+
+    @utils.mixed_precision
+    def forward(self, x):
+        return None,
+
+
 class TestMixedPrecision(unittest.TestCase):
 
     def test_fp16(self):
@@ -53,6 +60,11 @@ class TestMixedPrecision(unittest.TestCase):
         assert f.x[1] is x[1]
         assert y[0].dtype == numpy.float16
         assert y[1].dtype == numpy.int8
+
+    def test_none(self):
+        x = numpy.zeros((1, 2, 3), dtype=numpy.float64),
+        y = G().apply(x)
+        assert y[0].data is None
 
 
 testing.run_module(__name__, __file__)
