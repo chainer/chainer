@@ -9,12 +9,6 @@ from chainer import utils
 from chainer.utils import type_check
 
 
-_xgetrfBatched = {
-    numpy.float32: cuda.cublas.sgetrfBatched,
-    numpy.float64: cuda.cublas.dgetrfBatched,
-}
-
-
 def _det_gpu(b):
     # We do a batched LU decomposition on the GPU to compute
     # and compute the determinant by multiplying the diagonal.
@@ -31,9 +25,14 @@ def _det_gpu(b):
     info = cuda.cupy.zeros(n_matrices, dtype=numpy.intp)
     ap = matmul._mat_ptrs(a)
     _, lda = matmul._get_ld(a)
-    dtype = numpy.dtype(b.dtype).type
-    _xgetrfBatched[dtype](cuda.Device().cublas_handle, n, ap.data.ptr,
-                          lda, p.data.ptr, info.data.ptr, n_matrices)
+    if b.dtype == numpy.float32:
+        cuda.cublas.sgetrfBatched(cuda.Device().cublas_handle, n, ap.data.ptr,
+                                  lda, p.data.ptr, info.data.ptr, n_matrices)
+    elif b.dtype == numpy.float64:
+        cuda.cublas.dgetrfBatched(cuda.Device().cublas_handle, n, ap.data.ptr,
+                                  lda, p.data.ptr, info.data.ptr, n_matrices)
+    else:
+        assert False
     det = cuda.cupy.prod(a.diagonal(axis1=1, axis2=2), axis=1)
     # The determinant is equal to the product of the diagonal entries
     # of `a` where the sign of `a` is flipped depending on whether

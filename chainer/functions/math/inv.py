@@ -9,17 +9,6 @@ from chainer import utils
 from chainer.utils import type_check
 
 
-_xgetrfBatched = {
-    numpy.float32: cuda.cublas.sgetrfBatched,
-    numpy.float64: cuda.cublas.dgetrfBatched,
-}
-
-_xgetriBatched = {
-    numpy.float32: cuda.cublas.sgetriBatched,
-    numpy.float64: cuda.cublas.dgetriBatched,
-}
-
-
 def _inv_gpu(b):
     # We do a batched LU decomposition on the GPU to compute the inverse
     # Change the shape of the array to be size=1 minibatch if necessary
@@ -39,12 +28,20 @@ def _inv_gpu(b):
     _, lda = matmul._get_ld(a)
     _, ldc = matmul._get_ld(c)
     handle = cuda.Device().cublas_handle
-    dtype = numpy.dtype(b.dtype).type
-    _xgetrfBatched[dtype](
-        handle, n, ap.data.ptr, lda, p.data.ptr, info.data.ptr, n_matrices)
-    _xgetriBatched[dtype](
-        handle, n, ap.data.ptr, lda, p.data.ptr, cp.data.ptr, ldc,
-        info.data.ptr, n_matrices)
+    if b.dtype == numpy.float32:
+        cuda.cublas.sgetrfBatched(
+            handle, n, ap.data.ptr, lda, p.data.ptr, info.data.ptr, n_matrices)
+        cuda.cublas.sgetriBatched(
+            handle, n, ap.data.ptr, lda, p.data.ptr, cp.data.ptr, ldc,
+            info.data.ptr, n_matrices)
+    elif b.dtype == numpy.float64:
+        cuda.cublas.dgetrfBatched(
+            handle, n, ap.data.ptr, lda, p.data.ptr, info.data.ptr, n_matrices)
+        cuda.cublas.dgetriBatched(
+            handle, n, ap.data.ptr, lda, p.data.ptr, cp.data.ptr, ldc,
+            info.data.ptr, n_matrices)
+    else:
+        assert False
     return c, info
 
 
