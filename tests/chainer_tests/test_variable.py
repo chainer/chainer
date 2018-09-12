@@ -10,8 +10,6 @@ import numpy as np
 import pytest
 import six
 
-import chainerx
-
 import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
@@ -20,6 +18,7 @@ from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 from chainer import variable
+import chainerx
 
 
 class Constant(chainer.Function):

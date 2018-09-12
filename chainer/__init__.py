@@ -5,8 +5,6 @@ import warnings
 
 import numpy
 
-import chainerx
-
 from chainer import _version
 from chainer import backends  # NOQA
 from chainer import dataset  # NOQA
@@ -71,6 +69,9 @@ from chainer import cuda  # NOQA
 
 
 from chainer import _environment_check
+
+
+import chainerx
 
 
 # Check environment conditions
