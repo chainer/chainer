@@ -32,12 +32,14 @@ class TestMinimum(unittest.TestCase):
         self.check_backward_options = {'dtype': numpy.float64}
         self.check_double_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
-            eps = 2 ** -3
-            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
-            self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
-        else:
             eps = 1e-2
+            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+            self.check_backward_options.update({
+                'atol': 1e-2, 'rtol': 1e-2})
+            self.check_double_backward_options.update({
+                'atol': 1e-2, 'rtol': 1e-2})
+        else:
+            eps = 1e-3
         self.check_backward_options['eps'] = eps
         self.check_double_backward_options['eps'] = eps
 
@@ -45,12 +47,14 @@ class TestMinimum(unittest.TestCase):
         self.x2 = numpy.random.uniform(-1, 1, x2_shape).astype(self.dtype)
 
         # Avoid close values for stability in numerical gradient.
-        for x1i, x2i in numpy.nditer(
-                [self.x1, self.x2], ['reduce_ok'],
-                [['readwrite'], ['readwrite']]):
-            if abs(x1i - x2i) < 2 * eps:
-                x1i[()] = -0.5
-                x2i[()] = 0.5
+        retry = 0
+        while True:
+            self.x1 = numpy.random.uniform(-1, 1, x1_shape).astype(self.dtype)
+            self.x2 = numpy.random.uniform(-1, 1, x2_shape).astype(self.dtype)
+            if (abs(self.x1 - self.x2) >= 2 * eps).all():
+                break
+            retry += 1
+            assert retry <= 10, 'Too many retries to generate inputs'
 
         self.y_expected = numpy.minimum(self.x1, self.x2)
 
