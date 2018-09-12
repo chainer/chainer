@@ -76,7 +76,6 @@ def variable_repr(var):
     if arr is None:
         lst = 'None'
     elif arr.size > 0 or arr.shape == (0,):
-        # TODO(hvy): Do no call this line if var has chainerx ndarray.
         lst = numpy.array2string(arr, None, None, None, ', ', prefix + '(')
     else:  # show zero-length shape unless it is (0,)
         lst = '[], shape=%s' % (repr(arr.shape),)
