@@ -4,6 +4,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -33,6 +34,7 @@ class ScatterAdd(function_node.FunctionNode):
         valid_slice = len(self.slices) - n_nones
         type_check.expect(in_types[0].ndim >= valid_slice)
 
+    @utils.mixed_precision
     def forward(self, xs):
         a = xs[0]
         b = xs[1]

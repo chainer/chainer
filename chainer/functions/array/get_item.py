@@ -42,20 +42,20 @@ class GetItem(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         return GetItemGrad(
-            self.slices, self.inputs[0].shape, self.inputs[0].dtype).apply(gy)
+            self.slices, self.inputs[0].shape).apply(gy)
 
 
 class GetItemGrad(function_node.FunctionNode):
 
-    def __init__(self, slices, in_shape, in_dtype):
+    def __init__(self, slices, in_shape):
         self.slices = slices
         self._in_shape = in_shape
-        self._in_dtype = in_dtype
 
+    @utils.mixed_precision
     def forward(self, inputs):
         gy, = inputs
         xp = backend.get_array_module(*inputs)
-        gx = xp.zeros(self._in_shape, self._in_dtype)
+        gx = xp.zeros(self._in_shape, gy.dtype)
         if xp is numpy:
             try:
                 numpy.add.at(gx, self.slices, gy)
