@@ -482,8 +482,8 @@ class Variable(object):
         if data is not None:
             array_types = chainer.get_array_types()
             if not isinstance(data, array_types):
-                msg = '{} or {}. Actual: {}'.format(
-                    ', '.join(map(str, array_types[:-1])),
+                msg = '{} or {} are expected. Actual: {}'.format(
+                    ', '.join([str(at) for at in array_types[:-1]]),
                     array_types[-1], type(data))
                 raise TypeError(msg)
 
