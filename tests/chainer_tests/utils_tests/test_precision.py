@@ -44,10 +44,15 @@ class TestMixedPrecision(unittest.TestCase):
         assert y[0].dtype == numpy.float64
         assert y[1].dtype == numpy.float64
 
-    def test_int8(self):
-        x = (numpy.zeros((1, 2, 3), dtype=numpy.int8),) * 2
-        with self.assertRaises(AssertionError):
-            F().apply(x)
+    def test_float16_int8(self):
+        x = (numpy.zeros((1, 2, 3), dtype=numpy.float16),
+             numpy.zeros((1, 2, 3), dtype=numpy.int8))
+        f = F()
+        y = f.apply(x)
+        assert f.x[0].dtype == numpy.float32
+        assert f.x[1] is x[1]
+        assert y[0].dtype == numpy.float16
+        assert y[1].dtype == numpy.int8
 
 
 testing.run_module(__name__, __file__)
