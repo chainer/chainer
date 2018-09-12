@@ -61,7 +61,7 @@ script:
   - test ! -s check_autopep8
   # To workaround Travis issue (https://github.com/travis-ci/travis-ci/issues/7261),
   # ignore DeprecationWarning raised in `site.py`.
-  - python -Werror::DeprecationWarning -Wignore::DeprecationWarning:site -m compileall -f -q chainer chainermn examples tests docs
+  - python -Werror::DeprecationWarning -Wignore::DeprecationWarning:site -m compileall -f -q chainer examples tests docs
   - pushd tests
   - pytest -m "not slow and not gpu and not cudnn and not ideep" chainer_tests
   - popd
