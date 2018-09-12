@@ -1,8 +1,8 @@
 import unittest
 
-import chainer
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
