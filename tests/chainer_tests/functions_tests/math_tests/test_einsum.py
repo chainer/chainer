@@ -229,7 +229,7 @@ class TestEinSumUndefinedSemantics(unittest.TestCase):
         with warnings.catch_warnings(record=True) as ws:
             warnings.simplefilter("always")
             einsum.einsum(self.subscripts, *self.inputs)
-            self.assertEqual(len(ws), 1)
+            assert ws
 
 
 def diag_einsum(
