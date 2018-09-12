@@ -1,6 +1,5 @@
 import functools
 import unittest
-import warnings
 
 import numpy
 
