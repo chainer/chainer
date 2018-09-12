@@ -9,8 +9,6 @@ def mixed_precision(fn):
     """
     @functools.wraps(fn)
     def wrapper(self, in_data):
-        for x in in_data:
-            assert x.dtype.kind == 'f'  # should check in check_type_forward
         mask = tuple(x.dtype == numpy.float16 for x in in_data)
         in_data = tuple(x.astype(numpy.float32) if m else x
                         for x, m in zip(in_data, mask))
