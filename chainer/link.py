@@ -633,7 +633,7 @@ device.
         """Initializes all gradient arrays by zero.
 
          .. deprecated:: v1.15
-            Use :meth:`cleargrads` instead.
+            Use the more efficient :meth:`cleargrads` instead.
 
          """
 

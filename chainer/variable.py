@@ -1113,6 +1113,16 @@ class Variable(object):
         self.grad_var = None
 
     def zerograd(self):
+        """Initializes all gradient arrays by zero.
+
+        Note that the gradient variable is unchained from the computational
+        graph by this method, because this operation breaks the backprop
+        validity.
+
+        .. deprecated:: v1.15
+           Use more efficient  :meth:`cleargrads` instead.
+
+        """
         warnings.warn(
             'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)

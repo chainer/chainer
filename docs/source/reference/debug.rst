@@ -29,10 +29,3 @@ You can check if debug mode is enabled with :func:`chainer.is_debug` function.
 
    chainer.is_debug
    chainer.set_debug
-
-
-Deprecated interface
---------------------
-
-It is recommended to turn on the debug mode using ``chainer.config.debug``.
-See :ref:`configuration` for the way to use the config object.

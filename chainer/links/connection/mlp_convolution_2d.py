@@ -53,10 +53,6 @@ class MLPConvolution2D(link.ChainList):
             passed to the convolution layers. This option must be specified as
             a keyword argument.
 
-    .. note:
-        `conv_init` and `bias_init` arguments must be specified as
-        keyword arguments only.
-
     See: `Network in Network <https://arxiv.org/abs/1312.4400v3>`_.
 
     Attributes:
