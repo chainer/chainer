@@ -1113,7 +1113,8 @@ class Variable(object):
         self.grad_var = None
 
     def zerograd(self):
-        """Initializes all gradient arrays by zero.
+        """Initializes the gradient array by zeros.
+
 
         Note that the gradient variable is unchained from the computational
         graph by this method, because this operation breaks the backprop
