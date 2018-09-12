@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backends
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -22,13 +22,13 @@ class Where(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*inputs)
+        xp = backends.get_array_module(*inputs)
         condition, x, y = inputs
         return xp.where(condition, x, y),
 
     def backward(self, indexes, grad_outputs):
         condition = self.get_retained_inputs()[0]
-        xp = cuda.get_array_module(condition.data)
+        xp = backends.get_array_module(condition.data)
         g, = grad_outputs
         zeros = xp.zeros(g.shape, dtype=g.dtype)
         ret = []

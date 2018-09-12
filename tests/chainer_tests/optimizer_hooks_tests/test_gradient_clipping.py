@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 
 import chainer
+from chainer import backends
 from chainer import cuda
 import chainer.initializers as I
 from chainer import optimizer_hooks
@@ -72,7 +73,7 @@ class TestGradientClipping(unittest.TestCase):
     def check_clipping(self, multiplier):
         w = self.target.param.data
         g = self.target.param.grad
-        xp = cuda.get_array_module(w)
+        xp = backends.get_array_module(w)
 
         norm = xp.sqrt(gradient_clipping._sum_sqnorm(g))
         threshold = norm * multiplier

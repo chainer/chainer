@@ -10,6 +10,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
@@ -147,24 +148,24 @@ class TestCuda(unittest.TestCase):
                 cuda.to_gpu(x)
 
     def test_get_array_module_for_numpy_array(self):
-        xp = cuda.get_array_module(numpy.array([]))
+        xp = backends.get_array_module(numpy.array([]))
         self.assertIs(xp, numpy)
         assert xp is not cuda.cupy
 
     def test_get_array_module_for_numpy_variable(self):
-        xp = cuda.get_array_module(chainer.Variable(numpy.array([])))
+        xp = backends.get_array_module(chainer.Variable(numpy.array([])))
         assert xp is numpy
         assert xp is not cuda.cupy
 
     @attr.gpu
     def test_get_array_module_for_cupy_array(self):
-        xp = cuda.get_array_module(cuda.cupy.array([]))
+        xp = backends.get_array_module(cuda.cupy.array([]))
         assert xp is cuda.cupy
         assert xp is not numpy
 
     @attr.gpu
     def test_get_array_module_for_cupy_variable(self):
-        xp = cuda.get_array_module(chainer.Variable(cuda.cupy.array([])))
+        xp = backends.get_array_module(chainer.Variable(cuda.cupy.array([])))
         assert xp is cuda.cupy
         assert xp is not numpy
 

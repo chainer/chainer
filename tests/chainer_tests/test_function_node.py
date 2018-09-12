@@ -8,6 +8,7 @@ import pytest
 import six
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
@@ -152,7 +153,7 @@ class TestFunctionNode(unittest.TestCase):
         self.assertEqual(len(ys), 2)
         self.check_check_type_forward()
 
-        xp = cuda.get_array_module(x1)
+        xp = backends.get_array_module(x1)
 
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
@@ -807,7 +808,7 @@ class ExpPair(chainer.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backends.get_array_module(x)
         self.retain_outputs((0, 1))
         return xp.exp(x), xp.exp(x)
 

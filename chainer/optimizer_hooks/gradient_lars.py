@@ -1,3 +1,4 @@
+from chainer import backends
 from chainer import cuda
 
 
@@ -82,7 +83,7 @@ class GradientLARS(object):
         if p is None or g is None:
             return
 
-        xp = cuda.get_array_module(p)
+        xp = backends.get_array_module(p)
 
         # weight norm
         p_norm = xp.linalg.norm(p)

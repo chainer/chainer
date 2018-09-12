@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -14,7 +15,7 @@ from chainer.testing import condition
 
 
 def _to_fcontiguous(arrays):
-    xp = cuda.get_array_module(*arrays)
+    xp = backends.get_array_module(*arrays)
     return [xp.asfortranarray(a) for a in arrays]
 
 

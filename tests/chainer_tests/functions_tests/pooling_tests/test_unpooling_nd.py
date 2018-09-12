@@ -5,6 +5,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -170,7 +171,7 @@ class TestUnpoolingND(unittest.TestCase):
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
-        xp = cuda.get_array_module(x_data)
+        xp = backends.get_array_module(x_data)
 
         # Backward computation for N-dimensional unpooling layer.
         x_nd = chainer.Variable(xp.array(x_data))

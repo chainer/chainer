@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -12,7 +13,7 @@ from chainer.testing import backend
 
 
 def _to_noncontiguous(arrays):
-    xp = cuda.get_array_module(*arrays)
+    xp = backends.get_array_module(*arrays)
     return [xp.asfortranarray(a) for a in arrays]
 
 

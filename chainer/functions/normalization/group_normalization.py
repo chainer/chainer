@@ -1,5 +1,6 @@
 import warnings
 
+from chainer import backends
 from chainer.backends import cuda
 from chainer.functions.array import broadcast
 from chainer.functions.array import reshape
@@ -44,7 +45,7 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
     if not isinstance(groups, int):
         raise TypeError('Argument: \'groups\' type must be (int).')
 
-    xp = cuda.get_array_module(x)
+    xp = backends.get_array_module(x)
 
     batch_size, channels = x.shape[:2]
     original_shape = x.shape

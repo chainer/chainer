@@ -1,6 +1,7 @@
 import numpy
 import six
 
+from chainer import backends
 from chainer.backends import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
@@ -186,7 +187,7 @@ class NStepRNNBase(link.ChainList):
             argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
-        xp = cuda.get_array_module(*(list(hs) + list(xs)))
+        xp = backends.get_array_module(*(list(hs) + list(xs)))
         indices = argsort_list_descent(xs)
         indices_array = xp.array(indices)
 

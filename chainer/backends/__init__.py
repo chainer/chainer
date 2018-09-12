@@ -17,7 +17,7 @@ def _contains_nan(x):
     """
     if x.dtype.kind in ('f', 'c'):
         with cuda.get_device_from_array(x):
-            return cuda.get_array_module(x).isnan(x).any()
+            return get_array_module(x).isnan(x).any()
     else:
         return False
 
