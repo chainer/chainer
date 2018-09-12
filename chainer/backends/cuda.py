@@ -533,6 +533,11 @@ def get_array_module(*args):
     it will return their data arrays' array module for
     :class:`~chainer.Variable` arguments.
 
+    .. note::
+
+        This API is deprecated. Please use
+        :func:`~chainer.backends.get_array_module` instead.
+
     Args:
         args: Values to determine whether NumPy or CuPy should be used.
 
@@ -541,12 +546,9 @@ def get_array_module(*args):
         the arguments.
 
     """
-    if available:
-        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
-                for arg in args]
-        return cupy.get_array_module(*args)
-    else:
-        return numpy
+    warnings.warn('backends.cuda.get_array_module is deprecated. Please use '
+                  'backends.get_array_module instead', DeprecationWarning)
+    return chainer.backends.get_array_module(*args)
 
 
 def get_max_workspace_size():
