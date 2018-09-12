@@ -12,16 +12,22 @@ from chainer.utils import type_check
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(3, 2), ()],
+    'shape': [
+        # x1, x2, y
+        ((3, 2), (3, 2), (3, 2)),
+        ((), (), ()),
+        ((3, 2), (3, 1), (3, 2)),
+        ((2,), (3, 2), (3, 2)),
+    ],
     'dtype': [numpy.float16, numpy.float32, numpy.float64]
 }))
 class TestMaximum(unittest.TestCase):
 
     def setUp(self):
-        shape = self.shape
-        self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.ggx1 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.ggx2 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        x1_shape, x2_shape, y_shape = self.shape
+        self.gy = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, x1_shape).astype(self.dtype)
+        self.ggx2 = numpy.random.uniform(-1, 1, x2_shape).astype(self.dtype)
         self.check_forward_options = {}
         self.check_backward_options = {'dtype': numpy.float64}
         self.check_double_backward_options = {'dtype': numpy.float64}
@@ -36,13 +42,16 @@ class TestMaximum(unittest.TestCase):
             eps = 1e-2
         self.check_backward_options['eps'] = eps
 
-        self.x1 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.x2 = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+        self.x1 = numpy.random.uniform(-1, 1, x1_shape).astype(self.dtype)
+        self.x2 = numpy.random.uniform(-1, 1, x2_shape).astype(self.dtype)
 
         # Avoid close values for stability in numerical gradient.
-        idx = abs(self.x1 - self.x2) < 2 * eps
-        self.x1[idx] = -0.5
-        self.x2[idx] = 0.5
+        for x1i, x2i in numpy.nditer(
+                [self.x1, self.x2], ['reduce_ok'],
+                [['readwrite'], ['readwrite']]):
+            if abs(x1i - x2i) < 2 * eps:
+                x1i[()] = -0.5
+                x2i[()] = 0.5
 
         self.y_expected = numpy.maximum(self.x1, self.x2)
 
