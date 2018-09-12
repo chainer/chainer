@@ -87,14 +87,20 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
     return MoveArrayBody(FromContiguousHostData(shape, dtype, ptr, device));
 }
 
-py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self) {
+py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
     Array array = Array{self}.ToNative();
-    return py::array{py::buffer_info{internal::GetRawOffsetData<void>(array),
-                                     array.item_size(),
-                                     std::string(1, GetCharCode(array.dtype())),
-                                     array.ndim(),
-                                     array.shape(),
-                                     array.strides()}};
+    if (copy) {
+        return py::array{pybind11::dtype(std::string(1, GetCharCode(array.dtype()))),
+                         array.shape(),
+                         array.strides(),
+                         internal::GetRawOffsetData<void>(array)};
+    } else {
+        return py::array{pybind11::dtype(std::string(1, GetCharCode(array.dtype()))),
+                         array.shape(),
+                         array.strides(),
+                         internal::GetRawOffsetData<void>(array),
+                         py::cast(internal::MoveArrayBody(std::move(array)))};
+    }
 }
 
 }  // namespace
@@ -151,7 +157,7 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
-    m.def("tonumpy", &MakeNumpyArrayFromArray);
+    m.def("tonumpy", &MakeNumpyArrayFromArray, py::arg("array"), py::arg("copy") = true);
     // This is currently for internal use (from Chainer) to support CuPy.
     // TODO(niboshi): Remove this once it will be possible to import cupy.ndarray using chx.array / chx.asarray.
     m.def("_fromrawpointer",
