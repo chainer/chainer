@@ -45,6 +45,7 @@ from chainer.initializer import Initializer  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA
 from chainer.link import Link  # NOQA
+from chainer.link_hook import LinkHook  # NOQA
 from chainer.optimizer import GradientMethod  # NOQA
 from chainer.optimizer import Optimizer  # NOQA
 from chainer.optimizer import UpdateRule  # NOQA
@@ -87,6 +88,15 @@ def get_function_hooks():
     except AttributeError:
         ret = collections.OrderedDict()
         _thread_local.function_hooks = ret
+    return ret
+
+
+def _get_link_hooks():
+    try:
+        ret = _thread_local.link_hooks
+    except AttributeError:
+        ret = collections.OrderedDict()
+        _thread_local.link_hooks = ret
     return ret
 
 
