@@ -10,7 +10,7 @@ class StepShift(extension.Extension):
     """Trainer extension to shift an optimizer attribute in "steps".
 
     This extension multiplies the specified attribute of the optimizer in
-    "steps". The typical use case is to scale the attribute at every ``k``\ th
+    "steps". The typical use case is to scale the attribute at every ``k``\\ th
     iteration.
 
     For example, suppose that this extension is invoked at every iteration,
