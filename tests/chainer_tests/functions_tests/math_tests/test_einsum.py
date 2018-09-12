@@ -225,11 +225,9 @@ class TestEinSumUndefinedSemantics(unittest.TestCase):
             for shape in self.shapes
         ])
 
-    def test_warn(self):
-        with warnings.catch_warnings(record=True) as ws:
-            warnings.simplefilter("always")
+    def test_bad_ellipsis_sum(self):
+        with self.assertRaises(ValueError):
             einsum.einsum(self.subscripts, *self.inputs)
-            assert ws
 
 
 def diag_einsum(
