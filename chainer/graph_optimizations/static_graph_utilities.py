@@ -197,7 +197,8 @@ def static_forward_optimizations(func, inputs):
     automatically wrap it to be compatible.
 
     This function is called from the `FunctionNode` apply() method
-    in place of the original `func.forward(inputs)` call.
+    in place of the original `func.forward(inputs)` call if
+    `chainer.config.schedule_func` is not None.
 
     Args:
         func (instance of FunctionNode):
@@ -208,29 +209,28 @@ def static_forward_optimizations(func, inputs):
     """
 
     schedule_function = chainer.config.schedule_func
-    if schedule_function is not None:
-        if not func._supports_static_optimizations:
-            if schedule_function.verbosity_level >= 2:
-                print("Adding automatic static graph support to "
-                      "function: ", func)
+    if not func._supports_static_optimizations:
+        if schedule_function.verbosity_level >= 2:
+            print("Adding automatic static graph support to "
+                  "function: ", func)
 
-            @static_code(func_name=str(func))
-            def generic_static_forward(func, inputs):
-                """Auto-wrap the supplied function.
+        @static_code(func_name=str(func))
+        def generic_static_forward(func, inputs):
+            """Auto-wrap the supplied function.
 
-                func (instance of FunctionNode): The function to include in
-                    the static schedule.
-                inputs (list of input arrays): The input arguments to `func`.
+            func (instance of FunctionNode): The function to include in
+                the static schedule.
+            inputs (list of input arrays): The input arguments to `func`.
 
-                Returns: a tuple of output arrays.
+            Returns: a tuple of output arrays.
 
-                """
-                # Convert back to tuple because func.forward() requires it.
-                in_data = tuple(inputs)
-                ret = func.forward(in_data)
-                return ret
+            """
+            # Convert back to tuple because func.forward() requires it.
+            in_data = tuple(inputs)
+            ret = func.forward(in_data)
+            return ret
 
-            # Note: we convert inputs to a list because the API for
-            # static_code requires it.
-            return generic_static_forward(func, inputs=list(inputs))
+        # Note: we convert inputs to a list because the API for
+        # static_code requires it.
+        return generic_static_forward(func, inputs=list(inputs))
     return func.forward(inputs)

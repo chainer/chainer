@@ -42,6 +42,8 @@ from chainer.function_node import FunctionNode  # NOQA
 from chainer.function_node import grad  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions.math import basic_math  # NOQA
+from chainer.graph_optimizations.static_graph import static_graph  # NOQA
+from chainer.graph_optimizations.static_graph_utilities import static_code  # NOQA
 from chainer.initializer import Initializer  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA

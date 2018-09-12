@@ -4,8 +4,7 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
-from chainer.graph_optimizations.static_graph_utilities \
-    import static_code
+from chainer.graph_optimizations import static_code
 from chainer.utils import type_check
 
 

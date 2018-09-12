@@ -31,9 +31,9 @@ from chainer import configuration
 from chainer.dataset import convert
 import chainer.functions as F
 from chainer.functions.loss import softmax_cross_entropy
-from chainer.graph_optimizations.static_graph import static_graph
 import chainer.links as L
 from chainer import serializers
+from chainer import static_graph
 
 
 # Definition of a recurrent net for language modeling

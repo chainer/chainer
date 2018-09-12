@@ -257,7 +257,10 @@ Use apply() method instead.\
         with cuda.get_device_from_array(*in_data):
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
-            outputs = static_forward_optimizations(self, in_data)
+            if chainer.config.schedule_func is not None:
+                outputs = static_forward_optimizations(self, in_data)
+            else:
+                outputs = self.forward(in_data)
 
         # Check for output array types
         if not isinstance(outputs, tuple):

@@ -25,7 +25,7 @@ The first step is to import the necessary packages:
 
 .. literalinclude:: ../../../examples/static_graph_optimizations/mnist/train_mnist.py
    :language: python
-   :lines: 14-16
+   :lines: 15-16
    :caption: train_mnist.py
 
 Since the neural network model `MLP` corresponds to a static graph, we can annotate it as a static graph by 

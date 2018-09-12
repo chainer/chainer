@@ -11,10 +11,9 @@ import argparse
 
 import chainer
 import chainer.functions as F
-from chainer.graph_optimizations.static_graph import static_graph
-from chainer.graph_optimizations.static_graph_utilities \
-    import static_code
 import chainer.links as L
+from chainer import static_code
+from chainer import static_graph
 from chainer import training
 from chainer.training import extensions
 
