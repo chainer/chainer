@@ -2,6 +2,7 @@ import math
 
 import numpy
 
+from chainer import backends
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
