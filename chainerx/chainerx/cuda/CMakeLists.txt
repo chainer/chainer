@@ -39,7 +39,6 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
 
 CUDA_ADD_CUBLAS_TO_TARGET(chainerx_cuda)
 
-include_directories(${CUDNN_INCLUDE_DIRS})
 target_link_libraries(chainerx_cuda ${CUDNN_LIBRARIES})
 
 if(${CHAINERX_BUILD_TEST})
