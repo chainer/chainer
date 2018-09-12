@@ -54,16 +54,7 @@ Uninstall existing NumPy installation
 
    $ pip uninstall numpy
 
-Install NumPy from the source code
-
-::
-
-   $ git clone https://github.com/numpy/numpy
-   $ cd numpy
-   $ git checkout refs/tags/v1.13.3
-   $ cp site.cfg.example site.cfg
-
-You'll need to edit the site.cfg file around line 128 to set the library to OpenBLAS by removing the comment #s.
+You'll to create a file called `.numpy-site.cfg` in your home (~/) directory with the following:
 
 ::
 
@@ -71,32 +62,12 @@ You'll need to edit the site.cfg file around line 128 to set the library to Open
    libraries = openblas
    library_dirs = /usr/local/opt/openblas/lib
    include_dirs = /usr/local/opt/openblas/include
-   runtime_library_dirs = /usr/local/opt/openblas/lib
 
-Check the setup config file.
-
-::
-
-   $ python setup.py config
-
-If you see these settings in the log, it should be ok:
+Install NumPy from the source code
 
 ::
 
-    openblas_info:
-      FOUND:
-        libraries = ['openblas', 'openblas']
-        library_dirs = ['/usr/local/opt/openblas/lib']
-        language = c
-        define_macros = [('HAVE_CBLAS', None)]
-        runtime_library_dirs = ['/usr/local/opt/openblas/lib']
-
-Continue with the build. This takes a few minutes.
-
-::
-
-   $ python setup.py build
-   $ python setup.py install
+   pip install --no-binary :all: numpy
 
 Confirm NumPy has been installed with OpenBLAS by running this command:
 
@@ -121,8 +92,6 @@ You should see the following information:
     ...
 
 Once this is done, you should be able to `import chainer` without OpenBLAS errors.
-
-Thanks for this guide to the Japanese site, `kumilog.net <https://www.kumilog.net/entry/openblas-numpy>`_.
 
 For details of this problem, see `issue #704 <https://github.com/chainer/chainer/issues/704>`_.
 
