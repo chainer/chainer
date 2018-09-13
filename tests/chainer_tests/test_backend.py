@@ -31,3 +31,6 @@ class TestGetArrayModule(unittest.TestCase):
         xp = backend.get_array_module(chainer.Variable(cuda.cupy.array([])))
         assert xp is cuda.cupy
         assert xp is not numpy
+
+
+testing.run_module(__name__, __file__)
