@@ -1,5 +1,6 @@
 #include "chainerx/native/native_device.h"
 
+#include <cmath>
 #include <cstdint>
 
 #include "chainerx/array.h"
