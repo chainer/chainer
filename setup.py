@@ -144,6 +144,8 @@ setup(
     name='chainer',
     version=__version__,  # NOQA
     description='A flexible framework of neural networks',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
     url='https://chainer.org/',
