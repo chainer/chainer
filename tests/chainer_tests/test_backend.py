@@ -44,20 +44,34 @@ class TestToNumpy(unittest.TestCase):
         self.check_to_numpy(array)
 
 
+class TestToNumpyNone(unittest.TestCase):
+
+    def test_to_numpy_empty(self):
+        array_numpy = backend.to_numpy(None)
+        assert array_numpy is None
+
+
 class TestToNumpyIterable(unittest.TestCase):
 
-    def setUp(self):
-        self.arrays = numpy.split(
-            numpy.arange(8).reshape(4, 2).astype(numpy.float32), 2)
-
     def test_to_numpy_iterable(self):
-        arrays = self.arrays
+        arrays = numpy.split(
+            numpy.arange(8).reshape(4, 2).astype(numpy.float32), 2)
         assert isinstance(arrays, (list, tuple))
         arrays_numpy = backend.to_numpy(arrays)
         assert type(arrays) == type(arrays_numpy)
         for a, na in zip(arrays, arrays_numpy):
             assert a.dtype == na.dtype
             assert numpy.array_equal(a, na)
+
+    def test_to_numpy_empty_list(self):
+        arrays_numpy = backend.to_numpy([])
+        assert type(arrays_numpy) is list
+        assert 0 == len(arrays_numpy)
+
+    def test_to_numpy_empty_tuple(self):
+        arrays_numpy = backend.to_numpy(())
+        assert type(arrays_numpy) is tuple
+        assert 0 == len(arrays_numpy)
 
 
 testing.run_module(__name__, __file__)
