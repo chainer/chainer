@@ -420,6 +420,8 @@ void InitChainerxRoutines(pybind11::module& m) {
           },
           py::arg("x"),
           py::arg("axis") = nullptr);
+    m.def("isnan", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsNan(Array{x})); }, py::arg("x"));
+    m.def("isinf", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsInf(Array{x})); }, py::arg("x"));
 
     // sorting routines
     m.def("argmax",
