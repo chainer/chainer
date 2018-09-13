@@ -39,7 +39,6 @@ class TestVariableStatisticsPlot(unittest.TestCase):
     # the behavior of unittest in python2 and that in python3).
     @unittest.skipUnless(_available, 'matplotlib is not installed')
     def test_run_and_save_plot(self):
-        import matplotlib
         matplotlib.use('Agg')
         try:
             self.trainer.run()
