@@ -25,7 +25,8 @@ class G(function_node.FunctionNode):
 class TestMixedPrecision(unittest.TestCase):
 
     def test_fp16(self):
-        x = (numpy.zeros((1, 2, 3), dtype=numpy.float16),) * 2
+        x = (numpy.zeros((1, 2, 3), dtype=numpy.float16),
+             numpy.zeros((1, 2, 3), dtype=numpy.float16))
         f = F()
         y = f.apply(x)
         assert f.x[0].dtype == numpy.float32
@@ -34,7 +35,8 @@ class TestMixedPrecision(unittest.TestCase):
         assert y[1].dtype == numpy.float16
 
     def test_fp32(self):
-        x = (numpy.zeros((1, 2, 3), dtype=numpy.float32),) * 2
+        x = (numpy.zeros((1, 2, 3), dtype=numpy.float32),
+             numpy.zeros((1, 2, 3), dtype=numpy.float32))
         f = F()
         y = f.apply(x)
         assert f.x[0] is x[0]
@@ -43,7 +45,8 @@ class TestMixedPrecision(unittest.TestCase):
         assert y[1].dtype == numpy.float32
 
     def test_fp64(self):
-        x = (numpy.zeros((1, 2, 3), dtype=numpy.float64),) * 2
+        x = (numpy.zeros((1, 2, 3), dtype=numpy.float64),
+             numpy.zeros((1, 2, 3), dtype=numpy.float64))
         f = F()
         y = f.apply(x)
         assert f.x[0] is x[0]
