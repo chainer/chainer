@@ -56,6 +56,12 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"p": p}, is_gpu)
         return distributions.Categorical(**params)
 
+    def make_exponential_dist(self, is_gpu=False):
+        lam = numpy.exp(
+            numpy.random.uniform(0, 0.5, self.shape)).astype(numpy.float32)
+        params = self.encode_params({"lam": lam}, is_gpu)
+        return distributions.Exponential(**params)
+
     def make_laplace_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
@@ -148,6 +154,17 @@ class TestKLDivergence(unittest.TestCase):
     def test_categorical_categorical_gpu(self):
         dist1 = self.make_categorical_dist(True)
         dist2 = self.make_categorical_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_exponential_exponential_cpu(self):
+        dist1 = self.make_exponential_dist()
+        dist2 = self.make_exponential_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_exponential_exponential_gpu(self):
+        dist1 = self.make_exponential_dist(True)
+        dist2 = self.make_exponential_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_laplace_laplace_cpu(self):

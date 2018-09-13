@@ -17,6 +17,7 @@ Distributions
    chainer.distributions.Bernoulli
    chainer.distributions.Beta
    chainer.distributions.Categorical
+   chainer.distributions.Exponential
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
    chainer.distributions.MultivariateNormal
