@@ -78,4 +78,6 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
 Array Sqrt(const Array& x);
 
+Array Tanh(const Array& x);
+
 }  // namespace chainerx

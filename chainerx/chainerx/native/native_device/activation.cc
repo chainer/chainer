@@ -24,5 +24,16 @@ void NativeDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const 
     });
 }
 
+void NativeDevice::Tanh(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        struct Impl {
+            void operator()(int64_t /*i*/, T x, T& out) { out = std::tanh(x); }
+        };
+        Elementwise<const T, T>(Impl{}, x, out);
+    });
+}
+
 }  // namespace native
 }  // namespace chainerx

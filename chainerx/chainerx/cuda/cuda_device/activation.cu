@@ -34,5 +34,23 @@ void CudaDevice::IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Ar
     });
 }
 
+namespace {
+
+template <typename T>
+struct TanhImpl {
+    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::tanh(x); }
+};
+
+}  // namespace
+
+void CudaDevice::Tanh(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, T>(TanhImpl<T>{}, x, out);
+    });
+}
+
 }  // namespace cuda
 }  // namespace chainerx
