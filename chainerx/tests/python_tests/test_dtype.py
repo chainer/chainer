@@ -1,5 +1,3 @@
-import math
-
 import numpy
 import pytest
 
@@ -29,7 +27,7 @@ def test_dtype_from_specifier(dtype_spec):
 
 @pytest.mark.parametrize('dtype_symbol', chainerx.testing.all_dtypes)
 def test_dtypes(dtype_symbol):
-    dtype = getattr(chainerx, dtype_symbol)
+    dtype = chainerx.dtype(dtype_symbol)
     numpy_dtype = numpy.dtype(dtype_symbol)
     assert isinstance(dtype, chainerx.dtype)
     assert dtype.name == numpy_dtype.name
@@ -71,23 +69,7 @@ def test_implicity_convertible():
 
 
 @chainerx.testing.parametrize_dtype_specifier('dtype_spec')
-@pytest.mark.parametrize('value', [
-    -2,
-    1,
-    -1.5,
-    2.3,
-    True,
-    False,
-    numpy.array(1),
-    float('inf'),
-    float('nan'),
-])
-def test_type(dtype_spec, value):
-    expected = chainerx.Scalar(value, dtype_spec)
-    actual = chainerx.dtype(dtype_spec).type(value)
-    assert isinstance(actual, chainerx.Scalar)
-    assert actual.dtype == chainerx.dtype(dtype_spec)
-    if math.isnan(expected):
-        assert math.isnan(actual)
-    else:
-        assert expected == actual
+def test_type(dtype_spec):
+    expected = numpy.dtype(dtype_spec).type
+    actual = chainerx.dtype(dtype_spec).type
+    assert expected == actual
