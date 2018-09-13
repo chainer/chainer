@@ -15,7 +15,8 @@ _available = None
 
 
 def _try_import_matplotlib():
-    global matplotlib, _available, _plot_common_kwargs
+    global matplotlib, _available
+    global _plot_color, _plot_color_trans, _plot_common_kwargs
     try:
         import matplotlib
         _available = True
