@@ -533,7 +533,7 @@ def get_array_module(*args):
     it will return their data arrays' array module for
     :class:`~chainer.Variable` arguments.
 
-    .. note::
+    .. deprecated:: v5.0.0
 
         This API is deprecated. Please use
         :func:`~chainer.backend.get_array_module` instead.
@@ -546,8 +546,6 @@ def get_array_module(*args):
         the arguments.
 
     """
-    warnings.warn('backends.cuda.get_array_module is deprecated. Please use '
-                  'backend.get_array_module instead', DeprecationWarning)
     return chainer.backend.get_array_module(*args)
 
 
