@@ -53,7 +53,7 @@ class ROIPooling2D(function.Function):
     def __init__(self, outh, outw, spatial_scale, order='xy'):
         self.outh, self.outw = outh, outw
         self.spatial_scale = spatial_scale
-        if not isinstance(order, str) or order not in ['xy', 'yx']:
+        if order not in ['xy', 'yx']:
             raise TypeError(
                 'order must be string and \'xy\' or \'yx\': {}, {}'
                 .format(type(order), order))
