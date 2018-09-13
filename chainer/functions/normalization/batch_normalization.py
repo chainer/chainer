@@ -3,7 +3,7 @@ import warnings
 import numpy
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration

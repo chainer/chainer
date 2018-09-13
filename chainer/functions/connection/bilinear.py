@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 

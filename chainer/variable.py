@@ -10,7 +10,7 @@ import six
 
 import chainer
 from chainer import _backprop_utils
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers

@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence

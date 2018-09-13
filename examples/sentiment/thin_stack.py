@@ -1,5 +1,5 @@
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer.utils import type_check
 
 

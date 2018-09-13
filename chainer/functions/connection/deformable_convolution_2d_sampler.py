@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import backends
+from chainer import backend
 
 from chainer.functions.array import broadcast
 from chainer.functions.array import concat

@@ -1,5 +1,5 @@
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer import function_node
 from chainer.functions.activation import sigmoid
 from chainer import utils

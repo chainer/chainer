@@ -6,7 +6,7 @@ import numpy
 import six
 
 import chainer
-from chainer import backends
+from chainer import backend
 import chainer.functions as F
 from chainer import initializers
 import chainer.links as L

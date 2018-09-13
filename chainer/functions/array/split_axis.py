@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer.backends import intel64
 from chainer import function_node
 from chainer.utils import collections_abc

@@ -1,6 +1,6 @@
 import warnings
 
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer.functions.array import broadcast
 from chainer.functions.array import reshape

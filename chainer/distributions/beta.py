@@ -1,5 +1,5 @@
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer import distribution
 from chainer.functions.array import where
 from chainer.functions.math import digamma

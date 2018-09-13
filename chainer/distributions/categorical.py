@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer import distribution
 from chainer.functions.activation import log_softmax
 from chainer.functions.math import exponential

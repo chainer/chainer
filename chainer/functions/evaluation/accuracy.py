@@ -1,6 +1,6 @@
 import six
 
-from chainer import backends
+from chainer import backend
 from chainer import function
 from chainer.utils import type_check
 

@@ -2,7 +2,7 @@ import warnings
 
 import numpy
 
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions

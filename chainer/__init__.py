@@ -6,7 +6,7 @@ import warnings
 import numpy
 
 from chainer import _version
-from chainer import backends  # NOQA
+from chainer import backend  # NOQA
 from chainer import dataset  # NOQA
 from chainer import datasets  # NOQA
 from chainer import distributions  # NOQA

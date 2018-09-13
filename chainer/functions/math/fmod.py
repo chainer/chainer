@@ -1,4 +1,4 @@
-from chainer import backends
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer import utils

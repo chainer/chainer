@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 import chainer
-from chainer import backends
+from chainer import backend
 import chainer.initializers as I
 from chainer import optimizer_hooks
 from chainer import optimizers

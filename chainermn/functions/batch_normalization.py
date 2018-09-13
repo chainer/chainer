@@ -2,7 +2,7 @@
 # See: chainer/functions/normalization/batch_normalization.py (dbb650)
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer import cuda
 from chainer import function
 import chainer.utils

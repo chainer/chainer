@@ -1,5 +1,5 @@
 import chainer
-from chainer import backends
+from chainer import backend
 import chainer.utils
 
 

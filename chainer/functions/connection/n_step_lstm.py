@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import reshape

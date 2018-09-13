@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer import reporter
 from chainer.training import extension
 from chainer.training import trigger as trigger_module

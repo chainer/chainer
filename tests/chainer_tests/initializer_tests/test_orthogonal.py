@@ -1,6 +1,6 @@
 import unittest
 
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing

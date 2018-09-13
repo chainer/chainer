@@ -1,5 +1,5 @@
 import chainer
-from chainer import backends
+from chainer import backend
 
 
 class AllGather(chainer.Function):

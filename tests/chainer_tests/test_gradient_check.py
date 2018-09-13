@@ -6,7 +6,7 @@ import numpy
 import six
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import testing

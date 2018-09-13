@@ -6,7 +6,7 @@ import mock
 import six
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer import testing
 from chainer import training
 from chainer.training import extensions

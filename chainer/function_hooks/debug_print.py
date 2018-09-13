@@ -1,7 +1,7 @@
 import sys
 import warnings
 
-from chainer import backends
+from chainer import backend
 from chainer import function_hook
 from chainer import variable
 
