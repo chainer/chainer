@@ -11,8 +11,6 @@ namespace chainerx {
 namespace python {
 namespace python_internal {
 
-void InitChainerxDtype(pybind11::module&);
-
 Dtype GetDtypeFromString(const std::string& name);
 
 Dtype GetDtypeFromNumpyDtype(const pybind11::dtype& npdtype);
