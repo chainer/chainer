@@ -2,7 +2,7 @@ import unittest
 
 import numpy
 
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import testing
@@ -20,14 +20,14 @@ class _TestCopyToBase(object):
     def test_from_cpu(self):
         src = self.src_data
         dst = self._get_dst()
-        backends.copyto(dst, src)
+        backend.copyto(dst, src)
         numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
 
     @attr.gpu
     def test_from_gpu(self):
         src = cuda.cupy.array(self.src_data)
         dst = self._get_dst()
-        backends.copyto(dst, src)
+        backend.copyto(dst, src)
         numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
 
     @attr.ideep
@@ -35,7 +35,7 @@ class _TestCopyToBase(object):
         src = intel64.ideep.array(self.src_data)
         dst = self._get_dst()
         assert isinstance(src, intel64.mdarray)
-        backends.copyto(dst, src)
+        backend.copyto(dst, src)
         numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
 
 
@@ -54,7 +54,7 @@ class TestCopyToGPU(_TestCopyToBase, unittest.TestCase):
         src = cuda.cupy.array(self.src_data)
         with cuda.get_device_from_id(1):
             dst = self._get_dst()
-        backends.copyto(dst, src)
+        backend.copyto(dst, src)
         cuda.cupy.testing.assert_array_equal(dst, src)
 
 
@@ -71,13 +71,13 @@ class TestCopyToError(unittest.TestCase):
         src = None
         dst = numpy.zeros(1)
         with self.assertRaises(TypeError):
-            backends.copyto(dst, src)
+            backend.copyto(dst, src)
 
     def test_fail_on_invalid_dst(self):
         src = numpy.zeros(1)
         dst = None
         with self.assertRaises(TypeError):
-            backends.copyto(dst, src)
+            backend.copyto(dst, src)
 
 
 testing.run_module(__name__, __file__)
