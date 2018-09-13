@@ -1566,6 +1566,22 @@ TEST_P(MathTest, SqrtDoubleBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Sqrt(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
+TEST_THREAD_SAFE_P(MathTest, IsNan) {
+    Array a = testing::BuildArray({5, 1}).WithData<float>(
+            {-1.f, std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), std::nan(""), std::nan("0xf")});
+    Array e = testing::BuildArray({5, 1}).WithData<bool>({false, false, false, true, true});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{IsNan(xs[0])}; }, {a}, {e}); });
+}
+
+TEST_THREAD_SAFE_P(MathTest, IsInf) {
+    Array a = testing::BuildArray({5, 1}).WithData<float>(
+            {-1.f, std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), std::nan(""), std::nan("0xf")});
+    Array e = testing::BuildArray({5, 1}).WithData<bool>({false, true, true, false, false});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{IsInf(xs[0])}; }, {a}, {e}); });
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         MathTest,

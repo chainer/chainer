@@ -187,6 +187,9 @@ public:
     // TODO(niboshi): Implement corresponding function in routines
     virtual void Sqrt(const Array& x, const Array& out) = 0;
 
+    virtual void IsNan(const Array& x, const Array& out) = 0;
+    virtual void IsInf(const Array& x, const Array& out) = 0;
+
     // Takes elements specified by indices from an array.
     // Indices that are out of bounds are wrapped around.
     //
