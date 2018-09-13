@@ -31,9 +31,17 @@ class TestPlotReport(unittest.TestCase):
     # the behavior of unittest in python2 and that in python3).
     @unittest.skipUnless(_available, 'matplotlib is not installed')
     def test_lazy_import(self):
+        # matplotlib.pyplot should be lazily imported because matplotlib.use
+        # has to be called earlier.
+
         # To support python2, we do not use self.assertWarns()
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             matplotlib.use('Agg')
+            # Test again with a different backend, because the above does not
+            # generate a warning if matplotlib.use('Agg') is called and then
+            # matplotlib.pyplot is imported.
+            matplotlib.use('PS')
 
         self.assertEqual(len(w), 0)
 
