@@ -3,6 +3,7 @@ import numpy
 import chainer
 from chainer.backends import cuda
 
+
 def get_array_module(*args):
     """Gets an appropriate one from :mod:`numpy` or :mod:`cupy`.
 
