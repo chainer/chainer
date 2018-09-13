@@ -53,7 +53,7 @@ class ROIPooling2D(function.Function):
     def __init__(self, outh, outw, spatial_scale, bounds):
         self.outh, self.outw = outh, outw
         self.spatial_scale = spatial_scale
-        if not isinstance(bounds, str) or bounds not in ['inner', 'outer']:
+        if bounds not in ['inner', 'outer']:
             raise TypeError(
                 'bounds must be string and \'inner\' or \'outer\': {}, {}'
                 .format(type(bounds), bounds))
