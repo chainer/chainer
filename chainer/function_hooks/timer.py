@@ -57,11 +57,11 @@ class TimerHook(function_hook.FunctionHook):
         self._depth += 1
 
     def forward_preprocess(self, function, in_data):
-        self.xp = backends.get_array_module(*in_data)
+        self.xp = backend.get_array_module(*in_data)
         self._preprocess()
 
     def backward_preprocess(self, function, in_data, out_grad):
-        self.xp = backends.get_array_module(*(in_data + out_grad))
+        self.xp = backend.get_array_module(*(in_data + out_grad))
         self._preprocess()
 
     def _postprocess(self, function):
@@ -84,12 +84,12 @@ class TimerHook(function_hook.FunctionHook):
             self._total_time += elapsed_time
 
     def forward_postprocess(self, function, in_data):
-        xp = backends.get_array_module(*in_data)
+        xp = backend.get_array_module(*in_data)
         assert xp == self.xp
         self._postprocess(function)
 
     def backward_postprocess(self, function, in_data, out_grad):
-        xp = backends.get_array_module(*(in_data + out_grad))
+        xp = backend.get_array_module(*(in_data + out_grad))
         assert xp == self.xp
         self._postprocess(function)
 

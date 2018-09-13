@@ -351,7 +351,7 @@ class TestGradientMethodLossScale(unittest.TestCase):
 
     def check_update(self):
         self.optimizer.update()
-        xp = backends.get_array_module(self.target[0].param)
+        xp = backend.get_array_module(self.target[0].param)
         expected_data = xp.zeros(self.shape, dtype=self.dtype)
         rtol, atol = 1e-4, 1e-5
         if self.dtype is np.float16:

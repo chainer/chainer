@@ -35,7 +35,7 @@ class Rollaxis(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs(())
         self._in_ndim = inputs[0].ndim
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return xp.rollaxis(inputs[0], self.axis, self.start),
 
     def backward(self, indexes, gy):

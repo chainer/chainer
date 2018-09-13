@@ -18,7 +18,7 @@ def _erfc_gpu(x, dtype):
 
 
 def _erfc_expected(x, dtype):
-    if backends.get_array_module(x) is numpy:
+    if backend.get_array_module(x) is numpy:
         return _erfc_cpu(x, dtype)
     else:
         return _erfc_gpu(x, dtype)

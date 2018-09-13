@@ -32,7 +32,7 @@ class Triplet(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         anchor, positive, negative = inputs
 
@@ -55,7 +55,7 @@ class Triplet(function_node.FunctionNode):
         N = anchor.shape[0]
         x_dim = anchor.shape[1]
 
-        xp = backends.get_array_module(anchor)
+        xp = backend.get_array_module(anchor)
         tmp = xp.repeat(self.dist_hinge[:, None], x_dim, axis=1)
         mask = xp.array(tmp > 0, dtype=anchor.dtype)
 

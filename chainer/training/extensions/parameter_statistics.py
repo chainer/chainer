@@ -53,12 +53,12 @@ class ParameterStatistics(extension.Extension):
                            '{function_name}')
 
     default_statistics = {
-        'mean': lambda x: backends.get_array_module(x).mean(x),
-        'std': lambda x: backends.get_array_module(x).std(x),
-        'min': lambda x: backends.get_array_module(x).min(x),
-        'max': lambda x: backends.get_array_module(x).max(x),
-        'zeros': lambda x: backends.get_array_module(x).count_nonzero(x == 0),
-        'percentile': lambda x: backends.get_array_module(x).percentile(
+        'mean': lambda x: backend.get_array_module(x).mean(x),
+        'std': lambda x: backend.get_array_module(x).std(x),
+        'min': lambda x: backend.get_array_module(x).min(x),
+        'max': lambda x: backend.get_array_module(x).max(x),
+        'zeros': lambda x: backend.get_array_module(x).count_nonzero(x == 0),
+        'percentile': lambda x: backend.get_array_module(x).percentile(
             x, (0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87))
     }
 
@@ -113,7 +113,7 @@ class ParameterStatistics(extension.Extension):
                         params = getattr(param, attr_name).ravel()
                         if (self._skip_nan_params
                             and (
-                                backends.get_array_module(params).isnan(params)
+                                backend.get_array_module(params).isnan(params)
                                 .any())):
                             value = numpy.nan
                         else:

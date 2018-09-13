@@ -113,7 +113,7 @@ def unpack_params(params, itemsize, attr_name, buffer, stream=None):
 
 
 def array_to_buffer_object(array, mpi_dtype=mpi4py.MPI.FLOAT):
-    xp = chainer.backends.get_array_module(array)
+    xp = chainer.backend.get_array_module(array)
 
     if xp is np:
         return get_device_memory_pointer(array)
@@ -122,7 +122,7 @@ def array_to_buffer_object(array, mpi_dtype=mpi4py.MPI.FLOAT):
 
 
 def get_device_memory_pointer(array):
-    xp = chainer.backends.get_array_module(array)
+    xp = chainer.backend.get_array_module(array)
     array = xp.ascontiguousarray(array)
 
     if xp is np:

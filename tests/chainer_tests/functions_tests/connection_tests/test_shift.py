@@ -58,7 +58,7 @@ class TestShiftFunction(unittest.TestCase):
     @attr.gpu
     def test_forward_consistency(self):
         x_data = self.x
-        xp = backends.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         if not self.c_contiguous:
             x_data = xp.asfortranarray(x_data)
@@ -76,7 +76,7 @@ class TestShiftFunction(unittest.TestCase):
             y_cpu.data, y_gpu.data.get(), atol=5e-4, rtol=5e-3)
 
     def check_backward(self, x_data, y_grad):
-        xp = backends.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         if not self.c_contiguous:
             x_data = xp.asfortranarray(x_data)

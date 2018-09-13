@@ -57,7 +57,7 @@ class TestBilinearFunction(unittest.TestCase):
 
         e1_data = e1_data.reshape(e1_data.shape[0], -1)
         e2_data = e2_data.reshape(e2_data.shape[0], -1)
-        xp = backends.get_array_module(e1)
+        xp = backend.get_array_module(e1)
         y_expect = xp.einsum('ij,ik,jkl->il', e1_data, e2_data, W_data)
 
         flags = V1_data is None, V2_data is None, b_data is None

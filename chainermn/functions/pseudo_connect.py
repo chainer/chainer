@@ -14,7 +14,7 @@ class PseudoConnect(chainer.Function):
     def backward(self, inputs, grad_outputs):
         delegate_variable = inputs[0]
         # actual_variables = inputs[1:]
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         # delegate_variable do not need backward gradients, instead sending
         # back dummy grads in order to take consistency of shapes of grads.

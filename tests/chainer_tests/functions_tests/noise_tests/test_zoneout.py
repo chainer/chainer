@@ -63,7 +63,7 @@ class TestZoneout(unittest.TestCase):
 
     def check_double_backward(
             self, h_data, x_data, y_grad, h_grad_grad, x_grad_grad):
-        xp = backends.get_array_module(h_data)
+        xp = backend.get_array_module(h_data)
         flag_x = xp.random.rand(*x_data.shape)
 
         def f(h, x):

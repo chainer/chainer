@@ -70,7 +70,7 @@ class CTCTestBase(object):
             *args, reduce=self.reduce).data
 
         # compute expected value by recursive computation.
-        xp = backends.get_array_module(self.x)
+        xp = backend.get_array_module(self.x)
         xt = xp.swapaxes(self.x, 0, 1)
         for b in range(xt.shape[0]):
             for t in range(xt.shape[1]):

@@ -31,7 +31,7 @@ class TestGradientHardClipping(unittest.TestCase):
     def check_hardclipping(self):
         w = self.target.param.data
         g = self.target.param.grad
-        xp = backends.get_array_module(w)
+        xp = backend.get_array_module(w)
         lower_bound = -0.9
         upper_bound = 1.1
         expect = w - xp.clip(g, lower_bound, upper_bound)

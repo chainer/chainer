@@ -54,7 +54,7 @@ class GetItemGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         gy, = inputs
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         gx = xp.zeros(self._in_shape, self._in_dtype)
         if xp is numpy:
             try:

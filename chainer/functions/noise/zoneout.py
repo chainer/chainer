@@ -21,7 +21,7 @@ class Zoneout(function_node.FunctionNode):
         self.retain_inputs(())
 
         h, x = inputs
-        xp = backends.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         if xp is numpy:
             flag_x = xp.random.rand(*x.shape) >= self.zoneout_ratio
         else:

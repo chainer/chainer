@@ -94,7 +94,7 @@ class EinSum(function_node.FunctionNode):
         # TODO(kataoka): Do not retain inputs if n_args == 1
         self.retain_inputs(tuple(range(n_args)))
 
-        xp = backends.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
         dtype = xp.result_type(*[x.dtype for x in inputs])
         y = _einsum(xp, dtype, self.in_subs, self.out_sub, *inputs,
                     check_undefined_ellipsis_sum=True)
@@ -134,7 +134,7 @@ class DiagEinSum(EinSum):
         # TODO(kataoka): Do not retain inputs if n_args == 1
         self.retain_inputs(tuple(range(n_args)))
 
-        xp = backends.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
         dtype = xp.result_type(*[x.dtype for x in inputs])
 
         out_set = set(self.out_sub)

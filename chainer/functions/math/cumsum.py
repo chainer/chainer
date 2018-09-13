@@ -26,7 +26,7 @@ class Cumsum(function_node.FunctionNode):
     def forward(self, inputs):
         x, = inputs
         self._in_shape = x.shape
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.cumsum(x, axis=self.axis),
 
     def backward(self, indexes, grad_outputs):

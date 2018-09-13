@@ -17,7 +17,7 @@ class FlipUD(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return xp.flipud(inputs[0]),
 
     def backward(self, indexes, grad_outputs):

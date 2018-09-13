@@ -22,7 +22,7 @@ class Depth2Space(function_node.FunctionNode):
 
     def forward(self, inputs):
         X, = inputs
-        xp = backends.get_array_module(X)
+        xp = backend.get_array_module(X)
         bsize, c, a, b = X.shape
         c //= self.r ** 2
 

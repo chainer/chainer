@@ -34,7 +34,7 @@ class SelectItem(function_node.FunctionNode):
                 msg = 'Each label `t` need to satisfty `0 <= t < x.shape[1]`'
                 raise ValueError(msg)
 
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         if xp is numpy:
             # This code is equivalent to `t.choose(x.T)`, but `numpy.choose`
             # does not work when `x.shape[1] > 32`.

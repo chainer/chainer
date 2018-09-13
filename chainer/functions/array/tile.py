@@ -29,7 +29,7 @@ class Tile(function_node.FunctionNode):
 
     def forward(self, inputs):
         self._in_shape = inputs[0].shape
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return xp.tile(inputs[0], self.reps),
 
     def backward(self, indexes, grad_outputs):

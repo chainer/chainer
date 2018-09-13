@@ -40,7 +40,7 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_order,
     else:
         B = dn
 
-    xp = backends.get_array_module(A_data, B)
+    xp = backend.get_array_module(A_data, B)
     if xp is numpy:
         C = _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype)
     else:
@@ -258,7 +258,7 @@ def _coo_matmul_gradsp(a, b, c_row, c_col, c_shape, transa, transb, transc,
         C_row = c_row
         C_col = c_col
 
-    xp = backends.get_array_module(A, B)
+    xp = backend.get_array_module(A, B)
     if xp is numpy:
         return _coo_matmul_gradsp_cpu(A, B, C_row, C_col, dtype)
     else:

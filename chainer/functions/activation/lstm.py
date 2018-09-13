@@ -124,7 +124,7 @@ class LSTM(function_node.FunctionNode):
 class LSTMGrad(function.Function):
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         c_prev, x, c_next, gc, gh = inputs
         batch = len(x)
 
@@ -184,7 +184,7 @@ class LSTMGrad(function.Function):
         return gc_prev, gx
 
     def backward(self, inputs, grads):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         c_prev, x, c, gc, gh = inputs
         ggc_prev, ggx = grads
@@ -229,7 +229,7 @@ class LSTMGrad(function.Function):
 def lstm_grad_grad(
         c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
         gc_prev, ga, gi, gf, go, gc_next, ggc, ggh):
-    xp = backends.get_array_module(a)
+    xp = backend.get_array_module(a)
     sig_o = _sigmoid(o, xp)
     gsig_o = _grad_sigmoid(sig_o)
     ggsig_o = _grad_grad_sigmoid(sig_o)

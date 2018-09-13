@@ -71,7 +71,7 @@ class TriangularInv(chainer.function_node.FunctionNode):
 
     def backward(self, target_input_indexes, grad_outputs):
         gy, = grad_outputs
-        xp = backends.get_array_module(gy)
+        xp = backend.get_array_module(gy)
         invx, = self.get_retained_outputs()
         mask = xp.tril(xp.ones((len(invx), len(invx)), dtype=bool))
         if not self._lower:

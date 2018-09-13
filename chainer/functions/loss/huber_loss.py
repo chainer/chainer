@@ -26,7 +26,7 @@ class HuberLoss(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x0, x1 = inputs
         diff = x0 - x1
         delta = diff.dtype.type(self.delta)

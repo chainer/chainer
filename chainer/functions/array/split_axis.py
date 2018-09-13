@@ -106,7 +106,7 @@ class SplitAxis(function_node.FunctionNode):
             return self._forward_ideep(inputs)
 
         x, = inputs
-        self._xp = backends.get_array_module(x)
+        self._xp = backend.get_array_module(x)
         if self.indices is not None:
             indices_or_sections = self.indices
         else:

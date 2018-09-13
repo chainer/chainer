@@ -38,7 +38,7 @@ class LogSumExp(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         x, = inputs
         m = x.max(axis=self.axis, keepdims=True)

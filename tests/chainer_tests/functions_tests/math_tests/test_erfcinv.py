@@ -19,7 +19,7 @@ def _erfcinv_gpu(x, dtype):
 
 
 def _erfcinv_expected(x, dtype):
-    if backends.get_array_module(x) is numpy:
+    if backend.get_array_module(x) is numpy:
         return _erfcinv_cpu(x, dtype)
     else:
         return _erfcinv_gpu(x, dtype)

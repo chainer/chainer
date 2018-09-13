@@ -32,7 +32,7 @@ class PadSequence(function_node.FunctionNode):
                 type_check.expect(in_type.shape[0] <= self.length)
 
     def forward(self, xs):
-        xp = backends.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
 
         if self.length is None:
             length = max(len(x) for x in xs)

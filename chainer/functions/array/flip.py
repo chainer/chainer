@@ -30,7 +30,7 @@ class Flip(function_node.FunctionNode):
             type_check.expect(x_type.ndim >= -self.axis)
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if hasattr(xp, 'flip'):  # numpy.flip is supported from version 1.12.0
             return xp.flip(inputs[0], self.axis),
         else:

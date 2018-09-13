@@ -19,7 +19,7 @@ class Sqrt(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_outputs((0,))
-        xp = backends.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.sqrt(x[0], dtype=x[0].dtype)),
 
     def backward(self, indexes, grad_outputs):
@@ -82,7 +82,7 @@ def rsqrt(x):
 
     .. seealso:: :func:`~chainer.functions.sqrt`
     """
-    xp = backends.get_array_module(x)
+    xp = backend.get_array_module(x)
     if xp is numpy:
         return 1.0 / sqrt(x)
 

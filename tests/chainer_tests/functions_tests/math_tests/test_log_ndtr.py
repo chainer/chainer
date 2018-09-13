@@ -18,7 +18,7 @@ def _log_ndtr_gpu(x, dtype):
 
 
 def _log_ndtr_expected(x, dtype):
-    if backends.get_array_module(x) is numpy:
+    if backend.get_array_module(x) is numpy:
         return _log_ndtr_cpu(x, dtype)
     else:
         return _log_ndtr_gpu(x, dtype)

@@ -19,7 +19,7 @@ def _digamma_gpu(x, dtype):
 
 
 def _digamma_expected(x, dtype):
-    if backends.get_array_module(x) is numpy:
+    if backend.get_array_module(x) is numpy:
         return _digamma_cpu(x, dtype)
     else:
         return _digamma_gpu(x, dtype)

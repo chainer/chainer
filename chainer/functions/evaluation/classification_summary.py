@@ -40,7 +40,7 @@ class ClassificationSummary(function.Function):
             type_check.expect(x_type.shape[i] == 1)
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         y, t = inputs
         # numpy.bincount requires int32 on Windows
         t = t.astype('i', copy=False)

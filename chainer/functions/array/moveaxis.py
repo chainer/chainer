@@ -87,7 +87,7 @@ class Moveaxis(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs(())
         self._in_ndim = inputs[0].ndim
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return _moveaxis(inputs[0], self.source, self.destination, xp),
 
     def backward(self, indexes, gy):

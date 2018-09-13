@@ -21,7 +21,7 @@ class FFT(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         real, imag = inputs
         x = real + imag * 1j
         y = getattr(xp.fft, self._method)(x)
@@ -31,7 +31,7 @@ class FFT(function_node.FunctionNode):
 
     def backward(self, inputs, grads):
         gr, gi = grads
-        xp = backends.get_array_module(*grads)
+        xp = backend.get_array_module(*grads)
         if gr is None:
             gr = xp.zeros_like(gi.data)
         if gi is None:

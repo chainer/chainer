@@ -29,8 +29,8 @@ class TestGumbelSoftmax(unittest.TestCase):
         self.assertEqual(y.dtype, numpy.float32)
         self.assertEqual(y.shape, log_pi.shape)
         self.assertEqual(
-            backends.get_array_module(y),
-            backends.get_array_module(log_pi))
+            backend.get_array_module(y),
+            backend.get_array_module(log_pi))
 
     def test_forward_cpu(self):
         self.check_forward(self.log_pi, self.tau)

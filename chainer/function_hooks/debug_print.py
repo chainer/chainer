@@ -73,7 +73,7 @@ class PrintHook(function_hook.FunctionHook):
         if out_grad is not None:
             self._print('output gradient')
             for d in out_grad:
-                xp = backends.get_array_module(d)
+                xp = backend.get_array_module(d)
                 v = variable.Variable(xp.zeros_like(d, dtype=d.dtype))
                 v.grad = d
                 self._print(v.debug_print())

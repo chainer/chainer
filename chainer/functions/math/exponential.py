@@ -78,7 +78,7 @@ class Log2(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0,))
         x = inputs[0]
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         return utils.force_array(xp.log2(x)),
 
     def backward(self, indexes, gy):
@@ -114,7 +114,7 @@ class Log10(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0,))
         x = inputs[0]
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         return utils.force_array(xp.log10(x)),
 
     def backward(self, indexes, gy):

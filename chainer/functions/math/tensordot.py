@@ -21,7 +21,7 @@ def _tensordot(a, b, a_axes, b_axes, c_axes=None):
         if a.shape[a_axis] != b.shape[b_axis]:
             raise ValueError('shape mismatch')
 
-    xp = backends.get_array_module(a)
+    xp = backend.get_array_module(a)
     y = xp.tensordot(a, b, axes=(tuple(a_axes[1]), tuple(b_axes[0])))
 
     if c_axes is not None:

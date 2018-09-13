@@ -638,7 +638,7 @@ class GradientMethod(Optimizer):
         for name, param in self.target.namedparams(False):
             if param.grad is None:
                 with cuda.get_device_from_array(param.data):
-                    xp = backends.get_array_module(param.data)
+                    xp = backend.get_array_module(param.data)
                     param.grad = xp.zeros_like(param.data)
 
     def call_hooks(self, timing='pre'):

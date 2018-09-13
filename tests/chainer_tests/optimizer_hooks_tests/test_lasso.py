@@ -30,7 +30,7 @@ class TestLasso(unittest.TestCase):
     def check_lasso(self):
         w = self.target.param.data
         g = self.target.param.grad
-        xp = backends.get_array_module(w)
+        xp = backend.get_array_module(w)
         decay = 0.2
         expect = w - g - decay * xp.sign(w)
 

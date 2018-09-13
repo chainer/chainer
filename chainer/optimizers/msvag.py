@@ -57,7 +57,7 @@ class MSVAGRule(optimizer.UpdateRule):
         self.beta_power = self.hyperparam.beta
 
     def init_state(self, param):
-        xp = backends.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['m'] = xp.zeros_like(param.data)
             self.state['v'] = xp.zeros_like(param.data)

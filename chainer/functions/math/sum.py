@@ -45,7 +45,7 @@ class Sum(function_node.FunctionNode):
     def forward(self, inputs):
         x, = inputs
         ret = x.sum(axis=self.axis, keepdims=self.keepdims)
-        if backends.get_array_module(x) is numpy:
+        if backend.get_array_module(x) is numpy:
             ret = numpy.asarray(ret)
         return ret,
 

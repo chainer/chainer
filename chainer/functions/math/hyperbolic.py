@@ -16,7 +16,7 @@ class Cosh(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = backends.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.cosh(x[0])),
 
     def backward(self, indexes, gy):
@@ -53,7 +53,7 @@ class Sinh(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = backends.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.sinh(x[0])),
 
     def backward(self, x, gy):

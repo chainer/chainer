@@ -40,7 +40,7 @@ class TestGradientNoise(unittest.TestCase):
     def check_gradient_noise(self):
         w = self.target.param.data
         g = self.target.param.grad
-        xp = backends.get_array_module(w)
+        xp = backend.get_array_module(w)
         noise_value = xp.asarray(self.noise_value)
         expect = w - g - noise_value
 

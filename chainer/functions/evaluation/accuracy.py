@@ -29,7 +29,7 @@ class Accuracy(function.Function):
             type_check.expect(x_type.shape[i] == 1)
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         y, t = inputs
 
         if self.ignore_label is not None:

@@ -190,7 +190,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         iCg = int(iC / G)
         oCg = int(oC / G)
 
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         _x = x.reshape((N, G, iCg, iH, iW))
         _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
@@ -363,7 +363,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         iCg = int(iC / G)
         oCg = int(oC / G)
 
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         _x = x.reshape((N, G, iCg, iH, iW))
         _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)

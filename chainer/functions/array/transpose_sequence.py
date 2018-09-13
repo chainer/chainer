@@ -10,7 +10,7 @@ def _transpose(xs, length):
     if length == 0:
         return ()
 
-    xp = backends.get_array_module(*xs)
+    xp = backend.get_array_module(*xs)
     lengths = numpy.empty(length, dtype='i')
     end = length
     for i, x in enumerate(xs):

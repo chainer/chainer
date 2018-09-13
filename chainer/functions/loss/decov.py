@@ -27,7 +27,7 @@ class DeCov(function.Function):
         )
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         h, = inputs
 
         self.h_centered = h - h.mean(axis=0, keepdims=True)
@@ -42,7 +42,7 @@ class DeCov(function.Function):
             return self.covariance,
 
     def backward(self, inputs, grad_outputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         h, = inputs
         gcost, = grad_outputs
         gcost_div_n = gcost / gcost.dtype.type(len(h))

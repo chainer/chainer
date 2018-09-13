@@ -24,7 +24,7 @@ def _check_indices(indices):
 
 
 def _inverse_indices(indices):
-    xp = backends.get_array_module(indices)
+    xp = backend.get_array_module(indices)
     r = xp.empty_like(indices)
     if xp is numpy:
         r[indices] = numpy.arange(len(indices))

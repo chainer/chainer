@@ -171,7 +171,7 @@ class TestUnpoolingND(unittest.TestCase):
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
-        xp = backends.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         # Backward computation for N-dimensional unpooling layer.
         x_nd = chainer.Variable(xp.array(x_data))

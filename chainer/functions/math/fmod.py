@@ -21,7 +21,7 @@ class Fmod(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, divisor = inputs
         m = xp.fmod(x, divisor)
         return utils.force_array(m, x.dtype),

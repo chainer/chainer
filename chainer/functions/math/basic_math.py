@@ -41,8 +41,8 @@ def _check_constant_type(value):
 
 
 def _preprocess_const(x, value):
-    xp = backends.get_array_module(x)
-    if not numpy.isscalar(value) and backends.get_array_module(value) != xp:
+    xp = backend.get_array_module(x)
+    if not numpy.isscalar(value) and backend.get_array_module(value) != xp:
         # TODO(unno): We can transfer arrays automatically
         raise TypeError('Cannot mix cupy.ndarray and numpy.ndarray')
 
@@ -793,7 +793,7 @@ class PowConstVarGrad(function_node.FunctionNode):
     def backward(self, indexes, ggx):
         y, gy = self.get_retained_inputs()
 
-        xp = backends.get_array_module(y)
+        xp = backend.get_array_module(y)
         gygy = xp.log(self.value) * ggx[0]
 
         ret = []

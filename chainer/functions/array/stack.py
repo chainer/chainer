@@ -26,7 +26,7 @@ class Stack(function_node.FunctionNode):
             )
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if hasattr(xp, 'stack'):
             return xp.stack(inputs, axis=self.axis),
         else:

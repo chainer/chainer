@@ -20,7 +20,7 @@ class Minimum(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         x1, x2 = inputs
-        xp = backends.get_array_module(x1, x2)
+        xp = backend.get_array_module(x1, x2)
         return utils.force_array(xp.minimum(x1, x2)),
 
     def backward(self, indexes, grad_outputs):

@@ -14,7 +14,7 @@ class LaplaceCDF(chainer.function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = 0.5 - 0.5 * xp.sign(x) * xp.expm1(-abs(x))
         self.retain_outputs((0,))
         return utils.force_array(y, x.dtype),
@@ -30,7 +30,7 @@ class LaplaceICDF(chainer.function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         h = 1 - 2 * x
         return utils.force_array(xp.sign(h) * xp.log1p(-abs(h)), x.dtype),
 

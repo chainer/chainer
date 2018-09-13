@@ -13,7 +13,7 @@ from chainer.testing import condition
 
 
 def _sigmoid(x):
-    xp = backends.get_array_module(x)
+    xp = backend.get_array_module(x)
     half = x.dtype.type(0.5)
     return xp.tanh(x * half) * half + half
 

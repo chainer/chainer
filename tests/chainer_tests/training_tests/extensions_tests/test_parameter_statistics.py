@@ -59,7 +59,7 @@ class TestParameterStatisticsBase(object):
 @testing.parameterize(
     {
         'links': [chainer.links.Linear(3, 2)],
-        'statistics': {'min': lambda x: backends.get_array_module(x).min(x)},
+        'statistics': {'min': lambda x: backend.get_array_module(x).min(x)},
         'report_params': True,
         'report_grads': True,
         'prefix': None,
@@ -67,7 +67,7 @@ class TestParameterStatisticsBase(object):
     },
     {
         'links': [chainer.links.Linear(3, 2)],
-        'statistics': {'min': lambda x: backends.get_array_module(x).min(x)},
+        'statistics': {'min': lambda x: backend.get_array_module(x).min(x)},
         'report_params': False,
         'report_grads': True,
         'prefix': 'test',
@@ -75,7 +75,7 @@ class TestParameterStatisticsBase(object):
     },
     {
         'links': [chainer.links.Linear(3, 2)],
-        'statistics': {'min': lambda x: backends.get_array_module(x).min(x)},
+        'statistics': {'min': lambda x: backend.get_array_module(x).min(x)},
         'report_params': True,
         'report_grads': False,
         'prefix': None,
@@ -83,7 +83,7 @@ class TestParameterStatisticsBase(object):
     },
     {
         'links': [chainer.links.Linear(3, 2)],
-        'statistics': {'min': lambda x: backends.get_array_module(x).min(x)},
+        'statistics': {'min': lambda x: backend.get_array_module(x).min(x)},
         'report_params': False,
         'report_grads': False,
         'prefix': 'test',

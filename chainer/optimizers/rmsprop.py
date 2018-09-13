@@ -50,7 +50,7 @@ class RMSpropRule(optimizer.UpdateRule):
             self.hyperparam.eps_inside_sqrt = eps_inside_sqrt
 
     def init_state(self, param):
-        xp = backends.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['ms'] = xp.zeros_like(param.data)
 

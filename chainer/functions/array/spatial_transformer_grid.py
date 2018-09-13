@@ -59,7 +59,7 @@ class SpatialTransformerGrid(function.Function):
         theta, = inputs
         H, W = self.output_shape
         B, _, _ = theta.shape
-        xp = backends.get_array_module(theta)
+        xp = backend.get_array_module(theta)
 
         ys, xs = xp.meshgrid(
             xp.linspace(-1, 1, H, dtype=theta.dtype),
@@ -95,7 +95,7 @@ class SpatialTransformerGrid(function.Function):
         ggrid, = grad_outputs
         H, W = self.output_shape
         B, _, _ = theta.shape
-        xp = backends.get_array_module(theta)
+        xp = backend.get_array_module(theta)
 
         ys, xs = xp.meshgrid(
             xp.linspace(-1, 1, H, dtype=theta.dtype),

@@ -30,7 +30,7 @@ def gumbel_softmax(log_pi, tau=0.1, axis=1):
         ~chainer.Variable: Output variable.
 
     """
-    xp = backends.get_array_module(log_pi)
+    xp = backend.get_array_module(log_pi)
     if log_pi.ndim < 1:
         return variable.Variable(xp.ones((), log_pi.dtype))
     dtype = log_pi.dtype

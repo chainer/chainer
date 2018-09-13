@@ -17,5 +17,5 @@ def ceil(x):
     """
     if isinstance(x, chainer.variable.Variable):
         x = x.data
-    xp = backends.get_array_module(x)
+    xp = backend.get_array_module(x)
     return chainer.as_variable(utils.force_array(xp.ceil(x), x.dtype))

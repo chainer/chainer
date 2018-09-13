@@ -124,7 +124,7 @@ class TreeLSTM(function.Function):
         return self.c, h
 
     def backward(self, inputs, grad_outputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         cs, x = inputs[:-1], inputs[-1]
         n_ary = len(cs)
         gc, gh = grad_outputs

@@ -30,7 +30,7 @@ class TestInceptionBNBase(unittest.TestCase):
             self.stride)
 
     def check_backward(self, x_data):
-        xp = backends.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
         x = chainer.Variable(x_data)
         y = self.l(x)
         y.grad = xp.random.randn(*y.data.shape).astype('f')

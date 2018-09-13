@@ -187,7 +187,7 @@ class NStepRNNBase(link.ChainList):
             argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
-        xp = backends.get_array_module(*(list(hs) + list(xs)))
+        xp = backend.get_array_module(*(list(hs) + list(xs)))
         indices = argsort_list_descent(xs)
         indices_array = xp.array(indices)
 

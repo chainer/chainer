@@ -73,7 +73,7 @@ class TestGradientClipping(unittest.TestCase):
     def check_clipping(self, multiplier):
         w = self.target.param.data
         g = self.target.param.grad
-        xp = backends.get_array_module(w)
+        xp = backend.get_array_module(w)
 
         norm = xp.sqrt(gradient_clipping._sum_sqnorm(g))
         threshold = norm * multiplier

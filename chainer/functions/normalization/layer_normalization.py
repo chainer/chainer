@@ -49,7 +49,7 @@ class LayerNormalization(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, gamma, beta = inputs
         x_mu, var, inv_std, x_hat = self._compute(xp, x)
         scaled_x = x_hat * gamma[None, ]

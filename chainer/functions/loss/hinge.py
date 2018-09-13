@@ -95,7 +95,7 @@ class Hinge(function.Function):
         return gx, None
 
     def backward_gpu(self, inputs, grad_outputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         t, gloss = inputs[1], grad_outputs[0]
 
         if self.reduce == 'mean':

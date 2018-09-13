@@ -420,7 +420,7 @@ def n_step_lstm_base(
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
 
-    xp = backends.get_array_module(hx, hx.data)
+    xp = backend.get_array_module(hx, hx.data)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         handle = cudnn.get_handle()

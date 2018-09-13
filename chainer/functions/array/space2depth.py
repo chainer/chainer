@@ -20,7 +20,7 @@ class Space2Depth(function_node.FunctionNode):
 
     def forward(self, inputs):
         X, = inputs
-        xp = backends.get_array_module(X)
+        xp = backend.get_array_module(X)
         bsize, c, a, b = X.shape
         X = xp.reshape(
             X, (bsize, c, a // self.r, self.r, b // self.r, self.r))

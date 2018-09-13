@@ -26,7 +26,7 @@ class Pad(function_node.FunctionNode):
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return xp.pad(inputs[0], self.pad_width, mode=self.mode,
                       **self.keywords),
 

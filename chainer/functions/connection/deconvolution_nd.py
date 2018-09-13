@@ -175,7 +175,7 @@ class DeconvolutionND(function_node.FunctionNode):
                 'Output sizes should be positive.'
         self._set_cover_all(x, W)
 
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if xp is numpy:
             return self._forward_xp(x, W, b, numpy)
         elif not self._use_cudnn(x, W):

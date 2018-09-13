@@ -47,7 +47,7 @@ class Concat(function_node.FunctionNode):
             return self._forward_ideep(xs)
 
         # Generic implementation
-        xp = backends.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return xp.concatenate(xs, self.axis),
 
     def _forward_ideep(self, xs):

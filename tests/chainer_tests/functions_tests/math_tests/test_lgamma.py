@@ -19,7 +19,7 @@ def _lgamma_gpu(x, dtype):
 
 
 def _lgamma_expected(x, dtype):
-    if backends.get_array_module(x) is numpy:
+    if backend.get_array_module(x) is numpy:
         return _lgamma_cpu(x, dtype)
     else:
         return _lgamma_gpu(x, dtype)

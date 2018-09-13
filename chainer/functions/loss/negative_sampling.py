@@ -229,7 +229,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x, W, gy = self.get_retained_inputs()
 
-        xp = backends.get_array_module(x.data)
+        xp = backend.get_array_module(x.data)
 
         if 0 in indexes:
             gx = chainer.Variable(xp.zeros_like(x.data))

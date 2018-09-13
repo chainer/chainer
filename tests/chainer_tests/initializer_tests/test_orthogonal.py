@@ -37,7 +37,7 @@ class OrthogonalBase(unittest.TestCase):
     def check_shaped_initializer(self, xp):
         initializer = initializers.Orthogonal(scale=2.0, dtype=self.dtype)
         w = initializers.generate_array(initializer, self.shape, xp)
-        self.assertIs(backends.get_array_module(w), xp)
+        self.assertIs(backend.get_array_module(w), xp)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
 

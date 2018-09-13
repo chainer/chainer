@@ -118,7 +118,7 @@ class SLSTM(function.Function):
         return self.c, h
 
     def backward(self, inputs, grad_outputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         c_prev1, c_prev2, x1, x2 = inputs
         gc, gh = grad_outputs
 

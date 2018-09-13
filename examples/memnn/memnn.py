@@ -53,7 +53,7 @@ def position_encode(embed, sentences):
 
     """
 
-    xp = backends.get_array_module(sentences)
+    xp = backend.get_array_module(sentences)
     e = embed(sentences)
     n_words, n_units = e.shape[-2:]
 
@@ -109,7 +109,7 @@ class Memory(object):
         self.c = self.encoder(self.C, sentences)
 
     def query(self, u):
-        xp = backends.get_array_module(u)
+        xp = backend.get_array_module(u)
         size = self.m.shape[1]
         inds = xp.arange(size - 1, -1, -1, dtype=numpy.int32)
         tm = self.TA(inds)

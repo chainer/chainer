@@ -21,7 +21,7 @@ class ExpandDims(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.expand_dims(x, self.axis),
 
     def backward(self, indexes, grad_outputs):

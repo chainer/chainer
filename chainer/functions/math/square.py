@@ -16,7 +16,7 @@ class Square(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = backends.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.square(x[0], dtype=x[0].dtype)),
 
     def backward(self, indexes, gy):

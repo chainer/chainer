@@ -20,7 +20,7 @@ class BinaryAccuracy(function.Function):
         )
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         y, t = inputs
         # flatten
         y = y.ravel()

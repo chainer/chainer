@@ -153,7 +153,7 @@ class ConvolutionND(function_node.FunctionNode):
         x, W = inputs[:2]
         b = inputs[2] if len(inputs) == 3 else None
 
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if xp is numpy:
             return self._forward_xp(x, W, b, numpy)
         elif not self._use_cudnn(x, W):
@@ -214,7 +214,7 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gy = inputs
 
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if xp is numpy:
             return self._forward_xp(x, gy, numpy)
         elif not self._use_cudnn(x, gy):

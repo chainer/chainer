@@ -17,7 +17,7 @@ class NondifferentiableError(Exception):
 
 
 def _copy_arrays(xs):
-    xp = backends.get_array_module(*xs)
+    xp = backend.get_array_module(*xs)
     return [xp.array(x, order='C', dtype=numpy.float64, copy=True) for x in xs]
 
 
@@ -518,7 +518,7 @@ def check_backward(
             if skip and x.data.dtype.kind == 'f':
                 x.data = x.data.astype(dtype, copy=False)
 
-    xp = backends.get_array_module(*xs)
+    xp = backend.get_array_module(*xs)
     directions = [xp.random.normal(size=x.shape) for x in variables]
     # The direction vector is normalized in order to keep the scale of
     # differentiation error invariant with respect to the number of input
@@ -691,7 +691,7 @@ class _GradientSetter(FunctionNode):
         self.grad = grad
 
     def forward(self, inputs):
-        xp = backends.get_array_module(inputs[0])
+        xp = backend.get_array_module(inputs[0])
 
         if self.grad is None:
             y0, = inputs

@@ -51,7 +51,7 @@ class TestGroupNormalization(unittest.TestCase):
         self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args):
-        xp = backends.get_array_module(*args)
+        xp = backend.get_array_module(*args)
 
         def func(*args_):
             return functions.group_normalization(

@@ -23,7 +23,7 @@ class AbsoluteError(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        gx = gy * backends.get_array_module(gy).sign(self.diff)
+        gx = gy * backend.get_array_module(gy).sign(self.diff)
         return gx, -gx
 
 

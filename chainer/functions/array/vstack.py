@@ -27,7 +27,7 @@ class Vstack(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        xp = backends.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return xp.vstack(xs),
 
     def backward(self, indexes, grad_outputs):

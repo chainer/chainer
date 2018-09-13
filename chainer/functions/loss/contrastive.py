@@ -36,7 +36,7 @@ class Contrastive(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         self.retain_inputs((0, 1, 2))
         x0, x1, y = inputs
 
@@ -53,7 +53,7 @@ class Contrastive(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x0, x1, y = self.get_retained_inputs()
         gy, = grad_outputs
-        xp = backends.get_array_module(gy.data)
+        xp = backend.get_array_module(gy.data)
 
         # Recompute intermediate variables as in forward.
         diff = x0 - x1

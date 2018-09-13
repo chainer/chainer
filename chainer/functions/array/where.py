@@ -22,13 +22,13 @@ class Where(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0,))
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         condition, x, y = inputs
         return xp.where(condition, x, y),
 
     def backward(self, indexes, grad_outputs):
         condition = self.get_retained_inputs()[0]
-        xp = backends.get_array_module(condition.data)
+        xp = backend.get_array_module(condition.data)
         g, = grad_outputs
         zeros = xp.zeros(g.shape, dtype=g.dtype)
         ret = []

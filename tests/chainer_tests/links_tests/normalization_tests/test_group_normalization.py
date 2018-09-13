@@ -35,7 +35,7 @@ class GroupNormalizationTest(unittest.TestCase):
 
         # Verify that forward isn't be affected by batch size
         if self.shape[0] > 1:
-            xp = backends.get_array_module(x_data)
+            xp = backend.get_array_module(x_data)
             y_one_each = chainer.functions.concat(
                 [self.link(xp.expand_dims(one_x, axis=0))
                  for one_x in x_data], axis=0)

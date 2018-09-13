@@ -16,7 +16,7 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
     def forward(self, inputs):
         logit, x = inputs
         self.retain_inputs((0, 1))
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = logit * (x - 1) - xp.log(xp.exp(-logit) + 1)
         y = utils.force_array(y)
 
@@ -37,7 +37,7 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
         logit, x = self.get_retained_inputs()
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         dlogit = x - 1. / (1. + exponential.exp(-logit))
 
         # extreme logit

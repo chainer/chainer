@@ -76,7 +76,7 @@ class Categorical(distribution.Distribution):
             return self.log_p[mg + [x.astype(numpy.int32)]]
 
     def sample_n(self, n):
-        xp = backends.get_array_module(self.p)
+        xp = backend.get_array_module(self.p)
         onebyone_p = self.p.data.reshape(-1, self.p.shape[-1])
         eps = [xp.random.choice(
             one_p.shape[0], size=(n,), p=one_p) for one_p in onebyone_p]

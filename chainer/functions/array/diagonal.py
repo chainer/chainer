@@ -40,7 +40,7 @@ class DiagonalGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = xp.zeros(self.out_shape, x.dtype)
         y_diag = y.diagonal(
             offset=self.offset, axis1=self.axis1, axis2=self.axis2)

@@ -57,7 +57,7 @@ class Beta(distribution.Distribution):
         return self.a / (self.a + self.b)
 
     def sample_n(self, n):
-        xp = backends.get_array_module(self.a)
+        xp = backend.get_array_module(self.a)
         eps = xp.random.beta(self.a.data, self.b.data, size=(n,)+self.a.shape)
         noise = chainer.Variable(eps.astype(self.a.dtype))
         return noise

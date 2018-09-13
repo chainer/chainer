@@ -27,7 +27,7 @@ class R2_score(function.Function):
         )
 
     def forward(self, inputs):
-        xp = backends.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         pred, true = inputs
         SS_res = xp.asarray(
             xp.sum((pred - true) ** 2, axis=0))

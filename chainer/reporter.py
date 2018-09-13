@@ -295,7 +295,7 @@ class Summary(object):
 
         """
         x, n = self._x, self._n
-        xp = backends.get_array_module(x)
+        xp = backend.get_array_module(x)
         with _get_device(x):
             mean = x / n
             var = self._x2 / n - mean * mean

@@ -96,7 +96,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         else:
             mask_shape = W_data.shape
 
-        xp = backends.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
         mask = xp.random.rand(*mask_shape) >= self.ratio
 
         def f(x, W, b=None):
@@ -137,7 +137,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         else:
             mask_shape = W_data.shape
 
-        xp = backends.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
         mask = xp.random.rand(*mask_shape) >= self.ratio
 
         def f(x, W, b=None):
