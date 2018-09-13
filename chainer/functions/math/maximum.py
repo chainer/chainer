@@ -61,7 +61,9 @@ class MaximumGrad(function_node.FunctionNode):
             gx2 = cond ? (T)0.0 : gy;
             ''',
             'maximum_bwd1')(self.cond, gy)
-        return utils.sum_to(gx1, self.x1_shape), utils.sum_to(gx2, self.x2_shape)
+        return (
+            utils.sum_to(gx1, self.x1_shape),
+            utils.sum_to(gx2, self.x2_shape))
 
     def backward(self, indexes, grad_outputs):
         return chainer.functions.where(
