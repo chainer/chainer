@@ -857,7 +857,7 @@ Actual: {0}'''.format(type(data))
         elif dst is None:
             self.initialize(src.shape)
             dst = self.data
-        backends.copyto(dst, src)
+        chainer.backends.copyto(dst, src)
 
     def addgrad(self, var):
         """Accumulates the gradient array from given source variable.

@@ -5,6 +5,7 @@
 
      import numpy as np
      import chainer
+     from chainer import backend
      from chainer import backends
      from chainer.backends import cuda
      from chainer import Function, gradient_check, report, training, utils, Variable

@@ -584,7 +584,7 @@ Assign a Parameter object directly to an attribute within a \
                 d = dst[name]
                 s = src[name]
                 if isinstance(d, array_types) and isinstance(s, array_types):
-                    backends.copyto(d, s)
+                    chainer.backends.copyto(d, s)
                 else:
                     dst[name] = copy.deepcopy(s)
 
