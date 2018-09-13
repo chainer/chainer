@@ -77,7 +77,7 @@ def main():
     # Setup an iterator
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
 
-    # Setup a updater
+    # Setup an updater
     updater = DCGANUpdater(
         models=(gen, dis),
         iterator=train_iter,

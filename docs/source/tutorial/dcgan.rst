@@ -1,20 +1,20 @@
 DCGAN: Generate the images with Deep Convolutional GAN
-******************************************************
+*******************************************************
 
 .. currentmodule:: chainer
 
 0. Introduction
 ================
 
-In this tutorial, we generate images with **generative adversarial network (GAN)**.
-It is a kind of generative model with deep neural network, and often applied to
-the image generation. The GAN technique is also applied to 
+In this tutorial, we generate images with **generative adversarial networks (GAN)**.
+It is a kind of generative models with deep neural networks, and often applied to
+image generation. GANs are also adopted by
 `PaintsChainer <https://paintschainer.preferred.tech/index_en.html>`_,
-a famous automatic coloring service.
+an automatic colorization service.
 
 .. image:: ../../image/dcgan/generated-images.gif
 
-In the tutorial, you will learn the following things:
+In this tutorial, you will learn the following things:
 
 1. Generative Adversarial Networks (GAN)
 2. Implementation of DCGAN in Chainer
@@ -22,10 +22,10 @@ In the tutorial, you will learn the following things:
 1. Generarive Adversarial Networks (GAN)
 =========================================
 
-1.1 What is the GAN?
----------------------
+1.1 What is GAN?
+-----------------
 
-As explained in the GAN tutorial in NIPS 2016 [1], the generative models can be classified into the categories as shown in the following figure:
+As explained in GAN tutorial in NIPS 2016 [1], generative models can be classified into the categories as shown in the following figure:
 
 .. figure:: ../../image/dcgan/class-generative-model.png
    :scale: 100%
@@ -33,19 +33,20 @@ As explained in the GAN tutorial in NIPS 2016 [1], the generative models can be 
    cited from [1]
 
 Besides GAN, other famous generative models are Fully visible belief networks (FVBNs) and Variational autoencoder (VAE).
-Unlike FVBNs and VAE, GAN does not explicitly models the probability distribution :math:`p({\bf s})`
-that generates the training data. Instead, we model a generator :math:`G: {\bf z} \mapsto {\bf s}`.
-The generator :math:`G` samples :math:`{\bf s} \sim p({\bf s})` from the latent variable :math:`\bf z`.
+Unlike FVBNs and VAE, GAN do not explicitly model the probability distribution :math:`p({\bf s})`
+that generates training data. Instead, we model a generator :math:`G: {\bf z} \mapsto {\bf s}`.
+The generator :math:`G` samples :math:`{\bf s} \sim p({\bf s})` from the latent variable :math:`{\bf z}`.
 Apart from the generator :math:`G`, we create a discriminator :math:`D({\bf x})`
-which identified the samples from the generator :math:`G` and the true samples from training data.
+which 
+discriminates samples from the generator `G` and examples from training data.
 While training the discriminator :math:`D`, the generator :math:`G` is also trained so that
 the generated samples cannot be identified by the discriminator.
 The advantages of GAN are low sampling cost and state-of-the-art in image generation.
 The disadvantage is that we cannot calculate the probability distribution
 :math:`p_{\mathrm {model}}({\bf s})` because we do not model any probability distribution,
-and we cannot infer the latent variable :math:`\bf z` from a sample.
+and we cannot infer the latent variable :math:`{\bf z}` from a sample.
 
-1.2 How the GAN works?
+1.2 How GAN works?
 -----------------------
 
 As explained above, GAN uses the two models, the generator and the discriminator. In other words,
@@ -60,7 +61,7 @@ When training the networks, we should match the distribution of the samples
 The generator :math:`G` learns the target distribution on the idea of
 **Nash equilibrium** [2] of game theory.
 In detail, while training the discriminator :math:`D`,
-the generator :math:`G` is also trained so that the discriminator :math:`D`
+the generator :math:`G` is also trained, so that the discriminator :math:`D`
 cannot identify the generated samples.
 
 As an intuitive example, the relationship between counterfeiters of
@@ -74,7 +75,7 @@ be able to produce as similar banknote as genuine.
 
 The training process is explained by mathematical expressions as follows.
 First, since the discriminator :math:`D({\bf s})` is a probability 
-that the sample :math:`\bf s` is generated from the true distribution,
+that the sample :math:`{\bf s}` is generated from the true distribution,
 it can be expressed as follows:
 
 .. math::
@@ -248,9 +249,9 @@ Next, let's make optimizers for the models created above.
 2.5 Prepare updater
 --------------------
 
-The GAN needs the two models: the generator and the discriminator. Usually,
+GAN needs the two models: the generator and the discriminator. Usually,
 the default updaters pre-defined in Chainer take only one model.
-So, we need to define a custom updater for the GAN training.
+So, we need to define a custom updater for GAN training.
 
 The definition of ``DCGANUpdater`` is a little complicated. However, it just
 minimize the loss of the discriminator and that of the generator alternately.
