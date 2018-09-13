@@ -26,8 +26,6 @@ class Where(function_node.FunctionNode):
         self.retain_inputs((0,))
         xp = cuda.get_array_module(*inputs)
         condition, x, y = inputs
-        self.x_shape = x.shape
-        self.y_shape = y.shape
         return xp.where(condition, x, y),
 
     def backward(self, indexes, grad_outputs):
@@ -40,10 +38,10 @@ class Where(function_node.FunctionNode):
             ret.append(None)
         if 1 in indexes:
             gx, = Where().apply((condition.data, g, zero))
-            ret.append(chainer.functions.sum_to(gx, self.x_shape))
+            ret.append(chainer.functions.sum_to(gx, self.inputs[1].shape))
         if 2 in indexes:
             gy, = Where().apply((condition.data, zero, g))
-            ret.append(chainer.functions.sum_to(gy, self.y_shape))
+            ret.append(chainer.functions.sum_to(gy, self.inputs[2].shape))
         return ret
 
 
