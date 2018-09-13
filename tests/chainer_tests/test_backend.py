@@ -56,7 +56,6 @@ class TestToNumpyIterable(unittest.TestCase):
     def test_to_numpy_iterable(self):
         arrays = numpy.split(
             numpy.arange(8).reshape(4, 2).astype(numpy.float32), 2)
-        assert isinstance(arrays, (list, tuple))
         arrays_numpy = backend.to_numpy(arrays)
         assert type(arrays) == type(arrays_numpy)
         for a, na in zip(arrays, arrays_numpy):
