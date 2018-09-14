@@ -551,7 +551,7 @@ Array IsInf(const Array& x) {
         NoBackpropModeScope scope{};
         x.device().IsInf(x, out);
     }
-    return  out;
+    return out;
 }
 
 }  // namespace chainerx
