@@ -66,5 +66,5 @@ test_script:
   # Run the project tests
   - "%CMD_IN_ENV% pip install -U -e .[appveyor]"
   # Avoid interuption confirmation of cmd.exe
-  - "echo python -m pytest --timeout=60 -m \"not gpu and not cudnn and not ideep and not slow\" tests > tmp.bat"
+  - "echo python -m pytest --timeout=60 -m \"not gpu and not cudnn and not ideep and not slow\" tests/chainer_tests > tmp.bat"
   - "call tmp.bat < nul"

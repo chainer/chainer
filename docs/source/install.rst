@@ -57,6 +57,10 @@ Chainer can be installed without them, in which case the corresponding features 
 * HDF5 serialization support
     * `h5py <http://www.h5py.org/>`__ 2.5+
     * Run ``pip install h5py`` to install.
+* Distributed Deep Learning using ChainerMN
+    * CUDA-aware MPI
+    * `mpi4py <https://mpi4py.readthedocs.io/en/stable/>`__
+    * See :ref:`ChainerMN installation guide <chainermn_installation>` for installation instructions
 
 
 Install Chainer

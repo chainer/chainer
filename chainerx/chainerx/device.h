@@ -175,6 +175,8 @@ public:
     // Formally, it calculates: out = x1 < x2 ? pos : neg
     virtual void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
 
+    virtual void Tanh(const Array& x, const Array& out) = 0;
+
     // Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
     // Let the shapes of `a` and `b` be `(M, K)` and `(L, N)`, respectively.
     // Then, it must hold that `K == L` and the shape of `out` must be `(M, N)`.
@@ -184,7 +186,6 @@ public:
     virtual void Exp(const Array& x, const Array& out) = 0;
     virtual void Log(const Array& x, const Array& out) = 0;
 
-    // TODO(niboshi): Implement corresponding function in routines
     virtual void Sqrt(const Array& x, const Array& out) = 0;
 
     virtual void IsNan(const Array& x, const Array& out) = 0;

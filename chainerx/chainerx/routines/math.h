@@ -82,4 +82,6 @@ Array IsNan(const Array& x);
 
 Array IsInf(const Array& x);
 
+Array Tanh(const Array& x);
+
 }  // namespace chainerx
