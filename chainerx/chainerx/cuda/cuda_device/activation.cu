@@ -1,5 +1,6 @@
 #include "chainerx/cuda/cuda_device.h"
 
+#include <cmath>
 #include <cstdint>
 
 #include <cuda_runtime.h>
