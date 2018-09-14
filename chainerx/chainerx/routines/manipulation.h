@@ -23,7 +23,7 @@ Array Transpose(const Array& a, const OptionalAxes& axes = nonstd::nullopt);
 
 // Returns a reshaped array.
 // TODO(niboshi): Support shape with dimension -1.
-Array Reshape(const Array& a, const Shape& newshape);
+Array Reshape(const Array& a, Shape newshape);
 
 // Returns a squeezed array with unit-length axes removed.
 //

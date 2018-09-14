@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <numeric>
 #include <sstream>
 #include <string>
@@ -106,7 +107,20 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
     return out;
 }
 
-Array Reshape(const Array& a, const Shape& newshape) {
+namespace {
+void SpecifyDim(Shape& shape, int64_t itemsize) {
+    auto it = std::find_if(shape.begin(), shape.end(), [](int64_t dim) { return dim < 0; });
+    if (it == shape.end()) return;
+    if (std::find_if(std::next(it), shape.end(), [](int64_t dim) { return dim < 0; }) != shape.end()) {
+        throw DimensionError{"can only specify one unknown dimension"};
+    }
+    int64_t rest_size = std::accumulate(shape.begin(), it, int64_t{1}, std::multiplies<int64_t>()) *
+                        std::accumulate(std::next(it), shape.end(), int64_t{1}, std::multiplies<int64_t>());
+    if (itemsize % rest_size == 0) *it = itemsize / rest_size;
+}
+}  // namespace
+
+Array Reshape(const Array& a, Shape newshape) {
     const Shape& in_shape = a.shape();
     const Strides& in_strides = a.strides();
 
@@ -117,6 +131,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
 
     // Check for invalid shape.
     int64_t total_size = in_shape.GetTotalSize();
+    SpecifyDim(newshape, total_size);
     if (total_size != newshape.GetTotalSize()) {
         throw DimensionError{"Cannot reshape array of size ", total_size, " into shape ", newshape};
     }
