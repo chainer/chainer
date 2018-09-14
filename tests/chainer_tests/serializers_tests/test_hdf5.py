@@ -47,26 +47,6 @@ class TestHDF5Serializer(unittest.TestCase):
         self.assertEqual(child.group.name, '/x')
         self.assertEqual(child.compression, 3)
 
-    @pytest.mark.chainerx
-    def test_serialize_chainerx(self):
-        data = chainerx.asarray(self.data)
-        ret = self.serializer('w', data)
-        dset = self.hdf5file['w']
-
-        self.assertIsInstance(dset, h5py.Dataset)
-        self.assertEqual(dset.shape, data.shape)
-        self.assertEqual(dset.size, data.size)
-        # TODO(hvy): Remove this cast when chainerx.ndarray.dtype are equal
-        # to numpy.dtype.
-        self.assertEqual(dset.dtype, numpy.dtype(data.dtype.name))
-        read = numpy.empty((2, 3), dtype=numpy.float32)
-        dset.read_direct(read)
-        numpy.testing.assert_array_equal(read, self.data)
-
-        self.assertEqual(dset.compression_opts, 3)
-
-        self.assertIs(ret, data)
-
     def check_serialize(self, data):
         ret = self.serializer('w', data)
         dset = self.hdf5file['w']
@@ -74,7 +54,14 @@ class TestHDF5Serializer(unittest.TestCase):
         self.assertIsInstance(dset, h5py.Dataset)
         self.assertEqual(dset.shape, data.shape)
         self.assertEqual(dset.size, data.size)
-        self.assertEqual(dset.dtype, data.dtype)
+
+        # TODO(hvy): Remove this branch when chainerx.ndarray.dtypes are equal
+        # to numpy.dtypes.
+        if isinstance(data, chainerx.ndarray):
+            self.assertEqual(dset.dtype, numpy.dtype(data.dtype.name))
+        else:
+            self.assertEqual(dset.dtype, data.dtype)
+
         read = numpy.empty((2, 3), dtype=numpy.float32)
         dset.read_direct(read)
         numpy.testing.assert_array_equal(read, backend.to_numpy(data))
@@ -82,6 +69,10 @@ class TestHDF5Serializer(unittest.TestCase):
         self.assertEqual(dset.compression_opts, 3)
 
         self.assertIs(ret, data)
+
+    @pytest.mark.chainerx
+    def test_serialize_chainerx(self):
+        self.check_serialize(chainerx.asarray(self.data))
 
     def test_serialize_cpu(self):
         self.check_serialize(self.data)
