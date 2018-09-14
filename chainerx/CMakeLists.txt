@@ -17,6 +17,7 @@ option(CHAINERX_BUILD_PYTHON "Build Python binding" OFF)
 option(CHAINERX_BUILD_TEST "Build test" ON)
 option(CHAINERX_WARNINGS_AS_ERRORS "Make all warnings of compilers into errors" ON)
 option(CHAINERX_ENABLE_THREAD_SANITIZER "Enable thread sanitizer." OFF)
+option(CHAINERX_CUDA_MULTITHREAD_TEST_SEGV_WORKAROUND "Enable a workaround for SEGV during multi-thread backward test with CUDA backend." OFF)
 
 if(DEFINED ENV{CHAINERX_ENABLE_COVERAGE})
     set(DEFAULT_CHAINERX_ENABLE_COVERAGE $ENV{CHAINERX_ENABLE_COVERAGE})
@@ -54,6 +55,7 @@ if(${CHAINERX_BUILD_CUDA})
     if(${CUDA_FOUND})
         add_definitions(-DCHAINERX_ENABLE_CUDA=1)
         find_package(CuDNN 7 REQUIRED)
+        include_directories(${CUDNN_INCLUDE_DIRS})
         if(NOT CHAINERX_NVCC_GENERATE_CODE STREQUAL "")
             list(APPEND CUDA_NVCC_FLAGS --generate-code=${CHAINERX_NVCC_GENERATE_CODE})
         elseif(CMAKE_BUILD_TYPE MATCHES Release)
@@ -106,6 +108,11 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     endif()
 endif()
 include_directories("${PROJECT_SOURCE_DIR}")
+
+# CUDA multi-thread test workaround
+if (CHAINERX_CUDA_MULTITHREAD_TEST_SEGV_WORKAROUND)
+    add_definitions(-DCHAINERX_CUDA_MULTITHREAD_TEST_SEGV_WORKAROUND)
+endif()
 
 # dl libs
 if(DEFINED CMAKE_DL_LIBS)

@@ -11,6 +11,8 @@
 #include <utility>
 #include <vector>
 
+#include <gsl/gsl>
+
 #include "chainerx/array.h"
 #include "chainerx/array_node.h"
 #include "chainerx/backprop_mode.h"
