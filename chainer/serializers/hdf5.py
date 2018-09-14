@@ -137,7 +137,6 @@ class HDF5Deserializer(serializer.Deserializer):
             return None
         if value is None:
             return numpy.asarray(dataset)
-
         if isinstance(value, chainerx.ndarray):
             value_view = chainerx.tonumpy(value, copy=False)
             dataset.read_direct(value_view)
