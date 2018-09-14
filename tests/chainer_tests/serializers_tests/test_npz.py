@@ -131,12 +131,17 @@ class TestNpzDeserializer(unittest.TestCase):
 
     def check_deserialize(self, y, query):
         ret = self.deserializer(query, y)
-        numpy.testing.assert_array_equal(cuda.to_cpu(y), self.data)
+        numpy.testing.assert_array_equal(backend.to_numpy(y), self.data)
         self.assertIs(ret, y)
 
     def check_deserialize_by_passing_none(self, y, query):
         ret = self.deserializer(query, None)
-        numpy.testing.assert_array_equal(cuda.to_cpu(ret), self.data)
+        numpy.testing.assert_array_equal(backend.to_numpy(ret), self.data)
+
+    @pytest.mark.chainer
+    def test_deserialize_chainerx(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(chainerx.asarray(y), 'y')
 
     def test_deserialize_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)

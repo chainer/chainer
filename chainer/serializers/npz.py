@@ -145,9 +145,11 @@ class NpzDeserializer(serializer.Deserializer):
         dataset = self.npz[key]
         if dataset[()] is None:
             return None
-
         if value is None:
             return dataset
+        if isinstance(value, chainerx.ndarray):
+            value_view = chainerx.tonumpy(value, copy=False)
+            numpy.copyto(value_view, dataset)
         elif isinstance(value, numpy.ndarray):
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):
