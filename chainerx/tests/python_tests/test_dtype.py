@@ -20,7 +20,7 @@ def test_dtype_from_python_type():
     assert chainerx.dtype(float) == chainerx.float64
 
 
-@chainerx.testing.parametrize_dtype_specifier('dtype_spec', with_chainerx_dtypes=False)
+@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
 def test_dtype_from_specifier(dtype_spec):
     assert chainerx.dtype(dtype_spec).name == numpy.dtype(dtype_spec).name
 

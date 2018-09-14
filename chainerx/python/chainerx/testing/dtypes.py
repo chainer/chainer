@@ -40,13 +40,12 @@ numeric_dtypes = signed_dtypes + unsigned_dtypes
 all_dtypes = ('bool_',) + numeric_dtypes
 
 
-def parametrize_dtype_specifier(argname, dtypes=None, with_chainerx_dtypes=True, additional_args=None):
+def parametrize_dtype_specifier(argname, dtypes=None, additional_args=None):
     """Parametrizes a test with various arguments that can be used as dtypes.
 
     Args:
          argname(str): Argument name to pass the value that can be used as a dtype.
          dtypes(list of strs): List of dtype names.
-         with_chainerx_dtypes(bool): If ``True``, :class:`chainerx.dtype`\ s are included as the values. ``True`` by default.
          additional_args(tuple of list): Additional values to be included.
     """
     if dtypes is None:
@@ -62,9 +61,6 @@ def parametrize_dtype_specifier(argname, dtypes=None, with_chainerx_dtypes=True,
     lst += [numpy.dtype(dt) for dt in dtypes]
     # char codes
     lst += [chainerx.dtype(dt).char for dt in dtypes]
-    # chainerx dtypes
-    if with_chainerx_dtypes:
-        lst += [chainerx.dtype(dt) for dt in dtypes]
     # User-specified args
     if additional_args is not None:
         assert isinstance(additional_args, (tuple, list))
