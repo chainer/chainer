@@ -9,15 +9,19 @@ class FunctionHook(object):
     Registered function hooks are invoked before and after
     forward and backward operations of each function.
 
-    Function hooks that derive :class:`FunctionHook` are required
-    to implement four methods:
-    :meth:`~chainer.FunctionHook.forward_preprocess`,
-    :meth:`~chainer.FunctionHook.forward_postprocess`,
-    :meth:`~chainer.FunctionHook.backward_preprocess`, and
-    :meth:`~chainer.FunctionHook.backward_postprocess`.
+    Function hooks that derive from :class:`FunctionHook` may override the
+    following  methods:
+
+    * :meth:`~chainer.FunctionHook.added`
+    * :meth:`~chainer.FunctionHook.deleted`
+    * :meth:`~chainer.FunctionHook.forward_preprocess`
+    * :meth:`~chainer.FunctionHook.forward_postprocess`
+    * :meth:`~chainer.FunctionHook.backward_preprocess`
+    * :meth:`~chainer.FunctionHook.backward_postprocess`
+
     By default, these methods do nothing.
 
-    Specifically, when :meth:`~chainer.FunctionNode.__call__`
+    Specifically, when the :meth:`~chainer.FunctionNode.__call__`
     method of some function is invoked,
     :meth:`~chainer.FunctionHook.forward_preprocess`
     (resp. :meth:`~chainer.FunctionHook.forward_postprocess`)
@@ -31,10 +35,14 @@ class FunctionHook(object):
     of all function hooks registered to the function which holds this variable
     as a gradient are called before (resp. after) backward propagation.
 
+    :meth:`~chainer.FunctionHook.added` and
+    :meth:`~chainer.FunctionHook.deleted` are called when the hook is
+    registered or unregistered, respectively.
+
     There are two ways to register :class:`~chainer.FunctionHook`
     objects to :class:`~chainer.FunctionNode` objects.
 
-    First one is to use ``with`` statement. Function hooks hooked
+    The first one is to use ``with`` statement. Function hooks hooked
     in this way are registered to all functions within ``with`` statement
     and are unregistered at the end of ``with`` statement.
 
@@ -45,7 +53,6 @@ class FunctionHook(object):
         with :class:`~chainer.function_hooks.TimerHook`, which is a subclass of
         :class:`~chainer.FunctionHook`.
 
-        >>> from chainer import function_hooks
         >>> class Model(chainer.Chain):
         ...   def __init__(self):
         ...     super(Model, self).__init__()
@@ -59,9 +66,10 @@ class FunctionHook(object):
         >>> with chainer.function_hooks.TimerHook() as m:
         ...   _ = model1(x)
         ...   y = model2(x)
-        ...   print("Total time : " + str(m.total_time()))
-        ...   model3 = Model()
-        ...   z = model3(y) # doctest:+ELLIPSIS
+        >>> model3 = Model()
+        >>> z = model3(y)
+        >>> print('Total time : {}'.format(m.total_time()))
+        ... # doctest:+ELLIPSIS
         Total time : ...
 
         In this example, we measure the elapsed times for each forward
@@ -76,14 +84,24 @@ class FunctionHook(object):
        as a thread local object. So, function hooks registered
        are different depending on threads.
 
-    The other one is to register directly to
-    :class:`~chainer.FunctionNode` object with
-    :meth:`~chainer.Function.add_hook` method.
+    The other one is to register it directly to
+    a :class:`~chainer.FunctionNode` object by calling its
+    :meth:`~chainer.FunctionNode.add_hook` method.
     Function hooks registered in this way can be removed by
-    :meth:`~chainer.Function.delete_hook` method.
-    Contrary to former registration method, function hooks are registered
-    only to the function which :meth:`~chainer.FunctionNode.add_hook`
-    is called.
+    :meth:`~chainer.FunctionNode.delete_hook` method.
+    Contrary to the former registration method, function hooks are registered
+    only to the function whose :meth:`~chainer.FunctionNode.add_hook`
+    method is called.
+
+    If the hook is registered globally using ``with`` statement, ``None`` is
+    passed as the ``function`` argument of :meth:`~chainer.FunctionHook.added`
+    and :meth:`~chainer.FunctionHook.deleted`.
+
+    If the hook is registered in a specific function using
+    :meth:`~chainer.FunctionNode.add_hook`, the :class:`~chainer.FunctionNode`
+    instance is passed as the ``function`` argument of
+    :meth:`~chainer.FunctionHook.added` and
+    :meth:`~chainer.FunctionHook.deleted`.
 
     Args:
         name(str): Name of this function hook.
@@ -105,20 +123,22 @@ class FunctionHook(object):
         del chainer.get_function_hooks()[self.name]
 
     def added(self, function):
-        """Callback function invoked when a function hook is added
+        """Callback function invoked when the function hook is registered
 
         Args:
             function(~chainer.FunctionNode): Function object to which
-                the function hook is added.
+                the function hook is added. ``None`` if the function hook is
+                registered globally.
         """
         pass
 
     def deleted(self, function):
-        """Callback function invoked when a function hook is deleted
+        """Callback function invoked when the function hook is unregistered
 
         Args:
-            function(~chainer.FunctionNode): Function object to which
-                the function hook is deleted.
+            function(~chainer.FunctionNode): Function object from which
+                the function hook is deleted. ``None`` if the function hook
+                was registered globally.
         """
         pass
 

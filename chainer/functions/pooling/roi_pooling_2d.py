@@ -59,9 +59,9 @@ class ROIPooling2D(function.Function):
 
         x_type, roi_type = in_types
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             x_type.ndim == 4,
-            roi_type.dtype == numpy.float32,
+            x_type.dtype == roi_type.dtype,
             roi_type.ndim == 2,
             roi_type.shape[1] == 5,
         )
@@ -76,7 +76,7 @@ class ROIPooling2D(function.Function):
         # `numpy.zeros` needs to be used because the arrays can be
         # returned without having some of its values updated.
         top_data = numpy.zeros((n_rois, channels, self.outh, self.outw),
-                               dtype=numpy.float32)
+                               dtype=bottom_data.dtype)
         self.argmax_data = numpy.zeros(top_data.shape, numpy.int32)
 
         for i_roi in six.moves.range(n_rois):
@@ -122,15 +122,15 @@ class ROIPooling2D(function.Function):
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
-                                    self.outw), dtype=numpy.float32)
+                                    self.outw), dtype=bottom_data.dtype)
         self.argmax_data = cuda.cupy.empty(top_data.shape, numpy.int32)
         cuda.elementwise(
             '''
-            raw float32 bottom_data, float32 spatial_scale, int32 channels,
+            raw T bottom_data, T spatial_scale, int32 channels,
             int32 height, int32 width, int32 pooled_height, int32 pooled_width,
-            raw float32 bottom_rois
+            raw T bottom_rois
             ''',
-            'float32 top_data, int32 argmax_data',
+            'T top_data, int32 argmax_data',
             '''
             // pos in output filter
             int pw = i % pooled_width;
@@ -195,7 +195,7 @@ class ROIPooling2D(function.Function):
         bottom_rois = inputs[1]
         channels, height, width = self._bottom_data_shape[1:]
         n_rois = bottom_rois.shape[0]
-        bottom_delta = numpy.zeros(self._bottom_data_shape, numpy.float32)
+        bottom_delta = numpy.zeros(self._bottom_data_shape, bottom_rois.dtype)
 
         for i_roi in six.moves.range(n_rois):
             idx, xmin, ymin, xmax, ymax = bottom_rois[i_roi]
@@ -235,14 +235,16 @@ class ROIPooling2D(function.Function):
     def backward_gpu(self, inputs, gy):
         bottom_rois = inputs[1]
         channels, height, width = self._bottom_data_shape[1:]
-        bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, numpy.float32)
+        bottom_diff = cuda.cupy.zeros(
+            self._bottom_data_shape, bottom_rois.dtype)
+
         cuda.elementwise(
             '''
-            raw float32 top_diff, raw int32 argmax_data, int32 num_rois,
-            float32 spatial_scale, int32 channels, int32 height, int32 width,
-            int32 pooled_height, int32 pooled_width, raw float32 bottom_rois
+            raw T top_diff, raw int32 argmax_data, int32 num_rois,
+            T spatial_scale, int32 channels, int32 height, int32 width,
+            int32 pooled_height, int32 pooled_width, raw T bottom_rois
             ''',
-            'float32 bottom_diff',
+            'T bottom_diff',
             '''
             int w = i % width;
             int h = (i / width) % height;

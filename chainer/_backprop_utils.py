@@ -166,7 +166,7 @@ def backprop_step(
                     yield gx_elem
 
         for gx in iter_gxs(grad_inputs.values()):
-            if chainer.backends._contains_nan(gx.data):
+            if chainer.backend._contains_nan(gx.data):
                 raise RuntimeError(
                     'NaN is detected on backward computation of {}'
                     .format(func.label))

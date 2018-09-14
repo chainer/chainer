@@ -29,13 +29,15 @@ class GradientLARS(object):
         - :math:`\\beta`  : weight_decay
         - :math:`\\eta`   : lars_coeeficient
         - :math:`\\lambda`: local_lr \
-    :math:`=\\eta * \\frac{\|w_t\|}{\|\\nabla L(w_t)\| + \\beta * \|w_t\|}`.
+    :math:`=\\eta * \
+    \\frac{\\|w_t\\|}{\\|\\nabla L(w_t)\\| + \\beta * \\|w_t\\|}`.
 
     As :math:`lr` in chainer.optimizers.SGD or chainer.optimizers.MomentumSGD
-    corresponds to :math:`\\gamma * \\eta`, we define :math:`clip\_rate` as
-    :math:`\\frac{\|w_t\|}{\|\\nabla L(w_t)\| + \\beta * \|w_t\|}`
+    corresponds to :math:`\\gamma * \\eta`, we define :math:`clip\\_rate` as
+    :math:`\\frac{\\|w_t\\|}{\\|\\nabla L(w_t)\\| + \\beta * \\|w_t\\|}`
     and reformulate the aforementioned formula as:
-    :math:`v_{t+1} = m * v_t + lr * clip\_rate * (\\nabla L(w_t) + \\beta w_t)`
+    :math:`v_{t+1} \
+    = m * v_t + lr * clip\\_rate * (\\nabla L(w_t) + \\beta w_t)`
     and implement in this way. So you do not set lars_coeeficient.
 
     Args:
