@@ -90,12 +90,10 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
     Array array = Array{self}.ToNative();
     if (copy) {
-        return py::array{pybind11::dtype(std::string(1, GetCharCode(array.dtype()))),
-                         array.shape(),
-                         array.strides(),
-                         internal::GetRawOffsetData<void>(array)};
+        return py::array{
+                pybind11::dtype(GetDtypeName(array.dtype())), array.shape(), array.strides(), internal::GetRawOffsetData<void>(array)};
     } else {
-        return py::array{pybind11::dtype(std::string(1, GetCharCode(array.dtype()))),
+        return py::array{pybind11::dtype(GetDtypeName(array.dtype())),
                          array.shape(),
                          array.strides(),
                          internal::GetRawOffsetData<void>(array),
@@ -367,7 +365,7 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("backprop_id") = nullptr);
     c.def_property_readonly(
             "device", [](const ArrayBodyPtr& self) -> Device& { return Array{self}.device(); }, py::return_value_policy::reference);
-    c.def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return py::dtype(std::string(1, GetCharCode(Array{self}.dtype()))); });
+    c.def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return py::dtype(GetDtypeName(self->dtype())); });
     c.def_property_readonly("itemsize", [](const ArrayBodyPtr& self) { return Array{self}.item_size(); });
     c.def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.IsContiguous(); });
     c.def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return Array{self}.ndim(); });
