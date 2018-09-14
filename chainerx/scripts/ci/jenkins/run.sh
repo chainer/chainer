@@ -69,4 +69,5 @@ MAKEFLAGS=-j16 run_step make
 run_step make_install
 run_step ctest
 MAKEFLAGS=-j16 run_step python_build
-run_step python_test
+run_step python_test_chainerx
+run_step python_test_chainer

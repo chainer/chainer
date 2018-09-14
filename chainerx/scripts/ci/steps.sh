@@ -178,11 +178,11 @@ step_python_build() {
 
     CHAINER_BUILD_CHAINERX=1 \
     CHAINERX_BUILD_CUDA=ON \
-    pip install "$REPO_DIR"
+    pip install "$REPO_DIR"[test]
 }
 
 
-step_python_test() {
+step_python_test_chainerx() {
     source activate testenv
 
     # TODO(niboshi): threshold is temporarily lowered from 80 to 50. Restore it after writing tests for testing package.
@@ -198,7 +198,7 @@ step_python_test() {
 }
 
 
-step_python_test_nocuda() {
+step_python_test_chainerx_nocuda() {
     source activate testenv
 
     # Run all non-CUDA tests except doctests
@@ -218,4 +218,21 @@ step_python_test_nocuda() {
 
     # Run all non-CUDA doctests
     find "$CHAINERX_DIR"/tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
+}
+
+
+step_python_test_chainer() {
+    source activate testenv
+
+    # Some chainer tests generate files under current directory.
+    local temp_dir="$(mktemp -d)"
+    pushd "$temp_dir"
+
+    pytest \
+        --showlocals \
+        --capture=no \
+        -m 'not slow and not ideep' \
+        "$REPO_DIR"/tests/chainer_tests
+
+    popd
 }
