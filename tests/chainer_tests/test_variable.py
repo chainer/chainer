@@ -11,6 +11,7 @@ import pytest
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 import chainer.functions as F
@@ -1476,7 +1477,7 @@ class TestReshape(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = x.reshape(shape)
         assert y.data.dtype == self.dtype
-        assert (self.x.reshape(shape) == cuda.to_cpu(y.data)).all()
+        assert (self.x.reshape(shape) == backend.to_numpy(y.data)).all()
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -1485,12 +1486,20 @@ class TestReshape(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
+    @pytest.mark.chainerx
+    def test_forward_chx(self):
+        # TODO(imanishi): chainerx does not support fp16 yet
+        if self.dtype == np.float16:
+            return
+        self.check_forward(chainerx.array(self.x))
+
     def check_backward(self, x_data):
         x = chainer.Variable(x_data)
         y = x.reshape(self.out_shape)
         y.grad = y.data
         y.backward()
-        testing.assert_allclose(x.data, x.grad, atol=0, rtol=0)
+        testing.assert_allclose(backend.to_numpy(x.data),
+                                backend.to_numpy(x.grad), atol=0, rtol=0)
 
     def test_backward_cpu(self):
         self.check_backward(self.x)
@@ -1498,6 +1507,13 @@ class TestReshape(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+    @pytest.mark.chainerx
+    def test_backward_chx(self):
+        # TODO(imanishi): chainerx does not support fp16 yet
+        if self.dtype == np.float16:
+            return
+        self.check_backward(chainerx.array(self.x))
 
 
 @testing.parameterize(*testing.product({
