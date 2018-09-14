@@ -56,10 +56,9 @@ def test_array_from_tuple_or_list(xp, obj, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
     # Skip nan/inf -> integer conversion that would cause a cast error.
-    # TODO(niboshi): Write as chainerx.dtype(dtype_spec).kind. chainerx.dtype.kind is not defined yet.
     if (not _is_all_finite(obj)
             and dtype_spec not in (None, Unspecified)
-            and numpy.dtype(chainerx.dtype(dtype_spec).name).kind not in ('f', 'c')):
+            and chainerx.dtype(dtype_spec).kind not in ('f', 'c')):
         return chainerx.testing.ignore()
     if dtype_spec is Unspecified:
         return xp.array(obj)
@@ -312,10 +311,9 @@ def test_ascontiguousarray_from_tuple_or_list(xp, device, obj, dtype_spec):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
     # Skip nan/inf -> integer conversion that would cause a cast error.
-    # TODO(niboshi): Write as chainerx.dtype(dtype_spec).kind. chainerx.dtype.kind is not defined yet.
     if (not _is_all_finite(obj)
             and dtype_spec not in (None, Unspecified)
-            and numpy.dtype(chainerx.dtype(dtype_spec).name).kind not in ('f', 'c')):
+            and chainerx.dtype(dtype_spec).kind not in ('f', 'c')):
         return chainerx.testing.ignore()
 
     if dtype_spec is Unspecified:
