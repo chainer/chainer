@@ -4,9 +4,11 @@ import unittest
 
 import mock
 import numpy
+import pytest
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import link
 from chainer import links
@@ -14,6 +16,7 @@ from chainer import optimizers
 from chainer.serializers import npz
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 class TestDictionarySerializer(unittest.TestCase):
@@ -39,10 +42,21 @@ class TestDictionarySerializer(unittest.TestCase):
         self.assertIsInstance(dset, numpy.ndarray)
         self.assertEqual(dset.shape, data.shape)
         self.assertEqual(dset.size, data.size)
-        self.assertEqual(dset.dtype, data.dtype)
-        numpy.testing.assert_array_equal(dset, cuda.to_cpu(data))
+
+        # TODO(hvy): Remove this branch when chainerx.ndarray.dtypes are equal
+        # to numpy.dtypes.
+        if isinstance(data, chainerx.ndarray):
+            self.assertEqual(dset.dtype, numpy.dtype(data.dtype.name))
+        else:
+            self.assertEqual(dset.dtype, data.dtype)
+
+        numpy.testing.assert_array_equal(dset, backend.to_numpy(data))
 
         self.assertIs(ret, data)
+
+    @pytest.mark.chainerx
+    def test_serialize_chainerx(self):
+        self.check_serialize(chainerx.asarray(self.data), 'w')
 
     def test_serialize_cpu(self):
         self.check_serialize(self.data, 'w')

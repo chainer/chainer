@@ -3,6 +3,7 @@ import six
 
 from chainer.backends import cuda
 from chainer import serializer
+import chainerx
 
 
 class DictionarySerializer(serializer.Serializer):
@@ -46,7 +47,9 @@ class DictionarySerializer(serializer.Serializer):
     def __call__(self, key, value):
         key = key.lstrip('/')
         ret = value
-        if isinstance(value, cuda.ndarray):
+        if isinstance(value, chainerx.ndarray):
+            value = chainerx.tonumpy(value)
+        elif isinstance(value, cuda.ndarray):
             value = value.get()
         arr = numpy.asarray(value)
         self.target[self.path + key] = arr
