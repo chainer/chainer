@@ -515,4 +515,25 @@ Array Sqrt(const Array& x) {
     return out;
 }
 
+Array Tanh(const Array& x) {
+    Array out = EmptyLike(x, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().Tanh(x, out);
+    }
+
+    BackwardBuilder bb{"tanh", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            const Array& gout = bctx.output_grad();
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            bctx.input_grad() = gout * (1 - out * out);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 }  // namespace chainerx
