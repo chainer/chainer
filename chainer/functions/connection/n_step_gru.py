@@ -154,7 +154,7 @@ def n_step_bigru(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Six weight matrices and six bias vectors are
     required for each layers. So, when :math:`S` layers exists, you need to
-    prepare :math:`6S` weigth matrices and :math:`6S` bias vectors.
+    prepare :math:`6S` weight matrices and :math:`6S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.

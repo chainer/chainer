@@ -10,7 +10,7 @@ import six
 
 import chainer
 from chainer import _backprop_utils
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -857,7 +857,7 @@ Actual: {0}'''.format(type(data))
         elif dst is None:
             self.initialize(src.shape)
             dst = self.data
-        backends.copyto(dst, src)
+        backend.copyto(dst, src)
 
     def addgrad(self, var):
         """Accumulates the gradient array from given source variable.
