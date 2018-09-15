@@ -1,10 +1,40 @@
 import os
+import subprocess
 
 from chainer import computational_graph
 from chainer import configuration
 from chainer.training import extension
-from chainer import variable
 from chainer.utils import argument
+from chainer import variable
+
+
+# 2 functions copied from ChainerRL. Ref:
+# https://github.com/chainer/chainerrl/blob/v0.4.0/chainerrl/misc/draw_computational_graph.py  # NOQA
+def is_return_code_zero(args):
+    """Return true iff the given command's return code is zero.
+
+    All the messages to stdout or stderr are suppressed.
+
+    Args:
+        args (list of str): Command to execute.
+
+    """
+
+    with open(os.devnull, 'wb') as FNULL:
+        try:
+            subprocess.check_call(args, stdout=FNULL, stderr=FNULL)
+        except subprocess.CalledProcessError:
+            # The given command returned an error
+            return False
+        except OSError:
+            # The given command was not found
+            return False
+        return True
+
+
+def is_graphviz_available():
+    """Tell whether graphviz is available or not."""
+    return is_return_code_zero(['dot', '-V'])
 
 
 _var_style = {'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}
@@ -16,7 +46,8 @@ def dump_graph(root_name, filename=None,
     """Returns a trainer extension to dump a computational graph.
 
     This extension dumps a computational graph. The graph is output in DOT
-    language.
+    language. If graphviz is available, this also renders and saves the image
+    of computational graph.
 
     It only dumps a graph at the first invocation.
 
@@ -53,7 +84,8 @@ def dump_graph(root_name, filename=None,
         filename (str): Output file name. It is recommended to use this
             argument though, instead of `filename` you can specify name of
             the output file by `out_name` for backward compatibility.
-            If both `filename` and `out_name` are specified, `filename` is used.
+            If both `filename` and `out_name` are specified, `filename`
+            is used.
         variable_style (dict): Dot node style for variables. Each variable is
             rendered by an octagon by default.
         function_style (dict): Dot node style for functions. Each function is
@@ -96,10 +128,16 @@ def dump_graph(root_name, filename=None,
                 function_style=function_style
             ).dump()
 
-            out_path = os.path.join(trainer.out, out_name)
-            # TODO(beam2d): support outputting images by the dot command
-            with open(out_path, 'w') as f:
+            file_path = os.path.join(trainer.out, filename)
+            with open(file_path, 'w') as f:
                 f.write(cg)
+
+            if is_graphviz_available():
+                image_path = os.path.join(
+                    trainer.out, os.path.splitext(filename)[0] + ".png"
+                )
+                subprocess.check_call(
+                    ['dot', '-Tpng', file_path, '-o', image_path])
         finally:
             configuration.config.keep_graph_on_report = original_flag[0]
 

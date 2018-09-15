@@ -224,7 +224,7 @@ class VariableStatisticsPlot(extension.Extension):
         self._plot_percentile = bool(percentile_sigmas)
 
         self._trigger = trigger_module.get_trigger(trigger)
-        self._file_name = file_name
+        self._filename = filename
         self._figsize = figsize
         self._marker = marker
         self._grid = grid
@@ -278,7 +278,7 @@ class VariableStatisticsPlot(extension.Extension):
         self._samples.add(stats, idx=trainer.updater.iteration)
 
         if self._trigger(trainer):
-            file_path = os.path.join(trainer.out, self._file_name)
+            file_path = os.path.join(trainer.out, self._filename)
             self.save_plot_using_module(file_path, plt)
 
     def save_plot_using_module(self, file_path, plt):
