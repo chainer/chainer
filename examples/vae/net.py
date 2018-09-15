@@ -1,67 +1,100 @@
-import six
+import numpy as np
 
 import chainer
+from chainer import cuda
+import chainer.distributions as D
 import chainer.functions as F
-from chainer.functions.loss.vae import gaussian_kl_divergence
 import chainer.links as L
+from chainer import reporter
 
 
-class VAE(chainer.Chain):
-    """Variational AutoEncoder"""
+class AvgELBOLoss(chainer.Chain):
+    def __init__(self, encoder, decoder, prior):
+        super(AvgELBOLoss, self).__init__()
+
+        with self.init_scope():
+            self.encoder = encoder
+            self.decoder = decoder
+            self.prior = prior
+
+        self.loss = None
+        self.rec = None
+        self.penalty = None
+
+    def __call__(self, x):
+        q_z = self.encoder(x)
+        z = q_z.sample()
+        p_x = self.decoder(z)
+        p_z = self.prior()
+
+        self.loss = None
+        self.rec = None
+        self.penalty = None
+        self.rec = F.mean(F.sum(p_x.log_prob(x), axis=-1))
+        self.penalty = F.mean(
+            F.sum(q_z.log_prob(z) - p_z.log_prob(z), axis=-1))
+        self.loss = - (self.rec - self.penalty)
+        reporter.report({'loss': self.loss}, self)
+        reporter.report({'rec': self.rec}, self)
+        reporter.report({'penalty': self.penalty}, self)
+        return self.loss
+
+
+class Encoder(chainer.Chain):
 
     def __init__(self, n_in, n_latent, n_h):
-        super(VAE, self).__init__()
+        super(Encoder, self).__init__()
         with self.init_scope():
-            # encoder
-            self.le1 = L.Linear(n_in, n_h)
-            self.le2_mu = L.Linear(n_h, n_latent)
-            self.le2_ln_var = L.Linear(n_h, n_latent)
-            # decoder
-            self.ld1 = L.Linear(n_latent, n_h)
-            self.ld2 = L.Linear(n_h, n_in)
+            self.linear = L.Linear(n_in, n_h)
+            self.mu = L.Linear(n_h, n_latent)
+            self.ln_sigma = L.Linear(n_h, n_latent)
 
-    def forward(self, x, sigmoid=True):
-        """AutoEncoder"""
-        return self.decode(self.encode(x)[0], sigmoid)
+    def forward(self, x):
+        h = F.tanh(self.linear(x))
+        mu = self.mu(h)
+        ln_sigma = self.ln_sigma(h)  # log(sigma)
+        return D.Normal(loc=mu, log_scale=ln_sigma)
 
-    def encode(self, x):
-        h1 = F.tanh(self.le1(x))
-        mu = self.le2_mu(h1)
-        ln_var = self.le2_ln_var(h1)  # log(sigma**2)
-        return mu, ln_var
 
-    def decode(self, z, sigmoid=True):
-        h1 = F.tanh(self.ld1(z))
-        h2 = self.ld2(h1)
-        if sigmoid:
-            return F.sigmoid(h2)
-        else:
-            return h2
+class Decoder(chainer.Chain):
 
-    def get_loss_func(self, beta=1.0, k=1):
-        """Get loss function of VAE.
+    def __init__(self, n_in, n_latent, n_h):
+        super(Decoder, self).__init__()
+        with self.init_scope():
+            self.linear = L.Linear(n_latent, n_h)
+            self.output = L.Linear(n_h, n_in)
 
-        The loss value is equal to ELBO (Evidence Lower Bound)
-        multiplied by -1.
+    def forward(self, z):
+        h = F.tanh(self.linear(z))
+        h = self.output(h)
+        return D.Bernoulli(logit=h)
 
-        Args:
-            beta (int): Usually this is 1.0. Can be changed to control the
-                second term of ELBO bound, which works as regularization.
-            k (int): Number of Monte Carlo samples used in encoded vector.
-        """
-        def lf(x):
-            mu, ln_var = self.encode(x)
-            batchsize = len(mu.data)
-            # reconstruction loss
-            rec_loss = 0
-            for l in six.moves.range(k):
-                z = F.gaussian(mu, ln_var)
-                rec_loss += F.bernoulli_nll(x, self.decode(z, sigmoid=False)) \
-                    / (k * batchsize)
-            self.rec_loss = rec_loss
-            self.loss = self.rec_loss + \
-                beta * gaussian_kl_divergence(mu, ln_var) / batchsize
-            chainer.report(
-                {'rec_loss': rec_loss, 'loss': self.loss}, observer=self)
-            return self.loss
-        return lf
+
+class Prior(chainer.Chain):
+
+    def __init__(self, n_latent, dtype=np.float32, device=-1):
+        super(Prior, self).__init__()
+
+        loc = np.zeros(n_latent, dtype=dtype)
+        scale = np.ones(n_latent, dtype=dtype)
+        if device != -1:
+            loc = cuda.to_gpu(loc, device=device)
+            scale = cuda.to_gpu(scale, device=device)
+
+        self.loc = chainer.Variable(loc)
+        self.scale = chainer.Variable(scale)
+
+    def forward(self):
+        return D.Normal(self.loc, scale=self.scale)
+
+
+def make_encoder(n_in, n_latent, n_h):
+    return Encoder(n_in, n_latent, n_h)
+
+
+def make_decoder(n_in, n_latent, n_h):
+    return Decoder(n_in, n_latent, n_h)
+
+
+def make_prior(n_latent, dtype=np.float32, device=-1):
+    return Prior(n_latent, dtype=dtype, device=device)
