@@ -2,7 +2,6 @@
 """Chainer example: train a VAE on Binarized MNIST
 """
 import argparse
-import json
 import os
 
 import numpy as np
