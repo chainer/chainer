@@ -61,7 +61,7 @@ class LogReport(extension.Extension):
     """
 
     def __init__(self, keys=None, trigger=(1, 'epoch'), postprocess=None,
-                 filename='log', **kwargs):
+                 filename=None, **kwargs):
         self._keys = keys
         self._trigger = trigger_module.get_trigger(trigger)
         self._postprocess = postprocess
@@ -72,7 +72,7 @@ class LogReport(extension.Extension):
         )
         if filename is None:
             filename = log_name
-        self._log_name = log_name
+        self._log_name = filename
 
         self._init_summary()
 
