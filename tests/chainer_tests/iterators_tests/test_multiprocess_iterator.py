@@ -2,7 +2,7 @@ from __future__ import division
 import copy
 import errno
 import os
-import platform
+import pytest
 import signal
 import subprocess
 import sys
@@ -52,6 +52,7 @@ class DummyDeserializer(serializer.Deserializer):
         return value
 
 
+@pytest.mark.timeout(300)
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
@@ -163,8 +164,6 @@ class TestMultiprocessIterator(unittest.TestCase):
             for k, v in six.iteritems(batches):
                 numpy.testing.assert_allclose(dataset[k][1], v)
 
-    @unittest.skipIf(platform.system() == 'Windows' and int(platform.python_version_tuple()[0]) < 3,
-                     'causes timeout in conda with Windows')
     def test_iterator_dict_type(self):
         dataset = [{i: numpy.zeros((10,)) + i} for i in range(6)]
         it = iterators.MultiprocessIterator(dataset, 2, **self.options)
