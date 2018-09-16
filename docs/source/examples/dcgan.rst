@@ -22,7 +22,7 @@ In this tutorial, you will learn the following things:
 1. Generarive Adversarial Networks (GAN)
 =========================================
 
-1.1 What is GAN?
+1.1 What are GAN?
 -----------------
 
 As explained in GAN tutorial in NIPS 2016 [1], generative models can be classified into the categories as shown in the following figure:
@@ -51,7 +51,7 @@ The disadvantage is that we cannot calculate the likelihood
 :math:`p_{\mathrm {model}}({\bf s})` because we do not model any probability distribution,
 and we cannot infer the latent variable :math:`{\bf z}` from a sample.
 
-1.2 How GAN works?
+1.2 How GAN work?
 -----------------------
 
 As explained above, GAN use the two models, the generator and the discriminator.
@@ -119,7 +119,7 @@ discriminator :math:`D({\bf s})` and the generator :math:`G({\bf z})` [4]. The a
 
    cited from [4]
 
-1.3 What is DCGAN?
+1.3 What are DCGAN?
 -------------------
 
 In this section, we will introduce the model called DCGAN(Deep Convolutional GAN) proposed by Radford et al.[5].
@@ -130,7 +130,7 @@ As shown below, it is a model using CNN(Convolutional Neural Network) as its nam
 
    cited from [5]
 
-In addition, although GAN is known for its difficulty in training, this paper introduces various techniques
+In addition, although GAN are known for its difficulty in training, this paper introduces various techniques
 for successful training:
 
 1. Convert max-pooling layers to convolution layers with larger or fractional strides
