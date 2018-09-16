@@ -39,13 +39,10 @@ The generator :math:`G` samples :math:`{\bf s} \sim p({\bf s})` from the latent 
 Apart from the generator :math:`G`, we create a discriminator :math:`D({\bf x})`
 which discriminates between samples from the generator `G` and examples from training data.
 While training the discriminator :math:`D`, the generator :math:`G`
-try to maximize the probability of the discriminator :math:`D` making a mistake.
-So, the generator :math:`G` try to create samples
+tries to maximize the probability of the discriminator :math:`D` making a mistake.
+So, the generator :math:`G` tries to create samples
 that seem to be drawn from the same distribution as the training data.
 
-
-is also trained so that
-the generated samples cannot be identified by the discriminator.
 The advantages of GAN are low sampling cost and its state-of-the-art performance in image generation.
 The disadvantage is that we cannot calculate the likelihood
 :math:`p_{\mathrm {model}}({\bf s})` because we do not model any probability distribution,
