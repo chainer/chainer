@@ -135,4 +135,33 @@ class TestDeconvolutionNDNoInitialBias(unittest.TestCase):
         self.assertIsNone(link.b)
 
 
+class TestDeconvolutionNDWrappers(unittest.TestCase):
+
+    def _get_data(self, ndim):
+        in_channels = 3
+        out_channels = 2
+        dtype = numpy.float32
+
+        x_shape = (2, in_channels) + (3,) * ndim
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+
+        return in_channels, out_channels, x
+
+    def test_deconv1d(self):
+        in_c, out_c, x = self._get_data(1)
+        link_nd = deconvolution_nd.DeconvolutionND(
+            1, in_c, out_c, 2, initialW=1)
+        link_1d = deconvolution_nd.Deconvolution1D(
+            in_c, out_c, 2, initialW=1)
+        testing.assert_allclose(link_nd(x).data, link_1d(x).data)
+
+    def test_deconv3d(self):
+        in_c, out_c, x = self._get_data(3)
+        link_nd = deconvolution_nd.DeconvolutionND(
+            3, in_c, out_c, 2, initialW=1)
+        link_3d = deconvolution_nd.Deconvolution3D(
+            in_c, out_c, 2, initialW=1)
+        testing.assert_allclose(link_nd(x).data, link_3d(x).data)
+
+
 testing.run_module(__name__, __file__)
