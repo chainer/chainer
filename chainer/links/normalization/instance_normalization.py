@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 
 import chainer
@@ -19,10 +21,11 @@ class InstanceNormalization(link.Link):
 
     It runs in three modes: training mode, fine-tuning mode, and testing mode.
 
-    In training mode, it normalizes the input by *sample statistics*. It also
-    maintains approximated population statistics by moving averages, which can
-    be used for instant evaluation in testing mode. Training mode is enabled
-    when ``chainer.config.train`` is set to ``True`` and :meth:`__call__`
+    In training mode, it normalizes the input by *sample statistics*. If
+    `use_running_statistics` is ``True``, It also maintains approximated
+    population statistics by moving averages, which can be used for
+    instant evaluation in testing mode. Training mode is enabled
+    when ``chainer.config.train`` is set to ``True`` and :meth:`forward`
     is invoked with ``finetune=False`` (the default is False).
 
     In fine-tuning mode, it accumulates the input to compute *population
@@ -31,11 +34,11 @@ class InstanceNormalization(link.Link):
     dataset. Finetuning mode is enabled when ``chainer.config.train`` is set to
     ``True`` and :meth:`__call__` is invoked with ``finetune=True``.
 
-    In testing mode, it uses pre-computed population statistics to normalize
-    the input variable. The population statistics is approximated if it is
-    computed by training mode, or accurate if it is correctly computed by
-    fine-tuning mode. Testing mode is enabled when ``chainer.config.train``
-    is set to ``False``.
+    If `use_running_statistics` is ``True``, it uses pre-computed population
+    statistics to normalize the input variable in testing mode.
+    The population statistics is approximated if it is computed in training mode,
+    or accurate if it is correctly computed by fine-tuning mode.
+    Testing mode is enabled when ``chainer.config.train`` is set to ``False``.
 
     Args:
         size (int, tuple of ints, or None): Size (or shape) of channel
@@ -66,8 +69,8 @@ class InstanceNormalization(link.Link):
         may have a slightly different behavior on inference. To emulate the
         old behavior, pass ``initial_avg_var=0`` for training.
 
-    See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
-          Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
+    See: `Instance Normalization: The Missing Ingredient for Fast Stylization\
+          <https://arxiv.org/abs/1607.08022>`_
 
     .. seealso::
        :func:`~chainer.functions.instance_normalization`,
@@ -109,7 +112,8 @@ class InstanceNormalization(link.Link):
             if use_gamma:
                 if initial_gamma is None:
                     initial_gamma = 1
-                gamma_initializer = initializers._get_initializer(initial_gamma)
+                gamma_initializer = initializers._get_initializer(
+                    initial_gamma)
                 self.gamma = variable.Parameter(gamma_initializer)
             if use_beta:
                 if initial_beta is None:
@@ -159,14 +163,19 @@ class InstanceNormalization(link.Link):
                 decay = self.decay
 
             ret = functions.instance_normalization(
-                x, gamma, beta, self.use_running_statistics,
+                x, gamma, beta,
+                use_running_statistics=self.use_running_statistics,
                 eps=self.eps, running_mean=self.avg_mean,
-                running_var=self.avg_var, decay=decay, axis=self.axis)
+                running_var=self.avg_var, decay=decay, axis=self.axis
+            )
 
         return ret
 
     def start_finetuning(self):
-        assert self.use_running_statistics, "This link does not mange running statistics."
+        if not self.use_running_statistics:
+            warning.warning(
+                'Sice `use_running_statistics` is False, finetuning is useless.'
+            )
 
         self.N = 0
 

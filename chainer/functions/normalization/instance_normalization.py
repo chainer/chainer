@@ -1,4 +1,6 @@
-import numpy as np
+import warnings
+
+import numpy
 
 import chainer
 from chainer.backends import cuda
@@ -45,8 +47,11 @@ class InstanceNormalization(function_node.FunctionNode):
     mean = None
     inv_std = None
 
-    def __init__(self, eps=2e-5, use_running_stats=False, mean=None, var=None, decay=0.9, axis=None):
-        self.use_running_stats = use_running_stats
+    def __init__(self, eps=2e-5, use_running_statistics=False,
+                 mean=None, var=None, decay=0.9, axis=None):
+        # If the below is ``False``, then all the running statistics
+        # updates are skipped.
+        self.use_running_statistics = use_running_statistics
         self.running_mean = mean
         self.running_var = var
         # Note: cuDNN requires that eps be greater than or equals to
@@ -96,15 +101,20 @@ class InstanceNormalization(function_node.FunctionNode):
             )
 
     def forward(self, inputs):
+        # Reshape input (N, C, ...) to (1, N * C, ...)
+        # in order to use cudnn implementation.
+        # retained input's and gamma's shape is (N, C, ...) and (N * C,)
+        # respectively. Though the shape of self.mean and self.var is (N * C,).
         self.retain_inputs((0, 1))
         x_, gamma_, beta_ = inputs
         self.org_shape = x_.shape
-        batch_size, channels, *shape = self.org_shape
-        self.new_shape = [1, batch_size * channels] + x.shape[2:]
+        batch_size, n_channels, *shape = self.org_shape
+        self.new_shape = [1, batch_size * n_channels] + shape
         self.axis, self.key_axis, self.expander = _compute_axis_keyaxis_expander(
-            x.ndim, gamma.ndim, self.axis
+            x_.ndim, gamma_.ndim, self.axis
         )
 
+        # Here x, gamma, beta reshaped to (1, N * C, ...)
         xp = cuda.get_array_module(x_)
         x = xp.reshape(x_, self.new_shape)
         gamma = xp.repeat(gamma_, batch_size, 0)
@@ -114,20 +124,26 @@ class InstanceNormalization(function_node.FunctionNode):
         self.use_cudnn = self.mode.can_use_cudnn(xp)
         self.use_ideep = self.mode.can_use_ideep()
 
+        # Returned y's shape is (N, C, ...)
         if self.running_mean is None:
-            self.running_mean = xp.zeros_like(gamma)
-            self.running_var = xp.zeros_like(gamma)
+            self.running_mean = xp.zeros_like(gamma_)
+            self.running_var = xp.zeros_like(gamma_)
         if self.use_ideep:
-            self._forward_ideep(x, gamma, beta)
+            y = self._forward_ideep(x, gamma, beta)
         elif self.use_cudnn:
-            self._forward_cudnn(x, gamma, beta)
+            y = self._forward_cudnn(xp, x, gamma, beta)
         else:
-            self._forward_generic(x, gamma, beta)
+            y = self._forward_generic(xp, x, gamma, beta)
+        return y,
 
     def backward(self, indexes, grad_outputs):
+        # Here shapes are:
+        #   x:     (N, C, ...)
+        #   gamma: (C,)
+        #   y:     (N, C, ...)
+        # `f` takes care of shapes.
         x, gamma = self.get_retained_inputs()
         gy, = grad_outputs
-        gy = xp.reshape(gy, self.new_shape)
         if self.use_ideep:
             assert self.var is not None
             var = self.var
@@ -136,7 +152,8 @@ class InstanceNormalization(function_node.FunctionNode):
 
         f = InstanceNormalizationGrad(
             self.eps, self.use_cudnn, self.mode, self.expander, self.axis,
-            self.mean, var, self.inv_std, self.key_axis, self.org_shape, self.new_shape
+            self.mean, var, self.inv_std, self.key_axis, self.org_shape,
+            self.new_shape
         )
         return f(x, gamma, gy)
 
@@ -157,42 +174,40 @@ class InstanceNormalization(function_node.FunctionNode):
         )
 
         m = x.size // (gamma.size / self.org_shape[0])
-        adjus = m / max(m - 1., 1.)
+        adjust = m / max(m - 1., 1.)
 
-        if self.use_running_stats and isinstance(self.running_mean, intel64.ideep.mdarray):
+        if self.use_running_statistics:
             # Update running_mean
             if isinstance(self.running_mean, intel64.ideep.mdarray):
-                mean = self.mean.reshape(
-                    (self.org_shape[0], self.org_shape[1])
-                ).sum(axis=0) / self.org_shape[0]
+                mean = self.mean.reshape((self.org_shape[0], -1)).mean(axis=0)
                 self.running_mean.inplace_axpby(
                     self.decay, (1 - self.decay), mean)
             else:
                 self.running_mean *= self.decay
+                mom = 1 - self.decay
                 self.running_mean += self.mean.reshape(
-                    (self.org_shape[0], -1)).mean(axis=0) * (1 - self.decay)
+                    (self.org_shape[0], -1)).mean(axis=0) * mom
 
             # Update running_var
             if isinstance(self.running_var, intel64.ideep.mdarray):
-                var = self.var.reshape(
-                    (self.org_shape[0], self.org_shape[1])
-                ).sum(axis=0) / self.org_shape[0]
+                var = self.var.reshape((self.org_shape[0], -1)).mean(axis=0)
                 self.running_var.inplace_axpby(
                     self.decay, (1 - self.decay), var * adjust)
             else:
                 self.running_var *= self.decay
+                mom = 1 - self.decay
                 self.running_var += self.var.reshape(
-                    (self.org_shape[0], -1)).mean(axis=0) * adjust * (1 - self.decay)
+                    (self.org_shape[0], -1)).mean(axis=0) * adjust * mom
 
         if expand_dim:
             y = numpy.squeeze(y, axis=(2, 3))
 
-        y = y.reshape
-        return y,
+        y = y.reshape(self.org_shape)
+        return y
 
     def _forward_cudnn(self, xp, x, gamma, beta):
         # To handle different sizes of mini-batches,
-        # dummy variables are used as running statistics intentionally.
+        # dummy variables are used as running statistics tentatively.
         x = cuda.cupy.ascontiguousarray(x)
 
         gamma = cuda.cupy.ascontiguousarray(gamma)
@@ -230,8 +245,8 @@ class InstanceNormalization(function_node.FunctionNode):
             handle, cudnn_mode, one.data, zero.data,
             x_desc.value, x.data.ptr, x_desc.value,
             y.data.ptr, derivedBnDesc.value, gamma.data.ptr,
-            beta.data.ptr, factor, running_mean.data.ptr,
-            running_var.data.ptr, self.eps,
+            # running mean n/ var can be NULL.
+            beta.data.ptr, factor, None, None, self.eps,
             self.mean.data.ptr, self.inv_std.data.ptr)
 
         # Note: When the CUDNN_BATCHNORM_SPATIAL_PERSISTENT mode is used,
@@ -247,12 +262,12 @@ class InstanceNormalization(function_node.FunctionNode):
                     'A numerical overflow might have happend in cuDNN'
                     'batch normalization (status:{})'.format(rstatus))
 
-        if self.use_running_stats:
+        if self.use_running_statistics:
             self._update_running_statistics(
-                mean.astype(dtype), var.astype(dtype), x, gamma)
+                self.mean.astype(dtype), self.var.astype(dtype), x, gamma)
 
-        return y.reshape(self.org_shape),
-
+        y = y.reshape(self.org_shape)
+        return y
 
     def _forward_generic(self, xp, x, gamma, beta):
         # Generic CPU and GPU implementation
@@ -262,7 +277,7 @@ class InstanceNormalization(function_node.FunctionNode):
         var = x.var(axis=self.axis)
         if xp is numpy:
             self.inv_std = numpy.reciprocal(
-                numpy.sqrt(var + self.eps, dtype=self.dtype)
+                numpy.sqrt(var + self.eps, dtype=x.dtype)
             )
         else:
             self.inv_std = cuda.cupyx.rsqrt(var + self.eps)
@@ -271,16 +286,16 @@ class InstanceNormalization(function_node.FunctionNode):
             xp, x, self.mean[self.expander], self.inv_std[self.expander],
             gamma, beta
         )
-        if self.use_running_stats:
-            self._update_running_statistics(mean, var, x, gamma)
+        if self.use_running_statistics:
+            self._update_running_statistics(self.mean, var, x, gamma)
         y = y_.reshape(self.org_shape)
-        return y,
+        return y
 
     def _update_running_statistics(self, mean, var, x, gamma):
         m = x.size // (gamma.size / self.org_shape[0])
         adjust = m / max(m - 1., 1.)  # unbiased estimation
-        mean = self.mean.reshape((self.org_shape[0], -1)).mean(axis=0)
-        var = self.var.reshape((self.org_shape[0], -1)).mean(axis=0)
+        mean = mean.reshape((self.org_shape[0], -1)).mean(axis=0)
+        var = var.reshape((self.org_shape[0], -1)).mean(axis=0)
         self.running_mean *= self.decay
         self.running_mean += (1 - self.decay) * mean
         self.running_var *= self.decay
@@ -306,23 +321,30 @@ class InstanceNormalizationGrad(function.Function):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1, 2))
+        # As mentioned in InstanceNormalization backward method,
+        # this is responsible for shape adjustments.
+        # (N, C, ...), (C,), (N, C, ...)
         x_, gamma_, gy_ = inputs
-        expander = self.expander
-        inv_m = gamma.dtype.type(1. / (x_.size // gamma_.size))
-        xp = cuda.get_array_module(x)
+        inv_m = gamma_.dtype.type(1. / (x_.size // gamma_.size))
+        xp = cuda.get_array_module(x_)
 
+        # (1, N * C, ...), (N * C,), (1, N * C, ...)
         x = x_.reshape(self.new_shape)
         gamma = xp.repeat(gamma_, self.org_shape[0], axis=0)
         gy = gy_.reshape(self.new_shape)
 
+        # In _forward_* methods, (N, C, ...) shaped gx and
+        # (C,) shaped ggamma are cached.
         if self.use_ideep:
-            return self._forward_ideep(xp, x, gy, gamma, inv_m)
+            ret = self._forward_ideep(xp, x, gy, gamma, inv_m)
         elif self.use_cudnn:
-            return self._forward_cudnn(xp, x, gy, gamma, inv_m)
+            ret = self._forward_cudnn(xp, x, gy, gamma, inv_m)
         else:
-            return self._forward_generic(xp, x, gy, gamma, inv_m)
+            ret = self._forward_generic(xp, x, gy, gamma, inv_m)
+        return ret
 
     def _forward_ideep(self, xp, x, gy, gamma, inv_m):
+        expander = self.expander
         expand_dim = False
         if x.ndim == 2:
             expand_dim = True
@@ -330,22 +352,26 @@ class InstanceNormalizationGrad(function.Function):
             gy = gy[:, :, None, None]
 
         gamma = gamma[expander]
-        beta = beta[expander]
+        beta = numpy.zeros_like(gamma)
         W = numpy.concatenate((gamma, beta), axis=0).reshape((2, -1))
 
+        # gx: (1, N * C, ...)
+        # ggamma, gbeta: (N * C,)
         gx, gW = intel64.ideep.batchNormalization.Backward(
             intel64.ideep.array(x),
             intel64.ideep.array(gy),
             self.mean,
             self.var,
             intel64.ideep.array(W),
-            self.eps)
-
+            self.eps
+        )
         ggamma, gbeta = gW[:2]
 
         if expand_dim:
             gx = numpy.squeeze(gx, axis=(2, 3))
 
+        # gx: (N, C, ...)
+        # ggamma, gbeta: (C,)
         gx = gx.reshape(self.org_shape)
         ggamma = ggamma.reshape((self.org_shape[0], -1)).mean(axis=0)
         gbeta = gbeta.reshape((self.org_shape[0], -1)).mean(axis=0)
@@ -353,7 +379,7 @@ class InstanceNormalizationGrad(function.Function):
         self.retain_outputs((0, 1))
         return gx, ggamma, gbeta
 
-    def _forward_cudnn(self, xp, x, gy, gamma, inv_m):
+    def _forward_cudnn(self, xp, x, gy, gamma, inv_m=None):
         x = cuda.cupy.ascontiguousarray(x)
         gamma = cuda.cupy.ascontiguousarray(gamma)
         gy = cuda.cupy.ascontiguousarray(gy)
@@ -362,8 +388,8 @@ class InstanceNormalizationGrad(function.Function):
         x_desc = cudnn.create_tensor_descriptor(_as4darray(x, self.mode))
         cudnn_mode = self.mode.get_cudnn_mode()
         derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
-        libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
-                                          x_desc.value, cudnn_mode)
+        libcudnn.deriveBNTensorDescriptor(
+            derivedBnDesc.value, x_desc.value, cudnn_mode)
         dtype_param = _get_dtype_of_tensor_descriptor(derivedBnDesc)
         if dtype_param is not dtype:
             gamma = gamma.astype(dtype_param)
@@ -405,12 +431,13 @@ class InstanceNormalizationGrad(function.Function):
 
     def _forward_generic(self, xp, x, gy, gamma, inv_m):
         # Generic implementation
+        expander = self.expander
         gbeta = gy.sum(axis=self.axis)
         x_hat = _x_hat(x, self.mean[expander], self.inv_std[expander])
         ggamma = (gy * x_hat).sum(axis=self.axis)
         if xp is numpy:
             gy = (gamma * self.inv_std)[expander] * (
-                gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m)
+                gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m
             )
         else:
             gx = cuda.elementwise(
@@ -425,7 +452,7 @@ class InstanceNormalizationGrad(function.Function):
             ''', 'in_bwd')(gy, x_hat, gamma[expander],
                            self.inv_std[expander], ggamma[expander],
                            gbeta[expander], inv_m
-            )
+                           )
         gx = gx.reshape(self.org_shape)
         ggamma = ggamma.reshape((self.org_shape[0], -1)).mean(axis=0)
         gbeta = gbeta.reshape((self.org_shape[0], -1)).mean(axis=0)
@@ -435,24 +462,21 @@ class InstanceNormalizationGrad(function.Function):
     def backward(self, inputs, grad_outputs):
         expander = self.expander
 
+        # (N, C, ...), (C,), (N, C, ...)
         x, gamma, gy = inputs
         gx1, ggamma1, _ = self.output_data
-        ggx1, ggamma1, ggbeta1 = grad_outputs
+        ggx1, gggamma1, ggbeta1 = grad_outputs
         xp = cuda.get_array_module(x)
 
-        batch_size = len(x)
-        x, gamma, gy = x.reshape(self.new_shape), xp.repeat(gamma, batch_size, 0), gy.reshape(self.new_shape)
-        gx1, ggamma1 = gx1.reshape(self.new_shape), xp.repeat(ggamma1, batch_size, 0)
-        ggx1, ggamma1, ggbeta1 = ggx1.reshape(self.new_shape), xp.repeat(ggamma1, batch_size, 0), xp.repeat(ggbeta1, batch_size, 0)
-
-        # auxiliary values
+        # auxiliary variables
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         r = 0 if ggx1 is None else (gx1 * ggx1).sum(axis=self.axis)
         coeff = gamma * self.inv_std
         coeff_m = coeff * inv_m
+        # FIXME!!!
         x_hat = _x_hat(x, self.mean[expander], self.inv_std[expander])
 
-        # handle None in output gradients
+        # handle None if output gradients
         ggx1 = _zero_if_none(xp, ggx1, x.shape, x.dtype)
         gggamma1 = _zero_if_none(xp, gggamma1, gamma.shape, gamma.dtype)
         ggbeta1 = _zero_if_none(xp, ggbeta1, gamma.shape, gamma.dtype)
@@ -462,8 +486,7 @@ class InstanceNormalizationGrad(function.Function):
 
         ggamma2 = r / gamma
 
-        gx_hat2 = (gggamma2[expander] * gy -
-                   (coeff_m * ggamma1)[expander] * ggx1)
+        gx_hat2 = (gggamma2[expander] * gy - (coeff_m * ggamma1)[expander] * ggx1)
         gstd2 = -self.inv_std * (r + (x_hat * gx_hat2).sum(axis=self.axis))
         gmean2 = -self.inv_std * gx_hat2.sum(axis=self.axis)
         gx2 = self.inv_std[expander] * gx_hat2 + inv_m * (
@@ -471,7 +494,7 @@ class InstanceNormalizationGrad(function.Function):
         ggy2 = (gggamma2[expander] * x_hat + ggbeta2[expander]
                 + coeff[expander] * ggx1)
 
-        return gx2.reshape(self.org_shape), ggamma2.reshape((batch_size, -1)).mean(axis=0), ggy2.reshape(self.org_shape)
+        return gx2, ggamma2, ggy2
 
 
 class FixedInstanceNormalization(function_node.FunctionNode):
@@ -544,18 +567,19 @@ class FixedInstanceNormalization(function_node.FunctionNode):
         var = xp.repeat(var_, batch_size, 0)
 
         self.axis, self.key_axis, self.expander = _compute_axis_keyaxis_expander(
-            x.ndim, gamma.ndim, axis
+            x.ndim, gamma.ndim, self.axis
         )
         self.mode = _INMode(x, gamma, self.key_axis, inference=True)
         self.use_cudnn = self.mode.can_use_cudnn(xp)
         self.use_ideep = self.mode.can_use_ideep()
 
         if self.use_ideep():
-            self._forward_ideep()
+            y = self._forward_ideep(xp, x, gamma, beta, mean, var)
         elif self.use_cudnn:
-            self._forward_cudnn()
+            y = self._forward_cudnn(xp, x, gamma, beta, mean, var)
         else:
-            self._forward_generic()
+            y = self._forward_generic(xp, x, gamma, beta, mean, var)
+        return y,
 
     def _forward_ideep(self, xp, x, gamma, beta, mean, var):
         expand_dim = False
@@ -581,7 +605,7 @@ class FixedInstanceNormalization(function_node.FunctionNode):
         self.inv_var = None
         self.inv_std = None
 
-        return y.reshape(self.org_shape),
+        return y.reshape(self.org_shape)
 
     def _forward_cudnn(self, xp, x, gamma, beta, mean, var):
         x = cuda.cupy.ascontiguousarray(x)
@@ -590,8 +614,8 @@ class FixedInstanceNormalization(function_node.FunctionNode):
         beta = cuda.cupy.ascontiguousarray(beta)
         dtype = x.dtype
         handle = cudnn.get_handle()
-        x_desc = cudnn.create_tensor_descriptor(_as4darray(x, mode))
-        cudnn_mode = mode.get_cudnn_mode()
+        x_desc = cudnn.create_tensor_descriptor(_as4darray(x, self.mode))
+        cudnn_mode = self.mode.get_cudnn_mode()
         derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
         libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
                                           x_desc.value, cudnn_mode)
@@ -612,20 +636,22 @@ class FixedInstanceNormalization(function_node.FunctionNode):
             derivedBnDesc.value, gamma.data.ptr, beta.data.ptr,
             mean.data.ptr, var.data.ptr, self.eps)
 
-        return y.reshape(self.org_shape),
+        return y.reshape(self.org_shape)
 
-    def _forward_generic(self, xp, x, gamma, mean, var):
+    def _forward_generic(self, xp, x, gamma, beta, mean, var):
         # Generic CPU and GPU implementation
         gamma = gamma[self.expander]
         beta = beta[self.expander]
         var = var + self.eps
         self.inv_var = xp.reciprocal(var)
         self.inv_std = xp.sqrt(self.inv_var, dtype=self.inv_var.dtype)
-        y = _apply_in_fwd(xp, x, mean[self.expander], self.inv_std[self.expander],
+        y = _apply_in_fwd(xp, x, mean[self.expander],
+                          self.inv_std[self.expander],
                           gamma, beta)
-        return y.reshape(self.org_shape),
+        return y.reshape(self.org_shape)
 
     def backward(self, indexes, grad_outputs):
+        # Shapes are... (N, C, ...) and 4 (C,)s.
         x, gamma, mean, var = self.get_retained_inputs()
         x = x.reshape(self.new_shape)
         xp = cuda.get_array_module(x)
@@ -642,9 +668,8 @@ class FixedInstanceNormalization(function_node.FunctionNode):
 
 class FixedInstanceNormalizationGrad(function.Function):
 
-    # TODO(crcrpar): Implement!
-
-    def __init__(self, eps, expander, axis, inv_std, inv_var, org_shape, new_shape):
+    def __init__(self, eps, expander, axis, inv_std, inv_var,
+                 org_shape, new_shape):
         self.eps = eps
         self.expander = expander
         self.axis = axis
@@ -713,8 +738,6 @@ class FixedInstanceNormalizationGrad(function.Function):
             - self.gamma_over_std * g_gamma_over_std))
 
         return gx2, ggamma2, gmean2, gvar2, ggy2
-
-
 
 
 class _INMode(object):
@@ -796,8 +819,24 @@ def _get_dtype_of_tensor_descriptor(desc):
     return dtype
 
 
+def _as4darray(arr, mode):
+    assert mode.cudnn_dim_ok
+    if mode.is_for_conv2d:
+        assert arr.ndim == 4
+        return arr
+    else:  # is_for_linear
+        return arr.reshape(numpy.prod(arr.shape[0:-1]), -1, 1, 1)
+
+
+def _zero_if_none(xp, x, shape, dtype):
+    # TODO(Tokui): Return broadcasted 0 instead of a zeroed array.
+    if x is None:
+        return xp.zeros(shape, dtype=dtype)
+    return x
+
+
 def instance_normalization(x, gamma, beta, **kwargs):
-    """instance_normalization(x, gamma, beta, eps=2e-5, update_running_stats=False, running_mean=None, running_var=None, decay=0.9, axis=None)
+    """instance_normalization(x, gamma, beta, eps=2e-5, use_running_statistics=False, running_mean=None, running_var=None, decay=0.9, axis=None)
 
     Instance normalization function.
 
@@ -836,7 +875,7 @@ def instance_normalization(x, gamma, beta, **kwargs):
         beta (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
         :class:`cupy.ndarray`): Shifting parameter of scaled normalized data.
         eps (float): Epsilon value for numerical stability.
-        use_running_stats (bool): Update running statistics or not.
+        use_running_statistics (bool): Update running statistics or not.
             If ``True``, `running_mean` and `running_var` are updated
             using approximated mean and variance.
         running_mean (numpy.ndarray or cupy.ndarray):
@@ -871,13 +910,14 @@ def instance_normalization(x, gamma, beta, **kwargs):
 
     """  # NOQA
 
-    use_running_stats, eps, running_mean, running_var, decay, axis = argument.parse_kwargs(
-        kwargs, ('use_running_stats', False), ('eps', 2e-5), ('running_mean', None),
+    use_running_statistics, eps, running_mean, running_var, decay, axis = argument.parse_kwargs(
+        kwargs, ('use_running_statistics', False), ('eps', 2e-5), ('running_mean', None),
         ('running_var', None), ('decay', 0.9), ('axis', None),
         train='train argument is not supported anymore. '
         'Use chainer.using_config')
 
-    return InstanceNormalization(eps, running_mean, running_var, decay,
+    return InstanceNormalization(eps, use_running_statistics,
+                                 running_mean, running_var, decay,
                                  axis).apply((x, gamma, beta))[0]
 
 
