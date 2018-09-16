@@ -160,8 +160,8 @@ When we make a network in Chainer, there are some conventions:
 1. Define a network class which inherits :class:`~chainer.Chain`.
 2. Make :class:`chainer.links`\ 's instances in the ``init_scope():`` 
    of the initializer ``__init__``.
-3. Concatenate :class:`chainer.links`\ 's instances with :class:`chainer.functions`
-   to make the whole network.
+3. Define network connections in the ``__call__`` operator by using
+   the :class:`chainer.links`\ 's instances and :class:`chainer.functions`.
 
 If you are not familiar with constructing a new network, please refer to
 :ref:`this tutorial<creating_models>`.
@@ -179,9 +179,10 @@ is same as the above image.
 
 .. note::
     Be careful when passing the output of a fully connected layer to a convolution
-    layer. As we can see the 1st line of ``__call__``,
-    the output and input have to be concatenated with reshaping by 
-    :class:`~chainer.functions.reshape`.
+    layer, because the convolutional layer needs additional dimensions for inputs.
+    As we can see the 1st line of ``__call__``,
+    the output of the fully connected layer is reshaped by :class:`~chainer.functions.reshape`
+    to add the dimensions of the channel, the width and the height of images.
 
 2.2 Define the discriminator model
 -----------------------------------
@@ -211,7 +212,8 @@ However, there are minor different points:
 Let's retrieve the CIFAR-10 dataset by using Chainer's dataset utility function
 :class:`~chainer.datasets.get_cifar10`. CIFAR-10 is a set of small natural images.
 Each example is an RGB color image of size 32x32. In the original images,
-each component of pixels is represented by one-byte unsigned integer.
+each of R, G, B of pixels is represented by one-byte unsigned integer 
+(i.e. from 0 to 255).
 This function changes the scale of pixel values into ``[0, scale]`` float values.
 
 .. literalinclude:: ../../../examples/dcgan/train_dcgan.py
