@@ -21,11 +21,10 @@ class InstanceNormalization(link.Link):
 
     It runs in three modes: training mode, fine-tuning mode, and testing mode.
 
-    In training mode, it normalizes the input by *sample statistics*. If
-    `use_running_statistics` is ``True``, It also maintains approximated
-    population statistics by moving averages, which can be used for
-    instant evaluation in testing mode. Training mode is enabled
-    when ``chainer.config.train`` is set to ``True`` and :meth:`forward`
+    In training mode, it normalizes the input by *sample statistics*. It also
+    maintains approximated population statistics by moving averages, which can
+    be used for instant evaluation in testing mode. Training mode is enabled
+    when ``chainer.config.train`` is set to ``True`` and :meth:`__call__`
     is invoked with ``finetune=False`` (the default is False).
 
     In fine-tuning mode, it accumulates the input to compute *population
@@ -34,11 +33,11 @@ class InstanceNormalization(link.Link):
     dataset. Finetuning mode is enabled when ``chainer.config.train`` is set to
     ``True`` and :meth:`__call__` is invoked with ``finetune=True``.
 
-    If `use_running_statistics` is ``True``, it uses pre-computed population
-    statistics to normalize the input variable in testing mode.
-    The population statistics is approximated if it is computed in training mode,
-    or accurate if it is correctly computed by fine-tuning mode.
-    Testing mode is enabled when ``chainer.config.train`` is set to ``False``.
+    In testing mode, it uses pre-computed population statistics to normalize
+    the input variable. The population statistics is approximated if it is
+    computed by training mode, or accurate if it is correctly computed by
+    fine-tuning mode. Testing mode is enabled when ``chainer.config.train``
+    is set to ``False``.
 
     Args:
         size (int, tuple of ints, or None): Size (or shape) of channel
@@ -47,7 +46,7 @@ class InstanceNormalization(link.Link):
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability.
         dtype (numpy.dtype): Type to use in computing.
-        use_running_statistics (bool): If ``False``, running statistics
+        track_running_stats (bool): If ``False``, running statistics
             will not be managed.
         use_gamma (bool): If ``True``, use scaling parameter. Otherwise, use
             unit(1) which makes no effect.
@@ -69,8 +68,8 @@ class InstanceNormalization(link.Link):
         may have a slightly different behavior on inference. To emulate the
         old behavior, pass ``initial_avg_var=0`` for training.
 
-    See: `Instance Normalization: The Missing Ingredient for Fast Stylization\
-          <https://arxiv.org/abs/1607.08022>`_
+    See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
+          Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
     .. seealso::
        :func:`~chainer.functions.instance_normalization`,
@@ -94,7 +93,7 @@ class InstanceNormalization(link.Link):
     avg_var = None
 
     def __init__(self, size, decay=0.9, eps=2e-5, dtype=None,
-                 use_running_statistics=False,
+                 track_running_stats=False,
                  use_gamma=False, use_beta=False,
                  initial_gamma=None, initial_beta=None,
                  initial_avg_mean=None, initial_avg_var=None):
@@ -105,15 +104,14 @@ class InstanceNormalization(link.Link):
         self.eps = eps
         self.axis = None
         self._dtype = chainer.get_dtype(dtype)
-        self.use_running_statistics = use_running_statistics
+        self.track_running_stats = track_running_stats
 
         with self.init_scope():
             self._initialize_params(size, initial_avg_mean, initial_avg_var)
             if use_gamma:
                 if initial_gamma is None:
                     initial_gamma = 1
-                gamma_initializer = initializers._get_initializer(
-                    initial_gamma)
+                gamma_initializer = initializers._get_initializer(initial_gamma)
                 self.gamma = variable.Parameter(gamma_initializer)
             if use_beta:
                 if initial_beta is None:
@@ -150,7 +148,7 @@ class InstanceNormalization(link.Link):
 
         gamma, beta = self._get_gamma_beta(x.dtype)
 
-        if self.use_running_statistics and not chainer.config.train:
+        if self.track_running_stats and not chainer.config.train:
             mean = self.avg_mean
             var = self.avg_var
             ret = functions.fixed_instance_normalization(
@@ -163,18 +161,19 @@ class InstanceNormalization(link.Link):
                 decay = self.decay
 
             ret = functions.instance_normalization(
-                x, gamma, beta,
-                use_running_statistics=self.use_running_statistics,
-                eps=self.eps, running_mean=self.avg_mean,
-                running_var=self.avg_var, decay=decay, axis=self.axis
-            )
+                x, gamma, beta, eps=self.eps,
+                track_running_stat=self.track_running_stats,
+                running_mean=self.avg_mean, running_var=self.avg_var,
+                decay=decay, axis=self.axis)
 
         return ret
 
     def start_finetuning(self):
-        if not self.use_running_statistics:
-            warning.warning(
-                'Sice `use_running_statistics` is False, finetuning is useless.'
+        if not self.track_running_stats:
+            warnings.warn(
+                'As track_running_stats is ``False``'
+                ' finetuning does not effect at all.',
+                UserWarning
             )
 
         self.N = 0

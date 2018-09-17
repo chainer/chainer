@@ -39,7 +39,7 @@ def _instance_normalization(args):
     'param_shape': [(3,)],
     'ndim': [0, 1, 2, 3],
     'eps': [2e-5],
-    'use_running_statistics': [False, True],
+    'track_running_stats': [False, True],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
 }))
@@ -91,7 +91,7 @@ class TestInstanceNormalization(unittest.TestCase):
         self.in_options = {
             'decay': self.decay,
             'eps': self.eps,
-            'use_running_statistics': self.use_running_statistics,
+            'track_running_stats': self.track_running_stats,
         }
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'dtype': numpy.float64}
@@ -182,7 +182,7 @@ class TestInstanceNormalization(unittest.TestCase):
 @testing.parameterize(*(testing.product({
     'param_shape': [(3,)],
     'ndim': [0, 1, 2],
-    'use_running_statistics': [False, True],
+    'track_running_stats': [False, True],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
 })))
@@ -236,7 +236,7 @@ class TestFixedInstanceNormalization(unittest.TestCase):
         self.in_options = {
             'decay': self.decay,
             'eps': self.eps,
-            'use_running_statistics': self.use_running_statistics,
+            'track_running_stats': self.track_running_stats,
         }
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'dtype': numpy.float64}

@@ -14,9 +14,9 @@ from chainer.utils import type_check
 
 
 def _instance_normalization(expander, gamma, beta, x, mean, var, eps,
-                            test, use_running_statistics):
+                            test, track_running_stats):
     mean = mean[expander]
-    if not (test and use_running_statistics):
+    if not (test and track_running_stats):
         var += eps
     std = numpy.sqrt(var[expander])
     y_expect = gamma * (x - mean) / std + beta
@@ -27,7 +27,7 @@ def _instance_normalization(expander, gamma, beta, x, mean, var, eps,
     testing.product({
         'test': [True, False],
         'dtype': [numpy.float16, numpy.float32, numpy.float64],
-        'use_running_statistics': [False, True],
+        'track_running_stats': [False, True],
     }),
     testing.product({
         'param_shape': [(3,)],
@@ -62,7 +62,7 @@ class InstanceNormalizationTest(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, shape).astype(dtype)
         self.gy = numpy.random.uniform(-1, 1, shape).astype(dtype)
 
-        if self.test and self.use_running_statistics:
+        if self.test and self.track_running_stats:
             self.mean = numpy.random.uniform(
                 -1, 1, param_shape).astype(dtype)
             self.var = numpy.random.uniform(
@@ -149,7 +149,7 @@ class TestPopulationStatistics(unittest.TestCase):
         self.decay = 0.9
         self.size = 3
         self.link = links.InstanceNormalization(
-            self.size, self.decay, self.eps use_running_statistics=True
+            self.size, self.decay, self.eps track_running_stats=True
         )
         self.x = numpy.random.uniform(
             -1, 1, (self.nx, self.size)).astype(numpy.float32)
