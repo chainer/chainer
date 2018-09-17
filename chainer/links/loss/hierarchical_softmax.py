@@ -118,11 +118,13 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             self.paths = cuda.to_gpu(self.paths)
             self.codes = cuda.to_gpu(self.codes)
             self.begins = cuda.to_gpu(self.begins)
+        return self
 
     def to_cpu(self):
         self.paths = cuda.to_cpu(self.paths)
         self.codes = cuda.to_cpu(self.codes)
         self.begins = cuda.to_cpu(self.begins)
+        return self
 
     def forward_cpu(self, inputs):
         x, t, W = inputs
@@ -308,10 +310,12 @@ class BinaryHierarchicalSoftmax(link.Link):
         with cuda._get_device(device):
             super(BinaryHierarchicalSoftmax, self).to_gpu(device)
             self._func.to_gpu(device)
+        return self
 
     def to_cpu(self):
         super(BinaryHierarchicalSoftmax, self).to_cpu()
         self._func.to_cpu()
+        return self
 
     @staticmethod
     def create_huffman_tree(word_counts):
