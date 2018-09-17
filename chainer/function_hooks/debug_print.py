@@ -73,9 +73,12 @@ class PrintHook(function_hook.FunctionHook):
         if out_grad is not None:
             self._print('output gradient')
             for d in out_grad:
-                xp = cuda.get_array_module(d)
-                v = variable.Variable(xp.zeros_like(d, dtype=d.dtype))
-                v.grad = d
+                if d is None:
+                    v = variable.Variable()
+                else:
+                    xp = cuda.get_array_module(d)
+                    v = variable.Variable(xp.zeros_like(d, dtype=d.dtype))
+                    v.grad = d
                 self._print(v.debug_print())
         if self.flush:
             self.file.flush()

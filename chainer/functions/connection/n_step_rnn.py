@@ -534,7 +534,7 @@ def n_step_rnn(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Two weight matrices and two bias vectors are
     required for each layer. So, when :math:`S` layers exist, you need to
-    prepare :math:`2S` weigth matrices and :math:`2S` bias vectors.
+    prepare :math:`2S` weight matrices and :math:`2S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
@@ -637,7 +637,7 @@ def n_step_birnn(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Two weight matrices and two bias vectors are
     required for each layer. So, when :math:`S` layers exist, you need to
-    prepare :math:`2S` weigth matrices and :math:`2S` bias vectors.
+    prepare :math:`2S` weight matrices and :math:`2S` bias vectors.
 
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.

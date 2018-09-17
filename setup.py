@@ -44,12 +44,12 @@ requirements = {
         'mock',
     ],
     'doctest': [
-        'sphinx',
+        'sphinx==1.7.9',
         'matplotlib',
         'theano',
     ],
     'docs': [
-        'sphinx',
+        'sphinx==1.7.9',
         'sphinx_rtd_theme',
     ],
     'travis': [

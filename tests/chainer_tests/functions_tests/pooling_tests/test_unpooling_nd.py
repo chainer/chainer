@@ -303,4 +303,38 @@ class TestUnpoolingNDOutsize(unittest.TestCase):
                 x, ksize, stride, pad, outsize=outs, cover_all=cover_all)
 
 
+class TestUnpoolingNDWrappers(unittest.TestCase):
+
+    def _get_data(self, ndim):
+        x_shape = (2, 3) + (3,) * ndim
+        dtype = numpy.float32
+
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+        ksize = (2,) * ndim
+
+        return x, ksize
+
+    def test_unpooling_1d(self):
+        (x, ksize) = self._get_data(1)
+        testing.assert_allclose(
+            functions.unpooling_nd(x, ksize).data,
+            functions.unpooling_1d(x, ksize).data)
+
+    def test_unpooling_1d_invalid(self):
+        (x, ksize) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            functions.unpooling_1d(x, ksize)
+
+    def test_unpooling_3d(self):
+        (x, ksize) = self._get_data(3)
+        testing.assert_allclose(
+            functions.unpooling_nd(x, ksize).data,
+            functions.unpooling_3d(x, ksize).data)
+
+    def test_unpooling_3d_invalid(self):
+        (x, ksize) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            functions.unpooling_3d(x, ksize)
+
+
 testing.run_module(__name__, __file__)
