@@ -184,7 +184,7 @@ void InitChainerxRoutines(pybind11::module& m) {
     m.def("frombuffer",
           &MakeArrayFromBuffer,
           py::arg("buffer"),
-          py::arg("dtype") = "f",
+          py::arg("dtype") = "float32",
           py::arg("count") = -1,
           py::arg("offset") = 0,
           py::arg("device") = nullptr);
@@ -205,7 +205,7 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("N"),
           py::arg("M") = nullptr,
           py::arg("k") = 0,
-          py::arg("dtype") = "d",
+          py::arg("dtype") = "float64",
           py::arg("device") = nullptr);
     m.def("diag",
           [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return MoveArrayBody(Diag(Array{v}, k, GetDevice(device))); },
@@ -420,6 +420,10 @@ void InitChainerxRoutines(pybind11::module& m) {
           },
           py::arg("x"),
           py::arg("axis") = nullptr);
+    m.def("sqrt", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sqrt(Array{x})); }, py::arg("x"));
+    m.def("tanh", [](const ArrayBodyPtr& x) { return MoveArrayBody(Tanh(Array{x})); }, py::arg("x"));
+    m.def("isnan", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsNan(Array{x})); }, py::arg("x"));
+    m.def("isinf", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsInf(Array{x})); }, py::arg("x"));
 
     // sorting routines
     m.def("argmax",

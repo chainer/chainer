@@ -1566,6 +1566,51 @@ TEST_P(MathTest, SqrtDoubleBackward) {
             [](const std::vector<Array>& xs) -> std::vector<Array> { return {Sqrt(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
 }
 
+TEST_THREAD_SAFE_P(MathTest, Tanh) {
+    Array a = testing::BuildArray({3, 1}).WithData<float>({-1.f, 2.f, 0.f});
+    Array e = testing::BuildArray({3, 1}).WithData<float>({std::tanh(-1.f), std::tanh(2.f), std::tanh(0.f)});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{Tanh(xs[0])}; }, {a}, {e}); });
+}
+
+TEST_P(MathTest, TanhBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckBackward([](const std::vector<Array>& xs) -> std::vector<Array> { return {Tanh(xs[0])}; }, {a}, {go}, {eps});
+}
+
+TEST_P(MathTest, TanhDoubleBackward) {
+    using T = double;
+    Shape shape{2, 3};
+    Array a = (*testing::BuildArray(shape).WithLinearData<T>(1).WithPadding(1)).RequireGrad();
+    Array go = (*testing::BuildArray(shape).WithLinearData<T>(-0.1, 0.1).WithPadding(1)).RequireGrad();
+    Array ggi = testing::BuildArray(shape).WithLinearData<T>(-0.3, 0.1).WithPadding(1);
+    Array eps = Full(shape, 1e-3);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Tanh(xs[0])}; }, {a}, {go}, {ggi}, {eps, eps});
+}
+
+TEST_THREAD_SAFE_P(MathTest, IsNan) {
+    Array a = testing::BuildArray({5, 1}).WithData<float>(
+            {-1.f, std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), std::nan(""), std::nan("0xf")});
+    Array e = testing::BuildArray({5, 1}).WithData<bool>({false, false, false, true, true});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{IsNan(xs[0])}; }, {a}, {e}); });
+}
+
+TEST_THREAD_SAFE_P(MathTest, IsInf) {
+    Array a = testing::BuildArray({5, 1}).WithData<float>(
+            {-1.f, std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), std::nan(""), std::nan("0xf")});
+    Array e = testing::BuildArray({5, 1}).WithData<bool>({false, true, true, false, false});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return std::vector<Array>{IsInf(xs[0])}; }, {a}, {e}); });
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         MathTest,

@@ -455,6 +455,57 @@ def test_log_softmax_invalid(device, a_shape, axis, float_dtype):
         return chainerx.log_softmax(a, axis=axis)
 
 
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-4), numpy.asarray(4),
+    numpy.asarray(-float('inf')), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
+    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+# TODO(hamaji): Dtype promotion is not supported yet.
+def test_sqrt(xp, device, input, float_dtype):
+    dtype = float_dtype
+    a = xp.array(input.astype(dtype))
+    return xp.sqrt(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(float('nan')),
+    numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+# TODO(hamaji): Dtype promotion is not supported yet.
+def test_tanh(xp, device, input, float_dtype):
+    dtype = float_dtype
+    a = xp.array(input.astype(dtype))
+    return xp.tanh(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isnan(xp, device, input, float_dtype):
+    dtype = float_dtype
+    a = xp.array(input.astype(dtype))
+    return xp.isnan(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isinf(xp, device, input, float_dtype):
+    dtype = float_dtype
+    a = xp.array(input.astype(dtype))
+    return xp.isinf(a)
+
+
 def test_max_amax():
     assert chainerx.amax is chainerx.max
 
