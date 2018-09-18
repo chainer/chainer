@@ -126,7 +126,7 @@ class ROIAverageAlign2D(function.Function):
     """ROI average align over a set of 2d planes."""
 
     def __init__(self, outsize, spatial_scale, sampling_ratio=0):
-        outh, outw = outsize
+        outh, outw = _pair(outsize)
         if not (isinstance(outh, int) and outh > 0):
             raise TypeError(
                 'outsize[0] must be positive integer: {}, {}'
