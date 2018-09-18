@@ -32,8 +32,7 @@ class AvgELBOLoss(chainer.Chain):
         self.rec = None
         self.penalty = None
         self.rec = F.mean(F.sum(p_x.log_prob(x), axis=-1))
-        self.penalty = F.mean(
-            F.sum(q_z.log_prob(z) - p_z.log_prob(z), axis=-1))
+        self.penalty = F.mean(F.sum(chainer.kl_divergence(q_z, p_z), axis=-1))
         self.loss = - (self.rec - self.beta * self.penalty)
         reporter.report({'loss': self.loss}, self)
         reporter.report({'rec': self.rec}, self)
