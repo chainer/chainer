@@ -110,6 +110,9 @@ public:
 
     void Sqrt(const Array& x, const Array& out) override;
 
+    void IsNan(const Array& x, const Array& out) override;
+    void IsInf(const Array& x, const Array& out) override;
+
     // indexing.cc
 
     void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;

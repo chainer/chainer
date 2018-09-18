@@ -31,5 +31,57 @@ void CudaDevice::Sqrt(const Array& x, const Array& out) {
     });
 }
 
+namespace {
+
+template <typename T>
+__device__ bool IsNan(T /*value*/) {
+    return false;
+}
+__device__ bool IsNan(long double value) { return std::isnan(value); }
+__device__ bool IsNan(double value) { return std::isnan(value); }
+__device__ bool IsNan(float value) { return std::isnan(value); }
+
+template <typename T>
+struct IsNanImpl {
+    __device__ void operator()(int64_t /*i*/, T x, bool& out) { out = IsNan(x); }
+};
+
+}  // namespace
+
+void CudaDevice::IsNan(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(x.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, bool>(IsNanImpl<T>{}, x, out);
+    });
+}
+
+namespace {
+
+template <typename T>
+__device__ bool IsInf(T /*value*/) {
+    return false;
+}
+__device__ bool IsInf(long double value) { return std::isinf(value); }
+__device__ bool IsInf(double value) { return std::isinf(value); }
+__device__ bool IsInf(float value) { return std::isinf(value); }
+
+template <typename T>
+struct IsInfImpl {
+    __device__ void operator()(int64_t /*i*/, T x, bool& out) { out = IsInf(x); }
+};
+
+}  // namespace
+
+void CudaDevice::IsInf(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    CheckCudaError(cudaSetDevice(index()));
+    VisitDtype(x.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, bool>(IsInfImpl<T>{}, x, out);
+    });
+}
+
 }  // namespace cuda
 }  // namespace chainerx
