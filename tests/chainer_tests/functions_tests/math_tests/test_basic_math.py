@@ -1220,7 +1220,7 @@ class TestMatMul(unittest.TestCase):
             y = chainer.Variable(y_data)
         z = operator.matmul(x, y)
         if self.dtype == numpy.float16:
-            options = {'atol': 1e-3, 'rtol': 1e-3}
+            options = {'atol': 2e-3, 'rtol': 2e-3}
         else:
             options = {'atol': 2e-7, 'rtol': 2e-7}
         testing.assert_allclose(
