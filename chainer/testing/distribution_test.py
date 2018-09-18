@@ -267,7 +267,7 @@ class distribution_unittest(unittest.TestCase):
     def test_prob_gpu(self):
         self.check_prob(True)
 
-    def check_sample(self, is_gpu):
+    def sample_from_chainer_and_scipy(self, is_gpu):
         if is_gpu:
             smp1 = self.gpu_dist.sample(
                 sample_shape=(100000,)+self.sample_shape).data
@@ -292,6 +292,10 @@ class distribution_unittest(unittest.TestCase):
             smp2 = self.scipy_dist.rvs(
                 size=(100000,) + self.sample_shape + self.shape,
                 **self.scipy_params)
+        return smp1, smp2
+
+    def check_sample(self, is_gpu):
+        smp1, smp2 = self.sample_from_chainer_and_scipy(is_gpu)
         array.assert_allclose(smp1.mean(axis=0), smp2.mean(axis=0),
                               atol=3e-2, rtol=3e-2)
         array.assert_allclose(smp1.std(axis=0), smp2.std(axis=0),
