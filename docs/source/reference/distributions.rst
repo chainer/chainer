@@ -19,6 +19,7 @@ Distributions
    chainer.distributions.Categorical
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
+   chainer.distributions.Multinomial
    chainer.distributions.MultivariateNormal
    chainer.distributions.Normal
    chainer.distributions.Uniform
