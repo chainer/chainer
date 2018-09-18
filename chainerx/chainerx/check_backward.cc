@@ -281,12 +281,6 @@ void CheckBackward(
         }
     }
 
-#ifdef CHAINERX_CUDA_MULTITHREAD_TEST_SEGV_WORKAROUND
-    if (chainerx::GetDefaultDevice().backend().GetName() == "cuda") {
-        concurrent_check_thread_count = 1;
-    }
-#endif
-
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(inputs.front(), backprop_id);
 
     {
@@ -477,12 +471,6 @@ void CheckDoubleBackwardComputation(
             CHAINERX_ASSERT(&eps[inputs.size() + i].device() == &grad_outputs[i].device());
         }
     }
-
-#ifdef CHAINERX_CUDA_MULTITHREAD_TEST_SEGV_WORKAROUND
-    if (chainerx::GetDefaultDevice().backend().GetName() == "cuda") {
-        concurrent_check_thread_count = 1;
-    }
-#endif
 
     // Run single-shot test
     {
