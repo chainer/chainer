@@ -74,7 +74,7 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
         if (axes->ndim() != a.ndim()) {
             throw DimensionError{"Axes do not match, input array dimensions: ", a.ndim(), " but axes: ", axes->ndim()};
         }
-        real_axes = *axes;
+        real_axes = internal::GetNormalizedAxes(*axes, a.ndim());
     } else {
         for (int8_t i = 0; i < a.ndim(); ++i) {
             real_axes.emplace_back(a.ndim() - i - 1);
@@ -108,6 +108,7 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
 }
 
 namespace {
+
 void SpecifyDim(Shape& shape, int64_t itemsize) {
     auto it = std::find_if(shape.begin(), shape.end(), [](int64_t dim) { return dim < 0; });
     if (it == shape.end()) return;
@@ -118,6 +119,7 @@ void SpecifyDim(Shape& shape, int64_t itemsize) {
                         std::accumulate(std::next(it), shape.end(), int64_t{1}, std::multiplies<int64_t>());
     if (itemsize % rest_size == 0) *it = itemsize / rest_size;
 }
+
 }  // namespace
 
 Array Reshape(const Array& a, Shape newshape) {

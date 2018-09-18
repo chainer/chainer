@@ -96,7 +96,9 @@ def test_transpose(is_module, xp, shape, dtype):
     ((1,), (0,)),
     ((2,), (0,)),
     ((2, 3), (1, 0)),
+    ((2, 3), (-2, -1)),
     ((2, 3, 1), (2, 0, 1)),
+    ((2, 3, 1), (2, -3, 1)),
 ])
 def test_transpose_axes(is_module, xp, shape, axes, dtype):
     array = array_utils.create_dummy_ndarray(xp, shape, dtype)
