@@ -24,7 +24,7 @@ def test_signed_dtypes():
         assert is_signed == (numpy.dtype(getattr(numpy, dtype)).kind in ('i', 'f', 'c'))
 
 
-@chainerx.testing.parametrize_dtype_specifier('spec', with_chainerx_dtypes=False)
+@chainerx.testing.parametrize_dtype_specifier('spec')
 def test_parametrize_dtype_specifier(spec):
     assert numpy.dtype(spec).type.__name__ in chainerx.testing.all_dtypes
 

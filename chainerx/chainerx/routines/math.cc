@@ -536,4 +536,22 @@ Array Tanh(const Array& x) {
     return out;
 }
 
+Array IsNan(const Array& x) {
+    Array out = Empty(x.shape(), Dtype::kBool, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().IsNan(x, out);
+    }
+    return out;
+}
+
+Array IsInf(const Array& x) {
+    Array out = Empty(x.shape(), Dtype::kBool, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().IsInf(x, out);
+    }
+    return out;
+}
+
 }  // namespace chainerx

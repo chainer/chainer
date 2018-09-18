@@ -1,4 +1,6 @@
 # `testing` needs to be imported before `_core`, because importing `_core` would populate sys.modules['chainerx.testing'].
+from numpy import dtype, bool_, int8, int16, int32, int64, uint8, float32, float64  # NOQA
+
 from chainerx import testing  # NOQA
 
 try:
