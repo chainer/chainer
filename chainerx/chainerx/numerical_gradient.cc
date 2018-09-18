@@ -27,24 +27,29 @@ Scalar Norm(const Array& x) {
 }
 
 void Set(const Array& out, int64_t flat_index, Scalar value) {
-    out.device().Synchronize();
+    Device& native = out.device().context().GetDevice({"native", 0});
 
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<T> iarray{out};
         Indexer<> indexer{out.shape()};
-        iarray[indexer.It(flat_index)] = static_cast<T>(value);
+        T& dst = iarray[indexer.It(flat_index)];
+        T src = static_cast<T>(value);
+        out.device().MemoryCopyFrom(&dst, &src, sizeof(T), native);
     });
 }
 
 Scalar Get(const Array& out, int64_t flat_index) {
-    out.device().Synchronize();
+    Device& native = out.device().context().GetDevice({"native", 0});
 
     return VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> iarray{out};
         Indexer<> indexer{out.shape()};
-        return Scalar{iarray[indexer.It(flat_index)]};
+        const T& src = iarray[indexer.It(flat_index)];
+        T dst{};
+        out.device().MemoryCopyTo(&dst, &src, sizeof(T), native);
+        return Scalar{dst};
     });
 }
 
