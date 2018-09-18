@@ -94,6 +94,11 @@ class TestKLDivergence(unittest.TestCase):
             {"loc": loc, "scale_tril": scale_tril}, is_gpu)
         return distributions.MultivariateNormal(**params)
 
+    def make_poisson_dist(self, is_gpu=False):
+        lam = numpy.random.uniform(5, 10, self.shape).astype(numpy.float32)
+        params = self.encode_params({"lam": lam}, is_gpu)
+        return distributions.Poisson(**params)
+
     def make_uniform_dist(self, is_gpu=False, low=None, high=None,
                           loc=None, scale=None, use_loc_scale=False):
         if use_loc_scale:
@@ -199,6 +204,17 @@ class TestKLDivergence(unittest.TestCase):
     def test_multivariatenormal_multivariatenormal_gpu(self):
         dist1 = self.make_multivariatenormal_dist(True)
         dist2 = self.make_multivariatenormal_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_poisson_poisson_cpu(self):
+        dist1 = self.make_poisson_dist()
+        dist2 = self.make_poisson_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_poisson_poisson_gpu(self):
+        dist1 = self.make_poisson_dist(True)
+        dist2 = self.make_poisson_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_uniform_uniform_cpu(self):
