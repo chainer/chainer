@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 # This script defines the test steps, used from run-step.sh.
 # In each step, the entire script is sourced first and subsequently one of the step functions is invoked.
 # Therefore, the global part of the script, outside the function defnitions, is run before every single steps.
