@@ -78,7 +78,6 @@ template <typename T>
 __device__ bool IsNan(T /*value*/) {
     return false;
 }
-__device__ bool IsNan(long double value) { return ::isnan(value); }
 __device__ bool IsNan(double value) { return ::isnan(value); }
 __device__ bool IsNan(float value) { return ::isnan(value); }
 

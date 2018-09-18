@@ -37,7 +37,6 @@ template <typename T>
 __device__ bool IsNan(T /*value*/) {
     return false;
 }
-__device__ bool IsNan(long double value) { return std::isnan(value); }
 __device__ bool IsNan(double value) { return std::isnan(value); }
 __device__ bool IsNan(float value) { return std::isnan(value); }
 
@@ -63,7 +62,6 @@ template <typename T>
 __device__ bool IsInf(T /*value*/) {
     return false;
 }
-__device__ bool IsInf(long double value) { return std::isinf(value); }
 __device__ bool IsInf(double value) { return std::isinf(value); }
 __device__ bool IsInf(float value) { return std::isinf(value); }
 
