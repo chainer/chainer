@@ -17,10 +17,6 @@
 namespace chainerx {
 namespace numerical_gradient_internal {
 
-// TODO(niboshi): These temporary implementation for primitive operations depend on that the data in arrays can be accessed directly
-// (e.g. with unified memory). In order for numerical gradient calculation to work corretly on general devices, They should be replaced with
-// full-featured operations.
-
 Scalar Norm(const Array& x) {
     Scalar s = AsScalar((x * x).Sum());
     return Scalar(std::sqrt(static_cast<double>(s)), x.dtype());
