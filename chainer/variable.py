@@ -8,8 +8,6 @@ import weakref
 import numpy
 import six
 
-import chainerx
-
 import chainer
 from chainer import _backprop_utils
 from chainer import backend
@@ -716,8 +714,6 @@ class Variable(object):
 
     @property
     def dtype(self):
-        if chainerx.is_available() and isinstance(self.data, chainerx.ndarray):
-            return numpy.dtype(self.data.dtype.name)
         return self.data.dtype
 
     @property

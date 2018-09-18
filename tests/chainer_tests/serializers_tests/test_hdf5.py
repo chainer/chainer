@@ -54,14 +54,7 @@ class TestHDF5Serializer(unittest.TestCase):
         self.assertIsInstance(dset, h5py.Dataset)
         self.assertEqual(dset.shape, data.shape)
         self.assertEqual(dset.size, data.size)
-
-        # TODO(hvy): Remove this branch when chainerx.ndarray.dtypes are equal
-        # to numpy.dtypes.
-        if isinstance(data, chainerx.ndarray):
-            self.assertEqual(dset.dtype, numpy.dtype(data.dtype.name))
-        else:
-            self.assertEqual(dset.dtype, data.dtype)
-
+        self.assertEqual(dset.dtype, data.dtype)
         read = numpy.empty((2, 3), dtype=numpy.float32)
         dset.read_direct(read)
         numpy.testing.assert_array_equal(read, backend.to_numpy(data))

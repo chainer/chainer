@@ -42,14 +42,7 @@ class TestDictionarySerializer(unittest.TestCase):
         self.assertIsInstance(dset, numpy.ndarray)
         self.assertEqual(dset.shape, data.shape)
         self.assertEqual(dset.size, data.size)
-
-        # TODO(hvy): Remove this branch when chainerx.ndarray.dtypes are equal
-        # to numpy.dtypes.
-        if isinstance(data, chainerx.ndarray):
-            self.assertEqual(dset.dtype, numpy.dtype(data.dtype.name))
-        else:
-            self.assertEqual(dset.dtype, data.dtype)
-
+        self.assertEqual(dset.dtype, data.dtype)
         numpy.testing.assert_array_equal(dset, backend.to_numpy(data))
 
         self.assertIs(ret, data)
