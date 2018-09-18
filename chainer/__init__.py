@@ -12,6 +12,7 @@ from chainer import datasets  # NOQA
 from chainer import distributions  # NOQA
 from chainer import function_hooks  # NOQA
 from chainer import functions  # NOQA
+from chainer import graph_optimizations  # NOQA
 from chainer import initializers  # NOQA
 from chainer import iterators  # NOQA
 from chainer import links  # NOQA
@@ -41,6 +42,8 @@ from chainer.function_node import FunctionNode  # NOQA
 from chainer.function_node import grad  # NOQA
 from chainer.functions import array  # NOQA
 from chainer.functions.math import basic_math  # NOQA
+from chainer.graph_optimizations.static_graph import static_graph  # NOQA
+from chainer.graph_optimizations.static_graph_utilities import static_code  # NOQA
 from chainer.initializer import Initializer  # NOQA
 from chainer.link import Chain  # NOQA
 from chainer.link import ChainList  # NOQA
@@ -154,6 +157,7 @@ global_config.type_check = bool(int(os.environ.get('CHAINER_TYPE_CHECK', '1')))
 global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
 global_config.autotune = False
+global_config.schedule_func = None
 global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'never')
 global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))

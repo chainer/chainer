@@ -1,4 +1,4 @@
-# Convolutional neural networks for CIFAR-10 and CIFAR-100 Classification
+# Convolutional neural networks for CIFAR-10 and CIFAR-100 Classification with static subgraph optimization
 
 This is an example of a convolutional neural network (convnet) applied to an image classification task using the CIFAR-10 or CIFAR-100 dataset. The CIFAR datasets can be a good choice for initial experiments with convnets because the size and number of images is small enough to allow typical models to be trained in a reasonable amount of time. However, the classification task is still challenging because natural images are used.
 
