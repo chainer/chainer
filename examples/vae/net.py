@@ -9,8 +9,9 @@ from chainer import reporter
 
 
 class AvgELBOLoss(chainer.Chain):
-    def __init__(self, encoder, decoder, prior):
+    def __init__(self, encoder, decoder, prior, beta=1.0):
         super(AvgELBOLoss, self).__init__()
+        self.beta = beta
 
         with self.init_scope():
             self.encoder = encoder
@@ -33,7 +34,7 @@ class AvgELBOLoss(chainer.Chain):
         self.rec = F.mean(F.sum(p_x.log_prob(x), axis=-1))
         self.penalty = F.mean(
             F.sum(q_z.log_prob(z) - p_z.log_prob(z), axis=-1))
-        self.loss = - (self.rec - self.penalty)
+        self.loss = - (self.rec - self.beta * self.penalty)
         reporter.report({'loss': self.loss}, self)
         reporter.report({'rec': self.rec}, self)
         reporter.report({'penalty': self.penalty}, self)

@@ -29,6 +29,9 @@ def main():
                         help='dimention of encoded vector')
     parser.add_argument('--dim-h', default=500, type=int,
                         help='dimention of hidden layer')
+    parser.add_argument('--beta', default=1.0, type=float,
+                        help='Regularization coefficient for '
+                             'the second term of ELBO bound')
     parser.add_argument('--batch-size', '-b', type=int, default=100,
                         help='learning minibatch size')
     parser.add_argument('--test', action='store_true',
@@ -45,7 +48,8 @@ def main():
     encoder = net.make_encoder(784, args.dim_z, args.dim_h)
     decoder = net.make_decoder(784, args.dim_z, args.dim_h)
     prior = net.make_prior(args.dim_z, device=args.gpu)
-    avg_elbo_loss = net.AvgELBOLoss(encoder, decoder, prior)
+    avg_elbo_loss = net.AvgELBOLoss(encoder, decoder, prior,
+                                    beta=args.beta)
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
