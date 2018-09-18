@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
@@ -16,11 +17,12 @@ class Where(function_node.FunctionNode):
         type_check.expect(
             c_type.dtype == numpy.bool_,
             x_type.dtype == y_type.dtype,
-            x_type.shape == c_type.shape,
-            y_type.shape == c_type.shape,
         )
+        type_check.expect_broadcast_shapes(
+            c_type.shape, x_type.shape, y_type.shape)
 
     def forward(self, inputs):
+        # may broadcast
         self.retain_inputs((0,))
         xp = backend.get_array_module(*inputs)
         condition, x, y = inputs
@@ -30,16 +32,16 @@ class Where(function_node.FunctionNode):
         condition = self.get_retained_inputs()[0]
         xp = backend.get_array_module(condition.data)
         g, = grad_outputs
-        zeros = xp.zeros(g.shape, dtype=g.dtype)
+        zero = xp.zeros((), dtype=g.dtype)
         ret = []
         if 0 in indexes:
             ret.append(None)
         if 1 in indexes:
-            gx, = Where().apply((condition.data, g, zeros))
-            ret.append(gx)
+            gx, = Where().apply((condition.data, g, zero))
+            ret.append(chainer.functions.sum_to(gx, self.inputs[1].shape))
         if 2 in indexes:
-            gy, = Where().apply((condition.data, zeros, g))
-            ret.append(gy)
+            gy, = Where().apply((condition.data, zero, g))
+            ret.append(chainer.functions.sum_to(gy, self.inputs[2].shape))
         return ret
 
 
