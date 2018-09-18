@@ -1,3 +1,5 @@
+#include <string>
+
 #include "chainerx/python/scalar.h"
 
 #include <pybind11/operators.h>
@@ -42,7 +44,7 @@ void InitChainerxScalar(pybind11::module& m) {
     c.def("__int__", &Scalar::operator int64_t);
     c.def("__float__", &Scalar::operator double);
     c.def("__repr__", &Scalar::ToString);
-    c.def_property_readonly("dtype", &Scalar::dtype);
+    c.def_property_readonly("dtype", [](Scalar scalar) { return py::dtype(GetDtypeName(scalar.dtype())); });
     c.def("tolist", [](Scalar scalar) -> py::object {
         switch (GetKind(scalar.dtype())) {
             case DtypeKind::kBool:

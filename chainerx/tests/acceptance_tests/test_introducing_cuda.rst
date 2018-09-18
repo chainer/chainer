@@ -10,7 +10,7 @@ Create array from python list
 >>> a.shape
 (3,)
 >>> a.dtype
-dtype.float32
+dtype('float32')
 >>> a.device
 cuda:0
 
@@ -23,6 +23,6 @@ Create array from numpy ndarray
 >>> a.shape
 (3,)
 >>> a.dtype
-dtype.float32
+dtype('float32')
 >>> a.device
 cuda:0

@@ -105,64 +105,18 @@ Dtype GetDtype(py::handle handle) {
         return GetDtypeFromString(py::cast<std::string>(handle));
     }
 
-    throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
-}
+    // From NumPy dtype class
+    auto numpy_module = py::module::import("numpy");
+    if (handle.is(numpy_module.attr("bool_"))) return Dtype::kBool;
+    if (handle.is(numpy_module.attr("int8"))) return Dtype::kInt8;
+    if (handle.is(numpy_module.attr("int16"))) return Dtype::kInt16;
+    if (handle.is(numpy_module.attr("int32"))) return Dtype::kInt32;
+    if (handle.is(numpy_module.attr("int64"))) return Dtype::kInt64;
+    if (handle.is(numpy_module.attr("uint8"))) return Dtype::kUInt8;
+    if (handle.is(numpy_module.attr("float32"))) return Dtype::kFloat32;
+    if (handle.is(numpy_module.attr("float64"))) return Dtype::kFloat64;
 
-void InitChainerxDtype(pybind11::module& m) {
-    py::enum_<Dtype> e{m, "dtype"};
-    for (Dtype dtype : GetAllDtypes()) {
-        e.value(dtype == Dtype::kBool ? "bool_" : GetDtypeName(dtype), dtype);
-    }
-    e.export_values();
-    e.def(py::init(&GetDtype));
-    e.def_property_readonly("char", [](Dtype self) -> py::str {
-        char c = GetCharCode(self);
-        return py::str{&c, 1};
-    });
-    e.def_property_readonly("itemsize", &GetItemSize);
-    e.def_property_readonly("name", &GetDtypeName);
-    e.def_property_readonly("kind", [](Dtype self) -> py::str {
-        char c = GetDtypeKindChar(GetKind(self));
-        return py::str{&c, 1};
-    });
-    e.def_property_readonly("num", [](Dtype self) -> py::object { return py::dtype{GetDtypeName(self)}.attr("num"); });
-    e.def_property_readonly("byteorder", [](Dtype self) -> py::str {
-        if (GetItemSize(self) == 1) {
-            return "|";  // "not applicable"
-        }
-        return "=";  // "native"
-    });
-    e.def_property_readonly("str", [](Dtype self) -> py::str {
-        std::string s{};
-        int64_t itemsize = GetItemSize(self);
-        if (itemsize == 1) {
-            s += "|";  // "not applicable"
-        } else {
-            static const uint16_t kNum16 = 0xff00U;
-            if (reinterpret_cast<const uint8_t*>(&kNum16)[0] == 0x00U) {  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-                s += "<";  // little endian
-            } else {
-                s += ">";  // big endian
-            }
-        }
-        s += GetDtypeKindChar(GetKind(self));
-        s += std::to_string(itemsize);
-        return s;
-    });
-    e.def("__eq__", [](Dtype self, py::handle other) {
-        (void)self;  // unused
-        (void)other;  // unused
-        return false;
-    });
-    e.def("__ne__", [](Dtype self, py::handle other) {
-        (void)self;  // unused
-        (void)other;  // unused
-        return true;
-    });
-    // TODO(sonots): NumPy returns scalar object such as numpy.float32 by `type` and `type()` calls its constructor. Align with it.
-    e.def("type", [](Dtype self, bool value) { return Scalar{value, self}; });
-    e.def("type", [](Dtype self, int64_t value) { return Scalar{value, self}; });
-    e.def("type", [](Dtype self, double value) { return Scalar{value, self}; });
+    throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
 }
 
 }  // namespace python_internal
