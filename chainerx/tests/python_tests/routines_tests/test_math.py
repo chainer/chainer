@@ -482,6 +482,30 @@ def test_tanh(xp, device, input, float_dtype):
     return xp.tanh(a)
 
 
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isnan(xp, device, input, float_dtype):
+    dtype = float_dtype
+    a = xp.array(input.astype(dtype))
+    return xp.isnan(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full((), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isinf(xp, device, input, float_dtype):
+    dtype = float_dtype
+    a = xp.array(input.astype(dtype))
+    return xp.isinf(a)
+
+
 def test_max_amax():
     assert chainerx.amax is chainerx.max
 
