@@ -30,8 +30,6 @@ USER testuser
 RUN mkdir -p "$WORK_DIR"
 RUN mkdir -p "$CONDA_DIR"
 
-RUN true
-
 # Install conda
 RUN bash "$TEMP_DIR"/setup-conda.sh "$USER_TEMP_DIR"/conda "$CONDA_DIR"
 
