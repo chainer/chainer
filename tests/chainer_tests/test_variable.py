@@ -1531,7 +1531,7 @@ class TestTranspose(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = x.transpose(*axes)
         assert y.data.dtype == self.dtype
-        assert (self.x.transpose(*axes) == cuda.to_cpu(y.data)).all()
+        assert (self.x.transpose(*axes) == backend.to_numpy(y.data)).all()
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -1539,6 +1539,13 @@ class TestTranspose(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
+
+    @pytest.mark.chainerx
+    def test_forward_chx(self):
+        # TODO(hvy): chainerx does not support fp16 yet
+        if self.dtype == np.float16:
+            return
+        self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data):
         x = chainer.Variable(x_data)
@@ -1553,6 +1560,13 @@ class TestTranspose(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+    @pytest.mark.chainerx
+    def test_backward_chx(self):
+        # TODO(hvy): chainerx does not support fp16 yet
+        if self.dtype == np.float16:
+            return
+        self.check_backward(chainerx.array(self.x))
 
 
 class UnnamedVariableToStringTestBase(object):
