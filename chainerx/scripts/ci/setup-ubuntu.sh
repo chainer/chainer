@@ -7,7 +7,7 @@ pkgs=(
     git
     g++ cmake clang-5.0 clang-tidy-5.0 clang-6.0 clang-format-6.0
     python3-dev
-    wget curl
+    wget
     bzip2  # To install miniconda
     parallel  # Used in scripts
 )
