@@ -1,3 +1,4 @@
+# These tests are integration tests with CuPy.
 import numpy
 import pytest
 
@@ -182,4 +183,119 @@ def test_cupy_to_chainerx_invalid_device():
             a_cupy)
 
 
-# TODO(niboshi): Write tests for conversion from chainerx to cupy
+@pytest.mark.cuda()
+def test_chainerx_to_cupy_contiguous():
+    dtype = 'float32'
+    a_chx = chainerx.arange(6, dtype=dtype, device='cuda:0').reshape((2, 3))
+    a_cupy = cupy.ndarray(
+        a_chx.shape,
+        cupy.dtype(a_chx.dtype.name),
+        cupy.cuda.MemoryPointer(cupy.cuda.UnownedMemory(
+            a_chx.data_ptr + a_chx.offset,
+            a_chx.data_size,
+            a_chx,
+            0), 0),
+        strides=a_chx.strides,
+    )
+
+    assert a_cupy.device.id == 0
+    chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get())
+
+    # Write to a_cupy
+    a_cupy[0, 1] = 8
+    chainerx.testing.assert_array_equal_ex(a_chx, numpy.array([[0, 8, 2], [3, 4, 5]], dtype))
+
+    # Write to a_chx
+    a_chx += 1
+    chainerx.testing.assert_array_equal_ex(a_cupy.get(), numpy.array([[1, 9, 3], [4, 5, 6]], dtype))
+
+
+@pytest.mark.cuda()
+def test_chainerx_to_cupy_delete_cupy_first():
+    dtype = 'float32'
+    a_chx = chainerx.arange(6, dtype=dtype, device='cuda:0').reshape((2, 3))
+    a_cupy = cupy.ndarray(
+        a_chx.shape,
+        cupy.dtype(a_chx.dtype.name),
+        cupy.cuda.MemoryPointer(cupy.cuda.UnownedMemory(
+            a_chx.data_ptr + a_chx.offset,
+            a_chx.data_size,
+            a_chx,
+            0), 0),
+        strides=a_chx.strides,
+    )
+
+    del a_cupy
+
+    a_chx += 1
+    chainerx.testing.assert_array_equal_ex(a_chx, numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
+
+
+@pytest.mark.cuda()
+def test_chainerx_to_cupy_delete_chainerx_first():
+    dtype = 'float32'
+    a_chx = chainerx.arange(6, dtype=dtype, device='cuda:0').reshape((2, 3))
+    a_cupy = cupy.ndarray(
+        a_chx.shape,
+        cupy.dtype(a_chx.dtype.name),
+        cupy.cuda.MemoryPointer(cupy.cuda.UnownedMemory(
+            a_chx.data_ptr + a_chx.offset,
+            a_chx.data_size,
+            a_chx,
+            0), 0),
+        strides=a_chx.strides,
+    )
+
+    del a_chx
+
+    a_cupy += 1
+    chainerx.testing.assert_array_equal_ex(a_cupy.get(), numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
+
+
+@pytest.mark.cuda()
+def test_chainerx_to_cupy_noncontiguous():
+    dtype = 'float32'
+    a_chx = chainerx.arange(12, dtype=dtype, device='cuda:0').reshape((2, 6))[::-1, ::2]
+    offset = a_chx.offset
+
+    # test preconditions
+    assert offset > 0
+    assert not a_chx.is_contiguous
+
+    a_cupy = cupy.ndarray(
+        a_chx.shape,
+        cupy.dtype(a_chx.dtype.name),
+        cupy.cuda.MemoryPointer(cupy.cuda.UnownedMemory(
+            a_chx.data_ptr,
+            a_chx.data_size,
+            a_chx,
+            0), offset),
+        strides=a_chx.strides,
+    )
+
+    assert a_chx.strides == a_cupy.strides
+    chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get(), strides_check=False)
+
+    a_cupy[1, 1] = 53
+
+    assert a_chx.strides == a_cupy.strides
+    chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get(), strides_check=False)
+
+
+@pytest.mark.cuda(2)
+def test_chainerx_to_cupy_nondefault_device():
+    dtype = 'float32'
+    a_chx = chainerx.arange(6, dtype=dtype, device='cuda:1').reshape((2, 3))
+    a_cupy = cupy.ndarray(
+        a_chx.shape,
+        cupy.dtype(a_chx.dtype.name),
+        cupy.cuda.MemoryPointer(cupy.cuda.UnownedMemory(
+            a_chx.data_ptr + a_chx.offset,
+            a_chx.data_size,
+            a_chx,
+            -1), 0),
+        strides=a_chx.strides,
+    )
+
+    assert a_cupy.device.id == 1
+    chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get())
