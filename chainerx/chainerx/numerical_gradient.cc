@@ -7,10 +7,12 @@
 #include "chainerx/array.h"
 #include "chainerx/array_repr.h"
 #include "chainerx/backprop_mode.h"
+#include "chainerx/context.h"
 #include "chainerx/device.h"
 #include "chainerx/error.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/native/native_backend.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/manipulation.h"
 
