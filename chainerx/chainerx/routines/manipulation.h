@@ -22,8 +22,7 @@ Array RollAxis(const Array& a, int8_t axis, int8_t start = 0);
 Array Transpose(const Array& a, const OptionalAxes& axes = nonstd::nullopt);
 
 // Returns a reshaped array.
-// TODO(niboshi): Support shape with dimension -1.
-Array Reshape(const Array& a, Shape newshape);
+Array Reshape(const Array& a, const Shape& newshape);
 
 // Returns a squeezed array with unit-length axes removed.
 //

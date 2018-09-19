@@ -145,6 +145,7 @@ _reshape_shape = [
     ((1, 1, 5, 1, 1), (5,)),
     ((2, 3), (3, 2)),
     ((2, 3, 4), (3, 4, 2)),
+    ((2, 3, 4), (3, -1, 2)),
 ]
 
 
@@ -214,6 +215,16 @@ def test_reshape_invalid(shape1, shape2):
 
     check(shape1, shape2)
     check(shape2, shape1)
+
+
+@pytest.mark.parametrize('shape1,shape2', [
+    ((2, 3, 4), (5, -1, 3)),  # Not divisible.
+    ((2, 3, 4), (-1, -1, 3)),  # More than one dimension cannot be inferred.
+])
+def test_reshape_invalid_cannot_infer(shape1, shape2):
+    a = array_utils.create_dummy_ndarray(chainerx, shape1, 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        a.reshape(shape2)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
