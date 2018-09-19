@@ -79,9 +79,12 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
 
 void InitChainerxRoutines(pybind11::module& m) {
     // creation routines
-    // TODO(niboshi): Support CuPy ndarray. In principle it's CuPy's responsibility to provide some standard interface to allow this, but
-    // users may want to convert cupy.ndarray to ChainerX before CuPy's support will be implemented. In such case, ChainerX should provide
-    // the support for convenience.
+    // TODO(niboshi): Accept CuPy ndarray in `array` and `asarray`. In principle it's CuPy's responsibility to provide some standard
+    // interface to allow this, but users may want to convert cupy.ndarray to ChainerX before CuPy's support will be implemented. In such
+    // case, ChainerX should provide the support for convenience.
+    // TODO(niboshi): Add convenient function to convert to CuPy ndarray. Currently chainerx.ndarray exposes internal pointer
+    // (ndarray.data_ptr, etc.) to support this, but users may want more convenient method. In principle ChainerX should support some
+    // standard way (not depending on CuPy), but we might tentatively provide one which concretely depends on CuPy.
     m.def("array",
           [](py::handle object, py::handle dtype, bool copy, py::handle device) { return MakeArray(object, dtype, copy, device); },
           py::arg("object"),
