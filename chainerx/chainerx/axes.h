@@ -89,11 +89,13 @@ int8_t NormalizeAxis(int8_t axis, int8_t ndim);
 Axes GetNormalizedAxes(const Axes& axis, int8_t ndim);
 
 // Resolves the axis argument of many operations.
-// Negative axes are converted to non-negative ones (by wrapping at ndim) and sorted.
+// Negative axes are converted to non-negative ones (by wrapping at ndim).
+// Axes are then sorted.
 Axes GetSortedAxes(const Axes& axis, int8_t ndim);
 
 // Resolves the axis argument of many operations.
-// Negative axes are converted to non-negative ones (by wrapping at ndim) and sorted.
+// Negative axes are converted to non-negative ones (by wrapping at ndim).
+// Axes are then sorted.
 // nullopt is converted to a vector of all axes.
 Axes GetSortedAxesOrAll(const OptionalAxes& axis, int8_t ndim);
 
