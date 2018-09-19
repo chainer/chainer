@@ -1490,7 +1490,7 @@ class TestReshape(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     @pytest.mark.chainerx
-    def test_forward_chx(self):
+    def test_forward_chainerx(self):
         # TODO(imanishi): chainerx does not support fp16 yet
         if self.dtype == np.float16:
             return
@@ -1512,7 +1512,7 @@ class TestReshape(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x))
 
     @pytest.mark.chainerx
-    def test_backward_chx(self):
+    def test_backward_chainerx(self):
         # TODO(imanishi): chainerx does not support fp16 yet
         if self.dtype == np.float16:
             return
@@ -1544,7 +1544,7 @@ class TestTranspose(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     @pytest.mark.chainerx
-    def test_forward_chx(self):
+    def test_forward_chainerx(self):
         # TODO(hvy): chainerx does not support fp16 yet
         if self.dtype == np.float16:
             return
@@ -1565,7 +1565,7 @@ class TestTranspose(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x))
 
     @pytest.mark.chainerx
-    def test_backward_chx(self):
+    def test_backward_chainerx(self):
         # TODO(hvy): chainerx does not support fp16 yet
         if self.dtype == np.float16:
             return
