@@ -565,10 +565,10 @@ def roi_average_align_2d(
             are equivalent.
         spatial_scale (float): Scale of the roi is resized.
         sampling_ratio ((int, int) or int): Sampling step for the alignment.
-            It must meet ``>=1`` and is automatically decided when :obj:`None`
-            is passed.  Use of different ratio in height and width axis is also
-            supported by passing tuple of int as
-            ``(sampling_ratio_h, sampling_ratio_w)``.
+            It must be an integer over :math:`1` or :obj:`None`, and the value
+            is automatically decided when :obj:`None` is passed.  Use of
+            different ratio in height and width axis is also supported by
+            passing tuple of int as ``(sampling_ratio_h, sampling_ratio_w)``.
             ``sampling_ratio=s`` and ``sampling_ratio=(s, s)`` are equivalent.
 
     Returns:
