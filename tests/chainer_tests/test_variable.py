@@ -183,7 +183,7 @@ class TestBackwardAccumulate(unittest.TestCase):
         self.gy = chainerx.array(self.gy)
 
     @pytest.mark.chainerx
-    def test_backward_accumulate_chx(self):
+    def test_backward_accumulate_chainerx(self):
         self._to_chx()
         self.check_backward_accumulate(chainerx)
 
@@ -254,56 +254,59 @@ class TestVariable(unittest.TestCase):
         assert v.grad is g
         assert v.grad_var is gv
 
-    def check_len(self, gpu):
-        x = self.x
-        if gpu:
-            x = cuda.to_gpu(x)
-        x = chainer.Variable(x)
+    def check_len(self, a):
+        x = chainer.Variable(a)
         if x.ndim == 0:
             pytest.raises(TypeError, x.__len__)
         else:
             assert len(x) == self.x_shape[0]
 
     def test_len_cpu(self):
-        self.check_len(False)
+        self.check_len(self.x)
 
     @attr.gpu
     def test_len_gpu(self):
-        self.check_len(True)
+        self.check_len(cuda.to_gpu(self.x))
 
-    def check_get_item(self, gpu):
-        x_data = self.x
-        if gpu:
-            x_data = cuda.to_gpu(x_data)
-        x = chainer.Variable(x_data)
+    @pytest.mark.chainerx
+    def test_len_chainerx(self):
+        self.check_len(chainerx.array(self.x))
+
+    def check_get_item(self, a):
+        x = chainer.Variable(a)
         if len(self.x_shape) > 0:
             slices = slice(2, 5)
-            np.testing.assert_equal(cuda.to_cpu(x[slices].data),
-                                    cuda.to_cpu(x_data[slices]))
+            np.testing.assert_equal(backend.to_numpy(x[slices].data),
+                                    backend.to_numpy(self.x[slices]))
             slices = slice(2, 5),
-            np.testing.assert_equal(cuda.to_cpu(x[slices].data),
-                                    cuda.to_cpu(x_data[slices]))
+            np.testing.assert_equal(backend.to_numpy(x[slices].data),
+                                    backend.to_numpy(self.x[slices]))
 
     def test_get_item_cpu(self):
-        self.check_get_item(False)
+        self.check_get_item(self.x)
 
     @attr.gpu
     def test_get_item_gpu(self):
-        self.check_get_item(True)
+        self.check_get_item(cuda.to_gpu(self.x))
 
-    def check_label(self, expected, gpu):
-        c = self.c
-        if gpu:
-            c = cuda.to_gpu(c)
+    @pytest.mark.chainerx
+    def test_get_item_chainerx(self):
+        self.check_get_item(chainerx.array(self.x))
+
+    def check_label(self, expected, c):
         c = chainer.Variable(c)
         assert c.label == expected
 
     def test_label_cpu(self):
-        self.check_label(self.label, False)
+        self.check_label(self.label, self.c)
 
     @attr.gpu
     def test_label_gpu(self):
-        self.check_label(self.label, True)
+        self.check_label(self.label, cuda.to_gpu(self.c))
+
+    @pytest.mark.chainerx
+    def test_label_chainerx(self):
+        self.check_label(self.label, chainerx.array(self.c))
 
     def get_xp_and_variable(self, gpu):
         if gpu:
