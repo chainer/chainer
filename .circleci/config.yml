@@ -154,7 +154,7 @@ jobs:
       - run:
           name: Python test
           command: |
-            $RUN_STEP python_test_nocuda
+            $RUN_STEP python_test_chainerx_nocuda
 
 experimental:
   notify:

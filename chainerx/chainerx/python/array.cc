@@ -90,16 +90,16 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
 
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
     Array array = Array{self}.ToNative();
+
+    py::dtype dtype{GetDtypeName(array.dtype())};
+    const Shape& shape = array.shape();
+    const Strides& strides = array.strides();
+    const void* ptr = internal::GetRawOffsetData<void>(array);
+
     if (copy) {
-        return py::array{
-                pybind11::dtype(GetDtypeName(array.dtype())), array.shape(), array.strides(), internal::GetRawOffsetData<void>(array)};
-    } else {
-        return py::array{pybind11::dtype(GetDtypeName(array.dtype())),
-                         array.shape(),
-                         array.strides(),
-                         internal::GetRawOffsetData<void>(array),
-                         py::cast(internal::MoveArrayBody(std::move(array)))};
+        return py::array{dtype, shape, strides, ptr};
     }
+    return py::array{dtype, shape, strides, ptr, py::cast(internal::MoveArrayBody(std::move(array)))};
 }
 
 }  // namespace
@@ -171,8 +171,7 @@ void InitChainerxArray(pybind11::module& m) {
               void* c_ptr = reinterpret_cast<void*>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
               // Note that inc_ref() / dec_ref() is performed by the lambda capture.
               std::shared_ptr<void> data{c_ptr, [base](void*) {}};
-              return MoveArrayBody(
-                      FromData(ToShape(shape), GetDtype(dtype), std::move(data), ToStrides(strides), offset, GetDevice(device)));
+              return MoveArrayBody(FromData(ToShape(shape), GetDtype(dtype), data, ToStrides(strides), offset, GetDevice(device)));
           });
     c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
         // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.

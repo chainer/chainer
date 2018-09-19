@@ -112,7 +112,7 @@ void CheckForward(
     // Use thread local or global default context if it is set. Else, use the context of the given arrays.
     try {
         chainerx::SetDefaultContext(&GetDefaultContext());
-    } catch (ContextError) {
+    } catch (ContextError&) {
         chainerx::SetDefaultContext(&context);
     }
 

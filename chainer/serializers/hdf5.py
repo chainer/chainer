@@ -2,6 +2,7 @@ import numpy
 
 from chainer.backends import cuda
 from chainer import serializer
+import chainerx
 
 
 try:
@@ -45,7 +46,9 @@ class HDF5Serializer(serializer.Serializer):
 
     def __call__(self, key, value):
         ret = value
-        if isinstance(value, cuda.ndarray):
+        if chainerx.is_available() and isinstance(value, chainerx.ndarray):
+            value = chainerx.tonumpy(value)
+        elif isinstance(value, cuda.ndarray):
             value = cuda.to_cpu(value)
         if value is None:
             # use Empty to represent None
@@ -134,8 +137,10 @@ class HDF5Deserializer(serializer.Deserializer):
             return None
         if value is None:
             return numpy.asarray(dataset)
-
-        if isinstance(value, numpy.ndarray):
+        if isinstance(value, chainerx.ndarray):
+            value_view = chainerx.tonumpy(value, copy=False)
+            dataset.read_direct(value_view)
+        elif isinstance(value, numpy.ndarray):
             dataset.read_direct(value)
         elif isinstance(value, cuda.ndarray):
             value.set(numpy.asarray(dataset, dtype=value.dtype))

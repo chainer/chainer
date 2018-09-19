@@ -5,8 +5,10 @@ import unittest
 
 import mock
 import numpy
+import pytest
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import link
 from chainer import links
@@ -14,6 +16,7 @@ from chainer import optimizers
 from chainer.serializers import hdf5
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 if hdf5._available:
@@ -54,11 +57,15 @@ class TestHDF5Serializer(unittest.TestCase):
         self.assertEqual(dset.dtype, data.dtype)
         read = numpy.empty((2, 3), dtype=numpy.float32)
         dset.read_direct(read)
-        numpy.testing.assert_array_equal(read, cuda.to_cpu(data))
+        numpy.testing.assert_array_equal(read, backend.to_numpy(data))
 
         self.assertEqual(dset.compression_opts, 3)
 
         self.assertIs(ret, data)
+
+    @pytest.mark.chainerx
+    def test_serialize_chainerx(self):
+        self.check_serialize(chainerx.asarray(self.data))
 
     def test_serialize_cpu(self):
         self.check_serialize(self.data)
@@ -128,12 +135,17 @@ class TestHDF5Deserializer(unittest.TestCase):
 
     def check_deserialize(self, y):
         ret = self.deserializer('y', y)
-        numpy.testing.assert_array_equal(cuda.to_cpu(y), self.data)
+        numpy.testing.assert_array_equal(backend.to_numpy(y), self.data)
         self.assertIs(ret, y)
 
     def check_deserialize_none_value(self, y):
         ret = self.deserializer('y', None)
-        numpy.testing.assert_array_equal(cuda.to_cpu(ret), self.data)
+        numpy.testing.assert_array_equal(backend.to_numpy(ret), self.data)
+
+    @pytest.mark.chainerx
+    def test_deserialize_chainerx(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(chainerx.asarray(y))
 
     def test_deserialize_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)

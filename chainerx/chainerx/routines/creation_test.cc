@@ -349,9 +349,7 @@ TEST_P(CreationTest, FromHostData) {
     T raw_data[] = {0, 1, 2, 3, 4, 5};
     std::shared_ptr<void> host_data{raw_data, [](const T*) {}};
 
-    T expected_data[] = {1, 4};
-
-    testing::RunTestWithThreads([&shape, &dtype, &host_data, &strides, &offset, &device, &expected_data]() {
+    testing::RunTestWithThreads([&shape, &dtype, &host_data, &strides, &offset, &device]() {
         Array x = internal::FromHostData(shape, dtype, host_data, strides, offset, device);
 
         EXPECT_EQ(shape, x.shape());
@@ -359,6 +357,7 @@ TEST_P(CreationTest, FromHostData) {
         EXPECT_EQ(strides, x.strides());
         EXPECT_EQ(offset, x.offset());
         EXPECT_EQ(&device, &x.device());
+        T expected_data[] = {1, 4};
         testing::ExpectDataEqual<T>(expected_data, x);
     });
 }

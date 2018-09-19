@@ -7,19 +7,17 @@
 #include "chainerx/array.h"
 #include "chainerx/array_repr.h"
 #include "chainerx/backprop_mode.h"
+#include "chainerx/context.h"
 #include "chainerx/device.h"
 #include "chainerx/error.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/native/native_backend.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/manipulation.h"
 
 namespace chainerx {
 namespace numerical_gradient_internal {
-
-// TODO(niboshi): These temporary implementation for primitive operations depend on that the data in arrays can be accessed directly
-// (e.g. with unified memory). In order for numerical gradient calculation to work corretly on general devices, They should be replaced with
-// full-featured operations.
 
 Scalar Norm(const Array& x) {
     Scalar s = AsScalar((x * x).Sum());
@@ -27,24 +25,29 @@ Scalar Norm(const Array& x) {
 }
 
 void Set(const Array& out, int64_t flat_index, Scalar value) {
-    out.device().Synchronize();
+    Device& native_device = out.device().context().GetNativeBackend().GetDevice(0);
 
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<T> iarray{out};
         Indexer<> indexer{out.shape()};
-        iarray[indexer.It(flat_index)] = static_cast<T>(value);
+        T& dst = iarray[indexer.It(flat_index)];
+        T src = static_cast<T>(value);
+        out.device().MemoryCopyFrom(&dst, &src, sizeof(T), native_device);
     });
 }
 
 Scalar Get(const Array& out, int64_t flat_index) {
-    out.device().Synchronize();
+    Device& native_device = out.device().context().GetNativeBackend().GetDevice(0);
 
     return VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> iarray{out};
         Indexer<> indexer{out.shape()};
-        return Scalar{iarray[indexer.It(flat_index)]};
+        const T& src = iarray[indexer.It(flat_index)];
+        T dst{};
+        out.device().MemoryCopyTo(&dst, &src, sizeof(T), native_device);
+        return Scalar{dst};
     });
 }
 
