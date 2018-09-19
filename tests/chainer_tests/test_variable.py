@@ -10,6 +10,8 @@ import numpy as np
 import pytest
 import six
 
+import chainerx
+
 import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
@@ -194,20 +196,10 @@ class TestVariable(unittest.TestCase):
         x = chainer.Variable(a)
         assert a is x.array
 
-    def check_attributes(self, gpu):
-        a = self.x
-        if gpu:
-            a = cuda.to_gpu(a)
-            xp = cuda.cupy
-        else:
-            xp = np
+    def check_attributes(self, a):
         x = chainer.Variable(a)
-        if isinstance(self.x, np.ndarray):
-            assert x.data is a
-            assert x.array is a
-        assert isinstance(x.data, xp.ndarray)
-        assert isinstance(x.array, xp.ndarray)
-        assert x.data is x.array
+        assert x.data is a
+        assert x.array is a
         assert x.shape == self.x.shape
         assert x.ndim == self.x.ndim
         assert x.size == self.x.size
@@ -215,12 +207,16 @@ class TestVariable(unittest.TestCase):
         assert x.requires_grad
         assert x.node.requires_grad
 
+    @pytest.mark.chainerx
+    def test_attributes_chainerx(self):
+        self.check_attributes(chainerx.asarray(self.x))
+
     def test_attributes_cpu(self):
-        self.check_attributes(False)
+        self.check_attributes(self.x)
 
     @attr.gpu
     def test_attributes_gpu(self):
-        self.check_attributes(True)
+        self.check_attributes(cuda.to_gpu(self.x))
 
     def test_uninitialized(self):
         a = chainer.Variable(None)

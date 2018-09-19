@@ -4,9 +4,11 @@ import unittest
 
 import mock
 import numpy
+import pytest
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import link
 from chainer import links
@@ -14,6 +16,7 @@ from chainer import optimizers
 from chainer.serializers import npz
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 class TestDictionarySerializer(unittest.TestCase):
@@ -40,9 +43,13 @@ class TestDictionarySerializer(unittest.TestCase):
         self.assertEqual(dset.shape, data.shape)
         self.assertEqual(dset.size, data.size)
         self.assertEqual(dset.dtype, data.dtype)
-        numpy.testing.assert_array_equal(dset, cuda.to_cpu(data))
+        numpy.testing.assert_array_equal(dset, backend.to_numpy(data))
 
         self.assertIs(ret, data)
+
+    @pytest.mark.chainerx
+    def test_serialize_chainerx(self):
+        self.check_serialize(chainerx.asarray(self.data), 'w')
 
     def test_serialize_cpu(self):
         self.check_serialize(self.data, 'w')
@@ -117,12 +124,17 @@ class TestNpzDeserializer(unittest.TestCase):
 
     def check_deserialize(self, y, query):
         ret = self.deserializer(query, y)
-        numpy.testing.assert_array_equal(cuda.to_cpu(y), self.data)
+        numpy.testing.assert_array_equal(backend.to_numpy(y), self.data)
         self.assertIs(ret, y)
 
     def check_deserialize_by_passing_none(self, y, query):
         ret = self.deserializer(query, None)
-        numpy.testing.assert_array_equal(cuda.to_cpu(ret), self.data)
+        numpy.testing.assert_array_equal(backend.to_numpy(ret), self.data)
+
+    @pytest.mark.chainerx
+    def test_deserialize_chainerx(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(chainerx.asarray(y), 'y')
 
     def test_deserialize_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
