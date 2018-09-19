@@ -125,7 +125,7 @@ class ROIAverageAlign2D(function.Function):
 
     """ROI average align over a set of 2d planes."""
 
-    def __init__(self, outsize, spatial_scale, sampling_ratio=0):
+    def __init__(self, outsize, spatial_scale, sampling_ratio=None):
         outh, outw = _pair(outsize)
         if not (isinstance(outh, int) and outh > 0):
             raise TypeError(
@@ -143,9 +143,10 @@ class ROIAverageAlign2D(function.Function):
                 .format(type(spatial_scale), spatial_scale)
             )
         sampling_ratio = _pair(sampling_ratio)
-        if not all(isinstance(s, int) and s >= 0 for s in sampling_ratio):
+        if not all((isinstance(s, int) and s >= 1) or s is None
+                   for s in sampling_ratio):
             raise TypeError(
-                'sampling_ratio must be integer >= 0 or a pair of it: {}'
+                'sampling_ratio must be integer >= 1 or a pair of it: {}'
                 .format(sampling_ratio)
             )
 
@@ -198,14 +199,14 @@ class ROIAverageAlign2D(function.Function):
             bin_size_h = roi_height / pooled_height
             bin_size_w = roi_width / pooled_width
 
-            if self.sampling_ratio[0] > 0:
-                roi_bin_grid_h = self.sampling_ratio[0]
-            else:
+            if self.sampling_ratio[0] is None:
                 roi_bin_grid_h = numpy.ceil(roi_height / pooled_height)
-            if self.sampling_ratio[1] > 0:
-                roi_bin_grid_w = self.sampling_ratio[1]
             else:
+                roi_bin_grid_h = self.sampling_ratio[0]
+            if self.sampling_ratio[1] is None:
                 roi_bin_grid_w = numpy.ceil(roi_width / pooled_width)
+            else:
+                roi_bin_grid_w = self.sampling_ratio[1]
 
             count = roi_bin_grid_h * roi_bin_grid_w
 
@@ -252,6 +253,14 @@ class ROIAverageAlign2D(function.Function):
         n_rois = bottom_rois.shape[0]
         top_data = cuda.cupy.empty((n_rois, channels, self.outh,
                                     self.outw), dtype=bottom_data.dtype)
+        if self.sampling_ratio[0] is None:
+            sampling_ratio_h = 0
+        else:
+            sampling_ratio_h = self.sampling_ratio[0]
+        if self.sampling_ratio[1] is None:
+            sampling_ratio_w = 0
+        else:
+            sampling_ratio_w = self.sampling_ratio[1]
         cuda.elementwise(
             '''
             raw T bottom_data, T spatial_scale, int32 channels,
@@ -339,7 +348,7 @@ class ROIAverageAlign2D(function.Function):
             'roi_average_align_2d_fwd',
             preamble=_GET_BILINEAR_INTERP_KERNEL,
         )(bottom_data, self.spatial_scale, channels, height, width,
-          self.outh, self.outw, self.sampling_ratio[0], self.sampling_ratio[1],
+          self.outh, self.outw, sampling_ratio_h, sampling_ratio_w,
           bottom_rois, bottom_roi_indices, top_data)
 
         return top_data,
@@ -373,14 +382,14 @@ class ROIAverageAlign2D(function.Function):
 
             top_diff_this_bin = top_diff[n, c, ph, pw]
 
-            if self.sampling_ratio[0] > 0:
-                roi_bin_grid_h = self.sampling_ratio[0]
-            else:
+            if self.sampling_ratio[0] is None:
                 roi_bin_grid_h = numpy.ceil(roi_height / pooled_height)
-            if self.sampling_ratio[1] > 0:
-                roi_bin_grid_w = self.sampling_ratio[1]
             else:
+                roi_bin_grid_h = self.sampling_ratio[0]
+            if self.sampling_ratio[1] is None:
                 roi_bin_grid_w = numpy.ceil(roi_width / pooled_width)
+            else:
+                roi_bin_grid_w = self.sampling_ratio[1]
 
             count = roi_bin_grid_h * roi_bin_grid_w
 
@@ -423,6 +432,15 @@ class ROIAverageAlign2D(function.Function):
         bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, gy[0].dtype)
+
+        if self.sampling_ratio[0] is None:
+            sampling_ratio_h = 0
+        else:
+            sampling_ratio_h = self.sampling_ratio[0]
+        if self.sampling_ratio[1] is None:
+            sampling_ratio_w = 0
+        else:
+            sampling_ratio_w = self.sampling_ratio[1]
         cuda.elementwise(
             '''
             raw T top_diff,
@@ -519,14 +537,14 @@ class ROIAverageAlign2D(function.Function):
             preamble=_GET_BILINEAR_INTERP_KERNEL,
         )(gy[0], bottom_rois.shape[0],
           self.spatial_scale, channels, height, width, self.outh, self.outw,
-          self.sampling_ratio[0], self.sampling_ratio[1],
-          bottom_rois, bottom_roi_indices, bottom_diff, size=gy[0].size)
+          sampling_ratio_h, sampling_ratio_w, bottom_rois, bottom_roi_indices,
+          bottom_diff, size=gy[0].size)
 
         return bottom_diff, None, None
 
 
 def roi_average_align_2d(
-        x, rois, roi_indices, outsize, spatial_scale, sampling_ratio=0
+        x, rois, roi_indices, outsize, spatial_scale, sampling_ratio=None
 ):
     """Spatial Region of Interest (ROI) average align function.
 
@@ -547,9 +565,9 @@ def roi_average_align_2d(
             are equivalent.
         spatial_scale (float): Scale of the roi is resized.
         sampling_ratio ((int, int) or int): Sampling step for the alignment.
-            It must meet >=0 and is automatically decided when 0 is passed.
-            Use of different ratio in height and width axis is also supported
-            by passing tuple of int as
+            It must meet ``>=1`` and is automatically decided when :obj:`None`
+            is passed.  Use of different ratio in height and width axis is also
+            supported by passing tuple of int as
             ``(sampling_ratio_h, sampling_ratio_w)``.
             ``sampling_ratio=s`` and ``sampling_ratio=(s, s)`` are equivalent.
 
