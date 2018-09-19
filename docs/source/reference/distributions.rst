@@ -21,6 +21,7 @@ Distributions
    chainer.distributions.LogNormal
    chainer.distributions.MultivariateNormal
    chainer.distributions.Normal
+   chainer.distributions.OneHotCategorical
    chainer.distributions.Uniform
 
 

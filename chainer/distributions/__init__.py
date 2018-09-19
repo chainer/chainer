@@ -7,4 +7,5 @@ from chainer.distributions.laplace import Laplace  # NOQA
 from chainer.distributions.log_normal import LogNormal  # NOQA
 from chainer.distributions.multivariate_normal import MultivariateNormal  # NOQA
 from chainer.distributions.normal import Normal  # NOQA
+from chainer.distributions.one_hot_categorical import OneHotCategorical  # NOQA
 from chainer.distributions.uniform import Uniform  # NOQA
