@@ -73,6 +73,9 @@ from chainer import cuda  # NOQA
 from chainer import _environment_check
 
 
+import chainerx
+
+
 # Check environment conditions
 _environment_check.check()
 

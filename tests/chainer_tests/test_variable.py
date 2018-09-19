@@ -20,6 +20,7 @@ from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 from chainer import variable
+import chainerx
 
 
 class Constant(chainer.Function):

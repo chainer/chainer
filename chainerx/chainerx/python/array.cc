@@ -380,6 +380,18 @@ void InitChainerxArray(pybind11::module& m) {
     c.def_property_readonly("nbytes", [](const ArrayBodyPtr& self) { return Array{self}.GetNBytes(); });
     c.def_property_readonly("size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); });
     c.def_property_readonly("T", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Transpose()); });
+    // Returns the data address, before adding offset.
+    // TODO(niboshi): Consider what to do with the backends in which the "pointer" is not available from host.
+    c.def_property_readonly("data_ptr", [](const ArrayBodyPtr& self) -> intptr_t {
+        const void* ptr = Array{self}.data().get();
+        return reinterpret_cast<intptr_t>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    });
+    c.def_property_readonly("data_size", [](const ArrayBodyPtr& self) -> int64_t {
+        Array array{self};
+        auto range = GetDataRange(array.shape(), array.strides(), array.item_size());
+        return std::get<1>(range) - std::get<0>(range);
+    });
+    // TODO(niboshi): Remove this in favor of data_ptr.
     c.def_property_readonly(
             "_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
             [](const ArrayBodyPtr& self) -> intptr_t {
