@@ -6,28 +6,27 @@ jobs:
     working_directory: ~/work
     steps:
 
-      # Setup
       - run:
-          name: Setup
+          name: Preparation
           command: |
-            apt-get update
-            apt-get install -y g++ cmake clang-5.0 clang-tidy-5.0 clang-6.0 clang-format-6.0 git python3-dev wget
-            apt-get install openssh-client  # To avoid warning on checkout
-            apt-get install -y bzip2  # To install miniconda
-            apt-get install -y parallel  # Used in scripts
-
-            update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-5.0 1
-            update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-6.0 1
-
-            # To avoid configuring PATH environment variable in every steps
-            echo 'export PATH="$HOME"/miniconda/bin:"$PATH"' >> $BASH_ENV
-
+            echo 'export WORK_DIR=~/work' >> $BASH_ENV
             echo 'export REPO_DIR=~/repo' >> $BASH_ENV
+            echo 'export RUN_STEP="bash $REPO_DIR/chainerx/scripts/ci/run-step.sh"' >> $BASH_ENV
             echo 'export CHAINERX_DIR="$REPO_DIR"/chainerx' >> $BASH_ENV
+
+            # To avoid warning on checkout
+            apt-get update
+            apt-get install -y git openssh-client
 
       # Checkout
       - checkout:
           path: ~/repo
+
+      # Setup
+      - run:
+          name: Setup
+          command: |
+            $RUN_STEP setup
 
       # Checkout postprocess
       - run:
@@ -65,122 +64,49 @@ jobs:
       - run:
           name: Setup conda
           command: |
-            mkdir -p downloads
-
-            # conda
-            wget 'https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh' -O downloads/miniconda.sh
-            bash downloads/miniconda.sh -b -p "$HOME"/miniconda
-            conda config --set changeps1 no
-            conda update -y -q conda
-            conda create -y -q --name testenv python=3.6 pip
+            $RUN_STEP setup_conda
 
       # Environment info
       - run:
           name: Environment info
           command: |
-            source activate testenv
-
-            echo "PWD: $PWD"
-
-            echo
-            echo "----- g++ -----"
-            g++ --version
-
-            echo
-            echo "----- cmake -----"
-            cmake --version
-
-            echo
-            echo "----- python -----"
-            python --version
-
-            echo
-            echo "----- conda -----"
-            conda info -a
+            $RUN_STEP show_environment_info
 
       # Setup conda environment
       - run:
           name: Setup conda environment
           command: |
-            source activate testenv
-
-            pip install -U autopep8
-            pip install -U 'pbr>=1.8'
-            pip install -U 'pep8==1.5.7'
-            pip install -U 'pyflakes==0.8.1'
-            pip install -U 'flake8==3.5.0'
-            pip install -U 'mccabe==0.6.1'
-            pip install -U 'six>=1.9.0'
-
-            pip install -U pytest pytest-cov coveralls
-            pip install -U cpplint
+            $RUN_STEP setup_conda_environment
 
       # Python PEP-8 check
       - run:
           name: Python PEP-8 check
           command: |
-            source activate testenv
-
-            check_targets=(
-              "$CHAINERX_DIR"/python
-              "$CHAINERX_DIR"/tests
-              "$CHAINERX_DIR"/examples
-            )
-
-            # Check all targets exist
-            for f in "${check_targets[@]}"; do test -e "$f"; done
-
-            flake8 --version
-            flake8 "${check_targets[@]}"
-
-            autopep8 --version
-            autopep8 "${check_targets[@]}" -r --global-config .pep8 --diff | tee check_autopep8
-            test ! -s check_autopep8
+            $RUN_STEP python_style_check
 
       # ClangFormat
       - run:
           name: ClangFormat
           command: |
-            "$CHAINERX_DIR"/scripts/run-clang-format.sh --jobs 4
+            $RUN_STEP clang_format
 
       # cpplint
       - run:
           name: cpplint
           command: |
-            source activate testenv
-
-            "$CHAINERX_DIR"/scripts/run-cpplint.sh --jobs 4
+            $RUN_STEP cpplint
 
       # Setup openblas
       - run:
           name: Setup openblas
           command: |
-            # Install openblas on another directory with conda testenv because, otherwise, we get warnings like
-            # /usr/bin/cmake: /root/miniconda/envs/testenv/lib/libssl.so.1.0.0: no version information available (required by /usr/lib/x86_64-linux-gnu/libcurl.so.4)
-
-            conda create -y -q --name openblasenv openblas
-            source activate openblasenv
-
-            echo "export LD_LIBRARY_PATH=\"$CONDA_PREFIX/lib:$LD_LIBRARY_PATH\"" >> $BASH_ENV
-            echo "export CPATH=\"$CONDA_PREFIX/include:$CPATH\"" >> $BASH_ENV
+            $RUN_STEP setup_openblas
 
       # cmake
       - run:
           name: cmake
           command: |
-            source activate testenv
-
-            mkdir -p build
-            pushd build
-
-            # -DPYTHON_EXECUTABLE:FILEPATH is specified in order to use the created environment when building pybind11 instead of the default Python in miniconda
-            cmake \
-                -DCMAKE_BUILD_TYPE=Debug \
-                -DCHAINERX_BUILD_PYTHON=OFF \
-                -DCHAINERX_WARNINGS_AS_ERRORS=ON \
-                -DCMAKE_INSTALL_PREFIX=$HOME/local \
-                "$CHAINERX_DIR"
-            popd
+            $RUN_STEP cmake
 
       # clang-tidy (normal source files)
       # NOTE: We runs this only on master branch because it takes much time.
@@ -188,11 +114,7 @@ jobs:
           name: clang-tidy (normal source files)
           command: |
             if [[ "$CIRCLE_BRANCH" = "master" ]]; then
-              source activate testenv
-
-              pushd build
-              "$CHAINERX_DIR"/scripts/run-clang-tidy.sh normal
-              popd
+              $RUN_STEP clang_tidy normal
             fi
 
       # clang-tidy (test source files)
@@ -201,66 +123,38 @@ jobs:
           name: clang-tidy (test source files)
           command: |
             if [[ "$CIRCLE_BRANCH" = "master" ]]; then
-              source activate testenv
-
-              pushd build
-              bash "$CHAINERX_DIR"/scripts/run-clang-tidy.sh test
-              popd
+              $RUN_STEP clang_tidy test
             fi
 
       # make
       - run:
           name: make
           command: |
-            source activate testenv
-
-            pushd build
-            make -j 2 --output-sync
-            popd
+            MAKEFLAGS=-j2 $RUN_STEP make
 
       # make install
       - run:
           name: make install
           command: |
-            source activate testenv
-
-            pushd build
-            make install
-            popd
+            $RUN_STEP make_install
 
       # C++ test
       - run:
           name: C++ test
           command: |
-            source activate testenv
-
-            pushd build
-            ctest -V
-            popd
+            $RUN_STEP ctest
 
       # Python build
       - run:
           name: Python build
           command: |
-            source activate testenv
-
-            CHAINER_BUILD_CHAINERX=1 \
-            XCHAINER_BUILD_CUDA=0 \
-            MAKEFLAGS=-j6 \
-            pip install "$REPO_DIR"
+            MAKEFLAGS=-j2 $RUN_STEP python_build
 
       # Python test
       - run:
           name: Python test
           command: |
-            source activate testenv
-
-            # Run all non-CUDA tests except doctests
-            # TODO(niboshi): threshold is temporarily lowered from 80 to 50. Restore it after writing tests for testing package.
-            pytest "$CHAINERX_DIR" -m='not cuda' -p no:doctest --cov=chainerx --no-cov-on-fail --cov-fail-under=50 --cov-report html:coverage-html/python
-
-            # Run all non-CUDA doctests
-            find "$CHAINERX_DIR"/tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
+            $RUN_STEP python_test_nocuda
 
 experimental:
   notify:
