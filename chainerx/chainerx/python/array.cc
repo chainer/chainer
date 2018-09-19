@@ -89,15 +89,16 @@ ArrayBodyPtr MakeArray(const py::tuple& shape_tup, Dtype dtype, const py::list& 
 
 py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
     Array array = Array{self}.ToNative();
+
+    py::dtype dtype{GetDtypeName(array.dtype())};
+    const Shape& shape = array.shape();
+    const Strides& strides = array.strides();
+    const void* ptr = internal::GetRawOffsetData<void>(array);
+
     if (copy) {
-        return py::array{
-                pybind11::dtype(GetDtypeName(array.dtype())), array.shape(), array.strides(), internal::GetRawOffsetData<void>(array)};
+        return py::array{dtype, shape, strides, ptr};
     }
-    return py::array{pybind11::dtype(GetDtypeName(array.dtype())),
-        array.shape(),
-        array.strides(),
-        internal::GetRawOffsetData<void>(array),
-        py::cast(internal::MoveArrayBody(std::move(array)))};
+    return py::array{dtype, shape, strides, ptr, py::cast(internal::MoveArrayBody(std::move(array)))};
 }
 
 }  // namespace
