@@ -39,12 +39,6 @@ class Constant(chainer.Function):
     def backward_gpu(self, inputs, grad_outputs):
         return tuple(map(cuda.cupy.zeros_like, inputs))
 
-    def forward_chx(self, inputs):
-        return tuple(map(chainerx.array, self.__outputs))
-
-    def backward_chx(self, inputs, grad_outputs):
-        return tuple(chainerx.zeros(x.shape) for x in self.inputs.shape)
-
 
 def constant(xs, value):
     return Constant(value)(*xs)
@@ -175,7 +169,7 @@ class TestBackwardAccumulate(unittest.TestCase):
         self._to_gpu()
         self.check_backward_accumulate(cuda.cupy)
 
-    def _to_chx(self):
+    def _to_chainerx(self):
         self.inputs_data = [chainerx.array(x) for x in self.inputs_data]
         self.inputs_grad = [
             None if g is None else chainerx.array(g)
@@ -184,7 +178,7 @@ class TestBackwardAccumulate(unittest.TestCase):
 
     @pytest.mark.chainerx
     def test_backward_accumulate_chainerx(self):
-        self._to_chx()
+        self._to_chainerx()
         self.check_backward_accumulate(chainerx)
 
 
