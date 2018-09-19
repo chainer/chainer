@@ -23,7 +23,7 @@ Scalar Norm(const Array& x) {
 }
 
 void Set(const Array& out, int64_t flat_index, Scalar value) {
-    Device& native = out.device().context().GetDevice({"native", 0});
+    Device& native_device = out.device().context().GetNativeBackend().GetDevice(0);
 
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
@@ -31,12 +31,12 @@ void Set(const Array& out, int64_t flat_index, Scalar value) {
         Indexer<> indexer{out.shape()};
         T& dst = iarray[indexer.It(flat_index)];
         T src = static_cast<T>(value);
-        out.device().MemoryCopyFrom(&dst, &src, sizeof(T), native);
+        out.device().MemoryCopyFrom(&dst, &src, sizeof(T), native_device);
     });
 }
 
 Scalar Get(const Array& out, int64_t flat_index) {
-    Device& native = out.device().context().GetDevice({"native", 0});
+    Device& native_device = out.device().context().GetNativeBackend().GetDevice(0);
 
     return VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
@@ -44,7 +44,7 @@ Scalar Get(const Array& out, int64_t flat_index) {
         Indexer<> indexer{out.shape()};
         const T& src = iarray[indexer.It(flat_index)];
         T dst{};
-        out.device().MemoryCopyTo(&dst, &src, sizeof(T), native);
+        out.device().MemoryCopyTo(&dst, &src, sizeof(T), native_device);
         return Scalar{dst};
     });
 }
