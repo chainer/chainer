@@ -491,9 +491,15 @@ class Variable(object):
         # abstract its initialized/uninitialized state.
         self._data = [data]
         self._requires_grad = requires_grad
-        self._node = VariableNode(self, name)
-        self._grad_var = None if grad is None else Variable(grad)
         self._loss_scale = None
+
+        # ChainerX itself has own node objects, but not exposed to python.
+        if chainerx.is_available() and isinstance(data, chainerx.ndarray):
+            self._is_chainerx = True
+        else:
+            self._is_chainerx = False
+            self._node = VariableNode(self, name)
+            self._grad_var = None if grad is None else Variable(grad)
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -609,10 +615,14 @@ class Variable(object):
         property returns that node object.
 
         """
+        if self._is_chainerx:
+            raise NotImplementedError
         return self._node.creator
 
     @creator.setter
     def creator(self, func):
+        if self._is_chainerx:
+            raise NotImplementedError
         self._node.creator = func
 
     @property
@@ -634,10 +644,14 @@ class Variable(object):
            object.
 
         """
+        if self._is_chainerx:
+            raise NotImplementedError
         return self._node._creator_node
 
     @creator_node.setter
     def creator_node(self, func):
+        if self._is_chainerx:
+            raise NotImplementedError
         self._node.creator_node = func
 
     @property
@@ -718,6 +732,8 @@ class Variable(object):
 
     @property
     def rank(self):
+        if self._is_chainerx:
+            raise NotImplementedError
         return self._node.rank
 
     @property
@@ -897,6 +913,8 @@ class Variable(object):
                 one of its outputs.
 
         """
+        if self._is_chainerx:
+            raise NotImplementedError
         self._node.set_creator(gen_func)
 
     def set_creator_node(self, fnode):
@@ -907,6 +925,8 @@ class Variable(object):
                 output.
 
         """
+        if self._is_chainerx:
+            raise NotImplementedError
         self._node.set_creator_node(fnode)
 
     def backward(self, retain_grad=False, enable_double_backprop=False,
