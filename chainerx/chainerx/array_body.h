@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -39,6 +40,8 @@ public:
     const Shape& shape() const { return shape_; }
 
     const Strides& strides() const { return strides_; }
+
+    int8_t ndim() const { return shape_.ndim(); }
 
     Dtype dtype() const { return dtype_; }
 

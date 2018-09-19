@@ -176,6 +176,9 @@ void InitChainerxArray(pybind11::module& m) {
           });
     c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
         // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.
+        if (self->ndim() == 0) {
+            throw pybind11::type_error("len() of unsized object");
+        }
         return Array{self}.shape().front();
     });
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
