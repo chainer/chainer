@@ -11,7 +11,7 @@ jobs:
           command: |
             echo 'export WORK_DIR=~/work' >> $BASH_ENV
             echo 'export REPO_DIR=~/repo' >> $BASH_ENV
-            echo 'export RUN_STEP="$REPO_DIR/chainerx/scripts/ci/run-step.sh"' >> $BASH_ENV
+            echo 'export RUN_STEP="bash $REPO_DIR/chainerx/scripts/ci/run-step.sh"' >> $BASH_ENV
             echo 'export CHAINERX_DIR="$REPO_DIR"/chainerx' >> $BASH_ENV
 
             # To avoid warning on checkout
@@ -26,7 +26,7 @@ jobs:
       - run:
           name: Setup
           command: |
-            "$RUN_STEP" setup
+            $RUN_STEP setup
 
       # Checkout postprocess
       - run:
@@ -64,49 +64,49 @@ jobs:
       - run:
           name: Setup conda
           command: |
-            "$RUN_STEP" setup_conda
+            $RUN_STEP setup_conda
 
       # Environment info
       - run:
           name: Environment info
           command: |
-            "$RUN_STEP" show_environment_info
+            $RUN_STEP show_environment_info
 
       # Setup conda environment
       - run:
           name: Setup conda environment
           command: |
-            "$RUN_STEP" setup_conda_environment
+            $RUN_STEP setup_conda_environment
 
       # Python PEP-8 check
       - run:
           name: Python PEP-8 check
           command: |
-            "$RUN_STEP" python_style_check
+            $RUN_STEP python_style_check
 
       # ClangFormat
       - run:
           name: ClangFormat
           command: |
-            "$RUN_STEP" clang_format
+            $RUN_STEP clang_format
 
       # cpplint
       - run:
           name: cpplint
           command: |
-            "$RUN_STEP" cpplint
+            $RUN_STEP cpplint
 
       # Setup openblas
       - run:
           name: Setup openblas
           command: |
-            "$RUN_STEP" setup_openblas
+            $RUN_STEP setup_openblas
 
       # cmake
       - run:
           name: cmake
           command: |
-            "$RUN_STEP" cmake
+            $RUN_STEP cmake
 
       # clang-tidy (normal source files)
       # NOTE: We runs this only on master branch because it takes much time.
@@ -114,7 +114,7 @@ jobs:
           name: clang-tidy (normal source files)
           command: |
             if [[ "$CIRCLE_BRANCH" = "master" ]]; then
-              "$RUN_STEP" clang_tidy normal
+              $RUN_STEP clang_tidy normal
             fi
 
       # clang-tidy (test source files)
@@ -123,38 +123,38 @@ jobs:
           name: clang-tidy (test source files)
           command: |
             if [[ "$CIRCLE_BRANCH" = "master" ]]; then
-              "$RUN_STEP" clang_tidy test
+              $RUN_STEP clang_tidy test
             fi
 
       # make
       - run:
           name: make
           command: |
-            MAKEFLAGS=-j2 "$RUN_STEP" make
+            MAKEFLAGS=-j2 $RUN_STEP make
 
       # make install
       - run:
           name: make install
           command: |
-            "$RUN_STEP" make_install
+            $RUN_STEP make_install
 
       # C++ test
       - run:
           name: C++ test
           command: |
-            "$RUN_STEP" ctest
+            $RUN_STEP ctest
 
       # Python build
       - run:
           name: Python build
           command: |
-            MAKEFLAGS=-j2 "$RUN_STEP" python_build
+            MAKEFLAGS=-j2 $RUN_STEP python_build
 
       # Python test
       - run:
           name: Python test
           command: |
-            "$RUN_STEP" python_test_nocuda
+            $RUN_STEP python_test_nocuda
 
 experimental:
   notify:
