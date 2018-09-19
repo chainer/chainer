@@ -92,13 +92,12 @@ py::array MakeNumpyArrayFromArray(const ArrayBodyPtr& self, bool copy) {
     if (copy) {
         return py::array{
                 pybind11::dtype(GetDtypeName(array.dtype())), array.shape(), array.strides(), internal::GetRawOffsetData<void>(array)};
-    } else {
-        return py::array{pybind11::dtype(GetDtypeName(array.dtype())),
-                         array.shape(),
-                         array.strides(),
-                         internal::GetRawOffsetData<void>(array),
-                         py::cast(internal::MoveArrayBody(std::move(array)))};
     }
+    return py::array{pybind11::dtype(GetDtypeName(array.dtype())),
+        array.shape(),
+        array.strides(),
+        internal::GetRawOffsetData<void>(array),
+        py::cast(internal::MoveArrayBody(std::move(array)))};
 }
 
 }  // namespace
