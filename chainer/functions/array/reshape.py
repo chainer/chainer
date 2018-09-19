@@ -1,6 +1,8 @@
 import chainer
 from chainer import function_node
 from chainer.utils import type_check
+from chainer import variable
+import chainerx
 
 
 def _count_unknown_dims(shape):
@@ -90,6 +92,10 @@ def reshape(x, shape):
         Actual: 8 != 12
 
     """
+    if chainerx.is_available():
+        x_array = x if not isinstance(x, variable.Variable) else x.array
+        if isinstance(x_array, chainerx.ndarray):
+            return chainer.as_variable(x_array.reshape(shape))
     if x.shape == shape:
         return chainer.as_variable(x)
     y, = Reshape(shape).apply((x,))

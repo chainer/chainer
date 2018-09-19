@@ -1,7 +1,10 @@
 import numpy
 
+import chainer
 from chainer import function_node
 from chainer.utils import type_check
+from chainer import variable
+import chainerx
 
 
 class Transpose(function_node.FunctionNode):
@@ -69,4 +72,8 @@ def transpose(x, axes=None):
                [[3., 4., 5.]]], dtype=float32)
 
     """
+    if chainerx.is_available():
+        x_array = x if not isinstance(x, variable.Variable) else x.array
+        if isinstance(x_array, chainerx.ndarray):
+            return chainer.as_variable(x_array.transpose(axes))
     return Transpose(axes).apply((x,))[0]
