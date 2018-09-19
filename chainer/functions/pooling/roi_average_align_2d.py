@@ -536,19 +536,22 @@ def roi_average_align_2d(
 
     Args:
         x (~chainer.Variable): Input variable. The shape is expected to be
-            4 dimentional: (n: batch, c: channel, h, height, w: width).
+            4 dimentional: ``(n: batch, c: channel, h, height, w: width)``.
         rois (~chainer.Variable): Input roi variable. The shape is expected to
-            be (n: data size, 4), and each datum is set as below:
-            (y_min, x_min, y_max, x_max).
+            be ``(n: data size, 4)``, and each datum is set as below:
+            ``(y_min, x_min, y_max, x_max)``.
         roi_indices (~chainer.Variable): Input roi variable. The shape is
-            expected to be (n: data size, ).
-        outsize ((int, int)): Expected output size after pooled
-            (height, width).
+            expected to be ``(n: data size, )``.
+        outsize ((int, int) or int): Expected output size after pooled
+            (height, width). ``outsize=o`` and ``outsize=(o, o)``
+            are equivalent.
         spatial_scale (float): Scale of the roi is resized.
-        sampling_ratio (int or tuple of int): Sampling step for the alignment.
+        sampling_ratio ((int, int) or int): Sampling step for the alignment.
             It must meet >=0 and is automatically decided when 0 is passed.
             Use of different ratio in height and width axis is also supported
-            by passing tuple of int as (sampling_ratio_h, sampling_ratio_w).
+            by passing tuple of int as
+            ``(sampling_ratio_h, sampling_ratio_w)``.
+            ``sampling_ratio=s`` and ``sampling_ratio=(s, s)`` are equivalent.
 
     Returns:
         ~chainer.Variable: Output variable.
