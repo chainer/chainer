@@ -171,7 +171,7 @@ void InitChainerxArray(pybind11::module& m) {
               // Note that inc_ref() / dec_ref() is performed by the lambda capture.
               std::shared_ptr<void> data{c_ptr, [base](void*) {}};
               return MoveArrayBody(
-                      FromData(ToShape(shape), GetDtype(dtype), std::move(data), ToStrides(strides), offset, GetDevice(device)));
+                      FromData(ToShape(shape), GetDtype(dtype), data, ToStrides(strides), offset, GetDevice(device)));
           });
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
