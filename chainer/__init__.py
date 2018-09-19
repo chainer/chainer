@@ -5,8 +5,6 @@ import warnings
 
 import numpy
 
-import chainerx
-
 from chainer import _version
 from chainer import backends  # NOQA
 from chainer import dataset  # NOQA
