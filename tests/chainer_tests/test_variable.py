@@ -171,18 +171,6 @@ class TestBackwardAccumulate(unittest.TestCase):
         self._to_gpu()
         self.check_backward_accumulate(cuda.cupy)
 
-    def _to_chainerx(self):
-        self.inputs_data = [chainerx.array(x) for x in self.inputs_data]
-        self.inputs_grad = [
-            None if g is None else chainerx.array(g)
-            for g in self.inputs_grad]
-        self.gy = chainerx.array(self.gy)
-
-    @pytest.mark.chainerx
-    def test_backward_accumulate_chainerx(self):
-        self._to_chainerx()
-        self.check_backward_accumulate(chainerx)
-
 
 class TestVariableNode(unittest.TestCase):
 
@@ -1501,13 +1489,6 @@ class TestReshape(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
 
-    @pytest.mark.chainerx
-    def test_backward_chainerx(self):
-        # TODO(imanishi): chainerx does not support fp16 yet
-        if self.dtype == np.float16:
-            return
-        self.check_backward(chainerx.array(self.x))
-
 
 @testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],
@@ -1553,13 +1534,6 @@ class TestTranspose(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
-
-    @pytest.mark.chainerx
-    def test_backward_chainerx(self):
-        # TODO(hvy): chainerx does not support fp16 yet
-        if self.dtype == np.float16:
-            return
-        self.check_backward(chainerx.array(self.x))
 
 
 class UnnamedVariableToStringTestBase(object):
