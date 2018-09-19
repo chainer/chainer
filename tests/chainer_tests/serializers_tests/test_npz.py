@@ -131,7 +131,7 @@ class TestNpzDeserializer(unittest.TestCase):
         ret = self.deserializer(query, None)
         numpy.testing.assert_array_equal(backend.to_numpy(ret), self.data)
 
-    @pytest.mark.chainer
+    @pytest.mark.chainerx
     def test_deserialize_chainerx(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(chainerx.asarray(y), 'y')
