@@ -479,11 +479,13 @@ class Variable(object):
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
             volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
-        if (data is not None and
-                not isinstance(data, chainer.get_array_types())):
-            msg = '''numpy.ndarray or cuda.ndarray are expected.
-Actual: {0}'''.format(type(data))
-            raise TypeError(msg)
+        if data is not None:
+            array_types = chainer.get_array_types()
+            if not isinstance(data, array_types):
+                msg = '{} or {} are expected. Actual: {}'.format(
+                    ', '.join([str(at) for at in array_types[:-1]]),
+                    array_types[-1], type(data))
+                raise TypeError(msg)
 
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.

@@ -71,6 +71,9 @@ from chainer import cuda  # NOQA
 from chainer import _environment_check
 
 
+import chainerx
+
+
 # Check environment conditions
 _environment_check.check()
 
@@ -115,6 +118,10 @@ def _load_array_types():
         if backends.intel64.is_ideep_available():
             array_types.append(backends.intel64.mdarray)
             cpu_array_types.append(backends.intel64.mdarray)
+
+        if chainerx.is_available():
+            array_types.append(chainerx.ndarray)
+            cpu_array_types.append(chainerx.ndarray)
 
         array_types = tuple(array_types)
         cpu_array_types = tuple(cpu_array_types)
