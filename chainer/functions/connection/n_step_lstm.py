@@ -62,7 +62,7 @@ def n_step_lstm(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Eight weight matrices and eight bias vectors are
     required for each layer. So, when :math:`S` layers exist, you need to
-    prepare :math:`8S` weigth matrices and :math:`8S` bias vectors.
+    prepare :math:`8S` weight matrices and :math:`8S` bias vectors.
 
     If the number of layers ``n_layers`` is greater than :math:`1`, the input
     of the ``k``-th layer is the hidden state ``h_t`` of the ``k-1``-th layer.
@@ -222,7 +222,7 @@ def n_step_bilstm(
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Eight weight matrices and eight bias vectors are
     required for each layer of each direction. So, when :math:`S` layers
-    exist, you need to prepare :math:`16S` weigth matrices and :math:`16S`
+    exist, you need to prepare :math:`16S` weight matrices and :math:`16S`
     bias vectors.
 
     If the number of layers ``n_layers`` is greater than :math:`1`, the input

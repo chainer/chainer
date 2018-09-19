@@ -27,12 +27,12 @@ class Gaussian(function_node.FunctionNode):
         self.eps = eps
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('mean', 'ln_var'))
 
         m_type, v_type = in_types
         type_check.expect(
-            m_type.dtype == numpy.float32,
-            v_type.dtype == numpy.float32,
+            m_type.dtype.kind == 'f',
+            m_type.dtype == v_type.dtype,
             m_type.shape == v_type.shape,
         )
 
@@ -43,7 +43,7 @@ class Gaussian(function_node.FunctionNode):
         if self.eps is None:
             self.eps = (
                 numpy.random.standard_normal(ln_var.shape)
-                .astype(numpy.float32)
+                .astype(mean.dtype, copy=False)
             )
 
         self.noise = numpy.exp(ln_var * mean.dtype.type(0.5)) * self.eps
@@ -54,8 +54,14 @@ class Gaussian(function_node.FunctionNode):
 
         mean, ln_var = inputs
         if self.eps is None:
-            self.eps = cuda.cupy.random.standard_normal(
-                ln_var.shape, dtype=mean.dtype)
+            if mean.dtype != numpy.float16:
+                self.eps = cuda.cupy.random.standard_normal(
+                    ln_var.shape, dtype=mean.dtype)
+            else:
+                # Draw samples in FP32 then cast them to FP16 because
+                # cupy.random does not support FP16 currently.
+                self.eps = cuda.cupy.random.standard_normal(
+                    ln_var.shape, dtype=numpy.float32).astype(numpy.float16)
 
         self.noise = cuda.cupy.empty_like(mean)
         self.noise = cuda.elementwise(

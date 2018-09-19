@@ -25,10 +25,8 @@ class ReLU(function_node.FunctionNode):
     _use_ideep = False
 
     def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1,
-            in_types[0].dtype.kind == 'f',
-        )
+        type_check.argname(in_types, ('x',))
+        type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
         if (intel64.should_use_ideep('>=auto')

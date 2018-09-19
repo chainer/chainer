@@ -697,4 +697,58 @@ if __name__ == '__main__':
         self.assertFalse(self.killall())
 
 
+class StallingDataset(object):
+
+    def __init__(self, nth, sleep):
+        self.data = [0, 1, 2, 3, 4]
+        self.nth = nth
+        self.sleep = sleep
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, i):
+        if i == self.nth:
+            time.sleep(self.sleep)
+        return self.data[i]
+
+
+@testing.parameterize(*testing.product({
+    'nth': [0, 1, 2],  # A fetch of whatth item will stall?
+}))
+class TestMultiprocessIteratorStalledDatasetDetection(unittest.TestCase):
+
+    def test_stalled_getitem(self):
+        nth = self.nth
+        batch_size = 2
+        sleep = 0.5
+        timeout = 0.1
+
+        dataset = StallingDataset(nth, sleep)
+        it = iterators.MultiprocessIterator(
+            dataset, batch_size=batch_size, shuffle=False,
+            dataset_timeout=timeout, repeat=False)
+
+        # TimeoutWarning should be issued.
+        warning_cls = iterators.MultiprocessIterator.TimeoutWarning
+        data = []
+        # No warning until the stalling batch
+        for i in range(nth // batch_size):
+            data.append(it.next())
+        # Warning on the stalling batch
+        with testing.assert_warns(warning_cls):
+            data.append(it.next())
+        # Retrieve data until the end
+        while True:
+            try:
+                data.append(it.next())
+            except StopIteration:
+                break
+
+        # All data must be retrieved
+        assert data == [
+            dataset.data[i * batch_size: (i+1) * batch_size]
+            for i in range((len(dataset) + batch_size - 1) // batch_size)]
+
+
 testing.run_module(__name__, __file__)

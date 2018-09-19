@@ -12,29 +12,50 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(
-    *testing.product({
-        'batchsize': [5, 10], 'input_dim': [2, 3], 'margin': [1, 2],
-        'reduce': ['mean', 'no'], 'label_dtype': [numpy.int32, numpy.int32]
+@testing.parameterize(*testing.product_dict(
+    [{'dtype': numpy.float16,
+      'forward_options': {'rtol': 1e-2, 'atol': 1e-2},
+      'backward_options': {'rtol': 1e-2, 'atol': 1e-3},
+      'double_backward_options': {'rtol': 3e-1, 'atol': 3e-1}},
+     {'dtype': numpy.float32,
+      'forward_options': {'rtol': 1e-2},
+      'backward_options': {'rtol': 1e-2, 'atol': 1e-3},
+      'double_backward_options': {'rtol': 1e-2, 'atol': 1e-3}},
+     {'dtype': numpy.float64,
+      'forward_options': {'rtol': 1e-2},
+      'backward_options': {'rtol': 1e-2, 'atol': 1e-3},
+      'double_backward_options': {'rtol': 1e-2, 'atol': 1e-3}},
+     ],
+    testing.product({
+        'batchsize': [5, 10],
+        'input_dim': [2, 3],
+        'margin': [1, 2],
+        'reduce': ['mean', 'no'],
+        'label_dtype': [numpy.int32, numpy.int64]
     })
-)
+))
 class TestContrastive(unittest.TestCase):
 
     def setUp(self):
         x_shape = (self.batchsize, self.input_dim)
-        self.x0 = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-        self.x1 = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
+        retry = 0
+        while True:
+            self.x0 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+            self.x1 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+            d = numpy.sqrt(numpy.sum((self.x0 - self.x1) ** 2, axis=1))
+            if (numpy.abs(d - self.margin) > 1e-2).all():
+                break
+            retry += 1
+            assert retry <= 10, 'Too many retries to generate inputs'
         self.t = numpy.random.randint(
             0, 2, (self.batchsize,)).astype(self.label_dtype)
         if self.reduce == 'mean':
-            self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
+            self.gy = numpy.random.uniform(-1, 1, ()).astype(self.dtype)
         else:
             self.gy = numpy.random.uniform(
-                -1, 1, (self.batchsize,)).astype(numpy.float32)
-        self.gx0 = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-        self.gx1 = numpy.random.uniform(-1, 1, x_shape).astype(numpy.float32)
-
-        self.check_backward_options = {'rtol': 1e-2, 'atol': 1e-3}
+                -1, 1, (self.batchsize,)).astype(self.dtype)
+        self.gx0 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+        self.gx1 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
 
     def check_forward(self, x0_data, x1_data, t_data):
         x0_val = chainer.Variable(x0_data)
@@ -42,7 +63,7 @@ class TestContrastive(unittest.TestCase):
         t_val = chainer.Variable(t_data)
         loss = functions.contrastive(
             x0_val, x1_val, t_val, self.margin, self.reduce)
-        self.assertEqual(loss.data.dtype, numpy.float32)
+        self.assertEqual(loss.data.dtype, self.dtype)
         if self.reduce == 'mean':
             self.assertEqual(loss.data.shape, ())
         else:
@@ -50,7 +71,7 @@ class TestContrastive(unittest.TestCase):
         loss_value = cuda.to_cpu(loss.data)
 
         # Compute expected value
-        loss_expect = numpy.empty((self.batchsize,), numpy.float32)
+        loss_expect = numpy.empty((self.batchsize,), self.dtype)
         for i in six.moves.range(self.x0.shape[0]):
             x0d, x1d, td = self.x0[i], self.x1[i], self.t[i]
             d = numpy.sum((x0d - x1d) ** 2)
@@ -61,7 +82,8 @@ class TestContrastive(unittest.TestCase):
             loss_expect[i] /= 2.
         if self.reduce == 'mean':
             loss_expect = numpy.sum(loss_expect) / self.t.shape[0]
-        numpy.testing.assert_allclose(loss_expect, loss_value, rtol=1e-2)
+        numpy.testing.assert_allclose(
+            loss_expect, loss_value, **self.forward_options)
 
     def test_negative_margin(self):
         self.margin = -1
@@ -84,7 +106,7 @@ class TestContrastive(unittest.TestCase):
 
         gradient_check.check_backward(
             f, (x0_data, x1_data, t_data), gy_data, dtype='d',
-            **self.check_backward_options)
+            **self.backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x0, self.x1, self.t, self.gy)
@@ -111,7 +133,7 @@ class TestContrastive(unittest.TestCase):
         gradient_check.check_double_backward(
             f, (x0_data, x1_data), gy_data,
             (gx0_data, gx1_data),
-            dtype='f', rtol=1e-2, atol=1e-3)
+            dtype='f', **self.double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(

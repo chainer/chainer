@@ -61,7 +61,7 @@ class LSTM(function_node.FunctionNode):
     """
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('c', 'x'))
         c_type, x_type = in_types
 
         type_check.expect(
@@ -224,28 +224,24 @@ class LSTMGrad(function.Function):
         return gc_prev, gx, gc_next, ggc, ggh
 
 
-def _cupy_sigmoid(x):
-    half = x.dtype.type(0.5)
-    return cuda.fusion.tanh(x * half) * half + half
-
-
 @cuda.fuse()
 def lstm_grad_grad(
         c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
         gc_prev, ga, gi, gf, go, gc_next, ggc, ggh):
-    sig_o = _cupy_sigmoid(o)
+    xp = cuda.get_array_module(a)
+    sig_o = _sigmoid(o, xp)
     gsig_o = _grad_sigmoid(sig_o)
     ggsig_o = _grad_grad_sigmoid(sig_o)
-    sig_i = _cupy_sigmoid(i)
+    sig_i = _sigmoid(i, xp)
     gsig_i = _grad_sigmoid(sig_i)
     ggsig_i = _grad_grad_sigmoid(sig_i)
-    sig_f = _cupy_sigmoid(f)
+    sig_f = _sigmoid(f, xp)
     gsig_f = _grad_sigmoid(sig_f)
     ggsig_f = _grad_grad_sigmoid(sig_f)
-    tanh_a = cuda.fusion.tanh(a)
+    tanh_a = xp.tanh(a)
     gtanh_a = _grad_tanh(tanh_a)
     ggtanh_a = _grad_grad_tanh(tanh_a, gtanh_a)
-    tanh_c = cuda.fusion.tanh(c)
+    tanh_c = xp.tanh(c)
     gtanh_c = _grad_tanh(tanh_c)
     ggtanh_c = _grad_grad_tanh(tanh_c, gtanh_c)
 

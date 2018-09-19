@@ -12,7 +12,6 @@ from chainer.utils import type_check
 
 
 class DeconvolutionND(function_node.FunctionNode):
-
     cover_all = None
 
     def __init__(self, ndim, stride=1, pad=0, outsize=None,
@@ -60,8 +59,11 @@ class DeconvolutionND(function_node.FunctionNode):
             )
 
     def _use_cudnn(self, x, W):
-        if cuda._cudnn_version < 6000 and any(d != 1 for d in self.dilate):
-            # cuDNN < 6.0 does not support dilated convolutions
+        if ((cuda._cudnn_version < 6000
+             or configuration.config.cudnn_deterministic)
+                and any(d != 1 for d in self.dilate)):
+            # cuDNN < 6.0 and deterministic algorithms
+            # does not support dilated convolutions
             return False
         if cuda._cudnn_version < 7000 and 1 < self.groups:
             # cuDNN < 7.0 does not support grouped convolutions
@@ -288,7 +290,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
             pad.
         dilate (:class:`int` or :class:`tuple` of :class:`int` s):
             Dilation factor of filter applications.
-            ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+            ``dilate=d`` and ``dilate=(d, d, ..., d)`` are equivalent.
         groups (:class:`int`):
             The number of groups to use grouped convolution.
             The default is one, where grouped convolution is not used.
@@ -370,3 +372,41 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
     args = (x, W) if b is None else (x, W, b)
     y, = func.apply(args)
     return y
+
+
+def deconvolution_1d(x, W, b=None, stride=1, pad=0, outsize=None,
+                     dilate=1, groups=1):
+    """1-dimensional deconvolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.deconvolution_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.deconvolution_nd`.
+
+    """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return deconvolution_nd(x, W, b, stride, pad, outsize, dilate, groups)
+
+
+def deconvolution_3d(x, W, b=None, stride=1, pad=0, outsize=None,
+                     dilate=1, groups=1):
+    """3-dimensional deconvolution function.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.deconvolution_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.deconvolution_nd`.
+
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return deconvolution_nd(x, W, b, stride, pad, outsize, dilate, groups)

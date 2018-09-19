@@ -1,14 +1,13 @@
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
+import chainer.distributions.utils
 from chainer.functions.activation import sigmoid
-from chainer.functions.array import broadcast
-from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
 from chainer import utils
-import numpy
-import warnings
 
 
 class BernoulliLogProb(chainer.function_node.FunctionNode):
@@ -50,38 +49,9 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         return gy * dlogit, None
 
 
-class ModifiedXLogX(chainer.function_node.FunctionNode):
-    def __init__(self, logx):
-        self._logx = logx
-
-    def forward(self, inputs):
-        x, = inputs
-        self.x_zero = utils.force_array(x == 0)
-        y = utils.force_array(x * self._logx.array)
-        y[self.x_zero] = 0.
-        return y,
-
-    def backward(self, indexes, grad_outputs):
-        if self.x_zero.any():
-            warnings.warn(
-                'cannot calculate gradient for zero input.',
-                RuntimeWarning)
-        gy, = grad_outputs
-        dx = (1 + self._logx) * (1 - self.x_zero)
-        return gy * dx,
-
-
 def _bernoulli_log_prob(logit, x):
     y, = BernoulliLogProb().apply((logit, x))
     return y
-
-
-def _modified_xlogx(x):
-    x = chainer.as_variable(x)
-    xp = x.xp
-    return ModifiedXLogX(exponential.log(
-        where.where(utils.force_array(x.array > 0),
-                    x, xp.ones_like(x.array)))).apply((x,))[0]
 
 
 class Bernoulli(distribution.Distribution):
@@ -128,7 +98,8 @@ class Bernoulli(distribution.Distribution):
     def entropy(self):
         p = self.p
         q = p.dtype.type(1.) - p
-        return - _modified_xlogx(p) - _modified_xlogx(q)
+        return - chainer.distributions.utils._modified_xlogx(p) \
+            - chainer.distributions.utils._modified_xlogx(q)
 
     @property
     def event_shape(self):
@@ -151,8 +122,7 @@ class Bernoulli(distribution.Distribution):
             valid = cuda.cupy.bitwise_or(x.array == 0, x.array == 1)
         else:
             valid = numpy.bitwise_or(x.array == 0, x.array == 1)
-        ret = x * broadcast.broadcast_to(self.p, x.shape) \
-            + (1 - x) * (1 - broadcast.broadcast_to(self.p, x.shape))
+        ret = x * self.p + (1 - x) * (1 - self.p)
         return ret * valid
 
     def sample_n(self, n):
