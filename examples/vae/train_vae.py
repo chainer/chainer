@@ -32,6 +32,9 @@ def main():
     parser.add_argument('--beta', default=1.0, type=float,
                         help='Regularization coefficient for '
                              'the second term of ELBO bound')
+    parser.add_argument('--k', '-k', default=1, type=int,
+                        help='Number of Monte Carlo samples used in '
+                             'encoded vector')
     parser.add_argument('--batch-size', '-b', type=int, default=100,
                         help='learning minibatch size')
     parser.add_argument('--test', action='store_true',
@@ -49,7 +52,7 @@ def main():
     decoder = net.make_decoder(784, args.dim_z, args.dim_h)
     prior = net.make_prior(args.dim_z, device=args.gpu)
     avg_elbo_loss = net.AvgELBOLoss(encoder, decoder, prior,
-                                    beta=args.beta)
+                                    beta=args.beta, k=args.k)
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
@@ -113,20 +116,20 @@ def main():
     train_ind = [1, 3, 5, 10, 2, 0, 13, 15, 17]
     x = chainer.Variable(np.asarray(train[train_ind]))
     with chainer.using_config('train', False), chainer.no_backprop_mode():
-        x1 = decoder(encoder(x).mean).mean
+        x1 = decoder(encoder(x).mean, inference=True).mean
     save_images(x.data, os.path.join(args.out, 'train'))
     save_images(x1.data, os.path.join(args.out, 'train_reconstructed'))
 
     test_ind = [3, 2, 1, 18, 4, 8, 11, 17, 61]
     x = chainer.Variable(np.asarray(test[test_ind]))
     with chainer.using_config('train', False), chainer.no_backprop_mode():
-        x1 = decoder(encoder(x).mean).mean
+        x1 = decoder(encoder(x).mean, inference=True).mean
     save_images(x.data, os.path.join(args.out, 'test'))
     save_images(x1.data, os.path.join(args.out, 'test_reconstructed'))
 
     # draw images from randomly sampled z
     z = prior().sample(9)
-    x = decoder(z).mean
+    x = decoder(z, inference=True).mean
     save_images(x.data, os.path.join(args.out, 'sampled'))
 
 

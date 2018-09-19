@@ -9,9 +9,10 @@ from chainer import reporter
 
 
 class AvgELBOLoss(chainer.Chain):
-    def __init__(self, encoder, decoder, prior, beta=1.0):
+    def __init__(self, encoder, decoder, prior, beta=1.0, k=1):
         super(AvgELBOLoss, self).__init__()
         self.beta = beta
+        self.k = k
 
         with self.init_scope():
             self.encoder = encoder
@@ -24,14 +25,15 @@ class AvgELBOLoss(chainer.Chain):
 
     def __call__(self, x):
         q_z = self.encoder(x)
-        z = q_z.sample()
+        z = q_z.sample(self.k)
         p_x = self.decoder(z)
         p_z = self.prior()
 
         self.loss = None
         self.rec = None
         self.penalty = None
-        self.rec = F.mean(F.sum(p_x.log_prob(x), axis=-1))
+        self.rec = F.mean(F.sum(p_x.log_prob(
+          F.broadcast_to(x[None, :], (self.k,) + x.shape)), axis=-1))
         self.penalty = F.mean(F.sum(chainer.kl_divergence(q_z, p_z), axis=-1))
         self.loss = - (self.rec - self.beta * self.penalty)
         reporter.report({'loss': self.loss}, self)
@@ -64,9 +66,10 @@ class Decoder(chainer.Chain):
             self.linear = L.Linear(n_latent, n_h)
             self.output = L.Linear(n_h, n_in)
 
-    def forward(self, z):
-        h = F.tanh(self.linear(z))
-        h = self.output(h)
+    def forward(self, z, inference=False):
+        n_batch_axes = 1 if inference else 2
+        h = F.tanh(self.linear(z, n_batch_axes=n_batch_axes))
+        h = self.output(h, n_batch_axes=n_batch_axes)
         return D.Bernoulli(logit=h)
 
 
