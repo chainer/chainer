@@ -92,7 +92,7 @@ def reshape(x, shape):
 
     """
     if chainerx.is_available():
-        x_array = chainer.as_array(x)
+        x_array = chainer.variable.as_array(x)
         if isinstance(x_array, chainerx.ndarray):
             return chainer.as_variable(x_array.reshape(shape))
     if x.shape == shape:

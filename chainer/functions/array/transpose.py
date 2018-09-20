@@ -72,7 +72,7 @@ def transpose(x, axes=None):
 
     """
     if chainerx.is_available():
-        x_array = chainer.as_array(x)
+        x_array = chainer.variable.as_array(x)
         if isinstance(x_array, chainerx.ndarray):
             return chainer.as_variable(x_array.transpose(axes))
     return Transpose(axes).apply((x,))[0]

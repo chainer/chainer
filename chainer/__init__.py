@@ -59,7 +59,6 @@ from chainer.sequential import Sequential  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
-from chainer.variable import as_array  # NOQA
 from chainer.variable import as_variable  # NOQA
 from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
@@ -144,7 +143,7 @@ def get_cpu_array_types():
 # TODO(hvy): In case of chainerx.ndarray, take the device into account?
 # TODO(hvy): Move this function to backend?
 def is_arrays_compatible(arrays):
-    arrays = [as_array(a) for a in arrays if a is not None]
+    arrays = [variable.as_array(a) for a in arrays if a is not None]
 
     if len(arrays) == 0:
         return True

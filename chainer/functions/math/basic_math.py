@@ -231,7 +231,7 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
     if len(xs) == 2:
         lhs, rhs = xs
         if chainerx.is_available():
-            lhs_array = chainer.as_array(lhs)
+            lhs_array = variable.as_array(lhs)
             if isinstance(lhs_array, chainerx.ndarray):
                 if not numpy.isscalar(rhs):
                     chainer._check_arrays_forward_compatible(
@@ -278,7 +278,7 @@ def sub(self, rhs):  # lhs - rhs
         ~chainer.Variable: Output variable.
     """
     if chainerx.is_available():
-        self_array = chainer.as_array(self)
+        self_array = variable.as_array(self)
         if isinstance(self_array, chainerx.ndarray):
             if not numpy.isscalar(rhs):
                 chainer._check_arrays_forward_compatible((self, rhs), 'sub')
@@ -318,7 +318,7 @@ def rsub(self, rhs):  # rhs - lhs
         ~chainer.Variable: Output variable.
     """
     if chainerx.is_available():
-        self_array = chainer.as_array(self)
+        self_array = variable.as_array(self)
         if isinstance(self_array, chainerx.ndarray):
             if not numpy.isscalar(rhs):
                 chainer._check_arrays_forward_compatible((self, rhs), 'rsub')
@@ -386,7 +386,7 @@ def mul(self, rhs):  # lhs * rhs
         ~chainer.Variable: Output variable.
     """
     if chainerx.is_available():
-        self_array = chainer.as_array(self)
+        self_array = variable.as_array(self)
         if isinstance(self_array, chainerx.ndarray):
             if not numpy.isscalar(rhs):
                 chainer._check_arrays_forward_compatible((self, rhs), 'mul')
@@ -488,7 +488,7 @@ def div(self, rhs):  # lhs / rhs
         ~chainer.Variable: Output variable.
     """
     if chainerx.is_available():
-        self_array = chainer.as_array(self)
+        self_array = variable.as_array(self)
         if isinstance(self_array, chainerx.ndarray):
             if not numpy.isscalar(rhs):
                 chainer._check_arrays_forward_compatible((self, rhs), 'div')
@@ -562,7 +562,7 @@ def rdiv(self, rhs):  # rhs / lhs
         ~chainer.Variable: Output variable.
     """
     if chainerx.is_available():
-        self_array = chainer.as_array(self)
+        self_array = variable.as_array(self)
         if isinstance(self_array, chainerx.ndarray):
             if not numpy.isscalar(rhs):
                 chainer._check_arrays_forward_compatible((self, rhs), 'rdiv')
