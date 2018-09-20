@@ -49,8 +49,9 @@ class Beta(distribution.Distribution):
             + (self.b - 1) * exponential.log(1 - x) \
             - _lbeta(self.a, self.b)
         xp = logp.xp
-        ok = utils.force_array(xp.logical_and(x.array >= 0, x.array <= 1))
-        return where.where(ok, logp, xp.array(-xp.inf, x.dtype))
+        return where.where(
+            utils.force_array((x.array >= 0) & (x.array <= 1)),
+            logp, xp.array(-xp.inf, logp.dtype))
 
     @property
     def mean(self):
