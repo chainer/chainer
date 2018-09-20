@@ -161,6 +161,7 @@ def discriminative_margin_based_clustering_loss(
         - Variance loss : variance loss multiplied by alpha
         - Distance loss : distance loss multiplied by beta
         - Regularization loss : regularization loss multiplied by gamma
+        
     """
 
     loss = DiscriminativeMarginBasedClusteringLoss(
