@@ -15,6 +15,8 @@
 # \roi align operator described in Mask RCNN
 # -----------------------------------------------------------------------------
 
+import collections
+
 import numpy
 import six
 
@@ -22,8 +24,13 @@ from chainer.backends import cuda
 from chainer import function
 from chainer.functions.pooling.roi_align_2d import _GET_BILINEAR_INTERP_KERNEL
 from chainer.functions.pooling.roi_align_2d import _get_bilinear_interp_params
-from chainer.functions.pooling.roi_align_2d import _pair
 from chainer.utils import type_check
+
+
+def _pair(x):
+    if isinstance(x, collections.Iterable):
+        return x
+    return x, x
 
 
 class ROIMaxAlign2D(function.Function):
@@ -31,7 +38,7 @@ class ROIMaxAlign2D(function.Function):
     """ROI max align over a set of 2d planes."""
 
     def __init__(self, outsize, spatial_scale, sampling_ratio=0):
-        outh, outw = outsize
+        outh, outw = _pair(outsize)
         if not (isinstance(outh, int) and outh > 0):
             raise TypeError(
                 'outsize[0] must be positive integer: {}, {}'
@@ -441,14 +448,15 @@ def roi_max_align_2d(
 
     Args:
         x (~chainer.Variable): Input variable. The shape is expected to be
-            4 dimentional: (n: batch, c: channel, h, height, w: width).
+            4 dimentional: ``(n: batch, c: channel, h, height, w: width)``.
         rois (~chainer.Variable): Input roi variable. The shape is expected to
-            be (n: data size, 4), and each datum is set as below:
-            (y_min, x_min, y_max, x_max).
+            be ``(n: data size, 4)``, and each datum is set as below:
+            ``(y_min, x_min, y_max, x_max)``.
         roi_indices (~chainer.Variable): Input roi variable. The shape is
-            expected to be (n: data size, ).
-        outsize ((int, int)): Expected output size after pooled
-            (height, width).
+            expected to be ``(n: data size, )``.
+        outsize ((int, int) or int): Expected output size after pooled
+            (height, width). ``outsize=o`` and ``outsize=(o, o)``
+            are equivalent.
         spatial_scale (float): Scale of the roi is resized.
         sampling_ratio (int or tuple of int): Sampling step for the alignment.
             It must meet >=0 and is automatically decided when 0 is passed.
