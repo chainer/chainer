@@ -112,9 +112,6 @@ class TestL2Normalization(unittest.TestCase):
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2,
                 'eps': 1e-4}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2,
-                'eps': 1e-4}
 
     def check_forward(self, x_data, axis):
         eps = self.eps
