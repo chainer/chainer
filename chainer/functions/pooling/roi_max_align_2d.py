@@ -22,8 +22,10 @@ import six
 
 from chainer.backends import cuda
 from chainer import function
-from chainer.functions.pooling.roi_align_2d import _GET_BILINEAR_INTERP_KERNEL
-from chainer.functions.pooling.roi_align_2d import _get_bilinear_interp_params
+from chainer.functions.pooling.roi_average_align_2d \
+    import _GET_BILINEAR_INTERP_KERNEL
+from chainer.functions.pooling.roi_average_align_2d \
+    import _get_bilinear_interp_params
 from chainer.utils import type_check
 
 
