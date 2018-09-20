@@ -1,6 +1,7 @@
 import numpy
 
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import serializer
 
 
@@ -139,6 +140,8 @@ class HDF5Deserializer(serializer.Deserializer):
             dataset.read_direct(value)
         elif isinstance(value, cuda.ndarray):
             value.set(numpy.asarray(dataset, dtype=value.dtype))
+        elif isinstance(value, intel64.mdarray):
+            intel64.ideep.basic_copyto(value, numpy.asarray(dataset))
         else:
             value = type(value)(numpy.asarray(dataset))
         return value
