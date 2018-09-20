@@ -28,6 +28,8 @@
 # Written by Ross Girshick
 # -----------------------------------------------------------------------------
 
+import collections
+
 import numpy
 import six
 
@@ -37,12 +39,34 @@ from chainer.functions.pooling.roi_pooling_2d import _roi_pooling_slice
 from chainer.utils import type_check
 
 
+def _pair(x):
+    if isinstance(x, collections.Iterable):
+        return x
+    return x, x
+
+
 class ROIAveragePooling2D(function.Function):
 
     """RoI average pooling over a set of 2d planes."""
 
     def __init__(self, outsize, spatial_scale):
-        self.outh, self.outw = outsize
+        outh, outw = _pair(outsize)
+        if not (isinstance(outh, int) and outh > 0):
+            raise TypeError(
+                'outsize[0] must be positive integer: {}, {}'
+                .format(type(outh), outh))
+        if not (isinstance(outw, int) and outw > 0):
+            raise TypeError(
+                'outsize[1] must be positive integer: {}, {}'
+                .format(type(outw), outw))
+        if isinstance(spatial_scale, int):
+            spatial_scale = float(spatial_scale)
+        elif not (isinstance(spatial_scale, float) and spatial_scale > 0):
+            raise TypeError(
+                'spatial_scale must be a positive float number: {}, {}'
+                .format(type(spatial_scale), spatial_scale)
+            )
+        self.outh, self.outw = outh, outw
         self.spatial_scale = spatial_scale
 
     def check_type_forward(self, in_types):
@@ -294,8 +318,9 @@ def roi_average_pooling_2d(x, rois, roi_indices, outsize, spatial_scale):
             (y_min, x_min, y_max, x_max).
         roi_indices (~chainer.Variable): Input roi variable. The shape is
             expected to be (n: data size, ).
-        outsize ((int, int)): Expected output size after pooled
-            (height, width).
+        outsize ((int, int) or int): Expected output size after pooled
+            (height, width). ``outsize=o`` and ``outsize=(o, o)``
+            are equivalent.
         spatial_scale (float): Scale of the roi is resized.
 
     Returns:

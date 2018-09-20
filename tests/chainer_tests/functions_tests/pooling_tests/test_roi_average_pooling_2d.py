@@ -1,3 +1,4 @@
+import collections
 import unittest
 
 import numpy
@@ -10,8 +11,15 @@ from chainer import testing
 from chainer.testing import attr
 
 
+def _pair(x):
+    if isinstance(x, collections.Iterable):
+        return x
+    return x, x
+
+
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64]
+    'dtype': [numpy.float32, numpy.float64],
+    'outsize': [5, 7, (5, 7)],
 }))
 class TestROIAveragePooling2D(unittest.TestCase):
 
@@ -31,11 +39,11 @@ class TestROIAveragePooling2D(unittest.TestCase):
         ], dtype=self.dtype)
         self.roi_indices = numpy.array([0, 2, 1, 0], dtype=numpy.int32)
         n_rois = self.rois.shape[0]
-        self.outsize = (5, 7)
+        outsize = _pair(self.outsize)
         self.spatial_scale = 0.6
         self.gy = numpy.random.uniform(
             -1, 1, (n_rois, n_channels,
-                    self.outsize[0], self.outsize[1])).astype(self.dtype)
+                    outsize[0], outsize[1])).astype(self.dtype)
         if self.dtype == numpy.float16:
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
