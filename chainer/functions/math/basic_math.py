@@ -21,25 +21,29 @@ def _convert_value_to_string(value):
             return '({})'.format(value)
         else:
             return str(value)
-    elif isinstance(value, (numpy.ndarray, cuda.ndarray, chainerx.ndarray)):
+
+    array_types = chainer.get_array_types()
+    if isinstance(value, array_types):
         return 'constant array'
     else:
         raise ValueError(
-            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray`, '
-            '`chainerx.ndarray` or a `Variable`.\n'
-            'Actual: {}'.format(type(value)))
+            'Value must be a Variable, scalar, {} or {}. Actual: {}'.format(
+                ', '.join([str(at) for at in array_types[:-1]]),
+                array_types[-1], type(value)))
 
 
 def _check_constant_type(value):
     if numpy.isscalar(value):
         return
-    elif isinstance(value, (numpy.ndarray, cuda.ndarray, chainerx.ndarray)):
+
+    array_types = chainer.get_array_types()
+    if isinstance(value, array_types):
         return
     else:
         raise TypeError(
-            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
-            '`chainerx.ndarray` or a `Variable`.\n'
-            'Actual: {}'.format(type(value)))
+            'Value must be a Variable, scalar, {} or {}. Actual: {}'.format(
+                ', '.join([str(at) for at in array_types[:-1]]),
+                array_types[-1], type(value)))
 
 
 def _preprocess_const(x, value):
