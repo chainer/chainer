@@ -182,6 +182,7 @@ Loss functions
    chainer.functions.argmax_crf1d
    chainer.functions.cross_covariance
    chainer.functions.decov
+   chainer.functions.discriminative_margin_based_clustering_loss
    chainer.functions.gaussian_kl_divergence
    chainer.functions.gaussian_nll
    chainer.functions.hinge
