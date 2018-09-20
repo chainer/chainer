@@ -40,8 +40,6 @@ ARG CUPY_DIR="$USER_TEMP_DIR"/cupy_repo
 ENV PATH="$CONDA_DIR"/bin:"$PATH"
 
 RUN git clone https://github.com/cupy/cupy "$CUPY_DIR"
-RUN git -C "$CUPY_DIR" fetch origin pull/1610/head:pr-1610
 RUN git -C "$CUPY_DIR" fetch origin pull/1611/head:pr-1611
-RUN git -C "$CUPY_DIR" -c 'user.email=nobody@example.com' -c 'user.name=nobody' merge --no-edit pr-1610
 RUN git -C "$CUPY_DIR" -c 'user.email=nobody@example.com' -c 'user.name=nobody' merge --no-edit pr-1611
 RUN bash -c 'source '"$CONDA_DIR"'/bin/activate testenv && pip install -U cython && pip install --no-deps '"$CUPY_DIR"
