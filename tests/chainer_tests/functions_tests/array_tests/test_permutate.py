@@ -49,6 +49,10 @@ class TestPermutate(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.indices))
 
+    @attr.gpu
+    def test_forward_mixed(self):
+        self.check_forward(cuda.to_gpu(self.x), self.indices)
+
     def check_backward(self, x_data, ind_data, g_data):
         def fun(x, ind):
             return functions.permutate(x, ind, self.axis, self.inv)
