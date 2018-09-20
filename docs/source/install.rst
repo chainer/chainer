@@ -42,7 +42,7 @@ You can accelerate performance of Chainer by installing the following optional c
     * See `CuPy Installation Guide <https://docs-cupy.chainer.org/en/latest/install.html>`__ for instructions.
 
 * Intel CPU (experimental)
-    * `iDeep <https://github.com/intel/ideep>`_ 1.0.3+
+    * `iDeep <https://github.com/intel/ideep>`_ 2.0+
     * See :doc:`tips` for instructions.
 
 Optional Features
