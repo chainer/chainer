@@ -11,6 +11,7 @@ from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
+from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
 
@@ -224,7 +225,7 @@ Use apply() method instead.\
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
-        chainer._check_arrays_forward_compatible(in_data, self.label)
+        utils._check_arrays_forward_compatible(in_data, self.label)
 
         is_debug = chainer.is_debug()
         if is_debug:

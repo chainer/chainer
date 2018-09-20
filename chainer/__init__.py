@@ -18,6 +18,7 @@ from chainer import links  # NOQA
 from chainer import optimizers  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
+from chainer import variable  # NOQA
 
 
 # import class and function
@@ -155,15 +156,6 @@ def is_arrays_compatible(arrays):
     else:
         types = get_cpu_array_types()
     return all([isinstance(a, types) for a in arrays])
-
-
-def _check_arrays_forward_compatible(arrays, label=None):
-    if not is_arrays_compatible(arrays):
-        raise TypeError(
-            'incompatible array types are mixed in the forward input{}.\n'
-            'Actual: {}'.format(
-                ' ({})'.format(label) if label is not None else '',
-                ', '.join(str(type(a)) for a in arrays)))
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))
