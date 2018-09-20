@@ -66,8 +66,15 @@ def _is_good_param(param):
 class TestL2Normalization(unittest.TestCase):
 
     def setUp(self):
+        min_abs = 0.1
+        if self.dtype == numpy.float16:
+            tuple_axis = self.axis
+            if not isinstance(tuple_axis, tuple):
+                tuple_axis = (tuple_axis,)
+            aggr_size = numpy.prod([self.shape[i] for i in tuple_axis], dtype=int)
+            min_abs = max(min_abs, 0.5 / aggr_size)
         self.x = chainer.utils.force_array(
-            numpy.random.uniform(0.1, 1, self.shape)
+            numpy.random.uniform(min_abs, 1, self.shape)
             * (1 - 2 * numpy.random.randint(2, size=self.shape)),
             self.dtype)
         if self.nonzeros is not None:
