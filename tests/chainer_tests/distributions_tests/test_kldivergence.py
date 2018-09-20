@@ -26,7 +26,6 @@ class TestKLDivergence(unittest.TestCase):
             mc_kl = mc_kl.get()
         mc_kl = numpy.nanmean(mc_kl, axis=0)
 
-        print(kl, mc_kl)
         testing.assert_allclose(kl, mc_kl, atol=1e-2, rtol=1e-2)
 
     def encode_params(self, params, is_gpu=False):
