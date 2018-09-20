@@ -37,7 +37,7 @@ class ROIMaxAlign2D(function.Function):
 
     """ROI max align over a set of 2d planes."""
 
-    def __init__(self, outsize, spatial_scale, sampling_ratio=0):
+    def __init__(self, outsize, spatial_scale, sampling_ratio=None):
         outh, outw = _pair(outsize)
         if not (isinstance(outh, int) and outh > 0):
             raise TypeError(
@@ -55,9 +55,10 @@ class ROIMaxAlign2D(function.Function):
                 .format(type(spatial_scale), spatial_scale)
             )
         sampling_ratio = _pair(sampling_ratio)
-        if not all(isinstance(s, int) and s >= 0 for s in sampling_ratio):
+        if not all((isinstance(s, int) and s >= 1) or s is None
+                   for s in sampling_ratio):
             raise TypeError(
-                'sampling_ratio must be integer >= 0 or a pair of it: {}'
+                'sampling_ratio must be integer >= 1 or a pair of it: {}'
                 .format(sampling_ratio)
             )
 
@@ -111,14 +112,14 @@ class ROIMaxAlign2D(function.Function):
             bin_size_h = roi_height / pooled_height
             bin_size_w = roi_width / pooled_width
 
-            if self.sampling_ratio[0] > 0:
-                roi_bin_grid_h = self.sampling_ratio[0]
-            else:
+            if self.sampling_ratio[0] is None:
                 roi_bin_grid_h = numpy.ceil(roi_height / pooled_height)
-            if self.sampling_ratio[1] > 0:
-                roi_bin_grid_w = self.sampling_ratio[1]
             else:
+                roi_bin_grid_h = self.sampling_ratio[0]
+            if self.sampling_ratio[1] is None:
                 roi_bin_grid_w = numpy.ceil(roi_width / pooled_width)
+            else:
+                roi_bin_grid_w = self.sampling_ratio[1]
 
             max_val = None
             max_index = None
@@ -171,6 +172,14 @@ class ROIMaxAlign2D(function.Function):
                                     self.outw), dtype=bottom_data.dtype)
         self.argmax_data = cuda.cupy.zeros(top_data.shape, numpy.int32)
 
+        if self.sampling_ratio[0] is None:
+            sampling_ratio_h = 0
+        else:
+            sampling_ratio_h = self.sampling_ratio[0]
+        if self.sampling_ratio[1] is None:
+            sampling_ratio_w = 0
+        else:
+            sampling_ratio_w = self.sampling_ratio[1]
         cuda.elementwise(
             '''
             raw T bottom_data, T spatial_scale, int32 channels,
@@ -261,7 +270,7 @@ class ROIMaxAlign2D(function.Function):
             'roi_max_align_2d_fwd',
             preamble=_GET_BILINEAR_INTERP_KERNEL,
         )(bottom_data, self.spatial_scale, channels, height, width,
-          self.outh, self.outw, self.sampling_ratio[0], self.sampling_ratio[1],
+          self.outh, self.outw, sampling_ratio_h, sampling_ratio_w,
           bottom_rois, bottom_roi_indices, top_data, self.argmax_data)
 
         return top_data,
@@ -295,14 +304,14 @@ class ROIMaxAlign2D(function.Function):
 
             top_diff_this_bin = top_diff[n, c, ph, pw]
 
-            if self.sampling_ratio[0] > 0:
-                roi_bin_grid_h = self.sampling_ratio[0]
-            else:
+            if self.sampling_ratio[0] is None:
                 roi_bin_grid_h = numpy.ceil(roi_height / pooled_height)
-            if self.sampling_ratio[1] > 0:
-                roi_bin_grid_w = self.sampling_ratio[1]
             else:
+                roi_bin_grid_h = self.sampling_ratio[0]
+            if self.sampling_ratio[1] is None:
                 roi_bin_grid_w = numpy.ceil(roi_width / pooled_width)
+            else:
+                roi_bin_grid_w = self.sampling_ratio[1]
 
             max_index = self.argmax_data[n, c, ph, pw]
             iy = int(max_index / roi_bin_grid_w)
@@ -340,6 +349,16 @@ class ROIMaxAlign2D(function.Function):
         bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, gy[0].dtype)
+
+        if self.sampling_ratio[0] is None:
+            sampling_ratio_h = 0
+        else:
+            sampling_ratio_h = self.sampling_ratio[0]
+        if self.sampling_ratio[1] is None:
+            sampling_ratio_w = 0
+        else:
+            sampling_ratio_w = self.sampling_ratio[1]
+
         cuda.elementwise(
             '''
             raw T top_diff, T spatial_scale,
@@ -430,7 +449,7 @@ class ROIMaxAlign2D(function.Function):
             'roi_max_align_2d_bwd',
             preamble=_GET_BILINEAR_INTERP_KERNEL,
         )(gy[0], self.spatial_scale, channels, height, width,
-          self.outh, self.outw, self.sampling_ratio[0], self.sampling_ratio[1],
+          self.outh, self.outw, sampling_ratio_h, sampling_ratio_w,
           bottom_rois, bottom_roi_indices, bottom_diff, self.argmax_data,
           size=gy[0].size)
 
@@ -438,7 +457,7 @@ class ROIMaxAlign2D(function.Function):
 
 
 def roi_max_align_2d(
-        x, rois, roi_indices, outsize, spatial_scale, sampling_ratio=0
+        x, rois, roi_indices, outsize, spatial_scale, sampling_ratio=None
 ):
     """Spatial Region of Interest (ROI) max align function.
 
@@ -458,10 +477,12 @@ def roi_max_align_2d(
             (height, width). ``outsize=o`` and ``outsize=(o, o)``
             are equivalent.
         spatial_scale (float): Scale of the roi is resized.
-        sampling_ratio (int or tuple of int): Sampling step for the alignment.
-            It must meet >=0 and is automatically decided when 0 is passed.
-            Use of different ratio in height and width axis is also supported
-            by passing tuple of int as (sampling_ratio_h, sampling_ratio_w).
+        sampling_ratio ((int, int) or int): Sampling step for the alignment.
+            It must be an integer over :math:`1` or :obj:`None`, and the value
+            is automatically decided when :obj:`None` is passed.  Use of
+            different ratio in height and width axis is also supported by
+            passing tuple of int as ``(sampling_ratio_h, sampling_ratio_w)``.
+            ``sampling_ratio=s`` and ``sampling_ratio=(s, s)`` are equivalent.
 
     Returns:
         ~chainer.Variable: Output variable.

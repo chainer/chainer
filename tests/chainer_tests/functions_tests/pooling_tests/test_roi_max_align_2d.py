@@ -19,7 +19,7 @@ def _pair(x):
 
 
 @testing.parameterize(*testing.product({
-    'sampling_ratio': [0, 1, 2, (1, 2)],
+    'sampling_ratio': [None, 1, 2, (None, 3), (1, 2)],
     'outsize': [5, 7, (5, 7)],
 }))
 class TestROIMaxAlign2D(unittest.TestCase):
