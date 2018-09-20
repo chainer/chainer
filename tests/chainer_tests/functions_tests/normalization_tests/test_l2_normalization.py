@@ -71,7 +71,8 @@ class TestL2Normalization(unittest.TestCase):
             tuple_axis = self.axis
             if not isinstance(tuple_axis, tuple):
                 tuple_axis = (tuple_axis,)
-            aggr_size = numpy.prod([self.shape[i] for i in tuple_axis], dtype=int)
+            aggr_size = numpy.prod(
+                [self.shape[i] for i in tuple_axis], dtype=int)
             min_abs = max(min_abs, 0.5 / aggr_size)
         self.x = chainer.utils.force_array(
             numpy.random.uniform(min_abs, 1, self.shape)
