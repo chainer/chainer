@@ -10,6 +10,12 @@ host_repo_dir="$host_workspace_dir"/repo
 # Should be checked out here
 test -d "$host_repo_dir"
 
+# Test type
+if [ -z "$CHAINERX_JENKINS_TEST_TYPE" ]; then
+    echo "CHAINERX_JENKINS_TEST_TYPE is not set. Check the build configuration." >&2
+    exit 1
+fi
+
 
 # Variables
 container_workspace_dir=/workspace
@@ -45,5 +51,6 @@ nvidia-docker run \
      -e CHAINERX_JENKINS_WORK_DIR="$container_work_dir" \
      -e CHAINERX_JENKINS_REPO_DIR="$container_repo_dir" \
      -e CHAINERX_JENKINS_CONDA_DIR="$container_conda_dir" \
+     -e CHAINERX_JENKINS_TEST_TYPE="$CHAINERX_JENKINS_TEST_TYPE" \
      image1 \
      "${test_command[@]}"
