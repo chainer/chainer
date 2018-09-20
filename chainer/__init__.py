@@ -59,6 +59,7 @@ from chainer.sequential import Sequential  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
+from chainer.variable import as_array  # NOQA
 from chainer.variable import as_variable  # NOQA
 from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
@@ -140,15 +141,31 @@ def get_cpu_array_types():
     return _cpu_array_types
 
 
+# TODO(hvy): In case of chainerx.ndarray, take the device into account?
+# TODO(hvy): Move this function to backend?
 def is_arrays_compatible(arrays):
-    arrays = [a for a in arrays if a is not None]
+    arrays = [a if not isinstance(a, Variable) else a.array
+              for a in arrays if a is not None]
+
     if len(arrays) == 0:
         return True
-    if type(arrays[0]) is backends.cuda.ndarray:
+
+    if isinstance(arrays[0], chainerx.ndarray):
+        types = chainerx.ndarray
+    elif isinstance(arrays[0], backends.cuda.ndarray):
         types = backends.cuda.ndarray
     else:
         types = get_cpu_array_types()
     return all([isinstance(a, types) for a in arrays])
+
+
+def check_arrays_compatible(arrays, label=None):
+    if not is_arrays_compatible(arrays):
+        raise TypeError(
+            'incompatible array types are mixed in the forward input{}.\n'
+            'Actual: {}'.format(
+                ' ({})'.format(label) if label is not None else '',
+                ', '.join(str(type(a)) for a in arrays)))
 
 
 global_config.debug = bool(int(os.environ.get('CHAINER_DEBUG', '0')))

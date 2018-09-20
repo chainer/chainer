@@ -1356,6 +1356,12 @@ def as_variable(obj):
     return Variable(obj, requires_grad=False)
 
 
+def as_array(obj):
+    if isinstance(obj, Variable):
+        return obj.array
+    return obj
+
+
 def _recover_parameter(data, name, grad, initializer, update_rule):
     p = Parameter(initializer=initializer, name=name)
     p.data = data

@@ -224,14 +224,7 @@ Use apply() method instead.\
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
-        # Check for input array types
-        if not chainer.is_arrays_compatible(in_data):
-            raise TypeError(
-                'incompatible array types are mixed in the forward input '
-                '({}).\n'
-                'Actual: {}'.format(
-                    self.label,
-                    ', '.join(str(type(x)) for x in in_data)))
+        chainer.check_arrays_compatible(in_data, self.label)
 
         is_debug = chainer.is_debug()
         if is_debug:

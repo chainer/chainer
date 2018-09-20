@@ -217,6 +217,7 @@ class MultiAdd(function_node.FunctionNode):
                      for x_node in self.inputs)
 
 
+# TODO(hvy): Implement multi-add with chainerx.ndarrays.
 def add(*xs):  # lhs + rhs or add more than 2 variables
     """Element-wise addition.
 
@@ -225,6 +226,13 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
     """
     if len(xs) == 2:
         lhs, rhs = xs
+        if chainerx.is_available():
+            lhs_array = chainer.as_array(lhs)
+            if isinstance(lhs_array, chainerx.ndarray):
+                if not numpy.isscalar(rhs):
+                    chainer.check_arrays_compatible(xs, 'add')
+                return chainer.as_variable(lhs_array + rhs)
+
         if numpy.isscalar(rhs):
             return AddConstant(rhs).apply((lhs,))[0]
         rhs = _preprocess_rhs(lhs, rhs)
@@ -264,6 +272,12 @@ def sub(self, rhs):  # lhs - rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
+    if chainerx.is_available():
+        self_array = chainer.as_array(self)
+        if isinstance(self_array, chainerx.ndarray):
+            if not numpy.isscalar(rhs):
+                chainer.check_arrays_compatible((self, rhs), 'sub')
+            return chainer.as_variable(self_array - rhs)
 
     if numpy.isscalar(rhs):
         return AddConstant(-rhs).apply((self,))[0]
@@ -298,6 +312,13 @@ def rsub(self, rhs):  # rhs - lhs
     Returns:
         ~chainer.Variable: Output variable.
     """
+    if chainerx.is_available():
+        self_array = chainer.as_array(self)
+        if isinstance(self_array, chainerx.ndarray):
+            if not numpy.isscalar(rhs):
+                chainer.check_arrays_compatible((self, rhs), 'rsub')
+            return chainer.as_variable(rhs - self_array)
+
     if numpy.isscalar(rhs):
         return SubFromConstant(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
@@ -359,6 +380,12 @@ def mul(self, rhs):  # lhs * rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
+    if chainerx.is_available():
+        self_array = chainer.as_array(self)
+        if isinstance(self_array, chainerx.ndarray):
+            if not numpy.isscalar(rhs):
+                chainer.check_arrays_compatible((self, rhs), 'mul')
+            return chainer.as_variable(self_array * rhs)
 
     if numpy.isscalar(rhs):
         return MulConstant(rhs).apply((self,))[0]
@@ -455,6 +482,12 @@ def div(self, rhs):  # lhs / rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
+    if chainerx.is_available():
+        self_array = chainer.as_array(self)
+        if isinstance(self_array, chainerx.ndarray):
+            if not numpy.isscalar(rhs):
+                chainer.check_arrays_compatible((self, rhs), 'div')
+            return chainer.as_variable(self_array / rhs)
 
     if numpy.isscalar(rhs):
         return MulConstant(1. / rhs).apply((self,))[0]
@@ -523,6 +556,12 @@ def rdiv(self, rhs):  # rhs / lhs
     Returns:
         ~chainer.Variable: Output variable.
     """
+    if chainerx.is_available():
+        self_array = chainer.as_array(self)
+        if isinstance(self_array, chainerx.ndarray):
+            if not numpy.isscalar(rhs):
+                chainer.check_arrays_compatible((self, rhs), 'rdiv')
+            return chainer.as_variable(rhs / self_array)
 
     if numpy.isscalar(rhs):
         return DivFromConstant(rhs).apply((self,))[0]
