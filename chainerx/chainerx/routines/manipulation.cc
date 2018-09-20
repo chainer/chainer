@@ -110,22 +110,25 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
 namespace {
 
 // Returns a shape where the length of at most one dimension is inferred from the total size and the remaining dimensions.
-// Such a dimension is given with a length of -1, i.e. Shape{2, 3, -1}.
+// Such a dimension is given by a negative length, i.e. Shape{2, 3, -1}.
 // If the given shape does not contain such a dimension, this function will return a copy of the given shape.
+// If there exists multiple negative lengths or if the negative length dimension cannot be inferred due to non divisbility, an
+// DimensionError is thrown.
 Shape GetInferredShape(const Shape& shape, int64_t total_size) {
     Shape inferred_shape = shape;
+
     auto it = std::find_if(inferred_shape.begin(), inferred_shape.end(), [](int64_t dim) { return dim < 0; });
-    if (it == inferred_shape.end()) {
-        return inferred_shape;
-    }
-    if (std::find_if(std::next(it), inferred_shape.end(), [](int64_t dim) { return dim < 0; }) != inferred_shape.end()) {
-        throw DimensionError{"Can only specify one unknown dimension"};
+    if (it != inferred_shape.end()) {
+        if (std::find_if(std::next(it), inferred_shape.end(), [](int64_t dim) { return dim < 0; }) != inferred_shape.end()) {
+            throw DimensionError{"Can only specify one unknown dimension"};
+        }
+        int64_t rest_size = std::accumulate(inferred_shape.begin(), it, int64_t{1}, std::multiplies<int64_t>()) *
+                            std::accumulate(std::next(it), inferred_shape.end(), int64_t{1}, std::multiplies<int64_t>());
+        *it = total_size / rest_size;
     }
 
-    int64_t rest_size = std::accumulate(inferred_shape.begin(), it, int64_t{1}, std::multiplies<int64_t>()) *
-                        std::accumulate(std::next(it), inferred_shape.end(), int64_t{1}, std::multiplies<int64_t>());
-    if (total_size % rest_size == 0) {
-        *it = total_size / rest_size;
+    if (total_size != inferred_shape.GetTotalSize()) {
+        throw DimensionError{"Cannot reshape array of size ", total_size, " into shape ", shape};
     }
     return inferred_shape;
 }
@@ -143,19 +146,15 @@ Array Reshape(const Array& a, const Shape& newshape) {
 
     // Check for invalid shape.
     int64_t total_size = in_shape.GetTotalSize();
-    Shape inferred_newshape = GetInferredShape(newshape, total_size);
-    if (total_size != inferred_newshape.GetTotalSize()) {
-        throw DimensionError{"Cannot reshape array of size ", total_size, " into shape ", newshape};
-    }
-
+    Shape out_shape = GetInferredShape(newshape, total_size);
     int64_t item_size = GetItemSize(a.dtype());
     Strides strides{};
     if (total_size == 0) {
         // Calculate the strides for 0-sized array.
-        strides.resize(inferred_newshape.ndim());
+        strides.resize(out_shape.ndim());
         strides.back() = item_size;
-        for (int8_t i = inferred_newshape.ndim() - 1; i >= 1; --i) {
-            strides[i - 1] = strides[i] * std::max(int64_t{1}, inferred_newshape[i]);
+        for (int8_t i = out_shape.ndim() - 1; i >= 1; --i) {
+            strides[i - 1] = strides[i] * std::max(int64_t{1}, out_shape[i]);
         }
     } else {
         // Calculate the strides for non-0-sized array.
@@ -201,10 +200,10 @@ Array Reshape(const Array& a, const Shape& newshape) {
         // Construct the strides for no-copy reshape.
         // If it's not possible, can_reshape_without_copy will be false.
         bool can_reshape_without_copy = true;
-        if (inferred_newshape.ndim() > 0) {
+        if (out_shape.ndim() > 0) {
             int64_t last_stride = reduced_shape[0] * reduced_strides[0];
             size_t i_dim = 0;
-            for (int64_t dim : inferred_newshape) {
+            for (int64_t dim : out_shape) {
                 if (dim <= 1) {
                     strides.push_back(last_stride);
                     continue;
@@ -225,12 +224,12 @@ Array Reshape(const Array& a, const Shape& newshape) {
 
         if (!can_reshape_without_copy) {
             // Copy is required.
-            return a.Copy().Reshape(inferred_newshape);
+            return a.Copy().Reshape(out_shape);
         }
-        CHAINERX_ASSERT(strides.size() == inferred_newshape.size());
+        CHAINERX_ASSERT(strides.size() == out_shape.size());
     }
 
-    Array out = internal::MakeArray(inferred_newshape, strides, a.dtype(), a.device(), a.data(), a.offset());
+    Array out = internal::MakeArray(out_shape, strides, a.dtype(), a.device(), a.data(), a.offset());
 
     BackwardBuilder bb{"reshape", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
@@ -238,8 +237,8 @@ Array Reshape(const Array& a, const Shape& newshape) {
     }
     bb.Finalize();
 
-    CHAINERX_ASSERT(out.shape() == inferred_newshape);
-    CHAINERX_ASSERT(out.strides().size() == inferred_newshape.size());
+    CHAINERX_ASSERT(out.shape() == out_shape);
+    CHAINERX_ASSERT(out.strides().size() == out_shape.size());
     return out;
 }
 
