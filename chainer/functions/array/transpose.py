@@ -3,7 +3,6 @@ import numpy
 import chainer
 from chainer import function_node
 from chainer.utils import type_check
-from chainer import variable
 import chainerx
 
 
@@ -73,7 +72,7 @@ def transpose(x, axes=None):
 
     """
     if chainerx.is_available():
-        x_array = x if not isinstance(x, variable.Variable) else x.array
+        x_array = chainer.as_array(x)
         if isinstance(x_array, chainerx.ndarray):
             return chainer.as_variable(x_array.transpose(axes))
     return Transpose(axes).apply((x,))[0]

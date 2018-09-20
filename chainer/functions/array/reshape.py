@@ -1,7 +1,6 @@
 import chainer
 from chainer import function_node
 from chainer.utils import type_check
-from chainer import variable
 import chainerx
 
 
@@ -93,7 +92,7 @@ def reshape(x, shape):
 
     """
     if chainerx.is_available():
-        x_array = x if not isinstance(x, variable.Variable) else x.array
+        x_array = chainer.as_array(x)
         if isinstance(x_array, chainerx.ndarray):
             return chainer.as_variable(x_array.reshape(shape))
     if x.shape == shape:
