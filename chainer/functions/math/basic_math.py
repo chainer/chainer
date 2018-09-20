@@ -233,10 +233,13 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
         if chainerx.is_available():
             lhs_array = variable.as_array(lhs)
             if isinstance(lhs_array, chainerx.ndarray):
-                if not numpy.isscalar(rhs):
+                if numpy.isscalar(rhs):
+                    rhs_chainerx_compat = numpy.asscalar(rhs)
+                else:
                     utils._check_arrays_forward_compatible(
                         (lhs_array, rhs), 'add')
-                return chainer.as_variable(lhs_array + rhs)
+                    rhs_chainerx_compat = rhs
+                return chainer.as_variable(lhs_array + rhs_chainerx_compat)
 
         if numpy.isscalar(rhs):
             return AddConstant(rhs).apply((lhs,))[0]
@@ -280,9 +283,12 @@ def sub(self, rhs):  # lhs - rhs
     if chainerx.is_available():
         self_array = variable.as_array(self)
         if isinstance(self_array, chainerx.ndarray):
-            if not numpy.isscalar(rhs):
+            if numpy.isscalar(rhs):
+                rhs_chainerx_compat = numpy.asscalar(rhs)
+            else:
                 utils._check_arrays_forward_compatible((self, rhs), 'sub')
-            return chainer.as_variable(self_array - rhs)
+                rhs_chainerx_compat = rhs
+            return chainer.as_variable(self_array - rhs_chainerx_compat)
 
     if numpy.isscalar(rhs):
         return AddConstant(-rhs).apply((self,))[0]
@@ -320,9 +326,12 @@ def rsub(self, rhs):  # rhs - lhs
     if chainerx.is_available():
         self_array = variable.as_array(self)
         if isinstance(self_array, chainerx.ndarray):
-            if not numpy.isscalar(rhs):
+            if numpy.isscalar(rhs):
+                rhs_chainerx_compat = numpy.asscalar(rhs)
+            else:
                 utils._check_arrays_forward_compatible((self, rhs), 'rsub')
-            return chainer.as_variable(rhs - self_array)
+                rhs_chainerx_compat = rhs
+            return chainer.as_variable(rhs_chainerx_compat - self_array)
 
     if numpy.isscalar(rhs):
         return SubFromConstant(rhs).apply((self,))[0]
@@ -388,9 +397,12 @@ def mul(self, rhs):  # lhs * rhs
     if chainerx.is_available():
         self_array = variable.as_array(self)
         if isinstance(self_array, chainerx.ndarray):
-            if not numpy.isscalar(rhs):
+            if numpy.isscalar(rhs):
+                rhs_chainerx_compat = numpy.asscalar(rhs)
+            else:
                 utils._check_arrays_forward_compatible((self, rhs), 'mul')
-            return chainer.as_variable(self_array * rhs)
+                rhs_chainerx_compat = rhs
+            return chainer.as_variable(self_array * rhs_chainerx_compat)
 
     if numpy.isscalar(rhs):
         return MulConstant(rhs).apply((self,))[0]
@@ -490,9 +502,12 @@ def div(self, rhs):  # lhs / rhs
     if chainerx.is_available():
         self_array = variable.as_array(self)
         if isinstance(self_array, chainerx.ndarray):
-            if not numpy.isscalar(rhs):
+            if numpy.isscalar(rhs):
+                rhs_chainerx_compat = numpy.asscalar(rhs)
+            else:
                 utils._check_arrays_forward_compatible((self, rhs), 'div')
-            return chainer.as_variable(self_array / rhs)
+                rhs_chainerx_compat = rhs
+            return chainer.as_variable(self_array / rhs_chainerx_compat)
 
     if numpy.isscalar(rhs):
         return MulConstant(1. / rhs).apply((self,))[0]
@@ -564,9 +579,12 @@ def rdiv(self, rhs):  # rhs / lhs
     if chainerx.is_available():
         self_array = variable.as_array(self)
         if isinstance(self_array, chainerx.ndarray):
-            if not numpy.isscalar(rhs):
+            if numpy.isscalar(rhs):
+                rhs_chainerx_compat = numpy.asscalar(rhs)
+            else:
                 utils._check_arrays_forward_compatible((self, rhs), 'rdiv')
-            return chainer.as_variable(rhs / self_array)
+                rhs_chainerx_compat = rhs
+            return chainer.as_variable(rhs_chainerx_compat / self_array)
 
     if numpy.isscalar(rhs):
         return DivFromConstant(rhs).apply((self,))[0]
