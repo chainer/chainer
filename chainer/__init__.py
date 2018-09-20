@@ -158,7 +158,7 @@ def is_arrays_compatible(arrays):
     return all([isinstance(a, types) for a in arrays])
 
 
-def check_arrays_compatible(arrays, label=None):
+def _check_arrays_forward_compatible(arrays, label=None):
     if not is_arrays_compatible(arrays):
         raise TypeError(
             'incompatible array types are mixed in the forward input{}.\n'
