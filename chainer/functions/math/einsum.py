@@ -54,11 +54,11 @@ def _einsum(xp, dtype, in_subscripts, out_subscript, *inputs, **kwargs):
     if sum_ellipsis:
         sum_ndim = y.ndim - len(out_subscript)
         if check_undefined_ellipsis_sum and sum_ndim > 0:
-            warnings.warn(
+            raise ValueError(
                 "einsum should not support summing over Ellipsis, "
                 "while NumPy 1.14 sometimes accidentally supports it. "
-                "This feature will be deleted in a future version "
-                "of Chainer. See also NumPy issues #10926, #9984.",
+                "This feature is no longer supported by Chainer. "
+                "See also NumPy issues #10926, #9984.",
             )
         y = xp.sum(y, axis=tuple(range(sum_ndim)))
 
@@ -72,7 +72,8 @@ class EinSum(function_node.FunctionNode):
         self.out_sub = out_sub
 
     def check_type_forward(self, in_types):
-        for in_type in in_types:
+        for i, in_type in enumerate(in_types):
+            type_check.argname((in_type,), ('x{}'.format(i),))
             type_check.expect(in_type.dtype.kind == 'f')
 
         in_subs = self.in_subs.split(',')

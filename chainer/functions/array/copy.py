@@ -11,9 +11,7 @@ class Copy(function_node.FunctionNode):
         self.out_device = out_device
 
     def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1
-        )
+        type_check.argname(in_types, ('x',))
 
     def forward(self, inputs):
         x, = inputs

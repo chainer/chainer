@@ -117,7 +117,8 @@ class ConnectionistTemporalClassification(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 4)
+        type_check.argname(
+            in_types, ('input_length', 'label_length', 't', 'x'))
         input_length_type, label_length_type, t_type, x_type = in_types
         type_check.expect(
             input_length_type.dtype == numpy.int32,

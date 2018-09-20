@@ -14,7 +14,7 @@ class PolyGamma(function_node.FunctionNode):
         return 'polygamma'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('n', 'x'))
         n_type, x_type = in_types
 
         type_check.expect(

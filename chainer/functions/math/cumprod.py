@@ -15,10 +15,8 @@ class Cumprod(function_node.FunctionNode):
             raise TypeError('axis must be int or None')
 
     def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1,
-            in_types[0].dtype.kind == 'f',
-        )
+        type_check.argname(in_types, ('x',))
+        type_check.expect(in_types[0].dtype.kind == 'f')
         if self.axis is not None:
             if self.axis >= 0:
                 type_check.expect(self.axis < in_types[0].ndim)

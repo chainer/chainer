@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -9,37 +10,40 @@ class Where(function_node.FunctionNode):
 
     """Choose elements depending on condition."""
 
+    def __init__(self, condition):
+        self.condition = condition
+
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 3)
-        c_type, x_type, y_type = in_types
+        type_check.expect(in_types.size() == 2)
+        x_type, y_type = in_types
+        condition = self.condition
 
         type_check.expect(
-            c_type.dtype == numpy.bool_,
+            condition.dtype == numpy.bool_,
             x_type.dtype == y_type.dtype,
-            x_type.shape == c_type.shape,
-            y_type.shape == c_type.shape,
         )
+        type_check.expect_broadcast_shapes(
+            condition.shape, x_type.shape, y_type.shape)
 
     def forward(self, inputs):
-        self.retain_inputs((0,))
+        # may broadcast
         xp = cuda.get_array_module(*inputs)
-        condition, x, y = inputs
+        x, y = inputs
+        condition = self.condition
         return xp.where(condition, x, y),
 
     def backward(self, indexes, grad_outputs):
-        condition = self.get_retained_inputs()[0]
-        xp = cuda.get_array_module(condition.data)
+        condition = self.condition
+        xp = cuda.get_array_module(condition)
         g, = grad_outputs
-        zeros = xp.zeros(g.shape, dtype=g.dtype)
+        zero = xp.zeros((), dtype=g.dtype)
         ret = []
         if 0 in indexes:
-            ret.append(None)
+            gx, = Where(condition).apply((g, zero))
+            ret.append(chainer.functions.sum_to(gx, self.inputs[0].shape))
         if 1 in indexes:
-            gx, = Where().apply((condition.data, g, zeros))
-            ret.append(gx)
-        if 2 in indexes:
-            gy, = Where().apply((condition.data, zeros, g))
-            ret.append(gy)
+            gy, = Where(condition).apply((zero, g))
+            ret.append(chainer.functions.sum_to(gy, self.inputs[1].shape))
         return ret
 
 
@@ -80,6 +84,8 @@ def where(condition, x, y):
                [0., 4.]], dtype=float32)
 
     """
+    if isinstance(condition, chainer.Variable):
+        condition = condition.array
 
-    y, = Where().apply((condition, x, y))
-    return y
+    z, = Where(condition).apply((x, y))
+    return z

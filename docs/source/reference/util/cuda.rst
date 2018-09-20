@@ -1,7 +1,17 @@
 CUDA and Backend Utilities
 ==========================
 
-.. module:: chainer.backends
+Utilities across backends
+-------------------------
+
+.. module:: chainer.backend
+.. currentmodule:: /
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.backend.copyto
 
 CUDA
 ----
@@ -29,7 +39,6 @@ CuPy array allocation and copy
    :nosignatures:
 
    chainer.backends.cuda.copy
-   chainer.backends.cuda.copyto
    chainer.backends.cuda.to_cpu
    chainer.backends.cuda.to_gpu
 

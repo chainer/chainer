@@ -87,7 +87,8 @@ def backprop_step(
         grad_inputs (dict): References of radients w.r.t. the input variables.
 
     """
-    if chainer.is_debug():
+    is_debug = chainer.is_debug()
+    if is_debug:
         assert isinstance(target_input_indexes, tuple)
         assert target_input_indexes == tuple(sorted(target_input_indexes))
         assert isinstance(grad_outputs, tuple)
@@ -103,17 +104,72 @@ def backprop_step(
     else:  # otherwise, backward should be overridden
         gxs = func.backward(
             target_input_indexes, grad_outputs)
+
+        if is_debug:
+            for gx in gxs:
+                if not (gx is None or isinstance(gx, chainer.Variable)):
+                    raise ValueError(func._get_error_message(
+                        'type of gradients returned from backward is '
+                        'incorrect: '
+                        '{} != expected {}'.format(
+                            type(gx), chainer.Variable)))
+
         len_gxs = len(gxs)
         if len_gxs == len(func.inputs):
             gxs = tuple([gxs[i] for i in target_input_indexes])
         elif len_gxs != len(target_input_indexes):
-            raise ValueError(
-                'number of gradients returned by %s (%s) is incorrect.'
-                % (func._impl_name, func.label))
+            msg = 'number of gradients returned from backward is incorrect: '
+            if len(func.inputs) == len(target_input_indexes):
+                msg += (
+                    '%s != expected %s' % (len_gxs, len(func.inputs)))
+            else:
+                msg += (
+                    '%s != expected %s or %s'
+                    % (len_gxs, len(func.inputs), len(target_input_indexes)))
+            raise ValueError(func._get_error_message(msg))
 
     for i, gx in six.moves.zip(target_input_indexes, gxs):
         if gx is not None:
             grad_inputs[func.inputs[i]].append(gx)
+
+            if is_debug:
+                node_x = func.inputs[i]
+                g_input_list = grad_inputs[node_x]
+                if gx.shape != node_x.shape:
+                    raise ValueError(func._get_error_message(
+                        'shape of gradients returned from backward is '
+                        'incorrect: '
+                        'input-index={}, actual {} != expected {}'.format(
+                            i, gx.shape, node_x.shape)))
+                if gx is not None and g_input_list:
+                    g_input = g_input_list[0]
+                    if gx.shape != g_input.shape:
+                        raise ValueError(func._get_error_message(
+                            'shape of gradients returned from backward is '
+                            'incorrect: '
+                            'input-index={}, actual {} != expected {}'.format(
+                                i, gx.shape, g_input.shape)))
+                    if gx.dtype != g_input.dtype:
+                        raise ValueError(func._get_error_message(
+                            'dtype of gradients returned from backward is '
+                            'incorrect: '
+                            'input-index={}, actual {} != expected {}'.format(
+                                i, gx.dtype, g_input.dtype)))
+    del gxs
+
+    if is_debug:
+        # each grad is a list of variables
+        # iter_gxs expands it as a sequence of variables.
+        def iter_gxs(gxs):
+            for gx in gxs:
+                for gx_elem in gx:
+                    yield gx_elem
+
+        for gx in iter_gxs(grad_inputs.values()):
+            if chainer.backend._contains_nan(gx.data):
+                raise RuntimeError(
+                    'NaN is detected on backward computation of {}'
+                    .format(func.label))
 
     if not func.lazy_grad_sum:
         for gx in grad_inputs.values():

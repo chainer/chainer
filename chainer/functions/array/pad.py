@@ -21,7 +21,7 @@ class Pad(function_node.FunctionNode):
         # Depending on the arguments, pad_width and keywords, the input value
         # may be inappropriate. In that case, numpy.pad or cupy.pad will raise
         # errors, so that only check the size and the dtype in this function.
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         x_type = in_types[0]
         type_check.expect(x_type.dtype.kind == 'f')
 

@@ -11,20 +11,23 @@ from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'shape': [(3, 2), ()],
 }))
 class TestGaussian(unittest.TestCase):
 
     def setUp(self):
-        self.m = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        self.v = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
-        self.ggm = numpy.random.uniform(-1, 1, self.shape) \
-            .astype(numpy.float32)
-        self.ggv = numpy.random.uniform(-1, 1, self.shape) \
-            .astype(numpy.float32)
+        self.m = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.v = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggm = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.ggv = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+        if self.dtype == numpy.float16:
+            self.check_backward_options['dtype'] = numpy.float64
+            self.check_double_backward_options['dtype'] = numpy.float64
 
     def check_forward(self, m_data, v_data):
         m = chainer.Variable(m_data)
@@ -32,7 +35,7 @@ class TestGaussian(unittest.TestCase):
         n = functions.gaussian(m, v)
 
         # Only checks dtype and shape because its result contains noise
-        self.assertEqual(n.dtype, numpy.float32)
+        self.assertEqual(n.dtype, self.dtype)
         self.assertEqual(n.shape, m.shape)
 
     def test_forward_cpu(self):
@@ -52,6 +55,11 @@ class TestGaussian(unittest.TestCase):
         gaussian = functions.noise.gaussian.Gaussian()
 
         def f(m, v):
+            # In case numerical gradient computation is held in more precise
+            # dtype than that of backward computation, cast the eps to reuse
+            # before the numerical computation.
+            if gaussian.eps is not None and gaussian.eps.dtype != m.dtype:
+                gaussian.eps = gaussian.eps.astype(m.dtype)
             return gaussian.apply((m, v))[0]
 
         gradient_check.check_backward(
@@ -71,11 +79,13 @@ class TestGaussian(unittest.TestCase):
         gaussian = functions.noise.gaussian.Gaussian()
 
         def f(m, v):
+            if gaussian.eps is not None and gaussian.eps.dtype != m.dtype:
+                gaussian.eps = gaussian.eps.astype(m.dtype)
             return gaussian.apply((m, v))
 
         gradient_check.check_double_backward(
             f, (m_data, v_data), y_grad, (m_grad_grad, v_grad_grad),
-            atol=5e-4, rtol=5e-3)
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.m, self.v, self.gy, self.ggm, self.ggv)

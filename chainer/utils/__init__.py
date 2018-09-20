@@ -4,6 +4,7 @@ import shutil
 import tempfile
 
 import numpy
+import six
 
 # import classes and functions
 from chainer.utils.array import sum_to  # NOQA
@@ -11,6 +12,7 @@ from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
 from chainer.utils.experimental import experimental  # NOQA
 from chainer.utils.sparse import CooMatrix  # NOQA
+from chainer.utils.sparse import get_order  # NOQA
 from chainer.utils.sparse import to_coo  # NOQA
 from chainer.utils.walker_alias import WalkerAlias  # NOQA
 
@@ -59,3 +61,14 @@ def tempdir(**kwargs):
         yield temp_dir
     finally:
         shutil.rmtree(temp_dir, ignore_errors=ignore_errors)
+
+
+def _repr_with_named_data(inst, **kwargs):
+    """Convenient function to generate `repr` string with custom named data"""
+    if six.PY2:
+        class_name = inst.__class__.__name__
+    else:
+        class_name = inst.__class__.__qualname__
+    return '<{}.{} {}>'.format(
+        inst.__module__, class_name,
+        ' '.join('{}={}'.format(k, v) for k, v in six.iteritems(kwargs)))

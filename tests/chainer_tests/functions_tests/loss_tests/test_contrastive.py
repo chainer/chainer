@@ -38,8 +38,15 @@ class TestContrastive(unittest.TestCase):
 
     def setUp(self):
         x_shape = (self.batchsize, self.input_dim)
-        self.x0 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
-        self.x1 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+        retry = 0
+        while True:
+            self.x0 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+            self.x1 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+            d = numpy.sqrt(numpy.sum((self.x0 - self.x1) ** 2, axis=1))
+            if (numpy.abs(d - self.margin) > 1e-2).all():
+                break
+            retry += 1
+            assert retry <= 10, 'Too many retries to generate inputs'
         self.t = numpy.random.randint(
             0, 2, (self.batchsize,)).astype(self.label_dtype)
         if self.reduce == 'mean':

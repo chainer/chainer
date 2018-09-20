@@ -13,8 +13,8 @@ except ImportError:
     _scipy_available = False
 
 
-def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, dn, transa, transb, transc,
-                dtype=None):
+def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_order,
+                dn, transa, transb, transc, dtype=None):
     if dtype is None:
         dtype = numpy.result_type(sp_data.dtype, dn.dtype)
 
@@ -23,10 +23,17 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, dn, transa, transb, transc,
         A_row = sp_col
         A_col = sp_row
         A_shape = (sp_shape[1], sp_shape[0])
+        if sp_order is 'C':
+            A_order = 'F'
+        elif sp_order is 'F':
+            A_order = 'C'
+        else:
+            A_order = sp_order
     else:
         A_row = sp_row
         A_col = sp_col
         A_shape = sp_shape
+        A_order = sp_order
     if transb:
         B = dn.swapaxes(-1, -2)
     else:
@@ -36,7 +43,8 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, dn, transa, transb, transc,
     if xp is numpy:
         C = _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype)
     else:
-        C = _coo_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype)
+        C = _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_order,
+                            B, dtype)
 
     if transc:
         C = C.swapaxes(-1, -2)
@@ -71,7 +79,7 @@ def _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype):
     return C
 
 
-def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype):
+def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_order, B, dtype):
     cupy_dtype = dtype
     if cupy_dtype == numpy.float16:
         cupy_dtype = numpy.float32
@@ -90,8 +98,17 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype):
         nb = B.shape[0]
         C = cuda.cupy.zeros((nb, _m, _n), dtype=cupy_dtype)
 
-    nthreads = nb * ldnz * _n
-    _cupy_coo_matmul()(nb, _m, _n, _k, ldnz, A_data, A_row, A_col, B, C,
+    if A_order is 'C':
+        # A chunk is the number of non-zero elements handled by a single GPU
+        # thread. If contiguous non-zero elemets are related to the same
+        # location of the output matrix and they are processed in the same
+        # thread, number of atomic-add operations can be reduced.
+        chunk = max(ldnz // _m, 1)
+    else:
+        chunk = 1
+    nthreads = (nb * ldnz + chunk - 1) // chunk * _n
+    _cupy_coo_matmul()(nb, _m, _n, _k, ldnz, chunk,
+                       A_data, A_row, A_col, B, C,
                        size=nthreads)
 
     return C.astype(dtype, copy=False)
@@ -99,40 +116,53 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, B, dtype):
 
 def _cupy_coo_matmul():
     return cuda.elementwise(
-        'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, \
+        'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, int32 chunk, \
          raw A A_data, raw T A_row, raw T A_col, \
-         raw B _B, raw C _C',
-        '',
+         raw B _B',
+        'raw C _C',
         '''
         int i_n = (i % _n);
-        int i_A = (i / _n);
-        int i_b = (i / _n) / nnz;
-        if (i_b >= nb) {
-            continue;
+        int i0 = (i / _n) * chunk;
+        int i_C = -1;
+        C val_C = 0;
+        for (int i1 = 0; i1 < chunk; i1++) {
+            int i_A = i0 + i1;
+            int i_b = i_A / nnz;
+            if (i_b >= nb) {
+                continue;
+            }
+            int i_k = A_col[i_A];
+            if (i_k < 0) {
+                continue;
+            }
+            assert(i_k < _k);
+            int i_m = A_row[i_A];
+            if (i_m < 0) {
+                continue;
+            }
+            assert(i_m < _m);
+            int i_B = i_n + _n * (i_k + _k * i_b);
+            int i_C_now = i_n + _n * (i_m + _m * i_b);
+            A val_A = A_data[i_A];
+            B val_B = _B[i_B];
+            C val_C_now = static_cast<C>(val_A * val_B);
+            if (i_C >= 0 && i_C != i_C_now) {
+                atomicAdd(&_C[i_C], val_C);
+                val_C = 0;
+            }
+            i_C = i_C_now;
+            val_C += val_C_now;
         }
-        int i_k = A_col[i_A];
-        if (i_k < 0) {
-            continue;
+        if (i_C >= 0) {
+            atomicAdd(&_C[i_C], val_C);
         }
-        assert(i_k < _k);
-        int i_m = A_row[i_A];
-        if (i_m < 0) {
-            continue;
-        }
-        assert(i_m < _m);
-        int i_B = i_n + _n * (i_k + _k * i_b);
-        int i_C = i_n + _n * (i_m + _m * i_b);
-        A val_A = A_data[i_A];
-        B val_B = _B[i_B];
-        C val_C = static_cast<C>(val_A * val_B);
-        atomicAdd(&_C[i_C], val_C);
         ''',
         'coo_matmul')
 
 
 class CooMatMul(function_node.FunctionNode):
 
-    def __init__(self, sp_row, sp_col, sp_shape,
+    def __init__(self, sp_row, sp_col, sp_shape, sp_order='other',
                  transa=False, transb=False, transc=False, dtype=None):
         if sp_row.ndim != sp_col.ndim:
             raise ValueError('ndim of sp_row and sp_col must be the same.')
@@ -147,13 +177,14 @@ class CooMatMul(function_node.FunctionNode):
         self.sp_row = sp_row  # ((nb,) ldnz)
         self.sp_col = sp_col  # ((nb,) ldnz)
         self.sp_shape = sp_shape  # (_m, _k) when transa is False
+        self.sp_order = sp_order
         self.transa = transa
         self.transb = transb
         self.transc = transc
         self.dtype = dtype
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('sp', 'dn'))
         sp_type, dn_type = in_types
         # sp_type.shape: ((nb,) ldnz)
         # dn_type.shape: ((nb,) _k, _n) when transb is False
@@ -182,7 +213,8 @@ class CooMatMul(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         sp, dn = inputs
-        c = _coo_matmul(sp, self.sp_row, self.sp_col, self.sp_shape, dn,
+        c = _coo_matmul(sp, self.sp_row, self.sp_col, self.sp_shape,
+                        self.sp_order, dn,
                         self.transa, self.transb, self.transc, self.dtype)
         return utils.force_array(c, self.dtype),
 
@@ -192,11 +224,13 @@ class CooMatMul(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             g_sp = CooMatMulGradSP(self.sp_row, self.sp_col, self.sp_shape,
+                                   self.sp_order,
                                    self.transc, not self.transb, self.transa,
                                    dtype=sp.dtype).apply((g_c, dn))[0]
             ret.append(g_sp)
         if 1 in indexes:
             g_dn = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
+                             self.sp_order,
                              not self.transa, self.transc, self.transb,
                              dtype=dn.dtype).apply((sp, g_c))[0]
             ret.append(g_dn)
@@ -272,7 +306,7 @@ def _coo_matmul_gradsp_gpu(A, B, C_row, C_col, dtype):
         C_data = cuda.cupy.zeros((nb, ldnz), dtype=dtype)
 
     nthreads = nb * ldnz
-    _cupy_coo_matmul_gradsp()(nb, _m, _n, _k, ldnz, A, B, C_data, C_row, C_col,
+    _cupy_coo_matmul_gradsp()(nb, _m, _n, _k, ldnz, A, B, C_row, C_col, C_data,
                               size=nthreads)
 
     return C_data
@@ -282,8 +316,8 @@ def _cupy_coo_matmul_gradsp():
     return cuda.elementwise(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, \
          raw A _A, raw B _B, \
-         raw C C_data, raw T C_row, raw T C_col',
-        '',
+         raw T C_row, raw T C_col',
+        'raw C C_data',
         '''
         int i_nz = (i % nnz);
         int i_b = (i / nnz);
@@ -316,7 +350,7 @@ def _cupy_coo_matmul_gradsp():
 
 class CooMatMulGradSP(function_node.FunctionNode):
 
-    def __init__(self, sp_row, sp_col, sp_shape,
+    def __init__(self, sp_row, sp_col, sp_shape, sp_order='other',
                  transa=False, transb=False, transc=False,
                  dtype=None):
         if sp_row.ndim != sp_col.ndim:
@@ -332,6 +366,7 @@ class CooMatMulGradSP(function_node.FunctionNode):
         self.sp_row = sp_row  # ((nb,) ldnz)
         self.sp_col = sp_col  # ((nb,) ldnz)
         self.sp_shape = sp_shape  # (_m, _n) when transc is False
+        self.sp_order = sp_order
         self.transa = transa
         self.transb = transb
         self.transc = transc
@@ -382,11 +417,13 @@ class CooMatMulGradSP(function_node.FunctionNode):
         ret = []
         if 0 in indexes:
             g_a = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
+                            self.sp_order,
                             self.transc, not self.transb, self.transa,
                             dtype=a.dtype).apply((g_sp, b))[0]
             ret.append(g_a)
         if 1 in indexes:
             g_b = CooMatMul(self.sp_row, self.sp_col, self.sp_shape,
+                            self.sp_order,
                             not self.transc, self.transa, not self.transb,
                             dtype=b.dtype).apply((g_sp, a))[0]
             ret.append(g_b)
@@ -416,16 +453,21 @@ def sparse_matmul(a, b, transa=False, transb=False):
         See :func:`~chainer.utils.to_coo` for how to construct a COO matrix
         from an array.
 
+    .. note::
+        Performance of this function on GPU can be improved by using the
+        ``order`` argument of :class:`~chainer.utils.CooMatrix` when the sparse
+        matrix is created.
+
     """
     if (isinstance(a, utils.CooMatrix) and
             isinstance(b, (chainer.Variable, numpy.ndarray, cuda.ndarray))):
-        return CooMatMul(a.row, a.col, a.shape,
+        return CooMatMul(a.row, a.col, a.shape, a.order,
                          transa=transa,
                          transb=transb,
                          transc=False).apply((a.data, b))[0]
     elif (isinstance(a, (chainer.Variable, numpy.ndarray, cuda.ndarray)) and
           isinstance(b, utils.CooMatrix)):
-        return CooMatMul(b.row, b.col, b.shape,
+        return CooMatMul(b.row, b.col, b.shape, b.order,
                          transa=not transb,
                          transb=not transa,
                          transc=True).apply((b.data, a))[0]
