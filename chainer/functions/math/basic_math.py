@@ -230,7 +230,7 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
             lhs_array = chainer.as_array(lhs)
             if isinstance(lhs_array, chainerx.ndarray):
                 if not numpy.isscalar(rhs):
-                    chainer.check_arrays_compatible(xs, 'add')
+                    chainer.check_arrays_compatible((lhs_array, rhs), 'add')
                 return chainer.as_variable(lhs_array + rhs)
 
         if numpy.isscalar(rhs):
