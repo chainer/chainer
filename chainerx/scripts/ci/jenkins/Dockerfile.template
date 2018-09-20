@@ -1,5 +1,7 @@
 FROM nvidia/cuda:9.2-cudnn7-devel-ubuntu16.04
 
+LABEL chainerx_test_image=1
+
 ARG TEMP_DIR=/tmp/tmp-xchainer-ci-dockerfile
 ARG WORKSPACE_DIR
 ARG WORK_DIR
