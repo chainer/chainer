@@ -156,7 +156,7 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
-    m.def("tonumpy", &MakeNumpyArrayFromArray, py::arg("array"), py::arg("copy") = true);
+    m.def("to_numpy", &MakeNumpyArrayFromArray, py::arg("array"), py::arg("copy") = true);
     // This is currently for internal use (from Chainer) to support CuPy.
     // TODO(niboshi): Remove this once it will be possible to import cupy.ndarray using chx.array / chx.asarray.
     m.def("_fromrawpointer",

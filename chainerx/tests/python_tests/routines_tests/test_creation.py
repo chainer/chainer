@@ -80,7 +80,7 @@ def _check_array_from_numpy_array(a_chx, a_np, device=None):
     array_utils.check_device(a_chx, device)
 
     # recovered data should be equal
-    a_np_recovered = chainerx.tonumpy(a_chx)
+    a_np_recovered = chainerx.to_numpy(a_chx)
     chainerx.testing.assert_array_equal_ex(a_chx, a_np_recovered, strides_check=False)
 
 
@@ -269,7 +269,7 @@ def test_asarray_from_numpy_array_with_copy():
 
     # test buffer is not shared
     a += a
-    assert not numpy.array_equal(obj, chainerx.tonumpy(a))
+    assert not numpy.array_equal(obj, chainerx.to_numpy(a))
 
 
 @pytest.mark.parametrize('dtype', ['int32', 'float32'])

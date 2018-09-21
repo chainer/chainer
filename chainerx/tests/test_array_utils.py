@@ -40,7 +40,7 @@ def test_dummy_ndarray(xp, device, shape, dtype, pattern, padding):
 
     # Check values
     if xp is chainerx:
-        a_np = chainerx.tonumpy(a)
+        a_np = chainerx.to_numpy(a)
     else:
         a_np = a
     if pattern == 1:

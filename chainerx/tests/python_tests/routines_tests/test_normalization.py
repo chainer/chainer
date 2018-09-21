@@ -77,8 +77,8 @@ def test_batch_norm(device, x_shape, reduced_shape, eps, decay, axis, float_dtyp
         x_np, gamma_np, beta_np, running_mean=running_mean_np, running_var=running_var_np, **optional_args).data
 
     # Check that the running values are updated.
-    assert not numpy.allclose(chainerx.tonumpy(initial_running_mean), chainerx.tonumpy(running_mean_chx))
-    assert not numpy.allclose(chainerx.tonumpy(initial_running_var), chainerx.tonumpy(running_var_chx))
+    assert not numpy.allclose(chainerx.to_numpy(initial_running_mean), chainerx.to_numpy(running_mean_chx))
+    assert not numpy.allclose(chainerx.to_numpy(initial_running_var), chainerx.to_numpy(running_var_chx))
 
     chainerx.testing.assert_allclose_ex(y_chx, y_np, rtol=1e-6, atol=1e-5)
     chainerx.testing.assert_allclose_ex(running_mean_chx, running_mean_np, rtol=1e-6, atol=1e-6)

@@ -62,18 +62,19 @@ def _array_to_numpy(array):
         return None
     if isinstance(array, numpy.ndarray):
         return array
-    if isinstance(array, (numpy.number, numpy.bool_, intel64.mdarray)):
+    if isinstance(array, intel64.mdarray):
         return numpy.asarray(array)
     if chainerx.is_available() and isinstance(array, chainerx.ndarray):
-        return chainerx.tonumpy(array)
+        return chainerx.to_numpy(array)
     if isinstance(array, cuda.ndarray):
         cuda.check_cuda_available()
         with cuda.get_device_from_array(array):
             return array.get()
-    else:
-        raise TypeError(
-            'Array cannot be converted into an numpy.ndarray'
-            '\nActual type: {0}.'.format(type(array)))
+    if numpy.isscalar(array):
+        return numpy.asarray(array)
+    raise TypeError(
+        'Array cannot be converted into an numpy.ndarray'
+        '\nActual type: {0}.'.format(type(array)))
 
 
 def to_numpy(array):
