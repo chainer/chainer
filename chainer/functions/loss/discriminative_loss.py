@@ -125,30 +125,30 @@ def discriminative_margin_based_clustering_loss(
     This method is a semi-supervised solution to instance segmentation.
     It calculates pixel embeddings, and calculates three different terms
     based on those embeddings and applies them as loss.
-    The main idea is that the pixel embeddings
+    The main idea is that the pixel embeddings 
     for same instances have to be closer to each other (pull force),
     for different instances, they have to be further away (push force).
     The loss also brings a weak regularization term to prevent overfitting.
     This loss function calculates the following three parameters:
 
     - Variance Loss:
-        Loss to penalize distances between pixels which are belonging
+        Loss to penalize distances between pixels which are belonging \
         to the same instance. (Pull force)
-    - Distance loss:
-        Loss to penalize distances between the centers of instances.
+    - Distance loss: \
+        Loss to penalize distances between the centers of instances. \
         (Push force)
-    - Regularization loss:
+    - Regularization loss: \
         Small regularization loss to penalize weights against overfitting.
 
     :param embeddings:
     :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-    :class:`cupy.ndarray`
-    predicted embedding vectors
+    :class:`cupy.ndarray` \
+    predicted embedding vectors \
     (batch size, max embedding dimensions, height, width)
     :param labels:
-    :class:`numpy.ndarray` or :class:`cupy.ndarray`
-    instance segmentation ground truth
-    each unique value has to be denoting one instance
+    :class:`numpy.ndarray` or :class:`cupy.ndarray` \
+    instance segmentation ground truth \
+    each unique value has to be denoting one instance \
     (batch size, height, width)
     :param delta_v: (float) Minimum distance to start penalizing variance
     :param delta_d: (float) Maximum distance to stop penalizing distance
@@ -157,9 +157,9 @@ def discriminative_margin_based_clustering_loss(
     :param alpha: (float) Weight for variance loss
     :param beta: (float) Weight for distance loss
     :param gamma: (float) Weight for regularization loss
-    :return: tuple of chainer.Variable:
-    Variance loss : variance loss multiplied by alpha
-    Distance loss : Distance loss multiplied by beta
+    :return: tuple of chainer.Variable: \
+    Variance loss : variance loss multiplied by alpha \
+    Distance loss : Distance loss multiplied by beta \
     Regularization loss : Regularization loss multiplied by gamma
 
     """
