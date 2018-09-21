@@ -219,14 +219,20 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(None)
         assert a.xp is np
 
-    def check_grad(self, x, xp):
-        g = xp.array(x)
+    def check_grad(self, x, g):
         v = chainer.Variable(x)
         gv = chainer.Variable(g)
         v.grad_var = gv
 
         assert v.grad is g
         assert v.grad_var is gv
+
+    def test_grad_cpu(self):
+        self.check_grad(self.x, self.a)
+
+    @attr.gpu
+    def test_grad_gpu(self):
+        self.check_grad(cuda.to_gpu(self.x), cuda.to_gpu(self.a))
 
     def check_len(self, gpu):
         x = self.x
