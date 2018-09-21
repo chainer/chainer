@@ -495,7 +495,6 @@ class Variable(object):
 
         # ChainerX itself has own node objects, but not exposed to python.
         if chainerx.is_available() and isinstance(data, chainerx.ndarray):
-            self._is_chainerx = True
             if requires_grad:
                 data.require_grad()
                 data.set_grad(grad)
@@ -503,14 +502,16 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize variable with gradients if the'
                     ' require_grad argument is False')
+
+            self._is_chainerx = True
+            self._requires_grad = None
             self._node = None
             self._grad_var = None
-            self._requires_grad = None
         else:
             self._is_chainerx = False
+            self._requires_grad = requires_grad
             self._node = VariableNode(self, name)
             self._grad_var = None if grad is None else Variable(grad)
-            self._requires_grad = requires_grad
 
     def __copy__(self):
         return self._copy_to(Variable())
