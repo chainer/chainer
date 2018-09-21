@@ -717,14 +717,14 @@ class Variable(object):
     def grad_var(self):
         """Gradient variable."""
         if self._is_chainerx:
-            raise NotImplementedError(
+            raise RuntimeError(
                 'A variable of ChainerX does not provide a grad_var.')
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
         if self._is_chainerx:
-            raise NotImplementedError(
+            raise RuntimeError(
                 'A variable of ChainerX does not provide a grad_var.')
         if g is not None:
             _check_grad_type(None, self, g.data)
@@ -753,7 +753,7 @@ class Variable(object):
     @property
     def node(self):
         if self._is_chainerx:
-            raise NotImplementedError(
+            raise RuntimeError(
                 'A variable of ChainerX does not provide a node.')
         return self._node
 

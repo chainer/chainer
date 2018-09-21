@@ -204,12 +204,6 @@ class TestVariable(unittest.TestCase):
         assert x.dtype == self.x.dtype
         assert x.requires_grad
 
-        # TODO(hvy): Temporary.
-        if chainerx.is_available() and isinstance(a, chainerx.ndarray):
-            assert x.node is None
-        else:
-            assert x.node.requires_grad
-
     @pytest.mark.chainerx
     def test_attributes_chainerx(self):
         self.check_attributes(chainerx.asarray(self.x))
