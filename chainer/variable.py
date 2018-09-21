@@ -496,6 +496,8 @@ class Variable(object):
         # ChainerX itself has own node objects, but not exposed to python.
         if chainerx.is_available() and isinstance(data, chainerx.ndarray):
             self._is_chainerx = True
+            self._node = None
+            self._grad_var = None
         else:
             self._is_chainerx = False
             self._node = VariableNode(self, name)
