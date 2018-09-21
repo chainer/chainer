@@ -550,7 +550,7 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(a.grad, gb)
 
     def check_cleargrad(self, a_data, fill=False):
-        xp = cuda.get_array_module(a_data)
+        xp = backend.get_array_module(a_data)
         a = chainer.Variable(a_data)
         if fill:
             a.grad = xp.full_like(a_data, np.nan)
@@ -573,7 +573,7 @@ class TestVariable(unittest.TestCase):
         self.check_cleargrad(cuda.cupy.empty(3, dtype=np.float32), fill=True)
 
     def check_zerograd(self, a_data, fill=False):
-        xp = cuda.get_array_module(a_data)
+        xp = backend.get_array_module(a_data)
         a = chainer.Variable(a_data)
         if fill:
             a.grad_var = chainer.Variable(xp.full_like(a_data, np.nan))
@@ -628,7 +628,7 @@ class TestVariable(unittest.TestCase):
         self.check_zerograd(cuda.cupy.empty(3, dtype=np.float32), fill=True)
 
     def check_copydata(self, data1, data2, expect):
-        xp = cuda.get_array_module(data1)
+        xp = backend.get_array_module(data1)
         v = chainer.Variable(data1)
         w = chainer.Variable(data2)
         v.copydata(w)
@@ -684,7 +684,7 @@ class TestVariable(unittest.TestCase):
 
     def check_addgrad(self, src, dst, expect,
                       clear_src_grad=False, clear_dst_grad=False):
-        xp = cuda.get_array_module(dst)
+        xp = backend.get_array_module(dst)
         a = chainer.Variable(src)
         a.grad = src
         b = chainer.Variable(dst)
@@ -1316,7 +1316,7 @@ class TestVariableBackwardError(unittest.TestCase):
         self.x = np.array([1], np.float32)
 
     def check_type_mismatch(self, x_data):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
@@ -1340,7 +1340,7 @@ class TestVariableBackwardError(unittest.TestCase):
         self.check_type_mismatch(cuda.to_gpu(self.x))
 
     def check_dtype_mismatch(self, x_data):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
@@ -1364,7 +1364,7 @@ class TestVariableBackwardError(unittest.TestCase):
         self.check_dtype_mismatch(cuda.to_gpu(self.x))
 
     def check_shape_mismatch(self, x_data):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'
@@ -1398,7 +1398,7 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
         chainer.set_debug(False)
 
     def check_traceback(self, x_data):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         class DummyFunction(chainer.Function):
             label = 'dummy_function'

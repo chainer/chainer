@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -26,7 +26,7 @@ class Stack(function_node.FunctionNode):
             )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if hasattr(xp, 'stack'):
             return xp.stack(inputs, axis=self.axis),
         else:

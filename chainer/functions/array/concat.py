@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer.backends import intel64
 from chainer import function_node
 from chainer.utils import type_check
@@ -47,7 +47,7 @@ class Concat(function_node.FunctionNode):
             return self._forward_ideep(xs)
 
         # Generic implementation
-        xp = cuda.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return xp.concatenate(xs, self.axis),
 
     def _forward_ideep(self, xs):

@@ -6,6 +6,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
@@ -105,7 +106,7 @@ class Statistician(object):
             out['std'] = x.std(axis=axis)
 
         if self.percentile_sigmas:
-            xp = cuda.get_array_module(x)
+            xp = backend.get_array_module(x)
             if xp is numpy:
                 p = numpy.percentile(x, self.percentile_sigmas, axis=axis)
             else:
@@ -241,7 +242,7 @@ class VariableStatisticsPlot(extension.Extension):
         else:
             return
 
-        xp = cuda.get_array_module(self._vars[0].data)
+        xp = backend.get_array_module(self._vars[0].data)
         stats = xp.zeros(self._data_shape, dtype=xp.float32)
         for i, k in enumerate(self._keys):
             xs = []

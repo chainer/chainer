@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
@@ -47,8 +48,8 @@ def _check_constant_type(value):
 
 
 def _preprocess_const(x, value):
-    xp = cuda.get_array_module(x)
-    if not numpy.isscalar(value) and cuda.get_array_module(value) != xp:
+    xp = backend.get_array_module(x)
+    if not numpy.isscalar(value) and backend.get_array_module(value) != xp:
         # TODO(unno): We can transfer arrays automatically
         raise TypeError('Cannot mix cupy.ndarray and numpy.ndarray')
 
@@ -857,7 +858,7 @@ class PowConstVarGrad(function_node.FunctionNode):
     def backward(self, indexes, ggx):
         y, gy = self.get_retained_inputs()
 
-        xp = cuda.get_array_module(y)
+        xp = backend.get_array_module(y)
         gygy = xp.log(self.value) * ggx[0]
 
         ret = []

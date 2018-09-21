@@ -15,36 +15,42 @@ class Maximum(function_node.FunctionNode):
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].dtype == in_types[1].dtype,
-            in_types[0].shape == in_types[1].shape
         )
+        type_check.expect_broadcast_shapes(
+            in_types[0].shape, in_types[1].shape)
 
     def forward_cpu(self, inputs):
+        # may broadcast
         self.retain_inputs((0, 1))
         x1, x2 = inputs
         y = numpy.maximum(x1, x2)
         return utils.force_array(y),
 
     def forward_gpu(self, inputs):
+        # may broadcast
         self.retain_inputs((0, 1))
         x1, x2 = inputs
         return cuda.cupy.maximum(x1, x2),
 
     def backward(self, indexes, grad_outputs):
         x1, x2 = self.get_retained_inputs()
-        return MaximumGrad(
-            utils.force_array(x1.data >= x2.data)).apply((grad_outputs[0],))
+        return MaximumGrad(x1.data, x2.data).apply((grad_outputs[0],))
 
 
 class MaximumGrad(function_node.FunctionNode):
 
-    def __init__(self, cond):
-        self.cond = cond
+    def __init__(self, x1, x2):
+        self.cond = x1 >= x2
+        self.x1_shape = x1.shape
+        self.x2_shape = x2.shape
 
     def forward_cpu(self, inputs):
         gy, = inputs
-        gx1 = numpy.where(self.cond, gy, gy.dtype.type(0))
-        gx2 = numpy.where(self.cond, gy.dtype.type(0), gy)
-        return utils.force_array(gx1), utils.force_array(gx2)
+        gx1 = utils.force_array(numpy.where(self.cond, gy, gy.dtype.type(0)))
+        gx2 = utils.force_array(numpy.where(self.cond, gy.dtype.type(0), gy))
+        return (
+            utils.sum_to(gx1, self.x1_shape),
+            utils.sum_to(gx2, self.x2_shape))
 
     def forward_gpu(self, inputs):
         gy, = inputs
@@ -55,11 +61,13 @@ class MaximumGrad(function_node.FunctionNode):
             gx2 = cond ? (T)0.0 : gy;
             ''',
             'maximum_bwd1')(self.cond, gy)
-        return gx1, gx2
+        return (
+            utils.sum_to(gx1, self.x1_shape),
+            utils.sum_to(gx2, self.x2_shape))
 
     def backward(self, indexes, grad_outputs):
         return chainer.functions.where(
-            self.cond, grad_outputs[0], grad_outputs[1]),
+            utils.force_array(self.cond), grad_outputs[0], grad_outputs[1]),
 
 
 def maximum(x1, x2):
