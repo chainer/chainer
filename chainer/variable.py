@@ -809,7 +809,6 @@ class Variable(object):
             self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.data, device)]
-
             if self._grad_var is not None:
                 self._grad_var.to_gpu(device)
             # ensure that the node tracks the device migration
@@ -823,7 +822,9 @@ class Variable(object):
         If the array is not suited for intel64, it will be converted to
         :class:`numpy.ndarray`.
         """
-        # TODO(sonots): Support ChainerX
+        if self._is_chainerx:
+            raise RuntimeError('A variable of ChainerX does not provide a to_intel64 method.')
+
         intel64.check_ideep_available()
         data = self.data
         if data is not None:
@@ -839,13 +840,12 @@ class Variable(object):
                     data, itype=intel64.ideep.wgt_array)
             self._data = [data]
 
-        if not self._is_chainerx:
-            if self._grad_var is not None:
-                self._grad_var.to_intel64()
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node._data is not None:
-                node.retain_data()
+        if self._grad_var is not None:
+            self._grad_var.to_intel64()
+        # ensure that the node tracks the device migration
+        node = self._node
+        if node._data is not None:
+            node.retain_data()
 
     def cleargrad(self):
         """Clears the gradient array."""
