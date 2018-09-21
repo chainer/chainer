@@ -206,7 +206,6 @@ class TestVariable(unittest.TestCase):
         assert x.size == self.x.size
         assert x.dtype == self.x.dtype
         assert x.requires_grad
-        assert x.node.requires_grad
 
     @attr.chainerx
     def test_attributes_chainerx(self):
