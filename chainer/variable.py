@@ -535,13 +535,13 @@ class Variable(object):
     @property
     def name(self):
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a node name.')
+            raise RuntimeError('A variable of ChainerX does not provide a node name.')
         return self._node.name
 
     @name.setter
     def name(self, n):
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a node name.')
+            raise RuntimeError('A variable of ChainerX does not provide a node name.')
         self._node.name = n
 
     def summary(self):
@@ -608,7 +608,7 @@ class Variable(object):
     def label(self):
         """Short text that represents the variable."""
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a node label.')
+            raise RuntimeError('A variable of ChainerX does not provide a node label.')
         return self._node.label
 
     @property
@@ -625,13 +625,13 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a creator.')
+            raise RuntimeError('A variable of ChainerX does not provide a creator.')
         return self._node.creator
 
     @creator.setter
     def creator(self, func):
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a creator.')
+            raise RuntimeError('A variable of ChainerX does not provide a creator.')
         self._node.creator = func
 
     @property
@@ -654,13 +654,13 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a creator_node.')
+            raise RuntimeError('A variable of ChainerX does not provide a creator_node.')
         return self._node._creator_node
 
     @creator_node.setter
     def creator_node(self, func):
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a creator_node.')
+            raise RuntimeError('A variable of ChainerX does not provide a creator_node.')
         self._node.creator_node = func
 
     @property
@@ -724,13 +724,13 @@ class Variable(object):
     def grad_var(self):
         """Gradient variable."""
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a grad_var.')
+            raise RuntimeError('A variable of ChainerX does not provide a grad_var.')
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a grad_var.')
+            raise RuntimeError('A variable of ChainerX does not provide a grad_var.')
         if g is not None:
             _check_grad_type(None, self, g.data)
         self._grad_var = g
@@ -754,7 +754,7 @@ class Variable(object):
     @property
     def rank(self):
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a node rank.')
+            raise RuntimeError('A variable of ChainerX does not provide a node rank.')
         return self._node.rank
 
     @property
@@ -773,7 +773,8 @@ class Variable(object):
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
-        # TODO(sonots): Support ChainerX
+        if self._is_chainerx:
+            raise RuntimeError('A variable of ChainerX does not provide a to_cpu method.')
 
         data = self.data
         if data is None:
@@ -786,13 +787,12 @@ class Variable(object):
             # ideep.mdarray to numpy.ndarray
             self._data = [numpy.array(data)]
 
-        if not self._is_chainerx:
-            if self._grad_var is not None:
-                self._grad_var.to_cpu()
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node._data is not None:
-                node.retain_data()
+        if self._grad_var is not None:
+            self._grad_var.to_cpu()
+        # ensure that the node tracks the device migration
+        node = self._node
+        if node._data is not None:
+            node.retain_data()
 
     def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
@@ -802,19 +802,20 @@ class Variable(object):
                 used.
 
         """
-        # TODO(sonots): Support ChainerX
+        if self._is_chainerx:
+            raise RuntimeError('A variable of ChainerX does not provide a to_gpu method.')
+
         if self.data is None:
             self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.data, device)]
 
-            if not self._is_chainerx:
-                if self._grad_var is not None:
-                    self._grad_var.to_gpu(device)
-                # ensure that the node tracks the device migration
-                node = self._node
-                if node._data is not None:
-                    node.retain_data()
+            if self._grad_var is not None:
+                self._grad_var.to_gpu(device)
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
 
     def to_intel64(self):
         """Copies the data and gradient arrays to intel64 specific mdarray.
@@ -951,7 +952,7 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a creator.')
+            raise RuntimeError('A variable of ChainerX does not provide a creator.')
         self._node.set_creator(gen_func)
 
     def set_creator_node(self, fnode):
@@ -963,7 +964,7 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a creator node.')
+            raise RuntimeError('A variable of ChainerX does not provide a creator node.')
         self._node.set_creator_node(fnode)
 
     def backward(self, retain_grad=False, enable_double_backprop=False,
@@ -1168,7 +1169,7 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide an unchain method.')
+            raise RuntimeError('A variable of ChainerX does not provide an unchain method.')
         self.creator_node = None
 
     def unchain_backward(self):
@@ -1183,7 +1184,7 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide an unchain method.')
+            raise RuntimeError('A variable of ChainerX does not provide an unchain method.')
         cand_funcs = []
         seen_set = set()
 
@@ -1203,7 +1204,7 @@ class Variable(object):
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
         if self._is_chainerx:
-            raise NotImplementedError('A variable of ChainerX does not provide a retain_data method.')
+            raise RuntimeError('A variable of ChainerX does not provide a retain_data method.')
         self._node.data = self._data[0]
 
     def __lt__(self, other):
