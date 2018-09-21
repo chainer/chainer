@@ -1184,7 +1184,7 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise RuntimeError('A variable of ChainerX does not provide an unchain method.')
+            raise RuntimeError('A variable of ChainerX does not provide an unchain_backward method.')
         cand_funcs = []
         seen_set = set()
 
