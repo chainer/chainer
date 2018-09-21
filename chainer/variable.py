@@ -498,10 +498,12 @@ class Variable(object):
         if chainerx.is_available() and isinstance(data, chainerx.ndarray):
             self._is_chainerx = True
             self._node = None
+            self._name = name
             self._grad_var = None
         else:
             self._is_chainerx = False
             self._node = VariableNode(self, name)
+            self._name = None  # Use self._node.name
             self._grad_var = None if grad is None else Variable(grad)
 
     def __copy__(self):
@@ -535,13 +537,14 @@ class Variable(object):
     @property
     def name(self):
         if self._is_chainerx:
-            raise RuntimeError('A variable of ChainerX does not provide a node name.')
+            return self._name
         return self._node.name
 
     @name.setter
     def name(self, n):
         if self._is_chainerx:
-            raise RuntimeError('A variable of ChainerX does not provide a node name.')
+            self._name = n
+            return
         self._node.name = n
 
     def summary(self):
