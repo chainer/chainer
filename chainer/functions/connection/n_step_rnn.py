@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function
@@ -794,7 +795,7 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
         raise ValueError('Invalid activation: "%s". Please select from [%s]'
                          % (activation, candidate))
 
-    xp = cuda.get_array_module(hx)
+    xp = backend.get_array_module(hx)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         handle = cudnn.get_handle()

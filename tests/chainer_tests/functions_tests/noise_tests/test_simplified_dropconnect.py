@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -95,7 +96,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         else:
             mask_shape = W_data.shape
 
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
         mask = xp.random.rand(*mask_shape) >= self.ratio
 
         def f(x, W, b=None):
@@ -136,7 +137,7 @@ class TestSimplifiedDropconnect(unittest.TestCase):
         else:
             mask_shape = W_data.shape
 
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
         mask = xp.random.rand(*mask_shape) >= self.ratio
 
         def f(x, W, b=None):

@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -31,7 +32,7 @@ class PadSequence(function_node.FunctionNode):
                 type_check.expect(in_type.shape[0] <= self.length)
 
     def forward(self, xs):
-        xp = cuda.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
 
         if self.length is None:
             length = max(len(x) for x in xs)

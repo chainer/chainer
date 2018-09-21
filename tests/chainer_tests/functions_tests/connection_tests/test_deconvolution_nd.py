@@ -5,6 +5,7 @@ import numpy
 from operator import mul
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
@@ -164,7 +165,7 @@ class TestDeconvolutionND(unittest.TestCase):
     def check_backward(self, x_data, W_data, b_data, y_grad,
                        use_cudnn='never'):
         if not self.c_contiguous:
-            xp = cuda.get_array_module(x_data)
+            xp = backend.get_array_module(x_data)
             x_data = xp.asfortranarray(x_data)
             W_data = xp.asfortranarray(W_data)
             y_grad = xp.asfortranarray(y_grad)
@@ -218,7 +219,7 @@ class TestDeconvolutionND(unittest.TestCase):
         x_grad_grad, W_grad_grad, b_grad_grad = grad_grad_inputs
 
         if not self.c_contiguous:
-            xp = cuda.get_array_module(x_data)
+            xp = backend.get_array_module(x_data)
             x_data = xp.asfortranarray(x_data)
             W_data = xp.asfortranarray(W_data)
             y_grad = xp.asfortranarray(y_grad)
