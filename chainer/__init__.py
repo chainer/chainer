@@ -18,6 +18,7 @@ from chainer import links  # NOQA
 from chainer import optimizers  # NOQA
 from chainer import serializers  # NOQA
 from chainer import training  # NOQA
+from chainer import variable  # NOQA
 
 
 # import class and function
@@ -140,11 +141,17 @@ def get_cpu_array_types():
     return _cpu_array_types
 
 
+# TODO(hvy): In case of chainerx.ndarray, take the device into account?
+# TODO(hvy): Move this function to backend?
 def is_arrays_compatible(arrays):
-    arrays = [a for a in arrays if a is not None]
+    arrays = [variable.as_array(a) for a in arrays if a is not None]
+
     if len(arrays) == 0:
         return True
-    if type(arrays[0]) is backends.cuda.ndarray:
+
+    if isinstance(arrays[0], chainerx.ndarray):
+        types = chainerx.ndarray
+    elif isinstance(arrays[0], backends.cuda.ndarray):
         types = backends.cuda.ndarray
     else:
         types = get_cpu_array_types()

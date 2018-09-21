@@ -175,6 +175,9 @@ void InitChainerxArray(pybind11::module& m) {
           });
     c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
         // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.
+        if (self->ndim() == 0) {
+            throw pybind11::type_error("len() of unsized object");
+        }
         return Array{self}.shape().front();
     });
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
@@ -236,36 +239,60 @@ void InitChainerxArray(pybind11::module& m) {
           },
           py::arg("axis") = nullptr);
     c.def("squeeze", [](const ArrayBodyPtr& self, int8_t axis) { return MoveArrayBody(Array{self}.Squeeze(Axes{axis})); }, py::arg("axis"));
-    c.def("__eq__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} == Array{rhs}); });
-    c.def("__ne__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} != Array{rhs}); });
-    c.def("__gt__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} > Array{rhs}); });
-    c.def("__ge__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} >= Array{rhs}); });
-    c.def("__lt__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} < Array{rhs}); });
-    c.def("__le__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} <= Array{rhs}); });
+    c.def("__eq__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} == Array{rhs}); },
+          py::is_operator());
+    c.def("__ne__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} != Array{rhs}); },
+          py::is_operator());
+    c.def("__gt__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} > Array{rhs}); },
+          py::is_operator());
+    c.def("__ge__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} >= Array{rhs}); },
+          py::is_operator());
+    c.def("__lt__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} < Array{rhs}); },
+          py::is_operator());
+    c.def("__le__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} <= Array{rhs}); },
+          py::is_operator());
     c.def("__neg__", [](const ArrayBodyPtr& self) { return MoveArrayBody(-Array{self}); });
     c.def("__iadd__",
-          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} += Array{rhs})); });
-    c.def("__iadd__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} += rhs)); });
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} += Array{rhs})); },
+          py::is_operator());
+    c.def("__iadd__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} += rhs)); }, py::is_operator());
     c.def("__isub__",
-          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} -= Array{rhs})); });
-    c.def("__isub__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} -= rhs)); });
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} -= Array{rhs})); },
+          py::is_operator());
+    c.def("__isub__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} -= rhs)); }, py::is_operator());
     c.def("__imul__",
-          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} *= Array{rhs})); });
-    c.def("__imul__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} *= rhs)); });
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} *= Array{rhs})); },
+          py::is_operator());
+    c.def("__imul__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} *= rhs)); }, py::is_operator());
     c.def("__itruediv__",
-          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} /= Array{rhs})); });
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} /= Array{rhs})); },
+          py::is_operator());
     c.def("__itruediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} /= rhs)); });
-    c.def("__add__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} + Array{rhs}); });
-    c.def("__add__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} + rhs); });
-    c.def("__radd__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs + Array{self}); });
-    c.def("__sub__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} - Array{rhs}); });
-    c.def("__sub__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} - rhs); });
-    c.def("__rsub__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs - Array{self}); });
-    c.def("__mul__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} * Array{rhs}); });
-    c.def("__mul__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} * rhs); });
-    c.def("__rmul__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs * Array{self}); });
-    c.def("__truediv__", [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} / Array{rhs}); });
-    c.def("__truediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} / rhs); });
+    c.def("__add__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} + Array{rhs}); },
+          py::is_operator());
+    c.def("__add__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} + rhs); }, py::is_operator());
+    c.def("__radd__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs + Array{self}); }, py::is_operator());
+    c.def("__sub__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} - Array{rhs}); },
+          py::is_operator());
+    c.def("__sub__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} - rhs); }, py::is_operator());
+    c.def("__rsub__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs - Array{self}); }, py::is_operator());
+    c.def("__mul__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} * Array{rhs}); },
+          py::is_operator());
+    c.def("__mul__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} * rhs); }, py::is_operator());
+    c.def("__rmul__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs * Array{self}); }, py::is_operator());
+    c.def("__truediv__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} / Array{rhs}); },
+          py::is_operator());
+    c.def("__truediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} / rhs); }, py::is_operator());
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Sum(Axes{axis}, keepdims)); },
           py::arg("axis"),

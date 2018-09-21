@@ -13,6 +13,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
 from chainer.utils import type_check
+import chainerx
 
 
 @testing.parameterize(*testing.product({
@@ -141,6 +142,69 @@ class TestBinaryOp(unittest.TestCase):
         y = chainer.Variable(cuda.cupy.ones((1,)))
         z = y + x
         self.assertEqual(1, z.data.get()[0])
+
+    def forward_chainerx(self, op):
+        # TODO(hvy): chainerx does not support fp16 yet
+        if numpy.float16 in (self.x1.dtype, self.x2.dtype):
+            return
+        self.check_forward(
+            op, chainerx.array(self.x1), chainerx.array(self.x2))
+
+    @pytest.mark.chainerx
+    def test_add_forward_chainerx(self):
+        self.forward_chainerx(lambda x, y: x + y)
+
+    @pytest.mark.chainerx
+    def test_sub_forward_chainerx(self):
+        self.forward_chainerx(lambda x, y: x - y)
+
+    @pytest.mark.chainerx
+    def test_mul_forward_chainerx(self):
+        self.forward_gpu(lambda x, y: x * y)
+
+    @pytest.mark.chainerx
+    def test_div_forward_chainerx(self):
+        self.forward_chainerx(lambda x, y: x / y)
+
+    # TODO(hvy): Implement floor.
+    @pytest.mark.skip
+    @pytest.mark.chainerx
+    def test_floordiv_forward_chainerx(self):
+        pass
+
+    # TODO(hvy): Implement floor.
+    @pytest.mark.skip
+    @pytest.mark.chainerx
+    def test_pow_forward_chainerx(self):
+        pass
+
+    @pytest.mark.chainerx
+    def test_radd_forward_chainerx(self):
+        self.forward_chainerx(lambda x, y: y.__radd__(x))
+
+    @pytest.mark.chainerx
+    def test_rsub_forward_chainerx(self):
+        self.forward_chainerx(lambda x, y: y.__rsub__(x))
+
+    @pytest.mark.chainerx
+    def test_rmul_forward_chainerx(self):
+        self.forward_chainerx(lambda x, y: y.__rmul__(x))
+
+    @pytest.mark.chainerx
+    def test_rdiv_forward_chainerx(self):
+        self.forward_chainerx(lambda x, y: y.__rtruediv__(x))
+
+    # TODO(hvy): Implement floor.
+    @pytest.mark.skip
+    @pytest.mark.chainerx
+    def test_rfloordiv_forward_chainerx(self):
+        pass
+
+    # TODO(hvy): Implement floor.
+    @pytest.mark.skip
+    @pytest.mark.chainerx
+    def test_rpow_forward_chainerx(self):
+        pass
 
     def check_backward(self, op, x1_data, x2_data, y_grad):
         options = {}

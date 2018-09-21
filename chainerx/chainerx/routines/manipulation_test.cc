@@ -250,10 +250,40 @@ TEST_THREAD_SAFE_P(ManipulationTest, ReshapeWithCopy) {
     });
 }
 
-TEST_P(ManipulationTest, InvalidReshape) {
+TEST_THREAD_SAFE_P(ManipulationTest, ReshapeInferDimension) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 4};
+    Shape output_shape{3, -1, 1};
+    Shape inferred_output_shape{3, 8, 1};
+
+    Array a = testing::BuildArray(input_shape).WithLinearData<T>();
+    Array e = testing::BuildArray(inferred_output_shape).WithLinearData<T>();
+
+    Run([&]() {
+        testing::CheckForward(
+                [&output_shape](const std::vector<Array>& xs) {
+                    Array y = Reshape(xs[0], output_shape);
+                    EXPECT_EQ(xs[0].data().get(), y.data().get()) << "Reshape must be done without copying data";
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
+    });
+}
+
+TEST_P(ManipulationTest, InvalidReshapeTotalSizeMismatch) {
     using T = int32_t;
     Shape input_shape{2, 3, 4};
     Shape output_shape{2, 4, 4};
+
+    Array a = testing::BuildArray(input_shape).WithLinearData<T>();
+    EXPECT_THROW(Reshape(a, output_shape), DimensionError);
+}
+
+TEST_P(ManipulationTest, InvalidReshapeCannotInfer) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 4};
+    Shape output_shape{2, -1, -1};
 
     Array a = testing::BuildArray(input_shape).WithLinearData<T>();
     EXPECT_THROW(Reshape(a, output_shape), DimensionError);

@@ -128,9 +128,30 @@ TEST(AxesTest, SpanFromAxes) {
     CheckSpanEqual({2, 3, 4}, gsl::make_span(axes));
 }
 
-using GetSortedAxesNormalTestParam = std::tuple<Axes, int8_t, Axes>;
+using GetAxesNormalTestParam = std::tuple<Axes, int8_t, Axes>;
 
-class GetSortedAxesNormalTest : public ::testing::TestWithParam<GetSortedAxesNormalTestParam> {};
+class GetNormalizedAxesNormalTest : public ::testing::TestWithParam<GetAxesNormalTestParam> {};
+
+TEST_P(GetNormalizedAxesNormalTest, Check) {
+    const Axes& axis = std::get<0>(GetParam());
+    int8_t ndim = std::get<1>(GetParam());
+    const Axes& expect = std::get<2>(GetParam());
+    EXPECT_EQ(expect, internal::GetNormalizedAxes(axis, ndim));
+}
+
+INSTANTIATE_TEST_CASE_P(
+        ForEachInputs,
+        GetNormalizedAxesNormalTest,
+        ::testing::Values(
+                GetAxesNormalTestParam{Axes{}, 0, Axes{}},
+                GetAxesNormalTestParam{{1}, 2, {1}},
+                GetAxesNormalTestParam{{-1}, 2, {1}},
+                GetAxesNormalTestParam{{1, 0}, 2, {1, 0}},
+                GetAxesNormalTestParam{{2, -2}, 3, {2, 1}}));
+
+using GetAxesNormalTestParam = std::tuple<Axes, int8_t, Axes>;
+
+class GetSortedAxesNormalTest : public ::testing::TestWithParam<GetAxesNormalTestParam> {};
 
 TEST_P(GetSortedAxesNormalTest, Check) {
     const Axes& axis = std::get<0>(GetParam());
@@ -144,32 +165,11 @@ INSTANTIATE_TEST_CASE_P(
         ForEachInputs,
         GetSortedAxesNormalTest,
         ::testing::Values(
-                GetSortedAxesNormalTestParam{Axes{}, 0, Axes{}},
-                GetSortedAxesNormalTestParam{{1}, 2, {1}},
-                GetSortedAxesNormalTestParam{{-1}, 2, {1}},
-                GetSortedAxesNormalTestParam{{1, 0}, 2, {0, 1}},
-                GetSortedAxesNormalTestParam{{2, -2}, 3, {1, 2}}));
-
-using GetSortedAxesInvalidTestParam = std::tuple<Axes, int8_t>;
-
-class GetSortedAxesInvalidTest : public ::testing::TestWithParam<GetSortedAxesInvalidTestParam> {};
-
-TEST_P(GetSortedAxesInvalidTest, Invalid) {
-    const Axes& axis = std::get<0>(GetParam());
-    int8_t ndim = std::get<1>(GetParam());
-    EXPECT_THROW(internal::GetSortedAxes(axis, ndim), DimensionError);
-    EXPECT_THROW(internal::GetSortedAxesOrAll(axis, ndim), DimensionError);
-}
-
-INSTANTIATE_TEST_CASE_P(
-        ForEachInputs,
-        GetSortedAxesInvalidTest,
-        ::testing::Values(
-                GetSortedAxesInvalidTestParam{{0}, 0},
-                GetSortedAxesInvalidTestParam{{2}, 1},
-                GetSortedAxesInvalidTestParam{{-2}, 1},
-                GetSortedAxesInvalidTestParam{{0, 2, 1}, 2},
-                GetSortedAxesInvalidTestParam{{0, 0}, 1}));
+                GetAxesNormalTestParam{Axes{}, 0, Axes{}},
+                GetAxesNormalTestParam{{1}, 2, {1}},
+                GetAxesNormalTestParam{{-1}, 2, {1}},
+                GetAxesNormalTestParam{{1, 0}, 2, {0, 1}},
+                GetAxesNormalTestParam{{2, -2}, 3, {1, 2}}));
 
 using GetSortedAxesOrAllTestParam = std::tuple<int8_t, Axes>;
 
@@ -190,6 +190,28 @@ INSTANTIATE_TEST_CASE_P(
                 GetSortedAxesOrAllTestParam{2, {0, 1}},
                 GetSortedAxesOrAllTestParam{3, {0, 1, 2}},
                 GetSortedAxesOrAllTestParam{4, {0, 1, 2, 3}}));
+
+using GetAxesInvalidTestParam = std::tuple<Axes, int8_t>;
+
+class GetAxesInvalidTest : public ::testing::TestWithParam<GetAxesInvalidTestParam> {};
+
+TEST_P(GetAxesInvalidTest, Invalid) {
+    const Axes& axis = std::get<0>(GetParam());
+    int8_t ndim = std::get<1>(GetParam());
+    EXPECT_THROW(internal::GetNormalizedAxes(axis, ndim), DimensionError);
+    EXPECT_THROW(internal::GetSortedAxes(axis, ndim), DimensionError);
+    EXPECT_THROW(internal::GetSortedAxesOrAll(axis, ndim), DimensionError);
+}
+
+INSTANTIATE_TEST_CASE_P(
+        ForEachInputs,
+        GetAxesInvalidTest,
+        ::testing::Values(
+                GetAxesInvalidTestParam{{0}, 0},
+                GetAxesInvalidTestParam{{2}, 1},
+                GetAxesInvalidTestParam{{-2}, 1},
+                GetAxesInvalidTestParam{{0, 2, 1}, 2},
+                GetAxesInvalidTestParam{{0, 0}, 1}));
 
 }  // namespace
 }  // namespace chainerx

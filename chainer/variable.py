@@ -1356,6 +1356,26 @@ def as_variable(obj):
     return Variable(obj, requires_grad=False)
 
 
+def as_array(obj):
+    """Returns the underlying array from a variable or an array.
+
+    This is a convenient function to get the underlying array object
+    transparently from an object that could be either a variable or an array.
+
+    Args:
+        obj (chainerx.ndarray numpy.ndarray or cupy.ndarray or
+            ~chainer.Variable): An array or a variable.
+
+    Returns:
+        chainerx.ndarray numpy.ndarray or cupy.ndarray or ~chainer.Variable:
+        The underlying array object of the argument.
+
+    """
+    if isinstance(obj, Variable):
+        return obj.array
+    return obj
+
+
 def _recover_parameter(data, name, grad, initializer, update_rule):
     p = Parameter(initializer=initializer, name=name)
     p.data = data

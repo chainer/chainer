@@ -85,9 +85,18 @@ bool IsAxesPermutation(const Axes& axes, int8_t ndim);
 int8_t NormalizeAxis(int8_t axis, int8_t ndim);
 
 // Resolves the axis argument of many operations.
-// Negative axis value is first converted to non-negative one (by wrapping at ndim), and then the axis is sorted.
-// In GetSortedAxesOrAll, nullopt is converted to a vector of all axes.
+// Negative axes are converted to non-negative ones (by wrapping at ndim).
+Axes GetNormalizedAxes(const Axes& axis, int8_t ndim);
+
+// Resolves the axis argument of many operations.
+// Negative axes are converted to non-negative ones (by wrapping at ndim).
+// Axes are then sorted.
 Axes GetSortedAxes(const Axes& axis, int8_t ndim);
+
+// Resolves the axis argument of many operations.
+// Negative axes are converted to non-negative ones (by wrapping at ndim).
+// Axes are then sorted.
+// nullopt is converted to a vector of all axes.
 Axes GetSortedAxesOrAll(const OptionalAxes& axis, int8_t ndim);
 
 }  // namespace internal

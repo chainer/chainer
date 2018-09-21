@@ -237,7 +237,7 @@ public:
 
     Device& device() const { return body_->device(); }
 
-    int8_t ndim() const { return shape().ndim(); }
+    int8_t ndim() const { return body_->ndim(); }
 
     const Shape& shape() const { return body_->shape(); }
 
