@@ -222,11 +222,8 @@ class TestVariable(unittest.TestCase):
 
     def check_grad(self, x, g):
         v = chainer.Variable(x)
-        gv = chainer.Variable(g)
-        v.grad_var = gv
-
+        v.grad = g
         assert v.grad is g
-        assert v.grad_var is gv
 
     def test_grad_cpu(self):
         self.check_grad(self.x, self.a)
@@ -234,6 +231,23 @@ class TestVariable(unittest.TestCase):
     @attr.gpu
     def test_grad_gpu(self):
         self.check_grad(cuda.to_gpu(self.x), cuda.to_gpu(self.a))
+
+    @attr.chainerx
+    def test_grad_chainerx(self):
+        self.check_grad(chainerx.array(self.x), chainerx.array(self.a))
+
+    def check_grad_var(self, x, g):
+        v = chainer.Variable(x)
+        gv = chainer.Variable(g)
+        v.grad_var = gv
+        assert v.grad_var is gv
+
+    def test_grad_var_cpu(self):
+        self.check_grad_var(self.x, self.a)
+
+    @attr.gpu
+    def test_grad_var_gpu(self):
+        self.check_grad_var(cuda.to_gpu(self.x), cuda.to_gpu(self.a))
 
     def check_len(self, a):
         x = chainer.Variable(a)
@@ -249,7 +263,7 @@ class TestVariable(unittest.TestCase):
     def test_len_gpu(self):
         self.check_len(cuda.to_gpu(self.x))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_len_chainerx(self):
         self.check_len(chainerx.array(self.x))
 
@@ -1462,7 +1476,7 @@ class TestReshape(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_forward_chainerx(self):
         # TODO(imanishi): chainerx does not support fp16 yet
         if self.dtype == np.float16:
@@ -1509,7 +1523,7 @@ class TestTranspose(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_forward_chainerx(self):
         # TODO(hvy): chainerx does not support fp16 yet
         if self.dtype == np.float16:
