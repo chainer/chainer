@@ -533,10 +533,14 @@ class Variable(object):
 
     @property
     def name(self):
+        if self._is_chainerx:
+            raise NotImplementedError('A variable of ChainerX does not provide a node name.')
         return self._node.name
 
     @name.setter
     def name(self, n):
+        if self._is_chainerx:
+            raise NotImplementedError('A variable of ChainerX does not provide a node name.')
         self._node.name = n
 
     def summary(self):
@@ -602,6 +606,8 @@ class Variable(object):
     @property
     def label(self):
         """Short text that represents the variable."""
+        if self._is_chainerx:
+            raise NotImplementedError('A variable of ChainerX does not provide a node label.')
         return self._node.label
 
     @property
@@ -618,13 +624,13 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise NotImplementedError
+            raise NotImplementedError('A variable of ChainerX does not provide a creator.')
         return self._node.creator
 
     @creator.setter
     def creator(self, func):
         if self._is_chainerx:
-            raise NotImplementedError
+            raise NotImplementedError('A variable of ChainerX does not provide a creator.')
         self._node.creator = func
 
     @property
@@ -647,13 +653,13 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise NotImplementedError
+            raise NotImplementedError('A variable of ChainerX does not provide a creator_node.')
         return self._node._creator_node
 
     @creator_node.setter
     def creator_node(self, func):
         if self._is_chainerx:
-            raise NotImplementedError
+            raise NotImplementedError('A variable of ChainerX does not provide a creator_node.')
         self._node.creator_node = func
 
     @property
@@ -669,7 +675,8 @@ class Variable(object):
     @array.setter
     def array(self, d):
         self._data[0] = d
-        self._node._update_data_info(d)
+        if not self._is_chainerx:
+            self._node._update_data_info(d)
 
     @property
     def data(self):
@@ -687,7 +694,8 @@ class Variable(object):
     @data.setter
     def data(self, d):
         self._data[0] = d
-        self._node._update_data_info(d)
+        if not self._is_chainerx:
+            self._node._update_data_info(d)
 
     @property
     def grad(self):
@@ -698,20 +706,30 @@ class Variable(object):
         gradient variable, use :attr:`grad_var` instead.
 
         """
+        # TODO(sonots): Implement for ChainerX
+        if self._is_chainerx:
+            raise NotImplementedError()
         gv = self._grad_var
         return None if gv is None else gv.data
 
     @grad.setter
     def grad(self, g):
+        # TODO(sonots): Implement for ChainerX
+        if self._is_chainerx:
+            raise NotImplementedError()
         self.grad_var = None if g is None else Variable(g)
 
     @property
     def grad_var(self):
         """Gradient variable."""
+        if self._is_chainerx:
+            raise NotImplementedError('A variable of ChainerX does not provide a grad_var.')
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
+        if self._is_chainerx:
+            raise NotImplementedError('A variable of ChainerX does not provide a grad_var.')
         if g is not None:
             _check_grad_type(None, self, g.data)
         self._grad_var = g
@@ -735,7 +753,7 @@ class Variable(object):
     @property
     def rank(self):
         if self._is_chainerx:
-            raise NotImplementedError
+            raise NotImplementedError('A variable of ChainerX does not provide a node rank.')
         return self._node.rank
 
     @property
@@ -754,6 +772,7 @@ class Variable(object):
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
+        # TODO(sonots): Support ChainerX
 
         data = self.data
         if data is None:
@@ -766,12 +785,13 @@ class Variable(object):
             # ideep.mdarray to numpy.ndarray
             self._data = [numpy.array(data)]
 
-        if self._grad_var is not None:
-            self._grad_var.to_cpu()
-        # ensure that the node tracks the device migration
-        node = self._node
-        if node._data is not None:
-            node.retain_data()
+        if not self._is_chainerx:
+            if self._grad_var is not None:
+                self._grad_var.to_cpu()
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
 
     def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
@@ -781,16 +801,19 @@ class Variable(object):
                 used.
 
         """
+        # TODO(sonots): Support ChainerX
         if self.data is None:
             self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.data, device)]
-            if self._grad_var is not None:
-                self._grad_var.to_gpu(device)
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node._data is not None:
-                node.retain_data()
+
+            if not self._is_chainerx:
+                if self._grad_var is not None:
+                    self._grad_var.to_gpu(device)
+                # ensure that the node tracks the device migration
+                node = self._node
+                if node._data is not None:
+                    node.retain_data()
 
     def to_intel64(self):
         """Copies the data and gradient arrays to intel64 specific mdarray.
@@ -798,6 +821,7 @@ class Variable(object):
         If the array is not suited for intel64, it will be converted to
         :class:`numpy.ndarray`.
         """
+        # TODO(sonots): Support ChainerX
         intel64.check_ideep_available()
         data = self.data
         if data is not None:
@@ -813,15 +837,19 @@ class Variable(object):
                     data, itype=intel64.ideep.wgt_array)
             self._data = [data]
 
-        if self._grad_var is not None:
-            self._grad_var.to_intel64()
-        # ensure that the node tracks the device migration
-        node = self._node
-        if node._data is not None:
-            node.retain_data()
+        if not self._is_chainerx:
+            if self._grad_var is not None:
+                self._grad_var.to_intel64()
+            # ensure that the node tracks the device migration
+            node = self._node
+            if node._data is not None:
+                node.retain_data()
 
     def cleargrad(self):
         """Clears the gradient array."""
+        # TODO(sonots): Implement for ChainerX
+        if self._is_chainerx:
+            raise NotImplementedError()
         self._grad_var = None
 
     def zerograd(self):
@@ -835,6 +863,9 @@ class Variable(object):
            Use :meth:`cleargrad` instead.
 
         """
+        # TODO(sonots): Implement for ChainerX
+        if self._is_chainerx:
+            raise NotImplementedError()
         warnings.warn(
             'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
@@ -892,6 +923,9 @@ class Variable(object):
             var (Variable): Source variable.
 
         """
+        # TODO(sonots): Implement for ChainerX
+        if self._is_chainerx:
+            raise NotImplementedError()
         src = var._grad_var
         if src is None:
             return
@@ -916,7 +950,7 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise NotImplementedError
+            raise NotImplementedError('A variable of ChainerX does not provide a creator.')
         self._node.set_creator(gen_func)
 
     def set_creator_node(self, fnode):
@@ -928,7 +962,7 @@ class Variable(object):
 
         """
         if self._is_chainerx:
-            raise NotImplementedError
+            raise NotImplementedError('A variable of ChainerX does not provide a creator node.')
         self._node.set_creator_node(fnode)
 
     def backward(self, retain_grad=False, enable_double_backprop=False,
@@ -987,6 +1021,9 @@ class Variable(object):
             self._backward_main(retain_grad, loss_scale)
 
     def _backward_main(self, retain_grad, loss_scale):
+        # TODO(sonots): Implement for ChainerX
+        if self._is_chainerx:
+            raise NotImplementedError()
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
@@ -1129,6 +1166,8 @@ class Variable(object):
         This method is equivalent to ``self.creator_node = None``.
 
         """
+        if self._is_chainerx:
+            raise NotImplementedError('A variable of ChainerX does not provide an unchain method.')
         self.creator_node = None
 
     def unchain_backward(self):
@@ -1142,6 +1181,8 @@ class Variable(object):
         this variable. This behavior is useful to implement truncated BPTT.
 
         """
+        if self._is_chainerx:
+            raise NotImplementedError('A variable of ChainerX does not provide an unchain method.')
         cand_funcs = []
         seen_set = set()
 
@@ -1160,6 +1201,8 @@ class Variable(object):
 
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
+        if self._is_chainerx:
+            raise NotImplementedError('A variable of ChainerX does not provide a retain_data method.')
         self._node.data = self._data[0]
 
     def __lt__(self, other):
