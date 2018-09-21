@@ -16,6 +16,7 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
+import chainerx
 
 
 def _check_grad_type(func, x, gx):
