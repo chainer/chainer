@@ -2,7 +2,7 @@ from __future__ import division
 import copy
 import errno
 import os
-import pytest
+import platform
 import signal
 import subprocess
 import sys
@@ -52,7 +52,6 @@ class DummyDeserializer(serializer.Deserializer):
         return value
 
 
-@pytest.mark.timeout(300)
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
@@ -164,6 +163,8 @@ class TestMultiprocessIterator(unittest.TestCase):
             for k, v in six.iteritems(batches):
                 numpy.testing.assert_allclose(dataset[k][1], v)
 
+    @unittest.skipIf(platform.system() == 'Windows' and int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_dict_type(self):
         dataset = [{i: numpy.zeros((10,)) + i} for i in range(6)]
         it = iterators.MultiprocessIterator(dataset, 2, **self.options)
@@ -277,6 +278,8 @@ class TestMultiprocessIterator(unittest.TestCase):
                 self.assertRaises(StopIteration, it.next)
             it.reset()
 
+    @unittest.skipIf(platform.system() == 'Windows' and int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_reset_middle(self):
         dataset = [1, 2, 3, 4, 5]
         it = iterators.MultiprocessIterator(
@@ -291,6 +294,8 @@ class TestMultiprocessIterator(unittest.TestCase):
                 self.assertRaises(StopIteration, it.next)
             it.reset()
 
+    @unittest.skipIf(platform.system() == 'Windows' and int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_reset_repeat(self):
         dataset = [1, 2, 3, 4]
         it = iterators.MultiprocessIterator(
