@@ -161,3 +161,4 @@ experimental:
     branches:
       only:
         - nightly
+        - master

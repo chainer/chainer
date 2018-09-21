@@ -60,16 +60,25 @@ int8_t NormalizeAxis(int8_t axis, int8_t ndim) {
     return axis;
 }
 
-Axes GetSortedAxes(const Axes& axis, int8_t ndim) {
-    Axes sorted_axis = axis;
+Axes GetNormalizedAxes(const Axes& axis, int8_t ndim) {
+    Axes normalized_axis = axis;
 
-    for (auto& a : sorted_axis) {
+    for (auto& a : normalized_axis) {
         a = NormalizeAxis(a, ndim);
     }
-    std::sort(sorted_axis.begin(), sorted_axis.end());
-    if (std::unique(sorted_axis.begin(), sorted_axis.end()) != sorted_axis.end()) {
+    if (std::unique(normalized_axis.begin(), normalized_axis.end()) != normalized_axis.end()) {
         throw DimensionError{"Duplicate axis values."};
     }
+
+    // normalized_axis is unique, and within bounds [0, ndim).
+    CHAINERX_ASSERT(std::set<int8_t>(normalized_axis.begin(), normalized_axis.end()).size() == normalized_axis.size());
+    CHAINERX_ASSERT(std::all_of(normalized_axis.begin(), normalized_axis.end(), [ndim](int8_t x) -> bool { return 0 <= x && x < ndim; }));
+    return normalized_axis;
+}
+
+Axes GetSortedAxes(const Axes& axis, int8_t ndim) {
+    Axes sorted_axis = GetNormalizedAxes(axis, ndim);
+    std::sort(sorted_axis.begin(), sorted_axis.end());
 
     // sorted_axis is sorted, unique, and within bounds [0, ndim).
     CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));

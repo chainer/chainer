@@ -493,6 +493,7 @@ class Variable(object):
         self._data = [data]
         self._loss_scale = None
 
+        # ChainerX itself has own node objects, but not exposed to python.
         if chainerx.is_available() and isinstance(data, chainerx.ndarray):
             self._is_chainerx = True
             if requires_grad:
@@ -502,11 +503,14 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize variable with gradients if the'
                     ' require_grad argument is False')
+            self._node = None
+            self._grad_var = None
+            self._requires_grad = None
         else:
             self._is_chainerx = False
-            self._requires_grad = requires_grad
             self._node = VariableNode(self, name)
             self._grad_var = None if grad is None else Variable(grad)
+            self._requires_grad = requires_grad
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -538,10 +542,16 @@ class Variable(object):
 
     @property
     def name(self):
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a node name.')
         return self._node.name
 
     @name.setter
     def name(self, n):
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a node name.')
         self._node.name = n
 
     def summary(self):
@@ -607,6 +617,9 @@ class Variable(object):
     @property
     def label(self):
         """Short text that represents the variable."""
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a node label.')
         return self._node.label
 
     @property
@@ -622,10 +635,16 @@ class Variable(object):
         property returns that node object.
 
         """
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator.')
         return self._node.creator
 
     @creator.setter
     def creator(self, func):
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator.')
         self._node.creator = func
 
     @property
@@ -647,10 +666,16 @@ class Variable(object):
            object.
 
         """
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator_node.')
         return self._node._creator_node
 
     @creator_node.setter
     def creator_node(self, func):
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator_node.')
         self._node.creator_node = func
 
     @property
@@ -666,7 +691,8 @@ class Variable(object):
     @array.setter
     def array(self, d):
         self._data[0] = d
-        self._node._update_data_info(d)
+        if not self._is_chainerx:
+            self._node._update_data_info(d)
 
     @property
     def data(self):
@@ -684,7 +710,8 @@ class Variable(object):
     @data.setter
     def data(self, d):
         self._data[0] = d
-        self._node._update_data_info(d)
+        if not self._is_chainerx:
+            self._node._update_data_info(d)
 
     @property
     def grad(self):
@@ -748,6 +775,9 @@ class Variable(object):
 
     @property
     def rank(self):
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a node rank.')
         return self._node.rank
 
     @property
@@ -771,6 +801,9 @@ class Variable(object):
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a to_cpu method.')
 
         data = self.data
         if data is None:
@@ -798,6 +831,10 @@ class Variable(object):
                 used.
 
         """
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a to_gpu method.')
+
         if self.data is None:
             self._data = [None]  # Renew placeholder to break sharing
         else:
@@ -815,6 +852,10 @@ class Variable(object):
         If the array is not suited for intel64, it will be converted to
         :class:`numpy.ndarray`.
         """
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a to_intel64 method.')
+
         intel64.check_ideep_available()
         data = self.data
         if data is not None:
@@ -855,6 +896,9 @@ class Variable(object):
            Use :meth:`cleargrad` instead.
 
         """
+        # TODO(sonots): Implement for ChainerX
+        if self._is_chainerx:
+            raise NotImplementedError()
         warnings.warn(
             'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
@@ -912,6 +956,9 @@ class Variable(object):
             var (Variable): Source variable.
 
         """
+        # TODO(sonots): Implement for ChainerX
+        if self._is_chainerx:
+            raise NotImplementedError()
         src = var._grad_var
         if src is None:
             return
@@ -935,6 +982,9 @@ class Variable(object):
                 one of its outputs.
 
         """
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator.')
         self._node.set_creator(gen_func)
 
     def set_creator_node(self, fnode):
@@ -945,6 +995,9 @@ class Variable(object):
                 output.
 
         """
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator node.')
         self._node.set_creator_node(fnode)
 
     def backward(self, retain_grad=False, enable_double_backprop=False,
@@ -1003,6 +1056,9 @@ class Variable(object):
             self._backward_main(retain_grad, loss_scale)
 
     def _backward_main(self, retain_grad, loss_scale):
+        # TODO(sonots): Implement for ChainerX
+        if self._is_chainerx:
+            raise NotImplementedError()
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
@@ -1145,6 +1201,9 @@ class Variable(object):
         This method is equivalent to ``self.creator_node = None``.
 
         """
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide an unchain method.')
         self.creator_node = None
 
     def unchain_backward(self):
@@ -1158,6 +1217,10 @@ class Variable(object):
         this variable. This behavior is useful to implement truncated BPTT.
 
         """
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide an unchain_backward '
+                'method.')
         cand_funcs = []
         seen_set = set()
 
@@ -1176,6 +1239,10 @@ class Variable(object):
 
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
+        if self._is_chainerx:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a retain_data '
+                'method.')
         self._node.data = self._data[0]
 
     def __lt__(self, other):
@@ -1392,6 +1459,26 @@ def as_variable(obj):
     if isinstance(obj, Variable):
         return obj
     return Variable(obj, requires_grad=False)
+
+
+def as_array(obj):
+    """Returns the underlying array from a variable or an array.
+
+    This is a convenient function to get the underlying array object
+    transparently from an object that could be either a variable or an array.
+
+    Args:
+        obj (chainerx.ndarray numpy.ndarray or cupy.ndarray or
+            ~chainer.Variable): An array or a variable.
+
+    Returns:
+        chainerx.ndarray numpy.ndarray or cupy.ndarray or ~chainer.Variable:
+        The underlying array object of the argument.
+
+    """
+    if isinstance(obj, Variable):
+        return obj.array
+    return obj
 
 
 def _recover_parameter(data, name, grad, initializer, update_rule):

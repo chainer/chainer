@@ -11,6 +11,7 @@ import pytest
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 import chainer.functions as F
@@ -188,7 +189,7 @@ class TestVariable(unittest.TestCase):
         self.size = int(np.prod(self.x_shape))
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_chainerx_init(self):
         a = chainerx.asarray(self.x)
         x = chainer.Variable(a)
@@ -204,7 +205,7 @@ class TestVariable(unittest.TestCase):
         assert x.dtype == self.x.dtype
         assert x.requires_grad
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_attributes_chainerx(self):
         self.check_attributes(chainerx.asarray(self.x))
 
@@ -234,56 +235,59 @@ class TestVariable(unittest.TestCase):
     def test_grad_gpu(self):
         self.check_grad(cuda.to_gpu(self.x), cuda.to_gpu(self.a))
 
-    def check_len(self, gpu):
-        x = self.x
-        if gpu:
-            x = cuda.to_gpu(x)
-        x = chainer.Variable(x)
+    def check_len(self, a):
+        x = chainer.Variable(a)
         if x.ndim == 0:
             pytest.raises(TypeError, x.__len__)
         else:
             assert len(x) == self.x_shape[0]
 
     def test_len_cpu(self):
-        self.check_len(False)
+        self.check_len(self.x)
 
     @attr.gpu
     def test_len_gpu(self):
-        self.check_len(True)
+        self.check_len(cuda.to_gpu(self.x))
 
-    def check_get_item(self, gpu):
-        x_data = self.x
-        if gpu:
-            x_data = cuda.to_gpu(x_data)
-        x = chainer.Variable(x_data)
+    @pytest.mark.chainerx
+    def test_len_chainerx(self):
+        self.check_len(chainerx.array(self.x))
+
+    def check_get_item(self, a):
+        x = chainer.Variable(a)
         if len(self.x_shape) > 0:
             slices = slice(2, 5)
-            np.testing.assert_equal(cuda.to_cpu(x[slices].data),
-                                    cuda.to_cpu(x_data[slices]))
+            np.testing.assert_equal(backend.to_numpy(x[slices].data),
+                                    backend.to_numpy(self.x[slices]))
             slices = slice(2, 5),
-            np.testing.assert_equal(cuda.to_cpu(x[slices].data),
-                                    cuda.to_cpu(x_data[slices]))
+            np.testing.assert_equal(backend.to_numpy(x[slices].data),
+                                    backend.to_numpy(self.x[slices]))
 
     def test_get_item_cpu(self):
-        self.check_get_item(False)
+        self.check_get_item(self.x)
 
     @attr.gpu
     def test_get_item_gpu(self):
-        self.check_get_item(True)
+        self.check_get_item(cuda.to_gpu(self.x))
 
-    def check_label(self, expected, gpu):
-        c = self.c
-        if gpu:
-            c = cuda.to_gpu(c)
+    @pytest.mark.chainerx
+    def test_get_item_chainerx(self):
+        self.check_get_item(chainerx.array(self.x))
+
+    def check_label(self, expected, c):
         c = chainer.Variable(c)
         assert c.label == expected
 
     def test_label_cpu(self):
-        self.check_label(self.label, False)
+        self.check_label(self.label, self.c)
 
     @attr.gpu
     def test_label_gpu(self):
-        self.check_label(self.label, True)
+        self.check_label(self.label, cuda.to_gpu(self.c))
+
+    @pytest.mark.chainerx
+    def test_label_chainerx(self):
+        self.check_label(self.label, chainerx.array(self.c))
 
     def get_xp_and_variable(self, gpu):
         if gpu:
@@ -1457,7 +1461,7 @@ class TestReshape(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = x.reshape(shape)
         assert y.data.dtype == self.dtype
-        assert (self.x.reshape(shape) == cuda.to_cpu(y.data)).all()
+        assert (self.x.reshape(shape) == backend.to_numpy(y.data)).all()
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -1466,12 +1470,20 @@ class TestReshape(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
+    @pytest.mark.chainerx
+    def test_forward_chainerx(self):
+        # TODO(imanishi): chainerx does not support fp16 yet
+        if self.dtype == np.float16:
+            return
+        self.check_forward(chainerx.array(self.x))
+
     def check_backward(self, x_data):
         x = chainer.Variable(x_data)
         y = x.reshape(self.out_shape)
         y.grad = y.data
         y.backward()
-        testing.assert_allclose(x.data, x.grad, atol=0, rtol=0)
+        testing.assert_allclose(backend.to_numpy(x.data),
+                                backend.to_numpy(x.grad), atol=0, rtol=0)
 
     def test_backward_cpu(self):
         self.check_backward(self.x)
@@ -1496,7 +1508,7 @@ class TestTranspose(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = x.transpose(*axes)
         assert y.data.dtype == self.dtype
-        assert (self.x.transpose(*axes) == cuda.to_cpu(y.data)).all()
+        assert (self.x.transpose(*axes) == backend.to_numpy(y.data)).all()
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -1504,6 +1516,13 @@ class TestTranspose(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
+
+    @pytest.mark.chainerx
+    def test_forward_chainerx(self):
+        # TODO(hvy): chainerx does not support fp16 yet
+        if self.dtype == np.float16:
+            return
+        self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data):
         x = chainer.Variable(x_data)

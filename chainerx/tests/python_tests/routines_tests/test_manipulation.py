@@ -96,7 +96,9 @@ def test_transpose(is_module, xp, shape, dtype):
     ((1,), (0,)),
     ((2,), (0,)),
     ((2, 3), (1, 0)),
+    ((2, 3), (-2, -1)),
     ((2, 3, 1), (2, 0, 1)),
+    ((2, 3, 1), (2, -3, 1)),
 ])
 def test_transpose_axes(is_module, xp, shape, axes, dtype):
     array = array_utils.create_dummy_ndarray(xp, shape, dtype)
@@ -143,6 +145,8 @@ _reshape_shape = [
     ((1, 1, 5, 1, 1), (5,)),
     ((2, 3), (3, 2)),
     ((2, 3, 4), (3, 4, 2)),
+    ((2, 3, 4), (3, -1, 2)),
+    ((2, 3, 4), (3, -3, 2)),  # -3 is treated as a -1 and is valid.
 ]
 
 
@@ -212,6 +216,17 @@ def test_reshape_invalid(shape1, shape2):
 
     check(shape1, shape2)
     check(shape2, shape1)
+
+
+@pytest.mark.parametrize('shape1,shape2', [
+    ((2, 3, 4), (5, -1, 3)),  # Not divisible.
+    ((2, 3, 4), (-1, -1, 3)),  # More than one dimension cannot be inferred.
+    ((2, 3, 4), (-2, 4, -1)),
+])
+def test_reshape_invalid_cannot_infer(shape1, shape2):
+    a = array_utils.create_dummy_ndarray(chainerx, shape1, 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        a.reshape(shape2)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()

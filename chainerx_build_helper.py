@@ -15,7 +15,7 @@ from setuptools.command import build_ext
 class CMakeExtension(setuptools.Extension):
 
     def __init__(self, name, build_targets, sourcedir=''):
-        super(CMakeExtension, self).__init__(name, sources=[])
+        setuptools.Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
         self.build_targets = build_targets
 
@@ -72,21 +72,19 @@ class CMakeBuild(build_ext.build_ext):
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
 
-ext_modules = [CMakeExtension(
-    name='chainerx._core',
-    build_targets=['_core.so'],
-    sourcedir='chainerx')]
-cmdclass = {'build_ext': CMakeBuild}
-packages = ['chainerx', 'chainerx.creation', 'chainerx.testing']
-package_dir = {'chainerx': 'chainerx/python/chainerx'}
-
-
 def config_setup_kwargs(setup_kwargs, build_chainerx):
-    setup_kwargs['package_dir'] = package_dir
-    setup_kwargs['packages'] += packages
-
     if build_chainerx:
+        if sys.version_info[0] < 3:
+            raise RuntimeError('ChainerX is not available in Python 2.')
+        setup_kwargs['package_dir'] = {'chainerx': 'chainerx/python/chainerx'}
+        setup_kwargs['packages'] += ['chainerx', 'chainerx.creation', 'chainerx.testing']
         setup_kwargs.update(dict(
-            cmdclass=cmdclass,
-            ext_modules=ext_modules,
+            cmdclass={'build_ext': CMakeBuild},
+            ext_modules=[CMakeExtension(
+                name='chainerx._core',
+                build_targets=['_core.so'],
+                sourcedir='chainerx')],
         ))
+    else:
+        setup_kwargs['package_dir'] = {'chainerx': 'chainerx/python/chainerx_disabled'}
+        setup_kwargs['packages'] += ['chainerx']
