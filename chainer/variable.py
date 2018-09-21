@@ -493,6 +493,7 @@ class Variable(object):
         self._data = [data]
         self._requires_grad = requires_grad
         self._loss_scale = None
+        self._name = name
 
         # ChainerX itself has own node objects, but not exposed to python.
         if chainerx.is_available() and isinstance(data, chainerx.ndarray):
@@ -534,15 +535,13 @@ class Variable(object):
 
     @property
     def name(self):
-        if self._is_chainerx:
-            raise RuntimeError('A variable of ChainerX does not provide a node name.')
-        return self._node.name
+        return self._name
 
     @name.setter
     def name(self, n):
-        if self._is_chainerx:
-            raise RuntimeError('A variable of ChainerX does not provide a node name.')
-        self._node.name = n
+        self._name = n
+        if not self._is_chainerx:
+            self._node.name = n
 
     def summary(self):
         if self.name:
