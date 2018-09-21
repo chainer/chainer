@@ -888,9 +888,6 @@ class Variable(object):
            Use :meth:`cleargrad` instead.
 
         """
-        # TODO(sonots): Implement for ChainerX
-        if self._is_chainerx:
-            raise NotImplementedError()
         warnings.warn(
             'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
@@ -898,14 +895,22 @@ class Variable(object):
         if self.data is None:
             return
 
-        with cuda.get_device_from_array(self.data) as dev:
-            gv = self._grad_var
+        gv = self._grad_var
+
+        if self._is_chainerx:
             if gv is None:
-                xp = numpy if dev.id == -1 else cuda.cupy
-                self.grad = xp.zeros_like(self.data)
+                self.grad = chainerx.zeros_like(self.data)
             else:
-                gv.unchain()
-                gv.data.fill(0)
+                self.grad.cleargrad()
+                self.grad.fill(0)
+        else:
+            with cuda.get_device_from_array(self.data) as dev:
+                if gv is None:
+                    xp = numpy if dev.id == -1 else cuda.cupy
+                    self.grad = xp.zeros_like(self.data)
+                else:
+                    gv.unchain()
+                    gv.data.fill(0)
 
     def copydata(self, var):
         """Copies the data array from given source variable.
