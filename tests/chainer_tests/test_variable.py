@@ -560,7 +560,12 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(a.grad, gb)
 
     def check_cleargrad(self, a_data, fill=False):
-        xp = cuda.get_array_module(a_data)
+        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
+        if chainerx.is_available() and isinstance(a_data, chainerx.ndarray):
+            xp = chainerx
+        else:
+            xp = cuda.get_array_module(a_data)
+
         a = chainer.Variable(a_data)
         if fill:
             a.grad = xp.full_like(a_data, np.nan)
@@ -581,6 +586,16 @@ class TestVariable(unittest.TestCase):
     @attr.gpu
     def test_cleargrad_fill_gpu(self):
         self.check_cleargrad(cuda.cupy.empty(3, dtype=np.float32), fill=True)
+
+    @attr.chainerx
+    def test_cleargrad_chainerx(self):
+        # TODO(hvy): Simplity to chainerx.empty(3, ...) when supported.
+        self.check_cleargrad(chainerx.empty((3,), dtype=np.float32))
+
+    @attr.chainerx
+    def test_cleargrad_fill_chainerx(self):
+        # TODO(hvy): Simplity to chainerx.empty(3, ...) when supported.
+        self.check_cleargrad(chainerx.empty((3,), dtype=np.float32), fill=True)
 
     def check_zerograd(self, a_data, fill=False):
         xp = cuda.get_array_module(a_data)
