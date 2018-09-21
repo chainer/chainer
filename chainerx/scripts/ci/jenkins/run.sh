@@ -52,22 +52,36 @@ run_step() {
 # Run steps
 
 run_step show_environment_info
-run_step setup_conda_environment
-run_step python_style_check
-run_step clang_format
-run_step cpplint
-run_step setup_openblas
-run_step cmake
 
-# NOTE: We run clang-tidy only on master branch because it takes much time.
-if [[ "$CHAINERX_JENKINS_BRANCH" == "master" ]]; then
-    run_step clang_tidy normal
-    run_step clang_tidy test
-fi
-
-MAKEFLAGS=-j16 run_step make
-run_step make_install
-run_step ctest
-MAKEFLAGS=-j16 run_step python_build
-run_step python_test_chainerx
-run_step python_test_chainer
+case "${CHAINERX_JENKINS_TEST_TYPE}" in
+    'misc')
+        run_step setup_conda_environment
+        run_step python_style_check
+        run_step clang_format
+        run_step cpplint
+        run_step cmake
+        run_step clang_tidy normal
+        run_step clang_tidy test
+        ;;
+    'chainerx-c')
+        run_step setup_openblas
+        run_step cmake
+        MAKEFLAGS=-j16 run_step make
+        run_step make_install
+        run_step ctest
+        ;;
+    'chainerx-py3')
+        run_step setup_conda_environment
+        MAKEFLAGS=-j16 run_step python_build
+        run_step python_test_chainerx
+        ;;
+    'chainer-py3')
+        run_step setup_conda_environment
+        MAKEFLAGS=-j16 run_step python_build
+        run_step python_test_chainer
+        ;;
+    *)
+        echo "Unknown value of CHAINERX_JENKINS_TEST_TYPE: ${CHAINERX_JENKINS_TEST_TYPE}" >&2
+        exit 1
+        ;;
+esac

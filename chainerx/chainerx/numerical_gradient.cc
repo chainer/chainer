@@ -32,7 +32,7 @@ void Set(const Array& out, int64_t flat_index, Scalar value) {
         IndexableArray<T> iarray{out};
         Indexer<> indexer{out.shape()};
         T& dst = iarray[indexer.It(flat_index)];
-        T src = static_cast<T>(value);
+        auto src = static_cast<T>(value);
         out.device().MemoryCopyFrom(&dst, &src, sizeof(T), native_device);
     });
 }
