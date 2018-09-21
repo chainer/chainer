@@ -125,7 +125,7 @@ def discriminative_margin_based_clustering_loss(
     This method is a semi-supervised solution to instance segmentation.
     It calculates pixel embeddings, and calculates three different terms
     based on those embeddings and applies them as loss.
-    The main idea is that the pixel embeddings 
+    The main idea is that the pixel embeddings
     for same instances have to be closer to each other (pull force),
     for different instances, they have to be further away (push force).
     The loss also brings a weak regularization term to prevent overfitting.
