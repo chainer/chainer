@@ -190,7 +190,7 @@ class TestVariable(unittest.TestCase):
         self.size = int(np.prod(self.x_shape))
         self.c = np.arange(self.size).reshape(self.c_shape).astype(np.float32)
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_chainerx_init(self):
         a = chainerx.asarray(self.x)
         x = chainer.Variable(a)
@@ -207,7 +207,7 @@ class TestVariable(unittest.TestCase):
         assert x.requires_grad
         assert x.node.requires_grad
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_attributes_chainerx(self):
         self.check_attributes(chainerx.asarray(self.x))
 
