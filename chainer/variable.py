@@ -492,6 +492,7 @@ class Variable(object):
         # abstract its initialized/uninitialized state.
         self._data = [data]
         self._loss_scale = None
+        self._grad_var = None if grad is None else Variable(grad)
 
         # ChainerX itself has own node objects, but not exposed to python.
         if chainerx.is_available() and isinstance(data, chainerx.ndarray):
@@ -506,12 +507,11 @@ class Variable(object):
             self._is_chainerx = True
             self._requires_grad = None
             self._node = None
-            self._grad_var = None
         else:
             self._is_chainerx = False
+            # self._requires_grad need to be set before creating the node.
             self._requires_grad = requires_grad
             self._node = VariableNode(self, name)
-            self._grad_var = None if grad is None else Variable(grad)
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -727,35 +727,27 @@ class Variable(object):
         and error.
 
         """
-        if self._is_chainerx:
-            return None if self.data is None else self.data.grad
-        gv = self._grad_var
+        gv = self.grad_var
         return None if gv is None else gv.data
 
     @grad.setter
     def grad(self, g):
-        if self._is_chainerx:
-            if self.data is None:
-                return
-            self.data.set_grad(g)
-        else:
-            self.grad_var = None if g is None else Variable(g)
+        self.grad_var = None if g is None else Variable(g)
 
     @property
     def grad_var(self):
         """Gradient variable."""
-        if self._is_chainerx:
-            raise RuntimeError(
-                'A variable of ChainerX does not provide a grad_var.')
+        if self._is_chainerx and self._grad_var is not None and \
+                self._grad_var.data is not self.data.grad:
+            self._grad_var = Variable(self.data.grad)
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
-        if self._is_chainerx:
-            raise RuntimeError(
-                'A variable of ChainerX does not provide a grad_var.')
         if g is not None:
             _check_grad_type(None, self, g.data)
+            if self._is_chainerx and self.data is not None:
+                self.data.set_grad(g.data)
         self._grad_var = g
 
     @property
@@ -883,8 +875,7 @@ class Variable(object):
         """Clears the gradient array."""
         if self._is_chainerx:
             self.data.cleargrad()
-        else:
-            self._grad_var = None
+        self._grad_var = None
 
     def zerograd(self):
         """Initializes the gradient array by zeros.

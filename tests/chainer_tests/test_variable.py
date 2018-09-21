@@ -242,12 +242,19 @@ class TestVariable(unittest.TestCase):
         v.grad_var = gv
         assert v.grad_var is gv
 
+        # Same instance should be returned each time.
+        assert v.grad_var is gv
+
     def test_grad_var_cpu(self):
         self.check_grad_var(self.x, self.a)
 
     @attr.gpu
     def test_grad_var_gpu(self):
         self.check_grad_var(cuda.to_gpu(self.x), cuda.to_gpu(self.a))
+
+    @attr.chainerx
+    def test_grad_var_chainerx(self):
+        self.check_grad_var(chainerx.array(self.x), chainerx.array(self.a))
 
     def check_len(self, a):
         x = chainer.Variable(a)
