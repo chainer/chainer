@@ -493,16 +493,17 @@ class Variable(object):
         self._data = [data]
         self._requires_grad = requires_grad
         self._loss_scale = None
-        self._name = name
 
         # ChainerX itself has own node objects, but not exposed to python.
         if chainerx.is_available() and isinstance(data, chainerx.ndarray):
             self._is_chainerx = True
             self._node = None
+            self._name = name
             self._grad_var = None
         else:
             self._is_chainerx = False
             self._node = VariableNode(self, name)
+            self._name = None  # Use self._node.name
             self._grad_var = None if grad is None else Variable(grad)
 
     def __copy__(self):
@@ -535,13 +536,16 @@ class Variable(object):
 
     @property
     def name(self):
-        return self._name
+        if self._is_chainerx:
+            return self._name
+        return self._node.name
 
     @name.setter
     def name(self, n):
-        self._name = n
-        if not self._is_chainerx:
-            self._node.name = n
+        if self._is_chainerx:
+            self._name = n
+            return
+        self._node.name = n
 
     def summary(self):
         if self.name:
