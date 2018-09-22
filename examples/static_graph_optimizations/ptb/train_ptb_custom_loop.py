@@ -48,7 +48,7 @@ class RNNForLMSlice(chainer.Chain):
             self.l3 = L.Linear(n_units, n_vocab)
 
         for param in self.params():
-            param.data[...] = np.random.uniform(-0.1, 0.1, param.data.shape)
+            param.array[...] = np.random.uniform(-0.1, 0.1, param.array.shape)
 
     def reset_state(self):
         self.l1.reset_state()
@@ -222,7 +222,7 @@ def main():
                 y = outputs[ind]
                 label = labels[ind]
                 loss = lossfun(y, label)
-                sum_perp += loss.data
+                sum_perp += loss.array
         return np.exp(float(sum_perp) / data_count)
 
     # Load the Penn Tree Bank long word sequence dataset
@@ -281,7 +281,7 @@ def main():
             label = labels[ind]
             loss += lossfun(y, label)
 
-        sum_perp += loss.data
+        sum_perp += loss.array
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph

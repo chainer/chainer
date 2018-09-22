@@ -8,7 +8,7 @@ import chainer.links as L
 
 
 def add_noise(h, sigma=0.2):
-    xp = backend.get_array_module(h.data)
+    xp = backend.get_array_module(h.array)
     if chainer.config.train:
         return h + sigma * xp.random.randn(*h.shape)
     else:

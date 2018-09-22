@@ -502,7 +502,7 @@ Actual: {0}'''.format(type(data))
         return target
 
     def __reduce__(self):
-        return _create_variable, (self.data, self.name, self.grad,
+        return _create_variable, (self.array, self.name, self.grad,
                                   self._requires_grad)
 
     def __repr__(self):
@@ -548,7 +548,7 @@ Actual: {0}'''.format(type(data))
 
         stats_msg = 'mean={0:.8f}, std={1:.8f}'
 
-        data = self.data
+        data = self.array
         with cuda.get_device_from_array(data) as dev:
             xp = numpy if int(dev) == -1 else cuda.cupy
 
@@ -700,19 +700,19 @@ Actual: {0}'''.format(type(data))
 
     @property
     def shape(self):
-        return self.data.shape
+        return self.array.shape
 
     @property
     def ndim(self):
-        return self.data.ndim
+        return self.array.ndim
 
     @property
     def size(self):
-        return self.data.size
+        return self.array.size
 
     @property
     def dtype(self):
-        return self.data.dtype
+        return self.array.dtype
 
     @property
     def rank(self):
@@ -735,7 +735,7 @@ Actual: {0}'''.format(type(data))
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
 
-        data = self.data
+        data = self.array
         if data is None:
             return
 
@@ -764,7 +764,7 @@ Actual: {0}'''.format(type(data))
         if self.data is None:
             self._data = [None]  # Renew placeholder to break sharing
         else:
-            self._data = [cuda.to_gpu(self.data, device)]
+            self._data = [cuda.to_gpu(self.array, device)]
             if self._grad_var is not None:
                 self._grad_var.to_gpu(device)
             # ensure that the node tracks the device migration
@@ -779,7 +779,7 @@ Actual: {0}'''.format(type(data))
         :class:`numpy.ndarray`.
         """
         intel64.check_ideep_available()
-        data = self.data
+        data = self.array
         if data is not None:
             if isinstance(data, cuda.ndarray):
                 # cupy.ndarray to numpy.ndarray
@@ -819,14 +819,14 @@ Actual: {0}'''.format(type(data))
             'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
 
-        if self.data is None:
+        if self.array is None:
             return
 
-        with cuda.get_device_from_array(self.data) as dev:
+        with cuda.get_device_from_array(self.array) as dev:
             gv = self._grad_var
             if gv is None:
                 xp = numpy if dev.id == -1 else cuda.cupy
-                self.grad = xp.zeros_like(self.data)
+                self.grad = xp.zeros_like(self.array)
             else:
                 gv.unchain()
                 gv.data.fill(0)
@@ -847,16 +847,16 @@ Actual: {0}'''.format(type(data))
             var (Variable): Source variable.
 
         """
-        src = var.data
-        dst = self.data
+        src = var.array
+        dst = self.array
         if src is None:
             if dst is None:
                 return
             var.initialize(self.shape)
-            src = var.data
+            src = var.array
         elif dst is None:
             self.initialize(src.shape)
-            dst = self.data
+            dst = self.array
         backend.copyto(dst, src)
 
     def addgrad(self, var):
@@ -876,12 +876,12 @@ Actual: {0}'''.format(type(data))
         if src is None:
             return
 
-        if self.data is None:
+        if self.array is None:
             self.initialize(var.shape)
         dst = self._grad_var
 
-        src_dev = cuda.get_device_from_array(src.data)
-        dst_dev = cuda.get_device_from_array(self.data)
+        src_dev = cuda.get_device_from_array(src.array)
+        dst_dev = cuda.get_device_from_array(self.array)
 
         if src_dev.id != dst_dev.id:
             src = chainer.functions.copy(src, dst_dev.id)
@@ -972,6 +972,7 @@ Actual: {0}'''.format(type(data))
         grads = _backprop_utils.GradTable(load_if_new=True)
 
         # Initialize error by 1, if this is a loss variable
+        # crcrpar FIXME
         if self.data.size == 1 and self._grad_var is None:
             if self.data.ndim != 0:
                 warnings.warn(

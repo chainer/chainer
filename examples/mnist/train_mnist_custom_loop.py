@@ -75,8 +75,8 @@ def main():
             batch = train_iter.next()
             x, t = convert.concat_examples(batch, args.gpu)
             optimizer.update(model, x, t)
-            sum_loss += float(model.loss.data) * len(t)
-            sum_accuracy += float(model.accuracy.data) * len(t)
+            sum_loss += float(model.loss.array) * len(t)
+            sum_accuracy += float(model.accuracy.array) * len(t)
 
             if train_iter.is_new_epoch:
                 print('epoch: {}'.format(train_iter.epoch))
@@ -92,8 +92,8 @@ def main():
                         for batch in test_iter:
                             x, t = convert.concat_examples(batch, args.gpu)
                             loss = model(x, t)
-                            sum_loss += float(loss.data) * len(t)
-                            sum_accuracy += float(model.accuracy.data) * len(t)
+                            sum_loss += float(loss.array) * len(t)
+                            sum_accuracy += float(model.accuracy.array) * len(t)
 
                 test_iter.reset()
                 print('test mean  loss: {}, accuracy: {}'.format(
