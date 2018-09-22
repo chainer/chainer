@@ -1255,18 +1255,18 @@ class Parameter(Variable):
         return self._copy_to(Parameter())
 
     def __reduce__(self):
-        return _recover_parameter, (self.data, self.name, self.grad,
+        return _recover_parameter, (self.array, self.name, self.grad,
                                     self.initializer, self.update_rule)
 
     def to_cpu(self):
         super(Parameter, self).to_cpu()
-        if self.data is None:
+        if self.array is None:
             self._initial_backend = None
             self._initial_device = None
 
     def to_gpu(self, device=None):
         super(Parameter, self).to_gpu(device)
-        if self.data is None:
+        if self.array is None:
             if device is None:
                 device = cuda.Device().id
             self._initial_backend = 'cuda'
@@ -1274,18 +1274,18 @@ class Parameter(Variable):
 
     def to_intel64(self):
         super(Parameter, self).to_intel64()
-        if self.data is None:
+        if self.array is None:
             self._initial_backend = 'intel64'
             self._initial_device = None
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()
-        if self.data is None:
+        if self.array is None:
             self._grad_initializer = None
 
     def zerograd(self):
         super(Parameter, self).zerograd()
-        if self.data is None:
+        if self.array is None:
             dtype = getattr(self.initializer, 'dtype', None)
             self._grad_initializer = initializers.Zero(dtype)
 
@@ -1308,7 +1308,7 @@ class Parameter(Variable):
             grad = None if ginit is None else initializers.generate_array(
                 ginit, shape, xp)
 
-        self.data = data
+        self.array = data
         self.grad = grad
 
         # Convert the array for iDeep.
@@ -1357,7 +1357,7 @@ def as_variable(obj):
 
 def _recover_parameter(data, name, grad, initializer, update_rule):
     p = Parameter(initializer=initializer, name=name)
-    p.data = data
+    p.array = data
     p.grad = grad
     p.update_rule = update_rule
     return p
