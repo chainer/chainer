@@ -1,5 +1,5 @@
-DCGAN: Generate the images with Deep Convolutional GAN
-*******************************************************
+DCGAN: Generate images with Deep Convolutional GAN
+****************************************************
 
 .. currentmodule:: chainer
 
