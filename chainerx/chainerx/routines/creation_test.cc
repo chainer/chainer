@@ -357,7 +357,8 @@ TEST_P(CreationTest, FromHostData) {
         EXPECT_EQ(strides, x.strides());
         EXPECT_EQ(offset, x.offset());
         EXPECT_EQ(&device, &x.device());
-        T expected_data[] = {1, 4};
+        // std::array<T> is used instead of T[] to avoid a clang-tidy warning
+        std::array<T, 2> expected_data = {1, 4};
         testing::ExpectDataEqual<T>(expected_data, x);
     });
 }

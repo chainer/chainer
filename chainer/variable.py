@@ -507,11 +507,13 @@ class Variable(object):
             self._is_chainerx = True
             self._requires_grad = None
             self._node = None
+            self._name = name
         else:
             self._is_chainerx = False
             # self._requires_grad need to be set before creating the node.
             self._requires_grad = requires_grad
             self._node = VariableNode(self, name)
+            self._name = None  # Use self._node.name
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -551,8 +553,8 @@ class Variable(object):
     @name.setter
     def name(self, n):
         if self._is_chainerx:
-            raise RuntimeError(
-                'A variable of ChainerX does not provide a node name.')
+            self._name = n
+            return
         self._node.name = n
 
     def summary(self):

@@ -122,8 +122,8 @@ Shape GetInferredShape(const Shape& shape, int64_t total_size) {
         if (std::find_if(std::next(it), inferred_shape.end(), [](int64_t dim) { return dim < 0; }) != inferred_shape.end()) {
             throw DimensionError{"Can only specify one unknown dimension"};
         }
-        int64_t rest_size = std::accumulate(inferred_shape.begin(), it, int64_t{1}, std::multiplies<int64_t>()) *
-                            std::accumulate(std::next(it), inferred_shape.end(), int64_t{1}, std::multiplies<int64_t>());
+        int64_t rest_size = std::accumulate(inferred_shape.begin(), it, int64_t{1}, std::multiplies<>()) *
+                            std::accumulate(std::next(it), inferred_shape.end(), int64_t{1}, std::multiplies<>());
         *it = total_size / rest_size;
     }
 
