@@ -207,6 +207,9 @@ class TestMultiprocessIterator(unittest.TestCase):
         batches = sum([it.next() for _ in range(5)], [])
         self.assertEqual(sorted(batches), sorted(dataset * 2))
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_not_repeat(self):
         dataset = [1, 2, 3, 4, 5]
         it = iterators.MultiprocessIterator(
