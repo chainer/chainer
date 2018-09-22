@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import initializer
 
 
@@ -43,7 +43,7 @@ class Orthogonal(initializer.Initializer):
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype
-        xp = cuda.get_array_module(array)
+        xp = backend.get_array_module(array)
         if not array.shape:  # 0-dim case
             array[...] = self.scale
         elif not array.size:

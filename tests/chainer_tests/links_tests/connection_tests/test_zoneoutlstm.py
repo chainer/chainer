@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
@@ -11,13 +12,13 @@ from chainer.testing import attr
 
 
 def _sigmoid(x):
-    xp = cuda.get_array_module(x)
+    xp = backend.get_array_module(x)
     half = x.dtype.type(0.5)
     return xp.tanh(x * half) * half + half
 
 
 def _zoneoutlstm(func, c, h, x, c_creator, h_creator):
-    xp = cuda.get_array_module(x)
+    xp = backend.get_array_module(x)
     with cuda.get_device_from_array(x):
         lstm_in = x.dot(func.upward.W.data.T)
         lstm_in += h.dot(func.lateral.W.data.T)

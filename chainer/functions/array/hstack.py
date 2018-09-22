@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -30,7 +30,7 @@ class Hstack(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        xp = cuda.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return xp.hstack(xs),
 
     def backward(self, indexes, grad_outputs):

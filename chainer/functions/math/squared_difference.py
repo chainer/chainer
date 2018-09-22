@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -17,7 +17,7 @@ class SquaredDifference(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x1, x2 = inputs
         difference = x1 - x2
         y = xp.square(difference)

@@ -44,12 +44,12 @@ requirements = {
         'mock',
     ],
     'doctest': [
-        'sphinx',
+        'sphinx==1.7.9',
         'matplotlib',
         'theano',
     ],
     'docs': [
-        'sphinx',
+        'sphinx==1.7.9',
         'sphinx_rtd_theme',
     ],
     'travis': [
@@ -144,6 +144,8 @@ setup(
     name='chainer',
     version=__version__,  # NOQA
     description='A flexible framework of neural networks',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
     url='https://chainer.org/',
@@ -179,6 +181,7 @@ setup(
               'chainer.links.model.vision',
               'chainer.links.normalization',
               'chainer.links.theano',
+              'chainer.graph_optimizations',
               'chainer.optimizers',
               'chainer.optimizer_hooks',
               'chainer.serializers',
