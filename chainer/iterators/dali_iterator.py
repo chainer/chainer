@@ -1,11 +1,12 @@
 from __future__ import division
 
 from chainer.dataset import iterator
+from chainer import utils
 
 
 class DaliIterator(iterator.Iterator):
 
-    """Iterator for DALI pipeline.
+    """(Experimental) Iterator for DALI pipeline.
 
     Args:
         pipeline: DALI pipeline.
@@ -15,6 +16,7 @@ class DaliIterator(iterator.Iterator):
     """
 
     def __init__(self, pipeline, repeat=True):
+        utils.experimental('DaliIterator')
         self.pipeline = pipeline
         self._repeat = repeat
         self._is_build = False
