@@ -3,6 +3,7 @@ import warnings
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
@@ -91,7 +92,7 @@ class BatchNormalization(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         if self.running_mean is None:
             self.running_mean = xp.zeros_like(gamma)
             self.running_var = xp.zeros_like(gamma)
@@ -309,7 +310,7 @@ class BatchNormalizationGrad(function.Function):
         x, gamma, gy = inputs
         expander = self.expander
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         if self.use_ideep:
             # TODO(niboshi): Refactor iDeep part into a separate method
@@ -408,7 +409,7 @@ class BatchNormalizationGrad(function.Function):
         x, gamma, gy = inputs
         gx1, ggamma1, _ = self.output_data
         ggx1, gggamma1, ggbeta1 = grad_outputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         # auxiliary values
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
@@ -498,7 +499,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1, 3, 4))
         x, gamma, beta, mean, var = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
@@ -598,7 +599,7 @@ class FixedBatchNormalizationGrad(function.Function):
         self.retain_inputs((0, 1, 2, 4))
         x, gamma, mean, var, gy = inputs
         expander = self.expander
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         if self.inv_std is None or self.inv_var is None:
             self.inv_var = xp.reciprocal(var + self.eps)
@@ -622,7 +623,7 @@ class FixedBatchNormalizationGrad(function.Function):
         gx1, ggamma1, gbeta1, gmean1, gvar1 = self.output_data
 
         # Handle None in output gradients.
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         ggx1 = _zero_if_none(xp, ggx1, x.shape, x.dtype)
         gggamma1 = _zero_if_none(xp, gggamma1, gamma.shape, gamma.dtype)
         ggbeta1 = _zero_if_none(xp, ggbeta1, gamma.shape, gamma.dtype)

@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.functions.activation import sigmoid
 from chainer import utils
@@ -34,7 +34,7 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, t = inputs
         self.ignore_mask = (t != self.ignore_label)
 
@@ -78,7 +78,7 @@ class SigmoidCrossEntropyGrad(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, gy = inputs
 
         y, = sigmoid.Sigmoid().forward((x,))

@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -23,7 +24,7 @@ def _check_indices(indices):
 
 
 def _inverse_indices(indices):
-    xp = cuda.get_array_module(indices)
+    xp = backend.get_array_module(indices)
     r = xp.empty_like(indices)
     if xp is numpy:
         r[indices] = numpy.arange(len(indices))

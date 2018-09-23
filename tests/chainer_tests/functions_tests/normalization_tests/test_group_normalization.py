@@ -4,6 +4,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -50,7 +51,7 @@ class TestGroupNormalization(unittest.TestCase):
         self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args):
-        xp = cuda.get_array_module(*args)
+        xp = backend.get_array_module(*args)
 
         def func(*args_):
             return functions.group_normalization(

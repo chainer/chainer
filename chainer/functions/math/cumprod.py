@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.functions.array import flip
 from chainer.utils import type_check
@@ -27,12 +27,12 @@ class Cumprod(function_node.FunctionNode):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.cumprod(x, axis=self.axis),
 
     def backward(self, indexes, grad_outputs):
         x, = self.get_retained_inputs()
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y, = self.get_retained_outputs()
         gy, = grad_outputs
         F = chainer.functions
@@ -68,7 +68,7 @@ class Cumprodsum(function_node.FunctionNode):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
         xmul, xadd = inputs
-        xp = cuda.get_array_module(xmul)
+        xp = backend.get_array_module(xmul)
         y = xp.empty_like(xadd)
 
         axis = self.axis
