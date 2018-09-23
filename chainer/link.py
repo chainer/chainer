@@ -673,9 +673,6 @@ Assign a Parameter object directly to an attribute within a \
         d = self.__dict__
         for name in self._params:
             param = d[name]
-            param.data = (numpy.array(param.data)
-                          if param.data is not None
-                          else param.data)
             data = serializer(name, param.data)
             if param.data is None and data is not None:
                 # Initialize the parameter here
