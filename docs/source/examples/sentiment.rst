@@ -247,22 +247,33 @@ You can easily implement it using :class:`~chainer.training.extensions.MicroAver
 Recursive Neural Networks have difficulty computing mini-batched data in parallel because of the following reasons.
 
 * Data length varies depending on samples.
-* The order of calculation for each sample is different.
+* Calculation order of nodes varies depending on samples.
 
-However, using the stack, Recursive Neural Networks can perform mini batch parallel calculation.
+However, using the stack, we can train Recursive Neural Networks in mini-batched parallel computing.
 
 3.1 Preparation of Dataset, Iterator
 -------------------------------------
 
-First, we convert the recursive calculation of Recursive Neural Network to a serial calculation using a stack.
-For each node of the tree structure dataset, numbers are assigned to each node in "returning order" as follows.
+First, we convert recursive calculation to serial calculation using a stack.
+To serialize the calculation, we assign a number in "returning order" to each node of the tree in dataset.
 
 .. figure:: ../../image/sentiment/returning-order.png
     :scale: 50%
 
-The returning order is a procedure of numbering nodes of a tree structure. It is a procedure of attaching
-a smaller number to all child nodes than the parent node. If we process nodes in descending order of numbers,
-we can trace the child nodes before the parent node.
+The returning order is a procedure of numbering nodes of a tree.
+As shown in the above image,
+all child nodes have smaller numbers than the parents' ones.
+If we trace nodes in descending order, we can visit every child node before its parent node.
+
+To number the nodes in returning order, ``linearize_tree``
+creates a dictionary which has following keys.
+
+* ``dests``: All parent node indexes.
+* ``lefts``: Left node indices for all parent nodes. ``dests[i]``'s left child node is ``lefts[i]``.
+* ``rights``: Right node indices for all parent nodes. ``dests[i]``'s right child node is ``rights[i]``.
+* ``labels``: Labels for all parent nodes. ``dests[i]``'s label is ``labels[i]``.
+* ``words``: Words of all leaf nodes. The ``i``-th leaf node's word is ``words[i]``.
+* ``leaf_labels``: Labels for all leaf nodes. The ``i``-th leaf node's label id is ``leaf_labels[i]``.
 
 .. literalinclude:: ../../../examples/sentiment/train_recursive_minibatch.py
    :language: python
@@ -276,25 +287,36 @@ we can trace the child nodes before the parent node.
    :caption: train_recursive_minibatch.py
    :dedent: 4
 
+.. code-block:: console
+
+    >>> print(test_data[0])
+    {'lefts': array([0, 2, 4], dtype=int32), 'rights': array([1, 3, 5], dtype=int32), 'dests': array([4, 5, 6], dtype=int32), 'words': array([252,  71, 253, 254], dtype=int32), 'labels': array([3, 1, 2], dtype=int32), 'leaf_labels': array([3, 2, 1, 2], dtype=int32)}
+
 3.2 Definition of mini-batchable models
 ----------------------------------------
 
-Recursive Neural Networks have two operations: Operation A for computing an embedding vector for the leaf node.
-Operation B for computing the hidden state vector of the parent node from the hidden state vectors of the two
+Recursive Neural Networks have two operations:
+
+* Operation A for computing an embedding vector for a leaf node.
+* Operation B for computing a hidden state vector of a branch node from hidden state vectors of two
 child nodes.
 
-For each sample, we assign index to each node in returning order. If we traverse the node in return order,
-we find that operation A is performed on the leaf node and operation B is performed at the other nodes.
+For each sample, we assign index to each node in returning order. If we traverse nodes in return order,
+at first we visit leaf nodes and perform operation A. Later, we visit branch nodes and perform operation B.
 
-This operation can also be regarded as using a stack to scan a tree structure. A stack is a last-in,
-x first-out data structure that allows us to do two things: a push operation to add data and a pop operation
+This procedure can also be regarded as scanning a tree using a stack.
+A stack is a last-in, first-out data structure that allows us to do two things: a push operation to add data and a pop operation
 to get the last pushed data.
 For operation A, push the calculation result to the stack. For operation B, pop two data and push the new
-calculation result.
+calculation result again.
 
-When we parallelize the above operation, it is necessary to traverse nodes and perform operation A and operation
-B precisely, because the tree structure is different for each sample. However, by using the stack,
-we can calculate different tree structures by simple repeating processing. Therefore, parallelization is possible.
+When we parallelize the above operation,
+we must perform operation A on leaf nodes and operation B on branch nodes,
+regardless whatever tree structures are included in mini-batched data.
+
+It is quite difficult because the tree structure varies by samples. However, by using the stack,
+we can precisely perform the above procedure by repeating processing without if-statements.
+Therefore, parallelization is possible.
 
 .. literalinclude:: ../../../examples/sentiment/train_recursive_minibatch.py
    :language: python
