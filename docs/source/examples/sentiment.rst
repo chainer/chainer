@@ -273,7 +273,7 @@ creates a dictionary which has following keys.
 * ``rights``: Right node indices for all parent nodes. ``dests[i]``'s right child node is ``rights[i]``.
 * ``labels``: Labels for all parent nodes. ``dests[i]``'s label is ``labels[i]``.
 * ``words``: Words of all leaf nodes. The ``i``-th leaf node's word is ``words[i]``.
-* ``leaf_labels``: Labels for all leaf nodes. The ``i``-th leaf node's label id is ``leaf_labels[i]``.
+* ``leaf_labels``: Labels for all leaf nodes. The ``i``-th leaf node's label is ``leaf_labels[i]``.
 
 .. literalinclude:: ../../../examples/sentiment/train_recursive_minibatch.py
    :language: python
@@ -297,15 +297,15 @@ creates a dictionary which has following keys.
 
 Recursive Neural Networks have two operations:
 
-* Operation A for computing an embedding vector for a leaf node.
-* Operation B for computing a hidden state vector of a branch node from hidden state vectors of two
-child nodes.
+* Operation A : Computing an embedding vector at a leaf node.
+* Operation B : Computing a hidden state vector at a branch node from hidden state vectors of two
+  child nodes.
 
 For each sample, we assign index to each node in returning order. If we traverse nodes in return order,
 at first we visit leaf nodes and perform operation A. Later, we visit branch nodes and perform operation B.
 
 This procedure can also be regarded as scanning a tree using a stack.
-A stack is a last-in, first-out data structure that allows us to do two things: a push operation to add data and a pop operation
+A stack is a last-in, first-out data structure, with two principal operations: a push operation to add data and a pop operation
 to get the last pushed data.
 For operation A, push the calculation result to the stack. For operation B, pop two data and push the new
 calculation result again.
@@ -313,7 +313,6 @@ calculation result again.
 When we parallelize the above operation,
 we must perform operation A on leaf nodes and operation B on branch nodes,
 regardless whatever tree structures are included in mini-batched data.
-
 It is quite difficult because the tree structure varies by samples. However, by using the stack,
 we can precisely perform the above procedure by repeating processing without if-statements.
 Therefore, parallelization is possible.
@@ -323,15 +322,15 @@ Therefore, parallelization is possible.
    :pyobject: ThinStackRecursiveNet
    :caption: train_recursive_minibatch.py
 
-First ``for`` block calculates ``loss`` of leafs, and pushs the hidden state ``es``
-to the ``stack``. Second ``for`` block pops the hidden states of its children,
-calculates ``loss`` of nodes, and pushs the hidden state ``o`` again.
+First ``for`` block calculates ``loss`` of leafs, and pushs the embedding vector ``es``
+to the ``stack``. Second ``for`` block pops the hidden state vectors of its children,
+calculates ``loss`` of nodes, and pushs the hidden state vector ``o`` again.
 
 Most important point is that ``ThinStackRecursiveNet`` shares GPU memory for :class:`~chainer.Variable`\ s by
 using thin-stack. It only allocate the whole memory, and reuse it when calculating forward and backward propagation.
 Without careful implementation, backward propagation does not work because rewriting the memory may delete
-neccesary information. However, with thin-stack, each write operation always refers different index
-of the memory. So, it does not delete information of other read operations.
+neccesary information for backward propagation. However, with thin-stack, each write operation always refers
+different index of the memory. So, it does not delete neccesary information for other read operations.
 
 Let the sentence length be :math:`I`, and the number of dimensions of the hidden vector be :math:`D`,
 the thin-stack can efficiently use the memory by using the matrix of :math:`(2I-1) \times D`.
@@ -354,10 +353,10 @@ it as a function argument.
 
 ``ThinStackSet`` is literally a function to set values on the thin-stack.
 ``inputs`` in ``forward`` and ``backward``  can be broken down like ``stack, indices, values = inputs``.
-``thin_stack_set(stack, indices, values)`` set stack elements. It behaves like
+``thin_stack_set(stack, indices, values)`` sets stack elements. It behaves like
 ``stack[range(len(indices)), indices] = values``
-and return new ``stack``, where ``stack`` stores a variable map of stacks, ``indices`` stores indices,
-and ``values`` stores value to assign.
+and returns new ``stack``, where ``stack`` stores stack itself, ``indices`` store indices to be assigned,
+and ``values`` store values to assign.
 
 .. literalinclude:: ../../../examples/sentiment/thin_stack.py
    :language: python
@@ -366,7 +365,7 @@ and ``values`` stores value to assign.
 
 ``ThinStackGet`` is literally a function to retrieve values from the thin-stack.
 ``inputs`` in ``forward`` and ``backward`` can be broken down like ``stack, indices = inputs``.
-``thin_stack_get(stack, indices)`` get stack elements. It behaves like ``stack[range(len(indices)), indices]``.
+``thin_stack_get(stack, indices)`` gets stack elements. It behaves like ``stack[range(len(indices)), indices]``.
 
 
 .. literalinclude:: ../../../examples/sentiment/train_recursive_minibatch.py
