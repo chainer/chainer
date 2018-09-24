@@ -223,11 +223,11 @@ public:
 
     Array& RequireGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) { return RequireGradImpl(*this, backprop_id); }
 
-    int64_t GetTotalSize() const { return shape().GetTotalSize(); }
+    int64_t GetTotalSize() const { return body_->GetTotalSize(); }
 
-    int64_t GetNBytes() const { return GetTotalSize() * item_size(); }
+    int64_t GetNBytes() const { return body_->GetNBytes(); }
 
-    bool IsContiguous() const { return internal::IsContiguous(shape(), strides(), item_size()); }
+    bool IsContiguous() const { return body_->IsContiguous(); }
 
     std::string ToString() const;
 
@@ -243,7 +243,7 @@ public:
 
     const Strides& strides() const { return body_->strides(); }
 
-    int64_t item_size() const { return GetItemSize(dtype()); }
+    int64_t item_size() const { return body_->item_size(); }
 
     const std::shared_ptr<void>& data() const { return body_->data(); }
 
