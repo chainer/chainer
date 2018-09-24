@@ -2,7 +2,7 @@ import numpy
 import functools
 
 
-def mixed_precision(fn):
+def _fp16_mixed_precision_helper(fn):
     """Decorator to perform forward computation in FP32 for FP16 inputs,
        returning outputs casted back to FP16. Do nothing for FP32 and FP64
        inputs.

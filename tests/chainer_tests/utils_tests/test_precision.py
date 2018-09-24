@@ -4,12 +4,12 @@ import numpy
 
 from chainer import function_node
 from chainer import testing
-from chainer import utils
+from chainer.utils import precision
 
 
 class F(function_node.FunctionNode):
 
-    @utils.mixed_precision
+    @precision._fp16_mixed_precision_helper
     def forward(self, x):
         self.x = x
         return x
@@ -17,7 +17,7 @@ class F(function_node.FunctionNode):
 
 class G(function_node.FunctionNode):
 
-    @utils.mixed_precision
+    @precision._fp16_mixed_precision_helper
     def forward(self, x):
         return None,
 

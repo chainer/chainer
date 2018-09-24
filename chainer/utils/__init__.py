@@ -14,7 +14,6 @@ from chainer.utils.experimental import experimental  # NOQA
 from chainer.utils.sparse import CooMatrix  # NOQA
 from chainer.utils.sparse import get_order  # NOQA
 from chainer.utils.sparse import to_coo  # NOQA
-from chainer.utils.precision import mixed_precision  # NOQA
 from chainer.utils.walker_alias import WalkerAlias  # NOQA
 
 
