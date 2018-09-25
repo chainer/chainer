@@ -902,8 +902,8 @@ class Variable(object):
             if gv is None:
                 self.grad = chainerx.zeros_like(self.data)
             else:
-                self.grad.cleargrad()
-                self.grad.fill(0)
+                gv.array.cleargrad()
+                gv.array.fill(0)
         else:
             with cuda.get_device_from_array(self.data) as dev:
                 if gv is None:
@@ -911,7 +911,7 @@ class Variable(object):
                     self.grad = xp.zeros_like(self.data)
                 else:
                     gv.unchain()
-                    gv.data.fill(0)
+                    gv.array.fill(0)
 
     def copydata(self, var):
         """Copies the data array from given source variable.
