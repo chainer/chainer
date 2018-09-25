@@ -8,7 +8,7 @@ test ! -z ${WORK_DIR:+x}
 test ! -z ${REPO_DIR:+x}
 
 export CONDA_DIR=${CONDA_DIR:-"$WORK_DIR"/conda}
-export CHAINERX_DIR=${CHAINERX_DIR:-"$REPO_DIR"/chainerx}
+export CHAINERX_DIR=${CHAINERX_DIR:-"$REPO_DIR"/chainerx_cc}
 export DOWNLOAD_DIR=${DOWNLOAD_DIR:-"$WORK_DIR"/downloads}
 
 mkdir -p "$WORK_DIR"
@@ -85,8 +85,8 @@ step_python_style_check() {
     source activate testenv
 
     check_targets=(
-        "$CHAINERX_DIR"/python
-        "$CHAINERX_DIR"/tests
+        "$REPO_DIR"/chainerx
+        "$REPO_DIR"/tests/chainerx_tests
         "$CHAINERX_DIR"/examples
     )
 
@@ -194,7 +194,7 @@ step_python_test_chainerx() {
         --no-cov-on-fail \
         --cov-fail-under=50 \
         --cov-report html:"$WORK_DIR"/coverage-html/python \
-        "$CHAINERX_DIR"
+        "$REPO_DIR"/tests/chainerx_tests
 }
 
 
@@ -214,10 +214,10 @@ step_python_test_chainerx_nocuda() {
         --no-cov-on-fail \
         --cov-fail-under=50 \
         --cov-report html:"$WORK_DIR"/coverage-html/python \
-        "$CHAINERX_DIR"
+        "$REPO_DIR"/tests/chainerx_tests
 
     # Run all non-CUDA doctests
-    find "$CHAINERX_DIR"/tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
+    find "$REPO_DIR"/tests/chainerx_tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
 }
 
 

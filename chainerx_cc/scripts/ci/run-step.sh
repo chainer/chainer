@@ -13,7 +13,7 @@ mkdir -p "$(dirname "$CHAINERX_CI_BASH_ENV")"
 touch "$CHAINERX_CI_BASH_ENV"
 
 cmd='
-source "'"$REPO_DIR"'"/chainerx/scripts/ci/steps.sh
+source "'"$REPO_DIR"'"/chainerx_cc/scripts/ci/steps.sh
 source "$CHAINERX_CI_BASH_ENV"
 
 set -x

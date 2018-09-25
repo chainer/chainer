@@ -11,8 +11,8 @@ jobs:
           command: |
             echo 'export WORK_DIR=~/work' >> $BASH_ENV
             echo 'export REPO_DIR=~/repo' >> $BASH_ENV
-            echo 'export RUN_STEP="bash $REPO_DIR/chainerx/scripts/ci/run-step.sh"' >> $BASH_ENV
-            echo 'export CHAINERX_DIR="$REPO_DIR"/chainerx' >> $BASH_ENV
+            echo 'export RUN_STEP="bash $REPO_DIR/chainerx_cc/scripts/ci/run-step.sh"' >> $BASH_ENV
+            echo 'export CHAINERX_DIR="$REPO_DIR"/chainerx_cc' >> $BASH_ENV
 
             # To avoid warning on checkout
             apt-get update
