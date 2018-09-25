@@ -5,13 +5,6 @@ import chainerx
 # NumPy-like assertion functions that accept both NumPy and ChainerX arrays
 
 
-def _check_chainerx_array(x):
-    # Checks basic conditions that are assumed to hold true for any given ChainerX array passed to assert_array_close and
-    # assert_array_equal.
-    assert isinstance(x, chainerx.ndarray)
-    assert not x.is_backprop_required()
-
-
 def _as_numpy(x):
     if isinstance(x, chainerx.ndarray):
         return chainerx.tonumpy(x)
@@ -39,13 +32,8 @@ def _preprocess_input(a):
     if isinstance(a, chainerx.Scalar):
         a = a.tolist()
 
-    # Check conditions for chainerx.ndarray
-    if isinstance(a, chainerx.ndarray):
-        _check_chainerx_array(a)
-
-    # Convert to something NumPy can handle
-    a = _as_numpy(a)
-    return a
+    # Convert to something NumPy can handle and return
+    return _as_numpy(a)
 
 
 def assert_allclose(x, y, rtol=1e-7, atol=0, equal_nan=True, err_msg='', verbose=True):
