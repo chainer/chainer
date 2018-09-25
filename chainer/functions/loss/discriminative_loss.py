@@ -24,11 +24,14 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     - Variance Loss: \
     Loss to penalize distances between pixels which are belonging \
     to the same instance. (Pull force)
+
     - Distance loss: \
     Loss to penalize distances between the centers of instances. \
     (Push force)
-    Regularization loss: \
+
+    - Regularization loss: \
     Small regularization loss to penalize weights against overfitting.
+
     """
 
     def __init__(self, delta_v=0.5, delta_d=1.5,
@@ -133,10 +136,12 @@ def discriminative_margin_based_clustering_loss(
     - Variance Loss: \
     Loss to penalize distances between pixels which are belonging \
     to the same instance. (Pull force)
+
     - Distance loss: \
     Loss to penalize distances between the centers of instances. \
     (Push force)
-    Regularization loss: \
+
+    - Regularization loss: \
     Small regularization loss to penalize weights against overfitting.
 
     :param embeddings:
