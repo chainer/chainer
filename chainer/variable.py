@@ -1371,6 +1371,7 @@ class Parameter(Variable):
             shape (tuple of int): Shape of the data array.
 
         """
+        # TODO(sonots): Support ChainerX
         xp = numpy if self._initial_backend != 'cuda' else cuda.cupy
         with cuda.get_device_from_id(self._initial_device):
             data = initializers.generate_array(self.initializer, shape, xp)
