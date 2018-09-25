@@ -220,7 +220,7 @@ TEST_P(CreationTest, FromContiguousHostData) {
         EXPECT_EQ(dtype, x.dtype());
         EXPECT_EQ(2, x.ndim());
         EXPECT_EQ(3 * 2, x.GetTotalSize());
-        EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
+        EXPECT_EQ(int64_t{sizeof(T)}, x.GetItemSize());
         EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
         EXPECT_TRUE(x.IsContiguous());
         EXPECT_EQ(0, x.offset());
@@ -249,7 +249,7 @@ void CheckFromData(
     EXPECT_EQ(strides, x.strides());
     EXPECT_EQ(shape.ndim(), x.ndim());
     EXPECT_EQ(shape.GetTotalSize(), x.GetTotalSize());
-    EXPECT_EQ(int64_t{sizeof(T)}, x.item_size());
+    EXPECT_EQ(int64_t{sizeof(T)}, x.GetItemSize());
     EXPECT_EQ(shape.GetTotalSize() * int64_t{sizeof(T)}, x.GetNBytes());
     EXPECT_EQ(offset, x.offset());
     EXPECT_EQ(internal::IsContiguous(shape, strides, GetItemSize(dtype)), x.IsContiguous());

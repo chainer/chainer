@@ -26,7 +26,7 @@ template <typename To, typename From>
 using WithConstnessOf = std::conditional_t<std::is_const<From>::value, std::add_const_t<To>, std::remove_const_t<To>>;
 
 static inline std::tuple<const uint8_t*, const uint8_t*> GetDataRange(const Array& a) {
-    std::tuple<int64_t, int64_t> range = chainerx::GetDataRange(a.shape(), a.strides(), a.item_size());
+    std::tuple<int64_t, int64_t> range = chainerx::GetDataRange(a.shape(), a.strides(), a.GetItemSize());
     int64_t lower = std::get<0>(range);
     int64_t upper = std::get<1>(range);
     const uint8_t* base = internal::GetRawOffsetData<const uint8_t>(a);

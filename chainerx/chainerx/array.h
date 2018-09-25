@@ -227,6 +227,8 @@ public:
 
     int64_t GetNBytes() const { return body_->GetNBytes(); }
 
+    int64_t GetItemSize() const { return body_->GetItemSize(); }
+
     bool IsContiguous() const { return body_->IsContiguous(); }
 
     std::string ToString() const;
@@ -242,8 +244,6 @@ public:
     const Shape& shape() const { return body_->shape(); }
 
     const Strides& strides() const { return body_->strides(); }
-
-    int64_t item_size() const { return body_->item_size(); }
 
     const std::shared_ptr<void>& data() const { return body_->data(); }
 
