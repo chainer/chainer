@@ -95,24 +95,28 @@ def to_numpy(array):
 
 
 def get_array_module(*args):
-    """Gets an appropriate one from :mod:`numpy` or :mod:`cupy`.
+    """Gets an appropriate one from :mod:`numpy`, :mod:`cupy`, or
+    :mod:`chainerx`.
 
-    This is almost equivalent to :func:`cupy.get_array_module`. The differences
-    are that this function can be used even if CUDA is not available and that
-    it will return their data arrays' array module for
+    This function will return their data arrays' array module for
     :class:`~chainer.Variable` arguments.
 
     Args:
-        args: Values to determine whether NumPy or CuPy should be used.
+        args: Values to determine whether NumPy, CuPy, or ChainerX should be
+        used.
 
     Returns:
-        module: :mod:`cupy` or :mod:`numpy` is returned based on the types of
-        the arguments.
+        module: :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx` is returned based
+        on the types of the arguments.
 
     """
-    if cuda.available:
+    if chainerx.is_available() or cuda.available:
         args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
                 for arg in args]
+    if (chainerx.is_available()
+            and any([isinstance(a, chainerx.ndarray) for a in args])):
+        return chainerx
+    if cuda.available:
         return cuda.cupy.get_array_module(*args)
     else:
         return numpy
