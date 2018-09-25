@@ -36,7 +36,7 @@ class ExampleModel(chainer.Chain):
         with self.init_scope():
             self.a = chainer.links.Linear(2, 3)
             self.b = chainer.links.Linear(3, 4)
-            self.c = chainer.links.Linear(4, 5)
+            self.c = chainer.links.Linear(None, 5)
 
 
 class Param(object):
