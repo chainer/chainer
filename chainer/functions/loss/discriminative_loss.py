@@ -21,15 +21,14 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     The loss also brings a weak regularization term to prevent overfitting.
     This loss function calculates the following three parameters:
 
-    Losses:
-        Variance loss:
-            Loss to penalize distances between pixels which are belonging
-            to the same instance. (Pull force)
-        Distance loss:
-            Loss to penalize distances between the centers of instances.
-            (Push force)
-        Regularization loss:
-            Small regularization loss to penalize weights against overfitting.
+    - Variance Loss:
+        Loss to penalize distances between pixels which are belonging \
+        to the same instance. (Pull force)
+    - Distance loss: \
+        Loss to penalize distances between the centers of instances. \
+        (Push force)
+    - Regularization loss: \
+        Small regularization loss to penalize weights against overfitting.
     """
 
     def __init__(self, delta_v=0.5, delta_d=1.5,
