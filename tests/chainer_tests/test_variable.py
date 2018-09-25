@@ -44,6 +44,20 @@ def constant(xs, value):
     return Constant(value)(*xs)
 
 
+def get_array(xp, arr):
+    if xp is np:
+        return arr
+    if xp is cuda.cupy:
+        return cuda.to_gpu(arr)
+    if xp is chainerx:
+        return chainerx.array(arr)
+    assert False
+
+
+def get_variable(xp, arr):
+    return chainer.Variable(get_array(xp, arr))
+
+
 class MulAdd(chainer.FunctionNode):
 
     def forward(self, inputs):
@@ -195,7 +209,8 @@ class TestVariable(unittest.TestCase):
         x = chainer.Variable(a)
         assert a is x.array
 
-    def check_attributes(self, a):
+    def check_attributes(self, xp):
+        a = get_array(xp, self.x)
         x = chainer.Variable(a)
         assert x.data is a
         assert x.array is a
@@ -207,14 +222,14 @@ class TestVariable(unittest.TestCase):
 
     @attr.chainerx
     def test_attributes_chainerx(self):
-        self.check_attributes(chainerx.asarray(self.x))
+        self.check_attributes(chainerx)
 
     def test_attributes_cpu(self):
-        self.check_attributes(self.x)
+        self.check_attributes(np)
 
     @attr.gpu
     def test_attributes_gpu(self):
-        self.check_attributes(cuda.to_gpu(self.x))
+        self.check_attributes(cuda.cupy)
 
     def test_uninitialized(self):
         a = chainer.Variable(None)
@@ -303,17 +318,6 @@ class TestVariable(unittest.TestCase):
     def test_label_gpu(self):
         self.check_label(self.label, cuda.to_gpu(self.c))
 
-    def get_variable(self, xp):
-        if xp is np:
-            return chainer.Variable(self.x)
-        if xp is cuda.cupy:
-            var = chainer.Variable(self.x)
-            var.to_gpu()
-            return var
-        if xp is chainerx:
-            return chainer.Variable(chainerx.array(self.x))
-        assert False
-
     def check_backward(self, inputs, intermediates, outputs, retain_grad):
         for o in outputs:
             o.backward(retain_grad)
@@ -327,7 +331,7 @@ class TestVariable(unittest.TestCase):
 
     # length is number of edges. So, # of Variables created is length+1
     def create_linear_chain(self, length, xp):
-        x = self.get_variable(xp)
+        x = get_variable(xp, self.x)
         ret = [x]
         for i in six.moves.range(length):
             ret.append(constant((ret[i], ), (self.a, )))
@@ -354,7 +358,7 @@ class TestVariable(unittest.TestCase):
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), False)
 
     def check_backward_accumulate(self, xp):
-        x = self.get_variable(xp)
+        x = get_variable(xp, self.x)
         y = x * x
         y.grad = xp.zeros_like(y.data)
         y.backward()
@@ -381,7 +385,7 @@ class TestVariable(unittest.TestCase):
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), True)
 
     def check_double_backprop(self, xp):
-        x = self.get_variable(xp)
+        x = get_variable(xp, self.x)
         x.grad_var = None
 
         y = x * x * x
