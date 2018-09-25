@@ -98,15 +98,15 @@ def get_array_module(*args):
     """Gets an appropriate one from :mod:`numpy`, :mod:`cupy`, or
     :mod:`chainerx`.
 
-    This function can be used even if CUDA is not available and it will return
-    their data arrays' array module for :class:`~chainer.Variable` arguments.
+    This function will return their data arrays' array module for
+    :class:`~chainer.Variable` arguments.
 
     Args:
         args: Values to determine whether NumPy, CuPy, or ChainerX should be
         used.
 
     Returns:
-        module: :mod:`cupy`, :mod:`numpy`, or :mod:`chainer`x is returned based
+        module: :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx` is returned based
         on the types of the arguments.
 
     """
