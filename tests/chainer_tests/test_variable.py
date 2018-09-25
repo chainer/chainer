@@ -240,6 +240,7 @@ class TestVariable(unittest.TestCase):
         v = chainer.Variable(x)
         gv = chainer.Variable(g)
         v.grad_var = gv
+        assert v.grad is g
         assert v.grad_var is gv
 
         # Same instance should be returned each time.
