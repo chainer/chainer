@@ -67,12 +67,12 @@ def _preprocess_rhs(x, value):
     return utils.force_type(x.dtype, value)
 
 
-def _as_chainerx_arithmetic_compat(xch_other_array, value, label):
+def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
     if isinstance(value, (six.integer_types, float)):
         return value
     if numpy.isscalar(value):
         return numpy.asscalar(value)
-    utils._check_arrays_forward_compatible((xch_other_array, value), label)
+    utils._check_arrays_forward_compatible((chx_other_array, value), label)
     return value
 
 
