@@ -147,7 +147,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
     // Check for invalid shape.
     int64_t total_size = in_shape.GetTotalSize();
     Shape out_shape = GetInferredShape(newshape, total_size);
-    int64_t item_size = GetItemSize(a.dtype());
+    int64_t item_size = a.GetItemSize();
     Strides strides{};
     if (total_size == 0) {
         // Calculate the strides for 0-sized array.

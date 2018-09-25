@@ -395,7 +395,7 @@ void InitChainerxArray(pybind11::module& m) {
     c.def_property_readonly(
             "device", [](const ArrayBodyPtr& self) -> Device& { return self->device(); }, py::return_value_policy::reference);
     c.def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return py::dtype(GetDtypeName(self->dtype())); });
-    c.def_property_readonly("itemsize", [](const ArrayBodyPtr& self) { return self->item_size(); });
+    c.def_property_readonly("itemsize", [](const ArrayBodyPtr& self) { return self->GetItemSize(); });
     c.def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return self->IsContiguous(); });
     c.def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return self->ndim(); });
     c.def_property_readonly("offset", [](const ArrayBodyPtr& self) { return self->offset(); });
@@ -410,7 +410,7 @@ void InitChainerxArray(pybind11::module& m) {
         return reinterpret_cast<intptr_t>(self->data().get());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     });
     c.def_property_readonly("data_size", [](const ArrayBodyPtr& self) -> int64_t {
-        auto range = GetDataRange(self->shape(), self->strides(), self->item_size());
+        auto range = GetDataRange(self->shape(), self->strides(), self->GetItemSize());
         return std::get<1>(range) - std::get<0>(range);
     });
     // TODO(niboshi): Remove this in favor of data_ptr.

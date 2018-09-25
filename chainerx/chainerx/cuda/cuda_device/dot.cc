@@ -49,15 +49,17 @@ struct GemmInputLayout {
         CHAINERX_ASSERT(a.ndim() == 2);
         // Row-major
         // Note that this condition is slightly relaxed than Array::IsContiguous() which requires
-        // a.strides()[0] == a.item_size() * a.shape()[1]
-        if (a.strides()[1] == a.item_size() && a.strides()[0] / a.item_size() >= a.shape()[1] && a.strides()[0] % a.item_size() == 0) {
-            ld = a.strides()[0] / a.item_size();
+        // a.strides()[0] == a.GetItemSize() * a.shape()[1]
+        if (a.strides()[1] == a.GetItemSize() && a.strides()[0] / a.GetItemSize() >= a.shape()[1] &&
+            a.strides()[0] % a.GetItemSize() == 0) {
+            ld = a.strides()[0] / a.GetItemSize();
             trans = CUBLAS_OP_N;  // transposed
             return a;
         }
         // Column-major
-        if (a.strides()[0] == a.item_size() && a.strides()[1] / a.item_size() >= a.shape()[0] && a.strides()[1] % a.item_size() == 0) {
-            ld = a.strides()[1] / a.item_size();
+        if (a.strides()[0] == a.GetItemSize() && a.strides()[1] / a.GetItemSize() >= a.shape()[0] &&
+            a.strides()[1] % a.GetItemSize() == 0) {
+            ld = a.strides()[1] / a.GetItemSize();
             return a;
         }
         // Force row-major contiguous
