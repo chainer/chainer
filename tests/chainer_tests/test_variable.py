@@ -10,8 +10,6 @@ import numpy as np
 import pytest
 import six
 
-import chainerx
-
 import chainer
 from chainer import backend
 from chainer.backends import cuda
@@ -222,14 +220,42 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(None)
         assert a.xp is np
 
-    def check_grad(self, x, xp):
-        g = xp.array(x)
+    def check_grad(self, x, g):
+        v = chainer.Variable(x)
+        v.grad = g
+        assert v.grad is g
+
+    def test_grad_cpu(self):
+        self.check_grad(self.x, self.a)
+
+    @attr.gpu
+    def test_grad_gpu(self):
+        self.check_grad(cuda.to_gpu(self.x), cuda.to_gpu(self.a))
+
+    @attr.chainerx
+    def test_grad_chainerx(self):
+        self.check_grad(chainerx.array(self.x), chainerx.array(self.a))
+
+    def check_grad_var(self, x, g):
         v = chainer.Variable(x)
         gv = chainer.Variable(g)
         v.grad_var = gv
-
         assert v.grad is g
         assert v.grad_var is gv
+
+        # Same instance should be returned each time.
+        assert v.grad_var is gv
+
+    def test_grad_var_cpu(self):
+        self.check_grad_var(self.x, self.a)
+
+    @attr.gpu
+    def test_grad_var_gpu(self):
+        self.check_grad_var(cuda.to_gpu(self.x), cuda.to_gpu(self.a))
+
+    @attr.chainerx
+    def test_grad_var_chainerx(self):
+        self.check_grad_var(chainerx.array(self.x), chainerx.array(self.a))
 
     def check_len(self, a):
         x = chainer.Variable(a)
@@ -245,7 +271,7 @@ class TestVariable(unittest.TestCase):
     def test_len_gpu(self):
         self.check_len(cuda.to_gpu(self.x))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_len_chainerx(self):
         self.check_len(chainerx.array(self.x))
 
@@ -542,7 +568,12 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(a.grad, gb)
 
     def check_cleargrad(self, a_data, fill=False):
-        xp = backend.get_array_module(a_data)
+        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
+        if chainerx.is_available() and isinstance(a_data, chainerx.ndarray):
+            xp = chainerx
+        else:
+            xp = backend.get_array_module(a_data)
+
         a = chainer.Variable(a_data)
         if fill:
             a.grad = xp.full_like(a_data, np.nan)
@@ -564,20 +595,35 @@ class TestVariable(unittest.TestCase):
     def test_cleargrad_fill_gpu(self):
         self.check_cleargrad(cuda.cupy.empty(3, dtype=np.float32), fill=True)
 
+    @attr.chainerx
+    def test_cleargrad_chainerx(self):
+        # TODO(hvy): Simplity to chainerx.empty(3, ...) when supported.
+        self.check_cleargrad(chainerx.empty((3,), dtype=np.float32))
+
+    @attr.chainerx
+    def test_cleargrad_fill_chainerx(self):
+        # TODO(hvy): Simplity to chainerx.empty(3, ...) when supported.
+        self.check_cleargrad(chainerx.empty((3,), dtype=np.float32), fill=True)
+
     def check_zerograd(self, a_data, fill=False):
-        xp = backend.get_array_module(a_data)
+        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
+        is_chainerx = (
+            chainerx.is_available and isinstance(a_data, chainerx.ndarray))
+
+        xp = chainerx if is_chainerx else backend.get_array_module(a_data)
+
         a = chainer.Variable(a_data)
         if fill:
             a.grad_var = chainer.Variable(xp.full_like(a_data, np.nan))
-            a.grad_var.creator_node = chainer.FunctionNode()
+            if not is_chainerx:
+                a.grad_var.creator_node = chainer.FunctionNode()
 
         with testing.assert_warns(DeprecationWarning):
             a.zerograd()
         assert a.grad is not None
-        if fill:
+        if fill and not is_chainerx:
             assert a.grad_var.creator_node is None
-        g_expect = xp.zeros_like(a.data)
-        xp.testing.assert_array_equal(a.grad, g_expect)
+        xp.testing.assert_array_equal(a.grad, xp.zeros_like(a.grad))
 
     def test_zerograd_cpu(self):
         self.check_zerograd(np.empty(3, dtype=np.float32))
@@ -618,6 +664,16 @@ class TestVariable(unittest.TestCase):
     @attr.gpu
     def test_zerograd_fill_gpu(self):
         self.check_zerograd(cuda.cupy.empty(3, dtype=np.float32), fill=True)
+
+    @attr.chainerx
+    def test_zerograd_chainerx(self):
+        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
+        self.check_zerograd(chainerx.empty((3,), dtype=np.float32))
+
+    @attr.chainerx
+    def test_zerograd_fill_chainerx(self):
+        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
+        self.check_zerograd(chainerx.empty((3,), dtype=np.float32), fill=True)
 
     def check_copydata(self, data1, data2, expect):
         xp = backend.get_array_module(data1)
@@ -1465,7 +1521,7 @@ class TestReshape(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_forward_chainerx(self):
         # TODO(imanishi): chainerx does not support fp16 yet
         if self.dtype == np.float16:
@@ -1512,7 +1568,7 @@ class TestTranspose(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_forward_chainerx(self):
         # TODO(hvy): chainerx does not support fp16 yet
         if self.dtype == np.float16:
