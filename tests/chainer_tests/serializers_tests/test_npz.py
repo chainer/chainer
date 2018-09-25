@@ -10,6 +10,7 @@ import six
 import chainer
 from chainer import backend
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import link
 from chainer import links
 from chainer import optimizers
@@ -148,6 +149,11 @@ class TestNpzDeserializer(unittest.TestCase):
     def test_deserialize_gpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(cuda.to_gpu(y), 'y')
+
+    @attr.ideep
+    def test_deserialize_ideep(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(intel64.mdarray(y), 'y')
 
     @attr.gpu
     def test_deserialize_by_passing_none_gpu(self):

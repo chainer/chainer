@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -40,7 +40,7 @@ class DiagonalGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = xp.zeros(self.out_shape, x.dtype)
         y_diag = y.diagonal(
             offset=self.offset, axis1=self.axis1, axis2=self.axis2)

@@ -7,6 +7,7 @@ import warnings
 import numpy
 import six
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import serializer as serializer_module
@@ -294,7 +295,7 @@ class Summary(object):
 
         """
         x, n = self._x, self._n
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         with _get_device(x):
             mean = x / n
             var = self._x2 / n - mean * mean

@@ -1,3 +1,4 @@
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
@@ -32,7 +33,7 @@ class CorrectedMomentumSGDRule(optimizer.UpdateRule):
             self.hyperparam.momentum = momentum
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['v'] = xp.zeros_like(param.data)
 
