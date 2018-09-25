@@ -21,16 +21,16 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     The loss also brings a weak regularization term to prevent overfitting.
     This loss function calculates the following three parameters:
 
-    - Variance Loss: \
-    Loss to penalize distances between pixels which are belonging \
-    to the same instance. (Pull force)
+    - Variance Loss:
+        Loss to penalize distances between pixels which are belonging
+        to the same instance. (Pull force)
 
-    - Distance loss: \
-    Loss to penalize distances between the centers of instances. \
-    (Push force)
+    - Distance loss:
+        Loss to penalize distances between the centers of instances.
+        (Push force)
 
-    - Regularization loss: \
-    Small regularization loss to penalize weights against overfitting.
+    - Regularization loss:
+        Small regularization loss to penalize weights against overfitting.
 
     """
 
@@ -59,16 +59,18 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
     def __call__(self, embeddings, labels):
         """
-        :param embeddings: predicted embedding vectors
-        (batch size, max embedding dimensions, height, width)
-        :param labels: instance segmentation ground truth
-        each unique value has to be denoting one instance
-        (batch size, height, width)
+        :param embeddings:
+            predicted embedding vectors \
+            (batch size, max embedding dimensions, height, width)
+        :param labels:
+            instance segmentation ground truth
+            each unique value has to be denoting one instance \
+            (batch size, height, width)
         :return:
         tuple of chainer.Variable:
-            - Variance loss : variance loss multiplied by alpha
-            - Distance loss : distance loss multiplied by beta
-            - Regularization loss : regularization loss multiplied by gamma
+            Variance loss : Variance loss multiplied by alpha
+            Distance loss : Distance loss multiplied by beta
+            Regularization loss : Regularization loss multiplied by gamma
         """
         assert (self.max_embedding_dim == embeddings.shape[1])
 
@@ -133,27 +135,27 @@ def discriminative_margin_based_clustering_loss(
     The loss also brings a weak regularization term to prevent overfitting.
     This loss function calculates the following three parameters:
 
-    - Variance Loss: \
-    Loss to penalize distances between pixels which are belonging \
-    to the same instance. (Pull force)
+    - Variance Loss:
+        Loss to penalize distances between pixels which are belonging \
+        to the same instance. (Pull force)
 
-    - Distance loss: \
-    Loss to penalize distances between the centers of instances. \
-    (Push force)
+    - Distance loss:
+        Loss to penalize distances between the centers of instances. \
+        (Push force)
 
-    - Regularization loss: \
-    Small regularization loss to penalize weights against overfitting.
+    - Regularization loss:
+        Small regularization loss to penalize weights against overfitting.
 
     :param embeddings:
-    :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-    :class:`cupy.ndarray` \
-    predicted embedding vectors \
-    (batch size, max embedding dimensions, height, width)
+        :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`
+            predicted embedding vectors \
+            (batch size, max embedding dimensions, height, width)
     :param labels:
-    :class:`numpy.ndarray` or :class:`cupy.ndarray` \
-    instance segmentation ground truth \
-    each unique value has to be denoting one instance \
-    (batch size, height, width)
+        :class:`numpy.ndarray` or :class:`cupy.ndarray`
+            instance segmentation ground truth \
+            each unique value has to be denoting one instance \
+            (batch size, height, width)
     :param delta_v: (float) Minimum distance to start penalizing variance
     :param delta_d: (float) Maximum distance to stop penalizing distance
     :param max_embedding_dim: (int) Maximum number of embedding dimensions
@@ -161,10 +163,10 @@ def discriminative_margin_based_clustering_loss(
     :param alpha: (float) Weight for variance loss
     :param beta: (float) Weight for distance loss
     :param gamma: (float) Weight for regularization loss
-    :return: tuple of chainer.Variable: \
-    Variance loss : variance loss multiplied by alpha \
-    Distance loss : Distance loss multiplied by beta \
-    Regularization loss : Regularization loss multiplied by gamma
+    :return: tuple of chainer.Variable:
+        Variance loss : Variance loss multiplied by alpha
+        Distance loss : Distance loss multiplied by beta
+        Regularization loss : Regularization loss multiplied by gamma
 
     """
 
