@@ -546,8 +546,7 @@ class Variable(object):
     @property
     def name(self):
         if self._is_chainerx:
-            raise RuntimeError(
-                'A variable of ChainerX does not provide a node name.')
+            return self._name
         return self._node.name
 
     @name.setter
