@@ -28,7 +28,6 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         self.logit_ispinf = xp.bitwise_and(logit_isinf, logit > 0)
         self.logit_isminf = xp.bitwise_and(logit_isinf, logit <= 0)
         with numpy.errstate(divide='ignore', invalid='raise'):
-            print(logit, x)
             y = xp.where(self.logit_ispinf, xp.log(x), y)
             y = xp.where(self.logit_isminf, xp.log(1 - x), y)
 
