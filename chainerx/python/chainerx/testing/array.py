@@ -7,7 +7,7 @@ import chainerx
 
 def _as_numpy(x):
     if isinstance(x, chainerx.ndarray):
-        return chainerx.tonumpy(x)
+        return chainerx.to_numpy(x)
     assert isinstance(x, numpy.ndarray) or numpy.isscalar(x)
     return x
 

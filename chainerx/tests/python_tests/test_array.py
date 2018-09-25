@@ -97,38 +97,38 @@ def test_to_device():
     chainerx.testing.assert_array_equal_ex(a, b2)
 
 
-def _check_tonumpy(a_np, a_chx, device, copy):
+def _check_to_numpy(a_np, a_chx, device, copy):
     chainerx.testing.assert_array_equal_ex(a_chx, a_np, strides_check=False)
     if a_np.size > 0:
         # test buffer is shared or not
         a_np.fill(1)
         expected = not copy and device.backend.name == 'native'
-        actual = numpy.array_equal(a_np, chainerx.tonumpy(a_chx))
+        actual = numpy.array_equal(a_np, chainerx.to_numpy(a_chx))
         assert expected == actual
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('copy', [True, False])
-def test_tonumpy(shape, dtype, device, copy):
+def test_to_numpy(shape, dtype, device, copy):
     a_chx = array_utils.create_dummy_ndarray(chainerx, shape, dtype)
-    a_np = chainerx.tonumpy(a_chx, copy)
-    _check_tonumpy(a_np, a_chx, device, copy)
+    a_np = chainerx.to_numpy(a_chx, copy)
+    _check_to_numpy(a_np, a_chx, device, copy)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('copy', [True, False])
-def test_tonumpy_non_contiguous(shape, dtype, device, copy):
+def test_to_numpy_non_contiguous(shape, dtype, device, copy):
     a_chx = array_utils.create_dummy_ndarray(chainerx, shape, dtype).T
-    a_np = chainerx.tonumpy(a_chx, copy)
-    _check_tonumpy(a_np, a_chx, device, copy)
+    a_np = chainerx.to_numpy(a_chx, copy)
+    _check_to_numpy(a_np, a_chx, device, copy)
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('copy', [True, False])
-def test_tonumpy_positive_offset(device, copy):
+def test_to_numpy_positive_offset(device, copy):
     a_chx = chainerx.arange(6).reshape(2, 3)[:, 1:]
-    a_np = chainerx.tonumpy(a_chx, copy)
-    _check_tonumpy(a_np, a_chx, device, copy)
+    a_np = chainerx.to_numpy(a_chx, copy)
+    _check_to_numpy(a_np, a_chx, device, copy)
 
 
 def test_view(shape, dtype):
@@ -604,12 +604,12 @@ def test_fill_with_scalar(xp, device, shape, dtype, value):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('slice1', [(0, 30, 1), (30, 0, -1), (10, 40, 7), (40, 10, -7)])
 @pytest.mark.parametrize('slice2', [(0, 50, 1), (50, 0, -1), (10, 40, 7), (40, 10, -7)])
-def test_array_tonumpy_identity(device, slice1, slice2):
+def test_array_to_numpy_identity(device, slice1, slice2):
     start1, end1, step1 = slice1
     start2, end2, step2 = slice2
     x = numpy.arange(1500).reshape((30, 50))[start1:end1:step1, start2:end2:step2]
     y = chainerx.array(x)
-    z = chainerx.tonumpy(y)
+    z = chainerx.to_numpy(y)
     chainerx.testing.assert_array_equal_ex(x, y, strides_check=False)
     chainerx.testing.assert_array_equal_ex(x, z, strides_check=False)
 
@@ -617,11 +617,11 @@ def test_array_tonumpy_identity(device, slice1, slice2):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('slice1', [(0, 30, 1), (30, 0, -1), (10, 40, 7), (40, 10, -7)])
 @pytest.mark.parametrize('slice2', [(0, 50, 1), (50, 0, -1), (10, 40, 7), (40, 10, -7)])
-def test_asarray_tonumpy_identity(device, slice1, slice2):
+def test_asarray_to_numpy_identity(device, slice1, slice2):
     start1, end1, step1 = slice1
     start2, end2, step2 = slice2
     x = numpy.arange(1500).reshape((30, 50))[start1:end1:step1, start2:end2:step2]
     y = chainerx.asarray(x)
-    z = chainerx.tonumpy(y)
+    z = chainerx.to_numpy(y)
     chainerx.testing.assert_array_equal_ex(x, y)
     chainerx.testing.assert_array_equal_ex(x, z, strides_check=False)

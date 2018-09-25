@@ -49,7 +49,7 @@ def test_max_pool(device, x_shape, ksize, stride, pad, cover_all, float_dtype):
         # In the case of CUDA, we get huge negative numbers instead of -inf around boundaries.
         # Align them to chainer (native) results.
         if device.backend.name == 'cuda':
-            y = chainerx.tonumpy(y)
+            y = chainerx.to_numpy(y)
             y[y < -3.e+34] = -float('inf')
             y = chainerx.array(y)
         return y
