@@ -41,7 +41,6 @@
 #include "chainerx/scalar.h"
 
 namespace chainerx {
-
 namespace internal {
 
 BackpropId GetArrayBackpropId(const Array& array, const nonstd::optional<BackpropId>& backprop_id) {
