@@ -1883,7 +1883,8 @@ class TestLossScale(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(0,), (1,), (3, 2), (2, 3, 4, 3)],
+    # ideep2.0.0 not support shape 0
+    'shape': [(1,), (3, 2), (2, 3, 4, 3)],
     'dtype': [
         np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
         np.uint64, np.float16, np.float32, np.float64],
