@@ -622,13 +622,7 @@ class TestVariable(unittest.TestCase):
         assert a.grad is not None
         if fill and not is_chainerx:
             assert a.grad_var.creator_node is None
-        g_expect = xp.zeros_like(a.data)
-
-        a_grad = a.grad
-        if is_chainerx:
-            a_grad = a_grad.as_grad_stopped()
-
-        xp.testing.assert_array_equal(a_grad, g_expect)
+        xp.testing.assert_array_equal(a.grad, xp.zeros_like(a.grad))
 
     def test_zerograd_cpu(self):
         self.check_zerograd(np.empty(3, dtype=np.float32))
