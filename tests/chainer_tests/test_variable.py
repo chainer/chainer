@@ -567,7 +567,12 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(a.grad, gb)
 
     def check_cleargrad(self, a_data, fill=False):
-        xp = backend.get_array_module(a_data)
+        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
+        if chainerx.is_available() and isinstance(a_data, chainerx.ndarray):
+            xp = chainerx
+        else:
+            xp = backend.get_array_module(a_data)
+
         a = chainer.Variable(a_data)
         if fill:
             a.grad = xp.full_like(a_data, np.nan)
@@ -600,7 +605,12 @@ class TestVariable(unittest.TestCase):
         self.check_cleargrad(chainerx.empty((3,), dtype=np.float32), fill=True)
 
     def check_zerograd(self, a_data, fill=False):
-        xp = backend.get_array_module(a_data)
+        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
+        is_chainerx = (
+            chainerx.is_available and isinstance(a_data, chainerx.ndarray))
+
+        xp = chainerx if is_chainerx else backend.get_array_module(a_data)
+
         a = chainer.Variable(a_data)
         if fill:
             a.grad_var = chainer.Variable(xp.full_like(a_data, np.nan))
@@ -661,7 +671,7 @@ class TestVariable(unittest.TestCase):
         self.check_zerograd(cuda.cupy.empty(3, dtype=np.float32), fill=True)
 
     @attr.chainerx
-    def test_zerograd_chaienrx(self):
+    def test_zerograd_chainerx(self):
         # TODO(hvy): Use backend.get_array_module when it supports chainerx.
         self.check_zerograd(chainerx.empty((3,), dtype=np.float32))
 
