@@ -568,12 +568,7 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(a.grad, gb)
 
     def check_cleargrad(self, a_data, fill=False):
-        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
-        if chainerx.is_available() and isinstance(a_data, chainerx.ndarray):
-            xp = chainerx
-        else:
-            xp = backend.get_array_module(a_data)
-
+        xp = backend.get_array_module(a_data)
         a = chainer.Variable(a_data)
         if fill:
             a.grad = xp.full_like(a_data, np.nan)
@@ -606,22 +601,17 @@ class TestVariable(unittest.TestCase):
         self.check_cleargrad(chainerx.empty((3,), dtype=np.float32), fill=True)
 
     def check_zerograd(self, a_data, fill=False):
-        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
-        is_chainerx = (
-            chainerx.is_available and isinstance(a_data, chainerx.ndarray))
-
-        xp = chainerx if is_chainerx else backend.get_array_module(a_data)
-
+        xp = backend.get_array_module(a_data)
         a = chainer.Variable(a_data)
         if fill:
             a.grad_var = chainer.Variable(xp.full_like(a_data, np.nan))
-            if not is_chainerx:
+            if xp is not chainerx:
                 a.grad_var.creator_node = chainer.FunctionNode()
 
         with testing.assert_warns(DeprecationWarning):
             a.zerograd()
         assert a.grad is not None
-        if fill and not is_chainerx:
+        if fill and xp is not chainerx:
             assert a.grad_var.creator_node is None
         xp.testing.assert_array_equal(a.grad, xp.zeros_like(a.grad))
 
