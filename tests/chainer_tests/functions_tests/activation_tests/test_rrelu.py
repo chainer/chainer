@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -36,7 +37,7 @@ class TestRReLU(unittest.TestCase):
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         with chainer.using_config('train', self.train):
             y, r = functions.rrelu(x, l=self.l, u=self.u, return_r=True)
         self.assertEqual(y.data.dtype, self.dtype)
@@ -54,7 +55,7 @@ class TestRReLU(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
         r = xp.random.uniform(self.l, self.u, x_data[
                               0].shape).astype(x_data[0].dtype)
 

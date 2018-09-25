@@ -26,7 +26,6 @@ class TestKLDivergence(unittest.TestCase):
             mc_kl = mc_kl.get()
         mc_kl = numpy.nanmean(mc_kl, axis=0)
 
-        print(kl, mc_kl)
         testing.assert_allclose(kl, mc_kl, atol=1e-2, rtol=1e-2)
 
     def encode_params(self, params, is_gpu=False):
@@ -55,6 +54,12 @@ class TestKLDivergence(unittest.TestCase):
         p /= numpy.expand_dims(p.sum(axis=-1), axis=-1)
         params = self.encode_params({"p": p}, is_gpu)
         return distributions.Categorical(**params)
+
+    def make_dirichlet_dist(self, is_gpu=False):
+        alpha = numpy.random.uniform(
+            1, 10, self.shape + (3,)).astype(numpy.float32)
+        params = self.encode_params({"alpha": alpha}, is_gpu)
+        return distributions.Dirichlet(**params)
 
     def make_laplace_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
@@ -148,6 +153,19 @@ class TestKLDivergence(unittest.TestCase):
     def test_categorical_categorical_gpu(self):
         dist1 = self.make_categorical_dist(True)
         dist2 = self.make_categorical_dist(True)
+        self.check_kl(dist1, dist2)
+
+    @testing.with_requires('scipy')
+    def test_dirichlet_dirichlet_cpu(self):
+        dist1 = self.make_dirichlet_dist()
+        dist2 = self.make_dirichlet_dist()
+        self.check_kl(dist1, dist2)
+
+    @testing.with_requires('scipy')
+    @attr.gpu
+    def test_dirichlet_dirichlet_gpu(self):
+        dist1 = self.make_dirichlet_dist(True)
+        dist2 = self.make_dirichlet_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_laplace_laplace_cpu(self):

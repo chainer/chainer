@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
@@ -46,7 +47,7 @@ class Softmax(function_node.FunctionNode):
         )
 
     def forward(self, x):
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if x[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes
@@ -83,7 +84,7 @@ class _SoftmaxGrad(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         y, gy = inputs
-        xp = cuda.get_array_module(*y)
+        xp = backend.get_array_module(*y)
         if xp is not numpy and chainer.should_use_cudnn('>=auto'):
             oz_dtype = 'd' if y[0].dtype == 'd' else 'f'
             one = numpy.array(1, dtype=oz_dtype).ctypes

@@ -11,6 +11,8 @@ from chainer import _backprop_utils
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_hook
+from chainer.graph_optimizations.static_graph_utilities \
+    import static_forward_optimizations
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
@@ -128,6 +130,7 @@ class FunctionNode(object):
     _output_indexes_to_retain = None
     _retained_output_data = None
     _local_function_hooks = None
+    _supports_static_optimizations = False
     lazy_grad_sum = False
 
     @property
@@ -248,7 +251,10 @@ Use apply() method instead.\
         with cuda.get_device_from_array(*in_data):
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
-            outputs = self.forward(in_data)
+            if chainer.config.schedule_func is not None:
+                outputs = static_forward_optimizations(self, in_data)
+            else:
+                outputs = self.forward(in_data)
 
         # Check for output array types
         if not isinstance(outputs, tuple):
@@ -582,9 +588,12 @@ Use apply() method instead.\
         :meth:`forward`.
 
         Returns:
-            A tuple of retained input variables.
+            A tuple of retained input variables, if available. Otherwise
+            return `None`.
 
         """
+        if self._input_indexes_to_retain is None or self.inputs is None:
+            return
         inputs = self.inputs
         if self._input_indexes_to_retain is None:
             raise ValueError(self._get_error_message(
@@ -599,7 +608,8 @@ Use apply() method instead.\
         :meth:`forward`.
 
         Returns:
-            A tuple of retained output variables.
+            A tuple of retained output variables, if available. Otherwise
+            return `None`.
 
         .. note::
 
@@ -609,9 +619,13 @@ Use apply() method instead.\
            node of the function node.
 
         """
+        if self._output_indexes_to_retain is None or self.outputs is None:
+            return
+
         if self._retained_output_data is None:
             raise ValueError(self._get_error_message(
                 'retain_outputs is not called in forward.'))
+
         ret = []
         outputs = self.outputs
 
