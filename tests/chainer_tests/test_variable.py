@@ -266,10 +266,6 @@ class TestVariable(unittest.TestCase):
     def test_get_item_gpu(self):
         self.check_get_item(cuda.to_gpu(self.x))
 
-    @pytest.mark.chainerx
-    def test_get_item_chainerx(self):
-        self.check_get_item(chainerx.array(self.x))
-
     def check_label(self, expected, c):
         c = chainer.Variable(c)
         assert c.label == expected
@@ -280,10 +276,6 @@ class TestVariable(unittest.TestCase):
     @attr.gpu
     def test_label_gpu(self):
         self.check_label(self.label, cuda.to_gpu(self.c))
-
-    @pytest.mark.chainerx
-    def test_label_chainerx(self):
-        self.check_label(self.label, chainerx.array(self.c))
 
     def get_xp_and_variable(self, gpu):
         if gpu:
