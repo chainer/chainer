@@ -41,6 +41,8 @@ public:
 
     const Strides& strides() const { return strides_; }
 
+    int64_t item_size() const { return GetItemSize(dtype()); }
+
     int8_t ndim() const { return shape_.ndim(); }
 
     Dtype dtype() const { return dtype_; }
@@ -54,6 +56,13 @@ public:
     // Returns the list of backprop IDs whose gradients are marked as required.
     // This does not take backprop mode into account.
     const std::vector<BackpropId>& grad_required_backprop_ids() const { return grad_required_backprop_ids_; }
+
+    const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return nodes_; }
+
+    // TODO(niboshi): Remove this function and add another to assign an array node at a specified index.
+    std::vector<std::shared_ptr<ArrayNode>>& nodes() { return nodes_; }
+
+    bool IsContiguous() const { return internal::IsContiguous(shape(), strides(), item_size()); }
 
     // Returns whether the gradient of the specified backprop ID is marked as required.
     // This does not take backprop mode into account.
@@ -77,10 +86,9 @@ public:
         }
     }
 
-    const std::vector<std::shared_ptr<ArrayNode>>& nodes() const { return nodes_; }
+    int64_t GetTotalSize() const { return shape().GetTotalSize(); }
 
-    // TODO(niboshi): Remove this function and add another to assign an array node at a specified index.
-    std::vector<std::shared_ptr<ArrayNode>>& nodes() { return nodes_; }
+    int64_t GetNBytes() const { return GetTotalSize() * item_size(); }
 
     const std::shared_ptr<ArrayNode>& GetArrayNode(const BackpropId& backprop_id) const {
         nonstd::optional<size_t> index = GetNodeIndex(backprop_id);

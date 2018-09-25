@@ -178,7 +178,7 @@ void InitChainerxArray(pybind11::module& m) {
         if (self->ndim() == 0) {
             throw pybind11::type_error("len() of unsized object");
         }
-        return Array{self}.shape().front();
+        return self->shape().front();
     });
     c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
@@ -351,7 +351,7 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("backprop_id") = nullptr);
     c.def("set_grad",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const nonstd::optional<BackpropId>& backprop_id) {
-              auto array = Array{self};
+              Array array{self};
               if (grad) {
                   array.SetGrad(Array{grad}, backprop_id);
               } else {
@@ -362,16 +362,14 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("backprop_id") = nullptr);
     c.def("backward",
           [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id, bool enable_double_backprop) {
-              Array array{self};
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
-              Backward(array, backprop_id, double_backprop);
+              Backward(Array{self}, backprop_id, double_backprop);
           },
           py::arg("backprop_id") = nullptr,
           py::arg("enable_double_backprop") = false);
     c.def("_debug_dump_computational_graph",
           [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
-              Array array{self};
-              DebugDumpComputationalGraph(std::cout, array, backprop_id);
+              DebugDumpComputationalGraph(std::cout, Array{self}, backprop_id);
           },
           py::arg("backprop_id") = nullptr);
     c.def_property(
@@ -384,7 +382,7 @@ void InitChainerxArray(pybind11::module& m) {
                 return internal::GetArrayBody(*grad);
             },
             [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
-                auto array = Array{self};
+                Array array{self};
                 if (grad) {
                     array.SetGrad(Array{grad}, nonstd::nullopt);
                 } else {
@@ -395,33 +393,31 @@ void InitChainerxArray(pybind11::module& m) {
           [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) { Array{self}.ClearGrad(backprop_id); },
           py::arg("backprop_id") = nullptr);
     c.def_property_readonly(
-            "device", [](const ArrayBodyPtr& self) -> Device& { return Array{self}.device(); }, py::return_value_policy::reference);
+            "device", [](const ArrayBodyPtr& self) -> Device& { return self->device(); }, py::return_value_policy::reference);
     c.def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return py::dtype(GetDtypeName(self->dtype())); });
-    c.def_property_readonly("itemsize", [](const ArrayBodyPtr& self) { return Array{self}.item_size(); });
-    c.def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return Array{self}.IsContiguous(); });
-    c.def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return Array{self}.ndim(); });
-    c.def_property_readonly("offset", [](const ArrayBodyPtr& self) { return Array{self}.offset(); });
-    c.def_property_readonly("shape", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.shape()); });
-    c.def_property_readonly("strides", [](const ArrayBodyPtr& self) { return ToTuple(Array{self}.strides()); });
-    c.def_property_readonly("nbytes", [](const ArrayBodyPtr& self) { return Array{self}.GetNBytes(); });
-    c.def_property_readonly("size", [](const ArrayBodyPtr& self) { return Array{self}.GetTotalSize(); });
+    c.def_property_readonly("itemsize", [](const ArrayBodyPtr& self) { return self->item_size(); });
+    c.def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return self->IsContiguous(); });
+    c.def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return self->ndim(); });
+    c.def_property_readonly("offset", [](const ArrayBodyPtr& self) { return self->offset(); });
+    c.def_property_readonly("shape", [](const ArrayBodyPtr& self) { return ToTuple(self->shape()); });
+    c.def_property_readonly("strides", [](const ArrayBodyPtr& self) { return ToTuple(self->strides()); });
+    c.def_property_readonly("nbytes", [](const ArrayBodyPtr& self) { return self->GetNBytes(); });
+    c.def_property_readonly("size", [](const ArrayBodyPtr& self) { return self->GetTotalSize(); });
     c.def_property_readonly("T", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Transpose()); });
     // Returns the data address, before adding offset.
     // TODO(niboshi): Consider what to do with the backends in which the "pointer" is not available from host.
     c.def_property_readonly("data_ptr", [](const ArrayBodyPtr& self) -> intptr_t {
-        const void* ptr = Array{self}.data().get();
-        return reinterpret_cast<intptr_t>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        return reinterpret_cast<intptr_t>(self->data().get());  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     });
     c.def_property_readonly("data_size", [](const ArrayBodyPtr& self) -> int64_t {
-        Array array{self};
-        auto range = GetDataRange(array.shape(), array.strides(), array.item_size());
+        auto range = GetDataRange(self->shape(), self->strides(), self->item_size());
         return std::get<1>(range) - std::get<0>(range);
     });
     // TODO(niboshi): Remove this in favor of data_ptr.
     c.def_property_readonly(
             "_debug_data_memory_address",  // These methods starting with `_debug_` are stubs for testing
             [](const ArrayBodyPtr& self) -> intptr_t {
-                const void* ptr = Array{self}.data().get();
+                const void* ptr = self->data().get();
                 return reinterpret_cast<intptr_t>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
             });
     c.def_property_readonly("_debug_flat_data", [](const ArrayBodyPtr& self) {

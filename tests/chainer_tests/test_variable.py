@@ -943,6 +943,13 @@ class TestParameter(unittest.TestCase):
         assert isinstance(x.data, cuda.cupy.ndarray)
         cuda.cupy.testing.assert_array_equal(x.data, data)
 
+    @attr.chainerx
+    def test_initialize_by_chainerx_array(self):
+        data = chainerx.array([1., 2., 3.], dtype='f')
+        x = chainer.Parameter(data)
+        assert isinstance(x.data, chainerx.ndarray)
+        chainerx.testing.assert_array_equal(x.data, data)
+
     def test_update_rule(self):
         update_rule = mock.MagicMock()
         g = self.a.copy()

@@ -1300,7 +1300,7 @@ class Parameter(Variable):
         elif numpy.isscalar(initializer):
             initializer = constant.Constant(initializer)
         if shape is None:
-            if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
+            if chainer.is_arrays_compatible([initializer]):
                 # parameter initialized by the initial array
                 super(Parameter, self).__init__(initializer, name=name)
             else:
@@ -1310,7 +1310,7 @@ class Parameter(Variable):
                 self._grad_initializer = constant.NaN(dtype)
         else:
             # parameter initialized with a given shape
-            if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
+            if chainer.is_arrays_compatible([initializer]):
                 xp = backend.get_array_module(initializer)
                 initializer = constant.Constant(initializer)
             else:
@@ -1371,6 +1371,7 @@ class Parameter(Variable):
             shape (tuple of int): Shape of the data array.
 
         """
+        # TODO(sonots): Support ChainerX
         xp = numpy if self._initial_backend != 'cuda' else cuda.cupy
         with cuda.get_device_from_id(self._initial_device):
             data = initializers.generate_array(self.initializer, shape, xp)
