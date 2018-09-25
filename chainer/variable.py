@@ -738,9 +738,11 @@ class Variable(object):
     @property
     def grad_var(self):
         """Gradient variable."""
-        if (self._is_chainerx and self._grad_var is not None
-                and self._grad_var.data is not self.data.grad):
-            self._grad_var = Variable(self.data.grad)
+        if self._is_chainerx:
+            g = self._grad_var
+            if ((g is None and self.array.grad is not None)
+                    or (g is not None and g.array is not self.array.grad)):
+                self._grad_var = Variable(self.array.grad)
         return self._grad_var
 
     @grad_var.setter
