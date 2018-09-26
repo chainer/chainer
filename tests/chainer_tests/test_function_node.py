@@ -153,7 +153,7 @@ class TestFunctionNode(unittest.TestCase):
 
     def check_apply_chainerx(self):
         x1 = chainer.Variable(self.x1)
-        # ChainerX does not support computing gradients for int32
+        # TODO(sonots): ChainerX does not support computing gradients for int32
         x2 = chainer.Variable(self.x2, requires_grad=False)
         ys = self.f.apply((x1, x2))
 
@@ -257,7 +257,7 @@ class TestFunctionNode(unittest.TestCase):
 
     def check_apply_single_return_value_chainerx(self):
         x1 = chainer.Variable(self.x1)
-        # ChainerX does not support computing gradients for int32
+        # TODO(sonots): ChainerX does not support computing gradients for int32
         x2 = chainer.Variable(self.x2, requires_grad=False)
         ret, = self.f.apply((x1, x2))
         self.assertIsInstance(ret, chainer.Variable)
