@@ -162,6 +162,7 @@ class TestFunctionNode(unittest.TestCase):
 
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
+            self.assertIsInstance(y.data, chainerx.ndarray)
             self.assertTrue(y.requires_grad)
 
     def test_apply_cpu(self):
@@ -234,6 +235,7 @@ class TestFunctionNode(unittest.TestCase):
 
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
+            self.assertIsInstance(y.data, chainerx.ndarray)
             self.assertTrue(y.requires_grad)
 
     def test_apply_ndarray_cpu(self):
@@ -261,6 +263,7 @@ class TestFunctionNode(unittest.TestCase):
         x2 = chainer.Variable(self.x2, requires_grad=False)
         ret, = self.f.apply((x1, x2))
         self.assertIsInstance(ret, chainer.Variable)
+        self.assertIsInstance(ret.data, chainerx.ndarray)
 
     def test_apply_single_return_value_cpu(self):
         self.f.forward_cpu.return_value = (cuda.to_cpu(self.y1),)
