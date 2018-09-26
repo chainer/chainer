@@ -874,7 +874,7 @@ class Variable(object):
         if node._data is not None:
             node.retain_data()
 
-    def to_chainerx(self, device=None):
+    def to_chainerx(self):
         """Copies the data and gradient arrays to specified device.
 
         Args:
