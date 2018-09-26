@@ -263,9 +263,9 @@ class TestBinaryOp(unittest.TestCase):
         def fun(xs):
             return [op(xs[0], xs[1])]
 
-        xs = [chainerx.array(_).require_grad() for _ in (self.x1, self.x2)]
-        gys = [chainerx.array(_) for _ in (self.gy,)]
-        eps = [chainerx.full_like(_, 1e-3) for _ in xs]
+        xs = [chainerx.array(a).require_grad() for a in (self.x1, self.x2)]
+        gys = [chainerx.array(a) for a in (self.gy,)]
+        eps = [chainerx.full_like(a, 1e-3) for a in xs]
         chainerx.check_backward(fun, xs, gys, eps)
 
     @attr.chainerx
@@ -339,10 +339,10 @@ class TestBinaryOp(unittest.TestCase):
         def fun(xs):
             return [op(xs[0], xs[1])]
 
-        xs = [chainerx.array(_).require_grad() for _ in (self.x1, self.x2)]
-        gys = [chainerx.array(_).require_grad() for _ in (self.gy,)]
-        ggxs = [chainerx.array(_) for _ in (self.ggx1, self.ggx2)]
-        eps = [chainerx.full_like(_, 1e-3) for _ in xs + gys]
+        xs = [chainerx.array(a).require_grad() for a in (self.x1, self.x2)]
+        gys = [chainerx.array(a).require_grad() for a in (self.gy,)]
+        ggxs = [chainerx.array(a) for a in (self.ggx1, self.ggx2)]
+        eps = [chainerx.full_like(a, 1e-3) for a in xs + gys]
         chainerx.check_double_backward(fun, xs, gys, ggxs, eps, **options)
 
     @attr.chainerx
