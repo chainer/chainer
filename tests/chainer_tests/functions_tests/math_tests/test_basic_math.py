@@ -1113,22 +1113,32 @@ class TestUnaryFunctions(unittest.TestCase):
     def forward_cpu(self, op, op_np):
         self.check_forward(op, op_np, self.x)
 
-    def test_neg_forward_cpu(self):
-        self.forward_cpu(lambda x: -x, lambda x: -x)
-
-    def test_abs_forward_cpu(self):
-        self.forward_cpu(lambda x: abs(x), lambda x: abs(x))
-
     def forward_gpu(self, op, op_np):
         self.check_forward(op, op_np, cuda.to_gpu(self.x))
+
+    def forward_chainerx_cpu(self, op, op_np):
+        self.check_forward(op, op_np, chainerx.array(self.x))
+
+    def test_neg_forward_cpu(self):
+        self.forward_cpu(lambda x: -x, lambda x: -x)
 
     @attr.gpu
     def test_neg_forward_gpu(self):
         self.forward_gpu(lambda x: -x, lambda x: -x)
 
+    def test_abs_forward_cpu(self):
+        self.forward_cpu(lambda x: abs(x), lambda x: abs(x))
+
     @attr.gpu
     def test_abs_forward_gpu(self):
         self.forward_gpu(lambda x: abs(x), lambda x: abs(x))
+
+    @attr.chainerx
+    def test_abs_forward_chainerx_cpu(self):
+        # TODO(imanishi): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+        self.forward_chainerx_cpu(lambda x: abs(x), lambda x: abs(x))
 
     def check_backward(self, op, x_data, y_grad):
         options = {}

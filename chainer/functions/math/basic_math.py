@@ -141,12 +141,6 @@ def absolute(self):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if chainerx.is_available():
-        chx_array = variable.as_array(self)
-        if isinstance(chx_array, chainerx.ndarray):
-            np_array = backend.to_numpy(chx_array)
-            return Absolute().apply((np_array,))[0].to_chainerx()
-
     return Absolute().apply((self,))[0]
 
 
