@@ -151,25 +151,25 @@ class TestBinaryOp(unittest.TestCase):
         self.check_forward(
             op, chainerx.array(self.x1), chainerx.array(self.x2))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_add_forward_chainerx_cpu(self):
         self.forward_chainerx_cpu(lambda x, y: x + y)
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_sub_forward_chainerx_cpu(self):
         self.forward_chainerx_cpu(lambda x, y: x - y)
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_mul_forward_chainerx_cpu(self):
         self.forward_chainerx_cpu(lambda x, y: x * y)
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_div_forward_chainerx_cpu(self):
         self.forward_chainerx_cpu(lambda x, y: x / y)
 
     # TODO(hvy): Implement floor.
     @pytest.mark.skip
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_floordiv_forward_chainerx_cpu(self):
         pass
 
@@ -177,25 +177,25 @@ class TestBinaryOp(unittest.TestCase):
     def test_pow_forward_chainerx_cpu(self):
         self.forward_chainerx_cpu(lambda x, y: x.__pow__(y))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_radd_forward_chainerx_cpu(self):
         self.forward_chainerx_cpu(lambda x, y: y.__radd__(x))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_rsub_forward_chainerx_cpu(self):
         self.forward_chainerx_cpu(lambda x, y: y.__rsub__(x))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_rmul_forward_chainerx_cpu(self):
         self.forward_chainerx_cpu(lambda x, y: y.__rmul__(x))
 
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_rdiv_forward_chainerx_cpu(self):
         self.forward_chainerx_cpu(lambda x, y: y.__rtruediv__(x))
 
     # TODO(hvy): Implement floor.
     @pytest.mark.skip
-    @pytest.mark.chainerx
+    @attr.chainerx
     def test_rfloordiv_forward_chainerx_cpu(self):
         pass
 
