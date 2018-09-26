@@ -45,7 +45,7 @@ add_path PATH "$CONDA_DIR"/bin
 
 run_step() {
     # Runs a single step
-    bash "$REPO_DIR"/chainerx/scripts/ci/run-step.sh "$@"
+    bash "$REPO_DIR"/chainerx_cc/scripts/ci/run-step.sh "$@"
 }
 
 
