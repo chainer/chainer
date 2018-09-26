@@ -146,7 +146,8 @@ class TestBinaryOp(unittest.TestCase):
     def forward_chainerx_cpu(self, op):
         # TODO(hvy): chainerx does not support fp16 yet
         if numpy.float16 in (self.x1.dtype, self.x2.dtype):
-            return
+            raise unittest.SkipTest('Not yet supported')
+
         self.check_forward(
             op, chainerx.array(self.x1), chainerx.array(self.x2))
 
