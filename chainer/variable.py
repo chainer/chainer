@@ -890,11 +890,13 @@ class Variable(object):
             self._data = [chainerx.asarray(data)]
         elif isinstance(data, cuda.ndarray):
             # TODO(sonots): Support CuPy
+            raise NotImplementedError()
         elif isinstance(data, intel64.mdarray):
             # TODO(sonots): Support ideep
+            raise NotImplementedError()
 
         if self._grad_var is not None:
-            self._grad_var.to_chaienrx()
+            self._grad_var.to_chainerx()
 
     def cleargrad(self):
         """Clears the gradient array."""
