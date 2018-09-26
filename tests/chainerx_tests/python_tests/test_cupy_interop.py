@@ -33,11 +33,13 @@ def test_cupy_to_chainerx_contiguous():
 
     # Write to a_cupy
     a_cupy[0, 1] = 8
-    chainerx.testing.assert_array_equal_ex(a_chx, numpy.array([[0, 8, 2], [3, 4, 5]], dtype))
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, numpy.array([[0, 8, 2], [3, 4, 5]], dtype))
 
     # Write to a_chx
     a_chx += 1
-    chainerx.testing.assert_array_equal_ex(a_cupy.get(), numpy.array([[1, 9, 3], [4, 5, 6]], dtype))
+    chainerx.testing.assert_array_equal_ex(
+        a_cupy.get(), numpy.array([[1, 9, 3], [4, 5, 6]], dtype))
 
 
 @pytest.mark.cuda()
@@ -56,7 +58,8 @@ def test_cupy_to_chainerx_delete_cupy_first():
     del a_cupy
 
     a_chx += 1
-    chainerx.testing.assert_array_equal_ex(a_chx, numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
 
 
 @pytest.mark.cuda()
@@ -75,7 +78,8 @@ def test_cupy_to_chainerx_delete_chainerx_first():
     del a_chx
 
     a_cupy += 1
-    chainerx.testing.assert_array_equal_ex(a_cupy.get(), numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
+    chainerx.testing.assert_array_equal_ex(
+        a_cupy.get(), numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
 
 
 @pytest.mark.cuda()
@@ -113,17 +117,20 @@ def test_cupy_to_chainerx_noncontiguous_with_offset():
         a_cupy)
 
     assert a_chx.strides == a_cupy.strides
-    chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get(), strides_check=False)
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, a_cupy.get(), strides_check=False)
 
     a_cupy[1, 1] = 53
 
     assert a_chx.strides == a_cupy.strides
-    chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get(), strides_check=False)
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, a_cupy.get(), strides_check=False)
 
 
 @pytest.mark.cuda()
 def test_cupy_to_chainerx_noncontiguous_without_offset():
-    # This test includes access to address before the given pointer (because of a negative stride).
+    # This test includes access to address before the given pointer (because of
+    # a negative stride).
     dtype = numpy.float32
     a_cupy = cupy.arange(12, dtype=dtype).reshape((2, 6))[::-1, ::2]
 
@@ -141,12 +148,14 @@ def test_cupy_to_chainerx_noncontiguous_without_offset():
         a_cupy)
 
     assert a_chx.strides == a_cupy.strides
-    chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get(), strides_check=False)
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, a_cupy.get(), strides_check=False)
 
     a_cupy[1, 1] = 53
 
     assert a_chx.strides == a_cupy.strides
-    chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get(), strides_check=False)
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, a_cupy.get(), strides_check=False)
 
 
 @pytest.mark.cuda(2)
@@ -203,11 +212,13 @@ def test_chainerx_to_cupy_contiguous():
 
     # Write to a_cupy
     a_cupy[0, 1] = 8
-    chainerx.testing.assert_array_equal_ex(a_chx, numpy.array([[0, 8, 2], [3, 4, 5]], dtype))
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, numpy.array([[0, 8, 2], [3, 4, 5]], dtype))
 
     # Write to a_chx
     a_chx += 1
-    chainerx.testing.assert_array_equal_ex(a_cupy.get(), numpy.array([[1, 9, 3], [4, 5, 6]], dtype))
+    chainerx.testing.assert_array_equal_ex(
+        a_cupy.get(), numpy.array([[1, 9, 3], [4, 5, 6]], dtype))
 
 
 @pytest.mark.cuda()
@@ -228,7 +239,8 @@ def test_chainerx_to_cupy_delete_cupy_first():
     del a_cupy
 
     a_chx += 1
-    chainerx.testing.assert_array_equal_ex(a_chx, numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
 
 
 @pytest.mark.cuda()
@@ -249,13 +261,15 @@ def test_chainerx_to_cupy_delete_chainerx_first():
     del a_chx
 
     a_cupy += 1
-    chainerx.testing.assert_array_equal_ex(a_cupy.get(), numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
+    chainerx.testing.assert_array_equal_ex(
+        a_cupy.get(), numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
 
 
 @pytest.mark.cuda()
 def test_chainerx_to_cupy_noncontiguous():
     dtype = 'float32'
-    a_chx = chainerx.arange(12, dtype=dtype, device='cuda:0').reshape((2, 6))[::-1, ::2]
+    a_chx = chainerx.arange(
+        12, dtype=dtype, device='cuda:0').reshape((2, 6))[::-1, ::2]
     offset = a_chx.offset
 
     # test preconditions
@@ -274,12 +288,14 @@ def test_chainerx_to_cupy_noncontiguous():
     )
 
     assert a_chx.strides == a_cupy.strides
-    chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get(), strides_check=False)
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, a_cupy.get(), strides_check=False)
 
     a_cupy[1, 1] = 53
 
     assert a_chx.strides == a_cupy.strides
-    chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get(), strides_check=False)
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, a_cupy.get(), strides_check=False)
 
 
 @pytest.mark.cuda(2)

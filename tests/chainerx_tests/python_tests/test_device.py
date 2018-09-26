@@ -21,12 +21,14 @@ def device_data2(request):
 
 @pytest.fixture
 def device_instance1(request, device_data1):
-    return chainerx.get_global_default_context().get_device('native', device_data1['index'])
+    return chainerx.get_global_default_context().get_device(
+        'native', device_data1['index'])
 
 
 @pytest.fixture
 def device_instance2(request, device_data2):
-    return chainerx.get_global_default_context().get_device('native', device_data2['index'])
+    return chainerx.get_global_default_context().get_device(
+        'native', device_data2['index'])
 
 
 @pytest.fixture

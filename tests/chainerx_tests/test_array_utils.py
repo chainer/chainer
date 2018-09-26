@@ -32,7 +32,8 @@ def test_total_size(expected, shape):
 @pytest.mark.parametrize('pattern', [1, 2])
 @pytest.mark.parametrize('padding', [True, False])
 def test_dummy_ndarray(xp, device, shape, dtype, pattern, padding):
-    a = array_utils.create_dummy_ndarray(xp, shape, dtype, device=device, pattern=pattern, padding=padding)
+    a = array_utils.create_dummy_ndarray(
+        xp, shape, dtype, device=device, pattern=pattern, padding=padding)
 
     assert isinstance(a, xp.ndarray)
     assert a.dtype == xp.dtype(dtype)
@@ -71,7 +72,8 @@ def test_dummy_ndarray(xp, device, shape, dtype, pattern, padding):
 
 @pytest.mark.parametrize('device_spec', [None, 'native', 'native:0'])
 def test_dummy_ndarray_device_spec(device_spec):
-    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'float32', device=device_spec)
+    a = array_utils.create_dummy_ndarray(
+        chainerx, (2, 3), 'float32', device=device_spec)
     assert a.device is chainerx.get_device(device_spec)
 
 

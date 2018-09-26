@@ -29,7 +29,8 @@ def get_imagenet(dataset_iter):
 def compute_loss(y, t):
     # softmax cross entropy
     score = chx.log_softmax(y, axis=1)
-    mask = (t[:, chx.newaxis] == chx.arange(1000, dtype=t.dtype)).astype(score.dtype)
+    mask = (t[:, chx.newaxis] == chx.arange(
+        1000, dtype=t.dtype)).astype(score.dtype)
     # TODO(beam2d): implement mean
     return -(score * mask).sum() * (1 / y.shape[0])
 
@@ -51,7 +52,8 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
 
         y = model(x)
         total_loss += compute_loss(y, t) * batch_size
-        num_correct += (y.argmax(axis=1).astype(t.dtype) == t).astype(chx.int32).sum()
+        num_correct += (y.argmax(axis=1).astype(t.dtype)
+                        == t).astype(chx.int32).sum()
 
     model.require_grad()
 
@@ -65,23 +67,30 @@ def main():
         description='Learning convnet from ILSVRC2012 dataset')
     parser.add_argument('train', help='Path to training image-label list file')
     parser.add_argument('val', help='Path to validation image-label list file')
-    parser.add_argument('--batchsize', '-B', type=int, default=32,
-                        help='Learning minibatch size')
-    parser.add_argument('--epoch', '-E', type=int, default=10,
-                        help='Number of epochs to train')
-    parser.add_argument('--iteration', '-I', type=int, default=None,
-                        help='Number of iterations to train. Epoch is ignored if specified.')
-    parser.add_argument('--loaderjob', '-j', type=int,
-                        help='Number of parallel data loading processes')
-    parser.add_argument('--mean', '-m', default='mean.npy',
-                        help='Mean file (computed by compute_mean.py)')
-    parser.add_argument('--root', '-R', default='.',
-                        help='Root directory path of image files')
-    parser.add_argument('--val_batchsize', '-b', type=int, default=250,
-                        help='Validation minibatch size')
+    parser.add_argument(
+        '--batchsize', '-B', type=int, default=32,
+        help='Learning minibatch size')
+    parser.add_argument(
+        '--epoch', '-E', type=int, default=10,
+        help='Number of epochs to train')
+    parser.add_argument(
+        '--iteration', '-I', type=int, default=None,
+        help='Number of iterations to train. Epoch is ignored if specified.')
+    parser.add_argument(
+        '--loaderjob', '-j', type=int,
+        help='Number of parallel data loading processes')
+    parser.add_argument(
+        '--mean', '-m', default='mean.npy',
+        help='Mean file (computed by compute_mean.py)')
+    parser.add_argument(
+        '--root', '-R', default='.',
+        help='Root directory path of image files')
+    parser.add_argument(
+        '--val_batchsize', '-b', type=int, default=250,
+        help='Validation minibatch size')
     parser.set_defaults(test=False)
-    parser.add_argument('--device', '-d', default='native',
-                        help='Device to use')
+    parser.add_argument(
+        '--device', '-d', default='native', help='Device to use')
 
     args = parser.parse_args()
 
@@ -124,9 +133,12 @@ def main():
             it += 1
             if args.iteration is not None:
                 x_test, t_test = get_imagenet(test_iter)
-                mean_loss, accuracy = evaluate(model, x_test, t_test, eval_size, batch_size)
+                mean_loss, accuracy = evaluate(
+                    model, x_test, t_test, eval_size, batch_size)
                 elapsed_time = time.time() - start
-                print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
+                print(
+                    f'iteration {it}... loss={mean_loss},\t'
+                    f'accuracy={accuracy},\telapsed_time={elapsed_time}')
                 if it >= args.iteration:
                     is_finished = True
                     break
@@ -134,9 +146,12 @@ def main():
         epoch += 1
         if args.iteration is None:
             x_test, t_test = get_imagenet(test_iter)
-            mean_loss, accuracy = evaluate(model, x_test, t_test, eval_size, batch_size)
+            mean_loss, accuracy = evaluate(
+                model, x_test, t_test, eval_size, batch_size)
             elapsed_time = time.time() - start
-            print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
+            print(
+                f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy},\t'
+                f'elapsed_time={elapsed_time}')
             if epoch >= args.epoch:
                 is_finished = True
 

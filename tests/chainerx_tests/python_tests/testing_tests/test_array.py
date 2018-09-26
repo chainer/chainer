@@ -14,9 +14,11 @@ def _make_onehot_arrays(shape, dtype, value1, value2):
     return a, b
 
 
-@pytest.mark.parametrize('dtype1,dtype2', list(zip(chainerx.testing.all_dtypes, chainerx.testing.all_dtypes)) + [
-    ('float32', 'int64'),  # arrays with different dtypes
-])
+@pytest.mark.parametrize(
+    'dtype1,dtype2',
+    list(zip(chainerx.testing.all_dtypes, chainerx.testing.all_dtypes)) + [
+        ('float32', 'int64'),  # arrays with different dtypes
+    ])
 @pytest.mark.parametrize('shape,transpose', [
     ((), False),
     ((0,), False),
@@ -30,7 +32,8 @@ def test_assert_array_equal(shape, transpose, dtype1, dtype2):
         np_b = numpy.empty(np_a.T.shape, dtype=dtype2).T
         np_b[:] = np_a
     else:
-        np_b = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype2).reshape(shape)
+        np_b = numpy.arange(2, 2 + numpy.prod(shape)
+                            ).astype(dtype2).reshape(shape)
 
     chx_a = chainerx.array(np_a)
     chx_b = chainerx.array(np_b)
@@ -87,9 +90,11 @@ def test_assert_array_equal_fail_scalar(value1, value2):
         chainerx.testing.assert_array_equal(value2, value1)
 
 
-@pytest.mark.parametrize('dtype1,dtype2', list(zip(chainerx.testing.all_dtypes, chainerx.testing.all_dtypes)) + [
-    ('float32', 'int64'),  # arrays with different dtypes
-])
+@pytest.mark.parametrize(
+    'dtype1,dtype2',
+    list(zip(chainerx.testing.all_dtypes, chainerx.testing.all_dtypes)) + [
+        ('float32', 'int64'),  # arrays with different dtypes
+    ])
 @pytest.mark.parametrize('shape,transpose', [
     ((), False),
     ((0,), False),
@@ -105,7 +110,8 @@ def test_assert_allclose(shape, transpose, dtype1, dtype2):
         np_b = numpy.empty(np_a.T.shape, dtype=dtype2).T
         np_b[:] = np_a
     else:
-        np_b = numpy.arange(2, 2 + numpy.prod(shape)).astype(dtype2).reshape(shape)
+        np_b = numpy.arange(2, 2 + numpy.prod(shape)
+                            ).astype(dtype2).reshape(shape)
 
     # Give some perturbation only if dtype is float
     if np_a.dtype.kind in ('f', 'c'):
@@ -123,9 +129,12 @@ def test_assert_allclose(shape, transpose, dtype1, dtype2):
 
     # Test checks
     chainerx.testing.assert_allclose(np_a, np_a, atol=atol)  # np-np (same obj)
-    chainerx.testing.assert_allclose(chx_a, chx_a, atol=atol)  # chx-chx (same obj)
-    chainerx.testing.assert_allclose(np_a, np_b, atol=atol)  # np-np (diff. obj)
-    chainerx.testing.assert_allclose(chx_a, chx_b, atol=atol)  # chx-chx (diff. obj)
+    chainerx.testing.assert_allclose(
+        chx_a, chx_a, atol=atol)  # chx-chx (same obj)
+    chainerx.testing.assert_allclose(
+        np_a, np_b, atol=atol)  # np-np (diff. obj)
+    chainerx.testing.assert_allclose(
+        chx_a, chx_b, atol=atol)  # chx-chx (diff. obj)
     chainerx.testing.assert_allclose(np_a, chx_b, atol=atol)  # np-chx
     chainerx.testing.assert_allclose(chx_a, np_b, atol=atol)  # chx-np
 
@@ -171,7 +180,8 @@ def test_assert_allclose_fail_scalar(value1, value2):
 def test_assert_allclose_fail_equal_nan():
     chainerx.testing.assert_allclose(float('nan'), float('nan'))
     with pytest.raises(AssertionError):
-        chainerx.testing.assert_allclose(float('nan'), float('nan'), equal_nan=False)
+        chainerx.testing.assert_allclose(
+            float('nan'), float('nan'), equal_nan=False)
 
     shape = (2, 3)
     dtype = numpy.float32
@@ -256,7 +266,8 @@ def test_assert_array_equal_ex_fail_dtype():
     with pytest.raises(AssertionError):
         chainerx.testing.assert_array_equal_ex(a, b)
     with pytest.raises(AssertionError):
-        chainerx.testing.assert_array_equal_ex(a, b, strides_check=False)  # strides_check does not affect dtype_check
+        # strides_check does not affect dtype_check
+        chainerx.testing.assert_array_equal_ex(a, b, strides_check=False)
     chainerx.testing.assert_array_equal_ex(a, b, dtype_check=False)
 
 
@@ -269,4 +280,5 @@ def test_assert_array_equal_ex_fail_strides():
     with pytest.raises(AssertionError):
         chainerx.testing.assert_array_equal_ex(a, b)
     chainerx.testing.assert_array_equal_ex(a, b, strides_check=False)
-    chainerx.testing.assert_array_equal_ex(a, b, dtype_check=False)  # dtype_check=False implies strides_check=False
+    # dtype_check=False implies strides_check=False
+    chainerx.testing.assert_array_equal_ex(a, b, dtype_check=False)

@@ -30,7 +30,8 @@ class MLP:
         for param in self.params:
             # TODO(beam2d): make it easier
             p = param.as_grad_stopped()
-            p -= lr * param.grad.as_grad_stopped()  # TODO(beam2d): make grad not have graph by default
+            # TODO(beam2d): make grad not have graph by default
+            p -= lr * param.grad.as_grad_stopped()
             param.cleargrad()
 
     def no_grad(self):
@@ -48,7 +49,8 @@ class MLP:
 
 
 def new_linear_params(n_in, n_out):
-    W = np.random.randn(n_in, n_out).astype(np.float32)  # TODO(beam2d): not supported in chx
+    W = np.random.randn(n_in, n_out).astype(
+        np.float32)  # TODO(beam2d): not supported in chx
     W /= np.sqrt(n_in)  # TODO(beam2d): not supported in chx
     W = chx.array(W)
     # TODO(beam2d): make zeros accept int as shape
@@ -59,7 +61,8 @@ def new_linear_params(n_in, n_out):
 def compute_loss(y, t):
     # softmax cross entropy
     score = chx.log_softmax(y, axis=1)
-    mask = (t[:, chx.newaxis] == chx.arange(10, dtype=t.dtype)).astype(score.dtype)
+    mask = (t[:, chx.newaxis] == chx.arange(
+        10, dtype=t.dtype)).astype(score.dtype)
     # TODO(beam2d): implement mean
     return -(score * mask).sum() * (1 / y.shape[0])
 
@@ -81,7 +84,8 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
 
         y = model.forward(x)
         total_loss += compute_loss(y, t) * batch_size
-        num_correct += (y.argmax(axis=1).astype(t.dtype) == t).astype(chx.int32).sum()
+        num_correct += (y.argmax(axis=1).astype(t.dtype)
+                        == t).astype(chx.int32).sum()
 
     model.require_grad()
 
@@ -92,14 +96,23 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
 
 def main():
     parser = argparse.ArgumentParser('Train a neural network on MNIST dataset')
-    parser.add_argument('--batchsize', '-B', type=int, default=100, help='Batch size')
-    parser.add_argument('--epoch', '-E', type=int, default=20, help='Number of epochs to train')
-    parser.add_argument('--iteration', '-I', type=int, default=None, help='Number of iterations to train. Epoch is ignored if specified.')
-    parser.add_argument('--data', '-p', default='mnist',
-                        help='Path to the directory that contains MNIST dataset')
-    parser.add_argument('--device', '-d', default='native', help='Device to use')
-    parser.add_argument('--eval-size', default=None, type=int,
-                        help='Number of samples to use from the test set for evaluation. None to use all.')
+    parser.add_argument(
+        '--batchsize', '-B', type=int, default=100, help='Batch size')
+    parser.add_argument(
+        '--epoch', '-E', type=int, default=20,
+        help='Number of epochs to train')
+    parser.add_argument(
+        '--iteration', '-I', type=int, default=None,
+        help='Number of iterations to train. Epoch is ignored if specified.')
+    parser.add_argument(
+        '--data', '-p', default='mnist',
+        help='Path to the directory that contains MNIST dataset')
+    parser.add_argument(
+        '--device', '-d', default='native', help='Device to use')
+    parser.add_argument(
+        '--eval-size', default=None, type=int,
+        help='Number of samples to use from the test set for evaluation. '
+        'None to use all.')
     args = parser.parse_args()
 
     chx.set_default_device(args.device)
@@ -113,7 +126,8 @@ def main():
 
     # Training
     N = X.shape[0]   # TODO(beam2d): implement len
-    all_indices_np = np.arange(N, dtype=np.int64)  # TODO(beam2d): support int32 indexing
+    # TODO(beam2d): support int32 indexing
+    all_indices_np = np.arange(N, dtype=np.int64)
     batch_size = args.batchsize
     eval_size = args.eval_size
 
@@ -126,7 +140,8 @@ def main():
     start = time.time()
 
     while not is_finished:
-        np.random.shuffle(all_indices_np)  # TODO(beam2d): not suupported in chx
+        # TODO(beam2d): not suupported in chx
+        np.random.shuffle(all_indices_np)
         all_indices = chx.array(all_indices_np)
 
         for i in range(0, N, batch_size):
@@ -142,18 +157,24 @@ def main():
 
             it += 1
             if args.iteration is not None:
-                mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
+                mean_loss, accuracy = evaluate(
+                    model, X_test, Y_test, eval_size, batch_size)
                 elapsed_time = time.time() - start
-                print(f'iteration {it}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
+                print(
+                    f'iteration {it}... loss={mean_loss},\t'
+                    f'accuracy={accuracy},\telapsed_time={elapsed_time}')
                 if it >= args.iteration:
                     is_finished = True
                     break
 
         epoch += 1
         if args.iteration is None:  # stop based on epoch, instead of iteration
-            mean_loss, accuracy = evaluate(model, X_test, Y_test, eval_size, batch_size)
+            mean_loss, accuracy = evaluate(
+                model, X_test, Y_test, eval_size, batch_size)
             elapsed_time = time.time() - start
-            print(f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy},\telapsed_time={elapsed_time}')
+            print(
+                f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy},\t'
+                f'elapsed_time={elapsed_time}')
             if epoch >= args.epoch:
                 is_finished = True
 
@@ -165,7 +186,8 @@ def get_mnist(path, name):
 
     with gzip.open(x_path, 'rb') as fx:
         fx.read(16)  # skip header
-        # read/frombuffer is used instead of fromfile because fromfile does not handle gzip file correctly
+        # read/frombuffer is used instead of fromfile because fromfile does not
+        # handle gzip file correctly
         x = np.frombuffer(fx.read(), dtype=np.uint8).reshape(-1, 784)
         x.flags.writeable = True  # TODO(beam2d): remove this workaround
 

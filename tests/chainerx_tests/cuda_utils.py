@@ -19,5 +19,7 @@ def get_cuda_limit():
     else:
         _cuda_limit = int(os.getenv('CHAINERX_TEST_CUDA_DEVICE_LIMIT'))
         if _cuda_limit < 0:
-            raise chainerx.ChainerxError('CHAINERX_TEST_DUDA_DEVICE_LIMIT must be non-negative integer: {}'.format(_cuda_limit))
+            raise chainerx.ChainerxError(
+                'CHAINERX_TEST_DUDA_DEVICE_LIMIT must be non-negative '
+                'integer: {}'.format(_cuda_limit))
     return _cuda_limit

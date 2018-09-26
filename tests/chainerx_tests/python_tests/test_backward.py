@@ -12,7 +12,8 @@ def _assert_arrays_equal(array1, array2):
         assert array1._debug_flat_data == array2._debug_flat_data
 
 
-def _check_backprop(xs, expected_gxs, fprop, extra_xs, gys=None, backprop_id=None):
+def _check_backprop(
+        xs, expected_gxs, fprop, extra_xs, gys=None, backprop_id=None):
     # Checks for test validity
     assert isinstance(xs, tuple)
     assert isinstance(expected_gxs, tuple)
@@ -20,7 +21,8 @@ def _check_backprop(xs, expected_gxs, fprop, extra_xs, gys=None, backprop_id=Non
     assert isinstance(extra_xs, tuple)
     assert len(xs) == len(expected_gxs)
     assert all([isinstance(a, chainerx.ndarray) for a in xs])
-    assert all([(isinstance(a, chainerx.ndarray) or a == chainerx.ChainerxError) for a in expected_gxs])
+    assert all([(isinstance(a, chainerx.ndarray) or a ==
+                 chainerx.ChainerxError) for a in expected_gxs])
     assert all([isinstance(a, chainerx.ndarray) for a in extra_xs])
 
     # Forward
@@ -332,7 +334,8 @@ def test_backward_keyword_arguments():
     with chainerx.backprop_scope('bp1') as backprop_id1:
         x.require_grad(backprop_id=backprop_id1)
         chainerx.backward(x, backprop_id=backprop_id1)
-        with pytest.raises(TypeError, match=r'.*incompatible function arguments.*'):
+        with pytest.raises(
+                TypeError, match=r'.*incompatible function arguments.*'):
             chainerx.backward(body=x, backprop_id=backprop_id1)
 
 
@@ -416,7 +419,8 @@ def test_backward_multiple_graphs_reuse():
         x1.require_grad(backprop_id2)
         x2.require_grad(backprop_id1)
 
-        expected_gxs = (chainerx.full(shape, 5, dtype), chainerx.full(shape, 2, dtype))
+        expected_gxs = (chainerx.full(shape, 5, dtype),
+                        chainerx.full(shape, 2, dtype))
         _check_backprop(xs, expected_gxs, fprop, (), backprop_id=backprop_id2)
 
         assert x1.get_grad(backprop_id1) is None

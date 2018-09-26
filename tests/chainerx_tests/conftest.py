@@ -20,7 +20,9 @@ def pytest_generate_tests(metafunc):
 
 
 def _register_cuda_marker(config):
-    config.addinivalue_line("markers", "cuda(num=1): mark tests needing the specified number of NVIDIA GPUs.")
+    config.addinivalue_line(
+        "markers",
+        "cuda(num=1): mark tests needing the specified number of NVIDIA GPUs.")
 
 
 def _setup_cuda_marker(item):
@@ -29,10 +31,11 @@ def _setup_cuda_marker(item):
     Tests can be annotated with this decorator (e.g., ``@pytest.mark.cuda``) to
     declare that one NVIDIA GPU is required to run.
 
-    Tests can also be annotated as ``@pytest.mark.cuda(2)`` to declare number of
-    NVIDIA GPUs required to run. When running tests, if ``CHAINERX_TEST_CUDA_DEVICE_LIMIT``
-    environment variable is set to value greater than or equals to 0, test cases
-    that require GPUs more than the limit will be skipped.
+    Tests can also be annotated as ``@pytest.mark.cuda(2)`` to declare number
+    of NVIDIA GPUs required to run. When running tests, if
+    ``CHAINERX_TEST_CUDA_DEVICE_LIMIT`` environment variable is set to value
+    greater than or equals to 0, test cases that require GPUs more than the
+    limit will be skipped.
     """
 
     cuda_marker = item.get_marker('cuda')
@@ -43,8 +46,8 @@ def _setup_cuda_marker(item):
 
 
 def _get_required_cuda_devices_from_device_name(device_name):
-    # Returns the number of required CUDA devices to run a test, given a device name.
-    # If the device is non-CUDA device, 0 is returned.
+    # Returns the number of required CUDA devices to run a test, given a
+    # device name. If the device is non-CUDA device, 0 is returned.
     s = device_name.split(':')
     assert len(s) == 2
     if s[0] != 'cuda':
@@ -60,7 +63,8 @@ def device(request):
     device_name = request.param
 
     # Skip if the device is CUDA device and there's no sufficient CUDA devices.
-    cuda_device_count = _get_required_cuda_devices_from_device_name(device_name)
+    cuda_device_count = _get_required_cuda_devices_from_device_name(
+        device_name)
     if cuda_device_count > cuda_utils.get_cuda_limit():
         pytest.skip()
 

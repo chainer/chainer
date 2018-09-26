@@ -7,7 +7,8 @@ import chainerx.testing
 from chainerx_tests import array_utils
 
 
-# Skip if creating an ndarray while casting the data to the parameterized dtype fails.
+# Skip if creating an ndarray while casting the data to the parameterized dtype
+# fails.
 # E.g. [numpy.inf] to numpy.int32.
 def _to_array_safe(xp, a_object, dtype):
     try:
@@ -66,10 +67,14 @@ def test_cmp(device, cmp_op, chx_cmp, np_cmp, a_object, b_object, dtype):
     a_chx = chainerx.array(a_np)
     b_chx = chainerx.array(b_np)
 
-    chainerx.testing.assert_array_equal_ex(cmp_op(a_chx, b_chx), cmp_op(a_np, b_np))
-    chainerx.testing.assert_array_equal_ex(cmp_op(b_chx, a_chx), cmp_op(b_np, a_np))
-    chainerx.testing.assert_array_equal_ex(chx_cmp(a_chx, b_chx), np_cmp(a_np, b_np))
-    chainerx.testing.assert_array_equal_ex(chx_cmp(b_chx, a_chx), np_cmp(b_np, a_np))
+    chainerx.testing.assert_array_equal_ex(
+        cmp_op(a_chx, b_chx), cmp_op(a_np, b_np))
+    chainerx.testing.assert_array_equal_ex(
+        cmp_op(b_chx, a_chx), cmp_op(b_np, a_np))
+    chainerx.testing.assert_array_equal_ex(
+        chx_cmp(a_chx, b_chx), np_cmp(a_np, b_np))
+    chainerx.testing.assert_array_equal_ex(
+        chx_cmp(b_chx, a_chx), np_cmp(b_np, a_np))
 
 
 @pytest.mark.parametrize('a_shape,b_shape', [

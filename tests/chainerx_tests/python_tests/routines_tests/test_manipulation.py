@@ -10,7 +10,8 @@ from chainerx_tests import array_utils
 
 
 @pytest.mark.parametrize('value', [
-    0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
+    0, 1, -1, 0.1, 0.9, -0.1, -0.9, 1.1, -1.1, 1.9, -
+    1.9, True, False, float('inf'), -float('inf'), float('nan'), -0.0
 ])
 @pytest.mark.parametrize('shape', [
     (), (1,), (1, 1, 1)
@@ -150,8 +151,10 @@ _reshape_shape = [
 ]
 
 
-# TODO(niboshi): Test with non-contiguous input array that requires copy to reshape
-# TODO(niboshi): Test with non-contiguous input array that does not require copy to reshape
+# TODO(niboshi): Test with non-contiguous input array that requires copy to
+# reshape
+# TODO(niboshi): Test with non-contiguous input array that does not require
+# copy to reshape
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
 @pytest.mark.parametrize('shape_type', [tuple, list])
@@ -177,24 +180,30 @@ def test_reshape(is_module, xp, a_shape, b_shape, shape_type, padding):
     return copied, b
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(TypeError, chainerx.ChainerxError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(TypeError, chainerx.ChainerxError))
 @pytest.mark.parametrize('a_shape,b_shape', _reshape_shape)
 def test_reshape_args(is_module, xp, a_shape, b_shape):
     # TODO(niboshi): Remove padding=False
     a = array_utils.create_dummy_ndarray(xp, a_shape, 'int64', padding=False)
     if is_module:
         if len(b_shape) > 1:
-            # Skipping tests where the 'order' argument is unintentionally given a shape value, since numpy won't raise any errors in
-            # this case which you might expect at first.
+            # Skipping tests where the 'order' argument is unintentionally
+            # given a shape value, since numpy won't raise any errors in this
+            # case which you might expect at first.
             return xp.array([])
-        b = xp.reshape(a, *b_shape)  # TypeError/chainerx.ChainerxError in case b_shape is empty.
+        # TypeError/chainerx.ChainerxError in case b_shape is empty.
+        b = xp.reshape(a, *b_shape)
     else:
-        b = a.reshape(*b_shape)  # TypeError/chainerx.ChainerxError in case b_shape is empty.
+        # TypeError/chainerx.ChainerxError in case b_shape is empty.
+        b = a.reshape(*b_shape)
 
     if xp is chainerx:
         assert b.is_contiguous
-        assert a._debug_data_memory_address == b._debug_data_memory_address, 'Reshape must be done without copy'
-        assert numpy.arange(a.size).reshape(b_shape).strides == b.strides, 'Strides after reshape must match NumPy behavior'
+        assert a._debug_data_memory_address == b._debug_data_memory_address, (
+            'Reshape must be done without copy')
+        assert numpy.arange(a.size).reshape(b_shape).strides == b.strides, (
+            'Strides after reshape must match NumPy behavior')
 
     return b
 
@@ -255,7 +264,8 @@ def test_squeeze(is_module, xp, shape, axis):
         return a.squeeze(axis)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(chainerx.DimensionError, ValueError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize('shape,axis', [
     ((2, 1, 3), 0),
     ((2, 1, 3), -1),
@@ -289,7 +299,8 @@ def test_broadcast_to_auto_prefix(xp):
     return xp.broadcast_to(a, (3, 2))
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(chainerx.DimensionError, ValueError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize(('src_shape,dst_shape'), [
     ((3,), (2,)),
     ((3,), (3, 2)),

@@ -112,7 +112,9 @@ def test_init_casted(value, cast_dtype, expected_value):
     assert isinstance(scalar.tolist(), type(expected_value))
 
 
-@pytest.mark.parametrize('value', [0, 0.0, 1, 1.0, -1, 0x100, 0x10000, 0x100000000, 0x7fffffffffffffff])
+@pytest.mark.parametrize(
+    'value',
+    [0, 0.0, 1, 1.0, -1, 0x100, 0x10000, 0x100000000, 0x7fffffffffffffff])
 @chainerx.testing.parametrize_dtype_specifier('dtype_spec')
 def test_init_with_dtype(value, dtype_spec):
     expected_dtype = chainerx.dtype(dtype_spec)

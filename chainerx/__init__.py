@@ -4,7 +4,8 @@ import sys
 if sys.version_info[0] < 3:
     _available = False
 else:
-    # `testing` needs to be imported before `_core`, because importing `_core` would populate sys.modules['chainerx.testing'].
+    # `testing` needs to be imported before `_core`, because importing `_core`
+    # would populate sys.modules['chainerx.testing'].
     from chainerx import testing  # NOQA
 
     try:

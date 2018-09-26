@@ -29,7 +29,8 @@ def test_dot(is_module, xp, device, a_shape, b_shape, dtype):
         return a.dot(b)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(chainerx.DimensionError, ValueError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize('a_shape,b_shape', [
     ((3, 2), (1, 3)),
 ])

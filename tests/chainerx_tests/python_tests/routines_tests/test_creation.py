@@ -35,7 +35,8 @@ def _array_params(list):
     ]
 
 
-# Traverses the entries in `obj` recursively and returns `True` if all of the entries are finite numbers.
+# Traverses the entries in `obj` recursively and returns `True` if all of the
+# entries are finite numbers.
 def _is_all_finite(obj):
     if isinstance(obj, (tuple, list)):
         return all(_is_all_finite(o) for o in obj)
@@ -51,7 +52,8 @@ class Unspecified:
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('obj', _array_params(_array_params_list))
-@chainerx.testing.parametrize_dtype_specifier('dtype_spec', additional_args=(None, Unspecified))
+@chainerx.testing.parametrize_dtype_specifier(
+    'dtype_spec', additional_args=(None, Unspecified))
 def test_array_from_tuple_or_list(xp, obj, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
@@ -67,7 +69,8 @@ def test_array_from_tuple_or_list(xp, obj, dtype_spec, device):
 
 
 @pytest.mark.parametrize('obj', _array_params(_array_params_list))
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_array_from_python_tuple_or_list_with_device(obj, device):
     a = chainerx.array(obj, 'float32', device=device)
     b = chainerx.array(obj, 'float32')
@@ -81,7 +84,8 @@ def _check_array_from_numpy_array(a_chx, a_np, device=None):
 
     # recovered data should be equal
     a_np_recovered = chainerx.to_numpy(a_chx)
-    chainerx.testing.assert_array_equal_ex(a_chx, a_np_recovered, strides_check=False)
+    chainerx.testing.assert_array_equal_ex(
+        a_chx, a_np_recovered, strides_check=False)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -96,7 +100,8 @@ def test_array_from_numpy_array(xp, shape, dtype, device):
         # test possibly freed memory
         a_np_copy = a_np.copy()
         del a_np
-        chainerx.testing.assert_array_equal_ex(a_xp, a_np_copy, strides_check=False)
+        chainerx.testing.assert_array_equal_ex(
+            a_xp, a_np_copy, strides_check=False)
 
     return a_xp
 
@@ -113,7 +118,8 @@ def test_array_from_numpy_non_contiguous_array(xp, shape, dtype, device):
         # test possibly freed memory
         a_np_copy = a_np.copy()
         del a_np
-        chainerx.testing.assert_array_equal_ex(a_xp, a_np_copy, strides_check=False)
+        chainerx.testing.assert_array_equal_ex(
+            a_xp, a_np_copy, strides_check=False)
 
     return a_xp
 
@@ -146,17 +152,21 @@ def _array_from_numpy_array_with_dtype(xp, shape, src_dtype, dst_dtype_spec):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('src_dtype', chainerx.testing.all_dtypes)
 @pytest.mark.parametrize('dst_dtype', chainerx.testing.all_dtypes)
-def test_array_from_numpy_array_with_dtype(xp, shape, src_dtype, dst_dtype, device):
+def test_array_from_numpy_array_with_dtype(
+        xp, shape, src_dtype, dst_dtype, device):
     return _array_from_numpy_array_with_dtype(xp, shape, src_dtype, dst_dtype)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
-@chainerx.testing.parametrize_dtype_specifier('dst_dtype_spec', additional_args=(None,))
+@chainerx.testing.parametrize_dtype_specifier(
+    'dst_dtype_spec', additional_args=(None,))
 def test_array_from_numpy_array_with_dtype_spec(xp, shape, dst_dtype_spec):
-    return _array_from_numpy_array_with_dtype(xp, shape, 'float32', dst_dtype_spec)
+    return _array_from_numpy_array_with_dtype(
+        xp, shape, 'float32', dst_dtype_spec)
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_array_from_numpy_array_with_device(shape, device):
     orig = array_utils.create_dummy_ndarray(numpy, (2, ), 'float32')
     a = chainerx.array(orig, device=device)
@@ -179,15 +189,20 @@ def test_array_from_chainerx_array(shape, dtype, copy, device):
         assert a.is_contiguous
 
 
-def _check_array_from_chainerx_array_with_dtype(shape, src_dtype, dst_dtype_spec, copy, device=None):
-    t = array_utils.create_dummy_ndarray(chainerx, shape, src_dtype, device=device)
+def _check_array_from_chainerx_array_with_dtype(
+        shape, src_dtype, dst_dtype_spec, copy, device=None):
+    t = array_utils.create_dummy_ndarray(
+        chainerx, shape, src_dtype, device=device)
     a = chainerx.array(t, dtype=dst_dtype_spec, copy=copy)
 
     src_dtype = chainerx.dtype(src_dtype)
-    dst_dtype = src_dtype if dst_dtype_spec is None else chainerx.dtype(dst_dtype_spec)
+    dst_dtype = src_dtype if dst_dtype_spec is None else chainerx.dtype(
+        dst_dtype_spec)
     device = chainerx.get_device(device)
 
-    if not copy and src_dtype == dst_dtype and device is chainerx.get_default_device():
+    if (not copy
+            and src_dtype == dst_dtype
+            and device is chainerx.get_default_device()):
         assert t is a
     else:
         assert t is not a
@@ -200,23 +215,32 @@ def _check_array_from_chainerx_array_with_dtype(shape, src_dtype, dst_dtype_spec
 @pytest.mark.parametrize('src_dtype', chainerx.testing.all_dtypes)
 @pytest.mark.parametrize('dst_dtype', chainerx.testing.all_dtypes)
 @pytest.mark.parametrize('copy', [True, False])
-def test_array_from_chainerx_array_with_dtype(shape, src_dtype, dst_dtype, copy, device):
-    _check_array_from_chainerx_array_with_dtype(shape, src_dtype, dst_dtype, copy, device)
+def test_array_from_chainerx_array_with_dtype(
+        shape, src_dtype, dst_dtype, copy, device):
+    _check_array_from_chainerx_array_with_dtype(
+        shape, src_dtype, dst_dtype, copy, device)
 
 
-@chainerx.testing.parametrize_dtype_specifier('dst_dtype_spec', additional_args=(None,))
+@chainerx.testing.parametrize_dtype_specifier(
+    'dst_dtype_spec', additional_args=(None,))
 @pytest.mark.parametrize('copy', [True, False])
-def test_array_from_chainerx_array_with_dtype_spec(shape, dst_dtype_spec, copy):
-    _check_array_from_chainerx_array_with_dtype(shape, 'float32', dst_dtype_spec, copy)
+def test_array_from_chainerx_array_with_dtype_spec(
+        shape, dst_dtype_spec, copy):
+    _check_array_from_chainerx_array_with_dtype(
+        shape, 'float32', dst_dtype_spec, copy)
 
 
 @pytest.mark.parametrize('src_dtype', chainerx.testing.all_dtypes)
 @pytest.mark.parametrize('dst_dtype', chainerx.testing.all_dtypes)
 @pytest.mark.parametrize('copy', [True, False])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('dst_device_spec', [None, 'native:1', chainerx.get_device('native:1'), 'native:0'])
-def test_array_from_chainerx_array_with_device(src_dtype, dst_dtype, copy, device, dst_device_spec):
-    t = array_utils.create_dummy_ndarray(chainerx, (2,), src_dtype, device=device)
+@pytest.mark.parametrize(
+    'dst_device_spec',
+    [None, 'native:1', chainerx.get_device('native:1'), 'native:0'])
+def test_array_from_chainerx_array_with_device(
+        src_dtype, dst_dtype, copy, device, dst_device_spec):
+    t = array_utils.create_dummy_ndarray(
+        chainerx, (2,), src_dtype, device=device)
     a = chainerx.array(t, dtype=dst_dtype, copy=copy, device=dst_device_spec)
 
     dst_device = chainerx.get_device(dst_device_spec)
@@ -225,7 +249,8 @@ def test_array_from_chainerx_array_with_device(src_dtype, dst_dtype, copy, devic
         assert t is a
     else:
         assert t is not a
-        chainerx.testing.assert_array_equal_ex(a, t.to_device(dst_device).astype(dst_dtype))
+        chainerx.testing.assert_array_equal_ex(
+            a, t.to_device(dst_device).astype(dst_dtype))
         assert a.dtype == chainerx.dtype(dst_dtype)
         assert a.device is dst_device
 
@@ -239,7 +264,8 @@ def test_asarray_from_python_tuple_or_list():
 
 
 def test_asarray_from_numpy_array_with_zero_copy():
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'float32', padding=True)
+    obj = array_utils.create_dummy_ndarray(
+        numpy, (2, 3), 'float32', padding=True)
     a = chainerx.asarray(obj, dtype='float32')
     chainerx.testing.assert_array_equal_ex(obj, a)
 
@@ -253,7 +279,8 @@ def test_asarray_from_numpy_array_with_zero_copy():
     chainerx.testing.assert_array_equal_ex(obj_copy, a, strides_check=False)
 
     # test possibly freed memory (the other way)
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'float32', padding=True)
+    obj = array_utils.create_dummy_ndarray(
+        numpy, (2, 3), 'float32', padding=True)
     a = chainerx.asarray(obj, dtype='float32')
     a_copy = a.copy()
     del a
@@ -285,7 +312,8 @@ def test_asarray_from_chainerx_array(dtype):
     assert e.device is a.device
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_asarray_with_device(device):
     a = chainerx.asarray([0, 1], 'float32', device)
     b = chainerx.asarray([0, 1], 'float32')
@@ -296,7 +324,8 @@ def test_asarray_with_device(device):
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('padding', [False, True])
 def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, padding):
-    obj = array_utils.create_dummy_ndarray(numpy, shape, dtype, padding=padding)
+    obj = array_utils.create_dummy_ndarray(
+        numpy, shape, dtype, padding=padding)
     a = xp.ascontiguousarray(obj)
     if xp is chainerx:
         assert a.is_contiguous
@@ -306,7 +335,8 @@ def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, padding):
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('obj', _array_params(_array_params_list))
-@chainerx.testing.parametrize_dtype_specifier('dtype_spec', additional_args=(None, Unspecified))
+@chainerx.testing.parametrize_dtype_specifier(
+    'dtype_spec', additional_args=(None, Unspecified))
 def test_ascontiguousarray_from_tuple_or_list(xp, device, obj, dtype_spec):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
@@ -329,7 +359,8 @@ def test_ascontiguousarray_from_tuple_or_list(xp, device, obj, dtype_spec):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('padding', [False, True])
 def test_ascontiguousarray_from_chainerx_array(device, shape, dtype, padding):
-    np_arr = array_utils.create_dummy_ndarray(numpy, shape, dtype, padding=padding)
+    np_arr = array_utils.create_dummy_ndarray(
+        numpy, shape, dtype, padding=padding)
     obj = chainerx.testing._fromnumpy(np_arr, keepstrides=True, device=device)
     a = chainerx.ascontiguousarray(obj)
     if not padding and shape != ():  # () will be reshaped to (1,)
@@ -354,10 +385,12 @@ def test_ascontiguousarray_with_dtype(xp, device, shape, padding, dtype_spec):
     return a
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1'), 'native:0'])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1'), 'native:0'])
 @pytest.mark.parametrize('padding', [False, True])
 def test_ascontiguousarray_with_device(device, shape, padding, dtype):
-    obj = array_utils.create_dummy_ndarray(chainerx, shape, dtype, padding=padding)
+    obj = array_utils.create_dummy_ndarray(
+        chainerx, shape, dtype, padding=padding)
     a = chainerx.ascontiguousarray(obj, device=device)
     b = chainerx.ascontiguousarray(obj)
     array_utils.check_device(a, device)
@@ -384,7 +417,8 @@ def test_asanyarray_from_numpy_array():
 def test_asanyarray_from_numpy_subclass_array():
     class Subclass(numpy.ndarray):
         pass
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32').view(Subclass)
+    obj = array_utils.create_dummy_ndarray(
+        numpy, (2, 3), 'int32').view(Subclass)
     a = chainerx.asanyarray(obj, dtype='float32')
     e = chainerx.array(obj, dtype='float32', copy=False)
     chainerx.testing.assert_array_equal_ex(e, a)
@@ -404,7 +438,8 @@ def test_asanyarray_from_chainerx_array(dtype):
     assert e.device is a.device
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_asanyarray_with_device(device):
     a = chainerx.asanyarray([0, 1], 'float32', device)
     b = chainerx.asanyarray([0, 1], 'float32')
@@ -423,7 +458,8 @@ def test_empty(xp, shape, dtype_spec, device):
     return a
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_empty_with_device(device):
     a = chainerx.empty((2,), 'float32', device)
     b = chainerx.empty((2,), 'float32')
@@ -441,7 +477,8 @@ def test_empty_like(xp, shape, dtype, device):
     return a
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_empty_like_with_device(device):
     t = chainerx.empty((2,), 'float32')
     a = chainerx.empty_like(t, device)
@@ -460,7 +497,8 @@ def test_zeros(xp, shape, dtype_spec, device):
     return xp.zeros(shape, dtype_spec)
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_zeros_with_device(device):
     a = chainerx.zeros((2,), 'float32', device)
     b = chainerx.zeros((2,), 'float32')
@@ -475,7 +513,8 @@ def test_zeros_like(xp, shape, dtype, device):
     return xp.zeros_like(t)
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_zeros_like_with_device(device):
     t = chainerx.empty((2,), 'float32')
     a = chainerx.zeros_like(t, device)
@@ -493,7 +532,8 @@ def test_ones(xp, shape, dtype_spec, device):
     return xp.ones(shape, dtype_spec)
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_ones_with_device(device):
     a = chainerx.ones((2,), 'float32', device)
     b = chainerx.ones((2,), 'float32')
@@ -508,7 +548,8 @@ def test_ones_like(xp, shape, dtype, device):
     return xp.ones_like(t)
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_ones_like_with_device(shape, device):
     t = chainerx.empty((2,), 'float32')
     a = chainerx.ones_like(t, device)
@@ -518,14 +559,16 @@ def test_ones_like_with_device(shape, device):
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
+@pytest.mark.parametrize(
+    'value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full(xp, shape, value, device):
     return xp.full(shape, value)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
+@pytest.mark.parametrize(
+    'value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier('dtype_spec')
 def test_full_with_dtype(xp, shape, dtype_spec, value, device):
@@ -534,18 +577,21 @@ def test_full_with_dtype(xp, shape, dtype_spec, value, device):
     return xp.full(shape, value, dtype_spec)
 
 
-@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
+@pytest.mark.parametrize(
+    'value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full_with_scalar(shape, dtype, value, device):
     scalar = chainerx.Scalar(value, dtype)
     a = chainerx.full(shape, scalar)
-    if scalar.dtype in (chainerx.float32, chainerx.float64) and math.isnan(float(scalar)):
+    if (scalar.dtype in (chainerx.float32, chainerx.float64)
+            and math.isnan(float(scalar))):
         assert all([math.isnan(el) for el in a._debug_flat_data])
     else:
         assert a._debug_flat_data == [scalar.tolist()] * a.size
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_full_with_device(device):
     a = chainerx.full((2,), 1, 'float32', device)
     b = chainerx.full((2,), 1, 'float32')
@@ -554,14 +600,16 @@ def test_full_with_device(device):
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
+@pytest.mark.parametrize(
+    'value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full_like(xp, shape, dtype, value, device):
     t = xp.empty(shape, dtype)
     return xp.full_like(t, value)
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_full_like_with_device(device):
     t = chainerx.empty((2,), 'float32')
     a = chainerx.full_like(t, 1, device)
@@ -580,12 +628,14 @@ def _is_bool_spec(dtype_spec):
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('stop', [-2, 0, 0.1, 3, 3.2, False, True])
 @pytest.mark.parametrize_device(['native:0'])
-@chainerx.testing.parametrize_dtype_specifier('dtype_spec', additional_args=(None,))
+@chainerx.testing.parametrize_dtype_specifier(
+    'dtype_spec', additional_args=(None,))
 def test_arange_stop(xp, stop, dtype_spec, device):
     # TODO(hvy): xp.arange(True) should return an ndarray of type int64
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
-    if _is_bool_spec(dtype_spec) and stop > 2:  # Checked in test_invalid_arange_too_long_bool
+    # Checked in test_invalid_arange_too_long_bool
+    if _is_bool_spec(dtype_spec) and stop > 2:
         return chainerx.testing.ignore()
     if isinstance(stop, bool) and dtype_spec is None:
         # TODO(niboshi): This pattern needs dtype promotion.
@@ -606,13 +656,17 @@ def test_arange_stop(xp, stop, dtype_spec, device):
     (False, True),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@chainerx.testing.parametrize_dtype_specifier('dtype_spec', additional_args=(None,))
+@chainerx.testing.parametrize_dtype_specifier(
+    'dtype_spec', additional_args=(None,))
 def test_arange_start_stop(xp, start, stop, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
-    if _is_bool_spec(dtype_spec) and abs(stop - start) > 2:  # Checked in test_invalid_arange_too_long_bool
+    # Checked in test_invalid_arange_too_long_bool
+    if _is_bool_spec(dtype_spec) and abs(stop - start) > 2:
         return chainerx.testing.ignore()
-    if (isinstance(start, bool) or isinstance(stop, bool)) and dtype_spec is None:
+    if ((isinstance(start, bool)
+            or isinstance(stop, bool))
+            and dtype_spec is None):
         # TODO(niboshi): This pattern needs dtype promotion.
         return chainerx.testing.ignore()
     return xp.arange(start, stop, dtype=dtype_spec)
@@ -632,19 +686,25 @@ def test_arange_start_stop(xp, start, stop, dtype_spec, device):
     (False, True, True),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@chainerx.testing.parametrize_dtype_specifier('dtype_spec', additional_args=(None,))
+@chainerx.testing.parametrize_dtype_specifier(
+    'dtype_spec', additional_args=(None,))
 def test_arange_start_stop_step(xp, start, stop, step, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
-    if _is_bool_spec(dtype_spec) and abs((stop - start) / step) > 2:  # Checked in test_invalid_arange_too_long_bool
+    # Checked in test_invalid_arange_too_long_bool
+    if _is_bool_spec(dtype_spec) and abs((stop - start) / step) > 2:
         return chainerx.testing.ignore()
-    if (isinstance(start, bool) or isinstance(stop, bool) or isinstance(step, bool)) and dtype_spec is None:
+    if ((isinstance(start, bool)
+            or isinstance(stop, bool)
+            or isinstance(step, bool))
+            and dtype_spec is None):
         # TODO(niboshi): This pattern needs dtype promotion.
         return chainerx.testing.ignore()
     return xp.arange(start, stop, step, dtype=dtype_spec)
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_arange_with_device(device):
     def check(*args, **kwargs):
         a = chainerx.arange(*args, device=device, **kwargs)
@@ -694,7 +754,8 @@ def test_identity(xp, n, dtype_spec, device):
     return xp.identity(n, dtype_spec)
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_identity_with_device(device):
     a = chainerx.identity(3, 'float32', device)
     b = chainerx.identity(3, 'float32')
@@ -702,7 +763,8 @@ def test_identity_with_device(device):
     chainerx.testing.assert_array_equal_ex(a, b)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.DimensionError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(ValueError, chainerx.DimensionError))
 @pytest.mark.parametrize('device', ['native:0', 'native:0'])
 def test_identity_invalid_negative_n(xp, device):
     xp.identity(-1, 'float32')
@@ -762,7 +824,8 @@ def test_eye_with_default(xp, N, M, k, dtype_spec, device):
     assert False
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_eye_with_device(device):
     a = chainerx.eye(1, 2, 1, 'float32', device)
     b = chainerx.eye(1, 2, 1, 'float32')
@@ -770,7 +833,8 @@ def test_eye_with_device(device):
     chainerx.testing.assert_array_equal_ex(a, b)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.DimensionError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(ValueError, chainerx.DimensionError))
 @pytest.mark.parametrize('N,M', [
     (-1, 2),
     (1, -1),
@@ -805,7 +869,8 @@ def test_diag(xp, k, shape, transpose, device):
     return xp.diag(v, k)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.DimensionError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(ValueError, chainerx.DimensionError))
 @pytest.mark.parametrize('k', [0, -2, -1, 1, 2, -5, 4])
 @pytest.mark.parametrize('shape', [(), (2, 1, 2), (2, 0, 1)])
 @pytest.mark.parametrize('device', ['native:1', 'native:0'])
@@ -824,7 +889,8 @@ def test_diagflat(xp, k, shape, device):
     return xp.diagflat(v, k)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.DimensionError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(ValueError, chainerx.DimensionError))
 @pytest.mark.parametrize('k', [0, -2, -1, 1, 2, -5, 4])
 @pytest.mark.parametrize('shape', [(2, 1, 2), (2, 0, 1)])
 @pytest.mark.parametrize('device', ['native:1', 'native:0'])
@@ -863,7 +929,8 @@ def test_linspace_dtype_spec(xp, dtype_spec, device):
     return xp.linspace(3, 5, 10, dtype=dtype_spec)
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_linspace_with_device(device):
     a = chainerx.linspace(3, 5, 10, dtype='float32', device=device)
     b = chainerx.linspace(3, 5, 10, dtype='float32')
@@ -871,7 +938,8 @@ def test_linspace_with_device(device):
     chainerx.testing.assert_array_equal_ex(a, b)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.ChainerxError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(ValueError, chainerx.ChainerxError))
 @pytest.mark.parametrize('device', ['native:0', 'native:0'])
 def test_linspace_invalid_num(xp, device):
     xp.linspace(2, 4, -1)
@@ -879,7 +947,8 @@ def test_linspace_invalid_num(xp, device):
 
 @pytest.mark.parametrize_device(['native:0'])
 def test_frombuffer_from_numpy_array(device):
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32', padding=False)
+    obj = array_utils.create_dummy_ndarray(
+        numpy, (2, 3), 'int32', padding=False)
 
     a_chx = chainerx.frombuffer(obj, obj.dtype)
     a_np = numpy.frombuffer(obj, obj.dtype)
@@ -904,13 +973,16 @@ def test_frombuffer_from_numpy_array_with_cuda(device):
         chainerx.frombuffer(obj, obj.dtype)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.ChainerxError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(ValueError, chainerx.ChainerxError))
 def test_frombuffer_from_numpy_array_with_noncontiguous(xp):
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32', padding=True)
+    obj = array_utils.create_dummy_ndarray(
+        numpy, (2, 3), 'int32', padding=True)
     return xp.frombuffer(obj, obj.dtype)
 
 
-@chainerx.testing.numpy_chainerx_array_equal(accept_error=(ValueError, chainerx.ChainerxError))
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(ValueError, chainerx.ChainerxError))
 @pytest.mark.parametrize('count', [-1, 0, 1, 3, 4])
 @pytest.mark.parametrize('offset', [-1, 0, 1, 4, 3 * 4, 3 * 4 + 4])
 def test_frombuffer_from_numpy_array_with_offset_count(xp, count, offset):
@@ -922,7 +994,8 @@ def test_frombuffer_from_numpy_array_with_offset_count(xp, count, offset):
 def test_frombuffer_from_device_buffer(device):
     dtype = 'int32'
 
-    device_buffer = chainerx.testing._DeviceBuffer([1, 2, 3, 4, 5, 6], (2, 3), dtype)
+    device_buffer = chainerx.testing._DeviceBuffer(
+        [1, 2, 3, 4, 5, 6], (2, 3), dtype)
     a = chainerx.frombuffer(device_buffer, dtype)
     e = chainerx.array([1, 2, 3, 4, 5, 6], dtype)
 
@@ -930,9 +1003,11 @@ def test_frombuffer_from_device_buffer(device):
     assert a.device is chainerx.get_device(device)
 
 
-@pytest.mark.parametrize('device', [None, 'native:1', chainerx.get_device('native:1')])
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_frombuffer_with_device(device):
-    obj = array_utils.create_dummy_ndarray(numpy, (2, 3), 'int32', padding=False)
+    obj = array_utils.create_dummy_ndarray(
+        numpy, (2, 3), 'int32', padding=False)
     a = chainerx.frombuffer(obj, obj.dtype, device=device)
     b = chainerx.frombuffer(obj, obj.dtype)
     chainerx.testing.assert_array_equal_ex(a, b)
@@ -979,7 +1054,8 @@ def test_loadtxt(xp, dtype_spec, device):
         return float(element_str) + 1
 
     return xp.loadtxt(
-        txt, dtype=dtype_spec, comments='//', delimiter=' ', converters={3: converter}, skiprows=2, usecols=(1, 3), unpack=False,
+        txt, dtype=dtype_spec, comments='//', delimiter=' ',
+        converters={3: converter}, skiprows=2, usecols=(1, 3), unpack=False,
         ndmin=2, encoding='bytes')
 
 

@@ -14,7 +14,8 @@ class Convolution2D:
         if nobias:
             self.b = None
         else:
-            self.b = chx.array(np.random.normal(size=out_channels).astype(np.float32))
+            self.b = chx.array(np.random.normal(
+                size=out_channels).astype(np.float32))
         self.stride = stride
         self.pad = pad
 
@@ -24,7 +25,8 @@ class Convolution2D:
 
     def __call__(self, x):
         if self.b is not None:
-            return chx.conv(x, self.W, self.b, stride=self.stride, pad=self.pad)
+            return chx.conv(
+                x, self.W, self.b, stride=self.stride, pad=self.pad)
         else:
             return chx.conv(x, self.W, stride=self.stride, pad=self.pad)
 

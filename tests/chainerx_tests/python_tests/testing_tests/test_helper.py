@@ -16,9 +16,11 @@ class BarError(Exception):
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('np_result, chx_result', [
     (1.0, 1.0),
-    (numpy.full((1,), 1.0, numpy.float32), chainerx.full((1,), 1.0, chainerx.float32)),
+    (numpy.full((1,), 1.0, numpy.float32),
+     chainerx.full((1,), 1.0, chainerx.float32)),
 ])
-def test_numpy_chainerx_array_equal_both_return_nonarray(xp, np_result, chx_result):
+def test_numpy_chainerx_array_equal_both_return_nonarray(
+        xp, np_result, chx_result):
     if xp is numpy:
         return np_result
     else:
@@ -31,20 +33,32 @@ def test_numpy_chainerx_array_equal_both_return_nonarray(xp, np_result, chx_resu
     (None, None),  # Both return None
     (None, chainerx.full((1,), 1.0, chainerx.float32)),  # NumPy returns None
     (numpy.full((1,), 1.0, numpy.float32), None),  # ChainerX returns None
-    (numpy.full((1,), 1.0, numpy.float32), chainerx.full((1,), 2.0, chainerx.float32)),  # Value mismatch
-    (1.0, chainerx.full((1,), 1.0, chainerx.float64)),  # NumPy returns non-array
+    (numpy.full((1,), 1.0, numpy.float32), chainerx.full(
+        (1,), 2.0, chainerx.float32)),  # Value mismatch
+    # NumPy returns non-array
+    (1.0, chainerx.full((1,), 1.0, chainerx.float64)),
     (numpy.full((1,), 1.0, numpy.float64), 1.0),  # ChainerX returns non-array
     (1.0, 1),  # Scalar type mismatch
     (numpy.int64(1), numpy.int64(1)),  # ChainerX returns NumPy scalar
-    (numpy.full((1,), 1.0, numpy.float64), numpy.full((1,), 1.0, numpy.float64)),  # Both return NumPy array
-    (chainerx.full((1,), 1.0, chainerx.float64), chainerx.full((1,), 1.0, chainerx.float64)),  # Both return ChainerX array
-    (chainerx.full((1,), 1.0, chainerx.float64), numpy.full((1,), 1.0, numpy.float64)),  # Return arrays wrong way around
-    (numpy.full((1,), 1.0, numpy.float64), chainerx.full((1,), 1.0, chainerx.float32)),  # Dtype mismatch
-    (numpy.full((1,), 1.0, numpy.float64), chainerx.full((), 1.0, chainerx.float32)),  # Shape mismatch
-    (numpy.array([[0, 1, 2, 0], [0, 3, 4, 0], [0, 0, 0, 0]], numpy.float32)[0:2, 1:3],
-     chainerx.array(numpy.array([[0, 0, 0], [1, 2, 0], [3, 4, 0]], numpy.float32))[1:3, 0:2]),  # Strides mismatch
+    (numpy.full((1,), 1.0, numpy.float64), numpy.full(
+        (1,), 1.0, numpy.float64)),  # Both return NumPy array
+    (chainerx.full((1,), 1.0, chainerx.float64), chainerx.full(
+        (1,), 1.0, chainerx.float64)),  # Both return ChainerX array
+    (chainerx.full((1,), 1.0, chainerx.float64), numpy.full(
+        (1,), 1.0, numpy.float64)),  # Return arrays wrong way around
+    (numpy.full((1,), 1.0, numpy.float64), chainerx.full(
+        (1,), 1.0, chainerx.float32)),  # Dtype mismatch
+    (numpy.full((1,), 1.0, numpy.float64), chainerx.full(
+        (), 1.0, chainerx.float32)),  # Shape mismatch
+    # Strides mismatch
+    (numpy.array(
+        [[0, 1, 2, 0], [0, 3, 4, 0], [0, 0, 0, 0]], numpy.float32)[0:2, 1:3],
+     chainerx.array(
+         numpy.array(
+             [[0, 0, 0], [1, 2, 0], [3, 4, 0]], numpy.float32))[1:3, 0:2]),
 ])
-def test_numpy_chainerx_array_equal_fail_invalid_return(xp, np_result, chx_result):
+def test_numpy_chainerx_array_equal_fail_invalid_return(
+        xp, np_result, chx_result):
     if xp is numpy:
         return np_result
     else:

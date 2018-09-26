@@ -100,7 +100,8 @@ def test_is_backprop_required():
                 assert not chainerx.is_backprop_required()
                 assert chainerx.is_backprop_required(bp1)
                 assert not chainerx.is_backprop_required(bp2)
-                assert not chainerx.is_backprop_required(context=current_context)
+                assert not chainerx.is_backprop_required(
+                    context=current_context)
                 assert chainerx.is_backprop_required(context=another_context)
 
         with pytest.raises(TypeError):

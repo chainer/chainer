@@ -20,8 +20,9 @@ def test_correct_backward_unary():
 
 
 def test_incorrect_backward_unary():
-    # as_grad_stopped() makes backward not corresponding to the mathematical differentiation of the forward computation,
-    # which should be detected by check_backward.
+    # as_grad_stopped() makes backward not corresponding to the mathematical
+    # differentiation of the forward computation, which should be detected by
+    # check_backward.
     def fprop(xs):
         x, = xs
         return (x * x).as_grad_stopped() + x,
@@ -32,10 +33,13 @@ def test_incorrect_backward_unary():
 def _check_backward_binary(fprop):
     chainerx.check_backward(
         fprop,
-        (chainerx.ndarray((3,), chainerx.float32, [1., -2., 1.]).require_grad(),
-         chainerx.ndarray((3,), chainerx.float32, [0., 1., 2.]).require_grad()),
+        (chainerx.ndarray(
+            (3,), chainerx.float32, [1., -2., 1.]).require_grad(),
+         chainerx.ndarray(
+             (3,), chainerx.float32, [0., 1., 2.]).require_grad()),
         (chainerx.ndarray((3,), chainerx.float32, [1., -2., 3.]),),
-        (chainerx.full((3,), 1e-3, chainerx.float32), chainerx.full((3,), 1e-3, chainerx.float32)),
+        (chainerx.full((3,), 1e-3, chainerx.float32),
+         chainerx.full((3,), 1e-3, chainerx.float32)),
     )
 
 
@@ -55,10 +59,12 @@ def test_incorrect_backward_binary():
 def test_correct_double_backward_unary():
     chainerx.check_double_backward(
         lambda xs: (xs[0] * xs[0],),
-        (chainerx.ndarray((3,), chainerx.float32, [1., 2., 3.]).require_grad(),),
+        (chainerx.ndarray((3,), chainerx.float32,
+                          [1., 2., 3.]).require_grad(),),
         (chainerx.ones((3,), chainerx.float32).require_grad(),),
         (chainerx.ones((3,), chainerx.float32),),
-        (chainerx.full((3,), 1e-3, chainerx.float32), chainerx.full((3,), 1e-3, chainerx.float32)),
+        (chainerx.full((3,), 1e-3, chainerx.float32),
+         chainerx.full((3,), 1e-3, chainerx.float32)),
         1e-4,
         1e-3,
     )
@@ -70,7 +76,8 @@ def test_correct_double_backward_binary():
         (chainerx.ndarray((3,), chainerx.float32, [1., 2., 3.]).require_grad(),
          chainerx.ones((3,), chainerx.float32).require_grad()),
         (chainerx.ones((3,), chainerx.float32).require_grad(),),
-        (chainerx.ones((3,), chainerx.float32), chainerx.ones((3,), chainerx.float32)),
+        (chainerx.ones((3,), chainerx.float32),
+         chainerx.ones((3,), chainerx.float32)),
         (chainerx.full((3,), 1e-3, chainerx.float32),
          chainerx.full((3,), 1e-3, chainerx.float32),
          chainerx.full((3,), 1e-3, chainerx.float32)),

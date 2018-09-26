@@ -95,7 +95,8 @@ from chainerx_tests import array_utils
     ((2, 3, 4), (slice(0, 1), slice(1, 2), chainerx.newaxis, slice(1, 3))),
     ((2, 3, 4), (slice(0, 1), chainerx.newaxis, slice(1, 2), slice(1, 3))),
     ((2, 3, 4), (chainerx.newaxis, slice(0, 1), slice(1, 2), slice(1, 3))),
-    ((2, 3, 4), (1, slice(2,), chainerx.newaxis, slice(1, 3), chainerx.newaxis)),
+    ((2, 3, 4),
+     (1, slice(2,), chainerx.newaxis, slice(1, 3), chainerx.newaxis)),
 ])
 def test_getitem(xp, shape, indices):
     a = array_utils.create_dummy_ndarray(xp, shape, 'int32')
@@ -126,8 +127,10 @@ _take_invalid_params = [
 ]
 
 
-@chainerx.testing.numpy_chainerx_array_equal(dtype_check=False, accept_error=(chainerx.DimensionError, numpy.AxisError))
-@pytest.mark.parametrize("shape,indices,axis", _take_valid_params + _take_invalid_params)
+@chainerx.testing.numpy_chainerx_array_equal(
+    dtype_check=False, accept_error=(chainerx.DimensionError, numpy.AxisError))
+@pytest.mark.parametrize(
+    "shape,indices,axis", _take_valid_params + _take_invalid_params)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_take(is_module, xp, shape, indices, axis, device):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')

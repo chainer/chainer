@@ -44,7 +44,8 @@ def parametrize_dtype_specifier(argname, dtypes=None, additional_args=None):
     """Parametrizes a test with various arguments that can be used as dtypes.
 
     Args:
-         argname(str): Argument name to pass the value that can be used as a dtype.
+         argname(str): Argument name to pass the value that can be used as a
+             dtype.
          dtypes(list of strs): List of dtype names.
          additional_args(tuple of list): Additional values to be included.
     """
