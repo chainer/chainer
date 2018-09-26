@@ -9,6 +9,7 @@ import six
 import chainer
 from chainer import _backprop_utils
 from chainer.backends import cuda
+from chainer import backend
 from chainer import configuration
 from chainer import function_hook
 from chainer.graph_optimizations.static_graph_utilities \
@@ -16,6 +17,7 @@ from chainer.graph_optimizations.static_graph_utilities \
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
+import chainerx
 
 
 class FunctionNode(object):
@@ -228,6 +230,13 @@ Use apply() method instead.\
         in_data = tuple([x.data for x in input_vars])
         requires_grad = any([x.requires_grad for x in input_vars])
 
+        if backend.get_array_module(*in_data) is chainerx:
+            in_data = backend.to_numpy(in_data)
+            input_vars = [chainer.as_variable(x) for x in in_data]
+            is_chainerx = True
+        else:
+            is_chainerx = False
+
         utils._check_arrays_forward_compatible(in_data, self.label)
 
         is_debug = chainer.is_debug()
@@ -281,31 +290,36 @@ Use apply() method instead.\
                        '{}'.format(self.label))
                 raise RuntimeError(msg)
 
-        ret = tuple([variable.Variable(y, requires_grad=requires_grad)
-                     for y in outputs])
+        if is_chainerx:
+            ret = tuple([variable.Variable(chainerx.array(y),
+                                           requires_grad=requires_grad)
+                         for y in outputs])
+        else:
+            ret = tuple([variable.Variable(y, requires_grad=requires_grad)
+                         for y in outputs])
 
-        if configuration.config.enable_backprop:
-            # Topological ordering
-            self.rank = max([x.rank for x in input_vars]) if input_vars else 0
-            # Add backward edges
-            for y in ret:
-                y.creator_node = self
-            self.inputs = tuple([x.node for x in input_vars])
-            # Add forward edges (must be weak references)
-            self.outputs = tuple([weakref.ref(y.node) for y in ret])
+            if configuration.config.enable_backprop:
+                # Topological ordering
+                self.rank = max([x.rank for x in input_vars]) if input_vars else 0
+                # Add backward edges
+                for y in ret:
+                    y.creator_node = self
+                self.inputs = tuple([x.node for x in input_vars])
+                # Add forward edges (must be weak references)
+                self.outputs = tuple([weakref.ref(y.node) for y in ret])
 
-            if self._input_indexes_to_retain is not None:
-                for index in self._input_indexes_to_retain:
-                    input_vars[index].retain_data()
+                if self._input_indexes_to_retain is not None:
+                    for index in self._input_indexes_to_retain:
+                        input_vars[index].retain_data()
 
-            if self._output_indexes_to_retain is not None:
-                retained_data = []
-                for index in self._output_indexes_to_retain:
-                    ret[index].retain_data()
-                    retained_data.append(outputs[index])
-                self._retained_output_data = tuple(retained_data)
+                if self._output_indexes_to_retain is not None:
+                    retained_data = []
+                    for index in self._output_indexes_to_retain:
+                        ret[index].retain_data()
+                        retained_data.append(outputs[index])
+                    self._retained_output_data = tuple(retained_data)
 
-            self.lazy_grad_sum = configuration.config.lazy_grad_sum
+                self.lazy_grad_sum = configuration.config.lazy_grad_sum
 
         return ret
 

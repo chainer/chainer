@@ -877,6 +877,30 @@ class Variable(object):
         if node._data is not None:
             node.retain_data()
 
+    def to_chainerx(self):
+        """Copies the data and gradient arrays to specified device.
+
+        Args:
+            device: Target device specifier. If omitted, the current device is
+                used.
+
+        """
+        data = self.data
+        if data is None:
+            return
+
+        if isinstance(data, numpy.ndarray):
+            self._data = [chainerx.asarray(data)]
+        elif isinstance(data, cuda.ndarray):
+            # TODO(sonots): Support CuPy
+            raise NotImplementedError()
+        elif isinstance(data, intel64.mdarray):
+            # TODO(sonots): Support ideep
+            raise NotImplementedError()
+
+        if self._grad_var is not None:
+            self._grad_var.to_chainerx()
+
     def cleargrad(self):
         """Clears the gradient array."""
         self.grad_var = None

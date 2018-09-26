@@ -905,6 +905,49 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, d.grad)
 
 
+@testing.parameterize(
+    {'x_shape': (10,)},
+    {'x_shape': ()},
+)
+@attr.chainerx
+class TestVariableToChainerX(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
+        self.gx = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
+
+    def check_to_chainerx(self, x, gx):
+        x_var = chainer.Variable(x)
+        gx_var = chainer.Variable(gx)
+        x_var.grad_var = gx_var
+        x_var.to_chainerx()
+
+        assert isinstance(x_var.array, chainerx.ndarray)
+        assert isinstance(x_var.grad, chainerx.ndarray)
+
+        assert x.shape == x_var.shape
+        assert x.dtype == x_var.dtype
+
+        assert gx.shape == x_var.grad.shape
+        assert gx.dtype == x_var.grad.dtype
+
+    def test_numpy_to_chainerx(self):
+        self.check_to_chainerx(self.x, self.gx)
+
+    # TODO(hvy): Write test when implemented.
+    @attr.gpu
+    def test_cupy_to_chainerx(self):
+        raise unittest.SkipTest('Not yet supported')
+
+    # TODO(hvy): Write test when implemented.
+    @attr.ideep
+    def test_ideep_to_chainerx(self):
+        raise unittest.SkipTest('Not yet supported')
+
+    def test_chainerx_to_chainerx(self):
+        self.check_to_chainerx(chainerx.array(self.x), chainerx.array(self.gx))
+
+
 class TestVariableBasic(unittest.TestCase):
     def test_unhashable(self):
         a = chainer.Variable(np.ones((2,)))
