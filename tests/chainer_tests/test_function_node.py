@@ -13,6 +13,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
 from chainer.utils import type_check
+import chainerx
 
 
 def make_array(start, shape, dtype):
@@ -86,6 +87,20 @@ class TestFunctionNode(unittest.TestCase):
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
         self.f.backward = mock.MagicMock(return_value=(self.gx1, self.gx2))
 
+    def setup_chainerx(self):
+        self.x1 = chainerx.array(self.x1)
+        self.x2 = chainerx.array(self.x2)
+        self.y1 = chainerx.array(self.y1)
+        self.y2 = chainerx.array(self.y2)
+        self.gx1.to_chainerx()
+        self.gx1_orig.to_chainerx()
+        self.gx2_orig.to_chainerx()
+        self.gx1_accum.to_chainerx()
+        self.gy1 = chainerx.array(self.gy1)
+        self.gy2 = chainerx.array(self.gy2)
+        self.f.forward = mock.MagicMock(return_value=(self.y1, self.y2))
+        self.f.backward = mock.MagicMock(return_value=(self.gx1, self.gx2))
+
     def check_forward(self, gpu):
         y1, y2 = self.f.forward((self.x1, self.x2))
         self.assertEqual(self.f.check_type_forward.call_count, 0)
@@ -136,6 +151,19 @@ class TestFunctionNode(unittest.TestCase):
 
         self.assertIsInstance(y.creator_node.outputs, tuple)
 
+    def check_apply_chainerx(self):
+        x1 = chainer.Variable(self.x1)
+        # ChainerX does not support computing gradients for int32
+        x2 = chainer.Variable(self.x2, requires_grad=False)
+        ys = self.f.apply((x1, x2))
+
+        self.assertEqual(len(ys), 2)
+        self.check_check_type_forward()
+
+        for y in ys:
+            self.assertIsInstance(y, chainer.Variable)
+            self.assertTrue(y.requires_grad)
+
     def test_apply_cpu(self):
         self.check_apply()
 
@@ -143,6 +171,12 @@ class TestFunctionNode(unittest.TestCase):
     def test_apply_gpu(self):
         self.setup_gpu()
         self.check_apply()
+
+    # TODO(sonot): Test CuPy conversion
+    @attr.chainerx
+    def test_apply_chainerx(self):
+        self.setup_chainerx()
+        self.check_apply_chainerx()
 
     def check_apply_all_ndarray(self):
         x1 = self.x1
@@ -167,6 +201,11 @@ class TestFunctionNode(unittest.TestCase):
         self.setup_gpu()
         self.check_apply_all_ndarray()
 
+    @attr.chainerx
+    def test_apply_all_ndarray_chainerx(self):
+        self.setup_chainerx()
+        self.check_apply_all_ndarray()
+
     def check_apply_ndarray(self):
         x1 = chainer.Variable(self.x1)
         x2 = self.x2
@@ -185,6 +224,18 @@ class TestFunctionNode(unittest.TestCase):
 
         self.assertIsInstance(y.creator_node.outputs, tuple)
 
+    def check_apply_ndarray_chainerx(self):
+        x1 = chainer.Variable(self.x1)
+        x2 = self.x2
+        ys = self.f.apply((x1, x2))
+
+        self.assertEqual(len(ys), 2)
+        self.check_check_type_forward()
+
+        for y in ys:
+            self.assertIsInstance(y, chainer.Variable)
+            self.assertTrue(y.requires_grad)
+
     def test_apply_ndarray_cpu(self):
         self.check_apply_ndarray()
 
@@ -193,9 +244,21 @@ class TestFunctionNode(unittest.TestCase):
         self.setup_gpu()
         self.check_apply_ndarray()
 
+    @attr.chainerx
+    def test_apply_ndarray_chainerx(self):
+        self.setup_chainerx()
+        self.check_apply_ndarray_chainerx()
+
     def check_apply_single_return_value(self):
         x1 = chainer.Variable(self.x1)
         x2 = chainer.Variable(self.x2)
+        ret, = self.f.apply((x1, x2))
+        self.assertIsInstance(ret, chainer.Variable)
+
+    def check_apply_single_return_value_chainerx(self):
+        x1 = chainer.Variable(self.x1)
+        # ChainerX does not support computing gradients for int32
+        x2 = chainer.Variable(self.x2, requires_grad=False)
         ret, = self.f.apply((x1, x2))
         self.assertIsInstance(ret, chainer.Variable)
 
@@ -208,6 +271,12 @@ class TestFunctionNode(unittest.TestCase):
         self.setup_gpu()
         self.f.forward_gpu.return_value = (cuda.to_gpu(self.y1),)
         self.check_apply_single_return_value()
+
+    @attr.chainerx
+    def test_apply_single_return_value_chainerx(self):
+        self.setup_chainerx()
+        self.f.forward.return_value = (chainerx.array(self.y1),)
+        self.check_apply_single_return_value_chainerx()
 
     def _get_f(self):
         x1 = chainer.Variable(self.x1)
