@@ -1550,7 +1550,7 @@ class TestReshape(unittest.TestCase):
     def test_forward_chainerx(self):
         # TODO(imanishi): chainerx does not support fp16 yet
         if self.dtype == np.float16:
-            return
+            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data):
@@ -1567,6 +1567,13 @@ class TestReshape(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(niboshi): Support it
+        if self.dtype == np.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_backward(chainerx.array(self.x))
 
 
 @testing.parameterize(*testing.product({
@@ -1597,7 +1604,7 @@ class TestTranspose(unittest.TestCase):
     def test_forward_chainerx(self):
         # TODO(hvy): chainerx does not support fp16 yet
         if self.dtype == np.float16:
-            return
+            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data):
@@ -1613,6 +1620,13 @@ class TestTranspose(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(niboshi): Support it
+        if self.dtype == np.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_backward(chainerx.array(self.x))
 
 
 class UnnamedVariableToStringTestBase(object):
