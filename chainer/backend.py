@@ -73,7 +73,7 @@ def get_array_module(*args):
 
     """
     if cuda.available:
-        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
+        args = [arg.array if isinstance(arg, chainer.variable.Variable) else arg
                 for arg in args]
         return cuda.cupy.get_array_module(*args)
     else:

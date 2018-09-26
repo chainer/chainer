@@ -49,10 +49,10 @@ def copy(x, dst):
         >>> cuda.get_device_from_array(x).id
         -1
         >>> y = F.copy(x, 0) # from host to device0
-        >>> cuda.get_device_from_array(y.data).id
+        >>> cuda.get_device_from_array(y.array).id
         0
         >>> z = F.copy(y, -1) # from device0 to host
-        >>> cuda.get_device_from_array(z.data).id
+        >>> cuda.get_device_from_array(z.array).id
         -1
 
     """

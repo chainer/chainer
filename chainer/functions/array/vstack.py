@@ -80,7 +80,7 @@ def vstack(xs):
         >>> y = F.vstack((x1, x2))
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[1, 2, 3],
                [2, 3, 4]])
         >>> x1 = np.arange(0, 12).reshape(3, 4)
@@ -99,7 +99,7 @@ def vstack(xs):
         >>> y = F.vstack([x1, x2])
         >>> y.shape
         (5, 4)
-        >>> y.data
+        >>> y.array
         array([[ 0,  1,  2,  3],
                [ 4,  5,  6,  7],
                [ 8,  9, 10, 11],
