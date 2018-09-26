@@ -977,4 +977,66 @@ class TestGradV3Compat1(unittest.TestCase):
         )
 
 
+@attr.chainerx
+class TestFunctionNodeBackwardChainerx(unittest.TestCase):
+
+    class SimpleFunctionNode(chainer.FunctionNode):
+
+        def __init__(self):
+            self.backward_call_args = []
+
+        def forward(self, inputs):
+            return tuple([2 * x for x in inputs])
+
+        def backward(self, indexes, grad_outputs):
+            self.backward_call_args.append({
+                'indexes': indexes, 'grad_outputs': grad_outputs})
+
+            gxs = []
+            for i_in in indexes:
+                gx = 2 * grad_outputs[i_in]
+                gxs.append(gx)
+            return gxs
+
+    def test_backward(self):
+        shape = (2, 3)
+        dtype = numpy.float32
+        x1 = numpy.full(shape, 3, dtype)
+        x2 = numpy.full(shape, 5, dtype)
+        x1 = chainerx.array(x1)
+        x2 = chainerx.array(x2).require_grad()
+        gx2_expected = numpy.full(shape, 2, dtype)
+
+        # forward
+        func = self.SimpleFunctionNode()
+        y1, y2 = func.apply((x1, x2))
+
+        # backward
+        y2.backward()
+
+        # check backward call arguments
+        assert len(func.backward_call_args) == 1
+        call_arg, = func.backward_call_args
+        assert isinstance(call_arg['indexes'], tuple)
+        assert call_arg['indexes'] == (1,)
+        assert isinstance(call_arg['grad_outputs'], tuple)
+        assert len(call_arg['grad_outputs']) == 2
+        assert isinstance(call_arg['grad_outputs'][0], chainer.Variable)
+        assert isinstance(call_arg['grad_outputs'][0].array, chainerx.ndarray)
+        chainerx.testing.assert_array_equal_ex(
+            call_arg['grad_outputs'][0].array, numpy.full(shape, 0, dtype),
+            strides_check=False)
+        chainerx.testing.assert_array_equal_ex(
+            call_arg['grad_outputs'][1].array, numpy.full(shape, 1, dtype),
+            strides_check=False)
+
+        # check grads
+        chainerx.testing.assert_array_equal_ex(
+            x2.grad, gx2_expected, strides_check=False)
+        assert not x2.grad.is_backprop_required()
+
+        with pytest.raises(chainerx.ChainerxError):
+            x1.grad
+
+
 testing.run_module(__name__, __file__)

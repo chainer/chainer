@@ -6,6 +6,7 @@ add_library(_core.so MODULE
     backend.cc
     backward.cc
     backprop_mode.cc
+    chainer_interop.cc
     check_backward.cc
     context.cc
     device.cc

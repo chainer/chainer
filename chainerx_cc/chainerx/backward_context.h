@@ -78,6 +78,10 @@ public:
             std::vector<Array>& input_grads,
             DoubleBackpropOption double_backprop_option);
 
+    size_t input_count() const { return input_grads_.size(); }
+
+    size_t output_count() const { return zero_output_grads_.size(); }
+
     // Indicates whether the next order of backward is required. It reflects DoubleBackpropOption.
     bool next_required() const { return double_backprop_option_ == DoubleBackpropOption::kEnable; }
 
@@ -116,8 +120,6 @@ public:
     Array GetRetainedOutput(const RetainedOutputToken& token);
 
 private:
-    size_t output_count() const;
-
     std::shared_ptr<internal::ArrayBody> GetFabricatedArrayBodyWithNodes(const RetainedOutputToken& token) const;
 
     const std::shared_ptr<internal::OpNode>& op_node_;  // never be nullptr
