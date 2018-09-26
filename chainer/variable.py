@@ -749,7 +749,10 @@ class Variable(object):
     def grad_var(self, g):
         if g is not None:
             _check_grad_type(None, self, g.data)
-            if self._is_chainerx and self.data is not None:
+        if self._is_chainerx:
+            if g is None:
+                self.data.set_grad(None)
+            else:
                 self.data.set_grad(g.data)
         self._grad_var = g
 
@@ -876,9 +879,7 @@ class Variable(object):
 
     def cleargrad(self):
         """Clears the gradient array."""
-        if self._is_chainerx:
-            self.data.cleargrad()
-        self._grad_var = None
+        self.grad_var = None
 
     def zerograd(self):
         """Initializes the gradient array by zeros.
@@ -1052,6 +1053,19 @@ class Variable(object):
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
+        if self._is_chainerx:
+            if retain_grad:
+                raise RuntimeError(
+                    'retain_grad is not supported for ChainerX array.')
+            if loss_scale is not None:
+                raise RuntimeError(
+                    'loss_scale if not supported for ChainerX array.')
+            arr = self.array
+            assert isinstance(arr, chainerx.ndarray)
+            chainerx.backward(
+                arr, enable_double_backprop=enable_double_backprop)
+            return
+
         with chainer.using_config('enable_backprop', enable_double_backprop):
             self._backward_main(retain_grad, loss_scale)
 

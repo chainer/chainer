@@ -3,10 +3,12 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 @testing.parameterize(*testing.product({
@@ -24,7 +26,8 @@ class TestReshape(unittest.TestCase):
         x = chainer.Variable(x_data)
         y = functions.reshape(x, shape)
         self.assertEqual(y.data.dtype, self.dtype)
-        self.assertTrue((self.x.reshape(shape) == cuda.to_cpu(y.data)).all())
+        self.assertTrue(
+            (self.x.reshape(shape) == backend.to_numpy(y.data)).all())
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -32,6 +35,13 @@ class TestReshape(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
+
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data):
         x = chainer.Variable(x_data)
@@ -46,6 +56,13 @@ class TestReshape(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_backward(chainerx.array(self.x))
 
 
 class TestReshapeSkip(unittest.TestCase):

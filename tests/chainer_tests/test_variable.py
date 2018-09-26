@@ -44,6 +44,20 @@ def constant(xs, value):
     return Constant(value)(*xs)
 
 
+def get_array(xp, arr):
+    if xp is np:
+        return arr
+    if xp is cuda.cupy:
+        return cuda.to_gpu(arr)
+    if xp is chainerx:
+        return chainerx.array(arr)
+    assert False
+
+
+def get_variable(xp, arr):
+    return chainer.Variable(get_array(xp, arr))
+
+
 class MulAdd(chainer.FunctionNode):
 
     def forward(self, inputs):
@@ -195,7 +209,8 @@ class TestVariable(unittest.TestCase):
         x = chainer.Variable(a)
         assert a is x.array
 
-    def check_attributes(self, a):
+    def check_attributes(self, xp):
+        a = get_array(xp, self.x)
         x = chainer.Variable(a)
         assert x.data is a
         assert x.array is a
@@ -207,14 +222,14 @@ class TestVariable(unittest.TestCase):
 
     @attr.chainerx
     def test_attributes_chainerx(self):
-        self.check_attributes(chainerx.asarray(self.x))
+        self.check_attributes(chainerx)
 
     def test_attributes_cpu(self):
-        self.check_attributes(self.x)
+        self.check_attributes(np)
 
     @attr.gpu
     def test_attributes_gpu(self):
-        self.check_attributes(cuda.to_gpu(self.x))
+        self.check_attributes(cuda.cupy)
 
     def test_uninitialized(self):
         a = chainer.Variable(None)
@@ -303,11 +318,6 @@ class TestVariable(unittest.TestCase):
     def test_label_gpu(self):
         self.check_label(self.label, cuda.to_gpu(self.c))
 
-    def get_xp_and_variable(self, gpu):
-        if gpu:
-            return cuda.cupy, chainer.Variable(cuda.to_gpu(self.x))
-        return np, chainer.Variable(self.x)
-
     def check_backward(self, inputs, intermediates, outputs, retain_grad):
         for o in outputs:
             o.backward(retain_grad)
@@ -320,51 +330,62 @@ class TestVariable(unittest.TestCase):
         assert any([x.grad_var is not None for x in outputs])
 
     # length is number of edges. So, # of Variables created is length+1
-    def create_linear_chain(self, length, gpu):
-        _, x = self.get_xp_and_variable(gpu)
+    def create_linear_chain(self, length, xp):
+        x = get_variable(xp, self.x)
         ret = [x]
         for i in six.moves.range(length):
             ret.append(constant((ret[i], ), (self.a, )))
-        if gpu:
+        if xp is cuda.cupy:
             ret[-1].grad = cuda.cupy.zeros_like(ret[-1].data)
-        else:
+        elif xp is np:
             ret[-1].grad = np.zeros_like(ret[-1].data)
+        else:
+            assert False
         return ret
 
     def test_backward_cpu(self):
-        ret = self.create_linear_chain(2, False)
+        ret = self.create_linear_chain(2, np)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), False)
 
     @attr.gpu
     def test_backward_gpu(self):
-        ret = self.create_linear_chain(2, False)
+        ret = self.create_linear_chain(2, np)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), False)
 
-    def check_backward_accumulate(self, gpu):
-        xp, x = self.get_xp_and_variable(gpu)
-        y = constant((x, x, x), (self.a, ))
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        ret = self.create_linear_chain(2, np)
+        self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), False)
+
+    def check_backward_accumulate(self, xp):
+        x = get_variable(xp, self.x)
+        y = x * x
         y.grad = xp.zeros_like(y.data)
         y.backward()
         assert x.grad_var.shape == self.x_shape
 
     def test_backward_accumulate_cpu(self):
-        self.check_backward_accumulate(False)
+        self.check_backward_accumulate(np)
 
     @attr.gpu
     def test_backward_accumulate_gpu(self):
-        self.check_backward_accumulate(True)
+        self.check_backward_accumulate(cuda.cupy)
+
+    @attr.chainerx
+    def test_backward_accumulate_chainerx(self):
+        self.check_backward_accumulate(chainerx)
 
     def test_backward_cpu_retain_grad(self):
-        ret = self.create_linear_chain(2, False)
+        ret = self.create_linear_chain(2, np)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), True)
 
     @attr.gpu
     def test_backward_gpu_retain_grad(self):
-        ret = self.create_linear_chain(2, True)
+        ret = self.create_linear_chain(2, cuda.cupy)
         self.check_backward((ret[0], ), (ret[1], ), (ret[2], ), True)
 
-    def check_double_backprop(self, gpu):
-        xp, x = self.get_xp_and_variable(gpu)
+    def check_double_backprop(self, xp):
+        x = get_variable(xp, self.x)
         x.grad_var = None
 
         y = x * x * x
@@ -379,11 +400,15 @@ class TestVariable(unittest.TestCase):
         testing.assert_allclose(x.grad_var.data, expect.data)
 
     def test_double_backprop_cpu(self):
-        self.check_double_backprop(False)
+        self.check_double_backprop(np)
 
     @attr.gpu
     def test_double_backprop_gpu(self):
-        self.check_double_backprop(True)
+        self.check_double_backprop(cuda.cupy)
+
+    @attr.chainerx
+    def test_double_backprop_chainerx(self):
+        self.check_double_backprop(chainerx)
 
     def test_backward_no_grad_required(self):
         class DummyId(chainer.functions.math.identity.Identity):
@@ -398,7 +423,7 @@ class TestVariable(unittest.TestCase):
         y1.backward()
 
     def test_unchain(self):
-        ret = self.create_linear_chain(3, False)
+        ret = self.create_linear_chain(3, np)
         old_rank = ret[1].rank
         ret[1].unchain()
         assert ret[1].creator is None
@@ -406,7 +431,7 @@ class TestVariable(unittest.TestCase):
         self.check_backward((ret[1],), (ret[2],), (ret[3],), False)
 
     def check_set_none_to_creator(self, use_creator_node):
-        ret = self.create_linear_chain(3, False)
+        ret = self.create_linear_chain(3, np)
         old_rank = ret[1].rank
         if use_creator_node:
             ret[1].creator_node = None
@@ -424,7 +449,7 @@ class TestVariable(unittest.TestCase):
         self.check_set_none_to_creator(True)
 
     def test_set_none_and_original_to_creator(self):
-        ret = self.create_linear_chain(2, False)
+        ret = self.create_linear_chain(2, np)
         old_rank = ret[1].rank
         creator_node = ret[1].creator_node
         ret[1].creator = None
@@ -454,24 +479,24 @@ class TestVariable(unittest.TestCase):
         assert v.rank == 1
 
     def test_unchain_backward_cpu(self):
-        ret = self.create_linear_chain(3, False)
+        ret = self.create_linear_chain(3, np)
         ret[1].unchain_backward()
         self.check_backward((ret[1], ), (ret[2], ), (ret[3], ), False)
 
     @attr.gpu
     def test_unchain_backward_gpu(self):
-        ret = self.create_linear_chain(3, True)
+        ret = self.create_linear_chain(3, cuda.cupy)
         ret[1].unchain_backward()
         self.check_backward((ret[1], ), (ret[2], ), (ret[3], ), False)
 
     def test_unchain_backward_cpu_retain_grad(self):
-        ret = self.create_linear_chain(3, False)
+        ret = self.create_linear_chain(3, np)
         ret[1].unchain_backward()
         self.check_backward((ret[1], ), (ret[2], ), (ret[3], ), False)
 
     @attr.gpu
     def test_unchain_backward_gpu_retain_grad(self):
-        ret = self.create_linear_chain(3, False)
+        ret = self.create_linear_chain(3, np)
         ret[1].unchain_backward()
         self.check_backward((ret[1], ), (ret[2], ), (ret[3], ), False)
 
@@ -1515,7 +1540,7 @@ class TestReshape(unittest.TestCase):
     def test_forward_chainerx(self):
         # TODO(imanishi): chainerx does not support fp16 yet
         if self.dtype == np.float16:
-            return
+            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data):
@@ -1532,6 +1557,13 @@ class TestReshape(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(niboshi): Support it
+        if self.dtype == np.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_backward(chainerx.array(self.x))
 
 
 @testing.parameterize(*testing.product({
@@ -1562,7 +1594,7 @@ class TestTranspose(unittest.TestCase):
     def test_forward_chainerx(self):
         # TODO(hvy): chainerx does not support fp16 yet
         if self.dtype == np.float16:
-            return
+            raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data):
@@ -1578,6 +1610,13 @@ class TestTranspose(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(niboshi): Support it
+        if self.dtype == np.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_backward(chainerx.array(self.x))
 
 
 class UnnamedVariableToStringTestBase(object):
