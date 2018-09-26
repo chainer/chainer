@@ -8,7 +8,7 @@ import pytest
 import chainerx
 import chainerx.testing
 
-from tests import array_utils
+from chainerx_tests import array_utils
 
 
 _array_params_list = [

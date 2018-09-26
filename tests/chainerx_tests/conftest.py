@@ -2,7 +2,7 @@ import pytest
 
 import chainerx.testing
 
-from tests import cuda_utils
+from chainerx_tests import cuda_utils
 
 
 def pytest_configure(config):

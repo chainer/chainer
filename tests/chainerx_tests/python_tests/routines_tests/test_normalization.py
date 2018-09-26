@@ -4,7 +4,7 @@ import pytest
 
 import chainerx
 
-from tests import array_utils
+from chainerx_tests import array_utils
 
 
 def _create_batch_norm_ndarray_args(xp, device, x_shape, gamma_shape, beta_shape, mean_shape, var_shape, float_dtype):

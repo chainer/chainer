@@ -4,7 +4,7 @@ import pytest
 import chainerx
 import chainerx.testing
 
-from tests import array_utils
+from chainerx_tests import array_utils
 
 
 def _check_array(array, expected_dtype, expected_shape, expected_data_list=None, device=None):

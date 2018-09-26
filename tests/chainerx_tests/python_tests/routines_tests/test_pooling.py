@@ -4,7 +4,7 @@ import pytest
 
 import chainerx
 
-from tests import array_utils
+from chainerx_tests import array_utils
 
 
 def _create_max_pool_args(xp, device, x_shape, ksize, stride, pad, cover_all, float_dtype):

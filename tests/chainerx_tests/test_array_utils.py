@@ -3,7 +3,7 @@ import pytest
 
 import chainerx
 
-from tests import array_utils
+from chainerx_tests import array_utils
 
 
 @pytest.mark.parametrize('expected,shape', [
