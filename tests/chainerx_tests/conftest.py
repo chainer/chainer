@@ -14,8 +14,12 @@ def pytest_runtest_setup(item):
 
 
 def pytest_generate_tests(metafunc):
-    if hasattr(metafunc.function, 'parametrize_device'):
-        device_names, = metafunc.function.parametrize_device.args
+    marker = [
+        m for m in metafunc.definition.iter_markers()
+        if m.name == 'parametrize_device']
+    if len(marker) > 0:
+        marker, = marker  # asserts len == 1
+        device_names, = marker.args
         metafunc.parametrize('device', device_names, indirect=True)
 
 
@@ -38,8 +42,9 @@ def _setup_cuda_marker(item):
     limit will be skipped.
     """
 
-    cuda_marker = item.get_marker('cuda')
-    if cuda_marker is not None:
+    cuda_marker = [m for m in item.iter_markers() if m.name == 'cuda']
+    if len(cuda_marker) > 0:
+        cuda_marker, = cuda_marker  # asserts len == 1
         required_num = cuda_marker.args[0] if cuda_marker.args else 1
         if cuda_utils.get_cuda_limit() < required_num:
             pytest.skip('{} NVIDIA GPUs required'.format(required_num))

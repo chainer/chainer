@@ -18,7 +18,7 @@ Create array from numpy ndarray
 -------------------------------
 
 >>> import numpy as np
->>> n = np.ones((3,), np.float32, [1, 2, 3])
+>>> n = np.ones((3,), np.float32)
 >>> a = chx.array(n, device='cuda:0')
 >>> a.shape
 (3,)
