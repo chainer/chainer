@@ -143,7 +143,7 @@ class TestBinaryOp(unittest.TestCase):
         z = y + x
         self.assertEqual(1, z.data.get()[0])
 
-    def forward_chainerx(self, op):
+    def forward_chainerx_cpu(self, op):
         # TODO(hvy): chainerx does not support fp16 yet
         if numpy.float16 in (self.x1.dtype, self.x2.dtype):
             return
@@ -151,60 +151,56 @@ class TestBinaryOp(unittest.TestCase):
             op, chainerx.array(self.x1), chainerx.array(self.x2))
 
     @pytest.mark.chainerx
-    def test_add_forward_chainerx(self):
-        self.forward_chainerx(lambda x, y: x + y)
+    def test_add_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: x + y)
 
     @pytest.mark.chainerx
-    def test_sub_forward_chainerx(self):
-        self.forward_chainerx(lambda x, y: x - y)
+    def test_sub_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: x - y)
 
     @pytest.mark.chainerx
-    def test_mul_forward_chainerx(self):
-        self.forward_gpu(lambda x, y: x * y)
+    def test_mul_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: x * y)
 
     @pytest.mark.chainerx
-    def test_div_forward_chainerx(self):
-        self.forward_chainerx(lambda x, y: x / y)
-
-    # TODO(hvy): Implement floor.
-    @pytest.mark.skip
-    @pytest.mark.chainerx
-    def test_floordiv_forward_chainerx(self):
-        pass
+    def test_div_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: x / y)
 
     # TODO(hvy): Implement floor.
     @pytest.mark.skip
     @pytest.mark.chainerx
-    def test_pow_forward_chainerx(self):
+    def test_floordiv_forward_chainerx_cpu(self):
         pass
 
-    @pytest.mark.chainerx
-    def test_radd_forward_chainerx(self):
-        self.forward_chainerx(lambda x, y: y.__radd__(x))
+    @attr.chainerx
+    def test_pow_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: x.__pow__(y))
 
     @pytest.mark.chainerx
-    def test_rsub_forward_chainerx(self):
-        self.forward_chainerx(lambda x, y: y.__rsub__(x))
+    def test_radd_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: y.__radd__(x))
 
     @pytest.mark.chainerx
-    def test_rmul_forward_chainerx(self):
-        self.forward_chainerx(lambda x, y: y.__rmul__(x))
+    def test_rsub_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: y.__rsub__(x))
 
     @pytest.mark.chainerx
-    def test_rdiv_forward_chainerx(self):
-        self.forward_chainerx(lambda x, y: y.__rtruediv__(x))
+    def test_rmul_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: y.__rmul__(x))
+
+    @pytest.mark.chainerx
+    def test_rdiv_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: y.__rtruediv__(x))
 
     # TODO(hvy): Implement floor.
     @pytest.mark.skip
     @pytest.mark.chainerx
-    def test_rfloordiv_forward_chainerx(self):
+    def test_rfloordiv_forward_chainerx_cpu(self):
         pass
 
-    # TODO(hvy): Implement floor.
-    @pytest.mark.skip
-    @pytest.mark.chainerx
-    def test_rpow_forward_chainerx(self):
-        pass
+    @attr.chainerx
+    def test_rpow_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: y.__rpow__(x))
 
     def check_backward(self, op, x1_data, x2_data, y_grad):
         options = {}
@@ -735,6 +731,21 @@ class TestVariableConstantOp(unittest.TestCase):
     def test_rpow_forward_gpu(self):
         self.forward_gpu(lambda x, y: y ** x)
 
+    def forward_chainerx_cpu(self, op):
+        # TODO(imanishi): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+
+        self.check_forward(op, chainerx.array(self.x))
+
+    @attr.chainerx
+    def test_pow_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: x ** y)
+
+    @attr.chainerx
+    def test_rpow_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: y ** x)
+
     def check_backward(self, op, x_data, y_grad):
         options = {}
         if self.dtype == numpy.float16:
@@ -964,6 +975,21 @@ class TestVariableConstantArrayOp(unittest.TestCase):
     def test_rpow_forward_gpu(self):
         self.forward_gpu(lambda x, y: y ** x, positive=True)
 
+    def forward_chainerx_cpu(self, op, positive=False):
+        # TODO(imanishi): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+
+        self.check_forward(op, chainerx.array(self.x), True, positive)
+
+    @attr.chainerx
+    def test_pow_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: x ** y)
+
+    @attr.chainerx
+    def test_rpow_forward_chainerx_cpu(self):
+        self.forward_chainerx_cpu(lambda x, y: y ** x, positive=True)
+
     def check_backward(self, op, x_data, y_grad, gpu, positive):
         value = self.value
         if positive:
@@ -1117,6 +1143,10 @@ class TestUnaryFunctions(unittest.TestCase):
         self.check_forward(op, op_np, cuda.to_gpu(self.x))
 
     def forward_chainerx_cpu(self, op, op_np):
+        # TODO(imanishi): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+
         self.check_forward(op, op_np, chainerx.array(self.x))
 
     def test_neg_forward_cpu(self):
@@ -1135,9 +1165,6 @@ class TestUnaryFunctions(unittest.TestCase):
 
     @attr.chainerx
     def test_abs_forward_chainerx_cpu(self):
-        # TODO(imanishi): Support float16
-        if self.dtype == numpy.float16:
-            raise unittest.SkipTest('Not yet supported')
         self.forward_chainerx_cpu(lambda x: abs(x), lambda x: abs(x))
 
     def check_backward(self, op, x_data, y_grad):
