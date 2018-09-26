@@ -257,6 +257,7 @@ class TestBinaryOp(unittest.TestCase):
         self.backward_gpu(lambda x, y: x ** y)
 
     def backward_chainerx(self, op):
+        # TODO(niboshi): Support it
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
@@ -285,6 +286,7 @@ class TestBinaryOp(unittest.TestCase):
         self.backward_chainerx(lambda x, y: x / y)
 
     @attr.chainerx
+    # TODO(niboshi): Support it
     @pytest.mark.skip('ChainerX does not support pow yet')
     def test_pow_backward_chainerx(self):
         self.backward_chainerx(lambda x, y: x ** y)
@@ -333,6 +335,7 @@ class TestBinaryOp(unittest.TestCase):
         self.double_backward_gpu(lambda x, y: y.__rpow__(x))
 
     def double_backward_chainerx(self, op, **options):
+        # TODO(niboshi): Support it
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
@@ -350,11 +353,13 @@ class TestBinaryOp(unittest.TestCase):
         self.double_backward_chainerx(lambda x, y: x / y, atol=5e-2, rtol=5e-2)
 
     @attr.chainerx
+    # TODO(niboshi): Support it
     @pytest.mark.skip('ChainerX does not support pow yet')
     def test_pow_double_backward_chainerx(self):
         self.double_backward_chainerx(lambda x, y: x ** y)
 
     @attr.chainerx
+    # TODO(niboshi): Support it
     @pytest.mark.skip('ChainerX does not support rpow yet')
     def test_rpow_double_backward_chainerx(self):
         self.double_backward_chainerx(lambda x, y: y.__rpow__(x))

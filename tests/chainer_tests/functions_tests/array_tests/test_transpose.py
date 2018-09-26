@@ -38,6 +38,7 @@ class TestTranspose(unittest.TestCase):
 
     @attr.chainerx
     def test_forward_chainer(self):
+        # TODO(niboshi): Support it
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
         self.check_forward(chainerx.array(self.x))
@@ -58,6 +59,7 @@ class TestTranspose(unittest.TestCase):
 
     @attr.chainerx
     def test_backward_chainerx(self):
+        # TODO(niboshi): Support it
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
         self.check_backward(chainerx.array(self.x))
