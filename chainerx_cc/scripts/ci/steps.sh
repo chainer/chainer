@@ -97,7 +97,7 @@ step_python_style_check() {
     flake8 "${check_targets[@]}"
 
     autopep8 --version
-    autopep8 "${check_targets[@]}" -r --global-config .pep8 --diff | tee "$WORK_DIR"/check_autopep8
+    autopep8 "${check_targets[@]}" -r --diff | tee "$WORK_DIR"/check_autopep8
     test ! -s "$WORK_DIR"/check_autopep8
 }
 
