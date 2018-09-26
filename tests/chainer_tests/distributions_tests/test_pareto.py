@@ -11,7 +11,7 @@ from chainer import testing
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
-class TestLogNormal(testing.distribution_unittest):
+class TestPareto(testing.distribution_unittest):
 
     scipy_onebyone = True
 
