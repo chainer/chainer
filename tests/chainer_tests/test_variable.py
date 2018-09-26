@@ -934,10 +934,9 @@ class TestVariableToChainerX(unittest.TestCase):
     def test_numpy_to_chainerx(self):
         self.check_to_chainerx(self.x, self.gx)
 
-    # TODO(hvy): Write test when implemented.
     @attr.gpu
     def test_cupy_to_chainerx(self):
-        raise unittest.SkipTest('Not yet supported')
+        self.check_to_chainerx(cuda.to_gpu(self.x), cuda.to_gpu(self.gx))
 
     # TODO(hvy): Write test when implemented.
     @attr.ideep

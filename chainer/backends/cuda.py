@@ -42,6 +42,7 @@ import six
 import chainer
 from chainer.backends import intel64
 from chainer.configuration import config
+import chainerx
 
 available = False
 cudnn_enabled = False
@@ -293,7 +294,25 @@ def _array_to_gpu(array, device, stream):
     if array is None:
         return None
 
-    if isinstance(array, (numpy.number, numpy.bool_)):
+    if chainerx.is_available() and isinstance(array, chainerx.ndarray):
+        if array.device.backend.name == 'cuda':
+            array = cupy.ndarray(
+                array.shape,
+                array.dtype,
+                cupy.cuda.MemoryPointer(
+                    cupy.cuda.UnownedMemory(
+                        array.data_ptr + array.offset,
+                        array.data_size,
+                        array,
+                        array.device.index),
+                    0),
+                strides=array.strides)
+            # Return shared-memory cupy.ndarray
+            return array
+        else:
+            array = chainerx.to_numpy(array)
+            # Fall through to the following logic
+    elif isinstance(array, (numpy.number, numpy.bool_)):
         array = numpy.asarray(array)
     elif isinstance(array, intel64.mdarray):
         array = numpy.asarray(array)

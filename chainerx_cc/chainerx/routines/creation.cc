@@ -234,6 +234,7 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     }
 
     CHAINERX_ASSERT(out.IsContiguous());
+    CHAINERX_ASSERT(out.shape() == a.shape());
     return out;
 }
 
