@@ -1132,7 +1132,9 @@ class TestVariableConstantArrayOp(unittest.TestCase):
             array_conv = chainer.backend.to_chainerx
         else:
             assert orig_xp is cuda.cupy
-            array_conv = lambda x: chainer.backend.to_chainerx(cuda.to_gpu(x))
+
+            def array_conv(x):
+                return chainer.backend.to_chainerx(cuda.to_gpu(x))
         self.check_forward(op, array_conv, positive)
 
     @attr.chainerx
