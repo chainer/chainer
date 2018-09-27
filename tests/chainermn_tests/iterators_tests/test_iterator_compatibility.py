@@ -49,10 +49,16 @@ class DummyDeserializer(chainer.serializer.Deserializer):
         return value
 
 
-@chainer.testing.parameterize(
-    {'iterator_class': chainer.iterators.SerialIterator},
-    {'iterator_class': chainer.iterators.MultiprocessIterator},
-)
+@chainer.testing.parameterize(*chainer.testing.product({
+    'iterator_class': [
+        chainer.iterators.SerialIterator,
+        chainer.iterators.MultiprocessIterator,
+    ],
+    'iterator_aspect': [
+        chainermn.iterators.create_multi_node_iterator,
+        chainermn.iterators.create_synchronized_iterator,
+    ],
+}))
 class TestIteratorCompatibility(unittest.TestCase):
 
     def setUp(self):
@@ -70,7 +76,7 @@ class TestIteratorCompatibility(unittest.TestCase):
 
     def test_iterator_compatibility(self):
         iters = (
-            lambda: chainermn.iterators.create_multi_node_iterator(
+            lambda: self.iterator_aspect(
                 self.iterator_class(
                     self.dataset, batch_size=self.bs),
                 self.communicator),
