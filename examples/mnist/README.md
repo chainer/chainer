@@ -130,5 +130,9 @@ Usage (when you used `train_mnist_data_parallel.py`):
 ./inference.py --snapshot result_data_parallel/snapshot_iter_3000
 ```
 
-This does not support inferencing with the model trained with `train_mnsit_model_parallel.py` currently.
+Usage (when you used `train_mnist_model_parallel.py`):
+```
+./inference.py --snapshot result_model_parallel/snapshot_iter_12000
+```
+
 You can run the inference on GPU by adding `--gpu 0` option to all the above commands.
