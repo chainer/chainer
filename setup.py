@@ -114,7 +114,7 @@ if mn_pkg is not None:
     msg = """
 We detected that ChainerMN is installed in your environment.
 ChainerMN has been integrated to Chainer and no separate installation
-is neessary. Please uninstall the old ChainerMN in advance.
+is necessary. Please uninstall the old ChainerMN in advance.
 """
     print(msg)
     exit(1)
