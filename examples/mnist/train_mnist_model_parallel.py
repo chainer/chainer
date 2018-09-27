@@ -20,12 +20,22 @@ class ParallelMLP(chainer.Chain):
 
         with self.init_scope():
             # the input size, 784, is inferred
-            self.first0 = train_mnist.MLP(n_units // 2, n_units).to_gpu(gpu0)
-            self.first1 = train_mnist.MLP(n_units // 2, n_units).to_gpu(gpu1)
+            self.first0 = train_mnist.MLP(n_units // 2, n_units)
+            self.first1 = train_mnist.MLP(n_units // 2, n_units)
+
+            if gpu0 >= 0:
+                self.first0 = self.first0.to_gpu(gpu0)
+            if gpu1 >= 1:
+                self.first1 = self.first1.to_gpu(gpu1)
 
             # the input size, n_units, is inferred
-            self.second0 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu0)
-            self.second1 = train_mnist.MLP(n_units // 2, n_out).to_gpu(gpu1)
+            self.second0 = train_mnist.MLP(n_units // 2, n_out)
+            self.second1 = train_mnist.MLP(n_units // 2, n_out)
+
+            if gpu0 >= 0:
+                self.second0 = self.second0.to_gpu(gpu0)
+            if gpu1 >= 1:
+                self.second1 = self.second1.to_gpu(gpu1)
 
     def __call__(self, x):
         # assume x is on gpu0
@@ -45,6 +55,22 @@ class ParallelMLP(chainer.Chain):
         y = y0 + F.copy(y1, self.gpu0)
         return y  # output is on gpu0
 
+    def predict(self, x):
+        if self.gpu0 < 0 and self.gpu1 < 0:
+            z0 = self.first0(x)
+            z1 = self.first1(x)
+            
+            h = z0 + z1
+
+            y0 = self.second0(F.relu(h))
+            y1 = self.second1(F.relu(h))
+
+            y = y0 + y1
+
+            return y
+        else:
+            return self(x)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: MNIST')
@@ -56,7 +82,7 @@ def main():
                         help='First GPU ID')
     parser.add_argument('--gpu1', '-G', default=1, type=int,
                         help='Second GPU ID')
-    parser.add_argument('--out', '-o', default='result_parallel',
+    parser.add_argument('--out', '-o', default='result_model_parallel',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')

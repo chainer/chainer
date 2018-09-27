@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 
 import chainer
@@ -8,7 +9,7 @@ def main():
     parser = argparse.ArgumentParser(description='Chainer example: MNIST')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--snapshot', '-s', default='result/',
+    parser.add_argument('--snapshot', '-s', default='result/snapshot_iter_12000',
                         help='The path to a saved snapshot (NPZ)')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
@@ -19,13 +20,18 @@ def main():
     print('')
 
     # Create a same model object as what you used for training
+
     model = MLP(args.unit, 10)
     if args.gpu >= 0:
         model.to_gpu(args.gpu)
 
     # Load saved parameters from a NPZ file of the Trainer object
-    chainer.serializers.load_npz(
-        args.snapshot, model, path='updater/model:main/predictor/')
+    try:
+        chainer.serializers.load_npz(
+            args.snapshot, model, path='updater/model:main/predictor/')
+    except Exception:
+        chainer.serializers.load_npz(
+            args.snapshot, model, path='predictor/')
 
     # Prepare data
     train, test = chainer.datasets.get_mnist()
