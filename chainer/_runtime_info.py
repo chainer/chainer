@@ -1,3 +1,4 @@
+import platform
 import sys
 
 import numpy
@@ -16,6 +17,7 @@ class _RuntimeInfo(object):
     def __init__(self):
         self.chainer_version = chainer.__version__
         self.numpy_version = numpy.__version__
+        self.platform_version = platform.platform()
         if cuda.available:
             self.cuda_info = cuda.cupyx.get_runtime_info()
         else:
@@ -23,6 +25,7 @@ class _RuntimeInfo(object):
 
     def __str__(self):
         s = six.StringIO()
+        s.write('''Platform: {}\n'''.format(self.platform_version))
         s.write('''Chainer: {}\n'''.format(self.chainer_version))
         s.write('''NumPy: {}\n'''.format(self.numpy_version))
         if self.cuda_info is None:

@@ -54,6 +54,8 @@ class DummyDeserializer(serializer.Deserializer):
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
+    'order_sampler': [
+        None, lambda order, _: numpy.random.permutation(len(order))],
 }))
 class TestMultiprocessIterator(unittest.TestCase):
 
@@ -62,6 +64,9 @@ class TestMultiprocessIterator(unittest.TestCase):
         self.options = {'n_processes': self.n_processes,
                         'n_prefetch': self.n_prefetch,
                         'shared_mem': self.shared_mem}
+        if self.order_sampler is not None:
+            self.options.update(
+                {'order_sampler': self.order_sampler})
 
     def test_iterator_repeat(self):
         dataset = [1, 2, 3, 4, 5, 6]
@@ -305,6 +310,8 @@ class TestMultiprocessIterator(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
+    'order_sampler': [
+        None, lambda order, _: numpy.random.permutation(len(order))],
 }))
 class TestMultiprocessIteratorSerialize(unittest.TestCase):
 
@@ -313,6 +320,9 @@ class TestMultiprocessIteratorSerialize(unittest.TestCase):
         self.options = {'n_processes': self.n_processes,
                         'n_prefetch': self.n_prefetch,
                         'shared_mem': self.shared_mem}
+        if self.order_sampler is not None:
+            self.options.update(
+                {'shuffle': None, 'order_sampler': self.order_sampler})
 
     def test_iterator_serialize(self):
         dataset = [1, 2, 3, 4, 5, 6]
@@ -391,6 +401,105 @@ class TestMultiprocessIteratorSerialize(unittest.TestCase):
         self.assertAlmostEqual(it.previous_epoch_detail, 4 / 6)
 
 
+@testing.parameterize(*testing.product({
+    'n_prefetch': [1, 2],
+    'shared_mem': [None, 1000000],
+}))
+class TestMultiprocessIteratorOrderSamplerEpochSize(unittest.TestCase):
+
+    def setUp(self):
+        def order_sampler(order, cur_pos):
+            return numpy.repeat(numpy.arange(3), 2)
+        self.n_processes = 2
+        self.options = {'n_processes': self.n_processes,
+                        'n_prefetch': self.n_prefetch,
+                        'shared_mem': self.shared_mem,
+                        'shuffle': None,
+                        'order_sampler': order_sampler}
+
+    def test_iterator_repeat(self):
+        dataset = [1, 2, 3]
+        it = iterators.MultiprocessIterator(dataset, 2, **self.options)
+        for i in range(3):
+            self.assertEqual(it.epoch, i)
+            self.assertAlmostEqual(it.epoch_detail, i + 0 / 6)
+            if i == 0:
+                self.assertIsNone(it.previous_epoch_detail)
+            else:
+                self.assertAlmostEqual(it.previous_epoch_detail, i - 2 / 6)
+            batch1 = it.next()
+            self.assertEqual(len(batch1), 2)
+            self.assertIsInstance(batch1, list)
+            self.assertFalse(it.is_new_epoch)
+            self.assertAlmostEqual(it.epoch_detail, i + 2 / 6)
+            self.assertAlmostEqual(it.previous_epoch_detail, i + 0 / 6)
+            batch2 = it.next()
+            self.assertEqual(len(batch2), 2)
+            self.assertIsInstance(batch2, list)
+            self.assertFalse(it.is_new_epoch)
+            self.assertAlmostEqual(it.epoch_detail, i + 4 / 6)
+            self.assertAlmostEqual(it.previous_epoch_detail, i + 2 / 6)
+            batch3 = it.next()
+            self.assertEqual(len(batch3), 2)
+            self.assertIsInstance(batch3, list)
+            self.assertTrue(it.is_new_epoch)
+            self.assertAlmostEqual(it.epoch_detail, i + 6 / 6)
+            self.assertAlmostEqual(it.previous_epoch_detail, i + 4 / 6)
+
+            self.assertEqual(
+                sorted(batch1 + batch2 + batch3), [1, 1, 2, 2, 3, 3])
+
+
+class _NoSameIndicesOrderSampler(object):
+
+    def __init__(self, batchsize):
+        self.n_call = 0
+
+    def __call__(self, current_order, current_pos):
+        # all batches contain unique indices
+        remaining = current_order[current_pos:]
+        first = numpy.setdiff1d(numpy.arange(len(current_order)), remaining)
+        second = numpy.setdiff1d(numpy.arange(len(current_order)), first)
+        return numpy.concatenate((first, second))
+
+
+class TestNoSameIndicesOrderSampler(unittest.TestCase):
+
+    def test_no_same_indices_order_sampler(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+        batchsize = 5
+
+        it = iterators.MultiprocessIterator(
+            dataset, batchsize,
+            order_sampler=_NoSameIndicesOrderSampler(batchsize))
+        for _ in range(5):
+            batch = it.next()
+            self.assertEqual(len(numpy.unique(batch)), batchsize)
+
+
+class _InvalidOrderSampler(object):
+
+    def __init__(self):
+        self.n_call = 0
+
+    def __call__(self, _order, _):
+        order = numpy.arange(len(_order) - self.n_call)
+        self.n_call += 1
+        return order
+
+
+class TestMultiprocessIteratorInvalidOrderSampler(unittest.TestCase):
+
+    def test_invalid_order_sampler(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+
+        with self.assertRaises(ValueError):
+            it = iterators.MultiprocessIterator(
+                dataset, 6, shuffle=None,
+                order_sampler=_InvalidOrderSampler())
+            it.next()
+
+
 class TestMultiprocessIteratorConcurrency(unittest.TestCase):
 
     def test_finalize_not_deadlock(self):
@@ -419,10 +528,14 @@ class TestMultiprocessIteratorDeterminancy(unittest.TestCase):
 
     def test_reproduce_same_permutation(self):
         dataset = [1, 2, 3, 4, 5, 6]
-        numpy.random.seed(self._seed)
-        it1 = iterators.MultiprocessIterator(dataset, 6)
-        numpy.random.seed(self._seed)
-        it2 = iterators.MultiprocessIterator(dataset, 6)
+        order_sampler1 = iterators.ShuffleOrderSampler(
+            numpy.random.RandomState(self._seed))
+        it1 = iterators.MultiprocessIterator(
+            dataset, 6, order_sampler=order_sampler1)
+        order_sampler2 = iterators.ShuffleOrderSampler(
+            numpy.random.RandomState(self._seed))
+        it2 = iterators.MultiprocessIterator(
+            dataset, 6, order_sampler=order_sampler2)
         for _ in range(5):
             self.assertEqual(it1.next(), it2.next())
 
@@ -430,6 +543,8 @@ class TestMultiprocessIteratorDeterminancy(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
+    'order_sampler': [
+        None, lambda order, _: numpy.random.permutation(len(order))],
 }))
 class TestMultiprocessIteratorInterruption(unittest.TestCase):
 
@@ -478,15 +593,19 @@ if __name__ == '__main__':
     if {shared_mem} is not None and {dataset} is infinite_wait:
         iterators.MultiprocessIterator._interruption_testing = True
     it = iterators.MultiprocessIterator({dataset}, 100,
+                                        shuffle={shuffle},
                                         n_processes={n_processes},
                                         n_prefetch={n_prefetch},
-                                        shared_mem={shared_mem})
+                                        shared_mem={shared_mem},
+                                        order_sampler={order_sampler})
     {operation}
         """
         code = code_template.format(dataset=dataset,
+                                    shuffle=None,
                                     n_processes=n_processes,
                                     n_prefetch=self.n_prefetch,
                                     shared_mem=self.shared_mem,
+                                    order_sampler=self.order_sampler,
                                     operation=operation)
         fd, self.code_path = tempfile.mkstemp(suffix='.py')
         os.write(fd, six.b(code))
@@ -576,6 +695,60 @@ if __name__ == '__main__':
         time.sleep(1.5)
         self.send_sigint()
         self.assertFalse(self.killall())
+
+
+class StallingDataset(object):
+
+    def __init__(self, nth, sleep):
+        self.data = [0, 1, 2, 3, 4]
+        self.nth = nth
+        self.sleep = sleep
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, i):
+        if i == self.nth:
+            time.sleep(self.sleep)
+        return self.data[i]
+
+
+@testing.parameterize(*testing.product({
+    'nth': [0, 1, 2],  # A fetch of whatth item will stall?
+}))
+class TestMultiprocessIteratorStalledDatasetDetection(unittest.TestCase):
+
+    def test_stalled_getitem(self):
+        nth = self.nth
+        batch_size = 2
+        sleep = 0.5
+        timeout = 0.1
+
+        dataset = StallingDataset(nth, sleep)
+        it = iterators.MultiprocessIterator(
+            dataset, batch_size=batch_size, shuffle=False,
+            dataset_timeout=timeout, repeat=False)
+
+        # TimeoutWarning should be issued.
+        warning_cls = iterators.MultiprocessIterator.TimeoutWarning
+        data = []
+        # No warning until the stalling batch
+        for i in range(nth // batch_size):
+            data.append(it.next())
+        # Warning on the stalling batch
+        with testing.assert_warns(warning_cls):
+            data.append(it.next())
+        # Retrieve data until the end
+        while True:
+            try:
+                data.append(it.next())
+            except StopIteration:
+                break
+
+        # All data must be retrieved
+        assert data == [
+            dataset.data[i * batch_size: (i+1) * batch_size]
+            for i in range((len(dataset) + batch_size - 1) // batch_size)]
 
 
 testing.run_module(__name__, __file__)

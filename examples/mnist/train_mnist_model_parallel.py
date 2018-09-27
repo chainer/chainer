@@ -37,20 +37,10 @@ class ParallelMLP(chainer.Chain):
             if gpu1 >= 0:
                 self.second1.to_gpu(gpu1)
 
-    def __call__(self, x):
+    def forward(self, x):
         if self.gpu0 != self.gpu1:
             # assume x is on gpu0
             x1 = F.copy(x, self.gpu1)
-
-            z0 = self.first0(x)
-            z1 = self.first1(x1)
-
-            # synchronize
-            h0 = z0 + F.copy(z1, self.gpu0)
-            h1 = z1 + F.copy(z0, self.gpu1)
-
-            y0 = self.second0(F.relu(h0))
-            y1 = self.second1(F.relu(h1))
 
             # synchronize
             y = y0 + F.copy(y1, self.gpu0)

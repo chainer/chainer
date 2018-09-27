@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -9,7 +10,7 @@ def _transpose(xs, length):
     if length == 0:
         return ()
 
-    xp = cuda.get_array_module(*xs)
+    xp = backend.get_array_module(*xs)
     lengths = numpy.empty(length, dtype='i')
     end = length
     for i, x in enumerate(xs):
@@ -96,10 +97,23 @@ def transpose_sequence(xs):
     :class:`~chainer.Variable`.
 
     Args:
-        xs (list of ~chainer.Variable): Variables to transpose.
+        xs (list of :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Variables to transpose.
 
     Returns:
-        tuple or Variable: Transposed list.
+        tuple of :class:`~chainer.Variable`: Transposed list.
+
+    .. admonition:: Example
+
+        >>> lst = [chainer.Variable(np.array([1, 1, 1])),
+        ...        chainer.Variable(np.array([2, 2])),
+        ...        chainer.Variable(np.array([3]))]
+        >>> lst
+        [variable([1, 1, 1]), variable([2, 2]), variable([3])]
+        >>> transposed = F.transpose_sequence(lst)
+        >>> transposed
+        (variable([1, 2, 3]), variable([1, 2]), variable([1]))
+
     """
     if len(xs) == 0:
         return ()

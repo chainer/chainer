@@ -47,7 +47,8 @@ class TestAverage(unittest.TestCase):
         # Sample weights. Weights should not sum to 0.
         while True:
             self.w = numpy.random.uniform(-2, 2, w_shape).astype(self.dtype)
-            if self.w.sum() > 1e-2:
+            w_sum_eps = 1.0 if self.dtype == numpy.float16 else 5e-2
+            if abs(self.w.sum()) > w_sum_eps:
                 break
 
         if self.dtype == numpy.float16:

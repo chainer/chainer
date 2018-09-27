@@ -12,10 +12,12 @@ Chainer -- A flexible framework of neural networks
    :maxdepth: 2
    :caption: Chainer Documents
 
+   glance
    install
    guides/index
    examples/index
    reference/index
+   chainermn/index
 
 .. toctree::
    :maxdepth: 1
@@ -24,6 +26,7 @@ Chainer -- A flexible framework of neural networks
    compatibility
    contribution
    tips
+   performance
    upgrade
    comparison
    license

@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -12,7 +12,7 @@ class ExpandDims(function_node.FunctionNode):
         self.axis = int(axis)
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         x_type, = in_types
         if self.axis >= 0:
             type_check.expect(x_type.ndim >= self.axis)
@@ -21,7 +21,7 @@ class ExpandDims(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.expand_dims(x, self.axis),
 
     def backward(self, indexes, grad_outputs):

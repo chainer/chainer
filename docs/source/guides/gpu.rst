@@ -145,7 +145,7 @@ Since it accepts NumPy arrays, we can write a function that accepts both NumPy a
            return x + 1
 
 The compatibility of CuPy with NumPy enables us to write CPU/GPU generic code.
-It can be made easy by the :func:`chainer.backends.cuda.get_array_module` function.
+It can be made easy by the :func:`chainer.backend.get_array_module` function.
 This function returns the :mod:`numpy` or :mod:`cupy` module based on arguments.
 A CPU/GPU generic function is defined using it like follows:
 
@@ -153,7 +153,7 @@ A CPU/GPU generic function is defined using it like follows:
 
    # Stable implementation of log(1 + exp(x))
    def softplus(x):
-       xp = cuda.get_array_module(x)
+       xp = backend.get_array_module(x)
        return xp.maximum(0, x) + xp.log1p(xp.exp(-abs(x)))
 
 
@@ -177,7 +177,7 @@ A :class:`Link` object can be transferred to the specified GPU using the :meth:`
                self.l2 = L.Linear(None, n_units)
                self.l3 = L.Linear(None, n_out)
 
-       def __call__(self, x):
+       def forward(self, x):
            h1 = F.relu(self.l1(x))
            h2 = F.relu(self.l2(h1))
            y = self.l3(h2)
@@ -282,7 +282,7 @@ Let's write a link for the whole network.
                self.mlp2_gpu0 = MLP(1000, 10).to_gpu(0)
                self.mlp2_gpu1 = MLP(1000, 10).to_gpu(1)
 
-       def __call__(self, x):
+       def forward(self, x):
            # assume x is on GPU 0
            z0 = self.mlp1_gpu0(x)
            z1 = self.mlp1_gpu1(F.copy(x, 1))

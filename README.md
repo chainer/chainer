@@ -1,4 +1,4 @@
-<div align="center"><img src="docs/image/chainer_red_h.png" width="400"/></div>
+<div align="center"><img src="https://raw.githubusercontent.com/chainer/chainer/master/docs/image/chainer_red_h.png" width="400"/></div>
 
 # Chainer: A deep learning framework
 
@@ -16,7 +16,6 @@
 
 **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
 | **Slack invitation** ([en](https://bit.ly/join-chainer-slack), [ja](https://bit.ly/join-chainer-jp-slack))
-| **Slack archive** ([en](https://chainer.slackarchive.io), [ja](https://chainer-jp.slackarchive.io))
 | **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
 
 *Chainer* is a Python-based deep learning framework aiming at flexibility.

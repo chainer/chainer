@@ -29,6 +29,7 @@ class AveragePooling2D(pooling_2d.Pooling2D):
     def _forward_ideep(self, x):
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
+        self.retain_inputs((0,))
 
         n, c, h, w = x[0].shape
         y_h = conv.get_conv_outsize(
@@ -128,6 +129,7 @@ class AveragePooling2DGrad(function_node.FunctionNode):
     def _forward_ideep(self, gy):
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
+        x, = self.apool2d.get_retained_inputs()
 
         pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         pr = self.sx * (y_w - 1) + self.kw - w - self.pw
@@ -140,6 +142,7 @@ class AveragePooling2DGrad(function_node.FunctionNode):
             pd, pr,
             intel64.ideep.pooling2DParam.pooling_avg_include_padding)
         gx = intel64.ideep.pooling2D.Backward(
+            intel64.ideep.array(x.data),
             intel64.ideep.array(gy[0]), None, pp)
         return gx,
 
@@ -188,9 +191,9 @@ class AveragePooling2DGrad(function_node.FunctionNode):
 def average_pooling_2d(x, ksize, stride=None, pad=0):
     """Spatial average pooling function.
 
-    This function acts similarly to :class:`~functions.Convolution2D`, but
-    it computes the average of input spatial patch for each channel
-    without any parameter instead of computing the inner products.
+    This function acts similarly to :func:`~chainer.functions.convolution_2d`,
+    but it computes the average of input spatial patch for each channel without
+    any parameter instead of computing the inner products.
 
     Args:
         x (~chainer.Variable): Input variable.
@@ -209,6 +212,13 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
 
        This function currently does not support ``cover_all`` mode as
        :func:`max_pooling_2d`. Average pooling runs in non-cover-all mode.
+
+    .. note::
+
+       The values in the padded region is treated as 0, leading the averages
+       biased towards zero.
+       To obtain unbiased averages, use :func:`average_pooling_nd` with
+       ``pad_value=None``.
 
     """
     return AveragePooling2D(ksize, stride, pad, False).apply((x,))[0]

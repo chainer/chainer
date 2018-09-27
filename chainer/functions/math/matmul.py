@@ -2,8 +2,10 @@ import warnings
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
+import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
 
@@ -43,11 +45,11 @@ def _matmul(a, b, transa=False, transb=False, transout=False):
         a = a.swapaxes(-1, -2)
     if transb and b.ndim != 1:
         b = b.swapaxes(-1, -2)
-    xp = cuda.get_array_module(a)
+    xp = backend.get_array_module(a)
 
     if hasattr(xp, 'matmul'):  # numpy.matmul is supported from version 1.10.0
         return xp.matmul(a, b)
-    if a.ndim <= 2:
+    if a.ndim <= 2 or b.ndim <= 2:
         return numpy.dot(a, b)
     else:
         return numpy.einsum('...ij,...jk->...ik', a, b)
@@ -76,60 +78,93 @@ class MatMul(function_node.FunctionNode):
         self.dtype = dtype
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('a', 'b'))
         a_type, b_type = in_types
 
         type_check.expect(
             a_type.dtype.kind == 'f',
             b_type.dtype.kind == 'f',
+            a_type.ndim >= 1,
+            b_type.ndim >= 1,
         )
 
         a_ndim = type_check.eval(a_type.ndim)
         b_ndim = type_check.eval(b_type.ndim)
-        if a_ndim == 0 or b_ndim == 0:
-            pass
-        elif a_ndim == 1 or b_ndim == 1:
-            type_check.expect(
-                a_type.ndim == b_type.ndim,
-                a_type.shape == b_type.shape,
-            )
+        if b_ndim == 1:
+            a_idx = -2 if self.transa and a_ndim > 1 else -1
+            type_check.expect(a_type.shape[a_idx] == b_type.shape[0])
+        elif a_ndim == 1:
+            b_idx = -1 if self.transb and b_ndim > 1 else -2
+            type_check.expect(a_type.shape[0] == b_type.shape[b_idx])
         else:
             a_idx = _get_check_index(self.transa, False,
                                      row_idx=-2, col_idx=-1)
             b_idx = _get_check_index(self.transb, True,
                                      row_idx=-2, col_idx=-1)
-            type_check.expect(
-                a_type.ndim == b_type.ndim,
-                a_type.shape[:-2] == b_type.shape[:-2],
-                a_type.shape[a_idx] == b_type.shape[b_idx],
-            )
+            type_check.expect(a_type.shape[a_idx] == b_type.shape[b_idx])
+            type_check.expect_broadcast_shapes(
+                a_type.shape[:-2], b_type.shape[:-2])
 
     def forward(self, x):
         self.retain_inputs((0, 1))
         a, b = x
-        if a.ndim == 0 or b.ndim == 0:
-            y = a * b
+        # may broadcast
+        y = _matmul(a, b, self.transa, self.transb, self.transc)
+
+        if self.dtype is not None:
+            dtype = self.dtype
         else:
-            y = _matmul(a, b, self.transa, self.transb, self.transc)
-        if self.dtype is not None and y.dtype != self.dtype:
-            y = y.astype(self.dtype)
-        return utils.force_array(y),
+            dtype = y.dtype
+        return utils.force_array(y, dtype),
 
     def backward(self, indexes, grad_outputs):
         a, b = self.get_retained_inputs()
         gy, = grad_outputs
+        is_a_vector = a.ndim == 1
+        is_b_vector = b.ndim == 1
 
-        ga = None
+        ret = []
         if 0 in indexes:
-            ga, = MatMul(self.transc, not self.transb, self.transa,
-                         a.dtype).apply((gy, b))
+            if is_b_vector:
+                u, v = chainer.functions.cast(gy, b.dtype), b
+                if not is_a_vector:
+                    if self.transa:
+                        u, v = v, u
+                    u = chainer.functions.expand_dims(u, -1)
+                    v = (chainer.functions.expand_dims(v, -2) if v.ndim > 1
+                         else v)
+                ga = chainer.functions.cast(u * v, a.dtype)
+            elif is_a_vector:
+                bt = chainer.functions.rollaxis(b, -1 if self.transb else -2)
+                ga = chainer.functions.tensordot(bt, gy, axes=gy.ndim)
+                ga = chainer.functions.cast(ga, a.dtype)
+            else:
+                ga, = MatMul(self.transc, not self.transb, self.transa,
+                             a.dtype).apply((gy, b))
+                ga = chainer.functions.sum_to(ga, a.shape)
+            ret.append(ga)
 
-        gb = None
         if 1 in indexes:
-            gb, = MatMul(not self.transa, self.transc, self.transb,
-                         b.dtype).apply((a, gy))
+            if is_a_vector:
+                u, v = a, chainer.functions.cast(gy, a.dtype)
+                if not is_b_vector:
+                    if self.transb:
+                        u, v = v, u
+                    u = chainer.functions.expand_dims(u, -1)
+                    v = (chainer.functions.expand_dims(v, -2) if v.ndim > 1
+                         else v)
+                gb = chainer.functions.cast(u * v, b.dtype)
+            elif is_b_vector:
+                at = chainer.functions.rollaxis(a, -2 if self.transa else -1)
+                gb = chainer.functions.tensordot(at, gy, axes=gy.ndim)
+                gb = chainer.functions.cast(gb, b.dtype)
+            else:
+                gb, = MatMul(not self.transa, self.transc, self.transb,
+                             b.dtype).apply((a, gy))
+                gb = chainer.functions.sum_to(gb, b.shape)
+            ret.append(gb)
 
-        return ga, gb
+        return ret
 
 
 def matmul(a, b, transa=False, transb=False):
@@ -139,10 +174,11 @@ def matmul(a, b, transa=False, transb=False):
         a (Variable): The left operand of the matrix multiplication.
             If ``a`` and ``b`` are both 1-D arrays, ``matmul`` returns a dot
             product of vector `a` and vector `b`. If 2-D arrays, ``matmul``
-            returns matrix product of ``a`` and ``b``. If arrays' dimension is
+            returns matrix product of ``a`` and ``b``. If either's dimension is
             larger than 2, they are treated as a stack of matrices residing in
             the last two indexes. ``matmul`` returns a stack of each two
-            arrays. ``a`` and ``b`` must have the same dimension.
+            arrays. In this case, ``a`` and ``b`` are broadcasted along axes
+            except the last two.
         b (Variable): The right operand of the matrix multiplication.
             Its array is treated as a matrix in the same way as ``a``'s array.
         transa (bool): If ``True``, each matrices in ``a`` will be transposed.
@@ -185,7 +221,7 @@ class BatchMatMul(function_node.FunctionNode):
         self.transb = transb
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('a', 'b'))
         a_type, b_type = in_types
 
         type_check.expect(

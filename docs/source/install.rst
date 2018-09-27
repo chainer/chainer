@@ -25,7 +25,7 @@ You need to have the following components to use Chainer.
 * `Python <https://python.org/>`_
     * Supported Versions: 2.7.6+, 3.4.3+, 3.5.1+ and 3.6.0+.
 * `NumPy <http://www.numpy.org/>`_
-    * Supported Versions: 1.9, 1.10, 1.11, 1.12 and 1.13.
+    * Supported Versions: 1.9, 1.10, 1.11, 1.12, 1.13 and 1.14.
     * NumPy will be installed automatically during the installation of Chainer.
 
 Before installing Chainer, we recommend you to upgrade ``setuptools`` and ``pip``::
@@ -42,7 +42,7 @@ You can accelerate performance of Chainer by installing the following optional c
     * See `CuPy Installation Guide <https://docs-cupy.chainer.org/en/latest/install.html>`__ for instructions.
 
 * Intel CPU (experimental)
-    * `iDeep <https://github.com/intel/ideep>`_ 1.0.3+
+    * `iDeep <https://github.com/intel/ideep>`_ 2.0.0+
     * See :doc:`tips` for instructions.
 
 Optional Features
@@ -57,6 +57,10 @@ Chainer can be installed without them, in which case the corresponding features 
 * HDF5 serialization support
     * `h5py <http://www.h5py.org/>`__ 2.5+
     * Run ``pip install h5py`` to install.
+* Distributed Deep Learning using ChainerMN
+    * CUDA-aware MPI
+    * `mpi4py <https://mpi4py.readthedocs.io/en/stable/>`__
+    * See :ref:`ChainerMN installation guide <chainermn_installation>` for installation instructions
 
 
 Install Chainer

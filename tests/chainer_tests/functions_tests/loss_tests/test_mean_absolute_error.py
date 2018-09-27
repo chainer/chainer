@@ -8,19 +8,31 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.utils import type_check
 
 
+@testing.parameterize(
+    {'dtype': numpy.float32,
+     'ndigits': 5,
+     'backward_tols': {'atol': 1e-5, 'rtol': 1e-4},
+     'double_backward_tols': {'atol': 1e-5, 'rtol': 1e-4}},
+    {'dtype': numpy.float16,
+     'ndigits': 3,
+     'backward_tols': {'atol': 5e-2, 'rtol': 5e-1},
+     'double_backward_tols': {'atol': 5e-2, 'rtol': 5e-1}},
+)
 class TestMeanAbsoluteError(unittest.TestCase):
 
     def setUp(self):
-        self.x0 = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+        dtype = self.dtype
+        self.x0 = numpy.random.uniform(-1, 1, (4, 3)).astype(dtype)
         # Add sufficient margin to prevent computational error
-        diff = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+        diff = numpy.random.uniform(-1, 1, (4, 3)).astype(dtype)
         diff[abs(diff) < 0.01] = 0.5
         self.x1 = self.x0 + diff
-        self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
-        self.ggx0 = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
-        self.ggx1 = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+        self.gy = numpy.random.uniform(-1, 1, ()).astype(dtype)
+        self.ggx0 = numpy.random.uniform(-1, 1, (4, 3)).astype(dtype)
+        self.ggx1 = numpy.random.uniform(-1, 1, (4, 3)).astype(dtype)
 
     def check_forward(self, x0_data, x1_data):
         x0 = chainer.Variable(x0_data)
@@ -28,7 +40,7 @@ class TestMeanAbsoluteError(unittest.TestCase):
         loss = functions.mean_absolute_error(x0, x1)
         loss_value = cuda.to_cpu(loss.data)
 
-        assert loss_value.dtype == numpy.float32
+        assert loss_value.dtype == self.dtype
         assert loss_value.shape == ()
 
         # Compute expected value
@@ -37,7 +49,7 @@ class TestMeanAbsoluteError(unittest.TestCase):
             loss_expect += abs(self.x0[i] - self.x1[i])
         loss_expect /= self.x0.size
 
-        assert round(loss_expect - loss_value, 5) == 0
+        assert round(loss_expect - loss_value, self.ndigits) == 0
 
     def test_forward_cpu(self):
         self.check_forward(self.x0, self.x1)
@@ -48,7 +60,8 @@ class TestMeanAbsoluteError(unittest.TestCase):
 
     def check_backward(self, x0_data, x1_data):
         gradient_check.check_backward(
-            functions.mean_absolute_error, (x0_data, x1_data), None, eps=1e-2)
+            functions.mean_absolute_error,
+            (x0_data, x1_data), None, eps=1e-2, **self.backward_tols)
 
     def test_backward_cpu(self):
         self.check_backward(self.x0, self.x1)
@@ -59,12 +72,9 @@ class TestMeanAbsoluteError(unittest.TestCase):
 
     def check_double_backward(self, x0_data, x1_data, gy_data, ggx0_data,
                               ggx1_data):
-        def f(*xs):
-            y = chainer.functions.mean_absolute_error(*xs)
-            return y * y
-
         gradient_check.check_double_backward(
-            f, (x0_data, x1_data), gy_data, (ggx0_data, ggx1_data), eps=1e-2)
+            chainer.functions.mean_absolute_error, (x0_data, x1_data), gy_data,
+            (ggx0_data, ggx1_data), eps=1e-2, **self.double_backward_tols)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(
@@ -77,6 +87,36 @@ class TestMeanAbsoluteError(unittest.TestCase):
                                    cuda.to_gpu(self.gy),
                                    cuda.to_gpu(self.ggx0),
                                    cuda.to_gpu(self.ggx1))
+
+    # test for #4669
+    @attr.multi_gpu(2)
+    def test_backward_non_default_gpu(self):
+        x0 = chainer.Variable(cuda.to_gpu(self.x0, 1))
+        x1 = chainer.Variable(cuda.to_gpu(self.x1, 1))
+        gy = cuda.to_gpu(self.gy, 1)
+        with cuda.get_device_from_id(0):
+            y = functions.mean_absolute_error(x0, x1)
+            y.grad = gy
+            y.backward()
+
+
+class TestMeanAbsoluteErrorTypeCheck(unittest.TestCase):
+
+    def test_invalid_dtype1(self):
+        x0 = chainer.Variable(
+            numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.int32))
+        x1 = chainer.Variable(
+            numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.int32))
+        with self.assertRaises(type_check.InvalidType):
+            functions.mean_absolute_error(x0, x1)
+
+    def test_invalid_dtype2(self):
+        x0 = chainer.Variable(
+            numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32))
+        x1 = chainer.Variable(
+            numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float16))
+        with self.assertRaises(type_check.InvalidType):
+            functions.mean_absolute_error(x0, x1)
 
 
 testing.run_module(__name__, __file__)

@@ -1,7 +1,5 @@
-import numpy
-
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.functions.activation import sigmoid
 from chainer import utils
@@ -24,11 +22,11 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
         self.count = None
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
-
+        type_check.argname(in_types, ('x', 't'))
         x_type, t_type = in_types
+
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             t_type.dtype.kind == 'i',
             x_type.shape == t_type.shape
         )
@@ -36,7 +34,7 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, t = inputs
         self.ignore_mask = (t != self.ignore_label)
 
@@ -54,14 +52,17 @@ class SigmoidCrossEntropy(function_node.FunctionNode):
             count = max(1, len(x))
         self.count = count
 
+        # TODO(takagi): Fix to perform division in a specific dtype. See
+        # cupy/cupy#1534.
         return utils.force_array(
-            xp.divide(xp.sum(loss), self.count, dtype=x.dtype)),
+            xp.divide(xp.sum(loss), self.count), dtype=x.dtype),
 
     def backward(self, inputs, grad_outputs):
         x, t = self.get_retained_inputs()
         gy, = grad_outputs
-        return SigmoidCrossEntropyGrad(
+        gx, = SigmoidCrossEntropyGrad(
             self.reduce, self.count, self.ignore_mask, t.data).apply((x, gy))
+        return gx, None
 
 
 class SigmoidCrossEntropyGrad(function_node.FunctionNode):
@@ -77,21 +78,23 @@ class SigmoidCrossEntropyGrad(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, gy = inputs
 
         y, = sigmoid.Sigmoid().forward((x,))
         if self.reduce == 'mean':
+            # TODO(takagi): Fix to perform division in a specific dtype. See
+            # cupy/cupy#1534.
             gx = xp.divide(
-                gy * self.ignore_mask * (y - self.t), self.count,
-                dtype=y.dtype)
+                gy * self.ignore_mask * (y - self.t), self.count).astype(
+                    y.dtype)
         else:
             gx = (gy * self.ignore_mask * (y - self.t)).astype(y.dtype)
 
-        return gx, None
+        return gx,
 
     def backward(self, indexes, grad_outputs):
-        ggx, _ = grad_outputs
+        ggx, = grad_outputs
         x, gy = self.get_retained_inputs()
         y = chainer.functions.sigmoid(x)
         yp = y * (1 - y)

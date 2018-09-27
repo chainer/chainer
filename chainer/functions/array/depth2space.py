@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -14,7 +14,7 @@ class Depth2Space(function_node.FunctionNode):
         self.r = r
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].ndim == 4
@@ -22,7 +22,7 @@ class Depth2Space(function_node.FunctionNode):
 
     def forward(self, inputs):
         X, = inputs
-        xp = cuda.get_array_module(X)
+        xp = backend.get_array_module(X)
         bsize, c, a, b = X.shape
         c //= self.r ** 2
 

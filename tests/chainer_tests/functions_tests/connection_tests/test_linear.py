@@ -11,7 +11,7 @@ from chainer.testing import backend
 
 
 def _to_noncontiguous(arrays):
-    xp = cuda.get_array_module(*arrays)
+    xp = chainer.backend.get_array_module(*arrays)
     return [None if a is None else xp.asfortranarray(a) for a in arrays]
 
 
@@ -157,14 +157,9 @@ class TestNonparameterizedLinear(unittest.TestCase):
             inputs = inputs[:-1]
             grad_grad_inputs = grad_grad_inputs[:-1]
 
-        # non-linear function for testing
-        def nonlinear(*args):
-            y, = self.forward(*args)
-            return y * y
-
         with backend_config:
             gradient_check.check_double_backward(
-                nonlinear, inputs, grad_outputs, grad_grad_inputs,
+                self.forward, inputs, grad_outputs, grad_grad_inputs,
                 **self.check_double_backward_options)
 
     def test_double_backward(self, backend_config):

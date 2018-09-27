@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import imp
 import os
 import pkg_resources
 import sys
@@ -21,7 +20,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 
 
 def cupy_requirement(pkg):
-    return '{}==5.0.0a1'.format(pkg)
+    return '{}==5.0.0b4'.format(pkg)
 
 
 requirements = {
@@ -35,34 +34,41 @@ requirements = {
         cupy_requirement('cupy'),
     ],
     'stylecheck': [
-        'autopep8',
-        'hacking==1.0.0',
+        'autopep8==1.3.5',
+        'flake8==3.5.0',
+        'pbr==4.0.4',
+        'pycodestyle==2.3.1',
     ],
     'test': [
         'pytest',
         'mock',
     ],
     'doctest': [
+        'sphinx==1.7.9',
         'matplotlib',
         'theano',
     ],
     'docs': [
-        'sphinx',
+        'sphinx==1.7.9',
         'sphinx_rtd_theme',
     ],
     'travis': [
         '-r stylecheck',
         '-r test',
-        'pytest-timeout',
+        '-r docs',
+        # pytest-timeout>=1.3.0 requires pytest>=3.6.
+        # TODO(niboshi): Consider upgrading pytest to >=3.6
+        'pytest-timeout<1.3.0',
         'pytest-cov',
         'theano',
         'h5py',
         'pillow',
     ],
     'appveyor': [
-        '-r stylecheck',
         '-r test',
-        'pytest-timeout',
+        # pytest-timeout>=1.3.0 requires pytest>=3.6.
+        # TODO(niboshi): Consider upgrading pytest to >=3.6
+        'pytest-timeout<1.3.0',
         'pytest-cov',
     ],
 }
@@ -103,9 +109,20 @@ def find_any_distribution(pkgs):
     return None
 
 
+mn_pkg = find_any_distribution(['chainermn'])
+if mn_pkg is not None:
+    msg = """
+We detected that ChainerMN is installed in your environment.
+ChainerMN has been integrated to Chainer and no separate installation
+is neessary. Please uninstall the old ChainerMN in advance.
+"""
+    print(msg)
+    exit(1)
+
 # Currently cupy provides source package (cupy) and binary wheel packages
 # (cupy-cudaXX). Chainer can use any one of these packages.
 cupy_pkg = find_any_distribution([
+    'cupy-cuda92',
     'cupy-cuda91',
     'cupy-cuda90',
     'cupy-cuda80',
@@ -119,14 +136,16 @@ else:
     print('No CuPy installation detected')
 
 here = os.path.abspath(os.path.dirname(__file__))
-__version__ = imp.load_source(
-    '_version', os.path.join(here, 'chainer', '_version.py')).__version__
+# Get __version__ variable
+exec(open(os.path.join(here, 'chainer', '_version.py')).read())
 
 
 setup(
     name='chainer',
-    version=__version__,
+    version=__version__,  # NOQA
     description='A flexible framework of neural networks',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     author='Seiya Tokui',
     author_email='tokui@preferred.jp',
     url='https://chainer.org/',
@@ -135,6 +154,7 @@ setup(
               'chainer.backends',
               'chainer.dataset',
               'chainer.datasets',
+              'chainer.distributions',
               'chainer.exporters',
               'chainer.functions',
               'chainer.functions.activation',
@@ -161,6 +181,7 @@ setup(
               'chainer.links.model.vision',
               'chainer.links.normalization',
               'chainer.links.theano',
+              'chainer.graph_optimizations',
               'chainer.optimizers',
               'chainer.optimizer_hooks',
               'chainer.serializers',
@@ -169,7 +190,14 @@ setup(
               'chainer.training.extensions',
               'chainer.training.triggers',
               'chainer.training.updaters',
-              'chainer.utils'],
+              'chainer.utils',
+              'chainermn',
+              'chainermn.communicators',
+              'chainermn.datasets',
+              'chainermn.extensions',
+              'chainermn.functions',
+              'chainermn.iterators',
+              'chainermn.links'],
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,

@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -13,9 +13,11 @@ class Dstack(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
+        type_check.argname((in_types[0],), ('x0',))
 
         ndim = type_check.eval(in_types[0].ndim)
         for i in six.moves.range(1, type_check.eval(in_types.size())):
+            type_check.argname((in_types[i],), ('x{}'.format(i),))
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
@@ -29,7 +31,7 @@ class Dstack(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        xp = cuda.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return xp.dstack(xs),
 
     def backward(self, indexes, grad_outputs):

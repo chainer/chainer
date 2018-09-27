@@ -1,4 +1,5 @@
 import unittest
+import warnings
 
 import numpy
 
@@ -56,7 +57,7 @@ def _nonlinear(func):
 
 
 def unary_math_function_unittest(func, func_expected=None, label_expected=None,
-                                 make_data=None, is_linear=False,
+                                 make_data=None, is_linear=None,
                                  forward_options=None,
                                  backward_options=None,
                                  double_backward_options=None):
@@ -80,9 +81,11 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             and returns a tuple of input, gradient and double gradient data. By
             default, uniform destribution ranged ``[-1, 1]`` is used for all of
             them.
-        is_linear(bool): Tells the decorator that ``func`` is a linear function
+        is_linear: Tells the decorator that ``func`` is a linear function
             so that it wraps ``func`` as a non-linear function to perform
-            double backward test. The default value is ``False``.
+            double backward test. This argument is left for backward
+            compatibility. Linear functions can be tested by default without
+            specifying ``is_linear`` in Chainer v5 or later.
         forward_options(dict): Options to be specified as an argument of
             :func:`chainer.testing.assert_allclose` function.
             If not given, preset tolerance values are automatically selected.
@@ -194,6 +197,9 @@ def unary_math_function_unittest(func, func_expected=None, label_expected=None,
             def aux(shape, dtype):
                 return _make_data_default(shape, dtype)[0:2]
             make_data = aux
+
+    if is_linear is not None:
+        warnings.warn('is_linear option is deprecated', DeprecationWarning)
 
     def f(klass):
         assert issubclass(klass, unittest.TestCase)

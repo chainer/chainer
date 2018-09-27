@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
 
@@ -23,6 +24,7 @@ class AdaGradRule(optimizer.UpdateRule):
         eps (float): Small value for the numerical stability.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None, eps=None):
         super(AdaGradRule, self).__init__(
@@ -33,7 +35,7 @@ class AdaGradRule(optimizer.UpdateRule):
             self.hyperparam.eps = eps
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['h'] = xp.zeros_like(param.data)
 
@@ -53,13 +55,15 @@ class AdaGradRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        cuda.elementwise(
-            'T grad, T lr, T eps',
-            'T param, T h',
-            '''h += grad * grad;
-               param -= lr * grad / (sqrt(h) + eps);''',
-            'adagrad')(grad, self.hyperparam.lr, self.hyperparam.eps,
-                       param.data, self.state['h'])
+        if AdaGradRule._kernel is None:
+            AdaGradRule._kernel = cuda.elementwise(
+                'T grad, T lr, T eps',
+                'T param, T h',
+                '''h += grad * grad;
+                   param -= lr * grad / (sqrt(h) + eps);''',
+                'adagrad')
+        AdaGradRule._kernel(grad, self.hyperparam.lr, self.hyperparam.eps,
+                            param.data, self.state['h'])
 
 
 class AdaGrad(optimizer.GradientMethod):

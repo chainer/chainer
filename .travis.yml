@@ -47,10 +47,12 @@ before_install:
 
       brew cask uninstall oclint;
       brew install hdf5;
+      brew install open-mpi;
     fi
 
 install:
   - pip install -U pip wheel
+  - pip install mpi4py
   - python setup.py sdist
   - pip install dist/*.tar.gz
   - travis_wait pip install -U -e .[travis]
@@ -59,12 +61,20 @@ script:
   - flake8
   - autopep8 -r . --diff | tee check_autopep8
   - test ! -s check_autopep8
-  - cd tests
-  - CHAINER_TEST_GPU_LIMIT=0 pytest -m "not slow and not cudnn and not ideep" chainer_tests
+  # To workaround Travis issue (https://github.com/travis-ci/travis-ci/issues/7261),
+  # ignore DeprecationWarning raised in `site.py`.
+  - python -Werror::DeprecationWarning -Wignore::DeprecationWarning:site -m compileall -f -q chainer chainermn examples tests docs
+  - pushd tests
+  - pytest -m "not slow and not gpu and not cudnn and not ideep" chainer_tests
+  - export OMP_NUM_THREADS=1
+  - (for NP in 1 2; do mpiexec -n ${NP} pytest -s -v -m 'not gpu and not slow' chainermn_tests || exit $?; done)
+  - popd
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-      cd ..;
       READTHEDOCS=True python setup.py develop;
     fi
+  - pushd docs
+  - make html
+  - popd
 
 sudo: false
 
@@ -74,3 +84,6 @@ addons:
       - gfortran
       - libhdf5-serial-dev
       - liblapack-dev
+      - openmpi-bin
+      - openmpi-common
+      - libopenmpi-dev

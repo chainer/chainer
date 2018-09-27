@@ -10,10 +10,19 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(*testing.product({
-    'shape': [None, (2, 3), (2, 2, 3), (2, 2, 2, 3)],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
+@testing.parameterize(*testing.product_dict(
+    testing.product({
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    }),
+    testing.product({
+        'shape': [None, (2, 3), (2, 2, 3), (2, 2, 2, 3)],
+        'axis': [1],
+    }) + [
+        {'shape': (2, 3), 'axis': 0},
+        {'shape': (2, 2, 3), 'axis': 2},
+        {'shape': (2, 2, 2, 3), 'axis': -4},
+    ],
+))
 @testing.fix_random()
 class TestLogSoftmax(unittest.TestCase):
 
@@ -38,11 +47,11 @@ class TestLogSoftmax(unittest.TestCase):
     def check_forward(self, x_data, use_cudnn='always'):
         x = chainer.Variable(x_data)
         with chainer.using_config('use_cudnn', use_cudnn):
-            y = functions.log_softmax(x)
+            y = functions.log_softmax(x, axis=self.axis)
         self.assertEqual(y.data.dtype, self.dtype)
 
         log_z = numpy.ufunc.reduce(
-            numpy.logaddexp, self.x, axis=1, keepdims=True)
+            numpy.logaddexp, self.x, axis=self.axis, keepdims=True)
         y_expect = self.x - log_z
 
         testing.assert_allclose(
@@ -65,9 +74,12 @@ class TestLogSoftmax(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x), 'never')
 
     def check_backward(self, x_data, gy_data, use_cudnn='always'):
+        def f(x):
+            return functions.log_softmax(x, self.axis)
+
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
-                functions.log_softmax, x_data, gy_data, dtype=numpy.float64,
+                f, x_data, gy_data, dtype=numpy.float64,
                 **self.check_backward_options)
 
     def test_backward_cpu(self):
@@ -89,9 +101,12 @@ class TestLogSoftmax(unittest.TestCase):
 
     def check_double_backward(self, x_data, gy_data, ggx_data,
                               use_cudnn='always'):
+        def f(x):
+            return functions.log_softmax(x, self.axis)
+
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
-                functions.log_softmax, x_data, gy_data, ggx_data,
+                f, x_data, gy_data, ggx_data,
                 dtype=numpy.float64, **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):

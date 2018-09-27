@@ -67,8 +67,7 @@ class TestClip(unittest.TestCase):
 
     def check_double_backward(self, x_data, y_grad, gx_grad):
         def f(x):
-            y = functions.clip(x, self.x_min, self.x_max)
-            return y * y
+            return functions.clip(x, self.x_min, self.x_max)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, gx_grad, dtype=numpy.float64, atol=1e-3)
@@ -84,9 +83,12 @@ class TestClip(unittest.TestCase):
 
 class TestClipInvalidInterval(unittest.TestCase):
 
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+
     def test_invalid_interval(self):
         with self.assertRaises(AssertionError):
-            functions.Clip(1.0, -1.0)
+            functions.clip(self.x, 1.0, -1.0)
 
 
 testing.run_module(__name__, __file__)

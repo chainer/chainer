@@ -6,7 +6,7 @@ import numpy
 import six
 
 import chainer
-from chainer import cuda
+from chainer import backend
 import chainer.functions as F
 from chainer import initializers
 import chainer.links as L
@@ -21,7 +21,7 @@ def bow_encode(embed, sentences):
 
     .. math::
 
-       m = \sum_j A x_j,
+       m = \\sum_j A x_j,
 
     where :math:`A` is an embed matrix, and :math:`x_j` is :math:`j`-th word
     ID.
@@ -40,7 +40,7 @@ def position_encode(embed, sentences):
 
     .. math::
 
-       m = \sum_j l_j A x_j,
+       m = \\sum_j l_j A x_j,
 
     where :math:`A` is an embed matrix, :math:`x_j` is :math:`j`-th word ID and
 
@@ -53,7 +53,7 @@ def position_encode(embed, sentences):
 
     """
 
-    xp = cuda.get_array_module(sentences)
+    xp = backend.get_array_module(sentences)
     e = embed(sentences)
     n_words, n_units = e.shape[-2:]
 
@@ -109,7 +109,7 @@ class Memory(object):
         self.c = self.encoder(self.C, sentences)
 
     def query(self, u):
-        xp = cuda.get_array_module(u)
+        xp = backend.get_array_module(u)
         size = self.m.shape[1]
         inds = xp.arange(size - 1, -1, -1, dtype=numpy.int32)
         tm = self.TA(inds)
@@ -171,7 +171,7 @@ class MemNN(chainer.Chain):
         a = self.W(u)
         return a
 
-    def __call__(self, sentences, question):
+    def forward(self, sentences, question):
         self.register_all(sentences)
         a = self.query(question)
         return a

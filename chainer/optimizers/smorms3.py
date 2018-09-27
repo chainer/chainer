@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
 
@@ -23,6 +24,7 @@ class SMORMS3Rule(optimizer.UpdateRule):
         eps (float): Small value for the numerical stability.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None, eps=None):
         super(SMORMS3Rule, self).__init__(
@@ -33,7 +35,7 @@ class SMORMS3Rule(optimizer.UpdateRule):
             self.hyperparam.eps = eps
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['mem'] = xp.ones_like(param.data)
             self.state['g'] = xp.zeros_like(param.data)
@@ -59,20 +61,22 @@ class SMORMS3Rule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        cuda.elementwise(
-            'T grad, T lr, T eps',
-            'T param, T mem, T g, T g2',
-            '''T r, x;
-               r = 1 / (mem + 1);
-               g = (1 - r) * g + r * grad;
-               g2 = (1 - r) * g2 + r * grad * grad;
-               x = g * g / (g2 + eps);
-               param -= grad * min(lr, x) / (sqrt(g2) + eps);
-               mem = 1 + mem * (1 - x)
-               ''',
-            'smorms3')(grad, self.hyperparam.lr, self.hyperparam.eps,
-                       param.data, self.state['mem'], self.state['g'],
-                       self.state['g2'])
+        if SMORMS3Rule._kernel is None:
+            SMORMS3Rule._kernel = cuda.elementwise(
+                'T grad, T lr, T eps',
+                'T param, T mem, T g, T g2',
+                '''T r, x;
+                   r = 1 / (mem + 1);
+                   g = (1 - r) * g + r * grad;
+                   g2 = (1 - r) * g2 + r * grad * grad;
+                   x = g * g / (g2 + eps);
+                   param -= grad * min(lr, x) / (sqrt(g2) + eps);
+                   mem = 1 + mem * (1 - x)
+                   ''',
+                'smorms3')
+        SMORMS3Rule._kernel(
+            grad, self.hyperparam.lr, self.hyperparam.eps, param.data,
+            self.state['mem'], self.state['g'], self.state['g2'])
 
 
 class SMORMS3(optimizer.GradientMethod):

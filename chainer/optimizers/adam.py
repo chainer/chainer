@@ -3,6 +3,7 @@ import math
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
 
@@ -50,7 +51,7 @@ class AdamRule(optimizer.UpdateRule):
     Args:
         parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
             that provides the default values.
-        alpha (float): Step size.
+        alpha (float): Coefficient of learning rate.
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
@@ -59,6 +60,8 @@ class AdamRule(optimizer.UpdateRule):
         amsgrad (bool): Whether to use the AMSGrad variant of Adam.
 
     """
+    _kernel = None
+    _amsgrad_kernel = None
 
     def __init__(self, parent_hyperparam=None,
                  alpha=None, beta1=None, beta2=None, eps=None,
@@ -81,7 +84,7 @@ class AdamRule(optimizer.UpdateRule):
             self.hyperparam.amsgrad = amsgrad
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['m'] = xp.zeros_like(param.data)
             self.state['v'] = xp.zeros_like(param.data)
@@ -123,33 +126,38 @@ class AdamRule(optimizer.UpdateRule):
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
         if hp.amsgrad:
-            cuda.elementwise(
-                'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, \
-                 T eta, T weight_decay_rate',
-                'T param, T m, T v, T vhat',
-                '''m += one_minus_beta1 * (grad - m);
-                   v += one_minus_beta2 * (grad * grad - v);
-                   vhat = max(vhat, v);
-                   param -= eta * (lr * m / (sqrt(vhat) + eps) +
-                                   weight_decay_rate * param);''',
-                'adam')(grad, self.lr, 1 - hp.beta1,
-                        1 - hp.beta2, hp.eps,
-                        hp.eta, hp.weight_decay_rate,
-                        param.data, self.state['m'], self.state['v'],
-                        self.state['vhat'])
+            if AdamRule._amsgrad_kernel is None:
+                AdamRule._amsgrad_kernel = cuda.elementwise(
+                    'T grad, T lr, T one_minus_beta1, T one_minus_beta2, '
+                    'T eps, T eta, T weight_decay_rate',
+                    'T param, T m, T v, T vhat',
+                    '''m += one_minus_beta1 * (grad - m);
+                       v += one_minus_beta2 * (grad * grad - v);
+                       vhat = max(vhat, v);
+                       param -= eta * (lr * m / (sqrt(vhat) + eps) +
+                                       weight_decay_rate * param);''',
+                    'adam')
+            AdamRule._amsgrad_kernel(
+                grad, self.lr, 1 - hp.beta1,
+                1 - hp.beta2, hp.eps,
+                hp.eta, hp.weight_decay_rate,
+                param.data, self.state['m'], self.state['v'],
+                self.state['vhat'])
         else:
-            cuda.elementwise(
-                'T grad, T lr, T one_minus_beta1, T one_minus_beta2, T eps, \
-                 T eta, T weight_decay_rate',
-                'T param, T m, T v',
-                '''m += one_minus_beta1 * (grad - m);
-                   v += one_minus_beta2 * (grad * grad - v);
-                   param -= eta * (lr * m / (sqrt(v) + eps) +
-                                   weight_decay_rate * param);''',
-                'adam')(grad, self.lr, 1 - hp.beta1,
-                        1 - hp.beta2, hp.eps,
-                        hp.eta, hp.weight_decay_rate,
-                        param.data, self.state['m'], self.state['v'])
+            if AdamRule._kernel is None:
+                AdamRule._kernel = cuda.elementwise(
+                    'T grad, T lr, T one_minus_beta1, T one_minus_beta2, '
+                    'T eps, T eta, T weight_decay_rate',
+                    'T param, T m, T v',
+                    '''m += one_minus_beta1 * (grad - m);
+                       v += one_minus_beta2 * (grad * grad - v);
+                       param -= eta * (lr * m / (sqrt(v) + eps) +
+                                       weight_decay_rate * param);''',
+                    'adam')
+            AdamRule._kernel(grad, self.lr, 1 - hp.beta1,
+                             1 - hp.beta2, hp.eps,
+                             hp.eta, hp.weight_decay_rate,
+                             param.data, self.state['m'], self.state['v'])
 
     @property
     def lr(self):
@@ -181,7 +189,7 @@ class Adam(optimizer.GradientMethod):
                <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
     Args:
-        alpha (float): Step size.
+        alpha (float): Coefficient of learning rate.
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
