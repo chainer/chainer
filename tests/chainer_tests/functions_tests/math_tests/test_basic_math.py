@@ -1032,9 +1032,6 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         self.ggx = numpy.random.uniform(.5, 1, (3, 2)).astype(self.dtype)
         self.value = numpy.random.uniform(-1, 1, (3, 2)).astype(self.dtype)
 
-        self.conv_numpy = lambda x: x
-        self.conv_cupy = cuda.to_gpu
-
     def check_forward(self, op, array_conv, positive):
         value = self.value
         if positive:
@@ -1051,7 +1048,7 @@ class TestVariableConstantArrayOp(unittest.TestCase):
             op(self.x, value), y.data, atol=tol, rtol=tol)
 
     def forward_cpu(self, op, positive=False):
-        self.check_forward(op, self.conv_numpy, positive)
+        self.check_forward(op, lambda x: x, positive)
 
     def test_add_forward_cpu(self):
         self.forward_cpu(lambda x, y: x + y)
@@ -1084,7 +1081,7 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         self.forward_cpu(lambda x, y: y ** x, positive=True)
 
     def forward_gpu(self, op, positive=False):
-        self.check_forward(op, self.conv_cupy, positive)
+        self.check_forward(op, cuda.to_gpu, positive)
 
     @attr.gpu
     def test_add_forward_gpu(self):
