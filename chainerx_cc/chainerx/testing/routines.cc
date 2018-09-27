@@ -110,9 +110,9 @@ void CheckForward(
             expected_outputs.begin(), expected_outputs.end(), [&context](const Array& array) { return &array.context() == &context; }));
 
     // Use thread local or global default context if it is set. Else, use the context of the given arrays.
-    try {
-        chainerx::SetDefaultContext(&GetDefaultContext());
-    } catch (ContextError&) {
+    if (Context* default_context = chainerx::internal::GetDefaultContextNoExcept()) {
+        chainerx::SetDefaultContext(default_context);
+    } else {
         chainerx::SetDefaultContext(&context);
     }
 
