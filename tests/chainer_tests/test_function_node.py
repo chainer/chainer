@@ -982,14 +982,14 @@ class TestFunctionNodeBackwardChainerx(unittest.TestCase):
 
     class SimpleFunctionNode(chainer.FunctionNode):
 
-        def __init__(self):
-            self.backward_call_args = []
+        def __init__(self, backward_call_callback):
+            self.backward_call_callback = backward_call_callback
 
         def forward(self, inputs):
             return tuple([2 * x for x in inputs])
 
         def backward(self, indexes, grad_outputs):
-            self.backward_call_args.append({
+            self.backward_call_callback({
                 'indexes': indexes, 'grad_outputs': grad_outputs})
 
             gxs = []
@@ -1007,16 +1007,22 @@ class TestFunctionNodeBackwardChainerx(unittest.TestCase):
         x2 = chainerx.array(x2).require_grad()
         gx2_expected = numpy.full(shape, 2, dtype)
 
+        backward_call_args = []
+        def backward_call_callback(call_arg):
+            backward_call_args.append(call_arg)
+
         # forward
-        func = self.SimpleFunctionNode()
+        func = self.SimpleFunctionNode(backward_call_callback)
         y1, y2 = func.apply((x1, x2))
+
+        del func
 
         # backward
         y2.backward()
 
         # check backward call arguments
-        assert len(func.backward_call_args) == 1
-        call_arg, = func.backward_call_args
+        assert len(backward_call_args) == 1
+        call_arg, = backward_call_args
         assert isinstance(call_arg['indexes'], tuple)
         assert call_arg['indexes'] == (1,)
         assert isinstance(call_arg['grad_outputs'], tuple)

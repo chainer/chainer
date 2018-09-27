@@ -26,7 +26,7 @@ using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
 void InitChainerxChainerInterop(pybind11::module& m) {
     m.def("_function_node_forward",
-          [](py::handle function_node, const std::vector<ArrayBodyPtr>& inputs, const std::vector<ArrayBodyPtr>& outputs) {
+          [](py::object function_node, const std::vector<ArrayBodyPtr>& inputs, const std::vector<ArrayBodyPtr>& outputs) {
               CHAINERX_ASSERT(std::all_of(
                       outputs.begin(), outputs.end(), [](const ArrayBodyPtr& array_body) { return array_body->nodes().empty(); }));
 
@@ -57,7 +57,12 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               // Insert backward function
               BackwardBuilder bb{"chainer_function", std::move(input_array_refs), std::move(output_array_refs)};
               if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-                  bt.Define([function_node](BackwardContext& bctx) {
+                  auto function_node_ptr = std::make_shared<py::object>(std::move(function_node), [](py::object* ptr) {
+                      py::gil_scoped_acquire acquire;
+                      delete ptr;
+                  });
+
+                  bt.Define([function_node_ptr = std::move(function_node_ptr)](BackwardContext& bctx) {
                       // Target input indexes
                       std::vector<size_t> target_input_indexes;
                       target_input_indexes.reserve(bctx.input_count());
@@ -78,7 +83,7 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                       std::vector<ArrayBodyPtr> grad_inputs;
                       {
                           py::gil_scoped_acquire acquire;
-                          py::object func_backward = function_node.attr("_backward_chainerx");
+                          py::object func_backward = function_node_ptr->attr("_backward_chainerx");
                           py::object py_grad_inputs = func_backward(target_input_indexes, grad_outputs);
                           grad_inputs = py::cast<std::vector<ArrayBodyPtr>>(py_grad_inputs);
                       }
