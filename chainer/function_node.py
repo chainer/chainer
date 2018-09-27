@@ -303,15 +303,15 @@ Use apply() method instead.\
                 raise RuntimeError(msg)
 
         if is_chainerx:
-            chainerx_out_data = [chainerx.array(y) for y in outputs]
-            ret = tuple([variable.Variable(backend.to_chainerx(y),
-                                           requires_grad=requires_grad)
-                         for y in outputs])
+            chainerx_out_data = [backend.to_chainerx(y) for y in outputs]
 
             # Insert a ChainerX op-node that calls FunctionNode.backward in
             # backprop
             chainerx._core._function_node_forward(
                 self, chainerx_in_data, chainerx_out_data)
+            ret = tuple([
+                variable.Variable(y, requires_grad=requires_grad)
+                for y in chainerx_out_data])
         else:
             ret = tuple([variable.Variable(y, requires_grad=requires_grad)
                          for y in outputs])
