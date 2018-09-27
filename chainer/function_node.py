@@ -300,7 +300,8 @@ Use apply() method instead.\
 
             if configuration.config.enable_backprop:
                 # Topological ordering
-                self.rank = max([x.rank for x in input_vars]) if input_vars else 0
+                self.rank = max(
+                    [x.rank for x in input_vars]) if input_vars else 0
                 # Add backward edges
                 for y in ret:
                     y.creator_node = self
