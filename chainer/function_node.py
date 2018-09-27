@@ -231,7 +231,15 @@ Use apply() method instead.\
         requires_grad = any([x.requires_grad for x in input_vars])
 
         if backend.get_array_module(*in_data) is chainerx:
-            in_data = backend.to_numpy(in_data)
+            backend_name = in_data[0].device.backend.name
+            if backend_name == 'cuda':
+                in_data = cuda.to_gpu(in_data)
+            elif backend_name == 'native':
+                in_data = backend.to_numpy(in_data)
+            else:
+                raise RuntimeError(
+                    'FunctionNode only supports ChainerX arrays with native '
+                    'or cuda backend')
             input_vars = [chainer.as_variable(x) for x in in_data]
             is_chainerx = True
         else:
@@ -291,7 +299,7 @@ Use apply() method instead.\
                 raise RuntimeError(msg)
 
         if is_chainerx:
-            ret = tuple([variable.Variable(chainerx.array(y),
+            ret = tuple([variable.Variable(backend.to_chainerx(y),
                                            requires_grad=requires_grad)
                          for y in outputs])
         else:

@@ -889,14 +889,7 @@ class Variable(object):
         if data is None:
             return
 
-        if isinstance(data, numpy.ndarray):
-            self._data = [chainerx.asarray(data)]
-        elif isinstance(data, cuda.ndarray):
-            # TODO(sonots): Support CuPy
-            raise NotImplementedError()
-        elif isinstance(data, intel64.mdarray):
-            # TODO(sonots): Support ideep
-            raise NotImplementedError()
+        self._data = [backend.to_chainerx(data)]
 
         if self._grad_var is not None:
             self._grad_var.to_chainerx()
