@@ -210,7 +210,7 @@ Array Array::ToDevice(Device& dst_device) const {
         out = AsGradStopped(CopyKind::kView);
     } else {
         // Make a contiguous copy to transfer it to the destination device.
-        Array src_contig = AsContiguousArray(AsGradStopped(CopyKind::kView));
+        Array src_contig = internal::AsContiguous(AsGradStopped(CopyKind::kView));
 
         std::shared_ptr<void> dst_data;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {

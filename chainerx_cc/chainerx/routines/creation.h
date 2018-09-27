@@ -91,7 +91,19 @@ Array Eye(
         nonstd::optional<Dtype> dtype,
         Device& device = GetDefaultDevice());
 
+namespace internal {
+
+// Returns a C-contiguous array with specified resulted shape.
+// The resulted shape must have the same total size as the input array.
+Array AsContiguous(const Array& a, const Shape& shape, Dtype dtype);
+
+// Returns a C-contiguous array with the same shape and dtype as the input array.
+inline Array AsContiguous(const Array& a) { return AsContiguous(a, a.shape(), a.dtype()); }
+
+}  // namespace internal
+
 // Returns a C-contiguous array.
+// An input array with shape {} results in a new array with shape {1}.
 Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype = nonstd::nullopt);
 
 // TODO(niboshi): Remove device argument and use v.device(). Also fix tests

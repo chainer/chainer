@@ -90,7 +90,7 @@ void CudaConv::AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc,
     for (int8_t i = 0; i < ndim; ++i) {
         new_shape.emplace_back(1);
     }
-    Array b_cont = AsContiguousArray(b).Reshape(new_shape);
+    Array b_cont = internal::AsContiguous(b).Reshape(new_shape);
 
     CudnnTensorDescriptor b_desc{b_cont};
     handle.Call(
@@ -294,8 +294,8 @@ Array CudaConv::Conv(
 
     auto& backend = static_cast<CudaBackend&>(device.backend());  // NOLINT
 
-    Array x_cont = AsContiguousArray(x);
-    Array w_cont = AsContiguousArray(w);
+    Array x_cont = internal::AsContiguous(x);
+    Array w_cont = internal::AsContiguous(w);
 
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
@@ -374,8 +374,8 @@ Array CudaConv::ConvTranspose(
 
     auto& backend = static_cast<CudaBackend&>(device.backend());  // NOLINT
 
-    Array x_cont = AsContiguousArray(x);
-    Array w_cont = AsContiguousArray(w);
+    Array x_cont = internal::AsContiguous(x);
+    Array w_cont = internal::AsContiguous(w);
 
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
@@ -461,9 +461,9 @@ Array CudaConv::ConvGradWeight(
 
     auto& backend = static_cast<CudaBackend&>(device.backend());  // NOLINT
 
-    Array x_cont = AsContiguousArray(x);
-    Array gy_cont = AsContiguousArray(gy);
-    Array gw_cont = AsContiguousArray(gw);
+    Array x_cont = internal::AsContiguous(x);
+    Array gy_cont = internal::AsContiguous(gy);
+    Array gw_cont = internal::AsContiguous(gw);
 
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor gy_desc{gy_cont};
