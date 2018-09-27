@@ -235,6 +235,9 @@ Array Array::ToDevice(Device& dst_device) const {
     }
     bb.Finalize();
 
+    // TODO(niboshi): This assertion must succeed but currently it does not because AsContiguousArray reshapes {} to {1}.
+    // CHAINERX_ASSERT(out.shape() == shape());
+    CHAINERX_ASSERT(out.dtype() == dtype());
     return out;
 }
 

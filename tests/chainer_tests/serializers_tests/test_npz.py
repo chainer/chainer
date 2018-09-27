@@ -4,7 +4,6 @@ import unittest
 
 import mock
 import numpy
-import pytest
 import six
 
 import chainer
