@@ -85,6 +85,7 @@ step_python_style_check() {
     source activate testenv
 
     check_targets=(
+        "$REPO_DIR"/*.py
         "$REPO_DIR"/chainer
         "$REPO_DIR"/chainermn
         "$REPO_DIR"/chainerx
