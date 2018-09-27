@@ -1074,6 +1074,7 @@ class TestFunctionNodeBackwardChainerx(unittest.TestCase):
         gx2_expected = numpy.full(shape, 2, dtype)
 
         backward_call_args = []
+
         def backward_call_callback(call_arg):
             backward_call_args.append(call_arg)
 
