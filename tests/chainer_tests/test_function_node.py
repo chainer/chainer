@@ -1083,6 +1083,9 @@ class TestFunctionNodeBackwardChainerx(unittest.TestCase):
 
         del func
 
+        assert y1.requires_grad
+        assert y2.requires_grad
+
         # backward
         y2.backward()
 
