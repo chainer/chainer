@@ -1033,10 +1033,7 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         self.value = numpy.random.uniform(-1, 1, (3, 2)).astype(self.dtype)
 
         self.conv_numpy = lambda x: x
-        self.conv_cupy = lambda x: cuda.to_gpu(x)
-        self.conv_chainerx_numpy = lambda x: chainer.backend.to_chainerx(x)
-        self.conv_chainerx_cupy = (
-            lambda x: chainer.backend.to_chainerx(cuda.to_gpu(x)))
+        self.conv_cupy = cuda.to_gpu
 
     def check_forward(self, op, array_conv, positive):
         value = self.value
@@ -1135,10 +1132,10 @@ class TestVariableConstantArrayOp(unittest.TestCase):
             raise unittest.SkipTest('Not yet supported')
 
         if orig_xp is numpy:
-            array_conv = self.conv_chainerx_numpy
+            array_conv = chainer.backend.to_chainerx
         else:
             assert orig_xp is cuda.cupy
-            array_conv = self.conv_chainerx_cupy
+            array_conv = lambda x: chainer.backend.to_chainerx(cuda.to_gpu(x))
         self.check_forward(op, array_conv, positive)
 
     @attr.chainerx
