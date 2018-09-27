@@ -3,6 +3,7 @@ import argparse
 
 import chainer
 from train_mnist import MLP
+from train_mnist_model_parallel import ParallelMLP
 
 
 def main():
@@ -20,8 +21,10 @@ def main():
     print('')
 
     # Create a same model object as what you used for training
-
-    model = MLP(args.unit, 10)
+    if 'result_model_parallel' in args.snapshot:
+        model = ParallelMLP(args.unit, 10, args.gpu, args.gpu)
+    else:
+        model = MLP(args.unit, 10)
     if args.gpu >= 0:
         model.to_gpu(args.gpu)
 

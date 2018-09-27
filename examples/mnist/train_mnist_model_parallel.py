@@ -24,39 +24,38 @@ class ParallelMLP(chainer.Chain):
             self.first1 = train_mnist.MLP(n_units // 2, n_units)
 
             if gpu0 >= 0:
-                self.first0 = self.first0.to_gpu(gpu0)
-            if gpu1 >= 1:
-                self.first1 = self.first1.to_gpu(gpu1)
+                self.first0.to_gpu(gpu0)
+            if gpu1 >= 0:
+                self.first1.to_gpu(gpu1)
 
             # the input size, n_units, is inferred
             self.second0 = train_mnist.MLP(n_units // 2, n_out)
             self.second1 = train_mnist.MLP(n_units // 2, n_out)
 
             if gpu0 >= 0:
-                self.second0 = self.second0.to_gpu(gpu0)
-            if gpu1 >= 1:
-                self.second1 = self.second1.to_gpu(gpu1)
+                self.second0.to_gpu(gpu0)
+            if gpu1 >= 0:
+                self.second1.to_gpu(gpu1)
 
     def __call__(self, x):
-        # assume x is on gpu0
-        x1 = F.copy(x, self.gpu1)
+        if self.gpu0 != self.gpu1:
+            # assume x is on gpu0
+            x1 = F.copy(x, self.gpu1)
 
-        z0 = self.first0(x)
-        z1 = self.first1(x1)
+            z0 = self.first0(x)
+            z1 = self.first1(x1)
 
-        # synchronize
-        h0 = z0 + F.copy(z1, self.gpu0)
-        h1 = z1 + F.copy(z0, self.gpu1)
+            # synchronize
+            h0 = z0 + F.copy(z1, self.gpu0)
+            h1 = z1 + F.copy(z0, self.gpu1)
 
-        y0 = self.second0(F.relu(h0))
-        y1 = self.second1(F.relu(h1))
+            y0 = self.second0(F.relu(h0))
+            y1 = self.second1(F.relu(h1))
 
-        # synchronize
-        y = y0 + F.copy(y1, self.gpu0)
-        return y  # output is on gpu0
-
-    def predict(self, x):
-        if self.gpu0 < 0 and self.gpu1 < 0:
+            # synchronize
+            y = y0 + F.copy(y1, self.gpu0)
+            return y  # output is on gpu0
+        else:
             z0 = self.first0(x)
             z1 = self.first1(x)
             
@@ -68,8 +67,6 @@ class ParallelMLP(chainer.Chain):
             y = y0 + y1
 
             return y
-        else:
-            return self(x)
 
 
 def main():
