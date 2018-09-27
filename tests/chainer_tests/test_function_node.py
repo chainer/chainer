@@ -206,11 +206,6 @@ class TestFunctionNode(unittest.TestCase):
     @attr.chainerx
     @attr.gpu
     def test_apply_chainerx_gpu(self):
-        # TODO(niboshi): Fix
-        if self.x_shape == ():
-            raise unittest.SkipTest(
-                'Will not pass due to a bug. Fix Array::ToDevice not to '
-                'reshape from () to (1,)')
         self.setup_chainerx(cuda.cupy)
         self.check_apply_chainerx()
 
@@ -245,11 +240,6 @@ class TestFunctionNode(unittest.TestCase):
     @attr.chainerx
     @attr.gpu
     def test_apply_all_ndarray_chainerx_gpu(self):
-        # TODO(niboshi): Fix
-        if self.x_shape == ():
-            raise unittest.SkipTest(
-                'Will not pass due to a bug. Fix Array::ToDevice not to '
-                'reshape from () to (1,)')
         self.setup_chainerx(cuda.cupy)
         self.check_apply_all_ndarray()
 
@@ -301,11 +291,6 @@ class TestFunctionNode(unittest.TestCase):
     @attr.chainerx
     @attr.gpu
     def test_apply_ndarray_chainerx_gpu(self):
-        # TODO(niboshi): Fix
-        if self.x_shape == ():
-            raise unittest.SkipTest(
-                'Will not pass due to a bug. Fix Array::ToDevice not to '
-                'reshape from () to (1,)')
         self.setup_chainerx(cuda.cupy)
         self.check_apply_ndarray_chainerx()
 
