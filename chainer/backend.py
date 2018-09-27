@@ -57,6 +57,24 @@ def copyto(dst, src):
             type(dst)))
 
 
+def _obj_to_array(array, func_array_to_xp):
+    if isinstance(array, (list, tuple)):
+        d = {}
+        ret = []
+        for arr in array:
+            if arr is None:
+                ret.append(None)
+            else:
+                arr2 = d.get(id(arr))
+                if arr2 is None:
+                    arr2 = func_array_to_xp(arr)
+                    d[id(arr)] = arr2
+                ret.append(arr2)
+        return type(array)(ret)
+    else:
+        return func_array_to_xp(array)
+
+
 def _array_to_numpy(array):
     if array is None:
         return None
@@ -78,21 +96,41 @@ def _array_to_numpy(array):
 
 
 def to_numpy(array):
-    if isinstance(array, (list, tuple)):
-        d = {}
-        ret = []
-        for arr in array:
-            if arr is None:
-                ret.append(None)
-            else:
-                arr2 = d.get(id(arr))
-                if arr2 is None:
-                    arr2 = _array_to_numpy(arr)
-                    d[id(arr)] = arr2
-                ret.append(arr2)
-        return type(array)(ret)
-    else:
-        return _array_to_numpy(array)
+    return _obj_to_array(array, _array_to_numpy)
+
+
+def _array_to_chainerx(array):
+    if not chainerx.is_available():
+        raise RuntimeError('ChainerX is not available.')
+    if array is None:
+        return None
+    if isinstance(array, chainerx.ndarray):
+        return array
+    if isinstance(array, numpy.ndarray):
+        return chainerx.array(array)
+    if isinstance(array, cuda.ndarray):
+        return chainerx._core._fromrawpointer(
+            array.data.mem.ptr,
+            array.shape,
+            array.dtype,
+            array.strides,
+            'cuda:{}'.format(array.device.id),
+            array.data.ptr - array.data.mem.ptr,
+            array)
+    if isinstance(array, intel64.mdarray):
+        # TODO(sonots): Support ideep
+        raise NotImplementedError(
+            'Conversion between iDeep array and ChainerX array is not '
+            'supported yet')
+    if numpy.isscalar(array):
+        return chainerx.asarray(array)
+    raise TypeError(
+        'Array cannot be converted into chainerx.ndarray'
+        '\nActual type: {0}.'.format(type(array)))
+
+
+def to_chainerx(array):
+    return _obj_to_array(array, _array_to_chainerx)
 
 
 def get_array_module(*args):

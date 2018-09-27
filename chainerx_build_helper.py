@@ -1,5 +1,5 @@
-# This script is based on pybind11's example script. See the original via the following URL:
-# https://github.com/pybind/cmake_example/blob/master/setup.py
+# This script is based on pybind11's example script. See the original via the
+# following URL: https://github.com/pybind/cmake_example/blob/master/setup.py
 
 import distutils
 import os
@@ -37,7 +37,8 @@ class CMakeBuild(build_ext.build_ext):
             self.build_extension(ext)
 
     def build_extension(self, ext):
-        extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
+        extdir = os.path.abspath(
+            os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = [
             '-DCHAINERX_BUILD_PYTHON=1',
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
@@ -53,7 +54,9 @@ class CMakeBuild(build_ext.build_ext):
         build_args = ['--config', cfg]
 
         if platform.system() == "Windows":
-            cmake_args += ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(cfg.upper(), extdir)]
+            cmake_args += [
+                '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(
+                    cfg.upper(), extdir)]
             if sys.maxsize > 2**32:
                 cmake_args += ['-A', 'x64']
             build_args += ['--', '/m']
@@ -64,12 +67,15 @@ class CMakeBuild(build_ext.build_ext):
         build_args += ext.build_targets
 
         env = os.environ.copy()
-        env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(env.get('CXXFLAGS', ''),
-                                                              self.distribution.get_version())
+        env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(
+            env.get('CXXFLAGS', ''), self.distribution.get_version())
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
-        subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env)
-        subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
+        subprocess.check_call(
+            ['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp,
+            env=env)
+        subprocess.check_call(
+            ['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
 
 def config_setup_kwargs(setup_kwargs):

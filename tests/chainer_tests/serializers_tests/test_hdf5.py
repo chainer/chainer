@@ -5,7 +5,6 @@ import unittest
 
 import mock
 import numpy
-import pytest
 
 import chainer
 from chainer import backend

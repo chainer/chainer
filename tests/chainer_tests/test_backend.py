@@ -110,7 +110,6 @@ class TestGetArrayModule(unittest.TestCase):
         assert xp is not numpy
         assert xp is not chainerx
 
-
     @attr.chainerx
     def test_get_array_module_for_chainerx_array(self):
         xp = backend.get_array_module(chainerx.array([]))
