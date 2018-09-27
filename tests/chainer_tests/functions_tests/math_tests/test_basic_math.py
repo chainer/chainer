@@ -334,10 +334,18 @@ class TestBinaryOp(unittest.TestCase):
         def fun(xs):
             return [op(xs[0], xs[1])]
 
-        xs = [chainerx.array(a).require_grad() for a in (self.x1, self.x2)]
-        gys = [chainerx.array(a) for a in (self.gy,)]
-        eps = [chainerx.full_like(a, 1e-3) for a in xs]
-        chainerx.check_backward(fun, xs, gys, eps)
+        xs = [
+            chainer.backend.to_chainerx(a).require_grad()
+            for a in (self.x1, self.x2)]
+        gys = [chainer.backend.to_chainerx(a) for a in (self.gy,)]
+        # TODO(niboshi): Support it.
+        # Required operations include (at least):
+        # - square (can be substituted with __mul__)
+        # - item assignment
+        raise unittest.SkipTest(
+            'ChainerX does not support required operations to utilize '
+            'gradient_check.check_backward()')
+        self.check_backward(op, *xs, *gys)
 
     @attr.chainerx
     def test_add_backward_chainerx(self):
@@ -356,8 +364,6 @@ class TestBinaryOp(unittest.TestCase):
         self.backward_chainerx(lambda x, y: x / y)
 
     @attr.chainerx
-    # TODO(niboshi): Support it
-    @pytest.mark.skip('ChainerX does not support pow yet')
     def test_pow_backward_chainerx(self):
         self.backward_chainerx(lambda x, y: x ** y)
 
@@ -415,22 +421,25 @@ class TestBinaryOp(unittest.TestCase):
         xs = [chainerx.array(a).require_grad() for a in (self.x1, self.x2)]
         gys = [chainerx.array(a).require_grad() for a in (self.gy,)]
         ggxs = [chainerx.array(a) for a in (self.ggx1, self.ggx2)]
-        eps = [chainerx.full_like(a, 1e-3) for a in xs + gys]
-        chainerx.check_double_backward(fun, xs, gys, ggxs, eps, **options)
+        # TODO(niboshi): Support it.
+        # Required operations include (at least):
+        # - square (can be substituted with __mul__)
+        # - item assignment
+        raise unittest.SkipTest(
+            'ChainerX does not support required operations to utilize '
+            'gradient_check.check_double_backward()')
+        self.check_double_backward(
+            op, *xs, *gys, *ggxs, **options)
 
     @attr.chainerx
     def test_div_double_backward_chainerx(self):
         self.double_backward_chainerx(lambda x, y: x / y, atol=5e-2, rtol=5e-2)
 
     @attr.chainerx
-    # TODO(niboshi): Support it
-    @pytest.mark.skip('ChainerX does not support pow yet')
     def test_pow_double_backward_chainerx(self):
         self.double_backward_chainerx(lambda x, y: x ** y)
 
     @attr.chainerx
-    # TODO(niboshi): Support it
-    @pytest.mark.skip('ChainerX does not support rpow yet')
     def test_rpow_double_backward_chainerx(self):
         self.double_backward_chainerx(lambda x, y: y.__rpow__(x))
 
