@@ -160,11 +160,15 @@ void SetGlobalDefaultContext(Context* context);
 
 namespace internal {
 
+// Returns the thread-local default context if it is set.
+// Otherwise returns the global default context, which can be nullptr.
 Context* GetDefaultContextNoExcept() noexcept;
 
 }  // namespace internal
 
-// Gets thread local default context.
+// Returns the thread-local default context if it is set.
+// Otherwise returns the global default context.
+// If it is also unset, ContextException will be thrown.
 Context& GetDefaultContext();
 
 // Sets thread local default context.

@@ -293,14 +293,20 @@ void SetGlobalDefaultContext(Context* context) { g_global_default_context = cont
 
 namespace internal {
 
-Context* GetDefaultContextNoExcept() noexcept { return internal::GetInternalThreadLocalState().default_context; }
+Context* GetDefaultContextNoExcept() noexcept {
+    Context* default_context = internal::GetInternalThreadLocalState().default_context;
+    if (default_context == nullptr) {
+        return g_global_default_context;
+    }
+    return default_context;
+}
 
 }  // namespace internal
 
 Context& GetDefaultContext() {
     Context* default_context = internal::GetInternalThreadLocalState().default_context;
     if (default_context == nullptr) {
-        return GetGlobalDefaultContext();
+        return GetGlobalDefaultContext();  // can throw
     }
     return *default_context;
 }
