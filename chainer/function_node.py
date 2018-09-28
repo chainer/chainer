@@ -227,9 +227,7 @@ Use apply() method instead.\
 
         """
         chainerx_in_data = None
-        in_data = tuple([
-            x.array if isinstance(x, variable.Variable) else x
-            for x in inputs])
+        in_data = tuple([variable.as_array(x) for x in inputs])
 
         if backend.get_array_module(*in_data) is chainerx:
             requires_grad = any([x.is_grad_required() for x in in_data])
