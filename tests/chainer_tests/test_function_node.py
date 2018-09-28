@@ -712,28 +712,55 @@ class TestFunctionNodeRetaining(unittest.TestCase):
     def setUp(self):
         inputs = [chainer.Variable(numpy.array([1], dtype=numpy.float32)),
                   chainer.Variable(numpy.array([1], dtype=numpy.float32))]
-        self.input_data = [x.data for x in inputs]
+        self.input_data = [x.array for x in inputs]
         self.input_nodes = [x.node for x in inputs]
 
-        self.f1 = FunctionNodeWithRetaining()
-        outputs = self.f1.apply(inputs)
+        self.f = FunctionNodeWithRetaining()
+        outputs = self.f.apply(inputs)
         outputs[0].grad = numpy.array([1], dtype=numpy.float32)
         outputs[0].backward()
-        self.f1_output_data = [y.data for y in outputs]
-        self.f1_output_nodes = [y.node for y in outputs]
+        self.f_output_data = [y.data for y in outputs]
+        self.f_output_nodes = [y.node for y in outputs]
 
         inputs = None  # release non-retained inputs
 
     def test_retain_inputs(self):
-        self.assertEqual(len(self.f1.backward_inputs), 1)
-        self.assertIs(self.f1.backward_inputs[0].node, self.input_nodes[1])
-        numpy.testing.assert_array_equal(self.f1.backward_inputs[0].data,
+        assert len(self.f.backward_inputs) == 1
+        assert self.f.backward_inputs[0].node is self.input_nodes[1]
+        numpy.testing.assert_array_equal(self.f.backward_inputs[0].data,
                                          self.input_data[1])
 
-    def test_retain_outputs_f1(self):
-        self.assertEqual(len(self.f1.backward_outputs), 1)
-        numpy.testing.assert_array_equal(self.f1.backward_outputs[0].data,
-                                         self.f1_output_data[1])
+    def test_retain_outputs(self):
+        assert len(self.f.backward_outputs) == 1
+        numpy.testing.assert_array_equal(self.f.backward_outputs[0].data,
+                                         self.f_output_data[1])
+
+
+@attr.chainerx
+class TestFunctionNodeChianerXRetaining(unittest.TestCase):
+
+    def setUp(self):
+        inputs = [chainer.Variable(chainerx.array([1], dtype=numpy.float32)),
+                  chainer.Variable(chainerx.array([1], dtype=numpy.float32))]
+        self.input_data = [x.array for x in inputs]
+
+        self.f = FunctionNodeWithRetaining()
+        outputs = self.f.apply(inputs)
+        outputs[0].grad = chainerx.array([1], dtype=numpy.float32)
+        outputs[0].backward()
+        self.f_output_data = [y.array for y in outputs]
+
+        inputs = None  # release non-retained inputs
+
+    def test_retain_inputs(self):
+        assert len(self.f.backward_inputs) == 1
+        chainerx.testing.assert_array_equal(self.f.backward_inputs[0].data,
+                                            self.input_data[1])
+
+    def test_retain_outputs(self):
+        assert len(self.f.backward_outputs) == 1
+        chainerx.testing.assert_array_equal(self.f.backward_outputs[0].data,
+                                            self.f_output_data[1])
 
 
 def _get_value(x):
