@@ -8,6 +8,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 @testing.parameterize(*testing.product({
@@ -264,6 +265,16 @@ class TestArgMinMax(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
+
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        # TODO(sonots): Fix argmin to get aborted
+        if self.function_name == 'argmin':
+            raise unittest.SkipTest('ChainerX does not work with argmin')
+        self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data):
         x = chainer.Variable(x_data)
