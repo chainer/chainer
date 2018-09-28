@@ -99,8 +99,8 @@ def dump_graph(root_name, filename=None,
     def trigger(trainer):
         return trainer.updater.iteration == 1
 
-    out_name = argument.parse_kwargs(
-        kwargs, ('out_name', 'cg.dot'),
+    out_name, = argument.parse_kwargs(
+        kwargs, ('out_name', 'cg.dot')
     )
     if filename is None:
         filename = out_name
