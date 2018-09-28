@@ -63,11 +63,7 @@ def variable_repr(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_repr
     """
-    xp = backend.get_array_module(var)
-    if xp is numpy:
-        arr = var.data
-    else:
-        arr = var.data.get()
+    arr = backend.to_numpy(var.array)
 
     if var.name:
         prefix = 'variable ' + var.name
@@ -91,11 +87,7 @@ def variable_str(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_str
     """
-    xp = backend.get_array_module(var)
-    if xp is numpy:
-        arr = var.data
-    else:
-        arr = var.data.get()
+    arr = backend.to_numpy(var.array)
 
     if var.name:
         prefix = 'variable ' + var.name
