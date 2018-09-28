@@ -5,6 +5,7 @@
 #include "chainerx/python/backend.h"
 #include "chainerx/python/backprop_mode.h"
 #include "chainerx/python/backward.h"
+#include "chainerx/python/chainer_interop.h"
 #include "chainerx/python/check_backward.h"
 #include "chainerx/python/common.h"
 #include "chainerx/python/context.h"
@@ -41,6 +42,7 @@ void InitChainerxModule(pybind11::module& m) {
     InitChainerxBackward(m);
     InitChainerxCheckBackward(m);
     InitChainerxRoutines(m);
+    InitChainerxChainerInterop(m);
 
     // chainerx.testing
     pybind11::module m_testing = m.def_submodule("testing");

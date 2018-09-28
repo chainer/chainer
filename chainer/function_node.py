@@ -226,11 +226,12 @@ Use apply() method instead.\
             A tuple of output :class:`~chainer.Variable` objects.
 
         """
-        input_vars = [chainer.as_variable(x) for x in inputs]
-        in_data = tuple([x.data for x in input_vars])
-        requires_grad = any([x.requires_grad for x in input_vars])
+        chainerx_in_data = None
+        in_data = tuple([variable.as_array(x) for x in inputs])
 
         if backend.get_array_module(*in_data) is chainerx:
+            requires_grad = any([x.is_grad_required() for x in in_data])
+            chainerx_in_data = in_data
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
                 in_data = cuda.to_gpu(in_data)
@@ -240,9 +241,10 @@ Use apply() method instead.\
                 raise RuntimeError(
                     'FunctionNode only supports ChainerX arrays with native '
                     'or cuda backend')
-            input_vars = [chainer.as_variable(x) for x in in_data]
             is_chainerx = True
         else:
+            input_vars = [chainer.as_variable(x) for x in inputs]
+            requires_grad = any([x.requires_grad for x in input_vars])
             is_chainerx = False
 
         utils._check_arrays_forward_compatible(in_data, self.label)
@@ -299,9 +301,15 @@ Use apply() method instead.\
                 raise RuntimeError(msg)
 
         if is_chainerx:
-            ret = tuple([variable.Variable(backend.to_chainerx(y),
-                                           requires_grad=requires_grad)
-                         for y in outputs])
+            chainerx_out_data = [backend.to_chainerx(y) for y in outputs]
+
+            # Insert a ChainerX op-node that calls FunctionNode.backward in
+            # backprop
+            chainerx._core._function_node_forward(
+                self, chainerx_in_data, chainerx_out_data)
+            ret = tuple([
+                variable.Variable(y, requires_grad=requires_grad)
+                for y in chainerx_out_data])
         else:
             ret = tuple([variable.Variable(y, requires_grad=requires_grad)
                          for y in outputs])
@@ -581,6 +589,16 @@ Use apply() method instead.\
                       g_input if gx is None else
                       gx + g_input
                       for gx, g_input in six.moves.zip(gxs, grad_inputs)])
+
+    def _backward_chainerx(self, target_input_indexes, grad_outputs):
+        assert len(target_input_indexes) > 0
+        assert all(isinstance(a, chainerx.ndarray) for a in grad_outputs)
+
+        gx_vars = self.backward(
+            tuple(target_input_indexes),
+            tuple([chainer.Variable(gy) for gy in grad_outputs]))
+        gxs = [v.array for v in gx_vars]
+        return gxs
 
     def _get_error_message(self, message):
         lines = [

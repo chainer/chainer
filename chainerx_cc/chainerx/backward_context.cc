@@ -271,6 +271,4 @@ std::shared_ptr<ArrayBody> BackwardContext::GetFabricatedArrayBodyWithNodes(cons
     return fabricated_array_body;
 }
 
-size_t BackwardContext::output_count() const { return zero_output_grads_.size(); }
-
 }  // namespace chainerx

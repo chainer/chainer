@@ -5,6 +5,7 @@
 #include <functional>
 #include <initializer_list>
 #include <memory>
+#include <numeric>
 #include <set>
 #include <unordered_map>
 #include <vector>
@@ -118,6 +119,7 @@ public:
         std::unordered_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes_;
     };
 
+    // TODO(niboshi): Add an overload to accept `const std::vector<Array>&` as `inputs` and `outputs`
     BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs);
     BackwardBuilder(const char* op_name, const Array& input, std::vector<ConstArrayRef> outputs)
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::move(outputs)} {}
@@ -127,6 +129,7 @@ public:
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
     ~BackwardBuilder() { CHAINERX_ASSERT(is_finalized_); }
 
+    // Creates a backward target for the specified inputs.
     Target CreateTarget(std::vector<size_t> input_indices) {
         // input_indices shouldn't have duplicates.
         CHAINERX_ASSERT((std::set<size_t>{input_indices.begin(), input_indices.end()}.size() == input_indices.size()));
@@ -139,7 +142,17 @@ public:
         return Target{*this, std::move(input_indices)};
     }
 
+    // Creates a backward target for the specified input.
     Target CreateTarget(size_t input_index) { return CreateTarget(std::vector<size_t>{input_index}); }
+
+    // Creates a backward target for all the inputs.
+    Target CreateTarget() {
+        std::vector<size_t> input_indices;
+        input_indices.resize(inputs_.size());
+        std::iota(input_indices.begin(), input_indices.end(), size_t{0});
+
+        return CreateTarget(std::move(input_indices));
+    }
 
     // TODO(hvy): Write comment.
     RetainedInputToken RetainInput(size_t input_index);
