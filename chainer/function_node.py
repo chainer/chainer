@@ -226,12 +226,13 @@ Use apply() method instead.\
             A tuple of output :class:`~chainer.Variable` objects.
 
         """
-        input_vars = [chainer.as_variable(x) for x in inputs]
-        in_data = tuple([x.data for x in input_vars])
-        requires_grad = any([x.requires_grad for x in input_vars])
         chainerx_in_data = None
+        in_data = tuple([
+            x.array if isinstance(x, variable.Variable) else x
+            for x in inputs])
 
         if backend.get_array_module(*in_data) is chainerx:
+            requires_grad = any([x.is_grad_required() for x in in_data])
             chainerx_in_data = in_data
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
@@ -242,11 +243,10 @@ Use apply() method instead.\
                 raise RuntimeError(
                     'FunctionNode only supports ChainerX arrays with native '
                     'or cuda backend')
-            input_vars = [
-                chainer.Variable(x, requires_grad=False)
-                for x in in_data]
             is_chainerx = True
         else:
+            input_vars = [chainer.as_variable(x) for x in inputs]
+            requires_grad = any([x.requires_grad for x in input_vars])
             is_chainerx = False
 
         utils._check_arrays_forward_compatible(in_data, self.label)
