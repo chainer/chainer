@@ -1,42 +1,35 @@
+import tempfile
 import unittest
 
 import numpy
 
+from chainer import serializers
 from chainer import testing
-from chainer import training
 from chainer.training import triggers
 
 
-class DummyUpdater(training.Updater):
+def _test_trigger(self, trigger, key, accuracies, expected,
+                  resume=None, save=None):
+    trainer = testing.get_trainer_with_mock_updater(
+        stop_trigger=(len(accuracies), 'iteration'))
 
-    def __init__(self):
-        self.iteration = 0
+    def set_observation(t):
+        t.observation = {key: accuracies[t.updater.iteration-1]}
+    trainer.extend(set_observation, name='set_observation',
+                   trigger=(1, 'iteration'), priority=2)
 
-    def finalize(self):
-        pass
+    invoked_intervals = []
+    trainer.extend(lambda t: invoked_intervals.append(
+        t.updater.iteration), name='test', trigger=trigger, priority=1)
 
-    def get_all_optimizers(self):
-        return {}
+    if resume is not None:
+        serializers.load_npz(resume, trainer)
 
-    def update(self):
-        self.iteration += 1
+    trainer.run()
+    self.assertEqual(invoked_intervals, expected)
 
-    @property
-    def epoch(self):
-        return 1
-
-    @property
-    def is_new_epoch(self):
-        return False
-
-
-def _test_trigger(self, trigger, key, accuracies, expected):
-    updater = DummyUpdater()
-    trainer = training.Trainer(updater)
-    for accuracy, expected in zip(accuracies, expected):
-        updater.update()
-        trainer.observation = {key: accuracy}
-        self.assertEqual(trigger(trainer), expected)
+    if save is not None:
+        serializers.save_npz(save, trainer)
 
 
 class TestMaxValueTrigger(unittest.TestCase):
@@ -46,8 +39,24 @@ class TestMaxValueTrigger(unittest.TestCase):
         trigger = triggers.MaxValueTrigger(key, trigger=(2, 'iteration'))
         accuracies = numpy.asarray([0.5, 0.5, 0.5, 0.5, 0.4, 0.4, 0.6, 0.6],
                                    dtype=numpy.float32)
-        expected = [False, True, False, False, False, False, False, True]
+        expected = [2, 8]
         _test_trigger(self, trigger, key, accuracies, expected)
+
+    def test_resumed_trigger(self):
+        key = 'main/accuracy'
+        trigger = triggers.MaxValueTrigger(key, trigger=(1, 'iteration'))
+        accuracies = numpy.asarray([0.5],
+                                   dtype=numpy.float32)
+        expected = [1]
+        with tempfile.NamedTemporaryFile() as npz:
+            _test_trigger(self, trigger, key, accuracies, expected, save=npz)
+            npz.flush()
+            trigger = triggers.MaxValueTrigger(key, trigger=(1, 'iteration'))
+            accuracies = numpy.asarray([None, 0.4, 0.5, 0.6],
+                                       dtype=numpy.float32)
+            expected = [4]
+            _test_trigger(self, trigger, key, accuracies,
+                          expected, resume=npz.name)
 
 
 class TestMinValueTrigger(unittest.TestCase):
@@ -57,8 +66,25 @@ class TestMinValueTrigger(unittest.TestCase):
         trigger = triggers.MinValueTrigger(key, trigger=(2, 'iteration'))
         accuracies = numpy.asarray([0.5, 0.5, 0.5, 0.5, 0.4, 0.4, 0.6, 0.6],
                                    dtype=numpy.float32)
-        expected = [False, True, False, False, False, True, False, False]
+        expected = [2, 6]
         _test_trigger(self, trigger, key, accuracies, expected)
+
+    def test_resumed_trigger(self):
+        key = 'main/accuracy'
+        trigger = triggers.MinValueTrigger(key, trigger=(1, 'iteration'))
+        accuracies = numpy.asarray([0.5],
+                                   dtype=numpy.float32)
+        expected = [1]
+        _test_trigger(self, trigger, key, accuracies, expected)
+        with tempfile.NamedTemporaryFile() as npz:
+            serializers.save_npz(npz, trigger)
+            npz.flush()
+            trigger = triggers.MinValueTrigger(key, trigger=(1, 'iteration'))
+            serializers.load_npz(npz.name, trigger)
+            accuracies = numpy.asarray([None, 0.6, 0.5, 0.4],
+                                       dtype=numpy.float32)
+            expected = [4]
+            _test_trigger(self, trigger, key, accuracies, expected)
 
 
 testing.run_module(__name__, __file__)
