@@ -10,6 +10,7 @@ from chainer import configuration
 from chainer import FunctionNode
 from chainer import testing
 from chainer import variable
+import chainerx
 
 
 class NondifferentiableError(Exception):
@@ -519,14 +520,25 @@ def check_backward(
                 x.data = x.data.astype(dtype, copy=False)
 
     xp = backend.get_array_module(*xs)
-    directions = [xp.random.normal(size=x.shape) for x in variables]
+    # TODO(niboshi): There are some workarounds for ChainerX arrays in
+    # check_backward() because it does not support some required operations.
+    # Remove these workarounds after ChainerX supports such operations.
+    is_chainerx = xp is chainerx
+    if is_chainerx:
+        directions = [numpy.random.normal(size=x.shape) for x in variables]
+        directions = backend.to_chainerx(directions)
+    else:
+        directions = [xp.random.normal(size=x.shape) for x in variables]
     # The direction vector is normalized in order to keep the scale of
     # differentiation error invariant with respect to the number of input
     # dimensions. Ideally, the scale of the curvature with respect to each
     # input dimension should be taken into account, but we ignore the
     # differences and assume that the curvature is uniform with respect to all
     # the input dimentions.
-    norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
+    if xp is chainerx:
+        norm = math.sqrt(sum([(d * d).sum() for d in directions]))
+    else:
+        norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
     if norm != 0:
         # norm could be zero if input arrays are 0-sized.
         scale = 1. / norm
@@ -534,10 +546,20 @@ def check_backward(
 
     delta = xp.array(0., 'd')
 
+    if is_chainerx:
+        # Run numerical_grad() with numpy arrays because ChainerX does not
+        # support some required operations.
+        y_grad = backend.to_numpy(y_grad)
+        y0_data = backend.to_numpy(y0_data)
+        delta = backend.to_numpy(delta)
+        directions = backend.to_numpy(directions)
+        casted_data = backend.to_numpy(casted_data)
+
     def g():
         # This functions is called twice in `numerical_grad`.
         # `delta` is `epsilon` or `-epsilon` in these calls.
         # See the document of `numerical_grad`.
+        g_xs = []
         for x, data, direction in six.moves.zip(
                 variables, casted_data, directions):
             # astype is require to store data with the given type
@@ -545,27 +567,37 @@ def check_backward(
                     delta * direction).astype(data.dtype)
             if numpy.isscalar(data):
                 data = xp.array(data)
-            x.data = data
+            if is_chainerx:
+                data = backend.to_numpy(data)
+            g_xs.append(variable.Variable(data, requires_grad=x.requires_grad))
 
         # Clear gradients to support func that calls backward inside of itself.
-        _clear_grads(xs)
+        _clear_grads(g_xs)
         _clear_grads(params)
 
-        ys = func(*xs)
+        ys = func(*g_xs)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
-        for x, data in six.moves.zip(variables, casted_data):
-            x.data = data
         return ys_data
 
     gx, = numerical_grad(
         g, (delta,), y_grad, eps=eps,
         detect_nondifferentiable=detect_nondifferentiable,
         center_outputs=y0_data)
+
+    if is_chainerx:
+        # Convert back to ChainerX arrays after numerical_grad()
+        gx = backend.to_chainerx(gx)
+        y_grad = backend.to_chainerx(y_grad)
+        y0_data = backend.to_chainerx(y0_data)
+        delta = backend.to_chainerx(delta)
+        directions = backend.to_chainerx(directions)
+        casted_data = backend.to_chainerx(casted_data)
+
     gx_accum = 0
     for g, direction in six.moves.zip(grads, directions):
         if g is not None:
-            gx_accum += (g.astype('d') * direction).sum()
+            gx_accum = gx_accum + (g.astype('d') * direction).sum()
 
     try:
         testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
