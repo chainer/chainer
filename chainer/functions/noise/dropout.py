@@ -184,19 +184,19 @@ def dropout(x, ratio=.5, **kwargs):
         >>> x = np.array([[-1, 0], [2, -3], [-2, 1]], np.float32)
         >>> with chainer.using_config('train', True):
         ...     y = F.dropout(x)
-        >>> y.data
+        >>> y.array
         array([[-2.,  0.],
                [ 4., -6.],
                [-0.,  2.]], dtype=float32)
         >>> with chainer.using_config('train', True):
         ...     y = F.dropout(x, ratio=0.0) \
 # dropout returns original input if ratio=0.0
-        >>> (x == y.data).all()
+        >>> (x == y.array).all()
         True
         >>> with chainer.using_config('train', False):
         ...     y = F.dropout(x) \
 # dropout in test mode returns original input
-        >>> (x == y.data).all()
+        >>> (x == y.array).all()
         True
 
     """

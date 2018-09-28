@@ -193,7 +193,7 @@ def matmul(a, b, transa=False, transb=False):
 
         >>> a = np.array([[1, 0], [0, 1]], np.float32)
         >>> b = np.array([[4, 1], [2, 2]], np.float32)
-        >>> F.matmul(a, b).data
+        >>> F.matmul(a, b).array
         array([[4., 1.],
                [2., 2.]], dtype=float32)
 

@@ -972,9 +972,8 @@ Actual: {0}'''.format(type(data))
         grads = _backprop_utils.GradTable(load_if_new=True)
 
         # Initialize error by 1, if this is a loss variable
-        # crcrpar FIXME
-        if self.data.size == 1 and self._grad_var is None:
-            if self.data.ndim != 0:
+        if self.array.size == 1 and self._grad_var is None:
+            if self.array.ndim != 0:
                 warnings.warn(
                     'Treating a scalar as a variable with only one element'
                     ' in Variable.backward is deprecated. A scalar variable'
@@ -983,11 +982,11 @@ Actual: {0}'''.format(type(data))
                     ' If the size of this variable accidentally becomes one,'
                     ' set zero to grad.',
                     DeprecationWarning)
-            with cuda.get_device_from_array(self.data) as device:
+            with cuda.get_device_from_array(self.array) as device:
                 if device is cuda.DummyDevice:
-                    self.grad = numpy.ones_like(self.data)
+                    self.grad = numpy.ones_like(self.array)
                 else:
-                    self.grad = cuda.cupy.ones_like(self.data)
+                    self.grad = cuda.cupy.ones_like(self.array)
             if loss_scale is not None:
                 self.grad *= loss_scale
         grads[self._node] = self._grad_var

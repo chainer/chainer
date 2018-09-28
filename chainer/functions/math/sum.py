@@ -89,17 +89,17 @@ def sum(x, axis=None, keepdims=False):
         >>> y = F.sum(x)
         >>> y.shape
         ()
-        >>> y.data
+        >>> y.array
         array(15., dtype=float32)
         >>> y = F.sum(x, axis=1)
         >>> y.shape
         (2,)
-        >>> y.data
+        >>> y.array
         array([ 3., 12.], dtype=float32)
         >>> y = F.sum(x, keepdims=True)
         >>> y.shape
         (1, 1)
-        >>> y.data
+        >>> y.array
         array([[15.]], dtype=float32)
 
     """

@@ -108,7 +108,7 @@ def elu(x, alpha=1.0):
         array([[-1.,  0.],
                [ 2., -3.]], dtype=float32)
         >>> y = F.elu(x, alpha=1.)
-        >>> y.data
+        >>> y.array
         array([[-0.63212055,  0.        ],
                [ 2.        , -0.95021296]], dtype=float32)
 
