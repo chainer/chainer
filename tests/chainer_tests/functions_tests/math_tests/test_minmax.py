@@ -62,6 +62,10 @@ class TestMax(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        self.check_forward(chainerx.array(self.x))
+
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             lambda x: functions.max(x, self.axis, self.keepdims),

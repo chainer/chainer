@@ -145,6 +145,9 @@ def max(x, axis=None, keepdims=False):
         ~chainer.Variable: Output variable.
 
     """
+    if backend.get_array_module(x) is chainerx:
+        return function._chainerx_op(lambda a: a.max(axis=axis, keepdims=keepdims), x)
+
     return Max(axis, keepdims).apply((x,))[0]
 
 
