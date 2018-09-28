@@ -93,12 +93,11 @@ Array Eye(
 
 namespace internal {
 
-// Returns a C-contiguous array with specified resulted shape.
-// The resulted shape must have the same total size as the input array.
-Array AsContiguous(const Array& a, const Shape& shape, Dtype dtype);
+// Returns a C-contiguous array without changing input shape.
+Array AsContiguous(const Array& a, Dtype dtype);
 
 // Returns a C-contiguous array with the same shape and dtype as the input array.
-inline Array AsContiguous(const Array& a) { return AsContiguous(a, a.shape(), a.dtype()); }
+inline Array AsContiguous(const Array& a) { return AsContiguous(a, a.dtype()); }
 
 }  // namespace internal
 

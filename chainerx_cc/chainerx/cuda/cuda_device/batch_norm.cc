@@ -131,8 +131,8 @@ public:
         CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma.shape(), gamma_beta_mean_var_dtype);
-        Array beta_casted_cont = internal::AsContiguous(beta, beta.shape(), gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array beta_casted_cont = internal::AsContiguous(beta, gamma_beta_mean_var_dtype);
 
         CHAINERX_ASSERT(running_mean().IsContiguous());
         CHAINERX_ASSERT(running_var().IsContiguous());
@@ -232,7 +232,7 @@ public:
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
         Shape gamma_beta_mean_var_shape = internal::ReduceShape(x_cont.shape(), axis(), true);
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma.shape(), gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
         Array ggamma = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
         Array gbeta = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
         CHAINERX_ASSERT(gamma_beta_mean_var_dtype == x_mean.dtype());
@@ -313,10 +313,10 @@ Array CudaDevice::FixedBatchNorm(
     CudnnBNTensorDescriptor gamma_beta_mean_var_desc{x_desc, mode};
     Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
-    Array gamma_casted_cont = internal::AsContiguous(gamma, gamma.shape(), gamma_beta_mean_var_dtype);
-    Array beta_casted_cont = internal::AsContiguous(beta, beta.shape(), gamma_beta_mean_var_dtype);
-    Array mean_casted_cont = internal::AsContiguous(mean, mean.shape(), gamma_beta_mean_var_dtype);
-    Array var_casted_cont = internal::AsContiguous(var, var.shape(), gamma_beta_mean_var_dtype);
+    Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
+    Array beta_casted_cont = internal::AsContiguous(beta, gamma_beta_mean_var_dtype);
+    Array mean_casted_cont = internal::AsContiguous(mean, gamma_beta_mean_var_dtype);
+    Array var_casted_cont = internal::AsContiguous(var, gamma_beta_mean_var_dtype);
 
     Array out = EmptyLike(x, x.device());
 

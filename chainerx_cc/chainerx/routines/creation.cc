@@ -205,14 +205,12 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
 
 namespace internal {
 
-Array AsContiguous(const Array& a, const Shape& shape, Dtype dtype) {
-    CHAINERX_ASSERT(a.GetTotalSize() == shape.GetTotalSize());
-
-    if (a.IsContiguous() && a.shape() == shape && a.dtype() == dtype) {
+Array AsContiguous(const Array& a, Dtype dtype) {
+    if (a.IsContiguous() && a.dtype() == dtype) {
         return a;
     }
 
-    Array out = Empty(shape, dtype, a.device());
+    Array out = Empty(a.shape(), dtype, a.device());
     {
         NoBackpropModeScope scope{};
         a.device().AsType(a, out);
@@ -230,7 +228,7 @@ Array AsContiguous(const Array& a, const Shape& shape, Dtype dtype) {
     }
 
     CHAINERX_ASSERT(out.IsContiguous());
-    CHAINERX_ASSERT(out.shape() == shape);
+    CHAINERX_ASSERT(out.shape() == a.shape());
     CHAINERX_ASSERT(out.dtype() == dtype);
     return out;
 }
@@ -248,8 +246,11 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
         return a;
     }
 
-    const Shape& shape = a.ndim() == 0 ? Shape{1} : a.shape();
-    return internal::AsContiguous(a, shape, dt);
+    Array out = internal::AsContiguous(a, dt);
+    if (a.ndim() == 0) {
+        out = out.Reshape({1});
+    }
+    return out;
 }
 
 Array Diag(const Array& v, int64_t k, Device& device) {
