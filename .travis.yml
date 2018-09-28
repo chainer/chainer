@@ -19,21 +19,21 @@ matrix:
       - PYTHON_VERSION=2.7.10
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
+      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
     - os: osx
       language: generic
       env:
       - PYTHON_VERSION=3.4.4
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
+      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
     - os: osx
       language: generic
       env:
       - PYTHON_VERSION=3.5.1
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
+      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
 
 before_install:
   # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
