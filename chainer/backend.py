@@ -159,3 +159,38 @@ def get_array_module(*args):
         return cuda.cupy.get_array_module(*args)
     else:
         return numpy
+
+
+# TODO(niboshi): Currently this function returns chainerx.device_scope instead
+# of chainerx.Device, so that `with` statement can be applied.
+# This is a strange behavior for this function name. Reconsider more
+# appropriate API.
+def get_device_from_array(*arrays):
+    """Gets the device from arrays.
+
+    The device on which the given array reside is returned.
+
+    For CuPy arrays, a :class:`cuda.Device` instance is returned.
+    For ChainerX arrays, a :class:`chainerx.DeviceScope` instance is returned.
+    For NumPy arrays, :data:`chainer.cuda.DummyDevice` is returned.
+
+    .. note::
+
+        Unlike :func:`get_array_module`, this method does not recognize
+        :class:`~chainer.Variable` objects.
+        If you need to get device from the :class:`~chainer.Variable` instance
+        ``v``, you need to use ``get_device_from_array(v.array)``.
+
+    Args:
+        arrays (:class:`cupy.ndarray` or list of :class:`cupy.ndarray`):
+            A CuPy array which this function returns the device corresponding
+            to. If a list of :class:`cupy.ndarray`\\ s are given, it returns
+            the first device object of an array in the list.
+    """
+    for array in arrays:
+        if isinstance(array, cuda.ndarray) and array.device is not None:
+            return array.device
+        if (chainerx.is_available()
+                and isinstance(array, chainerx.ndarray)):
+            return chainerx.device_scope(array.device)
+    return cuda.DummyDevice

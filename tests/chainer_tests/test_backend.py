@@ -125,4 +125,43 @@ class TestGetArrayModule(unittest.TestCase):
         assert xp is not cuda.cupy
 
 
+class TestGetDeviceFromArray(unittest.TestCase):
+
+    def test_numpy_int(self):
+        device = chainer.backend.get_device_from_array(numpy.int64(0))
+        assert device is cuda.DummyDevice
+
+    def test_numpy_array(self):
+        device = chainer.backend.get_device_from_array(numpy.array([0]))
+        assert device is cuda.DummyDevice
+
+    @attr.gpu
+    def test_empty_cupy_array(self):
+        arr = cuda.cupy.array([]).reshape((0, 10))
+        device = chainer.backend.get_device_from_array(arr)
+        assert device == cuda.Device(0)
+
+    @attr.gpu
+    def test_cupy_array(self):
+        device = chainer.backend.get_device_from_array(cuda.cupy.array([0]))
+        assert device == cuda.Device(0)
+
+    @attr.chainerx
+    def test_chainerx_cpu_array(self):
+        arr = chainer.backend.to_chainerx(numpy.array([0]))
+        device = chainer.backend.get_device_from_array(arr)
+        assert isinstance(device, chainerx.DeviceScope)
+        with device:
+            chainerx.get_default_device() is arr.device
+
+    @attr.chainerx
+    @attr.gpu
+    def test_chainerx_gpu_array(self):
+        arr = chainer.backend.to_chainerx(cuda.cupy.array([0]))
+        device = chainer.backend.get_device_from_array(arr)
+        assert isinstance(device, chainerx.DeviceScope)
+        with device:
+            assert chainerx.get_default_device() is arr.device
+
+
 testing.run_module(__name__, __file__)
