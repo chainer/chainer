@@ -229,9 +229,13 @@ Use apply() method instead.\
         chainerx_in_data = None
         in_data = tuple([variable.as_array(x) for x in inputs])
 
-        if backend.get_array_module(*in_data) is chainerx:
-            requires_grad = any([x.is_grad_required() for x in in_data])
+        self._is_chainerx = backend.get_array_module(*in_data) is chainerx
+
+        if self._is_chainerx:
+            self._is_inputs_requires_grad = tuple(
+                [x.is_grad_required() for x in in_data])
             chainerx_in_data = in_data
+
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
                 in_data = cuda.to_gpu(in_data)
@@ -241,11 +245,12 @@ Use apply() method instead.\
                 raise RuntimeError(
                     'FunctionNode only supports ChainerX arrays with native '
                     'or cuda backend')
-            is_chainerx = True
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
-            requires_grad = any([x.requires_grad for x in input_vars])
-            is_chainerx = False
+            self._is_inputs_requires_grad = tuple(
+                [x.requires_grad for x in input_vars])
+
+        requires_grad = any(self._is_inputs_requires_grad)
 
         utils._check_arrays_forward_compatible(in_data, self.label)
 
@@ -300,13 +305,17 @@ Use apply() method instead.\
                        '{}'.format(self.label))
                 raise RuntimeError(msg)
 
-        if is_chainerx:
+        if self._is_chainerx:
+            # TODO(hvy): Take configuration.config.enable_backprop into
+            # account?
             chainerx_out_data = [backend.to_chainerx(y) for y in outputs]
 
             # Insert a ChainerX op-node that calls FunctionNode.backward in
             # backprop
             chainerx._core._function_node_forward(
-                self, chainerx_in_data, chainerx_out_data)
+                self, chainerx_in_data, chainerx_out_data,
+                self._input_indexes_to_retain, self._output_indexes_to_retain)
+
             ret = tuple([
                 variable.Variable(y, requires_grad=requires_grad)
                 for y in chainerx_out_data])
@@ -590,9 +599,32 @@ Use apply() method instead.\
                       gx + g_input
                       for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
-    def _backward_chainerx(self, target_input_indexes, grad_outputs):
+    # Backward wrapper that is called from C++ via a Python binding in case
+    # self.apply was called with chainerx.ndarrays.
+    def _backward_chainerx(self, target_input_indexes, grad_outputs,
+                           retained_inputs, retained_outputs):
+        assert self._is_chainerx
         assert len(target_input_indexes) > 0
+        assert (
+            (self._input_indexes_to_retain is None
+             and len(retained_inputs) == 0)
+            or
+            (len(self._input_indexes_to_retain) == len(retained_inputs)))
+        assert (
+            (self._output_indexes_to_retain is None
+             and len(retained_outputs) == 0)
+            or (len(self._output_indexes_to_retain) == len(retained_outputs)))
         assert all(isinstance(a, chainerx.ndarray) for a in grad_outputs)
+
+        if self._input_indexes_to_retain is not None:
+            self._chainerx_retained_inputs = tuple([
+                variable.Variable(
+                    array, requires_grad=self._is_inputs_requires_grad[i])
+                for i, array
+                in zip(self._input_indexes_to_retain, retained_inputs)])
+
+        self._chainerx_retained_outputs = tuple([
+            variable.Variable(array) for array in retained_outputs])
 
         gx_vars = self.backward(
             tuple(target_input_indexes),
@@ -633,12 +665,18 @@ Use apply() method instead.\
             return `None`.
 
         """
+        # TODO(hvy): Clean up.
+        if self._is_chainerx:
+            return self._chainerx_retained_inputs
+
         if self._input_indexes_to_retain is None or self.inputs is None:
             return
+
         inputs = self.inputs
         if self._input_indexes_to_retain is None:
             raise ValueError(self._get_error_message(
                 'retain_inputs is not called in forward.'))
+
         return tuple([inputs[index].get_variable()
                       for index in self._input_indexes_to_retain])
 
@@ -660,6 +698,10 @@ Use apply() method instead.\
            node of the function node.
 
         """
+        # TODO(hvy): Clean up.
+        if self._is_chainerx:
+            return self._chainerx_retained_outputs
+
         if self._output_indexes_to_retain is None or self.outputs is None:
             return
 

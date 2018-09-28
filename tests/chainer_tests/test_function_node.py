@@ -710,8 +710,8 @@ class FunctionNodeWithRetaining(chainer.FunctionNode):
 class TestFunctionNodeRetaining(unittest.TestCase):
 
     def setUp(self):
-        inputs = [chainer.Variable(numpy.array([1], dtype=numpy.float32)),
-                  chainer.Variable(numpy.array([1], dtype=numpy.float32))]
+        inputs = [chainer.Variable(numpy.array([2], dtype=numpy.float32)),
+                  chainer.Variable(numpy.array([-1], dtype=numpy.float32))]
         self.input_data = [x.array for x in inputs]
         self.input_nodes = [x.node for x in inputs]
 
@@ -737,11 +737,13 @@ class TestFunctionNodeRetaining(unittest.TestCase):
 
 
 @attr.chainerx
-class TestFunctionNodeChianerXRetaining(unittest.TestCase):
+class TestFunctionNodeChainerXRetaining(unittest.TestCase):
 
     def setUp(self):
-        inputs = [chainer.Variable(chainerx.array([1], dtype=numpy.float32)),
-                  chainer.Variable(chainerx.array([1], dtype=numpy.float32))]
+        inputs = [chainer.Variable(chainerx.array([2], dtype=numpy.float32)),
+                  chainer.Variable(
+                      chainerx.array([-1], dtype=numpy.float32),
+                      requires_grad=False)]
         self.input_data = [x.array for x in inputs]
 
         self.f = FunctionNodeWithRetaining()
@@ -754,6 +756,7 @@ class TestFunctionNodeChianerXRetaining(unittest.TestCase):
 
     def test_retain_inputs(self):
         assert len(self.f.backward_inputs) == 1
+        assert not self.f.backward_inputs[0].requires_grad
         chainerx.testing.assert_array_equal(self.f.backward_inputs[0].data,
                                             self.input_data[1])
 
