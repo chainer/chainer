@@ -47,14 +47,15 @@ class BestValueTriggerTester(object):
 
     def test_resumed_trigger(self):
         trigger = type(self).trigger_type(self.key, trigger=self.interval)
-        with tempfile.NamedTemporaryFile() as npz:
+        with tempfile.TemporaryFile() as npz:
             self._test_trigger(
                 trigger, self.key, self.accuracies[:self.resume],
                 self.expected_before_resume, save=npz)
             npz.flush()
+            npz.seek(0)
             trigger = type(self).trigger_type(self.key, trigger=self.interval)
             self._test_trigger(trigger, self.key, self.accuracies,
-                               self.expected_after_resume, resume=npz.name)
+                               self.expected_after_resume, resume=npz)
 
 
 @testing.parameterize(
