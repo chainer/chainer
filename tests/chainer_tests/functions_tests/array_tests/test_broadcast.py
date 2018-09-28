@@ -9,6 +9,7 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
+import chainerx
 
 
 @testing.parameterize(*testing.product_dict(
@@ -159,6 +160,13 @@ class TestBroadcastTo(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.data))
+
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_forward(chainerx.array(self.data))
 
     def check_backward(self, data, grads):
         gradient_check.check_backward(
