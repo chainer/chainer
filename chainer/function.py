@@ -11,6 +11,11 @@ from chainer import function_node
 from chainer import variable
 
 
+def _chainerx_op(op, *variables):
+    arrays = map(lambda x: variable.as_array(x), variables)
+    return variable.as_variable(op(*arrays))
+
+
 def no_backprop_mode():
     """Make a context manager which disables back-propagation.
 

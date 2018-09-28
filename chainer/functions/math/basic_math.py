@@ -5,6 +5,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
+from chainer import function
 from chainer import function_node
 import chainer.functions
 from chainer.functions.math import floor as _floor
@@ -79,12 +80,8 @@ def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
 def _chainerx_binary_op(op, label, lhs, rhs):
     lhs_array = variable.as_array(lhs)
     rhs_array = variable.as_array(rhs)
-    return chainer.as_variable(op(lhs_array,
+    return variable.as_variable(op(lhs_array,
         _as_chainerx_arithmetic_compat(lhs_array, rhs_array, label)))
-
-
-def _chainerx_unary_op(op, x):
-    return chainer.as_variable(op(variable.as_array(x)))
 
 
 class Neg(function_node.FunctionNode):
@@ -111,7 +108,7 @@ def neg(self):  # -x
         ~chainer.Variable: Output variable.
     """
     if backend.get_array_module(self) is chainerx:
-        return _chainerx_unary_op(chainerx.negative, self)
+        return function._chainerx_op(chainerx.negative, self)
 
     return Neg().apply((self,))[0]
 
