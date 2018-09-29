@@ -232,9 +232,8 @@ Use apply() method instead.\
         self._is_chainerx = backend.get_array_module(*in_data) is chainerx
 
         if self._is_chainerx:
-            self._is_inputs_requires_grad = tuple(
-                [x.is_grad_required() for x in in_data])
             chainerx_in_data = in_data
+            requires_grad = any([x.is_grad_required() for x in in_data])
 
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
@@ -247,10 +246,7 @@ Use apply() method instead.\
                     'or cuda backend')
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
-            self._is_inputs_requires_grad = tuple(
-                [x.requires_grad for x in input_vars])
-
-        requires_grad = any(self._is_inputs_requires_grad)
+            requires_grad = any([x.requires_grad for x in input_vars])
 
         utils._check_arrays_forward_compatible(in_data, self.label)
 
@@ -616,13 +612,14 @@ Use apply() method instead.\
             or (len(self._output_indexes_to_retain) == len(retained_outputs)))
         assert all(isinstance(a, chainerx.ndarray) for a in grad_outputs)
 
+        # Keep retained inputs.
         if self._input_indexes_to_retain is not None:
             self._chainerx_retained_inputs = tuple([
                 variable.Variable(
-                    array, requires_grad=self._is_inputs_requires_grad[i])
-                for i, array
-                in zip(self._input_indexes_to_retain, retained_inputs)])
+                    array, requires_grad=array.is_grad_required())
+                for array in retained_inputs])
 
+        # Keep retained outputs.
         self._chainerx_retained_outputs = tuple([
             variable.Variable(array) for array in retained_outputs])
 

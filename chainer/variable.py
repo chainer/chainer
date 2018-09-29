@@ -480,6 +480,7 @@ class Variable(object):
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
             volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
+
         if data is not None:
             array_types = chainer.get_array_types()
             if not isinstance(data, array_types):
@@ -488,28 +489,37 @@ class Variable(object):
                     array_types[-1], type(data))
                 raise TypeError(msg)
 
+        if not requires_grad and grad is not None:
+            raise ValueError(
+                'Cannot initialize a variable with gradients if the '
+                'require_grad argument is False.')
+
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
         self._data = [data]
         self._loss_scale = None
         self._grad_var = None if grad is None else Variable(grad)
+        self._is_chainerx = (
+            chainerx.is_available() and isinstance(data, chainerx.ndarray))
 
-        # ChainerX itself has own node objects, but not exposed to python.
-        if chainerx.is_available() and isinstance(data, chainerx.ndarray):
+        if self._is_chainerx:
             if requires_grad:
                 data.require_grad()
                 data.set_grad(grad)
-            elif grad is not None:
+            elif data.is_grad_required():
                 raise ValueError(
-                    'Cannot initialize variable with gradients if the'
-                    ' require_grad argument is False')
+                    'Cannot initialize a Variable to not require any '
+                    'gradients if the given ChainerX array already requires '
+                    'gradients.')
 
-            self._is_chainerx = True
+            # This attribute is not used for chainerx.ndarrays since the
+            # underlying array contains the gradient requirement information.
             self._requires_grad = None
+
+            # ChainerX itself has own node objects, but not exposed to python.
             self._node = None
             self._name = name
         else:
-            self._is_chainerx = False
             # self._requires_grad need to be set before creating the node.
             self._requires_grad = requires_grad
             self._node = VariableNode(self, name)
