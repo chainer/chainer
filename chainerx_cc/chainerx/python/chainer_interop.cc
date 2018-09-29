@@ -7,8 +7,6 @@
 #include <string>
 #include <vector>
 
-#include <nonstd/optional.hpp>
-
 #include "chainerx/array.h"
 #include "chainerx/array_body.h"
 #include "chainerx/array_fwd.h"
@@ -31,8 +29,8 @@ void InitChainerxChainerInterop(pybind11::module& m) {
           [](py::object function_node,
              const std::vector<ArrayBodyPtr>& inputs,
              const std::vector<ArrayBodyPtr>& outputs,
-             const nonstd::optional<std::vector<size_t>>& input_indexes_to_retain,
-             const nonstd::optional<std::vector<size_t>>& output_indexes_to_retain) {
+             const std::vector<size_t>& input_indexes_to_retain,
+             const std::vector<size_t>& output_indexes_to_retain) {
               CHAINERX_ASSERT(std::all_of(
                       outputs.begin(), outputs.end(), [](const ArrayBodyPtr& array_body) { return array_body->nodes().empty(); }));
 
@@ -69,21 +67,17 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                   });
 
                   std::vector<RetainedInputToken> retained_input_tokens;
-                  if (input_indexes_to_retain.has_value()) {
-                      std::transform(
-                              input_indexes_to_retain->begin(),
-                              input_indexes_to_retain->end(),
-                              std::back_inserter(retained_input_tokens),
-                              [&bb](size_t i) { return bb.RetainInput(i); });
-                  }
+                  std::transform(
+                          input_indexes_to_retain.begin(),
+                          input_indexes_to_retain.end(),
+                          std::back_inserter(retained_input_tokens),
+                          [&bb](size_t i) { return bb.RetainInput(i); });
                   std::vector<RetainedOutputToken> retained_output_tokens;
-                  if (output_indexes_to_retain.has_value()) {
-                      std::transform(
-                              output_indexes_to_retain->begin(),
-                              output_indexes_to_retain->end(),
-                              std::back_inserter(retained_output_tokens),
-                              [&bb](size_t i) { return bb.RetainOutput(i); });
-                  }
+                  std::transform(
+                          output_indexes_to_retain.begin(),
+                          output_indexes_to_retain.end(),
+                          std::back_inserter(retained_output_tokens),
+                          [&bb](size_t i) { return bb.RetainOutput(i); });
 
                   bt.Define([function_node_ptr = std::move(function_node_ptr),
                              in_toks = std::move(retained_input_tokens),
@@ -141,8 +135,8 @@ void InitChainerxChainerInterop(pybind11::module& m) {
           py::arg("function_node"),
           py::arg("inputs"),
           py::arg("outputs"),
-          py::arg("input_indexes_to_retain") = nullptr,
-          py::arg("output_indexes_to_retain") = nullptr);
+          py::arg("input_indexes_to_retain"),
+          py::arg("output_indexes_to_retain"));
 }
 
 }  // namespace python_internal

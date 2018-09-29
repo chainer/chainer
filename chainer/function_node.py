@@ -313,7 +313,10 @@ Use apply() method instead.\
             # backprop
             chainerx._core._function_node_forward(
                 self, chainerx_in_data, chainerx_out_data,
-                self._input_indexes_to_retain, self._output_indexes_to_retain)
+                [] if self._input_indexes_to_retain is None
+                else self._input_indexes_to_retain,
+                [] if self._output_indexes_to_retain is None
+                else self._output_indexes_to_retain)
 
             ret = tuple([
                 variable.Variable(y, requires_grad=requires_grad)
