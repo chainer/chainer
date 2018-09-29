@@ -64,11 +64,8 @@ class LinearModel(object):
         for _ in six.moves.range(self.EPOCH):
             x, t = _make_dataset(self.BATCH_SIZE, self.UNIT_NUM, gpu,
                                  self.dtype)
-            model.cleargrads()
             y = model(x)
-            loss = F.softmax_cross_entropy(y, t)
-            loss.backward()
-            optimizer.update()
+            optimizer.update(F.softmax_cross_entropy, y, t)
 
         x_test, t_test = _make_dataset(self.BATCH_SIZE, self.UNIT_NUM, gpu,
                                        self.dtype)
@@ -202,6 +199,20 @@ class TestCorrectedMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):
         return optimizers.CorrectedMomentumSGD(0.1)
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False, True],
+}))
+class TestEve(OptimizerTestBase, unittest.TestCase):
+
+    def create(self):
+        if self.dtype == numpy.float16:
+            kwargs = {'eps': 1e-6}
+        else:
+            kwargs = {}
+        return optimizers.Eve(0.05, **kwargs)
 
 
 @testing.parameterize(*testing.product({

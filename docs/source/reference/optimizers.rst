@@ -9,6 +9,7 @@ Optimizers
    chainer.optimizers.AdaGrad
    chainer.optimizers.Adam
    chainer.optimizers.CorrectedMomentumSGD
+   chainer.optimizers.Eve
    chainer.optimizers.MomentumSGD
    chainer.optimizers.NesterovAG
    chainer.optimizers.RMSprop
