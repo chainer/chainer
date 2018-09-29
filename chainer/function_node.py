@@ -618,13 +618,10 @@ Use apply() method instead.\
             or (len(self._output_indexes_to_retain) == len(retained_outputs)))
         assert all(isinstance(a, chainerx.ndarray) for a in grad_outputs)
 
-        # Keep retained inputs.
         self._chainerx_retained_inputs = tuple([
             variable.Variable(
                 array, requires_grad=array.is_grad_required())
             for array in retained_inputs])
-
-        # Keep retained outputs.
         self._chainerx_retained_outputs = tuple([
             variable.Variable(array) for array in retained_outputs])
 
