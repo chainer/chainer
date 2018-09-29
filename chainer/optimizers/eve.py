@@ -113,25 +113,10 @@ class Eve(optimizer.GradientMethod):
     weight_decay_rate = optimizer.HyperparameterProxy('weight_decay_rate')
     amsgrad = optimizer.HyperparameterProxy('amsgrad')
 
+    d_tilde = None
+    f = None
+
     def setup(self, link):
-        """Sets a target link and initializes the optimizer states.
-
-        Given link is set to the :attr:`target` attribute. It also prepares the
-        optimizer state dictionaries corresponding to all parameters in the
-        link hierarchy. The existing states are discarded.
-
-        Args:
-            link (~chainer.Link): Target link object.
-
-        Returns:
-            The optimizer instance.
-
-        .. note::
-           As of v4.0.0, this function returns the optimizer instance itself
-           so that you can instantiate and setup the optimizer in one line,
-           e.g., ``optimizer = SomeOptimizer().setup(link)``.
-
-        """
         super(Eve, self).setup(link)
         self.d_tilde = numpy.nan
         self.f = numpy.nan
@@ -151,9 +136,10 @@ class Eve(optimizer.GradientMethod):
         case of other optimizers.
 
         Args:
-            lossfun (callable): Callable that returns a ~chainer.Variable to be
-                minimized.
-            *args, **kwds: Arguments passed to `lossfun`.
+            lossfun (callable): Callable that returns a
+                :class:`~chainer.Variable` to be minimized.
+            *args: Arguments passed to `lossfun`.
+            **kwds: Keyword arguments passed to `lossfun`.
 
         """
         assert lossfun is not None, 'Eve requires lossfun to be specified'
@@ -182,21 +168,6 @@ class Eve(optimizer.GradientMethod):
         self.call_hooks('post')
 
     def serialize(self, serializer):
-        """Serializes or deserializes the optimizer.
-
-        It only saves or loads the following things:
-
-        - Optimizer states
-        - Global states (:attr:`t`, :attr:`epoch`, :attr:`d_tilde`, and
-            :attr:`f`)
-
-        **It does not saves nor loads the parameters of the target link.** They
-        should be separately saved or loaded.
-
-        Args:
-            serializer (~chainer.AbstractSerializer): Serializer or
-                deserializer object.
-        """
         super(Eve, self).serialize(serializer)
         self.d_tilde = serializer('d_tilde', self.d_tilde)
         self.f = serializer('f', self.f)
