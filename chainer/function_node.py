@@ -133,6 +133,9 @@ class FunctionNode(object):
     _retained_output_data = None
     _local_function_hooks = None
     _supports_static_optimizations = False
+    _is_chainerx = None
+    _chainerx_retained_inputs = None
+    _chainerx_retained_outputs = None
     lazy_grad_sum = False
 
     @property
