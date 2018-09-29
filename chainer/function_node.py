@@ -668,19 +668,16 @@ Use apply() method instead.\
             return `None`.
 
         """
-        # TODO(hvy): Clean up.
+        if self._input_indexes_to_retain is None:
+            return
+
         if self._is_chainerx:
             return self._chainerx_retained_inputs
 
-        if self._input_indexes_to_retain is None or self.inputs is None:
+        if self.inputs is None:
             return
 
-        inputs = self.inputs
-        if self._input_indexes_to_retain is None:
-            raise ValueError(self._get_error_message(
-                'retain_inputs is not called in forward.'))
-
-        return tuple([inputs[index].get_variable()
+        return tuple([self.inputs[index].get_variable()
                       for index in self._input_indexes_to_retain])
 
     def get_retained_outputs(self):
@@ -701,16 +698,11 @@ Use apply() method instead.\
            node of the function node.
 
         """
-        # TODO(hvy): Clean up.
-        if self._is_chainerx:
-            return self._chainerx_retained_outputs
-
-        if self._output_indexes_to_retain is None or self.outputs is None:
+        if self._output_indexes_to_retain is None:
             return
 
-        if self._retained_output_data is None:
-            raise ValueError(self._get_error_message(
-                'retain_outputs is not called in forward.'))
+        if self._is_chainerx:
+            return self._chainerx_retained_outputs
 
         ret = []
         outputs = self.outputs
