@@ -610,8 +610,7 @@ Use apply() method instead.\
         assert (
             (self._input_indexes_to_retain is None
              and len(retained_inputs) == 0)
-            or
-            (len(self._input_indexes_to_retain) == len(retained_inputs)))
+            or (len(self._input_indexes_to_retain) == len(retained_inputs)))
         assert (
             (self._output_indexes_to_retain is None
              and len(retained_outputs) == 0)
