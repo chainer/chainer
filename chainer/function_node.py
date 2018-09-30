@@ -628,6 +628,10 @@ Use apply() method instead.\
             tuple(target_input_indexes),
             tuple([chainer.Variable(gy) for gy in grad_outputs]))
         gxs = [v.array for v in gx_vars]
+
+        del self._chainerx_retained_inputs
+        del self._chainerx_retained_outputs
+
         return gxs
 
     def _get_error_message(self, message):
