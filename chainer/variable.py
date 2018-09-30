@@ -492,7 +492,7 @@ class Variable(object):
         if not requires_grad and grad is not None:
             raise ValueError(
                 'Cannot initialize a variable with gradients if the '
-                'require_grad argument is False.')
+                'requires_grad argument is False.')
 
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
