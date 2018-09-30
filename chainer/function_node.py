@@ -663,13 +663,10 @@ Use apply() method instead.\
             return `None`.
 
         """
-        if self._input_indexes_to_retain is None:
-            return
-
         if self._is_chainerx:
             return self._chainerx_retained_inputs
 
-        if self.inputs is None:
+        if self._input_indexes_to_retain is None or self.inputs is None:
             return
 
         return tuple([self.inputs[index].get_variable()
@@ -693,11 +690,11 @@ Use apply() method instead.\
            node of the function node.
 
         """
-        if self._output_indexes_to_retain is None:
-            return
-
         if self._is_chainerx:
             return self._chainerx_retained_outputs
+
+        if self._output_indexes_to_retain is None:
+            return
 
         ret = []
         outputs = self.outputs
