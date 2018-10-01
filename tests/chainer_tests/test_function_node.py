@@ -696,9 +696,13 @@ class TestBackpropModeMultiThread(unittest.TestCase):
 
 class FunctionNodeWithRetaining(chainer.FunctionNode):
 
+    def __init__(self, input_indices, output_indices):
+        self.input_indices = input_indices
+        self.output_indices = output_indices
+
     def forward(self, inputs):
-        self.retain_inputs([1])
-        self.retain_outputs([1])
+        self.retain_inputs(self.input_indices)
+        self.retain_outputs(self.output_indices)
         return inputs
 
     def backward(self, _, grad_outputs):
@@ -717,7 +721,7 @@ class TestFunctionNodeRetaining(unittest.TestCase):
         if xp is not chainerx:
             input_nodes = [x.node for x in inputs]
 
-        f = FunctionNodeWithRetaining()
+        f = FunctionNodeWithRetaining([1], [0, 1])
         outputs = f.apply(inputs)
         outputs[0].grad = xp.array([1], dtype=numpy.float32)
         outputs[0].backward()
@@ -726,16 +730,21 @@ class TestFunctionNodeRetaining(unittest.TestCase):
         inputs = None  # release non-retained inputs
 
         assert len(f.retained_backward_inputs) == 1
-        assert len(f.retained_backward_outputs) == 1
+        assert len(f.retained_backward_outputs) == 2
 
         assert not f.retained_backward_inputs[0].requires_grad
+        assert f.retained_backward_outputs[0].requires_grad
+        assert f.retained_backward_outputs[1].requires_grad
+
         if xp is not chainerx:
             assert f.retained_backward_inputs[0].node is input_nodes[1]
 
         xp.testing.assert_array_equal(
             f.retained_backward_inputs[0].array, input_arrays[1])
         xp.testing.assert_array_equal(
-            f.retained_backward_outputs[0].array, output_arrays[1])
+            f.retained_backward_outputs[0].array, output_arrays[0])
+        xp.testing.assert_array_equal(
+            f.retained_backward_outputs[1].array, output_arrays[1])
 
     def test_retain_cpu(self):
         self.check_function_node_retain(numpy)
