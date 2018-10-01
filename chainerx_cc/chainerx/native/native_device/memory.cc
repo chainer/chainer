@@ -11,7 +11,12 @@
 namespace chainerx {
 namespace native {
 
-std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) { return std::make_unique<uint8_t[]>(bytesize); }
+std::shared_ptr<void> NativeDevice::Allocate(size_t bytesize) {
+    if (bytesize == 0) {
+        return std::shared_ptr<void>{nullptr};
+    }
+    return std::make_unique<uint8_t[]>(bytesize);
+}
 
 void NativeDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Device& src_device) {
     CHAINERX_ASSERT(nullptr != dynamic_cast<NativeDevice*>(&src_device) && "Native device only supports copy between native devices");

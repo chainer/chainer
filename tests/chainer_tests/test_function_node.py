@@ -113,10 +113,6 @@ class TestFunctionNode(unittest.TestCase):
 
     def setup_chainerx(self, orig_xp):
         if orig_xp is cuda.cupy:
-            if numpy.prod(self.x_shape) == 0 or numpy.prod(self.y_shape) == 0:
-                raise unittest.SkipTest(
-                    'ChainerX does not support conversion from zero-sized '
-                    'CuPy array.')
             self._to_gpu()  # First convert to cupy and then chainerx
         else:
             assert orig_xp is numpy
