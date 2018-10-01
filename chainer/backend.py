@@ -182,10 +182,10 @@ def get_device_from_array(*arrays):
         ``v``, you need to use ``get_device_from_array(v.array)``.
 
     Args:
-        arrays (:class:`cupy.ndarray` or list of :class:`cupy.ndarray`):
-            A CuPy array which this function returns the device corresponding
-            to. If a list of :class:`cupy.ndarray`\\ s are given, it returns
-            the first device object of an array in the list.
+        arrays (array or list of arrays):
+            Arrays to determine the device. If multiple arrays are given, the
+            device correspoinding to the first array which is not NumPy array
+            is returned.
     """
     for array in arrays:
         if isinstance(array, cuda.ndarray) and array.device is not None:
