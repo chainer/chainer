@@ -3,6 +3,9 @@ import sys
 import warnings
 
 import numpy.distutils.system_info
+import pkg_resources
+
+import chainer
 
 
 def _check_python_350():
@@ -38,6 +41,55 @@ Please use it at your own risk.
 ''')  # NOQA
 
 
+def _check_optional_dependencies():
+    for dep in chainer._version._optional_dependencies:
+        name = dep['name']
+        pkgs = dep['packages']
+        version = dep['version']
+        help = dep['help']
+        installed = False
+        for pkg in pkgs:
+            found = False
+            requirement = '{}{}'.format(pkg, version)
+            try:
+                pkg_resources.require(requirement)
+                found = True
+            except pkg_resources.DistributionNotFound:
+                continue
+            except pkg_resources.VersionConflict:
+                dist = pkg_resources.get_distribution(pkg).version
+                warnings.warn('''
+--------------------------------------------------------------------------------
+{name} ({pkg}) version {version} may not be compatible with this version of Chainer.
+Please consider installing the supported version by running:
+  $ pip install '{requirement}'
+
+See the the following page for more details:
+  {help}
+--------------------------------------------------------------------------------
+'''.format(
+    name=name, pkg=pkg, version=pkg_resources.get_distribution(pkg).version,
+    requirement=requirement, help=dep['help']))  # NOQA
+                found = True
+            except Exception as e:
+                warnings.warn(
+                    'Failed to check requirement: {}'.format(requirement))
+                break
+
+            if found:
+                if installed:
+                    warnings.warn('''
+--------------------------------------------------------------------------------
+Multiple installation of {name} package has been detected.
+You should install only one package from {pkgs}.
+Run `pip list` to see the list of packages currentely installed, then
+`pip uninstall <package name>` to uninstall unnecessary package(s).
+--------------------------------------------------------------------------------
+'''.format(name=name, pkgs=pkgs))
+                installed = True
+
+
 def check():
     _check_python_350()
     _check_osx_numpy_backend()
+    _check_optional_dependencies()
