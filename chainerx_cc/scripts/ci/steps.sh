@@ -75,6 +75,7 @@ step_setup_conda_environment() {
 
         pytest pytest-cov coveralls
         cpplint
+        pytest-xdist
     )
 
     pip install -U "${reqs[@]}"
@@ -233,6 +234,8 @@ step_python_test_chainer() {
     pushd "$temp_dir"
 
     pytest \
+        -n auto \
+        --dist=loadfile \
         --showlocals \
         --capture=no \
         -m 'not slow and not ideep' \
