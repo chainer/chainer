@@ -2,7 +2,6 @@ import six
 
 from chainer import backend
 from chainer import function
-from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 import chainerx

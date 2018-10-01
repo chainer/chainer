@@ -146,7 +146,8 @@ def max(x, axis=None, keepdims=False):
 
     """
     if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(lambda a: a.max(axis=axis, keepdims=keepdims), x)
+        return function._chainerx_op(
+            lambda a: a.max(axis=axis, keepdims=keepdims), x)
 
     return Max(axis, keepdims).apply((x,))[0]
 
@@ -179,7 +180,8 @@ def argmax(x, axis=None):
 
     """
     if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(lambda a: a.argmax(axis).astype(numpy.int32), x)
+        return function._chainerx_op(
+            lambda a: a.argmax(axis).astype(numpy.int32), x)
 
     return ArgMax(axis).apply((x,))[0]
 

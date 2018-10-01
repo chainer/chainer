@@ -133,7 +133,8 @@ def broadcast_to(x, shape):
         return chainer.as_variable(x)
 
     if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(lambda a: chainerx.broadcast_to(a, shape), x)
+        return function._chainerx_op(
+            lambda a: chainerx.broadcast_to(a, shape), x)
 
     y, = BroadcastTo(shape).apply((x,))
     return y

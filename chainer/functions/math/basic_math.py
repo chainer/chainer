@@ -80,8 +80,8 @@ def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
 def _chainerx_binary_op(op, label, lhs, rhs):
     lhs_array = variable.as_array(lhs)
     rhs_array = variable.as_array(rhs)
-    return variable.as_variable(op(lhs_array,
-        _as_chainerx_arithmetic_compat(lhs_array, rhs_array, label)))
+    rhs_compat = _as_chainerx_arithmetic_compat(lhs_array, rhs_array, label)
+    return variable.as_variable(op(lhs_array, rhs_compat))
 
 
 class Neg(function_node.FunctionNode):

@@ -106,7 +106,8 @@ def sum(x, axis=None, keepdims=False):
 
     """
     if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(lambda a: chainerx.sum(a, axis, keepdims), x)
+        return function._chainerx_op(
+            lambda a: chainerx.sum(a, axis, keepdims), x)
 
     y, = Sum(axis, keepdims).apply((x,))
     return y
@@ -158,6 +159,5 @@ def sum_to(x, shape):
     """
     if x.shape == shape:
         return chainer.as_variable(x)
-        return 
     y, = SumTo(shape).apply((x,))
     return y
