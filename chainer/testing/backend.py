@@ -5,11 +5,14 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer.testing import attr
+import chainerx
 
 
 class BackendConfig(object):
 
+    # TODO(niboshi): Support ChainerX devices other than 'native:0'
     _props = [
+        ('use_chainerx', False),
         ('use_cuda', False),
         ('use_cudnn', 'never'),
         ('cudnn_deterministic', False),
@@ -34,10 +37,13 @@ class BackendConfig(object):
 
     @property
     def xp(self):
+        if self.use_chainerx:
+            return chainerx
         if self.use_cuda:
             return cuda.cupy
-        else:
+        if self.use_ideep:
             return numpy
+        return numpy
 
     def __enter__(self):
         self._contexts = [
@@ -80,7 +86,9 @@ class BackendConfig(object):
 
     def get_pytest_marks(self):
         marks = []
-        if self.use_cuda:
+        if self.use_chainerx:
+            marks.append(attr.chainerx)
+        elif self.use_cuda:
             marks.append(attr.gpu)
             if self.use_cudnn != 'never':
                 marks.append(attr.cudnn)
@@ -90,6 +98,16 @@ class BackendConfig(object):
 
         assert all(callable(_) for _ in marks)
         return marks
+
+    def get_array(self, np_array):
+        # TODO(niboshi): Support cuda and ideep
+        if self.use_chainerx:
+            return chainer.backend.to_chainerx(np_array)
+        if self.use_cuda:
+            return chainer.backend.cuda.to_gpu(np_array)
+        if self.use_ideep:
+            return np_array
+        return np_array
 
 
 def _wrap_backend_test_method(impl, param, method_name):

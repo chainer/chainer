@@ -529,6 +529,15 @@ def check_backward(
     # - Item assignment
     is_chainerx = xp is chainerx
     if is_chainerx:
+        if len(params) > 0:
+            raise NotImplementedError(
+                'gradient_check does not support params argument for ChainerX '
+                'arrays')
+        if any(no_grads):
+            raise NotImplementedError(
+                'gradient_check does not support no_grads argument for '
+                'ChainerX arrays')
+    if is_chainerx:
         directions = [numpy.random.normal(size=x.shape) for x in variables]
         directions = backend.to_chainerx(directions)
     else:
@@ -563,17 +572,28 @@ def check_backward(
         # This functions is called twice in `numerical_grad`.
         # `delta` is `epsilon` or `-epsilon` in these calls.
         # See the document of `numerical_grad`.
-        g_xs = []
-        for x, data, direction in six.moves.zip(
-                variables, casted_data, directions):
-            # astype is require to store data with the given type
-            data = (data.astype('d') +
-                    delta * direction).astype(data.dtype)
+
+        def perturb(data, direction):
+            data = (data.astype('d') + delta * direction).astype(data.dtype)
             if numpy.isscalar(data):
                 data = xp.array(data)
-            if is_chainerx:
-                data = backend.to_numpy(data)
-            g_xs.append(variable.Variable(data, requires_grad=x.requires_grad))
+            return data
+
+        # Input arrays
+        g_xs = []
+        j = 0
+        for i in range(len(xs)):
+            if no_grads[i]:
+                g_xs.append(xs[i])
+            else:
+                data = perturb(casted_data[j], directions[j])
+                if is_chainerx:
+                    data = backend.to_numpy(data)
+                g_xs.append(variable.Variable(data))
+                j += 1
+        # Parameters
+        for i in range(len(params)):
+            params[i].data = perturb(casted_data[j + i], directions[j + i])
 
         # Clear gradients to support func that calls backward inside of itself.
         _clear_grads(g_xs)
@@ -582,6 +602,8 @@ def check_backward(
         ys = func(*g_xs)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
+        for param, data in six.moves.zip(params, casted_data):
+            param.data = data
         return ys_data
 
     gx, = numerical_grad(
