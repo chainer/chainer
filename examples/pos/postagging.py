@@ -37,7 +37,7 @@ class CRF(chainer.Chain):
         # h[i] is feature vector for each batch of words.
         hs = [self.feature(x) for x in xs]
         loss = self.crf(hs, ys)
-        reporter.report({'loss': loss.array}, self)
+        reporter.report({'loss': loss}, self)
 
         # To predict labels, call argmax method.
         _, predict = self.crf.argmax(hs)
@@ -95,7 +95,7 @@ def main():
 
     model = CRF(len(vocab), len(pos_vocab))
     if args.gpu >= 0:
-        chainer.backends.cuda.get_device(args.gpu).use()
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu(args.gpu)
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
