@@ -1,5 +1,6 @@
 import unittest
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing
@@ -40,7 +41,7 @@ class TestIdentity(unittest.TestCase):
         initializer = initializers.Identity(
             scale=self.scale, dtype=self.dtype)
         w = initializers.generate_array(initializer, self.shape, xp)
-        self.assertIs(cuda.get_array_module(w), xp)
+        self.assertIs(backend.get_array_module(w), xp)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
         testing.assert_allclose(
@@ -104,7 +105,7 @@ class TestConstant(unittest.TestCase):
         initializer = initializers.Constant(
             fill_value=self.fill_value, dtype=self.dtype)
         w = initializers.generate_array(initializer, self.shape, xp)
-        self.assertIs(cuda.get_array_module(w), xp)
+        self.assertIs(backend.get_array_module(w), xp)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
         testing.assert_allclose(

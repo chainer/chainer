@@ -1,10 +1,11 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import distribution
 from chainer.functions.array import where
 from chainer.functions.math import digamma
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
+from chainer import utils
 
 
 def _lbeta(a, b):
@@ -43,21 +44,21 @@ class Beta(distribution.Distribution):
         return ()
 
     def log_prob(self, x):
+        x = chainer.as_variable(x)
         logp = (self.a - 1) * exponential.log(x) \
             + (self.b - 1) * exponential.log(1 - x) \
             - _lbeta(self.a, self.b)
         xp = logp.xp
-        inf = xp.full_like(logp.array, xp.inf)
-        if isinstance(x, chainer.Variable):
-            x = x.array
-        return where.where(xp.logical_and(x >= 0, x <= 1), logp, -inf)
+        return where.where(
+            utils.force_array((x.array >= 0) & (x.array <= 1)),
+            logp, xp.array(-xp.inf, logp.dtype))
 
     @property
     def mean(self):
         return self.a / (self.a + self.b)
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.a)
+        xp = backend.get_array_module(self.a)
         eps = xp.random.beta(self.a.data, self.b.data, size=(n,)+self.a.shape)
         noise = chainer.Variable(eps.astype(self.a.dtype))
         return noise
