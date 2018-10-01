@@ -535,7 +535,7 @@ def check_backward(
     # input dimension should be taken into account, but we ignore the
     # differences and assume that the curvature is uniform with respect to all
     # the input dimentions.
-    if xp is chainerx:
+    if is_chainerx:
         norm = math.sqrt(sum([(d * d).sum() for d in directions]))
     else:
         norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
