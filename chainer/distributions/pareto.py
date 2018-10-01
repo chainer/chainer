@@ -3,6 +3,7 @@ from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import where
 from chainer.functions.math import exponential
+from chainer import utils
 
 
 class Pareto(distribution.Distribution):
@@ -55,16 +56,17 @@ class Pareto(distribution.Distribution):
             + self.alpha * exponential.log(self.scale) \
             - (self.alpha + 1) * exponential.log(x)
         xp = logp.xp
-        inf = xp.full_like(logp.array, xp.inf)
-        return where.where(xp.asarray(x.data >= self.scale.data), logp,
-                           xp.asarray(-inf))
+        return where.where(
+            utils.force_array(x.data >= self.scale.data),
+            logp, xp.array(-xp.inf, logp.dtype))
 
     @property
     def mean(self):
         mean = (self.alpha * self.scale / (self.alpha - 1))
         xp = mean.xp
-        inf = xp.full_like(mean.array, xp.inf)
-        return where.where(self.alpha.data > 1, mean, inf)
+        return where.where(
+            self.alpha.data > 1,
+            mean, xp.array(xp.inf, mean.dtype))
 
     def sample_n(self, n):
         xp = cuda.get_array_module(self.scale)
@@ -88,8 +90,9 @@ class Pareto(distribution.Distribution):
         var = self.scale ** 2 * self.alpha / (self.alpha - 1) ** 2 \
             / (self.alpha - 2)
         xp = var.xp
-        inf = xp.full_like(var.array, xp.inf)
-        return where.where(self.alpha.data > 2, var, inf)
+        return where.where(
+            self.alpha.data > 2,
+            var, xp.array(xp.inf, var.dtype))
 
 
 @distribution.register_kl(Pareto, Pareto)
@@ -99,5 +102,6 @@ def _kl_pareto_pareto(dist1, dist2):
         + exponential.log(dist1.alpha) - exponential.log(dist2.alpha) \
         + (dist2.alpha - dist1.alpha) / dist1.alpha
     xp = kl.xp
-    inf = xp.full_like(kl.array, xp.inf)
-    return where.where(dist1.scale.data >= dist2.scale.data, kl, inf)
+    return where.where(
+        dist1.scale.data >= dist2.scale.data,
+        kl, xp.array(xp.inf, kl.dtype))
