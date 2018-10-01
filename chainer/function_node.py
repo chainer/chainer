@@ -601,10 +601,10 @@ Use apply() method instead.\
                       gx + g_input
                       for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
-    # Backward wrapper that is called from C++ via a Python binding in case
-    # self.apply was called with chainerx.ndarrays.
     def _backward_chainerx(self, target_input_indexes, grad_outputs,
                            retained_inputs, retained_outputs):
+        # Backward wrapper that is called from C++ via a Python binding in case
+        # self.apply was called with chainerx.ndarrays.
         assert self._is_chainerx
         assert len(target_input_indexes) > 0
         assert (
