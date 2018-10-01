@@ -702,68 +702,51 @@ class FunctionNodeWithRetaining(chainer.FunctionNode):
         return inputs
 
     def backward(self, _, grad_outputs):
-        self.backward_inputs = self.get_retained_inputs()
-        self.backward_outputs = self.get_retained_outputs()
+        self.retained_inputs = self.get_retained_inputs()
+        self.retained_outputs = self.get_retained_outputs()
         return grad_outputs
 
 
 class TestFunctionNodeRetaining(unittest.TestCase):
 
-    def setUp(self):
-        inputs = [chainer.Variable(numpy.array([2], dtype=numpy.float32)),
-                  chainer.Variable(numpy.array([-1], dtype=numpy.float32))]
-        self.input_data = [x.array for x in inputs]
-        self.input_nodes = [x.node for x in inputs]
+    def check_retain_inputs(self, xp):
+        inputs = [chainer.Variable(xp.array([2], dtype=numpy.float32)),
+                  chainer.Variable(xp.array([-1], dtype=numpy.float32),
+                                   requires_grad=False)]
+        input_arrays = [x.array for x in inputs]
+        if xp is not chainerx:
+            input_nodes = [x.node for x in inputs]
 
-        self.f = FunctionNodeWithRetaining()
-        outputs = self.f.apply(inputs)
-        outputs[0].grad = numpy.array([1], dtype=numpy.float32)
+        f = FunctionNodeWithRetaining()
+        outputs = f.apply(inputs)
+        outputs[0].grad = xp.array([1], dtype=numpy.float32)
         outputs[0].backward()
-        self.f_output_data = [y.data for y in outputs]
-        self.f_output_nodes = [y.node for y in outputs]
+        output_arrays = [y.array for y in outputs]
 
         inputs = None  # release non-retained inputs
 
-    def test_retain_inputs(self):
-        assert len(self.f.backward_inputs) == 1
-        assert self.f.backward_inputs[0].node is self.input_nodes[1]
-        numpy.testing.assert_array_equal(self.f.backward_inputs[0].data,
-                                         self.input_data[1])
+        assert len(f.retained_inputs) == 1
+        assert len(f.retained_outputs) == 1
 
-    def test_retain_outputs(self):
-        assert len(self.f.backward_outputs) == 1
-        numpy.testing.assert_array_equal(self.f.backward_outputs[0].data,
-                                         self.f_output_data[1])
+        assert not f.retained_inputs[0].requires_grad
+        if xp is not chainerx:
+            assert f.retained_inputs[0].node is input_nodes[1]
 
+        xp.testing.assert_array_equal(
+            f.retained_inputs[0].array, input_arrays[1])
+        xp.testing.assert_array_equal(
+            f.retained_outputs[0].array, output_arrays[1])
 
-@attr.chainerx
-class TestFunctionNodeChainerXRetaining(unittest.TestCase):
+    def test_retain_cpu(self):
+        self.check_retain_inputs(numpy)
 
-    def setUp(self):
-        inputs = [chainer.Variable(chainerx.array([2], dtype=numpy.float32)),
-                  chainer.Variable(
-                      chainerx.array([-1], dtype=numpy.float32),
-                      requires_grad=False)]
-        self.input_data = [x.array for x in inputs]
+    @attr.gpu
+    def test_retain_gpu(self):
+        self.check_retain_inputs(cuda.cupy)
 
-        self.f = FunctionNodeWithRetaining()
-        outputs = self.f.apply(inputs)
-        outputs[0].grad = chainerx.array([1], dtype=numpy.float32)
-        outputs[0].backward()
-        self.f_output_data = [y.array for y in outputs]
-
-        inputs = None  # release non-retained inputs
-
-    def test_retain_inputs(self):
-        assert len(self.f.backward_inputs) == 1
-        assert not self.f.backward_inputs[0].requires_grad
-        chainerx.testing.assert_array_equal(self.f.backward_inputs[0].data,
-                                            self.input_data[1])
-
-    def test_retain_outputs(self):
-        assert len(self.f.backward_outputs) == 1
-        chainerx.testing.assert_array_equal(self.f.backward_outputs[0].data,
-                                            self.f_output_data[1])
+    @attr.chainerx
+    def test_retain_chainerx(self):
+        self.check_retain_inputs(chainerx)
 
 
 def _get_value(x):
