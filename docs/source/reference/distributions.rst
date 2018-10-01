@@ -22,6 +22,7 @@ Distributions
    chainer.distributions.LogNormal
    chainer.distributions.MultivariateNormal
    chainer.distributions.Normal
+   chainer.distributions.Pareto
    chainer.distributions.Uniform
 
 
