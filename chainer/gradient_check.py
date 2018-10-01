@@ -350,7 +350,8 @@ class _CheckBackward(object):
         rtol = self.rtol
         # Compare the gradients
         try:
-            testing.assert_allclose(gx_numeric, gx_backward, atol=atol, rtol=rtol)
+            testing.assert_allclose(
+                gx_numeric, gx_backward, atol=atol, rtol=rtol)
         except AssertionError as e:
             eps = self.eps
             x_data = self.x_data
@@ -387,13 +388,14 @@ class _CheckBackward(object):
             if not no_grad]
         direction_param_shapes = [p.shape for p in params]
         direction_shapes = direction_xs_shapes + direction_param_shapes
-        directions = [xp.random.normal(size=shape) for shape in direction_shapes]
+        directions = [
+            xp.random.normal(size=shape) for shape in direction_shapes]
         # The direction vector is normalized in order to keep the scale of
         # differentiation error invariant with respect to the number of input
         # dimensions. Ideally, the scale of the curvature with respect to each
         # input dimension should be taken into account, but we ignore the
-        # differences and assume that the curvature is uniform with respect to all
-        # the input dimentions.
+        # differences and assume that the curvature is uniform with respect to
+        # all the input dimentions.
         norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
         if norm != 0:
             # norm could be zero if input arrays are 0-sized.
@@ -403,7 +405,8 @@ class _CheckBackward(object):
         return directions
 
     def _filter_list(self, lst, ignore_list):
-        return [x for x, ignore in six.moves.zip(lst, ignore_list) if not ignore]
+        return [
+            x for x, ignore in six.moves.zip(lst, ignore_list) if not ignore]
 
     def _clear_grads(self, xs):
         for x in xs:
@@ -427,7 +430,8 @@ class _CheckBackward(object):
         else:
             if numpy.dtype(dtype).kind != 'f':
                 raise ValueError('`dtype` is allowed only float type')
-            casted_data = [x.array.astype(dtype, copy=False) for x in variables]
+            casted_data = [
+                x.array.astype(dtype, copy=False) for x in variables]
 
             # Even skipped variable must have the same dtype.
             for x, skip in six.moves.zip(x_vars, no_grads):
@@ -450,7 +454,8 @@ class _CheckBackward(object):
                     data = xp.array(data)
                 x.data = data
 
-            # Clear gradients to support func that calls backward inside of itself.
+            # Clear gradients to support func that calls backward inside of
+            # itself.
             self._clear_grads(x_vars)
             self._clear_grads(params)
 
@@ -489,7 +494,8 @@ class _CheckBackward(object):
 
         y, y_grad = _set_y_grad(y, y_grad)
 
-        # Clear gradients which may exist if func calls backward inside of itself.
+        # Clear gradients which may exist if func calls backward inside of
+        # itself.
         self._clear_grads(variables)
 
         # We only need to call `backward` for one result `Variable`.
