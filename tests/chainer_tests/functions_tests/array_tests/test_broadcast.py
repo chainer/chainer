@@ -23,6 +23,7 @@ from chainer.utils import type_check
         {'in_shapes': [(3, 2, 4)], 'out_shape': (3, 2, 4)},
         {'in_shapes': [(3, 1, 4), (1, 2, 4), (3, 2, 1)],
          'out_shape': (3, 2, 4)},
+        {'in_shapes': [(1, 0, 1), (2,)], 'out_shape': (1, 0, 2)},
     ],
     [
         {'dtype': numpy.float16},
@@ -84,12 +85,8 @@ class TestBroadcast(unittest.TestCase):
         if len(data) == 1:
             return
 
-        def f(*xs):
-            ys = functions.broadcast(*xs)
-            return [y * y for y in ys]
-
         gradient_check.check_double_backward(
-            f, data, grads, gg, dtype=numpy.float64,
+            functions.broadcast, data, grads, gg, dtype=numpy.float64,
             **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):

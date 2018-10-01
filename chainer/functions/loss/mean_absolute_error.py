@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -11,10 +11,10 @@ class MeanAbsoluteError(function_node.FunctionNode):
     """Mean absolute error function."""
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x0', 'x1'))
         type_check.expect(
-            in_types[0].dtype == numpy.float32,
-            in_types[1].dtype == numpy.float32,
+            in_types[0].dtype.kind == 'f',
+            in_types[0].dtype == in_types[1].dtype,
             in_types[0].shape == in_types[1].shape
         )
 
@@ -34,7 +34,7 @@ class MeanAbsoluteError(function_node.FunctionNode):
         gy, = grad_outputs
         coeff = gy * gy.data.dtype.type(1. / self.diff.size)
         coeff = chainer.functions.broadcast_to(coeff, self.diff.shape)
-        gx0 = coeff * cuda.get_array_module(gy.data).sign(self.diff)
+        gx0 = coeff * backend.get_array_module(gy.data).sign(self.diff)
         return gx0, -gx0
 
 

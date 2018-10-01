@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -12,7 +12,7 @@ class Space2Depth(function_node.FunctionNode):
         self.r = r
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(
             in_types[0].dtype.kind == 'f',
             in_types[0].ndim == 4
@@ -20,26 +20,18 @@ class Space2Depth(function_node.FunctionNode):
 
     def forward(self, inputs):
         X, = inputs
-        xp = cuda.get_array_module(X)
+        xp = backend.get_array_module(X)
         bsize, c, a, b = X.shape
-        X = xp.transpose(X, (0, 2, 3, 1))
         X = xp.reshape(
-            X, (bsize, a // self.r, self.r, b // self.r, self.r, c))
-        X = xp.transpose(X, (0, 1, 3, 2, 4, 5))
+            X, (bsize, c, a // self.r, self.r, b // self.r, self.r))
+        X = xp.transpose(X, (0, 3, 5, 1, 2, 4))
         X = xp.reshape(
-            X, (bsize, a // self.r, b // self.r, self.r ** 2 * c))
-        X = xp.transpose(X, (0, 3, 1, 2))
+            X, (bsize, self.r ** 2 * c, a // self.r, b // self.r))
         return X,
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
-        bsize, c, a, b = gy.shape
-        c //= self.r ** 2
-        gy = chainer.functions.transpose(gy, (0, 2, 3, 1))
-        gy = chainer.functions.reshape(gy, (bsize, a, b, self.r, self.r, c))
-        gy = chainer.functions.transpose(gy, (0, 1, 3, 2, 4, 5))
-        gy = chainer.functions.reshape(gy, (bsize, a * self.r, b * self.r, c))
-        gy = chainer.functions.transpose(gy, (0, 3, 1, 2))
+        gy = chainer.functions.depth2space(gy, self.r)
         return gy,
 
 

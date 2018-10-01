@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import initializer
 
 
@@ -26,7 +26,7 @@ class Normal(initializer.Initializer):
         super(Normal, self).__init__(dtype)
 
     def __call__(self, array):
-        xp = cuda.get_array_module(array)
+        xp = backend.get_array_module(array)
         args = {'loc': 0.0, 'scale': self.scale, 'size': array.shape}
         if xp is not numpy:
             # Only CuPy supports dtype option

@@ -1,5 +1,7 @@
 import numpy
 
+import chainer
+
 # import classes and functions
 from chainer.initializers.constant import Constant
 from chainer.initializers.constant import Identity  # NOQA
@@ -17,26 +19,33 @@ from chainer.initializers.uniform import LeCunUniform  # NOQA
 from chainer.initializers.uniform import Uniform  # NOQA
 
 
-def generate_array(initializer, shape, xp):
+def generate_array(initializer, shape, xp, dtype=None):
     """Return initialized array.
 
     The algorithms used to make the new values depend on the
-    concrete derived classes. The dtype of a generated array depends on
-    ``initializer.dtype``.
+    concrete derived classes. If the initializer has the ``dtype`` attribute,
+    it is used to construct the array. Otherwise, ``chainer.config.dtype`` is
+    used instead. See :ref:`configuration` for the dtype config.
 
     Args:
         initializer: A callable object that takes :class:`numpy.ndarray`
              or :class:`cupy.ndarray` and edits its value.
         shape (tuple): Shape of a return array.
         xp (module): :mod:`cupy` or :mod:`numpy`.
+        dtype: Dtype specifier. If omitted, ``initializer.dtype`` is used.
 
     Returns:
         numpy.ndarray or cupy.ndarray: An initialized array.
 
     """
-    dtype = numpy.float32
-    if hasattr(initializer, 'dtype') and initializer.dtype is not None:
-        dtype = initializer.dtype
+    dtype_attr = getattr(initializer, 'dtype', None)
+    if dtype is not None and dtype_attr is not None \
+            and numpy.dtype(dtype) != numpy.dtype(dtype_attr):
+        raise ValueError(
+            'dtype mismatch: {} != {}'.format(dtype, dtype_attr))
+    if dtype is None:
+        dtype = dtype_attr
+    dtype = chainer.get_dtype(dtype)
     array = xp.empty(shape, dtype=dtype)
     initializer(array)
     return array

@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -34,12 +34,12 @@ class Repeat(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
 
     def forward(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         repeats = self.repeats
 
         # Workaroud for bug in NumPy 1.9 that specifying one element list to
@@ -68,7 +68,7 @@ class RepeatGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         gy, = inputs
-        xp = cuda.get_array_module(gy)
+        xp = backend.get_array_module(gy)
         repeats = self.repeats
         axis = self.axis
         shape = list(self.in_shape)
@@ -102,7 +102,7 @@ class RepeatGrad(function_node.FunctionNode):
             for (i, r) in enumerate(repeats):
                 src[-1] = slice(pos, pos + r)
                 dst[-1] = slice(i, i + 1)
-                gx[dst] = gy[src].sum(axis=axis, keepdims=True)
+                gx[tuple(dst)] = gy[tuple(src)].sum(axis=axis, keepdims=True)
                 pos += r
         return gx,
 

@@ -1,6 +1,7 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -20,10 +21,8 @@ class LogSumExp(function_node.FunctionNode):
             raise TypeError('None, int or tuple of int are required')
 
     def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1,
-            in_types[0].dtype.kind == 'f',
-        )
+        type_check.argname(in_types, ('x',))
+        type_check.expect(in_types[0].dtype.kind == 'f')
 
         if self.axis is not None:
             for axis in self.axis:
@@ -39,11 +38,11 @@ class LogSumExp(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         x, = inputs
         m = x.max(axis=self.axis, keepdims=True)
-        y = x - m
+        y = utils.force_array(x - m)
         xp.exp(y, out=y)
         y_sum = y.sum(axis=self.axis)
         y = xp.asarray(xp.log(y_sum) + m.reshape(y_sum.shape))

@@ -1,6 +1,6 @@
 import six
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function
 from chainer.utils import type_check
 
@@ -11,7 +11,7 @@ class Accuracy(function.Function):
         self.ignore_label = ignore_label
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -29,7 +29,7 @@ class Accuracy(function.Function):
             type_check.expect(x_type.shape[i] == 1)
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         y, t = inputs
 
         if self.ignore_label is not None:

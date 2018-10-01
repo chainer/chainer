@@ -15,10 +15,11 @@ from chainer import variable
 class StatefulZoneoutLSTM(link.Chain):
 
     def __init__(self, in_size, out_size, c_ratio=0.5, h_ratio=0.5, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         super(StatefulZoneoutLSTM, self).__init__()
         self.state_size = out_size
@@ -36,6 +37,7 @@ class StatefulZoneoutLSTM(link.Chain):
             self.c.to_cpu()
         if self.h is not None:
             self.h.to_cpu()
+        return self
 
     def to_gpu(self, device=None):
         super(StatefulZoneoutLSTM, self).to_gpu(device)
@@ -43,6 +45,7 @@ class StatefulZoneoutLSTM(link.Chain):
             self.c.to_gpu(device)
         if self.h is not None:
             self.h.to_gpu(device)
+        return self
 
     def set_state(self, c, h):
         """Sets the internal state.
@@ -75,7 +78,7 @@ class StatefulZoneoutLSTM(link.Chain):
         """
         self.c = self.h = None
 
-    def __call__(self, x):
+    def forward(self, x):
         """Updates the internal state and returns the LSTM outputs.
 
         Args:

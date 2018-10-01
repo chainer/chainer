@@ -14,7 +14,7 @@ From the previous guide on :doc:`models`, let's use the ``MyChain`` class:
    ...             self.l1 = L.Linear(4, 3)
    ...             self.l2 = L.Linear(3, 2)
    ...
-   ...     def __call__(self, x):
+   ...     def forward(self, x):
    ...         h = self.l1(x)
    ...         return self.l2(h)
 

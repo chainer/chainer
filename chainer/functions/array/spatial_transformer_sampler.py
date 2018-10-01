@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import argument
@@ -62,7 +63,7 @@ class SpatialTransformerSampler(function.Function):
 
     def _forward(self, inputs):
         x, grid = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         B, C, H, W = x.shape
         _, _, out_H, out_W = grid.shape
 
@@ -154,7 +155,7 @@ class SpatialTransformerSampler(function.Function):
 
     def _backward(self, inputs, grad_outputs):
         x, grid = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         gy, = grad_outputs
 
         B, C, H, W = x.shape
@@ -300,10 +301,11 @@ def spatial_transformer_sampler(x, grid, **kwargs):
             :math:`(n, c_I, h_O, w_O)`.
 
     """
-    argument.check_unexpected_kwargs(
-        kwargs, use_cudnn="The argument \"use_cudnn\" is not "
-        "supported anymore. "
-        "Use chainer.using_config('use_cudnn', value) "
-        "context where value can be `always`, `never`, or `auto`.")
-    argument.assert_kwargs_empty(kwargs)
+    if kwargs:
+        argument.check_unexpected_kwargs(
+            kwargs, use_cudnn="The argument \"use_cudnn\" is not "
+            "supported anymore. "
+            "Use chainer.using_config('use_cudnn', value) "
+            "context where value can be `always`, `never`, or `auto`.")
+        argument.assert_kwargs_empty(kwargs)
     return SpatialTransformerSampler()(x, grid)

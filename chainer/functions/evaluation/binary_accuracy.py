@@ -1,6 +1,6 @@
 from __future__ import division
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function
 from chainer.utils import type_check
 
@@ -10,7 +10,7 @@ class BinaryAccuracy(function.Function):
     ignore_label = -1
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -20,7 +20,7 @@ class BinaryAccuracy(function.Function):
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         y, t = inputs
         # flatten
         y = y.ravel()

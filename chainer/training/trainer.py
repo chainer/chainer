@@ -84,6 +84,14 @@ class Trainer(object):
     can be serialized through the standard serialization protocol of Chainer.
     It enables us to easily suspend and resume the training loop.
 
+    .. code-block:: python
+
+        >>> serializers.save_npz('my.trainer', trainer)  # To suspend and save
+        >>> serializers.load_npz('my.trainer', trainer)  # To load and resume
+
+    The :meth:`~chainer.training.extensions.snapshot` method makes regular
+    snapshots of the :class:`~chainer.training.Trainer` object during training.
+
     .. note::
        The serialization does not recover everything of the training loop. It
        only recovers the states which change over the training (e.g.
@@ -192,7 +200,9 @@ class Trainer(object):
         Args:
             extension: Extension to register.
             name (str): Name of the extension. If it is omitted, the
-                ``default_name`` attribute of the extension is used instead.
+                :attr:`Extension.name` attribute of the extension is used or
+                the :attr:`Extension.default_name` attribute of the extension
+                if `name` is is set to `None` or is undefined.
                 Note that the name would be suffixed by an ordinal in case of
                 duplicated names as explained above.
             trigger (tuple or Trigger): Trigger object that determines when to
@@ -208,11 +218,12 @@ class Trainer(object):
                 instead.
 
         """
-        argument.check_unexpected_kwargs(
-            kwargs,
-            invoke_before_training='invoke_before_training has been removed '
-            'since Chainer v2.0.0. Use initializer= instead.')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                invoke_before_training='invoke_before_training has been '
+                'removed since Chainer v2.0.0. Use initializer= instead.')
+            argument.assert_kwargs_empty(kwargs)
 
         if name is None:
             name = getattr(extension, 'name', None)

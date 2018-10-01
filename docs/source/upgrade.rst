@@ -7,6 +7,47 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
+Chainer v5
+==========
+
+Persistent Values are Copied in ``Link.copyparams``
+---------------------------------------------------
+
+:meth:`chainer.Link.copyparams` is a method to copy all parameters of the link to another link.
+This method can be used, for example, to copy parameters between two chains that partially share the same network structure to reuse pretrained weights.
+
+Prior to Chainer v5, only parameters are copied between links.
+In Chainer v5, in addition to parameters, persistent values (see :doc:`guides/serializers` for details) are also copied between links.
+This is especially beneficial when copying parameters of :class:`~chainer.links.BatchNormalization`, as it uses persistent values to record running statistics.
+
+You can skip copying persistent values by passing newly introduced ``copy_persistent=False`` option to :meth:`~chainer.Link.copyparams` so that it behaves as in Chainer v4.
+
+FuncionNodes as Implementation Details
+--------------------------------------
+
+When calling a Chainer function such as :func:`~chainer.functions.relu`, a corresponding :class:`~chainer.FunctionNode` is created internally, defining the forward and backward procedures.
+These classes are no longer a part of the public interface and you are encouraged not to instantiate these objects directly, as their interfaces may change.
+
+Updaters Automatically Call ``Optimizer.new_epoch``
+---------------------------------------------------
+
+This change should affect only a minority of users (who call :meth:`~chainer.Optimizer.new_epoch` while using a trainer, or who implement their own :class:`~chainer.training.Updater` class).
+
+Optimizers provide :meth:`~chainer.Optimizer.new_epoch` method, which can be used to change the behavior of optimizers depending on the current epoch number.
+Prior to Chainer v5, this method was expected to be called by users.
+In Chainer v5, updaters have been changed to call :meth:`~chainer.Optimizer.new_epoch` automatically.
+If you have been calling :meth:`~chainer.Optimizer.new_epoch` method manually while using a trainer (or an updater), you may need any of the following fixes:
+
+* Pass ``auto_new_epoch=False`` to the constructor of the updater (e.g., :class:`~chainer.training.updaters.StandardUpdater`) to stop :meth:`~chainer.Optimizer.new_epoch` from being called automatically by the updater.
+* Avoid calling :meth:`~chainer.Optimizer.new_epoch` method manually.
+
+If you implement your own :class:`~chainer.training.Updater` class, you may need to update your code to automatically call :meth:`~chainer.Optimizer.new_epoch` (you can refer to the changes introduced in `#4608 <https://github.com/chainer/chainer/pull/4608>`__ to understand how to fix your updater).
+
+Extending the Backend Namespace
+-------------------------------
+
+In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes ``chainer.backend.get_array_module`` which used to be defined in ``chainer.backends.cuda.get_array_module``. Both can be used but the latter will be deprecated.
+
 
 Chainer v4
 ==========

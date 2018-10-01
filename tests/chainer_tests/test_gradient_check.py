@@ -6,6 +6,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import testing
@@ -18,12 +19,12 @@ def _uniform(*shape):
 
 
 def _full_like(x, val):
-    xp = cuda.get_array_module(x)
+    xp = backend.get_array_module(x)
     return xp.full_like(x, val)
 
 
 def _zeros_like(x):
-    xp = cuda.get_array_module(x)
+    xp = backend.get_array_module(x)
     return xp.zeros_like(x)
 
 
@@ -100,11 +101,11 @@ class NumericalGradientTest3(NumericalGradientTest):
     eps = (1e-2, 1e-3)
 
     def f(self, xs):
-        xp = cuda.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return xp.exp(xs[0]),
 
     def df(self, xs):
-        xp = cuda.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return (xp.exp(xs[0]),),
 
     def setUp(self):
@@ -346,7 +347,7 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
         self.ignore_warning = getattr(self, 'ignore_warning', None)
 
     def _func_zero(self, x):
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.zeros_like(x),
 
     def _func_linear(self, x):
@@ -362,7 +363,7 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
         return abs(x),
 
     def _func_step(self, x):
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = xp.zeros_like(x)
         y[x > 0] = 1
         return y,
@@ -372,23 +373,23 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
         return y,
 
     def _func_floor(self, x):
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.floor(x),
 
     def _func_exp(self, x):
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.exp(x),
 
     def _func_log(self, x):
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.log(x),
 
     def _func_tan(self, x):
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.tan(x),
 
     def _func_nan_segment(self, x):
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = xp.ones_like(x)
         y[-1 < x < 1] = numpy.nan
         return y,
@@ -577,11 +578,17 @@ class TestCheckBackward(unittest.TestCase):
         g1 = numpy.array([1], dtype='f')
 
         def f(x, y):
-            s = Ident()(x)
+            s = x + y.array
             return s,
 
-        self.assertRaises(RuntimeError, gradient_check.check_backward,
-                          f, (x1, x2), g1, no_grads=[False, False])
+        self.assertRaises(
+            RuntimeError,  # backward computes x1.grad
+            gradient_check.check_backward,
+            f, (x1, x2), g1, no_grads=[True, True])
+        self.assertRaises(
+            AssertionError,  # numerical backward to x2 is nonzero
+            gradient_check.check_backward,
+            f, (x1, x2), g1, no_grads=[False, False])
         gradient_check.check_backward(f, (x1, x2), g1, no_grads=[False, True])
 
     def test_no_grads_option_with_dtype(self):

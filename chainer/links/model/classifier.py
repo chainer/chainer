@@ -13,16 +13,36 @@ class Classifier(link.Chain):
 
     Args:
         predictor (~chainer.Link): Predictor network.
-        lossfun (function): Loss function.
-        accfun (function): Function that computes accuracy.
+        lossfun (callable):
+            Loss function.
+            You can specify one of loss functions from
+            :doc:`built-in loss functions </reference/functions>`, or
+            your own loss function (see the example below).
+            It should not be an
+            :doc:`loss functions with parameters </reference/links>`
+            (i.e., :class:`~chainer.Link` instance).
+            The function must accept two argument (an output from predictor
+            and its ground truth labels), and return a loss.
+            Returned value must be a Variable derived from the input Variable
+            to perform backpropagation on the variable.
+        accfun (callable):
+            Function that computes accuracy.
+            You can specify one of evaluation functions from
+            :doc:`built-in evaluation functions </reference/functions>`, or
+            your own evaluation function.
+            The signature of the function is the same as ``lossfun``.
         label_key (int or str): Key to specify label variable from arguments.
             When it is ``int``, a variable in positional arguments is used.
             And when it is ``str``, a variable in keyword arguments is used.
 
     Attributes:
         predictor (~chainer.Link): Predictor network.
-        lossfun (function): Loss function.
-        accfun (function): Function that computes accuracy.
+        lossfun (callable):
+            Loss function.
+            See the description in the arguments for details.
+        accfun (callable):
+            Function that computes accuracy.
+            See the description in the arguments for details.
         y (~chainer.Variable): Prediction for the last minibatch.
         loss (~chainer.Variable): Loss value for the last minibatch.
         accuracy (~chainer.Variable): Accuracy for the last minibatch.
@@ -70,7 +90,7 @@ class Classifier(link.Chain):
         with self.init_scope():
             self.predictor = predictor
 
-    def __call__(self, *args, **kwargs):
+    def forward(self, *args, **kwargs):
         """Computes the loss value for an input and label pair.
 
         It also computes accuracy and stores it to the attribute.
@@ -86,6 +106,14 @@ class Classifier(link.Chain):
         labels are features.
         It feeds features to the predictor and compare the result
         with ground truth labels.
+
+        .. note::
+            We set ``None`` to the attributes ``y``, ``loss`` and ``accuracy``
+            each time before running the predictor, to avoid unnecessary memory
+            consumption. Note that the variables set on those attributes hold
+            the whole computation graph when they are computed. The graph
+            stores interim values on memory required for back-propagation.
+            We need to clear the attributes to free those values.
 
         Returns:
             ~chainer.Variable: Loss value.
@@ -111,6 +139,7 @@ class Classifier(link.Chain):
         self.y = None
         self.loss = None
         self.accuracy = None
+
         self.y = self.predictor(*args, **kwargs)
         self.loss = self.lossfun(self.y, t)
         reporter.report({'loss': self.loss}, self)
