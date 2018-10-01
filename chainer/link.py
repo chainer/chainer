@@ -14,6 +14,7 @@ from chainer import initializers
 from chainer import link_hook
 from chainer.utils import collections_abc
 from chainer import variable
+import chainerx
 
 
 def _is_shape(value):
@@ -136,7 +137,7 @@ class Link(object):
     def __init__(self, **params):
         self._params = set()
         self._persistent = set()
-        self._cpu = True
+        self._xp = numpy
         self._device_id = None
         self._within_init_scope = False
         self.name = None
@@ -172,7 +173,7 @@ class Link(object):
         :mod:`numpy` or :mod:`cupy`.
 
         """
-        return numpy if self._cpu else cuda.cupy
+        return self._xp
 
     @property
     def within_init_scope(self):
@@ -253,8 +254,10 @@ class Link(object):
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
             value.name = name
-            if not self._cpu:
+            if self._xp is cuda.cupy:
                 value.to_gpu(self._device_id)
+            elif self._xp is chainerx:
+                value.to_chainerx()
             self._params.add(name)
             self._persistent.discard(name)
         super(Link, self).__setattr__(name, value)
@@ -427,7 +430,7 @@ Assign a Parameter object directly to an attribute within a \
                 d[name] = value.get()
             elif isinstance(value, intel64.mdarray):
                 d[name] = numpy.array(value)
-        self._cpu = True
+        self._xp = numpy
         self._device_id = None
         return self
 
@@ -446,7 +449,7 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         cuda.check_cuda_available()
-        if not self._cpu:
+        if self._xp is cuda.cupy:
             return self
         d = self.__dict__
         with cuda._get_device(device):
@@ -459,7 +462,7 @@ Assign a Parameter object directly to an attribute within a \
                 if isinstance(value, numpy.ndarray):
                     d[name] = cuda.to_gpu(value)
             self._device_id = cuda.cupy.cuda.get_device_id()
-        self._cpu = False
+        self._xp = cuda.cupy
         return self
 
     def to_intel64(self):
@@ -480,8 +483,19 @@ Assign a Parameter object directly to an attribute within a \
                 value = intel64.ideep.array(
                     value, itype=intel64.ideep.wgt_array)
             d[name] = value
-        self._cpu = True
+        self._xp = numpy
         self._device_id = None
+        return self
+
+    def to_chainerx(self):
+        if self._xp is chainerx:
+            return self
+        d = self.__dict__
+        for name in self._params:
+            d[name].to_chainerx()
+        for name in self._persistent:
+            d[name] = backend.to_chainerx(d[name])
+        self._xp is chainerx
         return self
 
     def params(self, include_uninit=True):
@@ -987,6 +1001,13 @@ Assign a Link object directly to an attribute within a \
         d = self.__dict__
         for name in self._children:
             d[name].to_intel64()
+        return self
+
+    def to_chainerx(self):
+        super(Chain, self).to_chainerx()
+        d = self.__dict__
+        for name in self._children:
+            d[name].to_chainerx()
         return self
 
     def params(self, include_uninit=True):
