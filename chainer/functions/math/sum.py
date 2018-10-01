@@ -2,9 +2,11 @@ import numpy
 
 import chainer
 from chainer import backend
+from chainer import function
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class Sum(function_node.FunctionNode):
@@ -103,6 +105,9 @@ def sum(x, axis=None, keepdims=False):
         array([[15.]], dtype=float32)
 
     """
+    if backend.get_array_module(x) is chainerx:
+        return function._chainerx_op(lambda a: chainerx.sum(a, axis, keepdims), x)
+
     y, = Sum(axis, keepdims).apply((x,))
     return y
 
@@ -153,5 +158,6 @@ def sum_to(x, shape):
     """
     if x.shape == shape:
         return chainer.as_variable(x)
+        return 
     y, = SumTo(shape).apply((x,))
     return y
