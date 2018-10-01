@@ -702,8 +702,8 @@ class FunctionNodeWithRetaining(chainer.FunctionNode):
         return inputs
 
     def backward(self, _, grad_outputs):
-        self.retained_inputs = self.get_retained_inputs()
-        self.retained_outputs = self.get_retained_outputs()
+        self.retained_backward_inputs = self.get_retained_inputs()
+        self.retained_backward_outputs = self.get_retained_outputs()
         return grad_outputs
 
 
@@ -725,17 +725,17 @@ class TestFunctionNodeRetaining(unittest.TestCase):
 
         inputs = None  # release non-retained inputs
 
-        assert len(f.retained_inputs) == 1
-        assert len(f.retained_outputs) == 1
+        assert len(f.retained_backward_inputs) == 1
+        assert len(f.retained_backward_outputs) == 1
 
-        assert not f.retained_inputs[0].requires_grad
+        assert not f.retained_backward_inputs[0].requires_grad
         if xp is not chainerx:
-            assert f.retained_inputs[0].node is input_nodes[1]
+            assert f.retained_backward_inputs[0].node is input_nodes[1]
 
         xp.testing.assert_array_equal(
-            f.retained_inputs[0].array, input_arrays[1])
+            f.retained_backward_inputs[0].array, input_arrays[1])
         xp.testing.assert_array_equal(
-            f.retained_outputs[0].array, output_arrays[1])
+            f.retained_backward_outputs[0].array, output_arrays[1])
 
     def test_retain_cpu(self):
         self.check_function_node_retain(numpy)
