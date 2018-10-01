@@ -166,6 +166,7 @@ class TestBroadcastTo(unittest.TestCase):
         # TODO(sonots): Support float16
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
+
         self.check_forward(chainerx.array(self.data))
 
     def check_backward(self, data, grads):
