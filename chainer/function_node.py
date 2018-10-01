@@ -310,7 +310,7 @@ Use apply() method instead.\
             chainerx_out_data = [backend.to_chainerx(y) for y in outputs]
 
             # Insert a ChainerX op-node that calls FunctionNode.backward in
-            # backprop
+            # backprop. Note that chainerx_out_data may not require gradients.
             chainerx._core._function_node_forward(
                 self, chainerx_in_data, chainerx_out_data,
                 [] if self._input_indexes_to_retain is None
