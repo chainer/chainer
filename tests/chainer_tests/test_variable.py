@@ -1688,6 +1688,42 @@ class UnnamedVariableToStringTestBase(object):
         self.x.to_gpu()
         assert str(self.x) == self.str
 
+    def _skip_chainerx_unsupported_dtype(self):
+        supported_dtypes = chainerx.testing.dtypes.all_dtypes
+        if (self.dtype is not None
+                and self.dtype.__name__ not in supported_dtypes):
+            raise unittest.SkipTest(
+                'ChainerX does not support {} dtype'.format(
+                    self.dtype.__name__))
+
+    @attr.chainerx
+    def test_repr_chainerx_cpu(self):
+        self._skip_chainerx_unsupported_dtype()
+        self.x.to_chainerx()
+        assert repr(self.x) == self.repr
+
+    @attr.chainerx
+    def test_str_chainerx_cpu(self):
+        self._skip_chainerx_unsupported_dtype()
+        self.x.to_chainerx()
+        assert str(self.x) == self.str
+
+    @attr.chainerx
+    @attr.gpu
+    def test_repr_chainerx_gpu(self):
+        self._skip_chainerx_unsupported_dtype()
+        self.x.to_gpu()
+        self.x.to_chainerx()
+        assert repr(self.x) == self.repr
+
+    @attr.chainerx
+    @attr.gpu
+    def test_str_chainerx_gpu(self):
+        self._skip_chainerx_unsupported_dtype()
+        self.x.to_gpu()
+        self.x.to_chainerx()
+        assert str(self.x) == self.str
+
 
 @testing.parameterize(
     {'x_shape': None, 'dtype': None, 'repr': 'variable(None)',
