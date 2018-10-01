@@ -153,6 +153,7 @@ class TestGetDeviceFromArray(unittest.TestCase):
         assert isinstance(device, chainerx.DeviceScope)
         with device:
             chainerx.get_default_device() is arr.device
+            assert chainerx.get_default_device().name == 'native:0'
 
     @attr.chainerx
     @attr.gpu
@@ -162,6 +163,7 @@ class TestGetDeviceFromArray(unittest.TestCase):
         assert isinstance(device, chainerx.DeviceScope)
         with device:
             assert chainerx.get_default_device() is arr.device
+            assert chainerx.get_default_device().name == 'cuda:0'
 
 
 testing.run_module(__name__, __file__)
