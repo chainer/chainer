@@ -709,7 +709,7 @@ class FunctionNodeWithRetaining(chainer.FunctionNode):
 
 class TestFunctionNodeRetaining(unittest.TestCase):
 
-    def check_retain_inputs(self, xp):
+    def check_function_node_retain(self, xp):
         inputs = [chainer.Variable(xp.array([2], dtype=numpy.float32)),
                   chainer.Variable(xp.array([-1], dtype=numpy.float32),
                                    requires_grad=False)]
@@ -738,15 +738,15 @@ class TestFunctionNodeRetaining(unittest.TestCase):
             f.retained_outputs[0].array, output_arrays[1])
 
     def test_retain_cpu(self):
-        self.check_retain_inputs(numpy)
+        self.check_function_node_retain(numpy)
 
     @attr.gpu
     def test_retain_gpu(self):
-        self.check_retain_inputs(cuda.cupy)
+        self.check_function_node_retain(cuda.cupy)
 
     @attr.chainerx
     def test_retain_chainerx(self):
-        self.check_retain_inputs(chainerx)
+        self.check_function_node_retain(chainerx)
 
 
 def _get_value(x):
