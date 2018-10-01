@@ -412,6 +412,49 @@ class _CheckBackward(object):
         for x in xs:
             x.grad_var = None
 
+    def _directional_backward_gradients(self, directions):
+        func = self.func
+        x_data = self.x_data
+        y_grad = self.y_grad
+        params = self.params
+        no_grads = self.no_grads
+
+        x_vars = [variable.Variable(x) for x in x_data]
+        variables = self._filter_list(x_vars, no_grads) + list(params)
+        y = func(*x_vars)
+        y = _as_tuple(y)
+        y0_data = [_.data for _ in y]
+
+        # All creators of `y` need to be the same because we only call
+        # `y[0].backward` to call `backward` method of the creator.
+        # To do so we need to insert a dummy function `_GradientSetter` to the
+        # computational graph.
+        # Note that `func` may not be a `Function` object.
+
+        y, y_grad = _set_y_grad(y, y_grad)
+
+        # Clear gradients which may exist if func calls backward inside of
+        # itself.
+        self._clear_grads(variables)
+
+        # We only need to call `backward` for one result `Variable`.
+        # `Variable.backward` method calls `Function.backward` of its creator.
+        y.backward()
+
+        for no_grad, x in six.moves.zip(no_grads, x_vars):
+            if no_grad and x.grad is not None:
+                raise RuntimeError(
+                    'gradient of int variable must be None')
+
+        grads = [x.grad for x in variables]
+
+        gx_accum = 0
+        for g, direction in six.moves.zip(grads, directions):
+            if g is not None:
+                gx_accum += (g.astype('d') * direction).sum()
+
+        return gx_accum, y0_data
+
     def _directional_numeric_gradients(self, directions, y0_data):
         func = self.func
         x_data = self.x_data
@@ -472,49 +515,6 @@ class _CheckBackward(object):
             center_outputs=y0_data)
 
         return gx
-
-    def _directional_backward_gradients(self, directions):
-        func = self.func
-        x_data = self.x_data
-        y_grad = self.y_grad
-        params = self.params
-        no_grads = self.no_grads
-
-        x_vars = [variable.Variable(x) for x in x_data]
-        variables = self._filter_list(x_vars, no_grads) + list(params)
-        y = func(*x_vars)
-        y = _as_tuple(y)
-        y0_data = [_.data for _ in y]
-
-        # All creators of `y` need to be the same because we only call
-        # `y[0].backward` to call `backward` method of the creator.
-        # To do so we need to insert a dummy function `_GradientSetter` to the
-        # computational graph.
-        # Note that `func` may not be a `Function` object.
-
-        y, y_grad = _set_y_grad(y, y_grad)
-
-        # Clear gradients which may exist if func calls backward inside of
-        # itself.
-        self._clear_grads(variables)
-
-        # We only need to call `backward` for one result `Variable`.
-        # `Variable.backward` method calls `Function.backward` of its creator.
-        y.backward()
-
-        for no_grad, x in six.moves.zip(no_grads, x_vars):
-            if no_grad and x.grad is not None:
-                raise RuntimeError(
-                    'gradient of int variable must be None')
-
-        grads = [x.grad for x in variables]
-
-        gx_accum = 0
-        for g, direction in six.moves.zip(grads, directions):
-            if g is not None:
-                gx_accum += (g.astype('d') * direction).sum()
-
-        return gx_accum, y0_data
 
 
 def check_backward(
