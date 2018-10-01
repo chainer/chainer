@@ -44,7 +44,7 @@ TEST(NativeDeviceTest, AllocateZero) {
     NativeDevice& device = GetNativeDevice(ctx, 0);
 
     std::shared_ptr<void> ptr = device.Allocate(size_t{0});
-    EXPECT_NE(ptr, nullptr);
+    EXPECT_EQ(ptr, nullptr);
 }
 
 TEST(NativeDeviceTest, AllocateFreeThreadSafe) {

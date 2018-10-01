@@ -40,6 +40,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import intel64
 from chainer.configuration import config
 import chainerx
@@ -170,6 +171,11 @@ def get_device_from_id(device_id):
 def get_device_from_array(*arrays):
     """Gets the device from a list of CuPy array or a single CuPy array.
 
+    .. deprecated:: v6.0.0
+
+        This API is deprecated. Please use
+        :func:`~chainer.backend.get_device_from_array` instead.
+
     The device on which the given CuPy array reside is returned.
 
     .. note::
@@ -186,10 +192,7 @@ def get_device_from_array(*arrays):
             to. If a list of :class:`cupy.ndarray`\\ s are given, it returns
             the first device object of an array in the list.
     """
-    for array in arrays:
-        if isinstance(array, ndarray) and array.device is not None:
-            return array.device
-    return DummyDevice
+    return backend.get_device_from_array(*arrays)
 
 
 def get_device(*args):
