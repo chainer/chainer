@@ -463,63 +463,23 @@ def check_backward(
         y_grad = _as_tuple(y_grad)
     params = _as_tuple(params)
 
-    xs = [variable.Variable(x) for x in x_data]
-    y = func(*xs)
-    y = _as_tuple(y)
-    y0_data = [_.data for _ in y]
-
-    # All creators of `y` need to be the same because we only call
-    # `y[0].backward` to call `backward` method of the creator.
-    # To do so we need to insert a dummy function `_GradientSetter` to the
-    # computational graph.
-    # Note that `func` may not be a `Function` object.
-
-    y, y_grad = _set_y_grad(y, y_grad)
-
-    # Clear gradients which may exist if func calls backward inside of itself.
-    _clear_grads(xs)
-    _clear_grads(params)
-
-    # We only need to call `backward` for one result `Variable`.
-    # `Variable.backward` method calls `Function.backward` of its creator.
-    y.backward()
-
     if no_grads is None:
-        no_grads = [x.dtype.kind != 'f' for x in xs]
+        no_grads = [x.dtype.kind != 'f' for x in x_data]
     else:
-        if len(no_grads) != len(xs):
+        if len(no_grads) != len(x_data):
             raise ValueError(
                 'Length of no_grads param and xs should be same.\n'
-                'Actual: {0} != {1}'.format(len(no_grads), len(xs)))
+                'Actual: {0} != {1}'.format(len(no_grads), len(x_data)))
 
-    for skip, x in six.moves.zip(no_grads, xs):
-        if skip and x.grad is not None:
-            raise RuntimeError(
-                'gradient of int variable must be None')
-
-    if len(xs) - no_grads.count(True) + len(params) == 0:
-        # When there is no float variables, we need not to check gradient
-        # values
-        return
-
-    variables = _filter_list(xs, no_grads) + list(params)
-    # Keep the gradient arrays of params which may be overwritten by func
-    grads = [x.grad for x in variables]
-
-    if dtype is None:
-        casted_data = [x.data for x in variables]
-    else:
-        if numpy.dtype(dtype).kind != 'f':
-            raise ValueError('`dtype` is allowed only float type')
-        casted_data = [x.data.astype(dtype, copy=False) for x in variables]
-
-        # Even skipped variable must have the same dtype.
-        for x, skip in six.moves.zip(xs, no_grads):
-            if skip and x.data.dtype.kind == 'f':
-                x.data = x.data.astype(dtype, copy=False)
-
-    xp = backend.get_array_module(*xs)
-    directions = [xp.random.normal(size=x.shape) for x in variables]
+    # Direction of differentiation
+    xp = backend.get_array_module(*x_data)
+    direction_xs_shapes = [
+        x.shape
+        for x, no_grad in six.moves.zip(x_data, no_grads)
+        if not no_grad]
+    direction_param_shapes = [p.shape for p in params]
+    direction_shapes = direction_xs_shapes + direction_param_shapes
+    directions = [xp.random.normal(size=shape) for shape in direction_shapes]
     # The direction vector is normalized in order to keep the scale of
     # differentiation error invariant with respect to the number of input
     # dimensions. Ideally, the scale of the curvature with respect to each
@@ -532,6 +492,57 @@ def check_backward(
         scale = 1. / norm
         directions = [d * scale for d in directions]
 
+    # Compute backward gradients
+    gx_backward, y0_data = _directional_backward_gradients(
+        func, x_data, params, y_grad, directions, no_grads)
+
+    # Compute numeric gradients
+    gx_numeric = _directional_numeric_gradients(
+        func, dtype, x_data, params, y_grad, y0_data, directions, no_grads,
+        eps, detect_nondifferentiable)
+
+    # Compare the gradients
+    try:
+        testing.assert_allclose(gx_numeric, gx_backward, atol=atol, rtol=rtol)
+    except AssertionError as e:
+        f = six.StringIO()
+        f.write('check_backward failed (eps={} atol={} rtol={})\n'.format(
+            eps, atol, rtol))
+        for i, x_ in enumerate(x_data):
+            f.write('inputs[{}]:\n'.format(i))
+            f.write('{}\n'.format(x_))
+        for i, gy_ in enumerate(y_grad):
+            f.write('grad_outputs[{}]:\n'.format(i))
+            f.write('{}\n'.format(gy_))
+        for i, d_ in enumerate(directions):
+            f.write('directions[{}]:\n'.format(i))
+            f.write('{}\n'.format(d_))
+        f.write('gradients (numeric):  {}\n'.format(gx_numeric))
+        f.write('gradients (backward): {}\n'.format(gx_backward))
+        f.write('\n')
+        f.write(str(e))
+        raise AssertionError(f.getvalue())
+
+
+def _directional_numeric_gradients(
+        func, dtype, x_data, params, y_grad, y0_data, directions, no_grads,
+        eps, detect_nondifferentiable):
+    x_vars = [variable.Variable(x) for x in x_data]
+    variables = _filter_list(x_vars, no_grads) + list(params)
+
+    if dtype is None:
+        casted_data = [x.array for x in variables]
+    else:
+        if numpy.dtype(dtype).kind != 'f':
+            raise ValueError('`dtype` is allowed only float type')
+        casted_data = [x.array.astype(dtype, copy=False) for x in variables]
+
+        # Even skipped variable must have the same dtype.
+        for x, skip in six.moves.zip(x_vars, no_grads):
+            if skip and x.array.dtype.kind == 'f':
+                x.array = x.array.astype(dtype, copy=False)
+
+    xp = backend.get_array_module(*x_data)
     delta = xp.array(0., 'd')
 
     def g():
@@ -548,10 +559,10 @@ def check_backward(
             x.data = data
 
         # Clear gradients to support func that calls backward inside of itself.
-        _clear_grads(xs)
+        _clear_grads(x_vars)
         _clear_grads(params)
 
-        ys = func(*xs)
+        ys = func(*x_vars)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
         for x, data in six.moves.zip(variables, casted_data):
@@ -562,31 +573,45 @@ def check_backward(
         g, (delta,), y_grad, eps=eps,
         detect_nondifferentiable=detect_nondifferentiable,
         center_outputs=y0_data)
+
+    return gx
+
+def _directional_backward_gradients(
+        func, x_data, params, y_grad, directions, no_grads):
+    x_vars = [variable.Variable(x) for x in x_data]
+    variables = _filter_list(x_vars, no_grads) + list(params)
+    y = func(*x_vars)
+    y = _as_tuple(y)
+    y0_data = [_.data for _ in y]
+
+    # All creators of `y` need to be the same because we only call
+    # `y[0].backward` to call `backward` method of the creator.
+    # To do so we need to insert a dummy function `_GradientSetter` to the
+    # computational graph.
+    # Note that `func` may not be a `Function` object.
+
+    y, y_grad = _set_y_grad(y, y_grad)
+
+    # Clear gradients which may exist if func calls backward inside of itself.
+    _clear_grads(variables)
+
+    # We only need to call `backward` for one result `Variable`.
+    # `Variable.backward` method calls `Function.backward` of its creator.
+    y.backward()
+
+    for no_grad, x in six.moves.zip(no_grads, x_vars):
+        if no_grad and x.grad is not None:
+            raise RuntimeError(
+                'gradient of int variable must be None')
+
+    grads = [x.grad for x in variables]
+
     gx_accum = 0
     for g, direction in six.moves.zip(grads, directions):
         if g is not None:
             gx_accum += (g.astype('d') * direction).sum()
 
-    try:
-        testing.assert_allclose(gx, gx_accum, atol=atol, rtol=rtol)
-    except AssertionError as e:
-        f = six.StringIO()
-        f.write('check_backward failed (eps={} atol={} rtol={})\n'.format(
-            eps, atol, rtol))
-        for i, x_ in enumerate(xs):
-            f.write('inputs[{}]:\n'.format(i))
-            f.write('{}\n'.format(x_))
-        for i, gy_ in enumerate(y_grad):
-            f.write('grad_outputs[{}]:\n'.format(i))
-            f.write('{}\n'.format(gy_))
-        for i, d_ in enumerate(directions):
-            f.write('directions[{}]:\n'.format(i))
-            f.write('{}\n'.format(d_))
-        f.write('gradients (numeric):  {}\n'.format(gx))
-        f.write('gradients (backward): {}\n'.format(gx_accum))
-        f.write('\n')
-        f.write(str(e))
-        raise AssertionError(f.getvalue())
+    return gx_accum, y0_data
 
 
 def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
