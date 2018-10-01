@@ -523,6 +523,10 @@ def check_backward(
     # TODO(niboshi): There are some workarounds for ChainerX arrays in
     # check_backward() because it does not support some required operations.
     # Remove these workarounds after ChainerX supports such operations.
+    # Non-exhaustive list of such operations:
+    # - Random
+    # - square
+    # - Item assignment
     is_chainerx = xp is chainerx
     if is_chainerx:
         directions = [numpy.random.normal(size=x.shape) for x in variables]
