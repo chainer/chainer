@@ -905,6 +905,39 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, d.grad)
 
 
+@attr.chainerx
+@testing.parameterize(
+    {'array_require_grad': False, 'requires_grad': 'default',
+     'expected': True},
+    {'array_require_grad': False, 'requires_grad': False, 'expected': False},
+    {'array_require_grad': False, 'requires_grad': True, 'expected': True},
+    {'array_require_grad': False, 'requires_grad': None, 'expected': False},
+    {'array_require_grad': True, 'requires_grad': 'default',
+     'expected': True},
+    {'array_require_grad': True, 'requires_grad': False, 'expected': 'raise'},
+    {'array_require_grad': True, 'requires_grad': True, 'expected': True},
+    {'array_require_grad': True, 'requires_grad': None, 'expected': True},
+)
+class TestVariableChainerXInitRequiresGrad(unittest.TestCase):
+
+    def test_chainerx_init_requires_grad(self):
+        x = chainerx.ones((2,), dtype=np.float32)
+        if self.array_require_grad:
+            x.require_grad()
+
+        def v():
+            if self.requires_grad == 'default':
+                return chainer.Variable(x)
+            else:
+                return chainer.Variable(x, requires_grad=self.requires_grad)
+
+        if self.expected == 'raise':
+            with pytest.raises(ValueError):
+                v()
+        else:
+            assert v().requires_grad is self.expected
+
+
 @testing.parameterize(
     {'x_shape': (10,)},
     {'x_shape': ()},

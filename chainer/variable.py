@@ -485,23 +485,31 @@ class Variable(object):
         self._data = [data]
         self._loss_scale = None
         self._grad_var = None if grad is None else Variable(grad)
+        self._is_chainerx = (
+            chainerx.is_available() and isinstance(data, chainerx.ndarray))
 
         # ChainerX itself has own node objects, but not exposed to python.
-        if chainerx.is_available() and isinstance(data, chainerx.ndarray):
-            if requires_grad:
+        if self._is_chainerx:
+            if requires_grad is None:
+                pass
+            elif requires_grad:
                 data.require_grad()
                 data.set_grad(grad)
-            elif grad is not None:
-                raise ValueError(
-                    'Cannot initialize variable with gradients if the'
-                    ' require_grad argument is False')
+            else:
+                if data.is_backprop_required():
+                    raise ValueError(
+                        'Cannot initialize a variable to not require '
+                        'gradients if the ChainerX array already requires '
+                        'backprop.')
+                if grad is not None:
+                    raise ValueError(
+                        'Cannot initialize a variable with gradients if the '
+                        'require_grad argument is False.')
 
-            self._is_chainerx = True
             self._requires_grad = None
             self._node = None
             self._name = name
         else:
-            self._is_chainerx = False
             # self._requires_grad need to be set before creating the node.
             self._requires_grad = requires_grad
             self._node = VariableNode(self, name)
@@ -782,7 +790,7 @@ class Variable(object):
     def requires_grad(self):
         """It indicates that ``grad`` will be set in backward calculation."""
         if self._is_chainerx:
-            return self.data.is_grad_required()
+            return self.array.is_backprop_required()
         return self._requires_grad
 
     @property
@@ -1482,6 +1490,8 @@ def as_variable(obj):
     """
     if isinstance(obj, Variable):
         return obj
+    if chainerx.is_available() and isinstance(obj, chainerx.ndarray):
+        return Variable(obj, requires_grad=None)
     return Variable(obj, requires_grad=False)
 
 
