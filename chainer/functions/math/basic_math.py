@@ -73,6 +73,8 @@ def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
         return value
     if numpy.isscalar(value):
         return numpy.asscalar(value)
+    if isinstance(value, variable.Variable):
+        value = variable.as_array(value)
     utils._check_arrays_forward_compatible((chx_other_array, value), label)
     return value
 

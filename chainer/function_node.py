@@ -230,7 +230,7 @@ Use apply() method instead.\
         in_data = tuple([variable.as_array(x) for x in inputs])
 
         if backend.get_array_module(*in_data) is chainerx:
-            requires_grad = any([x.is_grad_required() for x in in_data])
+            requires_grad = any([x.is_backprop_required() for x in in_data])
             chainerx_in_data = in_data
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
