@@ -72,6 +72,14 @@ class TestSqueeze(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.g))
 
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.x.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(chainerx.array(self.x), chainerx.array(self.g))
+
 
 @testing.parameterize(*testing.product(
     {'axis': [1, (1,)]},
