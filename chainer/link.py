@@ -501,7 +501,8 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._params:
             d[name].to_chainerx()
         for name in self._persistent:
-            d[name] = backend.to_chainerx(d[name])
+            if not numpy.isscalar(d[name]):
+                d[name] = backend.to_chainerx(d[name])
         self._xp is chainerx
         return self
 
