@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -49,7 +50,7 @@ class TestCumsum(unittest.TestCase):
             self.check_double_backward_options = {'atol': 1e-3}
 
     def check_forward(self, x_data, axis):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
         x = chainer.Variable(x_data)
         y = functions.cumsum(x, axis=axis)
         self.assertEqual(y.data.dtype, self.dtype)

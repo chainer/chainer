@@ -3,7 +3,7 @@ import collections
 import mpi4py
 import numpy
 
-import chainer.cuda
+import chainer.backends
 import chainer.utils
 from chainermn.communicators import _communication_utility
 from chainermn.communicators._communication_utility import chunked_bcast_obj
@@ -38,7 +38,7 @@ def _is_numpy_array(array):
 
 
 def _is_cupy_array(array):
-    return chainer.cuda.get_array_module(array) is not numpy
+    return chainer.backend.get_array_module(array) is not numpy
 
 
 def _cnt_to_dsp(cnt):
@@ -179,7 +179,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         # Collective communication.
         slens = [numpy.prod(x.shape) for x in xs]
-        xp = chainer.cuda.get_array_module(*xs)
+        xp = chainer.backend.get_array_module(*xs)
         sbuf = xp.hstack([x.reshape(-1) for x in xs])
         shapes = [msgtype.shapes[0] for msgtype in msgtypes]
         rlens = [numpy.prod(s) for s in shapes]
@@ -229,7 +229,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
             data = [data]
 
         for array in data:
-            if chainer.cuda.get_array_module(array) is not numpy:
+            if chainer.backend.get_array_module(array) is not numpy:
                 chainer.cuda.Stream.null.synchronize()
                 array = (_memory_utility.get_device_memory_pointer(array),
                          _get_mpi_type(msgtype))
@@ -381,7 +381,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
                 assert len(msgtype.shapes) == 1
 
-            xp = chainer.cuda.get_array_module(x)
+            xp = chainer.backend.get_array_module(x)
             sbuf = _memory_utility.array_to_buffer_object(
                 x, _get_mpi_type(msgtype))
             shapes = [mty.shapes[0] for mty in msgtypes]
@@ -425,7 +425,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
             assert len(msgtype.shapes) == 1
 
         # Collective communication.
-        xp = chainer.cuda.get_array_module(x)
+        xp = chainer.backend.get_array_module(x)
         shapes = [msgtype.shapes[0] for msgtype in msgtypes]
         sbuf = _memory_utility.array_to_buffer_object(
             x, _get_mpi_type(msgtype))
@@ -480,7 +480,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         if msgtype.is_tuple:
             raise TypeError('allreduce cannot handle tuple data')
 
-        xp = chainer.cuda.get_array_module(x)
+        xp = chainer.backend.get_array_module(x)
 
         # TODO(kuenishi): do we check all messages have same shape and dims?
 
@@ -552,7 +552,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                         'the length of xs must be consistent '
                         'with communicator size')
 
-                xp = chainer.cuda.get_array_module(*xs)
+                xp = chainer.backend.get_array_module(*xs)
                 msgtype = tuple([_MessageType(x) for x in xs])
                 shapes = [mty.shapes[0] for mty in msgtype]
                 # concatenate([x.reshape(-1) ... ], axis=0) will fail
@@ -566,7 +566,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                         'scatter received inconsistent number of inputs '
                         'with communicator size')
 
-                xp = chainer.cuda.get_array_module(xs)
+                xp = chainer.backend.get_array_module(xs)
                 msgtype = tuple([_MessageType(xs[0])
                                  for _ in range(self.size)])
                 shapes = [xs.shape[1:] for _ in range(self.size)]

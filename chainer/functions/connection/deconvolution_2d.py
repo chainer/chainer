@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
@@ -231,7 +232,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         xCg = int(xC / G)
         _, yCg, kH, kW = W.shape
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         _x = x.reshape((N, G, xCg, xH, xW))
         _x = xp.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)

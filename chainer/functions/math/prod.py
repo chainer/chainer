@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer.utils import type_check
@@ -44,7 +44,7 @@ class Prod(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return xp.asarray(x[0].prod(axis=self.axis, keepdims=self.keepdims)),
 
     def backward(self, indexes, gy):

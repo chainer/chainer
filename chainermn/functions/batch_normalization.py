@@ -2,6 +2,7 @@
 # See: chainer/functions/normalization/batch_normalization.py (dbb650)
 
 import chainer
+from chainer import backend
 from chainer import cuda
 from chainer import function
 import chainer.utils
@@ -79,7 +80,7 @@ class MultiNodeBatchNormalizationFunction(function.Function):
             )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, gamma, beta = inputs[:3]
         if chainer.configuration.config.train:
             if self.running_mean is None:
@@ -191,7 +192,7 @@ class MultiNodeBatchNormalizationFunction(function.Function):
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
         m = gamma.dtype.type(x.size // gamma.size)
         axis = (0,) + tuple(range(head_ndim, x.ndim))
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         if len(inputs) == 5:
             # This case is unlikely to be used in practice and so does not
             # need to be optimized for performance.
