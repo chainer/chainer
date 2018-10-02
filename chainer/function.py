@@ -13,7 +13,7 @@ import chainerx
 
 
 def _chainerx_op(op, *variables):
-    arrays = list(map(lambda x: variable.as_array(x), variables))
+    arrays = list(map(variable.as_array, variables))
     if not all([isinstance(a, chainerx.ndarray) for a in arrays]):
         raise TypeError('All of input arrays must be chainerx.ndarray')
     return variable.as_variable(op(*arrays))
