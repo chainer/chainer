@@ -294,8 +294,12 @@ class TestArgMinMax(unittest.TestCase):
     def check_backward(self, x_data):
         x = chainer.Variable(x_data)
         y = self.function(x, axis=self.axis)
-        y.backward()
-        self.assertIsNone(x.grad)
+        if isinstance(x_data, chainerx.ndarray):
+            with self.assertRaises(chainerx.ChainerxError):
+                y.backward()
+        else:
+            y.backward()
+            self.assertIsNone(x.grad)
 
     def test_backward_cpu(self):
         self.check_backward(self.x)
@@ -303,6 +307,16 @@ class TestArgMinMax(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        # TODO(sonots): Fix argmin to get aborted
+        if self.function_name == 'argmin':
+            raise unittest.SkipTest('ChainerX does not work with argmin')
+        self.check_backward(chainerx.array(self.x))
 
     def test_invalid_axis_type(self):
         with self.assertRaises(TypeError):
