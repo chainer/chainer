@@ -2,8 +2,10 @@ import six
 
 import chainer
 from chainer import backend
+from chainer import function
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 class Broadcast(function_node.FunctionNode):
@@ -129,5 +131,10 @@ def broadcast_to(x, shape):
     """
     if x.shape == shape:
         return chainer.as_variable(x)
+
+    if backend.get_array_module(x) is chainerx:
+        return function._chainerx_op(
+            lambda a: chainerx.broadcast_to(a, shape), x)
+
     y, = BroadcastTo(shape).apply((x,))
     return y

@@ -9,6 +9,7 @@ from chainer.functions.activation import tanh
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 @testing.parameterize(*testing.product({
@@ -37,6 +38,9 @@ class TestTanh(unittest.TestCase):
         y_expect = functions.tanh(chainer.Variable(self.x))
         testing.assert_allclose(y_expect.data, y.data)
 
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x), 'always')
@@ -49,6 +53,14 @@ class TestTanh(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
+
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data, gy_data, use_cudnn='always'):
         with chainer.using_config('use_cudnn', use_cudnn):

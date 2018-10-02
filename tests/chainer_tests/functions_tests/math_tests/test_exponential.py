@@ -8,6 +8,7 @@ import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 class UnaryFunctionsTestBase(unittest.TestCase):
@@ -37,6 +38,9 @@ class UnaryFunctionsTestBase(unittest.TestCase):
 
     def check_forward_gpu(self, op, op_np):
         self.check_forward(op, op_np, cuda.to_gpu(self.x))
+
+    def check_forward_chainerx(self, op, op_np):
+        self.check_forward(op, op_np, chainerx.array(self.x))
 
     def check_backward(self, op, x_data, y_grad):
         gradient_check.check_backward(
@@ -84,6 +88,14 @@ class TestExp(UnaryFunctionsTestBase):
     def test_forward_gpu(self):
         self.check_forward_gpu(F.exp, numpy.exp)
 
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward_chainerx(F.exp, numpy.exp)
+
     def test_backward_cpu(self):
         self.check_backward_cpu(F.exp)
 
@@ -120,6 +132,14 @@ class TestLog(UnaryFunctionsTestBase):
     @attr.gpu
     def test_forward_gpu(self):
         self.check_forward_gpu(F.log, numpy.log)
+
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward_chainerx(F.log, numpy.log)
 
     def test_backward_cpu(self):
         self.check_backward_cpu(F.log)

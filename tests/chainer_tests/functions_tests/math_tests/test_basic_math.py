@@ -1337,8 +1337,17 @@ class TestUnaryFunctions(unittest.TestCase):
         self.check_forward(op, op_np, *xs_chx)
 
     @attr.chainerx
+    def test_neg_forward_chainerx_cpu(self):
+        self.forward_chainerx(lambda x: -x, lambda x: -x, numpy)
+
+    @attr.chainerx
     def test_abs_forward_chainerx_cpu(self):
         self.forward_chainerx(lambda x: abs(x), lambda x: abs(x), numpy)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_neg_forward_chainerx_gpu(self):
+        self.forward_chainerx(lambda x: -x, lambda x: -x, cuda.cupy)
 
     @attr.chainerx
     @attr.gpu

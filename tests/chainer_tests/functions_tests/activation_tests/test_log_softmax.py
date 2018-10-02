@@ -8,6 +8,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 @testing.parameterize(*testing.product_dict(
@@ -72,6 +73,14 @@ class TestLogSoftmax(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
+
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data, gy_data, use_cudnn='always'):
         def f(x):
