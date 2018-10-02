@@ -911,12 +911,10 @@ class TestVariable(unittest.TestCase):
      'expected': True},
     {'array_require_grad': False, 'requires_grad': False, 'expected': False},
     {'array_require_grad': False, 'requires_grad': True, 'expected': True},
-    {'array_require_grad': False, 'requires_grad': None, 'expected': False},
     {'array_require_grad': True, 'requires_grad': 'default',
      'expected': True},
     {'array_require_grad': True, 'requires_grad': False, 'expected': 'raise'},
     {'array_require_grad': True, 'requires_grad': True, 'expected': True},
-    {'array_require_grad': True, 'requires_grad': None, 'expected': True},
 )
 class TestVariableChainerXInitRequiresGrad(unittest.TestCase):
 
