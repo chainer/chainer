@@ -358,10 +358,6 @@ class TestBinaryOp(unittest.TestCase):
 
     @attr.chainerx
     def test_pow_backward_chainerx(self):
-        # TODO(niboshi): Support it
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
         self.backward_chainerx(lambda x, y: x ** y)
 
     def check_double_backward(
@@ -427,18 +423,10 @@ class TestBinaryOp(unittest.TestCase):
 
     @attr.chainerx
     def test_pow_double_backward_chainerx(self):
-        # TODO(niboshi): Support it
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
         self.double_backward_chainerx(lambda x, y: x ** y)
 
     @attr.chainerx
     def test_rpow_double_backward_chainerx(self):
-        # TODO(niboshi): Support it
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
         self.double_backward_chainerx(lambda x, y: y.__rpow__(x))
 
 
