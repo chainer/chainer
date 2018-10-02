@@ -331,14 +331,9 @@ class TestBinaryOp(unittest.TestCase):
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
-        def fun(xs):
-            return [op(xs[0], xs[1])]
-
-        xs = [
-            chainer.backend.to_chainerx(a).require_grad()
-            for a in (self.x1, self.x2)]
-        gys = [chainer.backend.to_chainerx(a) for a in (self.gy,)]
-        self.check_backward(op, *xs, *gys)
+        self.check_backward(
+            op, chainerx.array(self.x1), chainerx.array(self.x2),
+            chainerx.array(self.gy))
 
     @attr.chainerx
     def test_add_backward_chainerx(self):
@@ -412,14 +407,10 @@ class TestBinaryOp(unittest.TestCase):
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
-        def fun(xs):
-            return [op(xs[0], xs[1])]
-
-        xs = [chainerx.array(a).require_grad() for a in (self.x1, self.x2)]
-        gys = [chainerx.array(a).require_grad() for a in (self.gy,)]
-        ggxs = [chainerx.array(a) for a in (self.ggx1, self.ggx2)]
         self.check_double_backward(
-            op, *xs, *gys, *ggxs, **options)
+            op, chainerx.array(self.x1), chainerx.array(self.x2),
+            chainerx.array(self.gy),
+            chainerx.array(self.ggx1), chainerx.array(self.ggx2), **options)
 
     @attr.chainerx
     def test_div_double_backward_chainerx(self):
