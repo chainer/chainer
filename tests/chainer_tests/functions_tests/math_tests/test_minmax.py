@@ -79,6 +79,10 @@ class TestMax(unittest.TestCase):
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
+
     def check_double_backward(
             self, x_data, y_grad, x_grad_grad):
         def f(x):
@@ -95,6 +99,13 @@ class TestMax(unittest.TestCase):
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.chainerx
+    def test_double_backward_chainerx(self):
+        self.check_double_backward(
+            chainerx.array(self.x),
+            chainerx.array(self.gy),
+            chainerx.array(self.ggx))
 
 
 class TestMaxInvalid(unittest.TestCase):
