@@ -283,9 +283,11 @@ Array Squeeze(const Array& a, const OptionalAxes& axis) {
         }
     }
 
-    Array out = in_shape.size() == out_shape.size()
-                        ? a.AsGradStopped()
-                        : internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
+    if (in_shape.size() == out_shape.size()) {
+        return a;
+    }
+
+    Array out = internal::MakeArray(out_shape, out_strides, a.dtype(), a.device(), a.data(), a.offset());
 
     BackwardBuilder bb{"squeeze", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
