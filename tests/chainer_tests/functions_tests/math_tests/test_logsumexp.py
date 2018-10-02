@@ -280,7 +280,8 @@ class TestLogSumExp(unittest.TestCase):
 
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=i)) * self.gy
-            self.check_backward(chainerx.array(self.x), chainerx.array(gy), axis=i)
+            self.check_backward(
+                chainerx.array(self.x), chainerx.array(gy), axis=i)
 
     @attr.chainerx
     @_skip_if_0dim
@@ -291,7 +292,8 @@ class TestLogSumExp(unittest.TestCase):
 
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=-1)) * self.gy
-            self.check_backward(chainerx.array(self.x), chainerx.array(gy), axis=-1)
+            self.check_backward(
+                chainerx.array(self.x), chainerx.array(gy), axis=-1)
 
     @attr.chainerx
     @_skip_if_0dim
@@ -301,7 +303,8 @@ class TestLogSumExp(unittest.TestCase):
             raise unittest.SkipTest('ChainerX does not support float16')
 
         gy = numpy.ones_like(self.x.sum(axis=(0, 1))) * self.gy
-        self.check_backward(chainerx.array(self.x), chainerx.array(gy), axis=(0, 1))
+        self.check_backward(
+            chainerx.array(self.x), chainerx.array(gy), axis=(0, 1))
 
     @attr.chainerx
     @_skip_if_0dim
@@ -311,7 +314,8 @@ class TestLogSumExp(unittest.TestCase):
             raise unittest.SkipTest('ChainerX does not support float16')
 
         gy = numpy.ones_like(self.x.sum(axis=(1, 0))) * self.gy
-        self.check_backward(chainerx.array(self.x), chainerx.array(gy), axis=(1, 0))
+        self.check_backward(
+            chainerx.array(self.x), chainerx.array(gy), axis=(1, 0))
 
     @attr.chainerx
     @_skip_if_0dim
@@ -321,7 +325,8 @@ class TestLogSumExp(unittest.TestCase):
             raise unittest.SkipTest('ChainerX does not support float16')
 
         gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
-        self.check_backward(chainerx.array(self.x), chainerx.array(gy), axis=(0, -1))
+        self.check_backward(
+            chainerx.array(self.x), chainerx.array(gy), axis=(0, -1))
 
     def check_double_backward(self, x_data, y_grad, x_grad_grad, axis=None):
         gradient_check.check_double_backward(
@@ -425,7 +430,9 @@ class TestLogSumExp(unittest.TestCase):
             raise unittest.SkipTest('ChainerX does not support float16')
 
         self.check_double_backward(
-            chainerx.array(self.x), chainerx.array(self.gy), chainerx.array(self.ggx))
+            chainerx.array(self.x),
+            chainerx.array(self.gy),
+            chainerx.array(self.ggx))
 
     @attr.chainerx
     @_skip_if_0dim
@@ -437,7 +444,9 @@ class TestLogSumExp(unittest.TestCase):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=i)) * self.gy
             self.check_double_backward(
-                chainerx.array(self.x), chainerx.array(gy), chainerx.array(self.ggx),
+                chainerx.array(self.x),
+                chainerx.array(gy),
+                chainerx.array(self.ggx),
                 axis=i)
 
     @attr.chainerx
@@ -450,7 +459,9 @@ class TestLogSumExp(unittest.TestCase):
         for i in range(self.x.ndim):
             gy = numpy.ones_like(self.x.sum(axis=-1)) * self.gy
             self.check_double_backward(
-                chainerx.array(self.x), chainerx.array(gy), chainerx.array(self.ggx),
+                chainerx.array(self.x),
+                chainerx.array(gy),
+                chainerx.array(self.ggx),
                 axis=-1)
 
     @attr.chainerx
@@ -462,7 +473,9 @@ class TestLogSumExp(unittest.TestCase):
 
         gy = numpy.ones_like(self.x.sum(axis=(0, 1))) * self.gy
         self.check_double_backward(
-            chainerx.array(self.x), chainerx.array(gy), chainerx.array(self.ggx),
+            chainerx.array(self.x),
+            chainerx.array(gy),
+            chainerx.array(self.ggx),
             axis=(0, 1))
 
     @attr.chainerx
@@ -474,7 +487,9 @@ class TestLogSumExp(unittest.TestCase):
 
         gy = numpy.ones_like(self.x.sum(axis=(1, 0))) * self.gy
         self.check_double_backward(
-            chainerx.array(self.x), chainerx.array(gy), chainerx.array(self.ggx),
+            chainerx.array(self.x),
+            chainerx.array(gy),
+            chainerx.array(self.ggx),
             axis=(1, 0))
 
     @attr.chainerx
@@ -486,7 +501,9 @@ class TestLogSumExp(unittest.TestCase):
 
         gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
         self.check_double_backward(
-            chainerx.array(self.x), chainerx.array(gy), chainerx.array(self.ggx),
+            chainerx.array(self.x),
+            chainerx.array(gy),
+            chainerx.array(self.ggx),
             axis=(0, -1))
 
     @attr.chainerx
@@ -498,7 +515,9 @@ class TestLogSumExp(unittest.TestCase):
 
         gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
         self.check_double_backward(
-            chainerx.array(self.x), chainerx.array(gy), chainerx.array(self.ggx),
+            chainerx.array(self.x),
+            chainerx.array(gy),
+            chainerx.array(self.ggx),
             axis=(-2, 0))
 
     def test_invalid_axis_type(self):

@@ -1055,8 +1055,8 @@ class TestVariableConstantOp(unittest.TestCase):
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('Not yet supported')
 
-        self.check_backward(op,
-            chainerx.array(self.x), chainerx.array(self.gy))
+        self.check_backward(
+            op, chainerx.array(self.x), chainerx.array(self.gy))
 
     @attr.chainerx
     def test_add_backward_chainerx(self):
@@ -1447,7 +1447,7 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         self.backward_chainerx(lambda x, y: x ** y)
 
     def check_double_backward(
-        self, op, x_data, y_grad, x_grad_grad, array_conv, positive):
+            self, op, x_data, y_grad, x_grad_grad, array_conv, positive):
         value = self.value
         if positive:
             value = numpy.abs(value)
@@ -1614,7 +1614,8 @@ class TestUnaryFunctions(unittest.TestCase):
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('Not yet supported')
 
-        self.check_backward(op, chainerx.array(self.x), chainerx.array(self.gy))
+        self.check_backward(
+            op, chainerx.array(self.x), chainerx.array(self.gy))
 
     @attr.chainerx
     def test_neg_backward_chainerx(self):

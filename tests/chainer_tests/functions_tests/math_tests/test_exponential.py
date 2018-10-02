@@ -62,7 +62,8 @@ class UnaryFunctionsTestBase(unittest.TestCase):
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
-        self.check_backward(op, chainerx.array(self.x), chainerx.array(self.gy))
+        self.check_backward(
+            op, chainerx.array(self.x), chainerx.array(self.gy))
 
     def check_double_backward(self, op, x_data, y_grad, y_grad_grad):
         gradient_check.check_double_backward(
