@@ -256,10 +256,13 @@ class TestVariable(unittest.TestCase):
         gv = chainer.Variable(g)
         v.grad_var = gv
         assert v.grad is g
-        assert v.grad_var is gv
 
-        # Same instance should be returned each time.
-        assert v.grad_var is gv
+        # Same instance should be returned each time if the ndarray is not
+        # a ChainerX array. Otherwise, a view should be returned.
+        if chainerx.is_available() and isinstance(x, chainerx.ndarray):
+            assert v.grad_var is not gv
+        else:
+            assert v.grad_var is gv
 
     def test_grad_var_cpu(self):
         self.check_grad_var(self.x, self.a)

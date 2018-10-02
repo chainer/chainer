@@ -744,9 +744,13 @@ class Variable(object):
         """Gradient variable."""
         if self._is_chainerx:
             g = self._grad_var
+
+            # Update is gradient variable if it has not yet been initialized or
+            # it happens to be dirty w.r.t. the actual gradient of the
+            # underlying chainerx.ndarray.
             if ((g is None and self._data_chainerx[0].grad is not None)
-                    or (g is not None
-                        and g.array is not self._data_chainerx[0].grad)):
+                or (g is not None and g._data_chainerx[0]
+                    is not self._data_chainerx[0].grad)):
                 self._grad_var = Variable(self._data_chainerx[0].grad)
         return self._grad_var
 
