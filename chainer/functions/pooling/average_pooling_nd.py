@@ -5,12 +5,15 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
+from chainer import function
 from chainer import function_node
 from chainer.functions.pooling import average_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
 from chainer.utils import conv
 from chainer.utils import conv_nd
+import chainerx
 
 
 def _get_conv_slices(
@@ -247,6 +250,18 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):
        :func:`max_pooling_nd`. Average pooling runs in non-cover-all mode.
 
     """
+    if backend.get_array_module(x) is chainerx:
+        if pad_value == 0:
+            pad_mode = 'zero'
+        elif pad_value is None:
+            pad_mode = 'ignore'
+        else:
+            raise ValueError(
+                'pad_value must be either 0 or None, not {}.'.format(
+                    pad_value))
+        return function._chainerx_op(
+            lambda a: chainerx.average_pool(a, ksize, stride, pad, pad_mode), x)
+
     ndim = len(x.shape[2:])
     return AveragePoolingND(
         ndim, ksize, stride=stride, pad=pad, pad_value=pad_value

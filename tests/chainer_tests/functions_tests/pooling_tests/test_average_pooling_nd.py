@@ -95,6 +95,13 @@ class TestAveragePoolingND(unittest.TestCase):
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
 
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_forward(backend.to_chainerx(self.x), 'never')
+
     def check_forward_consistency_regression(self, x_data, use_cudnn='always'):
         # Regression test to average_pooling_2d.
 
@@ -154,6 +161,14 @@ class TestAveragePoolingND(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_backward(
+            backend.to_chainerx(self.x), backend.to_chainerx(self.gy), 'never')
 
     def check_backward_consistency_regression(self, x_data, gy_data,
                                               use_cudnn='always'):
@@ -234,6 +249,16 @@ class TestAveragePoolingND(unittest.TestCase):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
             'never')
+
+    @attr.chainerx
+    @condition.retry(10)
+    def test_double_backward_chainerx(self):
+        # TODO(niboshi): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+        self.check_double_backward(
+            backend.to_chainerx(self.x), backend.to_chainerx(self.gy),
+            backend.to_chainerx(self.ggx), 'never')
 
 
 @testing.parameterize(*testing.product({
