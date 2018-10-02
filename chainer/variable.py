@@ -698,7 +698,7 @@ class Variable(object):
     def array(self, d):
         self._data[0] = d
         if self._is_chainerx:
-            self._data_chainerx[0] = d
+            self._data_chainerx[0] = d.view()
         else:
             self._node._update_data_info(d)
 
