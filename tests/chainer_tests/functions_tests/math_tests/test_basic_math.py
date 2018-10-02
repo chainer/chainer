@@ -338,13 +338,6 @@ class TestBinaryOp(unittest.TestCase):
             chainer.backend.to_chainerx(a).require_grad()
             for a in (self.x1, self.x2)]
         gys = [chainer.backend.to_chainerx(a) for a in (self.gy,)]
-        # TODO(niboshi): Support it.
-        # Required operations include (at least):
-        # - square (can be substituted with __mul__)
-        # - item assignment
-        raise unittest.SkipTest(
-            'ChainerX does not support required operations to utilize '
-            'gradient_check.check_backward()')
         self.check_backward(op, *xs, *gys)
 
     @attr.chainerx
@@ -365,6 +358,10 @@ class TestBinaryOp(unittest.TestCase):
 
     @attr.chainerx
     def test_pow_backward_chainerx(self):
+        # TODO(niboshi): Support it
+        raise unittest.SkipTest(
+            'ChainerX does not support backward of functions with array '
+            'retention.')
         self.backward_chainerx(lambda x, y: x ** y)
 
     def check_double_backward(
@@ -421,13 +418,6 @@ class TestBinaryOp(unittest.TestCase):
         xs = [chainerx.array(a).require_grad() for a in (self.x1, self.x2)]
         gys = [chainerx.array(a).require_grad() for a in (self.gy,)]
         ggxs = [chainerx.array(a) for a in (self.ggx1, self.ggx2)]
-        # TODO(niboshi): Support it.
-        # Required operations include (at least):
-        # - square (can be substituted with __mul__)
-        # - item assignment
-        raise unittest.SkipTest(
-            'ChainerX does not support required operations to utilize '
-            'gradient_check.check_double_backward()')
         self.check_double_backward(
             op, *xs, *gys, *ggxs, **options)
 
@@ -437,10 +427,18 @@ class TestBinaryOp(unittest.TestCase):
 
     @attr.chainerx
     def test_pow_double_backward_chainerx(self):
+        # TODO(niboshi): Support it
+        raise unittest.SkipTest(
+            'ChainerX does not support backward of functions with array '
+            'retention.')
         self.double_backward_chainerx(lambda x, y: x ** y)
 
     @attr.chainerx
     def test_rpow_double_backward_chainerx(self):
+        # TODO(niboshi): Support it
+        raise unittest.SkipTest(
+            'ChainerX does not support backward of functions with array '
+            'retention.')
         self.double_backward_chainerx(lambda x, y: y.__rpow__(x))
 
 
