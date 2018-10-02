@@ -1920,7 +1920,7 @@ class TestToChainerX(unittest.TestCase):
         link.to_chainerx()
         assert link._device_id is None
 
-        # Arrays should be converted to ideep.mdarray
+        # Arrays should be converted to chainerx.ndarray
 
         # Initialized parameter
         assert isinstance(link.y.data, chainerx.ndarray)
