@@ -12,6 +12,7 @@ from chainer import optimizer
 from chainer import optimizers
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 class TestHyperparameter(unittest.TestCase):
@@ -55,19 +56,32 @@ class TestHyperparameter(unittest.TestCase):
 
 class TestUpdateRule(unittest.TestCase):
 
+    class SimpleUpdateRule(optimizer.UpdateRule):
+        def update_core_cpu(self, param):
+            pass
+
+        def update_core_gpu(self, param):
+            pass
+
     def setUp(self):
         self.data = np.ones((2, 3), np.float32)
         self.grad = np.ones_like(self.data)
         self.var = chainer.Variable(self.data, grad=self.grad)
 
-        self.update_rule = optimizer.UpdateRule()
-        self.update_rule.update_core_cpu = mock.MagicMock()
-        self.update_rule.update_core_gpu = mock.MagicMock()
+        update_rule = self.SimpleUpdateRule()
+        update_rule.update_core_cpu = mock.MagicMock(
+            wraps=update_rule.update_core_cpu)
+        update_rule.update_core_gpu = mock.MagicMock(
+            wraps=update_rule.update_core_gpu)
+        update_rule.update_core_chainerx = mock.MagicMock(
+            wraps=update_rule.update_core_chainerx)
+        self.update_rule = update_rule
 
     def test_update_cpu(self):
         self.update_rule.update(self.var)
         self.assertEqual(self.update_rule.update_core_cpu.call_count, 1)
         self.assertEqual(self.update_rule.update_core_gpu.call_count, 0)
+        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 0)
 
     @attr.gpu
     def test_update_gpu(self):
@@ -75,6 +89,24 @@ class TestUpdateRule(unittest.TestCase):
         self.update_rule.update(self.var)
         self.assertEqual(self.update_rule.update_core_cpu.call_count, 0)
         self.assertEqual(self.update_rule.update_core_gpu.call_count, 1)
+        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 0)
+
+    @attr.chainerx
+    def test_update_chainerx(self):
+        self.var.to_chainerx()
+        self.update_rule.update(self.var)
+        self.assertEqual(self.update_rule.update_core_cpu.call_count, 1)
+        self.assertEqual(self.update_rule.update_core_gpu.call_count, 0)
+        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 1)
+
+    @attr.chainerx
+    def test_update_chainerx_gpu(self):
+        self.var.to_gpu()
+        self.var.to_chainerx()
+        self.update_rule.update(self.var)
+        self.assertEqual(self.update_rule.update_core_cpu.call_count, 0)
+        self.assertEqual(self.update_rule.update_core_gpu.call_count, 1)
+        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 1)
 
     def check_add_hook(self, hook):
         self.update_rule.update(self.var)
@@ -191,6 +223,21 @@ class TestUpdateRule(unittest.TestCase):
         self.update_rule.update_core = update_core
         self.update_rule.update(self.var)
 
+    @attr.chainerx
+    def test_state_copy_to_chainerx(self):
+        self.setup_state()
+
+        def update_core(param):
+            self.assertIsInstance(self.update_rule.state['a'], int)
+            self.assertIsInstance(
+                self.update_rule.state['b'], chainerx.ndarray)
+
+        self.var.to_cpu()
+        self.update_rule.update(self.var)
+        self.var.to_chainerx()
+        self.update_rule.update_core = update_core
+        self.update_rule.update(self.var)
+
 
 class TestOptimizer(unittest.TestCase):
 
@@ -290,6 +337,14 @@ class TestGradientMethod(unittest.TestCase):
         self.target.to_gpu(device)
         self.optimizer.setup(self.target)
 
+    def setup_chainerx(self, orig_xp):
+        if orig_xp is cuda.cupy:
+            self.target.to_gpu()
+        else:
+            assert orig_xp is np
+        self.target.to_chainerx()
+        self.optimizer.setup(self.target)
+
     def test_setup(self):
         create_update_rule = mock.MagicMock()
         self.optimizer.create_update_rule = create_update_rule
@@ -317,6 +372,17 @@ class TestGradientMethod(unittest.TestCase):
     @attr.gpu
     def test_update_gpu(self):
         self.setup_gpu()
+        self.check_update()
+
+    @attr.chainerx
+    def test_update_chainerx_cpu(self):
+        self.setup_chainerx(np)
+        self.check_update()
+
+    @attr.chainerx
+    @attr.gpu
+    def test_update_chainerx_gpu(self):
+        self.setup_chainerx(cuda.cupy)
         self.check_update()
 
 
@@ -349,6 +415,14 @@ class TestGradientMethodLossScale(unittest.TestCase):
         self.target.to_gpu(device)
         self.optimizer.setup(self.target)
 
+    def setup_chainerx(self, orig_xp):
+        if orig_xp is cuda.cupy:
+            self.target.to_gpu()
+        else:
+            assert orig_xp is np
+        self.target.to_chainerx()
+        self.optimizer.setup(self.target)
+
     def check_update(self):
         self.optimizer.update()
         xp = backend.get_array_module(self.target[0].param)
@@ -367,6 +441,18 @@ class TestGradientMethodLossScale(unittest.TestCase):
     @attr.gpu
     def test_update_gpu(self):
         self.setup_gpu()
+        self.check_update()
+
+    @attr.chainerx
+    def test_update_chainerx_cpu(self):
+        self.setup_chainerx(np)
+        self.check_update()
+
+    @attr.chainerx
+    @attr.gpu
+    def test_update_chainerx_gpu(self):
+        self.setup_gpu()
+        self.setup_chainerx(cuda.cupy)
         self.check_update()
 
 

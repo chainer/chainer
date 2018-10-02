@@ -242,17 +242,45 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("__eq__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} == Array{rhs}); },
           py::is_operator());
+    c.def("__eq__",
+          [](const ArrayBodyPtr& self, Scalar rhs) {
+              // TODO(niboshi): More efficient implementation
+              Array self_array{self};
+              return MoveArrayBody(self_array == FullLike(self_array, rhs, self->device()));
+          },
+          py::is_operator());
     c.def("__ne__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} != Array{rhs}); },
           py::is_operator());
+    c.def("__ne__",
+          [](const ArrayBodyPtr& self, Scalar rhs) {
+              // TODO(niboshi): More efficient implementation
+              Array self_array{self};
+              return MoveArrayBody(self_array != FullLike(self_array, rhs, self->device()));
+          },
+          py::is_operator());
     c.def("__gt__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} > Array{rhs}); },
+          py::is_operator());
+    c.def("__gt__",
+          [](const ArrayBodyPtr& self, Scalar rhs) {
+              // TODO(niboshi): More efficient implementation
+              Array self_array{self};
+              return MoveArrayBody(self_array > FullLike(self_array, rhs, self->device()));
+          },
           py::is_operator());
     c.def("__ge__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} >= Array{rhs}); },
           py::is_operator());
     c.def("__lt__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} < Array{rhs}); },
+          py::is_operator());
+    c.def("__lt__",
+          [](const ArrayBodyPtr& self, Scalar rhs) {
+              // TODO(niboshi): More efficient implementation
+              Array self_array{self};
+              return MoveArrayBody(self_array < FullLike(self_array, rhs, self->device()));
+          },
           py::is_operator());
     c.def("__le__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} <= Array{rhs}); },

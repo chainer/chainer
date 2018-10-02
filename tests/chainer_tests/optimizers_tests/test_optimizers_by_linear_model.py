@@ -14,6 +14,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
 from chainer.testing import condition
+import chainerx
 
 
 # TODO(niboshi): This is temporary workaround for skipping test not working
@@ -42,7 +43,7 @@ class LinearModel(object):
             -1, 1, (self.UNIT_NUM, 1)).astype(dtype)
         self.b = numpy.random.uniform(-1, 1, (1, )).astype(dtype)
 
-    def _train_linear_classifier(self, model, optimizer, gpu):
+    def _train_linear_classifier(self, model, optimizer, backend_config):
         def _make_label(x):
             a = (numpy.dot(x, self.w) + self.b).reshape((self.BATCH_SIZE, ))
             t = numpy.empty_like(a).astype(numpy.int32)
@@ -50,37 +51,42 @@ class LinearModel(object):
             t[a < 0] = 1
             return t
 
-        def _make_dataset(batch_size, unit_num, gpu, dtype):
+        def _make_dataset(batch_size, unit_num, dtype):
             x_data = numpy.random.uniform(
                 -1, 1, (batch_size, unit_num)).astype(dtype)
             t_data = _make_label(x_data)
-            if gpu:
-                x_data = cuda.to_gpu(x_data)
-                t_data = cuda.to_gpu(t_data)
+            x_data = backend_config.get_array(x_data)
+            t_data = backend_config.get_array(t_data)
             x = chainer.Variable(x_data)
-            t = chainer.Variable(t_data)
+            t = chainer.Variable(t_data, requires_grad=False)
             return x, t
 
         for _ in six.moves.range(self.EPOCH):
-            x, t = _make_dataset(self.BATCH_SIZE, self.UNIT_NUM, gpu,
-                                 self.dtype)
+            x, t = _make_dataset(self.BATCH_SIZE, self.UNIT_NUM, self.dtype)
             model.cleargrads()
             y = model(x)
             loss = F.softmax_cross_entropy(y, t)
             loss.backward()
             optimizer.update()
 
-        x_test, t_test = _make_dataset(self.BATCH_SIZE, self.UNIT_NUM, gpu,
-                                       self.dtype)
+        x_test, t_test = _make_dataset(
+            self.BATCH_SIZE, self.UNIT_NUM, self.dtype)
         y_test = model(x_test)
         return F.accuracy(y_test, t_test)
 
     def accuracy(self, backend_config, gpu_device=None):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
         model = self.model
         optimizer = self.optimizer
         optimizer.setup(model)
 
-        if backend_config.use_cuda:
+        if backend_config.use_chainerx:
+            model.to_chainerx(
+                device=chainerx.get_device(backend_config.chainerx_device))
+        elif backend_config.use_cuda:
             model.to_gpu(device=gpu_device)
         elif backend_config.use_ideep == 'always':
             if not intel64.is_ideep_available():
@@ -91,7 +97,7 @@ class LinearModel(object):
 
         with backend_config:
             return self._train_linear_classifier(
-                model, optimizer, backend_config.use_cuda)
+                model, optimizer, backend_config)
 
     def accuracy_gpu(self, device):
         with cuda.get_device_from_id(device):
@@ -108,7 +114,12 @@ class LinearModel(object):
         'use_ideep': ['never', 'always'],
     })
     # GPU tests
-    + [{'use_cuda': True}])
+    + [{'use_cuda': True}]
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
 class OptimizerTestBase(object):
 
     def create(self):

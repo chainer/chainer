@@ -2,11 +2,13 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer.functions.activation import log_softmax
 from chainer.utils import type_check
 from chainer import variable
+import chainerx
 
 
 def _broadcast_to(array, shape):
@@ -377,7 +379,7 @@ for row, column in enumerate(t)])
 
     """
 
-    if enable_double_backprop:
+    if enable_double_backprop or backend.get_array_module(x) is chainerx:
         return _double_backward_softmax_cross_entropy(
             x, t, normalize, class_weight, ignore_label, reduce)
     else:
