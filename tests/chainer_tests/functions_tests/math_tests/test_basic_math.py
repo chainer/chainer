@@ -1381,6 +1381,17 @@ class TestUnaryFunctions(unittest.TestCase):
     def test_abs_backward_gpu(self):
         self.backward_gpu(lambda x: abs(x))
 
+    def backward_chainerx(self, op):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+
+        self.check_backward(op, chainerx.array(self.x), chainerx.array(self.gy))
+
+    @attr.chainerx
+    def test_neg_backward_chainerx(self):
+        self.backward_chainerx(lambda x: -x)
+
     def check_double_backward(self, op, x_data, y_grad, x_grad_grad):
         options = {}
         if self.dtype == numpy.float16:
@@ -1410,6 +1421,19 @@ class TestUnaryFunctions(unittest.TestCase):
     @attr.gpu
     def test_abs_double_backward_gpu(self):
         self.double_backward_gpu(lambda x: abs(x))
+
+    def double_backward_chainerx(self, op):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+
+        self.check_double_backward(
+            op, chainerx.array(self.x), chainerx.array(self.gy),
+            chainerx.array(self.ggx))
+
+    @attr.chainerx
+    def test_neg_double_backward_chainerx(self):
+        self.double_backward_chainerx(lambda x: -x)
 
 
 @testing.parameterize(*testing.product({
