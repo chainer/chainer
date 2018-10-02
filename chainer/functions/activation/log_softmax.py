@@ -181,6 +181,7 @@ def log_softmax(x, axis=1):
 
     """
     if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(lambda a: chainerx.log_softmax(a, axis), x)
+        return function._chainerx_op(
+            lambda a: chainerx.log_softmax(a, axis), x)
 
     return LogSoftmax(axis=axis).apply((x,))[0]
