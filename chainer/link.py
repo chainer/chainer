@@ -137,7 +137,7 @@ class Link(object):
     def __init__(self, **params):
         self._params = set()
         self._persistent = set()
-        self._device_id = None
+        self._device_id = None  # CuPy device ID
         self._xp = None  # None means numpy
         self._within_init_scope = False
         self.name = None
@@ -506,6 +506,7 @@ Assign a Parameter object directly to an attribute within a \
             if not numpy.isscalar(d[name]):
                 d[name] = backend.to_chainerx(d[name])
         self._xp is chainerx
+        self._device_id = None
         return self
 
     def params(self, include_uninit=True):
