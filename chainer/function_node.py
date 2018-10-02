@@ -230,8 +230,9 @@ Use apply() method instead.\
         in_data = tuple([variable.as_array(x) for x in inputs])
 
         if backend.get_array_module(*in_data) is chainerx:
-            requires_grad = any([x.is_backprop_required() for x in in_data])
-            chainerx_in_data = in_data
+            chainerx_in_data = tuple([
+                x._data_chainerx[0] if isinstance(x, variable.Variable) else x
+                for x in inputs])
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
                 in_data = cuda.to_gpu(in_data)
@@ -308,7 +309,7 @@ Use apply() method instead.\
             chainerx._core._function_node_forward(
                 self, chainerx_in_data, chainerx_out_data)
             ret = tuple([
-                variable.Variable(y, requires_grad=requires_grad)
+                variable.Variable(y, requires_grad=y.is_backprop_required())
                 for y in chainerx_out_data])
         else:
             ret = tuple([variable.Variable(y, requires_grad=requires_grad)
@@ -597,7 +598,7 @@ Use apply() method instead.\
         gx_vars = self.backward(
             tuple(target_input_indexes),
             tuple([chainer.Variable(gy) for gy in grad_outputs]))
-        gxs = [v.array for v in gx_vars]
+        gxs = [v._data_chainerx[0] for v in gx_vars]
         return gxs
 
     def _get_error_message(self, message):
