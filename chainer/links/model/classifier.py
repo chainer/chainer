@@ -107,6 +107,14 @@ class Classifier(link.Chain):
         It feeds features to the predictor and compare the result
         with ground truth labels.
 
+        .. note::
+            We set ``None`` to the attributes ``y``, ``loss`` and ``accuracy``
+            each time before running the predictor, to avoid unnecessary memory
+            consumption. Note that the variables set on those attributes hold
+            the whole computation graph when they are computed. The graph
+            stores interim values on memory required for back-propagation.
+            We need to clear the attributes to free those values.
+
         Returns:
             ~chainer.Variable: Loss value.
 
@@ -131,6 +139,7 @@ class Classifier(link.Chain):
         self.y = None
         self.loss = None
         self.accuracy = None
+
         self.y = self.predictor(*args, **kwargs)
         self.loss = self.lossfun(self.y, t)
         reporter.report({'loss': self.loss}, self)

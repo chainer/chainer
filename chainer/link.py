@@ -1,3 +1,4 @@
+import collections
 import contextlib
 import copy
 import warnings
@@ -6,10 +7,11 @@ import numpy
 import six
 
 import chainer
-from chainer import backends
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
+from chainer import link_hook
 from chainer.utils import collections_abc
 from chainer import variable
 
@@ -129,6 +131,8 @@ class Link(object):
 
     """
 
+    _local_link_hooks = None
+
     def __init__(self, **params):
         self._params = set()
         self._persistent = set()
@@ -141,6 +145,24 @@ class Link(object):
             # Note: deprecation warning will be raised in add_param
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
+
+    @property
+    def local_link_hooks(self):
+        """Ordered dictionary of registered link hooks.
+
+        Contrary to ``chainer.thread_local.link_hooks``,
+        which registers its elements to all functions,
+        link hooks in this property are specific to this link.
+
+        """
+        if self._local_link_hooks is None:
+            self._local_link_hooks = collections.OrderedDict()
+        return self._local_link_hooks
+
+    @property
+    def _n_local_link_hooks(self):
+        return (0 if self._local_link_hooks is None
+                else len(self._local_link_hooks))
 
     @property
     def xp(self):
@@ -195,13 +217,38 @@ class Link(object):
             self._within_init_scope = old_flag
 
     def __call__(self, *args, **kwargs):
+
+        # TODO(niboshi): Support link hooks for other forward methods.
+        hooks = chainer._get_link_hooks()
+        if self._n_local_link_hooks > 0:
+            hooks = collections.OrderedDict(hooks)
+            hooks.update(self.local_link_hooks)
+        hooks = hooks.values()  # avoid six for performance
+
+        # Call forward_preprocess hook
+        if hooks:
+            cb_args = link_hook._ForwardPreprocessCallbackArgs(
+                self, 'forward', args, kwargs)
+            for hook in hooks:
+                hook.forward_preprocess(cb_args)
+
+        # Call the forward function
         # (See #5078) super().__call__ is used when the method is injected by a
         # mixin class. To keep backward compatibility, the injected one is
         # prioritized over forward().
         forward = getattr(super(Link, self), '__call__', None)
         if forward is None:
             forward = self.forward
-        return forward(*args, **kwargs)
+        out = forward(*args, **kwargs)
+
+        # Call forward_postprocess hook
+        if hooks:
+            cb_args = link_hook._ForwardPostprocessCallbackArgs(
+                self, 'forward', args, kwargs, out)
+            for hook in hooks:
+                hook.forward_postprocess(cb_args)
+
+        return out
 
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
@@ -537,7 +584,7 @@ Assign a Parameter object directly to an attribute within a \
                 d = dst[name]
                 s = src[name]
                 if isinstance(d, array_types) and isinstance(s, array_types):
-                    backends.copyto(d, s)
+                    backend.copyto(d, s)
                 else:
                     dst[name] = copy.deepcopy(s)
 
@@ -727,6 +774,39 @@ Assign a Parameter object directly to an attribute within a \
                 continue
             size += param.size
         return size
+
+    def add_hook(self, hook, name=None):
+        """Registers a link hook.
+
+        Args:
+            hook (~chainer.LinkHook): Link hook to be registered.
+            name (str): Name of the link hook. The name must be unique
+                among link hooks registered to this link. If ``None``,
+                the default name of the link hook is used.
+
+        """
+        if not isinstance(hook, link_hook.LinkHook):
+            raise TypeError('Hook must be of type LinkHook')
+        if name is None:
+            name = hook.name
+        hooks = self.local_link_hooks
+        if name in hooks:
+            raise KeyError('Hook %s already exists' % name)
+        hooks[name] = hook
+        hook.added(self)
+
+    def delete_hook(self, name):
+        """Unregisters the link hook.
+
+        Args:
+            name (str): The name of the link hook to be unregistered.
+
+        """
+        if name in self.local_link_hooks:
+            self.local_link_hooks[name].deleted(self)
+            del self.local_link_hooks[name]
+        else:
+            raise KeyError('Hook %s does not exist' % name)
 
 
 class Chain(Link):

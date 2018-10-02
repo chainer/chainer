@@ -3,7 +3,9 @@ import math
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import optimizer
 
 
@@ -83,12 +85,21 @@ class AdamRule(optimizer.UpdateRule):
             self.hyperparam.amsgrad = amsgrad
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['m'] = xp.zeros_like(param.data)
             self.state['v'] = xp.zeros_like(param.data)
             if self.hyperparam.amsgrad:
                 self.state['vhat'] = xp.zeros_like(param.data)
+
+        # For iDeep
+        if (isinstance(param.data, intel64.mdarray)
+                and intel64.inputs_all_ready((self.state['m'],))
+                and intel64.inputs_all_ready((self.state['v'],))):
+            self.state['m'] = intel64.ideep.array(
+                self.state['m'], itype=intel64.ideep.wgt_array)
+            self.state['v'] = intel64.ideep.array(
+                self.state['v'], itype=intel64.ideep.wgt_array)
 
     def update_core_cpu(self, param):
         grad = param.grad
@@ -101,17 +112,27 @@ class AdamRule(optimizer.UpdateRule):
                 'eps of Adam optimizer is too small for {} ({})'.format(
                     grad.dtype.name, hp.eps))
         m, v = self.state['m'], self.state['v']
-
-        m += (1 - hp.beta1) * (grad - m)
-        v += (1 - hp.beta2) * (grad * grad - v)
-
-        if hp.amsgrad:
-            vhat = self.state['vhat']
-            numpy.maximum(vhat, v, out=vhat)
+        if (isinstance(m, intel64.mdarray)
+                and isinstance(v, intel64.mdarray)):
+            m.inplace_axpby(1.0, 1.0 - hp.beta1, grad - m)
+            v.inplace_axpby(1.0, 1.0 - hp.beta2, grad*grad - v)
+            if hp.amsgrad:
+                vhat = self.state['vhat']
+                numpy.maximum(vhat, v, out=vhat)
+            else:
+                vhat = v
+            param.data.inplace_axpby(1.0 - hp.weight_decay_rate, -hp.eta,
+                                     self.lr * m / (numpy.sqrt(vhat) + hp.eps))
         else:
-            vhat = v
-        param.data -= hp.eta * (self.lr * m / (numpy.sqrt(vhat) + hp.eps) +
-                                hp.weight_decay_rate * param.data)
+            m += (1 - hp.beta1) * (grad - m)
+            v += (1 - hp.beta2) * (grad * grad - v)
+            if hp.amsgrad:
+                vhat = self.state['vhat']
+                numpy.maximum(vhat, v, out=vhat)
+            else:
+                vhat = v
+            param.data -= hp.eta * (self.lr * m / (numpy.sqrt(vhat) + hp.eps) +
+                                    hp.weight_decay_rate * param.data)
 
     def update_core_gpu(self, param):
         grad = param.grad

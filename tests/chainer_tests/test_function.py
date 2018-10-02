@@ -6,6 +6,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
@@ -184,7 +185,7 @@ class TestFunction(unittest.TestCase):
         self.assertEqual(len(ys), 2)
         self.check_check_type_forward()
 
-        xp = cuda.get_array_module(x1)
+        xp = backend.get_array_module(x1)
 
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
