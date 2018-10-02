@@ -83,7 +83,7 @@ def _array_to_numpy(array):
     if isinstance(array, intel64.mdarray):
         return numpy.asarray(array)
     if chainerx.is_available() and isinstance(array, chainerx.ndarray):
-        return chainerx.to_numpy(array)
+        return chainerx.to_numpy(array, copy=False)
     if isinstance(array, cuda.ndarray):
         cuda.check_cuda_available()
         with cuda.get_device_from_array(array):
@@ -95,26 +95,43 @@ def _array_to_numpy(array):
         '\nActual type: {0}.'.format(type(array)))
 
 
+# TODO(niboshi): Revisit API
 def to_numpy(array):
     return _obj_to_array(array, _array_to_numpy)
 
 
-def _array_to_chainerx(array):
+def _array_to_chainerx(array, device):
     if not chainerx.is_available():
         raise RuntimeError('ChainerX is not available.')
+    assert device is None or isinstance(device, chainerx.Device)
+
     if array is None:
         return None
     if isinstance(array, chainerx.ndarray):
-        return array
+        if device is None:
+            return array
+        return array.to_device(device)
     if isinstance(array, numpy.ndarray):
-        return chainerx.array(array)
+        if device is None:
+            device = chainerx.get_device('native', 0)
+        return chainerx.array(array, device=device, copy=False)
     if isinstance(array, cuda.ndarray):
+        if device is None:
+            device = chainerx.get_device('cuda', array.device.id)
+        if device.backend.name != 'cuda':
+            # cupy to non-cuda backend
+            array = to_numpy(array)
+            return chainerx.array(array, device=device)
+        if device.index != array.device.id:
+            # cupy to cuda backend but different device
+            array = cuda.to_gpu(array, device=device.index)
+        # cupy to cuda backend with the same device
         return chainerx._core._fromrawpointer(
             array.data.mem.ptr,
             array.shape,
             array.dtype,
             array.strides,
-            'cuda:{}'.format(array.device.id),
+            device,
             array.data.ptr - array.data.mem.ptr,
             array)
     if isinstance(array, intel64.mdarray):
@@ -129,8 +146,25 @@ def _array_to_chainerx(array):
         '\nActual type: {0}.'.format(type(array)))
 
 
-def to_chainerx(array):
-    return _obj_to_array(array, _array_to_chainerx)
+# TODO(niboshi): Revisit API
+def to_chainerx(array, device=None):
+    # If device is None, appropriate device is chosen according to the input
+    # arrays.
+    return _obj_to_array(array, lambda arr: _array_to_chainerx(arr, device))
+
+
+# TODO(niboshi): Revisit API
+def to_device(arrays, device):
+    if device is cuda.DummyDevice:
+        return to_numpy(arrays)
+    elif isinstance(device, cuda.Device):
+        return cuda.to_gpu(arrays, device)
+    elif isinstance(device, chainerx.DeviceScope):
+        return to_chainerx(arrays, device.device)
+    elif isinstance(device, chainerx.Device):
+        return to_chainerx(arrays, device)
+    else:
+        raise TypeError('Invalid device: {}'.format(device))
 
 
 def get_array_module(*args):
