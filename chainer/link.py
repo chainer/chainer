@@ -488,6 +488,8 @@ Assign a Parameter object directly to an attribute within a \
         return self
 
     def to_chainerx(self):
+        if not chainerx.is_available():
+            raise RuntimeError('ChainerX is not available.')
         if self._xp is chainerx:
             return self
         d = self.__dict__
