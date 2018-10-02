@@ -784,11 +784,17 @@ class NewIdent(chainer.FunctionNode):
         return NewIdent().apply(grad_outputs)
 
 
+@backend.inject_backend_tests(None, [
+    {'use_cuda': False, 'use_chainerx': False},
+    {'use_cuda': True, 'use_chainerx': False},
+    {'use_cuda': False, 'use_chainerx': True},
+])
 class TestCheckDoubleBackward(unittest.TestCase):
 
-    def check_multiple_input_output(self, xp):
-        arrays = xp.ones((6, 1), dtype='f')
-        x1, x2, gy1, gy2, ggx1, ggx2 = arrays
+    def check_multiple_input_output(self, backend_config):
+        x1, x2, gy1, gy2, ggx1, ggx2 = [
+            backend_config.get_array(numpy.ones((2, 3), 'f'))
+            for _ in range(6)]
 
         def f(x, y):
             w1 = x + y
@@ -799,16 +805,17 @@ class TestCheckDoubleBackward(unittest.TestCase):
             f, (x1, x2), (gy1, gy2),
             (ggx1, ggx2), dtype='d', atol=1e-3, rtol=1e-3)
 
-    def test_multiple_input_output_cpu(self):
-        self.check_multiple_input_output(numpy)
+    def test_multiple_input_output(self, backend_config):
+        self.check_multiple_input_output(backend_config)
 
-    @attr.gpu
-    def test_multiple_input_output_gpu(self):
-        self.check_multiple_input_output(cuda.cupy)
-
-    def check_double_backward_with_params(self, xp):
-        arrays = xp.ones((5, 1), dtype='f')
-        x, gy, ggx, param_a, ggparam = arrays
+    def check_double_backward_with_params(self, backend_config):
+        if backend_config.use_chainerx:
+            raise unittest.SkipTest(
+                'ChainerX does not support params argument of '
+                'gradient_check.check_double_backward().')
+        x, gy, ggx, param_a, ggparam = [
+            backend_config.get_array(numpy.ones((2, 3), 'f'))
+            for _ in range(5)]
 
         param = chainer.Variable(param_a)
 
@@ -817,12 +824,8 @@ class TestCheckDoubleBackward(unittest.TestCase):
 
         gradient_check.check_double_backward(f, x, gy, ggx, param, ggparam)
 
-    def test_double_backward_with_params_cpu(self):
-        self.check_double_backward_with_params(numpy)
-
-    @attr.gpu
-    def test_double_backward_with_params_gpu(self):
-        self.check_double_backward_with_params(cuda.cupy)
+    def test_double_backward_with_params(self, backend_config):
+        self.check_double_backward_with_params(backend_config)
 
 
 testing.run_module(__name__, __file__)
