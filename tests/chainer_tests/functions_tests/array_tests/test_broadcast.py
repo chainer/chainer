@@ -182,6 +182,15 @@ class TestBroadcastTo(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.data), cuda.to_gpu(self.grad))
 
 
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(chainerx.array(self.data), chainerx.array(self.grad))
+
+
 @testing.parameterize(
     {'in_shape': (3, 2, 4), 'out_shape': (4,)},
     {'in_shape': (3, 2, 4), 'out_shape': (3, 1, 4)},
