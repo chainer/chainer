@@ -1,8 +1,10 @@
 import chainer
 from chainer import backend
+from chainer import function
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class LogSumExp(function_node.FunctionNode):
@@ -87,4 +89,7 @@ def logsumexp(x, axis=None):
         ~chainer.Variable: Output variable.
 
     """
+    if backend.get_array_module(x) is chainerx:
+        return function._chainerx_op(lambda a: chainerx.logsumexp(a, axis), x)
+
     return LogSumExp(axis).apply((x,))[0]

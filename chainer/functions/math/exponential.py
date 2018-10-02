@@ -3,10 +3,12 @@ import math
 import numpy
 
 from chainer import backend
+from chainer import function
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class Exp(function_node.FunctionNode):
@@ -34,6 +36,9 @@ class Exp(function_node.FunctionNode):
 
 def exp(x):
     """Elementwise exponential function."""
+    if backend.get_array_module(x) is chainerx:
+        return function._chainerx_op(chainerx.exp, x)
+
     return Exp().apply((x,))[0]
 
 
@@ -62,6 +67,9 @@ class Log(function_node.FunctionNode):
 
 def log(x):
     """Elementwise natural logarithm function."""
+    if backend.get_array_module(x) is chainerx:
+        return function._chainerx_op(chainerx.log, x)
+
     return Log().apply((x,))[0]
 
 

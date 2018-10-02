@@ -5,6 +5,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
+from chainer import function
 from chainer import function_node
 import chainer.functions
 from chainer.functions.math import floor as _floor
@@ -78,6 +79,13 @@ def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
     return value
 
 
+def _chainerx_binary_op(op, label, lhs, rhs):
+    lhs_array = variable.as_array(lhs)
+    rhs_array = variable.as_array(rhs)
+    rhs_compat = _as_chainerx_arithmetic_compat(lhs_array, rhs_array, label)
+    return variable.as_variable(op(lhs_array, rhs_compat))
+
+
 class Neg(function_node.FunctionNode):
 
     @property
@@ -101,6 +109,9 @@ def neg(self):  # -x
     Returns:
         ~chainer.Variable: Output variable.
     """
+    if backend.get_array_module(self) is chainerx:
+        return function._chainerx_op(chainerx.negative, self)
+
     return Neg().apply((self,))[0]
 
 
@@ -243,12 +254,8 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
     """
     if len(xs) == 2:
         lhs, rhs = xs
-        if chainerx.is_available():
-            lhs_array = variable.as_array(lhs)
-            if isinstance(lhs_array, chainerx.ndarray):
-                return chainer.as_variable(
-                    lhs_array
-                    + _as_chainerx_arithmetic_compat(lhs_array, rhs, 'add'))
+        if backend.get_array_module(lhs) is chainerx:
+            return _chainerx_binary_op(chainerx.add, 'add', lhs, rhs)
 
         if numpy.isscalar(rhs):
             return AddConstant(rhs).apply((lhs,))[0]
@@ -289,12 +296,8 @@ def sub(self, rhs):  # lhs - rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if chainerx.is_available():
-        self_array = variable.as_array(self)
-        if isinstance(self_array, chainerx.ndarray):
-            return chainer.as_variable(
-                self_array
-                - _as_chainerx_arithmetic_compat(self_array, rhs, 'sub'))
+    if backend.get_array_module(self) is chainerx:
+        return _chainerx_binary_op(chainerx.subtract, 'sub', self, rhs)
 
     if numpy.isscalar(rhs):
         return AddConstant(-rhs).apply((self,))[0]
@@ -329,12 +332,8 @@ def rsub(self, rhs):  # rhs - lhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if chainerx.is_available():
-        self_array = variable.as_array(self)
-        if isinstance(self_array, chainerx.ndarray):
-            return chainer.as_variable(
-                _as_chainerx_arithmetic_compat(self_array, rhs, 'rsub')
-                - self_array)
+    if backend.get_array_module(self) is chainerx:
+        return _chainerx_binary_op(lambda a, b: b - a, 'rsub', self, rhs)
 
     if numpy.isscalar(rhs):
         return SubFromConstant(rhs).apply((self,))[0]
@@ -397,12 +396,8 @@ def mul(self, rhs):  # lhs * rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if chainerx.is_available():
-        self_array = variable.as_array(self)
-        if isinstance(self_array, chainerx.ndarray):
-            return chainer.as_variable(
-                self_array
-                * _as_chainerx_arithmetic_compat(self_array, rhs, 'mul'))
+    if backend.get_array_module(self) is chainerx:
+        return _chainerx_binary_op(chainerx.multiply, 'mul', self, rhs)
 
     if numpy.isscalar(rhs):
         return MulConstant(rhs).apply((self,))[0]
@@ -499,12 +494,8 @@ def div(self, rhs):  # lhs / rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if chainerx.is_available():
-        self_array = variable.as_array(self)
-        if isinstance(self_array, chainerx.ndarray):
-            return chainer.as_variable(
-                self_array
-                / _as_chainerx_arithmetic_compat(self_array, rhs, 'div'))
+    if backend.get_array_module(self) is chainerx:
+        return _chainerx_binary_op(chainerx.divide, 'div', self, rhs)
 
     if numpy.isscalar(rhs):
         return MulConstant(1. / rhs).apply((self,))[0]
@@ -573,12 +564,8 @@ def rdiv(self, rhs):  # rhs / lhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if chainerx.is_available():
-        self_array = variable.as_array(self)
-        if isinstance(self_array, chainerx.ndarray):
-            return chainer.as_variable(
-                _as_chainerx_arithmetic_compat(self_array, rhs, 'rdiv')
-                / self_array)
+    if backend.get_array_module(self) is chainerx:
+        return _chainerx_binary_op(lambda a, b: b / a, 'rdiv', self, rhs)
 
     if numpy.isscalar(rhs):
         return DivFromConstant(rhs).apply((self,))[0]
