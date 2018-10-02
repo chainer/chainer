@@ -147,6 +147,11 @@ class Link(object):
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['_xp']
+        return state
+
     @property
     def local_link_hooks(self):
         """Ordered dictionary of registered link hooks.
