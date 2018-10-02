@@ -48,7 +48,7 @@ class RNNForLMSlice(chainer.Chain):
             self.l3 = L.Linear(n_units, n_vocab)
 
         for param in self.params():
-            param.array[...] = np.random.uniform(-0.1, 0.1, param.array.shape)
+            param.array[...] = np.random.uniform(-0.1, 0.1, param.shape)
 
     def reset_state(self):
         self.l1.reset_state()
