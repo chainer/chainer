@@ -798,6 +798,9 @@ class Variable(object):
     def requires_grad(self):
         """It indicates that ``grad`` will be set in backward calculation."""
         if self._is_chainerx:
+            # Return is_backprop_required() and not is_grad_required().
+            # Although names might be confusing, Variable.requires_grad
+            # corresponds to the former.
             return self._data_chainerx[0].is_backprop_required()
         return self._requires_grad
 
