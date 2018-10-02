@@ -137,8 +137,8 @@ class Link(object):
     def __init__(self, **params):
         self._params = set()
         self._persistent = set()
-        self._xp = numpy
         self._device_id = None
+        self._xp = None  # None means numpy
         self._within_init_scope = False
         self.name = None
 
@@ -149,7 +149,7 @@ class Link(object):
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        del state['_xp']
+        state['_xp'] = None
         return state
 
     @property
@@ -178,6 +178,8 @@ class Link(object):
         :mod:`numpy` or :mod:`cupy`.
 
         """
+        if self._xp is None:
+            return numpy
         return self._xp
 
     @property
@@ -435,7 +437,7 @@ Assign a Parameter object directly to an attribute within a \
                 d[name] = value.get()
             elif isinstance(value, intel64.mdarray):
                 d[name] = numpy.array(value)
-        self._xp = numpy
+        self._xp = None
         self._device_id = None
         return self
 
@@ -488,7 +490,7 @@ Assign a Parameter object directly to an attribute within a \
                 value = intel64.ideep.array(
                     value, itype=intel64.ideep.wgt_array)
             d[name] = value
-        self._xp = numpy
+        self._xp = None
         self._device_id = None
         return self
 
