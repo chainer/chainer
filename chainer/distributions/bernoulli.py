@@ -13,6 +13,10 @@ from chainer import utils
 
 class BernoulliLogProb(chainer.function_node.FunctionNode):
 
+    def __init__(self, binary_check=False):
+        super(BernoulliLogProb, self).__init__()
+        self.binary_check = binary_check
+
     def forward(self, inputs):
         logit, x = inputs
         self.retain_inputs((0, 1))
@@ -20,17 +24,17 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         y = logit * (x - 1) - xp.log(xp.exp(-logit) + 1)
         y = utils.force_array(y)
 
-        self.invalid = utils.force_array(xp.bitwise_and(x != 0, x != 1))
-        y[self.invalid] = - xp.inf
-
         # extreme logit
         logit_isinf = xp.isinf(logit)
-        self.to_zero = xp.bitwise_and(
-            logit_isinf, xp.sign(x-0.5) == xp.sign(logit))
-        self.to_m_inf = xp.bitwise_and(
-            logit_isinf, xp.sign(x-0.5) != xp.sign(logit))
-        y[self.to_zero] = 0.
-        y[self.to_m_inf] = - xp.inf
+        self.logit_ispinf = xp.bitwise_and(logit_isinf, logit > 0)
+        self.logit_isminf = xp.bitwise_and(logit_isinf, logit <= 0)
+        with numpy.errstate(divide='ignore', invalid='raise'):
+            y = xp.where(self.logit_ispinf, xp.log(x), y)
+            y = xp.where(self.logit_isminf, xp.log(1 - x), y)
+
+        if self.binary_check:
+            self.invalid = utils.force_array(xp.bitwise_and(x != 0, x != 1))
+            y[self.invalid] = - xp.inf
 
         return utils.force_array(y, logit.dtype),
 
@@ -42,16 +46,17 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
 
         # extreme logit
         nan_dlogit = xp.zeros_like(dlogit.array)
-        nan_dlogit[self.invalid] = xp.nan
-        nan_dlogit[self.to_zero] = xp.nan
-        nan_dlogit[self.to_m_inf] = xp.nan
+        if self.binary_check:
+            nan_dlogit[self.invalid] = xp.nan
+        nan_dlogit[self.logit_ispinf] = xp.nan
+        nan_dlogit[self.logit_isminf] = xp.nan
         dlogit += nan_dlogit
 
         return gy * dlogit, None
 
 
-def _bernoulli_log_prob(logit, x):
-    y, = BernoulliLogProb().apply((logit, x))
+def _bernoulli_log_prob(logit, x, binary_check=False):
+    y, = BernoulliLogProb(binary_check).apply((logit, x))
     return y
 
 
@@ -76,7 +81,7 @@ class Bernoulli(distribution.Distribution):
 
     """
 
-    def __init__(self, p=None, logit=None):
+    def __init__(self, p=None, logit=None, binary_check=False):
         super(Bernoulli, self).__init__()
         if not (p is None) ^ (logit is None):
             raise ValueError(
@@ -90,6 +95,7 @@ class Bernoulli(distribution.Distribution):
                 self.p = chainer.as_variable(p)
                 self.logit = exponential.log(self.p) \
                     - logarithm_1p.log1p(-self.p)
+        self.binary_check = binary_check
 
     @property
     def batch_shape(self):
@@ -111,7 +117,7 @@ class Bernoulli(distribution.Distribution):
         return isinstance(self.p.array, cuda.ndarray)
 
     def log_prob(self, x):
-        return _bernoulli_log_prob(self.logit, x)
+        return _bernoulli_log_prob(self.logit, x, self.binary_check)
 
     @property
     def mean(self):
@@ -119,12 +125,14 @@ class Bernoulli(distribution.Distribution):
 
     def prob(self, x):
         x = chainer.as_variable(x)
-        if self._is_gpu:
-            valid = cuda.cupy.bitwise_or(x.array == 0, x.array == 1)
-        else:
-            valid = numpy.bitwise_or(x.array == 0, x.array == 1)
-        ret = x * self.p + (1 - x) * (1 - self.p)
-        return ret * valid
+        prob = x * self.p + (1 - x) * (1 - self.p)
+        if self.binary_check:
+            if self._is_gpu:
+                valid = cuda.cupy.bitwise_or(x.array == 0, x.array == 1)
+            else:
+                valid = numpy.bitwise_or(x.array == 0, x.array == 1)
+            prob *= valid
+        return prob
 
     def sample_n(self, n):
         if self._is_gpu:

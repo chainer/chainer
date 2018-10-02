@@ -35,17 +35,22 @@ Device& GetDevice(py::handle handle) {
 
 class PyDeviceScope {
 public:
-    explicit PyDeviceScope(Device& target) : target_(target) {}
-    void Enter() { scope_ = std::make_unique<DeviceScope>(target_); }
+    explicit PyDeviceScope(Device& device) : device_{device} {}
+    PyDeviceScope& Enter() {
+        scope_ = std::make_unique<DeviceScope>(device_);
+        return *this;
+    }
     void Exit(py::args args) {
         (void)args;  // unused
         scope_.reset();
     }
 
+    Device& device() const { return device_; }
+
 private:
     // TODO(beam2d): better to replace it by "optional"...
     std::unique_ptr<DeviceScope> scope_;
-    Device& target_;
+    Device& device_;
 };
 
 void InitChainerxDevice(pybind11::module& m) {
@@ -64,6 +69,8 @@ void InitChainerxDevice(pybind11::module& m) {
 
 void InitChainerxDeviceScope(pybind11::module& m) {
     py::class_<PyDeviceScope> c{m, "DeviceScope"};
+    c.def_property_readonly(
+            "device", [](const PyDeviceScope& self) -> Device& { return self.device(); }, py::return_value_policy::reference);
     c.def("__enter__", &PyDeviceScope::Enter);
     c.def("__exit__", &PyDeviceScope::Exit);
 

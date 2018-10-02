@@ -65,7 +65,7 @@ struct GemmInputLayout {
         // Force row-major contiguous
         ld = a.shape()[1];
         trans = CUBLAS_OP_N;  // transposed
-        return AsContiguousArray(a);
+        return internal::AsContiguous(a);
     }
 };
 

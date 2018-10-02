@@ -57,7 +57,7 @@ class TestKLDivergence(unittest.TestCase):
 
     def make_dirichlet_dist(self, is_gpu=False):
         alpha = numpy.random.uniform(
-            1, 10, self.shape + (3,)).astype(numpy.float32)
+            0.5, 10, self.shape + (3,)).astype(numpy.float32)
         params = self.encode_params({"alpha": alpha}, is_gpu)
         return distributions.Dirichlet(**params)
 
@@ -136,7 +136,6 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_beta_dist()
         self.check_kl(dist1, dist2)
 
-    @testing.with_requires('scipy')
     @attr.gpu
     def test_beta_beta_gpu(self):
         dist1 = self.make_beta_dist(True)
@@ -161,7 +160,6 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_dirichlet_dist()
         self.check_kl(dist1, dist2)
 
-    @testing.with_requires('scipy')
     @attr.gpu
     def test_dirichlet_dirichlet_gpu(self):
         dist1 = self.make_dirichlet_dist(True)

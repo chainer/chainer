@@ -117,7 +117,7 @@ On recommended systems, you can install Chainer Backend for Intel Architecture w
 
 .. code-block:: console
 
-    $ pip install 'ideep4py<2'
+    $ pip install 'ideep4py<2.1'
 
 Enable Chainer Backend for Intel Architecture Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

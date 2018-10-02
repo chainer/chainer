@@ -1,10 +1,13 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
+from chainer import function
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -111,4 +114,7 @@ def tanh(x):
         array([-0.7615942,  0.7615942,  0.9950548], dtype=float32)
 
     """
+    if backend.get_array_module(x) is chainerx:
+        return function._chainerx_op(chainerx.tanh, x)
+
     return Tanh().apply((x,))[0]

@@ -113,10 +113,6 @@ class TestFunctionNode(unittest.TestCase):
 
     def setup_chainerx(self, orig_xp):
         if orig_xp is cuda.cupy:
-            if numpy.prod(self.x_shape) == 0 or numpy.prod(self.y_shape) == 0:
-                raise unittest.SkipTest(
-                    'ChainerX does not support conversion from zero-sized '
-                    'CuPy array.')
             self._to_gpu()  # First convert to cupy and then chainerx
         else:
             assert orig_xp is numpy
@@ -206,11 +202,6 @@ class TestFunctionNode(unittest.TestCase):
     @attr.chainerx
     @attr.gpu
     def test_apply_chainerx_gpu(self):
-        # TODO(niboshi): Fix
-        if self.x_shape == ():
-            raise unittest.SkipTest(
-                'Will not pass due to a bug. Fix Array::ToDevice not to '
-                'reshape from () to (1,)')
         self.setup_chainerx(cuda.cupy)
         self.check_apply_chainerx()
 
@@ -245,11 +236,6 @@ class TestFunctionNode(unittest.TestCase):
     @attr.chainerx
     @attr.gpu
     def test_apply_all_ndarray_chainerx_gpu(self):
-        # TODO(niboshi): Fix
-        if self.x_shape == ():
-            raise unittest.SkipTest(
-                'Will not pass due to a bug. Fix Array::ToDevice not to '
-                'reshape from () to (1,)')
         self.setup_chainerx(cuda.cupy)
         self.check_apply_all_ndarray()
 
@@ -301,11 +287,6 @@ class TestFunctionNode(unittest.TestCase):
     @attr.chainerx
     @attr.gpu
     def test_apply_ndarray_chainerx_gpu(self):
-        # TODO(niboshi): Fix
-        if self.x_shape == ():
-            raise unittest.SkipTest(
-                'Will not pass due to a bug. Fix Array::ToDevice not to '
-                'reshape from () to (1,)')
         self.setup_chainerx(cuda.cupy)
         self.check_apply_ndarray_chainerx()
 

@@ -11,6 +11,7 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 class TestLink(unittest.TestCase):
@@ -1836,6 +1837,105 @@ class TestIntel64(unittest.TestCase):
             self.link.register_persistent('no_ideep')
         self.link.to_intel64()
         assert isinstance(self.link.no_ideep, numpy.ndarray)
+
+
+@attr.chainerx
+class TestToChainerX(unittest.TestCase):
+
+    def setUp(self):
+        self.link = chainer.Link()
+        shape = (2, 2)
+        dtype = numpy.float32
+        y_array = numpy.random.rand(*shape).astype(dtype)
+        pa_array = numpy.random.rand(*shape).astype(dtype)
+        ps_scalar = 2.4
+
+        with self.link.init_scope():
+            # Initialized parameter
+            self.link.y = chainer.Parameter(y_array)
+            # Uninitialized parameter
+            self.link.v = chainer.Parameter()
+            # Persistent ndarray
+            self.link.add_persistent('pa', pa_array)
+            # Persistent scalar
+            self.link.add_persistent('ps', ps_scalar)
+        self.y_array = y_array
+        self.pa_array = pa_array
+        self.ps_scalar = ps_scalar
+
+    def _assert_variable_array_equal(self, var, expected_array):
+        assert var.shape == expected_array.shape
+        assert var.dtype == expected_array.dtype
+        self._assert_arrays_equal(var.data, expected_array)
+
+    def _assert_arrays_equal(self, array, expected_array):
+        array = chainer.backend.to_numpy(array)
+        assert array.shape == expected_array.shape
+        assert array.dtype == expected_array.dtype
+        assert (array == expected_array).all()
+
+    def test_chainerx_to_chainerx(self):
+        link = self.link
+        link.to_chainerx()
+        prev_y = link.y
+        prev_v = link.v
+        prev_pa = link.pa
+        prev_ps = link.ps
+        link.to_chainerx()
+        assert link._device_id is None
+
+        # Everything should be left untouched
+
+        # Initialized parameter
+        assert link.y is prev_y
+        # Uninitialized parameter
+        assert link.v is prev_v
+        # Persistent ndarray
+        assert link.pa is prev_pa
+        # Persistent scalar
+        assert link.ps is prev_ps
+
+    def test_cpu_to_chainerx(self):
+        link = self.link
+        link.to_chainerx()
+
+        # Initialized parameter
+        assert isinstance(link.y.data, chainerx.ndarray)
+        assert link.y.data.device.backend.name == 'native'
+        assert link.y.data.device.index == 0
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, chainerx.ndarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    @attr.gpu
+    def test_gpu_to_chainerx(self):
+        link = self.link
+        link.to_gpu()
+        assert link._device_id == 0
+        link.to_chainerx()
+        assert link._device_id is None
+
+        # Arrays should be converted to chainerx.ndarray
+
+        # Initialized parameter
+        assert isinstance(link.y.data, chainerx.ndarray)
+        assert link.y.data.device.backend.name == 'cuda'
+        assert link.y.data.device.index == 0
+        self._assert_variable_array_equal(link.y, self.y_array)
+        # Uninitialized parameter
+        assert link.v.data is None
+        # Persistent ndarray
+        assert isinstance(link.pa, chainerx.ndarray)
+        self._assert_arrays_equal(link.pa, self.pa_array)
+        # Persistent scalar
+        assert link.ps == self.ps_scalar
+
+    # TODO(niboshi): Add other test variations
 
 
 class TestCallMethod(unittest.TestCase):

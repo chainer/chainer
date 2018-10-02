@@ -8,13 +8,22 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
-@testing.parameterize(*testing.product({
-    'shape': [None, (2, 3), (2, 2, 3), (2, 2, 2, 3)],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'axis': [0, 1],
-}))
+@testing.parameterize(*testing.product_dict(
+    testing.product({
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    }),
+    testing.product({
+        'shape': [None, (2, 3), (2, 2, 3), (2, 2, 2, 3)],
+        'axis': [1],
+    }) + [
+        {'shape': (2, 3), 'axis': 0},
+        {'shape': (2, 2, 3), 'axis': 2},
+        {'shape': (2, 2, 2, 3), 'axis': -4},
+    ],
+))
 @testing.fix_random()
 class TestLogSoftmax(unittest.TestCase):
 
@@ -64,6 +73,14 @@ class TestLogSoftmax(unittest.TestCase):
     @attr.gpu
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
+
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x))
 
     def check_backward(self, x_data, gy_data, use_cudnn='always'):
         def f(x):

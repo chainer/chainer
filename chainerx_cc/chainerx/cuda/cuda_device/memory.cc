@@ -21,6 +21,10 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
 }
 
 std::shared_ptr<void> CudaDevice::MakeDataFromForeignPointer(const std::shared_ptr<void>& data) {
+    if (data == nullptr) {
+        return data;
+    }
+
     // check memory validity
     void* ptr = data.get();
     cudaPointerAttributes attr{};

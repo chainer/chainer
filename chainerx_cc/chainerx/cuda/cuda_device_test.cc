@@ -55,8 +55,7 @@ TEST(CudaDeviceTest, AllocateZero) {
     CudaDevice& device = GetCudaDevice(ctx, 0);
 
     std::shared_ptr<void> ptr = device.Allocate(size_t{0});
-    // TODO(niboshi): Enable this check
-    // EXPECT_NE(ptr, nullptr);
+    EXPECT_EQ(ptr, nullptr);
 }
 
 TEST(CudaDeviceTest, AllocateFreeThreadSafe) {

@@ -1,8 +1,10 @@
 import six
 
 from chainer import backend
+from chainer import function
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 def argone(iterable):
@@ -104,5 +106,8 @@ def squeeze(x, axis=None):
                [3., 4., 5.]], dtype=float32)
 
     """
+    if backend.get_array_module(x) is chainerx:
+        return function._chainerx_op(lambda a: a.squeeze(axis), x)
+
     y, = Squeeze(axis).apply((x,))
     return y

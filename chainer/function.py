@@ -9,6 +9,14 @@ from chainer import configuration
 from chainer.function_hook import FunctionHook  # NOQA
 from chainer import function_node
 from chainer import variable
+import chainerx
+
+
+def _chainerx_op(op, *variables):
+    arrays = list(map(variable.as_array, variables))
+    if not all([isinstance(a, chainerx.ndarray) for a in arrays]):
+        raise TypeError('All of input arrays must be chainerx.ndarray')
+    return variable.as_variable(op(*arrays))
 
 
 def no_backprop_mode():
