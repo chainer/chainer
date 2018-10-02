@@ -432,11 +432,8 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._params:
             d[name].to_cpu()
         for name in self._persistent:
-            value = d[name]
-            if isinstance(value, cuda.ndarray):
-                d[name] = value.get()
-            elif isinstance(value, intel64.mdarray):
-                d[name] = numpy.array(value)
+            if not numpy.isscalar(d[name]):
+                d[name] = backend.to_numpy(d[name])
         self._xp = None
         self._device_id = None
         return self
@@ -463,11 +460,8 @@ Assign a Parameter object directly to an attribute within a \
             for name in self._params:
                 d[name].to_gpu()
             for name in self._persistent:
-                value = d[name]
-                if isinstance(value, intel64.mdarray):
-                    value = numpy.array(value)
-                if isinstance(value, numpy.ndarray):
-                    d[name] = cuda.to_gpu(value)
+                if not numpy.isscalar(d[name]):
+                    d[name] = cuda.to_gpu(d[name])
             self._device_id = cuda.cupy.cuda.get_device_id()
         self._xp = cuda.cupy
         return self
@@ -480,8 +474,11 @@ Assign a Parameter object directly to an attribute within a \
             d[name].to_intel64()
         for name in self._persistent:
             value = d[name]
-            if isinstance(value, cuda.ndarray):
-                value = value.get()  # to numpy.ndarray
+            if isinstance(value, intel64.ideep.mdarray):
+                pass
+            elif not isinstance(value, numpy.ndarray):
+                value = backend.to_numpy(value)  # to numpy.ndarray
+
             if (isinstance(value, numpy.ndarray) and value.ndim in (1, 2, 4)):
                 # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
                 # Currently iDeep only supports (1, 2, 4)-dim arrays.
