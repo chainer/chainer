@@ -702,11 +702,16 @@ class Variable(object):
 
     @array.setter
     def array(self, d):
-        self._data[0] = d
         if self._is_chainerx:
+            d_old = self._data[0]
+            if d_old.is_backprop_required() or d.is_backprop_required():
+                raise ValueError(
+                    'Cannot update the array of a Variable if either the '
+                    'existing or the new array requires backprop.')
             self._data_chainerx[0] = d.view()
         else:
             self._node._update_data_info(d)
+        self._data[0] = d
 
     @property
     def data(self):
