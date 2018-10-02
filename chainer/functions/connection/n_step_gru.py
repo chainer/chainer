@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
@@ -288,7 +289,7 @@ def n_step_gru_base(n_layers, dropout_ratio, hx, ws, bs, xs,
             'Use chainer.using_config')
         argument.assert_kwargs_empty(kwargs)
 
-    xp = cuda.get_array_module(hx, hx.data)
+    xp = backend.get_array_module(hx, hx.data)
 
     if xp is not numpy and chainer.should_use_cudnn('>=auto', 5000):
         handle = cudnn.get_handle()

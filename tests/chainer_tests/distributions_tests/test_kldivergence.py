@@ -55,6 +55,12 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"p": p}, is_gpu)
         return distributions.Categorical(**params)
 
+    def make_dirichlet_dist(self, is_gpu=False):
+        alpha = numpy.random.uniform(
+            0.5, 10, self.shape + (3,)).astype(numpy.float32)
+        params = self.encode_params({"alpha": alpha}, is_gpu)
+        return distributions.Dirichlet(**params)
+
     def make_laplace_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
@@ -93,6 +99,14 @@ class TestKLDivergence(unittest.TestCase):
             {"loc": loc, "scale_tril": scale_tril}, is_gpu)
         return distributions.MultivariateNormal(**params)
 
+    def make_pareto_dist(self, is_gpu=False):
+        scale = numpy.exp(numpy.random.uniform(
+            0.5, 1, self.shape)).astype(numpy.float32)
+        alpha = numpy.exp(numpy.random.uniform(
+            1, 2, self.shape)).astype(numpy.float32)
+        params = self.encode_params({"scale": scale, "alpha": alpha}, is_gpu)
+        return distributions.Pareto(**params)
+
     def make_uniform_dist(self, is_gpu=False, low=None, high=None,
                           loc=None, scale=None, use_loc_scale=False):
         if use_loc_scale:
@@ -130,7 +144,6 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_beta_dist()
         self.check_kl(dist1, dist2)
 
-    @testing.with_requires('scipy')
     @attr.gpu
     def test_beta_beta_gpu(self):
         dist1 = self.make_beta_dist(True)
@@ -147,6 +160,18 @@ class TestKLDivergence(unittest.TestCase):
     def test_categorical_categorical_gpu(self):
         dist1 = self.make_categorical_dist(True)
         dist2 = self.make_categorical_dist(True)
+        self.check_kl(dist1, dist2)
+
+    @testing.with_requires('scipy')
+    def test_dirichlet_dirichlet_cpu(self):
+        dist1 = self.make_dirichlet_dist()
+        dist2 = self.make_dirichlet_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_dirichlet_dirichlet_gpu(self):
+        dist1 = self.make_dirichlet_dist(True)
+        dist2 = self.make_dirichlet_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_laplace_laplace_cpu(self):
@@ -198,6 +223,17 @@ class TestKLDivergence(unittest.TestCase):
     def test_multivariatenormal_multivariatenormal_gpu(self):
         dist1 = self.make_multivariatenormal_dist(True)
         dist2 = self.make_multivariatenormal_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_pareto_pareto_cpu(self):
+        dist1 = self.make_pareto_dist()
+        dist2 = self.make_pareto_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_pareto_pareto_gpu(self):
+        dist1 = self.make_pareto_dist(True)
+        dist2 = self.make_pareto_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_uniform_uniform_cpu(self):

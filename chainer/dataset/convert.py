@@ -3,6 +3,7 @@ import collections
 import numpy
 import six
 
+from chainer import backend
 from chainer.backends import cuda
 
 
@@ -158,7 +159,7 @@ def _concat_arrays(arrays, padding):
     if padding is not None:
         return _concat_arrays_with_padding(arrays, padding)
 
-    xp = cuda.get_array_module(arrays[0])
+    xp = backend.get_array_module(arrays[0])
     with cuda.get_device_from_array(arrays[0]):
         return xp.concatenate([array[None] for array in arrays])
 
@@ -170,7 +171,7 @@ def _concat_arrays_with_padding(arrays, padding):
             numpy.maximum(shape, array.shape, shape)
     shape = tuple(numpy.insert(shape, 0, len(arrays)))
 
-    xp = cuda.get_array_module(arrays[0])
+    xp = backend.get_array_module(arrays[0])
     with cuda.get_device_from_array(arrays[0]):
         result = xp.full(shape, padding, dtype=arrays[0].dtype)
         for i in six.moves.range(len(arrays)):

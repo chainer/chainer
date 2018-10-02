@@ -8,6 +8,7 @@ Neural Net Examples
    mnist
    train_loop
    cnn
+   dcgan
    rnn
    ptb
    word2vec

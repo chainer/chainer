@@ -5,6 +5,7 @@ import warnings
 import numpy
 import six
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import link as link_module
 from chainer import optimizer_hooks
@@ -637,7 +638,7 @@ class GradientMethod(Optimizer):
         for name, param in self.target.namedparams(False):
             if param.grad is None:
                 with cuda.get_device_from_array(param.data):
-                    xp = cuda.get_array_module(param.data)
+                    xp = backend.get_array_module(param.data)
                     param.grad = xp.zeros_like(param.data)
 
     def call_hooks(self, timing='pre'):

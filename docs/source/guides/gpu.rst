@@ -145,7 +145,7 @@ Since it accepts NumPy arrays, we can write a function that accepts both NumPy a
            return x + 1
 
 The compatibility of CuPy with NumPy enables us to write CPU/GPU generic code.
-It can be made easy by the :func:`chainer.backends.cuda.get_array_module` function.
+It can be made easy by the :func:`chainer.backend.get_array_module` function.
 This function returns the :mod:`numpy` or :mod:`cupy` module based on arguments.
 A CPU/GPU generic function is defined using it like follows:
 
@@ -153,7 +153,7 @@ A CPU/GPU generic function is defined using it like follows:
 
    # Stable implementation of log(1 + exp(x))
    def softplus(x):
-       xp = cuda.get_array_module(x)
+       xp = backend.get_array_module(x)
        return xp.maximum(0, x) + xp.log1p(xp.exp(-abs(x)))
 
 

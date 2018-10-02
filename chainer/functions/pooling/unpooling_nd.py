@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.functions.pooling import pooling_nd
 from chainer.utils import conv
@@ -52,7 +52,7 @@ class UnpoolingND(pooling_nd._PoolingND):
                 conv.get_deconv_outsize(d, k, s, p, cover_all=self.cover_all)
                 for (d, k, s, p) in six.moves.zip(dims, ksize, stride, pad))
 
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
 
         colon = slice(None)
         # (:, :, None, None, ..., None)
@@ -84,7 +84,7 @@ class UnpoolingNDGrad(function_node.FunctionNode):
         self.cover_all = unpoolingnd.cover_all
 
     def forward(self, gy):
-        xp = cuda.get_array_module(*gy)
+        xp = backend.get_array_module(*gy)
         if xp is numpy:
             im2col_nd = conv_nd.im2col_nd_cpu
         else:
