@@ -6,6 +6,7 @@ import operator
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -164,7 +165,7 @@ class TestAveragePoolingND(unittest.TestCase):
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         # Backward computation for N-dimensional average pooling layer.
         x_nd = chainer.Variable(xp.array(x_data))

@@ -20,14 +20,16 @@ from chainer.utils import conv
     'dtype': [numpy.float32],
     'use_cudnn': ['always', 'auto', 'never'],
     'used_outsize': ['case1', 'case2', 'None'],
-    'in_channels': [3, None, 'omit'],
+    'in_channels': [4, None, 'omit'],
+    'groups': [1, 2],
 }) + testing.product({
     'dims': [(4, 3, 2)],
     'nobias': [False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_cudnn': ['always'],
     'used_outsize': ['None'],
-    'in_channels': [3, None, 'omit'],
+    'in_channels': [4, None, 'omit'],
+    'groups': [1, 2],
 }))
 class TestDeconvolutionND(unittest.TestCase):
 
@@ -64,15 +66,16 @@ class TestDeconvolutionND(unittest.TestCase):
         if self.in_channels == 'omit':
             self.link = deconvolution_nd.DeconvolutionND(
                 ndim, out_channels, ksize, stride=stride, pad=pad,
-                outsize=outsize, initial_bias=initial_bias, nobias=self.nobias)
+                outsize=outsize, initial_bias=initial_bias, nobias=self.nobias,
+                groups=self.groups)
         else:
             self.link = deconvolution_nd.DeconvolutionND(
                 ndim, self.in_channels, out_channels, ksize, stride=stride,
                 pad=pad, outsize=outsize, initial_bias=initial_bias,
-                nobias=self.nobias)
+                nobias=self.nobias, groups=self.groups)
         self.link.cleargrads()
 
-        x_shape = (N, 3) + self.dims
+        x_shape = (N, 4) + self.dims
         self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         gy_shape = (N, out_channels) + outs
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype)

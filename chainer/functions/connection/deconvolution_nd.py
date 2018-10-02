@@ -2,6 +2,7 @@ import numpy
 from six import moves
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_node
@@ -174,7 +175,7 @@ class DeconvolutionND(function_node.FunctionNode):
                 'Output sizes should be positive.'
         self._set_cover_all(x, W)
 
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         if xp is numpy:
             return self._forward_xp(x, W, b, numpy)
         elif not self._use_cudnn(x, W):

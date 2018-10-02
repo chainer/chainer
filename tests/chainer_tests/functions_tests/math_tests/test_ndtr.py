@@ -3,6 +3,7 @@ import unittest
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
@@ -20,7 +21,7 @@ def _ndtr_gpu(x, dtype):
 
 
 def _ndtr_expected(x, dtype):
-    if cuda.get_array_module(x) is numpy:
+    if backend.get_array_module(x) is numpy:
         return _ndtr_cpu(x, dtype)
     else:
         return _ndtr_gpu(x, dtype)

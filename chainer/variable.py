@@ -62,7 +62,7 @@ def variable_repr(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_repr
     """
-    xp = cuda.get_array_module(var)
+    xp = backend.get_array_module(var)
     if xp is numpy:
         arr = var.data
     else:
@@ -90,7 +90,7 @@ def variable_str(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_str
     """
-    xp = cuda.get_array_module(var)
+    xp = backend.get_array_module(var)
     if xp is numpy:
         arr = var.data
     else:
@@ -519,7 +519,7 @@ Actual: {0}'''.format(type(data))
         returns :mod:`numpy` or :mod:`cupy`.
 
         """
-        return cuda.get_array_module(self)
+        return backend.get_array_module(self)
 
     @property
     def name(self):
@@ -1239,7 +1239,7 @@ class Parameter(Variable):
         else:
             # parameter initialized with a given shape
             if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
-                xp = cuda.get_array_module(initializer)
+                xp = backend.get_array_module(initializer)
                 initializer = constant.Constant(initializer)
             else:
                 xp = numpy
