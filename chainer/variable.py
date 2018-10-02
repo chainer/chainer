@@ -483,7 +483,13 @@ class Variable(object):
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
         self._data = [data]
-        self._data_chainerx = None  # Modifiable view of data.
+
+        # A mutable chainerx.ndarray which is a view of the given data.
+        # The view is kept in addition to the data since operations such as
+        # requiring gradients will mutate the chainerx.ndarray. This we do not
+        # want to propagate to the data given by the caller.
+        self._data_chainerx = None
+
         self._loss_scale = None
         self._grad_var = None if grad is None else Variable(grad)
         self._is_chainerx = (
