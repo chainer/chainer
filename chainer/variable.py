@@ -703,7 +703,7 @@ class Variable(object):
     @array.setter
     def array(self, d):
         if self._is_chainerx:
-            d_old = self._data[0]
+            d_old = self._data_chainerx[0]
             if d_old.is_backprop_required() or d.is_backprop_required():
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
