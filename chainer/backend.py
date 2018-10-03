@@ -107,7 +107,7 @@ def _array_to_chainerx(array):
     if isinstance(array, chainerx.ndarray):
         return array
     if isinstance(array, numpy.ndarray):
-        return chainerx.array(array)
+        return chainerx.array(array, copy=False)
     if isinstance(array, cuda.ndarray):
         return chainerx._core._fromrawpointer(
             array.data.mem.ptr,

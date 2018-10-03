@@ -6,11 +6,13 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
+from chainer import function
 from chainer import function_node
 import chainer.functions
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     _cudnn_version = cuda.cuda.cudnn.getVersion()
@@ -565,6 +567,14 @@ cover_all=True)
         deterministic="deterministic argument is not supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
+
+    if backend.get_array_module(x, W, b) is chainerx:
+        # TODO(hvy): Support dilate > 1.
+        # TODO(hvy): Support groups > 1.
+        if dilate == 1 and groups == 1:
+            return function._chainerx_op(
+                chainerx.conv, x, W, b, stride=stride, pad=pad,
+                cover_all=cover_all)
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
                                   groups=groups)
