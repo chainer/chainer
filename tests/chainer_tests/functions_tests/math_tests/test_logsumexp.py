@@ -263,6 +263,12 @@ class TestLogSumExp(unittest.TestCase):
         gy = numpy.ones_like(self.x.sum(axis=(0, -1))) * self.gy
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(0, -1))
 
+    @attr.gpu
+    @_skip_if_0dim
+    def test_backward_negative_multi_axis_invert_gpu(self):
+        gy = numpy.ones_like(self.x.sum(axis=(-2, 0))) * self.gy
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(gy), axis=(-2, 0))
+
     @attr.chainerx
     def test_backward_chainerx(self):
         # TODO(sonots): Support float16
