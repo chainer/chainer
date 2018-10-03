@@ -103,7 +103,7 @@ class Normal(distribution.Distribution):
 
     def log_prob(self, x):
         return LOGPROBC - self.log_scale \
-            - 0.5 * (x - self.loc) ** 2 / self.scale ** 2
+            - 0.5 * (x - self.loc) ** 2 / self.variance
 
     def log_survival_function(self, x):
         return log_ndtr.log_ndtr((self.loc - x) / self.scale)
@@ -118,7 +118,7 @@ class Normal(distribution.Distribution):
 
     def prob(self, x):
         return (PROBC / self.scale) * exponential.exp(
-            - 0.5 * (x - self.loc) ** 2 / self.scale ** 2)
+            - 0.5 * (x - self.loc) ** 2 / self.variance)
 
     def sample_n(self, n):
         if self._is_gpu:
@@ -153,5 +153,5 @@ class Normal(distribution.Distribution):
 @distribution.register_kl(Normal, Normal)
 def _kl_normal_normal(dist1, dist2):
     return dist2.log_scale - dist1.log_scale \
-        + 0.5 * (dist1.scale ** 2 + (dist1.loc - dist2.loc) ** 2) \
-        / dist2.scale ** 2 - 0.5
+        + 0.5 * (dist1.variance + (dist1.loc - dist2.loc) ** 2) \
+        / dist2.variance - 0.5
