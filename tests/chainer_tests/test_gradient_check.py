@@ -548,7 +548,7 @@ class Ident(chainer.Function):
     {'use_cuda': False, 'use_chainerx': False},
     {'use_cuda': True, 'use_chainerx': False},
     {'use_cuda': False, 'use_chainerx': True, 'chainerx_device': 'native:0'},
-    {'use_cuda': True, 'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    {'use_cuda': False, 'use_chainerx': True, 'chainerx_device': 'cuda:0'},
 ])
 class TestCheckBackward(unittest.TestCase):
 
@@ -789,7 +789,7 @@ class NewIdent(chainer.FunctionNode):
     {'use_cuda': False, 'use_chainerx': False},
     {'use_cuda': True, 'use_chainerx': False},
     {'use_cuda': False, 'use_chainerx': True, 'chainerx_device': 'native:0'},
-    {'use_cuda': True, 'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    {'use_cuda': False, 'use_chainerx': True, 'chainerx_device': 'cuda:0'},
 ])
 class TestCheckDoubleBackward(unittest.TestCase):
 

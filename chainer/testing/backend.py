@@ -10,8 +10,6 @@ import chainerx
 
 class BackendConfig(object):
 
-    # use_chainerx and use_cuda can be True at the same time, in which case
-    # chainerx arrays on CUDA backend are used.
     _props = [
         ('use_chainerx', False),
         ('chainerx_device', None),  # None -> native:0
@@ -90,6 +88,9 @@ class BackendConfig(object):
         marks = []
         if self.use_chainerx:
             marks.append(attr.chainerx)
+            if (self.chainerx_device is not None
+                    and self.chainerx_device.startswith('cuda:')):
+                marks.append(attr.gpu)
         elif self.use_cuda:
             marks.append(attr.gpu)
             if self.use_cudnn != 'never':
