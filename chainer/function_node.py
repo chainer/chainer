@@ -619,10 +619,12 @@ Use apply() method instead.\
 
         self._chainerx_retained_inputs = tuple([
             variable.Variable(
-                array, requires_grad=array.is_grad_required())
+                array, requires_grad=array.is_backprop_required())
             for array in retained_inputs])
         self._chainerx_retained_outputs = tuple([
-            variable.Variable(array) for array in retained_outputs])
+            variable.Variable(
+                array, requires_grad=array.is_backprop_required())
+            for array in retained_outputs])
 
         gx_vars = self.backward(
             tuple(target_input_indexes),
