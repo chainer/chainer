@@ -674,6 +674,11 @@ Use apply() method instead.\
         if self._input_indexes_to_retain is None or self.inputs is None:
             return
 
+        # TODO(hvy): It should be safe to remove this check.
+        if self._input_indexes_to_retain is None:
+            raise ValueError(self._get_error_message(
+                'retain_inputs is not called in forward.'))
+
         return tuple([self.inputs[index].get_variable()
                       for index in self._input_indexes_to_retain])
 
@@ -698,8 +703,13 @@ Use apply() method instead.\
         if self._is_chainerx:
             return self._chainerx_retained_outputs
 
-        if self._output_indexes_to_retain is None:
+        if self._output_indexes_to_retain is None or self.outputs is None:
             return
+
+        # TODO(hvy): It should be safe to remove this check.
+        if self._retained_output_data is None:
+            raise ValueError(self._get_error_message(
+                'retain_outputs is not called in forward.'))
 
         ret = []
         outputs = self.outputs
