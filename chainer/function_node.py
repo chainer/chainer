@@ -988,6 +988,8 @@ def _extract_apply_in_data(inputs):
     # If it's a `Variable` and its underlying array is a chainerx array,
     # `Variable._data_chainerx[0]` (which is backproppable in contrast to
     # `Variable.array`) is returned.
+    if len(inputs) == 0:
+        return False, ()
     ret = []
     is_chainerx = chainerx.is_available()
     for x in inputs:
