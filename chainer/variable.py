@@ -481,11 +481,6 @@ class Variable(object):
                     array_types[-1], type(data))
                 raise TypeError(msg)
 
-        if not requires_grad and grad is not None:
-            raise ValueError(
-                'Cannot initialize a variable with gradients if the '
-                'requires_grad argument is False.')
-
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
         self._data = [data]
@@ -515,6 +510,10 @@ class Variable(object):
                         'Cannot initialize a variable to not require '
                         'gradients if the ChainerX array already requires '
                         'backprop.')
+                if grad is not None:
+                    raise ValueError(
+                        'Cannot initialize a variable with gradients if the '
+                        'require_grad argument is False.')
                 self._data_chainerx = [data.view()]
 
             self._requires_grad = None
