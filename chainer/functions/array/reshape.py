@@ -69,12 +69,12 @@ def reshape(x, shape):
         >>> y = F.reshape(x, (8,))
         >>> y.shape
         (8,)
-        >>> y.data
+        >>> y.array
         array([1, 2, 3, 4, 5, 6, 7, 8])
         >>> y = F.reshape(x, (4, -1))  # the shape of output is inferred
         >>> y.shape
         (4, 2)
-        >>> y.data
+        >>> y.array
         array([[1, 2],
                [3, 4],
                [5, 6],

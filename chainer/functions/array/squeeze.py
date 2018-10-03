@@ -86,20 +86,20 @@ def squeeze(x, axis=None):
         >>> y = F.squeeze(x)
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[0., 1., 2.],
                [3., 4., 5.]], dtype=float32)
         >>> y = F.squeeze(x, axis=1)
         >>> y.shape
         (2, 1, 3)
-        >>> y.data
+        >>> y.array
         array([[[0., 1., 2.]],
         <BLANKLINE>
                [[3., 4., 5.]]], dtype=float32)
         >>> y = F.squeeze(x, axis=(1, 2))
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[0., 1., 2.],
                [3., 4., 5.]], dtype=float32)
 

@@ -80,7 +80,7 @@ def stack(xs, axis=0):
         >>> y = F.stack([x1, x2], axis=0)
         >>> y.shape
         (2, 3, 4)
-        >>> y.data
+        >>> y.array
         array([[[ 0,  1,  2,  3],
                 [ 4,  5,  6,  7],
                 [ 8,  9, 10, 11]],
@@ -91,7 +91,7 @@ def stack(xs, axis=0):
         >>> y = F.stack([x1, x2], axis=1)
         >>> y.shape
         (3, 2, 4)
-        >>> y.data
+        >>> y.array
         array([[[ 0,  1,  2,  3],
                 [12, 13, 14, 15]],
         <BLANKLINE>
@@ -103,7 +103,7 @@ def stack(xs, axis=0):
         >>> y = F.stack([x1, x2], axis=2)
         >>> y.shape
         (3, 4, 2)
-        >>> y.data
+        >>> y.array
         array([[[ 0, 12],
                 [ 1, 13],
                 [ 2, 14],

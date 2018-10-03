@@ -69,7 +69,7 @@ def space2depth(X, r):
         >>> y = F.space2depth(X, 2)
         >>> y.shape
         (1, 4, 2, 3)
-        >>> y.data
+        >>> y.array
         array([[[[ 0.,  2.,  4.],
                  [12., 14., 16.]],
         <BLANKLINE>
