@@ -10,6 +10,7 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
+import chainerx
 
 
 def _to_fcontiguous(arrays):
@@ -36,6 +37,11 @@ def _to_fcontiguous(arrays):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_cuda': [False, True],
+        'use_chainerx': [True],
     }))
 class TestMaxPooling2D(unittest.TestCase):
 
@@ -87,19 +93,28 @@ class TestMaxPooling2D(unittest.TestCase):
         return expect,
 
     def check_forward(self, inputs, backend_config):
+        # TODO(sonots): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
         y_expect, = self.forward_cpu(inputs)
 
         if backend_config.use_cuda:
             inputs = cuda.to_gpu(inputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
+        if backend_config.use_chainerx:
+            inputs = chainer.backend.to_chainerx(inputs)
 
         with backend_config:
             x, = inputs
             y = functions.max_pooling_2d(x, 3, stride=2, pad=1,
                                          cover_all=self.cover_all)
         assert y.data.dtype == self.dtype
-        y_data = cuda.to_cpu(y.data)
+        if backend_config.use_chainerx:
+            y_data = chainer.backend.to_numpy(y.data)
+        else:
+            y_data = cuda.to_cpu(y.data)
 
         assert self.output_shape == y_data.shape
         testing.assert_allclose(y_expect, y_data)
@@ -113,12 +128,21 @@ class TestMaxPooling2D(unittest.TestCase):
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
 
     def test_forward_output_size_zero(self, backend_config):
+        if backend_config.use_chainerx:
+            # TODO(sonots): Raise ChainerxError in case of ChainerX
+            raise unittest.SkipTest('ChainerX does not support float16')
+            # TODO(sonots): Support it
+            if self.dtype == numpy.float16:
+                raise unittest.SkipTest('ChainerX does not support float16')
+
         with six.assertRaisesRegex(
                 self, AssertionError,
                 'Height in the output should be positive.'):
             x = numpy.random.rand(4, 4, 1, 4).astype(self.dtype)
             if backend_config.use_cuda:
                 x = cuda.to_gpu(x)
+            if backend_config.use_chainerx:
+                x = chainer.backend.to_chainerx(x)
             x = chainer.Variable(x)
             with backend_config:
                 functions.max_pooling_2d(x, 3, stride=2)
@@ -129,17 +153,26 @@ class TestMaxPooling2D(unittest.TestCase):
             x = numpy.random.rand(4, 4, 4, 1).astype(self.dtype)
             if backend_config.use_cuda:
                 x = cuda.to_gpu(x)
+            if backend_config.use_chainerx:
+                x = chainer.backend.to_chainerx(x)
             x = chainer.Variable(x)
             with backend_config:
                 functions.max_pooling_2d(x, 3, stride=2)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
+        # TODO(sonots): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
         if backend_config.use_cuda:
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
+        if backend_config.use_chainerx:
+            inputs = chainer.backend.to_chainerx(inputs)
+            grad_outputs = chainer.backend.to_chainerx(grad_outputs)
 
         def f(x):
             return functions.max_pooling_2d(
@@ -162,6 +195,10 @@ class TestMaxPooling2D(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
+        # TODO(sonots): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
         if backend_config.use_cuda:
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
@@ -170,6 +207,10 @@ class TestMaxPooling2D(unittest.TestCase):
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
+        if backend_config.use_chainerx:
+            inputs = chainer.backend.to_chainerx(inputs)
+            grad_outputs = chainer.backend.to_chainerx(grad_outputs)
+            grad_grad_inputs = chainer.backend.to_chainerx(grad_grad_inputs)
 
         def f(x):
             return functions.max_pooling_2d(
