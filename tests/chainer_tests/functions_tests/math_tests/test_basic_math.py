@@ -1403,16 +1403,21 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         self.backward_gpu(lambda x, y: y ** x, positive=True)
 
     def backward_chainerx(self, op, positive=False):
-        # TODO(sonots): Fix gradient_check not to use numpy because otherwise,
-        # op(x, value) mixes numpy and chainerx.
-        raise unittest.SkipTest('Fix gradient_check for ChainerX')
-
         # TODO(sonots): Support it
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
+        # TODO(sonots): Remove this workaround after numerical_grad is
+        # fixed not to convert into numpy.
+        def chainerx_op(x, y):
+            if chainer.backend.get_array_module(x) is chainerx:
+                return op(x, y)
+            else:
+                return op(x, chainerx.to_numpy(y))
+
         self.check_backward(
-            op, self.x, self.gy, chainerx.array, positive)
+            chainerx_op,
+            self.x, self.gy, chainerx.array, positive)
 
     @attr.chainerx
     def test_add_backward_chainerx(self):
@@ -1488,16 +1493,20 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         self.double_backward_gpu(lambda x, y: y ** x, positive=True)
 
     def double_backward_chainerx(self, op, positive=False):
-        # TODO(sonots): Fix gradient_check not to use numpy because otherwise,
-        # op(x, value) mixes numpy and chainerx.
-        raise unittest.SkipTest('Fix gradient_check for ChainerX')
-
         # TODO(sonots): Support it
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
+        # TODO(sonots): Remove this workaround after numerical_grad is
+        # fixed not to convert into numpy.
+        def chainerx_op(x, y):
+            if chainer.backend.get_array_module(x) is chainerx:
+                return op(x, y)
+            else:
+                return op(x, chainerx.to_numpy(y))
+
         self.check_double_backward(
-            op, self.x, self.gy, self.ggx, chainerx.array, positive)
+            chainerx_op, self.x, self.gy, self.ggx, chainerx.array, positive)
 
     @attr.chainerx
     def test_pow_double_backward_chainerx(self):
