@@ -108,7 +108,7 @@ class Normal(distribution.Distribution):
     def log_survival_function(self, x):
         return log_ndtr.log_ndtr((self.loc - x) / self.scale)
 
-    @property
+    @distribution.cached_property
     def mean(self):
         return self.loc
 
@@ -134,7 +134,7 @@ class Normal(distribution.Distribution):
 
         return noise
 
-    @property
+    @distribution.cached_property
     def stddev(self):
         return self.scale
 
@@ -145,7 +145,7 @@ class Normal(distribution.Distribution):
     def survival_function(self, x):
         return ndtr.ndtr((self.loc - x) / self.scale)
 
-    @property
+    @distribution.cached_property
     def variance(self):
         return self.scale ** 2
 
