@@ -13,6 +13,7 @@ from chainer.functions.pooling import average_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
 from chainer.utils import conv
 from chainer.utils import conv_nd
+from chainer import variable
 import chainerx
 
 
@@ -250,7 +251,10 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):
        :func:`max_pooling_nd`. Average pooling runs in non-cover-all mode.
 
     """
+    ndim = len(x.shape[2:])
+
     if backend.get_array_module(x) is chainerx:
+        fallback = False
         if pad_value == 0:
             pad_mode = 'zero'
         elif pad_value is None:
@@ -259,10 +263,16 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):
             raise ValueError(
                 'pad_value must be either 0 or None, not {}.'.format(
                     pad_value))
-        return function._chainerx_op(
-            lambda a: chainerx.average_pool(a, ksize, stride, pad, pad_mode), x)
+        if variable.as_array(x[0]).device.backend.name == 'cuda':
+            if ndim not in (2, 3):
+                fallback = True
 
-    ndim = len(x.shape[2:])
+        if not fallback:
+            return function._chainerx_op(
+                lambda a: chainerx.average_pool(
+                    a, ksize, stride, pad, pad_mode),
+                x)
+
     return AveragePoolingND(
         ndim, ksize, stride=stride, pad=pad, pad_value=pad_value
     ).apply((x,))[0]
