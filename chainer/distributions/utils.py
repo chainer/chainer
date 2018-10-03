@@ -1,3 +1,5 @@
+import copy
+
 import chainer
 from chainer.functions.array import where
 from chainer.functions.math import exponential
@@ -35,14 +37,26 @@ def _modified_xlogx(x):
 
 
 class cached_property(object):
+    """Cache a result of computation of Chainer functions"""
 
     def __init__(self, func):
         self.__doc__ = getattr(func, "__doc__")
         self.func = func
+        self.value = None
+        self.value_without_backprop = None
 
     def __get__(self, obj, cls):
         if obj is None:
             return self
 
-        value = obj.__dict__[self.func.__name__] = self.func(obj)
-        return value
+        if chainer.config.enable_backprop:
+            if self.value is None:
+                self.value = self.func(obj)
+            return self.value
+        else:
+            if self.value_without_backprop is None:
+                if self.value is not None:
+                    self.value_without_backprop = copy.copy(self.value)
+                else:
+                    self.value_without_backprop = self.func(obj)
+            return self.value_without_backprop
