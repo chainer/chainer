@@ -89,6 +89,18 @@ _array_types = None
 _cpu_array_types = None
 
 
+# Used in chainer.FunctionNode.forward_chainerx().
+# This value is returned to indicate that the function does not support forward
+# computation in ChainerX implementation with given input arrays and other
+# arguments.
+class _FallbackType(object):
+    def __repr__(self):
+        return 'Fallback'
+
+
+Fallback = _FallbackType()
+
+
 def get_function_hooks():
     try:
         ret = _thread_local.function_hooks

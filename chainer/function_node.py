@@ -230,6 +230,26 @@ Use apply() method instead.\
         is_chainerx, in_data = _extract_apply_in_data(inputs)
 
         if is_chainerx:
+            # Try ChainerX C++ implementation.
+            # If it's supported, the output arrays are wrapped with Variables
+            # and returned.
+            # If not supported, FunctionNode.forward_chainerx should return
+            # Fallback.
+            # In that case the input arrays are converted to numpy.ndarray
+            # or cupy.ndarray (depending on the ChainerX backend) and
+            # forward computation falls back to the conventional
+            # FunctionNode.forward() implementaion.
+            outputs = self.forward_chainerx(in_data)
+
+            if outputs is not chainer.Fallback:
+                # Supported. Wrap with variables and return
+                assert isinstance(outputs, tuple)
+                return tuple([
+                    variable.Variable(
+                        y, requires_grad=y.is_backprop_required())
+                    for y in outputs])
+
+            # Fall back to FunctionNode.forward()
             chainerx_in_data = in_data
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
@@ -364,6 +384,24 @@ Use apply() method instead.\
 
         """
         pass
+
+    def forward_chainerx(self, inputs):
+        """Computes the output arrays from the input ChainerX arrays.
+
+        This method may check the input arrays and other attributes to see
+        if the computation can be done using ChainerX implementation.
+        If it's not supported, :data:`chainer.Fallback` should be returned
+        instead of output arrays. In that case, computation using conventional
+        Python implementation will be performed.
+
+        Args:
+            inputs: Tuple of input array(s).
+
+        Returns:
+            Tuple of output array(s) or :data:`chainer.Fallback`\\ .
+
+        """
+        return chainer.Fallback
 
     def forward(self, inputs):
         """Computes the output arrays from the input arrays.
