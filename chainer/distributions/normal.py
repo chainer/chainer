@@ -5,7 +5,6 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.distributions import utils as dutils
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
 from chainer.functions.math import exponential
@@ -59,18 +58,18 @@ class Normal(distribution.Distribution):
         self.__scale = scale
         self.__log_scale = log_scale
 
-    @dutils.cached_property
+    @distribution.cached_property
     def loc(self):
         return chainer.as_variable(self.__loc)
 
-    @dutils.cached_property
+    @distribution.cached_property
     def scale(self):
         if self.__scale is not None:
             return chainer.as_variable(self.__scale)
         else:
             return exponential.exp(self.log_scale)
 
-    @dutils.cached_property
+    @distribution.cached_property
     def log_scale(self):
         if self.__log_scale is not None:
             return chainer.as_variable(self.__log_scale)
@@ -84,7 +83,7 @@ class Normal(distribution.Distribution):
     def cdf(self, x):
         return ndtr.ndtr((x - self.loc) / self.scale)
 
-    @dutils.cached_property
+    @distribution.cached_property
     def entropy(self):
         return self.log_scale + ENTROPYC
 

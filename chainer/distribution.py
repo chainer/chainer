@@ -1,6 +1,23 @@
 import copy
 
+import chainer
 from chainer.backends import cuda
+
+
+class cached_property(object):
+    """Cache a result of computation of Chainer functions"""
+
+    def __init__(self, func):
+        self.__doc__ = getattr(func, "__doc__")
+        self.func = func
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+
+        with chainer.using_config('enable_backprop', True):
+            value = obj.__dict__[self.func.__name__] = self.func(obj)
+        return value
 
 
 class Distribution(object):
