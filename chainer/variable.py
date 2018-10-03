@@ -514,10 +514,6 @@ class Variable(object):
                         'Cannot initialize a variable to not require '
                         'gradients if the ChainerX array already requires '
                         'backprop.')
-                if grad is not None:
-                    raise ValueError(
-                        'Cannot initialize a variable with gradients if the '
-                        'require_grad argument is False.')
                 self._data_chainerx = [data.view()]
 
             self._requires_grad = None

@@ -136,6 +136,7 @@ class FunctionNode(object):
     _is_chainerx = None
     _chainerx_retained_inputs = None
     _chainerx_retained_outputs = None
+    _requires_grad = None
     lazy_grad_sum = False
 
     @property
@@ -235,7 +236,8 @@ Use apply() method instead.\
         self._is_chainerx = backend.get_array_module(*in_data) is chainerx
 
         if self._is_chainerx:
-            requires_grad = any([x.is_backprop_required() for x in in_data])
+            self._requires_grad = any(
+                [x.is_backprop_required() for x in in_data])
             chainerx_in_data = in_data
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
@@ -248,7 +250,7 @@ Use apply() method instead.\
                     'or cuda backend')
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
-            requires_grad = any([x.requires_grad for x in input_vars])
+            self._requires_grad = any([x.requires_grad for x in input_vars])
 
         utils._check_arrays_forward_compatible(in_data, self.label)
 
@@ -318,11 +320,12 @@ Use apply() method instead.\
                 else self._output_indexes_to_retain)
 
             ret = tuple([
-                variable.Variable(y, requires_grad=requires_grad)
+                variable.Variable(y, requires_grad=self._requires_grad)
                 for y in chainerx_out_data])
         else:
-            ret = tuple([variable.Variable(y, requires_grad=requires_grad)
-                         for y in outputs])
+            ret = tuple(
+                [variable.Variable(y, requires_grad=self._requires_grad)
+                 for y in outputs])
 
             if configuration.config.enable_backprop:
                 # Topological ordering
@@ -622,12 +625,14 @@ Use apply() method instead.\
             for array in retained_inputs])
         self._chainerx_retained_outputs = tuple([
             variable.Variable(
-                array, requires_grad=array.is_backprop_required())
+                array, requires_grad=self._requires_grad)
             for array in retained_outputs])
 
         gx_vars = self.backward(
             tuple(target_input_indexes),
-            tuple([chainer.Variable(gy) for gy in grad_outputs]))
+            tuple([
+                chainer.Variable(gy, requires_grad=gy.is_backprop_required())
+                for gy in grad_outputs]))
         gxs = [v.array for v in gx_vars]
 
         del self._chainerx_retained_inputs
