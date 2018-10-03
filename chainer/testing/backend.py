@@ -10,9 +10,11 @@ import chainerx
 
 class BackendConfig(object):
 
-    # TODO(niboshi): Support ChainerX devices other than 'native:0'
+    # use_chainerx and use_cuda can be True at the same time, in which case
+    # chainerx arrays on CUDA backend are used.
     _props = [
         ('use_chainerx', False),
+        ('chainerx_device', None),  # None -> native:0
         ('use_cuda', False),
         ('use_cudnn', 'never'),
         ('cudnn_deterministic', False),
@@ -100,9 +102,13 @@ class BackendConfig(object):
         return marks
 
     def get_array(self, np_array):
-        # TODO(niboshi): Support cuda and ideep
         if self.use_chainerx:
-            return chainer.backend.to_chainerx(np_array)
+            device = (
+                'native:0' if self.chainerx_device is None
+                else self.chainerx_device)
+            # TODO(niboshi): Use backend.to_device or
+            # backend.to_chainerx(a, device)
+            return chainer.backend.to_chainerx(np_array).to_device(device)
         if self.use_cuda:
             return chainer.backend.cuda.to_gpu(np_array)
         if self.use_ideep:
