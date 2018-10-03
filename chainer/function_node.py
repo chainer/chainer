@@ -235,8 +235,8 @@ Use apply() method instead.\
         self._is_chainerx = backend.get_array_module(*in_data) is chainerx
 
         if self._is_chainerx:
+            requires_grad = any([x.is_backprop_required() for x in in_data])
             chainerx_in_data = in_data
-            requires_grad = any([x.is_grad_required() for x in in_data])
 
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':

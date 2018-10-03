@@ -489,25 +489,39 @@ class Variable(object):
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
         self._data = [data]
+
+        # A mutable chainerx.ndarray which is a view of the given data.
+        # The view is kept in addition to the data since operations such as
+        # requiring gradients will mutate the chainerx.ndarray. This we do not
+        # want to propagate to the data given by the caller.
+        self._data_chainerx = None
+
         self._loss_scale = None
         self._grad_var = None if grad is None else Variable(grad)
         self._is_chainerx = (
             chainerx.is_available() and isinstance(data, chainerx.ndarray))
 
         if self._is_chainerx:
+            # Create a view of the given data to hold internally and modify.
             if requires_grad:
-                data.require_grad()
-                data.set_grad(grad)
-            elif data.is_grad_required():
-                raise ValueError(
-                    'Cannot initialize a Variable to not require any '
-                    'gradients if the given ChainerX array already requires '
-                    'gradients.')
+                if data.is_backprop_required():
+                    self._data_chainerx = self._data
+                else:
+                    self._data_chainerx = [data.view().require_grad()]
+                self._data_chainerx[0].set_grad(grad)
+            else:
+                if data.is_backprop_required():
+                    raise ValueError(
+                        'Cannot initialize a variable to not require '
+                        'gradients if the ChainerX array already requires '
+                        'backprop.')
+                if grad is not None:
+                    raise ValueError(
+                        'Cannot initialize a variable with gradients if the '
+                        'require_grad argument is False.')
+                self._data_chainerx = [data.view()]
 
-            # This attribute is not used for chainerx.ndarrays since the
-            # underlying array contains the gradient requirement information.
             self._requires_grad = None
-
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None
             self._name = name
@@ -694,9 +708,16 @@ class Variable(object):
 
     @array.setter
     def array(self, d):
-        self._data[0] = d
-        if not self._is_chainerx:
+        if self._is_chainerx:
+            d_old = self._data_chainerx[0]
+            if d_old.is_backprop_required() or d.is_backprop_required():
+                raise ValueError(
+                    'Cannot update the array of a Variable if either the '
+                    'existing or the new array requires backprop.')
+            self._data_chainerx[0] = d.view()
+        else:
             self._node._update_data_info(d)
+        self._data[0] = d
 
     @property
     def data(self):
@@ -709,13 +730,11 @@ class Variable(object):
         ``.data``.
 
         """
-        return self._data[0]
+        return self.array
 
     @data.setter
     def data(self, d):
-        self._data[0] = d
-        if not self._is_chainerx:
-            self._node._update_data_info(d)
+        self.array = d
 
     @property
     def grad(self):
@@ -742,20 +761,24 @@ class Variable(object):
         """Gradient variable."""
         if self._is_chainerx:
             g = self._grad_var
-            if ((g is None and self.array.grad is not None)
-                    or (g is not None and g.array is not self.array.grad)):
-                self._grad_var = Variable(self.array.grad)
+
+            # Update is gradient variable if it has not yet been initialized or
+            # it happens to be dirty w.r.t. the actual gradient of the
+            # underlying chainerx.ndarray.
+            if ((g is None and self._data_chainerx[0].grad is not None)
+                or (g is not None and g._data_chainerx[0]
+                    is not self._data_chainerx[0].grad)):
+                self._grad_var = Variable(self._data_chainerx[0].grad)
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
         if g is not None:
-            _check_grad_type(None, self, g.data)
+            _check_grad_type(None, self, g.array)
+
         if self._is_chainerx:
-            if g is None:
-                self.data.set_grad(None)
-            else:
-                self.data.set_grad(g.data)
+            self._data_chainerx[0].set_grad(None if g is None else g.array)
+
         self._grad_var = g
 
     @property
@@ -792,7 +815,10 @@ class Variable(object):
     def requires_grad(self):
         """It indicates that ``grad`` will be set in backward calculation."""
         if self._is_chainerx:
-            return self.data.is_grad_required()
+            # Return is_backprop_required() and not is_grad_required().
+            # Although names might be confusing, Variable.requires_grad
+            # corresponds to the former.
+            return self._data_chainerx[0].is_backprop_required()
         return self._requires_grad
 
     @property
@@ -923,9 +949,9 @@ class Variable(object):
         if self._is_chainerx:
             if gv is None:
                 self.grad = chainerx.zeros_like(self.data)
-            else:
-                gv.array.cleargrad()
-                gv.array.fill(0)
+            elif gv.requires_grad:
+                gv._data_chainerx[0].cleargrad()
+                gv._data_chainerx[0].fill(0)
         else:
             with cuda.get_device_from_array(self.data) as dev:
                 if gv is None:
@@ -1492,9 +1518,15 @@ def as_variable(obj):
     """
     if isinstance(obj, Variable):
         return obj
-    return Variable(obj, requires_grad=False)
+
+    if chainerx.is_available() and isinstance(obj, chainerx.ndarray):
+        requires_grad = obj.is_backprop_required()
+    else:
+        requires_grad = False
+    return Variable(obj, requires_grad=requires_grad)
 
 
+# TODO(hvy): Make private, i.e. _as_array?
 def as_array(obj):
     """Returns the underlying array from a variable or an array.
 
@@ -1511,6 +1543,8 @@ def as_array(obj):
 
     """
     if isinstance(obj, Variable):
+        if obj._is_chainerx:
+            return obj._data_chainerx[0]
         return obj.array
     return obj
 
