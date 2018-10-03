@@ -5,6 +5,7 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
+from chainer.distributions import utils as dutils
 from chainer.functions.array import expand_dims
 from chainer.functions.array import repeat
 from chainer.functions.math import exponential
@@ -53,23 +54,28 @@ class Normal(distribution.Distribution):
         if not (scale is None) ^ (log_scale is None):
             raise ValueError(
                 "Either `scale` or `log_scale` (not both) must have a value.")
-        self.loc = chainer.as_variable(loc)
 
-        with chainer.using_config('enable_backprop', True):
-            if scale is None:
-                self.__log_scale = chainer.as_variable(log_scale)
-                self.__scale = exponential.exp(self.log_scale)
-            else:
-                self.__scale = chainer.as_variable(scale)
-                self.__log_scale = exponential.log(self.scale)
+        self.__loc = loc
+        self.__scale = scale
+        self.__log_scale = log_scale
 
-    @property
+    @dutils.cached_property
+    def loc(self):
+        return chainer.as_variable(self.__loc)
+
+    @dutils.cached_property
     def scale(self):
-        return self.__scale
+        if self.__scale is not None:
+            return chainer.as_variable(self.__scale)
+        else:
+            return exponential.exp(self.log_scale)
 
-    @property
+    @dutils.cached_property
     def log_scale(self):
-        return self.__log_scale
+        if self.__log_scale is not None:
+            return chainer.as_variable(self.__log_scale)
+        else:
+            return exponential.log(self.scale)
 
     @property
     def batch_shape(self):
@@ -78,7 +84,7 @@ class Normal(distribution.Distribution):
     def cdf(self, x):
         return ndtr.ndtr((x - self.loc) / self.scale)
 
-    @property
+    @dutils.cached_property
     def entropy(self):
         return self.log_scale + ENTROPYC
 
