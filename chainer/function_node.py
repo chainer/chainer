@@ -237,7 +237,6 @@ Use apply() method instead.\
         if self._is_chainerx:
             requires_grad = any([x.is_backprop_required() for x in in_data])
             chainerx_in_data = in_data
-
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
                 in_data = cuda.to_gpu(in_data)

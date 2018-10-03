@@ -472,7 +472,6 @@ class Variable(object):
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
             volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
-
         if data is not None:
             array_types = chainer.get_array_types()
             if not isinstance(data, array_types):
