@@ -227,10 +227,9 @@ Use apply() method instead.\
 
         """
         chainerx_in_data = None
-        in_data = tuple([variable.as_array(x) for x in inputs])
+        is_chainerx, in_data = _extract_apply_in_data(inputs)
 
-        if backend.get_array_module(*in_data) is chainerx:
-            requires_grad = any([x.is_backprop_required() for x in in_data])
+        if is_chainerx:
             chainerx_in_data = in_data
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
@@ -241,11 +240,9 @@ Use apply() method instead.\
                 raise RuntimeError(
                     'FunctionNode only supports ChainerX arrays with native '
                     'or cuda backend')
-            is_chainerx = True
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
             requires_grad = any([x.requires_grad for x in input_vars])
-            is_chainerx = False
 
         utils._check_arrays_forward_compatible(in_data, self.label)
 
@@ -308,7 +305,7 @@ Use apply() method instead.\
             chainerx._core._function_node_forward(
                 self, chainerx_in_data, chainerx_out_data)
             ret = tuple([
-                variable.Variable(y, requires_grad=requires_grad)
+                variable.Variable(y, requires_grad=y.is_backprop_required())
                 for y in chainerx_out_data])
         else:
             ret = tuple([variable.Variable(y, requires_grad=requires_grad)
@@ -597,7 +594,7 @@ Use apply() method instead.\
         gx_vars = self.backward(
             tuple(target_input_indexes),
             tuple([chainer.Variable(gy) for gy in grad_outputs]))
-        gxs = [v.array for v in gx_vars]
+        gxs = [v._data_chainerx[0] for v in gx_vars]
         return gxs
 
     def _get_error_message(self, message):
@@ -980,6 +977,34 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         if x not in ret_dict:
             ret_dict[x] = grads.pop(x)
     return ret_dict
+
+
+def _extract_apply_in_data(inputs):
+    # Extracts arrays from FunctionNode.apply() inputs.
+    # A flag that indicates whether inputs are chainerx arrays is also
+    # returned.
+    #
+    # Each object in `inputs` may be `Variable` or an array.
+    # If it's a `Variable` and its underlying array is a chainerx array,
+    # `Variable._data_chainerx[0]` (which is backproppable in contrast to
+    # `Variable.array`) is returned.
+    if len(inputs) == 0:
+        return False, ()
+    ret = []
+    is_chainerx = chainerx.is_available()
+    for x in inputs:
+        if isinstance(x, variable.Variable):
+            if x._is_chainerx:
+                ret.append(x._data_chainerx[0])
+            else:
+                is_chainerx = False
+                ret.append(x.array)
+        else:
+            if is_chainerx:
+                is_chainerx = isinstance(x, chainerx.ndarray)
+            ret.append(x)
+
+    return is_chainerx, tuple(ret)
 
 
 def _get_ordered_func_heap():
