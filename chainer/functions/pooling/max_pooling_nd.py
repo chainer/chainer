@@ -5,11 +5,15 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
+from chainer import function
 from chainer import function_node
 from chainer.functions.pooling import max_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
+from chainer import variable
 from chainer.utils import conv_nd
+import chainerx
 
 
 class MaxPoolingND(pooling_nd._PoolingND):
@@ -273,6 +277,16 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
 
     """
     ndim = len(x.shape[2:])
+
+    if backend.get_array_module(x) is chainerx:
+        # TODO(sonots): Support cover_all in CUDA ChainerX
+        # TODO(sonots): Support return_indices in ChainerX
+        is_cuda = variable.as_array(x).device.backend.name == 'cuda'
+        if (not return_indices and not (is_cuda and cover_all)
+                and not (is_cuda and ndim not in [2, 3])):
+            return function._chainerx_op(lambda x:
+                chainerx.max_pool(x, ksize, stride, pad, cover_all), x)
+
     func = MaxPoolingND(ndim, ksize, stride, pad, cover_all)
     if return_indices:
         with chainer.using_config('use_cudnn', 'never'):
