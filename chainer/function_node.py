@@ -20,32 +20,6 @@ from chainer import variable
 import chainerx
 
 
-def _extract_apply_in_data(inputs):
-    # Extracts arrays from FunctionNode.apply() inputs.
-    # A flag that indicates whether inputs are chainerx arrays is also
-    # returned.
-    #
-    # Each object in `inputs` may be `Variable` or an array.
-    # If it's a `Variable` and its underlying array is a chainerx array,
-    # `Variable._data_chainerx[0]` (which is backproppable in contrast to
-    # `Variable.array`) is returned.
-    ret = []
-    is_chainerx = chainerx.is_available()
-    for x in inputs:
-        if isinstance(x, variable.Variable):
-            if x._is_chainerx:
-                ret.append(x._data_chainerx[0])
-            else:
-                is_chainerx = False
-                ret.append(x.array)
-        else:
-            if is_chainerx:
-                is_chainerx = isinstance(x, chainerx.ndarray)
-            ret.append(x)
-
-    return is_chainerx, tuple(ret)
-
-
 class FunctionNode(object):
 
     """Function node of the computational graph.
@@ -1003,6 +977,32 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         if x not in ret_dict:
             ret_dict[x] = grads.pop(x)
     return ret_dict
+
+
+def _extract_apply_in_data(inputs):
+    # Extracts arrays from FunctionNode.apply() inputs.
+    # A flag that indicates whether inputs are chainerx arrays is also
+    # returned.
+    #
+    # Each object in `inputs` may be `Variable` or an array.
+    # If it's a `Variable` and its underlying array is a chainerx array,
+    # `Variable._data_chainerx[0]` (which is backproppable in contrast to
+    # `Variable.array`) is returned.
+    ret = []
+    is_chainerx = chainerx.is_available()
+    for x in inputs:
+        if isinstance(x, variable.Variable):
+            if x._is_chainerx:
+                ret.append(x._data_chainerx[0])
+            else:
+                is_chainerx = False
+                ret.append(x.array)
+        else:
+            if is_chainerx:
+                is_chainerx = isinstance(x, chainerx.ndarray)
+            ret.append(x)
+
+    return is_chainerx, tuple(ret)
 
 
 def _get_ordered_func_heap():
