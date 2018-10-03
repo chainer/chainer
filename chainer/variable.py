@@ -758,8 +758,6 @@ class Variable(object):
     def grad_var(self):
         """Gradient variable."""
         if self._is_chainerx:
-            g = self._grad_var
-
             # Update is gradient variable if it has not yet been initialized or
             # it happens to be dirty w.r.t. the actual gradient of the
             # underlying chainerx.ndarray.
@@ -768,6 +766,7 @@ class Variable(object):
             if actual_grad is None:
                 self._grad_var = None
             else:
+                g = self._grad_var
                 old_grad = None if g is None else g._data_chainerx[0]
                 if actual_grad is not old_grad:
                     self._grad_var = Variable(
