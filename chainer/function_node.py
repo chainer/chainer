@@ -20,6 +20,32 @@ from chainer import variable
 import chainerx
 
 
+def _extract_apply_in_data(inputs):
+    # Extracts arrays from FunctionNode.apply() inputs.
+    # A flag that indicates whether inputs are chainerx arrays is also
+    # returned.
+    #
+    # Each object in `inputs` may be `Variable` or an array.
+    # If it's a `Variable` and its underlying array is a chainerx array,
+    # `Variable._data_chainerx[0]` (which is backproppable in contrast to
+    # `Variable.array`) is returned.
+    ret = []
+    is_chainerx = chainerx.is_available()
+    for x in inputs:
+        if isinstance(x, variable.Variable):
+            if x._is_chainerx:
+                ret.append(x._data_chainerx[0])
+            else:
+                is_chainerx = False
+                ret.append(x.array)
+        else:
+            if is_chainerx:
+                is_chainerx = isinstance(x, chainerx.ndarray)
+            ret.append(x)
+
+    return is_chainerx, tuple(ret)
+
+
 class FunctionNode(object):
 
     """Function node of the computational graph.
@@ -227,12 +253,10 @@ Use apply() method instead.\
 
         """
         chainerx_in_data = None
-        in_data = tuple([variable.as_array(x) for x in inputs])
+        is_chainerx, in_data = _extract_apply_in_data(inputs)
 
-        if backend.get_array_module(*in_data) is chainerx:
-            chainerx_in_data = tuple([
-                x._data_chainerx[0] if isinstance(x, variable.Variable) else x
-                for x in inputs])
+        if is_chainerx:
+            chainerx_in_data = in_data
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
                 in_data = cuda.to_gpu(in_data)
@@ -242,11 +266,9 @@ Use apply() method instead.\
                 raise RuntimeError(
                     'FunctionNode only supports ChainerX arrays with native '
                     'or cuda backend')
-            is_chainerx = True
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
             requires_grad = any([x.requires_grad for x in input_vars])
-            is_chainerx = False
 
         utils._check_arrays_forward_compatible(in_data, self.label)
 
