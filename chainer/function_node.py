@@ -633,9 +633,6 @@ Use apply() method instead.\
                 for gy in grad_outputs]))
         gxs = [v._data_chainerx[0] for v in gx_vars]
 
-        del self._chainerx_retained_inputs
-        del self._chainerx_retained_outputs
-
         return gxs
 
     def _get_error_message(self, message):
