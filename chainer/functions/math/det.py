@@ -6,6 +6,7 @@ from chainer import function_node
 import chainer.functions
 from chainer.functions.math import matmul
 from chainer import utils
+from chainer.utils import precision
 from chainer.utils import type_check
 
 
@@ -59,14 +60,14 @@ class BatchDet(function_node.FunctionNode):
         # so assert the last two dimensions are equal.
         type_check.expect(a_type.shape[-1] == a_type.shape[-2])
 
-    @utils.mixed_precision
+    @precision._fp16_mixed_precision_helper
     def forward_cpu(self, x):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
         detx = utils.force_array(numpy.linalg.det(x[0]))
         return detx,
 
-    @utils.mixed_precision
+    @precision._fp16_mixed_precision_helper
     def forward_gpu(self, x):
         self.retain_inputs((0,))
         self.retain_outputs((0,))

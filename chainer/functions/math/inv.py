@@ -6,6 +6,7 @@ from chainer import function_node
 import chainer.functions
 from chainer.functions.math import matmul
 from chainer import utils
+from chainer.utils import precision
 from chainer.utils import type_check
 
 
@@ -56,7 +57,7 @@ class Inv(function_node.FunctionNode):
         # Matrix inversion only allowed for square matrices
         type_check.expect(a_type.shape[0] == a_type.shape[1])
 
-    @utils.mixed_precision
+    @precision._fp16_mixed_precision_helper
     def forward_cpu(self, x):
         self.retain_outputs((0,))
         try:
@@ -65,7 +66,7 @@ class Inv(function_node.FunctionNode):
             raise ValueError('Input has singular matrices.')
         return invx,
 
-    @utils.mixed_precision
+    @precision._fp16_mixed_precision_helper
     def forward_gpu(self, x):
         self.retain_outputs((0,))
         shape = x[0].shape
@@ -97,7 +98,7 @@ class BatchInv(function_node.FunctionNode):
         # so assert the last two dimensions are equal
         type_check.expect(a_type.shape[-1] == a_type.shape[-2])
 
-    @utils.mixed_precision
+    @precision._fp16_mixed_precision_helper
     def forward_cpu(self, x):
         self.retain_outputs((0,))
         try:
@@ -106,7 +107,7 @@ class BatchInv(function_node.FunctionNode):
             raise ValueError('Input has singular matrices.')
         return invx,
 
-    @utils.mixed_precision
+    @precision._fp16_mixed_precision_helper
     def forward_gpu(self, x):
         self.retain_outputs((0,))
         invx, info = _inv_gpu(x[0])
