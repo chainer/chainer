@@ -231,9 +231,7 @@ Use apply() method instead.\
 
         """
         chainerx_in_data = None
-        in_data = tuple([variable.as_array(x) for x in inputs])
-
-        self._is_chainerx = backend.get_array_module(*in_data) is chainerx
+        self._is_chainerx, in_data = _extract_apply_in_data(inputs)
 
         if self._is_chainerx:
             self._requires_grad = any(
@@ -633,7 +631,7 @@ Use apply() method instead.\
             tuple([
                 chainer.Variable(gy, requires_grad=gy.is_backprop_required())
                 for gy in grad_outputs]))
-        gxs = [v.array for v in gx_vars]
+        gxs = [v._data_chainerx[0] for v in gx_vars]
 
         del self._chainerx_retained_inputs
         del self._chainerx_retained_outputs
@@ -1019,6 +1017,34 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         if x not in ret_dict:
             ret_dict[x] = grads.pop(x)
     return ret_dict
+
+
+def _extract_apply_in_data(inputs):
+    # Extracts arrays from FunctionNode.apply() inputs.
+    # A flag that indicates whether inputs are chainerx arrays is also
+    # returned.
+    #
+    # Each object in `inputs` may be `Variable` or an array.
+    # If it's a `Variable` and its underlying array is a chainerx array,
+    # `Variable._data_chainerx[0]` (which is backproppable in contrast to
+    # `Variable.array`) is returned.
+    if len(inputs) == 0:
+        return False, ()
+    ret = []
+    is_chainerx = chainerx.is_available()
+    for x in inputs:
+        if isinstance(x, variable.Variable):
+            if x._is_chainerx:
+                ret.append(x._data_chainerx[0])
+            else:
+                is_chainerx = False
+                ret.append(x.array)
+        else:
+            if is_chainerx:
+                is_chainerx = isinstance(x, chainerx.ndarray)
+            ret.append(x)
+
+    return is_chainerx, tuple(ret)
 
 
 def _get_ordered_func_heap():
