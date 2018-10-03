@@ -32,3 +32,17 @@ def _modified_xlogx(x):
     return ModifiedXLogX(exponential.log(
         where.where(utils.force_array(x.array > 0),
                     x, xp.ones_like(x.array)))).apply((x,))[0]
+
+
+class cached_property(object):
+
+    def __init__(self, func):
+        self.__doc__ = getattr(func, "__doc__")
+        self.func = func
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+
+        value = obj.__dict__[self.func.__name__] = self.func(obj)
+        return value
