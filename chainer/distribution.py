@@ -19,6 +19,11 @@ class cached_property(object):
             value = obj.__dict__[self.func.__name__] = self.func(obj)
         return value
 
+    def __set__(self, obj, cls):
+        raise AttributeError(
+            'attribute \'{}\' of {} is readonly'.format(
+                self.func.__name__, cls))
+
 
 class Distribution(object):
 
