@@ -47,7 +47,7 @@ def _preprocess_rhs(x, value):
     return utils.force_type(x.dtype, value)
 
 
-class Neg(function_node.FunctionNode):
+class _Neg(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -70,10 +70,10 @@ def neg(self):  # -x
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Neg().apply((self,))[0]
+    return _Neg().apply((self,))[0]
 
 
-class Absolute(function_node.FunctionNode):
+class _Absolute(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -89,13 +89,13 @@ class Absolute(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x = self.get_retained_inputs()[0]
-        return AbsoluteGrad(x.data).apply(grad_outputs)
+        return _AbsoluteGrad(x.data).apply(grad_outputs)
 
 
-class AbsoluteGrad(function_node.FunctionNode):
+class _AbsoluteGrad(function_node.FunctionNode):
 
     def __init__(self, x):
-        super(AbsoluteGrad, self).__init__()
+        super(_AbsoluteGrad, self).__init__()
         self.x = x
 
     def check_type_forward(self, in_types):
@@ -113,7 +113,7 @@ class AbsoluteGrad(function_node.FunctionNode):
         return gx0,
 
     def backward(self, indexes, grad_outputs):
-        return AbsoluteGrad(self.x).apply(grad_outputs)
+        return _AbsoluteGrad(self.x).apply(grad_outputs)
 
 
 def absolute(self):
@@ -122,10 +122,10 @@ def absolute(self):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Absolute().apply((self,))[0]
+    return _Absolute().apply((self,))[0]
 
 
-class Add(function_node.FunctionNode):
+class _Add(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -149,7 +149,7 @@ class Add(function_node.FunctionNode):
                      for i in indexes)
 
 
-class AddConstant(function_node.FunctionNode):
+class _AddScalar(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -171,7 +171,7 @@ class AddConstant(function_node.FunctionNode):
         return gy
 
 
-class MultiAdd(function_node.FunctionNode):
+class _MultiAdd(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         for i, in_type in enumerate(in_types):
@@ -212,14 +212,14 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
     if len(xs) == 2:
         lhs, rhs = xs
         if numpy.isscalar(rhs):
-            return AddConstant(rhs).apply((lhs,))[0]
+            return _AddScalar(rhs).apply((lhs,))[0]
         rhs = _preprocess_rhs(lhs, rhs)
-        return Add().apply((lhs, rhs))[0]
+        return _Add().apply((lhs, rhs))[0]
     else:
-        return MultiAdd().apply(xs)[0]
+        return _MultiAdd().apply(xs)[0]
 
 
-class Sub(function_node.FunctionNode):
+class _Sub(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -252,12 +252,12 @@ def sub(self, rhs):  # lhs - rhs
     """
 
     if numpy.isscalar(rhs):
-        return AddConstant(-rhs).apply((self,))[0]
+        return _AddScalar(-rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
-    return Sub().apply((self, rhs))[0]
+    return _Sub().apply((self, rhs))[0]
 
 
-class SubFromConstant(function_node.FunctionNode):
+class _SubFromScalar(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -285,12 +285,12 @@ def rsub(self, rhs):  # rhs - lhs
         ~chainer.Variable: Output variable.
     """
     if numpy.isscalar(rhs):
-        return SubFromConstant(rhs).apply((self,))[0]
+        return _SubFromScalar(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
-    return Sub().apply((rhs, self))[0]
+    return _Sub().apply((rhs, self))[0]
 
 
-class Mul(function_node.FunctionNode):
+class _Mul(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -318,7 +318,7 @@ class Mul(function_node.FunctionNode):
         )
 
 
-class MulConstant(function_node.FunctionNode):
+class _MulScalar(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -347,12 +347,12 @@ def mul(self, rhs):  # lhs * rhs
     """
 
     if numpy.isscalar(rhs):
-        return MulConstant(rhs).apply((self,))[0]
+        return _MulScalar(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
-    return Mul().apply((self, rhs))[0]
+    return _Mul().apply((self, rhs))[0]
 
 
-class Div(function_node.FunctionNode):
+class _Div(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -374,10 +374,10 @@ class Div(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x = self.get_retained_inputs()
-        return DivGrad().apply((x[0], x[1], grad_outputs[0]))
+        return _DivGrad().apply((x[0], x[1], grad_outputs[0]))
 
 
-class DivGrad(function_node.FunctionNode):
+class _DivGrad(function_node.FunctionNode):
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1, 2))
@@ -443,12 +443,12 @@ def div(self, rhs):  # lhs / rhs
     """
 
     if numpy.isscalar(rhs):
-        return MulConstant(1. / rhs).apply((self,))[0]
+        return _MulScalar(1. / rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
-    return Div().apply((self, rhs))[0]
+    return _Div().apply((self, rhs))[0]
 
 
-class DivFromConstant(function_node.FunctionNode):
+class _DivFromScalar(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -468,13 +468,13 @@ class DivFromConstant(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x = self.get_retained_inputs()
-        return DivFromConstantGrad(self.value).apply((x[0], grad_outputs[0]))
+        return _DivFromScalarGrad(self.value).apply((x[0], grad_outputs[0]))
 
 
-class DivFromConstantGrad(function_node.FunctionNode):
+class _DivFromScalarGrad(function_node.FunctionNode):
 
     def __init__(self, value):
-        super(DivFromConstantGrad, self).__init__()
+        super(_DivFromScalarGrad, self).__init__()
         self.value = value
 
     def forward_cpu(self, inputs):
@@ -490,7 +490,7 @@ class DivFromConstantGrad(function_node.FunctionNode):
         value = _preprocess_const(x, self.value)
         return cuda.elementwise('T x, T gy, T value', 'T gx',
                                 'gx = -value * gy / (x * x)',
-                                'div_from_const_bwd')(x, gy, value),
+                                'div_from_scalar_bwd')(x, gy, value),
 
     def backward(self, indexes, grad_outputs):
         x, gy = self.get_retained_inputs()
@@ -511,9 +511,9 @@ def rdiv(self, rhs):  # rhs / lhs
     """
 
     if numpy.isscalar(rhs):
-        return DivFromConstant(rhs).apply((self,))[0]
+        return _DivFromScalar(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
-    return Div().apply((rhs, self))[0]
+    return _Div().apply((rhs, self))[0]
 
 
 def floordiv(self, rhs):  # lhs // rhs
@@ -536,7 +536,7 @@ def rfloordiv(self, rhs):  # rhs // lhs
     return _floor.floor(rdiv(self, rhs))
 
 
-class PowVarVar(function_node.FunctionNode):
+class _PowVarVar(function_node.FunctionNode):
 
     @property
     def label(self):
@@ -559,10 +559,10 @@ class PowVarVar(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         inputs = self.get_retained_inputs()
-        return PowVarVarGrad(self.y).apply((inputs[0], inputs[1], gy[0]))
+        return _PowVarVarGrad(self.y).apply((inputs[0], inputs[1], gy[0]))
 
 
-class PowVarVarGrad(function_node.FunctionNode):
+class _PowVarVarGrad(function_node.FunctionNode):
 
     def __init__(self, y):
         self.y = y
@@ -634,7 +634,7 @@ class PowVarVarGrad(function_node.FunctionNode):
         return ret
 
 
-class PowVarConst(function_node.FunctionNode):
+class _PowVarScalar(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -654,10 +654,10 @@ class PowVarConst(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         inputs = self.get_retained_inputs()
-        return PowVarConstGrad(self.value).apply((inputs[0], gy[0]))
+        return _PowVarScalarGrad(self.value).apply((inputs[0], gy[0]))
 
 
-class PowVarConstGrad(function_node.FunctionNode):
+class _PowVarScalarGrad(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -688,7 +688,7 @@ class PowVarConstGrad(function_node.FunctionNode):
         gx = cuda.elementwise(
             'T x, T gy, T value', 'T gx',
             'gx = value * pow(x, value - 1) * gy',
-            'pow_var_const_bwd')(x, gy, self.val)
+            'pow_var_scalar_bwd')(x, gy, self.val)
         return gx,
 
     def backward(self, indexes, ggx):
@@ -716,12 +716,12 @@ def pow(self, rhs):  # lhs ** rhs
     """
 
     if numpy.isscalar(rhs):
-        return PowVarConst(rhs).apply((self,))[0]
+        return _PowVarScalar(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
-    return PowVarVar().apply((self, rhs))[0]
+    return _PowVarVar().apply((self, rhs))[0]
 
 
-class PowConstVar(function_node.FunctionNode):
+class _PowScalarVar(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -742,10 +742,10 @@ class PowConstVar(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         outputs = self.get_retained_outputs()
-        return PowConstVarGrad(self.value).apply((outputs[0], gy[0]))
+        return _PowScalarVarGrad(self.value).apply((outputs[0], gy[0]))
 
 
-class PowConstVarGrad(function_node.FunctionNode):
+class _PowScalarVarGrad(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
@@ -774,7 +774,7 @@ class PowConstVarGrad(function_node.FunctionNode):
         gx = cuda.elementwise(
             'T y, T gy, T value', 'T gx',
             'gx = log(value) * y * gy',
-            'pow_const_var_bwd')(y, gy, value)
+            'pow_scalar_var_bwd')(y, gy, value)
         return gx,
 
     def backward(self, indexes, ggx):
@@ -798,9 +798,9 @@ def rpow(self, rhs):  # rhs ** lhs
     """
 
     if numpy.isscalar(rhs):
-        return PowConstVar(rhs).apply((self,))[0]
+        return _PowScalarVar(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
-    return PowVarVar().apply((rhs, self))[0]
+    return _PowVarVar().apply((rhs, self))[0]
 
 
 def matmul(self, rhs):  # lhs @ rhs
