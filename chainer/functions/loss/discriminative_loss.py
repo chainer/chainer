@@ -2,8 +2,8 @@ from chainer.backends import cuda
 from chainer.functions.activation.relu import relu
 from chainer.functions.array.broadcast import broadcast_to
 from chainer.functions.math.basic_math import absolute
-from chainer.functions.math.sum import sum as c_sum
 from chainer.functions.math.sqrt import sqrt
+from chainer.functions.math.sum import sum as c_sum
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
