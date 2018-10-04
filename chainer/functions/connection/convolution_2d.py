@@ -12,6 +12,7 @@ import chainer.functions
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import variable
 import chainerx
 
 if cuda.cudnn_enabled:
@@ -571,7 +572,11 @@ cover_all=True)
     if backend.get_array_module(x, W, b) is chainerx:
         # TODO(hvy): Support dilate > 1.
         # TODO(hvy): Support groups > 1.
-        if dilate == 1 and groups == 1:
+        fallback = False
+        is_cuda = variable.as_array(x).device.backend.name == 'cuda'
+        if dilate != 1 or groups != 1 or (is_cuda and cover_all):
+            fallback = True
+        if not fallback:
             return function._chainerx_op(
                 chainerx.conv, x, W, b, stride=stride, pad=pad,
                 cover_all=cover_all)

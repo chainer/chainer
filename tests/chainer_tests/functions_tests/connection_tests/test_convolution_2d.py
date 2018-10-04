@@ -36,7 +36,7 @@ from chainer.testing import condition
     # ChainerX tests
     testing.product({
         'use_chainerx': [True],
-        'chainerx_device': ['native:0'],
+        'chainerx_device': ['native:0', 'cuda:0'],
     })
     # CPU tests
     + testing.product({
