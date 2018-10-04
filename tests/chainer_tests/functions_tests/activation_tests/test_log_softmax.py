@@ -108,6 +108,14 @@ class TestLogSoftmax(unittest.TestCase):
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
+
     def check_double_backward(self, x_data, gy_data, ggx_data,
                               use_cudnn='always'):
         def f(x):
@@ -131,6 +139,17 @@ class TestLogSoftmax(unittest.TestCase):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
             'never')
+
+    @attr.chainerx
+    def test_double_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_double_backward(
+            chainerx.array(self.x),
+            chainerx.array(self.gy),
+            chainerx.array(self.ggx))
 
 
 @testing.parameterize(*testing.product({

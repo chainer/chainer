@@ -472,6 +472,7 @@ class Variable(object):
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
             volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
+        assert isinstance(requires_grad, bool)
         if data is not None:
             array_types = chainer.get_array_types()
             if not isinstance(data, array_types):
@@ -498,7 +499,7 @@ class Variable(object):
         if self._is_chainerx:
             # Create a view of the given data to hold internally and modify.
             if requires_grad:
-                if data.is_backprop_required():
+                if data.is_grad_required():
                     self._data_chainerx = self._data
                 else:
                     self._data_chainerx = [data.view().require_grad()]
@@ -748,21 +749,29 @@ class Variable(object):
 
     @grad.setter
     def grad(self, g):
-        self.grad_var = None if g is None else Variable(g)
+        if g is None:
+            self.grad_var = None
+        else:
+            self.grad_var = Variable(g)
 
     @property
     def grad_var(self):
         """Gradient variable."""
         if self._is_chainerx:
-            g = self._grad_var
-
             # Update is gradient variable if it has not yet been initialized or
             # it happens to be dirty w.r.t. the actual gradient of the
             # underlying chainerx.ndarray.
-            if ((g is None and self._data_chainerx[0].grad is not None)
-                or (g is not None and g._data_chainerx[0]
-                    is not self._data_chainerx[0].grad)):
-                self._grad_var = Variable(self._data_chainerx[0].grad)
+            arr = self._data_chainerx[0]
+            actual_grad = arr.grad if arr.is_grad_required() else None
+            if actual_grad is None:
+                self._grad_var = None
+            else:
+                g = self._grad_var
+                old_grad = None if g is None else g._data_chainerx[0]
+                if actual_grad is not old_grad:
+                    self._grad_var = Variable(
+                        actual_grad,
+                        requires_grad=actual_grad.is_backprop_required())
         return self._grad_var
 
     @grad_var.setter
@@ -771,7 +780,11 @@ class Variable(object):
             _check_grad_type(None, self, g.array)
 
         if self._is_chainerx:
-            self._data_chainerx[0].set_grad(None if g is None else g.array)
+            if g is None:
+                self._data_chainerx[0].set_grad(None)
+            else:
+                assert g._is_chainerx
+                self._data_chainerx[0].set_grad(g._data_chainerx[0])
 
         self._grad_var = g
 
@@ -1099,7 +1112,7 @@ class Variable(object):
             if loss_scale is not None:
                 raise RuntimeError(
                     'loss_scale if not supported for ChainerX array.')
-            arr = self.array
+            arr = self._data_chainerx[0]
             assert isinstance(arr, chainerx.ndarray)
             chainerx.backward(
                 arr, enable_double_backprop=enable_double_backprop)
