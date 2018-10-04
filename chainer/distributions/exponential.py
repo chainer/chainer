@@ -1,10 +1,10 @@
-import numpy
-
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import where
 from chainer.functions.math import exponential
+from chainer.functions.math import exponential_m1
+from chainer.functions.math import logarithm_1p
 
 
 class Exponential(distribution.Distribution):
@@ -34,7 +34,7 @@ class Exponential(distribution.Distribution):
         return self.lam.shape
 
     def cdf(self, x):
-        return 1 - exponential.exp(-self.lam * x)
+        return - exponential_m1.expm1(-self.lam * x)
 
     @property
     def entropy(self):
@@ -45,7 +45,7 @@ class Exponential(distribution.Distribution):
         return ()
 
     def icdf(self, x):
-        return -1 / self.lam * exponential.log(1 - x)
+        return -1 / self.lam * logarithm_1p.log1p(-x)
 
     @property
     def _is_gpu(self):
