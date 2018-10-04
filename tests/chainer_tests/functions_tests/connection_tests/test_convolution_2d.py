@@ -10,6 +10,42 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
 from chainer.testing import condition
+import chainerx
+
+
+# Supports numpy, cupy and chainerx ndarrays.
+def _arrays_as_non_contiguous(arrays):
+    assert isinstance(arrays, (list, tuple))
+
+    xp = chainer.backend.get_array_module(*arrays)
+    non_cont_arrays = []
+    for a in arrays:
+        if a is None:
+            non_cont_a = None
+        elif a.ndim == 1:
+            if xp is chainerx:
+                # chainerx.ndarray does not support item assignment.
+                non_cont_a = xp.diag(
+                    xp.diag(a, device=a.device), device=a.device)
+            else:  # numpy or cupy
+                non_cont_a = xp.empty((len(a) * 2,), dtype=a.dtype)
+                non_cont_a[::2] = a
+                a = non_cont_a[::2]
+                non_cont_a = a
+        else:
+            non_cont_a = a.T.copy().T
+        non_cont_arrays.append(non_cont_a)
+
+    # Check non contiguousness.
+    for a in non_cont_arrays:
+        if a is None:
+            continue
+        elif xp is chainerx:
+            assert not a.is_contiguous
+        else:  # numpy, cupy
+            assert not a.flags.c_contiguous
+
+    return type(arrays)(non_cont_arrays)
 
 
 @testing.parameterize(*(testing.product({
@@ -30,8 +66,6 @@ from chainer.testing import condition
     'nobias': [True, False],
 })))
 @backend.inject_backend_tests(
-    # TODO(hvy): test 'cuda:0'
-    #['test_forward', 'test_backward', 'test_double_backward'],
     ['test_forward', 'test_backward'],
     # ChainerX tests
     testing.product({
@@ -130,38 +164,16 @@ class TestConvolution2DFunction(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-
-        x_data, W_data, b_data = inputs
-        gy_data, = grad_outputs
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
 
         if not self.c_contiguous:
-            xp = chainer.backend.get_array_module(*inputs)
-            x_data = xp.asfortranarray(x_data)
-            W_data = xp.asfortranarray(W_data)
-            gy_data = xp.asfortranarray(gy_data)
-            if b_data is not None:
-                b = xp.empty((len(b_data) * 2,), dtype=b_data.dtype)
-                b[::2] = b_data
-                b_data = b[::2]
-                assert not b_data.flags.c_contiguous
+            inputs = _arrays_as_non_contiguous(inputs)
+            grad_outputs = _arrays_as_non_contiguous(grad_outputs)
 
-        args = (x_data, W_data)
-        if b_data is not None:
-            args += (b_data,)
-
-        if backend_config.use_chainerx:
-            args = chainer.backend.to_chainerx(args)
-            gy_data = chainer.backend.to_chainerx(gy_data)
-
-        if not self.c_contiguous:
-            for x in args + type(args)((gy_data,)):
-                if backend_config.use_chainerx:
-                    assert not x.is_contiguous
-                else:
-                    assert not x.flags.c_contiguous
+        # Exclude bias if None.
+        if inputs[-1] is None:
+            inputs = inputs[:-1]
 
         def f(*args):
             return F.convolution_2d(*args, stride=self.stride, pad=self.pad,
@@ -170,7 +182,7 @@ class TestConvolution2DFunction(unittest.TestCase):
 
         with backend_config:
             gradient_check.check_backward(
-                f, args, gy_data, dtype='d', atol=5e-4, rtol=5e-3)
+                f, inputs, grad_outputs, dtype='d', atol=5e-4, rtol=5e-3)
 
     @condition.retry(3)
     def test_backward(self, backend_config):
@@ -182,7 +194,9 @@ class TestConvolution2DFunction(unittest.TestCase):
                     for x in self.inputs if x is not None)
                     or self.x_dtype != self.W_dtype
                     or self.dilate > 1
-                    or self.groups > 1):
+                    or self.groups > 1
+                    or (backend_config.chainerx_device == 'cuda:0'
+                        and self.cover_all)):
                 raise unittest.SkipTest('Not yet supported')
 
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
