@@ -66,7 +66,7 @@ def _arrays_as_non_contiguous(arrays):
     'nobias': [True, False],
 })))
 @backend.inject_backend_tests(
-    ['test_forward', 'test_backward'],
+    ['test_forward', 'test_backward', 'test_double_backward'],
     # ChainerX tests
     testing.product({
         'use_chainerx': [True],
@@ -201,47 +201,21 @@ class TestConvolution2DFunction(unittest.TestCase):
 
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
-    '''
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        xp = backend_config.xp
-
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
-
-        x_data, W_data, b_data = inputs
-        y_grad, = grad_outputs
-        x_grad_grad, W_grad_grad, b_grad_grad = grad_grad_inputs
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
 
         if not self.c_contiguous:
-            x_data = xp.asfortranarray(x_data)
-            W_data = xp.asfortranarray(W_data)
-            y_grad = xp.asfortranarray(y_grad)
-            x_grad_grad = xp.asfortranarray(x_grad_grad)
-            W_grad_grad = xp.asfortranarray(W_grad_grad)
-            assert not x_data.flags.c_contiguous
-            assert not W_data.flags.c_contiguous
-            assert not y_grad.flags.c_contiguous
-            assert not x_grad_grad.flags.c_contiguous
-            assert not W_grad_grad.flags.c_contiguous
-            if b_data is not None:
-                b = xp.empty((len(b_data) * 2,), dtype=b_data.dtype)
-                b[::2] = b_data
-                b_data = b[::2]
-                assert not b_data.flags.c_contiguous
+            inputs = _arrays_as_non_contiguous(inputs)
+            grad_outputs = _arrays_as_non_contiguous(grad_outputs)
+            grad_grad_inputs = _arrays_as_non_contiguous(grad_grad_inputs)
 
-                ggb = xp.empty((len(b_data) * 2,), dtype=b_data.dtype)
-                ggb[::2] = b_grad_grad
-                b_grad_grad = ggb[::2]
-                assert not b_grad_grad.flags.c_contiguous
-
-        args = (x_data, W_data)
-        grad_grads = (x_grad_grad, W_grad_grad)
-        if b_data is not None:
-            args = args + (b_data,)
-            grad_grads = grad_grads + (b_grad_grad,)
+        # Exclude bias if None.
+        if inputs[-1] is None:
+            inputs = inputs[:-1]
+            grad_grad_inputs = grad_grad_inputs[:-1]
 
         def f(*args):
             return F.convolution_2d(
@@ -251,15 +225,27 @@ class TestConvolution2DFunction(unittest.TestCase):
 
         with backend_config:
             gradient_check.check_double_backward(
-                f, args, y_grad, grad_grads,
+                f, inputs, grad_outputs, grad_grad_inputs,
                 dtype='d', atol=5e-3, rtol=5e-2)
 
     @condition.retry(3)
     def test_double_backward(self, backend_config):
+        # TODO(hvy): chainerx does not support fp16 yet
+        if backend_config.use_chainerx:
+            # TODO(hvy): Remove dilation and groups checks once retention
+            # with ChainerX is implemented
+            if (any(x.dtype == numpy.float16
+                    for x in self.inputs if x is not None)
+                    or self.x_dtype != self.W_dtype
+                    or self.dilate > 1
+                    or self.groups > 1
+                    or (backend_config.chainerx_device == 'cuda:0'
+                        and self.cover_all)):
+                raise unittest.SkipTest('Not yet supported')
+
         self.check_double_backward(
             self.inputs, self.grad_outputs, self.grad_grad_inputs,
             backend_config)
-    '''
 
 
 @testing.parameterize(*(testing.product({
