@@ -103,6 +103,7 @@ def to_numpy(array):
 def _array_to_chainerx(array, device):
     if not chainerx.is_available():
         raise RuntimeError('ChainerX is not available.')
+    # TODO(niboshi): Perhaps device name (as str) can also be acceptable
     assert device is None or isinstance(device, chainerx.Device)
 
     if array is None:
