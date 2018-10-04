@@ -844,6 +844,7 @@ class TestGradDelRetainedOutput(GradTestBase, unittest.TestCase):
 
 
 class ExpAndExpm1(chainer.FunctionNode):
+
     def forward(self, inputs):
         x, = inputs
         xp = chainer.backend.get_array_module()
@@ -867,7 +868,7 @@ def exp_and_expm1(x):
     return ExpAndExpm1().apply((x,))
 
 
-class TestFunctionNodeRetaining2(unittest.TestCase):
+class TestGradDelRetainedOutput2(unittest.TestCase):
 
     def test_retain_output(self):
         xp = numpy
