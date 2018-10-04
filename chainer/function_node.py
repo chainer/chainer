@@ -136,7 +136,6 @@ class FunctionNode(object):
     _is_chainerx = None
     _chainerx_retained_inputs = None
     _chainerx_retained_outputs = None
-    _requires_grad = None
     lazy_grad_sum = False
 
     @property
@@ -234,8 +233,7 @@ Use apply() method instead.\
         self._is_chainerx, in_data = _extract_apply_in_data(inputs)
 
         if self._is_chainerx:
-            self._requires_grad = any(
-                [x.is_backprop_required() for x in in_data])
+            requires_grad = any([x.is_backprop_required() for x in in_data])
             chainerx_in_data = in_data
             backend_name = in_data[0].device.backend.name
             if backend_name == 'cuda':
@@ -248,7 +246,7 @@ Use apply() method instead.\
                     'or cuda backend')
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
-            self._requires_grad = any([x.requires_grad for x in input_vars])
+            requires_grad = any([x.requires_grad for x in input_vars])
 
         utils._check_arrays_forward_compatible(in_data, self.label)
 
@@ -318,11 +316,11 @@ Use apply() method instead.\
                 else self._output_indexes_to_retain)
 
             ret = tuple([
-                variable.Variable(y, requires_grad=self._requires_grad)
+                variable.Variable(y, requires_grad=requires_grad)
                 for y in chainerx_out_data])
         else:
             ret = tuple(
-                [variable.Variable(y, requires_grad=self._requires_grad)
+                [variable.Variable(y, requires_grad=requires_grad)
                  for y in outputs])
 
             if configuration.config.enable_backprop:
@@ -623,7 +621,7 @@ Use apply() method instead.\
             for array in retained_inputs])
         self._chainerx_retained_outputs = tuple([
             variable.Variable(
-                array, requires_grad=self._requires_grad)
+                array, requires_grad=array.is_backprop_required())
             for array in retained_outputs])
 
         gx_vars = self.backward(

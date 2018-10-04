@@ -713,10 +713,6 @@ class TestFunctionNodeRetaining(unittest.TestCase):
         assert len(f.retained_backward_inputs) == 1
         assert len(f.retained_backward_outputs) == 2
 
-        assert not f.retained_backward_inputs[0].requires_grad
-        assert f.retained_backward_outputs[0].requires_grad
-        assert f.retained_backward_outputs[1].requires_grad
-
         if xp is not chainerx:
             assert f.retained_backward_inputs[0].node is input_nodes[1]
 
