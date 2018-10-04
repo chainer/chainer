@@ -188,15 +188,9 @@ class TestConvolution2DFunction(unittest.TestCase):
     def test_backward(self, backend_config):
         # TODO(hvy): chainerx does not support fp16 yet
         if backend_config.use_chainerx:
-            # TODO(hvy): Remove dilation and groups checks once retention
-            # with ChainerX is implemented
             if (any(x.dtype == numpy.float16
                     for x in self.inputs if x is not None)
-                    or self.x_dtype != self.W_dtype
-                    or self.dilate > 1
-                    or self.groups > 1
-                    or (backend_config.chainerx_device == 'cuda:0'
-                        and self.cover_all)):
+                    or self.x_dtype != self.W_dtype):
                 raise unittest.SkipTest('Not yet supported')
 
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
@@ -232,15 +226,9 @@ class TestConvolution2DFunction(unittest.TestCase):
     def test_double_backward(self, backend_config):
         # TODO(hvy): chainerx does not support fp16 yet
         if backend_config.use_chainerx:
-            # TODO(hvy): Remove dilation and groups checks once retention
-            # with ChainerX is implemented
             if (any(x.dtype == numpy.float16
                     for x in self.inputs if x is not None)
-                    or self.x_dtype != self.W_dtype
-                    or self.dilate > 1
-                    or self.groups > 1
-                    or (backend_config.chainerx_device == 'cuda:0'
-                        and self.cover_all)):
+                    or self.x_dtype != self.W_dtype):
                 raise unittest.SkipTest('Not yet supported')
 
         self.check_double_backward(

@@ -311,6 +311,9 @@ Use apply() method instead.\
                 [] if self._output_indexes_to_retain is None
                 else self._output_indexes_to_retain)
 
+            self.inputs = tuple(
+                [variable._ChainerXVariableProps(x) for x in inputs])
+
             ret = tuple([
                 variable.Variable(y, requires_grad=y.is_backprop_required())
                 for y in chainerx_out_data])
