@@ -677,44 +677,62 @@ class TestBackpropModeMultiThread(unittest.TestCase):
 
 class FunctionNodeWithRetaining(chainer.FunctionNode):
 
+    def __init__(self, input_indices, output_indices):
+        self.input_indices = input_indices
+        self.output_indices = output_indices
+
     def forward(self, inputs):
-        self.retain_inputs([1])
-        self.retain_outputs([1])
+        self.retain_inputs(self.input_indices)
+        self.retain_outputs(self.output_indices)
         return inputs
 
     def backward(self, _, grad_outputs):
-        self.backward_inputs = self.get_retained_inputs()
-        self.backward_outputs = self.get_retained_outputs()
+        self.retained_backward_inputs = self.get_retained_inputs()
+        self.retained_backward_outputs = self.get_retained_outputs()
         return grad_outputs
 
 
 class TestFunctionNodeRetaining(unittest.TestCase):
 
-    def setUp(self):
-        inputs = [chainer.Variable(numpy.array([1], dtype=numpy.float32)),
-                  chainer.Variable(numpy.array([1], dtype=numpy.float32))]
-        self.input_data = [x.data for x in inputs]
-        self.input_nodes = [x.node for x in inputs]
+    def check_function_node_retain(self, xp):
+        inputs = [chainer.Variable(xp.array([2], dtype=numpy.float32)),
+                  chainer.Variable(xp.array([-1], dtype=numpy.float32),
+                                   requires_grad=False)]
+        input_arrays = [x.array for x in inputs]
+        if xp is not chainerx:
+            input_nodes = [x.node for x in inputs]
 
-        self.f1 = FunctionNodeWithRetaining()
-        outputs = self.f1.apply(inputs)
-        outputs[0].grad = numpy.array([1], dtype=numpy.float32)
+        f = FunctionNodeWithRetaining([1], [0, 1])
+        outputs = f.apply(inputs)
+        outputs[0].grad = xp.array([1], dtype=numpy.float32)
         outputs[0].backward()
-        self.f1_output_data = [y.data for y in outputs]
-        self.f1_output_nodes = [y.node for y in outputs]
+        output_arrays = [y.array for y in outputs]
 
         inputs = None  # release non-retained inputs
 
-    def test_retain_inputs(self):
-        self.assertEqual(len(self.f1.backward_inputs), 1)
-        self.assertIs(self.f1.backward_inputs[0].node, self.input_nodes[1])
-        numpy.testing.assert_array_equal(self.f1.backward_inputs[0].data,
-                                         self.input_data[1])
+        assert len(f.retained_backward_inputs) == 1
+        assert len(f.retained_backward_outputs) == 2
 
-    def test_retain_outputs_f1(self):
-        self.assertEqual(len(self.f1.backward_outputs), 1)
-        numpy.testing.assert_array_equal(self.f1.backward_outputs[0].data,
-                                         self.f1_output_data[1])
+        if xp is not chainerx:
+            assert f.retained_backward_inputs[0].node is input_nodes[1]
+
+        xp.testing.assert_array_equal(
+            f.retained_backward_inputs[0].array, input_arrays[1])
+        xp.testing.assert_array_equal(
+            f.retained_backward_outputs[0].array, output_arrays[0])
+        xp.testing.assert_array_equal(
+            f.retained_backward_outputs[1].array, output_arrays[1])
+
+    def test_retain_cpu(self):
+        self.check_function_node_retain(numpy)
+
+    @attr.gpu
+    def test_retain_gpu(self):
+        self.check_function_node_retain(cuda.cupy)
+
+    @attr.chainerx
+    def test_retain_chainerx(self):
+        self.check_function_node_retain(chainerx)
 
 
 def _get_value(x):
