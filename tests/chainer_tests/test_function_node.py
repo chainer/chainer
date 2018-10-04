@@ -598,6 +598,66 @@ class TestFunctionNodeRetaining(unittest.TestCase):
                                          self.f1_output_data[1])
 
 
+class ExpAndExpm1(chainer.FunctionNode):
+    def forward(self, inputs):
+        x, = inputs
+        xp = chainer.backend.get_array_module()
+        y0 = xp.exp(x)
+        y1 = xp.expm1(x)
+        self.retain_outputs((0,))
+        return y0, y1
+
+    def backward(self, target_input_indexes, grad_outputs):
+        g0, g1 = grad_outputs
+        y0, = self.get_retained_outputs()
+        gx = []
+        if g0 is not None:
+            gx.append(g0 * y0)
+        if g1 is not None:
+            gx.append(g1 * y0)
+        return chainer.functions.add(*gx),
+
+
+def exp_and_expm1(x):
+    return ExpAndExpm1().apply((x,))
+
+
+class TestFunctionNodeRetaining2(unittest.TestCase):
+
+    def test_retain_output(self):
+        xp = numpy
+        x_array = xp.random.randn(3)
+        y0_grad = xp.random.randn(3)
+        y1_grad = xp.random.randn(3)
+        x_grad_grad = xp.random.randn(3)
+
+        """
+        # sanity check of exp_and_expm1
+        chainer.gradient_check.check_backward(
+            exp_and_expm1, x_array, (y0_grad, y1_grad))
+        chainer.gradient_check.check_double_backward(
+            exp_and_expm1, x_array, (y0_grad, y1_grad), x_grad_grad)
+        """
+
+        x = chainer.Variable(x_array, name='x')
+        y0, y1 = exp_and_expm1(x)
+        del y0
+
+        # (x: Variable) requires grad
+        # (y1_grad: ndarray) does not require grad
+        gx, = chainer.grad([y1], [x], [y1_grad], enable_double_backprop=True)
+
+        # assert gx == exp(x) * y1_grad
+        xp.testing.assert_allclose(
+            gx.array,
+            xp.exp(x.array) * y1_grad)
+
+        gx_, = chainer.grad([gx], [x], [x_grad_grad])
+        xp.testing.assert_allclose(
+            gx_.array,
+            gx.array * x_grad_grad)
+
+
 def _get_value(x):
     if isinstance(x, chainer.Variable):
         return x.data
