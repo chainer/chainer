@@ -45,31 +45,32 @@ def _check_optional_dependencies():
     for dep in chainer._version._optional_dependencies:
         name = dep['name']
         pkgs = dep['packages']
-        version = dep['version']
+        spec = dep['specifier']
         help = dep['help']
         installed = False
         for pkg in pkgs:
             found = False
-            requirement = '{}{}'.format(pkg, version)
+            requirement = '{}{}'.format(pkg, spec)
             try:
                 pkg_resources.require(requirement)
                 found = True
             except pkg_resources.DistributionNotFound:
                 continue
             except pkg_resources.VersionConflict:
-                dist = pkg_resources.get_distribution(pkg).version
-                warnings.warn('''
+                msg = '''
 --------------------------------------------------------------------------------
 {name} ({pkg}) version {version} may not be compatible with this version of Chainer.
 Please consider installing the supported version by running:
   $ pip install '{requirement}'
 
-See the the following page for more details:
+See the following page for more details:
   {help}
 --------------------------------------------------------------------------------
-'''.format(
-    name=name, pkg=pkg, version=pkg_resources.get_distribution(pkg).version,
-    requirement=requirement, help=dep['help']))  # NOQA
+'''  # NOQA
+                warnings.warn(msg.format(
+                    name=name, pkg=pkg,
+                    version=pkg_resources.get_distribution(pkg).version,
+                    requirement=requirement, help=help))
                 found = True
             except Exception as e:
                 warnings.warn(
@@ -80,9 +81,9 @@ See the the following page for more details:
                 if installed:
                     warnings.warn('''
 --------------------------------------------------------------------------------
-Multiple installation of {name} package has been detected.
-You should install only one package from {pkgs}.
-Run `pip list` to see the list of packages currentely installed, then
+Multiple installations of {name} package has been detected.
+You should select only one package from from {pkgs}.
+Run `pip list` to see the list of packages currently installed, then
 `pip uninstall <package name>` to uninstall unnecessary package(s).
 --------------------------------------------------------------------------------
 '''.format(name=name, pkgs=pkgs))
