@@ -119,11 +119,11 @@ def _array_to_chainerx(array, device):
     if isinstance(array, cuda.ndarray):
         if device is None:
             device = chainerx.get_device('cuda', array.device.id)
-        if device.backend.name != 'cuda':
+        elif device.backend.name != 'cuda':
             # cupy to non-cuda backend
             array = to_numpy(array)
             return chainerx.array(array, device=device)
-        if device.index != array.device.id:
+        elif device.index != array.device.id:
             # cupy to cuda backend but different device
             array = cuda.to_gpu(array, device=device.index)
         # cupy to cuda backend with the same device
