@@ -1,11 +1,14 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
+from chainer.functions.pooling import average_pooling_nd
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
+import chainerx
 
 
 class AveragePooling2D(pooling_2d.Pooling2D):
@@ -221,4 +224,6 @@ def average_pooling_2d(x, ksize, stride=None, pad=0):
        ``pad_value=None``.
 
     """
+    if backend.get_array_module(x) is chainerx:
+        return average_pooling_nd.average_pooling_nd(x, ksize, stride, pad)
     return AveragePooling2D(ksize, stride, pad, False).apply((x,))[0]

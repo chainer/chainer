@@ -111,7 +111,7 @@ class BackendConfig(object):
         assert all(callable(_) for _ in marks)
         return marks
 
-    def get_array(self, np_array):
+    def _get_single_array(self, np_array):
         if self.use_chainerx:
             # TODO(niboshi): Use backend.to_device or
             # backend.to_chainerx(a, device)
@@ -122,6 +122,13 @@ class BackendConfig(object):
         if self.use_ideep:
             return np_array
         return np_array
+
+    def get_array(self, np_array):
+        if isinstance(np_array, tuple):
+            return tuple([self._get_single_array(a) for a in np_array])
+        if isinstance(np_array, list):
+            return [self._get_single_array(a) for a in np_array]
+        return self._get_single_array(np_array)
 
 
 def _wrap_backend_test_method(impl, param, method_name):
