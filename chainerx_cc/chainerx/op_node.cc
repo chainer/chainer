@@ -46,6 +46,11 @@ std::shared_ptr<OpNode> OpNode::CreateWithOutputArrayNodes(
 
     for (const Array& out : outputs) {
         const std::shared_ptr<ArrayBody>& out_body = GetArrayBody(out);
+        // TODO(niboshi): The following `continue` causes output count mismatch. Fix it.
+        // See also: BackwardBuilderTest.FloatToInt_PartiallyBackproppable in backward_builder_test.cc
+        if (GetKind(out_body->dtype()) != DtypeKind::kFloat) {
+            continue;
+        }
         CHAINERX_ASSERT(!out_body->HasArrayNode(backprop_id));
         const std::shared_ptr<ArrayNode>& output_array_node = ArrayBody::CreateArrayNode(out_body, backprop_id);
         op_node->output_array_props_.emplace_back(*output_array_node);

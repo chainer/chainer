@@ -213,6 +213,7 @@ private:
     backward_builder_detail::RetentionRecord input_retention_record_;
     backward_builder_detail::RetentionRecord output_retention_record_;
 
+    bool has_any_applicable_outputs_;
     bool is_finalized_{false};
 };
 

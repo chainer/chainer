@@ -41,6 +41,12 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> in
 
 void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
     CHAINERX_ASSERT(graph_to_input_array_nodes_.empty());
+
+    if (!builder_.has_any_applicable_outputs_) {
+        // There's no output array that can have a gradient.
+        return;
+    }
+
     for (size_t input_index : input_indices_) {
         // Need to access the input array via the builder.
         const Array& input = gsl::at(builder_.inputs_, input_index);
@@ -119,6 +125,9 @@ BackwardBuilder::BackwardBuilder(const char* op_name, std::vector<ConstArrayRef>
     }));
     CHAINERX_ASSERT(std::all_of(
             inputs_.begin(), inputs_.end(), [this](const Array& input) { return &inputs_.begin()->get().device() == &input.device(); }));
+
+    has_any_applicable_outputs_ =
+            std::any_of(outputs_.begin(), outputs_.end(), [](const Array& output) { return GetKind(output.dtype()) == DtypeKind::kFloat; });
 }
 
 std::shared_ptr<OpNode>& BackwardBuilder::FindOrCreateOpNode(const BackpropId& backprop_id) {
