@@ -48,6 +48,9 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
     if (bytesize == 0) {
         return;
     }
+    // TODO(niboshi): Do device management with RAII
+    int old_device{};
+    CheckCudaError(cudaGetDevice(&old_device));
     CheckCudaError(cudaSetDevice(index()));
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
         // Copy between CUDA devices
@@ -59,6 +62,7 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
         // Copy from native device
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyHostToDevice));
     }
+    CheckCudaError(cudaSetDevice(old_device));
 }
 
 void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
@@ -66,6 +70,9 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
     if (bytesize == 0) {
         return;
     }
+    // TODO(niboshi): Do device management with RAII
+    int old_device{};
+    CheckCudaError(cudaGetDevice(&old_device));
     CheckCudaError(cudaSetDevice(index()));
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
@@ -77,6 +84,7 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
         // Copy to native device
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
     }
+    CheckCudaError(cudaSetDevice(old_device));
 }
 
 std::shared_ptr<void> CudaDevice::TransferDataFrom(
