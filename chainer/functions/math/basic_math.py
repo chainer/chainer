@@ -30,17 +30,6 @@ def _convert_value_to_string(value):
             'or a `Variable`.\nActual: {}'.format(type(value)))
 
 
-def _check_constant_type(value):
-    if numpy.isscalar(value):
-        return
-    elif isinstance(value, (numpy.ndarray, cuda.ndarray)):
-        return
-    else:
-        raise TypeError(
-            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
-            'or a `Variable`.\nActual: {}'.format(type(value)))
-
-
 def _preprocess_const(x, value):
     return utils.force_type(x.dtype, value)
 
@@ -48,7 +37,13 @@ def _preprocess_const(x, value):
 def _preprocess_rhs(x, value):
     if isinstance(value, chainer.Variable):
         return value
-    _check_constant_type(value)
+
+    if not (numpy.isscalar(value)
+            or isinstance(value, (numpy.ndarray, cuda.ndarray))):
+        raise TypeError(
+            'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
+            'or a `Variable`.\nActual: {}'.format(type(value)))
+
     return utils.force_type(x.dtype, value)
 
 
