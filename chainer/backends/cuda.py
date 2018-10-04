@@ -299,6 +299,7 @@ def _array_to_gpu(array, device, stream):
 
     if chainerx.is_available() and isinstance(array, chainerx.ndarray):
         if array.device.backend.name == 'cuda':
+            # Convert to cupy.ndarray on the same device as source array
             array = cupy.ndarray(
                 array.shape,
                 array.dtype,
@@ -310,11 +311,8 @@ def _array_to_gpu(array, device, stream):
                         array.device.index),
                     0),
                 strides=array.strides)
-            # Return shared-memory cupy.ndarray
-            return array
         else:
             array = chainerx.to_numpy(array)
-            # Fall through to the following logic
     elif isinstance(array, (numpy.number, numpy.bool_)):
         array = numpy.asarray(array)
     elif isinstance(array, intel64.mdarray):
