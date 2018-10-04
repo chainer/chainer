@@ -4,10 +4,12 @@ import numpy
 
 from chainer import backend
 from chainer.backends import cuda
+from chainer import function
 from chainer import function_node
 import chainer.functions
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 def _mat_ptrs(a):
@@ -198,6 +200,15 @@ def matmul(a, b, transa=False, transb=False):
                [2., 2.]], dtype=float32)
 
     """
+    if backend.get_array_module(a, b) is chainerx:
+        # TODO(sonots): Support transa and transb in ChainerX
+        # TODO(sonots): Support dtype promotion in ChainerX
+        # TODO(sonots): Support ndim > 2 in ChainerX
+        if (not transa and not transb
+                and a.dtype == b.dtype
+                and a.ndim == 2 and b.ndim == 2):
+            return function._chainerx_op(chainerx.dot, a, b)
+
     return MatMul(transa=transa, transb=transb).apply((a, b))[0]
 
 

@@ -565,7 +565,9 @@ def rdiv(self, rhs):  # rhs / lhs
         ~chainer.Variable: Output variable.
     """
     if backend.get_array_module(self) is chainerx:
-        return _chainerx_binary_op(lambda a, b: b / a, 'rdiv', self, rhs)
+        # TODO(sonots): Support rhs of constant such as float
+        if backend.get_array_module(rhs) is chainerx:
+            return _chainerx_binary_op(lambda a, b: b / a, 'rdiv', self, rhs)
 
     if numpy.isscalar(rhs):
         return DivFromConstant(rhs).apply((self,))[0]
