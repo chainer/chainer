@@ -21,15 +21,15 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     The loss also brings a weak regularization term to prevent overfitting.
     This loss function calculates the following three parameters:
 
-    - Variance Loss:
+    Variance Loss
         Loss to penalize distances between pixels which are belonging
         to the same instance. (Pull force)
 
-    - Distance loss:
+    Distance loss
         Loss to penalize distances between the centers of instances.
         (Push force)
 
-    - Regularization loss:
+    Regularization loss
         Small regularization loss to penalize weights against overfitting.
 
     """
@@ -59,18 +59,24 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
     def __call__(self, embeddings, labels):
         """
-        :param embeddings:
-            predicted embedding vectors \
-            (batch size, max embedding dimensions, height, width)
-        :param labels:
-            instance segmentation ground truth
-            each unique value has to be denoting one instance \
-            (batch size, height, width)
-        :return:
-        tuple of chainer.Variable:
-            Variance loss : Variance loss multiplied by alpha
-            Distance loss : Distance loss multiplied by beta
-            Regularization loss : Regularization loss multiplied by gamma
+        Args:
+            embeddings (:class:`~chainer.Variable` or :class:`numpy.ndarray` \
+            or :class:`cupy.ndarray`): \
+                predicted embedding vectors
+                (batch size, max embedding dimensions, height, width)
+
+            labels (:class:`numpy.ndarray` or :class:`cupy.ndarray`): \
+                instance segmentation ground truth
+                each unique value has to be denoting one instance
+                (batch size, height, width)
+
+        Returns:
+            :class:`tuple` of :class:`chainer.Variable`:
+            - *Variance loss*: Variance loss multiplied by ``alpha``
+            - *Distance loss*: Distance loss multiplied by ``beta``
+            - *Regularization loss*: Regularization loss multiplied by
+              ``gamma``
+
         """
         assert (self.max_embedding_dim == embeddings.shape[1])
 
