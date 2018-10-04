@@ -139,9 +139,7 @@ def _array_to_chainerx(array, device):
             array)
     if isinstance(array, intel64.mdarray):
         # TODO(sonots): Support ideep
-        raise NotImplementedError(
-            'Conversion between iDeep array and ChainerX array is not '
-            'supported yet')
+        return _array_to_chainerx(numpy.array(array), device)
     if numpy.isscalar(array):
         return chainerx.asarray(array)
     raise TypeError(

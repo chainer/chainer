@@ -12,6 +12,8 @@ from chainer.functions.connection import convolution_2d
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+from chainer import variable
+import chainerx
 
 if cuda.cudnn_enabled:
     _cudnn_version = cuda.cuda.cudnn.getVersion()
@@ -424,11 +426,20 @@ astype(np.float32)
     dilate, groups = argument.parse_kwargs(kwargs,
                                            ('dilate', 1), ('groups', 1))
 
-    func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate,
-                                   groups=groups)
     if b is None:
         args = x, W
     else:
         args = x, W, b
+
+    if backend.get_array_module(*args) is chainerx and (
+            dilate == 1 and groups == 1):
+        x = variable.as_array(x)
+        W = variable.as_array(W)
+        b = None if b is None else variable.as_array(b)
+        res = chainerx.conv_transpose(x, W, b, stride, pad, outsize)
+        return variable.as_variable(res)
+
+    func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate,
+                                   groups=groups)
     y, = func.apply(args)
     return y
