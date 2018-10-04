@@ -121,7 +121,7 @@ On recommended systems, you can install Chainer Backend for Intel Architecture w
 
 .. note::
 
-    ``ideep4py`` v1.0.x is incompatible with v2.0.x, and is not supported in Chainer v4.4.0 or later.
+    ``ideep4py`` v1.0.x is incompatible with v2.0.x, and is not supported in Chainer v5.0 or later.
 
 Enable Chainer Backend for Intel Architecture Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
