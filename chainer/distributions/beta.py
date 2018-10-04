@@ -14,6 +14,25 @@ def _lbeta(a, b):
 
 class Beta(distribution.Distribution):
 
+    """Beta Distribution.
+
+    The probability density function of the distribution is expressed as
+
+    .. math::
+       f(x) = \\frac{x^{\\alpha-1}(1-x)^{\\beta-1}}{B(\\alpha,\\beta)},
+
+    for :math:`0 < x < 1`, :math:`\\alpha > 0`, :math:`\\beta > 0`.
+
+    Args:
+        a(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing \
+        :math:`\\alpha`.
+        b(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing \
+        :math:`\\beta`.
+
+    """
+
     def __init__(self, a, b):
         super(Beta, self).__init__()
         self.__a = chainer.as_variable(a)
