@@ -139,38 +139,40 @@ def discriminative_margin_based_clustering_loss(
     The loss also brings a weak regularization term to prevent overfitting.
     This loss function calculates the following three parameters:
 
-    - Variance Loss:
-        Loss to penalize distances between pixels which are belonging \
+    Variance Loss
+        Loss to penalize distances between pixels which are belonging
         to the same instance. (Pull force)
 
-    - Distance loss:
-        Loss to penalize distances between the centers of instances. \
+    Distance loss
+        Loss to penalize distances between the centers of instances.
         (Push force)
 
-    - Regularization loss:
+    Regularization loss
         Small regularization loss to penalize weights against overfitting.
 
-    :param embeddings:
-        :class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`
-            predicted embedding vectors \
+    Args:
+        embeddings (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): \
+            predicted embedding vectors
             (batch size, max embedding dimensions, height, width)
-    :param labels:
-        :class:`numpy.ndarray` or :class:`cupy.ndarray`
-            instance segmentation ground truth \
-            each unique value has to be denoting one instance \
+
+        labels (:class:`numpy.ndarray` or :class:`cupy.ndarray`): \
+            instance segmentation ground truth
+            each unique value has to be denoting one instance
             (batch size, height, width)
-    :param delta_v: (float) Minimum distance to start penalizing variance
-    :param delta_d: (float) Maximum distance to stop penalizing distance
-    :param max_embedding_dim: (int) Maximum number of embedding dimensions
-    :param norm: (int) Norm to calculate pixels and cluster center distances
-    :param alpha: (float) Weight for variance loss
-    :param beta: (float) Weight for distance loss
-    :param gamma: (float) Weight for regularization loss
-    :return: tuple of chainer.Variable:
-        Variance loss : Variance loss multiplied by alpha
-        Distance loss : Distance loss multiplied by beta
-        Regularization loss : Regularization loss multiplied by gamma
+        delta_v (float): Minimum distance to start penalizing variance
+        delta_d (float): Maximum distance to stop penalizing distance
+        max_embedding_dim (int): Maximum number of embedding dimensions
+        norm (int): Norm to calculate pixels and cluster center distances
+        alpha (float): Weight for variance loss
+        beta (float): Weight for distance loss
+        gamma (float): Weight for regularization loss
+
+    Returns:
+        :class:`tuple` of :class:`chainer.Variable`:
+        - *Variance loss*: Variance loss multiplied by ``alpha``
+        - *Distance loss*: Distance loss multiplied by ``beta``
+        - *Regularization loss*: Regularization loss multiplied by ``gamma``
 
     """
 
