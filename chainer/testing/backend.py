@@ -35,6 +35,16 @@ class BackendConfig(object):
                 raise ValueError('Parameter {} is not defined'.format(k))
             setattr(self, k, v)
 
+        self._check_params()
+
+    def _check_params(self):
+        # Checks consistency of parameters
+
+        if self.use_chainerx:
+            assert isinstance(self.chainerx_device, str), (
+                '\'chainerx_device\' parameter is expected to be a string '
+                'representing a ChainerX device specifier')
+
     @property
     def xp(self):
         if self.use_chainerx:
