@@ -112,6 +112,9 @@ class BackendConfig(object):
         return marks
 
     def get_array(self, np_array):
+        return chainer.backend._obj_to_array(np_array, self._get_array)
+
+    def _get_array(self, np_array):
         if self.use_chainerx:
             # TODO(niboshi): Use backend.to_device or
             # backend.to_chainerx(a, device)

@@ -30,11 +30,13 @@ from chainer.testing import condition
     'nobias': [True, False],
 })))
 @backend.inject_backend_tests(
+    # TODO(hvy): test 'cuda:0'
     #['test_forward', 'test_backward', 'test_double_backward'],
     ['test_forward', 'test_backward'],
     # ChainerX tests
     testing.product({
         'use_chainerx': [True],
+        'chainerx_device': ['native:0'],
     })
     # CPU tests
     + testing.product({
@@ -109,10 +111,7 @@ class TestConvolution2DFunction(unittest.TestCase):
         with chainer.using_config('use_ideep', 'never'):
             y_expected = self.forward(inputs)
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-        elif backend_config.use_chainerx:
-            inputs = chainer.backend.to_chainerx(inputs)
+        inputs = backend_config.get_array(inputs)
 
         with backend_config:
             y_actual = self.forward(inputs)
