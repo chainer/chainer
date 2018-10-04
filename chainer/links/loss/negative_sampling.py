@@ -43,11 +43,13 @@ class NegativeSampling(link.Link):
     def to_cpu(self):
         super(NegativeSampling, self).to_cpu()
         self.sampler.to_cpu()
+        return self
 
     def to_gpu(self, device=None):
         with cuda._get_device(device):
             super(NegativeSampling, self).to_gpu()
             self.sampler.to_gpu()
+        return self
 
     def forward(self, x, t, reduce='sum'):
         """Computes the loss value for given input and ground truth labels.

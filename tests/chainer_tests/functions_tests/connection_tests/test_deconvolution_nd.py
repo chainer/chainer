@@ -5,6 +5,7 @@ import numpy
 from operator import mul
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import gradient_check
@@ -164,7 +165,7 @@ class TestDeconvolutionND(unittest.TestCase):
     def check_backward(self, x_data, W_data, b_data, y_grad,
                        use_cudnn='never'):
         if not self.c_contiguous:
-            xp = cuda.get_array_module(x_data)
+            xp = backend.get_array_module(x_data)
             x_data = xp.asfortranarray(x_data)
             W_data = xp.asfortranarray(W_data)
             y_grad = xp.asfortranarray(y_grad)
@@ -218,7 +219,7 @@ class TestDeconvolutionND(unittest.TestCase):
         x_grad_grad, W_grad_grad, b_grad_grad = grad_grad_inputs
 
         if not self.c_contiguous:
-            xp = cuda.get_array_module(x_data)
+            xp = backend.get_array_module(x_data)
             x_data = xp.asfortranarray(x_data)
             W_data = xp.asfortranarray(W_data)
             y_grad = xp.asfortranarray(y_grad)
@@ -441,6 +442,42 @@ class TestDeconvolutionNDTypeCheck(unittest.TestCase):
         pad = 10
         with self.assertRaises(AssertionError):
             F.deconvolution_nd(x, W, stride=stride, pad=pad)
+
+
+class TestDeconvolutionNDWrappers(unittest.TestCase):
+
+    def _get_data(self, ndim):
+        in_channels = 3
+        out_channels = 2
+        dtype = numpy.float32
+
+        x_shape = (2, in_channels) + (3,) * ndim
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+        W_shape = (in_channels, out_channels) + (1,) * ndim
+        W = numpy.random.uniform(-1, 1, W_shape).astype(dtype)
+        b = numpy.random.uniform(-1, 1, out_channels).astype(dtype)
+
+        return x, W, b
+
+    def test_deconv1d(self):
+        (x, W, b) = self._get_data(1)
+        testing.assert_allclose(
+            F.deconvolution_nd(x, W, b).data, F.deconvolution_1d(x, W, b).data)
+
+    def test_deconv1d_invalid(self):
+        (x, W, b) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            F.deconvolution_1d(x, W, b)
+
+    def test_deconv3d(self):
+        (x, W, b) = self._get_data(3)
+        testing.assert_allclose(
+            F.deconvolution_nd(x, W, b).data, F.deconvolution_3d(x, W, b).data)
+
+    def test_deconv3d_invalid(self):
+        (x, W, b) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            F.deconvolution_3d(x, W, b)
 
 
 testing.run_module(__name__, __file__)

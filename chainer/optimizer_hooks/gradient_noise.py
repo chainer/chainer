@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer import cuda
 
 
@@ -70,7 +71,7 @@ class GradientNoise(object):
         g = param.grad
         if g is None:
             return
-        xp = cuda.get_array_module(g)
+        xp = backend.get_array_module(g)
         with cuda.get_device_from_array(g) as dev:
             noise = self.noise_func(xp, g.shape, g.dtype, self, rule)
             if int(dev) == -1:

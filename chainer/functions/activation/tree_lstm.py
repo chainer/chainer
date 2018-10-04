@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -123,7 +124,7 @@ class TreeLSTM(function.Function):
         return self.c, h
 
     def backward(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         cs, x = inputs[:-1], inputs[-1]
         n_ary = len(cs)
         gc, gh = grad_outputs

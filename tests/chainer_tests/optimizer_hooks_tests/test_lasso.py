@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 
 import chainer
-from chainer import cuda
+from chainer import backend
 import chainer.initializers as I
 from chainer import optimizer_hooks
 from chainer import optimizers
@@ -30,7 +30,7 @@ class TestLasso(unittest.TestCase):
     def check_lasso(self):
         w = self.target.param.data
         g = self.target.param.grad
-        xp = cuda.get_array_module(w)
+        xp = backend.get_array_module(w)
         decay = 0.2
         expect = w - g - decay * xp.sign(w)
 

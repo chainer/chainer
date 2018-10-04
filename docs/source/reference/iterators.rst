@@ -17,6 +17,7 @@ Chainer provides some iterators that implement typical strategies to create mini
    chainer.iterators.SerialIterator
    chainer.iterators.MultiprocessIterator
    chainer.iterators.MultithreadIterator
+   chainer.iterators.DaliIterator
 
 
 Order sampler examples

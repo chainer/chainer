@@ -17,11 +17,13 @@ Distributions
    chainer.distributions.Bernoulli
    chainer.distributions.Beta
    chainer.distributions.Categorical
+   chainer.distributions.Dirichlet
    chainer.distributions.Exponential
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
    chainer.distributions.MultivariateNormal
    chainer.distributions.Normal
+   chainer.distributions.Pareto
    chainer.distributions.Uniform
 
 

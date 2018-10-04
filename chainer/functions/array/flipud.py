@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -17,7 +17,7 @@ class FlipUD(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return xp.flipud(inputs[0]),
 
     def backward(self, indexes, grad_outputs):
