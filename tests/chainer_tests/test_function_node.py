@@ -627,17 +627,8 @@ class TestFunctionNodeRetaining2(unittest.TestCase):
     def test_retain_output(self):
         xp = numpy
         x_array = xp.random.randn(3)
-        y0_grad = xp.random.randn(3)
         y1_grad = xp.random.randn(3)
         x_grad_grad = xp.random.randn(3)
-
-        """
-        # sanity check of exp_and_expm1
-        chainer.gradient_check.check_backward(
-            exp_and_expm1, x_array, (y0_grad, y1_grad))
-        chainer.gradient_check.check_double_backward(
-            exp_and_expm1, x_array, (y0_grad, y1_grad), x_grad_grad)
-        """
 
         x = chainer.Variable(x_array, name='x')
         y0, y1 = exp_and_expm1(x)
