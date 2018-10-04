@@ -545,15 +545,15 @@ class Ident(chainer.Function):
     'dtype': [None, numpy.float32, numpy.float64],
 }))
 @backend.inject_backend_tests(None, [
-    {},
-    {'use_cuda': True},
-    {'chainerx_device': 'native:0'},
-    {'chainerx_device': 'cuda:0'},
+    {'use_cuda': False, 'use_chainerx': False},
+    {'use_cuda': True, 'use_chainerx': False},
+    {'use_cuda': False, 'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_cuda': False, 'use_chainerx': True, 'chainerx_device': 'cuda:0'},
 ])
 class TestCheckBackward(unittest.TestCase):
 
     def test_multiple_output(self, backend_config):
-        if backend_config.chainerx_device is not None:
+        if backend_config.use_chainerx:
             raise unittest.SkipTest(
                 'ChainerX does not support input retention')
         x1 = backend_config.get_array(numpy.array([1], dtype='f'))
@@ -570,7 +570,7 @@ class TestCheckBackward(unittest.TestCase):
             f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
 
     def test_no_grads_for_not_float(self, backend_config):
-        if backend_config.chainerx_device is not None:
+        if backend_config.use_chainerx:
             raise unittest.SkipTest(
                 'ChainerX does not support input retention')
         x1 = backend_config.get_array(numpy.array([1], dtype='f'))
@@ -625,7 +625,7 @@ class TestCheckBackward(unittest.TestCase):
             f, (x1, x2), g1, no_grads=[False, False])
 
     def test_no_grads_option_with_dtype(self, backend_config):
-        if backend_config.chainerx_device is not None:
+        if backend_config.use_chainerx:
             raise unittest.SkipTest(
                 'ChainerX does not support input retention')
         x1 = backend_config.get_array(numpy.array([1], dtype='f'))
@@ -786,10 +786,10 @@ class NewIdent(chainer.FunctionNode):
 
 
 @backend.inject_backend_tests(None, [
-    {},
-    {'use_cuda': True},
-    {'chainerx_device': 'native:0'},
-    {'chainerx_device': 'cuda:0'},
+    {'use_cuda': False, 'use_chainerx': False},
+    {'use_cuda': True, 'use_chainerx': False},
+    {'use_cuda': False, 'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_cuda': False, 'use_chainerx': True, 'chainerx_device': 'cuda:0'},
 ])
 class TestCheckDoubleBackward(unittest.TestCase):
 
@@ -811,7 +811,7 @@ class TestCheckDoubleBackward(unittest.TestCase):
         self.check_multiple_input_output(backend_config)
 
     def check_double_backward_with_params(self, backend_config):
-        if backend_config.chainerx_device is not None:
+        if backend_config.use_chainerx:
             raise unittest.SkipTest(
                 'ChainerX does not support params argument of '
                 'gradient_check.check_double_backward().')

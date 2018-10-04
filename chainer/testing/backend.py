@@ -11,7 +11,8 @@ import chainerx
 class BackendConfig(object):
 
     _props = [
-        ('chainerx_device', None),
+        ('use_chainerx', False),
+        ('chainerx_device', None),  # None -> native:0
         ('use_cuda', False),
         ('use_cudnn', 'never'),
         ('cudnn_deterministic', False),
@@ -36,7 +37,7 @@ class BackendConfig(object):
 
     @property
     def xp(self):
-        if self.chainerx_device is not None:
+        if self.use_chainerx:
             return chainerx
         if self.use_cuda:
             return cuda.cupy
@@ -85,9 +86,10 @@ class BackendConfig(object):
 
     def get_pytest_marks(self):
         marks = []
-        if self.chainerx_device is not None:
+        if self.use_chainerx:
             marks.append(attr.chainerx)
-            if self.chainerx_device.startswith('cuda:'):
+            if (self.chainerx_device is not None
+                    and self.chainerx_device.startswith('cuda:')):
                 marks.append(attr.gpu)
         elif self.use_cuda:
             marks.append(attr.gpu)
@@ -101,11 +103,13 @@ class BackendConfig(object):
         return marks
 
     def get_array(self, np_array):
-        if self.chainerx_device is not None:
+        if self.use_chainerx:
+            device = (
+                'native:0' if self.chainerx_device is None
+                else self.chainerx_device)
             # TODO(niboshi): Use backend.to_device or
             # backend.to_chainerx(a, device)
-            arr = chainer.backend.to_chainerx(np_array)
-            return arr.to_device(self.chainerx_device)
+            return chainer.backend.to_chainerx(np_array).to_device(device)
         if self.use_cuda:
             return chainer.backend.cuda.to_gpu(np_array)
         if self.use_ideep:
