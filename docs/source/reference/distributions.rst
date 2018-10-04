@@ -18,6 +18,7 @@ Distributions
    chainer.distributions.Beta
    chainer.distributions.Categorical
    chainer.distributions.Dirichlet
+   chainer.distributions.Gamma
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
    chainer.distributions.MultivariateNormal
