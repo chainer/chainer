@@ -9,7 +9,6 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import max_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
-from chainer import utils
 from chainer.utils import conv_nd
 
 
@@ -24,7 +23,6 @@ class MaxPoolingND(pooling_nd._PoolingND):
     """
 
     def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True):
-        utils.experimental('chainer.functions.pooling.MaxPoolingND')
         super(MaxPoolingND, self).__init__(
             ndim, ksize, stride=stride, pad=pad, cover_all=cover_all)
 
@@ -232,7 +230,8 @@ class MaxPoolingNDWithIndexes(function_node.FunctionNode):
         return y,
 
 
-def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
+def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
+                   return_indices=False):
     """N-dimensionally spatial max pooling function.
 
     .. warning::
@@ -240,10 +239,10 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
         This feature is experimental. The interface can change in the future.
 
     This function provides a N-dimensionally generalized version of
-    :func:`~functions.max_pooling_2d`. This acts similarly to
-    :class:`~functions.ConvolutionND`, but it computes the maximum of input
-    spatial patch for each channel without any parameter instead of computing
-    the inner products.
+    :func:`~chainer.functions.max_pooling_2d`. This acts similarly to
+    :func:`~chainer.functions.convolution_nd`, but it computes the maximum of
+    input spatial patch for each channel without any parameter instead of
+    computing the inner products.
 
     Args:
         x (~chainer.Variable): Input variable.
@@ -257,10 +256,73 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True):
             ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
         cover_all (bool): If ``True``, all spatial locations are pooled into
             some output pixels. It may make the output size larger.
+        return_indices (bool): If ``True``, pooling indices array is returned
+            together with the output variable. The returned indices are
+            expected for use by :func:`chainer.functions.upsampling_nd`.
+            Note that cuDNN will not be used for this function if
+            ``return_indices`` is set to ``True``, as cuDNN does not return
+            indices information.
 
     Returns:
-        ~chainer.Variable: Output variable.
+        ~chainer.Variable or tuple:
+            When ``return_indices`` is ``False`` (default), returns the output
+            variable.
+            When ``False``, returns the tuple of the output variable and
+            pooling indices (`ndarray`). Pooling indices will be on the same
+            device as the input.
 
     """
     ndim = len(x.shape[2:])
-    return MaxPoolingND(ndim, ksize, stride, pad, cover_all).apply((x,))[0]
+    func = MaxPoolingND(ndim, ksize, stride, pad, cover_all)
+    if return_indices:
+        with chainer.using_config('use_cudnn', 'never'):
+            out = func.apply((x,))[0]
+        return out, func.indexes
+
+    return func.apply((x,))[0]
+
+
+def max_pooling_1d(x, ksize, stride=None, pad=0, cover_all=True,
+                   return_indices=False):
+    """1-dimensional spatial max pooling function.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.max_pooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.max_pooling_nd`.
+
+    """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return max_pooling_nd(x, ksize, stride, pad, cover_all, return_indices)
+
+
+def max_pooling_3d(x, ksize, stride=None, pad=0, cover_all=True,
+                   return_indices=False):
+    """3-dimensional spatial max pooling function.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.max_pooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.max_pooling_nd`.
+
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return max_pooling_nd(x, ksize, stride, pad, cover_all, return_indices)

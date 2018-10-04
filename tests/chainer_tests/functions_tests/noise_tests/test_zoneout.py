@@ -4,6 +4,7 @@ import mock
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -62,7 +63,7 @@ class TestZoneout(unittest.TestCase):
 
     def check_double_backward(
             self, h_data, x_data, y_grad, h_grad_grad, x_grad_grad):
-        xp = cuda.get_array_module(h_data)
+        xp = backend.get_array_module(h_data)
         flag_x = xp.random.rand(*x_data.shape)
 
         def f(h, x):
@@ -74,7 +75,7 @@ class TestZoneout(unittest.TestCase):
                     return_value=flag_x) as mock_rand:
                 y = functions.zoneout(h, x, self.ratio)
                 mock_rand.assert_called_once_with(*x.shape)
-            return y * y
+            return y
 
         gradient_check.check_double_backward(
             f, (h_data, x_data), y_grad, (h_grad_grad, x_grad_grad),

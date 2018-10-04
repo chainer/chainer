@@ -40,7 +40,7 @@ def get_greedy_action(Q, obs):
     """Get a greedy action wrt a given Q-function."""
     obs = Q.xp.asarray(obs[None], dtype=np.float32)
     with chainer.no_backprop_mode():
-        q = Q(obs).data[0]
+        q = Q(obs).array[0]
     return int(q.argmax())
 
 

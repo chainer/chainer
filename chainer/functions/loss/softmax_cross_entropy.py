@@ -66,7 +66,7 @@ class SoftmaxCrossEntropy(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -91,14 +91,16 @@ class SoftmaxCrossEntropy(function.Function):
             log_y *= _broadcast_to(self.class_weight.reshape(shape), x.shape)
         log_yd = numpy.rollaxis(log_y, 1)
         log_yd = log_yd.reshape(len(log_yd), -1)
-        log_p = log_yd[numpy.maximum(t.ravel(), 0), numpy.arange(t.size)]
+        t_valid = t != self.ignore_label
+        t = t * t_valid
+        log_p = log_yd[t.ravel(), numpy.arange(t.size)]
 
-        log_p *= (t.ravel() != self.ignore_label)
+        log_p *= t_valid.ravel()
         if self.reduce == 'mean':
             # deal with the case where the SoftmaxCrossEntropy is
             # unpickled from the old version
             if self.normalize:
-                count = (t != self.ignore_label).sum()
+                count = t_valid.sum()
             else:
                 count = len(x)
             self._coeff = 1.0 / max(count, 1)
@@ -170,15 +172,17 @@ class SoftmaxCrossEntropy(function.Function):
         else:
             y = log_softmax._log_softmax(x)
             numpy.exp(y, out=y)
+        t_valid = t != self.ignore_label
+        t = t * t_valid
         if y.ndim == 2:
             gx = y
-            gx[numpy.arange(len(t)), numpy.maximum(t, 0)] -= 1
+            gx[numpy.arange(len(t)), t] -= 1
             if self.class_weight is not None:
                 shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
                 c = _broadcast_to(self.class_weight.reshape(shape), x.shape)
-                c = c[numpy.arange(len(t)), numpy.maximum(t, 0)]
+                c = c[numpy.arange(len(t)), t]
                 gx *= _broadcast_to(numpy.expand_dims(c, 1), gx.shape)
-            gx *= (t != self.ignore_label).reshape((len(t), 1))
+            gx *= t_valid.reshape((len(t), 1))
         else:
             # in the case where y.ndim is higher than 2,
             # we think that a current implementation is inefficient
@@ -187,15 +191,15 @@ class SoftmaxCrossEntropy(function.Function):
             gx = y.reshape(y.shape[0], y.shape[1], -1)
             fst_index = numpy.arange(t.size) // n_unit
             trd_index = numpy.arange(t.size) % n_unit
-            gx[fst_index, numpy.maximum(t.ravel(), 0), trd_index] -= 1
+            gx[fst_index, t.ravel(), trd_index] -= 1
             if self.class_weight is not None:
                 shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
                 c = _broadcast_to(self.class_weight.reshape(shape), x.shape)
                 c = c.reshape(gx.shape)
-                c = c[fst_index, numpy.maximum(t.ravel(), 0), trd_index]
+                c = c[fst_index, t.ravel(), trd_index]
                 c = c.reshape(y.shape[0], 1, -1)
                 gx *= _broadcast_to(c, gx.shape)
-            gx *= (t != self.ignore_label).reshape((len(t), 1, -1))
+            gx *= t_valid.reshape((len(t), 1, -1))
             gx = gx.reshape(y.shape)
         if self.reduce == 'mean':
             gx *= gloss * self._coeff

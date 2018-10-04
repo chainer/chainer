@@ -28,8 +28,12 @@ forward/backward computations, and temporary arrays for consecutive elementwise
 operations.
 """
 
+import binascii
 import functools
+import itertools
 import os
+import threading
+import time
 import warnings
 
 import numpy
@@ -47,6 +51,8 @@ try:
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
     import cupyx  # NOQA
+    import cupyx.scipy.linalg  # NOQA
+    import cupyx.scipy.special  # NOQA
 
     from cupy import ndarray  # NOQA
 
@@ -54,12 +60,9 @@ try:
     from cupy.cuda import Event  # NOQA
     from cupy.cuda import Stream  # NOQA
 
-    from . import cuda_fusion as fusion  # NOQA
-
     available = True
 except Exception as e:
     _resolution_error = e
-    fusion = numpy
 
     class ndarray(object):
         pass  # for type testing
@@ -466,7 +469,7 @@ def clear_memo():
 # ------------------------------------------------------------------------------
 # Kernel definition utility
 # ------------------------------------------------------------------------------
-@memoize(for_each_device=True)
+@memoize()
 def elementwise(in_params, out_params, operation, name, **kwargs):
     """Creates an elementwise kernel function.
 
@@ -484,7 +487,7 @@ def elementwise(in_params, out_params, operation, name, **kwargs):
         in_params, out_params, operation, name, **kwargs)
 
 
-@memoize(for_each_device=True)
+@memoize()
 def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
            identity, name,  **kwargs):
     """Creates a global reduction kernel function.
@@ -504,6 +507,21 @@ def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
         identity, name, **kwargs)
 
 
+@memoize()
+def raw(code, name, *args, **kwargs):
+    """Creates a raw kernel function.
+
+    This function uses :func:`~chainer.backends.cuda.memoize` to cache the
+    resulting kernel object, i.e. the resulting kernel object is cached for
+    each argument combination and CUDA device.
+
+    The arguments are the same as those for :class:`cupy.RawKernel`.
+
+    """
+    check_cuda_available()
+    return cupy.RawKernel(code, name, *args, **kwargs)
+
+
 # ------------------------------------------------------------------------------
 # numpy/cupy compatible coding
 # ------------------------------------------------------------------------------
@@ -515,6 +533,11 @@ def get_array_module(*args):
     it will return their data arrays' array module for
     :class:`~chainer.Variable` arguments.
 
+    .. deprecated:: v5.0.0
+
+        This API is deprecated. Please use
+        :func:`~chainer.backend.get_array_module` instead.
+
     Args:
         args: Values to determine whether NumPy or CuPy should be used.
 
@@ -523,12 +546,7 @@ def get_array_module(*args):
         the arguments.
 
     """
-    if available:
-        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
-                for arg in args]
-        return cupy.get_array_module(*args)
-    else:
-        return numpy
+    return chainer.backend.get_array_module(*args)
 
 
 def get_max_workspace_size():
@@ -645,3 +663,36 @@ def should_use_cudnn_tensor_core(dtype):
     if use_tensor_core is None:
         use_tensor_core = cudnn.is_tensor_core_available(dtype)
     return use_tensor_core
+
+
+# ------------------------------------------------------------------------------
+# cupy.cudnn utility
+# ------------------------------------------------------------------------------
+
+def get_cudnn_dropout_states():
+    if not cudnn_enabled:
+        raise RuntimeError('cuDNN is not enabled.')
+
+    thread_id = threading.current_thread().ident
+    return get_cudnn_dropout_states_core(thread_id)
+
+
+_dropout_states_count = itertools.count()
+
+
+@memoize(for_each_device=True)
+def get_cudnn_dropout_states_core(thread_id):
+    states_id = next(_dropout_states_count)
+    seed = os.getenv('CHAINER_SEED')
+    if seed is None:
+        try:
+            seed_str = binascii.hexlify(os.urandom(8))
+            seed = numpy.uint64(int(seed_str, 16))
+        except NotImplementedError:
+            seed = numpy.uint64(time.clock() * 1000000)
+    else:
+        seed = numpy.uint64(seed)
+
+    seed += numpy.uint64(states_id)
+    handle = cudnn.get_handle()
+    return cudnn.DropoutStates(handle, seed)

@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
@@ -26,18 +27,15 @@ class Convolution2DFunction(function_node.FunctionNode):
     _use_ideep = False
 
     def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs,
+        dilate, groups = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1),
             deterministic="deterministic argument is not supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) context "
             "where value is either `True` or `False`.",
             requires_x_grad="requires_x_grad argument is not supported "
             "anymore. Just remove the argument. Note that whether to compute "
             "the gradient w.r.t. x is automatically decided during "
-            "backpropagation."
-        )
-        dilate, groups = argument.parse_kwargs(kwargs,
-                                               ('dilate', 1), ('groups', 1))
+            "backpropagation.")
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
@@ -192,7 +190,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         iCg = int(iC / G)
         oCg = int(oC / G)
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         _x = x.reshape((N, G, iCg, iH, iW))
         _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
@@ -276,13 +274,6 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gy = inputs
 
-        # NumPy raises an error when the array is not contiguous.
-        # See: https://github.com/chainer/chainer/issues/2744
-        # TODO(niboshi): Remove this code when NumPy is fixed.
-        if (not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
-                1 in gy.shape):
-            gy = numpy.ascontiguousarray(gy)
-
         if self.groups > 1:
             return self._forward_grouped_convolution(x, gy)
         else:
@@ -291,6 +282,13 @@ class Convolution2DGradW(function_node.FunctionNode):
     def _forward_cpu_core(self, x, gy):
         if self._use_ideep:
             return self._forward_ideep(x, gy)
+
+        # NumPy raises an error when the array is not contiguous.
+        # See: https://github.com/chainer/chainer/issues/2744
+        # TODO(niboshi): Remove this code when NumPy is fixed.
+        if (not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
+            gy = numpy.ascontiguousarray(gy)
 
         col = conv.im2col_cpu(
             x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
@@ -365,15 +363,12 @@ class Convolution2DGradW(function_node.FunctionNode):
         iCg = int(iC / G)
         oCg = int(oC / G)
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         _x = x.reshape((N, G, iCg, iH, iW))
         _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
         _gy = gy.reshape((N, G, oCg, oH, oW))
         _gy = xp.rollaxis(_gy, 1)  # (G, N, oCg, oH, oW)
-        # Work-around for NumPy's bug?
-        if xp is numpy:
-            _gy = xp.ascontiguousarray(_gy)
 
         _gWs = []
         for g in six.moves.range(G):
@@ -565,13 +560,11 @@ cover_all=True)
         True
 
     """  # NOQA
-    argument.check_unexpected_kwargs(
-        kwargs, deterministic="deterministic argument is not "
-        "supported anymore. "
+    dilate, groups = argument.parse_kwargs(
+        kwargs, ('dilate', 1), ('groups', 1),
+        deterministic="deterministic argument is not supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-    dilate, groups = argument.parse_kwargs(kwargs,
-                                           ('dilate', 1), ('groups', 1))
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
                                   groups=groups)

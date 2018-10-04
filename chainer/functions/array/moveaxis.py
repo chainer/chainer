@@ -1,6 +1,6 @@
 import six
 
-from chainer import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -58,8 +58,8 @@ class Moveaxis(function_node.FunctionNode):
             self.destination = destination
 
     def check_type_forward(self, in_types):
+        type_check.argname(in_types, ('x',))
         type_check.expect(
-            in_types.size() == 1,
             in_types[0].dtype.kind == 'f',
         )
 
@@ -87,7 +87,7 @@ class Moveaxis(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs(())
         self._in_ndim = inputs[0].ndim
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return _moveaxis(inputs[0], self.source, self.destination, xp),
 
     def backward(self, indexes, gy):
@@ -95,7 +95,14 @@ class Moveaxis(function_node.FunctionNode):
 
 
 def moveaxis(x, source, destination):
-    """Move the source axis to the destination.
+    """Move the source axes to the destination.
+
+    This function transpose the input ``x`` by moving
+    the axes ``source`` to the axes ``destination``.
+    Other axes remain in their original order.
+
+    See also :func:`chainer.functions.transpose`,
+    :func:`chainer.functions.swapaxes`.
 
     Args:
         x (~chainer.Variable): Input variable.
@@ -107,5 +114,14 @@ def moveaxis(x, source, destination):
 
     Returns:
         ~chainer.Variable: Variable whose axis is moved.
+
+    .. admonition:: Example
+
+        >>> x = np.zeros((2, 3, 4, 5), np.float32)
+        >>> chainer.functions.moveaxis(x, 0, -1).shape
+        (3, 4, 5, 2)
+        >>> chainer.functions.moveaxis(x, (0, 3), (2, 0)).shape
+        (5, 3, 2, 4)
+
     """
     return Moveaxis(source, destination).apply((x,))[0]

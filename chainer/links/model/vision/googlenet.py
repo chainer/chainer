@@ -1,5 +1,6 @@
 import collections
 import os
+import sys
 
 import numpy
 try:
@@ -83,8 +84,8 @@ class GoogLeNet(link.Chain):
             but not GlorotUniform.
 
     Attributes:
-        ~GoogLeNet.available_layers (list of str): The list of available layer
-            names used by ``forward`` and ``extract`` methods.
+        available_layers (list of str): The list of available layer names
+            used by ``forward`` and ``extract`` methods.
 
     """
 
@@ -208,10 +209,11 @@ class GoogLeNet(link.Chain):
         if layers is None:
             layers = ['prob']
 
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         h = x
         activations = {}
@@ -251,14 +253,37 @@ class GoogLeNet(link.Chain):
         it is also interpreted as a shortcut method that implicitly calls
         ``prepare`` and ``forward`` functions.
 
+        Unlike ``predict`` method, this method does not override
+        ``chainer.config.train`` and ``chainer.config.enable_backprop``
+        configuration. If you want to extract features without updating
+        model parameters, you need to manually set configuration when
+        calling this method as follows:
+
+         .. code-block:: python
+
+             # model is an instance of `GoogLeNet`
+             with chainer.using_config('train', False):
+                 with chainer.using_config('enable_backprop', False):
+                     feature = model.extract([image])
+
         .. warning::
 
-           ``train`` and ``volatile`` arguments are not supported anymore since
-           v2.
-           Instead, use ``chainer.using_config('train', train)`` and
-           ``chainer.using_config('enable_backprop', not volatile)``
-           respectively.
-           See :func:`chainer.using_config`.
+           ``train`` and ``volatile`` arguments are not supported
+           anymore since v2. Instead, users should configure
+           training and volatile modes with ``train`` and
+           ``enable_backprop``, respectively.
+
+           Note that default behavior of this method is different
+           between v1 and later versions. Specifically,
+           the default values of ``train`` arguments in v1 were
+           ``False`` and ``OFF``, while that of
+           ``chainer.config.train`` are ``True``.
+           Therefore, users need to explicitly switch ``train``
+           to ``False`` to run the code in test mode to turn off
+           coputational graph construction.
+
+           See the `upgrade guide <https://docs.chainer.org/en/stable\
+           /upgrade_v2.html#training-mode-is-configured-by-a-thread-local-flag>`_.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -278,12 +303,13 @@ class GoogLeNet(link.Chain):
         if layers is None:
             layers = ['pool5']
 
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config',
-            volatile='volatile argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config',
+                volatile='volatile argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         x = concat_examples([prepare(img, size=size) for img in images])
         x = Variable(self.xp.asarray(x))
@@ -349,6 +375,7 @@ def prepare(image, size=(224, 224)):
         raise ImportError('PIL cannot be loaded. Install Pillow!\n'
                           'The actual import error is as follows:\n' +
                           str(_import_error))
+    dtype = chainer.get_dtype()
     if isinstance(image, numpy.ndarray):
         if image.ndim == 3:
             if image.shape[0] == 1:
@@ -359,9 +386,9 @@ def prepare(image, size=(224, 224)):
     image = image.convert('RGB')
     if size:
         image = image.resize(size)
-    image = numpy.asarray(image, dtype=numpy.float32)
+    image = numpy.asarray(image, dtype=dtype)
     image = image[:, :, ::-1]
-    image -= numpy.array([104.0, 117.0, 123.0], dtype=numpy.float32)  # BGR
+    image -= numpy.array([104.0, 117.0, 123.0], dtype=dtype)  # BGR
     image = image.transpose((2, 0, 1))
     return image
 
@@ -441,7 +468,9 @@ def _dropout(x):
 
 def _make_npz(path_npz, url, model):
     path_caffemodel = download.cached_download(url)
-    print('Now loading caffemodel (usually it may take few minutes)')
+    sys.stderr.write(
+        'Now loading caffemodel (usually it may take few minutes)\n')
+    sys.stderr.flush()
     GoogLeNet.convert_caffemodel_to_npz(path_caffemodel, path_npz)
     npz.load_npz(path_npz, model)
     return model

@@ -1,3 +1,5 @@
+.. _creating_models:
+
 Creating Models
 ~~~~~~~~~~~~~~~
 
@@ -27,7 +29,7 @@ More Pythonic way is combining the links and procedures into a class:
    ...         self.l1 = L.Linear(4, 3)
    ...         self.l2 = L.Linear(3, 2)
    ...
-   ...     def __call__(self, x):
+   ...     def forward(self, x):
    ...         h = self.l1(x)
    ...         return self.l2(h)
 
@@ -55,7 +57,7 @@ It means we can define more complex chains that hold ``MyChain`` objects as thei
 
 .. note::
 
-   We often define a single forward method of a link by the ``__call__`` operator.
+   We often define a single forward method of a link by the ``forward`` operator.
    Such links and chains are callable and behave like regular functions of Variables.
 
 .. note::

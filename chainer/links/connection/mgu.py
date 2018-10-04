@@ -40,11 +40,13 @@ class StatefulMGU(MGUBase):
         super(StatefulMGU, self).to_cpu()
         if self.h is not None:
             self.h.to_cpu()
+        return self
 
     def to_gpu(self, device=None):
         super(StatefulMGU, self).to_gpu(device)
         if self.h is not None:
             self.h.to_gpu(device)
+        return self
 
     def set_state(self, h):
         assert isinstance(h, chainer.Variable)
@@ -61,8 +63,9 @@ class StatefulMGU(MGUBase):
     def forward(self, x):
         if self.h is None:
             n_batch = x.shape[0]
+            dtype = chainer.get_dtype()
             h_data = self.xp.zeros(
-                (n_batch, self._state_size), dtype=numpy.float32)
+                (n_batch, self._state_size), dtype=dtype)
             h = chainer.Variable(h_data)
         else:
             h = self.h

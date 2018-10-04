@@ -7,16 +7,19 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
+from chainer import link_hook
+from chainer.utils import collections_abc
 from chainer import variable
 
 
 def _is_shape(value):
     if value is None:
         return True
-    elif isinstance(value, collections.Sequence):
+    elif isinstance(value, collections_abc.Sequence):
         try:
             return all(int(x) for x in value)
         except TypeError:
@@ -124,10 +127,11 @@ class Link(object):
             is supplied, the default dtype will be used.
 
     Attributes:
-        ~Link.name (str): Name of this link, given by the parent chain (if
-            exists).
+        name (str): Name of this link, given by the parent chain (if exists).
 
     """
+
+    _local_link_hooks = None
 
     def __init__(self, **params):
         self._params = set()
@@ -142,8 +146,23 @@ class Link(object):
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
-    def __call__(self, *args, **kwargs):
-        return self.forward(*args, **kwargs)
+    @property
+    def local_link_hooks(self):
+        """Ordered dictionary of registered link hooks.
+
+        Contrary to ``chainer.thread_local.link_hooks``,
+        which registers its elements to all functions,
+        link hooks in this property are specific to this link.
+
+        """
+        if self._local_link_hooks is None:
+            self._local_link_hooks = collections.OrderedDict()
+        return self._local_link_hooks
+
+    @property
+    def _n_local_link_hooks(self):
+        return (0 if self._local_link_hooks is None
+                else len(self._local_link_hooks))
 
     @property
     def xp(self):
@@ -196,6 +215,40 @@ class Link(object):
             yield
         finally:
             self._within_init_scope = old_flag
+
+    def __call__(self, *args, **kwargs):
+
+        # TODO(niboshi): Support link hooks for other forward methods.
+        hooks = chainer._get_link_hooks()
+        if self._n_local_link_hooks > 0:
+            hooks = collections.OrderedDict(hooks)
+            hooks.update(self.local_link_hooks)
+        hooks = hooks.values()  # avoid six for performance
+
+        # Call forward_preprocess hook
+        if hooks:
+            cb_args = link_hook._ForwardPreprocessCallbackArgs(
+                self, 'forward', args, kwargs)
+            for hook in hooks:
+                hook.forward_preprocess(cb_args)
+
+        # Call the forward function
+        # (See #5078) super().__call__ is used when the method is injected by a
+        # mixin class. To keep backward compatibility, the injected one is
+        # prioritized over forward().
+        forward = getattr(super(Link, self), '__call__', None)
+        if forward is None:
+            forward = self.forward
+        out = forward(*args, **kwargs)
+
+        # Call forward_postprocess hook
+        if hooks:
+            cb_args = link_hook._ForwardPostprocessCallbackArgs(
+                self, 'forward', args, kwargs, out)
+            for hook in hooks:
+                hook.forward_postprocess(cb_args)
+
+        return out
 
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
@@ -443,7 +496,7 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         d = self.__dict__
-        for name in self._params:
+        for name in sorted(self._params):
             if include_uninit or d[name].data is not None:
                 yield d[name]
 
@@ -460,7 +513,7 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         d = self.__dict__
-        for name in self._params:
+        for name in sorted(self._params):
             if include_uninit or d[name].data is not None:
                 yield '/' + name, d[name]
 
@@ -502,21 +555,38 @@ Assign a Parameter object directly to an attribute within a \
         if 0:
             yield
 
-    def copyparams(self, link):
+    def copyparams(self, link, copy_persistent=True):
         """Copies all parameters from given link.
 
         This method copies data arrays of all parameters in the hierarchy. The
         copy is even done across the host and devices. Note that this method
         does not copy the gradient arrays.
 
+        *From v5.0.0:* this method also copies the persistent values (e.g. the
+        moving statistics of :class:`~chainer.links.BatchNormalization`). If
+        the persistent value is an ndarray, the elements are copied. Otherwise,
+        it is copied using :func:`copy.deepcopy`. The old behavior (not copying
+        persistent values) can be reproduced with ``copy_persistent=False``.
+
         Args:
             link (Link): Source link object.
+            copy_persistent (bool): If ``True``, persistent values are also
+                copied. ``True`` by default.
 
         """
         src = link.__dict__
         dst = self.__dict__
         for name in self._params:
             dst[name].copydata(src[name])
+        if copy_persistent:
+            array_types = chainer.get_array_types()
+            for name in self._persistent:
+                d = dst[name]
+                s = src[name]
+                if isinstance(d, array_types) and isinstance(s, array_types):
+                    backend.copyto(d, s)
+                else:
+                    dst[name] = copy.deepcopy(s)
 
     def cleargrads(self):
         """Clears all gradient arrays.
@@ -705,6 +775,39 @@ Assign a Parameter object directly to an attribute within a \
             size += param.size
         return size
 
+    def add_hook(self, hook, name=None):
+        """Registers a link hook.
+
+        Args:
+            hook (~chainer.LinkHook): Link hook to be registered.
+            name (str): Name of the link hook. The name must be unique
+                among link hooks registered to this link. If ``None``,
+                the default name of the link hook is used.
+
+        """
+        if not isinstance(hook, link_hook.LinkHook):
+            raise TypeError('Hook must be of type LinkHook')
+        if name is None:
+            name = hook.name
+        hooks = self.local_link_hooks
+        if name in hooks:
+            raise KeyError('Hook %s already exists' % name)
+        hooks[name] = hook
+        hook.added(self)
+
+    def delete_hook(self, name):
+        """Unregisters the link hook.
+
+        Args:
+            name (str): The name of the link hook to be unregistered.
+
+        """
+        if name in self.local_link_hooks:
+            self.local_link_hooks[name].deleted(self)
+            del self.local_link_hooks[name]
+        else:
+            raise KeyError('Hook %s does not exist' % name)
+
 
 class Chain(Link):
 
@@ -737,7 +840,7 @@ class Chain(Link):
     deserialization, and involved in the optimization. The registered link
     is called a child. The child link is accessible via :meth:`children`
     generator, which returns a generator running through the children in
-    registered order.
+    lexical order.
 
     On registration of a child link, its :attr:`~Link.name` attribute is also
     set (or overwritten if the link has already been registered to another
@@ -890,7 +993,7 @@ Assign a Link object directly to an attribute within a \
         for param in super(Chain, self).params(include_uninit):
             yield param
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             for param in d[name].params(include_uninit):
                 yield param
 
@@ -898,7 +1001,7 @@ Assign a Link object directly to an attribute within a \
         for ret in super(Chain, self).namedparams(include_uninit):
             yield ret
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             prefix = '/' + name
             for path, param in d[name].namedparams(include_uninit):
                 yield prefix + path, param
@@ -907,7 +1010,7 @@ Assign a Link object directly to an attribute within a \
         if not skipself:
             yield self
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             for link in d[name].links():
                 yield link
 
@@ -915,7 +1018,7 @@ Assign a Link object directly to an attribute within a \
         if not skipself:
             yield '/', self
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             child = d[name]
             prefix = '/' + name
             yield prefix, child
@@ -924,15 +1027,15 @@ Assign a Link object directly to an attribute within a \
 
     def children(self):
         d = self.__dict__
-        for name in self._children:
+        for name in sorted(self._children):
             yield d[name]
 
-    def copyparams(self, link):
-        super(Chain, self).copyparams(link)
+    def copyparams(self, link, copy_persistent=True):
+        super(Chain, self).copyparams(link, copy_persistent)
         src = link.__dict__
         dst = self.__dict__
         for name in self._children:
-            dst[name].copyparams(src[name])
+            dst[name].copyparams(src[name], copy_persistent)
 
     def addgrads(self, link):
         super(Chain, self).addgrads(link)
@@ -948,7 +1051,7 @@ Assign a Link object directly to an attribute within a \
             d[name].serialize(serializer[name])
 
 
-class ChainList(Link):
+class ChainList(Link, collections_abc.MutableSequence):
 
     """Composable link with list-like interface.
 
@@ -959,7 +1062,9 @@ class ChainList(Link):
     the list. It is useful to write a chain with arbitrary number of child
     links, e.g. an arbitrarily deep multi-layer perceptron.
 
-    Note that this class does not implement all methods of :class:`list`.
+    This class inherits the methods `index`, `count`, `append`, `reverse`,
+    `extend`, `pop`, `remove` from `collections.abc.MutableSequence` and
+    can be accessed and assigned by index or slice.
 
     Args:
         links: Initial child links.
@@ -980,6 +1085,19 @@ class ChainList(Link):
                 ' within a "with chainlist.init_scope():" block.')
         super(ChainList, self).__setattr__(name, value)
 
+    def __setitem__(self, index, value):
+        if isinstance(index, int):
+            value.name = str(index)
+            self._children[index] = value
+        elif isinstance(index, slice):
+            self._children[index] = value
+            for i, c in enumerate(self._children):
+                c.name = str(i)
+        else:
+            raise TypeError(
+                'ChainList indices must be integers or slices, not %s' %
+                type(index).__name__)
+
     def __getitem__(self, index):
         """Returns the child at given index.
 
@@ -992,24 +1110,34 @@ class ChainList(Link):
         """
         return self._children[index]
 
+    def __delitem__(self, index):
+        del self._children[index]
+        for i, c in enumerate(self._children):
+            c.name = str(i)
+
+    def insert(self, index, link):
+        """Insert a child link at the given index.
+
+        Args:
+            index (int): The position of the list where the new
+            link is inserted.
+            link (Link): The link to be inserted.
+
+        """
+        if index == len(self._children):
+            self._children.append(link)
+            link.name = str(index)
+        else:
+            self._children.insert(index, link)
+            for i, c in enumerate(self._children):
+                c.name = str(i)
+
     def __iter__(self):
         return iter(self._children)
 
     def __len__(self):
         """Returns the number of children."""
         return len(self._children)
-
-    def append(self, link):
-        """Registers a child link and adds it to the tail of the list.
-
-        This is equivalent to :meth:`add_link`. This method has been added to
-        emulate the ``list`` interface.
-
-        Args:
-            link (Link): The link object to be regsitered.
-
-        """
-        self.add_link(link)
 
     def add_link(self, link):
         """Registers a child link and adds it to the tail of the list.
@@ -1018,10 +1146,10 @@ class ChainList(Link):
             link (Link): The link object to be registered.
 
         """
-        link.name = str(len(self._children))
-        self._children.append(link)
+        self.append(link)
 
     def copy(self, mode='share'):
+        """Returns a deep copy of the chainlist."""
         ret = super(ChainList, self).copy()
         ret._children = list(ret._children)  # copy
         children = ret._children
@@ -1085,10 +1213,10 @@ class ChainList(Link):
         for child in self._children:
             yield child
 
-    def copyparams(self, link):
-        super(ChainList, self).copyparams(link)
+    def copyparams(self, link, copy_persistent=True):
+        super(ChainList, self).copyparams(link, copy_persistent)
         for idx, child in enumerate(self._children):
-            child.copyparams(link[idx])
+            child.copyparams(link[idx], copy_persistent)
 
     def addgrads(self, link):
         super(ChainList, self).addgrads(link)

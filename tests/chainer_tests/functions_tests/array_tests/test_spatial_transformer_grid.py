@@ -11,19 +11,24 @@ from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_cudnn': ['always', 'never'],
 }))
 class TestSpatialTransformerGrid(unittest.TestCase):
 
     def setUp(self):
         B = 3
-        self.theta = numpy.random.uniform(size=(B, 2, 3)).astype(numpy.float32)
+        self.theta = numpy.random.uniform(size=(B, 2, 3)).astype(self.dtype)
         self.output_shape = (5, 6)
         self.grads = numpy.random.uniform(
-            size=(B, 2) + self.output_shape).astype(self.theta.dtype)
+            size=(B, 2) + self.output_shape).astype(self.dtype)
 
-        self.check_backward_options = {
-            'atol': 1e-4, 'rtol': 1e-3}
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-1}
+        else:
+            self.check_forward_options = {}
+            self.check_backward_options = {}
 
     def check_forward(self, theta, output_shape):
         grid = functions.spatial_transformer_grid(theta, output_shape).data
@@ -40,8 +45,8 @@ class TestSpatialTransformerGrid(unittest.TestCase):
                     expected.append(self.theta[b].dot(coord))
         expected = numpy.array(
             expected).reshape(B, H, W, 2).transpose(0, 3, 1, 2)
-        testing.assert_allclose(grid, expected)
-        self.assertEqual(grid.dtype, theta.dtype)
+        testing.assert_allclose(grid, expected, **self.check_forward_options)
+        self.assertEqual(grid.dtype, self.dtype)
 
     def test_forward_cpu(self):
         self.check_forward(self.theta, self.output_shape)
@@ -51,10 +56,12 @@ class TestSpatialTransformerGrid(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.theta), self.output_shape)
 
     def check_backward(self, theta, output_shape, grads):
+        def f(theta):
+            return functions.spatial_transformer_grid(theta, output_shape)
+
         with chainer.using_config('use_cudnn', self.use_cudnn):
             gradient_check.check_backward(
-                functions.SpatialTransformerGrid(output_shape),
-                (theta,), (grads,), dtype=numpy.float64,
+                f, (theta,), (grads,), dtype=numpy.float64,
                 **self.check_backward_options)
 
     def test_backward_cpu(self):

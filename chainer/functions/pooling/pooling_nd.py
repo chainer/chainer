@@ -85,9 +85,9 @@ class _PoolingND(function_node.FunctionNode):
         zero = numpy.array(0, dtype=oz_dtype).ctypes
         gx = cuda.cupy.empty_like(x)
         libcudnn.poolingBackward(
-            handle, pool_desc.value, one.data, y_desc.value,
-            y.data.ptr, y_desc.value, gy.data.ptr, x_desc.value,
-            x.data.ptr, zero.data, x_desc.value, gx.data.ptr)
+            handle, pool_desc.value,
+            one.data, y_desc.value, y.data.ptr, y_desc.value, gy.data.ptr,
+            x_desc.value, x.data.ptr, zero.data, x_desc.value, gx.data.ptr)
         return gx,
 
     def create_pool_desc(self):

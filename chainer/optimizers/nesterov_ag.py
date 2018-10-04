@@ -1,3 +1,4 @@
+from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
 
@@ -21,6 +22,7 @@ class NesterovAGRule(optimizer.UpdateRule):
         momentum (float): Exponential decay rate of the first order moment.
 
     """
+    _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None, momentum=None):
         super(NesterovAGRule, self).__init__(
@@ -31,7 +33,7 @@ class NesterovAGRule(optimizer.UpdateRule):
             self.hyperparam.momentum = momentum
 
     def init_state(self, param):
-        xp = cuda.get_array_module(param.data)
+        xp = backend.get_array_module(param.data)
         with cuda.get_device_from_array(param.data):
             self.state['v'] = xp.zeros_like(param.data)
 
@@ -51,16 +53,18 @@ class NesterovAGRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        cuda.elementwise(
-            'T grad, T lr, T momentum',
-            'T param, T v',
-            '''
-               v = v * momentum - lr * grad;
-               param += momentum * momentum * v - (1 + momentum) * lr * grad;
-            ''',
-            'nesterov_ag')(
-                grad, self.hyperparam.lr, self.hyperparam.momentum,
-                param.data, self.state['v'])
+        if NesterovAGRule._kernel is None:
+            NesterovAGRule._kernel = cuda.elementwise(
+                'T grad, T lr, T momentum',
+                'T param, T v',
+                '''
+                v = v * momentum - lr * grad;
+                param += momentum * momentum * v - (1 + momentum) * lr * grad;
+                ''',
+                'nesterov_ag')
+        NesterovAGRule._kernel(
+            grad, self.hyperparam.lr, self.hyperparam.momentum,
+            param.data, self.state['v'])
 
 
 class NesterovAG(optimizer.GradientMethod):

@@ -212,9 +212,15 @@ Coding Guidelines
 
 We use `PEP 8 <https://www.python.org/dev/peps/pep-0008/>`_ and a part of `OpenStack Style Guidelines <https://docs.openstack.org/developer/hacking/>`_ related to general coding style as our basic style guidelines.
 
-To check your code, use ``autopep8`` and ``flake8`` command installed by ``hacking`` package::
+You can use ``autopep8`` and ``flake8`` commands to check your code.
 
-  $ pip install autopep8 hacking
+In order to avoid confusion from using different tool versions, we pin the versions of those tools.
+Install them with the following command (from within the top directory of Chainer repository)::
+
+  $ pip install -e '.[stylecheck]'
+
+And check your code with::
+
   $ autopep8 path/to/your/code.py
   $ flake8 path/to/your/code.py
 
@@ -341,7 +347,20 @@ How to Write Tests
 ~~~~~~~~~~~~~~~~~~
 
 There are many examples of unit tests under the :tree:`tests` directory, so reading some of them is a good and recommended way to learn how to write tests for Chainer.
-They simply use the ``unittest`` package of the standard library, while some tests are using utilities from :mod:`chainer.testing`.
+They simply use the :mod:`unittest` package of the standard library, while some tests are using utilities from :mod:`chainer.testing`.
+
+In addition to the :ref:`coding-guide` mentioned above, the following rules are applied to the test code:
+
+* All test classes must inherit from :class:`unittest.TestCase`.
+* Use :mod:`unittest` features to write tests, except for the following cases:
+
+    * Use ``assert`` statement instead of ``self.assert*`` methods (e.g., write ``assert x == 1`` instead of ``self.assertEqual(x, 1)``).
+    * Use ``with pytest.raises(...):`` instead of ``with self.assertRaises(...):``.
+
+.. note::
+
+   We are incrementally applying the above style.
+   Some existing tests may be using the old style (``self.assertRaises``, etc.), but all newly written tests should follow the above style.
 
 Even if your patch includes GPU-related code, your tests should not fail without GPU capability.
 Test functions that require CUDA must be tagged by ``chainer.testing.attr.gpu`` decorator::

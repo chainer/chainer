@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import initializer
 
 
@@ -27,8 +27,8 @@ class Orthogonal(initializer.Initializer):
     the array).
 
     Attributes:
-        ~Orthogonal.scale (float): A constant to be multiplied by.
-        ~Orthogonal.dtype: Data type specifier.
+        scale (float): A constant to be multiplied by.
+        dtype: Data type specifier.
 
     Reference: Saxe et al., https://arxiv.org/abs/1312.6120
 
@@ -43,7 +43,7 @@ class Orthogonal(initializer.Initializer):
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype
-        xp = cuda.get_array_module(array)
+        xp = backend.get_array_module(array)
         if not array.shape:  # 0-dim case
             array[...] = self.scale
         elif not array.size:

@@ -125,6 +125,18 @@ class TestNStepLSTM(unittest.TestCase):
                 cuda.to_gpu(self.c),
                 [cuda.to_gpu(x) for x in self.xs])
 
+    @attr.multi_gpu(2)
+    def test_forward_nonzero_gpu_test(self):
+        # Issue #5347
+        # to_gpu should work without setting the current device
+        self.rnn.to_gpu(1)
+        with chainer.using_config('use_cudnn', 'always'), \
+                chainer.using_config('train', False):
+            self.check_forward(
+                cuda.to_gpu(self.h, 1),
+                cuda.to_gpu(self.c, 1),
+                [cuda.to_gpu(x, 1) for x in self.xs])
+
     def check_backward(
             self, h_data, c_data, xs_data, gh_data, gc_data, gys_data):
 

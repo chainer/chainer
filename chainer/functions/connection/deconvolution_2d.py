@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
@@ -28,18 +29,15 @@ class Deconvolution2DFunction(function_node.FunctionNode):
     _use_ideep = False
 
     def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs,
+        dilate, groups = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1),
             deterministic="deterministic argument is not supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) context "
             "where value is either `True` or `False`.",
             requires_x_grad="requires_x_grad argument is not supported "
             "anymore. Just remove the argument. Note that whether to compute "
             "the gradient w.r.t. x is automatically decided during "
-            "backpropagation."
-        )
-        dilate, groups = argument.parse_kwargs(kwargs,
-                                               ('dilate', 1), ('groups', 1))
+            "backpropagation.")
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
@@ -234,7 +232,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         xCg = int(xC / G)
         _, yCg, kH, kW = W.shape
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         _x = x.reshape((N, G, xCg, xH, xW))
         _x = xp.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)

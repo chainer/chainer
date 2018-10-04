@@ -2,19 +2,19 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import reporter
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
 
 
 _default_statistics = {
-    'mean': lambda x: cuda.get_array_module(x).mean(x),
-    'std': lambda x: cuda.get_array_module(x).std(x),
-    'min': lambda x: cuda.get_array_module(x).min(x),
-    'max': lambda x: cuda.get_array_module(x).max(x),
-    'zeros': lambda x: cuda.get_array_module(x).count_nonzero(x == 0),
-    'percentile': lambda x: cuda.get_array_module(x).percentile(
+    'mean': lambda x: backend.get_array_module(x).mean(x),
+    'std': lambda x: backend.get_array_module(x).std(x),
+    'min': lambda x: backend.get_array_module(x).min(x),
+    'max': lambda x: backend.get_array_module(x).max(x),
+    'zeros': lambda x: backend.get_array_module(x).count_nonzero(x == 0),
+    'percentile': lambda x: backend.get_array_module(x).percentile(
         x, (0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87))
 }
 
@@ -117,8 +117,9 @@ class ParameterStatistics(extension.Extension):
                         # assumption about the axes
                         params = getattr(param, attr_name).ravel()
                         if (self._skip_nan_params
-                            and (cuda.get_array_module(params).isnan(params)
-                                 .any())):
+                            and (
+                                backend.get_array_module(params).isnan(params)
+                                .any())):
                             value = numpy.nan
                         else:
                             value = function(params)

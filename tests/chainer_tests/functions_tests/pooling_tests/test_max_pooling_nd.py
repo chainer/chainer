@@ -7,6 +7,7 @@ from operator import mul
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -72,12 +73,12 @@ class TestMaxPoolingND(unittest.TestCase):
         self.assertEqual(self.gy.shape, y_data.shape)
         patches = pooling_nd_helper.pooling_patches(
             dims, ksize, stride, pad, self.cover_all)
-        for k in six.moves.range(2):
+        for i in six.moves.range(2):
             for c in six.moves.range(3):
-                x = self.x[k, c]
+                x = self.x[i, c]
                 expect = numpy.array([x[idx].max() for idx in patches])
                 expect = expect.reshape(y_data.shape[2:])
-                testing.assert_allclose(expect, y_data[k, c])
+                testing.assert_allclose(expect, y_data[i, c])
 
     @condition.retry(3)
     def test_forward_cpu(self):
@@ -142,6 +143,7 @@ class TestMaxPoolingND(unittest.TestCase):
             return functions.max_pooling_nd(
                 x, self.ksize, stride=self.stride, pad=self.pad,
                 cover_all=self.cover_all)
+
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_backward(
                 f, x_data, y_grad, dtype='d', **self.check_backward_options)
@@ -177,23 +179,23 @@ class TestMaxPoolingND(unittest.TestCase):
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         # Backward computation for N-dimensional max pooling layer.
         x_nd = chainer.Variable(xp.array(x_data))
         with chainer.using_config('use_cudnn', use_cudnn):
-            func_nd = functions.MaxPoolingND(self.ndim, ksize, stride=stride,
-                                             pad=pad, cover_all=self.cover_all)
-            y_nd = func_nd.apply((x_nd,))[0]
+            y_nd = functions.max_pooling_nd(
+                x_nd, ksize, stride=stride, pad=pad, cover_all=self.cover_all)
+
         y_nd.grad = gy_data
         y_nd.backward()
 
         # Backward computation for two-dimensional max pooling layer.
         x_2d = chainer.Variable(xp.array(x_data))
         with chainer.using_config('use_cudnn', use_cudnn):
-            func_2d = functions.MaxPooling2D(ksize, stride=stride, pad=pad,
-                                             cover_all=self.cover_all)
-            y_2d = func_2d.apply((x_2d,))[0]
+            y_2d = functions.max_pooling_2d(
+                x_2d, ksize, stride=stride, pad=pad, cover_all=self.cover_all)
+
         y_2d.grad = gy_data
         y_2d.backward()
 
@@ -217,7 +219,7 @@ class TestMaxPoolingND(unittest.TestCase):
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), use_cudnn='never')
 
     def test_backward_cpu_more_than_once(self):
-        func = functions.MaxPoolingND(
+        func = functions.pooling.max_pooling_nd.MaxPoolingND(
             self.ndim, self.ksize, stride=self.stride, pad=self.pad,
             cover_all=self.cover_all)
         func.apply((self.x,))
@@ -227,10 +229,9 @@ class TestMaxPoolingND(unittest.TestCase):
     def check_double_backward(self, x_data, y_grad, x_grad_grad,
                               use_cudnn='always'):
         def f(x):
-            y = functions.max_pooling_nd(
+            return functions.max_pooling_nd(
                 x, self.ksize, stride=self.stride, pad=self.pad,
                 cover_all=self.cover_all)
-            return y * y
         with chainer.using_config('use_cudnn', use_cudnn):
             gradient_check.check_double_backward(
                 f, x_data, y_grad, x_grad_grad,
@@ -303,6 +304,81 @@ class TestMaxPoolingNDCudnnCall(unittest.TestCase):
         with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
+
+
+class TestMaxPoolingNDWrappers(unittest.TestCase):
+
+    def _get_data(self, ndim):
+        x_shape = (2, 3) + (3,) * ndim
+        dtype = numpy.float32
+
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+        ksize = (2,) * ndim
+
+        return x, ksize
+
+    def test_max_pooling_1d(self):
+        (x, ksize) = self._get_data(1)
+        testing.assert_allclose(
+            functions.max_pooling_nd(x, ksize).data,
+            functions.max_pooling_1d(x, ksize).data)
+
+    def test_max_pooling_1d_invalid(self):
+        (x, ksize) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            functions.max_pooling_1d(x, ksize)
+
+    def test_max_pooling_3d(self):
+        (x, ksize) = self._get_data(3)
+        testing.assert_allclose(
+            functions.max_pooling_nd(x, ksize).data,
+            functions.max_pooling_3d(x, ksize).data)
+
+    def test_max_pooling_3d_invalid(self):
+        (x, ksize) = self._get_data(2)
+        with self.assertRaises(ValueError):
+            functions.max_pooling_3d(x, ksize)
+
+
+class TestMaxPoolingNDIndices(unittest.TestCase):
+    def setUp(self):
+        self.x = numpy.arange(
+            2 * 3 * 4 * 4, dtype=numpy.float32).reshape(2, 3, 4, 4)
+
+    def _check(self, x):
+        out, indices = functions.max_pooling_nd(
+            x, 2, cover_all=False, return_indices=True)
+        assert isinstance(out, chainer.Variable)
+        assert isinstance(out.array, type(x))
+        assert isinstance(indices, type(x))
+        assert indices.shape == out.array.shape
+
+        # Calculate expected indices.
+        expect = numpy.zeros(indices.shape, dtype=indices.dtype)
+        for i in six.moves.range(2):
+            for c in six.moves.range(3):
+                xx = x[i, c]
+                expect[i, c] = numpy.array([
+                    [xx[0:2, 0:2].ravel().argmax(),
+                     xx[0:2, 2:4].ravel().argmax()],
+                    [xx[2:4, 0:2].ravel().argmax(),
+                     xx[2:4, 2:4].ravel().argmax()],
+                ])
+        if out.xp is not numpy:
+            expect = cuda.to_gpu(expect)
+        assert (expect == indices).all()
+
+    def test_cpu(self):
+        self._check(self.x)
+
+    @attr.gpu
+    @attr.cudnn
+    def test_gpu(self):
+        x = cuda.to_gpu(self.x)
+        with chainer.using_config('use_cudnn', 'never'):
+            self._check(x)
+        with chainer.using_config('use_cudnn', 'always'):
+            self._check(x)
 
 
 testing.run_module(__name__, __file__)
