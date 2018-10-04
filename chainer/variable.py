@@ -548,22 +548,22 @@ Actual: {0}'''.format(type(data))
 
         stats_msg = 'mean={0:.8f}, std={1:.8f}'
 
-        data = self.array
-        with cuda.get_device_from_array(data) as dev:
+        array = self.array
+        with cuda.get_device_from_array(array) as dev:
             xp = numpy if int(dev) == -1 else cuda.cupy
 
-            if data is None:
+            if array is None:
                 # `data` can be `None` if constructed without any arguments
                 device = None
                 backend = None
                 stats = None
             else:
-                device = getattr(data, 'device', 'CPU')
-                backend = type(data)
-                stats = stats_msg.format(float(xp.mean(data)),
-                                         float(xp.std(data)))
-            shape = getattr(data, 'shape', None)
-            dtype = getattr(data, 'dtype', None)
+                device = getattr(array, 'device', 'CPU')
+                backend = type(array)
+                stats = stats_msg.format(float(xp.mean(array)),
+                                         float(xp.std(array)))
+            shape = getattr(array, 'shape', None)
+            dtype = getattr(array, 'dtype', None)
 
             if self.grad is None:
                 grad = None
@@ -587,7 +587,7 @@ Actual: {0}'''.format(type(data))
             int: Number of the first dimension of the data array.
 
         """
-        return len(self.data)
+        return len(self.array)
 
     @property
     def label(self):
@@ -681,7 +681,7 @@ Actual: {0}'''.format(type(data))
 
         """
         gv = self._grad_var
-        return None if gv is None else gv.data
+        return None if gv is None else gv.array
 
     @grad.setter
     def grad(self, g):
@@ -695,7 +695,7 @@ Actual: {0}'''.format(type(data))
     @grad_var.setter
     def grad_var(self, g):
         if g is not None:
-            _check_grad_type(None, self, g.data)
+            _check_grad_type(None, self, g.array)
         self._grad_var = g
 
     @property
@@ -735,16 +735,16 @@ Actual: {0}'''.format(type(data))
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
 
-        data = self.array
-        if data is None:
+        array = self.array
+        if array is None:
             return
 
-        if isinstance(data, cuda.ndarray):
+        if isinstance(array, cuda.ndarray):
             # cupy.ndarray to numpy.ndarray
-            self._data = [cuda.to_cpu(data)]
-        elif isinstance(data, intel64.mdarray):
+            self._data = [cuda.to_cpu(array)]
+        elif isinstance(array, intel64.mdarray):
             # ideep.mdarray to numpy.ndarray
-            self._data = [numpy.array(data)]
+            self._data = [numpy.array(array)]
 
         if self._grad_var is not None:
             self._grad_var.to_cpu()
@@ -761,7 +761,7 @@ Actual: {0}'''.format(type(data))
                 used.
 
         """
-        if self.data is None:
+        if self.array is None:
             self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.array, device)]
@@ -779,19 +779,19 @@ Actual: {0}'''.format(type(data))
         :class:`numpy.ndarray`.
         """
         intel64.check_ideep_available()
-        data = self.array
-        if data is not None:
-            if isinstance(data, cuda.ndarray):
+        array = self.array
+        if array is not None:
+            if isinstance(array, cuda.ndarray):
                 # cupy.ndarray to numpy.ndarray
-                data = data.get()
-            if (isinstance(data, numpy.ndarray) and data.ndim in (1, 2, 4)):
+                array = array.get()
+            if (isinstance(array, numpy.ndarray) and array.ndim in (1, 2, 4)):
                 # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
                 # Currently iDeep only supports (1, 2, 4)-dim arrays.
                 # Note that array returned from `ideep.array` may not be an
                 # iDeep mdarray, e.g., when the dtype is not float32.
-                data = intel64.ideep.array(
-                    data, itype=intel64.ideep.wgt_array)
-            self._data = [data]
+                array = intel64.ideep.array(
+                    array, itype=intel64.ideep.wgt_array)
+            self._data = [array]
 
         if self._grad_var is not None:
             self._grad_var.to_intel64()
@@ -1012,17 +1012,17 @@ Actual: {0}'''.format(type(data))
                 continue
 
             in_data = tuple([x.data for x in inputs])
-            out_grad_data = tuple(
-                [None if g is None else g.data for g in out_grad])
+            out_grad_array = tuple(
+                [None if g is None else g.array for g in out_grad])
             hooks = chainer.get_function_hooks()
             if func._n_local_function_hooks != 0:
                 hooks = collections.OrderedDict(hooks)
                 hooks.update(func.local_function_hooks)
             hooks = hooks.values()  # avoid six for performance
 
-            with cuda.get_device_from_array(*(in_data + out_grad_data)):
+            with cuda.get_device_from_array(*(in_data + out_grad_array)):
                 for hook in hooks:
-                    hook.backward_preprocess(func, in_data, out_grad_data)
+                    hook.backward_preprocess(func, in_data, out_grad_array)
 
                 # Collect the current input gradients.
                 target_inputs = [inputs[i] for i in target_input_indexes]
@@ -1040,7 +1040,7 @@ Actual: {0}'''.format(type(data))
                     func, target_input_indexes, out_grad, in_grad)
 
                 for hook in hooks:
-                    hook.backward_postprocess(func, in_data, out_grad_data)
+                    hook.backward_postprocess(func, in_data, out_grad_array)
 
             for y, gy in six.moves.zip(outputs, out_grad):
                 if y is not None and y is not self.node:
