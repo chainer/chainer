@@ -1,5 +1,6 @@
 from __future__ import division
 import math
+import warnings
 
 import numpy
 
@@ -121,8 +122,9 @@ class AdamRule(optimizer.UpdateRule):
                 numpy.maximum(vhat, v, out=vhat)
             else:
                 vhat = v
-            param.data.inplace_axpby(1.0 - hp.weight_decay_rate, -hp.eta,
-                                     self.lr * m / (numpy.sqrt(vhat) + hp.eps))
+            param.data.inplace_axpby(
+                1.0 - hp.weight_decay_rate, -hp.eta,
+                self.corrected_alpha * m / (numpy.sqrt(vhat) + hp.eps))
         else:
             m += (1 - hp.beta1) * (grad - m)
             v += (1 - hp.beta2) * (grad * grad - v)
@@ -131,8 +133,9 @@ class AdamRule(optimizer.UpdateRule):
                 numpy.maximum(vhat, v, out=vhat)
             else:
                 vhat = v
-            param.data -= hp.eta * (self.lr * m / (numpy.sqrt(vhat) + hp.eps) +
-                                    hp.weight_decay_rate * param.data)
+            param.data -= hp.eta * (
+                self.corrected_alpha * m / (numpy.sqrt(vhat) + hp.eps) +
+                hp.weight_decay_rate * param.data)
 
     def update_core_gpu(self, param):
         grad = param.grad
@@ -158,7 +161,7 @@ class AdamRule(optimizer.UpdateRule):
                                        weight_decay_rate * param);''',
                     'adam')
             AdamRule._amsgrad_kernel(
-                grad, self.lr, 1 - hp.beta1,
+                grad, self.corrected_alpha, 1 - hp.beta1,
                 1 - hp.beta2, hp.eps,
                 hp.eta, hp.weight_decay_rate,
                 param.data, self.state['m'], self.state['v'],
@@ -174,14 +177,21 @@ class AdamRule(optimizer.UpdateRule):
                        param -= eta * (lr * m / (sqrt(v) + eps) +
                                        weight_decay_rate * param);''',
                     'adam')
-            AdamRule._kernel(grad, self.lr, 1 - hp.beta1,
+            AdamRule._kernel(grad, self.corrected_alpha, 1 - hp.beta1,
                              1 - hp.beta2, hp.eps,
                              hp.eta, hp.weight_decay_rate,
                              param.data, self.state['m'], self.state['v'])
 
     @property
-    def lr(self):
+    def corrected_alpha(self):
         return _learning_rate(self.hyperparam, self.t)
+
+    @property
+    def lr(self):
+        warnings.warn(
+            'AdamRule.lr is deprecated. Use AdamRule.corrected_alpha instead.',
+            DeprecationWarning)
+        return self.corrected_alpha
 
 
 class Adam(optimizer.GradientMethod):
@@ -248,5 +258,12 @@ class Adam(optimizer.GradientMethod):
         return AdamRule(self.hyperparam)
 
     @property
-    def lr(self):
+    def corrected_alpha(self):
         return _learning_rate(self.hyperparam, self.t)
+
+    @property
+    def lr(self):
+        warnings.warn(
+            'Adam.lr is deprecated. Use Adam.corrected_alpha instead.',
+            DeprecationWarning)
+        return self.corrected_alpha
