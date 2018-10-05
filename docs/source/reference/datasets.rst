@@ -209,3 +209,7 @@ Concrete Datasets
    chainer.datasets.get_ptb_words
    chainer.datasets.get_ptb_words_vocabulary
    chainer.datasets.get_svhn
+
+.. note::
+   ChainerCV supports implementations of datasets that are useful for computer
+   vision problems, which can be found in :mod:`chainercv.datasets`.

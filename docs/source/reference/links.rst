@@ -12,6 +12,9 @@ Chainer provides many :class:`~chainer.Link` implementations in the
    though it is strongly recommended to use them via the :mod:`chainer.links`
    package.
 
+.. note::
+   ChainerCV supports implementations of links that are useful for computer
+   vision problems, which can be found in :mod:`chainercv.links`.
 
 Learnable connections
 ---------------------
@@ -126,6 +129,10 @@ VGG Networks
    chainer.links.VGG19Layers
    chainer.links.model.vision.vgg.prepare
 
+.. note::
+   ChainerCV contains implementation of VGG networks as well (i.e.,
+   :class:`chainercv.links.model.vgg.VGG16`).
+
 GoogLeNet
 ~~~~~~~~~
 
@@ -147,6 +154,12 @@ Residual Networks
    chainer.links.ResNet101Layers
    chainer.links.ResNet152Layers
    chainer.links.model.vision.resnet.prepare
+
+.. note::
+   ChainerCV contains implementation of ResNet as well (i.e.,
+   :class:`chainercv.links.model.resnet.ResNet50`,
+   :class:`chainercv.links.model.resnet.ResNet101`,
+   :class:`chainercv.links.model.resnet.ResNet152`).
 
 Compatibility with other frameworks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
