@@ -1,8 +1,9 @@
+import numpy
+
 from chainer import cuda
 from chainer import distributions
 from chainer import testing
 from chainer.testing import array
-import numpy
 
 
 @testing.parameterize(*testing.product({
