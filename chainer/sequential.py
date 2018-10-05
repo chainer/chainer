@@ -84,9 +84,9 @@ class Sequential(link.ChainList):
         as following:
 
         >>> print(model_C)
-        0       Linear	W(10, 10)	b(10,)
+        0       Linear  W(10, 10)       b(10,)
         1       relu
-        2       Linear	W(10, 10)	b(10,)
+        2       Linear  W(10, 10)       b(10,)
         3       sigmoid
 
         .. note::
