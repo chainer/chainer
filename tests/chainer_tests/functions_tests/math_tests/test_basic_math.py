@@ -1514,10 +1514,6 @@ class TestVariableConstantArrayOp(unittest.TestCase):
 
     @attr.chainerx
     def test_rpow_double_backward_chainerx(self):
-        # TODO(sonots): Support it
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
         self.double_backward_chainerx(lambda x, y: y ** x, positive=True)
 
 
