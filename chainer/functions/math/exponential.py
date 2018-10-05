@@ -21,6 +21,9 @@ class Exp(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
         type_check.expect(in_types[0].dtype.kind == 'f')
 
+    def forward_chainerx(self, x):
+        return chainerx.exp(x[0]),
+
     def forward_cpu(self, x):
         self.retain_outputs((0,))
         return utils.force_array(numpy.exp(x[0])),
@@ -36,9 +39,6 @@ class Exp(function_node.FunctionNode):
 
 def exp(x):
     """Elementwise exponential function."""
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(chainerx.exp, x)
-
     return Exp().apply((x,))[0]
 
 
