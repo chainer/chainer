@@ -311,6 +311,9 @@ Use apply() method instead.\
                 [] if self._output_indexes_to_retain is None
                 else self._output_indexes_to_retain)
 
+            self.inputs = tuple(
+                [variable._ChainerxVariableProps(x) for x in inputs])
+
             ret = tuple([
                 variable.Variable(y, requires_grad=y.is_backprop_required())
                 for y in chainerx_out_data])
@@ -623,14 +626,19 @@ Use apply() method instead.\
                 array, requires_grad=array.is_backprop_required())
             for array in retained_outputs])
 
-        gx_vars = self.backward(
+        gxs = self.backward(
             tuple(target_input_indexes),
             tuple([
                 chainer.Variable(gy, requires_grad=gy.is_backprop_required())
                 for gy in grad_outputs]))
-        gxs = [v._data_chainerx[0] for v in gx_vars]
 
-        return gxs
+        len_gxs = len(gxs)
+        if len_gxs == len(self.inputs):
+            gxs = tuple([gxs[i] for i in target_input_indexes])
+        else:
+            assert len_gxs == len(target_input_indexes)
+
+        return [gx._data_chainerx[0] for gx in gxs]
 
     def _get_error_message(self, message):
         lines = [
