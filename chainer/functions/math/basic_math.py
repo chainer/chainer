@@ -42,14 +42,14 @@ def _check_constant_type(value):
 
 
 def _preprocess_const(x, value):
-    return utils.force_type(x.dtype, value)
+    return x.dtype.type(value)
 
 
 def _preprocess_rhs(x, value):
     if isinstance(value, chainer.Variable):
         return value
     _check_constant_type(value)
-    return utils.force_type(x.dtype, value)
+    return value.astype(x.dtype)
 
 
 class Neg(function_node.FunctionNode):
