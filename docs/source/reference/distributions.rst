@@ -19,6 +19,7 @@ Distributions
    chainer.distributions.Categorical
    chainer.distributions.Dirichlet
    chainer.distributions.Exponential
+   chainer.distributions.Gamma
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
    chainer.distributions.MultivariateNormal
