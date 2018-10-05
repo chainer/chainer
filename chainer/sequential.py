@@ -50,16 +50,16 @@ class Sequential(link.ChainList):
 
         Furthermore, :class:`~Sequential` supports built-in list APIs, so you
         can concatenate :class:`~Sequential` objects to create a longer
-        :class:`~Sequential` model easily with the same ways as Python lists::
+        :class:`~Sequential` model easily with the same ways as Python lists:
 
-          model_A = Sequential(L.Linear(10, 10), F.relu)
-          model_B = Sequential(L.Linear(10, 10), F.sigmoid)
-          model_C = model_A + model_B
+        >>> model_A = Sequential(L.Linear(10, 10), F.relu)
+        >>> model_B = Sequential(L.Linear(10, 10), F.sigmoid)
+        >>> model_C = model_A + model_B
 
         To repeat a :class:`~Sequential` object multiple times, you can use
         :meth:`~chainer.Link.repeat` method.
 
-          model_D = model_A.repeat(3)
+        >>> model_D = model_A.repeat(3)
 
         You can also add your own functions or any callable objects to a
         :class:`~Sequential` object::
@@ -81,13 +81,13 @@ class Sequential(link.ChainList):
         ``prob`` output.
 
         You can check the structure of your model briefly using ``print``
-        as following::
+        as following:
 
-          >>> print(model_C)
-          0       Linear	W(10, 10)	b(10,)
-          1       relu
-          2       Linear	W(10, 10)	b(10,)
-          3       sigmoid
+        >>> print(model_C)
+        0       Linear	W(10, 10)	b(10,)
+        1       relu
+        2       Linear	W(10, 10)	b(10,)
+        3       sigmoid
 
         .. note::
 
