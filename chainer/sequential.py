@@ -15,10 +15,10 @@ class Sequential(link.ChainList):
         This feature is experimental. The interface can change in the future.
 
     This class enables to construct a network which has sequential structure
-    easily. While :class:`~Chain` and :class:`~ChainList` can only take
-    :class:`~Link` object as input to their constructor, this
-    :class:`~Sequential` can take arbitrary number of any callable objects for
-    the forward pass computation. A :class:`~Sequential` calls the given
+    easily. While :class:`~chainer.Chain` and :class:`~chainer.ChainList` can
+    only take :class:`~chainer.Link` object as input to their constructor, this
+    :class:`Sequential` can take arbitrary number of any callable objects for
+    the forward pass computation. A :class:`Sequential` calls the given
     callable objects sequentially inside of the :meth:`~Sequential.forward`
     method in the same order as the given argments.
     Therefore, you do not need to write the forward pass computation
@@ -48,22 +48,22 @@ class Sequential(link.ChainList):
 
         where ``x`` denotes a mini-batch of ``n_in``-dimensional input vectors.
 
-        Furthermore, :class:`~Sequential` supports built-in list APIs, so you
-        can concatenate :class:`~Sequential` objects to create a longer
-        :class:`~Sequential` model easily with the same ways as Python lists:
+        Furthermore, :class:`Sequential` supports built-in list APIs, so you
+        can concatenate :class:`Sequential` objects to create a longer
+        :class:`Sequential` model easily with the same ways as Python lists:
 
         >>> from chainer import Sequential
         >>> model_A = Sequential(L.Linear(10, 10), F.relu)
         >>> model_B = Sequential(L.Linear(10, 10), F.sigmoid)
         >>> model_C = model_A + model_B
 
-        To repeat a :class:`~Sequential` object multiple times, you can use
+        To repeat a :class:`Sequential` object multiple times, you can use
         :meth:`~chainer.Link.repeat` method.
 
         >>> model_D = model_A.repeat(3)
 
         You can also add your own functions or any callable objects to a
-        :class:`~Sequential` object::
+        :class:`Sequential` object::
 
           from link.Links.model.vision.vgg import VGG16Layers()
 
@@ -92,9 +92,9 @@ class Sequential(link.ChainList):
 
         .. note::
 
-            Note that a :class:`~Sequential` link which has at least one
+            Note that a :class:`Sequential` link which has at least one
             ``lambda`` function as its member cannot be pickled. So, please
-            use ``partial`` method from ``functools`` package instead::
+            use ``partial`` method from :mod:`functools` package instead::
 
               from functools import partial
 
@@ -112,9 +112,9 @@ class Sequential(link.ChainList):
 
     Args:
         layers: The layers which are called in its order. Each component should
-            be a callable object including :class:`~Link` object and
+            be a callable object including :class:`~chainer.Link` object and
             functions defined under the :mod:`chainer.functions`, e.g.,
-            :obj:`~chainer.functions.relu`, etc.
+            :func:`~chainer.functions.relu`, etc.
 
     """
 
