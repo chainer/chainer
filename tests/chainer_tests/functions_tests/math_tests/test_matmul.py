@@ -187,11 +187,6 @@ class TestMatMul(unittest.TestCase):
         if numpy.float16 in [self.x1_dtype, self.x2_dtype]:
             raise unittest.SkipTest('ChainerX does not support float16')
 
-        # TODO(niboshi): Support it
-        if not (self.x1.ndim == 2 and self.x2.ndim == 2):
-            raise unittest.SkipTest(
-                'FunctionNode.inputs support is required in F.expand_dims')
-
         self.check_double_backward(
             chainerx.array(self.x1), chainerx.array(self.x2),
             chainerx.array(self.gy), chainerx.array(self.ggx1),
