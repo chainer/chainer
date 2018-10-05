@@ -40,8 +40,8 @@ def _to_fcontiguous(arrays):
     })
     # ChainerX tests
     + testing.product({
-        'use_cuda': [False, True],
         'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
     }))
 class TestMaxPooling2D(unittest.TestCase):
 
@@ -99,7 +99,10 @@ class TestMaxPooling2D(unittest.TestCase):
 
         y_expect, = self.forward_cpu(inputs)
 
-        if backend_config.use_cuda:
+        # TODO(sonots): Cleanup to use testing.backend.get_array after
+        # chainerx.asfortranarray is implemented.
+        if (backend_config.use_cuda or (backend_config.use_chainerx
+                and backend_config.chainerx_device.startswith('cuda:'))):
             inputs = cuda.to_gpu(inputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
@@ -139,7 +142,10 @@ class TestMaxPooling2D(unittest.TestCase):
                 self, AssertionError,
                 'Height in the output should be positive.'):
             x = numpy.random.rand(4, 4, 1, 4).astype(self.dtype)
-            if backend_config.use_cuda:
+            # TODO(sonots): Cleanup to use testing.backend.get_array after
+            # chainerx.asfortranarray is implemented.
+            if (backend_config.use_cuda or (backend_config.use_chainerx
+                    and backend_config.chainerx_device.startswith('cuda:'))):
                 x = cuda.to_gpu(x)
             if backend_config.use_chainerx:
                 x = chainer.backend.to_chainerx(x)
@@ -151,7 +157,10 @@ class TestMaxPooling2D(unittest.TestCase):
                 self, AssertionError,
                 'Width in the output should be positive.'):
             x = numpy.random.rand(4, 4, 4, 1).astype(self.dtype)
-            if backend_config.use_cuda:
+            # TODO(sonots): Cleanup to use testing.backend.get_array after
+            # chainerx.asfortranarray is implemented.
+            if (backend_config.use_cuda or (backend_config.use_chainerx
+                    and backend_config.chainerx_device.startswith('cuda:'))):
                 x = cuda.to_gpu(x)
             if backend_config.use_chainerx:
                 x = chainer.backend.to_chainerx(x)
@@ -164,7 +173,10 @@ class TestMaxPooling2D(unittest.TestCase):
         if backend_config.use_chainerx and self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
-        if backend_config.use_cuda:
+        # TODO(sonots): Cleanup to use testing.backend.get_array after
+        # chainerx.asfortranarray is implemented.
+        if (backend_config.use_cuda or (backend_config.use_chainerx
+               and backend_config.chainerx_device.startswith('cuda:'))):
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
         if not self.c_contiguous:
@@ -199,7 +211,10 @@ class TestMaxPooling2D(unittest.TestCase):
         if backend_config.use_chainerx and self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
-        if backend_config.use_cuda:
+        # TODO(sonots): Cleanup to use testing.backend.get_array after
+        # chainerx.asfortranarray is implemented.
+        if (backend_config.use_cuda or (backend_config.use_chainerx
+               and backend_config.chainerx_device.startswith('cuda:'))):
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
             grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
