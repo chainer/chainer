@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.functions.array import flip
 from chainer.utils import type_check
@@ -26,7 +26,7 @@ class Cumsum(function_node.FunctionNode):
     def forward(self, inputs):
         x, = inputs
         self._in_shape = x.shape
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         return xp.cumsum(x, axis=self.axis),
 
     def backward(self, indexes, grad_outputs):

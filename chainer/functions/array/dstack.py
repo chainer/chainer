@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -31,7 +31,7 @@ class Dstack(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        xp = cuda.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return xp.dstack(xs),
 
     def backward(self, indexes, grad_outputs):
@@ -88,7 +88,7 @@ def dstack(xs):
         >>> y = F.dstack((x1, x2))
         >>> y.shape
         (1, 3, 2)
-        >>> y.data
+        >>> y.array
         array([[[1, 2],
                 [2, 3],
                 [3, 4]]])
@@ -110,7 +110,7 @@ def dstack(xs):
         >>> y = F.dstack([x1, x2])
         >>> y.shape
         (3, 2, 2)
-        >>> y.data
+        >>> y.array
         array([[[ 0,  6],
                 [ 1,  7]],
         <BLANKLINE>
@@ -125,7 +125,7 @@ def dstack(xs):
         >>> y = F.dstack([x1, x2])
         >>> y.shape
         (3, 2, 3)
-        >>> y.data
+        >>> y.array
         array([[[ 0,  1, 12],
                 [ 2,  3, 13]],
         <BLANKLINE>

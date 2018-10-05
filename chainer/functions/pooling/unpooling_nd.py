@@ -1,7 +1,7 @@
 import numpy
 import six
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.functions.pooling import pooling_nd
 from chainer.utils import conv
@@ -52,7 +52,7 @@ class UnpoolingND(pooling_nd._PoolingND):
                 conv.get_deconv_outsize(d, k, s, p, cover_all=self.cover_all)
                 for (d, k, s, p) in six.moves.zip(dims, ksize, stride, pad))
 
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
 
         colon = slice(None)
         # (:, :, None, None, ..., None)
@@ -84,7 +84,7 @@ class UnpoolingNDGrad(function_node.FunctionNode):
         self.cover_all = unpoolingnd.cover_all
 
     def forward(self, gy):
-        xp = cuda.get_array_module(*gy)
+        xp = backend.get_array_module(*gy)
         if xp is numpy:
             im2col_nd = conv_nd.im2col_nd_cpu
         else:
@@ -139,3 +139,47 @@ def unpooling_nd(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
     ndim = len(x.shape[2:])
     return UnpoolingND(
         ndim, ksize, stride, pad, outsize, cover_all).apply((x,))[0]
+
+
+def unpooling_1d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
+    """Inverse operation of 1-dimensional spatial pooling.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.unpooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.unpooling_nd`.
+
+    """
+    if len(x.shape[2:]) != 1:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 1. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return unpooling_nd(x, ksize, stride, pad, outsize, cover_all)
+
+
+def unpooling_3d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
+    """Inverse operation of 3-dimensional spatial pooling.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
+
+    .. note::
+
+        This function calls :func:`~chainer.functions.unpooling_nd`
+        internally, so see the details of the behavior in
+        the documentation of :func:`~chainer.functions.unpooling_nd`.
+
+    """
+    if len(x.shape[2:]) != 3:
+        raise ValueError(
+            'The number of dimensions under channel dimension of the input '
+            '\'x\' should be 3. But the actual ndim was {}.'.format(
+                len(x.shape[2:])))
+    return unpooling_nd(x, ksize, stride, pad, outsize, cover_all)

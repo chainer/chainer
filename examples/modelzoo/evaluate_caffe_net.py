@@ -118,8 +118,8 @@ for path, label in dataset:
         with chainer.no_backprop_mode():
             loss, accuracy = forward(x, y)
 
-        accum_loss += float(loss.data) * args.batchsize
-        accum_accuracy += float(accuracy.data) * args.batchsize
+        accum_loss += float(loss.array) * args.batchsize
+        accum_accuracy += float(accuracy.array) * args.batchsize
         del x, y, loss, accuracy
 
         count += args.batchsize

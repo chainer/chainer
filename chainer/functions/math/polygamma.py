@@ -38,7 +38,6 @@ class PolyGamma(function_node.FunctionNode):
     def forward_gpu(self, inputs):
         n, x = inputs
         self.retain_inputs((0, 1))
-        print(n, x, type(n), type(x))
         return utils.force_array(
             cuda.cupyx.scipy.special.polygamma(n, x), dtype=x.dtype),
 

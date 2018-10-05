@@ -18,10 +18,13 @@ Distributions
    chainer.distributions.Beta
    chainer.distributions.Categorical
    chainer.distributions.Chisquare
+   chainer.distributions.Dirichlet
+   chainer.distributions.Gamma
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
    chainer.distributions.MultivariateNormal
    chainer.distributions.Normal
+   chainer.distributions.Pareto
    chainer.distributions.Uniform
 
 

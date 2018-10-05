@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -45,7 +45,7 @@ class Sum(function_node.FunctionNode):
     def forward(self, inputs):
         x, = inputs
         ret = x.sum(axis=self.axis, keepdims=self.keepdims)
-        if cuda.get_array_module(x) is numpy:
+        if backend.get_array_module(x) is numpy:
             ret = numpy.asarray(ret)
         return ret,
 
@@ -89,17 +89,17 @@ def sum(x, axis=None, keepdims=False):
         >>> y = F.sum(x)
         >>> y.shape
         ()
-        >>> y.data
+        >>> y.array
         array(15., dtype=float32)
         >>> y = F.sum(x, axis=1)
         >>> y.shape
         (2,)
-        >>> y.data
+        >>> y.array
         array([ 3., 12.], dtype=float32)
         >>> y = F.sum(x, keepdims=True)
         >>> y.shape
         (1, 1)
-        >>> y.data
+        >>> y.array
         array([[15.]], dtype=float32)
 
     """
