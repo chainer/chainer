@@ -312,7 +312,7 @@ Use apply() method instead.\
                 else self._output_indexes_to_retain)
 
             self.inputs = tuple(
-                [variable._ChainerxVariableProps(x) for x in inputs])
+                [variable._ChainerxVariableNodeProps(x) for x in inputs])
 
             ret = tuple([
                 variable.Variable(y, requires_grad=y.is_backprop_required())
