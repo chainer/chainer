@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 import six
+import warnings
 
 import chainer
 from chainer.backends import cuda
@@ -13,7 +14,7 @@ from chainer.testing import backend
 
 
 def _to_fcontiguous(arrays):
-    xp = cuda.get_array_module(*arrays)
+    xp = chainer.backend.get_array_module(*arrays)
     return [xp.asfortranarray(a) for a in arrays]
 
 
@@ -29,11 +30,10 @@ def _batch_normalization(args):
     testing.product({
         'param_shape': [(3,), (3, 4), (3, 2, 3)],
         'ndim': [0, 1, 2],
-        'axis': [None],
     }) + [
-        {'shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
-        {'shape': (5, 4), 'axis': 0},
-        {'shape': (5, 4, 3), 'axis': (0, 1)},
+        {'input_shape': (5, 4, 3, 2), 'axis': (0, 2, 3)},
+        {'input_shape': (5, 4), 'axis': 0},
+        {'input_shape': (5, 4, 3), 'axis': (0, 1)},
     ],
     testing.product({
         'dtype': [numpy.float32],
@@ -46,7 +46,6 @@ def _batch_normalization(args):
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
-    'axis': [None],
 })))
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
@@ -59,26 +58,27 @@ def _batch_normalization(args):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+        'cudnn_fast_batch_normalization': [True, False],
     }))
 class TestBatchNormalization(unittest.TestCase):
 
     def setUp(self):
         dtype = self.dtype
-        aggr_axes = self.axis
 
-        if aggr_axes is None:
+        if not hasattr(self, 'axis'):
             param_shape = self.param_shape
             ndim = self.ndim
             shape = (5,) + param_shape + (2,) * ndim
         else:
+            aggr_axes = self.axis
             if isinstance(self.axis, int):
                 aggr_axes = self.axis,
             param_shape = tuple(
                 s
-                for i, s in enumerate(self.shape)
+                for i, s in enumerate(self.input_shape)
                 if i not in aggr_axes
             )
-            shape = self.shape
+            shape = self.input_shape
 
         gamma = numpy.random.uniform(.5, 1, param_shape).astype(dtype)
         beta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
@@ -88,7 +88,7 @@ class TestBatchNormalization(unittest.TestCase):
         gggamma = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
         ggbeta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
 
-        if aggr_axes is None:
+        if not hasattr(self, 'axis'):
             head_ndim = gamma.ndim + 1
             aggr_axes = (0,) + tuple(six.moves.range(head_ndim, x.ndim))
 
@@ -110,6 +110,12 @@ class TestBatchNormalization(unittest.TestCase):
         self.grad_outputs = [gy]
         self.grad_grad_inputs = [ggx, gggamma, ggbeta]
 
+        self.bn_options = {
+            'decay': self.decay,
+            'eps': self.eps,
+        }
+        if hasattr(self, 'axis'):
+            self.bn_options['axis'] = self.axis
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'dtype': numpy.float64}
         self.check_double_backward_options = {
@@ -137,8 +143,7 @@ class TestBatchNormalization(unittest.TestCase):
         with backend_config:
             y = functions.batch_normalization(
                 *inputs, running_mean=None,
-                running_var=None, decay=self.decay, eps=self.eps,
-                axis=self.axis)
+                running_var=None, **self.bn_options)
         assert y.data.dtype == self.dtype
 
         testing.assert_allclose(
@@ -157,7 +162,7 @@ class TestBatchNormalization(unittest.TestCase):
 
         def f(*inputs):
             y = functions.batch_normalization(
-                *inputs, decay=self.decay, eps=self.eps, axis=self.axis)
+                *inputs, **self.bn_options)
             return y,
 
         with backend_config:
@@ -180,9 +185,8 @@ class TestBatchNormalization(unittest.TestCase):
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(*inputs):
-            y = functions.batch_normalization(
-                *inputs, decay=self.decay, eps=self.eps, axis=self.axis)
-            return y * y,  # make nonlinear against beta
+            return functions.batch_normalization(
+                *inputs, **self.bn_options)
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -216,6 +220,7 @@ class TestBatchNormalization(unittest.TestCase):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+        'cudnn_fast_batch_normalization': [True, False],
     }))
 class TestFixedBatchNormalization(unittest.TestCase):
 
@@ -309,8 +314,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(*inputs):
-            y = functions.fixed_batch_normalization(*inputs, eps=self.eps)
-            return y * y,  # make nonlinear against beta
+            return functions.fixed_batch_normalization(*inputs, eps=self.eps)
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -392,6 +396,63 @@ class TestBatchNormalizationCudnnEps(unittest.TestCase):
     def test_invalid(self):
         with self.assertRaises(RuntimeError):
             functions.batch_normalization(*self.args, eps=2e-6)
+
+
+@attr.cudnn
+class TestFixedBatchNormalizationCudnnEps(unittest.TestCase):
+    def setUp(self):
+        ndim = 0
+        param_shape = (3,)
+        dtype = numpy.float32
+        gamma = cuda.cupy.random.uniform(.5, 1, param_shape).astype(dtype)
+        beta = cuda.cupy.random.uniform(-1, 1, param_shape).astype(dtype)
+        mean = cuda.cupy.random.uniform(-1, 1, param_shape).astype(dtype)
+        var = cuda.cupy.random.uniform(-1, 1, param_shape).astype(dtype)
+        shape = (7,) + param_shape + (2,) * ndim
+        x = cuda.cupy.random.uniform(-1, 1, shape).astype(dtype)
+        self.args = [x, gamma, beta, mean, var]
+
+    def test_valid(self):
+        functions.fixed_batch_normalization(*self.args, eps=1e-5)
+
+    def test_invalid(self):
+        with self.assertRaises(RuntimeError):
+            functions.fixed_batch_normalization(*self.args, eps=2e-6)
+
+
+class TestBatchNormalizationWarning(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def create_batch(self, param_shape, x_shape):
+        dtype = numpy.float32
+        gamma = numpy.random.uniform(.5, 1, param_shape).astype(dtype)
+        beta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+        args = [x, gamma, beta]
+        return args
+
+    def test_invalid_batch(self):
+        args = self.create_batch((3,), (1, 3))
+        with testing.assert_warns(UserWarning):
+            functions.batch_normalization(*args)
+
+    def test_invalid_batch_no_batch_axis(self):
+        args = self.create_batch((1, 3,), (1, 3, 1))
+        with testing.assert_warns(UserWarning):
+            functions.batch_normalization(*args, axis=2)
+
+    def test_valid_batch(self):
+        args = self.create_batch((3,), (1, 3, 2, 2))
+        with warnings.catch_warnings(record=True) as w:
+            functions.batch_normalization(*args)
+            assert len(w) == 0
+
+    def test_valid_batch_no_batch_axis(self):
+        args = self.create_batch((1, 3,), (1, 3, 2))
+        with warnings.catch_warnings(record=True) as w:
+            functions.batch_normalization(*args, axis=2)
+            assert len(w) == 0
 
 
 testing.run_module(__name__, __file__)

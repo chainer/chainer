@@ -12,35 +12,35 @@ from chainer.testing import backend
 @testing.parameterize(*testing.product_dict(
     [
         {'shape': (2, 7, 3), 'axis': 1,
-         'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
-                    [slice(None), slice(5, None)]]},
+         'slices': [(slice(None), slice(None, 2)), (slice(None), slice(2, 5)),
+                    (slice(None), slice(5, None))]},
         {'shape': (7, 3), 'axis': 0,
          'slices': [slice(None, 2), slice(2, 5), slice(5, None)]},
         {'shape': (2,), 'axis': 0, 'slices': [slice(None, 1), slice(1, None)]},
         {'shape': (2,), 'axis': 0, 'slices': [()]},
         {'shape': (2, 7, 3), 'axis': 1,
-         'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
-                    [slice(None), slice(5, None)]]},
+         'slices': [(slice(None), slice(None, 2)), (slice(None), slice(2, 5)),
+                    (slice(None), slice(5, None))]},
         {'shape': (2, 7, 3), 'axis': 1,
-         'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
-                    [slice(None), slice(5, None)]]},
+         'slices': [(slice(None), slice(None, 2)), (slice(None), slice(2, 5)),
+                    (slice(None), slice(5, None))]},
         {'shape': (2, 7, 3), 'axis': -2,
-         'slices': [[slice(None), slice(None, 2)], [slice(None), slice(2, 5)],
-                    [slice(None), slice(5, None)]]},
+         'slices': [(slice(None), slice(None, 2)), (slice(None), slice(2, 5)),
+                    (slice(None), slice(5, None))]},
         {'shape': (7, 3, 2, 2), 'axis': 0,
          'slices': [slice(None, 2), slice(2, 5), slice(5, None)]},
         {'shape': (2, 7, 3, 5), 'axis': 1,
-         'slices': [[slice(None), slice(None, 2), slice(None)],
-                    [slice(None), slice(2, 5), slice(None)],
-                    [slice(None), slice(5, None), slice(None)]]},
+         'slices': [(slice(None), slice(None, 2), slice(None)),
+                    (slice(None), slice(2, 5), slice(None)),
+                    (slice(None), slice(5, None), slice(None))]},
         {'shape': (2, 7, 3, 5), 'axis': -1,
-         'slices': [[slice(None), slice(None), slice(None), slice(None, 2)],
-                    [slice(None), slice(None), slice(None), slice(2, 3)],
-                    [slice(None), slice(None), slice(None), slice(3, None)]]},
+         'slices': [(slice(None), slice(None), slice(None), slice(None, 2)),
+                    (slice(None), slice(None), slice(None), slice(2, 3)),
+                    (slice(None), slice(None), slice(None), slice(3, None))]},
         {'shape': (2, 7, 3, 5), 'axis': -3,
-         'slices': [[slice(None), slice(None, 2), slice(None)],
-                    [slice(None), slice(2, 5), slice(None)],
-                    [slice(None), slice(5, None), slice(None)]]},
+         'slices': [(slice(None), slice(None, 2), slice(None)),
+                    (slice(None), slice(2, 5), slice(None)),
+                    (slice(None), slice(5, None), slice(None))]},
     ],
     [
         {'dtype': numpy.float16},
@@ -104,8 +104,10 @@ class TestConcat(unittest.TestCase):
 class TestConcatInvalidAxisType(unittest.TestCase):
 
     def test_invlaid_axis_type(self):
+        inputs = [numpy.random.rand(3, 4), numpy.random.rand(3, 1)]
+
         with self.assertRaises(TypeError):
-            functions.Concat('a')
+            functions.concat(inputs, 'a')
 
 
 testing.run_module(__name__, __file__)

@@ -2,6 +2,7 @@ import copy
 
 import six
 
+from chainer.backends import cuda
 from chainer.dataset import convert
 from chainer import function
 from chainer.training.updaters import standard_updater
@@ -49,17 +50,23 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             propagated to whole gradients in a computational graph along the
             backprop. The gradients of parameters are divided by the factor
             just before the parameters are to be updated.
+        auto_new_epoch (bool):  If ``True``,
+            :meth:`~chainer.Optimizer.new_epoch` of the main optimizer is
+            automatically called when the ``is_new_poch`` attribute of the
+            main iterator is ``True``.
 
     """
 
     def __init__(self, iterator, optimizer, converter=convert.concat_examples,
-                 models=None, devices=None, loss_func=None, loss_scale=None):
+                 models=None, devices=None, loss_func=None, loss_scale=None,
+                 auto_new_epoch=True):
         super(ParallelUpdater, self).__init__(
             iterator=iterator,
             optimizer=optimizer,
             converter=converter,
             loss_func=loss_func,
             loss_scale=loss_scale,
+            auto_new_epoch=auto_new_epoch,
         )
 
         if models is None:
@@ -99,7 +106,8 @@ class ParallelUpdater(standard_updater.StandardUpdater):
         models_others = {k: v for k, v in self._models.items()
                          if v is not model_main}
 
-        batch = self.get_iterator('main').next()
+        iterator = self.get_iterator('main')
+        batch = iterator.next()
 
         #
         # Split the batch to sub-batches.
@@ -120,12 +128,16 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             loss_func = self.loss_func or model
 
             with function.force_backprop_mode():
-                if isinstance(in_arrays, tuple):
-                    loss = loss_func(*in_arrays)
-                elif isinstance(in_arrays, dict):
-                    loss = loss_func(**in_arrays)
-                else:
-                    loss = loss_func(in_arrays)
+                dev_id = self._devices[model_key]
+                dev_id = dev_id if 0 <= dev_id else None
+                with cuda.get_device_from_id(dev_id):
+                    if isinstance(in_arrays, tuple):
+                        loss = loss_func(*in_arrays)
+                    elif isinstance(in_arrays, dict):
+                        loss = loss_func(**in_arrays)
+                    else:
+                        loss = loss_func(in_arrays)
+
             losses.append(loss)
 
         # For _uninitialized_params
@@ -142,3 +154,6 @@ class ParallelUpdater(standard_updater.StandardUpdater):
 
         for model in six.itervalues(models_others):
             model.copyparams(model_main)
+
+        if self.auto_new_epoch and iterator.is_new_epoch:
+            optimizer.new_epoch(auto=True)

@@ -5,20 +5,21 @@ from chainer import testing
 from chainer.training import extensions
 
 
+try:
+    import matplotlib
+    _available = True
+except ImportError:
+    _available = False
+
+
 class TestPlotReport(unittest.TestCase):
 
     def test_available(self):
-        try:
-            import matplotlib  # NOQA
-            available = True
-        except ImportError:
-            available = False
-
         with warnings.catch_warnings(record=True) as w:
-            self.assertEqual(extensions.PlotReport.available(), available)
+            self.assertEqual(extensions.PlotReport.available(), _available)
 
         # It shows warning only when matplotlib is not available
-        if available:
+        if _available:
             self.assertEqual(len(w), 0)
         else:
             self.assertEqual(len(w), 1)
@@ -28,13 +29,19 @@ class TestPlotReport(unittest.TestCase):
     # because it sometimes does not raise UserWarning despite
     # matplotlib is not installed (this is due to the difference between
     # the behavior of unittest in python2 and that in python3).
-    @unittest.skipUnless(
-        extensions.plot_report._available, 'matplotlib is not installed')
+    @unittest.skipUnless(_available, 'matplotlib is not installed')
     def test_lazy_import(self):
+        # matplotlib.pyplot should be lazily imported because matplotlib.use
+        # has to be called earlier.
+
         # To support python2, we do not use self.assertWarns()
         with warnings.catch_warnings(record=True) as w:
-            import matplotlib
+            warnings.simplefilter('always')
             matplotlib.use('Agg')
+            # Test again with a different backend, because the above does not
+            # generate a warning if matplotlib.use('Agg') is called and then
+            # matplotlib.pyplot is imported.
+            matplotlib.use('PS')
 
         self.assertEqual(len(w), 0)
 

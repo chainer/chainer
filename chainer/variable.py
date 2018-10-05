@@ -6,9 +6,11 @@ import warnings
 import weakref
 
 import numpy
+import six
 
 import chainer
 from chainer import _backprop_utils
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -22,15 +24,15 @@ def _check_grad_type(func, x, gx):
         return
     if not chainer.is_arrays_compatible((gx, x.data)):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
-               (type(x.data), type(gx)))
+               (type(gx), type(x.data)))
         typ = TypeError
     elif gx.dtype != x.data.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
-               (x.data.dtype, gx.dtype))
+               (gx.dtype, x.data.dtype))
         typ = TypeError
     elif gx.shape != x.data.shape:
         msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
-               (x.data.shape, gx.shape))
+               (gx.shape, x.data.shape))
         typ = ValueError
     else:
         return
@@ -60,7 +62,7 @@ def variable_repr(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_repr
     """
-    xp = cuda.get_array_module(var)
+    xp = backend.get_array_module(var)
     if xp is numpy:
         arr = var.data
     else:
@@ -88,7 +90,7 @@ def variable_str(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_str
     """
-    xp = cuda.get_array_module(var)
+    xp = backend.get_array_module(var)
     if xp is numpy:
         arr = var.data
     else:
@@ -146,9 +148,9 @@ class VariableNode(object):
         name (str): Name of the variable node.
 
     Attributes:
-        ~VariableNode.dtype: Data type of the data array.
-        ~VariableNode.shape: Shape of the data array.
-        ~VariableNode.name (str): Name of the variable node.
+        dtype: Data type of the data array.
+        shape: Shape of the data array.
+        name (str): Name of the variable node.
 
     """
 
@@ -160,11 +162,12 @@ class VariableNode(object):
     _old_style_grad_generator = None
 
     def __init__(self, variable, name, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs,
-            grad='unexpected keyword argument "grad": '
-                 'pass the gradient to Variable instead'
-        )
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                grad='unexpected keyword argument "grad": '
+                     'pass the gradient to Variable instead'
+            )
         self._variable = weakref.ref(variable)
         self.name = name
         self._requires_grad = variable.requires_grad
@@ -283,6 +286,11 @@ class VariableNode(object):
         """
         var = self._variable()
         return None if var is None else var._grad_var
+
+    def _set_grad_var_if_available(self, g):
+        var = self._variable()
+        if var is not None:
+            var._grad_var = g
 
     @property
     def label(self):
@@ -447,9 +455,10 @@ class Variable(object):
         * Floor Division: ``a // b`` (:meth:`__floordiv__`, \
                                       :meth:`__rfloordiv__`)
         * Exponentiation: ``a ** b`` (:meth:`__pow__`, :meth:`__rpow__`)
-        * Matirx Multiplication: ``a @ b`` (:meth:`__matmul__`, \
+        * Matrix Multiplication: ``a @ b`` (:meth:`__matmul__`, \
                                             :meth:`__rmatmul__`)
         * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
+        * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
     .. warning::
 
@@ -466,14 +475,10 @@ class Variable(object):
     """  # NOQA
 
     def __init__(self, data=None, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs, volatile='volatile argument is not supported anymore. '
+        name, grad, requires_grad = argument.parse_kwargs(
+            kwargs, ('name', None), ('grad', None), ('requires_grad', True),
+            volatile='volatile argument is not supported anymore. '
             'Use chainer.using_config')
-        name, grad, requires_grad \
-            = argument.parse_kwargs(
-                kwargs, ('name', None), ('grad', None),
-                ('requires_grad', True))
-
         if (data is not None and
                 not isinstance(data, chainer.get_array_types())):
             msg = '''numpy.ndarray or cuda.ndarray are expected.
@@ -514,7 +519,7 @@ Actual: {0}'''.format(type(data))
         returns :mod:`numpy` or :mod:`cupy`.
 
         """
-        return cuda.get_array_module(self)
+        return backend.get_array_module(self)
 
     @property
     def name(self):
@@ -779,9 +784,11 @@ Actual: {0}'''.format(type(data))
             if isinstance(data, cuda.ndarray):
                 # cupy.ndarray to numpy.ndarray
                 data = data.get()
-            if (isinstance(data, numpy.ndarray) and
-                    intel64.inputs_all_ready((data,))):
-                # numpy.ndarray to ideep.mdarray
+            if (isinstance(data, numpy.ndarray) and data.ndim in (1, 2, 4)):
+                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
+                # Currently iDeep only supports (1, 2, 4)-dim arrays.
+                # Note that array returned from `ideep.array` may not be an
+                # iDeep mdarray, e.g., when the dtype is not float32.
                 data = intel64.ideep.array(
                     data, itype=intel64.ideep.wgt_array)
             self._data = [data]
@@ -850,14 +857,7 @@ Actual: {0}'''.format(type(data))
         elif dst is None:
             self.initialize(src.shape)
             dst = self.data
-        src_xp = cuda.get_array_module(src)
-        dst_xp = cuda.get_array_module(dst)
-        if dst_xp is src_xp:
-            dst_xp.copyto(dst, src)
-        elif dst_xp is numpy:
-            dst_xp.copyto(dst, src.get())
-        else:
-            dst.set(src)
+        backend.copyto(dst, src)
 
     def addgrad(self, var):
         """Accumulates the gradient array from given source variable.
@@ -966,19 +966,10 @@ Actual: {0}'''.format(type(data))
         self._node._check_old_style_gradient()
         if self.creator_node is None:
             return
-        initial_device = None
-        if cuda.available and isinstance(self.data, cuda.ndarray):
-            try:
-                initial_device = cuda.Device()
-            except cuda.cupy.cuda.runtime.CUDARuntimeError as e:
-                if e.status != 38:  # cudaErrorNoDevice
-                    raise
-
-        is_debug = chainer.is_debug()
 
         cand_funcs = []
         seen_set = set()
-        grads = {}
+        grads = _backprop_utils.GradTable(load_if_new=True)
 
         # Initialize error by 1, if this is a loss variable
         if self.data.size == 1 and self._grad_var is None:
@@ -1007,22 +998,7 @@ Actual: {0}'''.format(type(data))
                 seen_set.add(cand)
 
         add_cand(self.creator_node)
-
-        def get_grad(node):
-            if node is None:
-                return None
-            if node in grads:
-                return grads[node]
-            return node.grad_var
-
-        def set_grad(node, value):
-            if node is None:
-                return
-            if node in grads:
-                grads[node] = value
-            var = node.get_variable()
-            if var is not None:
-                var._grad_var = value
+        leaf_nodes = set()
 
         while cand_funcs:
             _, _, func = heapq.heappop(cand_funcs)
@@ -1030,19 +1006,12 @@ Actual: {0}'''.format(type(data))
             target_input_indexes = tuple([
                 i for i, x in enumerate(inputs) if x.requires_grad
             ])
+            outputs = [y() for y in func.outputs]  # access via weak ref
+            out_grad = tuple([grads.pop(y) for y in outputs])
             if not target_input_indexes:
                 continue
-            outputs = [y() for y in func.outputs]  # access via weak ref
 
             in_data = tuple([x.data for x in inputs])
-            # We need calculate the value of for the out_grad which accumulated
-            # because now out_grad is used in backward calculation.
-            for y in outputs:
-                grad = get_grad(y)
-                if isinstance(grad, tuple):
-                    grad = chainer.functions.add(*grad)
-                    set_grad(y, grad)
-            out_grad = tuple([get_grad(y) for y in outputs])
             out_grad_data = tuple(
                 [None if g is None else g.data for g in out_grad])
             hooks = chainer.get_function_hooks()
@@ -1051,114 +1020,55 @@ Actual: {0}'''.format(type(data))
                 hooks.update(func.local_function_hooks)
             hooks = hooks.values()  # avoid six for performance
 
-            cuda.get_device_from_array(*in_data).use()
-            for hook in hooks:
-                hook.backward_preprocess(func, in_data, out_grad_data)
+            with cuda.get_device_from_array(*(in_data + out_grad_data)):
+                for hook in hooks:
+                    hook.backward_preprocess(func, in_data, out_grad_data)
 
-            # Collect the current input gradients.
-            #
-            # Note (Tokui): When the same variable is passed to multiple input
-            # slots (e.g. an expression like ``f(x, x)``), it makes the
-            # gradient accumulation complicated since the back-propagated
-            # gradients w.r.t. the first and second argument should be
-            # accumulated to the current gradient w.r.t. the same variable.
-            # In this case, the current implementation passes the current
-            # gradient only to the first occurrence of the variable in the
-            # input tuple and passes ``None`` to the rest of the occurrences.
-            # For example, when the input variables are ``(x, x)``, the
-            # input gradient passed to the ``backward_accumulate`` method is
-            # ``(gx, None)`` where ``gx`` is the current gradient of ``x``.
-            # See also the docstring of ``FunctionNode.backward_accumulate``.
-            target_inputs = [inputs[i] for i in target_input_indexes]
-            in_grad = []
-            for i, index_i in enumerate(target_input_indexes):
-                x = inputs[index_i]
-                if x in target_inputs[:i]:
-                    # Pass ``None`` for duplicated input variables except for
-                    # the first occurrence (see the comment above).
-                    gx = None
-                elif x in grads:
-                    gx = grads[x]
-                elif x.creator_node is None:
-                    x._check_old_style_gradient()
-                    # accumulate the gradient only if the node is a leaf
-                    gx = x.grad_var
-                else:
-                    gx = None
-                in_grad.append(gx)
-            in_grad = tuple(in_grad)
+                # Collect the current input gradients.
+                target_inputs = [inputs[i] for i in target_input_indexes]
+                # Keep the order for the portability, rather than
+                # in_grad = {x: grads.get_as_list(x)
+                #            for x in set(target_inputs)}
+                in_grad = collections.OrderedDict()
+                for x in target_inputs:
+                    if x not in in_grad:
+                        in_grad[x] = grads.get_as_list(x)
+                        # to reduce memory usage
+                        x._set_grad_var_if_available(None)
 
-            gxs = func.backward_accumulate(
-                target_input_indexes, out_grad, in_grad)
+                _backprop_utils.backprop_step(
+                    func, target_input_indexes, out_grad, in_grad)
 
-            assert len(gxs) == len(in_grad)
-            for hook in hooks:
-                hook.backward_postprocess(func, in_data, out_grad_data)
+                for hook in hooks:
+                    hook.backward_postprocess(func, in_data, out_grad_data)
 
-            if is_debug:
-                for gx in gxs:
-                    if gx is None:
-                        continue
-                    gx_data = gx.data
-                    if gx_data.dtype.kind == 'f':
-                        cuda.get_device_from_array(gx_data).use()
-                        if cuda.get_array_module(gx_data).isnan(gx_data).any():
-                            raise RuntimeError(
-                                'NaN is detected on backward computation of '
-                                '{}'.format(func.label))
+            for y, gy in six.moves.zip(outputs, out_grad):
+                if y is not None and y is not self.node:
+                    y._set_grad_var_if_available(
+                        gy if retain_grad else None)
+            del gy, out_grad  # to reduce memory usage
 
-            if not retain_grad:
-                for y in outputs:
-                    if y is not None and y is not self.node:
-                        grads[y] = None
-                        y_var = y.get_variable_or_none()
-                        if y_var is not None:
-                            y_var._grad_var = None
-
-            for i, gx in enumerate(gxs):
-                if gx is None:
+            for x, gx in in_grad.items():
+                if not gx:  # gradient == None
                     continue
 
-                x = target_inputs[i]
-                if not x.requires_grad:
-                    continue
+                for gx_elem in gx:
+                    _check_grad_type(func, x, gx_elem.data)
+                del gx_elem  # to reduce memory usage
 
-                if isinstance(gx, tuple):
-                    # No need to check each data in the tuple,
-                    # just check the new gx concated in
-                    # backward_accumulate().
-                    _check_grad_type(func, x, gx[0].data)
+                if x.creator_node is None:  # leaf
+                    leaf_nodes.add(x)
                 else:
-                    _check_grad_type(func, x, gx.data)
-
-                if x in target_inputs[:i]:
-                    # Accumulate the duplicated gradients here. See the comment
-                    # above the code that builds ``in_grad``.
-                    cur_gx = grads[x]
-                    if func.lazy_grad_sum:
-                        if x.creator is None:
-                            gx = _backprop_utils.add(gx, cur_gx)
-                            grads[x] = gx
-                        else:
-                            grads[x] = _backprop_utils.concat_variable(
-                                gx, cur_gx)
-                    else:
-                        grads[x] = gx if cur_gx is None else gx + cur_gx
-
-                else:
-                    grads[x] = gx
-
-                x_var = x.get_variable_or_none()
-                if x_var is not None:
-                    x_var._grad_var = grads[x]
-                    x_var._loss_scale = loss_scale
-
-                if x.creator_node is not None:
                     add_cand(x.creator_node)
+            del gx, in_grad  # to reduce memory usage
 
-            del gxs  # to reduce memory usage
-            if initial_device is not None:
-                initial_device.use()
+        for x in leaf_nodes:
+            x_var = x.get_variable_or_none()
+            gx = grads.pop(x)
+            if x_var is not None:
+                x_var._grad_var = gx
+                x_var._loss_scale = loss_scale
+        grads.assert_no_grads()
 
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
@@ -1324,12 +1234,12 @@ class Parameter(Variable):
             else:
                 # uninitialized parameter
                 super(Parameter, self).__init__(name=name)
-                dtype = getattr(initializer, 'dtype', numpy.float32)
+                dtype = getattr(initializer, 'dtype', None)
                 self._grad_initializer = constant.NaN(dtype)
         else:
             # parameter initialized with a given shape
             if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
-                xp = cuda.get_array_module(initializer)
+                xp = backend.get_array_module(initializer)
                 initializer = constant.Constant(initializer)
             else:
                 xp = numpy

@@ -1,10 +1,10 @@
-.. module:: chainer.dataset
-
 Datasets
 ========
 
-Dataset Abstraction
--------------------
+.. module:: chainer.dataset
+
+Dataset Abstraction (``chainer.dataset``)
+-----------------------------------------
 
 Chainer supports a common interface for training and validation of datasets. The dataset support consists of three components: datasets, iterators, and batch conversion functions.
 
@@ -65,12 +65,13 @@ Dataset Management
    chainer.dataset.set_dataset_root
    chainer.dataset.cached_download
    chainer.dataset.cache_or_load_file
+
 .. module:: chainer.datasets
 
 .. _datasets:
 
-Examples
---------
+Dataset Examples (``chainer.datasets``)
+---------------------------------------
 
 The most basic :mod:`~chainer.dataset` implementation is an array.
 Both NumPy and CuPy arrays can be used directly as datasets.
@@ -98,7 +99,8 @@ The second one is :class:`ConcatenatedDataset` and :class:`SubDataset`.
 The third one is :class:`TransformDataset`, which wraps around a dataset by applying a function to data indexed from the underlying dataset.
 It can be used to modify behavior of a dataset that is already prepared.
 
-The last one is a group of domain-specific datasets. Currently, :class:`ImageDataset` and :class:`LabeledImageDataset` are provided for datasets of images.
+The last one is a group of domain-specific datasets.
+Currently, implementations for datasets of images (:class:`ImageDataset`, :class:`LabeledImageDataset`, etc.) and text (:class:`TextDataset`) are provided.
 
 
 DictDataset
@@ -158,6 +160,8 @@ ImageDataset
    :nosignatures:
 
    chainer.datasets.ImageDataset
+   chainer.datasets.ZippedImageDataset
+   chainer.datasets.MultiZippedImageDataset
 
 LabeledImageDataset
 ~~~~~~~~~~~~~~~~~~~
@@ -167,6 +171,28 @@ LabeledImageDataset
    :nosignatures:
 
    chainer.datasets.LabeledImageDataset
+   chainer.datasets.LabeledZippedImageDataset
+
+TextDataset
+~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.TextDataset
+
+PickleDatase
+~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.datasets.PickleDataset
+   chainer.datasets.PickleDatasetWriter
+   chainer.datasets.open_pickle_dataset
+   chainer.datasets.open_pickle_dataset_writer
 
 Concrete Datasets
 -----------------
@@ -176,6 +202,7 @@ Concrete Datasets
    :nosignatures:
 
    chainer.datasets.get_mnist
+   chainer.datasets.get_fashion_mnist_labels
    chainer.datasets.get_fashion_mnist
    chainer.datasets.get_cifar10
    chainer.datasets.get_cifar100

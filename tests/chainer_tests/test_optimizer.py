@@ -6,6 +6,7 @@ import mock
 import numpy as np
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
 from chainer import optimizers
@@ -191,6 +192,30 @@ class TestUpdateRule(unittest.TestCase):
         self.update_rule.update(self.var)
 
 
+class TestOptimizer(unittest.TestCase):
+
+    def setUp(self):
+        self.optimizer = optimizer.Optimizer()
+
+    def test_new_epoch(self):
+        self.optimizer.new_epoch()
+        self.assertEqual(1, self.optimizer.epoch)
+
+    def test_invalid_new_epoch(self):
+        self.optimizer.use_auto_new_epoch = True
+        with self.assertRaises(RuntimeError):
+            self.optimizer.new_epoch()
+
+    def test_auto_new_epoch(self):
+        self.optimizer.use_auto_new_epoch = True
+        self.optimizer.new_epoch(auto=True)
+        self.assertEqual(1, self.optimizer.epoch)
+
+    def test_invalid_auto_new_epoch(self):
+        with self.assertRaises(RuntimeError):
+            self.optimizer.new_epoch(auto=True)
+
+
 class TestOptimizerHook(unittest.TestCase):
 
     def setUp(self):
@@ -326,7 +351,7 @@ class TestGradientMethodLossScale(unittest.TestCase):
 
     def check_update(self):
         self.optimizer.update()
-        xp = cuda.get_array_module(self.target[0].param)
+        xp = backend.get_array_module(self.target[0].param)
         expected_data = xp.zeros(self.shape, dtype=self.dtype)
         rtol, atol = 1e-4, 1e-5
         if self.dtype is np.float16:

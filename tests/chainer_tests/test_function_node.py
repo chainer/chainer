@@ -4,12 +4,14 @@ import unittest
 
 import mock
 import numpy
+import pytest
 import six
 
 import chainer
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
 from chainer.utils import type_check
 
 
@@ -101,38 +103,6 @@ class TestFunctionNode(unittest.TestCase):
         self.setup_gpu()
         self.check_forward(True)
 
-    def check_backward_accumulate(self, gxs):
-        x1 = chainer.Variable(self.x1)
-        x2 = chainer.Variable(self.x2)
-        self.f.inputs = (x1.node, x2.node)
-        gx1, gx2 = self.f.backward_accumulate(
-            (0, 1), (self.gy1, self.gy2), gxs)
-        if gxs[0] is None:
-            numpy.testing.assert_array_equal(cuda.to_cpu(gx1.data),
-                                             cuda.to_cpu(self.gx1.data))
-            self.assertIsNone(gx2)
-        else:
-            numpy.testing.assert_array_equal(cuda.to_cpu(gx1.data),
-                                             cuda.to_cpu(self.gx1_accum.data))
-            numpy.testing.assert_array_equal(cuda.to_cpu(gx2.data),
-                                             cuda.to_cpu(self.gx2_orig.data))
-
-    def test_backward_accumulate_none_cpu(self):
-        self.check_backward_accumulate((None, None))
-
-    @attr.gpu
-    def test_backward_accumulate_none_gpu(self):
-        self.setup_gpu()
-        self.check_backward_accumulate((None, None))
-
-    def test_backward_accumulate_cpu(self):
-        self.check_backward_accumulate((self.gx1_orig, self.gx2_orig))
-
-    @attr.gpu
-    def test_backward_accumulate_gpu(self):
-        self.setup_gpu()
-        self.check_backward_accumulate((self.gx1_orig, self.gx2_orig))
-
     def check_check_type_forward(self):
         self.assertEqual(self.f.check_type_forward.call_count, 1)
         ts = self.f.check_type_forward.call_args[0][0]
@@ -182,7 +152,7 @@ class TestFunctionNode(unittest.TestCase):
         self.assertEqual(len(ys), 2)
         self.check_check_type_forward()
 
-        xp = cuda.get_array_module(x1)
+        xp = chainer.backend.get_array_module(x1)
 
         for y in ys:
             self.assertIsInstance(y, chainer.Variable)
@@ -394,50 +364,148 @@ class TestFunctionNodeForwardDebug(unittest.TestCase):
         self.check_debug_forward(cuda.to_gpu(self.one))
 
 
-@testing.parameterize(
-    {'return_data': (numpy.array(float('nan'), numpy.float32),),
-     'valid': False},
-    {'return_data': (None,), 'valid': True},
-)
-class TestFunctionNodeBackwardDebug(unittest.TestCase):
+@backend.inject_backend_tests(
+    None,
+    testing.product({'use_cuda': [True, False]}))
+class TestFunctionNodeInvalidBackwardChecks(unittest.TestCase):
+    """Tests FunctionNode.backward correctness checks"""
 
     def setUp(self):
-        self.original_debug = chainer.is_debug()
-        chainer.set_debug(True)
-        self.one = numpy.array(1, numpy.float32)
         self.f = chainer.FunctionNode()
-        self.return_value = tuple(None if x is None else chainer.Variable(x)
-                                  for x in self.return_data)
 
-    def tearDown(self):
-        chainer.set_debug(self.original_debug)
+    def _dummy_func(self, bwd_return_data):
+        # Create a dummy func that returns `bwd_return_data` in the
+        # `backward` method.
 
-    def check_debug_backward_accumulate(self, *xs_data):
-        xs = [chainer.Variable(x) for x in xs_data]
-        y, = self.f.apply(xs)
-        if self.valid:
-            # check if backard throws nothing
-            y.backward()
-        else:
-            with self.assertRaises(RuntimeError):
-                y.backward()
+        def one(xp):
+            return xp.array(1, numpy.float32)
 
-    def test_debug_backward_accumulate_cpu(self):
-        self.f.forward_cpu = mock.MagicMock(return_value=(self.one,))
-        self.f.backward = mock.MagicMock(return_value=self.return_value)
-        input_value = (self.one,) * len(self.return_value)
-        self.check_debug_backward_accumulate(*input_value)
+        class DummyFunc(chainer.FunctionNode):
+            def forward_cpu(self, inputs):
+                return one(numpy),
 
-    @attr.gpu
-    def test_debug_backward_accumulate_gpu(self):
-        self.f.forward_gpu = mock.MagicMock(
-            return_value=(cuda.to_gpu(self.one),))
-        for x in self.return_value:
-            if x is not None:
-                x.to_gpu()
-        input_value = (cuda.to_gpu(self.one),) * len(self.return_value)
-        self.f.backward = mock.MagicMock(return_value=self.return_value)
-        self.check_debug_backward_accumulate(*input_value)
+            def forward_gpu(self, inputs):
+                return one(cuda.cupy),
+
+            def backward(self, indexes, grad_outputs):
+                return bwd_return_data
+
+        return DummyFunc()
+
+    def check_debug_backward_accumulate(
+            self, backend_config, f, xs_data, errors, initial_gxs=None):
+        # `errors` is a dict, where keys are True or False indicating the
+        # debug mode to run the test, and values are tuple of expected
+        # exception type and error message pattern.
+
+        for debug_mode, error in errors.items():
+
+            def to_xp(arrs):
+                if backend_config.use_cuda:
+                    return cuda.to_gpu(arrs)
+                else:
+                    return arrs
+
+            # Convert arrays to GPU
+            xs_data = to_xp(xs_data)
+            if initial_gxs is not None:
+                initial_gxs = to_xp(initial_gxs)
+
+            # Call forward
+            xs = [chainer.Variable(x) for x in xs_data]
+            y, = f.apply(xs)
+
+            # Set initial input grads, if given
+            if initial_gxs is not None:
+                assert len(xs) == len(initial_gxs)
+                for x, gx in zip(xs, initial_gxs):
+                    x.grad = gx
+
+            # Call backward & check error
+            with chainer.using_config('debug', debug_mode):
+                if error is None:
+                    y.backward()  # no error should be raised
+                else:
+                    error_type, error_regex = error
+                    with pytest.raises(error_type, match=error_regex):
+                        y.backward()
+
+    def test_ok(self, backend_config):
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((
+                chainer.Variable(numpy.array([2.0], numpy.float32)),)),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={False: None, True: None})
+
+    def test_gradients_has_nan(self, backend_config):
+        # Returns a gradient that has NaN value
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((chainer.Variable(numpy.array(
+                [float('nan')], numpy.float32)),)),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={True: (RuntimeError,
+                           'NaN is detected on backward computation')})
+
+    def test_invalid_number_of_gradients(self, backend_config):
+        # Returns more gradients than expected
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((
+                chainer.Variable(numpy.array([2.0], numpy.float32)),
+                chainer.Variable(numpy.array([1.0], numpy.float32)))),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={True: (ValueError,
+                           'number of gradients returned from backward is '
+                           'incorrect')})
+
+    def test_invalid_zero_gradients(self, backend_config):
+        # Returns 0 gradients while 1 expected
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func(()),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={True: (ValueError,
+                           'number of gradients returned from backward is '
+                           'incorrect')})
+
+    def test_invalid_gradient_shape(self, backend_config):
+        # Returns gradient of incorrect shape
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((
+                chainer.Variable(
+                    backend_config.xp.array([2, 3], numpy.float32)),)),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={True: (ValueError,
+                           'shape of gradients returned from backward is '
+                           'incorrect')})
+
+    def test_invalid_gradient_type(self, backend_config):
+        # Incorrectly returns a gradient as ndarray instead of variable
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((
+                backend_config.xp.array([2.0], numpy.float32))),
+            xs_data=(numpy.array([1], numpy.float32),),
+            errors={True: (ValueError,
+                           'type of gradients returned from backward is '
+                           'incorrect')})
+
+    def test_invalid_gradient_dtype(self, backend_config):
+        # Incorrectly returns a gradient with incorrect dtype, compared to
+        # initially set gradients.
+        self.check_debug_backward_accumulate(
+            backend_config,
+            f=self._dummy_func((
+                chainer.Variable(
+                    backend_config.xp.array([2.0], numpy.int64)),)),
+            xs_data=(numpy.array([1], numpy.float32),),
+            initial_gxs=(numpy.array([1], numpy.float32),),
+            errors={True: (ValueError,
+                           'dtype of gradients returned from backward is '
+                           'incorrect')})
 
 
 class TestNoBackpropMode(unittest.TestCase):
@@ -563,12 +631,16 @@ class GradTestBase(object):
     x_names = ()
     y_names = ()
     loss_scale = None
+    extend_graph_x = False
+    extend_graph_y = False
 
     def _init_attrs(self, names):
         ret = []
         for name in names:
             v = chainer.Variable(
                 numpy.random.randint(-4, 6, self.shape).astype('f'), name=name)
+            if self.extend_graph_x:
+                v *= 1.
             ret.append(v)
             setattr(self, name, v)
         return ret
@@ -625,6 +697,8 @@ class GradTestBase(object):
     def check_grad(self):
         self.forward()
         ys = [getattr(self, name) for name in self.y_names]
+        if self.extend_graph_y:
+            self._ys = [v * 1. for v in ys]
         gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
                            loss_scale=self.loss_scale)
 
@@ -704,6 +778,10 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
         return [ggrad]
 
 
+@testing.parameterize(*testing.product({
+    'extend_graph_x': [False, True],
+    'extend_graph_y': [False, True],
+}))
 class TestGradComplex(GradTestBase, unittest.TestCase):
 
     x_names = 'x1', 'x2'
@@ -723,6 +801,108 @@ class TestGradComplex(GradTestBase, unittest.TestCase):
     def expected_double_grad(self):
         dy1_dx = self.gy1 + self.gy2
         return [3 * dy1_dx + 2 * self.gy2, dy1_dx]
+
+
+class ExpPair(chainer.FunctionNode):
+
+    def forward(self, inputs):
+        x, = inputs
+        xp = chainer.backend.get_array_module(x)
+        self.retain_outputs((0, 1))
+        return xp.exp(x), xp.exp(x)
+
+    def backward(self, target_input_indexes, grad_outputs):
+        return sum([
+            g * exp
+            for g, exp in zip(grad_outputs, self.get_retained_outputs())
+            if g is not None
+        ]),
+
+
+def exp_pair(x):
+    return ExpPair().apply((x,))
+
+
+@testing.parameterize(*testing.product({
+    'keep_y2': [False, True],
+}))
+class TestGradDelRetainedOutput(GradTestBase, unittest.TestCase):
+
+    x_names = 'x1',
+    y_names = 'y1',
+
+    def forward(self):
+        self.y1, y2 = exp_pair(self.x1)
+        if self.keep_y2:
+            self.y2 = y2
+
+    def expected_grad(self):
+        return [self.gy1 * self.y1]
+
+    def expected_double_grad(self):
+        return [self.gy1 * self.y1]
+
+
+class TestGradV3Compat1(unittest.TestCase):
+
+    def _var(self, val):
+        return chainer.Variable(numpy.array(val, numpy.float32))
+
+    def check(self, option, grads_before, grads_after):
+        vs = []
+        v = self._var(0.5)
+        for _ in range(4):
+            vs.append(v)
+            v += v
+            vs.append(v)
+            v *= 1.
+        _, x1, _, x2, _, y1, _, y2 = vs
+        gx1 = self._var(1000.)
+        gx2 = self._var(100.)
+        gy1 = self._var(10.)
+        gy2 = self._var(1.)
+        for v, g in zip(vs, grads_before):
+            if g is not None:
+                v.grad_var = self._var(g)
+        grads = chainer.grad(
+            [y1, y2], [x1, x2], [gy1, gy2], [gx1, gx2], **option)
+        numpy.testing.assert_allclose(grads[0].array, 1248.)
+        numpy.testing.assert_allclose(grads[1].array, 124.)
+        for v, ans in zip(vs, grads_after):
+            if ans is None:
+                self.assertIsNone(v.grad)
+            else:
+                numpy.testing.assert_allclose(v.grad, ans)
+
+    def test_no_option(self):
+        self.check({}, [None] * 8, [None] * 8)
+        self.check({}, [-1.] * 8, [-1.] * 8)
+
+    def test_set_grad(self):
+        self.check(
+            {'set_grad': True},
+            [None] * 8,
+            [None, 1248., None, 124., None, None, None, None])
+        self.check(
+            {'set_grad': True},
+            [-1.] * 8,
+            [-1., 1248., -1., 124., -1., -1., -1., -1.])
+
+    def test_retain_grad(self):
+        self.check(
+            {'retain_grad': True},
+            [None] * 8,
+            [None, 1248., 248., 124., 24., 12., 2., 1.]
+            # Before v5, the result was
+            # [None, 1248., 248., 124., 24., 12., 2., None]
+        )
+        self.check(
+            {'retain_grad': True},
+            [-1.] * 8,
+            [-1., 1248., 248., 124., 24., 12., 2., 1.]
+            # Before v5, the result was
+            # [-1., 1248., 248., 124., 24., 12., 2., -1.]
+        )
 
 
 testing.run_module(__name__, __file__)

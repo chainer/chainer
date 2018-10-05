@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
@@ -43,7 +44,7 @@ class Unpooling2D(pooling_2d.Pooling2D):
         if self.outw is None:
             self.outw = conv.get_deconv_outsize(
                 w, self.kw, self.sx, self.pw, cover_all=self.cover_all)
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         col = xp.tile(x[0][:, :, None, None],
                       (1, 1, self.kh, self.kw, 1, 1))
         if xp is numpy:
@@ -92,8 +93,9 @@ class Unpooling2DGrad(function_node.FunctionNode):
 def unpooling_2d(x, ksize, stride=None, pad=0, outsize=None, cover_all=True):
     """Inverse operation of pooling for 2d array.
 
-    This function acts similarly to :class:`~functions.Deconvolution2D`, but
-    it spreads input 2d array's value without any parameter instead of
+    This function acts similarly to
+    :class:`~functions.connection.deconvolution_2d.Deconvolution2DFunction`,
+    but it spreads input 2d array's value without any parameter instead of
     computing the inner products.
 
     Args:

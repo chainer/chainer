@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer import utils
@@ -12,9 +12,8 @@ class Fmod(function_node.FunctionNode):
         return 'fmod'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 'divisor'))
         type_check.expect(
-            in_types.size() == 2,
             in_types[0].dtype == in_types[1].dtype,
             in_types[0].dtype.kind == 'f',
             in_types[1].dtype.kind == 'f',
@@ -22,7 +21,7 @@ class Fmod(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, divisor = inputs
         m = xp.fmod(x, divisor)
         return utils.force_array(m, x.dtype),

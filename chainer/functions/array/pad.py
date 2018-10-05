@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -21,12 +21,12 @@ class Pad(function_node.FunctionNode):
         # Depending on the arguments, pad_width and keywords, the input value
         # may be inappropriate. In that case, numpy.pad or cupy.pad will raise
         # errors, so that only check the size and the dtype in this function.
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         x_type = in_types[0]
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         return xp.pad(inputs[0], self.pad_width, mode=self.mode,
                       **self.keywords),
 

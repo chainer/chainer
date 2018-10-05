@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import initializer
 
@@ -13,8 +14,7 @@ class Identity(initializer.Initializer):
     Note that arrays to be passed must be 2D squared matrices.
 
     Attributes:
-        ~Identity.scale (scalar): A constant to be multiplied to identity
-        matrices.
+        scale (scalar): A constant to be multiplied to identity matrices.
 
     """
 
@@ -30,7 +30,7 @@ class Identity(initializer.Initializer):
             raise ValueError('Identity matrix initialization can only be used '
                              'for 2D squared matrices.')
         array[...] = 0
-        xp = cuda.get_array_module(array)
+        xp = backend.get_array_module(array)
         xp.fill_diagonal(array, self.scale)
 
 
@@ -49,7 +49,7 @@ class _Constant(initializer.Initializer):
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype
-        xp = cuda.get_array_module(array)
+        xp = backend.get_array_module(array)
         array[...] = xp.asarray(self.fill_value)
 
 
@@ -61,7 +61,7 @@ class Constant(_Constant):
         ~Constant.fill_value (scalar or numpy.ndarray or cupy.ndarray):
             A constant to be assigned to the initialized array.
             Broadcast is allowed on this assignment.
-        ~Constant.dtype: Data type specifier.
+        dtype: Data type specifier.
 
     """
 
