@@ -331,6 +331,9 @@ Use apply() method instead.\
                 [] if self._output_indexes_to_retain is None
                 else self._output_indexes_to_retain)
 
+            self.inputs = tuple(
+                [variable._ChainerxVariableNodeProps(x) for x in inputs])
+
             ret = tuple([
                 variable.Variable(y, requires_grad=y.is_backprop_required())
                 for y in chainerx_out_data])
@@ -623,13 +626,7 @@ Use apply() method instead.\
         assert isinstance(grad_outputs, tuple)
         assert isinstance(grad_inputs, tuple)
 
-        gxs = self.backward(target_input_indexes, grad_outputs)
-
-        len_gxs = len(gxs)
-        if len_gxs == len(self.inputs):
-            gxs = tuple([gxs[i] for i in target_input_indexes])
-        else:
-            assert len_gxs == len(target_input_indexes)
+        gxs = self._backward_target_inputs(target_input_indexes, grad_outputs)
 
         return tuple([gx if g_input is None else
                       g_input if gx is None else
@@ -661,12 +658,24 @@ Use apply() method instead.\
                 array, requires_grad=array.is_backprop_required())
             for array in retained_outputs])
 
-        gx_vars = self.backward(
+        gxs = self._backward_target_inputs(
             tuple(target_input_indexes),
             tuple([
                 chainer.Variable(gy, requires_grad=gy.is_backprop_required())
                 for gy in grad_outputs]))
-        gxs = [v._data_chainerx[0] for v in gx_vars]
+
+        return [gx._data_chainerx[0] for gx in gxs]
+
+    def _backward_target_inputs(self, target_input_indexes, grad_outputs):
+        # Filters out input gradients that are not required and returns the
+        # rest.
+        gxs = self.backward(target_input_indexes, grad_outputs)
+
+        len_gxs = len(gxs)
+        if len_gxs == len(self.inputs):
+            gxs = tuple([gxs[i] for i in target_input_indexes])
+        else:
+            assert len_gxs == len(target_input_indexes)
 
         return gxs
 

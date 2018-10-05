@@ -1427,8 +1427,6 @@ class TestVariableConstantArrayOp(unittest.TestCase):
 
     @attr.chainerx
     def test_rpow_backward_chainerx(self):
-        # TODO(niboshi): Fix it
-        raise unittest.SkipTest('This test causes numeric error')
         self.backward_chainerx(lambda x, y: y ** x, positive=True)
 
     def check_double_backward(
@@ -1494,8 +1492,6 @@ class TestVariableConstantArrayOp(unittest.TestCase):
 
     @attr.chainerx
     def test_rpow_double_backward_chainerx(self):
-        # TODO(niboshi): Fix it
-        raise unittest.SkipTest('This test causes numeric error')
         self.double_backward_chainerx(lambda x, y: y ** x, positive=True)
 
 
