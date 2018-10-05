@@ -284,8 +284,8 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
         is_cuda = variable.as_array(x).device.backend.name == 'cuda'
         if (not return_indices and not (is_cuda and cover_all)
                 and not (is_cuda and ndim not in [2, 3])):
-            return function._chainerx_op(lambda x:
-                chainerx.max_pool(x, ksize, stride, pad, cover_all), x)
+            return function._chainerx_op(lambda x: chainerx.max_pool(
+                x, ksize, stride, pad, cover_all), x)
 
     func = MaxPoolingND(ndim, ksize, stride, pad, cover_all)
     if return_indices:

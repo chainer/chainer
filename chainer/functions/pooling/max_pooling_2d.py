@@ -385,8 +385,8 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
         # TODO(sonots): Support return_indices in ChainerX
         is_cuda = variable.as_array(x).device.backend.name == 'cuda'
         if not return_indices and not (is_cuda and cover_all):
-            return function._chainerx_op(lambda x:
-                chainerx.max_pool(x, ksize, stride, pad, cover_all), x)
+            return function._chainerx_op(lambda x: chainerx.max_pool(
+                x, ksize, stride, pad, cover_all), x)
 
     func = MaxPooling2D(ksize, stride, pad, cover_all)
     if return_indices:
