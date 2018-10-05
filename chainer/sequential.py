@@ -52,6 +52,7 @@ class Sequential(link.ChainList):
         can concatenate :class:`~Sequential` objects to create a longer
         :class:`~Sequential` model easily with the same ways as Python lists:
 
+        >>> from chainer import Sequential
         >>> model_A = Sequential(L.Linear(10, 10), F.relu)
         >>> model_B = Sequential(L.Linear(10, 10), F.sigmoid)
         >>> model_C = model_A + model_B
@@ -83,7 +84,7 @@ class Sequential(link.ChainList):
         You can check the structure of your model briefly using ``print``
         as following:
 
-        >>> print(model_C)
+        >>> print(model_C)  # doctest: +NORMALIZE_WHITESPACE
         0       Linear  W(10, 10)       b(10,)
         1       relu
         2       Linear  W(10, 10)       b(10,)
