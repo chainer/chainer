@@ -166,6 +166,84 @@ class TestGetDeviceFromArray(unittest.TestCase):
             assert chainerx.get_default_device().name == 'cuda:0'
 
 
+class TestToBackend(unittest.TestCase):
+
+    def orig_numpy(self):
+        return numpy.ones((2, 3), numpy.float32)
+
+    def orig_cupy(self):
+        return cuda.to_gpu(numpy.ones((2, 3), numpy.float32))
+
+    def orig_chainerx(self, device_name):
+        return chainerx.ones((2, 3), numpy.float32, device=device_name)
+
+    def assert_array_equal(self, array1, array2):
+        # Convert CuPy to NumPy
+        if isinstance(array1, cuda.ndarray):
+            array1 = array1.get()
+        if isinstance(array2, cuda.ndarray):
+            array1 = array2.get()
+
+        # At this moment arrays are either NumPy or ChainerX
+
+        if (isinstance(array1, numpy.ndarray)
+                and isinstance(array2, numpy.ndarray)):
+            numpy.testing.assert_array_equal(array1, array2)
+        else:
+            chainerx.testing.assert_array_equal(array1, array2)
+
+    def to_numpy_check_equal(self, orig):
+        converted = backend.to_numpy(orig)
+        assert isinstance(converted, numpy.ndarray)
+        self.assert_array_equal(orig, converted)
+        return converted
+
+    def to_chainerx_check_equal(self, orig):
+        converted = backend.to_chainerx(orig)
+        assert isinstance(converted, chainerx.ndarray)
+        self.assert_array_equal(orig, converted)
+        return converted
+
+    def test_numpy_to_numpy(self):
+        orig = self.orig_numpy()
+        converted = self.to_numpy_check_equal(orig)
+        assert converted is orig
+
+    @attr.gpu
+    def test_cupy_to_numpy(self):
+        orig = self.orig_cupy()
+        self.to_numpy_check_equal(orig)
+
+    @attr.chainerx
+    def test_numpy_to_chainerx(self):
+        orig = self.orig_numpy()
+        converted = self.to_chainerx_check_equal(orig)
+        assert converted.device is chainerx.get_device('native:0')
+
+        # memory must be shared
+        orig[:] *= 2
+        self.assert_array_equal(orig, converted)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_cupy_to_chainerx(self):
+        orig = self.orig_cupy()
+        converted = self.to_chainerx_check_equal(orig)
+        assert converted.device is chainerx.get_device('cuda:0')
+
+        # memory must be shared
+        orig[:] *= 2
+        self.assert_array_equal(orig, converted)
+
+    @attr.chainerx
+    def test_chainerx_to_chainerx(self):
+        orig = self.orig_chainerx('native:0')
+        converted = self.to_chainerx_check_equal(orig)
+        assert converted is orig
+
+    # TODO(niboshi): Add more test variants
+
+
 class TestToDevice(unittest.TestCase):
 
     def orig_numpy(self):
