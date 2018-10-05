@@ -54,7 +54,7 @@ def transpose(x, axes=None):
         >>> y = F.transpose(x)  # reverse the dimensions
         >>> y.shape
         (3, 2, 1)
-        >>> y.data
+        >>> y.array
         array([[[0.],
                 [3.]],
         <BLANKLINE>
@@ -66,7 +66,7 @@ def transpose(x, axes=None):
         >>> y = F.transpose(x, axes=(1, 0, 2)) # swap 1st and 2nd axis
         >>> y.shape
         (2, 1, 3)
-        >>> y.data
+        >>> y.array
         array([[[0., 1., 2.]],
         <BLANKLINE>
                [[3., 4., 5.]]], dtype=float32)

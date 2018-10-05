@@ -79,7 +79,7 @@ def where(condition, x, y):
                [False,  True]])
         >>> x = np.array([[1, 2], [3, 4]], np.float32)
         >>> y = np.zeros((2, 2), np.float32)
-        >>> F.where(cond, x, y).data
+        >>> F.where(cond, x, y).array
         array([[1., 0.],
                [0., 4.]], dtype=float32)
 

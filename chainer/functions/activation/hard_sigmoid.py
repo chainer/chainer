@@ -97,7 +97,7 @@ def hard_sigmoid(x):
         >>> x = np.array([-2.6, -1, 0, 1, 2.6])
         >>> x
         array([-2.6, -1. ,  0. ,  1. ,  2.6])
-        >>> F.hard_sigmoid(x).data
+        >>> F.hard_sigmoid(x).array
         array([0. , 0.3, 0.5, 0.7, 1. ])
 
     """

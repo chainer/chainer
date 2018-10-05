@@ -75,7 +75,7 @@ def crelu(x, axis=1):
         array([[-1.,  0.],
                [ 2., -3.]], dtype=float32)
         >>> y = F.crelu(x, axis=1)
-        >>> y.data
+        >>> y.array
         array([[0., 0., 1., 0.],
                [2., 0., 0., 3.]], dtype=float32)
 
