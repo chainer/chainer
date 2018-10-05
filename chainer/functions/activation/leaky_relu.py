@@ -1,4 +1,5 @@
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -28,9 +29,24 @@ class LeakyReLU(function_node.FunctionNode):
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs)):
+            return self.forward_ideep(inputs)
+
         x, = inputs
         y = x.copy()
         y[x < 0] *= self.slope
+        if self.slope >= 0:
+            self.retain_outputs((0,))
+        else:
+            self.retain_inputs((0,))
+        return y,
+
+    def forward_ideep(self, inputs):
+        x, = inputs
+        y = intel64.ideep.relu.Forward(
+            intel64.ideep.array(x), self.slope)
+
         if self.slope >= 0:
             self.retain_outputs((0,))
         else:
@@ -64,12 +80,29 @@ class _LeakyReLUGrad(function_node.FunctionNode):
         self.y = y
 
     def forward_cpu(self, inputs):
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs)):
+            return self.forward_ideep(inputs)
+
         gy, = inputs
         gy = gy.copy()
         if self.slope >= 0:
             gy[self.y < 0] *= self.slope
         else:
             gy[self.x < 0] *= self.slope
+        return gy,
+
+    def forward_ideep(self, inputs):
+        gy, = inputs
+
+        if self.slope >= 0:
+            gy = intel64.ideep.relu.Backward(
+                intel64.ideep.array(self.y),
+                intel64.ideep.array(gy), self.slope)
+        else:
+            gy = intel64.ideep.relu.Backward(
+                intel64.ideep.array(self.x),
+                intel64.ideep.array(gy), self.slope)
         return gy,
 
     def forward_gpu(self, inputs):
@@ -115,7 +148,7 @@ def leaky_relu(x, slope=0.2):
         array([[-1.,  0.],
                [ 2., -3.],
                [-2.,  1.]], dtype=float32)
-        >>> F.leaky_relu(x, slope=0.2).data
+        >>> F.leaky_relu(x, slope=0.2).array
         array([[-0.2,  0. ],
                [ 2. , -0.6],
                [-0.4,  1. ]], dtype=float32)

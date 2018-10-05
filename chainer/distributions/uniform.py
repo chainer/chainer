@@ -1,6 +1,5 @@
-import numpy
-
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
@@ -93,21 +92,21 @@ class Uniform(distribution.Distribution):
         if not isinstance(x, chainer.Variable):
             x = chainer.Variable(x)
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         logp = broadcast.broadcast_to(
             -exponential.log(self.scale), x.shape)
         return where.where(
             utils.force_array(
                 (x.data >= self.low.data) & (x.data < self.high.data)),
-            logp, xp.full_like(logp.array, -numpy.inf))
+            logp, xp.array(-xp.inf, logp.dtype))
 
     @property
     def mean(self):
         return (self.high + self.low) / 2
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.low)
+        xp = backend.get_array_module(self.low)
         if xp is cuda.cupy:
             eps = xp.random.uniform(
                 0, 1, (n,) + self.low.shape, dtype=self.low.dtype)
@@ -134,12 +133,12 @@ class Uniform(distribution.Distribution):
 
 @distribution.register_kl(Uniform, Uniform)
 def _kl_uniform_uniform(dist1, dist2):
-    xp = cuda.get_array_module(dist1.low)
+    xp = backend.get_array_module(dist1.low)
 
     is_inf = xp.logical_or(dist1.high.data > dist2.high.data,
                            dist1.low.data < dist2.low.data)
     kl = - exponential.log(dist1.high - dist1.low) \
         + exponential.log(dist2.high - dist2.low)
-    inf = xp.full_like(dist1.high.data, numpy.inf)
+    inf = xp.array(xp.inf, dist1.high.dtype)
 
     return where.where(is_inf, inf, kl)

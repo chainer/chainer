@@ -1,7 +1,7 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -22,7 +22,7 @@ class Depth2Space(function_node.FunctionNode):
 
     def forward(self, inputs):
         X, = inputs
-        xp = cuda.get_array_module(X)
+        xp = backend.get_array_module(X)
         bsize, c, a, b = X.shape
         c //= self.r ** 2
 
@@ -87,7 +87,7 @@ def depth2space(X, r):
         >>> y = F.depth2space(X, 2)
         >>> y.shape
         (1, 1, 4, 6)
-        >>> y.data
+        >>> y.array
         array([[[[ 0.,  6.,  1.,  7.,  2.,  8.],
                  [12., 18., 13., 19., 14., 20.],
                  [ 3.,  9.,  4., 10.,  5., 11.],

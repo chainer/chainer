@@ -153,8 +153,8 @@ class ThinStackRecursiveNet(chainer.Chain):
             y = self.label(es)
             loss += F.softmax_cross_entropy(y, label, normalize=False) * batch
             count += batch
-            predict = self.xp.argmax(y.data, axis=1)
-            correct += (predict == label.data).sum()
+            predict = self.xp.argmax(y.array, axis=1)
+            correct += (predict == label.array).sum()
 
             stack = thin_stack.thin_stack_set(stack, ds, es)
 
@@ -166,8 +166,8 @@ class ThinStackRecursiveNet(chainer.Chain):
             batch = l.shape[0]
             loss += F.softmax_cross_entropy(y, label, normalize=False) * batch
             count += batch
-            predict = self.xp.argmax(y.data, axis=1)
-            correct += (predict == label.data).sum()
+            predict = self.xp.argmax(y.array, axis=1)
+            correct += (predict == label.array).sum()
 
             stack = thin_stack.thin_stack_set(stack, dest, o)
 

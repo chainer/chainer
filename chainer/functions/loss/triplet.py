@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -32,7 +32,7 @@ class Triplet(function_node.FunctionNode):
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
 
         anchor, positive, negative = inputs
 
@@ -55,7 +55,7 @@ class Triplet(function_node.FunctionNode):
         N = anchor.shape[0]
         x_dim = anchor.shape[1]
 
-        xp = cuda.get_array_module(anchor)
+        xp = backend.get_array_module(anchor)
         tmp = xp.repeat(self.dist_hinge[:, None], x_dim, axis=1)
         mask = xp.array(tmp > 0, dtype=anchor.dtype)
 
@@ -141,7 +141,7 @@ astype(np.float32)
         >>> y = F.triplet(anchor, pos, neg, reduce='no')
         >>> y.shape
         (2,)
-        >>> y.data
+        >>> y.array
         array([0.11000005, 0.17      ], dtype=float32)
         >>> F.triplet(anchor, pos, neg, margin=0.5)  # harder penalty
         variable(0.44000003)

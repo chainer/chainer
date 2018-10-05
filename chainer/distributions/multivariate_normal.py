@@ -3,6 +3,7 @@ import math
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import broadcast
@@ -70,7 +71,7 @@ class TriangularInv(chainer.function_node.FunctionNode):
 
     def backward(self, target_input_indexes, grad_outputs):
         gy, = grad_outputs
-        xp = cuda.get_array_module(gy)
+        xp = backend.get_array_module(gy)
         invx, = self.get_retained_outputs()
         mask = xp.tril(xp.ones((len(invx), len(invx)), dtype=bool))
         if not self._lower:

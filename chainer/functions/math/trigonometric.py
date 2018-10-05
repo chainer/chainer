@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
@@ -19,7 +20,7 @@ class Sin(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.sin(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -71,7 +72,7 @@ class Cos(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.cos(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -124,7 +125,7 @@ class Tan(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.tan(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -149,7 +150,7 @@ class Arcsin(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.arcsin(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -217,7 +218,7 @@ class Arccos(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.arccos(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -286,7 +287,7 @@ class Arctan(function_node.FunctionNode):
 
     def forward(self, x):
         self.retain_inputs((0,))
-        xp = cuda.get_array_module(*x)
+        xp = backend.get_array_module(*x)
         return utils.force_array(xp.arctan(x[0])),
 
     def backward(self, indexes, grad_outputs):
@@ -356,7 +357,7 @@ class Arctan2(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x1, x2 = inputs
         return utils.force_array(xp.arctan2(x1, x2)),
 

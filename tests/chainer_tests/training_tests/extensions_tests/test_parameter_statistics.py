@@ -6,7 +6,7 @@ import mock
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import testing
 from chainer import training
 from chainer.training import extensions
@@ -59,7 +59,7 @@ class TestParameterStatisticsBase(object):
 @testing.parameterize(
     {
         'links': [chainer.links.Linear(3, 2)],
-        'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)},
+        'statistics': {'min': lambda x: backend.get_array_module(x).min(x)},
         'report_params': True,
         'report_grads': True,
         'prefix': None,
@@ -67,7 +67,7 @@ class TestParameterStatisticsBase(object):
     },
     {
         'links': [chainer.links.Linear(3, 2)],
-        'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)},
+        'statistics': {'min': lambda x: backend.get_array_module(x).min(x)},
         'report_params': False,
         'report_grads': True,
         'prefix': 'test',
@@ -75,7 +75,7 @@ class TestParameterStatisticsBase(object):
     },
     {
         'links': [chainer.links.Linear(3, 2)],
-        'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)},
+        'statistics': {'min': lambda x: backend.get_array_module(x).min(x)},
         'report_params': True,
         'report_grads': False,
         'prefix': None,
@@ -83,7 +83,7 @@ class TestParameterStatisticsBase(object):
     },
     {
         'links': [chainer.links.Linear(3, 2)],
-        'statistics': {'min': lambda x: cuda.get_array_module(x).min(x)},
+        'statistics': {'min': lambda x: backend.get_array_module(x).min(x)},
         'report_params': False,
         'report_grads': False,
         'prefix': 'test',

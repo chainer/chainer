@@ -12,7 +12,7 @@ from chainer.testing import backend
 
 
 def _to_noncontiguous(arrays):
-    xp = cuda.get_array_module(*arrays)
+    xp = chainer.backend.get_array_module(*arrays)
     return [xp.asfortranarray(a) for a in arrays]
 
 
