@@ -45,6 +45,7 @@ class Exponential(distribution.Distribution):
         return ()
 
     def icdf(self, x):
+        x = chainer.as_variable(x)
         return -1 / self.lam * logarithm_1p.log1p(-x)
 
     @property

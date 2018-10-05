@@ -21,7 +21,7 @@ class TestLogNormal(testing.distribution_unittest):
         self.scipy_dist = stats.expon
 
         self.test_targets = set([
-            "batch_shape", "cdf", "entropy", "event_shape", "log_prob",
+            "batch_shape", "cdf", "entropy", "event_shape", "icdf", "log_prob",
             "mean", "sample", "support", "variance"])
 
         lam = numpy.exp(numpy.random.uniform(
