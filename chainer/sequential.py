@@ -31,7 +31,7 @@ class Sequential(link.ChainList):
 
           import chainer
           import chainer.functions as F
-          import link.Links as L
+          import chainer.links as L
           from chainer import Sequential
 
           # Model definition without writing forward function
@@ -65,12 +65,12 @@ class Sequential(link.ChainList):
         You can also add your own functions or any callable objects to a
         :class:`Sequential` object::
 
-          from link.Links.model.vision.vgg import VGG16Layers()
+          from chainer.links.model.vision.vgg import VGG16Layers
 
           model = Sequential()
           model.append(L.Linear(n_out, n_hidden))
           model.append(F.relu)
-          model.append(F.Reshape((1, 3, 224, 224)))
+          model.append(lambda x: F.reshape(x, (1, 3, 224, 224)))
           model.append(VGG16Layers())
           model.append(lambda x: x['prob'])
 
