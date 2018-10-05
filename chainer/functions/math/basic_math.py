@@ -69,6 +69,12 @@ def _preprocess_rhs(x, value):
 
 
 def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
+    # Allow mixing of numpy/cupy array and chainerx array as long as
+    # conversion without copy is possible.
+    if isinstance(value, (numpy.ndarray, cuda.ndarray)):
+        # TODO(niboshi): force zero-copy
+        return backend.to_chainerx(value)
+
     if isinstance(value, (six.integer_types, float)):
         return value
     if numpy.isscalar(value):
@@ -82,6 +88,7 @@ def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
 def _chainerx_binary_op(op, label, lhs, rhs):
     lhs_array = variable.as_array(lhs)
     rhs_array = variable.as_array(rhs)
+    assert isinstance(lhs_array, chainerx.ndarray)
     rhs_compat = _as_chainerx_arithmetic_compat(lhs_array, rhs_array, label)
     return variable.as_variable(op(lhs_array, rhs_compat))
 

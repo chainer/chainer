@@ -73,6 +73,7 @@ from chainer import cuda  # NOQA
 
 
 from chainer import _environment_check
+from chainer import backend
 
 
 import chainerx
@@ -163,6 +164,24 @@ def is_arrays_compatible(arrays):
 
     if len(arrays) == 0:
         return True
+
+    if chainerx.is_available():
+        chainerx_device = None
+        # Find the ChainerX device
+        for arr in arrays:
+            if isinstance(arr, chainerx.ndarray):
+                dev = arr.device
+                if chainerx_device is not None and dev is not chainerx_device:
+                    return False  # different ChainerX devices are mixed
+                chainerx_device = dev
+        # If the device is found, test all the arrays for zero-copy
+        # compatibility
+        if chainerx_device is not None:
+            return all([
+                backend._is_convertible_to_chainerx_without_copy(
+                    arr, chainerx_device)
+                for arr in arrays])
+        # Otherwise, fall back to the non-ChainerX logic below
 
     if isinstance(arrays[0], chainerx.ndarray):
         types = chainerx.ndarray

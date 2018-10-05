@@ -11,10 +11,14 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
+import chainerx
 
 
 def _to_fcontiguous(arrays):
     xp = chainer.backend.get_array_module(*arrays)
+    # TODO(niboshi): Fix it. Non-contiguous tests are skipped for ChainerX.
+    if xp is chainerx:
+        raise unittest.SkipTest('ChainerX does not support asfortranarray')
     return [xp.asfortranarray(a) for a in arrays]
 
 
@@ -59,7 +63,12 @@ def _batch_normalization(args):
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
         'cudnn_fast_batch_normalization': [True, False],
-    }))
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
 class TestBatchNormalization(unittest.TestCase):
 
     def setUp(self):
@@ -133,10 +142,13 @@ class TestBatchNormalization(unittest.TestCase):
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
         y_expected, = self.forward_cpu(inputs)
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
+        inputs = backend_config.get_array(inputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
 
@@ -153,9 +165,12 @@ class TestBatchNormalization(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
@@ -175,10 +190,13 @@ class TestBatchNormalization(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
@@ -221,7 +239,12 @@ class TestBatchNormalization(unittest.TestCase):
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
         'cudnn_fast_batch_normalization': [True, False],
-    }))
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
 class TestFixedBatchNormalization(unittest.TestCase):
 
     def setUp(self):
@@ -265,10 +288,13 @@ class TestFixedBatchNormalization(unittest.TestCase):
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
         y_expected, = self.forward_cpu(inputs)
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
+        inputs = backend_config.get_array(inputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
 
@@ -283,9 +309,13 @@ class TestFixedBatchNormalization(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
+        if backend_config.use_chainerx:
+            raise unittest.SkipTest(
+                'F.fixed_batch_normalization does not support backward '
+                'for ChainerX arrays.')
+
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
@@ -304,10 +334,14 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
+        if backend_config.use_chainerx:
+            raise unittest.SkipTest(
+                'F.fixed_batch_normalization does not support backward '
+                'for ChainerX arrays.')
+
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
