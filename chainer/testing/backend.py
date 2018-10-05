@@ -10,9 +10,9 @@ import chainerx
 
 class BackendConfig(object):
 
-    # TODO(niboshi): Support ChainerX devices other than 'native:0'
     _props = [
         ('use_chainerx', False),
+        ('chainerx_device', None),
         ('use_cuda', False),
         ('use_cudnn', 'never'),
         ('cudnn_deterministic', False),
@@ -34,6 +34,16 @@ class BackendConfig(object):
             if not hasattr(self, k):
                 raise ValueError('Parameter {} is not defined'.format(k))
             setattr(self, k, v)
+
+        self._check_params()
+
+    def _check_params(self):
+        # Checks consistency of parameters
+
+        if self.use_chainerx:
+            assert isinstance(self.chainerx_device, str), (
+                '\'chainerx_device\' parameter is expected to be a string '
+                'representing a ChainerX device specifier')
 
     @property
     def xp(self):
@@ -88,6 +98,8 @@ class BackendConfig(object):
         marks = []
         if self.use_chainerx:
             marks.append(attr.chainerx)
+            if self.chainerx_device.startswith('cuda:'):
+                marks.append(attr.gpu)
         elif self.use_cuda:
             marks.append(attr.gpu)
             if self.use_cudnn != 'never':
@@ -99,15 +111,24 @@ class BackendConfig(object):
         assert all(callable(_) for _ in marks)
         return marks
 
-    def get_array(self, np_array):
-        # TODO(niboshi): Support cuda and ideep
+    def _get_single_array(self, np_array):
         if self.use_chainerx:
-            return chainer.backend.to_chainerx(np_array)
+            # TODO(niboshi): Use backend.to_device or
+            # backend.to_chainerx(a, device)
+            arr = chainer.backend.to_chainerx(np_array)
+            return arr.to_device(self.chainerx_device)
         if self.use_cuda:
             return chainer.backend.cuda.to_gpu(np_array)
         if self.use_ideep:
             return np_array
         return np_array
+
+    def get_array(self, np_array):
+        if isinstance(np_array, tuple):
+            return tuple([self._get_single_array(a) for a in np_array])
+        if isinstance(np_array, list):
+            return [self._get_single_array(a) for a in np_array]
+        return self._get_single_array(np_array)
 
 
 def _wrap_backend_test_method(impl, param, method_name):

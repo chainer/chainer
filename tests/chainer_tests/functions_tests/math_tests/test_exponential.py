@@ -8,6 +8,7 @@ import chainer.functions as F
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 class UnaryFunctionsTestBase(unittest.TestCase):
@@ -38,6 +39,13 @@ class UnaryFunctionsTestBase(unittest.TestCase):
     def check_forward_gpu(self, op, op_np):
         self.check_forward(op, op_np, cuda.to_gpu(self.x))
 
+    def check_forward_chainerx(self, op, op_np):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(op, op_np, chainerx.array(self.x))
+
     def check_backward(self, op, x_data, y_grad):
         gradient_check.check_backward(
             op, x_data, y_grad, dtype=numpy.float64,
@@ -48,6 +56,14 @@ class UnaryFunctionsTestBase(unittest.TestCase):
 
     def check_backward_gpu(self, op):
         self.check_backward(op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def check_backward_chainerx(self, op):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(
+            op, chainerx.array(self.x), chainerx.array(self.gy))
 
     def check_double_backward(self, op, x_data, y_grad, y_grad_grad):
         gradient_check.check_double_backward(
@@ -60,6 +76,14 @@ class UnaryFunctionsTestBase(unittest.TestCase):
     def check_double_backward_gpu(self, op):
         self.check_double_backward(op, cuda.to_gpu(
             self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggy))
+
+    def check_double_backward_chainerx(self, op):
+        # TODO(sonots): Support float16
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_double_backward(op, chainerx.array(
+            self.x), chainerx.array(self.gy), chainerx.array(self.ggy))
 
     def check_label(self, op, expected):
         self.assertEqual(op().label, expected)
@@ -84,12 +108,20 @@ class TestExp(UnaryFunctionsTestBase):
     def test_forward_gpu(self):
         self.check_forward_gpu(F.exp, numpy.exp)
 
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        self.check_forward_chainerx(F.exp, numpy.exp)
+
     def test_backward_cpu(self):
         self.check_backward_cpu(F.exp)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward_gpu(F.exp)
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        self.check_backward_chainerx(F.exp)
 
     def test_label(self):
         self.check_label(chainer.functions.math.exponential.Exp, 'exp')
@@ -100,6 +132,10 @@ class TestExp(UnaryFunctionsTestBase):
     @attr.gpu
     def test_double_backward_gpu(self):
         self.check_double_backward_gpu(F.exp)
+
+    @attr.chainerx
+    def test_double_backward_chainerx(self):
+        self.check_double_backward_chainerx(F.exp)
 
 
 @testing.parameterize(*testing.product({
@@ -121,12 +157,20 @@ class TestLog(UnaryFunctionsTestBase):
     def test_forward_gpu(self):
         self.check_forward_gpu(F.log, numpy.log)
 
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        self.check_forward_chainerx(F.log, numpy.log)
+
     def test_backward_cpu(self):
         self.check_backward_cpu(F.log)
 
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward_gpu(F.log)
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        self.check_backward_chainerx(F.log)
 
     def test_label(self):
         self.check_label(chainer.functions.math.exponential.Log, 'log')
@@ -137,6 +181,10 @@ class TestLog(UnaryFunctionsTestBase):
     @attr.gpu
     def test_double_backward_gpu(self):
         self.check_double_backward_gpu(F.log)
+
+    @attr.chainerx
+    def test_double_backward_chainerx(self):
+        self.check_double_backward_chainerx(F.log)
 
 
 @testing.parameterize(*testing.product({

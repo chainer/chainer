@@ -14,6 +14,7 @@ from chainer import initializers
 from chainer import link_hook
 from chainer.utils import collections_abc
 from chainer import variable
+import chainerx
 
 
 def _is_shape(value):
@@ -136,8 +137,8 @@ class Link(object):
     def __init__(self, **params):
         self._params = set()
         self._persistent = set()
-        self._cpu = True
-        self._device_id = None
+        self._device_id = None  # CuPy device ID
+        self._xp = None  # None means numpy
         self._within_init_scope = False
         self.name = None
 
@@ -145,6 +146,11 @@ class Link(object):
             # Note: deprecation warning will be raised in add_param
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state['_xp'] = None
+        return state
 
     @property
     def local_link_hooks(self):
@@ -172,7 +178,9 @@ class Link(object):
         :mod:`numpy` or :mod:`cupy`.
 
         """
-        return numpy if self._cpu else cuda.cupy
+        if self._xp is None:
+            return numpy
+        return self._xp
 
     @property
     def within_init_scope(self):
@@ -253,8 +261,10 @@ class Link(object):
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
             value.name = name
-            if not self._cpu:
+            if self._xp is cuda.cupy:
                 value.to_gpu(self._device_id)
+            elif self._xp is chainerx:
+                value.to_chainerx()
             self._params.add(name)
             self._persistent.discard(name)
         super(Link, self).__setattr__(name, value)
@@ -422,12 +432,9 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._params:
             d[name].to_cpu()
         for name in self._persistent:
-            value = d[name]
-            if isinstance(value, cuda.ndarray):
-                d[name] = value.get()
-            elif isinstance(value, intel64.mdarray):
-                d[name] = numpy.array(value)
-        self._cpu = True
+            if not numpy.isscalar(d[name]):
+                d[name] = backend.to_numpy(d[name])
+        self._xp = None
         self._device_id = None
         return self
 
@@ -446,20 +453,17 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         cuda.check_cuda_available()
-        if not self._cpu:
+        if self._xp is cuda.cupy:
             return self
         d = self.__dict__
         with cuda._get_device(device):
             for name in self._params:
                 d[name].to_gpu()
             for name in self._persistent:
-                value = d[name]
-                if isinstance(value, intel64.mdarray):
-                    value = numpy.array(value)
-                if isinstance(value, numpy.ndarray):
-                    d[name] = cuda.to_gpu(value)
+                if not numpy.isscalar(d[name]):
+                    d[name] = cuda.to_gpu(d[name])
             self._device_id = cuda.cupy.cuda.get_device_id()
-        self._cpu = False
+        self._xp = cuda.cupy
         return self
 
     def to_intel64(self):
@@ -470,8 +474,11 @@ Assign a Parameter object directly to an attribute within a \
             d[name].to_intel64()
         for name in self._persistent:
             value = d[name]
-            if isinstance(value, cuda.ndarray):
-                value = value.get()  # to numpy.ndarray
+            if isinstance(value, intel64.ideep.mdarray):
+                pass
+            elif not isinstance(value, numpy.ndarray):
+                value = backend.to_numpy(value)  # to numpy.ndarray
+
             if (isinstance(value, numpy.ndarray) and value.ndim in (1, 2, 4)):
                 # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
                 # Currently iDeep only supports (1, 2, 4)-dim arrays.
@@ -480,7 +487,22 @@ Assign a Parameter object directly to an attribute within a \
                 value = intel64.ideep.array(
                     value, itype=intel64.ideep.wgt_array)
             d[name] = value
-        self._cpu = True
+        self._xp = None
+        self._device_id = None
+        return self
+
+    def to_chainerx(self):
+        if not chainerx.is_available():
+            raise RuntimeError('ChainerX is not available.')
+        if self._xp is chainerx:
+            return self
+        d = self.__dict__
+        for name in self._params:
+            d[name].to_chainerx()
+        for name in self._persistent:
+            if not numpy.isscalar(d[name]):
+                d[name] = backend.to_chainerx(d[name])
+        self._xp is chainerx
         self._device_id = None
         return self
 
@@ -987,6 +1009,13 @@ Assign a Link object directly to an attribute within a \
         d = self.__dict__
         for name in self._children:
             d[name].to_intel64()
+        return self
+
+    def to_chainerx(self):
+        super(Chain, self).to_chainerx()
+        d = self.__dict__
+        for name in self._children:
+            d[name].to_chainerx()
         return self
 
     def params(self, include_uninit=True):

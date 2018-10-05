@@ -388,7 +388,8 @@ class TestToDevice(unittest.TestCase):
 
         # memory must not be shared
         converted_copy = converted.copy()
-        converted[:] *= 2
+        with cuda.Device(1):
+            converted[:] *= 2
         numpy.testing.assert_array_equal(
             backend.to_numpy(orig), backend.to_numpy(converted_copy))
 

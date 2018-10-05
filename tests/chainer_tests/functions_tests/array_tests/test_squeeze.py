@@ -8,6 +8,7 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import type_check
+import chainerx
 
 
 @testing.parameterize(*testing.product_dict(
@@ -51,6 +52,14 @@ class TestSqueeze(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.x.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x))
+
     def check_backward(self, x_data, g_data):
         gradient_check.check_backward(
             lambda x: functions.squeeze(x, self.axis),
@@ -62,6 +71,14 @@ class TestSqueeze(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.g))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        # TODO(sonots): Support float16
+        if self.x.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(chainerx.array(self.x), chainerx.array(self.g))
 
 
 @testing.parameterize(*testing.product(

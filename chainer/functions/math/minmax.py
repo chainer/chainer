@@ -1,10 +1,12 @@
 import numpy
 
 from chainer import backend
+from chainer import function
 from chainer import function_node
 import chainer.functions
 import chainer.utils
 from chainer.utils import type_check
+import chainerx
 
 
 class SelectorBase(function_node.FunctionNode):
@@ -143,6 +145,10 @@ def max(x, axis=None, keepdims=False):
         ~chainer.Variable: Output variable.
 
     """
+    if backend.get_array_module(x) is chainerx:
+        return function._chainerx_op(
+            lambda a: a.max(axis=axis, keepdims=keepdims), x)
+
     return Max(axis, keepdims).apply((x,))[0]
 
 
@@ -173,6 +179,10 @@ def argmax(x, axis=None):
         ~chainer.Variable: Output variable.
 
     """
+    if backend.get_array_module(x) is chainerx:
+        return function._chainerx_op(
+            lambda a: a.argmax(axis).astype(numpy.int32), x)
+
     return ArgMax(axis).apply((x,))[0]
 
 

@@ -37,7 +37,7 @@ class TestTranspose(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.chainerx
-    def test_forward_chainer(self):
+    def test_forward_chainerx(self):
         # TODO(niboshi): Support it
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
