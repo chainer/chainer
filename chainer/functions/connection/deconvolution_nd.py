@@ -10,6 +10,8 @@ from chainer.functions.connection import convolution_nd
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
+from chainer import variable
+import chainerx
 
 
 class DeconvolutionND(function_node.FunctionNode):
@@ -368,9 +370,18 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
 
     """
     ndim = len(x.shape[2:])
+    args = (x, W) if b is None else (x, W, b)
+
+    if backend.get_array_module(*args) is chainerx and (
+            dilate == 1 and groups == 1):
+        x = variable.as_array(x)
+        W = variable.as_array(W)
+        b = None if b is None else variable.as_array(b)
+        res = chainerx.conv_transpose(x, W, b, stride, pad, outsize)
+        return variable.as_variable(res)
+
     func = DeconvolutionND(
         ndim, stride, pad, outsize, dilate=dilate, groups=groups)
-    args = (x, W) if b is None else (x, W, b)
     y, = func.apply(args)
     return y
 
