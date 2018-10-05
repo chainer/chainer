@@ -31,10 +31,10 @@ class TestThinStackGet(unittest.TestCase):
         x, t = thin_stack.thin_stack_get(s, i)
 
         expect = s_old[xp.arange(len(i_data)), i_data]
-        testing.assert_allclose(x.data, expect)
+        testing.assert_allclose(x.array, expect)
 
         # Thin stack reuses the same ndarray.
-        self.assertIs(s_data, t.data)
+        self.assertIs(s_data, t.array)
 
     def test_forward_cpu(self):
         self.check_forward(self.s, self.i)
@@ -97,10 +97,10 @@ class TestThinStackSet(unittest.TestCase):
         t = thin_stack.thin_stack_set(s, i, x)
 
         testing.assert_allclose(
-            t.data[xp.arange(len(i_data)), i_data], x_data)
+            t.array[xp.arange(len(i_data)), i_data], x_data)
 
         # Thin stack reuses the same ndarray.
-        self.assertIs(s_data, t.data)
+        self.assertIs(s_data, t.array)
 
     def test_forward_cpu(self):
         self.check_forward(self.s, self.i, self.x)

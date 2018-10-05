@@ -88,7 +88,7 @@ def dstack(xs):
         >>> y = F.dstack((x1, x2))
         >>> y.shape
         (1, 3, 2)
-        >>> y.data
+        >>> y.array
         array([[[1, 2],
                 [2, 3],
                 [3, 4]]])
@@ -110,7 +110,7 @@ def dstack(xs):
         >>> y = F.dstack([x1, x2])
         >>> y.shape
         (3, 2, 2)
-        >>> y.data
+        >>> y.array
         array([[[ 0,  6],
                 [ 1,  7]],
         <BLANKLINE>
@@ -125,7 +125,7 @@ def dstack(xs):
         >>> y = F.dstack([x1, x2])
         >>> y.shape
         (3, 2, 3)
-        >>> y.data
+        >>> y.array
         array([[[ 0,  1, 12],
                 [ 2,  3, 13]],
         <BLANKLINE>

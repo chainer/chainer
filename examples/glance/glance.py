@@ -78,7 +78,7 @@ trainer.run()
 
 x, t = test[np.random.randint(len(test))]
 
-predict = model.predictor(x[None]).data
+predict = model.predictor(x[None]).array
 predict = predict[0][0]
 
 if predict >= 0:

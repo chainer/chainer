@@ -76,6 +76,8 @@ public:
     // This does not take backprop mode into account.
     static void RequireGrad(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id) {
         backprop_id.CheckValid();
+        CHAINERX_ASSERT(GetKind(body->dtype_) == DtypeKind::kFloat);
+
         if (body->grad_required_backprop_ids_.end() ==
             std::find(body->grad_required_backprop_ids_.begin(), body->grad_required_backprop_ids_.end(), backprop_id)) {
             body->grad_required_backprop_ids_.emplace_back(backprop_id);

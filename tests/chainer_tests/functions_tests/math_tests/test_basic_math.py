@@ -1075,26 +1075,14 @@ class TestVariableConstantOp(unittest.TestCase):
         self.backward_chainerx(lambda x, y: x / y)
 
     def test_rdiv_backward_chainerx(self):
-        # TODO(sonots): Support retention or support rdiv with constant
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
         self.backward_chainerx(lambda x, y: y / x)
 
     @attr.chainerx
     def test_pow_backward_chainerx(self):
-        # TODO(sonots): Support it
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
         self.backward_chainerx(lambda x, y: x ** y)
 
     @attr.chainerx
     def test_rpow_backward_chainerx(self):
-        # TODO(sonots): Support it
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
         self.backward_chainerx(lambda x, y: y ** x)
 
     def check_double_backward(self, op, x_data, y_grad, x_grad_grad):
@@ -1148,26 +1136,24 @@ class TestVariableConstantOp(unittest.TestCase):
 
     @attr.chainerx
     def test_pow_double_backward_chainerx(self):
-        # TODO(sonots): Support it
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
+        # TODO(niboshi): Support it
+        raise unittest.SkipTest('chainerx.broadcast is required')
+
         self.double_backward_chainerx(lambda x, y: x ** y)
 
     @attr.chainerx
     def test_rpow_double_backward_chainerx(self):
-        # TODO(sonots): Support it
+        # TODO(niboshi): Support it
         raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
+            'chainerx.log with scalar argument is required')
+
         self.double_backward_chainerx(lambda x, y: y ** x)
 
     @attr.chainerx
     def test_rdiv_double_backward_chainerx(self):
-        # TODO(sonots): Support retention or support rdiv with constant
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
+        # TODO(niboshi): Support it
+        raise unittest.SkipTest('chainerx.broadcast is required')
+
         self.double_backward_chainerx(lambda x, y: y / x)
 
 
@@ -1437,10 +1423,6 @@ class TestVariableConstantArrayOp(unittest.TestCase):
 
     @attr.chainerx
     def test_pow_backward_chainerx(self):
-        # TODO(sonots): Support it
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
         self.backward_chainerx(lambda x, y: x ** y)
 
     @attr.chainerx
@@ -1506,10 +1488,6 @@ class TestVariableConstantArrayOp(unittest.TestCase):
 
     @attr.chainerx
     def test_pow_double_backward_chainerx(self):
-        # TODO(sonots): Support it
-        raise unittest.SkipTest(
-            'ChainerX does not support backward of functions with array '
-            'retention.')
         self.double_backward_chainerx(lambda x, y: x ** y)
 
     @attr.chainerx

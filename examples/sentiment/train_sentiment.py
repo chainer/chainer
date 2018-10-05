@@ -91,7 +91,7 @@ class RecursiveNet(chainer.Chain):
         t = chainer.Variable(label)
         loss += F.softmax_cross_entropy(y, t)
 
-        predict = cuda.to_cpu(y.data.argmax(1))
+        predict = cuda.to_cpu(y.array.argmax(1))
         if predict[0] == node['label']:
             evaluate['correct_node'] += 1
         evaluate['total_node'] += 1

@@ -62,17 +62,17 @@ def binary_accuracy(y, t):
         ...               [3.0, -5.0]]) # prediction labels are [1, 0]
         >>> t = np.array([[0, 1],
         ...              [1, 0]], np.int32)
-        >>> F.binary_accuracy(y, t).data \
+        >>> F.binary_accuracy(y, t).array \
 # 100% accuracy because all samples are correct.
         array(1.)
         >>> t = np.array([[0, 0],
         ...              [1, 1]], np.int32)
-        >>> F.binary_accuracy(y, t).data \
+        >>> F.binary_accuracy(y, t).array \
 # 50% accuracy because y[0][0] and y[1][0] are correct.
         array(0.5)
         >>> t = np.array([[0, -1],
         ...              [1, -1]], np.int32)
-        >>> F.binary_accuracy(y, t).data \
+        >>> F.binary_accuracy(y, t).array \
 # 100% accuracy because of ignoring y[0][1] and y[1][1].
         array(1.)
     """

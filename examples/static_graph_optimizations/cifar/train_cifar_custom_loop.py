@@ -98,8 +98,8 @@ def main():
         x = chainer.Variable(x_array)
         t = chainer.Variable(t_array)
         optimizer.update(model, x, t)
-        sum_loss += float(model.loss.data) * len(t.data)
-        sum_accuracy += float(model.accuracy.data) * len(t.data)
+        sum_loss += float(model.loss.array) * len(t)
+        sum_accuracy += float(model.accuracy.array) * len(t)
 
         if train_iter.is_new_epoch:
             print('epoch: {}'.format(train_iter.epoch))
@@ -116,8 +116,8 @@ def main():
                     x = chainer.Variable(x_array)
                     t = chainer.Variable(t_array)
                     loss = model(x, t)
-                    sum_loss += float(loss.data) * len(t.data)
-                    sum_accuracy += float(model.accuracy.data) * len(t.data)
+                    sum_loss += float(loss.array) * len(t)
+                    sum_accuracy += float(model.accuracy.array) * len(t)
 
             test_iter.reset()
             model.predictor.train = True

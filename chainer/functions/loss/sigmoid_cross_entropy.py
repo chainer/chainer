@@ -164,7 +164,7 @@ astype(np.float32)
         >>> y = F.sigmoid_cross_entropy(x, t, reduce='no')
         >>> y.shape
         (2, 3)
-        >>> y.data
+        >>> y.array
         array([[ 0.126928  ,  0.04858735,  0.974077  ],
                [ 0.00671535,  0.126928  , -0.        ]], dtype=float32)
 

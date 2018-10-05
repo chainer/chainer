@@ -5,6 +5,7 @@ from chainer.functions.array import where
 from chainer.functions.math import digamma
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
+from chainer import utils
 
 
 def _lbeta(a, b):
@@ -12,6 +13,25 @@ def _lbeta(a, b):
 
 
 class Beta(distribution.Distribution):
+
+    """Beta Distribution.
+
+    The probability density function of the distribution is expressed as
+
+    .. math::
+       f(x) = \\frac{x^{\\alpha-1}(1-x)^{\\beta-1}}{B(\\alpha,\\beta)},
+
+    for :math:`0 < x < 1`, :math:`\\alpha > 0`, :math:`\\beta > 0`.
+
+    Args:
+        a(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing \
+        :math:`\\alpha`.
+        b(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
+        :class:`cupy.ndarray`): Parameter of distribution representing \
+        :math:`\\beta`.
+
+    """
 
     def __init__(self, a, b):
         super(Beta, self).__init__()
@@ -43,14 +63,14 @@ class Beta(distribution.Distribution):
         return ()
 
     def log_prob(self, x):
+        x = chainer.as_variable(x)
         logp = (self.a - 1) * exponential.log(x) \
             + (self.b - 1) * exponential.log(1 - x) \
             - _lbeta(self.a, self.b)
         xp = logp.xp
-        inf = xp.full_like(logp.array, xp.inf)
-        if isinstance(x, chainer.Variable):
-            x = x.array
-        return where.where(xp.logical_and(x >= 0, x <= 1), logp, -inf)
+        return where.where(
+            utils.force_array((x.array >= 0) & (x.array <= 1)),
+            logp, xp.array(-xp.inf, logp.dtype))
 
     @property
     def mean(self):

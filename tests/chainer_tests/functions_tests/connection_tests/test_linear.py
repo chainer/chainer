@@ -3,15 +3,18 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import backend
+import chainerx
 
 
 def _to_noncontiguous(arrays):
     xp = chainer.backend.get_array_module(*arrays)
+    # TODO(niboshi): Fix it. Non-contiguous tests are skipped for ChainerX.
+    if xp is chainerx:
+        raise unittest.SkipTest('ChainerX does not support asfortranarray')
     return [None if a is None else xp.asfortranarray(a) for a in arrays]
 
 
@@ -33,7 +36,12 @@ def _to_noncontiguous(arrays):
     # GPU tests
     + [{
         'use_cuda': True,
-    }])
+    }]
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
 class TestNonparameterizedLinear(unittest.TestCase):
 
     def setUp(self):
@@ -101,16 +109,21 @@ class TestNonparameterizedLinear(unittest.TestCase):
             y = functions.linear(x, W, n_batch_axes=self.n_batch_axes)
         return y,
 
-    def check_forward(self, inputs, backend_config):
-        y_expected, = self.forward_cpu(inputs)
+    def test_forward(self, backend_config):
+        # TODO(niboshi): Support it
+        if (backend_config.use_chainerx
+                and numpy.float16 in (self.x_dtype, self.W_dtype)):
+            raise unittest.SkipTest('ChainerX does not support float16')
+        inputs = self.inputs
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-        if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
+        y_expected, = self.forward_cpu(inputs)
 
         if self.nobias:
             inputs = inputs[:-1]
+
+        inputs = backend_config.get_array(inputs)
+        if not self.c_contiguous:
+            inputs = _to_noncontiguous(inputs)
 
         input_vars = [chainer.Variable(x) for x in inputs]
         with backend_config:
@@ -120,52 +133,54 @@ class TestNonparameterizedLinear(unittest.TestCase):
         testing.assert_allclose(
             y_expected, y.data, **self.check_forward_options)
 
-    def test_forward(self, backend_config):
-        self.check_forward(self.inputs, backend_config)
-
-    def check_backward(self, inputs, grad_outputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-        if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
-            grad_outputs = _to_noncontiguous(grad_outputs)
+    def test_backward(self, backend_config):
+        # TODO(niboshi): Support it
+        if (backend_config.use_chainerx
+                and numpy.float16 in (self.x_dtype, self.W_dtype)):
+            raise unittest.SkipTest('ChainerX does not support float16')
+        inputs = self.inputs
+        grad_outputs = self.grad_outputs
 
         if self.nobias:
             inputs = inputs[:-1]
+
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+        if not self.c_contiguous:
+            inputs = _to_noncontiguous(inputs)
+            grad_outputs = _to_noncontiguous(grad_outputs)
 
         with backend_config:
             gradient_check.check_backward(
                 self.forward, inputs, grad_outputs,
                 **self.check_backward_options)
 
-    def test_backward(self, backend_config):
-        self.check_backward(self.inputs, self.grad_outputs, backend_config)
-
-    def check_double_backward(
-            self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
-        if not self.c_contiguous:
-            inputs = _to_noncontiguous(inputs)
-            grad_outputs = _to_noncontiguous(grad_outputs)
-            grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
+    def test_double_backward(self, backend_config):
+        # TODO(niboshi): Support it
+        if (backend_config.use_chainerx
+                and numpy.float16 in (self.x_dtype, self.W_dtype)):
+            raise unittest.SkipTest('ChainerX does not support float16')
+        inputs = self.inputs
+        grad_outputs = self.grad_outputs
+        grad_grad_inputs = self.grad_grad_inputs
 
         if self.nobias:
             inputs = inputs[:-1]
             grad_grad_inputs = grad_grad_inputs[:-1]
 
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
+
+        if not self.c_contiguous:
+            inputs = _to_noncontiguous(inputs)
+            grad_outputs = _to_noncontiguous(grad_outputs)
+            grad_grad_inputs = _to_noncontiguous(grad_grad_inputs)
+
         with backend_config:
             gradient_check.check_double_backward(
                 self.forward, inputs, grad_outputs, grad_grad_inputs,
                 **self.check_double_backward_options)
-
-    def test_double_backward(self, backend_config):
-        self.check_double_backward(
-            self.inputs, self.grad_outputs, self.grad_grad_inputs,
-            backend_config)
 
 
 class TestLinearBackwardNoncontiguousGradOutputs(unittest.TestCase):

@@ -84,7 +84,7 @@ def hstack(xs):
         >>> y = F.hstack((x1, x2))
         >>> y.shape
         (6,)
-        >>> y.data
+        >>> y.array
         array([1, 2, 3, 2, 3, 4])
         >>> x1 = np.arange(0, 12).reshape(3, 4)
         >>> x1.shape
@@ -103,7 +103,7 @@ def hstack(xs):
         >>> y = F.hstack([x1, x2])
         >>> y.shape
         (3, 6)
-        >>> y.data
+        >>> y.array
         array([[ 0,  1,  2,  3, 12, 13],
                [ 4,  5,  6,  7, 14, 15],
                [ 8,  9, 10, 11, 16, 17]])

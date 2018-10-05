@@ -110,7 +110,7 @@ def select_item(x, t):
         >>> y = F.select_item(x, t)
         >>> y.shape
         (2,)
-        >>> y.data
+        >>> y.array
         array([0., 5.], dtype=float32)
 
     """

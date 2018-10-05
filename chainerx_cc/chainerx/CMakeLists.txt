@@ -110,6 +110,7 @@ if(${CHAINERX_BUILD_TEST})
         array_to_device_test.cc
         axes_test.cc
         backprop_mode_test.cc
+        backward_builder_test.cc
         backward_test.cc
         check_backward_test.cc
         context_test.cc
