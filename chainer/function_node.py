@@ -588,13 +588,7 @@ Use apply() method instead.\
         assert isinstance(grad_outputs, tuple)
         assert isinstance(grad_inputs, tuple)
 
-        gxs = self.backward(target_input_indexes, grad_outputs)
-
-        len_gxs = len(gxs)
-        if len_gxs == len(self.inputs):
-            gxs = tuple([gxs[i] for i in target_input_indexes])
-        else:
-            assert len_gxs == len(target_input_indexes)
+        gxs = self._backward_target_inputs(target_input_indexes, grad_outputs)
 
         return tuple([gx if g_input is None else
                       g_input if gx is None else
@@ -626,11 +620,18 @@ Use apply() method instead.\
                 array, requires_grad=array.is_backprop_required())
             for array in retained_outputs])
 
-        gxs = self.backward(
+        gxs = self._backward_target_inputs(
             tuple(target_input_indexes),
             tuple([
                 chainer.Variable(gy, requires_grad=gy.is_backprop_required())
                 for gy in grad_outputs]))
+
+        return [gx._data_chainerx[0] for gx in gxs]
+
+    def _backward_target_inputs(self, target_input_indexes, grad_outputs):
+        # Filters out input gradients that are not required and returns the
+        # rest.
+        gxs = self.backward(target_input_indexes, grad_outputs)
 
         len_gxs = len(gxs)
         if len_gxs == len(self.inputs):
@@ -638,7 +639,7 @@ Use apply() method instead.\
         else:
             assert len_gxs == len(target_input_indexes)
 
-        return [gx._data_chainerx[0] for gx in gxs]
+        return gxs
 
     def _get_error_message(self, message):
         lines = [
