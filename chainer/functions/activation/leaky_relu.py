@@ -148,7 +148,7 @@ def leaky_relu(x, slope=0.2):
         array([[-1.,  0.],
                [ 2., -3.],
                [-2.,  1.]], dtype=float32)
-        >>> F.leaky_relu(x, slope=0.2).data
+        >>> F.leaky_relu(x, slope=0.2).array
         array([[-0.2,  0. ],
                [ 2. , -0.6],
                [-0.4,  1. ]], dtype=float32)

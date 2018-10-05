@@ -110,7 +110,7 @@ def tanh(x):
         >>> x = np.arange(-1, 4, 2).astype(np.float32)
         >>> x
         array([-1.,  1.,  3.], dtype=float32)
-        >>> F.tanh(x).data
+        >>> F.tanh(x).array
         array([-0.7615942,  0.7615942,  0.9950548], dtype=float32)
 
     """

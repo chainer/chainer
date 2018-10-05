@@ -147,9 +147,9 @@ def clipped_relu(x, z=20.0):
         >>> np.any(x > z)
         True
         >>> y = F.clipped_relu(x, z=z)
-        >>> np.any(y.data < 0)
+        >>> np.any(y.array < 0)
         False
-        >>> np.any(y.data > z)
+        >>> np.any(y.array > z)
         False
 
     """

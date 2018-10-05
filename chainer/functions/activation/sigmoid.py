@@ -112,8 +112,8 @@ def sigmoid(x):
         >>> x = np.arange(-2, 3, 2).astype(np.float32)
         >>> x
         array([-2.,  0.,  2.], dtype=float32)
-        >>> F.sigmoid(x)
-        variable([0.11920291, 0.5       , 0.8807971 ])
+        >>> F.sigmoid(x).array
+        array([0.11920291, 0.5       , 0.8807971 ], dtype=float32)
 
     """
     y, = Sigmoid().apply((x,))

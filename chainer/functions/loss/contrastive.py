@@ -155,7 +155,7 @@ astype(np.float32)
         >>> z = F.contrastive(x0, x1, y, reduce='no')
         >>> z.shape
         (2,)
-        >>> z.data
+        >>> z.array
         array([0.625, 0.   ], dtype=float32)
 
     """

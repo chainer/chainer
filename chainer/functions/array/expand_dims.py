@@ -54,19 +54,19 @@ def expand_dims(x, axis):
         >>> y = F.expand_dims(x, axis=0)
         >>> y.shape
         (1, 3)
-        >>> y.data
+        >>> y.array
         array([[1, 2, 3]])
         >>> y = F.expand_dims(x, axis=1)
         >>> y.shape
         (3, 1)
-        >>> y.data
+        >>> y.array
         array([[1],
                [2],
                [3]])
         >>> y = F.expand_dims(x, axis=-2)
         >>> y.shape
         (1, 3)
-        >>> y.data
+        >>> y.array
         array([[1, 2, 3]])
 
     """

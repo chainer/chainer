@@ -2,6 +2,7 @@ from __future__ import division
 import copy
 import errno
 import os
+import platform
 import signal
 import subprocess
 import sys
@@ -56,6 +57,7 @@ class DummyDeserializer(serializer.Deserializer):
     'shared_mem': [None, 1000000],
     'order_sampler': [
         None, lambda order, _: numpy.random.permutation(len(order))],
+    'maxtasksperchild': [None, 1, 10],
 }))
 class TestMultiprocessIterator(unittest.TestCase):
 
@@ -63,11 +65,15 @@ class TestMultiprocessIterator(unittest.TestCase):
         self.n_processes = 2
         self.options = {'n_processes': self.n_processes,
                         'n_prefetch': self.n_prefetch,
-                        'shared_mem': self.shared_mem}
+                        'shared_mem': self.shared_mem,
+                        'maxtasksperchild': self.maxtasksperchild}
         if self.order_sampler is not None:
             self.options.update(
                 {'order_sampler': self.order_sampler})
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_repeat(self):
         dataset = [1, 2, 3, 4, 5, 6]
         it = iterators.MultiprocessIterator(dataset, 2, **self.options)
@@ -98,6 +104,9 @@ class TestMultiprocessIterator(unittest.TestCase):
             self.assertAlmostEqual(it.epoch_detail, i + 6 / 6)
             self.assertAlmostEqual(it.previous_epoch_detail, i + 4 / 6)
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_list_type(self):
         dataset = [[i, numpy.zeros((10,)) + i] for i in range(6)]
         it = iterators.MultiprocessIterator(dataset, 2, **self.options)
@@ -129,6 +138,9 @@ class TestMultiprocessIterator(unittest.TestCase):
             for k, v in six.iteritems(batches):
                 numpy.testing.assert_allclose(dataset[k][1], v)
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_tuple_type(self):
         dataset = [(i, numpy.zeros((10,)) + i) for i in range(6)]
         it = iterators.MultiprocessIterator(dataset, 2, **self.options)
@@ -160,6 +172,9 @@ class TestMultiprocessIterator(unittest.TestCase):
             for k, v in six.iteritems(batches):
                 numpy.testing.assert_allclose(dataset[k][1], v)
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_dict_type(self):
         dataset = [{i: numpy.zeros((10,)) + i} for i in range(6)]
         it = iterators.MultiprocessIterator(dataset, 2, **self.options)
@@ -194,6 +209,9 @@ class TestMultiprocessIterator(unittest.TestCase):
                 x = dataset[k][tuple(dataset[k])[0]]
                 numpy.testing.assert_allclose(x, v)
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_repeat_not_even(self):
         dataset = [1, 2, 3, 4, 5]
         it = iterators.MultiprocessIterator(dataset, 2, **self.options)
@@ -201,6 +219,9 @@ class TestMultiprocessIterator(unittest.TestCase):
         batches = sum([it.next() for _ in range(5)], [])
         self.assertEqual(sorted(batches), sorted(dataset * 2))
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_not_repeat(self):
         dataset = [1, 2, 3, 4, 5]
         it = iterators.MultiprocessIterator(
@@ -211,6 +232,9 @@ class TestMultiprocessIterator(unittest.TestCase):
         for _ in range(2):
             self.assertRaises(StopIteration, it.next)
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_not_repeat_not_even(self):
         dataset = [1, 2, 3, 4, 5]
         it = iterators.MultiprocessIterator(
@@ -232,12 +256,18 @@ class TestMultiprocessIterator(unittest.TestCase):
         self.assertEqual(len(batch3), 1)
         self.assertEqual(sorted(batch1 + batch2 + batch3), dataset)
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_shuffle_divisible(self):
         dataset = list(range(10))
         it = iterators.MultiprocessIterator(
             dataset, 10, **self.options)
         self.assertNotEqual(it.next(), it.next())
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_iterator_shuffle_nondivisible(self):
         dataset = list(range(10))
         it = iterators.MultiprocessIterator(
@@ -245,6 +275,9 @@ class TestMultiprocessIterator(unittest.TestCase):
         out = sum([it.next() for _ in range(7)], [])
         self.assertNotEqual(out[0:10], out[10:20])
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_copy_not_repeat(self):
         dataset = [1, 2, 3, 4, 5]
         it = iterators.MultiprocessIterator(
@@ -261,6 +294,9 @@ class TestMultiprocessIterator(unittest.TestCase):
         for _ in range(2):
             self.assertRaises(StopIteration, copy_it.next)
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_reset(self):
         dataset = [1, 2, 3, 4, 5]
         it = iterators.MultiprocessIterator(
@@ -273,6 +309,9 @@ class TestMultiprocessIterator(unittest.TestCase):
                 self.assertRaises(StopIteration, it.next)
             it.reset()
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_reset_middle(self):
         dataset = [1, 2, 3, 4, 5]
         it = iterators.MultiprocessIterator(
@@ -287,6 +326,9 @@ class TestMultiprocessIterator(unittest.TestCase):
                 self.assertRaises(StopIteration, it.next)
             it.reset()
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_reset_repeat(self):
         dataset = [1, 2, 3, 4]
         it = iterators.MultiprocessIterator(
@@ -297,6 +339,9 @@ class TestMultiprocessIterator(unittest.TestCase):
             self.assertEqual(sorted(batches), sorted(2 * dataset))
             it.reset()
 
+    @unittest.skipIf(platform.system() == 'Windows' and
+                     int(platform.python_version_tuple()[0]) < 3,
+                     'causes timeout in conda with Windows')
     def test_unsupported_reset_finalized(self):
         dataset = [1, 2, 3, 4]
         it = iterators.MultiprocessIterator(

@@ -155,10 +155,10 @@ def embed_id(x, W, ignore_label=None):
         array([[0., 0., 0.],
                [1., 1., 1.],
                [2., 2., 2.]], dtype=float32)
-        >>> F.embed_id(x, W).data
+        >>> F.embed_id(x, W).array
         array([[2., 2., 2.],
                [1., 1., 1.]], dtype=float32)
-        >>> F.embed_id(x, W, ignore_label=1).data
+        >>> F.embed_id(x, W, ignore_label=1).array
         array([[2., 2., 2.],
                [0., 0., 0.]], dtype=float32)
 

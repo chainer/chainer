@@ -151,10 +151,10 @@ def softmax(x, axis=1):
         array([[0., 1., 2.],
                [0., 2., 4.]], dtype=float32)
         >>> y = F.softmax(x, axis=1)
-        >>> y.data
+        >>> y.array
         array([[0.09003057, 0.24472848, 0.66524094],
                [0.01587624, 0.11731043, 0.86681336]], dtype=float32)
-        >>> F.sum(y, axis=1).data
+        >>> F.sum(y, axis=1).array
         array([1., 1.], dtype=float32)
 
     """
