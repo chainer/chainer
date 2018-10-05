@@ -88,7 +88,7 @@ class TestBatchRenormalization(unittest.TestCase):
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
 
     def check_forward(self, args):
-        with chainer.using_config('train',  self.train):
+        with chainer.using_config('train', self.train):
             y = batch_renormalization.batch_renormalization(
                 *[chainer.Variable(i) for i in args],
                 rmax=self.rmax, dmax=self.dmax, running_mean=self.running_mean,
@@ -204,7 +204,7 @@ class TestFixedBatchRenormalization(unittest.TestCase):
                 *args, eps=self.eps)
 
     def check_forward(self, args):
-        with chainer.using_config('train',  self.train):
+        with chainer.using_config('train', self.train):
             y = self._forward(*args)
         self.assertEqual(y.data.dtype, self.dtype)
 
@@ -226,7 +226,7 @@ class TestFixedBatchRenormalization(unittest.TestCase):
         self.check_forward([cuda.to_gpu(i) for i in self.args])
 
     def check_backward(self, args, y_grad):
-        with chainer.using_config('train',  self.train):
+        with chainer.using_config('train', self.train):
             gradient_check.check_backward(
                 self._forward,
                 args, y_grad, **self.check_backward_options)
