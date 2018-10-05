@@ -20,6 +20,13 @@ Chainer -- A flexible framework of neural networks
    chainermn/index
 
 .. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: ChainerCV Documents
+
+   chainercv/index
+
+.. toctree::
    :maxdepth: 1
    :caption: Other
 
