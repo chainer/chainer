@@ -121,6 +121,8 @@ def _array_to_chainerx(array, device):
             device = chainerx.get_device('cuda', array.device.id)
         elif device.backend.name != 'cuda':
             # cupy to non-cuda backend
+            # TODO(niboshi): Remove conversion to numpy when both CuPy and
+            # ChainerX support the array interface.
             array = to_numpy(array)
             return chainerx.array(array, device=device, copy=False)
         elif device.index != array.device.id:
