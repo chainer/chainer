@@ -538,8 +538,14 @@ def check_backward(
                 'gradient_check does not support no_grads argument for '
                 'ChainerX arrays')
     if is_chainerx:
+        chainerx_device = backend.get_device_from_array(*[x.array for x in xs])
+        # TODO(niboshi): Clean up. chainerx_device is DeviceScope.
+        chainerx_device = chainerx_device.device
         directions = [numpy.random.normal(size=x.shape) for x in variables]
+        # TODO(niboshi): Use backend.to_device or
+        # backend.to_chainerx(a, device)
         directions = backend.to_chainerx(directions)
+        directions = [d.to_device(chainerx_device) for d in directions]
     else:
         directions = [xp.random.normal(size=x.shape) for x in variables]
     # The direction vector is normalized in order to keep the scale of
@@ -613,12 +619,22 @@ def check_backward(
 
     if is_chainerx:
         # Convert back to ChainerX arrays after numerical_grad()
+        # TODO(niboshi): Use backend.to_device or
+        # backend.to_chainerx(a, device)
         gx = backend.to_chainerx(gx)
         y_grad = backend.to_chainerx(y_grad)
         y0_data = backend.to_chainerx(y0_data)
         delta = backend.to_chainerx(delta)
         directions = backend.to_chainerx(directions)
         casted_data = backend.to_chainerx(casted_data)
+
+        gx = gx.to_device(chainerx_device)
+        y_grad = tuple([a.to_device(chainerx_device) for a in y_grad])
+        y0_data = tuple([a.to_device(chainerx_device) for a in y0_data])
+        delta = delta.to_device(chainerx_device)
+        directions = tuple([a.to_device(chainerx_device) for a in directions])
+        casted_data = tuple([
+            a.to_device(chainerx_device) for a in casted_data])
 
     gx_accum = 0
     for g, direction in six.moves.zip(grads, directions):

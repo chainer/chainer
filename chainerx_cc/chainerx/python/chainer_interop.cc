@@ -26,7 +26,11 @@ using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
 void InitChainerxChainerInterop(pybind11::module& m) {
     m.def("_function_node_forward",
-          [](py::object function_node, const std::vector<ArrayBodyPtr>& inputs, const std::vector<ArrayBodyPtr>& outputs) {
+          [](py::object function_node,
+             const std::vector<ArrayBodyPtr>& inputs,
+             const std::vector<ArrayBodyPtr>& outputs,
+             const std::vector<size_t>& input_indexes_to_retain,
+             const std::vector<size_t>& output_indexes_to_retain) {
               CHAINERX_ASSERT(std::all_of(
                       outputs.begin(), outputs.end(), [](const ArrayBodyPtr& array_body) { return array_body->nodes().empty(); }));
 
@@ -62,7 +66,22 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                       delete ptr;
                   });
 
-                  bt.Define([function_node_ptr = std::move(function_node_ptr)](BackwardContext& bctx) {
+                  std::vector<RetainedInputToken> retained_input_tokens;
+                  std::transform(
+                          input_indexes_to_retain.begin(),
+                          input_indexes_to_retain.end(),
+                          std::back_inserter(retained_input_tokens),
+                          [&bb](size_t i) { return bb.RetainInput(i); });
+                  std::vector<RetainedOutputToken> retained_output_tokens;
+                  std::transform(
+                          output_indexes_to_retain.begin(),
+                          output_indexes_to_retain.end(),
+                          std::back_inserter(retained_output_tokens),
+                          [&bb](size_t i) { return bb.RetainOutput(i); });
+
+                  bt.Define([function_node_ptr = std::move(function_node_ptr),
+                             in_toks = std::move(retained_input_tokens),
+                             out_toks = std::move(retained_output_tokens)](BackwardContext& bctx) {
                       // Target input indexes
                       std::vector<size_t> target_input_indexes;
                       target_input_indexes.reserve(bctx.input_count());
@@ -79,12 +98,25 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                           grad_outputs.emplace_back(internal::GetArrayBody(bctx.output_grad(i_out)));
                       }
 
+                      // Get retained inputs and outputs
+                      std::vector<ArrayBodyPtr> retained_inputs;
+                      std::transform(
+                              in_toks.begin(), in_toks.end(), std::back_inserter(retained_inputs), [&bctx](const RetainedInputToken& tok) {
+                                  return internal::GetArrayBody(bctx.GetRetainedInput(tok));
+                              });
+                      std::vector<ArrayBodyPtr> retained_outputs;
+                      std::transform(
+                              out_toks.begin(),
+                              out_toks.end(),
+                              std::back_inserter(retained_outputs),
+                              [&bctx](const RetainedOutputToken& tok) { return internal::GetArrayBody(bctx.GetRetainedOutput(tok)); });
+
                       // Call FunctionNode._backward_chainerx()
                       std::vector<ArrayBodyPtr> grad_inputs;
                       {
                           py::gil_scoped_acquire acquire;
                           py::object func_backward = function_node_ptr->attr("_backward_chainerx");
-                          py::object py_grad_inputs = func_backward(target_input_indexes, grad_outputs);
+                          py::object py_grad_inputs = func_backward(target_input_indexes, grad_outputs, retained_inputs, retained_outputs);
                           grad_inputs = py::cast<std::vector<ArrayBodyPtr>>(py_grad_inputs);
                       }
                       CHAINERX_ASSERT(grad_inputs.size() == target_input_indexes.size());
@@ -102,7 +134,9 @@ void InitChainerxChainerInterop(pybind11::module& m) {
           },
           py::arg("function_node"),
           py::arg("inputs"),
-          py::arg("outputs"));
+          py::arg("outputs"),
+          py::arg("input_indexes_to_retain"),
+          py::arg("output_indexes_to_retain"));
 }
 
 }  // namespace python_internal
