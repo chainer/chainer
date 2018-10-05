@@ -5,6 +5,7 @@ from chainer.backends import cuda
 from chainer import distributions
 from chainer import gradient_check
 from chainer import testing
+from chainer.testing import array
 from chainer.testing import attr
 from chainer import utils
 
@@ -26,8 +27,8 @@ class TestCauchy(testing.distribution_unittest):
         self.scipy_dist = stats.cauchy
 
         self.test_targets = set(["batch_shape", "cdf", "entropy",
-                                 "event_shape", "icdf", "log_prob", "mean",
-                                 "support", "variance"])
+                                 "event_shape", "icdf", "log_prob",
+                                 "support"])
 
         loc = utils.force_array(
             numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32))
@@ -40,6 +41,30 @@ class TestCauchy(testing.distribution_unittest):
         smp = numpy.random.normal(
             size=self.sample_shape + self.shape).astype(numpy.float32)
         return smp
+
+    def check_mean(self, is_gpu):
+        with self.assertWarns(RuntimeWarning):
+            if is_gpu:
+                mean1 = self.gpu_dist.mean.data
+            else:
+                mean1 = self.cpu_dist.mean.data
+
+        if self.scipy_onebyone:
+            mean2 = []
+            for one_params in self.scipy_onebyone_params_iter():
+                mean2.append(self.scipy_dist.mean(**one_params))
+            mean2 = numpy.vstack(mean2).reshape(
+                self.shape + self.cpu_dist.event_shape)
+        else:
+            mean2 = self.scipy_dist.mean(**self.scipy_params)
+        array.assert_allclose(mean1, mean2)
+
+    def test_mean_cpu(self):
+        self.check_mean(False)
+
+    @attr.gpu
+    def test_mean_gpu(self):
+        self.check_mean(True)
 
     def check_sample(self, is_gpu):
         if is_gpu:
@@ -61,6 +86,30 @@ class TestCauchy(testing.distribution_unittest):
     @attr.gpu
     def test_sample_gpu(self):
         self.check_sample(True)
+
+    def check_variance(self, is_gpu):
+        with self.assertWarns(RuntimeWarning):
+            if is_gpu:
+                variance1 = self.gpu_dist.variance.data
+            else:
+                variance1 = self.cpu_dist.variance.data
+
+        if self.scipy_onebyone:
+            variance2 = []
+            for one_params in self.scipy_onebyone_params_iter():
+                variance2.append(self.scipy_dist.var(**one_params))
+            variance2 = numpy.vstack(variance2).reshape(
+                self.shape + self.cpu_dist.event_shape)
+        else:
+            variance2 = self.scipy_dist.var(**self.scipy_params)
+        array.assert_allclose(variance1, variance2)
+
+    def test_variance_cpu(self):
+        self.check_variance(False)
+
+    @attr.gpu
+    def test_variance_gpu(self):
+        self.check_variance(True)
 
 
 @testing.parameterize(*testing.product({

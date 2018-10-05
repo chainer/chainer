@@ -1,4 +1,5 @@
 import numpy
+import warnings
 
 import chainer
 from chainer.backends import cuda
@@ -81,7 +82,10 @@ class Cauchy(distribution.Distribution):
 
     @property
     def mean(self):
-        return self.loc * numpy.nan
+        warnings.warn("Mean of the cauchy distribution is undefined.",
+                      RuntimeWarning)
+        xp = cuda.get_array_module(self.loc)
+        return chainer.as_variable(xp.full(self.loc.shape, xp.nan))
 
     def sample_n(self, n):
         xp = cuda.get_array_module(self.loc)
@@ -102,4 +106,7 @@ class Cauchy(distribution.Distribution):
 
     @property
     def variance(self):
-        return self.loc * numpy.nan
+        warnings.warn("Variance of the cauchy distribution is undefined.",
+                      RuntimeWarning)
+        xp = cuda.get_array_module(self.loc)
+        return chainer.as_variable(xp.full(self.loc.shape, xp.nan))
