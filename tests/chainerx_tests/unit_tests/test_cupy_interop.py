@@ -70,6 +70,7 @@ def test_cupy_to_chainerx_delete_cupy_first():
     new_a_cupy = cupy.arange(6, dtype=dtype).reshape((2, 3))
     assert new_a_cupy.data.ptr != a_cupy_data_ptr
 
+
 @pytest.mark.cuda()
 def test_cupy_to_chainerx_delete_chainerx_first():
     dtype = numpy.float32
