@@ -5,6 +5,7 @@ from chainer import function_node
 from chainer.utils import collections_abc
 from chainer.utils import conv
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -71,7 +72,9 @@ class Pooling2D(function_node.FunctionNode):
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
         x = cuda.cupy.ascontiguousarray(x[0])
-        y = self.output_data[0]
+        y = self.get_retained_outputs()[0].data
+        if isinstance(y, chainerx.ndarray):
+            y = cuda.to_gpu(y)
         handle = cudnn.get_handle()
         pool_desc = self.create_pool_desc()
 

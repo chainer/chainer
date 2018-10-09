@@ -199,7 +199,10 @@ class MaxPooling2DGrad(function_node.FunctionNode):
     def forward_gpu(self, gy):
         if self._used_cudnn:
             x, = self.mpool2d.get_retained_inputs()
-            return self.mpool2d.backward_gpu((x.data,), gy)
+            x_data = x.data
+            if isinstance(x_data, chainerx.ndarray):
+                x_data = cuda.to_gpu(x_data)
+            return self.mpool2d.backward_gpu((x_data,), gy)
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
         gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
