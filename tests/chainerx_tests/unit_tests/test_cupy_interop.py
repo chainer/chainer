@@ -50,8 +50,6 @@ def test_cupy_to_chainerx_contiguous():
 def test_cupy_to_chainerx_delete_cupy_first():
     dtype = numpy.float32
     a_cupy = cupy.arange(6, dtype=dtype).reshape((2, 3))
-    a_cupy_data_ptr = a_cupy.data.ptr
-
     a_chx = _fromrawpointer(
         a_cupy.data.mem.ptr,
         a_cupy.shape,
@@ -66,13 +64,6 @@ def test_cupy_to_chainerx_delete_cupy_first():
     a_chx += 1
     chainerx.testing.assert_array_equal_ex(
         a_chx, numpy.array([[1, 2, 3], [4, 5, 6]], dtype))
-
-    # If a cupy.ndarray is released via `del a_cupy` wrongly without
-    # waiting a release of a_chx, creating a new cupy ndarray will reuse
-    # the previous memory segment and cause a bug. This test is to check
-    # that it does not happen.
-    new_a_cupy = cupy.arange(6, dtype=dtype).reshape((2, 3))
-    assert new_a_cupy.data.ptr != a_cupy_data_ptr
 
 
 @pytest.mark.cuda()
