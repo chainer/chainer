@@ -108,6 +108,15 @@ You can refer to the following flags to confirm if CUDA/cuDNN support is actuall
    ``True`` if cuDNN support is available.
 
 
+Google Colaboratory
+~~~~~~~~~~~~~~~~~~~
+
+You can install Chainer and CuPy using the following snippet on `Google Colaboratory <https://colab.research.google.com/>`_::
+
+   !curl https://colab.chainer.org/install | sh -
+
+See `chainer/google-colaboratory <https://github.com/chainer/google-colaboratory>`_ for more details and examples.
+
 Uninstall Chainer
 -----------------
 
