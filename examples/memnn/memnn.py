@@ -158,7 +158,7 @@ class MemNN(chainer.Chain):
 
     def fix_ignore_label(self):
         for embed in self.embeds:
-            embed.W.data[0, :] = 0
+            embed.W.array[0, :] = 0
 
     def register_all(self, sentences):
         for memory in self.memories:

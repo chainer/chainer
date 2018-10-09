@@ -103,6 +103,7 @@ def to_numpy(array):
 def _array_to_chainerx(array, device):
     if not chainerx.is_available():
         raise RuntimeError('ChainerX is not available.')
+    # TODO(niboshi): Perhaps device name (as str) can also be acceptable
     assert device is None or isinstance(device, chainerx.Device)
 
     if array is None:
@@ -120,8 +121,10 @@ def _array_to_chainerx(array, device):
             device = chainerx.get_device('cuda', array.device.id)
         elif device.backend.name != 'cuda':
             # cupy to non-cuda backend
+            # TODO(niboshi): Remove conversion to numpy when both CuPy and
+            # ChainerX support the array interface.
             array = to_numpy(array)
-            return chainerx.array(array, device=device)
+            return chainerx.array(array, device=device, copy=False)
         elif device.index != array.device.id:
             # cupy to cuda backend but different device
             array = cuda.to_gpu(array, device=device.index)
@@ -186,10 +189,11 @@ def get_array_module(*args):
     if chainerx.is_available() or cuda.available:
         args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
                 for arg in args]
+
     if (chainerx.is_available()
             and any([isinstance(a, chainerx.ndarray) for a in args])):
         return chainerx
-    if cuda.available:
+    elif cuda.available:
         return cuda.cupy.get_array_module(*args)
     else:
         return numpy

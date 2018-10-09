@@ -158,14 +158,6 @@ class TestMatMul(unittest.TestCase):
         if numpy.float16 in [self.x1_dtype, self.x2_dtype]:
             raise unittest.SkipTest('ChainerX does not support float16')
 
-        if not (not self.transa and not self.transb
-                and self.x1.dtype == self.x2.dtype
-                and self.x1.ndim == 2 and self.x2.ndim == 2):
-            # TODO(sonots): Support it
-            raise unittest.SkipTest(
-                'ChainerX does not support backward of functions with array '
-                'retention.')
-
         self.check_backward(
             chainerx.array(self.x1), chainerx.array(self.x2),
             chainerx.array(self.gy), atol=1e-2, rtol=1e-2)
@@ -194,14 +186,6 @@ class TestMatMul(unittest.TestCase):
         # TODO(sonots): Support it
         if numpy.float16 in [self.x1_dtype, self.x2_dtype]:
             raise unittest.SkipTest('ChainerX does not support float16')
-
-        if not (not self.transa and not self.transb
-                and self.x1.dtype == self.x2.dtype
-                and self.x1.ndim == 2 and self.x2.ndim == 2):
-            # TODO(sonots): Support it
-            raise unittest.SkipTest(
-                'ChainerX does not support backward of functions with array '
-                'retention.')
 
         self.check_double_backward(
             chainerx.array(self.x1), chainerx.array(self.x2),

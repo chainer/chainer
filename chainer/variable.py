@@ -1564,10 +1564,7 @@ def _recover_parameter(data, name, grad, initializer, update_rule):
     return p
 
 
-class _ChainerxVariableProps(object):
-
-    shape = None
-    dtype = None
+class _ChainerxVariableNodeProps(object):
 
     def __init__(self, x):
         self.shape = x.shape

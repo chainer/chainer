@@ -298,6 +298,8 @@ def _array_to_gpu(array, device, stream):
         return None
 
     if chainerx.is_available() and isinstance(array, chainerx.ndarray):
+        # TODO(niboshi): Update this logic once both CuPy and ChainerX support
+        # the array interface.
         if array.device.backend.name == 'cuda':
             # Convert to cupy.ndarray on the same device as source array
             array = cupy.ndarray(

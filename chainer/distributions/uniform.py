@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer import backend
 from chainer.backends import cuda
@@ -101,7 +99,7 @@ class Uniform(distribution.Distribution):
         return where.where(
             utils.force_array(
                 (x.data >= self.low.data) & (x.data < self.high.data)),
-            logp, xp.full_like(logp.array, -numpy.inf))
+            logp, xp.array(-xp.inf, logp.dtype))
 
     @property
     def mean(self):
@@ -141,6 +139,6 @@ def _kl_uniform_uniform(dist1, dist2):
                            dist1.low.data < dist2.low.data)
     kl = - exponential.log(dist1.high - dist1.low) \
         + exponential.log(dist2.high - dist2.low)
-    inf = xp.full_like(dist1.high.data, numpy.inf)
+    inf = xp.array(xp.inf, dist1.high.dtype)
 
     return where.where(is_inf, inf, kl)

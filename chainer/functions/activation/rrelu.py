@@ -131,7 +131,7 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
         array([[-1.,  0.],
                [ 2., -3.],
                [-2.,  1.]], dtype=float32)
-        >>> F.rrelu(x).data # doctest: +SKIP
+        >>> F.rrelu(x).array # doctest: +SKIP
         array([[-0.24850948,  0.        ],
                [ 2.        , -0.50844127],
                [-0.598535  ,  1.        ]], dtype=float32)

@@ -173,7 +173,7 @@ def log_softmax(x, axis=1):
         >>> x
         array([[0., 1., 2.],
                [0., 2., 4.]], dtype=float32)
-        >>> F.log_softmax(x).data
+        >>> F.log_softmax(x).array
         array([[-2.407606  , -1.4076059 , -0.4076059 ],
                [-4.1429315 , -2.1429315 , -0.14293146]], dtype=float32)
         >>> np.allclose(F.log_softmax(x).data, F.log(F.softmax(x)).data)

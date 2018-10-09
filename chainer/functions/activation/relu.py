@@ -168,7 +168,7 @@ def relu(x):
         >>> np.any(x < 0)
         True
         >>> y = F.relu(x)
-        >>> np.any(y.data < 0)
+        >>> np.any(y.array < 0)
         False
         >>> y.shape
         (3, 2)
