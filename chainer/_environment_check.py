@@ -72,7 +72,7 @@ See the following page for more details:
                     version=pkg_resources.get_distribution(pkg).version,
                     requirement=requirement, help=help))
                 found = True
-            except Exception as e:
+            except Exception:
                 warnings.warn(
                     'Failed to check requirement: {}'.format(requirement))
                 break
