@@ -577,9 +577,9 @@ cover_all=True)
         if dilate != 1 or groups != 1 or (is_cuda and cover_all):
             fallback = True
         if not fallback:
-            return function._chainerx_op(
-                chainerx.conv, x, W, b, stride=stride, pad=pad,
-                cover_all=cover_all)
+            args = (x, W) if b is None else (x, W, b)
+            return function._chainerx_op(lambda *args: chainerx.conv(
+                *args, stride=stride, pad=pad, cover_all=cover_all), *args)
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
                                   groups=groups)
