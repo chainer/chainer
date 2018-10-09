@@ -254,6 +254,28 @@ class TestVariable(unittest.TestCase):
     def test_len_gpu(self):
         self.check_len(True)
 
+    def check_iter(self, gpu):
+        x = self.x
+        if gpu:
+            x = cuda.to_gpu(x)
+        x = chainer.Variable(x)
+        if x.ndim == 0:
+            with pytest.raises(TypeError):
+                list(x)
+        else:
+            i = 0
+            for xi in x:
+                testing.assert_allclose(xi.array, self.x[i])
+                i += 1
+            assert i == len(self.x)
+
+    def test_iter_cpu(self):
+        self.check_iter(False)
+
+    @attr.gpu
+    def test_iter_iter(self):
+        self.check_len(True)
+
     def check_get_item(self, gpu):
         x_data = self.x
         if gpu:
