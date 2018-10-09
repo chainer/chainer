@@ -260,8 +260,7 @@ class TestVariable(unittest.TestCase):
             x = cuda.to_gpu(x)
         x = chainer.Variable(x)
         if x.ndim == 0:
-            with pytest.raises(TypeError):
-                list(x)
+            pytest.raises(TypeError, x.__iter__)
         else:
             i = 0
             for xi in x:

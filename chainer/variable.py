@@ -592,6 +592,9 @@ Actual: {0}'''.format(type(data))
     def __iter__(self):
         if self.ndim == 0:
             raise TypeError('iteration over a 0-d array')
+        return self._iter()
+
+    def _iter(self):
         for i in six.moves.range(len(self)):
             yield self[i]
 
