@@ -284,29 +284,11 @@ class TestConvolutionND(unittest.TestCase):
     def check_double_backward(self, x_data, W_data, b_data, y_grad,
                               x_grad_grad, W_grad_grad, b_grad_grad,
                               use_cudnn='always'):
-        xp = backend.get_array_module(x_data)
-
         if not self.c_contiguous:
-            x_data = xp.asfortranarray(x_data)
-            W_data = xp.asfortranarray(W_data)
-            y_grad = xp.asfortranarray(y_grad)
-            x_grad_grad = xp.asfortranarray(x_grad_grad)
-            W_grad_grad = xp.asfortranarray(W_grad_grad)
-            self.assertFalse(x_data.flags.c_contiguous)
-            self.assertFalse(W_data.flags.c_contiguous)
-            self.assertFalse(y_grad.flags.c_contiguous)
-            self.assertFalse(x_grad_grad.flags.c_contiguous)
-            self.assertFalse(W_grad_grad.flags.c_contiguous)
-            if b_data is not None:
-                b = xp.empty((len(b_data) * 2,), dtype=self.b.dtype)
-                b[::2] = b_data
-                b_data = b[::2]
-                self.assertFalse(b_data.flags.c_contiguous)
-
-                ggb = xp.empty((len(b_data) * 2,), dtype=self.b.dtype)
-                ggb[::2] = b_grad_grad
-                b_grad_grad = ggb[::2]
-                self.assertFalse(b_grad_grad.flags.c_contiguous)
+            (x_data, W_data, b_data, y_grad, x_grad_grad, W_grad_grad,
+                b_grad_grad) = _arrays_as_non_contiguous(
+                    (x_data, W_data, b_data, y_grad, x_grad_grad, W_grad_grad,
+                     b_grad_grad))
 
         args = (x_data, W_data)
         grad_grads = (x_grad_grad, W_grad_grad)
@@ -325,6 +307,25 @@ class TestConvolutionND(unittest.TestCase):
                 gradient_check.check_double_backward(
                     f, args, y_grad, grad_grads,
                     dtype='d', atol=5e-3, rtol=5e-2)
+
+    def test_double_backward_chainerx(self):
+        # TODO(hvy): chainerx does not support fp16 yet.
+        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+        self.check_double_backward(
+            backend.to_chainerx(self.x), backend.to_chainerx(self.W),
+            backend.to_chainerx(self.b), backend.to_chainerx(self.gy),
+            backend.to_chainerx(self.ggx), backend.to_chainerx(self.ggW),
+            backend.to_chainerx(self.ggb))
+
+    def test_double_backward_chainerx_nobias(self):
+        # TODO(hvy): chainerx does not support fp16 yet.
+        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+        self.check_double_backward(
+            backend.to_chainerx(self.x), backend.to_chainerx(self.W), None,
+            backend.to_chainerx(self.gy), backend.to_chainerx(self.ggx),
+            backend.to_chainerx(self.ggW), None)
 
     @condition.retry(3)
     def test_double_backward_cpu(self):
