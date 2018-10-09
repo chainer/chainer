@@ -5,7 +5,6 @@ from chainer import function_node
 from chainer.utils import collections_abc
 from chainer.utils import conv
 from chainer.utils import type_check
-import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -32,6 +31,8 @@ class Pooling2D(function_node.FunctionNode):
 
         self.cover_all = cover_all
         self._used_cudnn = False
+        self._inputs = None
+        self._outputs = None
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -66,15 +67,13 @@ class Pooling2D(function_node.FunctionNode):
         libcudnn.poolingForward(
             handle, pool_desc.value, one.data, x_desc.value,
             x.data.ptr, zero.data, y_desc.value, y.data.ptr)
-        self.retain_outputs((0,))
+        self._outputs = (y,)
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
         x = cuda.cupy.ascontiguousarray(x[0])
-        y = self.get_retained_outputs()[0].data
-        if isinstance(y, chainerx.ndarray):
-            y = cuda.to_gpu(y)
+        y = self._outputs[0]
         handle = cudnn.get_handle()
         pool_desc = self.create_pool_desc()
 
