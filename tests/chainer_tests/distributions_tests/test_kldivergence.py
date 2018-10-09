@@ -1,11 +1,12 @@
 import unittest
 
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distributions
 from chainer import testing
 from chainer.testing import attr
-import numpy
 
 
 @testing.parameterize(*testing.product({

@@ -1,5 +1,6 @@
-import numpy
 import functools
+
+import numpy
 
 
 def _fp16_mixed_precision_helper(fn):
