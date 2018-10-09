@@ -13,6 +13,42 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import conv
+import chainerx
+
+
+# Supports numpy, cupy and chainerx ndarrays.
+def _arrays_as_non_contiguous(arrays):
+    assert isinstance(arrays, (list, tuple))
+
+    xp = chainer.backend.get_array_module(*arrays)
+    non_cont_arrays = []
+    for a in arrays:
+        if a is None:
+            non_cont_a = None
+        elif a.ndim == 1:
+            if xp is chainerx:
+                # chainerx.ndarray does not support item assignment.
+                non_cont_a = xp.diag(
+                    xp.diag(a, device=a.device), device=a.device)
+            else:  # numpy or cupy
+                non_cont_a = xp.empty((len(a) * 2,), dtype=a.dtype)
+                non_cont_a[::2] = a
+                a = non_cont_a[::2]
+                non_cont_a = a
+        else:
+            non_cont_a = a.T.copy().T
+        non_cont_arrays.append(non_cont_a)
+
+    # Check non contiguousness.
+    for a in non_cont_arrays:
+        if a is None:
+            continue
+        elif xp is chainerx:
+            assert not a.is_contiguous
+        else:  # numpy, cupy
+            assert not a.flags.c_contiguous
+
+    return type(arrays)(non_cont_arrays)
 
 
 @testing.parameterize(*(testing.product({
@@ -174,19 +210,9 @@ class TestConvolutionND(unittest.TestCase):
 
     def check_backward(self, x_data, W_data, b_data, y_grad,
                        use_cudnn='never'):
-        xp = backend.get_array_module(x_data)
         if not self.c_contiguous:
-            x_data = xp.asfortranarray(x_data)
-            W_data = xp.asfortranarray(W_data)
-            y_grad = xp.asfortranarray(y_grad)
-            self.assertTrue(x_data.flags.f_contiguous)
-            self.assertTrue(W_data.flags.f_contiguous)
-            self.assertTrue(y_grad.flags.f_contiguous)
-            if b_data is not None:
-                b = xp.empty((len(b_data) * 2,), dtype=b_data.dtype)
-                b[::2] = b_data
-                b_data = b[::2]
-                self.assertFalse(b_data.flags.c_contiguous)
+            x_data, W_data, b_data, y_grad = _arrays_as_non_contiguous(
+                (x_data, W_data, b_data, y_grad))
 
         args = (x_data, W_data)
         if b_data is not None:
@@ -202,6 +228,22 @@ class TestConvolutionND(unittest.TestCase):
             with chainer.using_config('autotune', self.autotune):
                 gradient_check.check_backward(
                     f, args, y_grad, **self.check_backward_options)
+
+    def test_backward_chainerx(self):
+        # TODO(hvy): chainerx does not support fp16 yet.
+        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+        self.check_backward(
+            backend.to_chainerx(self.x), backend.to_chainerx(self.W),
+            backend.to_chainerx(self.b), backend.to_chainerx(self.gy))
+
+    def test_backward_chainerx_nobias(self):
+        # TODO(hvy): chainerx does not support fp16 yet.
+        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+        self.check_backward(
+            backend.to_chainerx(self.x), backend.to_chainerx(self.W), None,
+            backend.to_chainerx(self.gy))
 
     @condition.retry(3)
     def test_backward_cpu(self):
