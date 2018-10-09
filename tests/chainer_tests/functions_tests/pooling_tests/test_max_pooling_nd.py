@@ -239,10 +239,9 @@ class TestMaxPoolingND(unittest.TestCase):
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
-        xp = backend.get_array_module(x_data)
 
         # Backward computation for N-dimensional max pooling layer.
-        x_nd = chainer.Variable(xp.array(x_data))
+        x_nd = chainer.Variable(x_data.copy())
         with chainer.using_config('use_cudnn', use_cudnn):
             y_nd = functions.max_pooling_nd(
                 x_nd, ksize, stride=stride, pad=pad, cover_all=self.cover_all)
@@ -251,7 +250,7 @@ class TestMaxPoolingND(unittest.TestCase):
         y_nd.backward()
 
         # Backward computation for two-dimensional max pooling layer.
-        x_2d = chainer.Variable(xp.array(x_data))
+        x_2d = chainer.Variable(x_data.copy())
         with chainer.using_config('use_cudnn', use_cudnn):
             y_2d = functions.max_pooling_2d(
                 x_2d, ksize, stride=stride, pad=pad, cover_all=self.cover_all)
