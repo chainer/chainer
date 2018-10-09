@@ -74,7 +74,8 @@ class TestConvolutionND(unittest.TestCase):
         self.ggb = numpy.random.uniform(-1, 1, self.b.shape).astype(
             self.x_dtype)
 
-    def check_forward_consistency(self, nobias=False, use_cudnn='never'):
+    def check_forward_consistency(
+            self, transfer_func, nobias=False, use_cudnn='never'):
         x_cpu = chainer.Variable(self.x)
         W_cpu = chainer.Variable(self.W)
         b_cpu = None if nobias else chainer.Variable(self.b)
@@ -83,9 +84,9 @@ class TestConvolutionND(unittest.TestCase):
             cover_all=self.cover_all, dilate=self.dilate,
             groups=self.groups)
 
-        x_gpu = chainer.Variable(cuda.to_gpu(self.x))
-        W_gpu = chainer.Variable(cuda.to_gpu(self.W))
-        b_gpu = None if nobias else chainer.Variable(cuda.to_gpu(self.b))
+        x_gpu = chainer.Variable(transfer_func(self.x))
+        W_gpu = chainer.Variable(transfer_func(self.W))
+        b_gpu = None if nobias else chainer.Variable(transfer_func(self.b))
         with chainer.using_config('use_cudnn', use_cudnn):
             with chainer.using_config('autotune', self.autotune):
                 y_gpu = F.convolution_nd(
@@ -96,21 +97,52 @@ class TestConvolutionND(unittest.TestCase):
         testing.assert_allclose(
             y_cpu.data, y_gpu.data, **self.check_forward_options)
 
+    def test_forward_chainerx_native(self):
+        # TODO(hvy): chainerx does not support fp16 yet.
+        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+        self.check_forward_consistency(backend.to_chainerx, nobias=False)
+
+    def test_forward_chainerx_native_nobias(self):
+        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+        self.check_forward_consistency(backend.to_chainerx, nobias=True)
+
+    @attr.gpu
+    def test_forward_chainerx_cuda(self):
+        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+        self.check_forward_consistency(
+            lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=False,
+            use_cudnn='always')
+
+    @attr.gpu
+    def test_forward_chainerx_cuda_nobias(self):
+        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
+            raise unittest.SkipTest('Not yet supported')
+        self.check_forward_consistency(
+            lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=True,
+            use_cudnn='always')
+
     @attr.cudnn
     def test_forward_consistency(self):
-        self.check_forward_consistency(nobias=False, use_cudnn='always')
+        self.check_forward_consistency(
+            cuda.to_gpu, nobias=False, use_cudnn='always')
 
     @attr.cudnn
     def test_forward_consistency_nobias(self):
-        self.check_forward_consistency(nobias=True, use_cudnn='always')
+        self.check_forward_consistency(
+            cuda.to_gpu, nobias=True, use_cudnn='always')
 
     @attr.gpu
     def test_forward_consistency_im2col(self):
-        self.check_forward_consistency(nobias=False, use_cudnn='never')
+        self.check_forward_consistency(
+            cuda.to_gpu, nobias=False, use_cudnn='never')
 
     @attr.gpu
     def test_forward_consistency_im2col_nobias(self):
-        self.check_forward_consistency(nobias=True, use_cudnn='never')
+        self.check_forward_consistency(
+            cuda.to_gpu, nobias=True, use_cudnn='never')
 
     def check_forward_consistency_regression(self, nobias=False):
         x = chainer.Variable(self.x)
