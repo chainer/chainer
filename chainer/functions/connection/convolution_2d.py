@@ -6,7 +6,6 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
-from chainer import function
 from chainer import function_node
 import chainer.functions
 from chainer.utils import argument
@@ -82,6 +81,21 @@ class Convolution2DFunction(function_node.FunctionNode):
         if out_w <= 0:
             raise RuntimeError('Width in the output should be positive.')
         return out_h, out_w
+
+    def forward_chainerx(self, inputs):
+        # TODO(hvy): Support dilate > 1.
+        if self.dy > 1 or self.dx > 1:
+            return chainer.Fallback
+        # TODO(hvy): Support groups > 1.
+        if self.groups > 1:
+            return chainer.Fallback
+        if (variable.as_array(inputs[0]).device.backend.name == 'cuda'
+                and self.cover_all):
+            return chainer.Fallback
+
+        return chainerx.conv(
+            *inputs, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
+            cover_all=self.cover_all),
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
@@ -568,18 +582,6 @@ cover_all=True)
         deterministic="deterministic argument is not supported anymore. "
         "Use chainer.using_config('cudnn_deterministic', value) "
         "context where value is either `True` or `False`.")
-
-    if backend.get_array_module(x, W, b) is chainerx:
-        # TODO(hvy): Support dilate > 1.
-        # TODO(hvy): Support groups > 1.
-        fallback = False
-        is_cuda = variable.as_array(x).device.backend.name == 'cuda'
-        if dilate != 1 or groups != 1 or (is_cuda and cover_all):
-            fallback = True
-        if not fallback:
-            args = (x, W) if b is None else (x, W, b)
-            return function._chainerx_op(lambda *args: chainerx.conv(
-                *args, stride=stride, pad=pad, cover_all=cover_all), *args)
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
                                   groups=groups)
