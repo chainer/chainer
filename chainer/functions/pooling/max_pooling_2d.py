@@ -274,7 +274,10 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
     def forward_gpu(self, inputs):
         if self._used_cudnn:
             x, = self.mpool2d.get_retained_inputs()
-            return self._forward_gpu_compute_indexes_again((x.data, inputs[0]))
+            x_data = x.data
+            if isinstance(x_data, chainerx.ndarray):
+                x_data = cuda.to_gpu(x_data)
+            return self._forward_gpu_compute_indexes_again((x_data, inputs[0]))
         else:
             x, = inputs
             n, c, h, w = x.shape

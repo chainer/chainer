@@ -190,7 +190,10 @@ class MaxPoolingNDWithIndexes(function_node.FunctionNode):
     def forward_gpu(self, inputs):
         if self._used_cudnn:
             x, = self.mpoolnd.get_retained_inputs()
-            return self._forward_gpu_compute_indexes_again((x.data, inputs[0]))
+            x_data = x.data
+            if isinstance(x_data, chainerx.ndarray):
+                x_data = cuda.to_gpu(x_data)
+            return self._forward_gpu_compute_indexes_again((x_data, inputs[0]))
         x, = inputs
         self._in_shape = x.shape
         self._in_dtype = x.dtype
