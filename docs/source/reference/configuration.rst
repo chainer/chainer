@@ -53,7 +53,7 @@ Configuration Keys
 * ``enable_backprop`` (default: ``True``)
    Flag to enable backpropagation support.
 
-   If it is ``True``, computational graphs are created during forward passes by :class:`FunctionNode`\\ s, allowing backpropagation to start from any :class:`Variable` in the graph.
+   If it is ``True``, computational graphs are created during forward passes by :class:`FunctionNode`\ s, allowing backpropagation to start from any :class:`Variable` in the graph.
    Otherwise, computational graphs are not created but memory consumptions are reduced.
    So calling :func:`~chainer.Variable.backward` on the results of a function will not compute any gradients of any input.
 
