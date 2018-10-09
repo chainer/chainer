@@ -537,7 +537,7 @@ def check_backward(
     def g():
         # This functions is called twice in `numerical_grad`.
         # `delta` is `epsilon` or `-epsilon` in these calls.
-        # See the document of `numerical_grad`.
+        # See the documentation of `numerical_grad`.
         for x, data, direction in six.moves.zip(
                 variables, casted_data, directions):
             # astype is require to store data with the given type

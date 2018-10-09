@@ -9,8 +9,8 @@ Anyone that wants to register an issue or to send a pull request should read thr
 
 .. note::
 
-   Many points of this document are updated at v2.
-   We strongly recommend all contributors of v1 to read through the document again.
+   Many points of this documentation are updated at v2.
+   We strongly recommend all contributors of v1 to read through the documentation again.
 
 Classification of Contributions
 -------------------------------
@@ -23,7 +23,7 @@ There are several ways to contribute to Chainer community:
 4. Open-sourcing an external example
 5. Writing a post about Chainer
 
-This document mainly focuses on 1 and 2, though other contributions are also appreciated.
+This documentation mainly focuses on 1 and 2, though other contributions are also appreciated.
 
 
 Development Cycle
@@ -140,7 +140,7 @@ Issues and PRs are labeled by the following tags:
 * **Feature**: feature requests (issues) and their implementations (PRs)
 * **NoCompat**: disrupts backward compatibility
 * **Test**: test fixes and updates
-* **Document**: document fixes and improvements
+* **Document**: documentation fixes and improvements
 * **Example**: fixes and improvements on the examples
 * **Install**: fixes installation script
 * **Contribution-Welcome**: issues that we request for contribution (only issues are categorized to this)
@@ -407,7 +407,7 @@ The test functions decorated by ``slow`` are skipped if ``-m='not slow'`` is giv
 
 .. note::
    If you want to specify more than two attributes, use ``and`` operator like ``-m='not cudnn and not slow'``.
-   See detail in `the document of pytest <https://docs.pytest.org/en/latest/example/markers.html>`_.
+   See detail in `the documentation of pytest <https://docs.pytest.org/en/latest/example/markers.html>`_.
 
 Once you send a pull request, your code is automatically tested by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_ **except for tests annotated with ``gpu``, ``multi_gpu`` and ``slow``**.
 Since Travis-CI does not support CUDA, we cannot check your CUDA-related code automatically.
@@ -422,7 +422,7 @@ Note that reviewers will test your code without the option to check CUDA-related
 Documentation
 -------------
 
-When adding a new feature to the framework, you also need to document it in the reference.
+When adding a new feature to the framework, you also need to documentation it in the reference.
 For example, if you are adding a new function under ``chainer.functions``, you need to add it to the :doc:`reference/functions` page.
 
 .. note::
