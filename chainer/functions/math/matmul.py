@@ -109,13 +109,16 @@ class MatMul(function_node.FunctionNode):
     def forward_chainerx(self, x):
         a, b = x
         # TODO(sonots): Support transa and transb in ChainerX
-        if self.transa or self.transb:
+        if self.transa or self.transb or self.transc:
             return chainer.Fallback
         # TODO(sonots): Support dtype promotion in ChainerX
         if a.dtype != b.dtype:
             return chainer.Fallback
         # TODO(sonots): Support ndim > 2 in ChainerX
         if a.ndim != 2 or b.ndim != 2:
+            return chainer.Fallback
+        # TODO(niboshi): Support it
+        if self.dtype is not None and self.dtype != a.dtype:
             return chainer.Fallback
         return chainerx.dot(a, b),
 
