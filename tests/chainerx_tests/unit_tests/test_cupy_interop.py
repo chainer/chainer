@@ -1,6 +1,7 @@
 # These tests are integration tests with CuPy.
 import numpy
 import pytest
+import sys
 
 import chainerx
 import chainerx.testing
@@ -19,6 +20,8 @@ _fromrawpointer = chainerx._core._fromrawpointer
 def test_cupy_to_chainerx_contiguous():
     dtype = numpy.float32
     a_cupy = cupy.arange(6, dtype=dtype).reshape((2, 3))
+    a_cupy_refcount_before = sys.getrefcount(a_cupy)
+
     a_chx = _fromrawpointer(
         a_cupy.data.mem.ptr,
         a_cupy.shape,
@@ -28,6 +31,7 @@ def test_cupy_to_chainerx_contiguous():
         0,
         a_cupy)
 
+    assert sys.getrefcount(a_cupy) == a_cupy_refcount_before + 1
     assert a_chx.device.name == 'cuda:0'
     chainerx.testing.assert_array_equal_ex(a_chx, a_cupy.get())
 

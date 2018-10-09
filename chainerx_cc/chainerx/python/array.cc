@@ -166,7 +166,7 @@ void InitChainerxArray(pybind11::module& m) {
              const py::tuple& strides,
              py::handle device,
              int64_t offset,
-             py::handle base) -> ArrayBodyPtr {
+             py::object base) -> ArrayBodyPtr {
               // TODO(niboshi): Expose `base` as `ndarray.base` attribute.
               void* c_ptr = reinterpret_cast<void*>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
               // Note that inc_ref() / dec_ref() is performed by the lambda capture.
