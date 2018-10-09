@@ -130,7 +130,10 @@ class MaxPoolingNDGrad(function_node.FunctionNode):
     def forward_gpu(self, gy):
         if self._used_cudnn:
             x, = self.mpoolnd.get_retained_inputs()
-            return self.mpoolnd.backward_gpu((x.data,), gy)
+            x_data = x.data
+            if isinstance(x_data, chainerx.ndarray):
+                x_data = cuda.to_gpu(x_data)
+            return self.mpoolnd.backward_gpu((x_data,), gy)
 
         n, c = self._in_shape[:2]
         dims = self._in_shape[2:]
