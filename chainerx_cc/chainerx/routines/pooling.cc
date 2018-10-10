@@ -64,7 +64,7 @@ Array MaxPool(
             {
                 BackwardBuilder bb2{"max_pooling_backward", gout, gx};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget(0)) {
-                    bt2.Define([st = std::move(*this)](BackwardContext& bctx2) {
+                    bt2.Define([st = *this](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
                         Array ggout = st.fb->DoubleBackward(ggx.AsGradStopped());
                         internal::MakeViewForForwardBackwardOutput(ggout);
