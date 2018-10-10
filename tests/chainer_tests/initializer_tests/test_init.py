@@ -73,8 +73,7 @@ class TestGenerateArray(unittest.TestCase):
     @attr.gpu
     def test_init_chainerx_with_cuda(self):
         device = chainerx.get_device('cuda:0')
-        with chainerx.device_scope(device):
-            array = self._generate_array(chainerx, 'float64')
+        array = self._generate_array(chainerx, 'float64', device)
         assert array.device is device
 
 
