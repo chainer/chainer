@@ -1,8 +1,8 @@
 import numpy
 
 import chainer
-
-# import classes and functions
+from chainer import backend
+from chainer.backends import cuda
 from chainer.initializers.constant import Constant
 from chainer.initializers.constant import Identity  # NOQA
 from chainer.initializers.constant import NaN  # NOQA
@@ -17,9 +17,10 @@ from chainer.initializers.uniform import GlorotUniform  # NOQA
 from chainer.initializers.uniform import HeUniform  # NOQA
 from chainer.initializers.uniform import LeCunUniform  # NOQA
 from chainer.initializers.uniform import Uniform  # NOQA
+import chainerx
 
 
-def generate_array(initializer, shape, xp, dtype=None):
+def generate_array(initializer, shape, xp, dtype=None, device=None):
     """Return initialized array.
 
     The algorithms used to make the new values depend on the
@@ -31,8 +32,11 @@ def generate_array(initializer, shape, xp, dtype=None):
         initializer: A callable object that takes :class:`numpy.ndarray`
              or :class:`cupy.ndarray` and edits its value.
         shape (tuple): Shape of a return array.
-        xp (module): :mod:`cupy` or :mod:`numpy`.
+        xp (module): :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx`.
         dtype: Dtype specifier. If omitted, ``initializer.dtype`` is used.
+        device: Target device specifier. If omitted, the current device is
+             used for :mod:`cupy`, and the default device is used for
+             :mod:`chainerx`.
 
     Returns:
         numpy.ndarray or cupy.ndarray: An initialized array.
@@ -46,7 +50,30 @@ def generate_array(initializer, shape, xp, dtype=None):
     if dtype is None:
         dtype = dtype_attr
     dtype = chainer.get_dtype(dtype)
-    array = xp.empty(shape, dtype=dtype)
+
+    if device is None:
+        if xp is cuda.cupy:
+            device = cuda.Device().id
+        elif xp is chainerx:
+            device = chainerx.get_default_device()
+
+    if xp is chainerx:
+        # TODO(sonots): Directly use initializer after ChainerX
+        # supports random.
+        device = chainerx.get_device(device)
+        array = xp.empty(shape, dtype=dtype, device=device)
+        if device.backend.name == 'native':
+            array = backend.to_numpy(array)
+        elif device.backend.name == 'cuda':
+            array = cuda.to_gpu(array)
+        else:
+            raise RuntimeError('ChainerX backend: {} is not supported.'.format(
+                device.backend.name))
+        initializer(array)
+        return backend.to_chainerx(array, device=device)
+
+    with cuda.get_device_from_id(device):
+        array = xp.empty(shape, dtype=dtype)
     initializer(array)
     return array
 
