@@ -5,13 +5,10 @@ import numpy
 import six
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
-from chainer import function
 from chainer import function_node
 from chainer.functions.pooling import max_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
-from chainer import variable
 from chainer.utils import conv_nd
 import chainerx
 
@@ -44,7 +41,7 @@ class MaxPoolingND(pooling_nd._PoolingND):
             if self.ndim not in [2, 3]:
                 return chainer.Fallback
         return chainerx.max_pool(x[0], self.ksize, self.stride, self.pad,
-                                self.cover_all),
+                                 self.cover_all),
 
     def forward_cpu(self, x):
         self._in_shape = x[0].shape
