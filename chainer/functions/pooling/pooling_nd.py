@@ -17,7 +17,8 @@ class _PoolingND(function_node.FunctionNode):
 
     """Base class of pooling function over a set of N-dimensional planes."""
 
-    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True):
+    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True,
+                 return_indices=False):
         if stride is None:
             stride = ksize
 
@@ -31,7 +32,11 @@ class _PoolingND(function_node.FunctionNode):
         self.pad = conv_nd.as_tuple(pad, ndim)
 
         self.cover_all = cover_all
+        self.return_indices = return_indices
+
         self._used_cudnn = False
+        self._cudnn_inputs = None
+        self._cudnn_outputs = None
 
     def check_type_forward(self, in_types):
         type_check.expect(
@@ -65,13 +70,14 @@ class _PoolingND(function_node.FunctionNode):
         libcudnn.poolingForward(
             handle, pool_desc.value, one.data, x_desc.value,
             x.data.ptr, zero.data, y_desc.value, y.data.ptr)
-        self.retain_outputs((0,))
+        self._cudnn_inputs = (x,)
+        self._cudnn_outputs = (y,)
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
         x = cuda.cupy.ascontiguousarray(x[0])
-        y = self.output_data[0]
+        y = self._cudnn_outputs[0]
         handle = cudnn.get_handle()
         pool_desc = self.create_pool_desc()
 

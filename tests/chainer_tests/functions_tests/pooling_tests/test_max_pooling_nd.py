@@ -16,6 +16,7 @@ from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import conv
 from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
+import chainerx
 
 
 @testing.parameterize(*testing.product({
@@ -68,7 +69,7 @@ class TestMaxPoolingND(unittest.TestCase):
             y = functions.max_pooling_nd(x, ksize, stride=stride, pad=pad,
                                          cover_all=self.cover_all)
         self.assertEqual(y.data.dtype, self.dtype)
-        y_data = cuda.to_cpu(y.data)
+        y_data = backend.to_numpy(y.data)
 
         self.assertEqual(self.gy.shape, y_data.shape)
         patches = pooling_nd_helper.pooling_patches(
@@ -107,6 +108,24 @@ class TestMaxPoolingND(unittest.TestCase):
     def test_forward_gpu_no_cudnn(self):
         self.check_forward(cuda.to_gpu(self.x), 'never')
 
+    @attr.chainerx
+    def test_forward_chainerx_cpu(self):
+        # TODO(sonots): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(chainerx.array(self.x))
+
+    @attr.chainerx
+    @attr.gpu
+    @condition.retry(3)
+    def test_forward_chainerx_gpu(self):
+        # TODO(sonots): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward(backend.to_chainerx(cuda.to_gpu(self.x)))
+
     def check_forward_consistency_regression(self, x_data, use_cudnn='always'):
         # Regression test to max_pooling_2d.
 
@@ -137,6 +156,26 @@ class TestMaxPoolingND(unittest.TestCase):
     @condition.retry(3)
     def test_forward_consistency_regression_no_cudnn(self):
         self.check_forward_consistency_regression(cuda.to_gpu(self.x), 'never')
+
+    @attr.chainerx
+    @condition.retry(3)
+    def test_forward_consistency_regression_chainerx_cpu(self):
+        # TODO(sonots): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward_consistency_regression(chainerx.array(self.x))
+
+    @attr.chainerx
+    @attr.gpu
+    @condition.retry(3)
+    def test_forward_consistency_regression_chainerx_gpu(self):
+        # TODO(sonots): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_forward_consistency_regression(
+            backend.to_chainerx(cuda.to_gpu(self.x)))
 
     def check_backward(self, x_data, y_grad, use_cudnn='always'):
         def f(x):
@@ -169,6 +208,27 @@ class TestMaxPoolingND(unittest.TestCase):
     def test_backward_gpu_no_cudnn(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy), 'never')
 
+    @attr.chainerx
+    @condition.retry(3)
+    def test_backward_chainerx_cpu(self):
+        # TODO(sonots): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
+
+    @attr.chainerx
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_chainerx_gpu(self):
+        # TODO(sonots): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward(
+            backend.to_chainerx(cuda.to_gpu(self.x)),
+            backend.to_chainerx(cuda.to_gpu(self.gy)))
+
     def check_backward_consistency_regression(self, x_data, gy_data,
                                               use_cudnn='always'):
         # Regression test to two-dimensional max pooling layer.
@@ -179,10 +239,9 @@ class TestMaxPoolingND(unittest.TestCase):
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
-        xp = backend.get_array_module(x_data)
 
         # Backward computation for N-dimensional max pooling layer.
-        x_nd = chainer.Variable(xp.array(x_data))
+        x_nd = chainer.Variable(x_data.copy())
         with chainer.using_config('use_cudnn', use_cudnn):
             y_nd = functions.max_pooling_nd(
                 x_nd, ksize, stride=stride, pad=pad, cover_all=self.cover_all)
@@ -191,7 +250,7 @@ class TestMaxPoolingND(unittest.TestCase):
         y_nd.backward()
 
         # Backward computation for two-dimensional max pooling layer.
-        x_2d = chainer.Variable(xp.array(x_data))
+        x_2d = chainer.Variable(x_data.copy())
         with chainer.using_config('use_cudnn', use_cudnn):
             y_2d = functions.max_pooling_2d(
                 x_2d, ksize, stride=stride, pad=pad, cover_all=self.cover_all)
@@ -217,6 +276,28 @@ class TestMaxPoolingND(unittest.TestCase):
     def test_backward_consistency_regression_no_cudnn(self):
         self.check_backward_consistency_regression(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), use_cudnn='never')
+
+    @attr.chainerx
+    @condition.retry(3)
+    def test_backward_consistency_regression_chainerx_cpu(self):
+        # TODO(sonots): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward_consistency_regression(
+            chainerx.array(self.x), chainerx.array(self.gy))
+
+    @attr.chainerx
+    @attr.gpu
+    @condition.retry(3)
+    def test_backward_consistency_regression_chainerx_gpu(self):
+        # TODO(sonots): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_backward_consistency_regression(
+            backend.to_chainerx(cuda.to_gpu(self.x)),
+            backend.to_chainerx(cuda.to_gpu(self.gy)))
 
     def test_backward_cpu_more_than_once(self):
         func = functions.pooling.max_pooling_nd.MaxPoolingND(
@@ -258,6 +339,29 @@ class TestMaxPoolingND(unittest.TestCase):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
             'never')
+
+    @attr.chainerx
+    def test_double_backward_chainerx_cpu(self):
+        # TODO(sonots): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_double_backward(
+            chainerx.array(self.x),
+            chainerx.array(self.gy),
+            chainerx.array(self.ggx))
+
+    @attr.chainerx
+    @attr.gpu
+    def test_double_backward_chainerx_gpu(self):
+        # TODO(sonots): Support it
+        if self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        self.check_double_backward(
+            backend.to_chainerx(cuda.to_gpu(self.x)),
+            backend.to_chainerx(cuda.to_gpu(self.gy)),
+            backend.to_chainerx(cuda.to_gpu(self.ggx)))
 
 
 @testing.parameterize(*testing.product({
