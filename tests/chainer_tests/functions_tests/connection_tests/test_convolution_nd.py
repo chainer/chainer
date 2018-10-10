@@ -41,10 +41,7 @@ def _array_as_non_contiguous(array):
 
 def _arrays_as_non_contiguous(arrays):
     assert isinstance(arrays, (list, tuple))
-
-    non_cont_arrays = [_array_as_non_contiguous(a) for a in arrays]
-
-    return type(arrays)(non_cont_arrays)
+    return type(arrays)([_array_as_non_contiguous(a) for a in arrays])
 
 
 @testing.parameterize(*(testing.product({
