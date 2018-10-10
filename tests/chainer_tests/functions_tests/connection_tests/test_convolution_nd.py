@@ -101,9 +101,6 @@ class TestConvolutionND(unittest.TestCase):
         # TODO(hvy): chainerx does not support fp16 yet.
         if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
             raise unittest.SkipTest('Not yet supported')
-        # TODO(hvy): chainerx does not support mixed precision convolutions.
-        if self.x_dtype != self.W_dtype:
-            raise unittest.SkipTest('Not yet supported')
 
     def test_forward_chainerx_native(self):
         self._skip_if_not_chainerx_supported()
