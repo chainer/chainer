@@ -10,7 +10,6 @@ from chainer.functions.connection import convolution_nd
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
-from chainer import variable
 import chainerx
 
 
@@ -160,6 +159,14 @@ class DeconvolutionND(function_node.FunctionNode):
             tensor_core=tensor_core)
 
         return y,
+
+    def forward_chainerx(self, inputs):
+        if self.dilate == 1 and self.groups == 1:
+            return chainerx.conv_transpose(
+                *inputs, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
+                outsize=(self.outh, self.outw))
+        else:
+            return chainer.Fallback
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
@@ -371,14 +378,6 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
     """
     ndim = len(x.shape[2:])
     args = (x, W) if b is None else (x, W, b)
-
-    if backend.get_array_module(*args) is chainerx and (
-            dilate == 1 and groups == 1):
-        x = variable.as_array(x)
-        W = variable.as_array(W)
-        b = None if b is None else variable.as_array(b)
-        res = chainerx.conv_transpose(x, W, b, stride, pad, outsize)
-        return variable.as_variable(res)
 
     func = DeconvolutionND(
         ndim, stride, pad, outsize, dilate=dilate, groups=groups)
