@@ -113,14 +113,9 @@ class TestMaxPooling2D(unittest.TestCase):
             x, = inputs
             y = functions.max_pooling_2d(x, 3, stride=2, pad=1,
                                          cover_all=self.cover_all)
-        assert y.data.dtype == self.dtype
-        if backend_config.use_chainerx:
-            y_data = chainer.backend.to_numpy(y.data)
-        else:
-            y_data = cuda.to_cpu(y.data)
-
-        assert self.output_shape == y_data.shape
-        testing.assert_allclose(y_expect, y_data)
+        assert self.dtype == y.data.dtype
+        assert self.output_shape == y.data.shape
+        testing.assert_allclose(y_expect, y.data)
 
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
