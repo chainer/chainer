@@ -64,15 +64,15 @@ Array MaxPool(
             {
                 BackwardBuilder bb2{"max_pooling_backward", gout, gx};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget(0)) {
-                    bt2.Define([this, fb2 = fb](BackwardContext& bctx2) {
+                    bt2.Define([st = std::move(*this)](BackwardContext& bctx2) {
                         const Array& ggx = bctx2.output_grad();
-                        Array ggout = fb2->DoubleBackward(ggx.AsGradStopped());
+                        Array ggout = st.fb->DoubleBackward(ggx.AsGradStopped());
                         internal::MakeViewForForwardBackwardOutput(ggout);
                         // Make ggout further backpropable.
                         {
                             BackwardBuilder bb3{"max_pooling_double_backward", ggx, ggout};
                             if (BackwardBuilder::Target bt3 = bb3.CreateTarget(0)) {
-                                bt3.Define(*this);
+                                bt3.Define(std::move(st));
                             }
                             bb3.Finalize();
                         }
