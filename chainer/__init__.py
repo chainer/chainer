@@ -157,7 +157,6 @@ def get_cpu_array_types():
     return _cpu_array_types
 
 
-# TODO(hvy): In case of chainerx.ndarray, take the device into account?
 # TODO(hvy): Move this function to backend?
 def is_arrays_compatible(arrays):
     arrays = [a for a in arrays if a is not None]
@@ -183,9 +182,7 @@ def is_arrays_compatible(arrays):
                 for arr in arrays])
         # Otherwise, fall back to the non-ChainerX logic below
 
-    if isinstance(arrays[0], chainerx.ndarray):
-        types = chainerx.ndarray
-    elif isinstance(arrays[0], backends.cuda.ndarray):
+    if isinstance(arrays[0], backends.cuda.ndarray):
         types = backends.cuda.ndarray
     else:
         types = get_cpu_array_types()
