@@ -32,13 +32,18 @@ class TestGenerateArray(unittest.TestCase):
             array = self._generate_array(numpy, 'float64')
         self.assertEqual('float64', array.dtype)
 
-    @attr.gpu(2)
+    @attr.gpu
+    def test_init_gpu(self):
+        array = self._generate_array(cuda.cupy, 'float64')
+        assert array.device == cuda.Device()
+
+    @attr.multi_gpu(2)
     def test_init_gpu_with_device(self):
         device = cuda.Device(1)
         array = self._generate_array(cuda.cupy, 'float64', device)
         assert array.device == device
 
-    @attr.gpu(2)
+    @attr.multi_gpu(2)
     def test_init_gpu_with_current_device(self):
         device_id = 1
         with cuda.get_device_from_id(device_id):
