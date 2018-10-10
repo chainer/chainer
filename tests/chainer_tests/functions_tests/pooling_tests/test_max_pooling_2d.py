@@ -127,8 +127,6 @@ class TestMaxPooling2D(unittest.TestCase):
 
     def test_forward_output_size_zero(self, backend_config):
         if backend_config.use_chainerx:
-            # TODO(sonots): Raise ChainerxError in case of ChainerX
-            raise unittest.SkipTest('ChainerX does not support float16')
             # TODO(sonots): Support it
             if self.dtype == numpy.float16:
                 raise unittest.SkipTest('ChainerX does not support float16')
