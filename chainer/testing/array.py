@@ -83,4 +83,18 @@ def _as_noncontiguous_array(array):
 
         return ret
 
-    return backend._obj_to_array(array, as_noncontiguous_array)
+    if isinstance(array, (list, tuple)):
+        d = {}
+        ret = []
+        for arr in array:
+            if arr is None:
+                ret.append(None)
+            else:
+                arr2 = d.get(id(arr))
+                if arr2 is None:
+                    arr2 = as_noncontiguous_array(arr)
+                    d[id(arr)] = arr2
+                ret.append(arr2)
+        return type(array)(ret)
+    else:
+        return as_noncontiguous_array(array)
