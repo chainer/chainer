@@ -124,7 +124,7 @@ class AdamRule(optimizer.UpdateRule):
                 vhat = v
             param.data.inplace_axpby(
                 1.0 - hp.weight_decay_rate, -hp.eta,
-                self.corrected_alpha * m / (numpy.sqrt(vhat) + hp.eps))
+                self.alpha_t * m / (numpy.sqrt(vhat) + hp.eps))
         else:
             m += (1 - hp.beta1) * (grad - m)
             v += (1 - hp.beta2) * (grad * grad - v)
@@ -134,7 +134,7 @@ class AdamRule(optimizer.UpdateRule):
             else:
                 vhat = v
             param.data -= hp.eta * (
-                self.corrected_alpha * m / (numpy.sqrt(vhat) + hp.eps) +
+                self.alpha_t * m / (numpy.sqrt(vhat) + hp.eps) +
                 hp.weight_decay_rate * param.data)
 
     def update_core_gpu(self, param):
@@ -151,17 +151,17 @@ class AdamRule(optimizer.UpdateRule):
         if hp.amsgrad:
             if AdamRule._amsgrad_kernel is None:
                 AdamRule._amsgrad_kernel = cuda.elementwise(
-                    'T grad, T lr, T one_minus_beta1, T one_minus_beta2, '
+                    'T grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
                     'T eps, T eta, T weight_decay_rate',
                     'T param, T m, T v, T vhat',
                     '''m += one_minus_beta1 * (grad - m);
                        v += one_minus_beta2 * (grad * grad - v);
                        vhat = max(vhat, v);
-                       param -= eta * (lr * m / (sqrt(vhat) + eps) +
+                       param -= eta * (alpha_t * m / (sqrt(vhat) + eps) +
                                        weight_decay_rate * param);''',
                     'adam')
             AdamRule._amsgrad_kernel(
-                grad, self.corrected_alpha, 1 - hp.beta1,
+                grad, self.alpha_t, 1 - hp.beta1,
                 1 - hp.beta2, hp.eps,
                 hp.eta, hp.weight_decay_rate,
                 param.data, self.state['m'], self.state['v'],
@@ -169,29 +169,29 @@ class AdamRule(optimizer.UpdateRule):
         else:
             if AdamRule._kernel is None:
                 AdamRule._kernel = cuda.elementwise(
-                    'T grad, T lr, T one_minus_beta1, T one_minus_beta2, '
+                    'T grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
                     'T eps, T eta, T weight_decay_rate',
                     'T param, T m, T v',
                     '''m += one_minus_beta1 * (grad - m);
                        v += one_minus_beta2 * (grad * grad - v);
-                       param -= eta * (lr * m / (sqrt(v) + eps) +
+                       param -= eta * (alpha_t * m / (sqrt(v) + eps) +
                                        weight_decay_rate * param);''',
                     'adam')
-            AdamRule._kernel(grad, self.corrected_alpha, 1 - hp.beta1,
+            AdamRule._kernel(grad, self.alpha_t, 1 - hp.beta1,
                              1 - hp.beta2, hp.eps,
                              hp.eta, hp.weight_decay_rate,
                              param.data, self.state['m'], self.state['v'])
 
     @property
-    def corrected_alpha(self):
+    def alpha_t(self):
         return _learning_rate(self.hyperparam, self.t)
 
     @property
     def lr(self):
         warnings.warn(
-            'AdamRule.lr is deprecated. Use AdamRule.corrected_alpha instead.',
+            'AdamRule.lr is deprecated. Use AdamRule.alpha_t instead.',
             DeprecationWarning)
-        return self.corrected_alpha
+        return self.alpha_t
 
 
 class Adam(optimizer.GradientMethod):
@@ -258,12 +258,12 @@ class Adam(optimizer.GradientMethod):
         return AdamRule(self.hyperparam)
 
     @property
-    def corrected_alpha(self):
+    def alpha_t(self):
         return _learning_rate(self.hyperparam, self.t)
 
     @property
     def lr(self):
         warnings.warn(
-            'Adam.lr is deprecated. Use Adam.corrected_alpha instead.',
+            'Adam.lr is deprecated. Use Adam.alpha_t instead.',
             DeprecationWarning)
-        return self.corrected_alpha
+        return self.alpha_t
