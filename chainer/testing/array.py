@@ -52,6 +52,14 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
 
 
 def _as_noncontiguous_array(array):
+    # This is a temporary function used by tests to convert contiguous arrays
+    # to non-contiguous arrays.
+    #
+    # This functions can be removed if e.g. BackendConfig starts supporting
+    # contiguousness configurations and the array conversion method takes that
+    # into account. Note that that would also mean rewriting tests to use the
+    # backend injector in the first place.
+
     def as_noncontiguous_array(a):
         if a is None:
             return None
@@ -74,4 +82,5 @@ def _as_noncontiguous_array(array):
             assert not ret.is_contiguous
 
         return ret
+
     return backend._obj_to_array(array, as_noncontiguous_array)
