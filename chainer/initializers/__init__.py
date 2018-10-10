@@ -3,6 +3,9 @@ import numpy
 import chainer
 from chainer import backend
 from chainer.backends import cuda
+import chainerx
+
+# import class and function
 from chainer.initializers.constant import Constant
 from chainer.initializers.constant import Identity  # NOQA
 from chainer.initializers.constant import NaN  # NOQA
@@ -17,7 +20,6 @@ from chainer.initializers.uniform import GlorotUniform  # NOQA
 from chainer.initializers.uniform import HeUniform  # NOQA
 from chainer.initializers.uniform import LeCunUniform  # NOQA
 from chainer.initializers.uniform import Uniform  # NOQA
-import chainerx
 
 
 def generate_array(initializer, shape, xp, dtype=None, device=None):
