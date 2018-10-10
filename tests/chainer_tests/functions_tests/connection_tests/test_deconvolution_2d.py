@@ -171,6 +171,8 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
         if backend_config.use_cuda:
             inputs = cuda.to_gpu(inputs)
+        elif backend_config.use_chainerx:
+            inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
 
         x, W, b = inputs
         x = chainer.Variable(x)
@@ -194,15 +196,16 @@ class TestDeconvolution2DFunction(unittest.TestCase):
             if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
                 raise unittest.SkipTest('ChainerX does not support float16')
 
-        inputs = self.inputs
-        if backend_config.xp is chainerx:
-            inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
-        self.check_forward(inputs, backend_config)
+        self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
         if backend_config.use_cuda:
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
+        elif backend_config.use_chainerx:
+            inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
+            grad_outputs = [chainer.backend.to_chainerx(_)
+                            for _ in grad_outputs]
 
         if not self.c_contiguous:
             inputs = _arrays_as_non_contiguous(inputs)
@@ -226,19 +229,12 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @condition.retry(10)
     def test_backward(self, backend_config):
-        inputs = self.inputs
-        grad_outputs = self.grad_outputs
-
         if backend_config.use_chainerx:
             # TODO(imanishi): Support float16
             if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
                 raise unittest.SkipTest('ChainerX does not support float16')
 
-            inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
-            grad_outputs = [chainer.backend.to_chainerx(_)
-                            for _ in grad_outputs]
-
-        self.check_backward(inputs, grad_outputs, backend_config)
+        self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
@@ -246,6 +242,12 @@ class TestDeconvolution2DFunction(unittest.TestCase):
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
             grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
+        elif backend_config.use_chainerx:
+            inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
+            grad_outputs = [chainer.backend.to_chainerx(_)
+                            for _ in grad_outputs]
+            grad_grad_inputs = [chainer.backend.to_chainerx(_)
+                                for _ in grad_grad_inputs]
 
         if not self.c_contiguous:
             inputs = _arrays_as_non_contiguous(inputs)
@@ -274,23 +276,13 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     @condition.retry(10)
     def test_double_backward(self, backend_config):
-        inputs = self.inputs
-        grad_outputs = self.grad_outputs
-        grad_grad_inputs = self.grad_grad_inputs
-
         if backend_config.use_chainerx:
             # TODO(imanishi): Support float16
             if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
                 raise unittest.SkipTest('ChainerX does not support float16')
 
-            inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
-            grad_outputs = [chainer.backend.to_chainerx(_)
-                            for _ in grad_outputs]
-            grad_grad_inputs = [chainer.backend.to_chainerx(_)
-                                for _ in grad_grad_inputs]
-
-        self.check_double_backward(inputs, grad_outputs, grad_grad_inputs,
-                                   backend_config)
+        self.check_double_backward(self.inputs, self.grad_outputs,
+                                   self.grad_grad_inputs, backend_config)
 
 
 @testing.parameterize(*testing.product({
