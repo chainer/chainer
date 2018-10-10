@@ -16,7 +16,6 @@ from chainer.utils import conv
 import chainerx
 
 
-# Supports numpy, cupy and chainerx ndarrays.
 def _arrays_as_non_contiguous(arrays):
     assert isinstance(arrays, (list, tuple))
 
