@@ -72,7 +72,7 @@ Array MaxPool(
                         {
                             BackwardBuilder bb3{"max_pooling_double_backward", ggx, ggout};
                             if (BackwardBuilder::Target bt3 = bb3.CreateTarget(0)) {
-                                bt3.Define(std::move(st));
+                                bt3.Define(st);
                             }
                             bb3.Finalize();
                         }
