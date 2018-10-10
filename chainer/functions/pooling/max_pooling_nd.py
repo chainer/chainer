@@ -55,7 +55,7 @@ class MaxPoolingND(pooling_nd._PoolingND):
         if chainer.should_use_cudnn('>=auto') and 2 <= self.ndim <= 3:
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
-            self._inputs = x
+            self._cudnn_inputs = x
             return super(MaxPoolingND, self).forward_gpu(x)
 
         self._in_shape = x[0].shape
@@ -129,7 +129,7 @@ class MaxPoolingNDGrad(function_node.FunctionNode):
 
     def forward_gpu(self, gy):
         if self._used_cudnn:
-            x, = self.mpoolnd._inputs
+            x, = self.mpoolnd._cudnn_inputs
             return self.mpoolnd.backward_gpu((x,), gy)
 
         n, c = self._in_shape[:2]
@@ -186,7 +186,7 @@ class MaxPoolingNDWithIndexes(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         if self._used_cudnn:
-            x, = self.mpoolnd._inputs
+            x, = self.mpoolnd._cudnn_inputs
             return self._forward_gpu_compute_indexes_again((x, inputs[0]))
         x, = inputs
         self._in_shape = x.shape
