@@ -231,7 +231,7 @@ class TestBatchNormalization(unittest.TestCase):
     'c_contiguous': [True, False],
 })))
 @backend.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward'],
+    None,
     # CPU tests
     [{'use_cuda': False}]
     # GPU tests
@@ -287,7 +287,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
         y_expect = _batch_normalization(inputs + [self.eps, self.expander])
         return y_expect,
 
-    def check_forward(self, inputs, backend_config):
+    def check_forward(self, inputs, enable_backprop, backend_config):
         # TODO(niboshi): Support it
         if backend_config.use_chainerx and self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
@@ -298,21 +298,24 @@ class TestFixedBatchNormalization(unittest.TestCase):
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
 
-        with backend_config:
-            y = functions.fixed_batch_normalization(*inputs, eps=self.eps)
+        with chainer.using_config('enable_backprop', enable_backprop):
+            with backend_config:
+                y = functions.fixed_batch_normalization(*inputs, eps=self.eps)
         assert y.data.dtype == self.dtype
 
         testing.assert_allclose(
             y_expected, y.data, **self.check_forward_options)
 
     def test_forward(self, backend_config):
-        self.check_forward(self.inputs, backend_config)
+        self.check_forward(self.inputs, False, backend_config)
+
+    def test_forward_with_enable_backprop(self, backend_config):
+        self.check_forward(self.inputs, True, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        if backend_config.use_chainerx:
-            raise unittest.SkipTest(
-                'F.fixed_batch_normalization does not support backward '
-                'for ChainerX arrays.')
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
 
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
@@ -334,10 +337,9 @@ class TestFixedBatchNormalization(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        if backend_config.use_chainerx:
-            raise unittest.SkipTest(
-                'F.fixed_batch_normalization does not support backward '
-                'for ChainerX arrays.')
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
 
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)

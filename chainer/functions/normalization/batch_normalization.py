@@ -587,10 +587,10 @@ class FixedBatchNormalization(function_node.FunctionNode):
         gy, = grad_outputs
         f = FixedBatchNormalizationGrad(
             self.eps, self.expander, self.axis, self.inv_std, self.inv_var)
-        return f(x, gamma, mean, var, gy)
+        return f.apply((x, gamma, mean, var, gy))
 
 
-class FixedBatchNormalizationGrad(function.Function):
+class FixedBatchNormalizationGrad(function_node.FunctionNode):
 
     def __init__(self, eps, expander, axis, inv_std, inv_var):
         self.eps = eps
@@ -621,10 +621,11 @@ class FixedBatchNormalizationGrad(function.Function):
         self.retain_outputs((0, 1, 2, 3, 4))
         return gx, ggamma, gbeta, gmean, gvar
 
-    def backward(self, inputs, grad_outputs):
-        x, gamma, mean, _, gy = inputs
+    def backward(self, indexes, grad_outputs):
+        F = chainer.functions
+        x, gamma, mean, gy = self.get_retained_inputs()
         ggx1, gggamma1, ggbeta1, ggmean1, ggvar1 = grad_outputs
-        gx1, ggamma1, gbeta1, gmean1, gvar1 = self.output_data
+        gx1, ggamma1, gbeta1, gmean1, gvar1 = self.get_retained_outputs()
 
         # Handle None in output gradients.
         xp = backend.get_array_module(x)
@@ -645,9 +646,9 @@ class FixedBatchNormalizationGrad(function.Function):
         gggamma2 = gggamma1 + tmp * gamma_over_var
         gx_hat = gy * gggamma2[expander]
         gx2 = self.inv_std[expander] * gx_hat
-        gmean2 = -self.inv_std * gx_hat.sum(axis=self.axis)
+        gmean2 = -self.inv_std * F.sum(gx_hat, axis=self.axis)
 
-        g_gamma_over_std = (ggx1 * gy).sum(axis=self.axis) - ggmean1 * gbeta1
+        g_gamma_over_std = F.sum(ggx1 * gy, axis=self.axis) - ggmean1 * gbeta1
         ggbeta2 = ggbeta1 - ggmean1 * self.gamma_over_std
         ggy2 = (gggamma2[expander] * x_hat + ggbeta2[expander]
                 + self.gamma_over_std[expander] * ggx1)
@@ -655,7 +656,7 @@ class FixedBatchNormalizationGrad(function.Function):
         ggamma2 = (self.inv_var * g_gamma_over_var
                    + self.inv_std * g_gamma_over_std)
         gvar2 = -(ggamma2 * gamma_over_var + 0.5 * self.inv_var * (
-            (x_hat * gx_hat).sum(axis=self.axis)
+            F.sum(x_hat * gx_hat, axis=self.axis)
             - self.gamma_over_std * g_gamma_over_std))
 
         return gx2, ggamma2, gmean2, gvar2, ggy2
@@ -906,16 +907,18 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
 
     """
     if backend.get_array_module(x) is chainerx:
-        axis_chx = _is_chainerx_supported(x, gamma.ndim, axis)
+        # chainerx.fixed_batch_norm does not support backward
+        if not chainer.config.enable_backprop:
+            axis_chx = _is_chainerx_supported(x, gamma.ndim, axis)
 
-        if axis_chx is not None:
+            if axis_chx is not None:
 
-            def chainerx_batchnorm(x, gamma, beta, mean, var):
-                return chainerx.fixed_batch_norm(
-                    x, gamma, beta, mean, var, eps, axis_chx)
+                def chainerx_batchnorm(x, gamma, beta, mean, var):
+                    return chainerx.fixed_batch_norm(
+                        x, gamma, beta, mean, var, eps, axis_chx)
 
-            return function._chainerx_op(
-                chainerx_batchnorm, x, gamma, beta, mean, var)
+                return function._chainerx_op(
+                    chainerx_batchnorm, x, gamma, beta, mean, var)
 
     return FixedBatchNormalization(eps, axis).apply((x, gamma, beta, mean,
                                                      var))[0]
