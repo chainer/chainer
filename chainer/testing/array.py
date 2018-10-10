@@ -64,7 +64,8 @@ def _as_noncontiguous_array(array):
             ret = ret[::2]
             assert not ret.flags.c_contiguous
         else:
-            # chainerx.ndarray does not support item assignment.
+            # TODO(hvy): Unify with the logic above when chainerx.ndarrays
+            # support item assignment.
             if a.ndim == 1:
                 ret = xp.diag(
                     xp.diag(a, device=a.device), device=a.device)
