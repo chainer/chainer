@@ -912,7 +912,7 @@ class Variable(object):
         if node._data is not None:
             node.retain_data()
 
-    def to_chainerx(self):
+    def to_chainerx(self, device=None):
         """Copies the data and gradient arrays to specified device.
 
         Args:
@@ -924,10 +924,10 @@ class Variable(object):
         if data is None:
             return
 
-        self._data = [backend.to_chainerx(data)]
+        self._data = [backend.to_chainerx(data, device)]
 
         if self._grad_var is not None:
-            self._grad_var.to_chainerx()
+            self._grad_var.to_chainerx(device)
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1449,6 +1449,14 @@ class Parameter(Variable):
         if self.data is None:
             self._initial_backend = 'intel64'
             self._initial_device = None
+
+    def to_chainerx(self, device=None):
+        super(Parameter, self).to_chainerx()
+        if self.data is None:
+            if device is None:
+                device = chainerx.get_default_device()
+            self._initial_backend = 'chainerx'
+            self._initial_device = device
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()
