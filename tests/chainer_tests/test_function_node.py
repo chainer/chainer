@@ -357,6 +357,38 @@ class TestFunctionNode(unittest.TestCase):
         self.assertEqual(self.f.label, 'FunctionNode')
 
 
+class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
+
+    class SimpleFunctionNode(chainer.FunctionNode):
+        def __init__(self, xp):
+            self.xp = xp
+
+        def forward(self, inputs):
+            x1, x2 = inputs
+            assert isinstance(x1, self.xp.ndarray)
+            assert isinstance(x2, self.xp.ndarray)
+            return x1 * x2,
+
+    def check_mix_xp(self, xp):
+        xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
+        xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
+        x2 = chainer.backend.to_chainerx(xp_x2)
+        y, = self.SimpleFunctionNode(xp).apply((xp_x1, x2))
+
+        assert isinstance(y.array, chainerx.ndarray)
+        chainerx.testing.assert_array_equal(
+            chainer.backend.to_numpy(xp_x1 * xp_x2), y.array)
+
+    @attr.chainerx
+    def test_mix_numpy(self):
+        self.check_mix_xp(numpy)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_mix_cupy(self):
+        self.check_mix_xp(cuda.cupy)
+
+
 class TestFunctionNodeInvalidType(unittest.TestCase):
 
     def test_forward_invalid1(self):
