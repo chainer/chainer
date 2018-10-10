@@ -1186,6 +1186,12 @@ class TestUninitializedParameter(unittest.TestCase):
         np.testing.assert_array_equal(x.data, self.a)
         np.testing.assert_array_equal(x.grad, np.float32('nan'))
 
+    @attr.chainerx
+    def test_initialize_to_chainerx(self):
+        x = chainer.Parameter(initializer=initializers.Constant(self.a))
+        x.to_chainerx()
+        self.check_constant_initialization(x, self.a, chainerx)
+
     def test_copy_to_initialize(self):
         # This test intends the use case of link.copy() method.
         x = chainer.Parameter()
@@ -1230,6 +1236,24 @@ class TestUninitializedParameter(unittest.TestCase):
         x.initialize((3, 2))
         self.check_zerograd(x, cuda.cupy)
 
+    @attr.chainerx
+    def test_zerograd_to_chainerx(self):
+        x = chainer.Parameter()
+        with testing.assert_warns(DeprecationWarning):
+            x.zerograd()
+        x.to_chainerx()
+        x.initialize((3, 2))
+        self.check_zerograd(x, chainerx)
+
+    @attr.chainerx
+    def test_to_chainerx_zerograd(self):
+        x = chainer.Parameter()
+        x.to_chainerx()
+        with testing.assert_warns(DeprecationWarning):
+            x.zerograd()
+        x.initialize((3, 2))
+        self.check_zerograd(x, chainerx)
+
     def test_zerograd_dtype(self):
         x = chainer.Parameter(initializers.Zero(dtype=np.float16))
         with testing.assert_warns(DeprecationWarning):
@@ -1253,6 +1277,11 @@ class TestUninitializedParameter(unittest.TestCase):
         assert isinstance(x.data, cp.ndarray)
         cp.testing.assert_array_equal(x.data, self.a)
 
+    @attr.chainerx
+    def test_copydata_to_uninitialized_parameter_chainerx(self):
+        # TODO(sonots): Support copyto with ChainerX
+        raise unittest.SkipTest('ChainerX does not support copyto')
+
     def test_copydata_from_uninitialized_parameter(self):
         initializer = initializers.Zero()
         x = chainer.Parameter(self.a)
@@ -1273,6 +1302,11 @@ class TestUninitializedParameter(unittest.TestCase):
         assert isinstance(x.data, np.ndarray)
         assert isinstance(y.data, cp.ndarray)
         cp.testing.assert_array_equal(x.data, y.data)
+
+    @attr.chainerx
+    def test_copydata_from_uninitialized_parameter_chainerx(self):
+        # TODO(sonots): Support copydata with ChainerX
+        raise unittest.SkipTest('ChainerX does not support copydata')
 
     def test_copydata_from_to_uninitialized_parameters(self):
         x = chainer.Parameter()
@@ -1346,6 +1380,10 @@ class TestUninitializedParameter(unittest.TestCase):
         assert int(x.grad.device) == 1
         cp.testing.assert_array_equal(x.grad, self.b)
 
+    @attr.chainerx
+    def test_addgrad_to_uninitialized_parameter_cpu_to_chainerx(self):
+        # TODO(sonots): Support addgrad with ChainerX
+        raise unittest.SkipTest('ChainerX does not support addgrad')
 
 class TestDebugPrint(unittest.TestCase):
 
