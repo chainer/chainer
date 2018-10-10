@@ -189,7 +189,8 @@ class AdamRule(optimizer.UpdateRule):
     @property
     def lr(self):
         warnings.warn(
-            'AdamRule.lr is deprecated. Use AdamRule.alpha_t instead.',
+            'AdamRule.lr has been renamed to AdamRule.alpha_t. '
+            'Use of AdamRule.lr is deprecated in Chainer v6.',
             DeprecationWarning)
         return self.alpha_t
 
@@ -264,6 +265,7 @@ class Adam(optimizer.GradientMethod):
     @property
     def lr(self):
         warnings.warn(
-            'Adam.lr is deprecated. Use Adam.alpha_t instead.',
+            'Adam.lr has been renamed to AdamRule.alpha_t. '
+            'Use of Adam.lr is deprecated in Chainer v6.',
             DeprecationWarning)
         return self.alpha_t
