@@ -1114,7 +1114,7 @@ def _extract_apply_in_data(inputs):
                     'inputs.')
             ret.append(arr)
         else:
-            # TODO(niboshi):
+            # TODO(niboshi): Raise an error if zero-copy is not possible
             ret.append(backend.to_device(arr, chainerx_device))
     return chainerx_device, tuple(ret)
 
