@@ -14,7 +14,6 @@ from chainer.links.connection import linear
 from chainer.links.connection import scale
 from chainer.links.normalization import batch_normalization
 from chainer.utils import argument
-from chainer.utils import collections_abc
 
 
 try:
@@ -221,7 +220,7 @@ class CaffeFunction(link.Chain):
             func = self.forwards[func_name]
             input_vars = tuple(variables[blob] for blob in bottom)
             output_vars = func(*input_vars)
-            if not isinstance(output_vars, collections_abc.Iterable):
+            if not isinstance(output_vars, tuple):
                 output_vars = output_vars,
             for var, name in zip(output_vars, top):
                 variables[name] = var
