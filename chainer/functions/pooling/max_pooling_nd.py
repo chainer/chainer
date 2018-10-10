@@ -26,9 +26,25 @@ class MaxPoolingND(pooling_nd._PoolingND):
 
     """
 
-    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True):
+    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True,
+                 return_indices=False):
         super(MaxPoolingND, self).__init__(
-            ndim, ksize, stride=stride, pad=pad, cover_all=cover_all)
+            ndim, ksize, stride=stride, pad=pad, cover_all=cover_all,
+            return_indices=return_indices)
+
+    def forward_chainerx(self, x):
+        # TODO(sonots): Support return_indices in ChainerX
+        if self.return_indices:
+            return chainer.Fallback
+        if x[0].device.backend.name == 'cuda':
+            # TODO(sonots): Support cover_all in CUDA ChainerX
+            if self.cover_all:
+                return chainer.Fallback
+            # TODO(sonots): Support more ndim in ChainerX
+            if self.ndim not in [2, 3]:
+                return chainer.Fallback
+        return chainerx.max_pool(x[0], self.ksize, self.stride, self.pad,
+                                self.cover_all),
 
     def forward_cpu(self, x):
         self._in_shape = x[0].shape
@@ -277,16 +293,7 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
     """
     ndim = len(x.shape[2:])
 
-    if backend.get_array_module(x) is chainerx:
-        # TODO(sonots): Support cover_all in CUDA ChainerX
-        # TODO(sonots): Support return_indices in ChainerX
-        is_cuda = variable.as_array(x).device.backend.name == 'cuda'
-        if (not return_indices and not (is_cuda and cover_all)
-                and not (is_cuda and ndim not in [2, 3])):
-            return function._chainerx_op(lambda x: chainerx.max_pool(
-                x, ksize, stride, pad, cover_all), x)
-
-    func = MaxPoolingND(ndim, ksize, stride, pad, cover_all)
+    func = MaxPoolingND(ndim, ksize, stride, pad, cover_all, return_indices)
     if return_indices:
         with chainer.using_config('use_cudnn', 'never'):
             out = func.apply((x,))[0]

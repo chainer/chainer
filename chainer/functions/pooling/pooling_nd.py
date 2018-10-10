@@ -17,7 +17,8 @@ class _PoolingND(function_node.FunctionNode):
 
     """Base class of pooling function over a set of N-dimensional planes."""
 
-    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True):
+    def __init__(self, ndim, ksize, stride=None, pad=0, cover_all=True,
+                 return_indices=False):
         if stride is None:
             stride = ksize
 
@@ -31,6 +32,8 @@ class _PoolingND(function_node.FunctionNode):
         self.pad = conv_nd.as_tuple(pad, ndim)
 
         self.cover_all = cover_all
+        self.return_indices = return_indices
+
         self._used_cudnn = False
         self._cudnn_inputs = None
         self._cudnn_outputs = None

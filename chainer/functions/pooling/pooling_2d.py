@@ -21,7 +21,8 @@ class Pooling2D(function_node.FunctionNode):
 
     """Base class of pooling function over a set of 2d planes."""
 
-    def __init__(self, ksize, stride=None, pad=0, cover_all=True):
+    def __init__(self, ksize, stride=None, pad=0, cover_all=True,
+                 return_indices=False):
         if stride is None:
             stride = ksize
 
@@ -30,6 +31,8 @@ class Pooling2D(function_node.FunctionNode):
         self.ph, self.pw = _pair(pad)
 
         self.cover_all = cover_all
+        self.return_indices = return_indices
+
         self._used_cudnn = False
         self._cudnn_inputs = None
         self._cudnn_outputs = None

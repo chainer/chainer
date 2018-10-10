@@ -16,6 +16,16 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
     """Max pooling over a set of 2d planes."""
 
+    def forward_chainerx(self, x):
+        # TODO(sonots): Support return_indices in ChainerX
+        if self.return_indices:
+            return chainer.Fallback
+        # TODO(sonots): Support cover_all in CUDA ChainerX
+        if x[0].device.backend.name == 'cuda' and self.cover_all:
+            return chainer.Fallback
+        return chainerx.max_pool(x[0], (self.kh, self.kw), (self.sy, self.sx),
+                                 (self.ph, self.pw), self.cover_all),
+
     def forward_cpu(self, x):
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(x)):
@@ -379,15 +389,7 @@ def max_pooling_2d(x, ksize, stride=None, pad=0, cover_all=True,
             device as the input.
 
     """
-    if backend.get_array_module(x) is chainerx:
-        # TODO(sonots): Support cover_all in CUDA ChainerX
-        # TODO(sonots): Support return_indices in ChainerX
-        is_cuda = variable.as_array(x).device.backend.name == 'cuda'
-        if not return_indices and not (is_cuda and cover_all):
-            return function._chainerx_op(lambda x: chainerx.max_pool(
-                x, ksize, stride, pad, cover_all), x)
-
-    func = MaxPooling2D(ksize, stride, pad, cover_all)
+    func = MaxPooling2D(ksize, stride, pad, cover_all, return_indices)
     if return_indices:
         with chainer.using_config('use_cudnn', 'never'):
             out = func.apply((x,))[0]
