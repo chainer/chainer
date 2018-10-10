@@ -29,7 +29,7 @@ int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64
         numerator = in_dim + pad * 2 - kernel_size;
     }
     if (numerator < 0) {
-        throw DimensionError{"Output size must be positive"};
+        throw DimensionError{"Output size should be positive."};
     }
     return numerator / stride + 1;
 }

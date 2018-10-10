@@ -66,7 +66,7 @@ def test_max_pool(device, x_shape, ksize, stride, pad, cover_all, float_dtype):
     ((2, 3, 4, 3), (2, 2, 1), 3, 2),  # Wrong number of ksize.
     ((2, 3, 4, 3), (2, 2), (1,), 0),  # Wrong number of strides.
     ((1, 3, 4, 3), (2, 2), 3, (2,)),  # Wrong number of paddings.
-    ((4, 4, 2, 2), 5, 3, 0),          # Output size must be positive.
+    ((4, 4, 2, 2), 5, 3, 0),          # Output size should be positive.
 ])
 @pytest.mark.parametrize('cover_all', [True, False])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
