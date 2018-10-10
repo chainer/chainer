@@ -16,36 +16,33 @@ from chainer.utils import conv
 import chainerx
 
 
+def _array_as_non_contiguous(array):
+    if array is None:
+        return None
+
+    xp = chainer.backend.get_array_module(array)
+    if xp is not chainerx:
+        ret = xp.empty(
+            (array.shape[0] * 2,) + array.shape[1:], dtype=array.dtype)
+        ret[::2] = array
+        ret = ret[::2]
+        assert not ret.flags.c_contiguous
+    else:
+        # chainerx.ndarray does not support item assignment.
+        if array.ndim == 1:
+            ret = xp.diag(
+                xp.diag(array, device=array.device), device=array.device)
+        else:
+            ret = array.T.copy().T
+        assert not ret.is_contiguous
+
+    return ret
+
+
 def _arrays_as_non_contiguous(arrays):
     assert isinstance(arrays, (list, tuple))
 
-    xp = chainer.backend.get_array_module(*arrays)
-    non_cont_arrays = []
-    for a in arrays:
-        if a is None:
-            non_cont_a = None
-        elif a.ndim == 1:
-            if xp is chainerx:
-                # chainerx.ndarray does not support item assignment.
-                non_cont_a = xp.diag(
-                    xp.diag(a, device=a.device), device=a.device)
-            else:  # numpy or cupy
-                non_cont_a = xp.empty((len(a) * 2,), dtype=a.dtype)
-                non_cont_a[::2] = a
-                a = non_cont_a[::2]
-                non_cont_a = a
-        else:
-            non_cont_a = a.T.copy().T
-        non_cont_arrays.append(non_cont_a)
-
-    # Check non contiguousness.
-    for a in non_cont_arrays:
-        if a is None:
-            continue
-        elif xp is chainerx:
-            assert not a.is_contiguous
-        else:  # numpy, cupy
-            assert not a.flags.c_contiguous
+    non_cont_arrays = [_array_as_non_contiguous(a) for a in arrays]
 
     return type(arrays)(non_cont_arrays)
 
