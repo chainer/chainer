@@ -67,6 +67,7 @@ class _PoolingND(function_node.FunctionNode):
         libcudnn.poolingForward(
             handle, pool_desc.value, one.data, x_desc.value,
             x.data.ptr, zero.data, y_desc.value, y.data.ptr)
+        self._cudnn_inputs = (x,)
         self._cudnn_outputs = (y,)
         return y,
 

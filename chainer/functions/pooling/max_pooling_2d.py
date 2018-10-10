@@ -64,7 +64,6 @@ class MaxPooling2D(pooling_2d.Pooling2D):
 
     def forward_gpu(self, x):
         if chainer.should_use_cudnn('>=auto'):
-            self._cudnn_inputs = x
             return super(MaxPooling2D, self).forward_gpu(x)
 
         self._in_shape = x[0].shape

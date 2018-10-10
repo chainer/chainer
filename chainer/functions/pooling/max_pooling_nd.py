@@ -55,7 +55,6 @@ class MaxPoolingND(pooling_nd._PoolingND):
         if chainer.should_use_cudnn('>=auto') and 2 <= self.ndim <= 3:
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
-            self._cudnn_inputs = x
             return super(MaxPoolingND, self).forward_gpu(x)
 
         self._in_shape = x[0].shape
