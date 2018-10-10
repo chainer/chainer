@@ -1,6 +1,7 @@
 import numpy
 import six
 
+from chainer import backend
 from chainer.backends import cuda
 
 
@@ -124,6 +125,13 @@ def im2col_gpu(img, kh, kw, sy, sx, ph, pw, cover_all=False, dy=1, dx=1,
     return col
 
 
+def im2col(img, kh, kw, sy, sx, ph, pw, cover_all=False, dy=1, dx=1,
+           out_h=None, out_w=None):
+    fn = im2col_gpu if isinstance(img, cuda.ndarray) else im2col_cpu
+    return fn(img, kh, kw, sy, sx, ph, pw, cover_all=cover_all, dy=dy, dx=dx,
+              out_h=out_h, out_w=out_w)
+
+
 def col2im_cpu(col, sy, sx, ph, pw, h, w, dy=1, dx=1):
     n, c, kh, kw, out_h, out_w = col.shape
     img = numpy.zeros((n, c, h + 2 * ph + sy - 1, w + 2 * pw + sx - 1),
@@ -170,3 +178,8 @@ def col2im_gpu(col, sy, sx, ph, pw, h, w, dy=1, dx=1):
         'col2im')(col.reduced_view(),
                   h, w, out_h, out_w, kh, kw, sy, sx, ph, pw, dx, dy, img)
     return img
+
+
+def col2im(col, sy, sx, ph, pw, h, w, dy=1, dx=1):
+    fn = col2im_gpu if isinstance(col, cuda.ndarray) else col2im_cpu
+    return fn(col, sy, sx, ph, pw, h, w, dy, dx)
