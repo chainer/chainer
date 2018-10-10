@@ -7,6 +7,15 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
+Chainer v6
+==========
+
+A ``Variable`` is an instances of ``collections.abc.Iterable``
+--------------------------------------------------------------
+
+Prior to Chainer v5, :class:`~chainer.Variable` did not implement `__iter__`.
+It is recommended to check types by ``collections.abc.Sequence`` to distinguish :class:`tuple` and :class:`list` from :class:`~chainer.Variable`.
+
 Chainer v5
 ==========
 
