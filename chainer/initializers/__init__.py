@@ -41,7 +41,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
              :mod:`chainerx`.
 
     Returns:
-        numpy.ndarray or cupy.ndarray: An initialized array.
+        numpy.ndarray, cupy.ndarray, or chainerx.ndarray: An initialized array.
 
     """
     dtype_attr = getattr(initializer, 'dtype', None)
