@@ -133,29 +133,32 @@ class TestConvolutionND(unittest.TestCase):
         testing.assert_allclose(
             y_cpu.data, y_gpu.data, **self.check_forward_options)
 
-    def test_forward_chainerx_native(self):
+    def _skip_if_not_chainerx_supported(self):
         # TODO(hvy): chainerx does not support fp16 yet.
         if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
             raise unittest.SkipTest('Not yet supported')
+        # TODO(hvy): chainerx does not support mixed precision convolutions.
+        if self.x_dtype != self.W_dtype:
+            raise unittest.SkipTest('Not yet supported')
+
+    def test_forward_chainerx_native(self):
+        self._skip_if_not_chainerx_supported()
         self.check_forward_consistency(backend.to_chainerx, nobias=False)
 
     def test_forward_chainerx_native_nobias(self):
-        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
-            raise unittest.SkipTest('Not yet supported')
+        self._skip_if_not_chainerx_supported()
         self.check_forward_consistency(backend.to_chainerx, nobias=True)
 
     @attr.gpu
     def test_forward_chainerx_cuda(self):
-        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
-            raise unittest.SkipTest('Not yet supported')
+        self._skip_if_not_chainerx_supported()
         self.check_forward_consistency(
             lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=False,
             use_cudnn='always')
 
     @attr.gpu
     def test_forward_chainerx_cuda_nobias(self):
-        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
-            raise unittest.SkipTest('Not yet supported')
+        self._skip_if_not_chainerx_supported()
         self.check_forward_consistency(
             lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=True,
             use_cudnn='always')
@@ -230,17 +233,13 @@ class TestConvolutionND(unittest.TestCase):
                     f, args, y_grad, **self.check_backward_options)
 
     def test_backward_chainerx(self):
-        # TODO(hvy): chainerx does not support fp16 yet.
-        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
-            raise unittest.SkipTest('Not yet supported')
+        self._skip_if_not_chainerx_supported()
         self.check_backward(
             backend.to_chainerx(self.x), backend.to_chainerx(self.W),
             backend.to_chainerx(self.b), backend.to_chainerx(self.gy))
 
     def test_backward_chainerx_nobias(self):
-        # TODO(hvy): chainerx does not support fp16 yet.
-        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
-            raise unittest.SkipTest('Not yet supported')
+        self._skip_if_not_chainerx_supported()
         self.check_backward(
             backend.to_chainerx(self.x), backend.to_chainerx(self.W), None,
             backend.to_chainerx(self.gy))
@@ -309,9 +308,7 @@ class TestConvolutionND(unittest.TestCase):
                     dtype='d', atol=5e-3, rtol=5e-2)
 
     def test_double_backward_chainerx(self):
-        # TODO(hvy): chainerx does not support fp16 yet.
-        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
-            raise unittest.SkipTest('Not yet supported')
+        self._skip_if_not_chainerx_supported()
         self.check_double_backward(
             backend.to_chainerx(self.x), backend.to_chainerx(self.W),
             backend.to_chainerx(self.b), backend.to_chainerx(self.gy),
@@ -319,9 +316,7 @@ class TestConvolutionND(unittest.TestCase):
             backend.to_chainerx(self.ggb))
 
     def test_double_backward_chainerx_nobias(self):
-        # TODO(hvy): chainerx does not support fp16 yet.
-        if self.x_dtype is numpy.float16 or self.W_dtype is numpy.float16:
-            raise unittest.SkipTest('Not yet supported')
+        self._skip_if_not_chainerx_supported()
         self.check_double_backward(
             backend.to_chainerx(self.x), backend.to_chainerx(self.W), None,
             backend.to_chainerx(self.gy), backend.to_chainerx(self.ggx),

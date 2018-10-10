@@ -47,16 +47,14 @@ class ConvolutionND(function_node.FunctionNode):
             )
 
     def forward_chainerx(self, inputs):
-        # TODO(hvy): Support ndim < 2.
-        if self.ndim < 2:
-            return chainer.Fallback
         # TODO(hvy): Support dilate > 1.
         if any(d != 1 for d in self.dilate):
             return chainer.Fallback
         # TODO(hvy): Support groups > 1.
         if self.groups > 1:
             return chainer.Fallback
-        if inputs[0].device.backend.name == 'cuda' and self.cover_all:
+        if inputs[0].device.backend.name == 'cuda' and (
+                self.cover_all or self.ndim < 2):
             return chainer.Fallback
 
         return chainerx.conv(
