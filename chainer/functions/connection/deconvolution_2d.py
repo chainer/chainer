@@ -272,12 +272,22 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         return y,
 
     def forward_chainerx(self, inputs):
-        if self.dy == 1 and self.dx == 1 and self.groups == 1:
-            return chainerx.conv_transpose(
-                *inputs, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-                outsize=(self.outh, self.outw))
-        else:
+        # TODO(imanishi): Suppot it
+        if self.dy != 1 or self.dx != 1:
             return chainer.Fallback
+        # TODO(imanishi): Suppot it
+        if self.groups != 1:
+            return chainer.Fallback
+        # TODO(imanishi): Suppot it
+        if any(a.dtype != inputs[0].dtype for a in inputs):
+            return chainer.Fallback
+
+        stride = (self.sy, self.sx)
+        pad = (self.ph, self.pw)
+        outsize = None if self.outh is None else (self.outh, self.outw)
+
+        return chainerx.conv_transpose(
+            *inputs, stride=stride, pad=pad, outsize=outsize),
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()

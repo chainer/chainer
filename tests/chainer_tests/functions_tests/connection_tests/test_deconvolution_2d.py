@@ -193,9 +193,6 @@ class TestDeconvolution2DFunction(unittest.TestCase):
             # TODO(imanishi): Support float16
             if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
                 raise unittest.SkipTest('ChainerX does not support float16')
-            # TODO(imanishi): Support it
-            if self.x_dtype != self.W_dtype:
-                raise unittest.SkipTest('Not yet supported')
 
         inputs = self.inputs
         if backend_config.xp is chainerx:
@@ -236,9 +233,6 @@ class TestDeconvolution2DFunction(unittest.TestCase):
             # TODO(imanishi): Support float16
             if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
                 raise unittest.SkipTest('ChainerX does not support float16')
-            # TODO(imanishi): Support it
-            if self.x_dtype != self.W_dtype:
-                raise unittest.SkipTest('Not yet supported')
 
             inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
             grad_outputs = [chainer.backend.to_chainerx(_)
@@ -288,9 +282,6 @@ class TestDeconvolution2DFunction(unittest.TestCase):
             # TODO(imanishi): Support float16
             if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
                 raise unittest.SkipTest('ChainerX does not support float16')
-            # TODO(imanishi): Support it
-            if self.x_dtype != self.W_dtype:
-                raise unittest.SkipTest('Not yet supported')
 
             inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
             grad_outputs = [chainer.backend.to_chainerx(_)
