@@ -599,6 +599,7 @@ def _get_width(blob):
 
 
 # Internal class
+# __call__ must return Variable or tuple
 
 class _SingleArgumentFunction(object):
 
