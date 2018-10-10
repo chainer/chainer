@@ -2,32 +2,79 @@ import os
 import unittest
 
 import chainer
+from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing
+from chainer.testing import attr
+import chainerx
 
 import numpy
 
 
 class TestGenerateArray(unittest.TestCase):
 
-    def _generate_array(self, dtype=None):
+    def _generate_array(self, xp, dtype=None, device=None):
         initializer = initializers.Zero(dtype)
-        return initializers.generate_array(initializer, (), numpy)
+        return initializers.generate_array(initializer, (), xp, device=device)
 
     def test_default_init(self):
         default_dtype = os.environ.get('CHAINER_DTYPE', 'float32')
-        array = self._generate_array()
+        array = self._generate_array(numpy)
         self.assertEqual(default_dtype, array.dtype)
 
     def test_custom_init(self):
         with chainer.using_config('dtype', 'float16'):
-            array = self._generate_array()
+            array = self._generate_array(numpy)
         self.assertEqual('float16', array.dtype)
 
     def test_init_with_initializer_dtype(self):
         with chainer.using_config('dtype', 'float16'):
-            array = self._generate_array('float64')
+            array = self._generate_array(numpy, 'float64')
         self.assertEqual('float64', array.dtype)
+
+    @attr.gpu
+    def test_init_gpu(self):
+        array = self._generate_array(cuda.cupy, 'float64')
+        assert array.device == cuda.Device()
+
+    @attr.multi_gpu(2)
+    def test_init_gpu_with_device(self):
+        device = cuda.Device(1)
+        array = self._generate_array(cuda.cupy, 'float64', device)
+        assert array.device == device
+
+    @attr.multi_gpu(2)
+    def test_init_gpu_with_current_device(self):
+        device_id = 1
+        with cuda.get_device_from_id(device_id):
+            array = self._generate_array(cuda.cupy, 'float64')
+        assert array.device.id == device_id
+
+    @attr.chainerx
+    def test_init_chainerx_with_device(self):
+        device = chainerx.get_device('native:1')
+        array = self._generate_array(chainerx, 'float64', device)
+        assert array.device is device
+
+    @attr.chainerx
+    def test_init_chainerx_with_device_string(self):
+        device = 'native:1'
+        array = self._generate_array(chainerx, 'float64', device)
+        assert array.device.name == device
+
+    @attr.chainerx
+    def test_init_chainerx_with_default_device(self):
+        device = chainerx.get_device('native:1')
+        with chainerx.device_scope(device):
+            array = self._generate_array(chainerx, 'float64')
+        assert array.device is device
+
+    @attr.chainerx
+    @attr.gpu
+    def test_init_chainerx_with_cuda(self):
+        device = chainerx.get_device('cuda:0')
+        array = self._generate_array(chainerx, 'float64', device)
+        assert array.device is device
 
 
 class TestGetInitializer(unittest.TestCase):
