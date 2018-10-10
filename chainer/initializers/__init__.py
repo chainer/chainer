@@ -51,6 +51,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         dtype = dtype_attr
     dtype = chainer.get_dtype(dtype)
 
+    # TODO(sonots): Check consistency between xp and device.
     if device is None:
         if xp is cuda.cupy:
             device = cuda.Device().id
