@@ -13,35 +13,6 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import conv
-import chainerx
-
-
-def _array_as_non_contiguous(array):
-    if array is None:
-        return None
-
-    xp = chainer.backend.get_array_module(array)
-    if xp is not chainerx:
-        ret = xp.empty(
-            (array.shape[0] * 2,) + array.shape[1:], dtype=array.dtype)
-        ret[::2] = array
-        ret = ret[::2]
-        assert not ret.flags.c_contiguous
-    else:
-        # chainerx.ndarray does not support item assignment.
-        if array.ndim == 1:
-            ret = xp.diag(
-                xp.diag(array, device=array.device), device=array.device)
-        else:
-            ret = array.T.copy().T
-        assert not ret.is_contiguous
-
-    return ret
-
-
-def _arrays_as_non_contiguous(arrays):
-    assert isinstance(arrays, (list, tuple))
-    return type(arrays)([_array_as_non_contiguous(a) for a in arrays])
 
 
 @testing.parameterize(*(testing.product({
@@ -207,8 +178,9 @@ class TestConvolutionND(unittest.TestCase):
     def check_backward(self, x_data, W_data, b_data, y_grad,
                        use_cudnn='never'):
         if not self.c_contiguous:
-            x_data, W_data, b_data, y_grad = _arrays_as_non_contiguous(
-                (x_data, W_data, b_data, y_grad))
+            x_data, W_data, b_data, y_grad = (
+                testing.array._as_noncontiguous_array(
+                    (x_data, W_data, b_data, y_grad)))
 
         args = (x_data, W_data)
         if b_data is not None:
@@ -278,7 +250,7 @@ class TestConvolutionND(unittest.TestCase):
                               use_cudnn='always'):
         if not self.c_contiguous:
             (x_data, W_data, b_data, y_grad, x_grad_grad, W_grad_grad,
-                b_grad_grad) = _arrays_as_non_contiguous(
+                b_grad_grad) = testing.array._as_noncontiguous_array(
                     (x_data, W_data, b_data, y_grad, x_grad_grad, W_grad_grad,
                      b_grad_grad))
 
