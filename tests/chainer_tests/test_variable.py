@@ -946,11 +946,11 @@ class TestVariableToChainerX(unittest.TestCase):
         self.x = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
         self.gx = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
 
-    def check_to_chainerx(self, x, gx):
+    def check_to_chainerx(self, x, gx, device=None):
         x_var = chainer.Variable(x)
         gx_var = chainer.Variable(gx)
         x_var.grad_var = gx_var
-        x_var.to_chainerx()
+        x_var.to_chainerx(device=device)
 
         assert isinstance(x_var.array, chainerx.ndarray)
         assert isinstance(x_var.grad, chainerx.ndarray)
@@ -961,20 +961,68 @@ class TestVariableToChainerX(unittest.TestCase):
         assert gx.shape == x_var.grad.shape
         assert gx.dtype == x_var.grad.dtype
 
+        xp = backend.get_array_module(x, gx)
+        if device is None:
+            if xp is np:
+                device = chainerx.get_device('native', 0)
+            elif xp is cuda.cupy:
+                device = chainerx.get_device('cuda', x.device.id)
+            elif xp is chainerx:
+                device = x.device
+            else:
+                raise unittest.SkipTest('Not yet supported')
+        else:
+            device = chainerx.get_device(device)
+        assert x_var.data.device == device
+        assert gx_var.data.device == device
+
     def test_numpy_to_chainerx(self):
         self.check_to_chainerx(self.x, self.gx)
+
+    def test_numpy_to_chainerx_with_device(self):
+        device = chainerx.get_device('native', 1)
+        self.check_to_chainerx(self.x, self.gx, device)
+
+    def test_numpy_to_chainerx_with_string_device(self):
+        device = 'native:1'
+        self.check_to_chainerx(self.x, self.gx, device)
 
     @attr.gpu
     def test_cupy_to_chainerx(self):
         self.check_to_chainerx(cuda.to_gpu(self.x), cuda.to_gpu(self.gx))
+
+    @attr.multi_gpu(2)
+    def test_cupy_to_chainerx_with_device(self):
+        device = chainerx.get_device('cuda', 1)
+        self.check_to_chainerx(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gx), device)
+
+    @attr.multi_gpu(2)
+    def test_cupy_to_chainerx_with_string_device(self):
+        device = 'cuda:1'
+        self.check_to_chainerx(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gx), device)
 
     # TODO(hvy): Write test when implemented.
     @attr.ideep
     def test_ideep_to_chainerx(self):
         raise unittest.SkipTest('Not yet supported')
 
+    @attr.chainerx
     def test_chainerx_to_chainerx(self):
         self.check_to_chainerx(chainerx.array(self.x), chainerx.array(self.gx))
+
+    @attr.chainerx
+    def test_chainerx_to_chainerx_with_device(self):
+        device = chainerx.get_device('native', 1)
+        self.check_to_chainerx(
+            chainerx.array(self.x), chainerx.array(self.gx), device)
+
+    @attr.chainerx
+    def test_chainerx_to_chainerx_with_string_device(self):
+        device = 'native:1'
+        self.check_to_chainerx(
+            chainerx.array(self.x), chainerx.array(self.gx), device)
 
 
 class TestVariableBasic(unittest.TestCase):
@@ -1384,6 +1432,7 @@ class TestUninitializedParameter(unittest.TestCase):
     def test_addgrad_to_uninitialized_parameter_cpu_to_chainerx(self):
         # TODO(sonots): Support addgrad with ChainerX
         raise unittest.SkipTest('ChainerX does not support addgrad')
+
 
 class TestDebugPrint(unittest.TestCase):
 

@@ -916,7 +916,7 @@ class Variable(object):
         """Copies the data and gradient arrays to specified device.
 
         Args:
-            device: Target device specifier. If omitted, the current device is
+            device: Target device specifier. If omitted, the default device is
                 used.
 
         """
