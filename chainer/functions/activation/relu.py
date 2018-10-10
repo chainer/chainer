@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
@@ -96,11 +97,13 @@ class ReLUGrad2(function_node.FunctionNode):
         self.b = b.data
 
     def forward_cpu(self, inputs):
-        y = (self.b > 0) * inputs[0]
+        b = backend.to_numpy(self.b)  # Workaround for ChainerX
+        y = (b > 0) * inputs[0]
         return utils.force_array(y, dtype=y.dtype),
 
     def forward_gpu(self, inputs):
-        gx = _relu_grad2_kernel(self.b, inputs[0])
+        b = cuda.to_gpu(self.b)  # Workaround for ChainerX
+        gx = _relu_grad2_kernel(b, inputs[0])
         return gx,
 
     def backward(self, indexes, gy):

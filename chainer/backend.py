@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer.backends import cuda
@@ -231,3 +232,25 @@ def get_device_from_array(*arrays):
                 and isinstance(array, chainerx.ndarray)):
             return chainerx.device_scope(array.device)
     return cuda.DummyDevice
+
+
+# TODO(niboshi): Temporary implementation. Revisit when unifying devices
+def get_device(device):
+    if device is cuda.DummyDevice:
+        return device
+    if cuda.available and isinstance(device, cuda.Device):
+        return device
+    if isinstance(device, six.integer_types):
+        if device < 0:
+            return cuda.DummyDevice
+        else:
+            cuda.check_cuda_available()
+            return cuda.Device(device)
+    if chainerx.is_available():
+        if isinstance(device, (chainerx.Device, chainerx.DeviceScope)):
+            return device
+        try:
+            return chainerx.get_device(device)
+        except (TypeError, chainerx.BackendError):
+            pass
+    raise ValueError('Invalid device specifier: {}'.format(device))

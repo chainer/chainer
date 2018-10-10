@@ -12,6 +12,7 @@ from chainer.backends import cuda
 from chainer import configuration
 from chainer import serializer as serializer_module
 from chainer import variable
+import chainerx
 
 
 def _copy_variable(value):
@@ -276,6 +277,11 @@ class Summary(object):
                 Default is 1 (integer).
 
         """
+        if chainerx.is_available() and isinstance(value, chainerx.ndarray):
+            # ChainerX arrays does not support inplace assignment if it's
+            # connected to the backprop graph.
+            value = value.as_grad_stopped()
+
         with _get_device(value):
             self._x += weight * value
             self._x2 += weight * value * value
