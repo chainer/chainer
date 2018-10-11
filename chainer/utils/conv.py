@@ -1,7 +1,6 @@
 import numpy
 import six
 
-from chainer import backend
 from chainer.backends import cuda
 
 
