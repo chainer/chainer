@@ -111,6 +111,8 @@ def _array_to_chainerx(array, device):
     if isinstance(array, chainerx.ndarray):
         if device is None:
             return array
+        if device is array.device:
+            return array
         return array.to_device(device)
     if isinstance(array, numpy.ndarray):
         if device is None:
