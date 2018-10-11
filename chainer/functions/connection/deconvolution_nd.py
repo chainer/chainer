@@ -162,7 +162,7 @@ class DeconvolutionND(function_node.FunctionNode):
 
     def forward_chainerx(self, inputs):
         # TODO(imanishi): Suppot it
-        if self.dilate != 1:
+        if any(d != 1 for d in self.dilate):
             return chainer.Fallback
         # TODO(imanishi): Suppot it
         if self.groups != 1:
@@ -170,11 +170,14 @@ class DeconvolutionND(function_node.FunctionNode):
         # TODO(imanishi): Suppot it
         if any(a.dtype != inputs[0].dtype for a in inputs):
             return chainer.Fallback
+        # TODO(imanishi): Suppot it
+        if inputs[0].device.backend.name == 'cuda' and self.ndim < 2:
+            return chainer.Fallback
 
         stride = self.stride
         pad = self.pad
 
-        return chainerx.conv_transpose(*inputs, stride=stride, pad=pad)
+        return chainerx.conv_transpose(*inputs, stride=stride, pad=pad),
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
