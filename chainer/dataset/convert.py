@@ -21,16 +21,17 @@ def to_device(device, x):
     See also :func:`chainer.dataset.concat_examples`.
 
     Args:
-        device (int or None): Device ID to which an array is sent. If it is
-            negative value, an array is sent to CPU. If it is positive, an
-            array is sent to GPU with the given ID. If it is ``None``, an
-            array is left in the original device.
+        device (device specifier or None): A device to which an array
+            is sent. If it is negative value, an array is sent to CPU. If it
+            is positive, an array is sent to GPU with the given ID. If it is
+            ``None``, an array is left in the original device.
         x (numpy.ndarray or cupy.ndarray): An array to send.
 
     Returns:
         Converted array.
 
     """
+    # TODO(niboshi): Write documentation about device specifier.
     if device is None:
         return x
 
@@ -111,8 +112,8 @@ def concat_examples(batch, device=None, padding=None):
     Args:
         batch (list): A list of examples. This is typically given by a dataset
             iterator.
-        device (device specifier): A device to which each array is send.
-            If it is omitted, all arrays are left in the original device.
+        device (device specifier): A device to which each array is sent.
+            If it is omitted, all arrays are left in their original devices.
         padding: Scalar value for extra elements. If this is None (default),
             an error is raised on shape mismatch. Otherwise, an array of
             minimum dimensionalities that can accommodate all arrays is
@@ -168,6 +169,7 @@ def _concat_arrays(arrays, padding):
 
     # ChainerX arrays are converted to either NumPy/CuPy because ChainerX
     # does not support some operations required.
+    # TODO(niboshi): Avoid conversion
     chainerx_device = None
     if chainerx.is_available() and isinstance(arrays[0], chainerx.ndarray):
         chainerx_device = arrays[0].device
