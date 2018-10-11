@@ -1008,17 +1008,14 @@ class TestVariableToChainerX(unittest.TestCase):
     def test_ideep_to_chainerx(self):
         raise unittest.SkipTest('Not yet supported')
 
-    @attr.chainerx
     def test_chainerx_to_chainerx(self):
         self.check_to_chainerx(chainerx.array(self.x), chainerx.array(self.gx))
 
-    @attr.chainerx
     def test_chainerx_to_chainerx_with_device(self):
         device = chainerx.get_device('native', 1)
         self.check_to_chainerx(
             chainerx.array(self.x), chainerx.array(self.gx), device)
 
-    @attr.chainerx
     def test_chainerx_to_chainerx_with_string_device(self):
         device = 'native:1'
         self.check_to_chainerx(
