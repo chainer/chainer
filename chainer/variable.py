@@ -1492,7 +1492,8 @@ class Parameter(Variable):
             xp = cuda.cupy if self._initial_backend == 'cuda' else numpy
             device = cuda.get_device_from_id(self._initial_device)
 
-        data = initializers.generate_array(self.initializer, shape, xp, device=device)
+        data = initializers.generate_array(
+            self.initializer, shape, xp, device=device)
         ginit = self._grad_initializer
         grad = None if ginit is None else initializers.generate_array(
             ginit, shape, xp)
