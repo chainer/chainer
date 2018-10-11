@@ -912,22 +912,25 @@ class Variable(object):
         if node._data is not None:
             node.retain_data()
 
-    def to_chainerx(self):
+    # TODO(niboshi): Revisit API. Possibly the default device should be used
+    # for device=None. In that case current behavior (automatically choose
+    # a device with zero-copy) should be achieved in another way.
+    def to_chainerx(self, device=None):
         """Copies the data and gradient arrays to specified device.
 
         Args:
-            device: Target device specifier. If omitted, the current device is
-                used.
+            device: Target device specifier. If omitted, an appropriate device
+                depending on the original array is used.
 
         """
         data = self.data
         if data is None:
             return
 
-        self._data = [backend.to_chainerx(data)]
+        self._data = [backend.to_chainerx(data, device)]
 
         if self._grad_var is not None:
-            self._grad_var.to_chainerx()
+            self._grad_var.to_chainerx(device)
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1431,24 +1434,34 @@ class Parameter(Variable):
                                     self.initializer, self.update_rule)
 
     def to_cpu(self):
-        super(Parameter, self).to_cpu()
         if self.data is None:
             self._initial_backend = None
             self._initial_device = None
+        super(Parameter, self).to_cpu()
 
     def to_gpu(self, device=None):
-        super(Parameter, self).to_gpu(device)
         if self.data is None:
             if device is None:
                 device = cuda.Device().id
             self._initial_backend = 'cuda'
             self._initial_device = device
+        super(Parameter, self).to_gpu(device)
 
     def to_intel64(self):
-        super(Parameter, self).to_intel64()
         if self.data is None:
             self._initial_backend = 'intel64'
             self._initial_device = None
+        super(Parameter, self).to_intel64()
+
+    # TODO(niboshi): Revisit API
+    def to_chainerx(self, device=None):
+        if self.data is None:
+            if device is None:
+                raise ValueError(
+                    'Explicit device is required for delayed initialization.')
+            self._initial_backend = 'chainerx'
+            self._initial_device = device
+        super(Parameter, self).to_chainerx(device)
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()
@@ -1472,14 +1485,18 @@ class Parameter(Variable):
             shape (tuple of int): Shape of the data array.
 
         """
-        # TODO(sonots): Support ChainerX
-        xp = numpy if self._initial_backend != 'cuda' else cuda.cupy
-        with cuda.get_device_from_id(self._initial_device):
-            data = initializers.generate_array(self.initializer, shape, xp)
+        if self._initial_backend == 'chainerx':
+            xp = chainerx
+            device = chainerx.get_device(self._initial_device)
+        else:
+            xp = cuda.cupy if self._initial_backend == 'cuda' else numpy
+            device = cuda.get_device_from_id(self._initial_device)
 
-            ginit = self._grad_initializer
-            grad = None if ginit is None else initializers.generate_array(
-                ginit, shape, xp)
+        data = initializers.generate_array(
+            self.initializer, shape, xp, device=device)
+        ginit = self._grad_initializer
+        grad = None if ginit is None else initializers.generate_array(
+            ginit, shape, xp, device=device)
 
         self.data = data
         self.grad = grad

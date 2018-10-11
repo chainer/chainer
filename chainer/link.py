@@ -491,17 +491,17 @@ Assign a Parameter object directly to an attribute within a \
         self._device_id = None
         return self
 
-    def to_chainerx(self):
+    def to_chainerx(self, device=None):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
         if self._xp is chainerx:
             return self
         d = self.__dict__
         for name in self._params:
-            d[name].to_chainerx()
+            d[name].to_chainerx(device)
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
-                d[name] = backend.to_chainerx(d[name])
+                d[name] = backend.to_chainerx(d[name], device)
         self._xp is chainerx
         self._device_id = None
         return self

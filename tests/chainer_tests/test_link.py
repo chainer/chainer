@@ -1876,12 +1876,12 @@ class TestToChainerX(unittest.TestCase):
 
     def test_chainerx_to_chainerx(self):
         link = self.link
-        link.to_chainerx()
+        link.to_chainerx('native:0')
         prev_y = link.y
         prev_v = link.v
         prev_pa = link.pa
         prev_ps = link.ps
-        link.to_chainerx()
+        link.to_chainerx('native:0')
         assert link._device_id is None
 
         # Everything should be left untouched
@@ -1897,7 +1897,7 @@ class TestToChainerX(unittest.TestCase):
 
     def test_cpu_to_chainerx(self):
         link = self.link
-        link.to_chainerx()
+        link.to_chainerx('native:0')
 
         # Initialized parameter
         assert isinstance(link.y.data, chainerx.ndarray)
@@ -1917,7 +1917,7 @@ class TestToChainerX(unittest.TestCase):
         link = self.link
         link.to_gpu()
         assert link._device_id == 0
-        link.to_chainerx()
+        link.to_chainerx('cuda:0')
         assert link._device_id is None
 
         # Arrays should be converted to chainerx.ndarray

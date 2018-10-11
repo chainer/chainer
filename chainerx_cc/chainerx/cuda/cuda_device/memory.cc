@@ -15,7 +15,6 @@ namespace chainerx {
 namespace cuda {
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
-    CheckCudaError(cudaSetDevice(index()));
     void* ptr = memory_pool_.Malloc(bytesize);
     return std::shared_ptr<void>{ptr, [this](void* ptr) { memory_pool_.Free(ptr); }};
 }
