@@ -112,6 +112,8 @@ class BackendConfig(object):
         return marks
 
     def _get_single_array(self, np_array):
+        if np_array is None:
+            return None
         if self.use_chainerx:
             # TODO(niboshi): Use backend.to_device or
             # backend.to_chainerx(a, device)
