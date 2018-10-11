@@ -127,16 +127,15 @@ class TestConvolution2DFunction(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
+        if self.nobias:
+            inputs = inputs[:-1]
+
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
 
         if not self.c_contiguous:
             inputs = testing.array._as_noncontiguous_array(inputs)
             grad_outputs = testing.array._as_noncontiguous_array(grad_outputs)
-
-        # Exclude bias if None.
-        if inputs[-1] is None:
-            inputs = inputs[:-1]
 
         def f(*args):
             return F.convolution_2d(*args, stride=self.stride, pad=self.pad,
@@ -159,6 +158,10 @@ class TestConvolution2DFunction(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
+        if self.nobias:
+            inputs = inputs[:-1]
+            grad_grad_inputs = grad_grad_inputs[:-1]
+
         inputs = backend_config.get_array(inputs)
         grad_outputs = backend_config.get_array(grad_outputs)
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
@@ -168,11 +171,6 @@ class TestConvolution2DFunction(unittest.TestCase):
             grad_outputs = testing.array._as_noncontiguous_array(grad_outputs)
             grad_grad_inputs = testing.array._as_noncontiguous_array(
                 grad_grad_inputs)
-
-        # Exclude bias if None.
-        if inputs[-1] is None:
-            inputs = inputs[:-1]
-            grad_grad_inputs = grad_grad_inputs[:-1]
 
         def f(*args):
             return F.convolution_2d(
