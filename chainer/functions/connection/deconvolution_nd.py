@@ -171,12 +171,10 @@ class DeconvolutionND(function_node.FunctionNode):
         if any(a.dtype != inputs[0].dtype for a in inputs):
             return chainer.Fallback
 
-        stride = (self.sy, self.sx)
-        pad = (self.ph, self.pw)
-        outsize = None if self.outh is None else (self.outh, self.outw)
+        stride = self.stride
+        pad = self.pad
 
-        return chainerx.conv_transpose(
-            *inputs, stride=stride, pad=pad, outsize=outsize),
+        return chainerx.conv_transpose(*inputs, stride=stride, pad=pad)
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
