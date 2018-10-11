@@ -82,6 +82,9 @@ class Convolution2DFunction(function_node.FunctionNode):
         return out_h, out_w
 
     def forward_chainerx(self, inputs):
+        # TODO(hvy): Support mixed precision.
+        if any([arr.dtype != inputs[0].dtype for arr in inputs[1:]]):
+            return chainer.Fallback
         # TODO(hvy): Support dilate > 1.
         if self.dy > 1 or self.dx > 1:
             return chainer.Fallback
