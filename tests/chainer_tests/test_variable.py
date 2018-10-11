@@ -950,7 +950,7 @@ class TestVariableToChainerX(unittest.TestCase):
         x_var = chainer.Variable(x)
         gx_var = chainer.Variable(gx)
         x_var.grad_var = gx_var
-        x_var.to_chainerx(device=device)
+        x_var.to_chainerx(device)
 
         assert isinstance(x_var.array, chainerx.ndarray)
         assert isinstance(x_var.grad, chainerx.ndarray)
@@ -964,17 +964,17 @@ class TestVariableToChainerX(unittest.TestCase):
         xp = backend.get_array_module(x, gx)
         if device is None:
             if xp is np:
-                device = chainerx.get_device('native', 0)
+                expected_device = chainerx.get_device('native', 0)
             elif xp is cuda.cupy:
-                device = chainerx.get_device('cuda', x.device.id)
+                expected_device = chainerx.get_device('cuda', x.device.id)
             elif xp is chainerx:
-                device = x.device
+                expected_device = x.device
             else:
                 assert False
         else:
-            device = chainerx.get_device(device)
-        assert x_var.data.device is device
-        assert gx_var.data.device is device
+            expected_device = chainerx.get_device(device)
+        assert x_var.data.device is expected_device
+        assert gx_var.data.device is expected_device
 
     def test_numpy_to_chainerx(self):
         self.check_to_chainerx(self.x, self.gx)
