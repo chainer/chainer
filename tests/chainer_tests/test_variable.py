@@ -970,11 +970,11 @@ class TestVariableToChainerX(unittest.TestCase):
             elif xp is chainerx:
                 device = x.device
             else:
-                raise unittest.SkipTest('Not yet supported')
+                assert False
         else:
             device = chainerx.get_device(device)
-        assert x_var.data.device == device
-        assert gx_var.data.device == device
+        assert x_var.data.device is device
+        assert gx_var.data.device is device
 
     def test_numpy_to_chainerx(self):
         self.check_to_chainerx(self.x, self.gx)
