@@ -179,7 +179,6 @@ def _concat_arrays(arrays, padding):
             raise RuntimeError(
                 'Only native and cuda backends are supported for ChainerX '
                 'arrays')
-        arrays = [arr for arr in arrays]
 
     # Convert `arrays` to numpy.ndarray if `arrays` consists of the built-in
     # types such as int or float.
