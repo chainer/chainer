@@ -3,6 +3,7 @@ import six
 
 from chainer import backend
 from chainer import utils
+import chainerx
 
 
 def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
@@ -48,3 +49,41 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
         finally:
             numpy.set_printoptions(**opts)
         raise AssertionError(f.getvalue())
+
+
+def _as_noncontiguous_array(array):
+    # This is a temporary function used by tests to convert contiguous arrays
+    # to non-contiguous arrays.
+    #
+    # This functions can be removed if e.g. BackendConfig starts supporting
+    # contiguousness configurations and the array conversion method takes that
+    # into account. Note that that would also mean rewriting tests to use the
+    # backend injector in the first place.
+
+    def as_noncontiguous_array(a):
+        if a is None:
+            return None
+
+        xp = backend.get_array_module(a)
+        if xp is not chainerx:
+            ret = xp.empty(
+                (a.shape[0] * 2,) + a.shape[1:], dtype=a.dtype)
+            ret[::2] = a
+            ret = ret[::2]
+            assert not ret.flags.c_contiguous
+        else:
+            # TODO(hvy): Unify with the logic above when chainerx.ndarrays
+            # support item assignment.
+            if a.ndim == 1:
+                ret = xp.diag(
+                    xp.diag(a, device=a.device), device=a.device)
+            else:
+                ret = a.T.copy().T
+            assert not ret.is_contiguous
+
+        return ret
+
+    if isinstance(array, (list, tuple)):
+        return type(array)([_as_noncontiguous_array(arr) for arr in array])
+    else:
+        return as_noncontiguous_array(array)
