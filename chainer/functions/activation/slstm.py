@@ -1,7 +1,6 @@
 import numpy
 import six
 
-import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
@@ -138,11 +137,6 @@ class SLSTM(function_node.FunctionNode):
 class SLSTMGrad(function.Function):
 
     def forward(self, inputs):
-        print("STSTMGrad:forward start")
-#        self.retain_inputs((0,1,2,3,4,5,6,7,8,9))
-#        self.retain_inputs((0,1,2,3,4,5,6))
-#        print("inputs={}".format(inputs))
-        # grads_data
         xp = backend.get_array_module(*inputs)
         c_prev1, c_prev2, x1, x2, c_next, gc, gh = inputs
 
@@ -220,10 +214,6 @@ class SLSTMGrad(function.Function):
 
     def backward(self, inputs, grads):
 
-        print("STSTMGrad:backward start")
-#        print("HOGEHOGE1000")
-#        print("SLSTM:inputs={}".format(self.get_retained_inputs()))
-#        print("SLSTM:grad_outputs={}".format(grad_outputs))
         xp = backend.get_array_module(*inputs)
 
         c_prev1, c_prev2, x1, x2, c, gc, gh = inputs
