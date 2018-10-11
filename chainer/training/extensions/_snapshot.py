@@ -38,11 +38,7 @@ def snapshot_object(target, filename, savefun=npz.save_npz, **kwargs):
     """
 
     snapshot_on_error = utils.argument.parse_kwargs(
-        kwargs, ('snapshot_on_error', False),
-        deterministic="deterministic argument is not supported anymore. "
-        "Use chainer.using_config('cudnn_deterministic', value) "
-        "context where value is either `True` or `False`.")
-
+        kwargs, ('snapshot_on_error', False))
     error_handler = None
     if snapshot_on_error:
         def h(trainer, exception, exc_info):
@@ -92,10 +88,7 @@ def snapshot(savefun=npz.save_npz,
 
     """
     snapshot_on_error = utils.argument.parse_kwargs(
-        kwargs, ('snapshot_on_error', False),
-        deterministic="deterministic argument is not supported anymore. "
-        "Use chainer.using_config('cudnn_deterministic', value) "
-        "context where value is either `True` or `False`.")
+        kwargs, ('snapshot_on_error', False))
 
     error_handler = None
     if snapshot_on_error:
