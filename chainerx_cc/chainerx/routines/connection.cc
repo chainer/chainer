@@ -21,10 +21,17 @@ namespace chainerx {
 namespace internal {
 
 int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
+    CHAINERX_ASSERT(stride > 0);
+    int64_t numerator{0};
     if (cover_all) {
-        return (in_dim + pad * 2 - kernel_size + stride - 1) / stride + 1;
+        numerator = in_dim + pad * 2 - kernel_size + stride - 1;
+    } else {
+        numerator = in_dim + pad * 2 - kernel_size;
     }
-    return (in_dim + pad * 2 - kernel_size) / stride + 1;
+    if (numerator < 0) {
+        throw DimensionError{"Output size should be positive."};
+    }
+    return numerator / stride + 1;
 }
 
 int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
