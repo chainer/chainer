@@ -135,12 +135,7 @@ class TestDeconvolution2DFunction(unittest.TestCase):
     def check_forward(self, inputs, backend_config):
         y_expected, = self.forward_cpu(inputs)
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-        elif backend_config.use_chainerx:
-            inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
-
-        x, W, b = inputs
+        x, W, b = backend_config.get_array(inputs)
         x = chainer.Variable(x)
         W = chainer.Variable(W)
         b = None if b is None else chainer.Variable(b)
@@ -165,13 +160,8 @@ class TestDeconvolution2DFunction(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-        elif backend_config.use_chainerx:
-            inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
-            grad_outputs = [chainer.backend.to_chainerx(_)
-                            for _ in grad_outputs]
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
 
         if not self.c_contiguous:
             inputs = array._as_noncontiguous_array(inputs)
@@ -204,16 +194,9 @@ class TestDeconvolution2DFunction(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
-        elif backend_config.use_chainerx:
-            inputs = [chainer.backend.to_chainerx(_) for _ in inputs]
-            grad_outputs = [chainer.backend.to_chainerx(_)
-                            for _ in grad_outputs]
-            grad_grad_inputs = [chainer.backend.to_chainerx(_)
-                                for _ in grad_grad_inputs]
+        inputs = backend_config.get_array(inputs)
+        grad_outputs = backend_config.get_array(grad_outputs)
+        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
 
         if not self.c_contiguous:
             inputs = array._as_noncontiguous_array(inputs)
