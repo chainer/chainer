@@ -348,7 +348,7 @@ Array CudaConv::ConvTranspose(
     // Check if cover_all is false
     for (int8_t i = 0; i < ndim; ++i) {
         if (x.shape()[i + 2] != internal::GetConvOutDim(out_size[i], w.shape()[i + 2], stride[i], pad[i], false)) {
-            throw ChainerxError{"CUDA convolution transpose does not support cover all outsize"};
+            throw ChainerxError{"CUDA transposed convolution does not support specified output sizes"};
         }
     }
 
