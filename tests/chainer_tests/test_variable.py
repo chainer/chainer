@@ -1237,7 +1237,7 @@ class TestUninitializedParameter(unittest.TestCase):
     @attr.chainerx
     def test_initialize_to_chainerx(self):
         x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_chainerx()
+        x.to_chainerx('native:0')
         self.check_constant_initialization(x, self.a, chainerx)
 
     def test_copy_to_initialize(self):
@@ -1289,14 +1289,14 @@ class TestUninitializedParameter(unittest.TestCase):
         x = chainer.Parameter()
         with testing.assert_warns(DeprecationWarning):
             x.zerograd()
-        x.to_chainerx()
+        x.to_chainerx('native:0')
         x.initialize((3, 2))
         self.check_zerograd(x, chainerx)
 
     @attr.chainerx
     def test_to_chainerx_zerograd(self):
         x = chainer.Parameter()
-        x.to_chainerx()
+        x.to_chainerx('native:0')
         with testing.assert_warns(DeprecationWarning):
             x.zerograd()
         x.initialize((3, 2))

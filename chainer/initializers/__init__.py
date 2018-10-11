@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer import backend
@@ -56,9 +57,13 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
     # TODO(sonots): Check consistency between xp and device.
     if device is None:
         if xp is cuda.cupy:
-            device = cuda.Device().id
+            device = cuda.Device()
         elif xp is chainerx:
             device = chainerx.get_default_device()
+        else:
+            device = cuda.DummyDevice
+    elif isinstance(device, six.integer_types):
+        device = cuda.get_device_from_id(device)
 
     if xp is chainerx:
         # TODO(sonots): Directly use initializer after ChainerX
@@ -75,7 +80,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         initializer(array)
         return backend.to_chainerx(array, device=device)
 
-    with cuda.get_device_from_id(device):
+    with device:
         array = xp.empty(shape, dtype=dtype)
     initializer(array)
     return array
