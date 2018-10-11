@@ -10,42 +10,6 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
 from chainer.testing import condition
-import chainerx
-
-
-# Supports numpy, cupy and chainerx ndarrays.
-def _arrays_as_non_contiguous(arrays):
-    assert isinstance(arrays, (list, tuple))
-
-    xp = chainer.backend.get_array_module(*arrays)
-    non_cont_arrays = []
-    for a in arrays:
-        if a is None:
-            non_cont_a = None
-        elif a.ndim == 1:
-            if xp is chainerx:
-                # chainerx.ndarray does not support item assignment.
-                non_cont_a = xp.diag(
-                    xp.diag(a, device=a.device), device=a.device)
-            else:  # numpy or cupy
-                non_cont_a = xp.empty((len(a) * 2,), dtype=a.dtype)
-                non_cont_a[::2] = a
-                a = non_cont_a[::2]
-                non_cont_a = a
-        else:
-            non_cont_a = a.T.copy().T
-        non_cont_arrays.append(non_cont_a)
-
-    # Check non contiguousness.
-    for a in non_cont_arrays:
-        if a is None:
-            continue
-        elif xp is chainerx:
-            assert not a.is_contiguous
-        else:  # numpy, cupy
-            assert not a.flags.c_contiguous
-
-    return type(arrays)(non_cont_arrays)
 
 
 @testing.parameterize(*(testing.product({
@@ -168,8 +132,8 @@ class TestConvolution2DFunction(unittest.TestCase):
         grad_outputs = backend_config.get_array(grad_outputs)
 
         if not self.c_contiguous:
-            inputs = _arrays_as_non_contiguous(inputs)
-            grad_outputs = _arrays_as_non_contiguous(grad_outputs)
+            inputs = testing.array._as_noncontiguous_array(inputs)
+            grad_outputs = testing.array._as_noncontiguous_array(grad_outputs)
 
         # Exclude bias if None.
         if inputs[-1] is None:
@@ -202,9 +166,10 @@ class TestConvolution2DFunction(unittest.TestCase):
         grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
 
         if not self.c_contiguous:
-            inputs = _arrays_as_non_contiguous(inputs)
-            grad_outputs = _arrays_as_non_contiguous(grad_outputs)
-            grad_grad_inputs = _arrays_as_non_contiguous(grad_grad_inputs)
+            inputs = testing.array._as_noncontiguous_array(inputs)
+            grad_outputs = testing.array._as_noncontiguous_array(grad_outputs)
+            grad_grad_inputs = testing.array._as_noncontiguous_array(
+                grad_grad_inputs)
 
         # Exclude bias if None.
         if inputs[-1] is None:
