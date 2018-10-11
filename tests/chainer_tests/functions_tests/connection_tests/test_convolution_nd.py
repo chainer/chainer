@@ -116,16 +116,14 @@ class TestConvolutionND(unittest.TestCase):
     def test_forward_chainerx_cuda(self):
         self._skip_if_not_chainerx_supported()
         self.check_forward_consistency(
-            lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=False,
-            use_cudnn='always')
+            lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=False)
 
     @attr.chainerx
     @attr.gpu
     def test_forward_chainerx_cuda_nobias(self):
         self._skip_if_not_chainerx_supported()
         self.check_forward_consistency(
-            lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=True,
-            use_cudnn='always')
+            lambda xs: backend.to_chainerx(cuda.to_gpu(xs)), nobias=True)
 
     @attr.cudnn
     def test_forward_consistency(self):
