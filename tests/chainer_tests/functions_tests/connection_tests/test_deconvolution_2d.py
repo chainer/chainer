@@ -13,7 +13,6 @@ from chainer.testing import backend
 from chainer.testing import condition
 from chainer.testing import parameterize
 from chainer.utils import conv
-import chainerx
 
 
 def _pair(x):

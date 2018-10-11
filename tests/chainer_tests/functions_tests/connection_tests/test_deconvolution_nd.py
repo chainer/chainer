@@ -16,7 +16,6 @@ from chainer.testing import condition
 from chainer.testing import parameterize
 from chainer.utils import conv
 from chainer.utils import type_check
-import chainerx
 
 
 @parameterize(*testing.product({
