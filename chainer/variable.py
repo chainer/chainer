@@ -1496,7 +1496,7 @@ class Parameter(Variable):
             self.initializer, shape, xp, device=device)
         ginit = self._grad_initializer
         grad = None if ginit is None else initializers.generate_array(
-            ginit, shape, xp)
+            ginit, shape, xp, device=device)
 
         self.data = data
         self.grad = grad
