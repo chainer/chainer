@@ -26,8 +26,9 @@ import googlenet
 import googlenetbn
 import nin
 import resnet50
-import train_imagenet
 import resnext50
+import train_imagenet
+
 
 def main():
     archs = {
