@@ -230,8 +230,7 @@ Use apply() method instead.\
 
         """
         chainerx_in_data = None
-        chainerx_device, in_data = _extract_apply_in_data(inputs)
-        self._is_chainerx = chainerx_device is not None
+        self._is_chainerx, in_data = _extract_apply_in_data(inputs)
 
         if self._is_chainerx:
             # Try ChainerX C++ implementation.
@@ -255,15 +254,18 @@ Use apply() method instead.\
 
             # Fall back to FunctionNode.forward()
             chainerx_in_data = in_data
-            backend_name = chainerx_device.backend.name
-            if backend_name == 'cuda':
-                in_data = cuda.to_gpu(in_data)
-            elif backend_name == 'native':
-                in_data = backend.to_numpy(in_data)
-            else:
-                raise RuntimeError(
-                    'FunctionNode only supports ChainerX arrays with native '
-                    'or cuda backend')
+            in_data = []
+            for arr in chainerx_in_data:
+                backend_name = arr.device.backend.name
+                if backend_name == 'cuda':
+                    in_data.append(cuda.to_gpu(arr))
+                elif backend_name == 'native':
+                    in_data.append(backend.to_numpy(arr))
+                else:
+                    raise RuntimeError(
+                        'FunctionNode only supports ChainerX arrays with '
+                        'native or cuda backend')
+            in_data = tuple(in_data)
 
         utils._check_arrays_forward_compatible(in_data, self.label)
 
@@ -1074,8 +1076,8 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
 def _extract_apply_in_data(inputs):
     # Extracts arrays from FunctionNode.apply() inputs.
     #
-    # The ChainerX device of the array is also returned.
-    # For NumPy/CuPy inputs, the device will be None.
+    # A flag that indicates whether inputs are chainerx arrays is also
+    # returned.
     #
     # Each object in `inputs` may be `Variable` or an array.
     # If it's a `Variable` and its underlying array is a chainerx array,
@@ -1083,40 +1085,19 @@ def _extract_apply_in_data(inputs):
     # `Variable.array`) is returned.
     #
     # If at least one of the arrays is a ChainerX array, all other NumPy/CuPy
-    # arrays are converted to ChainerX arrays without copy. If such conversion
-    # would cause a copy, an error is raised.
+    # arrays are converted to ChainerX arrays without copy.
     if len(inputs) == 0:
-        return None, ()
+        return False, ()
 
     # Unwrap arrays
     arrays = [
         (x._data_chainerx[0] if x._is_chainerx else x.array)
         if isinstance(x, variable.Variable) else x for x in inputs]
 
-    # Find chainerx_device
-    chainerx_device = None
-    if chainerx.is_available():
-        for arr in arrays:
-            if isinstance(arr, chainerx.ndarray):
-                chainerx_device = arr.device
-                break
-
-    if chainerx_device is None:
-        return None, tuple(arrays)
-
-    # Convert all the arrays to ChainerX
-    ret = []
-    for arr in arrays:
-        if isinstance(arr, chainerx.ndarray):
-            if arr.device is not chainerx_device:
-                raise RuntimeError(
-                    'Incompatible ChainerX devices are mixed in the forward '
-                    'inputs.')
-            ret.append(arr)
-        else:
-            # TODO(niboshi): Raise an error if zero-copy is not possible
-            ret.append(backend.to_device(arr, chainerx_device))
-    return chainerx_device, tuple(ret)
+    if (chainerx.is_available()
+            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
+        return True, tuple(backend.to_chainerx(arrays))
+    return False, tuple(arrays)
 
 
 def _get_ordered_func_heap():

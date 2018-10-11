@@ -232,18 +232,3 @@ def get_device_from_array(*arrays):
                 and isinstance(array, chainerx.ndarray)):
             return chainerx.device_scope(array.device)
     return cuda.DummyDevice
-
-
-def _is_convertible_to_chainerx_without_copy(array, chainerx_device):
-    # Returns whether the array can be converted to ChainerX array of the
-    # specified device without copy.
-    if isinstance(array, numpy.ndarray):
-        return chainerx_device.backend.name == 'native'
-    if isinstance(array, cuda.ndarray):
-        return (chainerx_device.backend.name == 'cuda'
-                and chainerx_device.index == array.device.id)
-    if isinstance(array, chainerx.ndarray):
-        return array.device is chainerx_device
-    if isinstance(array. intel64.mdarray):
-        return False  # TODO(niboshi): Not supported yet
-    assert False

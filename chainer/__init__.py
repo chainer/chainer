@@ -73,7 +73,6 @@ from chainer import cuda  # NOQA
 
 
 from chainer import _environment_check
-from chainer import backend
 
 
 import chainerx
@@ -165,22 +164,13 @@ def is_arrays_compatible(arrays):
         return True
 
     if chainerx.is_available():
-        chainerx_device = None
-        # Find the ChainerX device
-        for arr in arrays:
-            if isinstance(arr, chainerx.ndarray):
-                dev = arr.device
-                if chainerx_device is not None and dev is not chainerx_device:
-                    return False  # different ChainerX devices are mixed
-                chainerx_device = dev
-        # If the device is found, test all the arrays for zero-copy
-        # compatibility
-        if chainerx_device is not None:
-            return all([
-                backend._is_convertible_to_chainerx_without_copy(
-                    arr, chainerx_device)
-                for arr in arrays])
-        # Otherwise, fall back to the non-ChainerX logic below
+        # If there's at least one chainerx.ndarray, all other arrays
+        # will be converted to memory-shared chainerx.ndarrays.
+        # TODO(niboshi): intel64.mdarray is not supported yet.
+        # TODO(niboshi): Delegate array compatibility check to chainerx.
+        if any([isinstance(arr, chainerx.ndarray) for arr in arrays]):
+            return not any([
+                isinstance(arr, backends.intel64.mdarray) for arr in arrays])
 
     if isinstance(arrays[0], backends.cuda.ndarray):
         types = backends.cuda.ndarray
