@@ -12,6 +12,7 @@ from chainer.functions.connection import convolution_2d
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     _cudnn_version = cuda.cuda.cudnn.getVersion()
@@ -269,6 +270,24 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             tensor_core=tensor_core)
 
         return y,
+
+    def forward_chainerx(self, inputs):
+        # TODO(imanishi): Support it
+        if self.dy != 1 or self.dx != 1:
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if self.groups != 1:
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if any(a.dtype != inputs[0].dtype for a in inputs):
+            return chainer.Fallback
+
+        stride = (self.sy, self.sx)
+        pad = (self.ph, self.pw)
+        outsize = None if self.outh is None else (self.outh, self.outw)
+
+        return chainerx.conv_transpose(
+            *inputs, stride=stride, pad=pad, outsize=outsize),
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()

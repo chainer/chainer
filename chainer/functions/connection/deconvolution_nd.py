@@ -10,6 +10,7 @@ from chainer.functions.connection import convolution_nd
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
+import chainerx
 
 
 class DeconvolutionND(function_node.FunctionNode):
@@ -158,6 +159,25 @@ class DeconvolutionND(function_node.FunctionNode):
             tensor_core=tensor_core)
 
         return y,
+
+    def forward_chainerx(self, inputs):
+        # TODO(imanishi): Support it
+        if any(d != 1 for d in self.dilate):
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if self.groups != 1:
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if any(a.dtype != inputs[0].dtype for a in inputs):
+            return chainer.Fallback
+        # TODO(imanishi): Supporft it
+        if inputs[0].device.backend.name == 'cuda' and self.ndim < 2:
+            return chainer.Fallback
+
+        stride = self.stride
+        pad = self.pad
+
+        return chainerx.conv_transpose(*inputs, stride=stride, pad=pad),
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
