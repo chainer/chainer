@@ -343,6 +343,15 @@ Array CudaConv::ConvTranspose(
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& out_size) {
+    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
+
+    // Checks if cover_all is false
+    for (int8_t i = 0; i < ndim; ++i) {
+        if (x.shape()[i + 2] != internal::GetConvOutDim(out_size[i], w.shape()[i + 2], stride[i], pad[i], false)) {
+            throw ChainerxError{"CUDA convolution transpose does not support cover all outsize"};
+        }
+    }
+
     if (b) {
         device.CheckDevicesCompatible(x, w, *b);
     } else {
@@ -351,7 +360,6 @@ Array CudaConv::ConvTranspose(
 
     ConvCheckDtype(x, w, b);
 
-    int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
     if (ndim < 2) {
         throw DimensionError{"CUDA convolution requires number of spatial dimensions to be greater than or equal to 2"};
     }
