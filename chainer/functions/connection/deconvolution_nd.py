@@ -388,10 +388,9 @@ pad=(p1, p2, p3), outsize=(l1, l2, l3))
 
     """
     ndim = len(x.shape[2:])
-    args = (x, W) if b is None else (x, W, b)
-
     func = DeconvolutionND(
         ndim, stride, pad, outsize, dilate=dilate, groups=groups)
+    args = (x, W) if b is None else (x, W, b)
     y, = func.apply(args)
     return y
 

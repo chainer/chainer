@@ -443,12 +443,11 @@ astype(np.float32)
     dilate, groups = argument.parse_kwargs(kwargs,
                                            ('dilate', 1), ('groups', 1))
 
+    func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate,
+                                   groups=groups)
     if b is None:
         args = x, W
     else:
         args = x, W, b
-
-    func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate,
-                                   groups=groups)
     y, = func.apply(args)
     return y
