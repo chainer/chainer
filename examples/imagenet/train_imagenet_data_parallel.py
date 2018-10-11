@@ -27,7 +27,7 @@ import googlenetbn
 import nin
 import resnet50
 import train_imagenet
-
+import resnext50
 
 def main():
     archs = {
@@ -38,7 +38,7 @@ def main():
         'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
-        'resnext50': resnet50.ResNeXt50,
+        'resnext50': resnext50.ResNeXt50,
     }
 
     parser = argparse.ArgumentParser(
