@@ -66,23 +66,28 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         device = cuda.get_device_from_id(device)
 
     if xp is chainerx:
+        # Initialize with NumPy/CuPy array that shares memory with the
+        # ChainerX array.
         # TODO(sonots): Directly use initializer after ChainerX
         # supports random.
         device = chainerx.get_device(device)
-        array = xp.empty(shape, dtype=dtype, device=device)
+        array = chainerx.empty(shape, dtype=dtype, device=device)
         if device.backend.name == 'native':
-            array = backend.to_numpy(array)
+            temp_array = backend.to_numpy(array)
+            temp_device = cuda.DummyDevice
         elif device.backend.name == 'cuda':
-            array = cuda.to_gpu(array)
+            temp_array = cuda.to_gpu(array, device.index)
+            temp_device = cuda.Device(device.index)
         else:
             raise RuntimeError('ChainerX backend: {} is not supported.'.format(
                 device.backend.name))
-        initializer(array)
-        return backend.to_chainerx(array, device=device)
+        with temp_device:
+            initializer(temp_array)
+        return array
 
     with device:
         array = xp.empty(shape, dtype=dtype)
-    initializer(array)
+        initializer(array)
     return array
 
 

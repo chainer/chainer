@@ -34,8 +34,12 @@ void* MemoryPool::Malloc(size_t bytesize) {
 
     if (ptr == nullptr) {
         size_t allocation_size = (index + 1) * kAllocationUnitSize;
+        // TODO(niboshi): Do device management with RAII
+        int old_device{};
+        CheckCudaError(cudaGetDevice(&old_device));
         CheckCudaError(cudaSetDevice(device_index_));
         CheckCudaError(cudaMallocManaged(&ptr, allocation_size, cudaMemAttachGlobal));
+        CheckCudaError(cudaSetDevice(old_device));
     }
 
     {

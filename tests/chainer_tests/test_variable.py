@@ -1229,6 +1229,13 @@ class TestUninitializedParameter(unittest.TestCase):
         self.check_constant_initialization(
             x, self.a, cuda.cupy, cuda.Device(0))
 
+    @attr.multi_gpu(2)
+    def test_initialize_to_noncurrent_gpu(self):
+        x = chainer.Parameter(initializer=initializers.Constant(self.a))
+        x.to_gpu(1)
+        self.check_constant_initialization(
+            x, self.a, cuda.cupy, cuda.Device(1))
+
     @attr.gpu
     def test_initialize_to_cpu(self):
         x = chainer.Parameter(initializer=initializers.Constant(self.a))
@@ -1260,6 +1267,14 @@ class TestUninitializedParameter(unittest.TestCase):
         x.to_chainerx('cuda:0')
         self.check_constant_initialization(
             x, self.a, chainerx, chainerx.get_device('cuda:0'))
+
+    @attr.chainerx
+    @attr.multi_gpu(2)
+    def test_initialize_to_chainerx_cuda_noncurrent_gpu(self):
+        x = chainer.Parameter(initializer=initializers.Constant(self.a))
+        x.to_chainerx('cuda:1')
+        self.check_constant_initialization(
+            x, self.a, chainerx, chainerx.get_device('cuda:1'))
 
     def test_copy_to_initialize(self):
         # This test intends the use case of link.copy() method.
