@@ -5,6 +5,7 @@ import six
 
 from chainer import backend
 from chainer.backends import cuda
+import chainerx
 
 
 def to_device(device, x):
@@ -20,22 +21,28 @@ def to_device(device, x):
     See also :func:`chainer.dataset.concat_examples`.
 
     Args:
-        device (int or None): Device ID to which an array is sent. If it is
-            negative value, an array is sent to CPU. If it is positive, an
-            array is sent to GPU with the given ID. If it is ``None``, an
-            array is left in the original device.
+        device (device specifier or None): A device to which an array
+            is sent. If it is negative value, an array is sent to CPU. If it
+            is positive, an array is sent to GPU with the given ID. If it is
+            ``None``, an array is left in the original device.
         x (numpy.ndarray or cupy.ndarray): An array to send.
 
     Returns:
         Converted array.
 
     """
+    # TODO(niboshi): Write documentation about device specifier.
     if device is None:
         return x
-    elif device < 0:
-        return cuda.to_cpu(x)
-    else:
-        return cuda.to_gpu(x, device)
+
+    # TODO(niboshi): Perhaps backend.to_device should support integers
+    if isinstance(device, six.integer_types):
+        if device < 0:
+            device = cuda.DummyDevice
+        else:
+            device = cuda.Device(device)
+
+    return backend.to_device(x, device)
 
 
 def concat_examples(batch, device=None, padding=None):
@@ -105,9 +112,8 @@ def concat_examples(batch, device=None, padding=None):
     Args:
         batch (list): A list of examples. This is typically given by a dataset
             iterator.
-        device (int): Device ID to which each array is sent. Negative value
-            indicates the host memory (CPU). If it is omitted, all arrays are
-            left in the original device.
+        device (device specifier): A device to which each array is sent.
+            If it is omitted, all arrays are left in their original devices.
         padding: Scalar value for extra elements. If this is None (default),
             an error is raised on shape mismatch. Otherwise, an array of
             minimum dimensionalities that can accommodate all arrays is
@@ -119,8 +125,17 @@ def concat_examples(batch, device=None, padding=None):
         on the type of each example in the batch.
 
     """
+    # TODO(niboshi): Write documentation about device specifier. Non-negative
+    # integers indicate CUDA devices and negative integers indicate NumPy
+    # arrays.
     if len(batch) == 0:
         raise ValueError('batch is empty')
+
+    if isinstance(device, six.integer_types):
+        if device < 0:
+            device = cuda.DummyDevice
+        else:
+            device = cuda.Device(device)
 
     first_elem = batch[0]
 
@@ -151,20 +166,43 @@ def concat_examples(batch, device=None, padding=None):
 
 
 def _concat_arrays(arrays, padding):
+
+    # ChainerX arrays are converted to either NumPy/CuPy because ChainerX
+    # does not support some operations required.
+    # TODO(niboshi): Avoid conversion
+    chainerx_device = None
+    if chainerx.is_available() and isinstance(arrays[0], chainerx.ndarray):
+        chainerx_device = arrays[0].device
+        if chainerx_device.backend.name == 'native':
+            arrays = backend.to_numpy(arrays)
+        elif chainerx_device.backend.name == 'cuda':
+            arrays = cuda.to_gpu(arrays, chainerx_device.index)
+        else:
+            raise RuntimeError(
+                'Only native and cuda backends are supported for ChainerX '
+                'arrays')
+
     # Convert `arrays` to numpy.ndarray if `arrays` consists of the built-in
     # types such as int or float.
-    if not isinstance(arrays[0], numpy.ndarray) and\
-       not isinstance(arrays[0], cuda.ndarray):
+    elif (not isinstance(arrays[0], numpy.ndarray)
+            and not isinstance(arrays[0], cuda.ndarray)):
         arrays = numpy.asarray(arrays)
-    if padding is not None:
-        return _concat_arrays_with_padding(arrays, padding)
 
-    xp = backend.get_array_module(arrays[0])
-    with cuda.get_device_from_array(arrays[0]):
-        return xp.concatenate([array[None] for array in arrays])
+    if padding is not None:
+        arr_concat = _concat_arrays_with_padding(arrays, padding)
+    else:
+        xp = backend.get_array_module(arrays[0])
+        with cuda.get_device_from_array(arrays[0]):
+            arr_concat = xp.concatenate([array[None] for array in arrays])
+
+    if chainerx_device is not None:
+        return backend.to_device(arr_concat, chainerx_device)
+    return arr_concat
 
 
 def _concat_arrays_with_padding(arrays, padding):
+    # ChainerX arrays are not supported in this function
+
     shape = numpy.array(arrays[0].shape, dtype=int)
     for array in arrays[1:]:
         if numpy.any(shape != array.shape):
