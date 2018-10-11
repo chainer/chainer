@@ -235,6 +235,8 @@ def get_device_from_array(*arrays):
 
 
 def _is_convertible_to_chainerx_without_copy(array, chainerx_device):
+    # Returns whether the array can be converted to ChainerX array of the
+    # specified device without copy.
     if isinstance(array, numpy.ndarray):
         return chainerx_device.backend.name == 'native'
     if isinstance(array, cuda.ndarray):

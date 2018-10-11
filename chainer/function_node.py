@@ -1104,7 +1104,7 @@ def _extract_apply_in_data(inputs):
     if chainerx_device is None:
         return None, tuple(arrays)
 
-    # Convert all the arrays to Chainer
+    # Convert all the arrays to ChainerX
     ret = []
     for arr in arrays:
         if isinstance(arr, chainerx.ndarray):
