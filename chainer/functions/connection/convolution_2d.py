@@ -11,7 +11,6 @@ import chainer.functions
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
-from chainer import variable
 import chainerx
 
 if cuda.cudnn_enabled:
@@ -89,8 +88,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         # TODO(hvy): Support groups > 1.
         if self.groups > 1:
             return chainer.Fallback
-        if (variable.as_array(inputs[0]).device.backend.name == 'cuda'
-                and self.cover_all):
+        if inputs[0].device.backend.name == 'cuda' and self.cover_all:
             return chainer.Fallback
 
         return chainerx.conv(
