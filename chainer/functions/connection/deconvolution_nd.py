@@ -161,16 +161,16 @@ class DeconvolutionND(function_node.FunctionNode):
         return y,
 
     def forward_chainerx(self, inputs):
-        # TODO(imanishi): Suppot it
+        # TODO(imanishi): Support it
         if any(d != 1 for d in self.dilate):
             return chainer.Fallback
-        # TODO(imanishi): Suppot it
+        # TODO(imanishi): Support it
         if self.groups != 1:
             return chainer.Fallback
-        # TODO(imanishi): Suppot it
+        # TODO(imanishi): Support it
         if any(a.dtype != inputs[0].dtype for a in inputs):
             return chainer.Fallback
-        # TODO(imanishi): Suppot it
+        # TODO(imanishi): Supporft it
         if inputs[0].device.backend.name == 'cuda' and self.ndim < 2:
             return chainer.Fallback
 

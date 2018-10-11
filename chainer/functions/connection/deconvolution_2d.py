@@ -272,13 +272,13 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         return y,
 
     def forward_chainerx(self, inputs):
-        # TODO(imanishi): Suppot it
+        # TODO(imanishi): Support it
         if self.dy != 1 or self.dx != 1:
             return chainer.Fallback
-        # TODO(imanishi): Suppot it
+        # TODO(imanishi): Support it
         if self.groups != 1:
             return chainer.Fallback
-        # TODO(imanishi): Suppot it
+        # TODO(imanishi): Support it
         if any(a.dtype != inputs[0].dtype for a in inputs):
             return chainer.Fallback
 
