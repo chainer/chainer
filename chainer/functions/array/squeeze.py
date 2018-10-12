@@ -44,6 +44,10 @@ class Squeeze(function_node.FunctionNode):
                 else:
                     type_check.expect(-x_type.ndim <= x)
 
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return x.squeeze(self.axis),
+
     def forward(self, inputs):
         x, = inputs
         xp = backend.get_array_module(x)
@@ -106,8 +110,5 @@ def squeeze(x, axis=None):
                [3., 4., 5.]], dtype=float32)
 
     """
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(lambda a: a.squeeze(axis), x)
-
     y, = Squeeze(axis).apply((x,))
     return y
