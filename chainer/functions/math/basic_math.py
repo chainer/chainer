@@ -188,6 +188,9 @@ class Add(function_node.FunctionNode):
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
 
+    def forward_chainerx(self, x):
+        return x[0] + x[1],
+
     def forward(self, x):
         # may broadcast
         y = utils.force_array(x[0] + x[1])
@@ -210,6 +213,10 @@ class AddConstant(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('x',))
         type_check.expect(in_types.size() == 1)
+
+    def forward_chainerx(self, x):
+        value = _as_chainerx_arithmetic_compat(x[0], self.value, 'add')
+        return x[0] + value,
 
     def forward(self, x):
         value = _preprocess_const(x[0], self.value)
@@ -261,9 +268,6 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
     """
     if len(xs) == 2:
         lhs, rhs = xs
-        if backend.get_array_module(lhs) is chainerx:
-            return _chainerx_binary_op(chainerx.add, 'add', lhs, rhs)
-
         if numpy.isscalar(rhs):
             return AddConstant(rhs).apply((lhs,))[0]
         rhs = _preprocess_rhs(lhs, rhs)
