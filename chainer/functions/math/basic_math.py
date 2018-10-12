@@ -5,14 +5,12 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
-from chainer import function
 from chainer import function_node
 import chainer.functions
 from chainer.functions.math import floor as _floor
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
-import chainerx
 
 
 def _convert_value_to_string(value):
@@ -83,14 +81,6 @@ def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
         value = variable.as_array(value)
     utils._check_arrays_forward_compatible((chx_other_array, value), label)
     return value
-
-
-def _chainerx_binary_op(op, label, lhs, rhs):
-    lhs_array = variable.as_array(lhs)
-    rhs_array = variable.as_array(rhs)
-    assert isinstance(lhs_array, chainerx.ndarray)
-    rhs_compat = _as_chainerx_arithmetic_compat(lhs_array, rhs_array, label)
-    return variable.as_variable(op(lhs_array, rhs_compat))
 
 
 class Neg(function_node.FunctionNode):
