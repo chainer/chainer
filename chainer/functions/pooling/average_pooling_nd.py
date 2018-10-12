@@ -77,6 +77,23 @@ class AveragePoolingND(pooling_nd._PoolingND):
             width = cuda.cupy.array(width)
         return width
 
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        if x.device.backend.name == 'cuda' and self.ndim not in (2, 3):
+            return chainer.Fallback
+
+        if self.pad_value == 0:
+            pad_mode = 'zero'
+        elif self.pad_value is None:
+            pad_mode = 'ignore'
+        else:
+            raise ValueError(
+                'pad_value must be either 0 or None, not {}.'.format(
+                    self.pad_value))
+
+        return chainerx.average_pool(
+            x, self.ksize, self.stride, self.pad, pad_mode),
+
     def forward_cpu(self, inputs):
         x, = inputs
         self._in_shape = x.shape
@@ -252,27 +269,6 @@ def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):
 
     """
     ndim = len(x.shape[2:])
-
-    if backend.get_array_module(x) is chainerx:
-        fallback = False
-        if pad_value == 0:
-            pad_mode = 'zero'
-        elif pad_value is None:
-            pad_mode = 'ignore'
-        else:
-            raise ValueError(
-                'pad_value must be either 0 or None, not {}.'.format(
-                    pad_value))
-        if variable.as_array(x[0]).device.backend.name == 'cuda':
-            if ndim not in (2, 3):
-                fallback = True
-
-        if not fallback:
-            return function._chainerx_op(
-                lambda a: chainerx.average_pool(
-                    a, ksize, stride, pad, pad_mode),
-                x)
-
     return AveragePoolingND(
         ndim, ksize, stride=stride, pad=pad, pad_value=pad_value
     ).apply((x,))[0]
