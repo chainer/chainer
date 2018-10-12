@@ -37,6 +37,9 @@ class LogSumExp(function_node.FunctionNode):
                         -axis - 1 < in_types[0].ndim,
                     )
 
+    def forward_chainerx(self, inputs):
+        return chainerx.logsumexp(inputs[0], self.axis),
+
     def forward(self, inputs):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
@@ -89,7 +92,4 @@ def logsumexp(x, axis=None):
         ~chainer.Variable: Output variable.
 
     """
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(lambda a: chainerx.logsumexp(a, axis), x)
-
     return LogSumExp(axis).apply((x,))[0]
