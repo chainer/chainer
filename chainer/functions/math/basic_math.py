@@ -59,14 +59,7 @@ def _preprocess_const(x, value):
     return utils.force_type(x.dtype, value)
 
 
-def _preprocess_rhs(x, value):
-    if isinstance(value, chainer.Variable):
-        return value
-    _check_constant_type(value)
-    return utils.force_type(x.dtype, value)
-
-
-def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
+def _chainerx_preprocess_const(x, value, label):
     # Allow mixing of numpy/cupy array and chainerx array as long as
     # conversion without copy is possible.
     if isinstance(value, (numpy.ndarray, cuda.ndarray)):
@@ -79,8 +72,15 @@ def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
         return numpy.asscalar(value)
     if isinstance(value, variable.Variable):
         value = variable.as_array(value)
-    utils._check_arrays_forward_compatible((chx_other_array, value), label)
+    utils._check_arrays_forward_compatible((x, value), label)
     return value
+
+
+def _preprocess_rhs(x, value):
+    if isinstance(value, chainer.Variable):
+        return value
+    _check_constant_type(value)
+    return utils.force_type(x.dtype, value)
 
 
 class Neg(function_node.FunctionNode):
@@ -205,7 +205,7 @@ class AddConstant(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
 
     def forward_chainerx(self, x):
-        value = _as_chainerx_arithmetic_compat(x[0], self.value, 'add')
+        value = _chainerx_preprocess_const(x[0], self.value, 'add')
         return x[0] + value,
 
     def forward(self, x):
@@ -383,7 +383,7 @@ class MulConstant(function_node.FunctionNode):
         type_check.argname(in_types, ('x',))
 
     def forward_chainerx(self, x):
-        value = _as_chainerx_arithmetic_compat(x[0], self.value, 'mul')
+        value = _chainerx_preprocess_const(x[0], self.value, 'mul')
         return x[0] * value,
 
     def forward(self, x):
