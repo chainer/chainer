@@ -15,10 +15,10 @@ class Sequential(link.ChainList):
         This feature is experimental. The interface can change in the future.
 
     This class enables to construct a network which has sequential structure
-    easily. While :class:`~Chain` and :class:`~ChainList` can only take
-    :class:`~Link` object as input to their constructor, this
-    :class:`~Sequential` can take arbitrary number of any callable objects for
-    the forward pass computation. A :class:`~Sequential` calls the given
+    easily. While :class:`~chainer.Chain` and :class:`~chainer.ChainList` can
+    only take :class:`~chainer.Link` object as input to their constructor, this
+    :class:`Sequential` can take arbitrary number of any callable objects for
+    the forward pass computation. A :class:`Sequential` calls the given
     callable objects sequentially inside of the :meth:`~Sequential.forward`
     method in the same order as the given argments.
     Therefore, you do not need to write the forward pass computation
@@ -31,7 +31,7 @@ class Sequential(link.ChainList):
 
           import chainer
           import chainer.functions as F
-          import link.Links as L
+          import chainer.links as L
           from chainer import Sequential
 
           # Model definition without writing forward function
@@ -48,28 +48,29 @@ class Sequential(link.ChainList):
 
         where ``x`` denotes a mini-batch of ``n_in``-dimensional input vectors.
 
-        Furthermore, :class:`~Sequential` supports built-in list APIs, so you
-        can concatenate :class:`~Sequential` objects to create a longer
-        :class:`~Sequential` model easily with the same ways as Python lists::
+        Furthermore, :class:`Sequential` supports built-in list APIs, so you
+        can concatenate :class:`Sequential` objects to create a longer
+        :class:`Sequential` model easily with the same ways as Python lists:
 
-          model_A = Sequential(L.Linear(10, 10), F.relu)
-          model_B = Sequential(L.Linear(10, 10), F.sigmoid)
-          model_C = model_A + model_B
+        >>> from chainer import Sequential
+        >>> model_A = Sequential(L.Linear(10, 10), F.relu)
+        >>> model_B = Sequential(L.Linear(10, 10), F.sigmoid)
+        >>> model_C = model_A + model_B
 
-        To repeat a :class:`~Sequential` object multiple times, you can use
+        To repeat a :class:`Sequential` object multiple times, you can use
         :meth:`~chainer.Link.repeat` method.
 
-          model_D = model_A.repeat(3)
+        >>> model_D = model_A.repeat(3)
 
         You can also add your own functions or any callable objects to a
-        :class:`~Sequential` object::
+        :class:`Sequential` object::
 
-          from link.Links.model.vision.vgg import VGG16Layers()
+          from chainer.links.model.vision.vgg import VGG16Layers
 
           model = Sequential()
           model.append(L.Linear(n_out, n_hidden))
           model.append(F.relu)
-          model.append(F.Reshape((1, 3, 224, 224)))
+          model.append(lambda x: F.reshape(x, (1, 3, 224, 224)))
           model.append(VGG16Layers())
           model.append(lambda x: x['prob'])
 
@@ -81,19 +82,19 @@ class Sequential(link.ChainList):
         ``prob`` output.
 
         You can check the structure of your model briefly using ``print``
-        as following::
+        as following:
 
-          >>> print(model_C)
-          0       Linear	W(10, 10)	b(10,)
-          1       relu
-          2       Linear	W(10, 10)	b(10,)
-          3       sigmoid
+        >>> print(model_C)  # doctest: +NORMALIZE_WHITESPACE
+        0       Linear  W(10, 10)       b(10,)
+        1       relu
+        2       Linear  W(10, 10)       b(10,)
+        3       sigmoid
 
         .. note::
 
-            Note that a :class:`~Sequential` link which has at least one
+            Note that a :class:`Sequential` link which has at least one
             ``lambda`` function as its member cannot be pickled. So, please
-            use ``partial`` method from ``functools`` package instead::
+            use ``partial`` method from :mod:`functools` package instead::
 
               from functools import partial
 
@@ -111,9 +112,9 @@ class Sequential(link.ChainList):
 
     Args:
         layers: The layers which are called in its order. Each component should
-            be a callable object including :class:`~Link` object and
+            be a callable object including :class:`~chainer.Link` object and
             functions defined under the :mod:`chainer.functions`, e.g.,
-            :obj:`~chainer.functions.relu`, etc.
+            :func:`~chainer.functions.relu`, etc.
 
     """
 

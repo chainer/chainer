@@ -1,9 +1,10 @@
+import math
+
 import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.math import exponential
-import math
 
 LOGPROBC = - 0.5 * math.log(2 * math.pi)
 

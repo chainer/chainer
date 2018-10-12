@@ -21,19 +21,12 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
         sys.exit(1)
 
 
-def cupy_requirement(pkg):
-    return '{}==5.0.0rc1'.format(pkg)
-
-
 requirements = {
     'install': [
         'filelock',
         'numpy>=1.9.0',
         'protobuf>=3.0.0',
         'six>=1.9.0',
-    ],
-    'cuda': [
-        cupy_requirement('cupy'),
     ],
     'stylecheck': [
         'autopep8==1.3.5',
@@ -120,22 +113,6 @@ is necessary. Please uninstall the old ChainerMN in advance.
 """
     print(msg)
     exit(1)
-
-# Currently cupy provides source package (cupy) and binary wheel packages
-# (cupy-cudaXX). Chainer can use any one of these packages.
-cupy_pkg = find_any_distribution([
-    'cupy-cuda92',
-    'cupy-cuda91',
-    'cupy-cuda90',
-    'cupy-cuda80',
-    'cupy',
-])
-if cupy_pkg is not None:
-    req = cupy_requirement(cupy_pkg.project_name)
-    install_requires.append(req)
-    print('Use %s' % req)
-else:
-    print('No CuPy installation detected')
 
 here = os.path.abspath(os.path.dirname(__file__))
 # Get __version__ variable

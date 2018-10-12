@@ -94,7 +94,7 @@ class TestTanh(unittest.TestCase):
 
     def check_double_backward(self, x_data, gy_data, ggx_data):
         gradient_check.check_double_backward(
-            chainer.functions.tanh,  x_data, gy_data, ggx_data,
+            chainer.functions.tanh, x_data, gy_data, ggx_data,
             dtype=numpy.float64, **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
