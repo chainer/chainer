@@ -16,6 +16,9 @@ class LinearFunction(function_node.FunctionNode):
     _config_use_ideep = None
     _supports_static_optimizations = True
 
+    def __init__(self, n_batch_axes=1):
+        self.n_batch_axes = n_batch_axes
+
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
@@ -63,6 +66,25 @@ class LinearFunction(function_node.FunctionNode):
         bias = inputs[0]
         y = outputs[0]
         y += bias
+
+    def forward_chainerx(self, inputs):
+        # TODO(niboshi): Support n_batch_axes != 1 in ChainerX
+        if self.n_batch_axes != 1:
+            return chainer.Fallback
+        # TODO(niboshi): Support dtype casting in ChainerX
+        elif inputs[0].dtype != inputs[1].dtype:
+            return chainer.Fallback
+
+        # Generic implementation
+        if len(inputs) == 3:
+            x, W, b = inputs
+        else:
+            (x, W), b = inputs, None
+
+        y = chainerx.dot(x, W.T)
+        if b is not None:
+            y = y + b
+        return y,
 
     def forward(self, inputs):
         self._config_use_ideep = chainer.config.use_ideep
@@ -234,17 +256,6 @@ class LinearGradWeight(function_node.FunctionNode):
         return ret
 
 
-def _linear_chainerx(args):
-    if len(args) == 2:
-        (x, W), b = args, None
-    else:
-        x, W, b = args
-    y = chainerx.dot(x, W.T)
-    if b is not None:
-        y = y + b
-    return y
-
-
 def linear(x, W, b=None, n_batch_axes=1):
     """Linear function, or affine transformation.
 
@@ -300,21 +311,7 @@ def linear(x, W, b=None, n_batch_axes=1):
     else:
         args = x, W, b
 
-    if backend.get_array_module(x) is chainerx:
-        fallback = False
-        # TODO(niboshi): Support n_batch_axes != 1
-        if n_batch_axes != 1:
-            fallback = True
-        # TODO(niboshi): Support dtype casting
-        elif x.dtype != W.dtype:
-            fallback = True
-
-        if not fallback:
-            return function._chainerx_op(
-                lambda *args: _linear_chainerx(args),
-                *args)
-
-    y, = LinearFunction().apply(args)
+    y, = LinearFunction(n_batch_axes).apply(args)
     if n_batch_axes > 1:
         y = y.reshape(batch_shape + (-1,))
     return y
