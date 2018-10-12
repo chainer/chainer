@@ -214,43 +214,27 @@ class ROIMaxPooling2D(function.Function):
     def backward_cpu(self, inputs, gy):
         bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
-        n_rois = bottom_rois.shape[0]
-        bottom_delta = numpy.zeros(self._bottom_data_shape, bottom_rois.dtype)
+        bottom_diff = numpy.zeros(self._bottom_data_shape, bottom_rois.dtype)
 
-        for i_roi in six.moves.range(n_rois):
-            idx = bottom_roi_indices[i_roi]
-            ymin, xmin, ymax, xmax = bottom_rois[i_roi]
-            ymin = int(round(ymin * self.spatial_scale))
-            xmin = int(round(xmin * self.spatial_scale))
-            ymax = int(round(ymax * self.spatial_scale))
-            xmax = int(round(xmax * self.spatial_scale))
-            roi_height = max(ymax - ymin, 1)
-            roi_width = max(xmax - xmin, 1)
+        pooled_height = self.outh
+        pooled_width = self.outw
+        top_diff = gy[0]
 
-            strideh = float(roi_height) / float(self.outh)
-            stridew = float(roi_width) / float(self.outw)
+        for i in six.moves.range(top_diff.size):
+            pw = i % pooled_width
+            ph = int(i / pooled_width) % pooled_height
+            c = int(i / pooled_width / pooled_height) % channels
+            n = int(i / pooled_width / pooled_height / channels)
 
-            # iterate all the w, h (from feature map) that fall into this ROIs
-            for w in six.moves.range(xmin, xmax + 1):
-                for h in six.moves.range(ymin, ymax + 1):
-                    phstart = int(numpy.floor(float(h - ymin) / strideh))
-                    phend = int(numpy.ceil(float(h - ymin + 1) / strideh))
-                    pwstart = int(numpy.floor(float(w - xmin) / stridew))
-                    pwend = int(numpy.ceil(float(w - xmin + 1) / stridew))
+            roi_batch_ind = int(bottom_roi_indices[n])
 
-                    phstart = min(max(phstart, 0), self.outh)
-                    phend = min(max(phend, 0), self.outh)
-                    pwstart = min(max(pwstart, 0), self.outw)
-                    pwend = min(max(pwend, 0), self.outw)
-
-                    for ph in six.moves.range(phstart, phend):
-                        for pw in six.moves.range(pwstart, pwend):
-                            max_idx_tmp = self.argmax_data[i_roi, :, ph, pw]
-                            for c in six.moves.range(channels):
-                                if max_idx_tmp[c] == (h * width + w):
-                                    bottom_delta[idx, c, h, w] += \
-                                        gy[0][i_roi, c, ph, pw]
-        return bottom_delta, None, None
+            max_idx = self.argmax_data[n, c, ph, pw]
+            h = int(max_idx / width)
+            w = max_idx % width
+            if max_idx != -1:
+                bottom_diff[roi_batch_ind, c, h, w] += top_diff[
+                    n, c, ph, pw]
+        return bottom_diff, None, None
 
     def backward_gpu(self, inputs, gy):
         bottom_rois, bottom_roi_indices = inputs[1:]
@@ -265,80 +249,30 @@ class ROIMaxPooling2D(function.Function):
             T spatial_scale, int32 channels, int32 height, int32 width,
             int32 pooled_height, int32 pooled_width
             ''',
-            'T bottom_diff',
+            'raw T bottom_diff',
             '''
-            int w = i % width;
-            int h = (i / width) % height;
-            int c = (i / (width * height)) % channels;
-            int n = i / (width * height * channels);
+            int pw = i % pooled_width;
+            int ph = (i / pooled_width) % pooled_height;
+            int c = (i / pooled_width / pooled_height) % channels;
+            int n = i / pooled_width / pooled_height / channels;
 
-            float gradient = 0;
-            // Accumulate gradient over all ROIs that pooled this element
-            for (int roi_n = 0; roi_n < num_rois; ++roi_n) {
-                // Skip if ROI's batch index doesn't match num
-                if (n != static_cast<int>(bottom_roi_indices[roi_n])) {
-                    continue;
-                }
+            int roi_batch_ind = bottom_roi_indices[n];
+            int bottom_diff_offset =
+                (roi_batch_ind * channels + c) * height * width;
+            int top_diff_offset =
+                (n * channels + c) * pooled_height * pooled_width;
 
-                int roi_start_h = round(bottom_rois[roi_n * 4 + 0]
-                                        * spatial_scale);
-                int roi_start_w = round(bottom_rois[roi_n * 4 + 1]
-                                        * spatial_scale);
-                int roi_end_h = round(bottom_rois[roi_n * 4 + 2]
-                                      * spatial_scale);
-                int roi_end_w = round(bottom_rois[roi_n * 4 + 3]
-                                      * spatial_scale);
-
-                // Skip if ROI doesn't include (h, w)
-                const bool in_roi = (w >= roi_start_w && w <= roi_end_w &&
-                                     h >= roi_start_h && h <= roi_end_h);
-                if (!in_roi) {
-                    continue;
-                }
-
-                int offset = (roi_n * channels + c) * pooled_height
-                             * pooled_width;
-
-                // Compute feasible set of pooled units that could have pooled
-                // this bottom unit
-
-                // Force malformed ROIs to be 1x1
-                int roi_height = max(roi_end_h - roi_start_h, 1);
-                int roi_width = max(roi_end_w - roi_start_w, 1);
-
-                float bin_size_h = static_cast<float>(roi_height)
-                               / static_cast<float>(pooled_height);
-                float bin_size_w = static_cast<float>(roi_width)
-                               / static_cast<float>(pooled_width);
-
-                int phstart = floor(static_cast<float>(h - roi_start_h)
-                                    / bin_size_h);
-                int phend = ceil(static_cast<float>(h - roi_start_h + 1)
-                                 / bin_size_h);
-                int pwstart = floor(static_cast<float>(w - roi_start_w)
-                                    / bin_size_w);
-                int pwend = ceil(static_cast<float>(w - roi_start_w + 1)
-                                 / bin_size_w);
-
-                phstart = min(max(phstart, 0), pooled_height);
-                phend = min(max(phend, 0), pooled_height);
-                pwstart = min(max(pwstart, 0), pooled_width);
-                pwend = min(max(pwend, 0), pooled_width);
-
-                for (int ph = phstart; ph < phend; ++ph) {
-                    for (int pw = pwstart; pw < pwend; ++pw) {
-                        int index_ = ph * pooled_width + pw + offset;
-                        if (argmax_data[index_] == (h * width + w)) {
-                            gradient += top_diff[index_];
-                        }
-                    }
-                }
+            int max_index =
+                argmax_data[top_diff_offset + ph * pooled_width + pw];
+            if (max_index != -1) {
+                atomicAdd(
+                    &bottom_diff[bottom_diff_offset + max_index],
+                    top_diff[top_diff_offset + ph * pooled_width + pw]);
             }
-            bottom_diff = gradient;
             ''', 'roi_max_pooling_2d_bwd'
         )(gy[0], self.argmax_data, bottom_rois, bottom_roi_indices,
           bottom_rois.shape[0], self.spatial_scale, channels, height, width,
-          self.outh, self.outw, bottom_diff)
+          self.outh, self.outw, bottom_diff, size=gy[0].size)
 
         return bottom_diff, None, None
 
