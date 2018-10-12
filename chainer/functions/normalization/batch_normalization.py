@@ -93,6 +93,8 @@ class BatchNormalization(function_node.FunctionNode):
         if self.running_mean is None or self.running_var is None:
             return chainer.Fallback
 
+        # TODO(niboshi): This path is not tested. Fix the test.
+
         x, gamma, beta = inputs
         axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)
         if not _chainerx_is_supported(x.device, axis_chx):
