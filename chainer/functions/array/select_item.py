@@ -67,18 +67,24 @@ class Assign(function_node.FunctionNode):
         self.t = t.data
 
     def forward_cpu(self, inputs):
+        # Workaround for ChainerX.
+        t = backend.to_numpy(self.t)
+
         gx = numpy.zeros(self.shape, self.dtype)
-        gx[six.moves.range(self.t.size), self.t] = inputs[0]
+        gx[six.moves.range(self.t.size), t] = inputs[0]
         return gx,
 
     def forward_gpu(self, inputs):
+        # Workaround for ChainerX.
+        t = cuda.to_gpu(self.t)
+
         gx = cuda.cupy.zeros(self.shape, self.dtype)
         gx = cuda.elementwise(
             'S t, T gloss',
             'raw T gx',
             'int ind[] = {i, t}; gx[ind] = gloss;',
             'getitem_bwd'
-        )(self.t, inputs[0], gx)
+        )(t, inputs[0], gx)
         return gx,
 
     def backward(self, indexes, gy):

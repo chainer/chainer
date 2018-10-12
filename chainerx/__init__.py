@@ -33,6 +33,11 @@ if _available:
     _global_context = _core.Context()
     _core.set_global_default_context(_global_context)
 
+    # Add workaround implementation for NumPy-compatible functions
+    from chainerx import _numpy_compat_workarounds
+
+    _numpy_compat_workarounds.populate()
+
 
 def is_available():
     return _available

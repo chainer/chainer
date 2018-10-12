@@ -1011,11 +1011,11 @@ Assign a Link object directly to an attribute within a \
             d[name].to_intel64()
         return self
 
-    def to_chainerx(self):
-        super(Chain, self).to_chainerx()
+    def to_chainerx(self, device=None):
+        super(Chain, self).to_chainerx(device)
         d = self.__dict__
         for name in self._children:
-            d[name].to_chainerx()
+            d[name].to_chainerx(device)
         return self
 
     def params(self, include_uninit=True):

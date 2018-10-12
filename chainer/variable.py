@@ -483,7 +483,6 @@ class Variable(object):
 
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
-        self._data = [data]
 
         # A mutable chainerx.ndarray which is a view of the given data.
         # The view is kept in addition to the data since operations such as
@@ -497,30 +496,20 @@ class Variable(object):
             chainerx.is_available() and isinstance(data, chainerx.ndarray))
 
         if self._is_chainerx:
-            # Create a view of the given data to hold internally and modify.
+            if not requires_grad and grad is not None:
+                raise ValueError(
+                    'Cannot initialize a variable with gradients if the '
+                    'require_grad argument is False.')
+            # Assign _data, _data_chainerx, _requires_grad
+            self._set_chainerx_array(data, requires_grad)
             if requires_grad:
-                if data.is_grad_required():
-                    self._data_chainerx = self._data
-                else:
-                    self._data_chainerx = [data.view().require_grad()]
                 self._data_chainerx[0].set_grad(grad)
-            else:
-                if data.is_backprop_required():
-                    raise ValueError(
-                        'Cannot initialize a variable to not require '
-                        'gradients if the ChainerX array already requires '
-                        'backprop.')
-                if grad is not None:
-                    raise ValueError(
-                        'Cannot initialize a variable with gradients if the '
-                        'require_grad argument is False.')
-                self._data_chainerx = [data.view()]
 
-            self._requires_grad = None
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None
             self._name = name
         else:
+            self._data = [data]
             # self._requires_grad need to be set before creating the node.
             self._requires_grad = requires_grad
             self._node = VariableNode(self, name)
@@ -543,6 +532,36 @@ class Variable(object):
 
     def __str__(self):
         return variable_str(self)
+
+    def _set_chainerx_array(self, array, requires_grad):
+        # Assigns the following attributes
+        # - _data
+        # - _data_chainerx
+        # - _requires_grad
+        assert array is None or isinstance(array, chainerx.ndarray)
+        assert self._is_chainerx
+
+        if (not requires_grad
+                and array is not None
+                and array.is_backprop_required()):
+            raise ValueError(
+                'Cannot initialize a variable to not require '
+                'gradients if the ChainerX array already requires '
+                'backprop.')
+
+        # Create a view of the given data to hold internally and modify.
+        if requires_grad:
+            if array is None:
+                self._data_chainerx = [None]
+            elif array.is_backprop_required():
+                self._data_chainerx = [array]
+            else:
+                self._data_chainerx = [array.view().require_grad()]
+        else:
+            self._data_chainerx = [array.view()]
+
+        self._data = [array]
+        self._requires_grad = requires_grad
 
     @property
     def xp(self):
@@ -705,11 +724,15 @@ class Variable(object):
     def array(self, d):
         if self._is_chainerx:
             d_old = self._data_chainerx[0]
-            if d_old.is_backprop_required() or d.is_backprop_required():
+            if (d_old is not None
+                    and (d_old.is_backprop_required()
+                         or d.is_backprop_required())):
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
                     'existing or the new array requires backprop.')
             self._data_chainerx[0] = d.view()
+            if self._requires_grad:
+                self._data_chainerx[0].require_grad()
         else:
             self._node._update_data_info(d)
         self._data[0] = d
@@ -780,11 +803,18 @@ class Variable(object):
             _check_grad_type(None, self, g.array)
 
         if self._is_chainerx:
-            if g is None:
-                self._data_chainerx[0].set_grad(None)
+            arr = self._data_chainerx[0]
+            if arr is None:
+                if g is not None:
+                    raise RuntimeError(
+                        'Cannot set a gradient to an empty variable')
             else:
-                assert g._is_chainerx
-                self._data_chainerx[0].set_grad(g._data_chainerx[0])
+                if g is None:
+                    if arr.is_backprop_required():
+                        arr.set_grad(None)
+                else:
+                    assert g._is_chainerx
+                    arr.set_grad(g._data_chainerx[0])
 
         self._grad_var = g
 
@@ -821,11 +851,6 @@ class Variable(object):
     @property
     def requires_grad(self):
         """It indicates that ``grad`` will be set in backward calculation."""
-        if self._is_chainerx:
-            # Return is_backprop_required() and not is_grad_required().
-            # Although names might be confusing, Variable.requires_grad
-            # corresponds to the former.
-            return self._data_chainerx[0].is_backprop_required()
         return self._requires_grad
 
     @property
@@ -877,7 +902,7 @@ class Variable(object):
                 self._grad_var.to_gpu(device)
             # ensure that the node tracks the device migration
             node = self._node
-            if node._data is not None:
+            if node is not None and node._data is not None:
                 node.retain_data()
 
     def to_intel64(self):
@@ -924,13 +949,23 @@ class Variable(object):
 
         """
         data = self.data
-        if data is None:
-            return
+        requires_grad = self._requires_grad
 
-        self._data = [backend.to_chainerx(data, device)]
+        if data is not None:
+            new_data = backend.to_chainerx(data, device)
+            if requires_grad:
+                new_data.require_grad()
 
-        if self._grad_var is not None:
-            self._grad_var.to_chainerx(device)
+            grad_var = self._grad_var
+            if grad_var is not None:
+                grad_var.to_chainerx(device)
+                new_data.set_grad(grad_var.array)
+
+        else:
+            new_data = None
+
+        self._is_chainerx = True
+        self._set_chainerx_array(new_data, requires_grad)
 
     def cleargrad(self):
         """Clears the gradient array."""
