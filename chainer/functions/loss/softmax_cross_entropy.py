@@ -3,7 +3,7 @@ import six
 
 import chainer
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
 from chainer.functions.activation import log_softmax
 from chainer.utils import type_check
 from chainer import variable
@@ -48,12 +48,13 @@ def _check_input_values(x, t, ignore_label):
         raise ValueError(msg)
 
 
-class SoftmaxCrossEntropy(function.Function):
+class SoftmaxCrossEntropy(function_node.FunctionNode):
 
     """Softmax activation followed by a cross entropy loss."""
 
     normalize = True
     y = None
+    _coeff = None
 
     def __init__(self, normalize=True, cache_score=True, class_weight=None,
                  ignore_label=-1, reduce='mean'):
@@ -79,6 +80,7 @@ class SoftmaxCrossEntropy(function.Function):
         )
 
     def forward_cpu(self, inputs):
+        self.retain_inputs((0, 1))
         x, t = inputs
         if chainer.is_debug():
             _check_input_values(x, t, self.ignore_label)
@@ -111,6 +113,7 @@ class SoftmaxCrossEntropy(function.Function):
             return -log_p.reshape(t.shape),
 
     def forward_gpu(self, inputs):
+        self.retain_inputs((0, 1))
         cupy = cuda.cupy
         x, t = inputs
         if chainer.is_debug():
@@ -162,9 +165,26 @@ class SoftmaxCrossEntropy(function.Function):
             ret = ret.reshape(t.shape)
         return ret,
 
-    def backward_cpu(self, inputs, grad_outputs):
-        x, t = inputs
-        gloss = grad_outputs[0]
+    def backward(self, input_indexes, grad_outputs):
+        func_grad = _SoftmaxCrossEntropyGrad_NoDoubleBackprop(
+            self.reduce, self.ignore_label, self.class_weight, self.y,
+            self._coeff)
+        inputs = self.get_retained_inputs()
+        return func_grad.apply(inputs + grad_outputs)
+
+
+class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
+    # A backward implementation which does not support double-backprop.
+
+    def __init__(self, reduce, ignore_label, class_weight, y, coeff):
+        self.reduce = reduce
+        self.ignore_label = ignore_label
+        self.class_weight = class_weight
+        self.y = y
+        self.coeff = coeff
+
+    def forward_cpu(self, inputs_and_grad_outputs):
+        x, t, gloss = inputs_and_grad_outputs
         if x.size == 0:
             return numpy.zeros(x.shape, dtype=x.dtype), None
         if self.y is not None:
@@ -202,14 +222,14 @@ class SoftmaxCrossEntropy(function.Function):
             gx *= t_valid.reshape((len(t), 1, -1))
             gx = gx.reshape(y.shape)
         if self.reduce == 'mean':
-            gx *= gloss * self._coeff
+            gx *= gloss * self.coeff
         else:
             gx *= gloss[:, None]
         return gx, None
 
-    def backward_gpu(self, inputs, grad_outputs):
+    def forward_gpu(self, inputs_and_grad_outputs):
         cupy = cuda.cupy
-        x, t = inputs
+        x, t, gloss = inputs_and_grad_outputs
         if x.size == 0:
             return cupy.zeros(x.shape, dtype=x.dtype), None
         if self.y is not None:
@@ -217,10 +237,9 @@ class SoftmaxCrossEntropy(function.Function):
         else:
             y = log_softmax._log_softmax(x)
             cupy.exp(y, out=y)
-        gloss = grad_outputs[0]
         n_unit = t.size // len(t)
         if self.reduce == 'mean':
-            coeff = gloss * self._coeff
+            coeff = gloss * self.coeff
         else:
             coeff = gloss[:, None, ...]
 
@@ -249,6 +268,11 @@ class SoftmaxCrossEntropy(function.Function):
                     x.shape[1], n_unit, self.ignore_label)
 
         return gx, None
+
+    def backward(self, input_indexes, grad_outputs):
+        assert False, (
+            'This execution path of F.softmax_cross_entropy does not support '
+            'double-backprop. There must be a bug.')
 
 
 def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
@@ -381,5 +405,7 @@ for row, column in enumerate(t)])
         return _double_backward_softmax_cross_entropy(
             x, t, normalize, class_weight, ignore_label, reduce)
     else:
-        return SoftmaxCrossEntropy(
-            normalize, cache_score, class_weight, ignore_label, reduce)(x, t)
+        func = SoftmaxCrossEntropy(
+            normalize, cache_score, class_weight, ignore_label, reduce)
+        loss, = func.apply((x, t))
+        return loss
