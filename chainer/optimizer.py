@@ -280,10 +280,10 @@ class UpdateRule(object):
         grad_array = param.grad
         backend_name = param.array.device.backend.name
         if backend_name == 'native':
-            conv = backend.to_numpy
+            to_backend = backend.to_numpy
             update_core = self.update_core_cpu
         elif backend_name == 'cuda':
-            conv = cuda.to_gpu
+            to_backend = cuda.to_gpu
             update_core = self.update_core_gpu
         else:
             raise RuntimeError(
@@ -297,13 +297,13 @@ class UpdateRule(object):
         for state_name, st in self.state.items():
             st = self.state[state_name]
             if isinstance(st, chainerx.ndarray):
-                self.state[state_name] = conv(st)
+                self.state[state_name] = to_backend(st)
                 chainerx_state_arrays[state_name] = st
 
         # Create a temporary parameter with memory-shared NumPy/CuPy array
-        temp_param = variable.Variable(conv(param.array))
+        temp_param = variable.Variable(to_backend(param.array))
         if grad_array is not None:
-            temp_param.grad = conv(param.grad)
+            temp_param.grad = to_backend(param.grad)
 
         # Update
         update_core(temp_param)
