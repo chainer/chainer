@@ -310,9 +310,6 @@ class TestArgMinMax(unittest.TestCase):
         # TODO(sonots): Support float16
         if self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
-        # TODO(sonots): Fix argmin to get aborted
-        if self.function_name == 'argmin':
-            raise unittest.SkipTest('ChainerX does not work with argmin')
         self.check_backward(chainerx.array(self.x))
 
     def test_invalid_axis_type(self):
