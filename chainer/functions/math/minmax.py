@@ -73,6 +73,9 @@ class SelectorBase(function_node.FunctionNode):
 
 class Max(SelectorBase):
 
+    def forward_chainerx(self, x):
+        return chainerx.amax(x[0], axis=self.axis, keepdims=self.keepdims),
+
     def _fwd(self, x, xp):
         return xp.amax(x, axis=self.axis, keepdims=self.keepdims)
 
@@ -129,6 +132,9 @@ class ArgMin(IndexSelectorBase):
 
 class ArgMax(IndexSelectorBase):
 
+    def forward_chainerx(self, x):
+        return chainerx.argmax(x[0], axis=self.axis).astype(numpy.int32),
+
     def _fwd(self, x, xp):
         return xp.argmax(x, axis=self.axis).astype(numpy.int32)
 
@@ -145,10 +151,6 @@ def max(x, axis=None, keepdims=False):
         ~chainer.Variable: Output variable.
 
     """
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(
-            lambda a: a.max(axis=axis, keepdims=keepdims), x)
-
     return Max(axis, keepdims).apply((x,))[0]
 
 
@@ -179,10 +181,6 @@ def argmax(x, axis=None):
         ~chainer.Variable: Output variable.
 
     """
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(
-            lambda a: a.argmax(axis).astype(numpy.int32), x)
-
     return ArgMax(axis).apply((x,))[0]
 
 
