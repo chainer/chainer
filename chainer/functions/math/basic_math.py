@@ -102,6 +102,9 @@ class Neg(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('x',))
 
+    def forward_chainerx(self, x):
+        return -x[0],
+
     def forward(self, x):
         self.retain_inputs(())
         return utils.force_array(-x[0]),
@@ -116,9 +119,6 @@ def neg(self):  # -x
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        return function._chainerx_op(chainerx.negative, self)
-
     return Neg().apply((self,))[0]
 
 
