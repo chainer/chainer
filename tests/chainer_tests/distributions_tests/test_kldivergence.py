@@ -1,11 +1,12 @@
 import unittest
 
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distributions
 from chainer import testing
 from chainer.testing import attr
-import numpy
 
 
 @testing.parameterize(*testing.product({
@@ -60,6 +61,12 @@ class TestKLDivergence(unittest.TestCase):
             0.5, 10, self.shape + (3,)).astype(numpy.float32)
         params = self.encode_params({"alpha": alpha}, is_gpu)
         return distributions.Dirichlet(**params)
+
+    def make_exponential_dist(self, is_gpu=False):
+        lam = numpy.exp(
+            numpy.random.uniform(0, 0.5, self.shape)).astype(numpy.float32)
+        params = self.encode_params({"lam": lam}, is_gpu)
+        return distributions.Exponential(**params)
 
     def make_gamma_dist(self, is_gpu=False):
         k = numpy.random.uniform(1, 5, self.shape).astype(numpy.float32)
@@ -178,6 +185,17 @@ class TestKLDivergence(unittest.TestCase):
     def test_dirichlet_dirichlet_gpu(self):
         dist1 = self.make_dirichlet_dist(True)
         dist2 = self.make_dirichlet_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_exponential_exponential_cpu(self):
+        dist1 = self.make_exponential_dist()
+        dist2 = self.make_exponential_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_exponential_exponential_gpu(self):
+        dist1 = self.make_exponential_dist(True)
+        dist2 = self.make_exponential_dist(True)
         self.check_kl(dist1, dist2)
 
     @testing.with_requires('scipy')

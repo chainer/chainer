@@ -771,7 +771,7 @@ Use apply() method instead.\
                 # Variable object.
                 output_var = variable.Variable(data)
                 output_var.creator_node = self
-                new_outputs[index] = weakref.ref(output_var)
+                new_outputs[index] = weakref.ref(output_var.node)
                 outputs_modified = True
             else:
                 output_var = output.get_variable()

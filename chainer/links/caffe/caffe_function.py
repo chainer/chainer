@@ -547,7 +547,7 @@ def _get_stride(param):
 
 
 def _get_pad(param):
-    if param.pad_h > 0:
+    if param.pad_h > 0 or param.pad_w > 0:
         return param.pad_h, param.pad_w
     elif type(param.pad) == int:
         return param.pad

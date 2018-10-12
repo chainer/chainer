@@ -4,6 +4,7 @@ from chainer.distributions.bernoulli import Bernoulli  # NOQA
 from chainer.distributions.beta import Beta  # NOQA
 from chainer.distributions.categorical import Categorical  # NOQA
 from chainer.distributions.dirichlet import Dirichlet  # NOQA
+from chainer.distributions.exponential import Exponential  # NOQA
 from chainer.distributions.gamma import Gamma  # NOQA
 from chainer.distributions.laplace import Laplace  # NOQA
 from chainer.distributions.log_normal import LogNormal  # NOQA
