@@ -36,4 +36,4 @@ RUN mkdir -p "$CONDA_DIR"
 RUN bash "$TEMP_DIR"/setup-conda.sh "$USER_TEMP_DIR"/conda "$CONDA_DIR"
 
 # Install cupy
-RUN bash -c 'source '"$CONDA_DIR"'/bin/activate testenv && pip install -U cython && pip install --no-deps git+https://github.com/cupy/cupy'
+RUN bash -c 'source '"$CONDA_DIR"'/bin/activate testenv && pip install -U cython && pip install git+https://github.com/cupy/cupy'
