@@ -343,9 +343,6 @@ def rsub(self, rhs):  # rhs - lhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        return _chainerx_binary_op(lambda a, b: b - a, 'rsub', self, rhs)
-
     if numpy.isscalar(rhs):
         return SubFromConstant(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
@@ -366,6 +363,9 @@ class Mul(function_node.FunctionNode):
         )
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
+
+    def forward_chainerx(self, x):
+        return x[0] * x[1],
 
     def forward(self, x):
         self.retain_inputs((0, 1))
@@ -392,6 +392,10 @@ class MulConstant(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('x',))
 
+    def forward_chainerx(self, x):
+        value = _as_chainerx_arithmetic_compat(x[0], self.value, 'mul')
+        return x[0] * value,
+
     def forward(self, x):
         value = _preprocess_const(x[0], self.value)
         return utils.force_array(value * x[0]),
@@ -407,9 +411,6 @@ def mul(self, rhs):  # lhs * rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        return _chainerx_binary_op(chainerx.multiply, 'mul', self, rhs)
-
     if numpy.isscalar(rhs):
         return MulConstant(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
