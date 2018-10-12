@@ -1,7 +1,6 @@
 import numpy
 
 from chainer import backend
-from chainer import function
 from chainer import function_node
 import chainer.functions
 import chainer.utils

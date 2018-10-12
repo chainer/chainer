@@ -5,15 +5,12 @@ import numpy
 import six
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
-from chainer import function
 from chainer import function_node
 from chainer.functions.pooling import average_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
 from chainer.utils import conv
 from chainer.utils import conv_nd
-from chainer import variable
 import chainerx
 
 

@@ -1,9 +1,7 @@
 import numpy
 
-from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
-from chainer import function
 from chainer import function_node
 import chainer.functions
 from chainer.graph_optimizations import static_code

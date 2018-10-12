@@ -9,7 +9,6 @@ from chainer import configuration
 from chainer.function_hook import FunctionHook  # NOQA
 from chainer import function_node
 from chainer import variable
-import chainerx
 
 
 def _chainerx_op(op, *variables):
