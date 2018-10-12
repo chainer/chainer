@@ -288,6 +288,9 @@ class Sub(function_node.FunctionNode):
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
 
+    def forward_chainerx(self, x):
+        return x[0] - x[1],
+
     def forward(self, x):
         # may broadcast
         return utils.force_array(x[0] - x[1]),
@@ -307,9 +310,6 @@ def sub(self, rhs):  # lhs - rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        return _chainerx_binary_op(chainerx.subtract, 'sub', self, rhs)
-
     if numpy.isscalar(rhs):
         return AddConstant(-rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
