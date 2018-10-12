@@ -94,8 +94,8 @@ class BatchNormalization(function_node.FunctionNode):
             return chainer.Fallback
 
         x, gamma, beta = inputs
-        axis_chx = _is_chainerx_supported(x, gamma.ndim, self.axis)
-        if axis_chx is None:
+        axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)
+        if not _chainerx_is_supported(x.device, axis_chx):
             return chainer.Fallback
 
         y = chainerx.batch_norm(
@@ -521,9 +521,8 @@ class FixedBatchNormalization(function_node.FunctionNode):
             return chainer.Fallback
 
         x, gamma, beta, mean, var = inputs
-        axis_chx = _is_chainerx_supported(x, gamma.ndim, self.axis)
-
-        if axis_chx is None:
+        axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)
+        if not _chainerx_is_supported(x.device, axis_chx):
             return chainer.Fallback
 
         y = chainerx.fixed_batch_norm(
@@ -785,25 +784,28 @@ def _get_dtype_of_tensor_descriptor(desc):
     return dtype
 
 
-def _is_chainerx_supported(x, gamma_ndim, axis):
-    # Checks if the input configuration is supported in ChainerX
-    # Returns processed axis if supported, None otherwise.
+def _chainerx_compute_axis(x_ndim, gamma_ndim, axis):
+    # Returns processed axis for ChainerX.
     axis_chx = (
         None if axis is None
         else axis if isinstance(axis, tuple)
         else (axis,))
-    axis_chx = _compute_axis(x.ndim, gamma_ndim, axis_chx)
-    axis_ndim_chx = len(axis_chx)
+    axis_chx = _compute_axis(x_ndim, gamma_ndim, axis_chx)
+    return axis_chx
 
-    if x.device.backend.name == 'cuda':
+
+def _chainerx_is_supported(device, axis_chx):
+    # Checks if the input configuration is supported in ChainerX
+    axis_ndim_chx = len(axis_chx)
+    if device.backend.name == 'cuda':
         # cuDNN batch norm restriction
         if not ((axis_ndim_chx == 3 and axis_chx[0] == 0
                  and axis_chx[1] == 2 and axis_chx[2] == 3)
                 or (axis_ndim_chx == 4 and axis_chx[0] == 0
                     and axis_chx[1] == 2 and axis_chx[2] == 3
                     and axis_chx[3] == 4)):
-            return None  # fallback
-    return axis_chx
+            return False
+    return True
 
 
 def batch_normalization(x, gamma, beta, **kwargs):
