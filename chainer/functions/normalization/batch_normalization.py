@@ -766,6 +766,7 @@ def _is_chainerx_supported(x, gamma_ndim, axis):
     axis_ndim_chx = len(axis_chx)
 
     if device.backend.name == 'cuda':
+        # cuDNN batch norm restriction
         if not ((axis_ndim_chx == 3 and axis_chx[0] == 0
                  and axis_chx[1] == 2 and axis_chx[2] == 3)
                 or (axis_ndim_chx == 4 and axis_chx[0] == 0
