@@ -18,7 +18,7 @@ def _pair(x):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'dtype': [numpy.float32, numpy.float64],
     'outsize': [5, 7, (5, 7)],
 }))
 class TestROIMaxPooling2D(unittest.TestCase):
