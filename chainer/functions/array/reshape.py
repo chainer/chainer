@@ -39,6 +39,10 @@ class Reshape(function_node.FunctionNode):
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
 
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return x.reshape(self.shape),
+
     def forward(self, inputs):
         x, = inputs
         return x.reshape(self.shape),
@@ -93,9 +97,6 @@ def reshape(x, shape):
         Actual: 8 != 12
 
     """
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(lambda a: a.reshape(shape), x)
-
     if x.shape == shape:
         return chainer.as_variable(x)
     y, = Reshape(shape).apply((x,))
