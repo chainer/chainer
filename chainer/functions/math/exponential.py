@@ -52,6 +52,9 @@ class Log(function_node.FunctionNode):
         type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
+    def forward_chainerx(self, x):
+        return chainerx.log(x[0]),
+
     def forward_cpu(self, x):
         self.retain_inputs((0,))
         return utils.force_array(numpy.log(x[0])),
@@ -67,9 +70,6 @@ class Log(function_node.FunctionNode):
 
 def log(x):
     """Elementwise natural logarithm function."""
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(chainerx.log, x)
-
     return Log().apply((x,))[0]
 
 
