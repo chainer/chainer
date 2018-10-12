@@ -16,9 +16,6 @@ class LinearFunction(function_node.FunctionNode):
     _config_use_ideep = None
     _supports_static_optimizations = True
 
-    def __init__(self, n_batch_axes=1):
-        self.n_batch_axes = n_batch_axes
-
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
@@ -68,11 +65,8 @@ class LinearFunction(function_node.FunctionNode):
         y += bias
 
     def forward_chainerx(self, inputs):
-        # TODO(niboshi): Support n_batch_axes != 1 in ChainerX
-        if self.n_batch_axes != 1:
-            return chainer.Fallback
         # TODO(niboshi): Support dtype casting in ChainerX
-        elif inputs[0].dtype != inputs[1].dtype:
+        if inputs[0].dtype != inputs[1].dtype:
             return chainer.Fallback
 
         # Generic implementation
@@ -311,7 +305,7 @@ def linear(x, W, b=None, n_batch_axes=1):
     else:
         args = x, W, b
 
-    y, = LinearFunction(n_batch_axes).apply(args)
+    y, = LinearFunction().apply(args)
     if n_batch_axes > 1:
         y = y.reshape(batch_shape + (-1,))
     return y
