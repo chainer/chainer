@@ -484,13 +484,14 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         # Source buffer
         sbuf = _memory_utility.array_to_buffer_object(
             x, _get_mpi_type(msgtype))
-        # Destination buffer
-        dbuf = xp.empty([numpy.prod(msgtype.shapes[0])], dtype=msgtype.dtype)
-        dbuf = _memory_utility.array_to_buffer_object(
+        # Destination buffer and its object
+        shape = msgtype.shapes[0]
+        dbuf = xp.empty([numpy.prod(shape)], dtype=msgtype.dtype)
+        dbuf_buffer_obj = _memory_utility.array_to_buffer_object(
             dbuf, _get_mpi_type(msgtype))
-        self.mpi_comm.Allreduce(sbuf, dbuf)
+        self.mpi_comm.Allreduce(sbuf, dbuf_buffer_obj)
 
-        return dbuf.reshape(msgtype.shapes[0])
+        return dbuf.reshape(shape)
 
     # Objects
     def send_obj(self, obj, dest):
