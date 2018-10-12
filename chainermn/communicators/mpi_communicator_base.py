@@ -477,9 +477,6 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         if msgtype.is_tuple:
             raise TypeError('allreduce cannot handle tuple data')
 
-        if msgtype.is_tuple:
-            raise TypeError('allreduce cannot handle tuple data')
-
         xp = chainer.backend.get_array_module(x)
 
         # TODO(kuenishi): do we check all messages have same shape and dims?
