@@ -432,6 +432,9 @@ class Div(function_node.FunctionNode):
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
 
+    def forward_chainerx(self, x):
+        return x[0] / x[1],
+
     def forward(self, x):
         self.retain_inputs((0, 1))
         # may broadcast
@@ -506,15 +509,13 @@ def div(self, rhs):  # lhs / rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        return _chainerx_binary_op(chainerx.divide, 'div', self, rhs)
-
     if numpy.isscalar(rhs):
         return MulConstant(1. / rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
     return Div().apply((self, rhs))[0]
 
 
+# TODO(sonots): Support chainerx
 class DivFromConstant(function_node.FunctionNode):
 
     def __init__(self, value):
@@ -576,11 +577,6 @@ def rdiv(self, rhs):  # rhs / lhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        # TODO(sonots): Support rhs of constant such as float
-        if backend.get_array_module(rhs) is chainerx:
-            return _chainerx_binary_op(lambda a, b: b / a, 'rdiv', self, rhs)
-
     if numpy.isscalar(rhs):
         return DivFromConstant(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
