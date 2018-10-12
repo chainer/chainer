@@ -13,9 +13,10 @@ import chainerx
 
 
 def _chainerx_op(op, *variables):
-    arrays = list(map(variable.as_array, variables))
-    if not all([isinstance(a, chainerx.ndarray) for a in arrays]):
-        raise TypeError('All of input arrays must be chainerx.ndarray')
+    arrays = [None if v is None else variable.as_array(v) for v in variables]
+    if not all([a is None or isinstance(a, chainerx.ndarray) for a in arrays]):
+        raise TypeError(
+            'All of input arrays must be either None or chainerx.ndarray')
     return variable.as_variable(op(*arrays))
 
 

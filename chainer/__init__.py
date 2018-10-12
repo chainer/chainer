@@ -156,7 +156,6 @@ def get_cpu_array_types():
     return _cpu_array_types
 
 
-# TODO(hvy): In case of chainerx.ndarray, take the device into account?
 # TODO(hvy): Move this function to backend?
 def is_arrays_compatible(arrays):
     arrays = [a for a in arrays if a is not None]
@@ -164,9 +163,16 @@ def is_arrays_compatible(arrays):
     if len(arrays) == 0:
         return True
 
-    if isinstance(arrays[0], chainerx.ndarray):
-        types = chainerx.ndarray
-    elif isinstance(arrays[0], backends.cuda.ndarray):
+    if chainerx.is_available():
+        # If there's at least one chainerx.ndarray, all other arrays
+        # will be converted to memory-shared chainerx.ndarrays.
+        # TODO(niboshi): intel64.mdarray is not supported yet.
+        # TODO(niboshi): Delegate array compatibility check to chainerx.
+        if any([isinstance(arr, chainerx.ndarray) for arr in arrays]):
+            return not any([
+                isinstance(arr, backends.intel64.mdarray) for arr in arrays])
+
+    if isinstance(arrays[0], backends.cuda.ndarray):
         types = backends.cuda.ndarray
     else:
         types = get_cpu_array_types()

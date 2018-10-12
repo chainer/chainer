@@ -254,15 +254,18 @@ Use apply() method instead.\
 
             # Fall back to FunctionNode.forward()
             chainerx_in_data = in_data
-            backend_name = in_data[0].device.backend.name
-            if backend_name == 'cuda':
-                in_data = cuda.to_gpu(in_data)
-            elif backend_name == 'native':
-                in_data = backend.to_numpy(in_data)
-            else:
-                raise RuntimeError(
-                    'FunctionNode only supports ChainerX arrays with native '
-                    'or cuda backend')
+            in_data = []
+            for arr in chainerx_in_data:
+                backend_name = arr.device.backend.name
+                if backend_name == 'cuda':
+                    in_data.append(cuda.to_gpu(arr))
+                elif backend_name == 'native':
+                    in_data.append(backend.to_numpy(arr))
+                else:
+                    raise RuntimeError(
+                        'FunctionNode only supports ChainerX arrays with '
+                        'native or cuda backend')
+            in_data = tuple(in_data)
 
         utils._check_arrays_forward_compatible(in_data, self.label)
 
@@ -1072,6 +1075,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
 
 def _extract_apply_in_data(inputs):
     # Extracts arrays from FunctionNode.apply() inputs.
+    #
     # A flag that indicates whether inputs are chainerx arrays is also
     # returned.
     #
@@ -1079,23 +1083,21 @@ def _extract_apply_in_data(inputs):
     # If it's a `Variable` and its underlying array is a chainerx array,
     # `Variable._data_chainerx[0]` (which is backproppable in contrast to
     # `Variable.array`) is returned.
+    #
+    # If at least one of the arrays is a ChainerX array, all other NumPy/CuPy
+    # arrays are converted to ChainerX arrays without copy.
     if len(inputs) == 0:
         return False, ()
-    ret = []
-    is_chainerx = chainerx.is_available()
-    for x in inputs:
-        if isinstance(x, variable.Variable):
-            if x._is_chainerx:
-                ret.append(x._data_chainerx[0])
-            else:
-                is_chainerx = False
-                ret.append(x.array)
-        else:
-            if is_chainerx:
-                is_chainerx = isinstance(x, chainerx.ndarray)
-            ret.append(x)
 
-    return is_chainerx, tuple(ret)
+    # Unwrap arrays
+    arrays = [
+        (x._data_chainerx[0] if x._is_chainerx else x.array)
+        if isinstance(x, variable.Variable) else x for x in inputs]
+
+    if (chainerx.is_available()
+            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
+        return True, tuple(backend.to_chainerx(arrays))
+    return False, tuple(arrays)
 
 
 def _get_ordered_func_heap():
