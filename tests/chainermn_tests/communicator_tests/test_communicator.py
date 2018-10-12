@@ -282,6 +282,30 @@ class TestDifferentDtype(unittest.TestCase):
         # (because running order of generated test cases is not unique)
         self.dtypes = [np.int32, np.int64, np.float32, np.float64]
 
+    def check_send_recv(self, x):
+        if self.communicator.rank == 0:
+            self.communicator.send(x, dest=1, tag=0)
+            y = x
+
+        elif self.communicator.rank == 1:
+            y = self.communicator.recv(source=0, tag=0)
+
+        chainer.testing.assert_allclose(y, x)
+
+    def test_send_recv_cpu(self):
+        self.setup(False)
+        for dtype in self.dtypes:
+            x = np.arange(18).astype(dtype)
+            self.check_send_recv(x)
+
+    @chainer.testing.attr.gpu
+    def test_send_recv_gpu(self):
+        self.setup(True)
+        for dtype in self.dtypes:
+            x = np.arange(18).astype(dtype)
+            x = chainer.cuda.to_gpu(x, device=self.device)
+            self.check_send_recv(x)
+
     def check_alltoall(self, xs):
         x = xs[self.communicator.rank]
         ys = self.communicator.alltoall(
@@ -411,6 +435,31 @@ class TestDifferentDtype(unittest.TestCase):
             xs = [chainer.cuda.to_gpu(x, device=self.device) for x in xs]
             self.check_scatter(xs)
 
+    def check_allreduce(self, x, dtype):
+        x = self.communicator.allreduce(x)
+
+        s = sum(range(self.communicator.size))
+
+        y = np.arange(18) * self.communicator.size + s
+        y = y.astype(dtype)
+        chainer.testing.assert_allclose(y, x)
+
+    def test_allreduce_cpu(self):
+        self.setup(False)
+        for dtype in self.dtypes:
+            x = np.arange(18) + self.communicator.rank
+            x = x.astype(dtype)
+            self.check_allreduce(x, dtype)
+
+    @chainer.testing.attr.gpu
+    def test_allreduce_gpu(self):
+        self.setup(True)
+        for dtype in self.dtypes:
+            x = np.arange(18) + self.communicator.rank
+            x = x.astype(dtype)
+            x = chainer.cuda.to_gpu(x, device=self.device)
+            self.check_allreduce(x, dtype)
+
 
 class TestNonContiguousArray(unittest.TestCase):
 
@@ -460,23 +509,3 @@ class TestNonContiguousArray(unittest.TestCase):
     def test_alltoall_gpu(self):
         self.setup(True)
         self.check_alltoall()
-
-    def check_allreduce(self):
-        x = np.arange(18) + self.communicator.rank
-        xs = x.astype(np.float32)
-        xs = self.communicator.allreduce(xs)
-
-        s = sum(range(self.communicator.size))
-
-        y = np.arange(18) * self.communicator.size + s
-        ys = y.astype(np.float32)
-        chainer.testing.assert_allclose(ys, xs)
-
-    def test_allreduce_cpu(self):
-        self.setup(False)
-        self.check_allreduce()
-
-    @chainer.testing.attr.gpu
-    def test_allreduce_gpu(self):
-        self.setup(True)
-        self.check_allreduce()
