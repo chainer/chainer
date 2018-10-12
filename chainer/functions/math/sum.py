@@ -44,6 +44,10 @@ class Sum(function_node.FunctionNode):
                         -axis - 1 < in_types[0].ndim,
                     )
 
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return chainerx.sum(x, axis=self.axis, keepdims=self.keepdims),
+
     def forward(self, inputs):
         x, = inputs
         ret = x.sum(axis=self.axis, keepdims=self.keepdims)
@@ -105,10 +109,6 @@ def sum(x, axis=None, keepdims=False):
         array([[15.]], dtype=float32)
 
     """
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(
-            lambda a: chainerx.sum(a, axis, keepdims), x)
-
     y, = Sum(axis, keepdims).apply((x,))
     return y
 
