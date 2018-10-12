@@ -7,12 +7,10 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
-from chainer import function
 from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import collections_abc
 from chainer.utils import type_check
-from chainer import variable
 import chainerx
 
 
@@ -89,6 +87,21 @@ class BatchNormalization(function_node.FunctionNode):
             type_check.expect(
                 x_type.shape[_key_axis[i]] == gamma_type.shape[i],
             )
+
+    def forward_chainerx(self, inputs):
+        # TODO(niboshi): Support conditions implemented as fallback
+        if self.running_mean is None or self.running_var is None:
+            return chainer.Fallback
+
+        x, gamma, beta = inputs
+        axis_chx = _is_chainerx_supported(x, gamma.ndim, self.axis)
+        if axis_chx is None:
+            return chainer.Fallback
+
+        y = chainerx.batch_norm(
+            x, gamma, beta, self.running_mean, self.running_var,
+            self.eps, self.decay, axis_chx)
+        return y,
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
@@ -500,6 +513,23 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 x_type.shape[_key_axis[i]] == gamma_type.shape[i],
             )
 
+    def forward_chainerx(self, inputs):
+        # TODO(niboshi): Support conditions implemented as fallback
+
+        # TODO(niboshi): chainerx.fixed_batch_norm does not support backward
+        if chainer.config.enable_backprop:
+            return chainer.Fallback
+
+        x, gamma, beta, mean, var = inputs
+        axis_chx = _is_chainerx_supported(x, gamma.ndim, self.axis)
+
+        if axis_chx is None:
+            return chainer.Fallback
+
+        y = chainerx.fixed_batch_norm(
+            x, gamma, beta, mean, var, self.eps, axis_chx)
+        return y,
+
     def forward(self, inputs):
         self.retain_inputs((0, 1, 3, 4))
         x, gamma, beta, mean, var = inputs
@@ -758,7 +788,6 @@ def _get_dtype_of_tensor_descriptor(desc):
 def _is_chainerx_supported(x, gamma_ndim, axis):
     # Checks if the input configuration is supported in ChainerX
     # Returns processed axis if supported, None otherwise.
-    device = x.array.device if isinstance(x, variable.Variable) else x.device
     axis_chx = (
         None if axis is None
         else axis if isinstance(axis, tuple)
@@ -766,7 +795,7 @@ def _is_chainerx_supported(x, gamma_ndim, axis):
     axis_chx = _compute_axis(x.ndim, gamma_ndim, axis_chx)
     axis_ndim_chx = len(axis_chx)
 
-    if device.backend.name == 'cuda':
+    if x.device.backend.name == 'cuda':
         # cuDNN batch norm restriction
         if not ((axis_ndim_chx == 3 and axis_chx[0] == 0
                  and axis_chx[1] == 2 and axis_chx[2] == 3)
@@ -855,19 +884,6 @@ def batch_normalization(x, gamma, beta, **kwargs):
         train='train argument is not supported anymore. '
         'Use chainer.using_config')
 
-    if backend.get_array_module(x) is chainerx:
-        if not (running_mean is None or running_var is None):
-            axis_chx = _is_chainerx_supported(x, gamma.ndim, axis)
-            if axis_chx is not None:
-
-                def chainerx_forward(x, gamma, beta, mean, var):
-                    return chainerx.batch_norm(
-                        x, gamma, beta, mean, var, eps, decay, axis_chx)
-
-                return function._chainerx_op(
-                    chainerx_forward, x, gamma, beta, running_mean,
-                    running_var)
-
     return BatchNormalization(eps, running_mean, running_var, decay,
                               axis).apply((x, gamma, beta))[0]
 
@@ -906,19 +922,5 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
        :class:`~chainer.links.BatchNormalization`
 
     """
-    if backend.get_array_module(x) is chainerx:
-        # chainerx.fixed_batch_norm does not support backward
-        if not chainer.config.enable_backprop:
-            axis_chx = _is_chainerx_supported(x, gamma.ndim, axis)
-
-            if axis_chx is not None:
-
-                def chainerx_batchnorm(x, gamma, beta, mean, var):
-                    return chainerx.fixed_batch_norm(
-                        x, gamma, beta, mean, var, eps, axis_chx)
-
-                return function._chainerx_op(
-                    chainerx_batchnorm, x, gamma, beta, mean, var)
-
     return FixedBatchNormalization(eps, axis).apply((x, gamma, beta, mean,
                                                      var))[0]
