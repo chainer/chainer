@@ -91,6 +91,22 @@ class BackendConfig(object):
         assert all(callable(_) for _ in marks)
         return marks
 
+    def _get_single_array(self, np_array):
+        if np_array is None:
+            return None
+        if self.use_cuda:
+            return chainer.backend.cuda.to_gpu(np_array)
+        if self.use_ideep:
+            return np_array
+        return np_array
+
+    def get_array(self, np_array):
+        if isinstance(np_array, tuple):
+            return tuple([self._get_single_array(a) for a in np_array])
+        if isinstance(np_array, list):
+            return [self._get_single_array(a) for a in np_array]
+        return self._get_single_array(np_array)
+
 
 def _wrap_backend_test_method(impl, param, method_name):
     backend_config = BackendConfig(param)

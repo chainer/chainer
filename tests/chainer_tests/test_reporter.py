@@ -10,6 +10,7 @@ from chainer import configuration
 from chainer import functions
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
 
 
 class TestReporter(unittest.TestCase):
@@ -163,27 +164,17 @@ class TestReport(unittest.TestCase):
         self.assertNotIn('x', reporter.observation)
 
 
+@backend.inject_backend_tests(
+    ['test_basic', 'test_serialize_array_float', 'test_serialize_array_int'],
+    [{}, {'use_cuda': True}])
 class TestSummary(unittest.TestCase):
 
     def setUp(self):
         self.summary = chainer.reporter.Summary()
 
-    def test_numpy(self):
-        self.summary.add(numpy.array(1, 'f'))
-        self.summary.add(numpy.array(-2, 'f'))
-
-        mean = self.summary.compute_mean()
-        testing.assert_allclose(mean, numpy.array(-0.5, 'f'))
-
-        mean, std = self.summary.make_statistics()
-        testing.assert_allclose(mean, numpy.array(-0.5, 'f'))
-        testing.assert_allclose(std, numpy.array(1.5, 'f'))
-
-    @attr.gpu
-    def test_cupy(self):
-        xp = cuda.cupy
-        self.summary.add(xp.array(1, 'f'))
-        self.summary.add(xp.array(-2, 'f'))
+    def test_basic(self, backend_config):
+        self.summary.add(backend_config.get_array(numpy.array(1, 'f')))
+        self.summary.add(backend_config.get_array(numpy.array(-2, 'f')))
 
         mean = self.summary.compute_mean()
         testing.assert_allclose(mean, numpy.array(-0.5, 'f'))
@@ -225,37 +216,47 @@ class TestSummary(unittest.TestCase):
         val = (1 * 0.5 + 2 * 0.4 + 3 * 0.3) / (0.5 + 0.4 + 0.3)
         testing.assert_allclose(mean, val)
 
-    def test_serialize(self):
-        self.summary.add(1.)
-        self.summary.add(2.)
+    def check_serialize(self, value1, value2, value3):
+        xp = chainer.backend.get_array_module(value1, value2, value3)
+        self.summary.add(value1)
+        self.summary.add(value2)
 
         summary = chainer.reporter.Summary()
         testing.save_and_load_npz(self.summary, summary)
-        summary.add(3.)
+        summary.add(value3)
+
+        expected_mean = (value1 + value2 + value3) / 3.
+        expected_std = xp.sqrt(
+            (value1**2 + value2**2 + value3**2) / 3. - expected_mean**2)
 
         mean = summary.compute_mean()
-        testing.assert_allclose(mean, 2.)
+        testing.assert_allclose(mean, expected_mean)
 
         mean, std = summary.make_statistics()
-        testing.assert_allclose(mean, 2.)
-        testing.assert_allclose(std, numpy.sqrt(2. / 3.))
+        testing.assert_allclose(mean, expected_mean)
+        testing.assert_allclose(std, expected_std)
 
-    @attr.gpu
-    def test_serialize_cupy(self):
-        xp = cuda.cupy
-        self.summary.add(xp.array(1, 'f'))
-        self.summary.add(xp.array(2, 'f'))
+    def test_serialize_array_float(self, backend_config):
+        self.check_serialize(
+            backend_config.get_array(numpy.array(1.5, numpy.float32)),
+            backend_config.get_array(numpy.array(2.0, numpy.float32)),
+            # sum of the above two is non-integer
+            backend_config.get_array(numpy.array(3.5, numpy.float32)))
 
-        summary = chainer.reporter.Summary()
-        testing.save_and_load_npz(self.summary, summary)
-        summary.add(xp.array(3, 'f'))
+    def test_serialize_array_int(self, backend_config):
+        self.check_serialize(
+            backend_config.get_array(numpy.array(1, numpy.int32)),
+            backend_config.get_array(numpy.array(-2, numpy.int32)),
+            backend_config.get_array(numpy.array(2, numpy.int32)))
 
-        mean = summary.compute_mean()
-        testing.assert_allclose(mean, 2.)
+    def test_serialize_scalar_float(self):
+        self.check_serialize(
+            1.5, 2.0,
+            # sum of the above two is non-integer
+            3.5)
 
-        mean, std = summary.make_statistics()
-        testing.assert_allclose(mean, 2.)
-        testing.assert_allclose(std, numpy.sqrt(2. / 3.))
+    def test_serialize_scalar_int(self):
+        self.check_serialize(1, -2, 2)
 
     def test_serialize_backward_compat(self):
         with tempfile.NamedTemporaryFile(delete=False) as f:
