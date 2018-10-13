@@ -341,7 +341,8 @@ class _CheckBackward(object):
         # This must be done before sampling a direction vector, because
         # otherwise the shapes of uninitialized parameters wouldn't be
         # determined.
-        xs_backward, y_backward, y0_data, y_grad = self._forward_for_backward_gradients()
+        xs_backward, y_backward, y0_data, y_grad = (
+            self._forward_for_backward_gradients())
         self.y_grad = y_grad
 
         # Sample a direction vector.
