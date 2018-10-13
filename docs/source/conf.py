@@ -16,7 +16,7 @@ import inspect
 import os
 import pkg_resources
 from six.moves.urllib import request
-import subprocess
+import shutil
 import sys
 import zipfile
 
@@ -368,6 +368,23 @@ def setup(app):
     app.connect('autodoc-process-docstring', _autodoc_process_docstring)
     app.connect('build-finished', _build_finished)
 
+    chainercv_version = '0.10.0'
+    chainercv_dir = 'chainercv-{}'.format(chainercv_version)
+    if not os.path.exists(chainercv_dir):
+        zip_file_name = 'v{}.zip'.format(chainercv_version)
+        url = 'https://github.com/chainer/chainercv/archive/{}'.format(
+            zip_file_name)
+        request.urlretrieve(url, zip_file_name)
+        zip_f = zipfile.ZipFile(zip_file_name, 'r')
+        zip_f.extractall('.')
+        zip_f.close()
+    if not os.path.exists('source/chainercv'):
+        shutil.copytree('{}/docs/source'.format(chainercv_dir),
+                        'source/chainercv')
+    if not os.path.exists('source/image'):
+        shutil.copytree('{}/docs/image'.format(chainercv_dir),
+                        'source/image')
+
 
 def _autodoc_process_docstring(app, what, name, obj, options, lines):
     _docstring_check.check(app, what, name, obj, options, lines)
@@ -471,24 +488,3 @@ def linkcode_resolve(domain, info):
 
     return 'https://github.com/chainer/chainer/blob/{}/{}#L{}'.format(
         tag, relpath, linenum)
-
-
-def setup(app):
-    chainercv_version = '0.10.0'
-
-    chainercv_dir = 'chainercv-{}'.format(chainercv_version)
-    if not os.path.exists(chainercv_dir):
-        zip_file_name = 'v{}.zip'.format(chainercv_version)
-        url = 'https://github.com/chainer/chainercv/archive/{}'.format(
-            zip_file_name)
-        request.urlretrieve(url, zip_file_name)
-        zip_f = zipfile.ZipFile(zip_file_name, 'r')
-        zip_f.extractall('.')
-        zip_f.close()
-    if not os.path.exists('source/chainercv'):
-        subprocess.check_call(
-            ['cp -r {}/docs/source source/chainercv'.format(
-                chainercv_dir)], shell=True)
-    if not os.path.exists('source/image'):
-        subprocess.check_call(
-            ['cp -r {}/docs/image source'.format(chainercv_dir)], shell=True)
