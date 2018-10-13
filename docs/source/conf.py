@@ -15,8 +15,10 @@
 import inspect
 import os
 import pkg_resources
+from six.moves.urllib import request
 import subprocess
 import sys
+import zipfile
 
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
@@ -476,11 +478,13 @@ def setup(app):
 
     chainercv_dir = 'chainercv-{}'.format(chainercv_version)
     if not os.path.exists(chainercv_dir):
-        cmd = '''
-        wget https://github.com/chainer/chainercv/archive/v{}.zip;
-        unzip v{}.zip
-        rm v{}.zip'''.format(chainercv_version, chainercv_version, chainercv_version)
-        subprocess.check_call([cmd], shell=True)
+        zip_file_name = 'v{}.zip'.format(chainercv_version)
+        url = 'https://github.com/chainer/chainercv/archive/{}'.format(
+            zip_file_name)
+        request.urlretrieve(url, zip_file_name)
+        zip_f = zipfile.ZipFile(zip_file_name, 'r')
+        zip_f.extractall('.')
+        zip_f.close()
     if not os.path.exists('source/chainercv'):
         subprocess.check_call(
             ['cp -r {}/docs/source source/chainercv'.format(
