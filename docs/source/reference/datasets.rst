@@ -213,3 +213,5 @@ Concrete Datasets
 .. note::
    ChainerCV supports implementations of datasets that are useful for computer
    vision problems, which can be found in :mod:`chainercv.datasets`.
+   For instance, ChainerCV contains data loaders for PASCAL VOC and
+   MS COCO.

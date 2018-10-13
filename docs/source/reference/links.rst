@@ -14,7 +14,9 @@ Chainer provides many :class:`~chainer.Link` implementations in the
 
 .. note::
    ChainerCV supports implementations of links that are useful for computer
-   vision problems, which can be found in :mod:`chainercv.links`.
+   vision problems, such as object detection, semantic segmentation, and
+   instance segmentation.
+   The documentation can be found in :mod:`chainercv.links`.
 
 Learnable connections
 ---------------------
