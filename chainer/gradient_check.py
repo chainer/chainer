@@ -337,8 +337,12 @@ class _CheckBackward(object):
     def run(self):
         directions = self._sample_directions()
 
-        # Compute backward gradients
-        gx_backward, y0_data = self._directional_backward_gradients(directions)
+        # Compute backward gradients.
+        # Uninitialized parameters may be initialized.
+        # If self.y_grad is None, it is also updated with 1s.
+        gx_backward, y0_data, y_grad = (
+            self._directional_backward_gradients(directions))
+        self.y_grad = y_grad
 
         # Compute numeric gradients
         gx_numeric = self._directional_numeric_gradients(directions, y0_data)
@@ -453,7 +457,7 @@ class _CheckBackward(object):
             if g is not None:
                 gx_accum += (g.astype('d') * direction).sum()
 
-        return gx_accum, y0_data
+        return gx_accum, y0_data, y_grad
 
     def _directional_numeric_gradients(self, directions, y0_data):
         func = self.func
