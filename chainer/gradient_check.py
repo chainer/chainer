@@ -416,10 +416,6 @@ class _CheckBackward(object):
 
         return directions
 
-    def _filter_list(self, lst, ignore_list):
-        return [
-            x for x, ignore in six.moves.zip(lst, ignore_list) if not ignore]
-
     def _clear_grads(self, xs):
         for x in xs:
             x.grad_var = None
@@ -487,7 +483,10 @@ class _CheckBackward(object):
         detect_nondifferentiable = self.detect_nondifferentiable
 
         x_vars = [variable.Variable(x) for x in x_data]
-        variables = self._filter_list(x_vars, no_grads) + list(params)
+        variables = (
+            [x for x, no_grad in six.moves.zip(x_vars, no_grads)
+             if not no_grad]
+            + list(params))
 
         if dtype is None:
             casted_data = [x.array for x in variables]
@@ -509,6 +508,7 @@ class _CheckBackward(object):
             # This functions is called twice in `numerical_grad`.
             # `delta` is `epsilon` or `-epsilon` in these calls.
             # See the document of `numerical_grad`.
+            assert len(variables) == len(casted_data) == len(directions)
             for x, data, direction in six.moves.zip(
                     variables, casted_data, directions):
                 # astype is require to store data with the given type
