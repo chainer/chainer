@@ -335,18 +335,26 @@ class _CheckBackward(object):
         self.detect_nondifferentiable = detect_nondifferentiable
 
     def run(self):
-        directions = self._sample_directions()
-
-        # Compute backward gradients.
+        # Run a forward pass for backward gradients.
         # Uninitialized parameters may be initialized.
         # If self.y_grad is None, it is also updated with 1s.
-        gx_backward, y0_data, y_grad = (
-            self._directional_backward_gradients(directions))
+        # This must be done before sampling a direction vector, because
+        # otherwise the shapes of uninitialized parameters wouldn't be
+        # determined.
+        xs_backward, y_backward, y0_data, y_grad = self._forward_for_backward_gradients()
         self.y_grad = y_grad
+
+        # Sample a direction vector.
+        directions = self._sample_directions()
+
+        # Compute backward gradients by running a backward pass.
+        gx_backward = self._directional_backward_gradients(
+            xs_backward, y_backward, directions)
 
         # Compute numeric gradients
         gx_numeric = self._directional_numeric_gradients(directions, y0_data)
 
+        # Compare the resulted gradients
         self._compare_gradients(gx_numeric, gx_backward, directions)
 
     def _compare_gradients(self, gx_numeric, gx_backward, directions):
@@ -416,16 +424,14 @@ class _CheckBackward(object):
         for x in xs:
             x.grad_var = None
 
-    def _directional_backward_gradients(self, directions):
+    def _forward_for_backward_gradients(self):
         func = self.func
         x_data = self.x_data
         y_grad = self.y_grad
         params = self.params
-        no_grads = self.no_grads
 
-        x_vars = [variable.Variable(x) for x in x_data]
-        variables = self._filter_list(x_vars, no_grads) + list(params)
-        y = func(*x_vars)
+        xs = [variable.Variable(x) for x in x_data]
+        y = func(*xs)
         y = _as_tuple(y)
         y0_data = [_.data for _ in y]
 
@@ -439,25 +445,36 @@ class _CheckBackward(object):
 
         # Clear gradients which may exist if func calls backward inside of
         # itself.
-        self._clear_grads(variables)
+        self._clear_grads(xs)
+        self._clear_grads(params)
+
+        return xs, y, y0_data, y_grad
+
+    def _directional_backward_gradients(self, xs, y, directions):
+        params = self.params
+        no_grads = self.no_grads
 
         # We only need to call `backward` for one result `Variable`.
         # `Variable.backward` method calls `Function.backward` of its creator.
         y.backward()
 
-        for no_grad, x in six.moves.zip(no_grads, x_vars):
+        for no_grad, x in six.moves.zip(no_grads, xs):
             if no_grad and x.grad is not None:
                 raise RuntimeError(
                     'gradient of int variable must be None')
 
-        grads = [x.grad for x in variables]
+        grads = (
+            [x.grad for x, no_grad in six.moves.zip(xs, no_grads)
+             if not no_grad]
+            + [p.grad for p in params])
 
         gx_accum = 0
+        assert len(grads) == len(directions)
         for g, direction in six.moves.zip(grads, directions):
             if g is not None:
                 gx_accum += (g.astype('d') * direction).sum()
 
-        return gx_accum, y0_data, y_grad
+        return gx_accum
 
     def _directional_numeric_gradients(self, directions, y0_data):
         func = self.func
