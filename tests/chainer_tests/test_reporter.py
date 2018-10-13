@@ -193,7 +193,7 @@ class TestSummary(unittest.TestCase):
 
         mean, std = self.summary.make_statistics()
         testing.assert_allclose(mean, 2)
-        testing.assert_allclose(std, numpy.sqrt(2 / 3))
+        testing.assert_allclose(std, numpy.sqrt(2. / 3.))
 
     def test_float(self):
         self.summary.add(1.)
@@ -285,7 +285,7 @@ class TestDictSummary(unittest.TestCase):
         mean = summary.compute_mean()
         self.assertEqual(set(mean.keys()), set(data.keys()))
         for name in data.keys():
-            m = sum(data[name]) / len(data[name])
+            m = sum(data[name]) / float(len(data[name]))
             testing.assert_allclose(mean[name], m)
 
         stats = summary.make_statistics()
@@ -293,9 +293,10 @@ class TestDictSummary(unittest.TestCase):
             set(stats.keys()),
             set(data.keys()).union(name + '.std' for name in data.keys()))
         for name in data.keys():
-            m = sum(data[name]) / len(data[name])
+            m = sum(data[name]) / float(len(data[name]))
             s = numpy.sqrt(
-                sum(x * x for x in data[name]) / len(data[name]) - m * m)
+                sum(x * x for x in data[name]) / float(len(data[name]))
+                - m * m)
             testing.assert_allclose(stats[name], m)
             testing.assert_allclose(stats[name + '.std'], s)
 
