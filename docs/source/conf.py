@@ -15,6 +15,7 @@
 import inspect
 import os
 import pkg_resources
+import subprocess
 import sys
 
 
@@ -468,3 +469,22 @@ def linkcode_resolve(domain, info):
 
     return 'https://github.com/chainer/chainer/blob/{}/{}#L{}'.format(
         tag, relpath, linenum)
+
+
+def setup(app):
+    chainercv_version = '0.10.0'
+
+    chainercv_dir = 'chainercv-{}'.format(chainercv_version)
+    if not os.path.exists(chainercv_dir):
+        cmd = '''
+        wget https://github.com/chainer/chainercv/archive/v{}.zip;
+        unzip v{}.zip
+        rm v{}.zip'''.format(chainercv_version, chainercv_version, chainercv_version)
+        subprocess.check_call([cmd], shell=True)
+    if not os.path.exists('source/chainercv'):
+        subprocess.check_call(
+            ['cp -r {}/docs/source source/chainercv'.format(
+                chainercv_dir)], shell=True)
+    if not os.path.exists('source/image'):
+        subprocess.check_call(
+            ['cp -r {}/docs/image source'.format(chainercv_dir)], shell=True)

@@ -1,14 +1,9 @@
 # Makefile for Sphinx documentation
 #
 
-CHAINERCV_VERSION=v0.10.0
-
 # You can set these variables from the command line.
 SPHINXOPTS   ?= -W
-SPHINXBUILD  ?= sh -c 'if [ ! -d "chainercv" ]; then git clone -b "${CHAINERCV_VERSION}" https://github.com/chainer/chainercv; fi \
-	if [ ! -d "source/chainercv" ]; then cp -r chainercv/docs/source source/chainercv; fi \
-	if [ ! -d "source/image" ]; then cp -r chainercv/docs/image source; fi; \
-	'; sphinx-build
+SPHINXBUILD  ?= sphinx-build
 PAPER        ?=
 BUILDDIR     ?= build
 
