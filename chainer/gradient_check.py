@@ -4,6 +4,7 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
@@ -19,7 +20,12 @@ class NondifferentiableError(Exception):
 
 def _copy_arrays(xs):
     xp = backend.get_array_module(*xs)
-    return [xp.array(x, order='C', dtype=numpy.float64, copy=True) for x in xs]
+    if xp is chainerx:
+        return [
+            xp.array(x, dtype=numpy.float64, copy=True, device=x.device)
+            for x in xs]
+    else:
+        return [xp.array(x, dtype=numpy.float64, copy=True) for x in xs]
 
 
 def numerical_grad(
@@ -79,14 +85,14 @@ def numerical_grad(
 
     inputs = tuple(inputs)
     grad_outputs = tuple(grad_outputs)
-    gpu = any(isinstance(x, cuda.ndarray) for x in inputs + grad_outputs)
-    cpu = any(isinstance(x, numpy.ndarray) for x in inputs + grad_outputs)
 
-    if gpu and cpu:
+    if not chainer.is_arrays_compatible(
+            [a for a in inputs + grad_outputs if not numpy.isscalar(a)]):
         raise RuntimeError('Do not mix GPU and CPU arrays in `numerical_grad`')
 
-    if gpu:
-        xp = cuda.cupy
+    xp = backend.get_array_module(*(inputs + grad_outputs))
+
+    if xp is cuda.cupy:
         numerical_grad_kernel_1 = cuda.reduce(
             'T y1, T y2, U gy, T eps', 'V gxi',
             '(y1 - y2) * gy', 'a + b', 'gxi += a / (eps * 2)', '0',
@@ -98,9 +104,12 @@ def numerical_grad(
             'a + b', 'gxi += a / (eps * 6)', '0',
             'numerical_grad_kernel_3'
         )
+
+    if xp is chainerx:
+        grads = [
+            xp.zeros(x.shape, numpy.float64, device=x.device) for x in inputs]
     else:
-        xp = numpy
-    grads = [xp.zeros(x.shape, numpy.float64) for x in inputs]
+        grads = [xp.zeros(x.shape, numpy.float64) for x in inputs]
 
     if detect_nondifferentiable:
         if center_outputs is None:
@@ -178,12 +187,12 @@ def numerical_grad(
                     [xp.hstack([y.ravel() for y in ys]) for ys in yss])
                 assert ystack.ndim == 2 and ystack.shape[0] == len(yss)
                 # Fit to quadratic
-                if gpu:
+                if xp is cuda.cupy:
                     ystack = ystack.get()
                 polyfit = numpy.polynomial.polynomial.polyfit
                 _, (residuals, _, _, _) = polyfit(
                     range(len(yss)), ystack, deg=2, full=True)
-                if gpu:
+                if xp is cuda.cupy:
                     residuals = xp.array(residuals)
                 residuals = xp.sqrt(residuals / len(yss))
 
@@ -235,7 +244,9 @@ def numerical_grad(
         for i_out, gy in enumerate(grad_outputs):
             if gy is None:
                 continue
-            gpu_ = (gpu and
+            if not numpy.isscalar(gy):
+                gy = gy.astype(numpy.float64, copy=False)
+            gpu_ = (xp is cuda.cupy and
                     all(isinstance(ys[i_out], cuda.ndarray)
                         for ys in yss))
             if len(yss) == 2:  # 1st order
@@ -520,13 +531,6 @@ def check_backward(
                 x.data = x.data.astype(dtype, copy=False)
 
     xp = backend.get_array_module(*xs)
-    # TODO(niboshi): There are some workarounds for ChainerX arrays in
-    # check_backward() because it does not support some required operations.
-    # Remove these workarounds after ChainerX supports such operations.
-    # Non-exhaustive list of such operations:
-    # - Random
-    # - square
-    # - Item assignment
     is_chainerx = xp is chainerx
     if is_chainerx:
         if len(params) > 0:
@@ -538,14 +542,9 @@ def check_backward(
                 'gradient_check does not support no_grads argument for '
                 'ChainerX arrays')
     if is_chainerx:
-        chainerx_device = backend.get_device_from_array(*[x.array for x in xs])
-        # TODO(niboshi): Clean up. chainerx_device is DeviceScope.
-        chainerx_device = chainerx_device.device
-        directions = [numpy.random.normal(size=x.shape) for x in variables]
-        # TODO(niboshi): Use backend.to_device or
-        # backend.to_chainerx(a, device)
-        directions = backend.to_chainerx(directions)
-        directions = [d.to_device(chainerx_device) for d in directions]
+        directions = [
+            xp.random.normal(size=x.shape, device=x.array.device)
+            for x in variables]
     else:
         directions = [xp.random.normal(size=x.shape) for x in variables]
     # The direction vector is normalized in order to keep the scale of
@@ -554,25 +553,16 @@ def check_backward(
     # input dimension should be taken into account, but we ignore the
     # differences and assume that the curvature is uniform with respect to all
     # the input dimentions.
-    if is_chainerx:
-        norm = math.sqrt(sum([(d * d).sum() for d in directions]))
-    else:
-        norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
+    norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
     if norm != 0:
         # norm could be zero if input arrays are 0-sized.
         scale = 1. / norm
         directions = [d * scale for d in directions]
 
-    delta = xp.array(0., 'd')
-
     if is_chainerx:
-        # Run numerical_grad() with numpy arrays because ChainerX does not
-        # support some required operations.
-        y_grad = backend.to_numpy(y_grad)
-        y0_data = backend.to_numpy(y0_data)
-        delta = backend.to_numpy(delta)
-        directions = backend.to_numpy(directions)
-        casted_data = backend.to_numpy(casted_data)
+        delta = xp.array(0., 'd', device=directions[0].device)
+    else:
+        delta = xp.array(0., 'd')
 
     def g():
         # This functions is called twice in `numerical_grad`.
@@ -593,8 +583,6 @@ def check_backward(
                 g_xs.append(xs[i])
             else:
                 data = perturb(casted_data[j], directions[j])
-                if is_chainerx:
-                    data = backend.to_numpy(data)
                 g_xs.append(variable.Variable(data))
                 j += 1
         # Parameters
@@ -608,6 +596,8 @@ def check_backward(
         ys = func(*g_xs)
         ys = _as_tuple(ys)
         ys_data = tuple(y.data for y in ys)
+        if is_chainerx:
+            ys_data = tuple([y.as_grad_stopped() for y in ys_data])
         for param, data in six.moves.zip(params, casted_data):
             param.data = data
         return ys_data
@@ -616,25 +606,6 @@ def check_backward(
         g, (delta,), y_grad, eps=eps,
         detect_nondifferentiable=detect_nondifferentiable,
         center_outputs=y0_data)
-
-    if is_chainerx:
-        # Convert back to ChainerX arrays after numerical_grad()
-        # TODO(niboshi): Use backend.to_device or
-        # backend.to_chainerx(a, device)
-        gx = backend.to_chainerx(gx)
-        y_grad = backend.to_chainerx(y_grad)
-        y0_data = backend.to_chainerx(y0_data)
-        delta = backend.to_chainerx(delta)
-        directions = backend.to_chainerx(directions)
-        casted_data = backend.to_chainerx(casted_data)
-
-        gx = gx.to_device(chainerx_device)
-        y_grad = tuple([a.to_device(chainerx_device) for a in y_grad])
-        y0_data = tuple([a.to_device(chainerx_device) for a in y0_data])
-        delta = delta.to_device(chainerx_device)
-        directions = tuple([a.to_device(chainerx_device) for a in directions])
-        casted_data = tuple([
-            a.to_device(chainerx_device) for a in casted_data])
 
     gx_accum = 0
     for g, direction in six.moves.zip(grads, directions):
