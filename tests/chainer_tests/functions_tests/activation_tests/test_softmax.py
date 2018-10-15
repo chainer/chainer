@@ -14,8 +14,8 @@ from chainer.testing import attr
     'shape_axis':
         [{'shape': None, 'axis': 1}, ] +
         testing.product({'shape': ((2, 3),), 'axis': (0, 1)}) +
-        testing.product({'shape': ((2, 3, 4),), 'axis': (0, 2)}) +
-        testing.product({'shape': ((2, 3, 2, 3),), 'axis': (1, 3)}),
+        testing.product({'shape': ((2, 3, 4),), 'axis': (0, -1)}) +
+        testing.product({'shape': ((2, 3, 2, 3),), 'axis': (-3, 3)}),
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @testing.fix_random()
