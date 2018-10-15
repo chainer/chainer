@@ -44,8 +44,12 @@ void InitChainerxModule(pybind11::module& m) {
     InitChainerxRoutines(m);
     InitChainerxChainerInterop(m);
 
-    // chainerx.testing
-    pybind11::module m_testing = m.def_submodule("testing");
+    // chainerx.testing (chainerx._testing)
+    //
+    // Attributes under chainerx._testing are aliased by chainerx.testing in chainerx/testing/__init__.py.
+    // This aliasing is needed because chainerx.testing already exists outside the Python binding and we do not want the following
+    // sub-module registration to shadow it.
+    pybind11::module m_testing = m.def_submodule("_testing");
     testing::testing_internal::InitChainerxTestingModule(m_testing);
 }
 
