@@ -5,14 +5,12 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
-from chainer import function
 from chainer import function_node
 import chainer.functions
 from chainer.functions.math import floor as _floor
 from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
-import chainerx
 
 
 def _convert_value_to_string(value):
@@ -61,14 +59,7 @@ def _preprocess_const(x, value):
     return utils.force_type(x.dtype, value)
 
 
-def _preprocess_rhs(x, value):
-    if isinstance(value, chainer.Variable):
-        return value
-    _check_constant_type(value)
-    return utils.force_type(x.dtype, value)
-
-
-def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
+def _chainerx_preprocess_const(x, value, label):
     # Allow mixing of numpy/cupy array and chainerx array as long as
     # conversion without copy is possible.
     if isinstance(value, (numpy.ndarray, cuda.ndarray)):
@@ -81,16 +72,15 @@ def _as_chainerx_arithmetic_compat(chx_other_array, value, label):
         return numpy.asscalar(value)
     if isinstance(value, variable.Variable):
         value = variable.as_array(value)
-    utils._check_arrays_forward_compatible((chx_other_array, value), label)
+    utils._check_arrays_forward_compatible((x, value), label)
     return value
 
 
-def _chainerx_binary_op(op, label, lhs, rhs):
-    lhs_array = variable.as_array(lhs)
-    rhs_array = variable.as_array(rhs)
-    assert isinstance(lhs_array, chainerx.ndarray)
-    rhs_compat = _as_chainerx_arithmetic_compat(lhs_array, rhs_array, label)
-    return variable.as_variable(op(lhs_array, rhs_compat))
+def _preprocess_rhs(x, value):
+    if isinstance(value, chainer.Variable):
+        return value
+    _check_constant_type(value)
+    return utils.force_type(x.dtype, value)
 
 
 class Neg(function_node.FunctionNode):
@@ -101,6 +91,9 @@ class Neg(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('x',))
+
+    def forward_chainerx(self, x):
+        return -x[0],
 
     def forward(self, x):
         self.retain_inputs(())
@@ -116,9 +109,6 @@ def neg(self):  # -x
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        return function._chainerx_op(chainerx.negative, self)
-
     return Neg().apply((self,))[0]
 
 
@@ -188,6 +178,9 @@ class Add(function_node.FunctionNode):
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
 
+    def forward_chainerx(self, x):
+        return x[0] + x[1],
+
     def forward(self, x):
         # may broadcast
         y = utils.force_array(x[0] + x[1])
@@ -210,6 +203,10 @@ class AddConstant(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('x',))
         type_check.expect(in_types.size() == 1)
+
+    def forward_chainerx(self, x):
+        value = _chainerx_preprocess_const(x[0], self.value, 'add')
+        return x[0] + value,
 
     def forward(self, x):
         value = _preprocess_const(x[0], self.value)
@@ -261,9 +258,6 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
     """
     if len(xs) == 2:
         lhs, rhs = xs
-        if backend.get_array_module(lhs) is chainerx:
-            return _chainerx_binary_op(chainerx.add, 'add', lhs, rhs)
-
         if numpy.isscalar(rhs):
             return AddConstant(rhs).apply((lhs,))[0]
         rhs = _preprocess_rhs(lhs, rhs)
@@ -284,6 +278,9 @@ class Sub(function_node.FunctionNode):
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
 
+    def forward_chainerx(self, x):
+        return x[0] - x[1],
+
     def forward(self, x):
         # may broadcast
         return utils.force_array(x[0] - x[1]),
@@ -303,9 +300,6 @@ def sub(self, rhs):  # lhs - rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        return _chainerx_binary_op(chainerx.subtract, 'sub', self, rhs)
-
     if numpy.isscalar(rhs):
         return AddConstant(-rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
@@ -339,9 +333,6 @@ def rsub(self, rhs):  # rhs - lhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        return _chainerx_binary_op(lambda a, b: b - a, 'rsub', self, rhs)
-
     if numpy.isscalar(rhs):
         return SubFromConstant(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
@@ -362,6 +353,9 @@ class Mul(function_node.FunctionNode):
         )
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
+
+    def forward_chainerx(self, x):
+        return x[0] * x[1],
 
     def forward(self, x):
         self.retain_inputs((0, 1))
@@ -388,6 +382,10 @@ class MulConstant(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('x',))
 
+    def forward_chainerx(self, x):
+        value = _chainerx_preprocess_const(x[0], self.value, 'mul')
+        return x[0] * value,
+
     def forward(self, x):
         value = _preprocess_const(x[0], self.value)
         return utils.force_array(value * x[0]),
@@ -403,9 +401,6 @@ def mul(self, rhs):  # lhs * rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        return _chainerx_binary_op(chainerx.multiply, 'mul', self, rhs)
-
     if numpy.isscalar(rhs):
         return MulConstant(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
@@ -426,6 +421,9 @@ class Div(function_node.FunctionNode):
         )
         type_check.expect_broadcast_shapes(
             in_types[0].shape, in_types[1].shape)
+
+    def forward_chainerx(self, x):
+        return x[0] / x[1],
 
     def forward(self, x):
         self.retain_inputs((0, 1))
@@ -501,15 +499,13 @@ def div(self, rhs):  # lhs / rhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        return _chainerx_binary_op(chainerx.divide, 'div', self, rhs)
-
     if numpy.isscalar(rhs):
         return MulConstant(1. / rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)
     return Div().apply((self, rhs))[0]
 
 
+# TODO(sonots): Support chainerx
 class DivFromConstant(function_node.FunctionNode):
 
     def __init__(self, value):
@@ -571,11 +567,6 @@ def rdiv(self, rhs):  # rhs / lhs
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(self) is chainerx:
-        # TODO(sonots): Support rhs of constant such as float
-        if backend.get_array_module(rhs) is chainerx:
-            return _chainerx_binary_op(lambda a, b: b / a, 'rdiv', self, rhs)
-
     if numpy.isscalar(rhs):
         return DivFromConstant(rhs).apply((self,))[0]
     rhs = _preprocess_rhs(self, rhs)

@@ -12,6 +12,7 @@ from chainer import variable
 import chainerx
 
 
+# TODO(sonots): Remove after use in batch_normalization is removed.
 def _chainerx_op(op, *variables):
     arrays = [None if v is None else variable.as_array(v) for v in variables]
     if not all([a is None or isinstance(a, chainerx.ndarray) for a in arrays]):

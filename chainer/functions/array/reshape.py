@@ -1,9 +1,6 @@
 import chainer
-from chainer import backend
-from chainer import function
 from chainer import function_node
 from chainer.utils import type_check
-import chainerx
 
 
 def _count_unknown_dims(shape):
@@ -38,6 +35,10 @@ class Reshape(function_node.FunctionNode):
                 known_size, 'known_size(=%d)' % known_size)
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return x.reshape(self.shape),
 
     def forward(self, inputs):
         x, = inputs
@@ -93,9 +94,6 @@ def reshape(x, shape):
         Actual: 8 != 12
 
     """
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(lambda a: a.reshape(shape), x)
-
     if x.shape == shape:
         return chainer.as_variable(x)
     y, = Reshape(shape).apply((x,))

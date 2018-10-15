@@ -1,10 +1,7 @@
 import numpy
 
-from chainer import backend
-from chainer import function
 from chainer import function_node
 from chainer.utils import type_check
-import chainerx
 
 
 class Transpose(function_node.FunctionNode):
@@ -20,10 +17,13 @@ class Transpose(function_node.FunctionNode):
     def label(self):
         return 'Transpose'
 
+    def forward_chainerx(self, inputs):
+        x = inputs[0]
+        return x.transpose(self.axes),
+
     def forward(self, inputs):
         x = inputs[0]
-        y = x.transpose(self.axes)
-        return y,
+        return x.transpose(self.axes),
 
     def backward(self, indexes, grad_outputs):
         inv_axes = self.axes
@@ -72,7 +72,4 @@ def transpose(x, axes=None):
                [[3., 4., 5.]]], dtype=float32)
 
     """
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(lambda a: a.transpose(axes), x)
-
     return Transpose(axes).apply((x,))[0]

@@ -1,9 +1,7 @@
 import numpy
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
-from chainer import function
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -22,6 +20,9 @@ class Tanh(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, x):
+        return chainerx.tanh(x[0]),
 
     def forward_cpu(self, x):
         y = utils.force_array(numpy.tanh(x[0]))
@@ -114,7 +115,4 @@ def tanh(x):
         array([-0.7615942,  0.7615942,  0.9950548], dtype=float32)
 
     """
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(chainerx.tanh, x)
-
     return Tanh().apply((x,))[0]

@@ -1,7 +1,6 @@
 import numpy
 
 from chainer import backend
-from chainer import function
 from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
@@ -18,6 +17,9 @@ class Sqrt(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, x):
+        return chainerx.sqrt(x[0]),
 
     def forward(self, x):
         self.retain_outputs((0,))
@@ -67,9 +69,6 @@ def sqrt(x):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    if backend.get_array_module(x) is chainerx:
-        return function._chainerx_op(chainerx.sqrt, x)
-
     return Sqrt().apply((x,))[0]
 
 
