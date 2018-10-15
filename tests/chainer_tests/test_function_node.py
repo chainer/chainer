@@ -14,6 +14,7 @@ from chainer.testing import attr
 from chainer.testing import backend
 from chainer.utils import type_check
 import chainerx
+import chainerx.testing
 
 
 def make_array(start, shape, dtype):
