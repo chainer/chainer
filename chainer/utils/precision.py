@@ -1,11 +1,14 @@
-import numpy
 import functools
+
+import numpy
 
 
 def _fp16_mixed_precision_helper(fn):
-    """Decorator to perform forward computation in FP32 for FP16 inputs,
-       returning outputs casted back to FP16. Do nothing for FP32 and FP64
-       inputs.
+    """Decorator to perform computation in FP32 for FP16 inputs/outputs
+
+    Decorator to perform forward computation in FP32 for FP16 inputs,
+    returning outputs casted back to FP16. Do nothing for FP32 and FP64
+    inputs.
     """
     @functools.wraps(fn)
     def wrapper(self, in_data):
