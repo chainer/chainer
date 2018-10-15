@@ -178,7 +178,7 @@ class DeviceId(object):
                it represents numpy module.
             6. If it is an instance of :class:`chainerx.Device` or
                :class:`chainerx.DeviceScope`, it represents a chainerx device.
-            6. If it is an instance of :class:`~chainer.backends.cuda.Device`,
+            7. If it is an instance of :class:`~chainer.backends.cuda.Device`,
                it represents a cupy device.
 
     Attributes:
