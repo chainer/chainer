@@ -260,18 +260,8 @@ class DeviceId(object):
         assert False
 
 
-# TODO(niboshi): Revisit API
-def to_device(arrays, device):
-    if device is cuda.DummyDevice:
-        return to_numpy(arrays)
-    elif isinstance(device, cuda.Device):
-        return cuda.to_gpu(arrays, device)
-    elif isinstance(device, chainerx.DeviceScope):
-        return to_chainerx(arrays, device.device)
-    elif isinstance(device, chainerx.Device):
-        return to_chainerx(arrays, device)
-    else:
-        raise TypeError('Invalid device: {}'.format(device))
+def to_device(arrays, device_spec):
+    return DeviceId(device_spec).to_device(arrays)
 
 
 def get_array_module(*args):
