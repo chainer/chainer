@@ -10,20 +10,28 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(*testing.product({
-    'shape_axis':
-        [{'shape': None, 'axis': 1}, {'shape': (5,), 'axis': 0}, ] +
-        testing.product({'shape': ((2, 3),), 'axis': (0, 1)}) +
-        testing.product({'shape': ((2, 3, 4),), 'axis': (0, -1)}) +
-        testing.product({'shape': ((2, 3, 2, 3),), 'axis': (-3, 3)}),
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
+@testing.parameterize(*testing.product_dict(
+    [
+        {'shape': None, 'axis': 1},
+        {'shape': (5,), 'axis': 0},
+    ] + testing.product({
+        'shape': [(2, 3)],
+        'axis': [0, 1]
+    }) + testing.product({
+        'shape': [(2, 3, 4)],
+        'axis': [0, -1]
+    }) + testing.product({
+        'shape': [(2, 3, 2, 3)],
+        'axis': [-3, 3]
+    }),
+    testing.product({
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    }),
+))
 @testing.fix_random()
 class TestSoftmax(unittest.TestCase):
 
     def setUp(self):
-        self.shape = self.shape_axis['shape']
-        self.axis = self.shape_axis['axis']
         if self.shape is None:
             # For checking numerical stability
             value = -5 if self.dtype == numpy.float16 else -1000
