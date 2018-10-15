@@ -7,12 +7,10 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
-from chainer import function
 from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import collections_abc
 from chainer.utils import type_check
-from chainer import variable
 import chainerx
 
 
@@ -89,6 +87,23 @@ class BatchNormalization(function_node.FunctionNode):
             type_check.expect(
                 x_type.shape[_key_axis[i]] == gamma_type.shape[i],
             )
+
+    def forward_chainerx(self, inputs):
+        # TODO(niboshi): Support conditions implemented as fallback
+        if self.running_mean is None or self.running_var is None:
+            return chainer.Fallback
+
+        # TODO(niboshi): This path is not tested. Fix the test.
+
+        x, gamma, beta = inputs
+        axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)
+        if not _chainerx_is_supported(x.device, axis_chx):
+            return chainer.Fallback
+
+        y = chainerx.batch_norm(
+            x, gamma, beta, self.running_mean, self.running_var,
+            self.eps, self.decay, axis_chx)
+        return y,
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
@@ -500,6 +515,22 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 x_type.shape[_key_axis[i]] == gamma_type.shape[i],
             )
 
+    def forward_chainerx(self, inputs):
+        # TODO(niboshi): Support conditions implemented as fallback
+
+        # TODO(niboshi): chainerx.fixed_batch_norm does not support backward
+        if chainer.config.enable_backprop:
+            return chainer.Fallback
+
+        x, gamma, beta, mean, var = inputs
+        axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)
+        if not _chainerx_is_supported(x.device, axis_chx):
+            return chainer.Fallback
+
+        y = chainerx.fixed_batch_norm(
+            x, gamma, beta, mean, var, self.eps, axis_chx)
+        return y,
+
     def forward(self, inputs):
         self.retain_inputs((0, 1, 3, 4))
         x, gamma, beta, mean, var = inputs
@@ -587,10 +618,10 @@ class FixedBatchNormalization(function_node.FunctionNode):
         gy, = grad_outputs
         f = FixedBatchNormalizationGrad(
             self.eps, self.expander, self.axis, self.inv_std, self.inv_var)
-        return f(x, gamma, mean, var, gy)
+        return f.apply((x, gamma, mean, var, gy))
 
 
-class FixedBatchNormalizationGrad(function.Function):
+class FixedBatchNormalizationGrad(function_node.FunctionNode):
 
     def __init__(self, eps, expander, axis, inv_std, inv_var):
         self.eps = eps
@@ -621,10 +652,11 @@ class FixedBatchNormalizationGrad(function.Function):
         self.retain_outputs((0, 1, 2, 3, 4))
         return gx, ggamma, gbeta, gmean, gvar
 
-    def backward(self, inputs, grad_outputs):
-        x, gamma, mean, _, gy = inputs
+    def backward(self, indexes, grad_outputs):
+        F = chainer.functions
+        x, gamma, mean, gy = self.get_retained_inputs()
         ggx1, gggamma1, ggbeta1, ggmean1, ggvar1 = grad_outputs
-        gx1, ggamma1, gbeta1, gmean1, gvar1 = self.output_data
+        gx1, ggamma1, gbeta1, gmean1, gvar1 = self.get_retained_outputs()
 
         # Handle None in output gradients.
         xp = backend.get_array_module(x)
@@ -645,9 +677,9 @@ class FixedBatchNormalizationGrad(function.Function):
         gggamma2 = gggamma1 + tmp * gamma_over_var
         gx_hat = gy * gggamma2[expander]
         gx2 = self.inv_std[expander] * gx_hat
-        gmean2 = -self.inv_std * gx_hat.sum(axis=self.axis)
+        gmean2 = -self.inv_std * F.sum(gx_hat, axis=self.axis)
 
-        g_gamma_over_std = (ggx1 * gy).sum(axis=self.axis) - ggmean1 * gbeta1
+        g_gamma_over_std = F.sum(ggx1 * gy, axis=self.axis) - ggmean1 * gbeta1
         ggbeta2 = ggbeta1 - ggmean1 * self.gamma_over_std
         ggy2 = (gggamma2[expander] * x_hat + ggbeta2[expander]
                 + self.gamma_over_std[expander] * ggx1)
@@ -655,7 +687,7 @@ class FixedBatchNormalizationGrad(function.Function):
         ggamma2 = (self.inv_var * g_gamma_over_var
                    + self.inv_std * g_gamma_over_std)
         gvar2 = -(ggamma2 * gamma_over_var + 0.5 * self.inv_var * (
-            (x_hat * gx_hat).sum(axis=self.axis)
+            F.sum(x_hat * gx_hat, axis=self.axis)
             - self.gamma_over_std * g_gamma_over_std))
 
         return gx2, ggamma2, gmean2, gvar2, ggy2
@@ -754,17 +786,19 @@ def _get_dtype_of_tensor_descriptor(desc):
     return dtype
 
 
-def _is_chainerx_supported(x, gamma_ndim, axis):
-    # Checks if the input configuration is supported in ChainerX
-    # Returns processed axis if supported, None otherwise.
-    device = x.array.device if isinstance(x, variable.Variable) else x.device
+def _chainerx_compute_axis(x_ndim, gamma_ndim, axis):
+    # Returns processed axis for ChainerX.
     axis_chx = (
         None if axis is None
         else axis if isinstance(axis, tuple)
         else (axis,))
-    axis_chx = _compute_axis(x.ndim, gamma_ndim, axis_chx)
-    axis_ndim_chx = len(axis_chx)
+    axis_chx = _compute_axis(x_ndim, gamma_ndim, axis_chx)
+    return axis_chx
 
+
+def _chainerx_is_supported(device, axis_chx):
+    # Checks if the input configuration is supported in ChainerX
+    axis_ndim_chx = len(axis_chx)
     if device.backend.name == 'cuda':
         # cuDNN batch norm restriction
         if not ((axis_ndim_chx == 3 and axis_chx[0] == 0
@@ -772,8 +806,8 @@ def _is_chainerx_supported(x, gamma_ndim, axis):
                 or (axis_ndim_chx == 4 and axis_chx[0] == 0
                     and axis_chx[1] == 2 and axis_chx[2] == 3
                     and axis_chx[3] == 4)):
-            return None  # fallback
-    return axis_chx
+            return False
+    return True
 
 
 def batch_normalization(x, gamma, beta, **kwargs):
@@ -854,19 +888,6 @@ def batch_normalization(x, gamma, beta, **kwargs):
         train='train argument is not supported anymore. '
         'Use chainer.using_config')
 
-    if backend.get_array_module(x) is chainerx:
-        if not (running_mean is None or running_var is None):
-            axis_chx = _is_chainerx_supported(x, gamma.ndim, axis)
-            if axis_chx is not None:
-
-                def chainerx_forward(x, gamma, beta, mean, var):
-                    return chainerx.batch_norm(
-                        x, gamma, beta, mean, var, eps, decay, axis_chx)
-
-                return function._chainerx_op(
-                    chainerx_forward, x, gamma, beta, running_mean,
-                    running_var)
-
     return BatchNormalization(eps, running_mean, running_var, decay,
                               axis).apply((x, gamma, beta))[0]
 
@@ -905,17 +926,5 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
        :class:`~chainer.links.BatchNormalization`
 
     """
-    if backend.get_array_module(x) is chainerx:
-        axis_chx = _is_chainerx_supported(x, gamma.ndim, axis)
-
-        if axis_chx is not None:
-
-            def chainerx_batchnorm(x, gamma, beta, mean, var):
-                return chainerx.fixed_batch_norm(
-                    x, gamma, beta, mean, var, eps, axis_chx)
-
-            return function._chainerx_op(
-                chainerx_batchnorm, x, gamma, beta, mean, var)
-
     return FixedBatchNormalization(eps, axis).apply((x, gamma, beta, mean,
                                                      var))[0]
