@@ -263,7 +263,7 @@ class TestDeviceId(unittest.TestCase):
         assert device_id.device is None
 
     @attr.chainerx
-    def test_init_str_chianerx_backend(self):
+    def test_init_str_chainerx_backend(self):
         device_id = backend.DeviceId('native')
         assert device_id.module is chainerx
         assert device_id.device is chainerx.get_device('native:0')
@@ -300,12 +300,38 @@ class TestDeviceId(unittest.TestCase):
     def test_init_tuple_cupy_device(self):
         device_id = backend.DeviceId((cuda.cupy, 0))
         assert device_id.module is cuda.cupy
-        assert device_id.device is 0
+        assert device_id.device == cuda.Device(0)
 
     @attr.gpu
     def test_init_tuple_cupy_invalid_device(self):
         with self.assertRaises(Exception):
             backend.DeviceId((cuda.cupy, 'foo'))
+
+    def test_init_dummy_device(self):
+        device_id = backend.DeviceId(cuda.DummyDevice)
+        assert device_id.module is numpy
+        assert device_id.device is None
+
+    @attr.chainerx
+    def test_init_chainerx_device(self):
+        device = chainerx.get_device('native:0')
+        device_id = backend.DeviceId(device)
+        assert device_id.module is chainerx
+        assert device_id.device is device
+
+    @attr.chainerx
+    def test_init_chainerx_device_scope(self):
+        device_scope = chainerx.device_scope(chainerx.get_device('native:0'))
+        device_id = backend.DeviceId(device_scope)
+        assert device_id.module is chainerx
+        assert device_id.device is device_scope.device
+
+    @attr.gpu
+    def test_init_cuda_device(self):
+        device = cuda.Device(0)
+        device_id = backend.DeviceId(device)
+        assert device_id.module is cuda.cupy
+        assert device_id.device == device
 
     def test_repr_module_numpy(self):
         device_id = backend.DeviceId(numpy)
@@ -320,16 +346,6 @@ class TestDeviceId(unittest.TestCase):
     def test_repr_module_chainerx(self):
         device_id = backend.DeviceId(chainerx)
         assert str(device_id) == 'DeviceId(chainerx)'
-
-    @attr.chainerx
-    def test_repr_str_chainerx_backend(self):
-        device_id = backend.DeviceId('native')
-        assert str(device_id) == 'DeviceId(native:0)'
-
-    @attr.chainerx
-    def test_repr_str_chainerx_device(self):
-        device_id = backend.DeviceId('native:0)')
-        assert str(device_id) == 'DeviceId(native:0)'
 
     @attr.chainerx
     def test_repr_tuple_chainerx_device(self):

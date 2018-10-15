@@ -174,19 +174,29 @@ class DeviceId(object):
                ('cuda', 1), it represents a chainerx device.
             4. If it is a tuple of a cupy module and an integer such
                as (cupy, 1), it represents a cupy device.
+            5. If it is :class:`~chainer.backends.cuda.DummyDevice`,
+               it represents numpy module.
+            6. If it is an instance of :class:`chainerx.Device` or
+               :class:`chainerx.DeviceScope`, it represents a chainerx device.
+            6. If it is an instance of :class:`~chainer.backends.cuda.Device`,
+               it represents a cupy device.
 
     Attributes:
         module: Target module to transfer.
-        device (None or chainerx.Device or int): Target device to transfer.
+        device (None or chainerx.Device or cuda.Device): Target device.
             None tries a zero-copy transfer between modules.
-            chainerx.Device if module is chianerx.
-            Int if module is cupy.
+            :class:`chainerx.Device` if module is chianerx.
+            :class:`~chainer.backends.cuda.Device` if module is cupy.
 
     """
 
     def __init__(self, device_spec):
         if device_spec is numpy:
-            self.module = device_spec
+            self.module = numpy
+            self.device = None
+            return
+        if device_spec is cuda.DummyDevice:
+            self.module = numpy
             self.device = None
             return
 
@@ -204,17 +214,29 @@ class DeviceId(object):
                 self.module = chainerx
                 self.device = chainerx.get_device(*device_spec)
                 return
+            if isinstance(device_spec, chainerx.Device):
+                self.module = chainerx
+                self.device = device_spec
+                return
+            if isinstance(device_spec, chainerx.DeviceScope):
+                self.module = chainerx
+                self.device = device_spec.device
+                return
 
         if cuda.available:
             if device_spec is cuda.cupy:
                 self.module = cuda.cupy
                 self.device = None
                 return
+            if isinstance(device_spec, cuda.Device):
+                self.module = cuda.cupy
+                self.device = device_spec
+                return
             if (isinstance(device_spec, tuple) and len(device_spec) == 2
                     and device_spec[0] is cuda.cupy
                     and isinstance(device_spec[1], _integer_types)):
                 self.module = cuda.cupy
-                self.device = device_spec[1]
+                self.device = cuda.Device(device_spec[1])
                 return
 
         raise ValueError('invalid device: {}'.format(device_spec))
@@ -227,14 +249,14 @@ class DeviceId(object):
         if self.module is cuda.cupy:
             if self.device is None:
                 return 'DeviceId(cupy)'
-            if isinstance(self.device, _integer_types):
-                return 'DeviceId((cupy, %d))' % self.device
+            assert isinstance(self.device, cuda.Device)
+            return 'DeviceId((cupy, %d))' % self.device.id
 
         if self.module is chainerx:
             if self.device is None:
                 return 'DeviceId(chainerx)'
-            if isinstance(self.device, chainerx.Device):
-                return 'DeviceId(%s)' % self.device.name
+            assert isinstance(self.device, chainerx.Device)
+            return 'DeviceId(%s)' % self.device.name
 
         assert False
 
@@ -248,7 +270,7 @@ class DeviceId(object):
             # TODO(sonots): Support CUDA stream
             if self.device is None:
                 return cuda.to_gpu(arrays)
-            assert isinstance(self.device, _integer_types)
+            assert isinstance(self.device, cuda.Device)
             return cuda.to_gpu(arrays, self.device)
 
         if self.module is chainerx:
