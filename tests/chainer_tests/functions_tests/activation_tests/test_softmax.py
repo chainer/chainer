@@ -14,16 +14,13 @@ from chainer.testing import attr
     [
         {'shape': None, 'axis': 1},
         {'shape': (5,), 'axis': 0},
-    ] + testing.product({
-        'shape': [(2, 3)],
-        'axis': [0, 1]
-    }) + testing.product({
-        'shape': [(2, 3, 4)],
-        'axis': [0, -1]
-    }) + testing.product({
-        'shape': [(2, 3, 2, 3)],
-        'axis': [-3, 3]
-    }),
+        {'shape': (2, 3), 'axis': 0},
+        {'shape': (2, 3), 'axis': 1},
+        {'shape': (2, 3, 4), 'axis': 0},
+        {'shape': (2, 3, 4), 'axis': -1},
+        {'shape': (2, 3, 2, 3), 'axis': -3},
+        {'shape': (2, 3, 2, 3), 'axis': 3},
+    ],
     testing.product({
         'dtype': [numpy.float16, numpy.float32, numpy.float64],
     }),
