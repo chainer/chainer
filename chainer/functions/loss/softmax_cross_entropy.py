@@ -270,9 +270,11 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
         return gx, None
 
     def backward(self, input_indexes, grad_outputs):
-        assert False, (
-            'This execution path of F.softmax_cross_entropy does not support '
-            'double-backprop. There must be a bug.')
+        raise RuntimeError(
+            'F.softmax_cross_entropy was called with '
+            '\'enable_double_backprop=False\' argument, but double-backprop '
+            'is actually being performed. Please specify '
+            '\'enable_double_backprop=True\' explicitly.')
 
 
 def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
