@@ -244,6 +244,70 @@ class TestToBackend(unittest.TestCase):
     # TODO(niboshi): Add more test variants
 
 
+class TestDeviceId(unittest.TestCase):
+    def test_init_module_numpy(self):
+        device_id = backend.DeviceId(numpy)
+        assert device_id.module is numpy
+        assert device_id.device is None
+
+    @attr.gpu
+    def test_init_module_cupy(self):
+        device_id = backend.DeviceId(cuda.cupy)
+        assert device_id.module is cuda.cupy
+        assert device_id.device is None
+
+    @attr.chainerx
+    def test_init_module_chainerx(self):
+        device_id = backend.DeviceId(chainerx)
+        assert device_id.module is chainerx
+        assert device_id.device is None
+
+    @attr.chainerx
+    def test_init_str_chianerx_backend(self):
+        device_id = backend.DeviceId('native')
+        assert device_id.module is chainerx
+        assert device_id.device is chainerx.get_device('native:0')
+
+    @attr.chainerx
+    def test_init_str_chainerx_device(self):
+        device_id = backend.DeviceId('native:0')
+        assert device_id.module is chainerx
+        assert device_id.device is chainerx.get_device('native:0')
+
+    @attr.chainerx
+    def test_init_str_chainerx_invalid(self):
+        with self.assertRaises(Exception):
+            backend.DeviceId('native:foo')
+
+    @attr.chainerx
+    def test_init_tuple_chainerx_backend(self):
+        device_id = backend.DeviceId(('native',))
+        assert device_id.module is chainerx
+        assert device_id.device is chainerx.get_device('native:0')
+
+    @attr.chainerx
+    def test_init_tuple_chainerx_device(self):
+        device_id = backend.DeviceId(('native', 0))
+        assert device_id.module is chainerx
+        assert device_id.device is chainerx.get_device('native:0')
+
+    @attr.chainerx
+    def test_init_tuple_chainerx_invalid(self):
+        with self.assertRaises(Exception):
+             backend.DeviceId(('native', 'foo'))
+
+    @attr.gpu
+    def test_init_tuple_cupy_device(self):
+        device_id = backend.DeviceId((cuda.cupy, 0))
+        assert device_id.module is cuda.cupy
+        assert device_id.device is 0
+
+    @attr.gpu
+    def test_init_tuple_cupy_invalid_device(self):
+        with self.assertRaises(Exception):
+            backend.DeviceId((cuda.cupy, 'foo'))
+
+
 class TestToDevice(unittest.TestCase):
 
     def orig_numpy(self):
