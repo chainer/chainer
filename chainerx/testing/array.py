@@ -29,10 +29,10 @@ def _check_dtype_and_strides(x, y, dtype_check, strides_check):
             and isinstance(y, (numpy.ndarray, chainerx.ndarray))):
         if strides_check:
             assert x.strides == y.strides, (
-                f'Strides mismatch: x: {x.strides}, y: {y.strides}')
+                'Strides mismatch: x: {}, y: {}'.format(x.strides, y.strides))
         if dtype_check:
             assert x.dtype.name == y.dtype.name, (
-                f'Dtype mismatch: x: {x.dtype}, y: {y.dtype}')
+                'Dtype mismatch: x: {}, y: {}'.format(x.dtype, y.dtype))
 
 
 def _preprocess_input(a):
