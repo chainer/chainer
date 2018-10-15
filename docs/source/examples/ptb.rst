@@ -8,7 +8,7 @@ RNN Language Models
 
 The **language model** is modeling the probability of generating natural language
 sentences or documents. You can use the language model to estimate how natural a
-sentence or a documentation is. Also, with the language model, you can generate new
+sentence or a document is. Also, with the language model, you can generate new
 sentences or documents.
 
 Let's start with modeling the probability of generating sentences. We represent
