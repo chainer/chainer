@@ -239,7 +239,7 @@ class DeviceId(object):
         assert False
 
     """Transfers given arrays to the device."""
-    def to_device(arrays):
+    def to_device(self, arrays):
         if self.module is numpy:
             assert self.device is None
             return to_numpy(arrays)
