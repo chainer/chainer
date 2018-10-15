@@ -1,9 +1,39 @@
+import json
 import os
 import shutil
 
 from chainer.serializers import npz
 from chainer.training import extension
 from chainer import utils
+
+
+
+class _SnapshotExtension(extension.Extension):
+    def __init__(self, trigger, priority, target, filename, savefun=npz.save_npz, loadfun=npz.load_npz, state_filename='snapshot_state.json'):
+        self.trigger = trigger
+        self.priority = priority
+        self.target = target
+        self.savefun = savefun
+        self.loadfun = loadfun
+        self.filename = filename
+        self.state_filename = state_filename
+
+    def initialize(self, trainer):
+        # Automatically resume from latest snapshot.
+        state_fn = os.path.join(trainer.out, self.state_filename)
+        target = trainer if self.target is None else self.target
+        if os.path.exists(state_fn):
+            state = json.load(open(state_fn))
+            fn = os.path.join(trainer.out, state['last_snapshot'])
+            self.loadfun(fn, target)
+
+    def __call__(self, trainer):
+        # Save snapshot with meta data (snapshot_state.json)
+        state_fn = os.path.join(trainer.out, self.state_filename)
+        target = trainer if self.target is None else self.target
+        fn = self.filename.format(trainer)
+        _snapshot_object(trainer, target, fn, self.savefun)
+        json.dump({'last_snapshot': fn}, open(state_fn, 'w'))
 
 
 def snapshot_object(target, filename, savefun=npz.save_npz):
@@ -34,11 +64,7 @@ def snapshot_object(target, filename, savefun=npz.save_npz):
         An extension function.
 
     """
-    @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
-    def snapshot_object(trainer):
-        _snapshot_object(trainer, target, filename.format(trainer), savefun)
-
-    return snapshot_object
+    return _SnapshotExtension((1, 'epoch'), -100, target, filename, savefun)
 
 
 def snapshot(savefun=npz.save_npz,
@@ -71,11 +97,7 @@ def snapshot(savefun=npz.save_npz,
             the :meth:`str.format` method.
 
     """
-    @extension.make_extension(trigger=(1, 'epoch'), priority=-100)
-    def snapshot(trainer):
-        _snapshot_object(trainer, trainer, filename.format(trainer), savefun)
-
-    return snapshot
+    return _SnapshotExtension((1, 'epoch'), -100, None, filename, savefun)
 
 
 def _snapshot_object(trainer, target, filename, savefun):
