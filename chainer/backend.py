@@ -213,18 +213,18 @@ class DeviceId(object):
     def __repr__(self):
         if self.device is None:
             if self.module is numpy:
-                return 'Device(numpy)'
+                return 'DeviceId(numpy)'
             if self.module is cuda.cupy:
-                return 'Device(cupy)'
+                return 'DeviceId(cupy)'
             if self.module is chainerx:
-                return 'Device(chainerx)'
+                return 'DeviceId(chainerx)'
 
         if isinstance(self.device, chainerx.Device):
-            return 'Device(%s)' % self.device.name
+            return 'DeviceId(%s)' % self.device.name
 
         if isinstance(self.device, _integer_types):
             assert self.module is cuda.cupy
-            return 'Device((cupy, %d))' % self.device
+            return 'DeviceId((cupy, %d))' % self.device
 
         assert False
 

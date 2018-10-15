@@ -307,6 +307,40 @@ class TestDeviceId(unittest.TestCase):
         with self.assertRaises(Exception):
             backend.DeviceId((cuda.cupy, 'foo'))
 
+    def test_repr_module_numpy(self):
+        device_id = backend.DeviceId(numpy)
+        assert str(device_id) == 'DeviceId(numpy)'
+
+    @attr.gpu
+    def test_repr_module_cupy(self):
+        device_id = backend.DeviceId(cuda.cupy)
+        assert str(device_id) == 'DeviceId(cupy)'
+
+    @attr.chainerx
+    def test_repr_module_chainerx(self):
+        device_id = backend.DeviceId(chainerx)
+        assert str(device_id) == 'DeviceId(chainerx)'
+
+    @attr.chainerx
+    def test_repr_str_chainerx_backend(self):
+        device_id = backend.DeviceId('native')
+        assert str(device_id) == 'DeviceId(native:0)'
+
+    @attr.chainerx
+    def test_repr_str_chainerx_device(self):
+        device_id = backend.DeviceId('native:0)')
+        assert str(device_id) == 'DeviceId(native:0)'
+
+    @attr.chainerx
+    def test_repr_tuple_chainerx_device(self):
+        device_id = backend.DeviceId(('native', 0))
+        assert str(device_id) == 'DeviceId(native:0)'
+
+    @attr.gpu
+    def test_repr_tuple_cupy_device(self):
+        device_id = backend.DeviceId((cuda.cupy, 0))
+        assert str(device_id) == 'DeviceId((cupy, 0))'
+
 
 class TestToDevice(unittest.TestCase):
 
