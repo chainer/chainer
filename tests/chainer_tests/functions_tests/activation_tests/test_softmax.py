@@ -12,7 +12,7 @@ from chainer.testing import attr
 
 @testing.parameterize(*testing.product({
     'shape_axis':
-        [{'shape': None, 'axis': 1}, ] +
+        [{'shape': None, 'axis': 1}, {'shape': (5,), 'axis': 0}, ] +
         testing.product({'shape': ((2, 3),), 'axis': (0, 1)}) +
         testing.product({'shape': ((2, 3, 4),), 'axis': (0, -1)}) +
         testing.product({'shape': ((2, 3, 2, 3),), 'axis': (-3, 3)}),
