@@ -4,6 +4,7 @@ import warnings
 import six
 
 from chainer import configuration
+from chainer import backend
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer import function
@@ -78,6 +79,9 @@ class Evaluator(extension.Extension):
 
     def __init__(self, iterator, target, converter=convert.concat_examples,
                  device=None, eval_hook=None, eval_func=None):
+        if device is not None:
+            device = backend.get_device(device)
+
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
         self._iterators = iterator
