@@ -241,7 +241,6 @@ class DeviceId(object):
 
         raise ValueError('invalid device: {}'.format(device_spec))
 
-
     def __repr__(self):
         if self.module is numpy:
             return 'DeviceId(numpy)'

@@ -294,7 +294,7 @@ class TestDeviceId(unittest.TestCase):
     @attr.chainerx
     def test_init_tuple_chainerx_invalid(self):
         with self.assertRaises(Exception):
-             backend.DeviceId(('native', 'foo'))
+            backend.DeviceId(('native', 'foo'))
 
     @attr.gpu
     def test_init_tuple_cupy_device(self):
