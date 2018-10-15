@@ -3,6 +3,9 @@ import pytest
 pytest.register_assert_rewrite('chainerx.testing.array')
 pytest.register_assert_rewrite('chainerx.testing.helper')
 
+from chainerx._testing import _DeviceBuffer
+from chainerx._testing import _fromnumpy
+
 from chainerx.testing import array  # NOQA
 from chainerx.testing import helper  # NOQA
 
