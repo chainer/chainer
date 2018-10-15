@@ -39,7 +39,8 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
     N_test = X_test.shape[0] if eval_size is None else eval_size
 
     if N_test > X_test.shape[0]:
-        raise ValueError(f'Test size can be no larger than {X_test.shape[0]}')
+        raise ValueError(
+            'Test size can be no larger than {}'.format(X_test.shape[0]))
 
     model.no_grad()
 
@@ -137,8 +138,8 @@ def main():
                     model, x_test, t_test, eval_size, batch_size)
                 elapsed_time = time.time() - start
                 print(
-                    f'iteration {it}... loss={mean_loss},\t'
-                    f'accuracy={accuracy},\telapsed_time={elapsed_time}')
+                    'iteration {}... loss={},\taccuracy={},\telapsed_time={}'
+                    .format(it, mean_loss, accuracy, elapsed_time))
                 if it >= args.iteration:
                     is_finished = True
                     break
@@ -150,8 +151,8 @@ def main():
                 model, x_test, t_test, eval_size, batch_size)
             elapsed_time = time.time() - start
             print(
-                f'epoch {epoch}... loss={mean_loss},\taccuracy={accuracy},\t'
-                f'elapsed_time={elapsed_time}')
+                'epoch {}... loss={},\taccuracy={},\telapsed_time={}'
+                .format(epoch, mean_loss, accuracy, elapsed_time))
             if epoch >= args.epoch:
                 is_finished = True
 
