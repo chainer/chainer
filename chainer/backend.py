@@ -259,7 +259,15 @@ class DeviceId(object):
 
         assert False
 
-    """Transfers given arrays to the device."""
+    """Transfers given arrays to the device.
+
+    Args:
+        arrays: Arrays of NumPy, CuPy, or ChainerX.
+
+    Returns:
+        Transferred arrays.
+
+    """
     def to_device(self, arrays):
         if self.module is numpy:
             assert self.device is None
