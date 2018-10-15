@@ -84,9 +84,7 @@ class AveragePoolingND(pooling_nd._PoolingND):
         elif self.pad_value is None:
             pad_mode = 'ignore'
         else:
-            raise ValueError(
-                'pad_value must be either 0 or None, not {}.'.format(
-                    self.pad_value))
+            assert False
 
         return chainerx.average_pool(
             x, self.ksize, self.stride, self.pad, pad_mode),
