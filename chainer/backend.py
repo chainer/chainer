@@ -190,49 +190,41 @@ class DeviceId(object):
 
     """
 
+    # class of device_spec: (module, lambda to get device from device_spec)
+    _init_dict = {
+        cuda.DummyDeviceType: (numpy, lambda x: None),
+    }
+    if cuda.available:
+        _init_dict.update({
+            cuda.Device: (cuda.cupy, lambda device: device),
+        })
+    if chainerx.is_available():
+        _init_dict.update({
+            str: (chainerx, chainerx.get_device),
+            chainerx.Device: (chainerx, lambda device: device),
+            chainerx.DeviceScope: (chainerx, lambda scope: scope.device),
+        })
+
     def __init__(self, device_spec):
-        if device_spec is numpy:
-            self.module = numpy
-            self.device = None
-            return
-        if device_spec is cuda.DummyDevice:
-            self.module = numpy
+        # TODO(sonots): Using set is faster, but need to make cuda.Device
+        # be hashable
+        if any([device_spec is mod for mod in (numpy, cuda.cupy, chainerx)]):
+            self.module = device_spec
             self.device = None
             return
 
-        if chainerx.is_available():
-            if device_spec is chainerx:
-                self.module = chainerx
-                self.device = None
-                return
-            if isinstance(device_spec, str):
-                self.module = chainerx
-                self.device = chainerx.get_device(device_spec)
-                return
-            if (isinstance(device_spec, tuple)
-                    and isinstance(device_spec[0], str)):
+        pair = DeviceId._init_dict.get(device_spec.__class__)
+        if pair is not None:
+            self.module = pair[0]
+            self.device = pair[1](device_spec)
+            return
+
+        if isinstance(device_spec, tuple):
+            if chainerx.is_available() and isinstance(device_spec[0], str):
                 self.module = chainerx
                 self.device = chainerx.get_device(*device_spec)
                 return
-            if isinstance(device_spec, chainerx.Device):
-                self.module = chainerx
-                self.device = device_spec
-                return
-            if isinstance(device_spec, chainerx.DeviceScope):
-                self.module = chainerx
-                self.device = device_spec.device
-                return
-
-        if cuda.available:
-            if device_spec is cuda.cupy:
-                self.module = cuda.cupy
-                self.device = None
-                return
-            if isinstance(device_spec, cuda.Device):
-                self.module = cuda.cupy
-                self.device = device_spec
-                return
-            if (isinstance(device_spec, tuple) and len(device_spec) == 2
+            if (cuda.available and len(device_spec) == 2
                     and device_spec[0] is cuda.cupy
                     and isinstance(device_spec[1], _integer_types)):
                 self.module = cuda.cupy
@@ -259,34 +251,24 @@ class DeviceId(object):
 
         assert False
 
-    """Transfers given arrays to the device.
+    # module: f(arrays, device)
+    _to_device_dict = {
+        numpy: lambda arrays, device: to_numpy(arrays),
+        cuda.cupy: cuda.to_gpu,
+        chainerx: to_chainerx,
+    }
 
-    Args:
-        arrays: Arrays of NumPy, CuPy, or ChainerX.
-
-    Returns:
-        Transferred arrays.
-
-    """
     def to_device(self, arrays):
-        if self.module is numpy:
-            assert self.device is None
-            return to_numpy(arrays)
+        """Transfers given arrays to the device.
 
-        if self.module is cuda.cupy:
-            # TODO(sonots): Support CUDA stream
-            if self.device is None:
-                return cuda.to_gpu(arrays)
-            assert isinstance(self.device, cuda.Device)
-            return cuda.to_gpu(arrays, self.device)
+        Args:
+            arrays: Arrays of NumPy, CuPy, or ChainerX.
 
-        if self.module is chainerx:
-            if self.device is None:
-                return to_chainerx(arrays)
-            assert isinstance(self.device, chainerx.Device)
-            return to_chainerx(arrays, self.device)
+        Returns:
+            Transferred arrays.
 
-        assert False
+        """
+        return DeviceId._to_device_dict[self.module](arrays, self.device)
 
 
 def to_device(arrays, device_spec):
