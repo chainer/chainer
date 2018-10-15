@@ -352,6 +352,11 @@ class _CheckBackward(object):
         gx_backward = self._directional_backward_gradients(
             xs_backward, y_backward, directions)
 
+        # If no input has a gradient, we don't need to compare with numeric
+        # gradient.
+        if len(self.x_data) + len(self.params) == self.no_grads.count(True):
+            return
+
         # Compute numeric gradients
         gx_numeric = self._directional_numeric_gradients(directions, y0_data)
 
