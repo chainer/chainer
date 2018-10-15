@@ -35,7 +35,7 @@ class _ResultsCheckFailure(Exception):
         self.indices = tuple(indices)
         if condense_results_func is None:
             def condense_results_func(np_r, chx_r):
-                return f'chainerx: {chx_r} numpy: {np_r}'
+                return 'chainerx: {} numpy: {}'.format(chx_r, np_r)
         self.condense_results_func = condense_results_func
 
     def condense_results(self, numpy_result, chainerx_result):
@@ -101,14 +101,14 @@ def _check_chainerx_numpy_result_array(
         raise _ResultsCheckFailure(
             'Shape mismatch', indices,
             lambda np_r, chx_r: (
-                f'chainerx: {chx_r.shape}, numpy: {np_r.shape}'))
+                'chainerx: {}, numpy: {}'.format(chx_r.shape, np_r.shape)))
 
     if chainerx_result.device is not chainerx.get_default_device():
         raise _ResultsCheckFailure(
             'ChainerX bad device', indices,
             lambda np_r, chx_r: (
-                f'default: {chainerx.get_default_device()}, '
-                f'chainerx: {chx_r.device}'))
+                'default: {}, chainerx: {}'.format(
+                    chainerx.get_default_device(), chx_r.device)))
 
     try:
         check_result_func(chainerx_result, numpy_result)
@@ -166,17 +166,18 @@ def _check_chainerx_numpy_result(
             i += 1
 
         def make_message(e):
-            indices_str = ''.join(f'[{i}]' for i in indices)
-            s = f'{e.msg}: {e.condense_results(np_r, chx_r)}\n\n'
+            indices_str = ''.join('[{}]'.format(i) for i in indices)
+            s = '{}: {}\n\n'.format(e.msg, e.condense_results(np_r, chx_r))
             if len(indices) > 0:
-                s += f'chainerx results{indices_str}: {type(chx_r)}\n'
-                s += f'{chx_r}\n\n'
-                s += f'numpy results{indices_str}: {type(np_r)}\n'
-                s += f'{np_r}\n\n'
-            s += f'chainerx results: {type(chainerx_result)}\n'
-            s += f'{chainerx_result}\n\n'
-            s += f'numpy results: {type(numpy_result)}\n'
-            s += f'{numpy_result}\n\n'
+                s += 'chainerx results{}: {}\n'.format(
+                    indices_str, type(chx_r))
+                s += '{}\n\n'.format(chx_r)
+                s += 'numpy results{}: {}\n'.format(indices_str, type(np_r))
+                s += '{}\n\n'.format(np_r)
+            s += 'chainerx results: {}\n'.format(type(chainerx_result))
+            s += '{}\n\n'.format(chainerx_result)
+            s += 'numpy results: {}\n'.format(type(numpy_result))
+            s += '{}\n\n'.format(numpy_result)
             return s
 
         raise AssertionError(make_message(e))
@@ -202,8 +203,9 @@ def _make_decorator(check_result_func, name, accept_error):
                                             accept_error=accept_error)
                 return
             assert chainerx_result is not None and numpy_result is not None, (
-                f'Either or both of ChainerX and numpy returned None. '
-                f'chainerx: {chainerx_result}, numpy: {numpy_result}')
+                'Either or both of ChainerX and numpy returned None. '
+                'chainerx: {}, numpy: {}'.format(
+                    chainerx_result, numpy_result))
             _check_chainerx_numpy_result(
                 check_result_func, chainerx_result, numpy_result)
         # Apply dummy parametrization on `name` (e.g. 'xp') to avoid pytest
