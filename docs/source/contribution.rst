@@ -422,7 +422,7 @@ Note that reviewers will test your code without the option to check CUDA-related
 Documentation
 -------------
 
-When adding a new feature to the framework, you also need to documentation it in the reference.
+When adding a new feature to the framework, you also need to document it in the reference.
 For example, if you are adding a new function under ``chainer.functions``, you need to add it to the :doc:`reference/functions` page.
 
 .. note::
