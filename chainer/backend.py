@@ -6,6 +6,9 @@ from chainer.backends import intel64
 import chainerx
 
 
+_integer_types = six.integer_types + (numpy.integer,)
+
+
 def _contains_nan(x):
     """Returns whether the input array has NaN values.
 
@@ -153,6 +156,97 @@ def to_chainerx(array, device=None):
     # If device is None, appropriate device is chosen according to the input
     # arrays.
     return _obj_to_array(array, lambda arr: _array_to_chainerx(arr, device))
+
+
+class DeviceId(object):
+    """Device ID.
+
+    This object represents a device identifier to be specified in transferring
+    arrays into devices or modules.
+
+    Args:
+        device_spec (object): Device specifier.
+            1. If it is a module, it represents a transfer between
+               modules. It tries a zero-copy transfer as much as possible.
+            2. If it is a string, it represents a chainerx device.
+            3. If it is a tuple of a string and an integer such as
+               ('cuda', 1), it represents a chainerx device.
+            4. If it is a tuple of a cupy module and an integer such
+               as (cupy, 1), it represents a cupy device.
+
+    Attributes:
+        module: Target module to transfer.
+        device (None or chainerx.Device or int): Target device to transfer.
+            None to try a zero-copy transfer as much as possible.
+            chainerx.Device if module is chianerx.
+            Int of a device index if module is cupy.
+
+    """
+
+    def __init__(self, device_spec):
+        if device_spec is in [numpy, cuda.cupy, chainerx]:
+            self.module = device_spec
+            self.device = None
+            return
+
+        if isinstance(device_spec, str):
+            self.module = chainerx
+            self.device = chainerx.get_device(device_spec)
+            return
+
+        if isinstance(device_spec, tuple):
+            if isinstance(device_spec[0], str):
+                self.module = chainerx
+                self.device = chainerx.get_device(*device_spec)
+                return
+
+            if (len(device_spec) == 2 and device_spec[0] is cuda.cupy
+                    and isinstance(device_spec[1], _integer_types)):
+                self.module = cuda.cupy
+                self.device = device_spec[1]
+                return
+
+        raise ValueError('invalid device: {}'.format(device_spec))
+
+
+    def __repr__(self):
+        if self.device is None:
+            if self.module is numpy:
+                return 'Device(numpy)'
+            if self.module is cuda.cupy:
+                return 'Device(cupy)'
+            if self.module is chainerx:
+                return 'Device(chainerx)'
+
+        if isinstance(self.device, chainerx.Device):
+            return 'Device(%s)' % self.device.name
+
+        if isinstance(self.device, _integer_types):
+            assert self.module is cuda.cupy
+            return 'Device((cupy, %d))' % self.device
+
+        assert False
+
+    """Transfers given arrays to the device."""
+    def to_device(arrays):
+        if self.module is numpy:
+            assert self.device is None
+            return to_numpy(arrays):
+
+        if self.module is cuda.cupy:
+            # TODO(sonots): Support CUDA stream
+            if self.device is None:
+                return cuda.to_gpu(arrays)
+            assert isinstance(self.device, _integer_types)):
+            return cuda.to_gpu(arrays, self.device)
+
+        if self.module is chainerx:
+            if self.device is None
+                return to_chainerx(arrays)
+            assert isinstance(self.device, chainerx.Device)
+            return to_chainerx(arrays, self.device)
+
+        assert False
 
 
 # TODO(niboshi): Revisit API
