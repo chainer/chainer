@@ -178,30 +178,40 @@ class DeviceId(object):
     Attributes:
         module: Target module to transfer.
         device (None or chainerx.Device or int): Target device to transfer.
-            None to try a zero-copy transfer as much as possible.
+            None tries a zero-copy transfer between modules.
             chainerx.Device if module is chianerx.
-            Int of a device index if module is cupy.
+            Int if module is cupy.
 
     """
 
     def __init__(self, device_spec):
-        if device_spec in (numpy, cuda.cupy, chainerx):
+        if device_spec is numpy:
             self.module = device_spec
             self.device = None
             return
 
-        if isinstance(device_spec, str):
-            self.module = chainerx
-            self.device = chainerx.get_device(device_spec)
-            return
-
-        if isinstance(device_spec, tuple):
-            if isinstance(device_spec[0], str):
+        if chainerx.is_available():
+            if device_spec is chainerx:
+                self.module = chainerx
+                self.device = None
+                return
+            if isinstance(device_spec, str):
+                self.module = chainerx
+                self.device = chainerx.get_device(device_spec)
+                return
+            if (isinstance(device_spec, tuple)
+                    and isinstance(device_spec[0], str)):
                 self.module = chainerx
                 self.device = chainerx.get_device(*device_spec)
                 return
 
-            if (len(device_spec) == 2 and device_spec[0] is cuda.cupy
+        if cuda.available:
+            if device_spec is cuda.cupy:
+                self.module = cuda.cupy
+                self.device = None
+                return
+            if (isinstance(device_spec, tuple) and len(device_spec) == 2
+                    and device_spec[0] is cuda.cupy
                     and isinstance(device_spec[1], _integer_types)):
                 self.module = cuda.cupy
                 self.device = device_spec[1]
@@ -211,20 +221,20 @@ class DeviceId(object):
 
 
     def __repr__(self):
-        if self.device is None:
-            if self.module is numpy:
-                return 'DeviceId(numpy)'
-            if self.module is cuda.cupy:
+        if self.module is numpy:
+            return 'DeviceId(numpy)'
+
+        if self.module is cuda.cupy:
+            if self.device is None:
                 return 'DeviceId(cupy)'
-            if self.module is chainerx:
+            if isinstance(self.device, _integer_types):
+                return 'DeviceId((cupy, %d))' % self.device
+
+        if self.module is chainerx:
+            if self.device is None:
                 return 'DeviceId(chainerx)'
-
-        if isinstance(self.device, chainerx.Device):
-            return 'DeviceId(%s)' % self.device.name
-
-        if isinstance(self.device, _integer_types):
-            assert self.module is cuda.cupy
-            return 'DeviceId((cupy, %d))' % self.device
+            if isinstance(self.device, chainerx.Device):
+                return 'DeviceId(%s)' % self.device.name
 
         assert False
 
