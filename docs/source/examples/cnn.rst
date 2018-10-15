@@ -424,7 +424,7 @@ References
 ..........
 
 .. [LeCun98] Yann LeCun, Léon Bottou, Yoshua Bengio, and Patrick Haffner.
-    Gradient-based learning applied to documentation recognition. Proceedings of the
+    Gradient-based learning applied to document recognition. Proceedings of the
     IEEE, 86(11), 2278–2324, 1998.
 .. [Simonyan14] Simonyan, K. and Zisserman, A., Very Deep Convolutional
     Networks for Large-Scale Image Recognition. arXiv preprint arXiv:1409.1556,
