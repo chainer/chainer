@@ -879,7 +879,7 @@ class Variable(object):
 
         # ensure that the node tracks the device migration
         node = self._node
-        if node._data is not None:
+        if node is not None and node._data is not None:
             node.retain_data()
 
     def to_gpu(self, device=None):
