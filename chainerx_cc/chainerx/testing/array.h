@@ -82,7 +82,10 @@ public:
                     }
                 }
             }
-            return internal::FromHostData(shape, dtype, std::move(ptr), std::move(strides), 0, *builder.device_);
+
+            Array out = internal::FromHostData(shape, dtype, std::move(ptr), std::move(strides), 0, *builder.device_);
+            out.device().Synchronize();
+            return out;
         };
         return *this;
     }

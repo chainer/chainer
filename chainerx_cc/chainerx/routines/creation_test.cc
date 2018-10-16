@@ -281,6 +281,7 @@ TEST_P(CreationTest, FromData) {
         {
             // test potential freed memory
             std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
+            device.Synchronize();
             data_ptr = data.get();
             x = FromData(shape, dtype, data, strides, offset);
         }
@@ -309,6 +310,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
         {
             // test potential freed memory
             std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
+            device.Synchronize();
             data_ptr = data.get();
             // nullopt strides creates an array from a contiguous data
             x = FromData(shape, dtype, data, nonstd::nullopt, offset);

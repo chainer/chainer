@@ -1,5 +1,6 @@
 #include "chainerx/numerical_gradient.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -37,6 +38,7 @@ public:
             const Arrays& expected_grads) {
         size_t nin = center_inputs.size();
 
+        std::cout << "check elementwise 1" << std::endl;
         auto checked_func = [&](const Arrays& inputs) -> Arrays {
             EXPECT_EQ(inputs.size(), nin) << "The number of inputs given to the function is wrong";
             for (size_t i = 0; i < center_inputs.size(); ++i) {
@@ -47,23 +49,46 @@ public:
             return func(inputs);
         };
 
+        std::cout << "check elementwise 2" << std::endl;
+
         Arrays grads = CalculateNumericalGradient(checked_func, center_inputs, grad_outputs, eps);
+
+        std::cout << "check elementwise 3" << std::endl;
 
         EXPECT_EQ(grads.size(), expected_grads.size());
 
-        GetDefaultDevice().Synchronize();
+        std::cout << "check elementwise 4" << std::endl;
+
+        // GetDefaultDevice().Synchronize();
+
+        std::cout << "check elementwise 5" << std::endl;
+
+        SynchronizeArrays(grads);
+        SynchronizeArrays(expected_grads);
+
+        std::cout << "check elementwise 5.1" << std::endl;
+
         for (size_t i = 0; i < nin; ++i) {
             auto grads_data = static_cast<const T*>(grads[i].data().get());
+            std::cout << "check elementwise 5.1.1" << std::endl;
             auto expected_grads_data = static_cast<const T*>(expected_grads.at(i).data().get());
+            std::cout << "check elementwise 5.1.2" << std::endl;
 
             int64_t total_size = grads.at(i).GetTotalSize();
             for (int64_t i = 0; i < total_size; ++i) {
                 EXPECT_NEAR(grads_data[i], expected_grads_data[i], 1e-3f) << "gradient mismatch at i=" << i;
             }
+            std::cout << "check elementwise 5.1.3" << std::endl;
         }
+
+        std::cout << "check elementwise 6" << std::endl;
     }
 
 private:
+    void SynchronizeArrays(const Arrays& arrays) {
+        std::for_each(arrays.begin(), arrays.end(), [](const Array& array) { array.device().Synchronize(); });
+    }
+
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 

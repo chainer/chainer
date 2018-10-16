@@ -231,23 +231,47 @@ TEST_P(CudaBackendTransferTest, MemoryCopyFromZeroByte) {
 }
 
 TEST_P(CudaBackendTransferTest, MemoryCopyTo) {
+    std::cout << "--------------------------------------------------------" << std::endl;
+    std::cout << "Param 1: " << ::testing::get<0>(GetParam()) << std::endl;
+    std::cout << "Param 2: " << ::testing::get<1>(GetParam()) << std::endl;
+
     CHAINERX_REQUIRE_DEVICE("cuda", ::testing::get<2>(GetParam()));
+
+    std::cout << "a" << std::endl;
+
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
     float raw_data[] = {0, 1, 2};
     std::shared_ptr<void> src_orig(raw_data, [](float*) {});
 
+    std::cout << "b" << std::endl;
+
     Context ctx;
     Device& device0 = ctx.GetDevice(::testing::get<0>(GetParam()));
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
+    std::cout << "c" << std::endl;
+
     std::shared_ptr<void> src = device0.FromHostMemory(src_orig, bytesize);
+
+    std::cout << "d" << std::endl;
+
     device0.Synchronize();
+
+    std::cout << "e" << std::endl;
+
     std::shared_ptr<void> dst = device1.Allocate(bytesize);
+
+    std::cout << "f" << std::endl;
+
     device0.MemoryCopyTo(dst.get(), src.get(), bytesize, device1);
+    std::cout << "g" << std::endl;
     device0.Synchronize();
+    std::cout << "h" << std::endl;
     device1.Synchronize();
+    std::cout << "i" << std::endl;
     ExpectDataEqual<float>(src, dst, size);
+    std::cout << "j" << std::endl;
 }
 
 TEST_P(CudaBackendTransferTest, MemoryCopyToZeroByte) {
@@ -280,6 +304,7 @@ TEST_P(CudaBackendTransferTest, TransferDataFrom) {
 
     // Transfer
     std::shared_ptr<void> trans_data = device0.TransferDataFrom(device1, data, 0, bytesize);
+    device0.Synchronize();
 
     EXPECT_EQ(0, std::memcmp(data.get(), trans_data.get(), bytesize));
 
@@ -301,6 +326,8 @@ TEST_P(CudaBackendTransferTest, TransferDataTo) {
 
     // Transfer
     std::shared_ptr<void> trans_data = device0.TransferDataTo(device1, data, 0, bytesize);
+    device0.Synchronize();
+    device1.Synchronize();
 
     EXPECT_EQ(0, std::memcmp(data.get(), trans_data.get(), bytesize));
 
