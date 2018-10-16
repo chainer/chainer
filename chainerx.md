@@ -59,10 +59,33 @@ This allows third-party backends to be plugged into ChainerX, which is outside t
 
 ## Installation
 
-Clone this repository and refer to the [README](https://github.com/pfnet/chainerx/tree/master/chainerx_cc).
-
 Note that although ChainerX won't be replacing Chainer, this repository must replace you existing Chainer installation (or be installed in a different environment).
 This repository contains both `chainer` and `chainerx` as top level packages, where the former is extended to support the latter (the former also keeps track of the latest Chainer master regularly).
+
+The `chainerx` Python package is installed along with `chainer`, if the `CHAINER_BUILD_CHAINERX` environment variable is set to a non-zero value.
+You can also set the `MAKEFLAGS=-j8` environment variable (to a number that fits your environment) to speed up the installation.
+
+```shell-session
+$ export CHAINER_BUILD_CHAINERX=1
+$ export MAKEFLAGS=-j8
+$ pip install chainer
+```
+
+### CUDA support
+
+CUDA support is **enabled by default**.
+To disable it, set `CHAINERX_BUILD_CUDA=0` before installing.
+When installing with the CUDA support, you also need to specify the cuDNN installation path.
+CUDA support without cuDNN is currently not supported.
+
+For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run `pip` like this:
+
+```shell-session
+$ export CHAINER_BUILD_CHAINERX=1
+$ export CUDNN_ROOT_DIR=$HOME/.cudnn/active
+$ export MAKEFLAGS=-j8
+$ pip install chainer
+```
 
 ## Migrating from Chainer
 
