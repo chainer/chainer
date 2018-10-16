@@ -62,7 +62,7 @@ This allows third-party backends to be plugged into ChainerX, which is outside t
 Clone this repository and refer to the [README](https://github.com/pfnet/chainerx/tree/master/chainerx_cc).
 
 Note that although ChainerX won't be replacing Chainer, this repository must replace you existing Chainer installation (or be installed in a different environment).
-This repository contains both `chainer` and `chainerx` as top level packages, where the former is extended to support the latter (the former also keeps of the latest Chainer master regularly).
+This repository contains both `chainer` and `chainerx` as top level packages, where the former is extended to support the latter (the former also keeps track of the latest Chainer master regularly).
 
 ## Migrating from Chainer
 
@@ -120,5 +120,5 @@ Yes, it is possible. See the code samples below.
 ### What does the C++ interface look like?
 
 It is almost identical to the Python interface with a 1-to-1 mapping.
-The binding layer is thin and many of the types defined in C++ have Python equivalent class.
+The binding layer is thin and many of the types defined in C++ have Python equivalent classes.
 The bindings are defined [here](https://github.com/pfnet/chainerx/tree/master/chainerx_cc/chainerx/python).
