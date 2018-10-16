@@ -1,7 +1,6 @@
 #include "chainerx/cuda/cuda_device.h"
 
 #include <cstddef>
-#include <cstring>
 #include <memory>
 
 #include <cuda_runtime.h>
@@ -108,7 +107,7 @@ std::shared_ptr<void> CudaDevice::TransferDataTo(Device& dst_device, const std::
 std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
     std::shared_ptr<void> dst_ptr = Allocate(bytesize);
     std::shared_ptr<void> pinned_src_ptr = AllocatePinnedMemory(bytesize);
-    std::memcpy(pinned_src_ptr.get(), src_ptr.get(), bytesize);
+    CheckCudaError(cudaMemcpy(pinned_src_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToHost));
     CheckCudaError(cudaMemcpyAsync(dst_ptr.get(), pinned_src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
     return dst_ptr;
 }
