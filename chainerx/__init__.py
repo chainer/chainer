@@ -8,7 +8,6 @@ else:
         from chainerx import _core
         _available = True
     except Exception:
-        del testing
         _available = False
 
 
