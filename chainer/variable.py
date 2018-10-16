@@ -467,6 +467,20 @@ class Variable(object):
 
     """  # NOQA
 
+    # Cached grad-stopped view of chainerx array. This is the return value
+    # of `array` and `data` properties.
+    _chainerx_const_array_cache = None
+
+    # Cached grad-stopped view of the array returned by `grad` property.
+    # It's a 2-element tuple, where the first is the original grad array and
+    # the second is a grad-stopped view of the first. `grad` property returns
+    # the second element.
+    _chainerx_grad_cache = None
+
+    _chainerx_name = None
+
+    _is_chainerx = False
+
     def __init__(self, data=None, **kwargs):
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
@@ -484,12 +498,6 @@ class Variable(object):
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
 
-        # A mutable chainerx.ndarray which is a view of the given data.
-        # The view is kept in addition to the data since operations such as
-        # requiring gradients will mutate the chainerx.ndarray. This we do not
-        # want to propagate to the data given by the caller.
-        self._data_chainerx = None
-
         self._loss_scale = None
         self._grad_var = None if grad is None else Variable(grad)
 
@@ -498,19 +506,17 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            self._data = [data]
-            self._set_data_chainerx(data, grad, requires_grad)
-            self._requires_grad = requires_grad
+            # _data and _requires_grad are assigned.
+            self._set_chainerx_array(data, grad, requires_grad)
+
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None
-            self._name = name
+            self._chainerx_name = name
         else:
             self._data = [data]
-            self._clear_data_chainerx()
             # self._requires_grad need to be set before creating the node.
             self._requires_grad = requires_grad
             self._node = VariableNode(self, name)
-            self._name = None  # Use self._node.name
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -530,38 +536,40 @@ class Variable(object):
     def __str__(self):
         return variable_str(self)
 
-    def _clear_data_chainerx(self):
+    def _clear_chainerx(self):
         self._is_chainerx = False
-        self._data_chainerx = None
+        self._chainerx_const_array_cache = None
+        self._chainerx_grad_cache = None
 
-    def _set_data_chainerx(self, data, grad, requires_grad):
-        # Assigns the following attributes
-        # - _is_chainerx = True
-        # - _data_chainerx
-        assert data is None or isinstance(data, chainerx.ndarray)
+    def _set_chainerx_array(self, array, grad, requires_grad):
+        # Sets chainerx array and grad.
+        assert array is None or isinstance(array, chainerx.ndarray)
         self._is_chainerx = True
 
         if (not requires_grad
-                and data is not None
-                and data.is_backprop_required()):
+                and array is not None
+                and array.is_backprop_required()):
             raise ValueError(
                 'Cannot initialize a variable to not require '
                 'gradients if the ChainerX array already requires '
                 'backprop.')
 
         # Create a view of the given data to hold internally and modify.
-        if requires_grad:
-            if data is None:
-                self._data_chainerx = [None]
-            elif data.is_backprop_required():
-                self._data_chainerx = [data]
-            else:
-                self._data_chainerx = [data.view().require_grad()]
-
-            if data is not None and grad is not None:
-                self._data_chainerx[0].set_grad(grad)
+        if array is None:
+            self._data = [None]
         else:
-            self._data_chainerx = [data.view()]
+            # A view is always created and kept, in order not to change the
+            # graph status of the original array `d`.
+            array_view = array.view()
+            if requires_grad:
+                array_view.require_grad()
+                if grad is not None:
+                    array_view.set_grad(grad)
+            self._data = [array_view]
+
+        self._chainerx_const_array_cache = None
+        self._chainerx_grad_cache = None
+        self._requires_grad = requires_grad
 
     @property
     def xp(self):
@@ -576,13 +584,13 @@ class Variable(object):
     @property
     def name(self):
         if self._is_chainerx:
-            return self._name
+            return self._chainerx_name
         return self._node.name
 
     @name.setter
     def name(self, n):
         if self._is_chainerx:
-            self._name = n
+            self._chainerx_name = n
             return
         self._node.name = n
 
@@ -718,23 +726,40 @@ class Variable(object):
         or ``None`` if the variable in in an uninitialized state.
 
         """
+        # For ChainerX, this property always returns a grad-stopped view.
+        # The view is cached to reduce potential overhead.
+        if self._is_chainerx:
+            if (self._chainerx_const_array_cache is None
+                    and self._data[0] is not None):
+                self._chainerx_const_array_cache = (
+                    self._data[0].as_grad_stopped())
+            return self._chainerx_const_array_cache
+
         return self._data[0]
 
     @array.setter
     def array(self, d):
         if self._is_chainerx:
-            d_old = self._data_chainerx[0]
+            d_old = self._data[0]
             if (d_old is not None
                     and (d_old.is_backprop_required()
                          or d.is_backprop_required())):
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
                     'existing or the new array requires backprop.')
-            self._data_chainerx[0] = d.view()
+
+            # A view is always created and kept, in order not to change the
+            # graph status of the original array `d`.
+            d_view = d.view()
+
             if self._requires_grad:
-                self._data_chainerx[0].require_grad()
-        else:
-            self._node._update_data_info(d)
+                d_view.require_grad()
+
+            self._data[0] = d_view
+            self._chainerx_const_array_cache = None
+            return
+
+        self._node._update_data_info(d)
         self._data[0] = d
 
     @property
@@ -767,7 +792,32 @@ class Variable(object):
         and error.
 
         """
-        gv = self.grad_var
+        if self._is_chainerx:
+            arr = self._data[0]
+            if arr is None or not arr.is_backprop_required():
+                self._chainerx_grad_cache = None
+                return None
+
+            actual_grad = arr.grad
+
+            if actual_grad is None:
+                self._chainerx_grad_cache = None
+                return None
+
+            # If grad is cached and the actual grad has not changed, return
+            # the cache.
+            if self._chainerx_grad_cache is not None:
+                orig_grad, grad_stopped_grad = self._chainerx_grad_cache
+                if orig_grad is actual_grad:
+                    return grad_stopped_grad
+
+            # Update the cache
+            grad_stopped_grad = actual_grad.as_grad_stopped()
+            self._chainerx_grad_cache = (actual_grad, grad_stopped_grad)
+
+            return grad_stopped_grad
+
+        gv = self._grad_var
         return None if gv is None else gv.array
 
     @grad.setter
@@ -784,13 +834,13 @@ class Variable(object):
             # Update is gradient variable if it has not yet been initialized or
             # it happens to be dirty w.r.t. the actual gradient of the
             # underlying chainerx.ndarray.
-            arr = self._data_chainerx[0]
+            arr = self._data[0]
             actual_grad = arr.grad if arr.is_grad_required() else None
             if actual_grad is None:
                 self._grad_var = None
             else:
-                g = self._grad_var
-                old_grad = None if g is None else g._data_chainerx[0]
+                grad_var = self._grad_var
+                old_grad = None if grad_var is None else grad_var._data[0]
                 if actual_grad is not old_grad:
                     self._grad_var = Variable(
                         actual_grad,
@@ -803,7 +853,7 @@ class Variable(object):
             _check_grad_type(None, self, g.array)
 
         if self._is_chainerx:
-            arr = self._data_chainerx[0]
+            arr = self._data[0]
             if arr is None:
                 if g is not None:
                     raise RuntimeError(
@@ -813,7 +863,7 @@ class Variable(object):
                     arr.set_grad(None)
                 else:
                     assert g._is_chainerx
-                    arr.set_grad(g._data_chainerx[0])
+                    arr.set_grad(g._data[0])
 
         self._grad_var = g
 
@@ -861,12 +911,12 @@ class Variable(object):
         """Copies the data and gradient arrays to CPU."""
         is_chainerx = self._is_chainerx
         if is_chainerx:
-            data_chx = self._data_chainerx[0]
+            data_chx = self._data[0]
             if data_chx is not None and data_chx.is_backprop_required():
                 raise RuntimeError(
                     'A variable of a ChainerX array which requires gradients '
                     'cannot be copied into CPU.')
-            self._clear_data_chainerx()
+            self._clear_chainerx()
 
         array = self.array
         if array is None:
@@ -893,12 +943,12 @@ class Variable(object):
         """
         is_chainerx = self._is_chainerx
         if is_chainerx:
-            data_chx = self._data_chainerx[0]
+            data_chx = self._data[0]
             if data_chx is not None and data_chx.is_backprop_required():
                 raise RuntimeError(
                     'A variable of a ChainerX array which requires gradients '
                     'cannot be copied into GPU.')
-            self._clear_data_chainerx()
+            self._clear_chainerx()
 
         if self.array is None:
             self._data = [None]  # Renew placeholder to break sharing
@@ -974,7 +1024,7 @@ class Variable(object):
                 new_grad = grad_var.array
 
         self._data = [new_data]
-        self._set_data_chainerx(new_data, new_grad, self._requires_grad)
+        self._set_chainerx_array(new_data, new_grad, self._requires_grad)
 
         # ChainerX itself has own node objects,
         # ensure that the node is disconnected with this variable.
@@ -1029,10 +1079,12 @@ class Variable(object):
 
         if self._is_chainerx:
             if gv is None:
+                # TODO(niboshi): self.data could be None?
+                # TODO(niboshi): device is missing
                 self.grad = chainerx.zeros_like(self.data)
             elif gv.requires_grad:
-                gv._data_chainerx[0].cleargrad()
-                gv._data_chainerx[0].fill(0)
+                gv._data[0].cleargrad()
+                gv._data[0].fill(0)
         else:
             with cuda.get_device_from_array(self.data) as dev:
                 if gv is None:
@@ -1186,7 +1238,7 @@ class Variable(object):
             if loss_scale is not None:
                 raise RuntimeError(
                     'loss_scale if not supported for ChainerX array.')
-            arr = self._data_chainerx[0]
+            arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
             chainerx.backward(
                 arr, enable_double_backprop=enable_double_backprop)
@@ -1639,7 +1691,7 @@ def as_array(obj):
     """
     if isinstance(obj, Variable):
         if obj._is_chainerx:
-            return obj._data_chainerx[0]
+            return obj._data[0]
         return obj.array
     return obj
 
