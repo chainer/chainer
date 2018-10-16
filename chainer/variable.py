@@ -867,8 +867,8 @@ class Variable(object):
             data_chx = self._data_chainerx[0]
             if data_chx is not None and data_chx.is_backprop_required():
                 raise RuntimeError(
-                    'A variable of ChainerX which requires gradients cannot '
-                    'be copied into CPU.')
+                    'A variable of a ChainerX array which requires gradients '
+                    'cannot be copied into CPU.')
             self._clear_data_chainerx()
 
         array = self.array
@@ -899,8 +899,8 @@ class Variable(object):
             data_chx = self._data_chainerx[0]
             if data_chx is not None and data_chx.is_backprop_required():
                 raise RuntimeError(
-                    'A variable of ChainerX which requires gradients cannot '
-                    'be copied into GPU.')
+                    'A variable of a ChainerX array which requires gradients '
+                    'cannot be copied into GPU.')
             self._clear_data_chainerx()
 
         if self.array is None:
@@ -957,6 +957,11 @@ class Variable(object):
                 depending on the original array is used.
 
         """
+        if self._requires_grad and self._node is not None:
+            raise RuntimeError(
+                'A variable requiring gradients cannot be '
+                'converted into ChainerX array')
+
         data = self.data
         new_data = None
         new_grad = None
