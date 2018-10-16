@@ -824,7 +824,8 @@ class TestCheckDoubleBackward(unittest.TestCase):
         def f(x):
             return x * param
 
-        gradient_check.check_double_backward(f, x, gy, ggx, param, ggparam)
+        gradient_check.check_double_backward(
+            f, x, gy, ggx, param, ggparam, atol=1e-3, rtol=1e-3)
 
     def test_double_backward_with_params(self, backend_config):
         self.check_double_backward_with_params(backend_config)
