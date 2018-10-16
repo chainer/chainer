@@ -123,7 +123,7 @@ class MatMul(function_node.FunctionNode):
 
 ### Example: MNIST
 
-TODO(hvy): Link to the working MNIST training example.
+The [train_mnist.py example](examples/mnist/train_mnist.py) now runs with ChainerX.
 
 ## Known Issues
 
