@@ -897,8 +897,10 @@ class TestVariableToCpu(unittest.TestCase):
         assert gx.shape == x_var.grad.shape
         assert gx.dtype == x_var.grad.dtype
 
-        cuda.cupy.testing.assert_array_equal(x_var.data, x)
-        cuda.cupy.testing.assert_array_equal(x_var.grad, gx)
+        np.testing.assert_array_equal(
+            backend.to_numpy(x_var.data), backend.to_numpy(x))
+        np.testing.assert_array_equal(
+            backend.to_numpy(x_var.grad), backend.to_numpy(gx))
 
         orig_xp = backend.get_array_module(x, gx)
         if orig_xp is np:
@@ -908,12 +910,19 @@ class TestVariableToCpu(unittest.TestCase):
             assert x_var.data is not x
             assert x_var.grad is not gx
 
+        assert not x_var._is_chainerx
+        assert x_var._data_chainerx is None
+
     def test_to_cpu_from_cpu(self):
         self.check_to_cpu(self.x, self.gx)
 
     @attr.gpu
     def test_to_cpu_from_gpu(self):
         self.check_to_cpu(cuda.to_gpu(self.x), cuda.to_gpu(self.gx))
+
+    @attr.chainerx
+    def test_to_cpu_from_chainerx(self):
+        self.check_to_cpu(chainerx.array(self.x), chainerx.array(self.gx))
 
 
 @testing.parameterize(
@@ -945,8 +954,10 @@ class TestVariableToGpu(unittest.TestCase):
         assert cuda.get_device_from_array(x_var.data) == device
         assert cuda.get_device_from_array(x_var.grad) == device
 
-        cuda.cupy.testing.assert_array_equal(x_var.data, x)
-        cuda.cupy.testing.assert_array_equal(x_var.grad, gx)
+        np.testing.assert_array_equal(
+            backend.to_numpy(x_var.data), backend.to_numpy(x))
+        np.testing.assert_array_equal(
+            backend.to_numpy(x_var.grad), backend.to_numpy(gx))
 
         orig_xp = backend.get_array_module(x, gx)
         orig_device = cuda.get_device_from_array(x)
@@ -957,6 +968,9 @@ class TestVariableToGpu(unittest.TestCase):
             assert x_var.data is not x
             assert x_var.grad is not gx
 
+        assert not x_var._is_chainerx
+        assert x_var._data_chainerx is None
+
     def test_to_gpu_from_cpu(self):
         self.check_to_gpu(self.x, self.gx)
 
@@ -966,6 +980,10 @@ class TestVariableToGpu(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_to_gpu_from_another_gpu(self):
         self.check_to_gpu(cuda.to_gpu(self.x), cuda.to_gpu(self.gx), 1)
+
+    @attr.chainerx
+    def test_to_gpu_from_chainerx(self):
+        self.check_to_gpu(chainerx.array(self.x), chainerx.array(self.gx))
 
 
 @testing.parameterize(
