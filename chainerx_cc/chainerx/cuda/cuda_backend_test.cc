@@ -203,6 +203,7 @@ TEST_P(CudaBackendTransferTest, MemoryCopyFrom) {
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
     std::shared_ptr<void> src = device1.FromHostMemory(src_orig, bytesize);
+    device1.Synchronize();
     std::shared_ptr<void> dst = device0.Allocate(bytesize);
     device0.MemoryCopyFrom(dst.get(), src.get(), bytesize, device1);
     device0.Synchronize();
@@ -221,6 +222,7 @@ TEST_P(CudaBackendTransferTest, MemoryCopyFromZeroByte) {
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
     std::shared_ptr<void> src = device1.FromHostMemory(src_orig, bytesize);
+    device1.Synchronize();
     std::shared_ptr<void> dst = device0.Allocate(bytesize);
     device0.MemoryCopyFrom(dst.get(), src.get(), bytesize, device1);
     device0.Synchronize();
@@ -240,6 +242,7 @@ TEST_P(CudaBackendTransferTest, MemoryCopyTo) {
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
     std::shared_ptr<void> src = device0.FromHostMemory(src_orig, bytesize);
+    device0.Synchronize();
     std::shared_ptr<void> dst = device1.Allocate(bytesize);
     device0.MemoryCopyTo(dst.get(), src.get(), bytesize, device1);
     device0.Synchronize();
@@ -258,6 +261,7 @@ TEST_P(CudaBackendTransferTest, MemoryCopyToZeroByte) {
     Device& device1 = ctx.GetDevice(::testing::get<1>(GetParam()));
 
     std::shared_ptr<void> src = device0.FromHostMemory(src_orig, bytesize);
+    device0.Synchronize();
     std::shared_ptr<void> dst = device1.Allocate(bytesize);
     device0.MemoryCopyTo(dst.get(), src.get(), bytesize, device1);
     device0.Synchronize();
