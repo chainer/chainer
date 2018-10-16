@@ -247,31 +247,31 @@ class TestToBackend(unittest.TestCase):
 class TestDeviceId(unittest.TestCase):
     def test_init_module_numpy(self):
         device_id = backend.DeviceId(numpy)
-        assert device_id.module is numpy
+        assert device_id.xp is numpy
         assert device_id.device is None
 
     @attr.gpu
     def test_init_module_cupy(self):
         device_id = backend.DeviceId(cuda.cupy)
-        assert device_id.module is cuda.cupy
+        assert device_id.xp is cuda.cupy
         assert device_id.device is None
 
     @attr.chainerx
     def test_init_module_chainerx(self):
         device_id = backend.DeviceId(chainerx)
-        assert device_id.module is chainerx
+        assert device_id.xp is chainerx
         assert device_id.device is None
 
     @attr.chainerx
     def test_init_str_chainerx_backend(self):
         device_id = backend.DeviceId('native')
-        assert device_id.module is chainerx
+        assert device_id.xp is chainerx
         assert device_id.device is chainerx.get_device('native:0')
 
     @attr.chainerx
     def test_init_str_chainerx_device(self):
         device_id = backend.DeviceId('native:0')
-        assert device_id.module is chainerx
+        assert device_id.xp is chainerx
         assert device_id.device is chainerx.get_device('native:0')
 
     @attr.chainerx
@@ -282,13 +282,13 @@ class TestDeviceId(unittest.TestCase):
     @attr.chainerx
     def test_init_tuple_chainerx_backend(self):
         device_id = backend.DeviceId(('native',))
-        assert device_id.module is chainerx
+        assert device_id.xp is chainerx
         assert device_id.device is chainerx.get_device('native:0')
 
     @attr.chainerx
     def test_init_tuple_chainerx_device(self):
         device_id = backend.DeviceId(('native', 0))
-        assert device_id.module is chainerx
+        assert device_id.xp is chainerx
         assert device_id.device is chainerx.get_device('native:0')
 
     @attr.chainerx
@@ -299,7 +299,7 @@ class TestDeviceId(unittest.TestCase):
     @attr.gpu
     def test_init_tuple_cupy_device(self):
         device_id = backend.DeviceId((cuda.cupy, 0))
-        assert device_id.module is cuda.cupy
+        assert device_id.xp is cuda.cupy
         assert device_id.device == cuda.Device(0)
 
     @attr.gpu
@@ -309,28 +309,28 @@ class TestDeviceId(unittest.TestCase):
 
     def test_init_dummy_device(self):
         device_id = backend.DeviceId(cuda.DummyDevice)
-        assert device_id.module is numpy
+        assert device_id.xp is numpy
         assert device_id.device is None
 
     @attr.chainerx
     def test_init_chainerx_device(self):
         device = chainerx.get_device('native:0')
         device_id = backend.DeviceId(device)
-        assert device_id.module is chainerx
+        assert device_id.xp is chainerx
         assert device_id.device is device
 
     @attr.chainerx
     def test_init_chainerx_device_scope(self):
         device_scope = chainerx.device_scope(chainerx.get_device('native:0'))
         device_id = backend.DeviceId(device_scope)
-        assert device_id.module is chainerx
+        assert device_id.xp is chainerx
         assert device_id.device is device_scope.device
 
     @attr.gpu
     def test_init_cuda_device(self):
         device = cuda.Device(0)
         device_id = backend.DeviceId(device)
-        assert device_id.module is cuda.cupy
+        assert device_id.xp is cuda.cupy
         assert device_id.device == device
 
     def test_repr_module_numpy(self):
