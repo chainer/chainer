@@ -529,69 +529,6 @@ class TestVariable(unittest.TestCase):
         with pytest.raises(ValueError):
             a.grad = np.empty((2,), dtype=np.float32)
 
-    def test_to_cpu_from_cpu(self):
-        a = chainer.Variable(np.zeros(3, dtype=np.float32))
-        a.grad = np.ones_like(a.data)
-        b = a.data
-        gb = a.grad
-        c = b.copy()
-        gc = gb.copy()
-        a.to_cpu()
-        assert a.data is b
-        assert a.grad is gb
-        np.testing.assert_array_equal(a.data, c)
-        np.testing.assert_array_equal(a.grad, gc)
-
-    @attr.gpu
-    def test_to_cpu(self):
-        a = chainer.Variable(cuda.cupy.zeros(3, dtype=np.float32))
-        assert a.xp is cuda.cupy
-        a.grad = cuda.cupy.ones_like(a.data)
-        a.to_cpu()
-        assert a.xp is np
-        np.testing.assert_array_equal(a.data, np.zeros(3, dtype=np.float32))
-        np.testing.assert_array_equal(a.grad, np.ones(3, dtype=np.float32))
-
-    @attr.gpu
-    def test_to_gpu_from_gpu(self):
-        cp = cuda.cupy
-        a = chainer.Variable(cp.zeros(3, dtype=np.float32))
-        a.grad = cuda.cupy.ones_like(a.data)
-        b = a.data
-        gb = a.grad
-        c = b.copy()
-        gc = gb.copy()
-        a.to_gpu()
-        assert a.data is b
-        assert a.grad is gb
-        cp.testing.assert_array_equal(a.data, c)
-        cp.testing.assert_array_equal(a.grad, gc)
-
-    @attr.gpu
-    def test_to_gpu(self):
-        cp = cuda.cupy
-        a = chainer.Variable(np.zeros(3, dtype=np.float32))
-        assert a.xp is np
-        a.grad = np.ones(3, dtype=np.float32)
-        a.to_gpu()
-        assert a.xp is cuda.cupy
-        cp.testing.assert_array_equal(a.data, cp.zeros(3, dtype=np.float32))
-        cp.testing.assert_array_equal(a.grad, cp.ones(3, dtype=np.float32))
-
-    @attr.multi_gpu(2)
-    def test_to_gpu_from_another_gpu(self):
-        cp = cuda.cupy
-        a = chainer.Variable(cp.zeros(3, dtype=np.float32))
-        a.grad = cuda.cupy.ones_like(a.data)
-        b = a.data.copy()
-        gb = a.grad.copy()
-        a.to_gpu(1)
-
-        assert int(cuda.get_device_from_array(a.data)) == 1
-        assert int(cuda.get_device_from_array(a.grad)) == 1
-        cp.testing.assert_array_equal(a.data, b)
-        cp.testing.assert_array_equal(a.grad, gb)
-
     def check_cleargrad(self, a_data, fill=False):
         xp = backend.get_array_module(a_data)
         a = chainer.Variable(a_data)
@@ -934,6 +871,80 @@ class TestVariableChainerXInitRequiresGrad(unittest.TestCase):
                 v()
         else:
             assert v().requires_grad is self.expected
+
+
+@testing.parameterize(
+    {'x_shape': (10,)},
+    {'x_shape': ()},
+)
+class TestVariableToCpu(unittest.TestCase):
+    def test_to_cpu_from_cpu(self):
+        a = chainer.Variable(np.zeros(3, dtype=np.float32))
+        a.grad = np.ones_like(a.data)
+        b = a.data
+        gb = a.grad
+        c = b.copy()
+        gc = gb.copy()
+        a.to_cpu()
+        assert a.data is b
+        assert a.grad is gb
+        np.testing.assert_array_equal(a.data, c)
+        np.testing.assert_array_equal(a.grad, gc)
+
+    @attr.gpu
+    def test_to_cpu(self):
+        a = chainer.Variable(cuda.cupy.zeros(3, dtype=np.float32))
+        assert a.xp is cuda.cupy
+        a.grad = cuda.cupy.ones_like(a.data)
+        a.to_cpu()
+        assert a.xp is np
+        np.testing.assert_array_equal(a.data, np.zeros(3, dtype=np.float32))
+        np.testing.assert_array_equal(a.grad, np.ones(3, dtype=np.float32))
+
+
+@testing.parameterize(
+    {'x_shape': (10,)},
+    {'x_shape': ()},
+)
+@attr.gpu
+class TestVariableToGpu(unittest.TestCase):
+    def test_to_gpu_from_gpu(self):
+        cp = cuda.cupy
+        a = chainer.Variable(cp.zeros(3, dtype=np.float32))
+        a.grad = cuda.cupy.ones_like(a.data)
+        b = a.data
+        gb = a.grad
+        c = b.copy()
+        gc = gb.copy()
+        a.to_gpu()
+        assert a.data is b
+        assert a.grad is gb
+        cp.testing.assert_array_equal(a.data, c)
+        cp.testing.assert_array_equal(a.grad, gc)
+
+    def test_to_gpu(self):
+        cp = cuda.cupy
+        a = chainer.Variable(np.zeros(3, dtype=np.float32))
+        assert a.xp is np
+        a.grad = np.ones(3, dtype=np.float32)
+        a.to_gpu()
+        assert a.xp is cuda.cupy
+        cp.testing.assert_array_equal(a.data, cp.zeros(3, dtype=np.float32))
+        cp.testing.assert_array_equal(a.grad, cp.ones(3, dtype=np.float32))
+
+    @attr.multi_gpu(2)
+    def test_to_gpu_from_another_gpu(self):
+        cp = cuda.cupy
+        a = chainer.Variable(cp.zeros(3, dtype=np.float32))
+        a.grad = cuda.cupy.ones_like(a.data)
+        b = a.data.copy()
+        gb = a.grad.copy()
+        a.to_gpu(1)
+
+        assert int(cuda.get_device_from_array(a.data)) == 1
+        assert int(cuda.get_device_from_array(a.grad)) == 1
+        cp.testing.assert_array_equal(a.data, b)
+        cp.testing.assert_array_equal(a.grad, gb)
 
 
 @testing.parameterize(
