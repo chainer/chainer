@@ -892,7 +892,7 @@ class TestVariableToCpu(unittest.TestCase):
         np.testing.assert_array_equal(a.grad, gc)
 
     @attr.gpu
-    def test_to_cpu(self):
+    def test_to_cpu_from_gpu(self):
         a = chainer.Variable(cuda.cupy.zeros(3, dtype=np.float32))
         assert a.xp is cuda.cupy
         a.grad = cuda.cupy.ones_like(a.data)
@@ -922,7 +922,7 @@ class TestVariableToGpu(unittest.TestCase):
         cp.testing.assert_array_equal(a.data, c)
         cp.testing.assert_array_equal(a.grad, gc)
 
-    def test_to_gpu(self):
+    def test_to_gpu_from_cpu(self):
         cp = cuda.cupy
         a = chainer.Variable(np.zeros(3, dtype=np.float32))
         assert a.xp is np
