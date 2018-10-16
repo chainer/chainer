@@ -282,8 +282,22 @@ class DeviceId(object):
         assert False
 
 
-def to_device(arrays, device_spec):
-    return DeviceId(device_spec).to_device(arrays)
+def to_device(arrays, device):
+    """Transfers given arrays to the device.
+
+    Args:
+        arrays: Arrays of NumPy, CuPy, or ChainerX.
+        device (object): Target device specifier. Acceptable values are
+            an instance of :class:`~chainer.backend.DeviceId` or
+            an argument which the DeviceId's constructor accepts.
+
+    Returns:
+        Transferred arrays.
+
+    """
+    if isinstance(device, DeviceId):
+        return device.to_device(arrays)
+    return DeviceId(device).to_device(arrays)
 
 
 def get_array_module(*args):

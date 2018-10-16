@@ -358,7 +358,7 @@ class TestDeviceId(unittest.TestCase):
         assert str(device_id) == 'DeviceId((cupy, 0))'
 
 
-class TestDeviceIdToDevice(unittest.TestCase):
+class TestToDevice(unittest.TestCase):
 
     def orig_numpy(self):
         return numpy.ones((2, 3), numpy.float32)
@@ -369,8 +369,8 @@ class TestDeviceIdToDevice(unittest.TestCase):
     def orig_chainerx(self, device_name):
         return chainerx.ones((2, 3), numpy.float32, device=device_name)
 
-    def to_device_check_equal(self, orig, device_spec):
-        converted = backend.DeviceId(device_spec).to_device(orig)
+    def to_device_check_equal(self, orig, device):
+        converted = backend.to_device(orig, device)
         numpy.testing.assert_array_equal(
             backend.to_numpy(orig),
             backend.to_numpy(converted))
@@ -510,6 +510,10 @@ class TestDeviceIdToDevice(unittest.TestCase):
         orig = self.orig_chainerx('cuda:0')
         converted = self.to_device_check_equal(orig, numpy)
         assert isinstance(converted, numpy.ndarray)
+
+    def test_numpy_to_numpy_with_device_id(self):
+        orig = self.orig_numpy()
+        self.to_device_check_equal(orig, backend.DeviceId(numpy))
 
 
 testing.run_module(__name__, __file__)
