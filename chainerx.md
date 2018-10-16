@@ -15,8 +15,8 @@ ChainerX, or `chainerx` is a standalone Python package that's integrated into Ch
 It is implemented almost purely in C++ with Python bindings exposed via the package, allowing Chainer to make use of it.
 It does in other words **not** replace Chainer. It aims to instead improve the performance of Chainer in terms of speed by reducing the Python overhead.
 
-Currently, it may be thought of as an alternative to NumPy and CuPy with autograd, i.e. graph construction and back-propagation built-in.
-In other words, a NumPy/CuPy array with `Variable` properties.
+Currently, it may be thought of as an alternative to NumPy and CuPy with automatic differentiation, i.e. graph construction and back-propagation built-in.
+That is, a NumPy/CuPy array with `Variable` properties.
 
 It can still be wrapped in a `Variable` and passed to any existing Chainer code.
 
@@ -27,22 +27,23 @@ import chainerx as chx
 arr = chx.array([1, 2, 3], dtype='f')
 var = ch.Variable(arr)
 
-# You Chainer code...
+# Your Chainer code...
 ```
 
 Following `chainer.functions` functions operating on the `var` resulting in an extension of the graph will call the corresponding graph constructions APIs defined in the C++ layer, working around the Python function calls.
-Similarly, calling `Variable.backward` on any resulting variable will delegate the work to C++ by calling `chaienrx.ndarray.backward` spending little time in the Python world.
+Similarly, calling `Variable.backward` on any resulting variable will delegate the work to C++ by calling `chainerx.ndarray.backward` spending little time in the Python world.
 
 ### NumPy/CuPy fallback
 
 As the features above require ChainerX to support each `FunctionNode` implementation in Chainer, ChainerX utilizes a fallback mechanism while gradually extending the support, instead of e.g. raising an unsupported error.
 This approach is taken because the integration with Chainer takes time and we **do not want existing Chainer users to have to make severe changes to their code bases in order to try ChainerX**.
 The fallback logic simply casts the `chainerx.ndarray`s inside the `Variable` to `numpy.ndarray`s or `cupy.ndarray`s (without copy) and calls the forward and backward methods respectively.
-This may hurt performance. For a complete list of supported functions please refer to [this page](chainerx_cc/chainerx/python/routines.cc). Similar fallback conversions are found throughout the code outside the `FunctionNode` as well during the integration.
+For a complete list of supported ChainerX functions please refer to [this page](chainerx_cc/chainerx/python/routines.cc) as those in many cases have corresponding `chainer.functions` functions.
+Similar fallback conversions are found throughout the code outside the `FunctionNode` as well during the integration.
 
 ### Backends and devices
 
-Chainer distinguishes between native and CUDA arrays using NumPy and CuPy.
+Chainer distinguishes between CPU (a.k.a. native) and CUDA arrays using NumPy and CuPy.
 ChainerX arrays on the other hand may be allocated on any device on any backend.
 If you're working with `Variable.array` directly, you may have to be aware of the following interfaces.
 Otherwise, they are handled by the `Variable` and similarly for other classes.
