@@ -10,6 +10,15 @@
 namespace chainerx {
 namespace cuda {
 
+MemoryPool::~MemoryPool() {
+    for (std::vector<void*>& free_list : free_bins_) {
+        for (void* ptr : free_list) {
+            cudaFree(ptr);
+        }
+    }
+    CHAINERX_ASSERT(in_use_.empty());
+}
+
 void* MemoryPool::Malloc(size_t bytesize) {
     if (bytesize == 0) {
         return nullptr;

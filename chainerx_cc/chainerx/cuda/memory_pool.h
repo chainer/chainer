@@ -14,6 +14,7 @@ constexpr size_t kAllocationUnitSize = 512;
 class MemoryPool {
 public:
     explicit MemoryPool(int device_index) : device_index_{device_index} {}
+    ~MemoryPool();
 
     void* Malloc(size_t bytesize);
     void Free(void* ptr);
