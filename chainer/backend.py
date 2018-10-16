@@ -170,8 +170,8 @@ class DeviceId(object):
             1. If it is a module, it represents a transfer between
                modules. It tries a zero-copy transfer as much as possible.
             2. If it is a string, it represents a chainerx device.
-            3. If it is a tuple of a string and an integer such as
-               ('cuda', 1), it represents a chainerx device.
+            3. If it is a tuple whose first element is a string such as
+               ('cuda', 1) or ('cuda',), it represents a chainerx device.
             4. If it is a tuple of a cupy module and an integer such
                as (cupy, 1), it represents a cupy device.
             5. If it is :class:`~chainer.backends.cuda.DummyDevice`,
