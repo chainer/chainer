@@ -94,8 +94,12 @@ private:
 };
 
 inline void MallocManaged(void** ptr, size_t bytesize) { CheckCudaError(cudaMallocManaged(ptr, bytesize, cudaMemAttachGlobal)); }
+inline void MallocHost(void** ptr, size_t bytesize) { CheckCudaError(cudaMallocHost(ptr, bytesize)); }
 
 using MemoryPool = MemoryPoolBase<MallocManaged>;
+
+// Note that by CUDA specifications, pinned memory is/must be associated with a particular device.
+using PinnedMemoryPool = MemoryPoolBase<MallocHost>;
 
 }  // namespace cuda
 }  // namespace chainerx

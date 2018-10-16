@@ -185,7 +185,8 @@ public:
             override;
 
 protected:
-    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_handle_{index} {}
+    CudaDevice(CudaBackend& backend, int index)
+        : Device{backend, index}, memory_pool_{index}, pinned_memory_pool_{index}, cudnn_handle_{index} {}
 
 private:
     cublasHandle_t cublas_handle();  // not thread-safe
@@ -194,7 +195,13 @@ private:
 
     friend class cuda_internal::CudaConvTest;  // for unit-tests
 
+    // Allocate pinned memory using cudaMallocHost.
+    // The pinned memory is used internally by the CUDA device for asynchronous memory transfer, i.e. cudaMemcpyAsync.
+    std::shared_ptr<void> AllocatePinnedMemory(size_t bytesize);
+
     MemoryPool memory_pool_;
+
+    PinnedMemoryPool pinned_memory_pool_;
 
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};
