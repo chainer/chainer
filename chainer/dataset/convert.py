@@ -21,21 +21,18 @@ def to_device(device, x):
     See also :func:`chainer.dataset.concat_examples`.
 
     Args:
-        device (device specifier or None): A device to which an array
-            is sent. If it is negative value, an array is sent to CPU. If it
-            is positive, an array is sent to GPU with the given ID. If it is
-            ``None``, an array is left in the original device.
-        x (numpy.ndarray or cupy.ndarray): An array to send.
+        device (int or device specifier): A device to which an array
+            is sent. If it is a negative integer, an array is sent to CPU.
+            If it is a positive integer, an array is sent to GPU with the
+            given ID. Also, any of device specifiers described at
+            :class:`~chainer.backend.DeviceId` is accepted.
+        x (numpy.ndarray, cupy.ndarray, or chainerx.ndarray): An array to send.
 
     Returns:
         Converted array.
 
     """
-    # TODO(niboshi): Write documentation about device specifier.
-    if device is None:
-        return x
-
-    # TODO(niboshi): Perhaps backend.to_device should support integers
+    # For backward compatibilities
     if isinstance(device, six.integer_types):
         if device < 0:
             device = cuda.DummyDevice
@@ -114,6 +111,7 @@ def concat_examples(batch, device=None, padding=None):
             iterator.
         device (device specifier): A device to which each array is sent.
             If it is omitted, all arrays are left in their original devices.
+            See :meth:`~chainer.dataset.convert.to_device` for more details.
         padding: Scalar value for extra elements. If this is None (default),
             an error is raised on shape mismatch. Otherwise, an array of
             minimum dimensionalities that can accommodate all arrays is
@@ -125,17 +123,8 @@ def concat_examples(batch, device=None, padding=None):
         on the type of each example in the batch.
 
     """
-    # TODO(niboshi): Write documentation about device specifier. Non-negative
-    # integers indicate CUDA devices and negative integers indicate NumPy
-    # arrays.
     if len(batch) == 0:
         raise ValueError('batch is empty')
-
-    if isinstance(device, six.integer_types):
-        if device < 0:
-            device = cuda.DummyDevice
-        else:
-            device = cuda.Device(device)
 
     first_elem = batch[0]
 
