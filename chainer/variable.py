@@ -524,7 +524,7 @@ class Variable(object):
         return target
 
     def __reduce__(self):
-        return _create_variable, (self.data, self.name, self.grad,
+        return _create_variable, (self.array, self.name, self.grad,
                                   self._requires_grad)
 
     def __repr__(self):
@@ -605,22 +605,22 @@ class Variable(object):
 
         stats_msg = 'mean={0:.8f}, std={1:.8f}'
 
-        data = self.data
-        with cuda.get_device_from_array(data) as dev:
+        array = self.array
+        with cuda.get_device_from_array(array) as dev:
             xp = numpy if int(dev) == -1 else cuda.cupy
 
-            if data is None:
+            if array is None:
                 # `data` can be `None` if constructed without any arguments
                 device = None
                 backend = None
                 stats = None
             else:
-                device = getattr(data, 'device', 'CPU')
-                backend = type(data)
-                stats = stats_msg.format(float(xp.mean(data)),
-                                         float(xp.std(data)))
-            shape = getattr(data, 'shape', None)
-            dtype = getattr(data, 'dtype', None)
+                device = getattr(array, 'device', 'CPU')
+                backend = type(array)
+                stats = stats_msg.format(float(xp.mean(array)),
+                                         float(xp.std(array)))
+            shape = getattr(array, 'shape', None)
+            dtype = getattr(array, 'dtype', None)
 
             if self.grad is None:
                 grad = None
@@ -644,7 +644,7 @@ class Variable(object):
             int: Number of the first dimension of the data array.
 
         """
-        return len(self.data)
+        return len(self.array)
 
     @property
     def label(self):
@@ -768,7 +768,7 @@ class Variable(object):
 
         """
         gv = self.grad_var
-        return None if gv is None else gv.data
+        return None if gv is None else gv.array
 
     @grad.setter
     def grad(self, g):
@@ -820,19 +820,19 @@ class Variable(object):
 
     @property
     def shape(self):
-        return self.data.shape
+        return self.array.shape
 
     @property
     def ndim(self):
-        return self.data.ndim
+        return self.array.ndim
 
     @property
     def size(self):
-        return self.data.size
+        return self.array.size
 
     @property
     def dtype(self):
-        return self.data.dtype
+        return self.array.dtype
 
     @property
     def rank(self):
@@ -864,16 +864,16 @@ class Variable(object):
             raise RuntimeError(
                 'A variable of ChainerX does not provide a to_cpu method.')
 
-        data = self.data
-        if data is None:
+        array = self.array
+        if array is None:
             return
 
-        if isinstance(data, cuda.ndarray):
+        if isinstance(array, cuda.ndarray):
             # cupy.ndarray to numpy.ndarray
-            self._data = [cuda.to_cpu(data)]
-        elif isinstance(data, intel64.mdarray):
+            self._data = [cuda.to_cpu(array)]
+        elif isinstance(array, intel64.mdarray):
             # ideep.mdarray to numpy.ndarray
-            self._data = [numpy.array(data)]
+            self._data = [numpy.array(array)]
 
         if self._grad_var is not None:
             self._grad_var.to_cpu()
@@ -894,10 +894,10 @@ class Variable(object):
             raise RuntimeError(
                 'A variable of ChainerX does not provide a to_gpu method.')
 
-        if self.data is None:
+        if self.array is None:
             self._data = [None]  # Renew placeholder to break sharing
         else:
-            self._data = [cuda.to_gpu(self.data, device)]
+            self._data = [cuda.to_gpu(self.array, device)]
             if self._grad_var is not None:
                 self._grad_var.to_gpu(device)
             # ensure that the node tracks the device migration
@@ -916,19 +916,19 @@ class Variable(object):
                 'A variable of ChainerX does not provide a to_intel64 method.')
 
         intel64.check_ideep_available()
-        data = self.data
-        if data is not None:
-            if isinstance(data, cuda.ndarray):
+        array = self.array
+        if array is not None:
+            if isinstance(array, cuda.ndarray):
                 # cupy.ndarray to numpy.ndarray
-                data = data.get()
-            if (isinstance(data, numpy.ndarray) and data.ndim in (1, 2, 4)):
+                array = array.get()
+            if (isinstance(array, numpy.ndarray) and array.ndim in (1, 2, 4)):
                 # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
                 # Currently iDeep only supports (1, 2, 4)-dim arrays.
                 # Note that array returned from `ideep.array` may not be an
                 # iDeep mdarray, e.g., when the dtype is not float32.
-                data = intel64.ideep.array(
-                    data, itype=intel64.ideep.wgt_array)
-            self._data = [data]
+                array = intel64.ideep.array(
+                    array, itype=intel64.ideep.wgt_array)
+            self._data = [array]
 
         if self._grad_var is not None:
             self._grad_var.to_intel64()
@@ -986,7 +986,7 @@ class Variable(object):
             'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
 
-        if self.data is None:
+        if self.array is None:
             return
 
         gv = self._grad_var
@@ -1001,7 +1001,7 @@ class Variable(object):
             with cuda.get_device_from_array(self.data) as dev:
                 if gv is None:
                     xp = numpy if dev.id == -1 else cuda.cupy
-                    self.grad = xp.zeros_like(self.data)
+                    self.grad = xp.zeros_like(self.array)
                 else:
                     gv.unchain()
                     gv.array.fill(0)
@@ -1022,16 +1022,16 @@ class Variable(object):
             var (Variable): Source variable.
 
         """
-        src = var.data
-        dst = self.data
+        src = var.array
+        dst = self.array
         if src is None:
             if dst is None:
                 return
             var.initialize(self.shape)
-            src = var.data
+            src = var.array
         elif dst is None:
             self.initialize(src.shape)
-            dst = self.data
+            dst = self.array
         backend.copyto(dst, src)
 
     def addgrad(self, var):
@@ -1054,12 +1054,12 @@ class Variable(object):
         if src is None:
             return
 
-        if self.data is None:
+        if self.array is None:
             self.initialize(var.shape)
         dst = self._grad_var
 
-        src_dev = cuda.get_device_from_array(src.data)
-        dst_dev = cuda.get_device_from_array(self.data)
+        src_dev = cuda.get_device_from_array(src.array)
+        dst_dev = cuda.get_device_from_array(self.array)
 
         if src_dev.id != dst_dev.id:
             src = chainer.functions.copy(src, dst_dev.id)
@@ -1172,8 +1172,8 @@ class Variable(object):
         grads = _backprop_utils.GradTable(load_if_new=True)
 
         # Initialize error by 1, if this is a loss variable
-        if self.data.size == 1 and self._grad_var is None:
-            if self.data.ndim != 0:
+        if self.array.size == 1 and self._grad_var is None:
+            if self.array.ndim != 0:
                 warnings.warn(
                     'Treating a scalar as a variable with only one element'
                     ' in Variable.backward is deprecated. A scalar variable'
@@ -1182,11 +1182,11 @@ class Variable(object):
                     ' If the size of this variable accidentally becomes one,'
                     ' set zero to grad.',
                     DeprecationWarning)
-            with cuda.get_device_from_array(self.data) as device:
+            with cuda.get_device_from_array(self.array) as device:
                 if device is cuda.DummyDevice:
-                    self.grad = numpy.ones_like(self.data)
+                    self.grad = numpy.ones_like(self.array)
                 else:
-                    self.grad = cuda.cupy.ones_like(self.data)
+                    self.grad = cuda.cupy.ones_like(self.array)
             if loss_scale is not None:
                 self.grad *= loss_scale
         grads[self._node] = self._grad_var
@@ -1212,17 +1212,17 @@ class Variable(object):
                 continue
 
             in_data = tuple([x.data for x in inputs])
-            out_grad_data = tuple(
-                [None if g is None else g.data for g in out_grad])
+            out_grad_array = tuple(
+                [None if g is None else g.array for g in out_grad])
             hooks = chainer.get_function_hooks()
             if func._n_local_function_hooks != 0:
                 hooks = collections.OrderedDict(hooks)
                 hooks.update(func.local_function_hooks)
             hooks = hooks.values()  # avoid six for performance
 
-            with cuda.get_device_from_array(*(in_data + out_grad_data)):
+            with cuda.get_device_from_array(*(in_data + out_grad_array)):
                 for hook in hooks:
-                    hook.backward_preprocess(func, in_data, out_grad_data)
+                    hook.backward_preprocess(func, in_data, out_grad_array)
 
                 # Collect the current input gradients.
                 target_inputs = [inputs[i] for i in target_input_indexes]
@@ -1240,7 +1240,7 @@ class Variable(object):
                     func, target_input_indexes, out_grad, in_grad)
 
                 for hook in hooks:
-                    hook.backward_postprocess(func, in_data, out_grad_data)
+                    hook.backward_postprocess(func, in_data, out_grad_array)
 
             for y, gy in six.moves.zip(outputs, out_grad):
                 if y is not None and y is not self.node:
@@ -1465,17 +1465,17 @@ class Parameter(Variable):
         return self._copy_to(Parameter())
 
     def __reduce__(self):
-        return _recover_parameter, (self.data, self.name, self.grad,
+        return _recover_parameter, (self.array, self.name, self.grad,
                                     self.initializer, self.update_rule)
 
     def to_cpu(self):
-        if self.data is None:
+        if self.array is None:
             self._initial_backend = None
             self._initial_device = None
         super(Parameter, self).to_cpu()
 
     def to_gpu(self, device=None):
-        if self.data is None:
+        if self.array is None:
             if device is None:
                 device = cuda.Device().id
             self._initial_backend = 'cuda'
@@ -1483,7 +1483,7 @@ class Parameter(Variable):
         super(Parameter, self).to_gpu(device)
 
     def to_intel64(self):
-        if self.data is None:
+        if self.array is None:
             self._initial_backend = 'intel64'
             self._initial_device = None
         super(Parameter, self).to_intel64()
@@ -1500,12 +1500,12 @@ class Parameter(Variable):
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()
-        if self.data is None:
+        if self.array is None:
             self._grad_initializer = None
 
     def zerograd(self):
         super(Parameter, self).zerograd()
-        if self.data is None:
+        if self.array is None:
             dtype = getattr(self.initializer, 'dtype', None)
             self._grad_initializer = initializers.Zero(dtype)
 
@@ -1533,7 +1533,7 @@ class Parameter(Variable):
         grad = None if ginit is None else initializers.generate_array(
             ginit, shape, xp, device=device)
 
-        self.data = data
+        self.array = data
         self.grad = grad
 
         # Convert the array for iDeep.
@@ -1610,7 +1610,7 @@ def as_array(obj):
 
 def _recover_parameter(data, name, grad, initializer, update_rule):
     p = Parameter(initializer=initializer, name=name)
-    p.data = data
+    p.array = data
     p.grad = grad
     p.update_rule = update_rule
     return p
