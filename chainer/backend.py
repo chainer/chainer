@@ -180,6 +180,8 @@ class DeviceId(object):
                :class:`chainerx.DeviceScope`, it represents a chainerx device.
             7. If it is an instance of :class:`~chainer.backends.cuda.Device`,
                it represents a cupy device.
+            8. If it is an instance of this class, a new instance with
+               same properties is created.
 
     Attributes:
         xp: Target array module to transfer.
@@ -191,6 +193,11 @@ class DeviceId(object):
     """
 
     def __init__(self, device_spec):
+        if isinstance(device_spec, DeviceId):
+            self.xp = device_spec.xp
+            self.device = device_spec.device
+            return
+
         if device_spec is numpy:
             self.xp = numpy
             self.device = None

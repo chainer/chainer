@@ -333,6 +333,12 @@ class TestDeviceId(unittest.TestCase):
         assert device_id.xp is cuda.cupy
         assert device_id.device == device
 
+    def test_init_device_id(self):
+        orig_device_id = backend.DeviceId(numpy)
+        device_id = backend.DeviceId(orig_device_id)
+        assert device_id.xp is orig_device_id.xp
+        assert device_id.device == orig_device_id.device
+
     def test_repr_module_numpy(self):
         device_id = backend.DeviceId(numpy)
         assert str(device_id) == 'DeviceId(numpy)'
