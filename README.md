@@ -13,6 +13,7 @@
 | [**Install Guide**](https://docs.chainer.org/en/stable/install.html)
 | [**Tutorial**](https://docs.chainer.org/en/stable/guides/)
 | **Examples** ([Official](https://github.com/chainer/chainer/tree/master/examples), [External](https://github.com/chainer-community/awesome-chainer))
+| [**ChainerX**](#chainerx)
 
 **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
 | **Slack invitation** ([en](https://bit.ly/join-chainer-slack), [ja](https://bit.ly/join-chainer-jp-slack))
@@ -59,6 +60,11 @@ $ nvidia-docker run -it chainer/chainer /bin/bash
 
 Any contributions to Chainer are welcome!
 If you want to file an issue or send a pull request, [please follow the contribution guide](https://docs.chainer.org/en/stable/contribution.html).
+
+
+## ChainerX
+
+See this [separate user guide](chainerx.md) for how to build and run Chainer with ChainerX.
 
 
 ## License
