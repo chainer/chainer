@@ -289,6 +289,23 @@ class DeviceId(object):
         assert False
 
 
+def get_device_id(device_spec):
+    """Get DeviceId
+
+    Args:
+        device_spec (object): Device specifier. Device specifier is
+            :class:`~chainer.backend.DeviceId` or an argument
+            which the DeviceId's constructor accepts.
+
+    Returns:
+        Device ID.
+
+    """
+    if isinstance(device_spec, DeviceId):
+        return device_spec
+    return DeviceId(device_spec)
+
+
 def to_device(arrays, device):
     """Transfers given arrays to the device.
 
@@ -302,9 +319,7 @@ def to_device(arrays, device):
         Transferred arrays.
 
     """
-    if isinstance(device, DeviceId):
-        return device.to_device(arrays)
-    return DeviceId(device).to_device(arrays)
+    return get_device_id(device).to_device(arrays)
 
 
 def get_array_module(*args):
