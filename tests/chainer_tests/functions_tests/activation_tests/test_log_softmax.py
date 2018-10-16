@@ -19,7 +19,7 @@ from chainer.testing import attr
         'axis': [1],
     }) + [
         {'shape': (2, 3), 'axis': 0},
-        {'shape': (2, 2, 3), 'axis': 2},
+        {'shape': (2, 2, 3), 'axis': -1},
         {'shape': (2, 2, 2, 3), 'axis': -4},
     ],
 ))
