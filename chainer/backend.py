@@ -182,6 +182,7 @@ class DeviceId(object):
                it represents a cupy device.
             8. If it is an instance of this class, a new instance with
                same properties is created.
+            9. If it is None, it represents no transfer occurs.
 
     Attributes:
         xp: Target array module to transfer.
@@ -193,6 +194,11 @@ class DeviceId(object):
     """
 
     def __init__(self, device_spec):
+        if device_spec is None:
+            self.xp = None
+            self.device = None
+            return
+
         if isinstance(device_spec, DeviceId):
             self.xp = device_spec.xp
             self.device = device_spec.device
@@ -249,6 +255,9 @@ class DeviceId(object):
         raise ValueError('invalid device: {}'.format(device_spec))
 
     def __repr__(self):
+        if self.xp is None:
+            return 'DeviceId(None)'
+
         if self.xp is numpy:
             return 'DeviceId(numpy)'
 
@@ -276,6 +285,9 @@ class DeviceId(object):
             Transferred arrays.
 
         """
+        if self.xp is None:
+            return arrays
+
         if self.xp is numpy:
             return to_numpy(arrays)
 
@@ -289,37 +301,23 @@ class DeviceId(object):
         assert False
 
 
-def get_device_id(device_spec):
-    """Get DeviceId
-
-    Args:
-        device_spec (object): Device specifier. Device specifier is
-            :class:`~chainer.backend.DeviceId` or an argument
-            which the DeviceId's constructor accepts.
-
-    Returns:
-        Device ID.
-
-    """
-    if isinstance(device_spec, DeviceId):
-        return device_spec
-    return DeviceId(device_spec)
-
-
 def to_device(arrays, device):
     """Transfers given arrays to the device.
 
     Args:
         arrays: Arrays of NumPy, CuPy, or ChainerX.
         device (object): Target device specifier. Acceptable values are
-            an instance of :class:`~chainer.backend.DeviceId` or
-            an argument which the DeviceId's constructor accepts.
+            described at :class:`~chainer.backend.DeviceId`.
 
     Returns:
         Transferred arrays.
 
     """
-    return get_device_id(device).to_device(arrays)
+    if device is None:
+        return arrays
+    if isinstance(device, DeviceId):
+        return device.to_device(arrays)
+    return DeviceId(device).to_device(arrays)
 
 
 def get_array_module(*args):
