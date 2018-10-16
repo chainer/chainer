@@ -883,9 +883,9 @@ class TestVariableToCpu(unittest.TestCase):
         self.x = np.zeros(self.x_shape, dtype=np.float32)
         self.gx = np.ones_like(self.x)
 
-    def check_to_cpu(self, x, gx):
-        x_var = chainer.Variable(x)
-        x_var.grad = gx
+    def check_to_cpu(self, x, gx, requires_grad=True):
+        x_var = chainer.Variable(x, requires_grad=requires_grad)
+        x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
 
         x_var.to_cpu()
 
@@ -922,7 +922,16 @@ class TestVariableToCpu(unittest.TestCase):
 
     @attr.chainerx
     def test_to_cpu_from_chainerx(self):
-        self.check_to_cpu(chainerx.array(self.x), chainerx.array(self.gx))
+        self.check_to_cpu(
+            chainerx.array(self.x), chainerx.array(self.gx),
+            requires_grad=False)
+
+    @attr.chainerx
+    def test_to_cpu_from_chainerx_with_requires_grad(self):
+        with self.assertRaises(RuntimeError):
+            self.check_to_cpu(
+                chainerx.array(self.x), chainerx.array(self.gx),
+                requires_grad=True)
 
 
 @testing.parameterize(
@@ -936,9 +945,9 @@ class TestVariableToGpu(unittest.TestCase):
         self.x = np.zeros(self.x_shape, dtype=np.float32)
         self.gx = np.ones_like(self.x)
 
-    def check_to_gpu(self, x, gx, device=None):
-        x_var = chainer.Variable(x)
-        x_var.grad = gx
+    def check_to_gpu(self, x, gx, device=None, requires_grad=True):
+        x_var = chainer.Variable(x, requires_grad=requires_grad)
+        x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
 
         x_var.to_gpu(device)
 
@@ -983,7 +992,16 @@ class TestVariableToGpu(unittest.TestCase):
 
     @attr.chainerx
     def test_to_gpu_from_chainerx(self):
-        self.check_to_gpu(chainerx.array(self.x), chainerx.array(self.gx))
+        self.check_to_gpu(
+            chainerx.array(self.x), chainerx.array(self.gx),
+            requires_grad=False)
+
+    @attr.chainerx
+    def test_to_gpu_from_chainerx_with_requires_grad(self):
+        with self.assertRaises(RuntimeError):
+            self.check_to_gpu(
+                chainerx.array(self.x), chainerx.array(self.gx),
+                requires_grad=True)
 
 
 @testing.parameterize(

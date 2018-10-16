@@ -811,10 +811,9 @@ class Variable(object):
                 if g is not None:
                     raise RuntimeError(
                         'Cannot set a gradient to an empty variable')
-            else:
+            elif arr.is_backprop_required():
                 if g is None:
-                    if arr.is_backprop_required():
-                        arr.set_grad(None)
+                    arr.set_grad(None)
                 else:
                     assert g._is_chainerx
                     arr.set_grad(g._data_chainerx[0])
@@ -865,6 +864,11 @@ class Variable(object):
         """Copies the data and gradient arrays to CPU."""
         is_chainerx = self._is_chainerx
         if is_chainerx:
+            data_chx = self._data_chainerx[0]
+            if data_chx is not None and data_chx.is_backprop_required():
+                raise RuntimeError(
+                    'A variable of ChainerX which requires gradients cannot '
+                    'be copied into CPU.')
             self._clear_data_chainerx()
 
         array = self.array
@@ -892,6 +896,11 @@ class Variable(object):
         """
         is_chainerx = self._is_chainerx
         if is_chainerx:
+            data_chx = self._data_chainerx[0]
+            if data_chx is not None and data_chx.is_backprop_required():
+                raise RuntimeError(
+                    'A variable of ChainerX which requires gradients cannot '
+                    'be copied into GPU.')
             self._clear_data_chainerx()
 
         if self.array is None:
