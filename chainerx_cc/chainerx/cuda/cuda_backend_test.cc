@@ -205,6 +205,8 @@ TEST_P(CudaBackendTransferTest, MemoryCopyFrom) {
     std::shared_ptr<void> src = device1.FromHostMemory(src_orig, bytesize);
     std::shared_ptr<void> dst = device0.Allocate(bytesize);
     device0.MemoryCopyFrom(dst.get(), src.get(), bytesize, device1);
+    device0.Synchronize();
+    device1.Synchronize();
     ExpectDataEqual<float>(src, dst, size);
 }
 
@@ -221,6 +223,8 @@ TEST_P(CudaBackendTransferTest, MemoryCopyFromZeroByte) {
     std::shared_ptr<void> src = device1.FromHostMemory(src_orig, bytesize);
     std::shared_ptr<void> dst = device0.Allocate(bytesize);
     device0.MemoryCopyFrom(dst.get(), src.get(), bytesize, device1);
+    device0.Synchronize();
+    device1.Synchronize();
     ExpectDataEqual<float>(src, dst, size);
 }
 
@@ -238,6 +242,8 @@ TEST_P(CudaBackendTransferTest, MemoryCopyTo) {
     std::shared_ptr<void> src = device0.FromHostMemory(src_orig, bytesize);
     std::shared_ptr<void> dst = device1.Allocate(bytesize);
     device0.MemoryCopyTo(dst.get(), src.get(), bytesize, device1);
+    device0.Synchronize();
+    device1.Synchronize();
     ExpectDataEqual<float>(src, dst, size);
 }
 
@@ -254,6 +260,8 @@ TEST_P(CudaBackendTransferTest, MemoryCopyToZeroByte) {
     std::shared_ptr<void> src = device0.FromHostMemory(src_orig, bytesize);
     std::shared_ptr<void> dst = device1.Allocate(bytesize);
     device0.MemoryCopyTo(dst.get(), src.get(), bytesize, device1);
+    device0.Synchronize();
+    device1.Synchronize();
     ExpectDataEqual<float>(src, dst, size);
 }
 

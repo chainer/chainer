@@ -58,13 +58,15 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
     CheckCudaError(cudaSetDevice(index()));
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
         // Copy between CUDA devices
-        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
+        CheckCudaError(cudaMemcpyAsync(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
         CHAINERX_ASSERT(
                 nullptr != dynamic_cast<native::NativeDevice*>(&src_device) &&
                 "CudaDevice only supports copy between cuda or native devices.");
         // Copy from native device
-        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyHostToDevice));
+        std::shared_ptr<void> pinned_src_ptr = AllocatePinnedMemory(bytesize);
+        CheckCudaError(cudaMemcpy(pinned_src_ptr.get(), src, bytesize, cudaMemcpyHostToHost));
+        CheckCudaError(cudaMemcpyAsync(dst, pinned_src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
     }
     CheckCudaError(cudaSetDevice(old_device));
 }
@@ -80,7 +82,7 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
     CheckCudaError(cudaSetDevice(index()));
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
-        CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToDevice));
+        CheckCudaError(cudaMemcpyAsync(dst, src, bytesize, cudaMemcpyDeviceToDevice));
     } else {
         CHAINERX_ASSERT(
                 nullptr != dynamic_cast<native::NativeDevice*>(&dst_device) &&
