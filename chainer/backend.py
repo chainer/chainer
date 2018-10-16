@@ -270,20 +270,13 @@ class DeviceId(object):
 
         """
         if self.module is numpy:
-            assert self.device is None
             return to_numpy(arrays)
 
         if self.module is cuda.cupy:
             # TODO(sonots): Support CUDA stream
-            if self.device is None:
-                return cuda.to_gpu(arrays)
-            assert isinstance(self.device, cuda.Device)
             return cuda.to_gpu(arrays, self.device)
 
         if self.module is chainerx:
-            if self.device is None:
-                return to_chainerx(arrays)
-            assert isinstance(self.device, chainerx.Device)
             return to_chainerx(arrays, self.device)
 
         assert False
