@@ -34,7 +34,6 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_backend.cc
     cuda_runtime.cc
     cudnn.cc
-    memory_pool.cc
     )
 
 CUDA_ADD_CUBLAS_TO_TARGET(chainerx_cuda)
