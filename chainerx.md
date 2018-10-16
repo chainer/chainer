@@ -35,7 +35,7 @@ Similarly, calling `Variable.backward` on any resulting variable will delegate t
 
 ### NumPy/CuPy fallback
 
-As the features above require ChainerX to support each `FunctionNode` implementation in Chainer, ChainerX utilize a fallback mechanism while gradually extending the support, instead of e.g. raising an unsupported error.
+As the features above require ChainerX to support each `FunctionNode` implementation in Chainer, ChainerX utilizes a fallback mechanism while gradually extending the support, instead of e.g. raising an unsupported error.
 This approach is taken because the integration with Chainer takes time and we **do not want existing Chainer users to have to make severe changes to their code bases in order to try ChainerX**.
 The fallback logic simply casts the `chainerx.ndarray`s inside the `Variable` to `numpy.ndarray`s or `cupy.ndarray`s (without copy) and calls the forward and backward methods respectively.
 This may hurt performance. For a complete list of supported functions please refer to [this page](chainerx_cc/chainerx/python/routines.cc). Similar fallback conversions are found throughout the code outside the `FunctionNode` as well during the integration.
