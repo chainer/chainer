@@ -209,7 +209,7 @@ class DeviceId(object):
                 self.xp = chainerx
                 self.device = chainerx.get_device(device_spec)
                 return
-            if (isinstance(device_spec, tuple)
+            if (isinstance(device_spec, tuple) and len(device_spec) >= 1
                     and isinstance(device_spec[0], str)):
                 self.xp = chainerx
                 self.device = chainerx.get_device(*device_spec)
