@@ -983,8 +983,8 @@ class Variable(object):
         # ensure that the node is disconnected with this variable.
         node = self._node
         if node is not None:
-            # Disconnect by replacing _variable with a dead weakref
-            node._variable = weakref.ref(set())
+            # Disconnect by replacing with an alternative of dead weakref
+            node._variable = lambda: None
             self._node = None
 
     def to_device(self, device=None):
