@@ -26,7 +26,7 @@ from chainer.testing import attr
      {'slices': (1, -1), 'sliced_shape': (2,)},
      {'slices': (1, Ellipsis, -1), 'sliced_shape': (3,)},
      {'slices': (1, None, Ellipsis, None, -1), 'sliced_shape': (1, 3, 1)},
-    ]
+     ]
 ))
 class TestGetItem(unittest.TestCase):
 
@@ -35,7 +35,8 @@ class TestGetItem(unittest.TestCase):
         self.shape = (4, 2, 1)
         self.gy_data = numpy.random.uniform(
             -1, 1, self.sliced_shape).astype(self.dtype)
-        self.ggx_data = numpy.random.uniform(-1, 1, (4, 3, 2)).astype(self.dtype)
+        self.ggx_data = numpy.random.uniform(
+            -1, 1, (4, 3, 2)).astype(self.dtype)
 
         if not hasattr(self, 'slices'):
             # Convert axes, offsets and shape to slices
