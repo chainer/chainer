@@ -10,7 +10,7 @@ from chainer import initializer
 
 class Orthogonal(initializer.Initializer):
     """__init__(scale=1.0, dtype=None)
-    
+
     Initializes array with an orthogonal system.
 
     This initializer first makes a matrix of the same shape as the

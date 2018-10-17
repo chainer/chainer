@@ -11,7 +11,7 @@ from chainer import initializer
 class Normal(initializer.Initializer):
 
     """__init__(scale=1.0, dtype=None)
-    
+
     Initializes array with a normal distribution.
 
     Each element of the array is initialized by the value drawn

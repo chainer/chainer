@@ -11,7 +11,7 @@ from chainer import initializer
 class Uniform(initializer.Initializer):
 
     """__init__(scale=1.0, dtype=None)
-    
+
     Initializes array with a scaled uniform distribution.
 
     Each element of the array is initialized by the value drawn
