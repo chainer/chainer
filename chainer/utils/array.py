@@ -1,3 +1,5 @@
+import functools
+import operator
 import warnings
 
 import numpy
@@ -37,6 +39,10 @@ def empty_like(x):
         return cuda.cupy.empty_like(x)
     else:
         return numpy.empty_like(x)
+
+
+def size_of_shape(shape):
+    return functools.reduce(operator.mul, shape, 1)
 
 
 def sum_to(x, shape):
