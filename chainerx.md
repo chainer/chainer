@@ -1,10 +1,10 @@
 # ChainerX User Guide
 
-ChainerX, or `chainerx` is a standalone Python package that's integrated into Chainer.
+*ChainerX*, or `chainerx` is a standalone Python package that's integrated into Chainer.
 It is implemented almost purely in C++ with Python bindings exposed via the package, allowing Chainer to make use of it.
 It does in other words **not** replace Chainer. It aims to instead improve the performance of Chainer in terms of speed by reducing the Python overhead.
 
-This guide is aimed toward users familiar with the Chainer interface but want to improve their training/inference speed, using *ChainerX*.
+This guide is aimed toward users familiar with the Chainer interface but want to improve their training/inference speed, using ChainerX.
 It explains how to install it, the motivation behind it and how to migrate existing code to be compatible with it.
 
 - [Installation](#installation)
