@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import backend
 from chainer import initializer
 
@@ -9,7 +10,9 @@ from chainer import initializer
 
 class Uniform(initializer.Initializer):
 
-    """Initializes array with a scaled uniform distribution.
+    """__init__(scale=1.0, dtype=None)
+    
+    Initializes array with a scaled uniform distribution.
 
     Each element of the array is initialized by the value drawn
     independently from uniform distribution :math:`[-scale, scale]`.
@@ -22,6 +25,8 @@ class Uniform(initializer.Initializer):
     """
 
     def __init__(self, scale=0.05, dtype=None):
+        if scale is None:
+            scale = 0.05 if chainer.config.initializers_legacy_scale else 1.0
         self.scale = scale
         super(Uniform, self).__init__(dtype)
 

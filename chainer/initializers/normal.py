@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import backend
 from chainer import initializer
 
@@ -9,7 +10,9 @@ from chainer import initializer
 
 class Normal(initializer.Initializer):
 
-    """Initializes array with a normal distribution.
+    """__init__(scale=1.0, dtype=None)
+    
+    Initializes array with a normal distribution.
 
     Each element of the array is initialized by the value drawn
     independently from Gaussian distribution whose mean is 0,
@@ -21,7 +24,9 @@ class Normal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=0.05, dtype=None):
+    def __init__(self, scale=None, dtype=None):
+        if scale is None:
+            scale = 0.05 if chainer.config.initializers_legacy_scale else 1.0
         self.scale = scale
         super(Normal, self).__init__(dtype)
 

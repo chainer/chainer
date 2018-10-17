@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer import backend
 from chainer import initializer
 
@@ -8,7 +9,9 @@ from chainer import initializer
 # https://github.com/fchollet/keras/blob/master/keras/initializations.py
 
 class Orthogonal(initializer.Initializer):
-    """Initializes array with an orthogonal system.
+    """__init__(scale=1.0, dtype=None)
+    
+    Initializes array with an orthogonal system.
 
     This initializer first makes a matrix of the same shape as the
     array to be initialized whose elements are drawn independently from
@@ -34,7 +37,9 @@ class Orthogonal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=1.1, dtype=None):
+    def __init__(self, scale=None, dtype=None):
+        if scale is None:
+            scale = 1.1 if chainer.config.initializers_legacy_scale else 1.0
         self.scale = scale
         super(Orthogonal, self).__init__(dtype)
 
