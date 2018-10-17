@@ -14,6 +14,7 @@
 #include "chainerx/array_fwd.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
 #include "chainerx/shape.h"
@@ -120,7 +121,11 @@ public:
 
     const ArrayProps& GetOutputArrayProps(size_t i) const {
         CHAINERX_ASSERT(i < output_array_props_.size());
-        return output_array_props_[i];
+        const nonstd::optional<ArrayProps>& array_props = output_array_props_[i];
+        if (!array_props.has_value()) {
+            throw ChainerxError{"The gradient of output ", i, " of operation \"", name_, "\" is not propagated."};
+        }
+        return *array_props;
     }
 
     // Returns the list of output array nodes on "this" graph.
@@ -166,7 +171,7 @@ private:
     std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_output_array_nodes_;
 
     // Array props of output array nodes. This is used for creating dummy gradients.
-    std::vector<ArrayProps> output_array_props_;
+    std::vector<nonstd::optional<ArrayProps>> output_array_props_;
 
     std::vector<OpNodeBackwardEntry> backward_entries_;
 };
