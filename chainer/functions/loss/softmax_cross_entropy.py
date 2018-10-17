@@ -170,7 +170,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             self.reduce, self.ignore_label, self.class_weight, self.y,
             self._coeff)
         inputs = self.get_retained_inputs()
-        return func_grad.apply(inputs + grad_outputs)
+        return func_grad.apply(inputs + grad_outputs) + (None,)
 
 
 class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
@@ -225,7 +225,7 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
             gx *= gloss * self.coeff
         else:
             gx *= gloss[:, None]
-        return gx, None
+        return gx,
 
     def forward_gpu(self, inputs_and_grad_outputs):
         cupy = cuda.cupy
@@ -267,7 +267,7 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
                     y, self.class_weight, cupy.expand_dims(t, 1), coeff,
                     x.shape[1], n_unit, self.ignore_label)
 
-        return gx, None
+        return gx,
 
     def backward(self, input_indexes, grad_outputs):
         raise RuntimeError(
