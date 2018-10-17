@@ -1,6 +1,6 @@
 # ChainerX User Guide
 
-This guide is aimed toward developers familiar with the Chainer interface but want to improve their training/inference speed, using *ChainerX*.
+This guide is aimed toward users familiar with the Chainer interface but want to improve their training/inference speed, using *ChainerX*.
 It briefly explains the motivation behind ChainerX, how to install it and how to migrate existing code to be compatible with it.
 
 - [About ChainerX](#about-chainerx)
@@ -56,7 +56,7 @@ arr = chx.array([1, 2, 3], dtype='f', device='cuda:1')  # CUDA backend, second d
 arr.device  # == cuda:0
 ```
 
-This allows third-party backends to be plugged into ChainerX, which is outside the scope of this document. It can be achieved by implementing the [`chainerx::Device` interface](chainerx_cc/chainerx/device.h).
+This allows third-party backends to be plugged into ChainerX. It is outside the scope of this document but can be achieved by implementing the [`chainerx::Backend`](chainerx_cc/chainerx/backend.h) and [`chainerx::Device`](chainerx_cc/chainerx/device.h) interfaces.
 
 ## Installation
 
