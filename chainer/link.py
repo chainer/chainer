@@ -496,6 +496,8 @@ Assign a Parameter object directly to an attribute within a \
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
         # TODO(sonots): Fix to transfer if given device is different.
+        # Note that a link object must be deep copyable, but backend.DeviceId
+        # or chainerx.Device is not deep copyable. Hang in there.
         if self._xp is chainerx:
             return self
         d = self.__dict__
