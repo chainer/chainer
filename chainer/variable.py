@@ -876,7 +876,7 @@ class Variable(object):
             return
 
         if not isinstance(array, numpy.ndarray):
-            self._data = [backend.to_numpy(data)]
+            self._data = [backend.to_numpy(array)]
 
         if self._grad_var is not None:
             self._grad_var.to_cpu()
