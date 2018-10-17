@@ -246,11 +246,6 @@ class TestToBackend(unittest.TestCase):
 
 
 class TestDeviceId(unittest.TestCase):
-    def test_init_none(self):
-        device_id = backend.DeviceId(None)
-        assert device_id.xp is None
-        assert device_id.device is None
-
     def test_init_module_numpy(self):
         device_id = backend.DeviceId(numpy)
         assert device_id.xp is numpy
@@ -345,10 +340,6 @@ class TestDeviceId(unittest.TestCase):
         assert device_id.xp is orig_device_id.xp
         assert device_id.device == orig_device_id.device
 
-    def test_repr_none(self):
-        device_id = backend.DeviceId(None)
-        assert str(device_id) == 'DeviceId(None)'
-
     def test_repr_module_numpy(self):
         device_id = backend.DeviceId(numpy)
         assert str(device_id) == 'DeviceId(numpy)'
@@ -419,11 +410,6 @@ class TestToDevice(unittest.TestCase):
             backend.to_numpy(orig),
             backend.to_numpy(converted))
         return converted
-
-    def test_no_transfer(self):
-        orig = self.orig_numpy()
-        converted = self.to_device_check_equal(orig, None)
-        assert converted is orig
 
     def test_numpy_to_numpy(self):
         orig = self.orig_numpy()

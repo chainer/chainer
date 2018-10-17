@@ -21,10 +21,11 @@ def to_device(device, x):
     See also :func:`chainer.dataset.concat_examples`.
 
     Args:
-        device (int or device specifier): A device to which an array
+        device (None or int or device specifier): A device to which an array
             is sent. If it is a negative integer, an array is sent to CPU.
             If it is a positive integer, an array is sent to GPU with the
-            given ID. Also, any of device specifiers described at
+            given ID. If it is``None``, an array is left in the original
+            device. Also, any of device specifiers described at
             :class:`~chainer.backend.DeviceId` is accepted.
         x (numpy.ndarray, cupy.ndarray, or chainerx.ndarray): An array to send.
 
@@ -32,6 +33,9 @@ def to_device(device, x):
         Converted array.
 
     """
+    if device is None:
+        return x
+
     # For backward compatibilities
     if isinstance(device, six.integer_types):
         if device < 0:

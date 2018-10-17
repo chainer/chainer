@@ -182,7 +182,6 @@ class DeviceId(object):
                it represents a cupy device.
             8. If it is an instance of this class, a new instance with
                same properties is created.
-            9. If it is None, it represents no transfer occurs.
 
     Attributes:
         xp: Target array module to transfer.
@@ -194,11 +193,6 @@ class DeviceId(object):
     """
 
     def __init__(self, device_spec):
-        if device_spec is None:
-            self.xp = None
-            self.device = None
-            return
-
         if isinstance(device_spec, DeviceId):
             self.xp = device_spec.xp
             self.device = device_spec.device
@@ -258,9 +252,6 @@ class DeviceId(object):
         return self.xp == other.xp and self.device == other.device
 
     def __repr__(self):
-        if self.xp is None:
-            return 'DeviceId(None)'
-
         if self.xp is numpy:
             return 'DeviceId(numpy)'
 
@@ -288,9 +279,6 @@ class DeviceId(object):
             Transferred arrays.
 
         """
-        if self.xp is None:
-            return arrays
-
         if self.xp is numpy:
             return to_numpy(arrays)
 
@@ -316,8 +304,6 @@ def to_device(arrays, device):
         Transferred arrays.
 
     """
-    if device is None:
-        return arrays
     if isinstance(device, DeviceId):
         return device.to_device(arrays)
     return DeviceId(device).to_device(arrays)

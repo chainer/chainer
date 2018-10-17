@@ -984,7 +984,7 @@ class Variable(object):
             node._variable = lambda: None
             self._node = None
 
-    def to_device(self, device=None):
+    def to_device(self, device):
         """Copies the data and gradient arrays to specified device.
 
         Args:
@@ -993,9 +993,6 @@ class Variable(object):
                 available values.
 
         """
-        if device is None:
-            return
-
         device_id = backend.DeviceId(device)
         if device_id.xp is numpy:
             self.to_cpu()

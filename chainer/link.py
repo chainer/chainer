@@ -508,9 +508,7 @@ Assign a Parameter object directly to an attribute within a \
         self._device_id = None
         return self
 
-    def to_device(self, device=None):
-        if device is None:
-            return self
+    def to_device(self, device):
         device_id = backend.DeviceId(device)
 
         a = None
