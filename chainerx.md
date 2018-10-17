@@ -5,11 +5,11 @@ It is implemented almost purely in C++ with Python bindings exposed via the pack
 It does in other words **not** replace Chainer. It aims to instead improve the performance of Chainer in terms of speed by reducing the Python overhead.
 
 This guide is aimed toward users familiar with the Chainer interface but want to improve their training/inference speed, using ChainerX.
-It explains how to install it, the motivation behind it and how to migrate existing code to be compatible with it.
+It explains how to install it, the motivation behind it and how to modify your existing Chainer code to use ChainerX.
 
 - [Installation](#installation)
 - [About ChainerX](#about-chainerx)
-- [Migrating from Chainer](#migrating-from-chainer)
+- [Making your script use ChainerX](#making-your-script-use-chainerx)
 - [Known issues](#known-issues)
 - [FAQ](#faq)
 
@@ -88,7 +88,7 @@ arr.device  # == cuda:0
 
 This allows third-party backends to be plugged into ChainerX. It is outside the scope of this document but can be achieved by implementing the [`chainerx::Backend`](chainerx_cc/chainerx/backend.h) and [`chainerx::Device`](chainerx_cc/chainerx/device.h) interfaces.
 
-## Migrating from Chainer
+## Making your script use ChainerX
 
 In order to utilize `chainerx`, you first need to allocate your model on a ChainerX device using `Chain.to_device` or `Link.to_device`. These are new methods that have been introduced to replace `to_cpu` and `to_gpu`, extending device transfer to arbitrary devices.
 Similarly, you have to transfer the data (`Variable`s) to the same device before feeding them to the model.
