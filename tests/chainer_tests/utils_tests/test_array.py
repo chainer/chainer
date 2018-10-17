@@ -19,8 +19,9 @@ from chainer.utils import array
 class TestSizeOfShape(unittest.TestCase):
 
     def test_size_of_shape(self):
-        size = array.size_of_shape(self.shape)
-        size_expect = numpy.empty(self.shape).size
+        arr = numpy.empty(self.shape)
+        size = array.size_of_shape(arr.shape)
+        size_expect = arr.size
         assert type(size) == type(size_expect)
         assert size == size_expect
 
