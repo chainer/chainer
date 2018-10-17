@@ -528,7 +528,7 @@ Assign a Parameter object directly to an attribute within a \
         else:
             self._xp = device_id.xp
 
-        if device_id.xp is cuda.cupy:
+        if device_id.xp is cuda.cupy and a is not None:
             a = variable.as_array(a)
             self._device_id = cuda.get_device_from_array(a).id
         else:
