@@ -245,6 +245,126 @@ class TestToBackend(unittest.TestCase):
     # TODO(niboshi): Add more test variants
 
 
+class TestDeviceId(unittest.TestCase):
+    def test_init_module_numpy(self):
+        device_id = backend.DeviceId(numpy)
+        assert device_id.xp is numpy
+        assert device_id.device is None
+
+    @attr.gpu
+    def test_init_module_cupy(self):
+        device_id = backend.DeviceId(cuda.cupy)
+        assert device_id.xp is cuda.cupy
+        assert device_id.device is None
+
+    @attr.chainerx
+    def test_init_module_chainerx(self):
+        device_id = backend.DeviceId(chainerx)
+        assert device_id.xp is chainerx
+        assert device_id.device is None
+
+    @attr.chainerx
+    def test_init_str_chainerx_backend(self):
+        device_id = backend.DeviceId('native')
+        assert device_id.xp is chainerx
+        assert device_id.device is chainerx.get_device('native:0')
+
+    @attr.chainerx
+    def test_init_str_chainerx_device(self):
+        device_id = backend.DeviceId('native:0')
+        assert device_id.xp is chainerx
+        assert device_id.device is chainerx.get_device('native:0')
+
+    @attr.chainerx
+    def test_init_str_chainerx_invalid(self):
+        with self.assertRaises(Exception):
+            backend.DeviceId('native:foo')
+
+    @attr.chainerx
+    def test_init_tuple_chainerx_backend(self):
+        device_id = backend.DeviceId(('native',))
+        assert device_id.xp is chainerx
+        assert device_id.device is chainerx.get_device('native:0')
+
+    @attr.chainerx
+    def test_init_tuple_chainerx_device(self):
+        device_id = backend.DeviceId(('native', 0))
+        assert device_id.xp is chainerx
+        assert device_id.device is chainerx.get_device('native:0')
+
+    @attr.chainerx
+    def test_init_tuple_chainerx_invalid(self):
+        with self.assertRaises(Exception):
+            backend.DeviceId(('native', 'foo'))
+
+    @attr.gpu
+    def test_init_tuple_cupy_device(self):
+        device_id = backend.DeviceId((cuda.cupy, 0))
+        assert device_id.xp is cuda.cupy
+        assert device_id.device == cuda.Device(0)
+
+    @attr.gpu
+    def test_init_tuple_cupy_invalid_device(self):
+        with self.assertRaises(Exception):
+            backend.DeviceId((cuda.cupy, 'foo'))
+
+    def test_init_dummy_device(self):
+        device_id = backend.DeviceId(cuda.DummyDevice)
+        assert device_id.xp is numpy
+        assert device_id.device is None
+
+    @attr.chainerx
+    def test_init_chainerx_device(self):
+        device = chainerx.get_device('native:0')
+        device_id = backend.DeviceId(device)
+        assert device_id.xp is chainerx
+        assert device_id.device is device
+
+    @attr.chainerx
+    def test_init_chainerx_device_scope(self):
+        device_scope = chainerx.device_scope(chainerx.get_device('native:0'))
+        device_id = backend.DeviceId(device_scope)
+        assert device_id.xp is chainerx
+        assert device_id.device is device_scope.device
+
+    @attr.gpu
+    def test_init_cuda_device(self):
+        device = cuda.Device(0)
+        device_id = backend.DeviceId(device)
+        assert device_id.xp is cuda.cupy
+        assert device_id.device == device
+
+    def test_init_device_id(self):
+        orig_device_id = backend.DeviceId(numpy)
+        device_id = backend.DeviceId(orig_device_id)
+        assert device_id.xp is orig_device_id.xp
+        assert device_id.device == orig_device_id.device
+
+    def test_repr_module_numpy(self):
+        device_id = backend.DeviceId(numpy)
+        assert str(device_id) == 'DeviceId(numpy)'
+
+    @attr.gpu
+    def test_repr_module_cupy(self):
+        device_id = backend.DeviceId(cuda.cupy)
+        assert str(device_id) == 'DeviceId(cupy)'
+
+    @attr.chainerx
+    def test_repr_module_chainerx(self):
+        device_id = backend.DeviceId(chainerx)
+        assert str(device_id) == 'DeviceId(chainerx)'
+
+    @attr.chainerx
+    def test_repr_tuple_chainerx_device(self):
+        device_id = backend.DeviceId(('native', 0))
+        assert str(device_id) == 'DeviceId(native:0)'
+
+    @attr.gpu
+    def test_repr_tuple_cupy_device(self):
+        device_id = backend.DeviceId((cuda.cupy, 0))
+        assert str(device_id) == 'DeviceId((cupy, 0))'
+
+
 class TestToDevice(unittest.TestCase):
 
     def orig_numpy(self):
@@ -265,23 +385,26 @@ class TestToDevice(unittest.TestCase):
 
     def test_numpy_to_numpy(self):
         orig = self.orig_numpy()
-        converted = self.to_device_check_equal(orig, cuda.DummyDevice)
+        converted = self.to_device_check_equal(orig, numpy)
         assert converted is orig
+
+        # memory must be shared
+        orig[:] *= 2
+        numpy.testing.assert_array_equal(orig, converted)
 
     @attr.gpu
     def test_numpy_to_cupy(self):
         orig = self.orig_numpy()
-        converted = self.to_device_check_equal(orig, cuda.Device(0))
+        converted = self.to_device_check_equal(orig, cuda.cupy)
         assert isinstance(converted, cuda.ndarray)
         assert converted.device == cuda.Device(0)
 
     @attr.chainerx
-    def test_numpy_to_chainerx_native(self):
+    def test_numpy_to_chainerx(self):
         orig = self.orig_numpy()
-        device = chainerx.get_device('native:0')
-        converted = self.to_device_check_equal(orig, device)
+        converted = self.to_device_check_equal(orig, chainerx)
         assert isinstance(converted, chainerx.ndarray)
-        assert converted.device is device
+        assert converted.device.name == 'native:0'
 
         # memory must be shared
         orig[:] *= 2
@@ -292,48 +415,22 @@ class TestToDevice(unittest.TestCase):
     @attr.gpu
     def test_numpy_to_chainerx_cuda(self):
         orig = self.orig_numpy()
-        device = chainerx.get_device('cuda:0')
-        converted = self.to_device_check_equal(orig, device)
+        converted = self.to_device_check_equal(orig, 'cuda:0')
         assert isinstance(converted, chainerx.ndarray)
-        assert converted.device is device
-
-    @attr.gpu
-    def test_cupy_to_cupy(self):
-        orig = self.orig_cupy()
-        converted = self.to_device_check_equal(orig, cuda.Device(0))
-        assert isinstance(converted, cuda.ndarray)
-        assert converted.device == cuda.Device(0)
-
-    @attr.multi_gpu(2)
-    def test_cupy_to_cupy_multigpu(self):
-        orig = self.orig_cupy()
-        converted = self.to_device_check_equal(orig, cuda.Device(1))
-        assert isinstance(converted, cuda.ndarray)
-        assert converted.device == cuda.Device(1)
+        assert converted.device.name == 'cuda:0'
 
     @attr.gpu
     def test_cupy_to_numpy(self):
         orig = self.orig_cupy()
-        converted = self.to_device_check_equal(orig, cuda.DummyDevice)
+        converted = self.to_device_check_equal(orig, numpy)
         assert isinstance(converted, numpy.ndarray)
 
-    @attr.chainerx
     @attr.gpu
-    def test_cupy_to_chainerx_native(self):
+    def test_cupy_to_cupy(self):
         orig = self.orig_cupy()
-        device = chainerx.get_device('native:0')
-        converted = self.to_device_check_equal(orig, device)
-        assert isinstance(converted, chainerx.ndarray)
-        assert converted.device is device
-
-    @attr.chainerx
-    @attr.gpu
-    def test_cupy_to_chainerx_cuda(self):
-        orig = self.orig_cupy()
-        device = chainerx.get_device('cuda:0')
-        converted = self.to_device_check_equal(orig, device)
-        assert isinstance(converted, chainerx.ndarray)
-        assert converted.device is device
+        converted = self.to_device_check_equal(orig, cuda.cupy)
+        assert isinstance(converted, cuda.ndarray)
+        assert converted.device == orig.device
 
         # memory must be shared
         orig[:] *= 2
@@ -341,24 +438,44 @@ class TestToDevice(unittest.TestCase):
             backend.to_numpy(orig), backend.to_numpy(converted))
 
     @attr.chainerx
-    @attr.multi_gpu(2)
-    def test_cupy_to_chainerx_cuda_multigpu(self):
+    @attr.gpu
+    def test_cupy_to_chainerx(self):
         orig = self.orig_cupy()
-        device = chainerx.get_device('cuda:1')
-        converted = self.to_device_check_equal(orig, device)
+        converted = self.to_device_check_equal(orig, chainerx)
         assert isinstance(converted, chainerx.ndarray)
-        assert converted.device is device
+        assert converted.device.name == 'cuda:0'
 
-        # memory must not be shared
-        orig_copy = orig.copy()
+        # memory must be shared
         orig[:] *= 2
         numpy.testing.assert_array_equal(
-            backend.to_numpy(orig_copy), backend.to_numpy(converted))
+            backend.to_numpy(orig), backend.to_numpy(converted))
+
+    @attr.multi_gpu(2)
+    def test_cupy_to_cupy_multigpu(self):
+        orig = self.orig_cupy()
+        converted = self.to_device_check_equal(orig, (cuda.cupy, 1))
+        assert isinstance(converted, cuda.ndarray)
+        assert converted.device.id == 1
+
+    @attr.chainerx
+    def test_cupy_to_chainerx_native(self):
+        orig = self.orig_cupy()
+        converted = self.to_device_check_equal(orig, 'native:0')
+        assert isinstance(converted, chainerx.ndarray)
+        assert converted.device.name == 'native:0'
+
+    @attr.chainerx
+    @attr.multi_gpu(2)
+    def test_cupy_to_chainerx_multigpu(self):
+        orig = self.orig_cupy()
+        converted = self.to_device_check_equal(orig, 'cuda:1')
+        assert isinstance(converted, chainerx.ndarray)
+        assert converted.device.name == 'cuda:1'
 
     @attr.chainerx
     def test_chainerx_native_to_numpy(self):
         orig = self.orig_chainerx('native:0')
-        converted = self.to_device_check_equal(orig, cuda.DummyDevice)
+        converted = self.to_device_check_equal(orig, numpy)
         assert isinstance(converted, numpy.ndarray)
 
         # memory must be shared
@@ -370,9 +487,9 @@ class TestToDevice(unittest.TestCase):
     @attr.gpu
     def test_chainerx_cuda_to_cupy(self):
         orig = self.orig_chainerx('cuda:0')
-        converted = self.to_device_check_equal(orig, cuda.Device(0))
+        converted = self.to_device_check_equal(orig, cuda.cupy)
         assert isinstance(converted, cuda.ndarray)
-        assert converted.device == cuda.Device(0)
+        assert converted.device.id == 0
 
         # memory must be shared
         converted[:] *= 2
@@ -383,9 +500,9 @@ class TestToDevice(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_chainerx_cuda_to_cupy_multigpu(self):
         orig = self.orig_chainerx('cuda:0')
-        converted = self.to_device_check_equal(orig, cuda.Device(1))
+        converted = self.to_device_check_equal(orig, (cuda.cupy, 1))
         assert isinstance(converted, cuda.ndarray)
-        assert converted.device == cuda.Device(1)
+        assert converted.device.id == 1
 
         # memory must not be shared
         converted_copy = converted.copy()
@@ -398,8 +515,12 @@ class TestToDevice(unittest.TestCase):
     @attr.gpu
     def test_chainerx_cuda_to_numpy(self):
         orig = self.orig_chainerx('cuda:0')
-        converted = self.to_device_check_equal(orig, cuda.DummyDevice)
+        converted = self.to_device_check_equal(orig, numpy)
         assert isinstance(converted, numpy.ndarray)
+
+    def test_numpy_to_numpy_with_device_id(self):
+        orig = self.orig_numpy()
+        self.to_device_check_equal(orig, backend.DeviceId(numpy))
 
 
 testing.run_module(__name__, __file__)

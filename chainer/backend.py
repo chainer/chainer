@@ -7,6 +7,9 @@ from chainer.backends import intel64
 import chainerx
 
 
+_integer_types = six.integer_types + (numpy.integer,)
+
+
 def _contains_nan(x):
     """Returns whether the input array has NaN values.
 
@@ -156,18 +159,152 @@ def to_chainerx(array, device=None):
     return _obj_to_array(array, lambda arr: _array_to_chainerx(arr, device))
 
 
-# TODO(niboshi): Revisit API
+class DeviceId(object):
+    """Device ID.
+
+    This object represents a device identifier to be specified in transferring
+    arrays into devices or modules.
+
+    Args:
+        device_spec (object): Device specifier.
+            1. If it is a module, it represents a transfer between
+               modules. It tries a zero-copy transfer as much as possible.
+            2. If it is a string, it represents a chainerx device.
+            3. If it is a tuple whose first element is a string such as
+               ('cuda', 1) or ('cuda',), it represents a chainerx device.
+            4. If it is a tuple of a cupy module and an integer such
+               as (cupy, 1), it represents a cupy device.
+            5. If it is :class:`~chainer.backends.cuda.DummyDevice`,
+               it represents numpy module.
+            6. If it is an instance of :class:`chainerx.Device` or
+               :class:`chainerx.DeviceScope`, it represents a chainerx device.
+            7. If it is an instance of :class:`~chainer.backends.cuda.Device`,
+               it represents a cupy device.
+            8. If it is an instance of this class, a new instance with
+               same properties is created.
+
+    Attributes:
+        xp: Target array module to transfer.
+        device (None or chainerx.Device or cuda.Device): Target device.
+            None tries a zero-copy transfer between modules.
+            :class:`chainerx.Device` if module is chianerx.
+            :class:`~chainer.backends.cuda.Device` if module is cupy.
+
+    """
+
+    def __init__(self, device_spec):
+        if isinstance(device_spec, DeviceId):
+            self.xp = device_spec.xp
+            self.device = device_spec.device
+            return
+
+        if device_spec is numpy:
+            self.xp = numpy
+            self.device = None
+            return
+        if device_spec is cuda.DummyDevice:
+            self.xp = numpy
+            self.device = None
+            return
+
+        if chainerx.is_available():
+            if device_spec is chainerx:
+                self.xp = chainerx
+                self.device = None
+                return
+            if isinstance(device_spec, str):
+                self.xp = chainerx
+                self.device = chainerx.get_device(device_spec)
+                return
+            if (isinstance(device_spec, tuple) and len(device_spec) >= 1
+                    and isinstance(device_spec[0], str)):
+                self.xp = chainerx
+                self.device = chainerx.get_device(*device_spec)
+                return
+            if isinstance(device_spec, chainerx.Device):
+                self.xp = chainerx
+                self.device = device_spec
+                return
+            if isinstance(device_spec, chainerx.DeviceScope):
+                self.xp = chainerx
+                self.device = device_spec.device
+                return
+
+        if cuda.available:
+            if device_spec is cuda.cupy:
+                self.xp = cuda.cupy
+                self.device = None
+                return
+            if isinstance(device_spec, cuda.Device):
+                self.xp = cuda.cupy
+                self.device = device_spec
+                return
+            if (isinstance(device_spec, tuple) and len(device_spec) == 2
+                    and device_spec[0] is cuda.cupy
+                    and isinstance(device_spec[1], _integer_types)):
+                self.xp = cuda.cupy
+                self.device = cuda.Device(device_spec[1])
+                return
+
+        raise ValueError('invalid device: {}'.format(device_spec))
+
+    def __repr__(self):
+        if self.xp is numpy:
+            return 'DeviceId(numpy)'
+
+        if self.xp is cuda.cupy:
+            if self.device is None:
+                return 'DeviceId(cupy)'
+            assert isinstance(self.device, cuda.Device)
+            return 'DeviceId((cupy, %d))' % self.device.id
+
+        if self.xp is chainerx:
+            if self.device is None:
+                return 'DeviceId(chainerx)'
+            assert isinstance(self.device, chainerx.Device)
+            return 'DeviceId(%s)' % self.device.name
+
+        assert False
+
+    def to_device(self, arrays):
+        """Transfers given arrays to the device.
+
+        Args:
+            arrays: Arrays of NumPy, CuPy, or ChainerX.
+
+        Returns:
+            Transferred arrays.
+
+        """
+        if self.xp is numpy:
+            return to_numpy(arrays)
+
+        if self.xp is cuda.cupy:
+            # TODO(sonots): Support CUDA stream
+            return cuda.to_gpu(arrays, self.device)
+
+        if self.xp is chainerx:
+            return to_chainerx(arrays, self.device)
+
+        assert False
+
+
 def to_device(arrays, device):
-    if device is cuda.DummyDevice:
-        return to_numpy(arrays)
-    elif isinstance(device, cuda.Device):
-        return cuda.to_gpu(arrays, device)
-    elif isinstance(device, chainerx.DeviceScope):
-        return to_chainerx(arrays, device.device)
-    elif isinstance(device, chainerx.Device):
-        return to_chainerx(arrays, device)
-    else:
-        raise TypeError('Invalid device: {}'.format(device))
+    """Transfers given arrays to the device.
+
+    Args:
+        arrays: Arrays of NumPy, CuPy, or ChainerX.
+        device (object): Target device specifier. Acceptable values are
+            an instance of :class:`~chainer.backend.DeviceId` or
+            an argument which the DeviceId's constructor accepts.
+
+    Returns:
+        Transferred arrays.
+
+    """
+    if isinstance(device, DeviceId):
+        return device.to_device(arrays)
+    return DeviceId(device).to_device(arrays)
 
 
 def get_array_module(*args):
