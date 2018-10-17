@@ -60,7 +60,7 @@ This allows third-party backends to be plugged into ChainerX, which is outside t
 
 ## Installation
 
-Note that although ChainerX won't be replacing Chainer, this repository must replace you existing Chainer installation (or be installed in a different environment).
+Note that although ChainerX won't be replacing Chainer, this repository must replace your existing Chainer installation (or be installed in a different environment).
 This repository contains both `chainer` and `chainerx` as top level packages, where the former is extended to support the latter (the former also keeps track of the latest Chainer master regularly).
 
 The `chainerx` Python package is installed along with `chainer`, if the `CHAINER_BUILD_CHAINERX` environment variable is set to a non-zero value.
