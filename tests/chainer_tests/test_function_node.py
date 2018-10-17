@@ -25,15 +25,6 @@ def make_array(start, shape, dtype):
     return a
 
 
-def arrays_to_chainerx(orig_xp, np_arrays):
-    assert all(isinstance(a, numpy.ndarray) for a in np_arrays)
-    if orig_xp is numpy:
-        orig_arrays = np_arrays
-    elif orig_xp is cuda.cupy:
-        orig_arrays = [cuda.to_gpu(a) for a in np_arrays]
-    return tuple([chainer.backend.to_chainerx(a) for a in orig_arrays])
-
-
 @testing.parameterize(*testing.product({
     'y_shape': [(4,), (0,), (2, 3), ()],
     'x_shape': [(3,), (0,), (4, 1), ()],
