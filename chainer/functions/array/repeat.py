@@ -1,4 +1,3 @@
-import numpy
 import six
 
 from chainer import backend

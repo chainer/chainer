@@ -1,5 +1,3 @@
-import numpy
-
 from chainer import utils
 
 
