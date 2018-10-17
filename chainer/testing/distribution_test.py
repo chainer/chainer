@@ -193,7 +193,8 @@ class distribution_unittest(unittest.TestCase):
                     self.scipy_onebyone_params_iter(), onebyone_smp):
                 log_prob2.append(scipy_prob(one_smp, **one_params))
             log_prob2 = numpy.vstack(log_prob2)
-            log_prob2 = log_prob2.reshape(utils.size_of_shape(self.shape), -1).T
+            log_prob2 = log_prob2.reshape(
+                utils.size_of_shape(self.shape), -1).T
             log_prob2 = log_prob2.reshape(self.sample_shape + self.shape)
         else:
             log_prob2 = scipy_prob(smp, **self.scipy_params)
