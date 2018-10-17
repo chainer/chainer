@@ -1091,6 +1091,38 @@ class TestVariableToChainerX(unittest.TestCase):
             y.to_chainerx()
 
 
+@testing.parameterize(
+    {'x_shape': (10,)},
+    {'x_shape': ()},
+)
+@attr.chainerx
+class TestVariableToDevice(unittest.TestCase):
+
+    def setUp(self):
+        self.x = np.zeros(self.x_shape, dtype=np.float32)
+        self.gx = np.ones_like(self.x)
+
+    def check_to_device(self, x, gx, xp):
+        x_var = chainer.Variable(x)
+        x_var.grad_var = chainer.Variable(gx)
+
+        x_var.to_device(xp)
+
+        assert x_var.xp is xp
+        assert x_var.grad_var.xp is xp
+
+    def test_to_device_numpy(self):
+        self.check_to_device(self.x, self.gx, np)
+
+    @attr.gpu
+    def test_to_device_cupy(self):
+        self.check_to_device(self.x, self.gx, cuda.cupy)
+
+    @attr.chainerx
+    def test_to_device_chainerx(self):
+        self.check_to_device(self.x, self.gx, chainerx)
+
+
 class TestVariableBasic(unittest.TestCase):
     def test_unhashable(self):
         a = chainer.Variable(np.ones((2,)))

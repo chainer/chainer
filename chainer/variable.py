@@ -987,6 +987,28 @@ class Variable(object):
             node._variable = weakref.ref(set())
             self._node = None
 
+    def to_device(self, device=None):
+        """Copies the data and gradient arrays to specified device.
+
+        Args:
+            device: Target device specifier. See
+                :class:`~chainer.backend.DeviceId` for
+                available values.
+
+        """
+        if device is None:
+            return
+
+        device_id = backend.DeviceId(device)
+        if device_id.xp is numpy:
+            self.to_cpu()
+        elif device_id.xp is cuda.cupy:
+            self.to_gpu(device_id.device)
+        elif device_id.xp is chainerx:
+            self.to_chainerx(device_id.device)
+        else:
+            assert False
+
     def cleargrad(self):
         """Clears the gradient array."""
         self.grad_var = None
