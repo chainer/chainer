@@ -249,6 +249,7 @@ TEST_P(CudaBackendTransferTest, MemoryCopyTo) {
 
     std::shared_ptr<void> dst = device1.Allocate(bytesize);
     device0.MemoryCopyTo(dst.get(), src.get(), bytesize, device1);
+    device0.Synchronize();
     device1.Synchronize();
 
     ExpectDataEqual<float>(src, dst, size);
@@ -307,6 +308,7 @@ TEST_P(CudaBackendTransferTest, TransferDataTo) {
 
     // Transfer
     std::shared_ptr<void> trans_data = device0.TransferDataTo(device1, data, 0, bytesize);
+    device0.Synchronize();
     device1.Synchronize();
 
     EXPECT_EQ(0, std::memcmp(data.get(), trans_data.get(), bytesize));
