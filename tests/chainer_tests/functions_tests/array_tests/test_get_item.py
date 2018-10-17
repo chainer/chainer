@@ -54,6 +54,9 @@ class TestGetItem(unittest.TestCase):
 
             self.slices = tuple(self.slices)
 
+        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-4}
+        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
         y = functions.get_item(x, self.slices)
@@ -73,7 +76,7 @@ class TestGetItem(unittest.TestCase):
             return functions.get_item(x, self.slices)
 
         gradient_check.check_backward(
-            f, (x_data,), y_grad, dtype='d')
+            f, (x_data,), y_grad, dtype='d', **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x_data, self.gy_data)
@@ -88,7 +91,8 @@ class TestGetItem(unittest.TestCase):
             return functions.get_item(x, self.slices)
 
         gradient_check.check_double_backward(
-            f, (x_data,), y_grad, ggx_data, dtype='d')
+            f, (x_data,), y_grad, ggx_data, dtype='d',
+            **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(self.x_data, self.gy_data, self.ggx_data)
@@ -148,6 +152,8 @@ class TestGetItemAdvanced(unittest.TestCase):
         self.gy_data = numpy.random.uniform(
             -1, 1, self.sliced_shape).astype(self.dtype)
 
+        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-4}
+
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)
         y = functions.get_item(x, self.slices)
@@ -167,7 +173,7 @@ class TestGetItemAdvanced(unittest.TestCase):
             return functions.get_item(x, self.slices)
 
         gradient_check.check_backward(
-            f, (x_data,), y_grad, dtype='d')
+            f, (x_data,), y_grad, dtype='d', **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x_data, self.gy_data)
