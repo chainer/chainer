@@ -40,8 +40,9 @@ void Set(const Array& out, int64_t flat_index, Scalar value) {
         Indexer<> indexer{out.shape()};
         T& dst = iarray[indexer.It(flat_index)];
         auto src = static_cast<T>(value);
-        out.device().MemoryCopyFrom(&dst, &src, sizeof(T), native_device);
-        out.device().Synchronize();
+        Device& device = out.device();
+        device.MemoryCopyFrom(&dst, &src, sizeof(T), native_device);
+        device.Synchronize();
     });
 }
 

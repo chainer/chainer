@@ -39,6 +39,7 @@ public:
         size_t nin = center_inputs.size();
 
         std::cout << "check elementwise 1" << std::endl;
+
         auto checked_func = [&](const Arrays& inputs) -> Arrays {
             EXPECT_EQ(inputs.size(), nin) << "The number of inputs given to the function is wrong";
             for (size_t i = 0; i < center_inputs.size(); ++i) {

@@ -136,6 +136,7 @@ TEST(CudaDeviceTest, FromHostMemory) {
 
     std::shared_ptr<void> dst = device.FromHostMemory(src, bytesize);
     device.Synchronize();
+
     ExpectDataEqual<float>(src, dst, size);
     EXPECT_NE(src.get(), dst.get());
 
