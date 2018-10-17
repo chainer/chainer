@@ -254,6 +254,9 @@ class DeviceId(object):
 
         raise ValueError('invalid device: {}'.format(device_spec))
 
+    def __eq__(self, other):
+        return self.xp == other.xp and self.device == other.device
+
     def __repr__(self):
         if self.xp is None:
             return 'DeviceId(None)'

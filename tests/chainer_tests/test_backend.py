@@ -373,6 +373,30 @@ class TestDeviceId(unittest.TestCase):
         device_id = backend.DeviceId((cuda.cupy, 0))
         assert str(device_id) == 'DeviceId((cupy, 0))'
 
+    def test_eq_numpy(self):
+        assert backend.DeviceId(numpy) == backend.DeviceId(numpy)
+
+    @attr.gpu
+    def test_eq_cupy(self):
+        assert backend.DeviceId(cuda.cupy) == backend.DeviceId(cuda.cupy)
+        assert backend.DeviceId(cuda.cupy) != backend.DeviceId(numpy)
+        assert backend.DeviceId((cuda.cupy, 0)) == backend.DeviceId((cuda.cupy, 0))
+        assert backend.DeviceId((cuda.cupy, 0)) != backend.DeviceId((cuda.cupy, 1))
+        assert backend.DeviceId((cuda.cupy, 0)) != backend.DeviceId(cuda.cupy)
+
+    @attr.chainerx
+    def test_eq_chainerx(self):
+        assert backend.DeviceId(chainerx) == backend.DeviceId(chainerx)
+        assert backend.DeviceId(chainerx) != backend.DeviceId(numpy)
+        assert backend.DeviceId('native:0') == backend.DeviceId('native:0')
+        assert backend.DeviceId('native:0') != backend.DeviceId('native:1')
+        assert backend.DeviceId('native:0') != backend.DeviceId(chainerx)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_eq_chainerx_cupy(self):
+        assert backend.DeviceId(chainerx) != backend.DeviceId(cuda.cupy)
+        assert backend.DeviceId('native:0') != backend.DeviceId((cuda.cupy, 0))
 
 class TestToDevice(unittest.TestCase):
 
