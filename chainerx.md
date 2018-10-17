@@ -1,21 +1,51 @@
 # ChainerX User Guide
 
-This guide is aimed toward users familiar with the Chainer interface but want to improve their training/inference speed, using *ChainerX*.
-It briefly explains the motivation behind ChainerX, how to install it and how to migrate existing code to be compatible with it.
-
-- [About ChainerX](#about-chainerx)
-- [Installation](#installation)
-- [Migrating from Chainer](#migrating-from-chainer)
-- [Known issues](#known-issues)
-- [FAQ](#faq)
-
-## About ChainerX
-
 ChainerX, or `chainerx` is a standalone Python package that's integrated into Chainer.
 It is implemented almost purely in C++ with Python bindings exposed via the package, allowing Chainer to make use of it.
 It does in other words **not** replace Chainer. It aims to instead improve the performance of Chainer in terms of speed by reducing the Python overhead.
 
-Currently, it may be thought of as an alternative to NumPy and CuPy with automatic differentiation, i.e. graph construction and back-propagation built-in.
+This guide is aimed toward users familiar with the Chainer interface but want to improve their training/inference speed, using *ChainerX*.
+It explains how to install it, the motivation behind it and how to migrate existing code to be compatible with it.
+
+- [Installation](#installation)
+- [About ChainerX](#about-chainerx)
+- [Migrating from Chainer](#migrating-from-chainer)
+- [Known issues](#known-issues)
+- [FAQ](#faq)
+
+## Installation
+
+Note that although ChainerX won't be replacing Chainer, this repository must replace your existing Chainer installation (or be installed in a different environment).
+This repository contains both `chainer` and `chainerx` as top level packages, where the former is extended to support the latter (the former also keeps track of the latest Chainer master regularly).
+
+The `chainerx` Python package is installed along with `chainer`, if the `CHAINER_BUILD_CHAINERX` environment variable is set to a non-zero value.
+You can also set the `MAKEFLAGS=-j8` environment variable (to a number that fits your environment) to speed up the installation.
+
+```shell-session
+$ export CHAINER_BUILD_CHAINERX=1
+$ export MAKEFLAGS=-j8
+$ pip install chainer
+```
+
+### CUDA support
+
+CUDA support is **enabled by default**.
+To disable it, set `CHAINERX_BUILD_CUDA=0` before installing.
+When installing with the CUDA support, you also need to specify the cuDNN installation path.
+CUDA support without cuDNN is currently not supported.
+
+For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run `pip` like this:
+
+```shell-session
+$ export CHAINER_BUILD_CHAINERX=1
+$ export CUDNN_ROOT_DIR=$HOME/.cudnn/active
+$ export MAKEFLAGS=-j8
+$ pip install chainer
+```
+
+## About ChainerX
+
+Currently, ChainerX may be thought of as an alternative to NumPy and CuPy with automatic differentiation, i.e. graph construction and back-propagation built-in.
 That is, a NumPy/CuPy array with `Variable` properties.
 
 It can still be wrapped in a `Variable` and passed to any existing Chainer code.
@@ -57,36 +87,6 @@ arr.device  # == cuda:0
 ```
 
 This allows third-party backends to be plugged into ChainerX. It is outside the scope of this document but can be achieved by implementing the [`chainerx::Backend`](chainerx_cc/chainerx/backend.h) and [`chainerx::Device`](chainerx_cc/chainerx/device.h) interfaces.
-
-## Installation
-
-Note that although ChainerX won't be replacing Chainer, this repository must replace your existing Chainer installation (or be installed in a different environment).
-This repository contains both `chainer` and `chainerx` as top level packages, where the former is extended to support the latter (the former also keeps track of the latest Chainer master regularly).
-
-The `chainerx` Python package is installed along with `chainer`, if the `CHAINER_BUILD_CHAINERX` environment variable is set to a non-zero value.
-You can also set the `MAKEFLAGS=-j8` environment variable (to a number that fits your environment) to speed up the installation.
-
-```shell-session
-$ export CHAINER_BUILD_CHAINERX=1
-$ export MAKEFLAGS=-j8
-$ pip install chainer
-```
-
-### CUDA support
-
-CUDA support is **enabled by default**.
-To disable it, set `CHAINERX_BUILD_CUDA=0` before installing.
-When installing with the CUDA support, you also need to specify the cuDNN installation path.
-CUDA support without cuDNN is currently not supported.
-
-For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run `pip` like this:
-
-```shell-session
-$ export CHAINER_BUILD_CHAINERX=1
-$ export CUDNN_ROOT_DIR=$HOME/.cudnn/active
-$ export MAKEFLAGS=-j8
-$ pip install chainer
-```
 
 ## Migrating from Chainer
 
