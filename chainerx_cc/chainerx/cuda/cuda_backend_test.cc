@@ -234,7 +234,6 @@ TEST_P(CudaBackendTransferTest, MemoryCopyFromZeroByte) {
 
 TEST_P(CudaBackendTransferTest, MemoryCopyTo) {
     CHAINERX_REQUIRE_DEVICE("cuda", ::testing::get<2>(GetParam()));
-
     size_t size = 3;
     size_t bytesize = size * sizeof(float);
     float raw_data[] = {0, 1, 2};
