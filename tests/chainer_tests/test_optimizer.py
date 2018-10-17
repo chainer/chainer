@@ -6,9 +6,11 @@ import mock
 import numpy as np
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import optimizer
 from chainer import optimizers
+from chainer import serializer
 from chainer import testing
 from chainer.testing import attr
 
@@ -50,6 +52,25 @@ class TestHyperparameter(unittest.TestCase):
         self.assertEqual(self.child.get_dict(), child_copy.get_dict())
         self.assertEqual(self.parent.get_dict(), parent_copy.get_dict())
         self.assertIs(child_copy.parent, parent_copy)
+
+
+class DummyDeserializer(serializer.Deserializer):
+
+    def __init__(self, target):
+        super(DummyDeserializer, self).__init__()
+        self.target = target
+
+    def __getitem__(self, key):
+        raise NotImplementedError
+
+    def __call__(self, key, value):
+        if value is None:
+            value = self.target[key]
+        elif isinstance(value, np.ndarray):
+            np.copyto(value, self.target[key])
+        else:
+            value = type(value)(np.asarray(self.target[key]))
+        return value
 
 
 class TestUpdateRule(unittest.TestCase):
@@ -176,6 +197,13 @@ class TestUpdateRule(unittest.TestCase):
         self.update_rule.update(chainer.Variable(
             cuda.to_gpu(self.data, 1), grad=cuda.to_gpu(self.grad, 1)))
 
+    def get_target(self):
+        target = {}
+        target['t'] = 100
+        target['a'] = 1
+        target['b'] = np.array([2, 3, 4], dtype=np.float32)
+        return target
+
     @attr.gpu
     def test_state_copy_to_cpu(self):
         self.setup_state()
@@ -189,6 +217,42 @@ class TestUpdateRule(unittest.TestCase):
         self.var.to_cpu()
         self.update_rule.update_core = update_core
         self.update_rule.update(self.var)
+
+    def test_deserialize(self):
+        self.setup_state()
+        target = self.get_target()
+        self.update_rule.serialize(DummyDeserializer(target))
+
+        self.assertEqual(self.update_rule.t, target['t'])
+        self.assertIsNotNone(self.update_rule.state)
+        self.assertEqual(self.update_rule.state['a'], target['a'])
+        np.testing.assert_array_equal(self.update_rule.state['b'], target['b'])
+
+    def test_deserialize_by_strict_deserializer(self):
+        self.setup_state()
+        target = self.get_target()
+        del target['a']
+        with self.assertRaises(KeyError):
+            self.update_rule.serialize(DummyDeserializer(target))
+
+    def test_deserialize_by_nonstrict_deserializer(self):
+        self.setup_state()
+        target = self.get_target()
+        target['a'] = None
+        self.update_rule.serialize(DummyDeserializer(target))
+
+        self.assertEqual(self.update_rule.t, target['t'])
+        self.assertIsNone(self.update_rule.state)
+
+    def test_deserialize_disabled_update_rule_by_strict_deserializer(self):
+        self.setup_state()
+        self.update_rule.enabled = False
+        target = self.get_target()
+        del target['a']
+        self.update_rule.serialize(DummyDeserializer(target))
+
+        self.assertEqual(self.update_rule.t, target['t'])
+        self.assertIsNone(self.update_rule.state)
 
 
 class TestOptimizer(unittest.TestCase):
@@ -350,7 +414,7 @@ class TestGradientMethodLossScale(unittest.TestCase):
 
     def check_update(self):
         self.optimizer.update()
-        xp = cuda.get_array_module(self.target[0].param)
+        xp = backend.get_array_module(self.target[0].param)
         expected_data = xp.zeros(self.shape, dtype=self.dtype)
         rtol, atol = 1e-4, 1e-5
         if self.dtype is np.float16:

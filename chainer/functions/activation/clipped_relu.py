@@ -32,8 +32,8 @@ class ClippedReLU(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
-        x_type, = in_types
+        type_check.argname(in_types, ('x',))
+        x_type = in_types[0]
         type_check.expect(x_type.dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -74,7 +74,7 @@ class ClippedReLUGrad2(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -104,7 +104,7 @@ class ClippedReLUGrad3(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -147,9 +147,9 @@ def clipped_relu(x, z=20.0):
         >>> np.any(x > z)
         True
         >>> y = F.clipped_relu(x, z=z)
-        >>> np.any(y.data < 0)
+        >>> np.any(y.array < 0)
         False
-        >>> np.any(y.data > z)
+        >>> np.any(y.array > z)
         False
 
     """

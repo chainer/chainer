@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
@@ -53,8 +54,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             w_type.dtype.kind == 'f',
             x_type.ndim == 4,
             w_type.ndim == 4,
-            # Need to consider the case that group count > 1.
-            # x_type.shape[1] == w_type.shape[1],
+            x_type.shape[1] == w_type.shape[1] * self.groups,
         )
 
         if type_check.eval(n_in) == 3:
@@ -189,7 +189,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         iCg = int(iC / G)
         oCg = int(oC / G)
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         _x = x.reshape((N, G, iCg, iH, iW))
         _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
@@ -362,7 +362,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         iCg = int(iC / G)
         oCg = int(oC / G)
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         _x = x.reshape((N, G, iCg, iH, iW))
         _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)

@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import testing
@@ -57,7 +58,7 @@ class TestShiftFunction(unittest.TestCase):
     @attr.gpu
     def test_forward_consistency(self):
         x_data = self.x
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         if not self.c_contiguous:
             x_data = xp.asfortranarray(x_data)
@@ -75,7 +76,7 @@ class TestShiftFunction(unittest.TestCase):
             y_cpu.data, y_gpu.data.get(), atol=5e-4, rtol=5e-3)
 
     def check_backward(self, x_data, y_grad):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
 
         if not self.c_contiguous:
             x_data = xp.asfortranarray(x_data)

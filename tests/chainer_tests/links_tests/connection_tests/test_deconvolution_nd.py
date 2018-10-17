@@ -20,18 +20,21 @@ from chainer.utils import conv
     'dtype': [numpy.float32],
     'use_cudnn': ['always', 'auto', 'never'],
     'used_outsize': ['case1', 'case2', 'None'],
+    'in_channels': [4, None, 'omit'],
+    'groups': [1, 2],
 }) + testing.product({
     'dims': [(4, 3, 2)],
     'nobias': [False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_cudnn': ['always'],
     'used_outsize': ['None'],
+    'in_channels': [4, None, 'omit'],
+    'groups': [1, 2],
 }))
 class TestDeconvolutionND(unittest.TestCase):
 
     def setUp(self):
         N = 2
-        in_channels = 3
         out_channels = 2
         ndim = len(self.dims)
         ksize = (3,) * ndim
@@ -60,12 +63,19 @@ class TestDeconvolutionND(unittest.TestCase):
         else:
             initial_bias = None
 
-        self.link = deconvolution_nd.DeconvolutionND(
-            ndim, in_channels, out_channels, ksize, stride=stride, pad=pad,
-            outsize=outsize, initial_bias=initial_bias, nobias=self.nobias)
+        if self.in_channels == 'omit':
+            self.link = deconvolution_nd.DeconvolutionND(
+                ndim, out_channels, ksize, stride=stride, pad=pad,
+                outsize=outsize, initial_bias=initial_bias, nobias=self.nobias,
+                groups=self.groups)
+        else:
+            self.link = deconvolution_nd.DeconvolutionND(
+                ndim, self.in_channels, out_channels, ksize, stride=stride,
+                pad=pad, outsize=outsize, initial_bias=initial_bias,
+                nobias=self.nobias, groups=self.groups)
         self.link.cleargrads()
 
-        x_shape = (N, in_channels) + self.dims
+        x_shape = (N, 4) + self.dims
         self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         gy_shape = (N, out_channels) + outs
         self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
@@ -126,6 +136,35 @@ class TestDeconvolutionNDNoInitialBias(unittest.TestCase):
         link = deconvolution_nd.DeconvolutionND(
             ndim, 3, 2, ksize, nobias=True)
         self.assertIsNone(link.b)
+
+
+class TestDeconvolutionNDWrappers(unittest.TestCase):
+
+    def _get_data(self, ndim):
+        in_channels = 3
+        out_channels = 2
+        dtype = numpy.float32
+
+        x_shape = (2, in_channels) + (3,) * ndim
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+
+        return in_channels, out_channels, x
+
+    def test_deconv1d(self):
+        in_c, out_c, x = self._get_data(1)
+        link_nd = deconvolution_nd.DeconvolutionND(
+            1, in_c, out_c, 2, initialW=1)
+        link_1d = deconvolution_nd.Deconvolution1D(
+            in_c, out_c, 2, initialW=1)
+        testing.assert_allclose(link_nd(x).data, link_1d(x).data)
+
+    def test_deconv3d(self):
+        in_c, out_c, x = self._get_data(3)
+        link_nd = deconvolution_nd.DeconvolutionND(
+            3, in_c, out_c, 2, initialW=1)
+        link_3d = deconvolution_nd.Deconvolution3D(
+            in_c, out_c, 2, initialW=1)
+        testing.assert_allclose(link_nd(x).data, link_3d(x).data)
 
 
 testing.run_module(__name__, __file__)

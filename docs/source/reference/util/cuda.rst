@@ -1,14 +1,17 @@
 CUDA and Backend Utilities
 ==========================
 
-.. module:: chainer.backends
+Utilities across backends
+-------------------------
+
+.. module:: chainer.backend
 .. currentmodule:: /
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
-   chainer.backends.copyto
+   chainer.backend.copyto
 
 CUDA
 ----

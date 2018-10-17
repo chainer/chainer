@@ -19,21 +19,21 @@ matrix:
       - PYTHON_VERSION=2.7.10
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
+      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
     - os: osx
       language: generic
       env:
       - PYTHON_VERSION=3.4.4
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
+      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
     - os: osx
       language: generic
       env:
       - PYTHON_VERSION=3.5.1
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v4) AND (NOT type in (pull_request))
+      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
 
 before_install:
   # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
@@ -47,10 +47,12 @@ before_install:
 
       brew cask uninstall oclint;
       brew install hdf5;
+      brew install open-mpi;
     fi
 
 install:
   - pip install -U pip wheel
+  - pip install mpi4py
   - python setup.py sdist
   - pip install dist/*.tar.gz
   - travis_wait pip install -U -e .[travis]
@@ -59,8 +61,13 @@ script:
   - flake8
   - autopep8 -r . --diff | tee check_autopep8
   - test ! -s check_autopep8
+  # To workaround Travis issue (https://github.com/travis-ci/travis-ci/issues/7261),
+  # ignore DeprecationWarning raised in `site.py`.
+  - python -Werror::DeprecationWarning -Wignore::DeprecationWarning:site -m compileall -f -q chainer chainermn examples tests docs
   - pushd tests
   - pytest -m "not slow and not gpu and not cudnn and not ideep" chainer_tests
+  - export OMP_NUM_THREADS=1
+  - (for NP in 1 2; do mpiexec -n ${NP} pytest -s -v -m 'not gpu and not slow' chainermn_tests || exit $?; done)
   - popd
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
       READTHEDOCS=True python setup.py develop;
@@ -77,3 +84,6 @@ addons:
       - gfortran
       - libhdf5-serial-dev
       - liblapack-dev
+      - openmpi-bin
+      - openmpi-common
+      - libopenmpi-dev

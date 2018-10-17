@@ -2,6 +2,7 @@ import numpy
 import six
 
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import serializer
 
 
@@ -149,6 +150,8 @@ class NpzDeserializer(serializer.Deserializer):
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):
             value.set(numpy.asarray(dataset, dtype=value.dtype))
+        elif isinstance(value, intel64.mdarray):
+            intel64.ideep.basic_copyto(value, numpy.asarray(dataset))
         else:
             value = type(value)(numpy.asarray(dataset))
         return value

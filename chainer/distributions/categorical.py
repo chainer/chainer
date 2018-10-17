@@ -1,11 +1,10 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import distribution
-from chainer.functions.array import expand_dims
+from chainer.functions.activation import log_softmax
 from chainer.functions.math import exponential
-from chainer.functions.math import logsumexp
 from chainer.functions.math import sum as sum_mod
 from chainer.utils import argument
 
@@ -41,8 +40,7 @@ class Categorical(distribution.Distribution):
         with chainer.using_config('enable_backprop', True):
             if p is None:
                 logit = chainer.as_variable(logit)
-                self.__log_p = logit - expand_dims.expand_dims(
-                    logsumexp.logsumexp(logit, axis=-1), axis=-1)
+                self.__log_p = log_softmax.log_softmax(logit, axis=-1)
                 self.__p = exponential.exp(self.__log_p)
             else:
                 self.__p = chainer.as_variable(p)
@@ -78,7 +76,7 @@ class Categorical(distribution.Distribution):
             return self.log_p[mg + [x.astype(numpy.int32)]]
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.p)
+        xp = backend.get_array_module(self.p)
         onebyone_p = self.p.data.reshape(-1, self.p.shape[-1])
         eps = [xp.random.choice(
             one_p.shape[0], size=(n,), p=one_p) for one_p in onebyone_p]

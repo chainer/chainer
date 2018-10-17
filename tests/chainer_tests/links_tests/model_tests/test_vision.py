@@ -166,16 +166,20 @@ class TestResNetLayers(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
+    'n_layers': [16, 19],
     'dtype': [numpy.float16, numpy.float32],
 }))
 @unittest.skipUnless(resnet.available, 'Pillow is required')
 @attr.slow
-class TestVGG16Layers(unittest.TestCase):
+class TestVGGs(unittest.TestCase):
 
     def setUp(self):
         self._config_user = chainer.using_config('dtype', self.dtype)
         self._config_user.__enter__()
-        self.link = vgg.VGG16Layers(pretrained_model=None)
+        if self.n_layers == 16:
+            self.link = vgg.VGG16Layers(pretrained_model=None)
+        elif self.n_layers == 19:
+            self.link = vgg.VGG19Layers(pretrained_model=None)
 
     def tearDown(self):
         self._config_user.__exit__(None, None, None)
@@ -183,7 +187,10 @@ class TestVGG16Layers(unittest.TestCase):
     def test_available_layers(self):
         result = self.link.available_layers
         assert isinstance(result, list)
-        assert len(result) == 22
+        if self.n_layers == 16:
+            assert len(result) == 22
+        elif self.n_layers == 19:
+            assert len(result) == 25
 
     def check_call(self):
         xp = self.link.xp
@@ -222,7 +229,7 @@ class TestVGG16Layers(unittest.TestCase):
         assert y4.dtype == self.dtype
         y5 = vgg.prepare(x5, size=None)
         assert y5.shape == (3, 160, 120)
-        assert y5.dtype == numpy.float32
+        assert y5.dtype == self.dtype
 
     def check_extract(self):
         x1 = numpy.random.uniform(0, 255, (320, 240, 3)).astype(numpy.uint8)

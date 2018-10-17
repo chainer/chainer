@@ -21,17 +21,21 @@ class BatchNormalization(link.Link):
 
     In training mode, it normalizes the input by *batch statistics*. It also
     maintains approximated population statistics by moving averages, which can
-    be used for instant evaluation in testing mode.
+    be used for instant evaluation in testing mode. Training mode is enabled
+    when ``chainer.config.train`` is set to ``True`` and :meth:`__call__`
+    is invoked with ``finetune=False`` (the default is False).
 
     In fine-tuning mode, it accumulates the input to compute *population
     statistics*. In order to correctly compute the population statistics, a
     user must use this mode to feed mini-batches running through whole training
-    dataset.
+    dataset. Finetuning mode is enabled when ``chainer.config.train`` is set to
+    ``True`` and :meth:`__call__` is invoked with ``finetune=True``.
 
     In testing mode, it uses pre-computed population statistics to normalize
     the input variable. The population statistics is approximated if it is
     computed by training mode, or accurate if it is correctly computed by
-    fine-tuning mode.
+    fine-tuning mode. Testing mode is enabled when ``chainer.config.train``
+    is set to ``False``.
 
     Args:
         size (int, tuple of ints, or None): Size (or shape) of channel
