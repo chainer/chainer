@@ -64,6 +64,9 @@ def _as_noncontiguous_array(array):
         if a is None:
             return None
 
+        if a.size <= 1:
+            return a
+
         xp = backend.get_array_module(a)
         if xp is not chainerx:
             ret = xp.empty(
