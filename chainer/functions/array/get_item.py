@@ -51,7 +51,6 @@ class GetItemGrad(function_node.FunctionNode):
         self.slices = slices
         self._in_shape = in_shape
 
-    @utils.mixed_precision
     def forward(self, inputs):
         gy, = inputs
         xp = backend.get_array_module(*inputs)

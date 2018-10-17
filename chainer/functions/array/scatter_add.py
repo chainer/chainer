@@ -34,7 +34,6 @@ class ScatterAdd(function_node.FunctionNode):
         valid_slice = len(self.slices) - n_nones
         type_check.expect(in_types[0].ndim >= valid_slice)
 
-    @utils.mixed_precision
     def forward(self, xs):
         a = xs[0]
         b = xs[1]
