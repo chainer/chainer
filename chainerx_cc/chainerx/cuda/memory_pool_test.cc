@@ -55,5 +55,53 @@ TEST(MemoryPoolTest, FreeForeignPointer) {
     EXPECT_THROW(memory_pool.Free(ptr), ChainerxError);
 }
 
+TEST(PinnedMemoryPoolTest, Malloc) {
+    PinnedMemoryPool pinned_memory_pool{0};
+
+    void* ptr1 = pinned_memory_pool.Malloc(1);
+    void* ptr2 = pinned_memory_pool.Malloc(1);
+    EXPECT_NE(ptr1, ptr2);
+
+    pinned_memory_pool.Free(ptr2);
+
+    void* ptr3 = pinned_memory_pool.Malloc(1);
+    EXPECT_EQ(ptr2, ptr3);
+    pinned_memory_pool.Free(ptr3);
+
+    pinned_memory_pool.Free(ptr1);
+}
+
+TEST(PinnedMemoryPoolTest, AllocationUnitSize) {
+    PinnedMemoryPool pinned_memory_pool{0};
+
+    void* ptr1 = pinned_memory_pool.Malloc(100);
+    pinned_memory_pool.Free(ptr1);
+
+    void* ptr2 = pinned_memory_pool.Malloc(100 + kAllocationUnitSize);
+    EXPECT_NE(ptr1, ptr2);
+
+    pinned_memory_pool.Free(ptr2);
+}
+
+TEST(PinnedMemoryPoolTest, ZeroByte) {
+    PinnedMemoryPool pinned_memory_pool{0};
+    void* ptr = pinned_memory_pool.Malloc(0);
+    EXPECT_EQ(nullptr, ptr);
+    pinned_memory_pool.Free(ptr);  // no throw
+}
+
+TEST(PinnedMemoryPoolTest, DoubleFree) {
+    PinnedMemoryPool pinned_memory_pool{0};
+    void* ptr = pinned_memory_pool.Malloc(1);
+    pinned_memory_pool.Free(ptr);
+    EXPECT_THROW(pinned_memory_pool.Free(ptr), ChainerxError);
+}
+
+TEST(PinnedMemoryPoolTest, FreeForeignPointer) {
+    PinnedMemoryPool pinned_memory_pool{0};
+    void* ptr = &pinned_memory_pool;
+    EXPECT_THROW(pinned_memory_pool.Free(ptr), ChainerxError);
+}
+
 }  // namespace cuda
 }  // namespace chainerx
