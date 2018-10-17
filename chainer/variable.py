@@ -531,9 +531,6 @@ class Variable(object):
         return variable_str(self)
 
     def _clear_data_chainerx(self):
-        # Assigns the following attributes
-        # - _is_chainerx = False
-        # - _data_chainerx = None
         self._is_chainerx = False
         self._data_chainerx = None
 
