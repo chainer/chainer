@@ -65,7 +65,7 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
                 "CudaDevice only supports copy between cuda or native devices.");
         // Copy from native device
         std::shared_ptr<void> pinned_src_ptr = AllocatePinnedMemory(bytesize);
-        CheckCudaError(cudaMemcpy(pinned_src_ptr.get(), src, bytesize, cudaMemcpyHostToHost));
+        CheckCudaError(cudaMemcpyAsync(pinned_src_ptr.get(), src, bytesize, cudaMemcpyHostToHost));
         CheckCudaError(cudaMemcpyAsync(dst, pinned_src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
     }
     CheckCudaError(cudaSetDevice(old_device));
@@ -112,7 +112,7 @@ std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& sr
     int old_device{};
     CheckCudaError(cudaGetDevice(&old_device));
     CheckCudaError(cudaSetDevice(index()));
-    CheckCudaError(cudaMemcpy(pinned_src_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToHost));
+    CheckCudaError(cudaMemcpyAsync(pinned_src_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToHost));
     CheckCudaError(cudaMemcpyAsync(dst_ptr.get(), pinned_src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
     CheckCudaError(cudaSetDevice(old_device));
     return dst_ptr;
