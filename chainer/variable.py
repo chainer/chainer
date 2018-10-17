@@ -957,9 +957,9 @@ class Variable(object):
                 depending on the original array is used.
 
         """
-        if self._requires_grad and self._node is not None:
+        if not self._is_chainerx and self.creator is not None:
             raise RuntimeError(
-                'A variable requiring gradients cannot be '
+                'A variable with a creator cannot be '
                 'converted into ChainerX array')
 
         data = self.data
@@ -978,6 +978,14 @@ class Variable(object):
 
         self._data = [new_data]
         self._set_data_chainerx(new_data, new_grad, self._requires_grad)
+
+        # ChainerX itself has own node objects,
+        # ensure that the node is disconnected with this variable.
+        node = self._node
+        if node is not None:
+            # Disconnect by replacing _variable with a dead weakref
+            node._variable = weakref.ref(set())
+            self._node = None
 
     def cleargrad(self):
         """Clears the gradient array."""

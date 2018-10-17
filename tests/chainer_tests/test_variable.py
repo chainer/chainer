@@ -1062,22 +1062,11 @@ class TestVariableToChainerX(unittest.TestCase):
         assert x_var._data_chainerx is not None
 
     def test_to_chainerx_from_numpy(self):
-        self.check_to_chainerx(self.x, self.gx, requires_grad=False)
-
-    def test_to_chainerx_from_numpy_requiring_grad(self):
-        with self.assertRaises(RuntimeError):
-            self.check_to_chainerx(self.x, self.gx, requires_grad=True)
+        self.check_to_chainerx(self.x, self.gx)
 
     @attr.gpu
     def test_to_chainerx_from_cupy(self):
-        self.check_to_chainerx(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gx), requires_grad=False)
-
-    @attr.gpu
-    def test_to_chainerx_from_cupy_requring_grad(self):
-        with self.assertRaises(RuntimeError):
-            self.check_to_chainerx(
-                cuda.to_gpu(self.x), cuda.to_gpu(self.gx), requires_grad=True)
+        self.check_to_chainerx(cuda.to_gpu(self.x), cuda.to_gpu(self.gx))
 
     # TODO(hvy): Write test when implemented.
     @attr.ideep
@@ -1086,19 +1075,20 @@ class TestVariableToChainerX(unittest.TestCase):
 
     def test_to_chainerx_from_chainerx(self):
         self.check_to_chainerx(
-            chainerx.array(self.x),
-            chainerx.array(self.gx),
-            requires_grad=False)
-
-    def test_to_chainerx_from_chainerx_requiring_grad(self):
-        self.check_to_chainerx(
-            chainerx.array(self.x),
-            chainerx.array(self.gx),
-            requires_grad=True)
+            chainerx.array(self.x), chainerx.array(self.gx))
 
     def test_to_chainerx_from_another_device(self):
         self.check_to_chainerx(
             chainerx.array(self.x), chainerx.array(self.gx), 'native:1')
+
+    def test_to_chainerx_not_requiring_grad(self):
+        self.check_to_chainerx(self.x, self.gx, requires_grad=False)
+
+    def test_to_chainerx_with_creator(self):
+        x = chainer.Variable(self.x)
+        y = x * x
+        with self.assertRaises(RuntimeError):
+            y.to_chainerx()
 
 
 class TestVariableBasic(unittest.TestCase):
