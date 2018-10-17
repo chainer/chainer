@@ -8,6 +8,7 @@ from chainer.functions.array import split_axis
 from chainer import initializers
 from chainer import link
 from chainer.links.connection import linear
+from chainer import utils
 from chainer import variable
 
 
