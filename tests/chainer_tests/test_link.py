@@ -1927,6 +1927,7 @@ class TestToChainerX(unittest.TestCase):
 
     # TODO(niboshi): Add other test variations
 
+
 class TestToDevice(unittest.TestCase):
     def setUp(self):
         self.link = chainer.Link()
