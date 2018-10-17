@@ -3,6 +3,7 @@ import six
 
 from chainer import backend
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -89,7 +90,7 @@ class RepeatGrad(function_node.FunctionNode):
 
         if axis is None:
             pos = 0
-            gx = xp.zeros(int(numpy.prod(shape)), dtype)
+            gx = xp.zeros(utils.size_of_shape(shape), dtype)
             for (i, r) in enumerate(repeats):
                 gx[i] = xp.sum(gy[pos:pos + r])
                 pos += r

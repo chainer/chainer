@@ -9,6 +9,7 @@ from chainer.backends import intel64
 from chainer import configuration
 from chainer import function
 from chainer import function_node
+from chainer import utils
 from chainer.utils import argument
 from chainer.utils import collections_abc
 from chainer.utils import type_check
@@ -703,7 +704,7 @@ def _as4darray(arr, mode):
         assert arr.ndim == 4
         return arr
     else:  # is_for_linear
-        return arr.reshape(numpy.prod(arr.shape[0:-1]), -1, 1, 1)
+        return arr.reshape(utils.size_of_shape(arr.shape[0:-1]), -1, 1, 1)
 
 
 def _x_hat(x, mean, inv_std):
