@@ -12,7 +12,7 @@ from chainer import testing
     'k': [3],
 }))
 @testing.fix_random()
-@testing.with_requires('scipy')
+@testing.with_requires('scipy>=0.19')
 class TestLogNormal(testing.distribution_unittest):
 
     scipy_onebyone = True
