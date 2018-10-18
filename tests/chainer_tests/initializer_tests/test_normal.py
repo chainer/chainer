@@ -15,6 +15,10 @@ default_scale = {
     initializers.Normal: 0.05,
 }
 
+default_coeff = {
+    initializers.HeNormal: math.sqrt(2),
+}
+
 default_fan = {
     initializers.LeCunNormal: 'fan_in',
     initializers.GlorotNormal: 'fan_avg',
@@ -90,8 +94,7 @@ class NormalBase(unittest.TestCase):
 
         fan = self.fan_option or default_fan.get(self.target)
         expected_std = self.scale or default_scale.get(self.target) or 1.
-        if self.target == initializers.HeNormal:
-            expected_std *= math.sqrt(2.)
+        expected_std *= default_coeff.get(self.target) or 1.
         if fan is not None:
             if fan == 'fan_in':
                 expected_std *= math.sqrt(1. / self.fans[0])
