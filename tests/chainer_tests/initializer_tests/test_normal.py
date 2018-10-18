@@ -80,10 +80,9 @@ class NormalBase(unittest.TestCase):
     def test_shaped_initializer_gpu(self):
         self.check_shaped_initializer(cuda.cupy)
 
-    def check_initializer_statistics(self, xp):
+    def check_initializer_statistics(self, xp, n):
         from scipy import stats
 
-        n = 100000
         ws = xp.empty((n,) + self.shape, dtype=self.dtype)
         for w in ws:
             initializer = self.target(**self.target_kwargs)
@@ -109,18 +108,29 @@ class NormalBase(unittest.TestCase):
             _, p = stats.kstest(samples, stats.norm(0, expected_std).cdf)
             assert p >= alpha
 
+    @testing.with_requires('scipy')
+    @condition.retry(3)
+    def test_initializer_statistics_cpu(self):
+        self.check_initializer_statistics(numpy, 100)
+
+    @attr.gpu
+    @testing.with_requires('scipy')
+    @condition.retry(3)
+    def test_initializer_statistics_gpu(self):
+        self.check_initializer_statistics(cuda.cupy, 100)
+
     @attr.slow
     @testing.with_requires('scipy')
     @condition.repeat_with_success_at_least(5, 3)
-    def test_initializer_statistics_cpu(self):
-        self.check_initializer_statistics(numpy)
+    def test_initializer_statistics_slow_cpu(self):
+        self.check_initializer_statistics(numpy, 100000)
 
     @attr.slow
     @attr.gpu
     @testing.with_requires('scipy')
     @condition.repeat_with_success_at_least(5, 3)
-    def test_initializer_statistics_gpu(self):
-        self.check_initializer_statistics(cuda.cupy)
+    def test_initializer_statistics_slow_gpu(self):
+        self.check_initializer_statistics(cuda.cupy, 100000)
 
 
 testing.run_module(__name__, __file__)
