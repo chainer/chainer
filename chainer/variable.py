@@ -610,7 +610,7 @@ class Variable(object):
             xp = numpy if int(dev) == -1 else cuda.cupy
 
             if array is None:
-                # `data` can be `None` if constructed without any arguments
+                # `array` can be `None` if constructed without any arguments
                 device = None
                 backend = None
                 stats = None
@@ -1253,7 +1253,7 @@ class Variable(object):
                     continue
 
                 for gx_elem in gx:
-                    _check_grad_type(func, x, gx_elem.data)
+                    _check_grad_type(func, x, gx_elem.array)
                 del gx_elem  # to reduce memory usage
 
                 if x.creator_node is None:  # leaf
