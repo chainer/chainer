@@ -67,13 +67,12 @@ class SoftmaxCrossEntropyTestBase(object):
                 and (chainer.backend.get_array_module(x_data)
                      is not chainerx)):
             assert (loss.creator.y is not None) == self.cache_score
-        loss_value = cuda.to_cpu(loss.data)
 
         if self.reduce == 'mean':
             self.check_forward_with_reduce(
-                float(loss_value), t_data, class_weight)
+                float(loss.data), t_data, class_weight)
         else:
-            self.check_forward_without_reduce(loss_value, t_data, class_weight)
+            self.check_forward_without_reduce(loss.data, t_data, class_weight)
 
     def expected_forward_with_reduce(self, x_data, t_data, class_weight):
         # Compute expected value
