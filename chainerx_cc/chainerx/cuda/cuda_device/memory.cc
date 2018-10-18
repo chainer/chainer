@@ -65,6 +65,8 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
                 "CudaDevice only supports copy between cuda or native devices.");
         // Copy from native device
         std::shared_ptr<void> pinned_src_ptr = AllocatePinnedMemory(bytesize);
+        // cudaMemcpyAsync seems to be slightly faster than cudaMemcpy, although both should act synchronously when involving not
+        // page-locked regions.
         CheckCudaError(cudaMemcpyAsync(pinned_src_ptr.get(), src, bytesize, cudaMemcpyHostToHost));
         CheckCudaError(cudaMemcpyAsync(dst, pinned_src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
     }
@@ -107,13 +109,18 @@ std::shared_ptr<void> CudaDevice::TransferDataTo(Device& dst_device, const std::
 }
 
 std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
-    std::shared_ptr<void> dst_ptr = Allocate(bytesize);
-    std::shared_ptr<void> pinned_src_ptr = AllocatePinnedMemory(bytesize);
     int old_device{};
     CheckCudaError(cudaGetDevice(&old_device));
     CheckCudaError(cudaSetDevice(index()));
+
+    std::shared_ptr<void> dst_ptr = Allocate(bytesize);
+    std::shared_ptr<void> pinned_src_ptr = AllocatePinnedMemory(bytesize);
+
+    // cudaMemcpyAsync seems to be slightly faster than cudaMemcpy, although both should act synchronously when involving not page-locked
+    // regions.
     CheckCudaError(cudaMemcpyAsync(pinned_src_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToHost));
     CheckCudaError(cudaMemcpyAsync(dst_ptr.get(), pinned_src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
+
     CheckCudaError(cudaSetDevice(old_device));
     return dst_ptr;
 }

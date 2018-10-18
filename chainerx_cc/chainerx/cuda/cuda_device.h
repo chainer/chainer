@@ -201,6 +201,7 @@ private:
 
     MemoryPool memory_pool_;
 
+    // TODO(hvy): Consider checking if pinned memory is available by querying canMapHostMemory.
     PinnedMemoryPool pinned_memory_pool_;
 
     std::mutex cublas_handle_mutex_;
