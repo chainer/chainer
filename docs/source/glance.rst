@@ -34,16 +34,16 @@ Let's start the program. Here are the typical imports for a Chainer program. :mo
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 1-8
-   :lineno-start: 1
+   :lines: 6-13
+   :lineno-start: 6
 
 We'll use Matplotlib for the graphs to show training progress.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 10-11
-   :lineno-start: 10
+   :lines: 15-16
+   :lineno-start: 15
 
 Trainer Structure
 ~~~~~~~~~~~~~~~~~
@@ -66,8 +66,8 @@ Our first step is to format the :mod:`~chainer.dataset`. From the raw mushrooms.
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 13-22
-   :lineno-start: 13
+   :lines: 18-27
+   :lineno-start: 18
 
 Iterator
 ~~~~~~~~
@@ -81,8 +81,8 @@ Configure :mod:`~chainer.iterators` to step through batches of the data for trai
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 24-26
-   :lineno-start: 24
+   :lines: 29-31
+   :lineno-start: 29
 
 Model
 ~~~~~~~~~~
@@ -100,16 +100,16 @@ Using the :class:`~chainer.Sequential` allows us to define the neural network mo
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 29-35
-   :lineno-start: 29
+   :lines: 34-40
+   :lineno-start: 34
 
 Since mushrooms are either edible or poisonous (no information on psychedelic effects!) in the dataset, we'll use a Link :class:`~chainer.links.Classifier` for the output, with 44 units (double the features of the data) in the hidden layers and a single edible/poisonous category for classification.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 38-39
-   :lineno-start: 38
+   :lines: 43-44
+   :lineno-start: 43
 
 Optimizer
 ~~~~~~~~~~~~
@@ -123,8 +123,8 @@ Pick an :class:`optimizer <chainer.Optimizer>`, and set up the ``model`` to use 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 41-42
-   :lineno-start: 41
+   :lines: 46-47
+   :lineno-start: 46
 
 Updater
 ~~~~~~~~~
@@ -138,16 +138,16 @@ Now that we have the training :class:`iterator <chainer.dataset.Iterator>` and :
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 44-45
-   :lineno-start: 44
+   :lines: 49-50
+   :lineno-start: 49
 
 Set up the :class:`updater <chainer.training.Updater>` to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory ``result``.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 47-48
-   :lineno-start: 47
+   :lines: 52-53
+   :lineno-start: 52
 
 Extensions
 ~~~~~~~~~~
@@ -163,56 +163,56 @@ If using a GPU instead of the CPU, set ``device`` to the ID of the GPU, usually 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 49-50
-   :lineno-start: 49
+   :lines: 54-55
+   :lineno-start: 54
 
 Save a computational graph from ``loss`` variable at the first iteration. ``main`` refers to the target link of the ``main`` :class:`optimizer <chainer.Optimizer>`. The graph is saved in the `Graphviz's <https://www.graphviz.org/>`_ dot format. The output location (directory) to save the graph is set by the ``out`` argument of :class:`trainer <chainer.training.Trainer>`.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 52-54
-   :lineno-start: 52
+   :lines: 57-59
+   :lineno-start: 57
 
 Take a snapshot of the :class:`trainer <chainer.training.Trainer>` object every 20 epochs.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 56
-   :lineno-start: 56
+   :lines: 61
+   :lineno-start: 61
 
 Write a log of evaluation statistics for each epoch.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 58-59
-   :lineno-start: 58
+   :lines: 63-64
+   :lineno-start: 63
 
 Save two plot images to the result directory.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 61-69
-   :lineno-start: 61
+   :lines: 66-74
+   :lineno-start: 66
 
 Print selected entries of the log to standard output.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 71-74
-   :lineno-start: 71
+   :lines: 76-79
+   :lineno-start: 76
 
 Run the training.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 76-77
-   :lineno-start: 76
+   :lines: 81-82
+   :lineno-start: 81
 
 Inference
 ~~~~~~~~~
@@ -222,8 +222,8 @@ Once the training is complete, only the model is necessary to make predictions. 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 79-
-   :lineno-start: 79
+   :lines: 84-
+   :lineno-start: 84
 
 Output
 -------
