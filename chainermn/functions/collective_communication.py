@@ -71,15 +71,18 @@ class Bcast(chainer.Function):
         return self.comm.bcast(x, self.root),
 
     def backward(self, inputs, grad_outputs):
+        xp = backend.get_array_module(*grad_outputs)
         gx, = grad_outputs
         gxs = self.comm.gather(gx, self.root)
 
         if self.comm.rank == self.root:
-            xp = backend.get_array_module(*gxs)
             gxs = xp.stack(gxs)
             return gxs.sum(axis=0),
         else:
-            return None,
+            # Non-root processes are expected to have received
+            # delegate variables, which does not require grads.
+            return tuple([xp.zeros(x.shape, dtype=xp.float32)
+                          for x in inputs])
 
 
 class Gather(chainer.Function):
@@ -210,7 +213,7 @@ def alltoall(comm, xs):
     return AllToAll(comm)(*xs)
 
 
-def bcast(comm, x, root=0):
+def bcast(comm, x=None, root=0, delegate_variable=None):
     """Differentiable broadcast communication between workers.
 
     This function invokes broadcast communications among processes specified
@@ -223,9 +226,18 @@ def bcast(comm, x, root=0):
     is intended one.
     (``https://docs-cupy.chainer.org/en/stable/tutorial/basic.html#current-device``)
 
+    .. note::
+        If you define non-connected computational graph on one process,
+        you have to use ``delegate_variable`` to specify the output of
+        previous computational graph component.
+        Otherwise ``backward()`` does not work well.
+        Please refer ``chainermn.functions.pseudo_connect`` for detail.
+
     Args:
         comm: ChainerMN communicator.
         x (chainer.Variable): Variable to be sent.
+        delegate_variable (chainer.Variable):
+            Pointer to the other non-connected component.
 
     Returns:
         y (chainer.Variable): Broadcasted variable.
@@ -233,7 +245,12 @@ def bcast(comm, x, root=0):
     chainer.utils.experimental('chainermn.functions.bcast')
 
     if comm.rank == root:
+        if x is None:
+            raise ValueError('`x` must not be None on the root process.')
+
         return Bcast(comm, root)(x)
+    elif delegate_variable is not None:
+        return Bcast(comm, root)(delegate_variable)
     else:
         return Bcast(comm, root)()
 
