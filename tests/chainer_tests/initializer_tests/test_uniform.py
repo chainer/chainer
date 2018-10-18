@@ -28,23 +28,21 @@ default_fan = {
 }
 
 
-@testing.parameterize(*(
-    testing.product_dict(
-        [
-            {'target': initializers.Uniform, 'fan_option': None},
-            {'target': initializers.LeCunUniform, 'fan_option': None},
-            {'target': initializers.GlorotUniform, 'fan_option': None},
-            {'target': initializers.HeUniform, 'fan_option': None},
-        ],
-        [
-            {'shape': (2, 3), 'fans': (3, 2)},
-            {'shape': (2, 3, 4), 'fans': (12, 8)},
-        ],
-        testing.product({
-            'scale': [None, 7.3],
-            'dtype': [numpy.float16, numpy.float32, numpy.float64],
-        })
-    )
+@testing.parameterize(*testing.product_dict(
+    [
+        {'target': initializers.Uniform, 'fan_option': None},
+        {'target': initializers.LeCunUniform, 'fan_option': None},
+        {'target': initializers.GlorotUniform, 'fan_option': None},
+        {'target': initializers.HeUniform, 'fan_option': None},
+    ],
+    [
+        {'shape': (2, 3), 'fans': (3, 2)},
+        {'shape': (2, 3, 4), 'fans': (12, 8)},
+    ],
+    testing.product({
+        'scale': [None, 7.3],
+        'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    })
 ))
 class TestUniform(unittest.TestCase):
 
