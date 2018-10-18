@@ -24,6 +24,15 @@ std::shared_ptr<void> CudaDevice::AllocatePinnedMemory(size_t bytesize) {
     return std::shared_ptr<void>{ptr, [this](void* ptr) { pinned_memory_pool_.Free(ptr); }};
 }
 
+void CudaDevice::MemoryCopyFromHostAsync(void* dst, const void* src, size_t bytesize) {
+    std::shared_ptr<void> pinned_src_ptr = AllocatePinnedMemory(bytesize);
+
+    // cudaMemcpyAsync is slightly faster than cudaMemcpy, although both should be synchronous involving not page-locked regions.
+    CheckCudaError(cudaMemcpyAsync(pinned_src_ptr.get(), src, bytesize, cudaMemcpyHostToHost));
+
+    CheckCudaError(cudaMemcpyAsync(dst, pinned_src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
+}
+
 std::shared_ptr<void> CudaDevice::MakeDataFromForeignPointer(const std::shared_ptr<void>& data) {
     if (data == nullptr) {
         return data;
@@ -64,11 +73,7 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
                 nullptr != dynamic_cast<native::NativeDevice*>(&src_device) &&
                 "CudaDevice only supports copy between cuda or native devices.");
         // Copy from native device
-        std::shared_ptr<void> pinned_src_ptr = AllocatePinnedMemory(bytesize);
-        // cudaMemcpyAsync seems to be slightly faster than cudaMemcpy, although both should act synchronously when involving not
-        // page-locked regions.
-        CheckCudaError(cudaMemcpyAsync(pinned_src_ptr.get(), src, bytesize, cudaMemcpyHostToHost));
-        CheckCudaError(cudaMemcpyAsync(dst, pinned_src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
+        MemoryCopyFromHostAsync(dst, src, bytesize);
     }
     CheckCudaError(cudaSetDevice(old_device));
 }
@@ -114,12 +119,7 @@ std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& sr
     CheckCudaError(cudaSetDevice(index()));
 
     std::shared_ptr<void> dst_ptr = Allocate(bytesize);
-    std::shared_ptr<void> pinned_src_ptr = AllocatePinnedMemory(bytesize);
-
-    // cudaMemcpyAsync seems to be slightly faster than cudaMemcpy, although both should act synchronously when involving not page-locked
-    // regions.
-    CheckCudaError(cudaMemcpyAsync(pinned_src_ptr.get(), src_ptr.get(), bytesize, cudaMemcpyHostToHost));
-    CheckCudaError(cudaMemcpyAsync(dst_ptr.get(), pinned_src_ptr.get(), bytesize, cudaMemcpyHostToDevice));
+    MemoryCopyFromHostAsync(dst_ptr.get(), src_ptr.get(), bytesize);
 
     CheckCudaError(cudaSetDevice(old_device));
     return dst_ptr;
