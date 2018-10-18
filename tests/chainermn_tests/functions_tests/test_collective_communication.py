@@ -116,6 +116,43 @@ class TestCollectiveCommunication(unittest.TestCase):
         x.to_gpu()
         self.check_bcast(x)
 
+    def check_gather_bcast(self, xs):
+        root = 0
+        x = xs[self.communicator.rank]
+        if self.communicator.rank == root:
+            h = chainermn.functions.gather(self.communicator, x, root)
+            y = chainer.functions.sum(chainer.functions.stack(h), axis=0)
+            z = chainermn.functions.bcast(self.communicator, y, root)
+        else:
+            phi = chainermn.functions.gather(self.communicator, x, root)
+            z = chainermn.functions.bcast(self.communicator, None,
+                                          delegate_variable=phi)
+        s = chainer.functions.sum(chainer.functions.stack(xs), axis=0)
+        e = chainer.functions.mean_squared_error(z, s)
+        e.backward()
+
+        self.assertEqual(e.data, 0)
+        self.assertEqual(e.grad, 1)
+
+    def test_gather_bcast_cpu(self):
+        self.setup(False)
+        xs = [
+            chainer.Variable(numpy.random.normal(size=(100, 100))
+                                  .astype(numpy.float32))
+            for _ in range(self.communicator.size)]
+        self.check_gather_bcast(xs)
+
+    @chainer.testing.attr.gpu
+    def test_gather_bcast_gpu(self):
+        self.setup(True)
+        xs = [
+            chainer.Variable(numpy.random.normal(size=(100, 100))
+                                  .astype(numpy.float32))
+            for _ in range(self.communicator.size)]
+        for x in xs:
+            x.to_gpu()
+        self.check_gather_bcast(xs)
+
     def check_gather(self, xs):
         root = 0
         # All processes receive the same xs since seed is fixed.
