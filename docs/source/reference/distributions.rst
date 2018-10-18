@@ -23,7 +23,7 @@ Distributions
    chainer.distributions.MultivariateNormal
    chainer.distributions.Normal
    chainer.distributions.Pareto
-   chainer.distribtuions.Poisson
+   chainer.distributions.Poisson
    chainer.distributions.Uniform
 
 
