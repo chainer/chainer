@@ -1,6 +1,5 @@
 import numpy
 
-from chainer import cuda
 from chainer import distributions
 from chainer import testing
 
