@@ -86,9 +86,9 @@ class NormalBase(unittest.TestCase):
         from scipy import stats
 
         ws = xp.empty((n,) + self.shape, dtype=self.dtype)
-        for w in ws:
+        for i in range(n):
             initializer = self.target(**self.target_kwargs)
-            initializer(w)
+            initializer(xp.squeeze(ws[i:i+1], axis=0))
 
         fan = self.fan_option or default_fan.get(self.target)
         expected_std = self.scale or default_scale.get(self.target) or 1.
@@ -103,7 +103,7 @@ class NormalBase(unittest.TestCase):
             else:
                 assert False
 
-        sampless = ws.reshape(n, -1).T
+        sampless = cuda.to_cpu(ws.reshape(n, -1).T)
         alpha = 0.05 / len(sampless)
         for samples in sampless:
             _, p = stats.kstest(samples, stats.norm(0, expected_std).cdf)

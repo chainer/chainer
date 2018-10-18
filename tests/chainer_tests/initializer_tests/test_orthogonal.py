@@ -96,7 +96,7 @@ class OrthogonalBase(unittest.TestCase):
             initializer(xp.squeeze(ws[i:i+1], axis=0))
 
         expected_scale = self.scale or 1.1
-        sampless = ws.reshape(n, -1).T
+        sampless = cuda.to_cpu(ws.reshape(n, -1).T)
         alpha = 0.05 / len(sampless)
 
         ab = 0.5 * (self.dim_in - 1)
