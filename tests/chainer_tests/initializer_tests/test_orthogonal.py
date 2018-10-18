@@ -1,3 +1,4 @@
+import math
 import unittest
 
 import numpy
@@ -7,14 +8,15 @@ from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product_dict(
     [
-        {'shape': (), 'dim_out': 1},
-        {'shape': (1,), 'dim_out': 1},
-        {'shape': (3, 4), 'dim_out': 3},
-        {'shape': (3, 4, 5), 'dim_out': 3}
+        {'shape': (), 'dim_in': 1, 'dim_out': 1},
+        {'shape': (1,), 'dim_in': 1, 'dim_out': 1},
+        {'shape': (3, 4), 'dim_in': 4, 'dim_out': 3},
+        {'shape': (3, 4, 5), 'dim_in': 20, 'dim_out': 3}
     ],
     [
         {'scale': 2., 'dtype': numpy.float16}
@@ -24,6 +26,8 @@ from chainer.testing import attr
     })
 ))
 class OrthogonalBase(unittest.TestCase):
+
+    target = initializers.Orthogonal
 
     def setUp(self):
         kwargs = {}
@@ -36,7 +40,7 @@ class OrthogonalBase(unittest.TestCase):
             self.check_options = {'atol': 5e-3, 'rtol': 5e-2}
 
     def check_initializer(self, w):
-        initializer = initializers.Orthogonal(**self.target_kwargs)
+        initializer = self.target(**self.target_kwargs)
         initializer(w)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
@@ -51,8 +55,7 @@ class OrthogonalBase(unittest.TestCase):
         self.check_initializer(w)
 
     def check_shaped_initializer(self, xp):
-        initializer = initializers.Orthogonal(
-            dtype=self.dtype, **self.target_kwargs)
+        initializer = self.target(dtype=self.dtype, **self.target_kwargs)
         w = initializers.generate_array(initializer, self.shape, xp)
         self.assertIs(backend.get_array_module(w), xp)
         self.assertTupleEqual(w.shape, self.shape)
@@ -66,7 +69,7 @@ class OrthogonalBase(unittest.TestCase):
         self.check_shaped_initializer(cuda.cupy)
 
     def check_orthogonality(self, w):
-        initializer = initializers.Orthogonal(**self.target_kwargs)
+        initializer = self.target(**self.target_kwargs)
         initializer(w)
         n = self.dim_out
         w = w.astype(numpy.float64).reshape(n, -1)
@@ -84,6 +87,57 @@ class OrthogonalBase(unittest.TestCase):
     def test_orthogonality_gpu(self):
         w = cuda.cupy.empty(self.shape, dtype=self.dtype)
         self.check_orthogonality(w)
+
+    def check_initializer_statistics(self, xp, n):
+        from scipy import stats
+
+        if self.dim_in <= 1:
+            raise unittest.SkipTest('wip')
+
+        ws = xp.empty((n,) + self.shape, dtype=self.dtype)
+        for w in ws:
+            initializer = self.target(**self.target_kwargs)
+            initializer(w)
+
+        expected_scale = self.scale or 1.1
+        ab = 0.5 * (self.dim_in - 1)
+
+        sampless = ws.reshape(n, -1).T
+        alpha = 0.05 / len(sampless)
+        for samples in sampless:
+            _, p = stats.kstest(
+                samples,
+                stats.beta(
+                    ab, ab,
+                    loc=-expected_scale,
+                    scale=2*expected_scale
+                ).cdf
+            )
+            assert p >= alpha
+
+    @testing.with_requires('scipy')
+    @condition.retry(3)
+    def test_initializer_statistics_cpu(self):
+        self.check_initializer_statistics(numpy, 100)
+
+    @attr.gpu
+    @testing.with_requires('scipy')
+    @condition.retry(3)
+    def test_initializer_statistics_gpu(self):
+        self.check_initializer_statistics(cuda.cupy, 100)
+
+    @attr.slow
+    @testing.with_requires('scipy')
+    @condition.repeat_with_success_at_least(5, 3)
+    def test_initializer_statistics_slow_cpu(self):
+        self.check_initializer_statistics(numpy, 100000)
+
+    @attr.slow
+    @attr.gpu
+    @testing.with_requires('scipy')
+    @condition.repeat_with_success_at_least(5, 3)
+    def test_initializer_statistics_slow_gpu(self):
+        self.check_initializer_statistics(cuda.cupy, 100000)
 
 
 class TestEmpty(unittest.TestCase):
