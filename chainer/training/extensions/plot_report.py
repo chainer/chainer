@@ -11,16 +11,22 @@ from chainer.training import extension
 from chainer.training import trigger as trigger_module
 
 
-try:
-    import matplotlib  # NOQA
+_available = None
 
-    _available = True
 
-except (ImportError, TypeError):
-    _available = False
+def _try_import_matplotlib():
+    global matplotlib, _available
+    try:
+        import matplotlib  # NOQA
+        _available = True
+    except (ImportError, TypeError):
+        _available = False
 
 
 def _check_available():
+    if _available is None:
+        _try_import_matplotlib()
+
     if not _available:
         warnings.warn('matplotlib is not installed on your environment, '
                       'so nothing will be plotted at this time. '
@@ -115,7 +121,7 @@ class PlotReport(extension.Extension):
         return _available
 
     def __call__(self, trainer):
-        if _available:
+        if self.available():
             # Dynamically import pyplot to call matplotlib.use()
             # after importing chainer.training.extensions
             import matplotlib.pyplot as plt

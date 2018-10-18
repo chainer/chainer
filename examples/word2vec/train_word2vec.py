@@ -209,11 +209,11 @@ def main():
         HSM = L.BinaryHierarchicalSoftmax
         tree = HSM.create_huffman_tree(counts)
         loss_func = HSM(args.unit, tree)
-        loss_func.W.data[...] = 0
+        loss_func.W.array[...] = 0
     elif args.out_type == 'ns':
         cs = [counts[w] for w in range(len(counts))]
         loss_func = L.NegativeSampling(args.unit, cs, args.negative_size)
-        loss_func.W.data[...] = 0
+        loss_func.W.array[...] = 0
     elif args.out_type == 'original':
         loss_func = SoftmaxCrossEntropyLoss(args.unit, n_vocab)
     else:
@@ -256,7 +256,7 @@ def main():
     # Save the word2vec model
     with open('word2vec.model', 'w') as f:
         f.write('%d %d\n' % (len(index2word), args.unit))
-        w = cuda.to_cpu(model.embed.W.data)
+        w = cuda.to_cpu(model.embed.W.array)
         for i, wi in enumerate(w):
             v = ' '.join(map(str, wi))
             f.write('%s %s\n' % (index2word[i], v))

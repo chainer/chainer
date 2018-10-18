@@ -71,14 +71,14 @@ def separate(x, axis=0):
         2
         >>> y[0].shape
         (3,)
-        >>> y[0].data
+        >>> y[0].array
         array([0., 1., 2.], dtype=float32)
         >>> y = F.separate(x, axis=1)
         >>> len(y)
         3
         >>> y[0].shape
         (2,)
-        >>> y[0].data
+        >>> y[0].array
         array([0., 3.], dtype=float32)
 
     """

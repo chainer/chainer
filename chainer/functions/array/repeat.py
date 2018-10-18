@@ -133,7 +133,7 @@ def repeat(x, repeats, axis=None):
         >>> y = F.repeat(x, 2)
         >>> y.shape
         (6,)
-        >>> y.data
+        >>> y.array
         array([0, 0, 1, 1, 2, 2])
         >>> x = np.array([[1,2], [3,4]])
         >>> x.shape
@@ -141,13 +141,13 @@ def repeat(x, repeats, axis=None):
         >>> y = F.repeat(x, 3, axis=1)
         >>> y.shape
         (2, 6)
-        >>> y.data
+        >>> y.array
         array([[1, 1, 1, 2, 2, 2],
                [3, 3, 3, 4, 4, 4]])
         >>> y = F.repeat(x, (1, 2), axis=0)
         >>> y.shape
         (3, 2)
-        >>> y.data
+        >>> y.array
         array([[1, 2],
                [3, 4],
                [3, 4]])

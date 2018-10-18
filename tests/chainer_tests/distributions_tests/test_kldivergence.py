@@ -1,11 +1,12 @@
 import unittest
 
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distributions
 from chainer import testing
 from chainer.testing import attr
-import numpy
 
 
 @testing.parameterize(*testing.product({
@@ -61,6 +62,18 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params({"alpha": alpha}, is_gpu)
         return distributions.Dirichlet(**params)
 
+    def make_exponential_dist(self, is_gpu=False):
+        lam = numpy.exp(
+            numpy.random.uniform(0, 0.5, self.shape)).astype(numpy.float32)
+        params = self.encode_params({"lam": lam}, is_gpu)
+        return distributions.Exponential(**params)
+
+    def make_gamma_dist(self, is_gpu=False):
+        k = numpy.random.uniform(1, 5, self.shape).astype(numpy.float32)
+        theta = numpy.random.uniform(0, 2, self.shape).astype(numpy.float32)
+        params = self.encode_params({"k": k, "theta": theta}, is_gpu)
+        return distributions.Gamma(**params)
+
     def make_laplace_dist(self, is_gpu=False):
         loc = numpy.random.uniform(-1, 1, self.shape).astype(numpy.float32)
         scale = numpy.exp(
@@ -98,6 +111,14 @@ class TestKLDivergence(unittest.TestCase):
         params = self.encode_params(
             {"loc": loc, "scale_tril": scale_tril}, is_gpu)
         return distributions.MultivariateNormal(**params)
+
+    def make_pareto_dist(self, is_gpu=False):
+        scale = numpy.exp(numpy.random.uniform(
+            0.5, 1, self.shape)).astype(numpy.float32)
+        alpha = numpy.exp(numpy.random.uniform(
+            1, 2, self.shape)).astype(numpy.float32)
+        params = self.encode_params({"scale": scale, "alpha": alpha}, is_gpu)
+        return distributions.Pareto(**params)
 
     def make_uniform_dist(self, is_gpu=False, low=None, high=None,
                           loc=None, scale=None, use_loc_scale=False):
@@ -166,6 +187,29 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_dirichlet_dist(True)
         self.check_kl(dist1, dist2)
 
+    def test_exponential_exponential_cpu(self):
+        dist1 = self.make_exponential_dist()
+        dist2 = self.make_exponential_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_exponential_exponential_gpu(self):
+        dist1 = self.make_exponential_dist(True)
+        dist2 = self.make_exponential_dist(True)
+        self.check_kl(dist1, dist2)
+
+    @testing.with_requires('scipy')
+    def test_gamma_gamma_cpu(self):
+        dist1 = self.make_gamma_dist()
+        dist2 = self.make_gamma_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_gamma_gamma_gpu(self):
+        dist1 = self.make_gamma_dist(True)
+        dist2 = self.make_gamma_dist(True)
+        self.check_kl(dist1, dist2)
+
     def test_laplace_laplace_cpu(self):
         dist1 = self.make_laplace_dist()
         dist2 = self.make_laplace_dist()
@@ -215,6 +259,17 @@ class TestKLDivergence(unittest.TestCase):
     def test_multivariatenormal_multivariatenormal_gpu(self):
         dist1 = self.make_multivariatenormal_dist(True)
         dist2 = self.make_multivariatenormal_dist(True)
+        self.check_kl(dist1, dist2)
+
+    def test_pareto_pareto_cpu(self):
+        dist1 = self.make_pareto_dist()
+        dist2 = self.make_pareto_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_pareto_pareto_gpu(self):
+        dist1 = self.make_pareto_dist(True)
+        dist2 = self.make_pareto_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_uniform_uniform_cpu(self):
