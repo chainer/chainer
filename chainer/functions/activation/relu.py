@@ -7,6 +7,7 @@ from chainer.backends import intel64
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 if cuda.available:
@@ -28,6 +29,10 @@ class ReLU(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return chainerx.maximum(x, 0),
 
     def forward_cpu(self, inputs):
         if (intel64.should_use_ideep('>=auto')

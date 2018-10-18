@@ -1,3 +1,6 @@
+import functools
+import operator
+
 import numpy
 
 import chainer
@@ -16,10 +19,9 @@ if cuda.cudnn_enabled:
 
 
 def _get_tensor4d_shape(axis, shape):
-    left_shape = numpy.prod(shape[slice(0, axis)], dtype=numpy.int)
+    left_shape = functools.reduce(operator.mul, shape[:axis], 1)
     center_shape = shape[axis]
-    right_shape = numpy.prod(
-        shape[slice(axis + 1, len(shape))], dtype=numpy.int)
+    right_shape = functools.reduce(operator.mul, shape[axis:][1:], 1)
     return left_shape, center_shape, right_shape, 1
 
 

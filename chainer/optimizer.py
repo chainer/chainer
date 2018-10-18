@@ -348,13 +348,20 @@ class UpdateRule(object):
                 self_copy.init_state(variable.Variable(arr, grad=arr))
 
                 for key in self._state:
-                    self._state[key] = serializer(key, None)
+                    try:
+                        value = serializer(key, None)
+                    except KeyError:
+                        if self.enabled:
+                            raise
+                        value = None
                     # leave the update rule state as `None` if the keys are not
                     # contained in the snapshot, so that these states can be
                     # automatically initialized with the `_prepare` method
-                    if self._state[key] is None:
+                    if value is None:
                         self._state = None
                         break
+                    else:
+                        self._state[key] = value
         else:
             for key in self._state:
                 self._state[key] = serializer(key, self._state[key])
