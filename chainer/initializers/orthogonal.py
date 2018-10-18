@@ -45,7 +45,7 @@ class Orthogonal(initializer.Initializer):
             assert array.dtype == self.dtype
         xp = backend.get_array_module(array)
         if not array.shape:  # 0-dim case
-            array[...] = self.scale
+            array[...] = self.scale * (2 * numpy.random.randint(2) - 1)
         elif not array.size:
             raise ValueError('Array to be initialized must be non-empty.')
         else:
@@ -58,8 +58,11 @@ class Orthogonal(initializer.Initializer):
                                      flat_shape[0], flat_shape[1]))
             a = numpy.random.normal(size=flat_shape)
             # we do not have cupy.linalg.svd for now
-            u, _, v = numpy.linalg.svd(a, full_matrices=False)
+            u, _, vh = numpy.linalg.svd(a, full_matrices=False)
             # pick the one with the correct shape
-            q = u if u.shape == flat_shape else v
+            if u.shape == flat_shape:
+                q = u * numpy.sign(numpy.diag(vh))[None, :]
+            else:
+                q = vh * numpy.sign(numpy.diag(u))[:, None]
             array[...] = xp.asarray(q.reshape(array.shape))
             array *= self.scale
