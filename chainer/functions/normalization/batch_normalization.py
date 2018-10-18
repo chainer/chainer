@@ -284,10 +284,27 @@ class BatchNormalization(function_node.FunctionNode):
             # Update running statistics
             m = x.size // gamma.size
             adjust = m / max(m - 1., 1.)  # unbiased estimation
+
+            xp = backend.get_array_module(self.running_mean, self.running_var)
+            if xp is chainerx:
+                def to_non_chainerx(arr):
+                    backend_name = arr.device.backend.name
+                    if backend_name == 'cuda':
+                        return cuda.to_gpu(arr)
+                    elif backend_name == 'native':
+                        return backend.to_numpy(arr)
+
+                self.running_mean = to_non_chainerx(self.running_mean)
+                self.running_var = to_non_chainerx(self.running_var)
+
             self.running_mean *= self.decay
             self.running_mean += (1 - self.decay) * self.mean
             self.running_var *= self.decay
             self.running_var += (1 - self.decay) * adjust * var
+
+            if xp is chainerx:
+                self.running_mean = backend.to_chainerx(self.running_mean)
+                self.running_var = backend.to_chainerx(self.running_var)
 
         return y,
 

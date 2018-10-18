@@ -11,28 +11,41 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
-import chainerx
 
 
-def _to_fcontiguous(arrays):
-    xp = chainer.backend.get_array_module(*arrays)
-    return [xp.asfortranarray(a) for a in arrays]
-
-
-def _as_noncontiguous_array(arrays):
+def _as_noncontiguous_array(array):
     # TODO(niboshi): cupy + cudnn test fails in F.fixed_batch_normalization.
     # Fix it and use testing.array._as_noncontiguous_array.
-    if not (chainerx.is_available()
-            and isinstance(arrays[0], chainerx.ndarray)):
-        return _to_fcontiguous(arrays)
-    return testing.array._as_noncontiguous_array(arrays)
+    def as_noncontiguous_array(arr):
+        if arr is None:
+            return None
+        if isinstance(arr, (numpy.ndarray, cuda.ndarray)):
+            xp = chainer.backend.get_array_module(arr)
+            return xp.asfortranarray(arr)
+        return testing.array._as_noncontiguous_array(arr)
+
+    if isinstance(array, (list, tuple)):
+        return type(array)([as_noncontiguous_array(arr) for arr in array])
+    return as_noncontiguous_array(array)
 
 
-def _batch_normalization(args):
-    x, gamma, beta, mean, var, eps, expander = args
-    mean = mean[expander]
+def _batch_normalization(
+        inputs, running_mean=None, running_var=None, decay=None):
+    x, gamma, beta, mean, var, eps, expander = inputs
+    mean_expanded = mean[expander]
     std = numpy.sqrt(var + eps)[expander]
-    y_expect = (gamma[expander] * (x - mean) / std + beta[expander])
+    y_expect = (gamma[expander] * (x - mean_expanded) / std + beta[expander])
+
+    if running_mean is not None or running_var is not None:
+        m = x.size // gamma.size
+        adjust = m / max(m - 1., 1.)  # unbiased estimation
+        if running_mean is not None:
+            running_mean *= decay
+            running_mean += (1 - decay) * mean
+        if running_var is not None:
+            running_var *= decay
+            running_var += (1 - decay) * adjust * var
+
     return y_expect
 
 
@@ -49,6 +62,7 @@ def _batch_normalization(args):
         'dtype': [numpy.float32],
         'eps': [2e-5, 5e-1],
         'c_contiguous': [True, False],
+        'running_statistics': [False],
     }),
 ) + testing.product({
     'param_shape': [(3,)],
@@ -56,6 +70,7 @@ def _batch_normalization(args):
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
+    'running_statistics': [True, False],
 })))
 @backend.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
@@ -103,6 +118,15 @@ class TestBatchNormalization(unittest.TestCase):
         gggamma = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
         ggbeta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
 
+        if self.running_statistics:
+            self.running_mean = numpy.random.uniform(
+                -1, 1, param_shape).astype(dtype)
+            self.running_var = numpy.random.uniform(
+                -1, 1, param_shape).astype(dtype)
+        else:
+            self.running_mean = None
+            self.running_var = None
+
         if not hasattr(self, 'axis'):
             head_ndim = gamma.ndim + 1
             aggr_axes = (0,) + tuple(six.moves.range(head_ndim, x.ndim))
@@ -142,9 +166,10 @@ class TestBatchNormalization(unittest.TestCase):
             self.check_double_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
 
-    def forward_cpu(self, inputs):
+    def forward_cpu(self, inputs, running_mean, running_var):
         y_expect = _batch_normalization(
-            inputs + [self.mean, self.var, self.eps, self.expander])
+            inputs + [self.mean, self.var, self.eps, self.expander],
+            running_mean, running_var, self.decay)
         return y_expect,
 
     def check_forward(self, inputs, backend_config):
@@ -152,20 +177,40 @@ class TestBatchNormalization(unittest.TestCase):
         if backend_config.use_chainerx and self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
 
-        y_expected, = self.forward_cpu(inputs)
+        if self.running_statistics:
+            running_mean_expected = self.running_mean.copy()
+            running_var_expected = self.running_var.copy()
+        else:
+            running_mean_expected = None
+            running_var_expected = None
+
+        y_expected, = self.forward_cpu(
+            inputs, running_mean_expected, running_var_expected)
 
         inputs = backend_config.get_array(inputs)
+        running_mean = backend_config.get_array(self.running_mean)
+        running_var = backend_config.get_array(self.running_var)
+
         if not self.c_contiguous:
             inputs = _as_noncontiguous_array(inputs)
+            running_mean = _as_noncontiguous_array(running_mean)
+            running_var = _as_noncontiguous_array(running_var)
 
         with backend_config:
             y = functions.batch_normalization(
-                *inputs, running_mean=None,
-                running_var=None, **self.bn_options)
+                *inputs, running_mean=running_mean,
+                running_var=running_var, **self.bn_options)
         assert y.data.dtype == self.dtype
 
         testing.assert_allclose(
             y_expected, y.data, **self.check_forward_options)
+        if self.running_statistics:
+            testing.assert_allclose(
+                running_mean_expected, running_mean,
+                **self.check_forward_options)
+            testing.assert_allclose(
+                running_var_expected, running_var,
+                **self.check_forward_options)
 
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
