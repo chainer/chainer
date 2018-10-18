@@ -1072,24 +1072,23 @@ class Variable(object):
             'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
 
-        if self.array is None:
+        arr = self.array
+        if arr is None:
             return
 
         gv = self._grad_var
 
         if self._is_chainerx:
             if gv is None:
-                # TODO(niboshi): self.data could be None?
-                # TODO(niboshi): device is missing
-                self.grad = chainerx.zeros_like(self.data)
+                self.grad = chainerx.zeros_like(arr, device=arr.device)
             elif gv.requires_grad:
                 gv._data[0].cleargrad()
                 gv._data[0].fill(0)
         else:
-            with cuda.get_device_from_array(self.data) as dev:
+            with cuda.get_device_from_array(arr) as dev:
                 if gv is None:
                     xp = numpy if dev.id == -1 else cuda.cupy
-                    self.grad = xp.zeros_like(self.array)
+                    self.grad = xp.zeros_like(arr)
                 else:
                     gv.unchain()
                     gv.array.fill(0)
