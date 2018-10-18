@@ -1,4 +1,3 @@
-import math
 import unittest
 
 import numpy
@@ -91,28 +90,30 @@ class OrthogonalBase(unittest.TestCase):
     def check_initializer_statistics(self, xp, n):
         from scipy import stats
 
-        if self.dim_in <= 1:
-            raise unittest.SkipTest('wip')
-
         ws = xp.empty((n,) + self.shape, dtype=self.dtype)
-        for w in ws:
+        for i in range(n):
             initializer = self.target(**self.target_kwargs)
-            initializer(w)
+            initializer(xp.squeeze(ws[i:i+1], axis=0))
 
         expected_scale = self.scale or 1.1
-        ab = 0.5 * (self.dim_in - 1)
-
         sampless = ws.reshape(n, -1).T
         alpha = 0.05 / len(sampless)
+
+        ab = 0.5 * (self.dim_in - 1)
+
         for samples in sampless:
-            _, p = stats.kstest(
-                samples,
-                stats.beta(
-                    ab, ab,
-                    loc=-expected_scale,
-                    scale=2*expected_scale
-                ).cdf
-            )
+            if self.dim_in == 1:
+                numpy.testing.assert_allclose(abs(samples), expected_scale)
+                _, p = stats.chisquare((numpy.sign(samples) + 1) // 2)
+            else:
+                _, p = stats.kstest(
+                    samples,
+                    stats.beta(
+                        ab, ab,
+                        loc=-expected_scale,
+                        scale=2*expected_scale
+                    ).cdf
+                )
             assert p >= alpha
 
     @testing.with_requires('scipy')
