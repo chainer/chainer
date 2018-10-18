@@ -852,20 +852,25 @@ class _GradientSetter(FunctionNode):
         self.grad = grad
 
     def forward(self, inputs):
+        self.retain_inputs(tuple(range(len(inputs))))
         xp = backend.get_array_module(inputs[0])
-
-        if self.grad is None:
-            y0, = inputs
-            gy0 = xp.ones_like(y0)
-            assert gy0.size == 1
-
-            self.grad = (gy0,)
 
         # output a 0-sized 1-dim array like inputs
         return xp.empty((0,), dtype=inputs[0].dtype),
 
-    def backward(self, inputs, grad_outputs):
-        grad = self.grad
+    def backward(self, indexes, grad_outputs):
+        inputs = self.get_retained_inputs()
+        if self.grad is None:
+            assert len(inputs) == 1 and inputs[0].size == 1
+            xp = backend.get_array_module(*inputs)
+            if xp is chainerx:
+                grad = tuple([
+                    xp.ones_like(y.array, device=y.array.device)
+                    for y in inputs])
+            else:
+                grad = tuple([xp.ones_like(y.array) for y in inputs])
+        else:
+            grad = self.grad
 
         return tuple(
             None if g is None else variable.as_variable(g)
