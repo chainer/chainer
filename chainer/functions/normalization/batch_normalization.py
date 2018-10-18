@@ -90,10 +90,18 @@ class BatchNormalization(function_node.FunctionNode):
 
     def forward_chainerx(self, inputs):
         # TODO(niboshi): Support conditions implemented as fallback
+
+        # Running statistics are required.
         if self.running_mean is None or self.running_var is None:
             return chainer.Fallback
 
-        # TODO(niboshi): This path is not tested. Fix the test.
+        # Fall back if the running statistics are non-contiguous CUDA arrays
+        # since they are not supported by cuDNN.
+        # Assert that both running statistics belong to the same backend.
+        if self.running_mean.device.backend.name == 'cuda' and not (
+                self.running_mean.is_contiguous
+                and self.running_var.is_contiguous):
+            return chainer.Fallback
 
         x, gamma, beta = inputs
         axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)

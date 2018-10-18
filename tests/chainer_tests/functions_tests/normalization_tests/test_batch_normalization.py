@@ -62,7 +62,7 @@ def _batch_normalization(
         'dtype': [numpy.float32],
         'eps': [2e-5, 5e-1],
         'c_contiguous': [True, False],
-        'running_statistics': [False],
+        'running_statistics': [True, False],
     }),
 ) + testing.product({
     'param_shape': [(3,)],
