@@ -453,6 +453,7 @@ Assign a Parameter object directly to an attribute within a \
 
         """
         cuda.check_cuda_available()
+        # TODO(sonots): Fix to transfer if given device is different.
         if self._xp is cuda.cupy:
             return self
         d = self.__dict__
@@ -494,6 +495,9 @@ Assign a Parameter object directly to an attribute within a \
     def to_chainerx(self, device=None):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
+        # TODO(sonots): Fix to transfer if given device is different.
+        # Note that a link object must be deep copyable, but backend.DeviceId
+        # or chainerx.Device is not deep copyable. Hang in there.
         if self._xp is chainerx:
             return self
         d = self.__dict__
@@ -502,8 +506,34 @@ Assign a Parameter object directly to an attribute within a \
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
                 d[name] = backend.to_chainerx(d[name], device)
-        self._xp is chainerx
+        self._xp = chainerx
         self._device_id = None
+        return self
+
+    def to_device(self, device):
+        device_id = backend.DeviceId(device)
+
+        a = None
+        d = self.__dict__
+        for name in self._params:
+            d[name].to_device(device_id)
+            a = d[name]
+        for name in self._persistent:
+            if not numpy.isscalar(d[name]):
+                d[name] = backend.to_device(d[name], device_id)
+                a = d[name]
+
+        if device_id.xp is numpy:
+            self._xp = None
+        else:
+            self._xp = device_id.xp
+
+        if device_id.xp is cuda.cupy and a is not None:
+            a = variable.as_array(a)
+            self._device_id = cuda.get_device_from_array(a).id
+        else:
+            self._device_id = None
+
         return self
 
     def params(self, include_uninit=True):
