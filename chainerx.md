@@ -18,11 +18,6 @@ It explains how to install it, the motivation behind it and how to modify your e
 Note that although ChainerX won't be replacing Chainer, this repository must replace your existing Chainer installation (or be installed in a different environment).
 This repository contains both `chainer` and `chainerx` as top level packages, where the former is extended to support the latter (the former also keeps track of the latest Chainer master regularly).
 
-The `chainerx` Python package is installed along with `chainer`, if the `CHAINER_BUILD_CHAINERX` environment variable is set to a non-zero value.
-CUDA support is **enabled by default** and you need to specify the cuDNN installation path via `CUDNN_ROOT_DIR` as well.
-See [CUDA support](#cuda-support) for how to disable it.
-You can also set the `MAKEFLAGS=-j8` environment variable (to a number that fits your environment) to speed up the installation.
-
 From the root of this repository, run the following.
 
 ```shell-session
@@ -32,13 +27,16 @@ $ export MAKEFLAGS=-j8
 $ pip install .
 ```
 
+| Environment variable | Description |
+|---|---|
+| `CHAINER_BUILD_CHAINERX` | `1` to build the `chainerx` package along with `chainer`. `0` to skip. Default is `0`. |
+| `CHAINERX_BUILD_CUDA` | `1` to build `chainerx` with CUDA support. `0` to skip. Default is `1`. |
+| `CUDNN_ROOT_DIR` | Path to your cuDNN installation. Required when `CHAINERX_BUILD_CUDA=1`. |
+| `MAKEFLAGS` | Flags passed to `make`. E.g. `MAKEFLAGS=-j8` to run parallel jobs. |
+
 ### CUDA support
 
-To disable the CUDA support, which is enabled by default, set `CHAINERX_BUILD_CUDA=0` before installing.
-When installing with the CUDA support, you also need to specify the cuDNN installation path as shown in the example above since CUDA support without cuDNN is currently not supported.
-
-The path for cuDNN in the example is based on using
-It is recommended to use [cudnnenv](https://github.com/unnonouno/cudnnenv) for installing cuDNN in which case the corresponding variable becomes `$HOME/.cudnn/active`.
+When installing with the CUDA support, you also need to specify the cuDNN installation path as shown in the example above since CUDA without cuDNN is currently not supported.
 
 ## About ChainerX
 
