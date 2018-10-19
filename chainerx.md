@@ -20,11 +20,12 @@ This repository contains both `chainer` and `chainerx` as top level packages, wh
 
 The `chainerx` Python package is installed along with `chainer`, if the `CHAINER_BUILD_CHAINERX` environment variable is set to a non-zero value.
 You can also set the `MAKEFLAGS=-j8` environment variable (to a number that fits your environment) to speed up the installation.
+From the root of this repository, run the following.
 
 ```shell-session
 $ export CHAINER_BUILD_CHAINERX=1
 $ export MAKEFLAGS=-j8
-$ pip install chainer
+$ pip install .
 ```
 
 ### CUDA support
@@ -40,7 +41,7 @@ For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run `
 $ export CHAINER_BUILD_CHAINERX=1
 $ export CUDNN_ROOT_DIR=$HOME/.cudnn/active
 $ export MAKEFLAGS=-j8
-$ pip install chainer
+$ pip install .
 ```
 
 ## About ChainerX
