@@ -39,7 +39,7 @@ class Erf(function_node.FunctionNode):
 
     def forward_gpu(self, x):
         self.retain_inputs((0,))
-        return cuda.cupyx.scipy.special.erf(x[0]),
+        return cuda.cupyx.scipy.special.erf(x[0]).astype(x[0].dtype),
 
     def backward(self, indexes, gy):
         x = self.get_retained_inputs()[0]
