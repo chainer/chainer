@@ -677,14 +677,12 @@ class GradientMethod(Optimizer):
         """
         if lossfun is not None:
             use_cleargrads = getattr(self, '_use_cleargrads', True)
-            loss = lossfun(*args, **kwds)
+            backward = lossfun(*args, **kwds).backward
             if use_cleargrads:
                 self.target.cleargrads()
             else:
                 self.target.zerograds()
-            with variable.delay_backward():
-                loss.backward(loss_scale=self._loss_scale)
-                del loss
+            backward(self._loss_scale)
 
         self.reallocate_cleared_grads()
 
