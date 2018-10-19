@@ -38,7 +38,8 @@ The above code may raise this error in Chainer v5::
 You can rewrite the above code using ``return_indices`` option of :func:`chainer.functions.max_pooling_2d`::
 
     h, indices = F.max_pooling_2d(x, 2, 2, return_indices=True)
-    F.upsampling_2d(h, indices, ksize=2)
+    ...
+    y = F.upsampling_2d(h, indices, ksize=2)
 
 Persistent Values are Copied in ``Link.copyparams``
 ---------------------------------------------------
