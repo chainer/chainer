@@ -48,6 +48,12 @@ Extending the Backend Namespace
 
 In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes ``chainer.backend.get_array_module`` which used to be defined in ``chainer.backends.cuda.get_array_module``. Both can be used but the latter will be deprecated.
 
+CuPy v5
+-------
+
+Chainer v5 requires CuPy v5 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v5 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v5>`_ for details.
+
 
 Chainer v4
 ==========
