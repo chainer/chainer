@@ -40,13 +40,12 @@ class BatchRenormalizationFunction(function.Function):
         self.decay = decay
 
     def _warn_accessing_property(self):
-        msg = '''\
-batch_renormalization function updates running statistics by default. The \
-properties of BatchRenormalizationFunction should not be accessed.
-
-Set update_statistics=False to stop updating.'''
-        if self.update_statistics:
-            warnings.warn(msg, DeprecationWarning)
+        warnings.warn(
+            'The attributes of BatchRenormalizationFunction '
+            'are deprecated. '
+            'Consider setting update_statistics=True to '
+            'batch_renormalization to update running statistics.',
+            DeprecationWarning)
 
     @property
     def running_mean(self):
