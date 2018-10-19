@@ -1048,6 +1048,13 @@ Assign a Link object directly to an attribute within a \
             d[name].to_chainerx(device)
         return self
 
+    def to_device(self, device=None):
+        super(Chain, self).to_device(device)
+        d = self.__dict__
+        for name in self._children:
+            d[name].to_device(device)
+        return self
+
     def params(self, include_uninit=True):
         for param in super(Chain, self).params(include_uninit):
             yield param
@@ -1235,6 +1242,18 @@ class ChainList(Link, collections_abc.MutableSequence):
         super(ChainList, self).to_intel64()
         for link in self._children:
             link.to_intel64()
+        return self
+
+    def to_chainerx(self, device=None):
+        super(ChainList, self).to_chainerx(device)
+        for link in self._children:
+            link.to_chainerx(device)
+        return self
+
+    def to_device(self, device=None):
+        super(ChainList, self).to_device(device)
+        for link in self._children:
+            link.to_device(device)
         return self
 
     def params(self, include_uninit=True):
