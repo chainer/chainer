@@ -748,15 +748,7 @@ class Variable(object):
                     'Cannot update the array of a Variable if either the '
                     'existing or the new array requires backprop.')
 
-            # A view is always created and kept, in order not to change the
-            # graph status of the original array `d`.
-            d_view = d.view()
-
-            if self._requires_grad:
-                d_view.require_grad()
-
-            self._data[0] = d_view
-            self._chainerx_const_array_cache = None
+            self._set_chainerx_array(d, None, self._requires_grad)
             return
 
         self._node._update_data_info(d)
