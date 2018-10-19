@@ -159,7 +159,7 @@ The learning rate will be dropped according to the curve below with :math:`{\rm 
             self._t = serializer('_t', self._t)
             self._last_value = serializer('_last_value', self._last_value)
             if isinstance(self._last_value, np.ndarray):
-                self._last_value = np.asscalar(self._last_value)
+                self._last_value = self._last_value.item()
 
 .. code-block:: python
 
