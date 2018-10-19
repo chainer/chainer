@@ -30,7 +30,7 @@ class BatchDet(function_node.FunctionNode):
         self.retain_outputs((0,))
         x, = inputs
         xp = cuda.get_array_module(x)
-        detx = utils.force_array(xp.linalg.det(x))
+        detx = xp.linalg.det(x)
         return detx,
 
     def backward(self, indexes, gy):
