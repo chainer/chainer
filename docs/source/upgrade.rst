@@ -73,6 +73,14 @@ Extending the Backend Namespace
 
 In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes ``chainer.backend.get_array_module`` which used to be defined in ``chainer.backends.cuda.get_array_module``. Both can be used but the latter will be deprecated.
 
+Update of Docker Images
+-----------------------
+
+Chainer official Docker images (see :doc:`install` for details) are now updated to use CUDA 9.2 and cuDNN 7.
+
+To use these images, you may need to upgrade the NVIDIA driver on your host.
+See `Requirements of nvidia-docker <https://github.com/NVIDIA/nvidia-docker/wiki/CUDA#requirements>`_ for details.
+
 CuPy v5
 -------
 
