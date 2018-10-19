@@ -193,7 +193,7 @@ Array Array::MakeView() const {
 
     BackwardBuilder bb{"view", *this, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+        bt.Define([](BackwardContext& bctx) { bctx.input_grad() = *bctx.output_grad(); });
     }
     bb.Finalize();
 
@@ -231,7 +231,7 @@ Array Array::ToDevice(Device& dst_device) const {
     // Backward operation is implemented as backward-transfer.
     BackwardBuilder bb{"transfer", *this, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().ToDevice(src_device); });
+        bt.Define([&src_device](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad()->ToDevice(src_device); });
     }
     bb.Finalize();
 
@@ -284,7 +284,7 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     if (GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", *this, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().AsType(src_dtype); });
+            bt.Define([src_dtype](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad()->AsType(src_dtype); });
         }
         bb.Finalize();
     }

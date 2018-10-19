@@ -95,11 +95,11 @@ public:
 
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
-    const Array& output_grad(size_t output_index) const;
+    Array* output_grad(size_t output_index) const;
 
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
-    const Array& output_grad() const {
+    Array* output_grad() const {
         CHAINERX_ASSERT(output_array_nodes_.size() == 1);
         return output_grad(0);
     }

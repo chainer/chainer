@@ -99,7 +99,7 @@ Array Transpose(const Array& a, const OptionalAxes& axes) {
             for (int8_t i = 0; i < real_axes.ndim(); ++i) {
                 backward_axes[real_axes[i]] = i;
             }
-            bctx.input_grad() = bctx.output_grad().Transpose(backward_axes);
+            bctx.input_grad() = bctx.output_grad()->Transpose(backward_axes);
         });
     }
     bb.Finalize();
@@ -233,7 +233,7 @@ Array Reshape(const Array& a, const Shape& newshape) {
 
     BackwardBuilder bb{"reshape", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
+        bt.Define([in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad()->Reshape(in_shape); });
     }
     bb.Finalize();
 
@@ -291,7 +291,7 @@ Array Squeeze(const Array& a, const OptionalAxes& axis) {
 
     BackwardBuilder bb{"squeeze", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().Reshape(in_shape); });
+        bt.Define([in_shape](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad()->Reshape(in_shape); });
     }
     bb.Finalize();
 
@@ -345,7 +345,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
     BackwardBuilder bb{"broadcast_to", array, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([in_shape](BackwardContext& bctx) {
-            const Array& gout = bctx.output_grad();
+            const Array& gout = *bctx.output_grad();
             if (gout.shape() == in_shape) {
                 bctx.input_grad() = gout;
                 return;

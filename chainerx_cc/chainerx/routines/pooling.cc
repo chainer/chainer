@@ -58,14 +58,14 @@ Array MaxPool(
     // TODO(hvy): Test backward of double backward.
     struct MaxPoolBwd {
         void operator()(BackwardContext& bctx1) {
-            const Array& gout = bctx1.output_grad();
+            const Array& gout = *bctx1.output_grad();
             Array gx = fb->Backward(gout.AsGradStopped());
             internal::MakeViewForForwardBackwardOutput(gx);
             {
                 BackwardBuilder bb2{"max_pooling_backward", gout, gx};
                 if (BackwardBuilder::Target bt2 = bb2.CreateTarget(0)) {
                     bt2.Define([st = *this](BackwardContext& bctx2) {
-                        const Array& ggx = bctx2.output_grad();
+                        const Array& ggx = *bctx2.output_grad();
                         Array ggout = st.fb->DoubleBackward(ggx.AsGradStopped());
                         internal::MakeViewForForwardBackwardOutput(ggout);
                         // Make ggout further backpropable.
@@ -119,14 +119,14 @@ Array AveragePool(
         BackwardBuilder bb1{"average_pool", x, out};
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
             bt1.Define([fb = std::move(fb), kernel_size, stride, pad, pad_mode](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
+                const Array& gout = *bctx.output_grad();
                 Array gx = fb->Backward(gout.AsGradStopped());
                 internal::MakeViewForForwardBackwardOutput(gx);
                 {
                     BackwardBuilder bb2{"average_pool_backward", gout, gx};
                     if (BackwardBuilder::Target bt2 = bb2.CreateTarget(0)) {
                         bt2.Define([kernel_size, stride, pad, pad_mode](BackwardContext& bctx2) {
-                            const Array& ggx = bctx2.output_grad();
+                            const Array& ggx = *bctx2.output_grad();
                             bctx2.input_grad() = AveragePool(ggx, kernel_size, stride, pad, pad_mode);
                         });
                     }

@@ -49,10 +49,10 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
     {
         BackwardBuilder bb{"add_at", {a, b}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+            bt.Define([](BackwardContext& bctx) { bctx.input_grad() = *bctx.output_grad(); });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([indices](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad().At(indices); });
+            bt.Define([indices](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad()->At(indices); });
         }
         bb.Finalize();
     }
@@ -105,7 +105,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
     BackwardBuilder bb{"get_item", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([indices, a_shape = a.shape(), a_dtype = a.dtype()](BackwardContext& bctx) {
-            const Array& gout = bctx.output_grad();
+            const Array& gout = *bctx.output_grad();
             Array gin = Zeros(a_shape, a_dtype, gout.device());
             bctx.input_grad() = AddAt(gin, indices, gout);
         });
@@ -141,11 +141,11 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
     {
         BackwardBuilder bb{"add_at", {a, b}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+            bt.Define([](BackwardContext& bctx) { bctx.input_grad() = *bctx.output_grad(); });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
-            bt.Define([indices, axis](BackwardContext& bctx) { bctx.input_grad() = Take(bctx.output_grad(), indices, axis); });
+            bt.Define([indices, axis](BackwardContext& bctx) { bctx.input_grad() = Take(*bctx.output_grad(), indices, axis); });
         }
         bb.Finalize();
     }
@@ -182,7 +182,7 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
         bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
-            const Array& gout = bctx.output_grad();
+            const Array& gout = *bctx.output_grad();
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
         });
     }

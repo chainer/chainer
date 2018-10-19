@@ -14,7 +14,6 @@
 #include "chainerx/array_fwd.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
 #include "chainerx/shape.h"
@@ -119,13 +118,9 @@ public:
 
     BackpropId backprop_id() const { return backprop_id_; }
 
-    const ArrayProps& GetOutputArrayProps(size_t i) const {
+    const nonstd::optional<ArrayProps>& GetOutputArrayProps(size_t i) const {
         CHAINERX_ASSERT(i < output_array_props_.size());
-        const nonstd::optional<ArrayProps>& array_props = output_array_props_[i];
-        if (!array_props.has_value()) {
-            throw ChainerxError{"The gradient of output ", i, " of operation \"", name_, "\" is not propagated."};
-        }
-        return *array_props;
+        return output_array_props_[i];
     }
 
     // Returns the list of output array nodes on "this" graph.

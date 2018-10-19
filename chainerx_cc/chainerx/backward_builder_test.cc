@@ -50,7 +50,7 @@ TEST(BackwardBuilderTest, FloatToInt_PartiallyBackproppable) {
         bt.Define([](BackwardContext& bctx) {
             EXPECT_EQ(bctx.input_count(), 1U);
             EXPECT_EQ(bctx.output_count(), 2U);
-            bctx.input_grad() = bctx.output_grad(1);
+            bctx.input_grad() = *bctx.output_grad(1);
         });
         bb.Finalize();
     };
