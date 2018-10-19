@@ -52,14 +52,20 @@ public:
 
         EXPECT_EQ(grads.size(), expected_grads.size());
 
-        SynchronizeArrays(grads);
-        SynchronizeArrays(expected_grads);
+        // Transfer to native device before accessing raw data.
+        Arrays native_grads;
+        Arrays native_expected_grads;
+
+        std::transform(grads.begin(), grads.end(), std::back_inserter(native_grads), [](const Array& array) { return array.ToNative(); });
+        std::transform(expected_grads.begin(), expected_grads.end(), std::back_inserter(native_expected_grads), [](const Array& array) {
+            return array.ToNative();
+        });
 
         for (size_t i = 0; i < nin; ++i) {
-            auto grads_data = static_cast<const T*>(grads[i].data().get());
-            auto expected_grads_data = static_cast<const T*>(expected_grads.at(i).data().get());
+            auto grads_data = static_cast<const T*>(native_grads[i].data().get());
+            auto expected_grads_data = static_cast<const T*>(native_expected_grads.at(i).data().get());
 
-            int64_t total_size = grads.at(i).GetTotalSize();
+            int64_t total_size = native_grads.at(i).GetTotalSize();
             for (int64_t i = 0; i < total_size; ++i) {
                 EXPECT_NEAR(grads_data[i], expected_grads_data[i], 1e-3f) << "gradient mismatch at i=" << i;
             }
@@ -67,10 +73,6 @@ public:
     }
 
 private:
-    void SynchronizeArrays(const Arrays& arrays) {
-        std::for_each(arrays.begin(), arrays.end(), [](const Array& array) { array.device().Synchronize(); });
-    }
-
     nonstd::optional<testing::DeviceSession> device_session_;
 };
 
