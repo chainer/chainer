@@ -553,7 +553,7 @@ Actual: {0}'''.format(type(data))
             xp = numpy if int(dev) == -1 else cuda.cupy
 
             if array is None:
-                # `data` can be `None` if constructed without any arguments
+                # `array` can be `None` if constructed without any arguments
                 device = None
                 backend = None
                 stats = None
@@ -829,7 +829,7 @@ Actual: {0}'''.format(type(data))
                 self.grad = xp.zeros_like(self.array)
             else:
                 gv.unchain()
-                gv.data.fill(0)
+                gv.array.fill(0)
 
     def copydata(self, var):
         """Copies the data array from given source variable.
@@ -1053,7 +1053,7 @@ Actual: {0}'''.format(type(data))
                     continue
 
                 for gx_elem in gx:
-                    _check_grad_type(func, x, gx_elem.data)
+                    _check_grad_type(func, x, gx_elem.array)
                 del gx_elem  # to reduce memory usage
 
                 if x.creator_node is None:  # leaf
