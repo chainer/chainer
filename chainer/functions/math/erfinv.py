@@ -36,11 +36,7 @@ class ErfInv(function_node.FunctionNode):
 
     def forward_gpu(self, x):
         self.retain_outputs((0,))
-        return cuda.elementwise(
-            'T x', 'T y',
-            'y = erfinv(x)',
-            'elementwise_erfinv',
-        )(x[0]),
+        return cuda.cupyx.scipy.special.erfinv(x[0]),
 
     def backward(self, indexes, gy):
         y, = self.get_retained_outputs()
