@@ -194,7 +194,6 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
           Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
 
     .. seealso:: :class:`~chainer.links.BatchRenormalization`
-    .. seealso:: :class:`chainer.functions.batch_normalization`
 
     """
     return BatchRenormalizationFunction(
