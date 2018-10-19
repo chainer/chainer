@@ -25,6 +25,7 @@ From the root of this repository, run the following.
 ```shell-session
 $ export CHAINER_BUILD_CHAINERX=1
 $ export MAKEFLAGS=-j8
+$ export CUDNN_ROOT_DIR=$HOME/.cudnn/active
 $ pip install .
 ```
 
@@ -32,17 +33,10 @@ $ pip install .
 
 CUDA support is **enabled by default**.
 To disable it, set `CHAINERX_BUILD_CUDA=0` before installing.
-When installing with the CUDA support, you also need to specify the cuDNN installation path.
+When installing with the CUDA support, you also need to specify the cuDNN installation path as shown in the example above.
 CUDA support without cuDNN is currently not supported.
 
-For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run `pip` like this:
-
-```shell-session
-$ export CHAINER_BUILD_CHAINERX=1
-$ export CUDNN_ROOT_DIR=$HOME/.cudnn/active
-$ export MAKEFLAGS=-j8
-$ pip install .
-```
+The path for cuDNN in the example is based on using [cudnnenv](https://github.com/unnonouno/cudnnenv).
 
 ## About ChainerX
 
