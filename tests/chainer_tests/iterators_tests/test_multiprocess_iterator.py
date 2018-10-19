@@ -353,7 +353,8 @@ class BaseTestMultiprocessIterator(object):
         None, lambda order, _: numpy.random.permutation(len(order))],
     'maxtasksperchild': [None, 10],
 }))
-class TestMultiprocessIterator(BaseTestMultiprocessIterator, unittest.TestCase):
+class TestMultiprocessIterator(
+        BaseTestMultiprocessIterator, unittest.TestCase):
     pass
 
 
@@ -365,7 +366,8 @@ class TestMultiprocessIterator(BaseTestMultiprocessIterator, unittest.TestCase):
     'maxtasksperchild': [1],
 }))
 @attr.slow
-class TestMultiprocessIteratorSlow(BaseTestMultiprocessIterator, unittest.TestCase):
+class TestMultiprocessIteratorSlow(
+        BaseTestMultiprocessIterator, unittest.TestCase):
     pass
 
 
