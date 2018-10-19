@@ -67,7 +67,7 @@ script:
   - pushd tests
   - pytest -m "not slow and not gpu and not cudnn and not ideep" chainer_tests
   - export OMP_NUM_THREADS=1
-  - (for NP in 1 2; do mpiexec -n ${NP} pytest -s -v -m 'not gpu and not slow' chainermn_tests || exit $?; done)
+  - (for NP in 1 2; do mpiexec -n ${NP} pytest --color=yes -s -v -m 'not gpu and not slow' chainermn_tests || exit $?; done)
   - popd
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then
       READTHEDOCS=True python setup.py develop;
