@@ -17,7 +17,7 @@ Prior to Chainer v5, :class:`~chainer.FunctionNode` classes (e.g., ``chainer.fun
 In Chainer v5, these classes are hidden from :mod:`chainer.functions`.
 Use the equivalent wrapper functions listed in :doc:`reference/functions` (e.g., :func:`chainer.functions.max_pooling_2d`) instead.
 
-Some wrapper functions now provide options to return internal states to avoid directly using :class:`~chainer.FunctionNode` classes.
+Some wrapper functions now provide options to access internal states to avoid directly using :class:`~chainer.FunctionNode` classes.
 
 * :func:`chainer.functions.max_pooling_2d`: ``return_indices``
 * :func:`chainer.functions.max_pooling_nd`: ``return_indices``
