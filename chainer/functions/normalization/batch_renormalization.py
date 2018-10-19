@@ -180,17 +180,22 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
     training and inference models generate the same outputs that depend on
     individual examples rather than the entire minibatch.
 
+    Note: This function does not perform in-place update to
+    ``running_mean`` and ``running_var``, contrary to
+    :func:`~chainer.functions.batch_normalization`.
+    If the function is called, it will not be possible to access the
+    updated running mean and variance statistics, because they are members
+    of the function object, which cannot be accessed by the caller.
+    If it is desired to access the updated running statistics, it is necessary
+    to get a new instance of the function object, call the object, and then
+    access the ``running_mean`` and/or ``running_var`` attributes. See the
+    corresponding Link class for an example of how to do this.
+
     See: `Batch Renormalization: Towards Reducing Minibatch Dependence in \
           Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
 
     .. seealso:: :class:`links.BatchRenormalization`
     .. seealso:: :class:`functions.normalization.batch_normalization.BatchNormalization`  # NOQA
-
-    .. note::
-        Before v5, this function did not perform in-place update to
-        ``running_mean`` and ``running_var``, contrary to
-        :func:`~chainer.functions.batch_normalization`. If you don't want to
-        update them, set ``update_statistics=False`` or ``decay=0``.
 
     """
     return BatchRenormalizationFunction(
