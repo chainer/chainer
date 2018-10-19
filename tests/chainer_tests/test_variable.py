@@ -2191,9 +2191,9 @@ class TestDelayBackward(unittest.TestCase):
         y, = self.func('g', [h], 1)
         del h
         y.grad_var = self.var('gy')
-        with chainer.variable.delay_backward():
-            y.backward()
-            del y
+        backward = y.backward
+        del y
+        backward()
         assert x.grad is not None
         assert self.watcher.get_log() == [
             'f', 'g', {'f(x)', 'g(f(x))'},
@@ -2207,9 +2207,9 @@ class TestDelayBackward(unittest.TestCase):
         y, = self.func('g', [h], 1)
         del h
         y.grad_var = self.var('gy')
-        with chainer.variable.delay_backward():
-            y.backward(enable_double_backprop=True)
-            del y
+        backward = y.backward
+        del y
+        backward(enable_double_backprop=True)
         assert x.grad is not None
         assert self.watcher.get_log() == [
             'f', 'g', {'f(x)', 'g(f(x))'},
@@ -2229,9 +2229,9 @@ class TestDelayBackward(unittest.TestCase):
         del h
         gy = self.var('gy')
         y.grad_var = gy
-        with chainer.variable.delay_backward():
-            y.backward(enable_double_backprop=True)
-            del y
+        backward = y.backward
+        del y
+        backward(enable_double_backprop=True)
         assert x.grad is not None
         assert self.watcher.get_log() == [
             'f', 'g', {'f(x)', 'g(f(x))'},
@@ -2240,9 +2240,9 @@ class TestDelayBackward(unittest.TestCase):
         ]
 
         x.grad_var.grad_var = self.var('ggx')
-        with chainer.variable.delay_backward():
-            x.grad_var.backward()
-            del x
+        backward = x.grad_var.backward
+        del x
+        backward()
         assert gy.grad is not None
         assert self.watcher.get_log() == [
             {'x', 'grad f(grad g(gy))'},
@@ -2259,9 +2259,9 @@ class TestDelayBackward(unittest.TestCase):
         y, = self.func('h', [h], 1)
         del h
         y.grad_var = self.var('gy')
-        with chainer.variable.delay_backward():
-            y.backward(retain_grad=True)
-            del y
+        backward = y.backward
+        del y
+        backward(retain_grad=True)
         assert x.grad is not None
         assert x1.grad is not None
         assert self.watcher.get_log() == [
@@ -2274,36 +2274,6 @@ class TestDelayBackward(unittest.TestCase):
             {'grad f'},
         ]
 
-    def test_merged_backward(self):
-        x = self.var('x')
-        h, = self.func('f', [x], 1)
-        y0, = self.func('g0', [h], 1)
-        y1, = self.func('g1', [h], 1)
-        del h
-        with chainer.variable.delay_backward():
-            y0.grad_var = self.var('gy0')
-            y0.backward()
-            y1.grad_var = self.var('gy1')
-            y1.backward()
-            del y0, y1
-        assert x.grad is not None
-        log = self.watcher.get_log()
-        assert log[:4] == [
-            'f', 'g0', 'g1', {'f(x)', 'g0(f(x))', 'g1(f(x))'},
-        ]
-        assert log[4:10] in ([
-            'grad g0', {'g0', 'grad g0', 'gy0'},
-            'grad g1', {'grad g1', 'gy1'},
-            '+', {'g1', 'grad g0(gy0)', 'grad g1(gy1)'},
-        ], [
-            'grad g1', {'g1', 'grad g1', 'gy1'},
-            'grad g0', {'grad g0', 'gy0'},
-            '+', {'g0', 'grad g0(gy0)', 'grad g1(gy1)'},
-        ])
-        assert log[10:] == [
-            'grad f', {'f', 'grad f', '(grad g0(gy0)+grad g1(gy1))'},
-        ]
-
     def test_backward_accum(self):
         x = self.var('x')
         h, = self.func('f', [x], 1)
@@ -2311,9 +2281,9 @@ class TestDelayBackward(unittest.TestCase):
         y1, = self.func('g1', [h], 1)
         del h
         y0.grad_var = self.var('gy0')
-        with chainer.variable.delay_backward():
-            y0.backward()
-            del y0
+        backward = y0.backward
+        del y0
+        backward()
         gx0 = x.grad
         assert gx0 is not None
         assert self.watcher.get_log() == [
@@ -2324,9 +2294,9 @@ class TestDelayBackward(unittest.TestCase):
 
         # h = f(x) should not be unchained
         y1.grad_var = self.var('gy1')
-        with chainer.variable.delay_backward():
-            y1.backward()
-            del y1
+        backward = y1.backward
+        del y1
+        backward()
         assert not np.array_equal(gx0, x.grad)
         assert self.watcher.get_log() == [
             {'g1(f(x))'},
@@ -2346,9 +2316,9 @@ class TestDelayBackward(unittest.TestCase):
         y, = self.func('r3', [z] + self.func('f3', [h, params[3]], 1), 1)
         del z, h
         y.grad_var = self.var('gy')
-        with chainer.variable.delay_backward():
-            y.backward()
-            del y
+        backward = y.backward
+        del y
+        backward()
         for p in params:
             assert p.grad is not None
         log = self.watcher.get_log()
@@ -2374,41 +2344,6 @@ class TestDelayBackward(unittest.TestCase):
             'grad f0', {'grad f0', gh0},
             '+', {'f0', 'grad r1_0('+gz+')', 'grad f0_0('+gh0+')', gx},
         ]
-
-    def test_raise_dup_backward(self):
-        x = self.var('x')
-        y, = self.func('f', [x], 1)
-        with six.assertRaisesRegex(self, RuntimeError, 'distinct'):
-            with chainer.variable.delay_backward():
-                y.backward()
-                y.backward()
-
-    def test_raise_overlap(self):
-        x = self.var('x')
-        y0, = self.func('f0', [x], 1)
-        y0.grad_var = self.var('gy0')
-        y1, = self.func('f1', [y0], 1)
-        y1.grad_var = self.var('gy1')
-        with six.assertRaisesRegex(self, RuntimeError, 'depends'):
-            with chainer.variable.delay_backward():
-                y0.backward(retain_grad=True)
-                y1.backward(retain_grad=True)
-
-    def test_raise_mixed_option(self):
-        x = self.var('x')
-        h, = self.func('f', [x], 1)
-        y0, = self.func('g0', [h], 1)
-        y1, = self.func('g1', [h], 1)
-        with pytest.raises(ValueError):
-            with chainer.variable.delay_backward():
-                y0.backward()
-                y1.backward(enable_double_backprop=True)
-
-    def test_raise_reenter(self):
-        with pytest.raises(RuntimeError):
-            with chainer.variable.delay_backward():
-                with chainer.variable.delay_backward():
-                    pass
 
 
 testing.run_module(__name__, __file__)
