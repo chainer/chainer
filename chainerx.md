@@ -19,24 +19,26 @@ Note that although ChainerX won't be replacing Chainer, this repository must rep
 This repository contains both `chainer` and `chainerx` as top level packages, where the former is extended to support the latter (the former also keeps track of the latest Chainer master regularly).
 
 The `chainerx` Python package is installed along with `chainer`, if the `CHAINER_BUILD_CHAINERX` environment variable is set to a non-zero value.
+CUDA support is **enabled by default** and you need to specify the cuDNN installation path via `CUDNN_ROOT_DIR` as well.
+See [CUDA support](#cuda-support) for how to disable it.
 You can also set the `MAKEFLAGS=-j8` environment variable (to a number that fits your environment) to speed up the installation.
+
 From the root of this repository, run the following.
 
 ```shell-session
 $ export CHAINER_BUILD_CHAINERX=1
+$ export CUDNN_ROOT_DIR=path/to/cudnn
 $ export MAKEFLAGS=-j8
-$ export CUDNN_ROOT_DIR=$HOME/.cudnn/active
 $ pip install .
 ```
 
 ### CUDA support
 
-CUDA support is **enabled by default**.
-To disable it, set `CHAINERX_BUILD_CUDA=0` before installing.
-When installing with the CUDA support, you also need to specify the cuDNN installation path as shown in the example above.
-CUDA support without cuDNN is currently not supported.
+To disable the CUDA support, which is enabled by default, set `CHAINERX_BUILD_CUDA=0` before installing.
+When installing with the CUDA support, you also need to specify the cuDNN installation path as shown in the example above since CUDA support without cuDNN is currently not supported.
 
-The path for cuDNN in the example is based on using [cudnnenv](https://github.com/unnonouno/cudnnenv).
+The path for cuDNN in the example is based on using
+It is recommended to use [cudnnenv](https://github.com/unnonouno/cudnnenv) for installing cuDNN in which case the corresponding variable becomes `$HOME/.cudnn/active`.
 
 ## About ChainerX
 
