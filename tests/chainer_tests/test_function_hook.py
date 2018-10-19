@@ -42,7 +42,7 @@ class TestFunctionHook(unittest.TestCase):
     def test_all_called_with_backward(self):
         x = chainer.Variable(numpy.random.rand(2, 3).astype(numpy.float32))
         y = chainer.functions.sum(x * x)
-        self.check_hook_methods_called(y.backward)
+        self.check_hook_methods_called(lambda: y.backward())
 
     def test_all_called_with_grad(self):
         x = chainer.Variable(numpy.random.rand(2, 3).astype(numpy.float32))
