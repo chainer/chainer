@@ -29,7 +29,7 @@ For example, suppose your existing code needs to access ``MaxPooling2D.indexes``
     p = F.MaxPooling2D(2, 2)
     h = p.apply((x,))[0]
     ...
-    F.upsampling_2d(h, p.indexes, ...)
+    F.upsampling_2d(h, p.indexes, ksize=2)
 
 The above code may raise this error in Chainer v5::
 
@@ -38,7 +38,7 @@ The above code may raise this error in Chainer v5::
 You can rewrite the above code using ``return_indices`` option of :func:`chainer.functions.max_pooling_2d`::
 
     h, indices = F.max_pooling_2d(x, 2, 2, return_indices=True)
-    F.upsampling_2d(h, indices)
+    F.upsampling_2d(h, indices, ksize=2)
 
 Persistent Values are Copied in ``Link.copyparams``
 ---------------------------------------------------
