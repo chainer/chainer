@@ -97,6 +97,7 @@ class TestCheckpoint(unittest.TestCase):
 
         return updater, optimizer, train_iter, test_iter, model
 
+    @chainer.testing.attr.slow
     def test_mnist_simple(self, display_log=True):
         updater, optimizer, train_iter, _, model = self.setup_mnist_trainer()
 

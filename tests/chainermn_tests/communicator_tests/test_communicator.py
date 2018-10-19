@@ -517,7 +517,7 @@ class TestDifferentDtype(unittest.TestCase):
             x = np.arange(18) + self.communicator.rank
             x = x.astype(dtype)
             x = chainer.cuda.to_gpu(x, device=self.device)
-            self.check_allreduce(x, dtype)
+            self.check_allreduce(x, dtype, 18)
 
             x = np.array(1).astype(dtype)
             y = self.communicator.allreduce(x)

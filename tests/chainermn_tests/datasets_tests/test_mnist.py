@@ -105,6 +105,7 @@ def check_mnist(gpu, display_log=True):
     os.removedirs(path)
 
 
+@chainer.testing.attr.slow
 def test_mnist():
     check_mnist(False)
 
