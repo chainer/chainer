@@ -27,9 +27,11 @@ class distribution_unittest(unittest.TestCase):
 
     def setUp(self):
         self.support = 'real'
-        self.event_shape = ()
+        if not hasattr(self, 'event_shape'):
+            self.event_shape = ()
         self.continuous = True
         self.test_targets = set()
+        self.options = {}
 
         self.setUp_configure()
 
@@ -51,19 +53,22 @@ class distribution_unittest(unittest.TestCase):
 
     @property
     def cpu_dist(self):
-        return self.dist(**self.params)
+        params = self.params
+        params.update(self.options)
+        return self.dist(**params)
 
     @property
     def gpu_dist(self):
         if self.is_variable:
-            self.gpu_params = {k: cuda.to_gpu(v.data)
-                               for k, v in self.params.items()}
-            self.gpu_params = {k: chainer.Variable(v)
-                               for k, v in self.gpu_params.items()}
+            gpu_params = {k: cuda.to_gpu(v.data)
+                          for k, v in self.params.items()}
+            gpu_params = {k: chainer.Variable(v)
+                          for k, v in gpu_params.items()}
         else:
-            self.gpu_params = {k: cuda.to_gpu(v)
-                               for k, v in self.params.items()}
-        return self.dist(**self.gpu_params)
+            gpu_params = {k: cuda.to_gpu(v)
+                          for k, v in self.params.items()}
+        gpu_params.update(self.options)
+        return self.dist(**gpu_params)
 
     @skip_not_in_test_target('batch_shape')
     def test_batch_shape_cpu(self):

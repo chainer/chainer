@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -13,7 +13,7 @@ class Diagonal(function_node.FunctionNode):
         self.axis2 = axis2
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         in_type = in_types[0]
         type_check.expect(max(self.axis1, self.axis2) < in_type.ndim)
         type_check.expect(-in_type.ndim <= min(self.axis1, self.axis2))
@@ -40,7 +40,7 @@ class DiagonalGrad(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = xp.zeros(self.out_shape, x.dtype)
         y_diag = y.diagonal(
             offset=self.offset, axis1=self.axis1, axis2=self.axis2)

@@ -2,6 +2,7 @@ import collections
 
 from chainer.functions.theano import theano_function
 from chainer import link
+from chainer.utils import collections_abc
 
 
 def _to_var_tuple(vs):
@@ -11,7 +12,7 @@ def _to_var_tuple(vs):
 
     if isinstance(vs, theano.tensor.TensorVariable):
         return vs,
-    elif isinstance(vs, collections.Iterable):
+    elif isinstance(vs, collections_abc.Iterable):
         vs = tuple(vs)
         if not all(isinstance(v, theano.tensor.TensorVariable) for v in vs):
             raise TypeError(msg)

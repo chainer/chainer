@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
@@ -53,8 +54,7 @@ class Convolution2DFunction(function_node.FunctionNode):
             w_type.dtype.kind == 'f',
             x_type.ndim == 4,
             w_type.ndim == 4,
-            # Need to consider the case that group count > 1.
-            # x_type.shape[1] == w_type.shape[1],
+            x_type.shape[1] == w_type.shape[1] * self.groups,
         )
 
         if type_check.eval(n_in) == 3:
@@ -189,7 +189,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         iCg = int(iC / G)
         oCg = int(oC / G)
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         _x = x.reshape((N, G, iCg, iH, iW))
         _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
@@ -273,13 +273,6 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gy = inputs
 
-        # NumPy raises an error when the array is not contiguous.
-        # See: https://github.com/chainer/chainer/issues/2744
-        # TODO(niboshi): Remove this code when NumPy is fixed.
-        if (not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
-                1 in gy.shape):
-            gy = numpy.ascontiguousarray(gy)
-
         if self.groups > 1:
             return self._forward_grouped_convolution(x, gy)
         else:
@@ -288,6 +281,13 @@ class Convolution2DGradW(function_node.FunctionNode):
     def _forward_cpu_core(self, x, gy):
         if self._use_ideep:
             return self._forward_ideep(x, gy)
+
+        # NumPy raises an error when the array is not contiguous.
+        # See: https://github.com/chainer/chainer/issues/2744
+        # TODO(niboshi): Remove this code when NumPy is fixed.
+        if (not (gy.flags.c_contiguous or gy.flags.f_contiguous) and
+                1 in gy.shape):
+            gy = numpy.ascontiguousarray(gy)
 
         col = conv.im2col_cpu(
             x, self.kh, self.kw, self.sy, self.sx, self.ph, self.pw,
@@ -362,15 +362,12 @@ class Convolution2DGradW(function_node.FunctionNode):
         iCg = int(iC / G)
         oCg = int(oC / G)
 
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         _x = x.reshape((N, G, iCg, iH, iW))
         _x = xp.rollaxis(_x, 1)  # (G, N, iCg, iH, iW)
         _gy = gy.reshape((N, G, oCg, oH, oW))
         _gy = xp.rollaxis(_gy, 1)  # (G, N, oCg, oH, oW)
-        # Work-around for NumPy's bug?
-        if xp is numpy:
-            _gy = xp.ascontiguousarray(_gy)
 
         _gWs = []
         for g in six.moves.range(G):

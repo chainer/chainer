@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
@@ -18,7 +19,7 @@ def _erfinv_gpu(x, dtype):
 
 
 def _erfinv_expected(x, dtype):
-    if cuda.get_array_module(x) is numpy:
+    if backend.get_array_module(x) is numpy:
         return _erfinv_cpu(x, dtype)
     else:
         return _erfinv_gpu(x, dtype)
@@ -49,7 +50,7 @@ class TestErfinv(unittest.TestCase):
     'dtype': [numpy.float16, numpy.float32, numpy.float64]
 }))
 @testing.without_requires('scipy')
-class TestLGammaExceptions(unittest.TestCase):
+class TestErfinvExceptions(unittest.TestCase):
     def setUp(self):
         self.x, self.gy, self.ggx = make_data(self.shape, self.dtype)
         self.func = F.erfinv

@@ -44,8 +44,8 @@ class TestResNetLayers(unittest.TestCase):
 
     def test_available_layers(self):
         result = self.link.available_layers
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 9)
+        assert isinstance(result, list)
+        assert len(result) == 9
 
     def check_call(self):
         xp = self.link.xp
@@ -55,12 +55,12 @@ class TestResNetLayers(unittest.TestCase):
             x1 = Variable(xp.asarray(numpy.random.uniform(
                 -1, 1, (1, 3, 224, 224)).astype(self.dtype)))
             y1 = cuda.to_cpu(self.link(x1)['prob'].data)
-            self.assertEqual(y1.shape, (1, 1000))
+            assert y1.shape == (1, 1000)
 
             x2 = Variable(xp.asarray(numpy.random.uniform(
                 -1, 1, (1, 3, 128, 128)).astype(self.dtype)))
             y2 = cuda.to_cpu(self.link(x2, layers=['pool5'])['pool5'].data)
-            self.assertEqual(y2.shape, (1, 2048))
+            assert y2.shape == (1, 2048)
 
     def test_call_cpu(self):
         self.check_call()
@@ -78,20 +78,20 @@ class TestResNetLayers(unittest.TestCase):
         x5 = numpy.random.uniform(0, 255, (3, 160, 120)).astype(numpy.uint8)
 
         y1 = resnet.prepare(x1)
-        self.assertEqual(y1.shape, (3, 224, 224))
-        self.assertEqual(y1.dtype, self.dtype)
+        assert y1.shape == (3, 224, 224)
+        assert y1.dtype == self.dtype
         y2 = resnet.prepare(x2)
-        self.assertEqual(y2.shape, (3, 224, 224))
-        self.assertEqual(y2.dtype, self.dtype)
+        assert y2.shape == (3, 224, 224)
+        assert y2.dtype == self.dtype
         y3 = resnet.prepare(x3, size=None)
-        self.assertEqual(y3.shape, (3, 160, 120))
-        self.assertEqual(y3.dtype, self.dtype)
+        assert y3.shape == (3, 160, 120)
+        assert y3.dtype == self.dtype
         y4 = resnet.prepare(x4)
-        self.assertEqual(y4.shape, (3, 224, 224))
-        self.assertEqual(y4.dtype, self.dtype)
+        assert y4.shape == (3, 224, 224)
+        assert y4.dtype == self.dtype
         y5 = resnet.prepare(x5, size=None)
-        self.assertEqual(y5.shape, (3, 160, 120))
-        self.assertEqual(y5.dtype, self.dtype)
+        assert y5.shape == (3, 160, 120)
+        assert y5.dtype == self.dtype
 
     def check_extract(self):
         x1 = numpy.random.uniform(0, 255, (320, 240, 3)).astype(numpy.uint8)
@@ -99,20 +99,20 @@ class TestResNetLayers(unittest.TestCase):
 
         with numpy.errstate(divide='ignore'):
             result = self.link.extract([x1, x2], layers=['res3', 'pool5'])
-            self.assertEqual(len(result), 2)
+            assert len(result) == 2
             y1 = cuda.to_cpu(result['res3'].data)
-            self.assertEqual(y1.shape, (2, 512, 28, 28))
-            self.assertEqual(y1.dtype, self.dtype)
+            assert y1.shape == (2, 512, 28, 28)
+            assert y1.dtype == self.dtype
             y2 = cuda.to_cpu(result['pool5'].data)
-            self.assertEqual(y2.shape, (2, 2048))
-            self.assertEqual(y2.dtype, self.dtype)
+            assert y2.shape == (2, 2048)
+            assert y2.dtype == self.dtype
 
             x3 = numpy.random.uniform(0, 255, (80, 60)).astype(numpy.uint8)
             result = self.link.extract([x3], layers=['res2'], size=None)
-            self.assertEqual(len(result), 1)
+            assert len(result) == 1
             y3 = cuda.to_cpu(result['res2'].data)
-            self.assertEqual(y3.shape, (1, 256, 20, 15))
-            self.assertEqual(y3.dtype, self.dtype)
+            assert y3.shape == (1, 256, 20, 15)
+            assert y3.dtype == self.dtype
 
     def test_extract_cpu(self):
         err = 'ignore' if self.dtype is numpy.float16 else None
@@ -131,12 +131,12 @@ class TestResNetLayers(unittest.TestCase):
         with numpy.errstate(divide='ignore'):
             result = self.link.predict([x1, x2], oversample=False)
             y = cuda.to_cpu(result.data)
-            self.assertEqual(y.shape, (2, 1000))
-            self.assertEqual(y.dtype, self.dtype)
+            assert y.shape == (2, 1000)
+            assert y.dtype == self.dtype
             result = self.link.predict([x1, x2], oversample=True)
             y = cuda.to_cpu(result.data)
-            self.assertEqual(y.shape, (2, 1000))
-            self.assertEqual(y.dtype, self.dtype)
+            assert y.shape == (2, 1000)
+            assert y.dtype == self.dtype
 
     def test_predict_cpu(self):
         err = 'ignore' if self.dtype is numpy.float16 else None
@@ -151,8 +151,10 @@ class TestResNetLayers(unittest.TestCase):
     def check_copy(self):
         copied = self.link.copy()
 
-        self.assertIs(copied.conv1, copied.functions['conv1'][0])
-        self.assertIs(copied.res2.a, copied.res2.forward[0])
+        assert copied.conv1 is copied.functions['conv1'][0]
+        assert (
+            copied.res2.a is
+            getattr(copied.res2, copied.res2._forward[0]))
 
     def test_copy_cpu(self):
         self.check_copy()
@@ -164,24 +166,31 @@ class TestResNetLayers(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
+    'n_layers': [16, 19],
     'dtype': [numpy.float16, numpy.float32],
 }))
 @unittest.skipUnless(resnet.available, 'Pillow is required')
 @attr.slow
-class TestVGG16Layers(unittest.TestCase):
+class TestVGGs(unittest.TestCase):
 
     def setUp(self):
         self._config_user = chainer.using_config('dtype', self.dtype)
         self._config_user.__enter__()
-        self.link = vgg.VGG16Layers(pretrained_model=None)
+        if self.n_layers == 16:
+            self.link = vgg.VGG16Layers(pretrained_model=None)
+        elif self.n_layers == 19:
+            self.link = vgg.VGG19Layers(pretrained_model=None)
 
     def tearDown(self):
         self._config_user.__exit__(None, None, None)
 
     def test_available_layers(self):
         result = self.link.available_layers
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 22)
+        assert isinstance(result, list)
+        if self.n_layers == 16:
+            assert len(result) == 22
+        elif self.n_layers == 19:
+            assert len(result) == 25
 
     def check_call(self):
         xp = self.link.xp
@@ -189,7 +198,7 @@ class TestVGG16Layers(unittest.TestCase):
         x1 = Variable(xp.asarray(numpy.random.uniform(
             -1, 1, (1, 3, 224, 224)).astype(self.dtype)))
         y1 = cuda.to_cpu(self.link(x1)['prob'].data)
-        self.assertEqual(y1.shape, (1, 1000))
+        assert y1.shape == (1, 1000)
 
     def test_call_cpu(self):
         self.check_call()
@@ -207,39 +216,39 @@ class TestVGG16Layers(unittest.TestCase):
         x5 = numpy.random.uniform(0, 255, (3, 160, 120)).astype(numpy.uint8)
 
         y1 = vgg.prepare(x1)
-        self.assertEqual(y1.shape, (3, 224, 224))
-        self.assertEqual(y1.dtype, self.dtype)
+        assert y1.shape == (3, 224, 224)
+        assert y1.dtype == self.dtype
         y2 = vgg.prepare(x2)
-        self.assertEqual(y2.shape, (3, 224, 224))
-        self.assertEqual(y2.dtype, self.dtype)
+        assert y2.shape == (3, 224, 224)
+        assert y2.dtype == self.dtype
         y3 = vgg.prepare(x3, size=None)
-        self.assertEqual(y3.shape, (3, 160, 120))
-        self.assertEqual(y3.dtype, self.dtype)
+        assert y3.shape == (3, 160, 120)
+        assert y3.dtype == self.dtype
         y4 = vgg.prepare(x4)
-        self.assertEqual(y4.shape, (3, 224, 224))
-        self.assertEqual(y4.dtype, self.dtype)
+        assert y4.shape == (3, 224, 224)
+        assert y4.dtype == self.dtype
         y5 = vgg.prepare(x5, size=None)
-        self.assertEqual(y5.shape, (3, 160, 120))
-        self.assertEqual(y5.dtype, self.dtype)
+        assert y5.shape == (3, 160, 120)
+        assert y5.dtype == self.dtype
 
     def check_extract(self):
         x1 = numpy.random.uniform(0, 255, (320, 240, 3)).astype(numpy.uint8)
         x2 = numpy.random.uniform(0, 255, (320, 240)).astype(numpy.uint8)
         result = self.link.extract([x1, x2], layers=['pool3', 'fc7'])
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
         y1 = cuda.to_cpu(result['pool3'].data)
-        self.assertEqual(y1.shape, (2, 256, 28, 28))
-        self.assertEqual(y1.dtype, self.dtype)
+        assert y1.shape == (2, 256, 28, 28)
+        assert y1.dtype == self.dtype
         y2 = cuda.to_cpu(result['fc7'].data)
-        self.assertEqual(y2.shape, (2, 4096))
-        self.assertEqual(y2.dtype, self.dtype)
+        assert y2.shape == (2, 4096)
+        assert y2.dtype == self.dtype
 
         x3 = numpy.random.uniform(0, 255, (80, 60)).astype(numpy.uint8)
         result = self.link.extract([x3], layers=['pool1'], size=None)
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         y3 = cuda.to_cpu(result['pool1'].data)
-        self.assertEqual(y3.shape, (1, 64, 40, 30))
-        self.assertEqual(y3.dtype, self.dtype)
+        assert y3.shape == (1, 64, 40, 30)
+        assert y3.dtype == self.dtype
 
     def test_extract_cpu(self):
         self.check_extract()
@@ -254,12 +263,12 @@ class TestVGG16Layers(unittest.TestCase):
         x2 = numpy.random.uniform(0, 255, (320, 240)).astype(numpy.uint8)
         result = self.link.predict([x1, x2], oversample=False)
         y = cuda.to_cpu(result.data)
-        self.assertEqual(y.shape, (2, 1000))
-        self.assertEqual(y.dtype, self.dtype)
+        assert y.shape == (2, 1000)
+        assert y.dtype == self.dtype
         result = self.link.predict([x1, x2], oversample=True)
         y = cuda.to_cpu(result.data)
-        self.assertEqual(y.shape, (2, 1000))
-        self.assertEqual(y.dtype, self.dtype)
+        assert y.shape == (2, 1000)
+        assert y.dtype == self.dtype
 
     def test_predict_cpu(self):
         self.check_predict()
@@ -272,7 +281,7 @@ class TestVGG16Layers(unittest.TestCase):
     def check_copy(self):
         copied = self.link.copy()
 
-        self.assertIs(copied.conv1_1, copied.functions['conv1_1'][0])
+        assert copied.conv1_1 is copied.functions['conv1_1'][0]
 
     def test_copy_cpu(self):
         self.check_copy()
@@ -300,8 +309,8 @@ class TestGoogLeNet(unittest.TestCase):
 
     def test_available_layers(self):
         result = self.link.available_layers
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 21)
+        assert isinstance(result, list)
+        assert len(result) == 21
 
     def check_call_prob(self):
         xp = self.link.xp
@@ -309,7 +318,7 @@ class TestGoogLeNet(unittest.TestCase):
         x = Variable(xp.asarray(numpy.random.uniform(
             -1, 1, (1, 3, 224, 224)).astype(self.dtype)))
         y = cuda.to_cpu(self.link(x)['prob'].data)
-        self.assertEqual(y.shape, (1, 1000))
+        assert y.shape == (1, 1000)
 
     def check_call_loss1_fc2(self):
         xp = self.link.xp
@@ -317,7 +326,7 @@ class TestGoogLeNet(unittest.TestCase):
         x = Variable(xp.asarray(numpy.random.uniform(
             -1, 1, (1, 3, 224, 224)).astype(self.dtype)))
         y = cuda.to_cpu(self.link(x, ['loss1_fc2'])['loss1_fc2'].data)
-        self.assertEqual(y.shape, (1, 1000))
+        assert y.shape == (1, 1000)
 
     def check_call_loss2_fc2(self):
         xp = self.link.xp
@@ -325,7 +334,7 @@ class TestGoogLeNet(unittest.TestCase):
         x = Variable(xp.asarray(numpy.random.uniform(
             -1, 1, (1, 3, 224, 224)).astype(self.dtype)))
         y = cuda.to_cpu(self.link(x, ['loss2_fc2'])['loss2_fc2'].data)
-        self.assertEqual(y.shape, (1, 1000))
+        assert y.shape == (1, 1000)
 
     def test_call_cpu(self):
         self.check_call_prob()
@@ -347,40 +356,40 @@ class TestGoogLeNet(unittest.TestCase):
         x5 = numpy.random.uniform(0, 255, (3, 160, 120)).astype(numpy.uint8)
 
         y1 = googlenet.prepare(x1)
-        self.assertEqual(y1.shape, (3, 224, 224))
-        self.assertEqual(y1.dtype, self.dtype)
+        assert y1.shape == (3, 224, 224)
+        assert y1.dtype, self.dtype
         y2 = googlenet.prepare(x2)
-        self.assertEqual(y2.shape, (3, 224, 224))
-        self.assertEqual(y2.dtype, self.dtype)
+        assert y2.shape == (3, 224, 224)
+        assert y2.dtype, self.dtype
         y3 = googlenet.prepare(x3, size=None)
-        self.assertEqual(y3.shape, (3, 160, 120))
-        self.assertEqual(y3.dtype, self.dtype)
+        assert y3.shape == (3, 160, 120)
+        assert y3.dtype, self.dtype
         y4 = googlenet.prepare(x4)
-        self.assertEqual(y4.shape, (3, 224, 224))
-        self.assertEqual(y4.dtype, self.dtype)
+        assert y4.shape == (3, 224, 224)
+        assert y4.dtype, self.dtype
         y5 = googlenet.prepare(x5, size=None)
-        self.assertEqual(y5.shape, (3, 160, 120))
-        self.assertEqual(y5.dtype, self.dtype)
+        assert y5.shape == (3, 160, 120)
+        assert y5.dtype, self.dtype
 
     def check_extract(self):
         x1 = numpy.random.uniform(0, 255, (320, 240, 3)).astype(numpy.uint8)
         x2 = numpy.random.uniform(0, 255, (320, 240)).astype(numpy.uint8)
 
         result = self.link.extract([x1, x2], layers=['pool5', 'loss3_fc'])
-        self.assertEqual(len(result), 2)
+        assert len(result) == 2
         y1 = cuda.to_cpu(result['pool5'].data)
-        self.assertEqual(y1.shape, (2, 1024, 1, 1))
-        self.assertEqual(y1.dtype, self.dtype)
+        assert y1.shape == (2, 1024, 1, 1)
+        assert y1.dtype == self.dtype
         y2 = cuda.to_cpu(result['loss3_fc'].data)
-        self.assertEqual(y2.shape, (2, 1000))
-        self.assertEqual(y2.dtype, self.dtype)
+        assert y2.shape == (2, 1000)
+        assert y2.dtype == self.dtype
 
         x3 = numpy.random.uniform(0, 255, (80, 60)).astype(numpy.uint8)
         result = self.link.extract([x3], layers=['pool1'], size=None)
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         y3 = cuda.to_cpu(result['pool1'].data)
-        self.assertEqual(y3.shape, (1, 64, 20, 15))
-        self.assertEqual(y3.dtype, self.dtype)
+        assert y3.shape == (1, 64, 20, 15)
+        assert y3.dtype == self.dtype
 
     def test_extract_cpu(self):
         err = 'ignore' if self.dtype is numpy.float16 else None
@@ -398,12 +407,12 @@ class TestGoogLeNet(unittest.TestCase):
 
         result = self.link.predict([x1, x2], oversample=False)
         y = cuda.to_cpu(result.data)
-        self.assertEqual(y.shape, (2, 1000))
-        self.assertEqual(y.dtype, self.dtype)
+        assert y.shape == (2, 1000)
+        assert y.dtype == self.dtype
         result = self.link.predict([x1, x2], oversample=True)
         y = cuda.to_cpu(result.data)
-        self.assertEqual(y.shape, (2, 1000))
-        self.assertEqual(y.dtype, self.dtype)
+        assert y.shape == (2, 1000)
+        assert y.dtype == self.dtype
 
     def test_predict_cpu(self):
         err = 'ignore' if self.dtype is numpy.float16 else None
@@ -418,7 +427,7 @@ class TestGoogLeNet(unittest.TestCase):
     def check_copy(self):
         copied = self.link.copy()
 
-        self.assertIs(copied.conv1, copied.functions['conv1'][0])
+        assert copied.conv1 is copied.functions['conv1'][0]
 
     def test_copy_cpu(self):
         self.check_copy()

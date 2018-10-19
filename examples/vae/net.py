@@ -38,20 +38,20 @@ class VAE(chainer.Chain):
         else:
             return h2
 
-    def get_loss_func(self, C=1.0, k=1):
+    def get_loss_func(self, beta=1.0, k=1):
         """Get loss function of VAE.
 
         The loss value is equal to ELBO (Evidence Lower Bound)
         multiplied by -1.
 
         Args:
-            C (int): Usually this is 1.0. Can be changed to control the
+            beta (int): Usually this is 1.0. Can be changed to control the
                 second term of ELBO bound, which works as regularization.
             k (int): Number of Monte Carlo samples used in encoded vector.
         """
         def lf(x):
             mu, ln_var = self.encode(x)
-            batchsize = len(mu.data)
+            batchsize = len(mu)
             # reconstruction loss
             rec_loss = 0
             for l in six.moves.range(k):
@@ -60,7 +60,7 @@ class VAE(chainer.Chain):
                     / (k * batchsize)
             self.rec_loss = rec_loss
             self.loss = self.rec_loss + \
-                C * gaussian_kl_divergence(mu, ln_var) / batchsize
+                beta * gaussian_kl_divergence(mu, ln_var) / batchsize
             chainer.report(
                 {'rec_loss': rec_loss, 'loss': self.loss}, observer=self)
             return self.loss

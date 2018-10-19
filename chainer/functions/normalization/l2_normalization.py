@@ -1,6 +1,4 @@
-import numpy
-
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 import chainer.functions
 from chainer import utils
@@ -16,7 +14,7 @@ class _SetItemZero(function_node.FunctionNode):
 
     def forward(self, inputs):
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = xp.zeros(self.mask.shape, x.dtype)
         y[self.mask] = x
         return y,
@@ -40,15 +38,17 @@ class NormalizeL2(function_node.FunctionNode):
         type_check.expect(in_types.size() == 1)
         x_type, = in_types
 
-        type_check.expect(
-            x_type.dtype == numpy.float32,
-        )
+        type_check.expect(x_type.dtype.kind == 'f')
 
     def forward(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
-        xp = cuda.get_array_module(x)
-        norm = (xp.sqrt(xp.sum(xp.square(x), axis=self.axis, keepdims=True))
+        xp = backend.get_array_module(x)
+        # Note: Passing dtype argument to numpy.sqrt() because NumPy in
+        # Python 2 looks to return a casted value to float32 when it takes a
+        # float16 value.
+        norm = (xp.sqrt(xp.sum(xp.square(x), axis=self.axis, keepdims=True),
+                        dtype=x.dtype)
                 + x.dtype.type(self.eps))
         return utils.force_array(x / norm),
 

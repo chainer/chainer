@@ -42,7 +42,7 @@ You can accelerate performance of Chainer by installing the following optional c
     * See `CuPy Installation Guide <https://docs-cupy.chainer.org/en/latest/install.html>`__ for instructions.
 
 * Intel CPU (experimental)
-    * `iDeep <https://github.com/intel/ideep>`_ 1.0.3+
+    * `iDeep <https://github.com/intel/ideep>`_ 2.0.0+
     * See :doc:`tips` for instructions.
 
 Optional Features
@@ -57,6 +57,10 @@ Chainer can be installed without them, in which case the corresponding features 
 * HDF5 serialization support
     * `h5py <http://www.h5py.org/>`__ 2.5+
     * Run ``pip install h5py`` to install.
+* Distributed Deep Learning using ChainerMN
+    * CUDA-aware MPI
+    * `mpi4py <https://mpi4py.readthedocs.io/en/stable/>`__
+    * See :ref:`ChainerMN installation guide <chainermn_installation>` for installation instructions
 
 
 Install Chainer
@@ -103,6 +107,15 @@ You can refer to the following flags to confirm if CUDA/cuDNN support is actuall
 ``chainer.backends.cuda.cudnn_enabled``
    ``True`` if cuDNN support is available.
 
+
+Google Colaboratory
+~~~~~~~~~~~~~~~~~~~
+
+You can install Chainer and CuPy using the following snippet on `Google Colaboratory <https://colab.research.google.com/>`_::
+
+   !curl https://colab.chainer.org/install | sh -
+
+See `chainer/google-colaboratory <https://github.com/chainer/google-colaboratory>`_ for more details and examples.
 
 Uninstall Chainer
 -----------------

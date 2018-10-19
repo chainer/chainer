@@ -65,6 +65,7 @@ Activation functions
    chainer.functions.lstm
    chainer.functions.maxout
    chainer.functions.prelu
+   chainer.functions.rrelu
    chainer.functions.relu
    chainer.functions.selu
    chainer.functions.sigmoid
@@ -130,9 +131,13 @@ Neural network connections
    :nosignatures:
 
    chainer.functions.bilinear
+   chainer.functions.convolution_1d
    chainer.functions.convolution_2d
+   chainer.functions.convolution_3d
    chainer.functions.convolution_nd
+   chainer.functions.deconvolution_1d
    chainer.functions.deconvolution_2d
+   chainer.functions.deconvolution_3d
    chainer.functions.deconvolution_nd
    chainer.functions.depthwise_convolution_2d
    chainer.functions.deformable_convolution_2d_sampler
@@ -181,6 +186,7 @@ Loss functions
    chainer.functions.argmax_crf1d
    chainer.functions.cross_covariance
    chainer.functions.decov
+   chainer.functions.discriminative_margin_based_clustering_loss
    chainer.functions.gaussian_kl_divergence
    chainer.functions.gaussian_nll
    chainer.functions.hinge
@@ -216,6 +222,7 @@ Mathematical functions
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh
+   chainer.functions.cumprod
    chainer.functions.cumsum
    chainer.functions.det
    chainer.functions.batch_det
@@ -223,6 +230,8 @@ Mathematical functions
    chainer.functions.einsum
    chainer.functions.erf
    chainer.functions.erfc
+   chainer.functions.erfcinv
+   chainer.functions.erfcx
    chainer.functions.erfinv
    chainer.functions.exp
    chainer.functions.expm1
@@ -239,6 +248,7 @@ Mathematical functions
    chainer.functions.log10
    chainer.functions.log1p
    chainer.functions.log2
+   chainer.functions.log_ndtr
    chainer.functions.logsumexp
    chainer.functions.matmul
    chainer.functions.max
@@ -246,6 +256,8 @@ Mathematical functions
    chainer.functions.mean
    chainer.functions.min
    chainer.functions.minimum
+   chainer.functions.ndtr
+   chainer.functions.ndtri
    chainer.functions.prod
    chainer.functions.polygamma
    chainer.functions.rsqrt
@@ -300,13 +312,20 @@ Spatial pooling
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.average_pooling_1d
    chainer.functions.average_pooling_2d
+   chainer.functions.average_pooling_3d
    chainer.functions.average_pooling_nd
+   chainer.functions.max_pooling_1d
    chainer.functions.max_pooling_2d
+   chainer.functions.max_pooling_3d
    chainer.functions.max_pooling_nd
+   chainer.functions.roi_average_align_2d
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
+   chainer.functions.unpooling_1d
    chainer.functions.unpooling_2d
+   chainer.functions.unpooling_3d
    chainer.functions.unpooling_nd
    chainer.functions.upsampling_2d
 

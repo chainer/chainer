@@ -1,11 +1,14 @@
 import copy
 
+from chainer.backends import cuda
+
 
 class Distribution(object):
 
     """Interface of Distribution
 
-    `Distribution` is a bass class for dealing with probability distributions.
+    :class:`Distribution` is a bass class for dealing with probability
+    distributions.
 
     This class provides the following capabilities.
 
@@ -17,7 +20,7 @@ class Distribution(object):
     3. Obtaining properties of distributions. (e.g., mean, variance)
 
     Note that every method and property that computes them from
-    `chainer.Variable` can basically be differentiated.
+    :class:`chainer.Variable` can basically be differentiated.
 
     In this class, sampled random points and realization values given in
     probability-related function is called *sample*.  Sample consists of
@@ -28,19 +31,20 @@ class Distribution(object):
     sampled from an identical distribution.
 
     Each part of the sample-batch-event hierarchy has its own shape, which is
-    called `sample_shape`, `batch_shape`, and `event_shape`, respectively.
+    called ``sample_shape``, ``batch_shape``, and ``event_shape``,
+    respectively.
 
     On initialization, it takes distribution-specific parameters as inputs.
-    `batch_shape` and `event_shape` is decided by the shape of the parameter
-    when generating an instance of a class.
+    :attr:`batch_shape` and :attr:`event_shape` is decided by the shape of
+    the parameter when generating an instance of a class.
 
     .. admonition:: Example
 
         The following code is an example of sample-batch-event hierarchy on
-        using `MultivariateNormal` distribution. This makes 2d normal
-        distributions. `dist` consists of 12(4 * 3) independent 2d normal
-        distributions. And on initialization, `batch_shape` and `event_shape`
-        is decided.
+        using :class:`~distributions.MultivariateNormal` distribution. This
+        makes 2d normal distributions. ``dist`` consists of 12(4 * 3)
+        independent 2d normal distributions. And on initialization,
+        :attr:`batch_shape` and :attr:`event_shape` is decided.
 
         >>> import chainer
         >>> import chainer.distributions as D
@@ -52,19 +56,19 @@ class Distribution(object):
         >>> cov = np.random.normal(size=shape + (d, d)).astype(np.float32)
         >>> cov = np.matmul(cov, np.rollaxis(cov, -1, -2))
         >>> l = np.linalg.cholesky(cov)
-        >>> dist = D.MultivariateNormal(loc, l)  # doctest: +SKIP
-        >>> dist.event_shape  # doctest: +SKIP
+        >>> dist = D.MultivariateNormal(loc, scale_tril=l)
+        >>> dist.event_shape
         (2,)
-        >>> dist.batch_shape  # doctest: +SKIP
+        >>> dist.batch_shape
         (4, 3)
-        >>> sample = dist.sample(sample_shape=(6, 5))  # doctest: +SKIP
-        >>> sample.shape  # doctest: +SKIP
+        >>> sample = dist.sample(sample_shape=(6, 5))
+        >>> sample.shape
         (6, 5, 4, 3, 2)
 
     Every probability-related function takes realization value whose shape is
-    the concatenation of `sample_shape`, `batch_shape`, and `event_shape` and
-    returns an evaluated value whose shape is the concatenation of
-    `sample_shape`, and `batch_shape`.
+    the concatenation of ``sample_shape``, ``batch_shape``, and
+    ``event_shape`` and returns an evaluated value whose shape is the
+    concatenation of ``sample_shape``, and ``batch_shape``.
 
     """
 
@@ -88,7 +92,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Cumulative distribution function value evaluated
@@ -132,7 +136,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Inverse cumulative distribution function value
@@ -147,7 +151,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Logarithm of cumulative distribution function
@@ -162,7 +166,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Logarithm of probability evaluated at `x`.
@@ -176,7 +180,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Logarithm of survival function value evaluated
@@ -205,13 +209,23 @@ class Distribution(object):
         """
         raise NotImplementedError
 
+    @property
+    def params(self):
+        """Returns the parameters of the distribution.
+
+        Returns:
+            dict: The parameters of the distribution.
+
+        """
+        raise NotImplementedError
+
     def perplexity(self, x):
         """Evaluates the perplexity function at the given points.
 
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Perplexity function value evaluated at `x`.
@@ -225,7 +239,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Probability evaluated at `x`.
@@ -270,7 +284,7 @@ class Distribution(object):
         a subclass, it is recommended to override this method.
 
         Args:
-            n(`int`): Sampling size.
+            n(int): Sampling size.
 
         Returns:
             ~chainer.Variable: sampled random points.
@@ -292,7 +306,7 @@ class Distribution(object):
         """Returns the support of the distribution.
 
         Returns:
-            string: String that means support of this distribution.
+            str: String that means support of this distribution.
 
         """
         raise NotImplementedError
@@ -303,7 +317,7 @@ class Distribution(object):
         Args:
             x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
             :class:`cupy.ndarray`): Data points in the domain of the
-            distribution
+                distribution
 
         Returns:
             ~chainer.Variable: Survival function value evaluated at `x`.
@@ -321,6 +335,15 @@ class Distribution(object):
         """
         raise NotImplementedError
 
+    @property
+    def xp(self):
+        """Array module for the distribution.
+
+        Depending on which of CPU/GPU this distribution is on, this property
+        returns :mod:`numpy` or :mod:`cupy`.
+        """
+        return cuda.get_array_module(*self.params.values())
+
 
 _KLDIVERGENCE = {}
 
@@ -329,23 +352,23 @@ def register_kl(Dist1, Dist2):
     """Decorator to register KL divergence function.
 
     This decorator registers a function which computes Kullback-Leibler
-    divergence. This function will be called by `kl_divergence` based on the
-    argument types.
+    divergence. This function will be called by :func:`~chainer.kl_divergence`
+    based on the argument types.
 
-     Args:
-         Dist1(`type`): type of a class inherit from `~chainer.Distribution` to
-         calculate KL divergence.
-         Dist2(`type`): type of a class inherit from `~chainer.Distribution` to
-         calculate KL divergence.
+    Args:
+        Dist1(`type`): type of a class inherit from
+            :class:`~chainer.Distribution` to calculate KL divergence.
+        Dist2(`type`): type of a class inherit from
+            :class:`~chainer.Distribution` to calculate KL divergence.
 
-    The decorated functoion takes an instance of `Dist1` and `Dist2` and
+    The decorated functoion takes an instance of ``Dist1`` and ``Dist2`` and
     returns KL divergence value.
 
     .. admonition:: Example
 
         This is a simple example to register KL divergence. A function to
-        calculate a KL divergence value between an instance of `Dist1` and
-        an instance of `Dist2` is registered.
+        calculate a KL divergence value between an instance of ``Dist1`` and
+        an instance of ``Dist2`` is registered.
 
         .. code-block:: python
 
@@ -385,8 +408,8 @@ def kl_divergence(dist1, dist2):
         ~chainer.Variable: Output variable representing kl divergence
         :math:`D_{KL}(p||q)`.
 
-    Using `register_kl`, we can define behavior of `kl_divergence` for any two
-    distributions.
+    Using :func:`~chainer.register_kl`, we can define behavior of
+    :func:`~chainer.kl_divergence` for any two distributions.
 
     """
     return _KLDIVERGENCE[type(dist1), type(dist2)](dist1, dist2)
@@ -405,9 +428,11 @@ def cross_entropy(dist1, dist2):
     .. math::
         H(p,q) = - \\sum_x p(x) \\log q(x)
 
-    This function call `kl_divergence` and `entropy` of `dist1`. Therefore,
-    it is necessary to register KL divergence function with `register_kl`
-    decoartor and define `entropy` in `dist1`.
+    This function call :func:`~chainer.kl_divergence` and
+    :meth:`~chainer.Distribution.entropy` of ``dist1``. Therefore, it is
+    necessary to register KL divergence function with
+    :func:`~chainer.register_kl` decoartor and define
+    :meth:`~chainer.Distribution.entropy` in ``dist1``.
 
     Args:
         dist1(:class:`~chainer.Distribution`): Distribution to calculate cross

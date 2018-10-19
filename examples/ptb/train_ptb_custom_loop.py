@@ -59,7 +59,7 @@ def main():
                 for batch in copy.copy(iter):
                     x, t = convert.concat_examples(batch, args.gpu)
                     loss = evaluator(x, t)
-                    sum_perp += loss.data
+                    sum_perp += loss.array
                     data_count += 1
         return np.exp(float(sum_perp) / data_count)
 
@@ -110,7 +110,7 @@ def main():
             loss += optimizer.target(chainer.Variable(x), chainer.Variable(t))
             count += 1
 
-        sum_perp += loss.data
+        sum_perp += loss.array
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
         loss.unchain_backward()  # Truncate the graph

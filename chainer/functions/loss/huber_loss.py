@@ -1,7 +1,5 @@
-import numpy
-
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -19,16 +17,16 @@ class HuberLoss(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check.argname(in_types, ('x', 't'))
         type_check.expect(
-            in_types[0].dtype == numpy.float32,
-            in_types[1].dtype == numpy.float32,
+            in_types[0].dtype.kind == 'f',
+            in_types[0].dtype == in_types[1].dtype,
             in_types[0].shape == in_types[1].shape
         )
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x0, x1 = inputs
         diff = x0 - x1
         delta = diff.dtype.type(self.delta)
@@ -56,7 +54,7 @@ class HuberLoss(function_node.FunctionNode):
         gx = chainer.functions.clip(diff, -delta, delta)
 
         if self.reduce == 'sum_along_second_axis':
-            gy = gy.reshape(gy.shape + (1,) * (diff.ndim - 1))
+            gy = chainer.functions.expand_dims(gy, 1)
         gx = chainer.functions.broadcast_to(gy, gx.shape) * gx
         return gx, -gx
 

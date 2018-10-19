@@ -15,8 +15,17 @@ Distributions
    :nosignatures:
    
    chainer.distributions.Bernoulli
-   chainer.distributions.Normal
+   chainer.distributions.Beta
+   chainer.distributions.Categorical
+   chainer.distributions.Dirichlet
+   chainer.distributions.Exponential
+   chainer.distributions.Gamma
    chainer.distributions.Laplace
+   chainer.distributions.LogNormal
+   chainer.distributions.MultivariateNormal
+   chainer.distributions.Normal
+   chainer.distributions.Pareto
+   chainer.distributions.Uniform
 
 
 Functionals of distribution

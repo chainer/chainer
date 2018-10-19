@@ -20,10 +20,7 @@ class Reshape(function_node.FunctionNode):
         assert self._cnt <= 1
 
     def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1,
-        )
-
+        type_check.argname(in_types, ('x',))
         x_type, = in_types
 
         if self._cnt == 0:
@@ -72,12 +69,12 @@ def reshape(x, shape):
         >>> y = F.reshape(x, (8,))
         >>> y.shape
         (8,)
-        >>> y.data
+        >>> y.array
         array([1, 2, 3, 4, 5, 6, 7, 8])
         >>> y = F.reshape(x, (4, -1))  # the shape of output is inferred
         >>> y.shape
         (4, 2)
-        >>> y.data
+        >>> y.array
         array([[1, 2],
                [3, 4],
                [5, 6],

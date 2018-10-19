@@ -2,6 +2,7 @@ import warnings
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function
@@ -72,7 +73,7 @@ Set update_statistics=False to stop updating.'''
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         x, gamma, beta = inputs
 
         # Note: we must be in train mode.
@@ -143,7 +144,7 @@ Set update_statistics=False to stop updating.'''
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
         m = gamma.dtype.type(x.size // gamma.size)
         axis = (0,) + tuple(range(head_ndim, x.ndim))
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
 
         # Note: we must be in train mode.
         assert configuration.config.train

@@ -6,6 +6,7 @@ from chainer import function_node
 import chainer.functions
 from chainer.functions.math import matmul
 from chainer import utils
+from chainer.utils import precision
 from chainer.utils import type_check
 
 
@@ -25,15 +26,21 @@ def _det_gpu(b):
     info = cuda.cupy.zeros(n_matrices, dtype=numpy.intp)
     ap = matmul._mat_ptrs(a)
     _, lda = matmul._get_ld(a)
-    cuda.cublas.sgetrfBatched(cuda.Device().cublas_handle, n, ap.data.ptr, lda,
-                              p.data.ptr, info.data.ptr, n_matrices)
+    if b.dtype == numpy.float32:
+        cuda.cublas.sgetrfBatched(cuda.Device().cublas_handle, n, ap.data.ptr,
+                                  lda, p.data.ptr, info.data.ptr, n_matrices)
+    elif b.dtype == numpy.float64:
+        cuda.cublas.dgetrfBatched(cuda.Device().cublas_handle, n, ap.data.ptr,
+                                  lda, p.data.ptr, info.data.ptr, n_matrices)
+    else:
+        assert False
     det = cuda.cupy.prod(a.diagonal(axis1=1, axis2=2), axis=1)
     # The determinant is equal to the product of the diagonal entries
     # of `a` where the sign of `a` is flipped depending on whether
     # the pivot array is equal to its index.
     rng = cuda.cupy.arange(1, n + 1, dtype='int32')
     parity = cuda.cupy.sum(p != rng, axis=1) % 2
-    sign = 1. - 2. * parity.astype('float32')
+    sign = 1. - 2. * parity.astype(b.dtype, copy=False)
     return det * sign, info
 
 
@@ -44,7 +51,7 @@ class BatchDet(function_node.FunctionNode):
         return 'det'
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         a_type, = in_types
         type_check.expect(a_type.dtype.kind == 'f')
         # Only a minibatch of 2D array shapes allowed.
@@ -53,12 +60,14 @@ class BatchDet(function_node.FunctionNode):
         # so assert the last two dimensions are equal.
         type_check.expect(a_type.shape[-1] == a_type.shape[-2])
 
+    @precision._fp16_mixed_precision_helper
     def forward_cpu(self, x):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
         detx = utils.force_array(numpy.linalg.det(x[0]))
         return detx,
 
+    @precision._fp16_mixed_precision_helper
     def forward_gpu(self, x):
         self.retain_inputs((0,))
         self.retain_outputs((0,))

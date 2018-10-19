@@ -17,7 +17,7 @@ class Tanh(function_node.FunctionNode):
     """Hyperbolic tangent function."""
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check.argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, x):
@@ -107,7 +107,7 @@ def tanh(x):
         >>> x = np.arange(-1, 4, 2).astype(np.float32)
         >>> x
         array([-1.,  1.,  3.], dtype=float32)
-        >>> F.tanh(x).data
+        >>> F.tanh(x).array
         array([-0.7615942,  0.7615942,  0.9950548], dtype=float32)
 
     """

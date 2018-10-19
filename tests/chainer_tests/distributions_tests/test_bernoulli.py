@@ -1,12 +1,12 @@
 import unittest
 
-import chainer
+import numpy
+
 from chainer.backends import cuda
 from chainer import distributions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-import numpy
 
 
 @testing.parameterize(*testing.product({
@@ -14,6 +14,7 @@ import numpy
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
     'extreme_values': [True, False],
+    'binary_check': [True, False],
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
@@ -25,6 +26,7 @@ class TestBernoulli(testing.distribution_unittest):
         from scipy import stats
         self.dist = distributions.Bernoulli
         self.scipy_dist = stats.bernoulli
+        self.options = {"binary_check": self.binary_check}
 
         self.test_targets = set([
             "batch_shape", "entropy", "log_prob", "mean", "prob", "sample",
@@ -54,6 +56,50 @@ class TestBernoulli(testing.distribution_unittest):
             2, size=self.sample_shape + self.shape).astype(numpy.float32)
         return smp
 
+    def sample_for_binary_check_test(self):
+        smp = numpy.random.uniform(
+            low=0.1, high=0.9,
+            size=self.sample_shape + self.shape).astype(numpy.float32)
+        return smp
+
+    def check_log_prob_binary_check(self, is_gpu):
+        smp = self.sample_for_binary_check_test()
+        if is_gpu:
+            log_prob = self.gpu_dist.log_prob(cuda.to_gpu(smp)).data
+        else:
+            log_prob = self.cpu_dist.log_prob(smp).data
+        xp = cuda.get_array_module(log_prob)
+        if self.binary_check:
+            self.assertTrue(xp.all(log_prob == -xp.inf))
+        else:
+            self.assertTrue(xp.all(xp.isfinite(log_prob)))
+
+    def test_log_prob_binary_check_cpu(self):
+        self.check_log_prob_binary_check(False)
+
+    @attr.gpu
+    def test_log_prob_binary_check_gpu(self):
+        self.check_log_prob_binary_check(True)
+
+    def check_prob_binary_check(self, is_gpu):
+        smp = self.sample_for_binary_check_test()
+        if is_gpu:
+            prob = self.gpu_dist.prob(cuda.to_gpu(smp)).data
+        else:
+            prob = self.cpu_dist.prob(smp).data
+        xp = cuda.get_array_module(prob)
+        if self.binary_check:
+            self.assertTrue(xp.all(prob == 0))
+        else:
+            self.assertTrue(xp.all(prob > 0))
+
+    def test_prob_binary_check_cpu(self):
+        self.check_prob_binary_check(False)
+
+    @attr.gpu
+    def test_prob_binary_check_gpu(self):
+        self.check_prob_binary_check(True)
+
 
 @testing.parameterize(*testing.product({
     'shape': [(2, 3), ()],
@@ -68,15 +114,15 @@ class TestBernoulliLogProb(unittest.TestCase):
         self.ggx = numpy.random.normal(size=self.shape).astype(self.dtype)
         self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
-    def check_forward(self, x_data, logit_data):
-        distributions.bernoulli._bernoulli_log_prob(x_data, logit_data)
+    def check_forward(self, logit_data, x_data):
+        distributions.bernoulli._bernoulli_log_prob(logit_data, x_data)
 
     def test_forward_cpu(self):
-        self.check_forward(self.x, self.logit)
+        self.check_forward(self.logit, self.x)
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.logit))
+        self.check_forward(cuda.to_gpu(self.logit), cuda.to_gpu(self.x))
 
     def check_backward(self, logit_data, x_data, y_grad):
         def f(logit):
@@ -109,71 +155,6 @@ class TestBernoulliLogProb(unittest.TestCase):
         self.check_double_backward(
             cuda.to_gpu(self.logit), cuda.to_gpu(self.x),
             cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
-
-
-@testing.parameterize(*testing.product({
-    'shape': [(2, 3), ()],
-    'dtype': [numpy.float32, numpy.float64],
-}))
-class TestModifiedXLogX(unittest.TestCase):
-
-    def setUp(self):
-        self.x = numpy.random.uniform(
-            0.1, 1, size=self.shape).astype(self.dtype)
-        self.zero_x = numpy.zeros(shape=self.shape).astype(self.dtype)
-        self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
-        self.ggx = numpy.random.normal(size=self.shape).astype(self.dtype)
-        self.backward_options = {'atol': 1e-2, 'rtol': 1e-2, 'eps': 1e-5}
-
-    def check_forward(self, x_data):
-        distributions.bernoulli._modified_xlogx(x_data)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(
-            distributions.bernoulli._modified_xlogx,
-            x_data, y_grad, **self.backward_options)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, x_data, y_grad, x_grad_grad):
-        gradient_check.check_double_backward(
-            distributions.bernoulli._modified_xlogx, x_data, y_grad,
-            x_grad_grad, dtype=numpy.float64, **self.backward_options)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.x, self.gy, self.ggx)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
-                                   cuda.to_gpu(self.ggx))
-
-    def check_backward_zero_input(self, x_data):
-        x = chainer.Variable(x_data)
-        y = distributions.bernoulli._modified_xlogx(x)
-        if numpy.prod(y.shape) > 1:
-            y = chainer.functions.sum(y)
-        with testing.assert_warns(RuntimeWarning):
-            y.backward()
-
-    def test_backward_zero_input_cpu(self):
-        self.check_backward_zero_input(self.zero_x)
-
-    @attr.gpu
-    def test_backward_zero_input_gpu(self):
-        self.check_backward_zero_input(cuda.to_gpu(self.zero_x))
 
 
 testing.run_module(__name__, __file__)

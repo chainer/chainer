@@ -77,8 +77,8 @@ def main():
         # defined by model.get_loss_func()
         optimizer.update(model.get_loss_func(), x)
 
-        sum_loss += float(model.loss.data) * len(x.data)
-        sum_rec_loss += float(model.rec_loss.data) * len(x.data)
+        sum_loss += float(model.loss.array) * len(x)
+        sum_rec_loss += float(model.rec_loss.array) * len(x)
 
         if train_iter.is_new_epoch:
             print('train mean loss={}, mean reconstruction loss={}'
@@ -92,8 +92,8 @@ def main():
                 x = chainer.Variable(x_array)
                 loss_func = model.get_loss_func(k=10)
                 loss_func(x)
-                sum_loss += float(model.loss.data) * len(x.data)
-                sum_rec_loss += float(model.rec_loss.data) * len(x.data)
+                sum_loss += float(model.loss.array) * len(x)
+                sum_rec_loss += float(model.rec_loss.array) * len(x)
 
             test_iter.reset()
             print('test mean loss={}, mean reconstruction loss={}'
@@ -125,21 +125,21 @@ def main():
     x = chainer.Variable(np.asarray(train[train_ind]))
     with chainer.using_config('train', False), chainer.no_backprop_mode():
         x1 = model(x)
-    save_images(x.data, os.path.join(args.out, 'train'))
-    save_images(x1.data, os.path.join(args.out, 'train_reconstructed'))
+    save_images(x.array, os.path.join(args.out, 'train'))
+    save_images(x1.array, os.path.join(args.out, 'train_reconstructed'))
 
     test_ind = [3, 2, 1, 18, 4, 8, 11, 17, 61]
     x = chainer.Variable(np.asarray(test[test_ind]))
     with chainer.using_config('train', False), chainer.no_backprop_mode():
         x1 = model(x)
-    save_images(x.data, os.path.join(args.out, 'test'))
-    save_images(x1.data, os.path.join(args.out, 'test_reconstructed'))
+    save_images(x.array, os.path.join(args.out, 'test'))
+    save_images(x1.array, os.path.join(args.out, 'test_reconstructed'))
 
     # draw images from randomly sampled z
     z = chainer.Variable(
         np.random.normal(0, 1, (9, args.dimz)).astype(np.float32))
     x = model.decode(z)
-    save_images(x.data, os.path.join(args.out, 'sampled'))
+    save_images(x.array, os.path.join(args.out, 'sampled'))
 
 
 if __name__ == '__main__':

@@ -38,8 +38,7 @@ class Im2Col(function_node.FunctionNode):
         self.cover_all = cover_all
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size()
-        type_check.expect(n_in == 1)
+        type_check.argname(in_types, ('x',))
 
         x_type = in_types[0]
         type_check.expect(
@@ -75,13 +74,12 @@ class Im2ColGrad(function_node.FunctionNode):
         self.in_shape = in_shape
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size()
-        type_check.expect(n_in == 1)
+        type_check.argname(in_types, ('gy',))
 
-        x_type = in_types[0]
+        gy_type = in_types[0]
         type_check.expect(
-            x_type.dtype.kind == 'f',
-            x_type.ndim == 4
+            gy_type.dtype.kind == 'f',
+            gy_type.ndim == 4
         )
 
     def forward(self, inputs):

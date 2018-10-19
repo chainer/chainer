@@ -10,22 +10,29 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(*testing.product({
+@testing.parameterize(*(testing.product({
     'axis': [None, 0, 1, 2, -1, (0, 1), (1, 0), (0, -1), (-2, 0)],
     'keepdims': [True, False],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'contain_zero': [True, False],
-}))
+    'shape': [(3, 2, 4)],
+}) + testing.product({
+    'axis': [None, 0, 1, 2, (0, 1), (0, -1)],
+    'keepdims': [True, False],
+    'dtype': [numpy.float32],
+    'contain_zero': [False],
+    'shape': [(3, 1, 0)],
+})))
 class TestProd(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(self.dtype)
+        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         if self.contain_zero:
             index = numpy.random.choice(self.x.size)
             self.x.ravel()[index] = 0
         g_shape = self.x.prod(axis=self.axis, keepdims=self.keepdims).shape
         self.gy = numpy.random.uniform(-1, 1, g_shape).astype(self.dtype)
-        self.ggx = numpy.random.uniform(-1, 1, (3, 2, 4)).astype(self.dtype)
+        self.ggx = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
     def check_forward(self, x_data):
         x = chainer.Variable(x_data)

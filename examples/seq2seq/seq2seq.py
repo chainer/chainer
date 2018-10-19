@@ -65,9 +65,9 @@ class Seq2seq(chainer.Chain):
         loss = F.sum(F.softmax_cross_entropy(
             self.W(concat_os), concat_ys_out, reduce='no')) / batch
 
-        chainer.report({'loss': loss.data}, self)
+        chainer.report({'loss': loss}, self)
         n_words = concat_ys_out.shape[0]
-        perp = self.xp.exp(loss.data * batch / n_words)
+        perp = self.xp.exp(loss.array * batch / n_words)
         chainer.report({'perp': perp}, self)
         return loss
 
@@ -85,7 +85,7 @@ class Seq2seq(chainer.Chain):
                 h, c, ys = self.decoder(h, c, eys)
                 cys = F.concat(ys, axis=0)
                 wy = self.W(cys)
-                ys = self.xp.argmax(wy.data, axis=1).astype(numpy.int32)
+                ys = self.xp.argmax(wy.array, axis=1).astype(numpy.int32)
                 result.append(ys)
 
         # Using `xp.concatenate(...)` instead of `xp.stack(result)` here to
@@ -231,6 +231,8 @@ def main():
                         help='GPU ID (negative value indicates CPU)')
     parser.add_argument('--resume', '-r', default='',
                         help='resume the training from snapshot')
+    parser.add_argument('--save', '-s', default='',
+                        help='save a snapshot of the training')
     parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='number of units')
     parser.add_argument('--layer', '-l', type=int, default=3,
@@ -371,7 +373,15 @@ def main():
             trigger=(args.validation_interval, 'iteration'))
 
     print('start training')
+    if args.resume:
+        # Resume from a snapshot
+        chainer.serializers.load_npz(args.resume, trainer)
+
     trainer.run()
+
+    if args.save:
+        # Save a snapshot
+        chainer.serializers.save_npz(args.save, trainer)
 
 
 if __name__ == '__main__':

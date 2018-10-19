@@ -17,6 +17,7 @@ Chainer -- A flexible framework of neural networks
    guides/index
    examples/index
    reference/index
+   chainermn/index
 
 .. toctree::
    :maxdepth: 1
@@ -43,4 +44,5 @@ Indices and tables
 
    Slack Chat <https://bit.ly/join-chainer-slack>
    Forums <https://groups.google.com/forum/#!forum/chainer>
+   Notebook Examples <https://chainer-colab-notebook.readthedocs.io/en/latest/>
    Examples in Awesome Chainer <https://github.com/chainer-community/awesome-chainer>

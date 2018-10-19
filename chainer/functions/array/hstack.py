@@ -2,7 +2,7 @@ import numpy
 import six
 
 import chainer
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer.utils import type_check
 
@@ -13,9 +13,11 @@ class Hstack(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() > 0)
+        type_check.argname((in_types[0],), ('x0',))
 
         ndim = type_check.eval(in_types[0].ndim)
         for i in six.moves.range(1, type_check.eval(in_types.size())):
+            type_check.argname((in_types[i],), ('x{}'.format(i),))
             type_check.expect(
                 in_types[0].dtype == in_types[i].dtype,
                 in_types[0].ndim == in_types[i].ndim,
@@ -28,7 +30,7 @@ class Hstack(function_node.FunctionNode):
                 type_check.expect(in_types[0].shape[d] == in_types[i].shape[d])
 
     def forward(self, xs):
-        xp = cuda.get_array_module(*xs)
+        xp = backend.get_array_module(*xs)
         return xp.hstack(xs),
 
     def backward(self, indexes, grad_outputs):
@@ -82,7 +84,7 @@ def hstack(xs):
         >>> y = F.hstack((x1, x2))
         >>> y.shape
         (6,)
-        >>> y.data
+        >>> y.array
         array([1, 2, 3, 2, 3, 4])
         >>> x1 = np.arange(0, 12).reshape(3, 4)
         >>> x1.shape
@@ -101,7 +103,7 @@ def hstack(xs):
         >>> y = F.hstack([x1, x2])
         >>> y.shape
         (3, 6)
-        >>> y.data
+        >>> y.array
         array([[ 0,  1,  2,  3, 12, 13],
                [ 4,  5,  6,  7, 14, 15],
                [ 8,  9, 10, 11, 16, 17]])

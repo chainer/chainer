@@ -23,9 +23,13 @@ Learnable connections
    chainer.links.Bias
    chainer.links.Bilinear
    chainer.links.ChildSumTreeLSTM
+   chainer.links.Convolution1D
    chainer.links.Convolution2D
+   chainer.links.Convolution3D
    chainer.links.ConvolutionND
+   chainer.links.Deconvolution1D
    chainer.links.Deconvolution2D
+   chainer.links.Deconvolution3D
    chainer.links.DeconvolutionND
    chainer.links.DeformableConvolution2D
    chainer.links.DepthwiseConvolution2D
@@ -111,14 +115,15 @@ where ``fc7`` denotes a layer before the last fully-connected layer.
 Unlike the usual links, these classes automatically load all the
 parameters from the pre-trained models during initialization.
 
-VGG16Layers
-~~~~~~~~~~~
+VGG Networks
+~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated/
    :nosignatures:
 
    chainer.links.VGG16Layers
+   chainer.links.VGG19Layers
    chainer.links.model.vision.vgg.prepare
 
 GoogLeNet
@@ -166,3 +171,18 @@ Link and Chain base classes
    chainer.Chain
    chainer.ChainList
    chainer.Sequential
+
+Link hooks
+--------------
+
+.. module:: chainer.link_hooks
+
+Chainer provides a link-hook mechanism that enriches the behavior of :class:`~chainer.Link`.
+You can implement your own link-hook to inject arbitrary code before/after the forward propagation.
+
+.. currentmodule:: chainer
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.LinkHook

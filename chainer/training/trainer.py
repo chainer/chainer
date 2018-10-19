@@ -84,6 +84,14 @@ class Trainer(object):
     can be serialized through the standard serialization protocol of Chainer.
     It enables us to easily suspend and resume the training loop.
 
+    .. code-block:: python
+
+        >>> serializers.save_npz('my.trainer', trainer)  # To suspend and save
+        >>> serializers.load_npz('my.trainer', trainer)  # To load and resume
+
+    The :meth:`~chainer.training.extensions.snapshot` method makes regular
+    snapshots of the :class:`~chainer.training.Trainer` object during training.
+
     .. note::
        The serialization does not recover everything of the training loop. It
        only recovers the states which change over the training (e.g.
@@ -318,7 +326,26 @@ class Trainer(object):
                 traceback.print_tb(sys.exc_info()[2])
                 f.write('Will finalize trainer extensions and updater before '
                         'reraising the exception.\n')
-            six.reraise(*sys.exc_info())
+
+            # In Python 2, sys.exc_info() is updated if any folloing
+            # exceptions happens even if it's in a limited scope (like
+            # try-catch clause below). Thus the exception from main
+            # loop is preserved here.
+            exc_info = sys.exc_info()
+            for _, entry in extensions:
+                handler = getattr(entry.extension, 'on_error', None)
+                if handler:
+                    try:
+                        # It is guaranteed all handlers are called,
+                        # but exceptions thrown by those handlers are
+                        # just printed and ignored, as well as its
+                        # return values.
+                        handler(self, e, sys.exc_info()[2])
+                    except Exception as he:
+                        f.write('Exception in error handler: {}\n'.format(he))
+                        f.write('Traceback (most recent call last):\n')
+                        traceback.print_tb(sys.exc_info()[2])
+            six.reraise(*exc_info)
         finally:
             for _, entry in extensions:
                 finalize = getattr(entry.extension, 'finalize', None)

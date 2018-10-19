@@ -11,9 +11,7 @@ class Copy(function_node.FunctionNode):
         self.out_device = out_device
 
     def check_type_forward(self, in_types):
-        type_check.expect(
-            in_types.size() == 1
-        )
+        type_check.argname(in_types, ('x',))
 
     def forward(self, inputs):
         x, = inputs
@@ -51,10 +49,10 @@ def copy(x, dst):
         >>> cuda.get_device_from_array(x).id
         -1
         >>> y = F.copy(x, 0) # from host to device0
-        >>> cuda.get_device_from_array(y.data).id
+        >>> cuda.get_device_from_array(y.array).id
         0
         >>> z = F.copy(y, -1) # from device0 to host
-        >>> cuda.get_device_from_array(z.data).id
+        >>> cuda.get_device_from_array(z.array).id
         -1
 
     """

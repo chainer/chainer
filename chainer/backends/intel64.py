@@ -10,9 +10,10 @@ _error = None
 try:
     import ideep4py as ideep  # NOQA
     from ideep4py import mdarray  # NOQA
-    _ideep_version = 0
+    _ideep_version = 2 if hasattr(ideep, '__version__') else 1
 except ImportError as e:
     _error = e
+    _ideep_version = None
 
     class mdarray(object):
         pass  # for type testing
@@ -28,7 +29,12 @@ _SHOULD_USE_IDEEP = {
 
 
 def is_ideep_available():
-    return _ideep_version is not None
+    """Returns if iDeep is available.
+
+    Returns:
+        bool: ``True`` if the supported version of iDeep is installed.
+    """
+    return _ideep_version is not None and _ideep_version == 2
 
 
 def check_ideep_available():
@@ -47,6 +53,10 @@ def check_ideep_available():
         raise RuntimeError(
             'iDeep is not available.\n'
             'Reason: {}: {}'.format(type(_error).__name__, msg))
+    elif _ideep_version != 2:
+        raise RuntimeError(
+            'iDeep is not available.\n'
+            'Reason: Unsupported iDeep version ({})'.format(_ideep_version))
 
 
 def should_use_ideep(level):
@@ -64,7 +74,7 @@ def should_use_ideep(level):
         bool: ``True`` if the caller should use iDeep.
 
     """
-    if _ideep_version is None:
+    if not is_ideep_available():
         return False
 
     # TODO(niboshi):
@@ -114,7 +124,7 @@ def inputs_all_ready(inputs, supported_ndim=(2, 4)):
     def _is_supported_array_type(a):
         return isinstance(a, ideep.mdarray) or ideep.check_type([a])
 
-    if _ideep_version is None:
+    if not is_ideep_available():
         return False
 
     inputs = [x.data if isinstance(x, chainer.variable.Variable)

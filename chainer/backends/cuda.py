@@ -51,6 +51,7 @@ try:
     from cupy import cuda  # NOQA
     from cupy.cuda import cublas  # NOQA
     import cupyx  # NOQA
+    import cupyx.scipy.linalg  # NOQA
     import cupyx.scipy.special  # NOQA
 
     from cupy import ndarray  # NOQA
@@ -59,12 +60,9 @@ try:
     from cupy.cuda import Event  # NOQA
     from cupy.cuda import Stream  # NOQA
 
-    from . import cuda_fusion as fusion  # NOQA
-
     available = True
 except Exception as e:
     _resolution_error = e
-    fusion = numpy
 
     class ndarray(object):
         pass  # for type testing
@@ -100,7 +98,7 @@ def check_cuda_available():
             'cuDNN is not enabled.\n'
             'Please reinstall CuPy after you install cudnn\n'
             '(see https://docs-cupy.chainer.org/en/stable/install.html'
-            '#install-cupy-with-cudnn-and-nccl).')
+            '#install-cudnn).')
         check_cuda_available._already_warned = True
 
 
@@ -429,35 +427,6 @@ def copy(array, out=None, out_device=None, stream=None):
     return out
 
 
-def copyto(dst, src):
-    """Copies the elements of an ndarray to those of another one.
-
-    This function can copy the CPU/GPU arrays to the destination arrays on
-    another device.
-
-    Args:
-        dst (numpy.ndarray or cupy.ndarray): Destination array.
-        src (numpy.ndarray or cupy.ndarray): Source array.
-
-    """
-    if isinstance(dst, numpy.ndarray):
-        numpy.copyto(dst, to_cpu(src))
-    elif isinstance(dst, ndarray):
-        if isinstance(src, numpy.ndarray):
-            if dst.flags.c_contiguous or dst.flags.f_contiguous:
-                dst.set(src)
-            else:
-                cupy.copyto(dst, to_gpu(src, device=dst.device))
-        elif isinstance(src, ndarray):
-            cupy.copyto(dst, src)
-        else:
-            raise TypeError('cannot copy from non-array object of type {}'
-                            .format(type(src)))
-    else:
-        raise TypeError('cannot copy to non-array object of type {}'.format(
-            type(dst)))
-
-
 # ------------------------------------------------------------------------------
 # Function result memoization
 # ------------------------------------------------------------------------------
@@ -520,7 +489,7 @@ def elementwise(in_params, out_params, operation, name, **kwargs):
 
 @memoize()
 def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
-           identity, name,  **kwargs):
+           identity, name, **kwargs):
     """Creates a global reduction kernel function.
 
     This function uses :func:`~chainer.backends.cuda.memoize` to cache the
@@ -564,6 +533,11 @@ def get_array_module(*args):
     it will return their data arrays' array module for
     :class:`~chainer.Variable` arguments.
 
+    .. deprecated:: v5.0.0
+
+        This API is deprecated. Please use
+        :func:`~chainer.backend.get_array_module` instead.
+
     Args:
         args: Values to determine whether NumPy or CuPy should be used.
 
@@ -572,12 +546,7 @@ def get_array_module(*args):
         the arguments.
 
     """
-    if available:
-        args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
-                for arg in args]
-        return cupy.get_array_module(*args)
-    else:
-        return numpy
+    return chainer.backend.get_array_module(*args)
 
 
 def get_max_workspace_size():

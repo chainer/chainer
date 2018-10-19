@@ -35,6 +35,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
     def _forward_ideep(self, x):
         self._in_shape = x[0].shape
         self._in_dtype = x[0].dtype
+        self.retain_inputs((0,))
 
         n, c, h, w = x[0].shape
         y_h = conv.get_conv_outsize(
@@ -171,6 +172,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
 
         n, c, h, w = self._in_shape
         y_h, y_w = gy[0].shape[2:]
+        x, = self.mpool2d.get_retained_inputs()
 
         self.pd = self.sy * (y_h - 1) + self.kh - h - self.ph
         self.pr = self.sx * (y_w - 1) + self.kw - w - self.pw
@@ -185,6 +187,7 @@ class MaxPooling2DGrad(function_node.FunctionNode):
 
         self.indexes = intel64.ideep.array(self.indexes)
         gx = intel64.ideep.pooling2D.Backward(
+            intel64.ideep.array(x.data),
             intel64.ideep.array(gy[0]),
             self.indexes, pp)
         return gx,
