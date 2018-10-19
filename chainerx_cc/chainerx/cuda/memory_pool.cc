@@ -10,6 +10,22 @@
 namespace chainerx {
 namespace cuda {
 
+MemoryPool::~MemoryPool() {
+    for (const std::vector<void*>& free_list : free_bins_) {
+        for (void* ptr : free_list) {
+            cudaFree(ptr);
+        }
+    }
+    // Ideally, in_use_ should be empty, but it could happen that shared ptrs to memories allocated
+    // by this memory pool are released after this memory pool is destructed.
+    // Our approach is that we anyway free CUDA memories held by this memory pool here in such case.
+    // Operators of arrays holding such memories will be broken, but are not supported.
+    for (const auto& item : in_use_) {
+        void* ptr = item.first;
+        cudaFree(ptr);
+    }
+}
+
 void* MemoryPool::Malloc(size_t bytesize) {
     if (bytesize == 0) {
         return nullptr;

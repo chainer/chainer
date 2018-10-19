@@ -185,7 +185,8 @@ public:
             override;
 
 protected:
-    CudaDevice(CudaBackend& backend, int index) : Device{backend, index}, memory_pool_{index}, cudnn_handle_{index} {}
+    CudaDevice(CudaBackend& backend, int index)
+        : Device{backend, index}, memory_pool_{std::make_shared<MemoryPool>(index)}, cudnn_handle_{index} {}
 
 private:
     cublasHandle_t cublas_handle();  // not thread-safe
@@ -194,7 +195,7 @@ private:
 
     friend class cuda_internal::CudaConvTest;  // for unit-tests
 
-    MemoryPool memory_pool_;
+    std::shared_ptr<MemoryPool> memory_pool_;
 
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};

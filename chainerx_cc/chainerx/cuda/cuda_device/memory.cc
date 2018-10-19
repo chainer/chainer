@@ -6,6 +6,7 @@
 #include <cuda_runtime.h>
 
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
@@ -15,8 +16,12 @@ namespace chainerx {
 namespace cuda {
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
-    void* ptr = memory_pool_.Malloc(bytesize);
-    return std::shared_ptr<void>{ptr, [this](void* ptr) { memory_pool_.Free(ptr); }};
+    void* ptr = memory_pool_->Malloc(bytesize);
+    return std::shared_ptr<void>{ptr, [weak_pool = std::weak_ptr<MemoryPool>{memory_pool_}](void* ptr) {
+                                     if (std::shared_ptr<MemoryPool> pool = weak_pool.lock()) {
+                                         pool->Free(ptr);
+                                     }
+                                 }};
 }
 
 std::shared_ptr<void> CudaDevice::MakeDataFromForeignPointer(const std::shared_ptr<void>& data) {
