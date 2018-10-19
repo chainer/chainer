@@ -649,6 +649,8 @@ class CountParameter(chainer.Parameter):
         self.grad = v.grad
         self.count_to_cpu = 0
         self.count_to_gpu = 0
+        self.count_to_chainerx = 0
+        self.count_to_device = 0
         self.count_zerograd = 0
 
     def to_cpu(self):
@@ -658,6 +660,14 @@ class CountParameter(chainer.Parameter):
     def to_gpu(self, device=None):
         self.count_to_gpu += 1
         super(CountParameter, self).to_gpu(device)
+
+    def to_chainerx(self, device=None):
+        self.count_to_chainerx += 1
+        super(CountParameter, self).to_chainerx(device)
+
+    def to_device(self, device=None):
+        self.count_to_device += 1
+        super(CountParameter, self).to_device(device)
 
     def zerograd(self):
         self.count_zerograd += 1
@@ -905,6 +915,51 @@ class TestChain(unittest.TestCase):
         self.l3.x.initialize(3)
         self.assertIsInstance(self.l3.x.data, cupy.ndarray)
         self.assertIsInstance(self.l3.x.grad, cupy.ndarray)
+
+    @attr.chainerx
+    def test_to_chainerx(self):
+        self.set_count_parameters()
+        device = chainerx.get_device('native:0')
+        self.c2.to_chainerx(device)
+        self.assertIs(self.c2.xp, chainerx)
+        self.assertIs(self.c1.xp, chainerx)
+        self.assertIs(self.l1.xp, chainerx)
+        self.assertIs(self.l2.xp, chainerx)
+        self.assertIs(self.l3.xp, chainerx)
+        self.assertIsInstance(self.l1.x.data, chainerx.ndarray)
+        self.assertIsInstance(self.l1.x.grad, chainerx.ndarray)
+        self.assertIsInstance(self.l2.x.data, chainerx.ndarray)
+        self.assertIsInstance(self.l2.x.grad, chainerx.ndarray)
+        self.assertIsNone(self.l3.x.data)
+        self.assertEqual(self.l1.x.count_to_chainerx, 1)
+        self.assertEqual(self.l2.x.count_to_chainerx, 1)
+        self.assertEqual(self.l3.x.count_to_chainerx, 1)
+
+        self.l3.x.initialize((3,))
+        self.assertIsInstance(self.l3.x.data, chainerx.ndarray)
+        self.assertIsInstance(self.l3.x.grad, chainerx.ndarray)
+
+    def test_to_device(self):
+        self.set_count_parameters()
+        device = chainer.backend.DeviceId(numpy)
+        self.c2.to_device(device)
+        self.assertIs(self.c2.xp, numpy)
+        self.assertIs(self.c1.xp, numpy)
+        self.assertIs(self.l1.xp, numpy)
+        self.assertIs(self.l2.xp, numpy)
+        self.assertIs(self.l3.xp, numpy)
+        self.assertIsInstance(self.l1.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l1.x.grad, numpy.ndarray)
+        self.assertIsInstance(self.l2.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l2.x.grad, numpy.ndarray)
+        self.assertIsNone(self.l3.x.data)
+        self.assertEqual(self.l1.x.count_to_device, 1)
+        self.assertEqual(self.l2.x.count_to_device, 1)
+        self.assertEqual(self.l3.x.count_to_device, 1)
+
+        self.l3.x.initialize((3,))
+        self.assertIsInstance(self.l3.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l3.x.grad, numpy.ndarray)
 
     def test_params(self):
         params = list(self.c2.params())
@@ -1429,6 +1484,43 @@ class TestChainList(unittest.TestCase):
         self.assertIsInstance(self.l2.x.grad, cupy.ndarray)
         self.assertIsInstance(self.l3.x.data, cupy.ndarray)
         self.assertIsInstance(self.l3.x.grad, cupy.ndarray)
+
+    @attr.chainerx
+    def test_to_chainerx(self):
+        device = chainerx.get_device('native:0')
+        self.c2.to_chainerx(device)
+        self.assertIs(self.c2.xp, chainerx)
+        self.assertIs(self.c1.xp, chainerx)
+        self.assertIs(self.l1.xp, chainerx)
+        self.assertIs(self.l2.xp, chainerx)
+        self.assertIs(self.l3.xp, chainerx)
+        self.assertIsInstance(self.l1.x.data, chainerx.ndarray)
+        self.assertIsInstance(self.l1.x.grad, chainerx.ndarray)
+        self.assertIsInstance(self.l2.x.data, chainerx.ndarray)
+        self.assertIsInstance(self.l2.x.grad, chainerx.ndarray)
+        self.assertIsInstance(self.l3.x.data, chainerx.ndarray)
+        self.assertIsInstance(self.l3.x.grad, chainerx.ndarray)
+        self.assertIs(self.l1.x.data.device, device)
+        self.assertIs(self.l1.x.grad.device, device)
+        self.assertIs(self.l2.x.data.device, device)
+        self.assertIs(self.l2.x.grad.device, device)
+        self.assertIs(self.l3.x.data.device, device)
+        self.assertIs(self.l3.x.grad.device, device)
+
+    def test_to_device(self):
+        device = chainer.backend.DeviceId(numpy)
+        self.c2.to_device(device)
+        self.assertIs(self.c2.xp, numpy)
+        self.assertIs(self.c1.xp, numpy)
+        self.assertIs(self.l1.xp, numpy)
+        self.assertIs(self.l2.xp, numpy)
+        self.assertIs(self.l3.xp, numpy)
+        self.assertIsInstance(self.l1.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l1.x.grad, numpy.ndarray)
+        self.assertIsInstance(self.l2.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l2.x.grad, numpy.ndarray)
+        self.assertIsInstance(self.l3.x.data, numpy.ndarray)
+        self.assertIsInstance(self.l3.x.grad, numpy.ndarray)
 
     def test_params(self):
         params = list(self.c2.params())
