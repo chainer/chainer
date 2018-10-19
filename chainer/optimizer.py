@@ -677,7 +677,7 @@ class GradientMethod(Optimizer):
         """
         if lossfun is not None:
             use_cleargrads = getattr(self, '_use_cleargrads', True)
-            backward = lossfun(*args, **kwds).backward_cont
+            backward = lossfun(*args, **kwds).backward
             if use_cleargrads:
                 self.target.cleargrads()
             else:

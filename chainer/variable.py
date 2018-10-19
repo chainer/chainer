@@ -908,9 +908,12 @@ Actual: {0}'''.format(type(data))
         """
         self._node.set_creator_node(fnode)
 
-    def backward(self, retain_grad=False, enable_double_backprop=False,
-                 loss_scale=None):
-        """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
+    @property
+    def backward(self):
+        """backward(self, retain_grad=False, enable_double_backprop=False,
+        loss_scale=None):
+
+        Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop,
         :meth:`FunctionNode.backward() <chainer.FunctionNode.backward>`
@@ -960,10 +963,6 @@ Actual: {0}'''.format(type(data))
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        self.backward_cont(retain_grad, enable_double_backprop, loss_scale)
-
-    @property
-    def backward_cont(self):
         return functools.partial(_backward_impl, [self])
 
     def reshape(self, *shape):
