@@ -24,9 +24,10 @@ from chainer.testing import attr
       'backward_options': {'eps': 1e-2, 'rtol': 1e-2, 'atol': 1e-2},
       'double_backward_options': {'eps': 1e-2, 'rtol': 1e-1, 'atol': 1e-1}},
      ],
-    [{'reduce': 'no'},
-     {'reduce': 'sum_along_second_axis'},
-     ],
+    testing.product({
+        'shape': [(4, 10), (2, 5, 3, 3)],
+        'reduce': ['no', 'sum_along_second_axis'],
+    }),
 ))
 class TestHuberLoss(unittest.TestCase):
 
@@ -34,12 +35,11 @@ class TestHuberLoss(unittest.TestCase):
         self._config_user = chainer.using_config('dtype', self.dtype)
         self._config_user.__enter__()
 
-        self.shape = (4, 10)
         self.x = (numpy.random.random(self.shape) - 0.5) * 20
         self.x = self.x.astype(self.dtype)
         self.t = numpy.random.random(self.shape).astype(self.dtype)
         if self.reduce == 'sum_along_second_axis':
-            gy_shape = self.shape[0]
+            gy_shape = self.shape[:1] + self.shape[2:]
         else:
             gy_shape = self.shape
         self.gy = numpy.random.random(gy_shape).astype(self.dtype)
