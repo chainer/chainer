@@ -42,6 +42,7 @@ void Set(const Array& out, int64_t flat_index, Scalar value) {
         auto src = static_cast<T>(value);
         Device& device = out.device();
         device.MemoryCopyFrom(&dst, &src, sizeof(T), native_device);
+        // TODO(hvy): Avoid having to synchronize for each Set.
         device.Synchronize();
     });
 }
