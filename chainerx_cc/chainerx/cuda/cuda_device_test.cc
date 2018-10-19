@@ -12,6 +12,7 @@
 #include "chainerx/context.h"
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/device.h"
 #include "chainerx/testing/array.h"
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
@@ -23,9 +24,12 @@ namespace cuda {
 namespace {
 
 template <typename T>
-void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_ptr<void>& actual, size_t size) {
+void ExpectDataEqual(const std::shared_ptr<void>& expected, const std::shared_ptr<void>& actual, size_t size, Device& ptr_device) {
     auto expected_raw_ptr = static_cast<const T*>(expected.get());
     auto actual_raw_ptr = static_cast<const T*>(actual.get());
+
+    ptr_device.Synchronize();
+
     for (size_t i = 0; i < size; ++i) {
         EXPECT_EQ(expected_raw_ptr[i], actual_raw_ptr[i]);
     }
@@ -135,9 +139,8 @@ TEST(CudaDeviceTest, FromHostMemory) {
     CudaDevice& device = GetCudaDevice(ctx, 0);
 
     std::shared_ptr<void> dst = device.FromHostMemory(src, bytesize);
-    device.Synchronize();
 
-    ExpectDataEqual<float>(src, dst, size);
+    ExpectDataEqual<float>(src, dst, size, device);
     EXPECT_NE(src.get(), dst.get());
 
     cudaPointerAttributes attr = {};
