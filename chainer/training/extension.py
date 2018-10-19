@@ -113,7 +113,7 @@ class Extension(object):
 
         Args:
             trainer (Trainer): Trainer object that runs the training loop.
-            exp (Exception): arbitrary exception thrown during update loop.
+            exc (Exception): arbitrary exception thrown during update loop.
             tb (traceback): traceback object of the exception
 
         """
