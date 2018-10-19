@@ -1105,6 +1105,7 @@ def _backward_impl(
     self, = self_
     self._node._check_old_style_gradient()
     if self.creator_node is None:
+        del self_[:]
         return
 
     # Initialize error by 1, if this is a loss variable
