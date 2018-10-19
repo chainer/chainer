@@ -2354,5 +2354,21 @@ class TestDelayBackward(unittest.TestCase):
         with pytest.raises(RuntimeError):
             backward()
 
+    def check_backward_return_none(self, del_y):
+        # Variable.backward should return None because it will find the error
+        # `cont = y.backward(); cont()`, because it raises
+        # TypeError: 'NoneType' object is not callable
+        x = self.var('x')
+        y, = self.func('f', [x], 1)
+        y.grad_var = self.var('gy')
+
+        ret = y.backward()
+        assert ret is None
+
+        backward = y.backward
+        del y
+        ret = backward()
+        assert ret is None
+
 
 testing.run_module(__name__, __file__)
