@@ -29,7 +29,7 @@ For example, suppose your existing code needs to access ``MaxPooling2D.indexes``
     p = F.MaxPooling2D(2, 2)
     h = p.apply((x,))[0]
     ...
-    F.upsampling_2d(h, p.indexes, ksize=2)
+    y = F.upsampling_2d(h, p.indexes, ksize=2)
 
 The above code may raise this error in Chainer v5::
 
