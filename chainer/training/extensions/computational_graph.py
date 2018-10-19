@@ -10,9 +10,9 @@ _var_style = {'shape': 'octagon', 'fillcolor': '#E0E0E0', 'style': 'filled'}
 _func_style = {'shape': 'record', 'fillcolor': '#6495ED', 'style': 'filled'}
 
 
-def dump_graph(root_name, out_name='cg.dot',
-               variable_style=None, function_style=None):
-    """Returns a trainer extension to dump a computational graph.
+class dump_graph(extension.Extension):
+
+    """Trainer extension to dump a computational graph.
 
     This extension dumps a computational graph. The graph is output in DOT
     language.
@@ -60,37 +60,45 @@ def dump_graph(root_name, out_name='cg.dot',
        for the ``variable_style`` and ``function_style`` arguments.
 
     """
-    def trigger(trainer):
-        return trainer.updater.iteration == 1
 
-    if variable_style is None:
-        variable_style = _var_style
-    if function_style is None:
-        function_style = _func_style
+    def __init__(self, root_name, out_name='cg.dot',
+                 variable_style=None, function_style=None):
+        self._root_name = root_name
+        self._out_name = out_name
+        self._variable_style = variable_style or _var_style
+        self._function_style = function_style or _func_style
+        self._original_flag = None
+        self._flag_called = False
 
-    original_flag = [None]
+    def initialize(self, _):
+        if not self._flag_called:
+            self._original_flag = configuration.config.keep_graph_on_report
+            configuration.config.keep_graph_on_report = True
 
-    def initializer(_):
-        original_flag[0] = configuration.config.keep_graph_on_report
-        configuration.config.keep_graph_on_report = True
+    def trigger(self, _):
+        if self._flag_called:
+            return False
+        self._flag_called = True
+        return True
 
-    @extension.make_extension(trigger=trigger, initializer=initializer)
-    def dump_graph(trainer):
+    def __call__(self, trainer):
         try:
-            var = trainer.observation[root_name]
+            var = trainer.observation[self._root_name]
             if not isinstance(var, variable.Variable):
                 raise TypeError('root value is not a Variable')
             cg = computational_graph.build_computational_graph(
                 [var],
-                variable_style=variable_style,
-                function_style=function_style
+                variable_style=self._variable_style,
+                function_style=self._function_style
             ).dump()
 
-            out_path = os.path.join(trainer.out, out_name)
+            out_path = os.path.join(trainer.out, self._out_name)
             # TODO(beam2d): support outputting images by the dot command
             with open(out_path, 'w') as f:
                 f.write(cg)
         finally:
-            configuration.config.keep_graph_on_report = original_flag[0]
+            configuration.config.keep_graph_on_report = self._original_flag
 
-    return dump_graph
+    def serialize(self, serializer):
+        self._original_flag = serializer('_original_flag', self._original_flag)
+        self._flag_called = serializer('_flag_called', self._flag_called)
