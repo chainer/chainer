@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer.backends import cuda
 from chainer import function_node
@@ -27,17 +25,12 @@ class BatchDet(function_node.FunctionNode):
         type_check.expect(a_type.shape[-1] == a_type.shape[-2])
 
     @precision._fp16_mixed_precision_helper
-    def forward_cpu(self, x):
+    def forward(self, inputs):
         self.retain_inputs((0,))
         self.retain_outputs((0,))
-        detx = utils.force_array(numpy.linalg.det(x[0]))
-        return detx,
-
-    @precision._fp16_mixed_precision_helper
-    def forward_gpu(self, x):
-        self.retain_inputs((0,))
-        self.retain_outputs((0,))
-        detx = cupy.linalg.det(x[0])
+        x, = inputs
+        xp = cuda.get_array_module(x)
+        detx = utils.force_array(xp.linalg.det(x))
         return detx,
 
     def backward(self, indexes, gy):
