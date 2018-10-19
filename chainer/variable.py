@@ -1099,6 +1099,9 @@ else:
 def _backward_impl(
         self_, retain_grad=False, enable_double_backprop=False,
         loss_scale=None):
+    if not self_:
+        raise RuntimeError(
+            'variable.backward is FnOnce.')  # TODO(kataoka): fix message
     self, = self_
     self._node._check_old_style_gradient()
     if self.creator_node is None:
@@ -1126,6 +1129,7 @@ def _backward_impl(
     with chainer.using_config('enable_backprop', enable_double_backprop):
         del self
         _backward_main(self_, retain_grad, loss_scale)
+    assert not self_
 
 
 def _backward_main(outputs, retain_grad, loss_scale):

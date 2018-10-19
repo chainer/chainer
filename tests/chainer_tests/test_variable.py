@@ -2345,5 +2345,14 @@ class TestDelayBackward(unittest.TestCase):
             '+', {'f0', 'grad r1_0('+gz+')', 'grad f0_0('+gh0+')', gx},
         ]
 
+    def test_raise_continuation_twice(self):
+        x = self.var('x')
+        y, = self.func('f', [x], 1)
+        y.grad_var = self.var('gy')
+        backward = y.backward
+        backward()
+        with pytest.raises(RuntimeError):
+            backward()
+
 
 testing.run_module(__name__, __file__)
