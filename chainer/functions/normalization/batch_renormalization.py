@@ -173,7 +173,7 @@ Set update_statistics=False to stop updating.'''
 
 def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
                           running_mean=None, running_var=None, decay=0.9,
-                          update_statistics=True):
+                          update_statistics=False):
     """Batch renormalization function.
 
     This is an extension of batch normalization, which ensures that the
