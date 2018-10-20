@@ -11,7 +11,6 @@ from chainer import serializer as serializer_module
 from chainer.training import extension as extension_module
 from chainer.training import trigger as trigger_module
 from chainer.utils import argument
-from chainer import variable
 
 
 # Select the best-resolution timer function
@@ -317,9 +316,6 @@ class Trainer(object):
                     for name, entry in extensions:
                         if entry.trigger(self):
                             entry.extension(self)
-                    for var in self.observation.values():
-                        if isinstance(var, variable.Variable):
-                            var.unchain_backward()
         except Exception as e:
             if show_loop_exception_msg:
                 # Show the exception here, as it will appear as if chainer
