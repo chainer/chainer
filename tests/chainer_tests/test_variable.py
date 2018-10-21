@@ -272,7 +272,7 @@ class TestVariable(unittest.TestCase):
         self.check_iter(False)
 
     @attr.gpu
-    def test_iter_iter(self):
+    def test_iter_gpu(self):
         self.check_len(True)
 
     def check_get_item(self, gpu):
