@@ -47,11 +47,11 @@ def broadcast(*args):
 
         >>> x = np.random.uniform(0, 1, (3, 2)).astype(np.float32)
         >>> y = F.broadcast(x)
-        >>> np.all(x == y.data)
+        >>> np.all(x == y.array)
         True
         >>> z = np.random.uniform(0, 1, (3, 2)).astype(np.float32)
         >>> y, w = F.broadcast(x, z)
-        >>> np.all(x == y.data) & np.all(z == w.data)
+        >>> np.all(x == y.array) & np.all(z == w.array)
         True
 
     """
@@ -121,7 +121,7 @@ def broadcast_to(x, shape):
         >>> x
         array([0, 1, 2])
         >>> y = F.broadcast_to(x, (3, 3))
-        >>> y.data
+        >>> y.array
         array([[0, 1, 2],
                [0, 1, 2],
                [0, 1, 2]])

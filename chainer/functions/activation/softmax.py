@@ -1,3 +1,6 @@
+import functools
+import operator
+
 import numpy
 
 import chainer
@@ -16,10 +19,9 @@ if cuda.cudnn_enabled:
 
 
 def _get_tensor4d_shape(axis, shape):
-    left_shape = numpy.prod(shape[slice(0, axis)], dtype=numpy.int)
+    left_shape = functools.reduce(operator.mul, shape[:axis], 1)
     center_shape = shape[axis]
-    right_shape = numpy.prod(
-        shape[slice(axis + 1, len(shape))], dtype=numpy.int)
+    right_shape = functools.reduce(operator.mul, shape[axis:][1:], 1)
     return left_shape, center_shape, right_shape, 1
 
 
@@ -42,8 +44,7 @@ class Softmax(function_node.FunctionNode):
 
         type_check.expect(
             x_type.dtype.kind == 'f',
-            x_type.ndim > 1,
-            self.axis < x_type.ndim
+            -x_type.ndim <= self.axis < x_type.ndim,
         )
 
     def forward(self, x):
@@ -151,10 +152,10 @@ def softmax(x, axis=1):
         array([[0., 1., 2.],
                [0., 2., 4.]], dtype=float32)
         >>> y = F.softmax(x, axis=1)
-        >>> y.data
+        >>> y.array
         array([[0.09003057, 0.24472848, 0.66524094],
                [0.01587624, 0.11731043, 0.86681336]], dtype=float32)
-        >>> F.sum(y, axis=1).data
+        >>> F.sum(y, axis=1).array
         array([1., 1.], dtype=float32)
 
     """

@@ -98,7 +98,7 @@ def check_cuda_available():
             'cuDNN is not enabled.\n'
             'Please reinstall CuPy after you install cudnn\n'
             '(see https://docs-cupy.chainer.org/en/stable/install.html'
-            '#install-cupy-with-cudnn-and-nccl).')
+            '#install-cudnn).')
         check_cuda_available._already_warned = True
 
 
@@ -489,7 +489,7 @@ def elementwise(in_params, out_params, operation, name, **kwargs):
 
 @memoize()
 def reduce(in_params, out_params, map_expr, reduce_expr, post_map_expr,
-           identity, name,  **kwargs):
+           identity, name, **kwargs):
     """Creates a global reduction kernel function.
 
     This function uses :func:`~chainer.backends.cuda.memoize` to cache the

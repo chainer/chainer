@@ -47,7 +47,7 @@ def main():
 
                 # networks assumes mini-batch data
                 score = network(mem[None], query[None])[0]
-                answer = numpy.argmax(score.data)
+                answer = numpy.argmax(score.array)
 
                 if answer == sent.answer:
                     correct += 1

@@ -6,6 +6,7 @@ from chainer import function_node
 import chainer.functions
 from chainer.functions.math import matmul
 from chainer import utils
+from chainer.utils import precision
 from chainer.utils import type_check
 
 
@@ -28,11 +29,20 @@ def _inv_gpu(b):
     _, lda = matmul._get_ld(a)
     _, ldc = matmul._get_ld(c)
     handle = cuda.Device().cublas_handle
-    cuda.cublas.sgetrfBatched(
-        handle, n, ap.data.ptr, lda, p.data.ptr, info.data.ptr, n_matrices)
-    cuda.cublas.sgetriBatched(
-        handle, n, ap.data.ptr, lda, p.data.ptr, cp.data.ptr, ldc,
-        info.data.ptr, n_matrices)
+    if b.dtype == numpy.float32:
+        cuda.cublas.sgetrfBatched(
+            handle, n, ap.data.ptr, lda, p.data.ptr, info.data.ptr, n_matrices)
+        cuda.cublas.sgetriBatched(
+            handle, n, ap.data.ptr, lda, p.data.ptr, cp.data.ptr, ldc,
+            info.data.ptr, n_matrices)
+    elif b.dtype == numpy.float64:
+        cuda.cublas.dgetrfBatched(
+            handle, n, ap.data.ptr, lda, p.data.ptr, info.data.ptr, n_matrices)
+        cuda.cublas.dgetriBatched(
+            handle, n, ap.data.ptr, lda, p.data.ptr, cp.data.ptr, ldc,
+            info.data.ptr, n_matrices)
+    else:
+        assert False
     return c, info
 
 
@@ -41,12 +51,13 @@ class Inv(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('a',))
         a_type, = in_types
-        type_check.expect(a_type.dtype == numpy.float32)
+        type_check.expect(a_type.dtype.kind == 'f')
         # Only 2D array shapes allowed
         type_check.expect(a_type.ndim == 2)
         # Matrix inversion only allowed for square matrices
         type_check.expect(a_type.shape[0] == a_type.shape[1])
 
+    @precision._fp16_mixed_precision_helper
     def forward_cpu(self, x):
         self.retain_outputs((0,))
         try:
@@ -55,6 +66,7 @@ class Inv(function_node.FunctionNode):
             raise ValueError('Input has singular matrices.')
         return invx,
 
+    @precision._fp16_mixed_precision_helper
     def forward_gpu(self, x):
         self.retain_outputs((0,))
         shape = x[0].shape
@@ -79,13 +91,14 @@ class BatchInv(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('a',))
         a_type, = in_types
-        type_check.expect(a_type.dtype == numpy.float32)
+        type_check.expect(a_type.dtype.kind == 'f')
         # Only a minibatch of 2D array shapes allowed
         type_check.expect(a_type.ndim == 3)
         # Matrix inversion only allowed for square matrices
         # so assert the last two dimensions are equal
         type_check.expect(a_type.shape[-1] == a_type.shape[-2])
 
+    @precision._fp16_mixed_precision_helper
     def forward_cpu(self, x):
         self.retain_outputs((0,))
         try:
@@ -94,6 +107,7 @@ class BatchInv(function_node.FunctionNode):
             raise ValueError('Input has singular matrices.')
         return invx,
 
+    @precision._fp16_mixed_precision_helper
     def forward_gpu(self, x):
         self.retain_outputs((0,))
         invx, info = _inv_gpu(x[0])

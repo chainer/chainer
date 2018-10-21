@@ -1,10 +1,11 @@
+import numpy
+
 from chainer import distributions
 from chainer import testing
-import numpy
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(3, 2), (1,)],
+    'shape': [(2, 3), ()],
     'is_variable': [True, False],
     'sample_shape': [(3, 2), ()],
 }))

@@ -1,7 +1,8 @@
+import math
+
 import numpy
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
@@ -41,22 +42,14 @@ def _check_constant_type(value):
 
 
 def _preprocess_const(x, value):
-    xp = backend.get_array_module(x)
-    if not numpy.isscalar(value) and backend.get_array_module(value) != xp:
-        # TODO(unno): We can transfer arrays automatically
-        raise TypeError('Cannot mix cupy.ndarray and numpy.ndarray')
-
-    b = xp.broadcast(x, value)
-    if b.shape != x.shape:
-        raise ValueError('Failed to broadcast arrays')
-    return utils.force_type(x.dtype, value)
+    return x.dtype.type(value)
 
 
 def _preprocess_rhs(x, value):
     if isinstance(value, chainer.Variable):
         return value
     _check_constant_type(value)
-    return utils.force_type(x.dtype, value)
+    return value.astype(x.dtype)
 
 
 class Neg(function_node.FunctionNode):
@@ -761,6 +754,7 @@ class PowConstVarGrad(function_node.FunctionNode):
 
     def __init__(self, value):
         self.value = value
+        self.log_value = math.log(value)
 
     def check_type_forward(self, in_types):
         type_check.argname(in_types, ('y', 'gy'))
@@ -774,27 +768,24 @@ class PowConstVarGrad(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         y, gy = inputs
 
-        self.value = _preprocess_const(y, self.value)
-        gx = utils.force_array(
-            numpy.log(self.value, dtype=y.dtype) * y * gy)
+        gx = utils.force_array(y.dtype.type(self.log_value) * y * gy)
         return gx,
 
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))
         y, gy = inputs
 
-        self.value = _preprocess_const(y, self.value)
+        value = _preprocess_const(y, self.value)
         gx = cuda.elementwise(
             'T y, T gy, T value', 'T gx',
             'gx = log(value) * y * gy',
-            'pow_const_var_bwd')(y, gy, self.value)
+            'pow_const_var_bwd')(y, gy, value)
         return gx,
 
     def backward(self, indexes, ggx):
         y, gy = self.get_retained_inputs()
 
-        xp = backend.get_array_module(y)
-        gygy = xp.log(self.value) * ggx[0]
+        gygy = y.dtype.type(self.log_value) * ggx[0]
 
         ret = []
         if 0 in indexes:
