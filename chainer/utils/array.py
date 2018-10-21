@@ -1,5 +1,3 @@
-import functools
-import operator
 import warnings
 
 import numpy
@@ -42,7 +40,10 @@ def empty_like(x):
 
 
 def size_of_shape(shape):
-    return functools.reduce(operator.mul, shape, 1)
+    size = 1
+    for i in shape:
+        size *= i
+    return size
 
 
 def sum_to(x, shape):
