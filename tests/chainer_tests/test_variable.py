@@ -1563,7 +1563,7 @@ class UnnamedVariableToStringTestBase(object):
     {'x_shape': (2, 2,), 'dtype': np.float64,
      'repr': 'variable([[ 0.,  1.],\n          [ 2.,  3.]])',
      'str': 'variable([[ 0.  1.]\n          [ 2.  3.]])'},
-    {'x_shape': (3,),  'dtype': np.float32,
+    {'x_shape': (3,), 'dtype': np.float32,
      'repr': 'variable([ 0.,  1.,  2.])', 'str': 'variable([ 0.  1.  2.])'},
 )
 @testing.with_requires('numpy<1.14')
@@ -1585,7 +1585,7 @@ class TestUnnamedVariableToStringLegacy(
     {'x_shape': (2, 2,), 'dtype': np.float64,
      'repr': 'variable([[0., 1.],\n          [2., 3.]])',
      'str': 'variable([[0. 1.]\n          [2. 3.]])'},
-    {'x_shape': (3,),  'dtype': np.float32,
+    {'x_shape': (3,), 'dtype': np.float32,
      'repr': 'variable([0., 1., 2.])', 'str': 'variable([0. 1. 2.])'},
 )
 @testing.with_requires('numpy>=1.14')

@@ -10,6 +10,37 @@ Most changes are carefully designed not to break existing code; however changes 
 Chainer v5
 ==========
 
+FunctionNode Classes are Hidden from ``chainer.functions``
+----------------------------------------------------------
+
+Prior to Chainer v5, :class:`~chainer.FunctionNode` classes (e.g., ``chainer.functions.MaxPooling2D``) are exposed under :mod:`chainer.functions`.
+In Chainer v5, these classes are hidden from :mod:`chainer.functions`.
+Use the equivalent wrapper functions listed in :doc:`reference/functions` (e.g., :func:`chainer.functions.max_pooling_2d`) instead.
+
+Some wrapper functions now provide options to access internal states to avoid directly using :class:`~chainer.FunctionNode` classes.
+
+* :func:`chainer.functions.max_pooling_2d`: ``return_indices``
+* :func:`chainer.functions.max_pooling_nd`: ``return_indices``
+* :func:`chainer.functions.dropout`: ``mask``, ``return_mask``
+* :func:`chainer.functions.gaussian`: ``eps``, ``return_eps``
+
+For example, suppose your existing code needs to access ``MaxPooling2D.indexes`` to later perform upsampling::
+
+    p = F.MaxPooling2D(2, 2)
+    h = p.apply((x,))[0]
+    ...
+    y = F.upsampling_2d(h, p.indexes, ksize=2)
+
+The above code may raise this error in Chainer v5::
+
+    AttributeError: module 'chainer.functions' has no attribute 'MaxPooling2D'
+
+You can rewrite the above code using ``return_indices`` option of :func:`chainer.functions.max_pooling_2d`::
+
+    h, indices = F.max_pooling_2d(x, 2, 2, return_indices=True)
+    ...
+    y = F.upsampling_2d(h, indices, ksize=2)
+
 Persistent Values are Copied in ``Link.copyparams``
 ---------------------------------------------------
 
@@ -21,12 +52,6 @@ In Chainer v5, in addition to parameters, persistent values (see :doc:`guides/se
 This is especially beneficial when copying parameters of :class:`~chainer.links.BatchNormalization`, as it uses persistent values to record running statistics.
 
 You can skip copying persistent values by passing newly introduced ``copy_persistent=False`` option to :meth:`~chainer.Link.copyparams` so that it behaves as in Chainer v4.
-
-FuncionNodes as Implementation Details
---------------------------------------
-
-When calling a Chainer function such as :func:`~chainer.functions.relu`, a corresponding :class:`~chainer.FunctionNode` is created internally, defining the forward and backward procedures.
-These classes are no longer a part of the public interface and you are encouraged not to instantiate these objects directly, as their interfaces may change.
 
 Updaters Automatically Call ``Optimizer.new_epoch``
 ---------------------------------------------------
@@ -47,6 +72,12 @@ Extending the Backend Namespace
 -------------------------------
 
 In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes ``chainer.backend.get_array_module`` which used to be defined in ``chainer.backends.cuda.get_array_module``. Both can be used but the latter will be deprecated.
+
+CuPy v5
+-------
+
+Chainer v5 requires CuPy v5 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v5 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v5>`_ for details.
 
 
 Chainer v4

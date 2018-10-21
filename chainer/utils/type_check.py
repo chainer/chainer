@@ -222,7 +222,7 @@ method to evaluate expression.
     __gt__ = _make_bool_operator('>', '<=', operator.__gt__)
     __ge__ = _make_bool_operator('>=', '<', operator.__ge__)
 
-    # Please refer the Python document to know priority of operators.
+    # Please refer the Python documentation to know priority of operators.
     # https://docs.python.org/3.4/reference/expressions.html
 
     __add__ = _make_bin_operator('+', 4, operator.__add__)

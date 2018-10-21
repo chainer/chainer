@@ -31,7 +31,7 @@ def _convert_value_to_string(value):
 
 
 def _preprocess_const(x, value):
-    return utils.force_type(x.dtype, value)
+    return x.dtype.type(value)
 
 
 def _preprocess_rhs(x, value):
@@ -44,7 +44,7 @@ def _preprocess_rhs(x, value):
             'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
             'or a `Variable`.\nActual: {}'.format(type(value)))
 
-    return utils.force_type(x.dtype, value)
+    return value.astype(x.dtype)
 
 
 class Neg(function_node.FunctionNode):
