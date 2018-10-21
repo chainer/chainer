@@ -69,7 +69,7 @@ only exception is when you run ChainerMN on CPU-only environments. See
      export LIBRARY_PATH=$NCCL_ROOT/lib/:$LIBRARY_PATH
 
    If you change the version of NCCL installed, you have to reinstall CuPy. Because, current ChainerMN applies CuPy to use NCCL.
-   See `CuPy official instructions <https://docs-cupy.chainer.org/en/stable/install.html#id13>`__ for reinstalltion.
+   See `CuPy official instructions <https://docs-cupy.chainer.org/en/stable/install.html#reinstall-cupy>`__ for reinstalltion.
    
 .. _mpi4py-install:
 

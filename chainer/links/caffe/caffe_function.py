@@ -220,7 +220,7 @@ class CaffeFunction(link.Chain):
             func = self.forwards[func_name]
             input_vars = tuple(variables[blob] for blob in bottom)
             output_vars = func(*input_vars)
-            if not isinstance(output_vars, tuple):
+            if not isinstance(output_vars, (tuple, list)):
                 output_vars = output_vars,
             for var, name in zip(output_vars, top):
                 variables[name] = var

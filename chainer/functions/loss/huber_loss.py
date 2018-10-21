@@ -54,7 +54,7 @@ class HuberLoss(function_node.FunctionNode):
         gx = chainer.functions.clip(diff, -delta, delta)
 
         if self.reduce == 'sum_along_second_axis':
-            gy = gy.reshape(gy.shape + (1,) * (diff.ndim - 1))
+            gy = chainer.functions.expand_dims(gy, 1)
         gx = chainer.functions.broadcast_to(gy, gx.shape) * gx
         return gx, -gx
 

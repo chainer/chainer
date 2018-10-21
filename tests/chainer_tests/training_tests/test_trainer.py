@@ -1,4 +1,5 @@
 import time
+import traceback
 import unittest
 
 from chainer import testing
@@ -21,6 +22,29 @@ class DummyExtension(training.extension.Extension):
 
     def initialize(self, trainer):
         trainer.is_initialized = True
+
+
+class ErrorHandlingExtension(training.extension.Extension):
+
+    def __init__(self):
+        self.is_error_handled = False
+
+    def __call__(self, trainer):
+        pass
+
+    def on_error(self, trainer, exception, tb):
+        traceback.print_tb(tb)
+        self.is_error_handled = True
+
+    def finalize(self):
+        pass
+
+    def initialize(self, trainer):
+        pass
+
+
+class TheOnlyError(Exception):
+    pass
 
 
 class DummyCallableClass(object):
@@ -168,6 +192,57 @@ class TestTrainer(unittest.TestCase):
         self.trainer.extend(dummy_extension_2)
         self.trainer.run()
         self.assertEqual(self.called_order, [2, 1])
+
+    def test_exception_handler(self):
+
+        ext = ErrorHandlingExtension()
+        self.trainer.extend(ext, trigger=(1, 'iteration'), priority=1)
+        self.assertFalse(ext.is_error_handled)
+
+        d = {}
+
+        def exception_handler(trainer, exp, tb):
+            d['called'] = True
+
+        @training.make_extension(trigger=(1, 'iteration'), priority=100,
+                                 on_error=exception_handler)
+        def exception_raiser(trainer):
+            raise TheOnlyError()
+        self.trainer.extend(exception_raiser)
+
+        dummy_extension = DummyExtension(self)
+        self.trainer.extend(dummy_extension)
+
+        with self.assertRaises(TheOnlyError):
+            self.trainer.run()
+
+        self.assertTrue(d['called'])
+        self.assertTrue(ext.is_error_handled)
+        self.assertTrue(dummy_extension.is_finalized)
+
+    def test_exception_in_exception_handler(self):
+
+        ext = ErrorHandlingExtension()
+        self.trainer.extend(ext, trigger=(1, 'iteration'), priority=1)
+        self.assertFalse(ext.is_error_handled)
+
+        def exception_handler(trainer, exp, tb):
+            raise ValueError('hogehoge from exception handler')
+
+        @training.make_extension(trigger=(1, 'iteration'), priority=100,
+                                 on_error=exception_handler)
+        def exception_raiser(trainer):
+            raise TheOnlyError()
+        self.trainer.extend(exception_raiser)
+
+        dummy_extension = DummyExtension(self)
+        self.trainer.extend(dummy_extension)
+
+        with self.assertRaises(TheOnlyError):
+            self.trainer.run()
+
+        self.assertTrue(ext.is_error_handled)
+        self.assertTrue(dummy_extension.is_finalized)
 
 
 testing.run_module(__name__, __file__)
