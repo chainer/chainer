@@ -42,13 +42,22 @@ class ParallelMLP(chainer.Chain):
             # assume x is on gpu0
             x1 = F.copy(x, self.gpu1)
 
+            z0 = self.first0(x)
+            z1 = self.first1(x1)
+
             # synchronize
+            h0 = z0 + F.copy(z1, self.gpu0)
+            h1 = z1 + F.copy(z0, self.gpu1)
+
+            y0 = self.second0(F.relu(h0))
+            y1 = self.second1(F.relu(h1))
+
             y = y0 + F.copy(y1, self.gpu0)
             return y  # output is on gpu0
         else:
             z0 = self.first0(x)
             z1 = self.first1(x)
-            
+
             h = z0 + z1
 
             y0 = self.second0(F.relu(h))

@@ -95,7 +95,7 @@ Then, the following files will be craeted:
 ### `train_mnist_model_parallel.py`
 
 This example shows how to split a single model to different GPUs and train it with `Trainer` class.
-This script does not support CPUs and requires at least two GPUs.
+This script does not support CPUs and **requires at least two GPUs.**
 
 Usage:
 ```

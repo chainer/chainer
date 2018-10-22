@@ -10,7 +10,8 @@ def main():
     parser = argparse.ArgumentParser(description='Chainer example: MNIST')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--snapshot', '-s', default='result/snapshot_iter_12000',
+    parser.add_argument('--snapshot', '-s',
+                        default='result/snapshot_iter_12000',
                         help='The path to a saved snapshot (NPZ)')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
