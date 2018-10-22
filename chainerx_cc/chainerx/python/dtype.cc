@@ -2,9 +2,12 @@
 
 #include <string>
 
+#include <pybind11/numpy.h>
+
 #include "chainerx/dtype.h"
 #include "chainerx/scalar.h"
 
+#include "chainerx/macro.h"
 #include "chainerx/python/common.h"
 
 namespace chainerx {
@@ -133,6 +136,38 @@ Dtype GetDtype(py::handle handle) {
     }
 
     throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
+}
+
+py::dtype GetNumPyDtype(Dtype dtype) {
+    static py::dtype np_bool{"bool"};
+    static py::dtype np_int8{"int8"};
+    static py::dtype np_int16{"int16"};
+    static py::dtype np_int32{"int32"};
+    static py::dtype np_int64{"int64"};
+    static py::dtype np_uint8{"uint8"};
+    static py::dtype np_float32{"float32"};
+    static py::dtype np_float64{"float64"};
+
+    switch (dtype) {
+        case Dtype::kUInt8:
+            return np_uint8;
+        case Dtype::kBool:
+            return np_bool;
+        case Dtype::kInt8:
+            return np_int8;
+        case Dtype::kInt16:
+            return np_int16;
+        case Dtype::kInt32:
+            return np_int32;
+        case Dtype::kInt64:
+            return np_int64;
+        case Dtype::kFloat32:
+            return np_float32;
+        case Dtype::kFloat64:
+            return np_float64;
+        default:
+            CHAINERX_NEVER_REACH();
+    }
 }
 
 }  // namespace python_internal

@@ -11,11 +11,15 @@ namespace chainerx {
 namespace python {
 namespace python_internal {
 
+namespace py = pybind11;  // standard convention
+
 Dtype GetDtypeFromString(const std::string& name);
 
-Dtype GetDtypeFromNumpyDtype(const pybind11::dtype& npdtype);
+Dtype GetDtypeFromNumpyDtype(const py::dtype& npdtype);
 
 Dtype GetDtype(pybind11::handle handle);
+
+py::dtype GetNumPyDtype(Dtype dtype);
 
 }  // namespace python_internal
 }  // namespace python
