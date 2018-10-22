@@ -364,6 +364,34 @@ class TestDeviceId(unittest.TestCase):
         device_id = backend.DeviceId((cuda.cupy, 0))
         assert str(device_id) == 'DeviceId((cupy, 0))'
 
+    def test_eq_numpy(self):
+        assert backend.DeviceId(numpy) == backend.DeviceId(numpy)
+
+    @attr.gpu
+    def test_eq_cupy(self):
+        DeviceId = backend.DeviceId
+        assert DeviceId(cuda.cupy) == DeviceId(cuda.cupy)
+        assert DeviceId(cuda.cupy) != DeviceId(numpy)
+        assert DeviceId((cuda.cupy, 0)) == DeviceId((cuda.cupy, 0))
+        assert DeviceId((cuda.cupy, 0)) != DeviceId((cuda.cupy, 1))
+        assert DeviceId((cuda.cupy, 0)) != DeviceId(cuda.cupy)
+
+    @attr.chainerx
+    def test_eq_chainerx(self):
+        DeviceId = backend.DeviceId
+        assert DeviceId(chainerx) == DeviceId(chainerx)
+        assert DeviceId(chainerx) != DeviceId(numpy)
+        assert DeviceId('native:0') == DeviceId('native:0')
+        assert DeviceId('native:0') != DeviceId('native:1')
+        assert DeviceId('native:0') != DeviceId(chainerx)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_eq_chainerx_cupy(self):
+        DeviceId = backend.DeviceId
+        assert DeviceId(chainerx) != DeviceId(cuda.cupy)
+        assert DeviceId('native:0') != DeviceId((cuda.cupy, 0))
+
 
 class TestToDevice(unittest.TestCase):
 
@@ -387,10 +415,6 @@ class TestToDevice(unittest.TestCase):
         orig = self.orig_numpy()
         converted = self.to_device_check_equal(orig, numpy)
         assert converted is orig
-
-        # memory must be shared
-        orig[:] *= 2
-        numpy.testing.assert_array_equal(orig, converted)
 
     @attr.gpu
     def test_numpy_to_cupy(self):

@@ -248,6 +248,9 @@ class DeviceId(object):
 
         raise ValueError('invalid device: {}'.format(device_spec))
 
+    def __eq__(self, other):
+        return self.xp == other.xp and self.device == other.device
+
     def __repr__(self):
         if self.xp is numpy:
             return 'DeviceId(numpy)'
@@ -295,8 +298,7 @@ def to_device(arrays, device):
     Args:
         arrays: Arrays of NumPy, CuPy, or ChainerX.
         device (object): Target device specifier. Acceptable values are
-            an instance of :class:`~chainer.backend.DeviceId` or
-            an argument which the DeviceId's constructor accepts.
+            described at :class:`~chainer.backend.DeviceId`.
 
     Returns:
         Transferred arrays.

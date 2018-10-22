@@ -17,21 +17,12 @@ import chainerx
 import chainerx.testing
 
 
-def make_array(start, shape, dtype):
+def make_array(start, shape, dtype, device):
     size = numpy.product(shape, dtype='i')
     a = numpy.arange(start, start + size)
     a = a.reshape(shape)
     a = a.astype(dtype, copy=False)
-    return a
-
-
-def arrays_to_chainerx(orig_xp, np_arrays):
-    assert all(isinstance(a, numpy.ndarray) for a in np_arrays)
-    if orig_xp is numpy:
-        orig_arrays = np_arrays
-    elif orig_xp is cuda.cupy:
-        orig_arrays = [cuda.to_gpu(a) for a in np_arrays]
-    return tuple([chainer.backend.to_chainerx(a) for a in orig_arrays])
+    return chainer.backend.to_device(a, device)
 
 
 @testing.parameterize(*testing.product({
@@ -44,16 +35,16 @@ class TestFunctionNode(unittest.TestCase):
         suffix = 'gpu' if gpu else 'cpu'
         return getattr(self.f, prefix + '_' + suffix)
 
-    def setUp(self):
+    def _setup(self, device):
         y_shape = self.y_shape
         x_shape = self.x_shape
-        y1 = make_array(1, y_shape, numpy.float32)
-        y2 = make_array(2, y_shape, numpy.float32)
+        y1 = make_array(1, y_shape, numpy.float32, device)
+        y2 = make_array(2, y_shape, numpy.float32, device)
         gx1 = chainer.Variable(
-            make_array(1, x_shape, numpy.float32))
+            make_array(1, x_shape, numpy.float32, device))
         gx2 = None
-        gy1 = make_array(1, y_shape, numpy.float32)
-        gy2 = make_array(1, y_shape, numpy.float32)
+        gy1 = make_array(1, y_shape, numpy.float32, device)
+        gy2 = make_array(1, y_shape, numpy.float32, device)
 
         f = chainer.FunctionNode()
         f.check_type_forward = mock.MagicMock()
@@ -62,16 +53,16 @@ class TestFunctionNode(unittest.TestCase):
         f.backward = mock.MagicMock(return_value=(gx1, gx2))
         self.f = f
 
-        self.x1 = make_array(0, x_shape, numpy.float32)
-        self.x2 = make_array(0, x_shape, numpy.int32)
+        self.x1 = make_array(0, x_shape, numpy.float32, device)
+        self.x2 = make_array(0, x_shape, numpy.int32, device)
         self.y1 = y1
         self.y2 = y2
         self.gx1 = gx1
         self.gx2 = gx2
         self.gx1_orig = chainer.Variable(
-            make_array(3, x_shape, numpy.float32))
+            make_array(3, x_shape, numpy.float32, device))
         self.gx2_orig = chainer.Variable(
-            make_array(2, x_shape, numpy.float32))
+            make_array(2, x_shape, numpy.float32, device))
         self.gx1_accum = gx1 + self.gx1_orig
         self.gy1 = gy1
         self.gy2 = gy2
@@ -83,42 +74,16 @@ class TestFunctionNode(unittest.TestCase):
         self.y2 = None
         self.gx1 = None
 
-    def _to_gpu(self):
-        self.x1 = cuda.to_gpu(self.x1)
-        self.x2 = cuda.to_gpu(self.x2)
-        self.y1 = cuda.to_gpu(self.y1)
-        self.y2 = cuda.to_gpu(self.y2)
-        self.gx1.to_gpu()
-        self.gx1_orig.to_gpu()
-        self.gx2_orig.to_gpu()
-        self.gx1_accum.to_gpu()
-        self.gy1 = cuda.to_gpu(self.gy1)
-        self.gy2 = cuda.to_gpu(self.gy2)
-
-    def _to_chainerx(self):
-        self.x1 = chainer.backend.to_chainerx(self.x1)
-        self.x2 = chainer.backend.to_chainerx(self.x2)
-        self.y1 = chainer.backend.to_chainerx(self.y1)
-        self.y2 = chainer.backend.to_chainerx(self.y2)
-        self.gx1.to_chainerx()
-        self.gx1_orig.to_chainerx()
-        self.gx2_orig.to_chainerx()
-        self.gx1_accum.to_chainerx()
-        self.gy1 = chainer.backend.to_chainerx(self.gy1)
-        self.gy2 = chainer.backend.to_chainerx(self.gy2)
+    def setup_cpu(self):
+        self._setup(numpy)
 
     def setup_gpu(self):
-        self._to_gpu()
+        self._setup(cuda.cupy)
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
         self.f.backward = mock.MagicMock(return_value=(self.gx1, self.gx2))
 
-    def setup_chainerx(self, orig_xp):
-        if orig_xp is cuda.cupy:
-            self._to_gpu()  # First convert to cupy and then chainerx
-        else:
-            assert orig_xp is numpy
-        self._to_chainerx()
-
+    def setup_chainerx(self, device='native:0'):
+        self._setup(device)
         self.f.forward = mock.MagicMock(return_value=(self.y1, self.y2))
         self.f.backward = mock.MagicMock(return_value=(self.gx1, self.gx2))
 
@@ -132,6 +97,7 @@ class TestFunctionNode(unittest.TestCase):
         self.assertTrue((cuda.to_cpu(y2) == cuda.to_cpu(self.y2)).all())
 
     def test_forward_cpu(self):
+        self.setup_cpu()
         self.check_forward(False)
 
     @attr.gpu
@@ -188,6 +154,7 @@ class TestFunctionNode(unittest.TestCase):
             self.assertTrue(y.requires_grad)
 
     def test_apply_cpu(self):
+        self.setup_cpu()
         self.check_apply()
 
     @attr.gpu
@@ -197,13 +164,13 @@ class TestFunctionNode(unittest.TestCase):
 
     @attr.chainerx
     def test_apply_chainerx_cpu(self):
-        self.setup_chainerx(numpy)
+        self.setup_chainerx()
         self.check_apply_chainerx()
 
     @attr.chainerx
     @attr.gpu
     def test_apply_chainerx_gpu(self):
-        self.setup_chainerx(cuda.cupy)
+        self.setup_chainerx('cuda:0')
         self.check_apply_chainerx()
 
     def check_apply_all_ndarray(self):
@@ -222,6 +189,7 @@ class TestFunctionNode(unittest.TestCase):
             self.assertFalse(y.requires_grad)
 
     def test_apply_all_ndarray_cpu(self):
+        self.setup_cpu()
         self.check_apply_all_ndarray()
 
     @attr.gpu
@@ -231,13 +199,13 @@ class TestFunctionNode(unittest.TestCase):
 
     @attr.chainerx
     def test_apply_all_ndarray_chainerx_cpu(self):
-        self.setup_chainerx(numpy)
+        self.setup_chainerx()
         self.check_apply_all_ndarray()
 
     @attr.chainerx
     @attr.gpu
     def test_apply_all_ndarray_chainerx_gpu(self):
-        self.setup_chainerx(cuda.cupy)
+        self.setup_chainerx('cuda:0')
         self.check_apply_all_ndarray()
 
     def check_apply_ndarray(self):
@@ -273,6 +241,7 @@ class TestFunctionNode(unittest.TestCase):
             self.assertTrue(y.requires_grad)
 
     def test_apply_ndarray_cpu(self):
+        self.setup_cpu()
         self.check_apply_ndarray()
 
     @attr.gpu
@@ -282,13 +251,13 @@ class TestFunctionNode(unittest.TestCase):
 
     @attr.chainerx
     def test_apply_ndarray_chainerx_cpu(self):
-        self.setup_chainerx(numpy)
+        self.setup_chainerx()
         self.check_apply_ndarray_chainerx()
 
     @attr.chainerx
     @attr.gpu
     def test_apply_ndarray_chainerx_gpu(self):
-        self.setup_chainerx(cuda.cupy)
+        self.setup_chainerx('cuda:0')
         self.check_apply_ndarray_chainerx()
 
     def check_apply_single_return_value(self):
@@ -307,6 +276,7 @@ class TestFunctionNode(unittest.TestCase):
         self.assertIs(ret.data.device, self.x1.device)
 
     def test_apply_single_return_value_cpu(self):
+        self.setup_cpu()
         self.f.forward_cpu.return_value = (self.y1,)
         self.check_apply_single_return_value()
 
@@ -318,14 +288,14 @@ class TestFunctionNode(unittest.TestCase):
 
     @attr.chainerx
     def test_apply_single_return_value_chainerx_cpu(self):
-        self.setup_chainerx(numpy)
+        self.setup_chainerx()
         self.f.forward.return_value = (self.y1,)
         self.check_apply_single_return_value_chainerx()
 
     @attr.chainerx
     @attr.gpu
     def test_apply_single_return_value_chainerx_gpu(self):
-        self.setup_chainerx(cuda.cupy)
+        self.setup_chainerx('cuda:0')
         self.f.forward.return_value = (self.y1,)
         self.check_apply_single_return_value_chainerx()
 
@@ -340,6 +310,7 @@ class TestFunctionNode(unittest.TestCase):
         return f, x1, y1
 
     def test_unchain(self):
+        self.setup_cpu()
         f, _x1, _y1 = self._get_f()
         y1, y2 = f.outputs
         f.unchain()
@@ -355,6 +326,7 @@ class TestFunctionNode(unittest.TestCase):
         self.assertIsNone(f.inputs)
 
     def test_label(self):
+        self.setup_cpu()
         self.assertEqual(self.f.label, 'FunctionNode')
 
 

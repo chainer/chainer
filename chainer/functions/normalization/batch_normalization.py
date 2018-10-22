@@ -90,10 +90,18 @@ class BatchNormalization(function_node.FunctionNode):
 
     def forward_chainerx(self, inputs):
         # TODO(niboshi): Support conditions implemented as fallback
+
+        # Running statistics are required.
         if self.running_mean is None or self.running_var is None:
             return chainer.Fallback
 
-        # TODO(niboshi): This path is not tested. Fix the test.
+        # Fall back if the running statistics are non-contiguous CUDA arrays
+        # since they are not supported by cuDNN.
+        # Assert that both running statistics belong to the same backend.
+        if self.running_mean.device.backend.name == 'cuda' and not (
+                self.running_mean.is_contiguous
+                and self.running_var.is_contiguous):
+            return chainer.Fallback
 
         x, gamma, beta = inputs
         axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)
@@ -284,10 +292,30 @@ class BatchNormalization(function_node.FunctionNode):
             # Update running statistics
             m = x.size // gamma.size
             adjust = m / max(m - 1., 1.)  # unbiased estimation
+
+            xp = backend.get_array_module(self.running_mean, self.running_var)
+            if xp is chainerx:
+                backend_name = self.running_mean.device.backend.name
+                if backend_name == 'native':
+                    to_module = backend.to_numpy
+                elif backend_name == 'cuda':
+                    to_module = cuda.to_gpu
+                else:
+                    raise RuntimeError(
+                        'Only native and cuda backends are supported for '
+                        'ChainerX arrays')
+
+                self.running_mean, self.running_var = to_module(
+                    (self.running_mean, self.running_var))
+
             self.running_mean *= self.decay
             self.running_mean += (1 - self.decay) * self.mean
             self.running_var *= self.decay
             self.running_var += (1 - self.decay) * adjust * var
+
+            if xp is chainerx:
+                self.running_mean = backend.to_chainerx(self.running_mean)
+                self.running_var = backend.to_chainerx(self.running_var)
 
         return y,
 

@@ -2,39 +2,6 @@
 
 ## Installation
 
-`chainerx` Python package is installed along with `chainer`, if the `CHAINER_BUILD_CHAINERX` environment variable is set to non-zero.
-
-```shell-session
-$ export CHAINER_BUILD_CHAINERX=1
-$ pip install chainer
-```
-
-Note that CUDA support is enabled by default and you need to specify cuDNN path to build with CUDA support.
-Refer to [CUDA support](#cuda-support) for more detail.
-
-You could also set `MAKEFLAGS=-j8` environment variable (with a number to fit in your environment) to speed up the installation.
-
-## CUDA support
-
-ChainerX currently requires cuDNN and you need to specify its path.
-For example, if you use [cudnnenv](https://github.com/unnonouno/cudnnenv), run `pip` like this:
-
-```shell-session
-$ export CHAINER_BUILD_CHAINERX=1
-$ export CUDNN_ROOT_DIR=$HOME/.cudnn/active
-$ pip install chainer
-```
-
-For building C++ shared library, run `cmake` with `-DCUDNN_ROOT_DIR`:
-
-```shell-session
-$ cmake -DCUDNN_ROOT_DIR=$HOME/.cudnn/active ..
-```
-
-To disable CUDA support, either set `CHAINERX_BUILD_CUDA=0` as environment variable or specify `-DCHAINERX_BUILD_CUDA=0` in `cmake`.
-
-## Development
-
 ### How to build the C++ shared library
 
 Build `build/chainerx/libchainerx.so` with the following commands.
@@ -42,11 +9,13 @@ Build `build/chainerx/libchainerx.so` with the following commands.
 ```shell-session
 $ mkdir -p build
 $ cd build
-$ cmake ..
+$ cmake -DCUDNN_ROOT_DIR=$HOME/.cudnn/active ..
 $ make
 ```
 
-Like Python binding, CUDA support is enabled by default.
+As shown above, the CUDA support is enabled by default and you might have to specify the path to cuDNN.
+The example path is based on using [cudnnenv](https://github.com/unnonouno/cudnnenv).
+To disable the CUDA support, either set the `CHAINERX_BUILD_CUDA=0` environment variable or specify `-DCHAINERX_BUILD_CUDA=0` in `cmake`.
 
 To install headers and the library, run:
 

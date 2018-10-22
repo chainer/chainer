@@ -12,14 +12,31 @@ namespace cuda {
 
 constexpr size_t kAllocationUnitSize = 512;
 
-using Allocator = void (*)(void**, size_t);
+using AllocFunc = void (*)(void**, size_t);
+using FreeFunc = void (*)(void*);
 
 // Memory pool base.
 // This class is thread safe.
-template <Allocator Alloc>
+template <AllocFunc Allocate, FreeFunc FreeMemory>
 class MemoryPoolBase {
 public:
     explicit MemoryPoolBase(int device_index) : device_index_{device_index} {}
+
+    ~MemoryPoolBase() {
+        for (const std::vector<void*>& free_list : free_bins_) {
+            for (void* ptr : free_list) {
+                FreeMemory(ptr);
+            }
+        }
+        // Ideally, in_use_ should be empty, but it could happen that shared ptrs to memories allocated
+        // by this memory pool are released after this memory pool is destructed.
+        // Our approach is that we anyway free CUDA memories held by this memory pool here in such case.
+        // Operators of arrays holding such memories will be broken, but are not supported.
+        for (const auto& item : in_use_) {
+            void* ptr = item.first;
+            FreeMemory(ptr);
+        }
+    }
 
     void* Malloc(size_t bytesize) {
         if (bytesize == 0) {
@@ -50,7 +67,7 @@ public:
             CheckCudaError(cudaGetDevice(&old_device));
             CheckCudaError(cudaSetDevice(device_index_));
 
-            Alloc(&ptr, allocation_size);
+            Allocate(&ptr, allocation_size);
 
             CheckCudaError(cudaSetDevice(old_device));
         }
@@ -96,8 +113,11 @@ private:
 inline void MallocManaged(void** ptr, size_t bytesize) { CheckCudaError(cudaMallocManaged(ptr, bytesize, cudaMemAttachGlobal)); }
 inline void HostAlloc(void** ptr, size_t bytesize) { CheckCudaError(cudaHostAlloc(ptr, bytesize, cudaHostAllocWriteCombined)); }
 
-using MemoryPool = MemoryPoolBase<MallocManaged>;
-using PinnedMemoryPool = MemoryPoolBase<HostAlloc>;
+inline void Free(void* ptr) { CheckCudaError(cudaFree(ptr)); }
+inline void FreeHost(void* ptr) { CheckCudaError(cudaFreeHost(ptr)); }
+
+using MemoryPool = MemoryPoolBase<MallocManaged, Free>;
+using PinnedMemoryPool = MemoryPoolBase<HostAlloc, FreeHost>;
 
 }  // namespace cuda
 }  // namespace chainerx

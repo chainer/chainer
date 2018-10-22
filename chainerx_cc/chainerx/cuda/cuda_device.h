@@ -186,7 +186,10 @@ public:
 
 protected:
     CudaDevice(CudaBackend& backend, int index)
-        : Device{backend, index}, memory_pool_{index}, pinned_memory_pool_{index}, cudnn_handle_{index} {}
+        : Device{backend, index},
+          memory_pool_{std::make_shared<MemoryPool>(index)},
+          pinned_memory_pool_{std::make_shared<PinnedMemoryPool>(index)},
+          cudnn_handle_{index} {}
 
 private:
     friend CudaDevice* cuda_internal::CreateDevice(CudaBackend&, int);
@@ -203,10 +206,10 @@ private:
     // The current device must be set to this device, prior to calling this function.
     void MemoryCopyFromHostAsync(void* dst, const void* src, size_t bytesize);
 
-    MemoryPool memory_pool_;
+    std::shared_ptr<MemoryPool> memory_pool_;
 
     // TODO(hvy): Consider checking if pinned memory is available by querying canMapHostMemory.
-    PinnedMemoryPool pinned_memory_pool_;
+    std::shared_ptr<PinnedMemoryPool> pinned_memory_pool_;
 
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};
