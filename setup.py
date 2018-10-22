@@ -51,7 +51,7 @@ requirements = {
     'docs': [
         'sphinx==1.7.9',
         'sphinx_rtd_theme',
-        'chainercv==0.10.0'
+        'chainercv==0.10.0',  # see chainer/5434
     ],
     'travis': [
         '-r stylecheck',

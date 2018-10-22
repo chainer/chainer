@@ -368,7 +368,8 @@ def setup(app):
     app.connect('autodoc-process-docstring', _autodoc_process_docstring)
     app.connect('build-finished', _build_finished)
 
-    chainercv_version = '0.10.0'
+    import chainercv
+    chainercv_version = chainercv.__version__
     chainercv_dir = 'chainercv-{}'.format(chainercv_version)
     if not os.path.exists(chainercv_dir):
         zip_file_name = 'v{}.zip'.format(chainercv_version)
