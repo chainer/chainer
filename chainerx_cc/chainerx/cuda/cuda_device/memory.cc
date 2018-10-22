@@ -26,8 +26,8 @@ std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
 
 std::shared_ptr<void> CudaDevice::AllocatePinnedMemory(size_t bytesize) {
     void* ptr = pinned_memory_pool_->Malloc(bytesize);
-    return std::shared_ptr<void>{ptr, [weak_pool = std::weak_ptr<PinnedMemoryPool>{pinned_memory_pool_}](void* ptr) {
-                                     if (std::shared_ptr<PinnedMemoryPool> pool = weak_pool.lock()) {
+    return std::shared_ptr<void>{ptr, [weak_pool = std::weak_ptr<MemoryPool>{pinned_memory_pool_}](void* ptr) {
+                                     if (std::shared_ptr<MemoryPool> pool = weak_pool.lock()) {
                                          pool->Free(ptr);
                                      }
                                  }};

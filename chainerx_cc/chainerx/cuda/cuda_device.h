@@ -187,8 +187,8 @@ public:
 protected:
     CudaDevice(CudaBackend& backend, int index)
         : Device{backend, index},
-          memory_pool_{std::make_shared<MemoryPool>(index)},
-          pinned_memory_pool_{std::make_shared<PinnedMemoryPool>(index)},
+          memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<DeviceMemoryAllocator>())},
+          pinned_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<PinnedMemoryAllocator>())},
           cudnn_handle_{index} {}
 
 private:
@@ -209,7 +209,7 @@ private:
     std::shared_ptr<MemoryPool> memory_pool_;
 
     // TODO(hvy): Consider checking if pinned memory is available by querying canMapHostMemory.
-    std::shared_ptr<PinnedMemoryPool> pinned_memory_pool_;
+    std::shared_ptr<MemoryPool> pinned_memory_pool_;
 
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};
