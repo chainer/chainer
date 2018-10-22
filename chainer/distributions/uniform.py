@@ -98,7 +98,7 @@ class Uniform(distribution.Distribution):
             -exponential.log(self.scale), x.shape)
         return where.where(
             utils.force_array(
-                (x.data >= self.low.data) & (x.data < self.high.data)),
+                (x.data >= self.low.data) & (x.data <= self.high.data)),
             logp, xp.array(-xp.inf, logp.dtype))
 
     @property
