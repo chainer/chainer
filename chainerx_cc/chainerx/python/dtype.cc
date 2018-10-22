@@ -138,7 +138,7 @@ Dtype GetDtype(py::handle handle) {
     throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
 }
 
-py::dtype GetNumPyDtype(Dtype dtype) {
+py::dtype GetNumpyDtype(Dtype dtype) {
     static py::dtype np_bool{"bool"};
     static py::dtype np_int8{"int8"};
     static py::dtype np_int16{"int16"};

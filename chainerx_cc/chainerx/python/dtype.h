@@ -19,7 +19,7 @@ Dtype GetDtypeFromNumpyDtype(const py::dtype& npdtype);
 
 Dtype GetDtype(pybind11::handle handle);
 
-py::dtype GetNumPyDtype(Dtype dtype);
+py::dtype GetNumpyDtype(Dtype dtype);
 
 }  // namespace python_internal
 }  // namespace python
