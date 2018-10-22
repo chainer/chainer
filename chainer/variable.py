@@ -864,11 +864,7 @@ class Variable(object):
             return self._grad_var.array
         return self._grad
 
-    @grad.setter
-    def grad(self, g):
-        if g is not None:
-            _check_grad_type(None, self, g)
-
+    def _set_grad_without_check(self, g):
         if self._is_chainerx:
             self._set_chainerx_grad(g)
             self._grad_var = None
@@ -876,6 +872,13 @@ class Variable(object):
 
         self._grad = g
         self._grad_var = None
+
+    @grad.setter
+    def grad(self, g):
+        if g is not None:
+            _check_grad_type(None, self, g)
+
+        self._set_grad_without_check(g)
 
     def _set_grad_var_without_check(self, gv):
         if self._is_chainerx:
