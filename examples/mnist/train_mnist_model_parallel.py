@@ -57,12 +57,10 @@ class ParallelMLP(chainer.Chain):
         else:
             z0 = self.first0(x)
             z1 = self.first1(x)
-
             h = z0 + z1
 
             y0 = self.second0(F.relu(h))
             y1 = self.second1(F.relu(h))
-
             y = y0 + y1
 
             return y
