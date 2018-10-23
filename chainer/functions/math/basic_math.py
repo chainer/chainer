@@ -61,7 +61,7 @@ def _preprocess_rhs(x, value):
         return value
 
     if not (numpy.isscalar(value)
-            or isinstance(value, (numpy.ndarray, cuda.ndarray))):
+            or isinstance(value, chainer.get_array_types())):
         raise TypeError(
             'Value must be a scalar, `numpy.ndarray`, `cupy.ndarray` '
             'or a `Variable`.\nActual: {}'.format(type(value)))
