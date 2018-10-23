@@ -97,26 +97,27 @@ bool BackwardContext::is_input_grad_required(size_t input_index) const {
     return op_node_->HasInputArrayNode(input_index);
 }
 
-Array* BackwardContext::output_grad(size_t output_index) const {
+const nonstd::optional<Array>& BackwardContext::output_grad(size_t output_index) const {
     // If the output gradient has a propagated value, return it.
     if (HasOutputGrad(output_index)) {
-        return &(*output_grads_[output_index]->get());
+        return output_grads_[output_index]->get();
     }
 
     // If there already is a zero-filled gradient allocated, return it.
     CHAINERX_ASSERT(output_index < output_count());
     nonstd::optional<Array>& zero_grad = zero_output_grads_[output_index];
     if (zero_grad.has_value()) {
-        return &(*zero_grad);
+        return zero_grad;
     }
 
     // Allocate new zero-filled gradient and return it.
     const nonstd::optional<internal::ArrayProps>& props = op_node_->GetOutputArrayProps(output_index);
     if (!props.has_value()) {
-        return nullptr;
+        zero_grad = nonstd::nullopt;
+        return zero_grad;
     }
     zero_grad = Zeros(props->shape, props->dtype, props->device);
-    return &(*zero_grad);
+    return zero_grad;
 }
 
 Array& BackwardContext::input_grad() {
