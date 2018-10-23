@@ -31,7 +31,7 @@ template <typename T> __device__ T sigmoid(T x) {
 class Swish(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 'beta'))
+        type_check._argname(in_types, ('x', 'beta'))
         x_type, beta_type = in_types
         type_check.expect(
             x_type.dtype.kind == 'f',

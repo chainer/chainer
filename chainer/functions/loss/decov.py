@@ -18,7 +18,7 @@ class DeCov(function.Function):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('h',))
+        type_check._argname(in_types, ('h',))
         h_type, = in_types
 
         type_check.expect(

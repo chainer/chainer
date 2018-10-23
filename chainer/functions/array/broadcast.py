@@ -68,7 +68,7 @@ class BroadcastTo(function_node.FunctionNode):
         self._shape = tuple(shape)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
 
         ndim = type_check.make_variable(len(self._shape), 'len(shape)')
         type_check.expect(in_types[0].ndim <= ndim)

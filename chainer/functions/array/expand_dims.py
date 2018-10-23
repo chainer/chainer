@@ -12,7 +12,7 @@ class ExpandDims(function_node.FunctionNode):
         self.axis = int(axis)
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
         if self.axis >= 0:
             type_check.expect(x_type.ndim >= self.axis)
