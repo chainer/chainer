@@ -20,7 +20,7 @@ class PadSequence(function_node.FunctionNode):
         type_check.expect(in_types.size() > 0)
 
         for i, in_type in enumerate(in_types):
-            type_check.argname((in_type,), ('x{}'.format(i),))
+            type_check._argname((in_type,), ('x{}'.format(i),))
             type_check.expect(
                 in_type.ndim > 0,
                 in_type.shape[1:] == in_types[0].shape[1:],

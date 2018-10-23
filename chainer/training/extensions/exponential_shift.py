@@ -73,7 +73,7 @@ class ExponentialShift(extension.Extension):
         self._t = serializer('_t', self._t)
         self._last_value = serializer('_last_value', self._last_value)
         if isinstance(self._last_value, numpy.ndarray):
-            self._last_value = numpy.asscalar(self._last_value)
+            self._last_value = self._last_value.item()
 
     def _get_optimizer(self, trainer):
         return self._optimizer or trainer.updater.get_optimizer('main')

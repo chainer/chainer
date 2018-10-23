@@ -18,7 +18,7 @@ class LinearFunction(function_node.FunctionNode):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
         x_type, w_type = in_types[:2]
-        type_check.argname((x_type, w_type), ('x', 'W'))
+        type_check._argname((x_type, w_type), ('x', 'W'))
 
         type_check.expect(
             x_type.dtype.kind == 'f',
@@ -29,7 +29,7 @@ class LinearFunction(function_node.FunctionNode):
         )
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
-            type_check.argname((b_type,), ('b',))
+            type_check._argname((b_type,), ('b',))
             type_check.expect(
                 b_type.dtype == x_type.dtype,
                 b_type.ndim == 1,

@@ -20,7 +20,7 @@ class Triplet(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('anchor', 'positive', 'negative'))
+        type_check._argname(in_types, ('anchor', 'positive', 'negative'))
 
         type_check.expect(
             in_types[0].dtype.kind == 'f',

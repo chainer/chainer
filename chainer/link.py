@@ -370,7 +370,7 @@ Assign a Parameter object directly to an attribute within a \
         """Copies the link hierarchy to new one.
 
         The whole hierarchy rooted by this link is copied. There are three
-        modes to perform copy. Please see the document for the argument
+        modes to perform copy. Please see the documentation for the argument
         ``mode`` below.
 
         The name of the link is reset on the copy, since the copied instance

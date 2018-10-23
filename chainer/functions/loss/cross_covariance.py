@@ -21,7 +21,7 @@ class CrossCovariance(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('y', 'z'))
+        type_check._argname(in_types, ('y', 'z'))
         y_type, z_type = in_types
 
         type_check.expect(
