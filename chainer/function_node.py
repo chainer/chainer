@@ -259,8 +259,8 @@ Use apply() method instead.\
                 # Use the cached fallback arrays as inputs if they exist.
                 x = inputs[i]
                 x_is_variable = isinstance(x, variable.Variable)
-                if x_is_variable and x._fallback_array is not None:
-                    x_data = x._fallback_array
+                if x_is_variable and x._chainerx_fallback_array is not None:
+                    x_data = x._chainerx_fallback_array
                 else:
                     arr = chainerx_in_data[i]
                     # TODO(hvy): DRY the following code with optimizer.py.
@@ -277,7 +277,7 @@ Use apply() method instead.\
 
                     # Update the fallback cache if possible.
                     if x_is_variable:
-                        x._fallback_array = x_data
+                        x._chainerx_fallback_array = x_data
 
                 in_data.append(x_data)
 
@@ -354,15 +354,17 @@ Use apply() method instead.\
                 [variable._ChainerxVariableNodeProps(x) for x in inputs])
 
             # Store fallback arrays before converting.
-            def to_variable_with_fallback_array(chainerx_array, array):
+            def to_variable_with_chainerx_fallback_array(
+                    chainerx_array, array):
                 var = variable.Variable(
                     chainerx_array,
                     requires_grad=chainerx_array.is_backprop_required())
-                var._fallback_array = array
+                var._chainerx_fallback_array = array
                 return var
 
             ret = tuple([
-                to_variable_with_fallback_array(chainerx_out_array, out_array)
+                to_variable_with_chainerx_fallback_array(
+                    chainerx_out_array, out_array)
                 for chainerx_out_array, out_array
                 in zip(chainerx_out_data, outputs)])
 

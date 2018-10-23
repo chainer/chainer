@@ -304,10 +304,10 @@ class UpdateRule(object):
         # If the ChainerX parameter has a cached NumPy/CuPy copy, use the
         # cache and avoid redundant conversion. Else, create the cache here
         # and use it.
-        if param._fallback_array is None:
-            param._fallback_array = to_backend(param.array)
+        if param._chainerx_fallback_array is None:
+            param._chainerx_fallback_array = to_backend(param.array)
 
-        temp_param = variable.Variable(param._fallback_array)
+        temp_param = variable.Variable(param._chainerx_fallback_array)
 
         if grad_array is not None:
             temp_param.grad = to_backend(param.grad)

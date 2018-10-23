@@ -470,7 +470,7 @@ class Variable(object):
     # A NumPy, CuPy array cache to avoid redundant conversions between
     # NumPy/CuPy and ChainerX.
     # TODO(hvy): Avoid modifying this variable from outside this class.
-    _fallback_array = None
+    _chainerx_fallback_array = None
 
     def __init__(self, data=None, **kwargs):
         name, grad, requires_grad = argument.parse_kwargs(
@@ -739,7 +739,7 @@ class Variable(object):
             if self._requires_grad:
                 self._data_chainerx[0].require_grad()
 
-            self._fallback_array = None
+            self._chainerx_fallback_array = None
         else:
             self._node._update_data_info(d)
         self._data[0] = d
