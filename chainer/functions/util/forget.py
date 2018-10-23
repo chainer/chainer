@@ -51,7 +51,7 @@ class Forget(function_node.FunctionNode):
         # Create new variables that have no creators
         dummy_inputs = tuple([variable.Variable(inp.array) for inp in inputs])
 
-        with function.force_backprop_mode() and\
+        with function.force_backprop_mode(),\
                 chainer.using_config('recompute', True):
             outs = _call_func(self.func, dummy_inputs)
             assert len(outs) == len(grad_outputs)
