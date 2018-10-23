@@ -120,11 +120,12 @@ class Link(object):
        forward propagation.
 
     Args:
-        params: *(deprecated since v2.0.0)* Names, shapes, and optional dtypes
-            of initial parameters. The keywords are used as the parameter
-            names and the corresponding values consist either of the shape or
-            a tuple of shape and a dtype ``(shape, dtype)``. If only the shape
-            is supplied, the default dtype will be used.
+        params:
+            Names, shapes, and optional dtypes of initial parameters.
+            The keywords are used as the parameter names and the corresponding
+            values consist either of the shape or a tuple of shape and a dtype
+            ``(shape, dtype)``.
+            If only the shape is supplied, the default dtype will be used.
 
     Attributes:
         name (str): Name of this link, given by the parent chain (if exists).
@@ -142,7 +143,6 @@ class Link(object):
         self.name = None
 
         for name, value in six.iteritems(params):
-            # Note: deprecation warning will be raised in add_param
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
@@ -858,10 +858,6 @@ class Chain(Link):
     Args:
         links: Child links. The keywords are used as their names. The names are
             also set to the links.
-
-            .. deprecated:: v2.0.0
-
-               Assign child links directly to attributes instead.
 
     """
 
