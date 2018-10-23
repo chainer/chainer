@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+import chainer
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import reshape
@@ -63,20 +63,13 @@ class StatefulPeepholeLSTM(link.Chain):
             self.peep_f = linear.Linear(out_size, out_size, nobias=True)
             self.peep_o = linear.Linear(out_size, out_size, nobias=True)
 
-    def to_cpu(self):
-        super(StatefulPeepholeLSTM, self).to_cpu()
+    def to_device(self, device):
+        device = chainer.get_device(device)
+        super(StatefulPeepholeLSTM, self).to_device(device)
         if self.c is not None:
-            self.c.to_cpu()
+            self.c.to_device(device)
         if self.h is not None:
-            self.h.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        super(StatefulPeepholeLSTM, self).to_gpu(device)
-        if self.c is not None:
-            self.c.to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
+            self.h.to_device(device)
         return self
 
     def reset_state(self):
@@ -102,7 +95,7 @@ class StatefulPeepholeLSTM(link.Chain):
             lstm_in += self.lateral(self.h)
         if self.c is None:
             xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.c = variable.Variable(
                     xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),

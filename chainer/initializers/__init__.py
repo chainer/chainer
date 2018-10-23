@@ -1,5 +1,4 @@
 import numpy
-import six
 
 import chainer
 from chainer import backend
@@ -54,38 +53,39 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         dtype = dtype_attr
     dtype = chainer.get_dtype(dtype)
 
-    # TODO(sonots): Check consistency between xp and device.
     if device is None:
         if xp is cuda.cupy:
-            device = cuda.Device()
+            device = chainer.get_device(cuda.Device())
         elif xp is chainerx:
-            device = chainerx.get_default_device()
+            device = chainer.get_device(chainerx.get_default_device())
         else:
-            device = cuda.DummyDevice
-    elif isinstance(device, six.integer_types):
-        device = cuda.get_device_from_id(device)
+            device = chainer.get_device(numpy)
+    else:
+        device = chainer.get_device(device)
+        if xp != device.xp:
+            raise ValueError('xp and device arguments are inconsistent.')
 
     if xp is chainerx:
         # Initialize with NumPy/CuPy array that shares memory with the
         # ChainerX array.
         # TODO(sonots): Directly use initializer after ChainerX
         # supports random.
-        device = chainerx.get_device(device)
-        array = chainerx.empty(shape, dtype=dtype, device=device)
-        if device.backend.name == 'native':
+        chx_device = device.device
+        array = chainerx.empty(shape, dtype=dtype, device=chx_device)
+        if chx_device.backend.name == 'native':
             temp_array = backend.to_numpy(array)
             temp_device = cuda.DummyDevice
-        elif device.backend.name == 'cuda':
-            temp_array = cuda.to_gpu(array, device.index)
-            temp_device = cuda.Device(device.index)
+        elif chx_device.backend.name == 'cuda':
+            temp_array = cuda.to_gpu(array, chx_device.index)
+            temp_device = cuda.Device(chx_device.index)
         else:
             raise RuntimeError('ChainerX backend: {} is not supported.'.format(
-                device.backend.name))
+                chx_device.backend.name))
         with temp_device:
             initializer(temp_array)
         return array
 
-    with device:
+    with chainer.using_device(device):
         array = xp.empty(shape, dtype=dtype)
         initializer(array)
     return array

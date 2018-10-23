@@ -3,7 +3,6 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import dataset
 from chainer import iterators
 from chainer import testing
@@ -150,7 +149,8 @@ class TestEvaluatorTupleData(unittest.TestCase):
             numpy.testing.assert_array_equal(
                 self.converter.args[i]['batch'], self.data[i])
             self.assertEqual(
-                self.converter.args[i]['device'], cuda.DummyDevice)
+                self.converter.args[i]['device'],
+                chainer.backend.get_device(numpy))
 
         # The model gets results of converter.
         self.assertEqual(len(self.target.args), len(self.batches))

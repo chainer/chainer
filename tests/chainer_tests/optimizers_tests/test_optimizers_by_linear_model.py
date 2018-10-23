@@ -14,7 +14,6 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
 from chainer.testing import condition
-import chainerx
 
 
 # TODO(niboshi): This is temporary workaround for skipping test not working
@@ -83,27 +82,17 @@ class LinearModel(object):
         optimizer = self.optimizer
         optimizer.setup(model)
 
-        if backend_config.use_chainerx:
-            model.to_chainerx(
-                device=chainerx.get_device(backend_config.chainerx_device))
-        elif backend_config.use_cuda:
-            model.to_gpu(device=backend_config.cuda_device)
-        elif backend_config.use_ideep == 'always':
+        if backend_config.use_ideep == 'always':
             if not intel64.is_ideep_available():
                 # TODO(niboshi): This is temporary workaround.
                 # See the comment on Skipped.
                 raise Skipped('ideep is required to run this test.')
-            model.to_intel64()
 
-        with backend_config:
+        model.to_device(backend_config.device)
+
+        with chainer.using_device(backend_config.device):
             return self._train_linear_classifier(
                 model, optimizer, backend_config)
-
-    def accuracy_gpu(self, device):
-        with cuda.get_device_from_id(device):
-            return self.accuracy(
-                backend.BackendConfig(
-                    {'use_cuda': True, 'cuda_device': device}))
 
 
 @backend.inject_backend_tests(
@@ -142,9 +131,11 @@ class OptimizerTestBase(object):
     @attr.multi_gpu(2)
     @condition.retry(10)
     def test_linear_model_multi_gpu(self):
+        backend_config = backend.BackendConfig(
+            {'use_cuda': True, 'cuda_device': 1})
         with cuda.Device(0):
-            self.assertGreater(
-                cuda.to_cpu(self.model.accuracy_gpu(1).data), 0.9)
+            accuracy = self.model.accuracy(backend_config)
+        self.assertGreater(cuda.to_cpu(accuracy.data), 0.9)
 
     @attr.multi_gpu(2)
     def test_model_setup_multi_gpu(self):

@@ -138,8 +138,7 @@ class Link(object):
     def __init__(self, **params):
         self._params = set()
         self._persistent = set()
-        self._device_id = None  # CuPy device ID
-        self._xp = None  # None means numpy
+        self._device = chainer.get_device(numpy)
         self._within_init_scope = False
         self.name = None
 
@@ -149,8 +148,16 @@ class Link(object):
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        state['_xp'] = None
+        state['_device'] = None
         return state
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        other = cls.__new__(cls)
+        for k, v in self.__dict__.items():
+            setattr(other, k, copy.deepcopy(v, memo))
+        memo[id(self)] = other
+        return other
 
     @property
     def local_link_hooks(self):
@@ -171,6 +178,20 @@ class Link(object):
                 else len(self._local_link_hooks))
 
     @property
+    def device(self):
+        return self._device
+
+    @property
+    def _device_id(self):
+        warnings.warn(
+            'Link._device_id is left only for backward compatibility and '
+            'likely to be removed. Use Link.device instead.',
+            DeprecationWarning)
+        if self._device.xp is cuda.cupy:
+            return self._device.device.id
+        return None
+
+    @property
     def xp(self):
         """Array module for this link.
 
@@ -178,9 +199,7 @@ class Link(object):
         :mod:`numpy` or :mod:`cupy`.
 
         """
-        if self._xp is None:
-            return numpy
-        return self._xp
+        return self._device.xp
 
     @property
     def within_init_scope(self):
@@ -261,10 +280,7 @@ class Link(object):
     def __setattr__(self, name, value):
         if self.within_init_scope and isinstance(value, variable.Parameter):
             value.name = name
-            if self._xp is cuda.cupy:
-                value.to_gpu(self._device_id)
-            elif self._xp is chainerx:
-                value.to_chainerx()
+            value.to_device(self._device)
             self._params.add(name)
             self._persistent.discard(name)
         super(Link, self).__setattr__(name, value)
@@ -398,27 +414,19 @@ class Link(object):
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to CPU, the link implementation must
-        override this method to do so.
+        override :meth:`Link.to_device` to do so.
 
         Returns: self
 
         """
-        d = self.__dict__
-        for name in self._params:
-            d[name].to_cpu()
-        for name in self._persistent:
-            if not numpy.isscalar(d[name]):
-                d[name] = backend.to_numpy(d[name])
-        self._xp = None
-        self._device_id = None
-        return self
+        return self.to_device(numpy)
 
     def to_gpu(self, device=None):
         """Copies parameter variables and persistent values to GPU.
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to GPU, the link implementation must
-        override this method to do so.
+        override :meth:`Link.to_device` to do so.
 
         Args:
             device: Target device specifier. If omitted, the current device is
@@ -428,87 +436,72 @@ class Link(object):
 
         """
         cuda.check_cuda_available()
-        # TODO(sonots): Fix to transfer if given device is different.
-        if self._xp is cuda.cupy:
-            return self
-        d = self.__dict__
-        with cuda._get_device(device):
-            for name in self._params:
-                d[name].to_gpu()
-            for name in self._persistent:
-                if not numpy.isscalar(d[name]):
-                    d[name] = cuda.to_gpu(d[name])
-            self._device_id = cuda.cupy.cuda.get_device_id()
-        self._xp = cuda.cupy
-        return self
+        return self.to_device(
+            cuda._get_device_or_current(device))
 
     def to_intel64(self):
         """Copies parameter variables and persistent values to CPU."""
         intel64.check_ideep_available()
-        d = self.__dict__
-        for name in self._params:
-            d[name].to_intel64()
-        for name in self._persistent:
-            value = d[name]
-            if isinstance(value, intel64.ideep.mdarray):
-                pass
-            elif not isinstance(value, numpy.ndarray):
-                value = backend.to_numpy(value)  # to numpy.ndarray
+        return self.to_device(intel64)
 
-            if (isinstance(value, numpy.ndarray) and value.ndim in (1, 2, 4)):
-                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
-                # Currently iDeep only supports (1, 2, 4)-dim arrays.
-                # Note that array returned from `ideep.array` may not be an
-                # iDeep mdarray, e.g., when the dtype is not float32.
-                value = intel64.ideep.array(
-                    value, itype=intel64.ideep.wgt_array)
-            d[name] = value
-        self._xp = None
-        self._device_id = None
-        return self
+    def to_chainerx(self):
+        """Copies parameter variables and persistent values to ChainerX devices.
 
-    def to_chainerx(self, device=None):
+        This method does not handle non-registered attributes. If some of such
+        attributes must be copied to ChainerX, the link implementation must
+        override this method to do so.
+
+        Returns: self
+        """  # NOQA
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
-        # TODO(sonots): Fix to transfer if given device is different.
-        # Note that a link object must be deep copyable, but backend.DeviceId
-        # or chainerx.Device is not deep copyable. Hang in there.
-        if self._xp is chainerx:
+
+        xp = self._device.xp
+        if xp is chainerx:
             return self
+
         d = self.__dict__
         for name in self._params:
-            d[name].to_chainerx(device)
+            d[name].to_chainerx()
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
-                d[name] = backend.to_chainerx(d[name], device)
-        self._xp = chainerx
-        self._device_id = None
+                d[name] = backend.to_chainerx(d[name])
+
+        # TODO(niboshi): Fix this logic for updating self._device
+        if xp is numpy:
+            self._device = chainer.get_device('native:0')
+        elif xp is cuda.cupy:
+            self._device = chainer.get_device(
+                'cuda:{}'.format(self._device.device.id))
+        else:
+            assert False
+
         return self
 
     def to_device(self, device):
-        device_id = backend.DeviceId(device)
+        """Copies parameter variables and persistent values to the specified device.
 
-        a = None
+        This method does not handle non-registered attributes. If some of such
+        attributes must be copied to the device, the link implementation must
+        override this method to do so.
+
+        Args:
+            device: Target device specifier. See
+                :func:`~chainer.get_device` for available values.
+
+        Returns: self
+
+        """  # NOQA
+        device = chainer.get_device(device)
+
         d = self.__dict__
         for name in self._params:
-            d[name].to_device(device_id)
-            a = d[name]
+            d[name].to_device(device)
         for name in self._persistent:
             if not numpy.isscalar(d[name]):
-                d[name] = backend.to_device(d[name], device_id)
-                a = d[name]
+                d[name] = device.send(d[name])
 
-        if device_id.xp is numpy:
-            self._xp = None
-        else:
-            self._xp = device_id.xp
-
-        if device_id.xp is cuda.cupy and a is not None:
-            a = variable.as_array(a)
-            self._device_id = cuda.get_device_from_array(a).id
-        else:
-            self._device_id = None
-
+        self._device = device
         return self
 
     def params(self, include_uninit=True):
@@ -965,36 +958,15 @@ class Chain(Link):
             d[name] = copied
         return ret
 
-    def to_cpu(self):
-        super(Chain, self).to_cpu()
+    def to_chainerx(self):
+        super(Chain, self).to_chainerx()
         d = self.__dict__
         for name in self._children:
-            d[name].to_cpu()
+            d[name].to_chainerx()
         return self
 
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            super(Chain, self).to_gpu()
-            d = self.__dict__
-            for name in self._children:
-                d[name].to_gpu()
-        return self
-
-    def to_intel64(self):
-        super(Chain, self).to_intel64()
-        d = self.__dict__
-        for name in self._children:
-            d[name].to_intel64()
-        return self
-
-    def to_chainerx(self, device=None):
-        super(Chain, self).to_chainerx(device)
-        d = self.__dict__
-        for name in self._children:
-            d[name].to_chainerx(device)
-        return self
-
-    def to_device(self, device=None):
+    def to_device(self, device):
+        device = chainer.get_device(device)
         super(Chain, self).to_device(device)
         d = self.__dict__
         for name in self._children:
@@ -1171,32 +1143,14 @@ class ChainList(Link, collections_abc.MutableSequence):
             children[i] = child
         return ret
 
-    def to_cpu(self):
-        super(ChainList, self).to_cpu()
+    def to_chainerx(self):
+        super(ChainList, self).to_chainerx()
         for link in self._children:
-            link.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            super(ChainList, self).to_gpu()
-            for link in self._children:
-                link.to_gpu()
-        return self
-
-    def to_intel64(self):
-        super(ChainList, self).to_intel64()
-        for link in self._children:
-            link.to_intel64()
-        return self
-
-    def to_chainerx(self, device=None):
-        super(ChainList, self).to_chainerx(device)
-        for link in self._children:
-            link.to_chainerx(device)
+            link.to_chainerx()
         return self
 
     def to_device(self, device=None):
+        device = chainer.get_device(device)
         super(ChainList, self).to_device(device)
         for link in self._children:
             link.to_device(device)

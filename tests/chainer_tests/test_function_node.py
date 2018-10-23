@@ -23,7 +23,7 @@ def make_array(start, shape, dtype, device):
     a = numpy.arange(start, start + size)
     a = a.reshape(shape)
     a = a.astype(dtype, copy=False)
-    return chainer.backend.to_device(a, device)
+    return device.send(a)
 
 
 @testing.parameterize(*testing.product({
@@ -76,15 +76,15 @@ class TestFunctionNode(unittest.TestCase):
         self.gx1 = None
 
     def setup_cpu(self):
-        self._setup(numpy)
+        self._setup(chainer.get_device(numpy))
         self.f.forward_cpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_gpu(self):
-        self._setup((cuda.cupy, 0))
+        self._setup(chainer.get_device((cuda.cupy, 0)))
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_chainerx(self, device_name='native:0'):
-        self._setup(device_name)
+        self._setup(chainer.get_device(device_name))
         self.f.forward = mock.MagicMock(side_effect=lambda inputs: (
             utils.force_array(inputs[0] * inputs[1]),
             utils.force_array(inputs[0] + inputs[1])))

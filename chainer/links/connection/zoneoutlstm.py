@@ -1,6 +1,4 @@
-import numpy
-
-from chainer.backends import cuda
+import chainer
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import reshape
@@ -31,20 +29,13 @@ class StatefulZoneoutLSTM(link.Chain):
             self.upward = linear.Linear(in_size, 4 * out_size)
             self.lateral = linear.Linear(out_size, 4 * out_size, nobias=True)
 
-    def to_cpu(self):
-        super(StatefulZoneoutLSTM, self).to_cpu()
+    def to_device(self, device):
+        device = chainer.get_device(device)
+        super(StatefulZoneoutLSTM, self).to_device(device)
         if self.c is not None:
-            self.c.to_cpu()
+            self.c.to_device(device)
         if self.h is not None:
-            self.h.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        super(StatefulZoneoutLSTM, self).to_gpu(device)
-        if self.c is not None:
-            self.c.to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
+            self.h.to_device(device)
         return self
 
     def set_state(self, c, h):
@@ -59,16 +50,10 @@ class StatefulZoneoutLSTM(link.Chain):
         """
         assert isinstance(c, variable.Variable)
         assert isinstance(h, variable.Variable)
-        c_ = c
-        h_ = h
-        if self.xp is numpy:
-            c_.to_cpu()
-            h_.to_cpu()
-        else:
-            c_.to_gpu(self._device_id)
-            h_.to_gpu(self._device_id)
-        self.c = c_
-        self.h = h_
+        c.to_device(self.device)
+        h.to_device(self.device)
+        self.c = c
+        self.h = h
 
     def reset_state(self):
         """Resets the internal state.
@@ -93,13 +78,13 @@ class StatefulZoneoutLSTM(link.Chain):
             lstm_in += self.lateral(self.h)
         else:
             xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.h = variable.Variable(
                     xp.zeros((len(x.data), self.state_size),
                              dtype=x.data.dtype))
         if self.c is None:
             xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.c = variable.Variable(
                     xp.zeros((len(x.data), self.state_size),
                              dtype=x.data.dtype))

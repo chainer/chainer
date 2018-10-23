@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import dataset
@@ -16,19 +17,12 @@ class TestConcatExamples(unittest.TestCase):
         np_arrays = [numpy.random.rand(2, 3) for _ in range(5)]
         return [conv(a) for a in np_arrays]
 
-    def check_device(self, array, expected_device):
-        # TODO(niboshi): This is a workaround because get_device_from_array
-        # returns chainerx.DeviceScope instead of chainerx.Device.
-        if isinstance(array, chainerx.ndarray):
-            assert array.device == expected_device
-        else:
-            assert backend.get_device_from_array(array) == expected_device
-
-    def check_concat_arrays(self, arrays, device, expected_device):
+    def check_concat_arrays(self, arrays, device, expected_device_spec):
         array = dataset.concat_examples(arrays, device)
         self.assertEqual(array.shape, (len(arrays),) + arrays[0].shape)
 
-        self.check_device(array, expected_device)
+        expected_device = chainer.get_device(expected_device_spec)
+        assert backend.get_device_from_array(array) == expected_device
 
         np_array = backend.to_numpy(array)
         for x, y in zip(np_array, arrays):
@@ -36,7 +30,7 @@ class TestConcatExamples(unittest.TestCase):
 
     def test_concat_arrays_cpu(self):
         arrays = self.get_arrays_to_concat(lambda a: a)
-        self.check_concat_arrays(arrays, None, cuda.DummyDevice)
+        self.check_concat_arrays(arrays, None, numpy)
 
     @attr.gpu
     def test_concat_arrays_gpu(self):
@@ -70,14 +64,15 @@ class TestConcatExamples(unittest.TestCase):
         return [(conv(numpy.random.rand(2, 3)), conv(numpy.random.rand(3, 4)))
                 for _ in range(5)]
 
-    def check_concat_tuples(self, tuples, device, expected_device):
+    def check_concat_tuples(self, tuples, device, expected_device_spec):
+        expected_device = chainer.get_device(expected_device_spec)
         arrays = dataset.concat_examples(tuples, device)
         self.assertEqual(len(arrays), len(tuples[0]))
         for i in range(len(arrays)):
             shape = (len(tuples),) + tuples[0][i].shape
             self.assertEqual(arrays[i].shape, shape)
 
-            self.check_device(arrays[i], expected_device)
+            assert backend.get_device_from_array(arrays[i]) == expected_device
 
             arr = backend.to_numpy(arrays[i])
             for x, y in zip(arr, tuples):
@@ -85,7 +80,7 @@ class TestConcatExamples(unittest.TestCase):
 
     def test_concat_tuples_cpu(self):
         tuples = self.get_tuple_arrays_to_concat(lambda a: a)
-        self.check_concat_tuples(tuples, None, cuda.DummyDevice)
+        self.check_concat_tuples(tuples, None, numpy)
 
     @attr.gpu
     def test_concat_tuples_gpu(self):
@@ -121,13 +116,15 @@ class TestConcatExamples(unittest.TestCase):
              'y': conv(numpy.random.rand(3, 4))}
             for _ in range(5)]
 
-    def check_concat_dicts(self, dicts, device, expected_device):
+    def check_concat_dicts(self, dicts, device, expected_device_spec):
+        expected_device = chainer.get_device(expected_device_spec)
         arrays = dataset.concat_examples(dicts, device)
         self.assertEqual(frozenset(arrays.keys()), frozenset(dicts[0].keys()))
         for key in arrays:
             shape = (len(dicts),) + dicts[0][key].shape
             self.assertEqual(arrays[key].shape, shape)
-            self.check_device(arrays[key], expected_device)
+            self.assertEqual(
+                backend.get_device_from_array(arrays[key]), expected_device)
 
             arr = backend.to_numpy(arrays[key])
             for x, y in zip(arr, dicts):
@@ -135,7 +132,7 @@ class TestConcatExamples(unittest.TestCase):
 
     def test_concat_dicts_cpu(self):
         dicts = self.get_dict_arrays_to_concat(lambda a: a)
-        self.check_concat_dicts(dicts, None, cuda.DummyDevice)
+        self.check_concat_dicts(dicts, None, numpy)
 
     @attr.gpu
     def test_concat_dicts_gpu(self):

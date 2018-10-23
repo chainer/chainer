@@ -1,6 +1,11 @@
 from __future__ import absolute_import
 
+import sys
+
+import numpy
+
 import chainer
+from chainer import backend
 from chainer.configuration import config
 
 
@@ -17,6 +22,50 @@ except ImportError as e:
 
     class mdarray(object):
         pass  # for type testing
+
+
+class Intel64Device(backend.Device):
+
+    def __init__(self):
+        check_ideep_available()
+        super(Intel64Device, self).__init__()
+
+    @property
+    def xp(self):
+        return numpy
+
+    @classmethod
+    def from_array(cls, array):
+        if isinstance(array, mdarray):
+            return Intel64Device()
+        return None
+
+    def __eq__(self, other):
+        return isinstance(other, Intel64Device)
+
+    def send_array(self, array):
+        if isinstance(array, ideep.mdarray):
+            return array
+
+        if not isinstance(array, numpy.ndarray):
+            array = backend.to_numpy(array)  # to numpy.ndarray
+
+        if (isinstance(array, numpy.ndarray) and array.ndim in (1, 2, 4)):
+            # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
+            # Currently iDeep only supports (1, 2, 4)-dim arrays.
+            # Note that array returned from `ideep.array` may not be an
+            # iDeep mdarray, e.g., when the dtype is not float32.
+            array = ideep.array(array, itype=ideep.wgt_array)
+        return array
+
+
+def _get_device(device_spec):
+    # Called from chainer.backend.get_device
+    if not is_ideep_available():
+        return None
+    if device_spec is sys.modules[__name__]:
+        return Intel64Device()
+    return None
 
 
 # ------------------------------------------------------------------------------

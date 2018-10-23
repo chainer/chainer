@@ -232,13 +232,13 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        xp = backend.get_array_module(param.data)
-        if xp is chainerx:
-            self.update_core_chainerx(param)
-        elif xp is numpy:
-            self.update_core_cpu(param)
-        else:
-            with param.data.device:
+        device = backend.get_device_from_array(param.data)
+        with chainer.using_device(device):
+            if device.xp is chainerx:
+                self.update_core_chainerx(param)
+            elif device.xp is numpy:
+                self.update_core_cpu(param)
+            else:
                 self.update_core_gpu(param)
 
     def update_core_cpu(self, param):
@@ -373,7 +373,8 @@ class UpdateRule(object):
                 self._state[key] = serializer(key, self._state[key])
 
     def _prepare(self, param):
-        with backend.get_device_from_array(param.data) as device:
+        device = backend.get_device_from_array(param.data)
+        with chainer.using_device(device):
             state = self.state
             if state is None:
                 state = self._state = {}
@@ -382,10 +383,7 @@ class UpdateRule(object):
             for name, value in six.iteritems(state):
                 if not isinstance(value, chainer.get_array_types()):
                     continue
-                if (chainerx.is_available()
-                        and isinstance(device, chainerx.DeviceScope)):
-                    device = device.device
-                state[name] = backend.to_device(value, device)
+                state[name] = device.send(value)
 
     def use_fp32_update(self, flag=True):
         """Enables use of parameter update in fp32.

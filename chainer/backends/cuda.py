@@ -41,7 +41,6 @@ import six
 
 import chainer
 from chainer import backend
-from chainer.backends import intel64
 from chainer.configuration import config
 import chainerx
 
@@ -152,6 +151,60 @@ _integer_types = six.integer_types + (numpy.integer,)
 
 
 # ------------------------------------------------------------------------------
+# Device
+# ------------------------------------------------------------------------------
+class GpuDevice(backend.Device):
+
+    def __init__(self, device):
+        assert isinstance(device, Device)
+        check_cuda_available()
+
+        super(GpuDevice, self).__init__()
+        self.device = device
+
+    @classmethod
+    def from_device_id(cls, device_id):
+        assert isinstance(device_id, _integer_types)
+        assert device_id >= 0
+        return GpuDevice(Device(device_id))
+
+    @classmethod
+    def from_array(cls, array):
+        if isinstance(array, ndarray) and array.device is not None:
+            return GpuDevice(array.device)
+        return None
+
+    def __eq__(self, other):
+        return isinstance(other, GpuDevice) and other.device == self.device
+
+    @property
+    def xp(self):
+        return cupy
+
+    def create_context(self):
+        # Creates a new cuda.Device instance because a single cuda.Device
+        # instance cannot be used across threads.
+        return Device(self.device.id)
+
+    def send_array(self, array):
+        return _array_to_gpu(array, self.device, None)
+
+
+def _get_device(device_spec):
+    if not available:
+        return None
+
+    if isinstance(device_spec, Device):
+        return GpuDevice(device_spec)
+    if (isinstance(device_spec, tuple) and len(device_spec) == 2
+            and device_spec[0] is cupy
+            and isinstance(device_spec[1], _integer_types)):
+        return GpuDevice.from_device_id(device_spec[1])
+
+    return None
+
+
+# ------------------------------------------------------------------------------
 # Global states
 # ------------------------------------------------------------------------------
 def get_device_from_id(device_id):
@@ -162,10 +215,10 @@ def get_device_from_id(device_id):
             returns.
     """
     if device_id is not None:
-        check_cuda_available()
-        return Device(device_id)
-    else:
-        return DummyDevice
+        if device_id >= 0:
+            check_cuda_available()
+            return Device(int(device_id))
+    return DummyDevice
 
 
 def get_device_from_array(*arrays):
@@ -192,7 +245,10 @@ def get_device_from_array(*arrays):
             to. If a list of :class:`cupy.ndarray`\\ s are given, it returns
             the first device object of an array in the list.
     """
-    return backend.get_device_from_array(*arrays)
+    for array in arrays:
+        if isinstance(array, ndarray) and array.device is not None:
+            return array.device
+    return DummyDevice
 
 
 def get_device(*args):
@@ -227,10 +283,11 @@ def get_device(*args):
     """
     warnings.warn('get_device is deprecated. Please use get_device_from_id or'
                   ' get_device_from_array instead.', DeprecationWarning)
-    return _get_device(*args)
+    return _get_cuda_device(*args)
 
 
-def _get_device(*args):
+def _get_cuda_device(*args):
+    # Returns cuda.Device or DummyDevice.
     for arg in args:
         if type(arg) is not bool and isinstance(arg, _integer_types):
             check_cuda_available()
@@ -246,6 +303,21 @@ def _get_device(*args):
     return DummyDevice
 
 
+def _get_device_or_current(device):
+    # Returns cuda.Device.
+    # - If cuda.Device instance, it's returned intact.
+    # - If None, the current device is returned.
+    # - If non-negative integer, cuda.Device is returned.
+    # - Otherwise: error.
+    if device is None:
+        return cuda.Device()
+    if isinstance(device, Device):
+        return device
+    if not (isinstance(device, _integer_types) and device >= 0):
+        raise ValueError('Invalid CUDA device specifier: {}'.format(device))
+    return cuda.Device(int(device))
+
+
 # ------------------------------------------------------------------------------
 # cupy.ndarray allocation and copy
 # ------------------------------------------------------------------------------
@@ -256,7 +328,8 @@ def to_gpu(array, device=None, stream=None):
     Args:
         array (*array*, None, list or tuple):
             Array or arrays to be sent to GPU.
-        device: Device specifier.
+        device: CUDA device specifier. If ``None`` or :data:`cuda.DummyDevice`,
+            the arrays will be copied to the current CUDA device.
         stream (~cupy.cuda.Stream): *(deprecated since v3.0.0)*
             CUDA stream. If not ``None``, the copy runs asynchronously.
 
@@ -275,25 +348,16 @@ def to_gpu(array, device=None, stream=None):
             'Please remove it.', DeprecationWarning)
 
     check_cuda_available()
-    with _get_device(device):
-        if isinstance(array, (list, tuple)):
-            d = {}
-            ret = []
-            for arr in array:
-                if arr is None:
-                    ret.append(None)
-                else:
-                    arr2 = d.get(id(arr))
-                    if arr2 is None:
-                        arr2 = _array_to_gpu(arr, stream)
-                        d[id(arr)] = arr2
-                    ret.append(arr2)
-            return type(array)(ret)
-        else:
-            return _array_to_gpu(array, stream)
+    if device is DummyDevice:
+        device = cuda.Device()
+    else:
+        device = _get_device_or_current(device)
+
+    return backend._convert_arrays(
+        array, lambda arr: _array_to_gpu(arr, device, stream))
 
 
-def _array_to_gpu(array, stream):
+def _array_to_gpu(array, device, stream):
     if array is None:
         return None
 
@@ -317,21 +381,23 @@ def _array_to_gpu(array, stream):
             array = chainerx.to_numpy(array)
     elif isinstance(array, (numpy.number, numpy.bool_)):
         array = numpy.asarray(array)
-    elif isinstance(array, intel64.mdarray):
+    elif isinstance(array, chainer.backends.intel64.mdarray):
         array = numpy.asarray(array)
 
-    if not isinstance(array, (cupy.ndarray, numpy.ndarray)):
+    if isinstance(array, ndarray):
+        if array.device == device:
+            return array
+        is_numpy = False
+    elif isinstance(array, numpy.ndarray):
+        is_numpy = True
+    else:
         raise TypeError(
             'The array sent to gpu must be an array or a NumPy scalar.'
             '\nActual type: {0}.'.format(type(array)))
 
-    array_dev = get_device_from_array(array)
-    if array_dev.id == cupy.cuda.device.get_device_id():
-        return array
-
     if stream is not None and stream.ptr != 0:
         ret = cupy.empty_like(array)
-        if array_dev.id == -1:
+        if is_numpy:
             # cpu to gpu
             mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
             src = numpy.frombuffer(
@@ -342,7 +408,7 @@ def _array_to_gpu(array, stream):
                 stream.record(), mem)
         else:
             # gpu to gpu
-            with array_dev:
+            with array.device:
                 src = array.copy()
                 event = Stream.null.record()
             stream.wait_event(event)
@@ -354,11 +420,11 @@ def _array_to_gpu(array, stream):
             stream.add_callback(lambda *x: None, (src, ret))
         return ret
 
-    if array_dev.id == -1:
-        return cupy.asarray(array)
-
-    # Need to make a copy when an array is copied to another device
-    return cupy.array(array, copy=True)
+    with device:
+        if is_numpy:
+            return cupy.asarray(array)
+        # Need to make a copy when an array is copied to another device
+        return cupy.array(array, copy=True)
 
 
 def to_cpu(array, stream=None):
@@ -378,21 +444,8 @@ def to_cpu(array, stream=None):
         If input arrays include `None`, it is returned as `None` as is.
 
     """
-    if isinstance(array, (list, tuple)):
-        d = {}
-        ret = []
-        for arr in array:
-            if arr is None:
-                ret.append(None)
-            else:
-                arr2 = d.get(id(arr))
-                if arr2 is None:
-                    arr2 = _array_to_cpu(arr, stream)
-                    d[id(arr)] = arr2
-                ret.append(arr2)
-        return type(array)(ret)
-    else:
-        return _array_to_cpu(array, stream)
+    return backend._convert_arrays(
+        array, lambda arr: _array_to_cpu(arr, stream))
 
 
 def _array_to_cpu(array, stream):
@@ -402,15 +455,7 @@ def _array_to_cpu(array, stream):
         check_cuda_available()
         with get_device_from_array(array):
             return array.get(stream)
-    elif isinstance(array, (numpy.number, numpy.bool_)):
-        return numpy.asarray(array)
-    elif isinstance(array, chainer.get_cpu_array_types()):
-        return array
-    else:
-        raise TypeError(
-            'The array sent to cpu must be numpy.ndarray or cupy.ndarray, '
-            'or a NumPy scalar.'
-            '\nActual type: {0}.'.format(type(array)))
+    return chainer.backends._numpy._array_to_numpy(array)
 
 
 def copy(array, out=None, out_device=None, stream=None):
@@ -434,6 +479,7 @@ def copy(array, out=None, out_device=None, stream=None):
         specified by ``out_device`` argument.
 
     """
+    # TODO(niboshi): Update docstring not to mention deprecated `get_device`
     check_cuda_available()
     assert stream is None  # TODO(beam2d): FIX IT
 

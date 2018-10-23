@@ -72,9 +72,11 @@ class TestNegativeSampling(unittest.TestCase):
     @attr.gpu
     def test_to_cpu(self):
         self.link.to_gpu()
-        self.assertTrue(self.link.sampler.use_gpu)
+        self.assertEqual(
+            self.link.sampler.device, chainer.get_device((cuda.cupy, 0)))
         self.link.to_cpu()
-        self.assertFalse(self.link.sampler.use_gpu)
+        self.assertEqual(
+            self.link.sampler.device, chainer.get_device(numpy))
 
     @attr.gpu
     def test_backward_cpu_gpu(self):

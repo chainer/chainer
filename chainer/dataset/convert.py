@@ -39,11 +39,13 @@ def to_device(device, x):
     # For backward compatibilities
     if isinstance(device, six.integer_types):
         if device < 0:
-            device = cuda.DummyDevice
+            device = backend.get_device(numpy)
         else:
-            device = cuda.Device(device)
+            device = backend.get_device(cuda.Device(device))
+    else:
+        device = backend.get_device(device)
 
-    return backend.to_device(x, device)
+    return device.send(x)
 
 
 def concat_examples(batch, device=None, padding=None):
@@ -189,7 +191,7 @@ def _concat_arrays(arrays, padding):
             arr_concat = xp.concatenate([array[None] for array in arrays])
 
     if chainerx_device is not None:
-        return backend.to_device(arr_concat, chainerx_device)
+        return backend.get_device(chainerx_device).send(arr_concat)
     return arr_concat
 
 

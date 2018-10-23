@@ -1,10 +1,9 @@
 import functools
 import operator
 
-import numpy
 import six
 
-from chainer.backends import cuda
+import chainer
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
@@ -133,7 +132,7 @@ class StatelessLSTM(LSTMBase):
         """
         if self.upward.W.data is None:
             in_size = x.size // x.shape[0]
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
 
@@ -142,7 +141,7 @@ class StatelessLSTM(LSTMBase):
             lstm_in += self.lateral(h)
         if c is None:
             xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 c = variable.Variable(
                     xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
         return lstm.lstm(c, lstm_in)
@@ -244,20 +243,13 @@ class LSTM(LSTMBase):
             forget_bias_init)
         self.reset_state()
 
-    def to_cpu(self):
-        super(LSTM, self).to_cpu()
+    def to_device(self, device):
+        device = chainer.get_device(device)
+        super(LSTM, self).to_device(device)
         if self.c is not None:
-            self.c.to_cpu()
+            self.c.to_device(device)
         if self.h is not None:
-            self.h.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        super(LSTM, self).to_gpu(device)
-        if self.c is not None:
-            self.c.to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
+            self.h.to_device(device)
         return self
 
     def set_state(self, c, h):
@@ -272,16 +264,10 @@ class LSTM(LSTMBase):
         """
         assert isinstance(c, variable.Variable)
         assert isinstance(h, variable.Variable)
-        c_ = c
-        h_ = h
-        if self.xp == numpy:
-            c_.to_cpu()
-            h_.to_cpu()
-        else:
-            c_.to_gpu(self._device_id)
-            h_.to_gpu(self._device_id)
-        self.c = c_
-        self.h = h_
+        c.to_device(self.device)
+        h.to_device(self.device)
+        self.c = c
+        self.h = h
 
     def reset_state(self):
         """Resets the internal state.
@@ -302,7 +288,7 @@ class LSTM(LSTMBase):
 
         """
         if self.upward.W.data is None:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 in_size = functools.reduce(operator.mul, x.shape[1:], 1)
                 self.upward._initialize_params(in_size)
                 self._initialize_params()
@@ -325,10 +311,9 @@ class LSTM(LSTMBase):
             else:
                 lstm_in += self.lateral(self.h)
         if self.c is None:
-            xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.c = variable.Variable(
-                    xp.zeros((batch, self.state_size), dtype=x.dtype))
+                    self.xp.zeros((batch, self.state_size), dtype=x.dtype))
         self.c, y = lstm.lstm(self.c, lstm_in)
 
         if h_rest is None:

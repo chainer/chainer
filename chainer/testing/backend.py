@@ -25,6 +25,8 @@ class BackendConfig(object):
         ('use_ideep', 'never'),
     ]
 
+    _device = None
+
     def __init__(self, params):
         if not isinstance(params, dict):
             raise TypeError('params must be a dict.')
@@ -62,9 +64,24 @@ class BackendConfig(object):
             return chainerx
         if self.use_cuda:
             return cuda.cupy
-        if self.use_ideep:
+        if self.use_ideep != 'never':
             return numpy
         return numpy
+
+    @property
+    def device(self):
+        if self._device is None:
+            if self.use_cuda:
+                device = chainer.get_device(
+                    chainer.backends.cuda.Device(self.cuda_device))
+            elif self.use_chainerx:
+                device = chainer.get_device(self.chainerx_device)
+            elif self.use_ideep != 'never':
+                device = chainer.get_device(chainer.backends.intel64)
+            else:
+                device = chainer.get_device(numpy)
+            self._device = device
+        return self._device
 
     def __enter__(self):
         self._contexts = [
@@ -76,6 +93,7 @@ class BackendConfig(object):
                 'autotune', self.autotune),
             chainer.using_config(
                 'use_ideep', self.use_ideep),
+            chainer.using_device(self.device),
         ]
         for c in self._contexts:
             c.__enter__()
@@ -133,8 +151,8 @@ class BackendConfig(object):
             arr = chainer.backend.to_chainerx(np_array)
             return arr.to_device(self.chainerx_device)
         if self.use_cuda:
-            return chainer.backend.cuda.to_gpu(np_array, self.cuda_device)
-        if self.use_ideep:
+            return chainer.backends.cuda.to_gpu(np_array, self.cuda_device)
+        if self.use_ideep != 'never':
             return np_array
         return np_array
 

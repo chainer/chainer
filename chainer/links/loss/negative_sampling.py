@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+import chainer
 from chainer.functions.loss import negative_sampling
 from chainer import link
 from chainer.utils import walker_alias
@@ -40,16 +40,10 @@ class NegativeSampling(link.Link):
         with self.init_scope():
             self.W = variable.Parameter(0, (vocab_size, in_size))
 
-    def to_cpu(self):
-        super(NegativeSampling, self).to_cpu()
-        self.sampler.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        with cuda._get_device(device):
-            super(NegativeSampling, self).to_gpu()
-            self.sampler.to_gpu()
-        return self
+    def to_device(self, device):
+        device = chainer.get_device(device)
+        self.sampler.to_device(device)
+        return super(NegativeSampling, self).to_device(device)
 
     def forward(self, x, t, reduce='sum'):
         """Computes the loss value for given input and ground truth labels.

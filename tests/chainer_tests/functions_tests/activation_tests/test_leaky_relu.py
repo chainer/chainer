@@ -68,8 +68,7 @@ class TestLeakyReLU(unittest.TestCase):
             y_grad = cuda.to_gpu(y_grad)
 
         def f(x):
-            with backend_config:
-                return functions.leaky_relu(x, self.slope)
+            return functions.leaky_relu(x, self.slope)
 
         with backend_config:
             gradient_check.check_backward(
@@ -87,8 +86,7 @@ class TestLeakyReLU(unittest.TestCase):
             x_grad_grad = cuda.to_gpu(x_grad_grad)
 
         def f(x):
-            with backend_config:
-                return functions.leaky_relu(x, self.slope)
+            return functions.leaky_relu(x, self.slope)
 
         with backend_config:
             gradient_check.check_double_backward(
