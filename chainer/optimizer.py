@@ -301,7 +301,14 @@ class UpdateRule(object):
                 chainerx_state_arrays[state_name] = st
 
         # Create a temporary parameter with memory-shared NumPy/CuPy array
-        temp_param = variable.Variable(to_backend(param.array))
+        # If the ChainerX parameter has a cached NumPy/CuPy copy, use the
+        # cache and avoid redundant conversion. Else, create the cache here
+        # and use it.
+        if param._fallback_array is None:
+            param._fallback_array = to_backend(param.array)
+
+        temp_param = variable.Variable(param._fallback_array)
+
         if grad_array is not None:
             temp_param.grad = to_backend(param.grad)
 

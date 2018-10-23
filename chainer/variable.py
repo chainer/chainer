@@ -467,6 +467,10 @@ class Variable(object):
 
     """  # NOQA
 
+    # A NumPy, CuPy array cache to avoid redundant conversions between
+    # NumPy/CuPy and ChainerX.
+    _fallback_array = None
+
     def __init__(self, data=None, **kwargs):
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
