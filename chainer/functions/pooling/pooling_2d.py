@@ -8,7 +8,6 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
 
 
 def _pair(x):
@@ -44,7 +43,7 @@ class Pooling2D(function_node.FunctionNode):
         self._used_cudnn = True
 
         # Implementation using cudnn
-        x = cuda.cupy.ascontiguousarray(x[0])
+        x = x[0]
         n, c, h, w = x.shape
         y_h = conv.get_conv_outsize(
             h, self.kh, self.sy, self.ph, self.cover_all)
@@ -54,41 +53,23 @@ class Pooling2D(function_node.FunctionNode):
         assert y_w > 0, 'Width in the output should be positive.'
         y = cuda.cupy.empty((n, c, y_h, y_w), dtype=x.dtype)
 
-        handle = cudnn.get_handle()
-        pool_desc = self.create_pool_desc()
-        x_desc = cudnn.create_tensor_descriptor(x)
-        y_desc = cudnn.create_tensor_descriptor(y)
+        cudnn.pooling_forward(
+            x, y,
+            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
+            self._get_pool_mode())
 
-        oz_dtype = 'd' if x.dtype == 'd' else 'f'
-        one = numpy.array(1, dtype=oz_dtype).ctypes
-        zero = numpy.array(0, dtype=oz_dtype).ctypes
-        libcudnn.poolingForward(
-            handle, pool_desc.value, one.data, x_desc.value,
-            x.data.ptr, zero.data, y_desc.value, y.data.ptr)
         self.retain_outputs((0,))
         return y,
 
     def backward_gpu(self, x, gy):
         # Implementation using cudnn
-        x = cuda.cupy.ascontiguousarray(x[0])
+        x = x[0]
         y = self.output_data[0]
-        handle = cudnn.get_handle()
-        pool_desc = self.create_pool_desc()
-
-        gy = cuda.cupy.ascontiguousarray(gy[0])
-
-        x_desc = cudnn.create_tensor_descriptor(x)
-        y_desc = cudnn.create_tensor_descriptor(gy)
-
-        oz_dtype = 'd' if x.dtype == 'd' else 'f'
-        one = numpy.array(1, dtype=oz_dtype).ctypes
-        zero = numpy.array(0, dtype=oz_dtype).ctypes
-        gx = cuda.cupy.empty_like(x)
-        libcudnn.poolingBackward(
-            handle, pool_desc.value, one.data, y_desc.value,
-            y.data.ptr, y_desc.value, gy.data.ptr, x_desc.value,
-            x.data.ptr, zero.data, x_desc.value, gx.data.ptr)
+        gx = cudnn.pooling_backward(
+            x, y, gy[0],
+            (self.kh, self.kw), (self.sy, self.sx), (self.ph, self.pw),
+            self._get_pool_mode())
         return gx,
 
-    def create_pool_desc(self):
+    def _get_pool_mode(self):
         raise NotImplementedError()

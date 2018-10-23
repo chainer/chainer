@@ -79,10 +79,8 @@ class MaxPoolingND(pooling_nd._PoolingND):
     def backward(self, indexes, gy):
         return MaxPoolingNDGrad(self).apply(gy)
 
-    def create_pool_desc(self):
-        return cuda.cudnn.create_pooling_descriptor(
-            self.ksize, self.stride, self.pad,
-            cuda.cuda.cudnn.CUDNN_POOLING_MAX)
+    def _get_pool_mode(self):
+        return cuda.cuda.cudnn.CUDNN_POOLING_MAX
 
 
 class MaxPoolingNDGrad(function_node.FunctionNode):
