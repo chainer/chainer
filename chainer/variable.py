@@ -498,6 +498,7 @@ class Variable(object):
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
 
+        self._requires_grad = requires_grad
         self._loss_scale = None
         self._grad_var = None if grad is None else Variable(grad)
 
@@ -506,16 +507,13 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            # _data and _requires_grad are assigned.
-            self._set_chainerx_array(data, grad, requires_grad)
+            self._set_chainerx_array(data, grad)
 
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None
             self._chainerx_name = name
         else:
             self._data = [data]
-            # self._requires_grad need to be set before creating the node.
-            self._requires_grad = requires_grad
             self._node = VariableNode(self, name)
 
     def __copy__(self):
@@ -541,10 +539,11 @@ class Variable(object):
         self._chainerx_const_array_cache = None
         self._chainerx_grad_cache = None
 
-    def _set_chainerx_array(self, array, grad, requires_grad):
+    def _set_chainerx_array(self, array, grad):
         # Sets chainerx array and grad.
         assert array is None or isinstance(array, chainerx.ndarray)
         self._is_chainerx = True
+        requires_grad = self._requires_grad
 
         if (not requires_grad
                 and array is not None
@@ -748,7 +747,7 @@ class Variable(object):
                     'Cannot update the array of a Variable if either the '
                     'existing or the new array requires backprop.')
 
-            self._set_chainerx_array(d, None, self._requires_grad)
+            self._set_chainerx_array(d, None)
             return
 
         self._node._update_data_info(d)
@@ -1016,7 +1015,7 @@ class Variable(object):
                 new_grad = grad_var.array
 
         self._data = [new_data]
-        self._set_chainerx_array(new_data, new_grad, self._requires_grad)
+        self._set_chainerx_array(new_data, new_grad)
 
         # ChainerX itself has own node objects,
         # ensure that the node is disconnected with this variable.
