@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function_node
@@ -34,23 +35,6 @@ def _convert_value_to_string(value):
                 array_types[-1], type(value)))
 
 
-<<<<<<< HEAD
-def _check_constant_type(value):
-    if numpy.isscalar(value):
-        return
-
-    array_types = chainer.get_array_types()
-    if isinstance(value, array_types):
-        return
-    else:
-        raise TypeError(
-            'Value must be a Variable, scalar, {} or {}. Actual: {}'.format(
-                ', '.join([str(at) for at in array_types[:-1]]),
-                array_types[-1], type(value)))
-
-
-=======
->>>>>>> 5aea2b523dd0031972e89c789d392ff9dab867a5
 def _preprocess_const(x, value):
     return x.dtype.type(value)
 
