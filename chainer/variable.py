@@ -1534,6 +1534,19 @@ class Parameter(Variable):
             self._initial_device = device
         super(Parameter, self).to_chainerx(device)
 
+    def to_device(self, device=None):
+        device_id = backend.DeviceId(device)
+        if device_id.xp is numpy:
+            self._initial_backend = None
+            self._initial_device = None
+        elif device_id.xp is cuda.cupy:
+            self._initial_backend = 'cuda'
+            self._initial_device = device_id.device
+        elif device_id.xp is chainerx:
+            self._initial_backend = 'chainerx'
+            self._initial_device = device_id.device
+        super(Parameter, self).to_device(device_id)
+
     def cleargrad(self):
         super(Parameter, self).cleargrad()
         if self.array is None:
