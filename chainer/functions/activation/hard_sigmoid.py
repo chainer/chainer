@@ -11,7 +11,7 @@ class HardSigmoid(function_node.FunctionNode):
     """Hard-sigmoid function."""
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
 
         type_check.expect(x_type.dtype.kind == 'f')
@@ -44,7 +44,7 @@ class HardSigmoidGrad(function_node.FunctionNode):
         self.x = x
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
 
         type_check.expect(
             in_types[0].dtype.kind == 'f',

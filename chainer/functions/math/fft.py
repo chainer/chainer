@@ -11,7 +11,7 @@ class FFT(function_node.FunctionNode):
         self._method = method
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('real', 'imag'))
+        type_check._argname(in_types, ('real', 'imag'))
         r_type, i_type = in_types
         type_check.expect(
             r_type.dtype.kind == 'f',

@@ -64,12 +64,6 @@ This is especially beneficial when copying parameters of :class:`~chainer.links.
 
 You can skip copying persistent values by passing newly introduced ``copy_persistent=False`` option to :meth:`~chainer.Link.copyparams` so that it behaves as in Chainer v4.
 
-FuncionNodes as Implementation Details
---------------------------------------
-
-When calling a Chainer function such as :func:`~chainer.functions.relu`, a corresponding :class:`~chainer.FunctionNode` is created internally, defining the forward and backward procedures.
-These classes are no longer a part of the public interface and you are encouraged not to instantiate these objects directly, as their interfaces may change.
-
 Updaters Automatically Call ``Optimizer.new_epoch``
 ---------------------------------------------------
 
@@ -89,6 +83,22 @@ Extending the Backend Namespace
 -------------------------------
 
 In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes ``chainer.backend.get_array_module`` which used to be defined in ``chainer.backends.cuda.get_array_module``. Both can be used but the latter will be deprecated.
+
+``get_device_from_array`` Returns Actual Device for Empty Arrays
+----------------------------------------------------------------
+
+Prior to Chainer v5, :func:`chainer.backends.cuda.get_device_from_array` returned :class:`chainer.backends.cuda.DummyDeviceType` if the array is empty.
+In Chainer v5, it has been changed to return the actual :class:`cupy.cuda.Device` object::
+
+    >>> x = cupy.array([])
+    >>> chainer.backends.cuda.get_device_from_array(x)
+    <CUDA Device 0>
+
+CuPy v5
+-------
+
+Chainer v5 requires CuPy v5 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v5 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v5>`_ for details.
 
 
 Chainer v4

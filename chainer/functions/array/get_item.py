@@ -35,7 +35,7 @@ class GetItem(function_node.FunctionNode):
         self.slices = slices
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
 
     def forward(self, xs):
         return utils.force_array(xs[0][self.slices]),
@@ -117,7 +117,7 @@ def get_item(x, slices):
 
     .. note::
 
-       See NumPy document for details of `indexing
+       See NumPy documentation for details of `indexing
        <https://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
 
     .. admonition:: Example

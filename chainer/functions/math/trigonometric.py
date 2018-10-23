@@ -15,7 +15,7 @@ class Sin(function_node.FunctionNode):
         return 'sin'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -67,7 +67,7 @@ class Cos(function_node.FunctionNode):
         return 'cos'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -120,7 +120,7 @@ class Tan(function_node.FunctionNode):
         return 'tan'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -145,7 +145,7 @@ class Arcsin(function_node.FunctionNode):
         return 'arcsin'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -213,7 +213,7 @@ class Arccos(function_node.FunctionNode):
         return 'arccos'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -282,7 +282,7 @@ class Arctan(function_node.FunctionNode):
         return 'arctan'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -351,7 +351,7 @@ class Arctan2(function_node.FunctionNode):
         return 'arctan2'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x1', 'x2'))
+        type_check._argname(in_types, ('x1', 'x2'))
         type_check.expect(in_types[0].dtype.kind == 'f')
         type_check.expect(in_types[1].dtype.kind == 'f')
 

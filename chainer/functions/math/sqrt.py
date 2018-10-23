@@ -14,7 +14,7 @@ class Sqrt(function_node.FunctionNode):
         return 'sqrt'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward(self, x):
@@ -35,7 +35,7 @@ class RsqrtGPU(function_node.FunctionNode):
         return 'rsqrt'
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_gpu(self, inputs):

@@ -3,13 +3,13 @@
 API Compatibility Policy
 ========================
 
-This document explains the design policy on compatibilities of Chainer APIs.
+This documentation explains the design policy on compatibilities of Chainer APIs.
 Development team should follow this policy on deciding to add, extend, and change APIs and their behaviors.
 
-This document is written for both users and developers.
+This documentation is written for both users and developers.
 Users can decide the level of dependencies on Chainer’s implementations in their codes based on this document.
-Developers should read through this document before creating pull requests that contain changes on the interface.
-Note that this document may contain ambiguities on the level of supported compatibilities.
+Developers should read through this documentation before creating pull requests that contain changes on the interface.
+Note that this documentation may contain ambiguities on the level of supported compatibilities.
 
 
 Targeted Versions
@@ -78,7 +78,7 @@ Any API that is not experimental is called *stable* in this document.
 When users use experimental APIs for the first time, warnings are raised once for each experimental API,
 unless users explicitly disable the emission of the warnings in advance.
 
-See the document of :meth:`chainer.utils.experimental` to know how developers mark APIs as experimental
+See the documentation of :meth:`chainer.utils.experimental` to know how developers mark APIs as experimental
 and how users enable or disable the warnings practically.
 
 .. note::
