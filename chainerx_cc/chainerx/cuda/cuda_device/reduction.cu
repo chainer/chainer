@@ -8,6 +8,7 @@
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -40,7 +41,7 @@ struct ArgMaxImpl {
 
 void CudaDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
     CheckDevicesCompatible(a, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(a.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Reduce<T, int64_t>(a, axis, out, ArgMaxImpl<T>{});
@@ -62,7 +63,7 @@ struct SumImpl {
 void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
     CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
 
     auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
         using In = typename decltype(in_pt)::type;
@@ -97,7 +98,7 @@ struct AMaxImpl {
 void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
     CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
     CheckDevicesCompatible(a, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Reduce<T, T>(a, axis, out, AMaxImpl<T>{});

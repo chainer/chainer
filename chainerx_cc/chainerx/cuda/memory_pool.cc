@@ -11,6 +11,7 @@ namespace chainerx {
 namespace cuda {
 
 MemoryPool::~MemoryPool() {
+    // NOTE: Not require to set cuda device
     for (const std::vector<void*>& free_list : free_bins_) {
         for (void* ptr : free_list) {
             allocator_->Free(ptr);
@@ -50,12 +51,8 @@ void* MemoryPool::Malloc(size_t bytesize) {
 
     if (ptr == nullptr) {
         size_t allocation_size = (index + 1) * kAllocationUnitSize;
-        // TODO(niboshi): Do device management with RAII
-        int old_device{};
-        CheckCudaError(cudaGetDevice(&old_device));
-        CheckCudaError(cudaSetDevice(device_index_));
+        CudaSetDeviceScope scope{device_index_};
         allocator_->Malloc(&ptr, allocation_size);
-        CheckCudaError(cudaSetDevice(old_device));
     }
 
     {

@@ -6,6 +6,7 @@
 #include <cuda_runtime.h>
 
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
 #include "chainerx/error.h"
@@ -35,6 +36,8 @@ std::shared_ptr<void> CudaDevice::AllocatePinnedMemory(size_t bytesize) {
 
 void CudaDevice::MemoryCopyFromHostAsync(void* dst, const void* src, size_t bytesize) {
     std::shared_ptr<void> pinned_src_ptr = AllocatePinnedMemory(bytesize);
+
+    CudaSetDeviceScope scope{index()};
 
     // cudaMemcpyAsync is slightly faster than cudaMemcpy, although both should be synchronous involving not page-locked regions.
     CheckCudaError(cudaMemcpyAsync(pinned_src_ptr.get(), src, bytesize, cudaMemcpyHostToHost));
@@ -70,10 +73,7 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
     if (bytesize == 0) {
         return;
     }
-    // TODO(niboshi): Do device management with RAII
-    int old_device{};
-    CheckCudaError(cudaGetDevice(&old_device));
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     if (&src_device == this || nullptr != dynamic_cast<CudaDevice*>(&src_device)) {
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpyAsync(dst, src, bytesize, cudaMemcpyDeviceToDevice));
@@ -84,7 +84,6 @@ void CudaDevice::MemoryCopyFrom(void* dst, const void* src, size_t bytesize, Dev
         // Copy from native device
         MemoryCopyFromHostAsync(dst, src, bytesize);
     }
-    CheckCudaError(cudaSetDevice(old_device));
 }
 
 void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Device& dst_device) {
@@ -92,10 +91,7 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
     if (bytesize == 0) {
         return;
     }
-    // TODO(niboshi): Do device management with RAII
-    int old_device{};
-    CheckCudaError(cudaGetDevice(&old_device));
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     if (&dst_device == this || nullptr != dynamic_cast<CudaDevice*>(&dst_device)) {
         // Copy between CUDA devices
         CheckCudaError(cudaMemcpyAsync(dst, src, bytesize, cudaMemcpyDeviceToDevice));
@@ -106,7 +102,6 @@ void CudaDevice::MemoryCopyTo(void* dst, const void* src, size_t bytesize, Devic
         // Copy to native device
         CheckCudaError(cudaMemcpy(dst, src, bytesize, cudaMemcpyDeviceToHost));
     }
-    CheckCudaError(cudaSetDevice(old_device));
 }
 
 std::shared_ptr<void> CudaDevice::TransferDataFrom(
@@ -123,14 +118,8 @@ std::shared_ptr<void> CudaDevice::TransferDataTo(Device& dst_device, const std::
 }
 
 std::shared_ptr<void> CudaDevice::FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) {
-    int old_device{};
-    CheckCudaError(cudaGetDevice(&old_device));
-    CheckCudaError(cudaSetDevice(index()));
-
     std::shared_ptr<void> dst_ptr = Allocate(bytesize);
     MemoryCopyFromHostAsync(dst_ptr.get(), src_ptr.get(), bytesize);
-
-    CheckCudaError(cudaSetDevice(old_device));
     return dst_ptr;
 }
 

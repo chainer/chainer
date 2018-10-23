@@ -10,6 +10,7 @@
 #include "chainerx/cuda/cast.cuh"
 #include "chainerx/cuda/cuda.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
@@ -32,7 +33,7 @@ struct ArangeImpl {
 }  // namespace
 
 void CudaDevice::Arange(Scalar start, Scalar step, const Array& out) {
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<T>(ArangeImpl<T>{static_cast<T>(start), static_cast<T>(step)}, out);
@@ -50,7 +51,7 @@ struct FillImpl {
 }  // namespace
 
 void CudaDevice::Fill(const Array& out, Scalar value) {
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<T>(FillImpl<T>{static_cast<T>(value)}, out);
@@ -72,7 +73,7 @@ void CudaDevice::Identity(const Array& out) {
     CHAINERX_ASSERT(out.ndim() == 2);
     CHAINERX_ASSERT(out.shape()[0] == out.shape()[1]);
 
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<T>(IdentityImpl<T>{out.shape()[0]}, out);
@@ -93,7 +94,7 @@ struct EyeImpl {
 }  // namespace
 
 void CudaDevice::Eye(int64_t k, const Array& out) {
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [k, &out](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<T>(EyeImpl<T>{out.shape()[1], k}, out);
@@ -124,7 +125,7 @@ void CudaDevice::Diagflat(const Array& v, int64_t k, const Array& out) {
     CHAINERX_ASSERT(v.ndim() == 1);
     CHAINERX_ASSERT(out.ndim() == 2);
 
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -176,7 +177,7 @@ void CudaDevice::Linspace(double start, double stop, const Array& out) {
     CHAINERX_ASSERT(out.ndim() == 1);
     CHAINERX_ASSERT(out.shape()[0] > 0);
 
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         int64_t n = out.shape()[0];

@@ -11,6 +11,7 @@
 #include "chainerx/backend_util.h"
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -112,7 +113,12 @@ public:
             CHAINERX_ASSERT(out_shape.back() > 0);
         }
 
-        Array y = Empty(out_shape, x.dtype(), x.device());
+        Device& device = x.device();
+        Dtype dtype = x.dtype();
+
+        CudaSetDeviceScope scope{device.index()};
+
+        Array y = Empty(out_shape, dtype, device);
         Array x_cont = AsContiguousArray(x);
 
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
@@ -123,10 +129,10 @@ public:
         cudnn_handle_.Call(
                 cudnnPoolingForward,
                 *pool_desc,
-                cuda_internal::GetValuePtr<1>(x.dtype()),
+                cuda_internal::GetValuePtr<1>(dtype),
                 *x_desc,
                 internal::GetRawOffsetData<void>(x_cont),
-                cuda_internal::GetValuePtr<0>(x.dtype()),
+                cuda_internal::GetValuePtr<0>(dtype),
                 *y_desc,
                 internal::GetRawOffsetData<void>(y));
 
@@ -147,7 +153,12 @@ public:
         CHAINERX_ASSERT(pad_.size() == static_cast<size_t>(ndim));
         CHAINERX_ASSERT(gout.shape() == y_.shape());
 
-        Array gx = EmptyLike(x_, x_.device());
+        Device& device = x_.device();
+        Dtype dtype = x_.dtype();
+
+        CudaSetDeviceScope scope{device.index()};
+
+        Array gx = EmptyLike(x_, device);
         Array y_cont = AsContiguousArray(y_);
         Array gout_cont = AsContiguousArray(gout);
         Array x_cont = AsContiguousArray(x_);
@@ -162,14 +173,14 @@ public:
         cudnn_handle_.Call(
                 cudnnPoolingBackward,
                 *pool_desc,
-                cuda_internal::GetValuePtr<1>(x_.dtype()),
+                cuda_internal::GetValuePtr<1>(dtype),
                 *y_desc,
                 internal::GetRawOffsetData<void>(y_cont),
                 *gout_desc,
                 internal::GetRawOffsetData<void>(gout_cont),
                 *x_desc,
                 internal::GetRawOffsetData<void>(x_cont),
-                cuda_internal::GetValuePtr<0>(x_.dtype()),
+                cuda_internal::GetValuePtr<0>(dtype),
                 *gx_desc,
                 internal::GetRawOffsetData<void>(gx));
 
@@ -178,7 +189,9 @@ public:
 
     Array DoubleBackward(const Array& ggx) {
         Device& device = ggx.device();
-        Array ggy = EmptyLike(y_, y_.device());
+        CudaSetDeviceScope scope{device.index()};
+
+        Array ggy = EmptyLike(y_, device);
 
         VisitFloatingPointDtype(ggy.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
