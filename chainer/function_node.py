@@ -263,7 +263,7 @@ Use apply() method instead.\
             # Fall back to FunctionNode.forward()
             chainerx_in_data = in_data
             in_data = []
-            for i in range(len(inputs)):
+            for i in six.moves.range(len(inputs)):
                 # Use the cached fallback arrays as inputs if they exist.
                 x = inputs[i]
                 x_is_variable = isinstance(x, variable.Variable)
