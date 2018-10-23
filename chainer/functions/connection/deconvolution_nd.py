@@ -6,6 +6,7 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_node
+from chainer.functions.connection import convolution_2d
 from chainer.functions.connection import convolution_nd
 from chainer.utils import conv
 from chainer.utils import conv_nd
@@ -85,32 +86,37 @@ class DeconvolutionND(function_node.FunctionNode):
     def _forward_grouped_convolution_xp(self, x, W, b, xp):
         # G: group count
         # N: batch size
-        # iC: input channels
-        # oC: output channels
+        # xC: input channels
+        # yC: output channels
         G = self.groups
         N, xC = x.shape[:2]
-        in_size = x.shape[2:]
+        x_size = x.shape[2:]
         yCg = W.shape[1]
-        k_size = W.shape[2:]
-
+        yC = yCg * G
         xCg = xC // G
+        k_size = W.shape[2:]
+        dims = len(k_size)
         if xC % G != 0:
             raise TypeError('The number of groups must be '
                             'a divisor of that of input channels')
 
-        _x = x.reshape((N, G, xCg) + in_size)
-        _x = xp.rollaxis(_x, 1)  # (G, N, xCg) + in_size
-        _W = W.reshape((G, xCg, yCg) + k_size)
+        x = xp.rollaxis(x, 1)  # (xC, N, x_size...)
+        x = x.reshape(G, xCg, N * convolution_nd._prod(x_size))
+
+        W = W.reshape(G, xCg, yCg * convolution_nd._prod(k_size))
+        W = W.transpose(0, 2, 1)  # (G, yCg*k_size, xCg)
+
+        # (G, yCg*k_size, N*x_size) = (G, yCg*k_size, xCg) @ (G, xCg, N*x_size)
+        col = convolution_2d._matmul(W, x).astype(x.dtype, copy=False)
+
+        col = col.reshape((yC,) + k_size + (N,) + x_size)
+        col = xp.rollaxis(col, dims + 1)  # (N, yC, k_size..., x_size...)
+
+        y = conv_nd.col2im_nd(col, self.stride, self.pad, self.outs,
+                              dilate=self.dilate)
+
         if b is not None:
-            _b = b.reshape(G, yCg)
-
-        _ys = []
-        for g in moves.range(G):
-            _bg = None if b is None else _b[g]
-            _y, = self._forward_xp_core(_x[g], _W[g], _bg, xp)
-            _ys.append(_y)
-
-        y = xp.concatenate(_ys, axis=1)  # (N, yC) + out_size
+            y += b.reshape(1, yC, *((1,) * dims))
         return y,
 
     def _forward_xp_core(self, x, W, b, xp):

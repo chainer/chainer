@@ -92,7 +92,7 @@ Repeat decorators
 These decorators have a decorated test run multiple times
 in a single invocation. Criteria of passing / failing
 of the test changes according to the type of decorators.
-See the document of each decorator for details.
+See the documentation of each decorator for details.
 
 .. autosummary::
    :toctree: generated/

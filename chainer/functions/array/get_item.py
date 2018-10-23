@@ -35,27 +35,26 @@ class GetItem(function_node.FunctionNode):
         self.slices = slices
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
 
     def forward(self, xs):
         return utils.force_array(xs[0][self.slices]),
 
     def backward(self, indexes, gy):
         return GetItemGrad(
-            self.slices, self.inputs[0].shape, self.inputs[0].dtype).apply(gy)
+            self.slices, self.inputs[0].shape).apply(gy)
 
 
 class GetItemGrad(function_node.FunctionNode):
 
-    def __init__(self, slices, in_shape, in_dtype):
+    def __init__(self, slices, in_shape):
         self.slices = slices
         self._in_shape = in_shape
-        self._in_dtype = in_dtype
 
     def forward(self, inputs):
         gy, = inputs
         xp = backend.get_array_module(*inputs)
-        gx = xp.zeros(self._in_shape, self._in_dtype)
+        gx = xp.zeros(self._in_shape, gy.dtype)
         if xp is numpy:
             try:
                 numpy.add.at(gx, self.slices, gy)
@@ -117,7 +116,7 @@ def get_item(x, slices):
 
     .. note::
 
-       See NumPy document for details of `indexing
+       See NumPy documentation for details of `indexing
        <https://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
 
     .. admonition:: Example

@@ -32,7 +32,7 @@ class ClippedReLU(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
         type_check.expect(x_type.dtype.kind == 'f')
 
@@ -74,7 +74,7 @@ class ClippedReLUGrad2(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
@@ -104,7 +104,7 @@ class ClippedReLUGrad3(function_node.FunctionNode):
         self.cap = z
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):

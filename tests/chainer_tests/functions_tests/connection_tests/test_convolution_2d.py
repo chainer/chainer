@@ -115,7 +115,7 @@ class TestConvolution2DFunction(unittest.TestCase):
             y_actual = self.forward(inputs)
 
         testing.assert_allclose(
-            y_expected.data, y_actual.data, atol=5e-4, rtol=5e-3)
+            y_expected.data, y_actual.data, atol=1e-3, rtol=5e-3)
 
     def test_forward(self, backend_config):
         # TODO(hvy): chainerx does not support fp16 yet

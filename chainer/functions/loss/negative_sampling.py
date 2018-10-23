@@ -39,7 +39,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         self.samples = samples
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x', 't', 'W'))
+        type_check._argname(in_types, ('x', 't', 'W'))
         x_type, t_type, w_type = in_types
 
         type_check.expect(

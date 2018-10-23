@@ -39,13 +39,12 @@ class Softmax(function_node.FunctionNode):
         self.axis = axis
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
         x_type, = in_types
 
         type_check.expect(
             x_type.dtype.kind == 'f',
-            x_type.ndim > 1,
-            self.axis < x_type.ndim
+            -x_type.ndim <= self.axis < x_type.ndim,
         )
 
     def forward(self, x):

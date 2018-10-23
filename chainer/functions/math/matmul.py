@@ -79,7 +79,7 @@ class MatMul(function_node.FunctionNode):
         self.dtype = dtype
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('a', 'b'))
+        type_check._argname(in_types, ('a', 'b'))
         a_type, b_type = in_types
 
         type_check.expect(
@@ -238,7 +238,7 @@ class BatchMatMul(function_node.FunctionNode):
         self.transb = transb
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('a', 'b'))
+        type_check._argname(in_types, ('a', 'b'))
         a_type, b_type = in_types
 
         type_check.expect(

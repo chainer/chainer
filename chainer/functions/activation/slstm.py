@@ -55,7 +55,7 @@ class SLSTM(function.Function):
     """
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('c_prev1', 'c_prev2', 'x1', 'x2'))
+        type_check._argname(in_types, ('c_prev1', 'c_prev2', 'x1', 'x2'))
         c1_type, c2_type, x1_type, x2_type = in_types
 
         type_check.expect(

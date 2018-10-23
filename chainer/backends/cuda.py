@@ -100,7 +100,7 @@ def check_cuda_available():
             'cuDNN is not enabled.\n'
             'Please reinstall CuPy after you install cudnn\n'
             '(see https://docs-cupy.chainer.org/en/stable/install.html'
-            '#install-cupy-with-cudnn-and-nccl).')
+            '#install-cudnn).')
         check_cuda_available._already_warned = True
 
 
