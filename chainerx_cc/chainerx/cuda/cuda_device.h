@@ -187,7 +187,7 @@ public:
 protected:
     CudaDevice(CudaBackend& backend, int index)
         : Device{backend, index},
-          memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<DeviceMemoryAllocator>())},
+          device_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<DeviceMemoryAllocator>())},
           pinned_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<PinnedMemoryAllocator>())},
           cudnn_handle_{index} {}
 
@@ -206,7 +206,7 @@ private:
     // The current device must be set to this device, prior to calling this function.
     void MemoryCopyFromHostAsync(void* dst, const void* src, size_t bytesize);
 
-    std::shared_ptr<MemoryPool> memory_pool_;
+    std::shared_ptr<MemoryPool> device_memory_pool_;
 
     // TODO(hvy): Consider checking if pinned memory is available by querying canMapHostMemory.
     std::shared_ptr<MemoryPool> pinned_memory_pool_;

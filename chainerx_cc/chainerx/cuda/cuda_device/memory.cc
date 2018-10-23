@@ -16,8 +16,8 @@ namespace chainerx {
 namespace cuda {
 
 std::shared_ptr<void> CudaDevice::Allocate(size_t bytesize) {
-    void* ptr = memory_pool_->Malloc(bytesize);
-    return std::shared_ptr<void>{ptr, [weak_pool = std::weak_ptr<MemoryPool>{memory_pool_}](void* ptr) {
+    void* ptr = device_memory_pool_->Malloc(bytesize);
+    return std::shared_ptr<void>{ptr, [weak_pool = std::weak_ptr<MemoryPool>{device_memory_pool_}](void* ptr) {
                                      if (std::shared_ptr<MemoryPool> pool = weak_pool.lock()) {
                                          pool->Free(ptr);
                                      }
