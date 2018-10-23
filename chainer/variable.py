@@ -467,6 +467,11 @@ class Variable(object):
 
     """  # NOQA
 
+    # A NumPy, CuPy array cache to avoid redundant conversions between
+    # NumPy/CuPy and ChainerX.
+    # TODO(hvy): Avoid modifying this variable from outside this class.
+    _chainerx_fallback_array = None
+
     def __init__(self, data=None, **kwargs):
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
@@ -533,6 +538,7 @@ class Variable(object):
     def _clear_data_chainerx(self):
         self._is_chainerx = False
         self._data_chainerx = None
+        self._chainerx_fallback_array = None
 
     def _set_data_chainerx(self, data, grad, requires_grad):
         # Assigns the following attributes
@@ -562,6 +568,8 @@ class Variable(object):
                 self._data_chainerx[0].set_grad(grad)
         else:
             self._data_chainerx = [data.view()]
+
+        self._chainerx_fallback_array = None
 
     @property
     def xp(self):
@@ -733,6 +741,8 @@ class Variable(object):
             self._data_chainerx[0] = d.view()
             if self._requires_grad:
                 self._data_chainerx[0].require_grad()
+
+            self._chainerx_fallback_array = None
         else:
             self._node._update_data_info(d)
         self._data[0] = d
