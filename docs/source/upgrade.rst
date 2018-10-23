@@ -73,6 +73,16 @@ Extending the Backend Namespace
 
 In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes ``chainer.backend.get_array_module`` which used to be defined in ``chainer.backends.cuda.get_array_module``. Both can be used but the latter will be deprecated.
 
+``get_device_from_array`` Returns Actual Device for Empty Arrays
+----------------------------------------------------------------
+
+Prior to Chainer v5, :func:`chainer.backends.cuda.get_device_from_array` returned :class:`chainer.backends.cuda.DummyDeviceType` if the array is empty.
+In Chainer v5, it has been changed to return the actual :class:`cupy.cuda.Device` object::
+
+    >>> x = cupy.array([])
+    >>> chainer.backends.cuda.get_device_from_array(x)
+    <CUDA Device 0>
+
 CuPy v5
 -------
 
