@@ -6,6 +6,16 @@ from chainer import testing
 from chainer.utils import array
 
 
+class SizeOfShapeTestBase(object):
+
+    def test_size_of_shape(self):
+        arr = numpy.empty(self.shape)
+        size = array.size_of_shape(arr.shape)
+        size_expect = arr.size
+        assert type(size) == type(size_expect)
+        assert size == size_expect
+
+
 @testing.parameterize(
     {'shape': ()},
     {'shape': (2, 3)},
@@ -16,14 +26,19 @@ from chainer.utils import array
     {'shape': (2, 0)},
     {'shape': (5, 0, 7)},
 )
-class TestSizeOfShape(unittest.TestCase):
+class TestSizeOfShape(SizeOfShapeTestBase, unittest.TestCase):
+    pass
 
-    def test_size_of_shape(self):
-        arr = numpy.empty(self.shape)
-        size = array.size_of_shape(arr.shape)
-        size_expect = arr.size
-        assert type(size) == type(size_expect)
-        assert size == size_expect
+
+@testing.parameterize(
+    {'shape': (0, 10**18)},
+    {'shape': (10**18, 0)},
+    {'shape': (0, 10**6, 10**6, 10**6)},
+    {'shape': (10**6, 10**6, 10**6, 0)},
+)
+@testing.with_requires('numpy>=1.11')
+class TestSizeOfShapeLargeZero(SizeOfShapeTestBase, unittest.TestCase):
+    pass
 
 
 @testing.parameterize(
