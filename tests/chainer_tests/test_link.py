@@ -18,9 +18,8 @@ class TestLink(unittest.TestCase):
     def setUp(self):
         x_shape_0 = 2
         x_shape_1 = numpy.int64(3)
-        with testing.assert_warns(DeprecationWarning):
-            self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
-                                     u=(None, 'd'))
+        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
+                                 u=(None, 'd'))
         with self.link.init_scope():
             self.link.y = chainer.Parameter(shape=(2,))
             self.link.v = chainer.Parameter()
@@ -97,45 +96,38 @@ class TestLink(unittest.TestCase):
         assert ret == call.return_value
 
     def test_add_param(self):
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('z', (2, 3))
+        self.link.add_param('z', (2, 3))
         self.check_param_init('z', (2, 3), 'f')
 
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('w', (2, 3), dtype='d')
+        self.link.add_param('w', (2, 3), dtype='d')
         self.check_param_init('w', (2, 3), 'd')
 
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('r')
+        self.link.add_param('r')
         self.check_param_uninit('r')
         self.link.r.initialize((2, 3))
         self.check_param_init('r', (2, 3), 'f')
 
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('s', dtype='d')
+        self.link.add_param('s', dtype='d')
         self.check_param_uninit('s')
         self.link.s.initialize((2, 3))
         self.check_param_init('s', (2, 3), 'd')
 
         initializer = initializers.Zero('d')
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('t', initializer=initializer)
+        self.link.add_param('t', initializer=initializer)
         self.check_param_uninit('t', initializer)
         self.link.t.initialize((2, 3))
         self.check_param_init('t', (2, 3), 'd', 0)
 
     def test_add_param_direct_initialization(self):
         z = numpy.random.rand(2, 3).astype('f')
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('z', initializer=z)
+        self.link.add_param('z', initializer=z)
         self.assertIsInstance(self.link.z.data, numpy.ndarray)
         numpy.testing.assert_array_equal(self.link.z.data, z)
 
     def test_add_param_duplicated_with_persistent(self):
         self.link.add_persistent('z', 'abc')
         with self.assertRaises(AttributeError):
-            with testing.assert_warns(DeprecationWarning):
-                self.link.add_param('z', (2, 3))
+            self.link.add_param('z', (2, 3))
 
     def test_add_persistent(self):
         self.assertTrue(hasattr(self.link, 'p'))
@@ -666,8 +658,7 @@ class TestChain(unittest.TestCase):
         self.c1 = chainer.Chain()
         with self.c1.init_scope():
             self.c1.l1 = self.l1
-        with testing.assert_warns(DeprecationWarning):
-            self.c1.add_link('l2', self.l2)
+        self.c1.add_link('l2', self.l2)
         self.c2 = chainer.Chain()
         with self.c2.init_scope():
             self.c2.c1 = self.c1
