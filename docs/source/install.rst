@@ -60,7 +60,7 @@ Chainer can be installed without them, in which case the corresponding features 
 * Distributed Deep Learning using ChainerMN
     * CUDA-aware MPI
     * `mpi4py <https://mpi4py.readthedocs.io/en/stable/>`__
-    * See :ref:`ChainerMN installation guide <chainermn_installation>` for installation instructions
+    * See :ref:`ChainerMN installation guide <chainermn_installation>` for installation instructions.
 
 
 Install Chainer
