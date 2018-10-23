@@ -365,7 +365,7 @@ Use apply() method instead.\
                 _to_variable_with_chainerx_fallback_array(
                     chainerx_out_array, out_array)
                 for chainerx_out_array, out_array
-                in zip(chainerx_out_data, outputs)])
+                in six.moves.zip(chainerx_out_data, outputs)])
 
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
