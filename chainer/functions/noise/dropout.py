@@ -48,16 +48,14 @@ class Dropout(function_node.FunctionNode):
                 and self.mask is None):
             self._use_cudnn = True
 
-            handle = cudnn.get_handle()
-
             if hasattr(self, 'states'):
                 # if we already have a dropout mask,
                 # the forward operation is equal to backward.
                 return cuda.get_cudnn_dropout_states().backward(
-                    handle, x[0], self.dropout_ratio, self.states),
+                    None, x[0], self.dropout_ratio, self.states),
 
             self.states, y = cuda.get_cudnn_dropout_states().forward(
-                handle, x[0], self.dropout_ratio)
+                None, x[0], self.dropout_ratio)
             return y,
         else:
             if self.mask is not None:
@@ -120,9 +118,8 @@ class DropoutGradCuDNN(function_node.FunctionNode):
         self.dropout_ratio = dropout_ratio
 
     def forward(self, inputs):
-        handle = cudnn.get_handle()
         return cuda.get_cudnn_dropout_states().backward(
-            handle, inputs[0], self.dropout_ratio, self.states),
+            None, inputs[0], self.dropout_ratio, self.states),
 
     def backward(self, indexes, gy):
         return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
