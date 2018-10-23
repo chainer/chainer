@@ -574,8 +574,6 @@ class Variable(object):
 
         self._chainerx_const_array_cache = None
         self._chainerx_grad_cache = None
-        self._requires_grad = requires_grad
-
         self._chainerx_fallback_array = None
 
     @property
