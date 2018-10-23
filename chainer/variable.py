@@ -469,6 +469,7 @@ class Variable(object):
 
     # A NumPy, CuPy array cache to avoid redundant conversions between
     # NumPy/CuPy and ChainerX.
+    # TODO(hvy): Avoid modifying this variable from outside this class.
     _fallback_array = None
 
     def __init__(self, data=None, **kwargs):
