@@ -481,6 +481,11 @@ class Variable(object):
 
     _is_chainerx = False
 
+    # A NumPy, CuPy array cache to avoid redundant conversions between
+    # NumPy/CuPy and ChainerX.
+    # TODO(hvy): Avoid modifying this variable from outside this class.
+    _chainerx_fallback_array = None
+
     def __init__(self, data=None, **kwargs):
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
@@ -538,6 +543,7 @@ class Variable(object):
         self._is_chainerx = False
         self._chainerx_const_array_cache = None
         self._chainerx_grad_cache = None
+        self._chainerx_fallback_array = None
 
     def _set_chainerx_array(self, array, grad):
         # Sets chainerx array and grad.
@@ -569,6 +575,8 @@ class Variable(object):
         self._chainerx_const_array_cache = None
         self._chainerx_grad_cache = None
         self._requires_grad = requires_grad
+
+        self._chainerx_fallback_array = None
 
     @property
     def xp(self):
@@ -1575,6 +1583,19 @@ class Parameter(Variable):
             self._initial_backend = 'chainerx'
             self._initial_device = device
         super(Parameter, self).to_chainerx(device)
+
+    def to_device(self, device=None):
+        device_id = backend.DeviceId(device)
+        if device_id.xp is numpy:
+            self._initial_backend = None
+            self._initial_device = None
+        elif device_id.xp is cuda.cupy:
+            self._initial_backend = 'cuda'
+            self._initial_device = device_id.device
+        elif device_id.xp is chainerx:
+            self._initial_backend = 'chainerx'
+            self._initial_device = device_id.device
+        super(Parameter, self).to_device(device_id)
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()

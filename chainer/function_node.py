@@ -20,6 +20,14 @@ from chainer import variable
 import chainerx
 
 
+def _to_variable_with_chainerx_fallback_array(chainerx_array, fallback_array):
+    var = variable.Variable(
+        chainerx_array,
+        requires_grad=chainerx_array.is_backprop_required())
+    var._chainerx_fallback_array = fallback_array
+    return var
+
+
 class FunctionNode(object):
 
     """Function node of the computational graph.
@@ -255,16 +263,32 @@ Use apply() method instead.\
             # Fall back to FunctionNode.forward()
             chainerx_in_data = in_data
             in_data = []
-            for arr in chainerx_in_data:
-                backend_name = arr.device.backend.name
-                if backend_name == 'cuda':
-                    in_data.append(cuda.to_gpu(arr))
-                elif backend_name == 'native':
-                    in_data.append(backend.to_numpy(arr))
+            for i in six.moves.range(len(inputs)):
+                # Use the cached fallback arrays as inputs if they exist.
+                x = inputs[i]
+                x_is_variable = isinstance(x, variable.Variable)
+                if x_is_variable and x._chainerx_fallback_array is not None:
+                    x_data = x._chainerx_fallback_array
                 else:
-                    raise RuntimeError(
-                        'FunctionNode only supports ChainerX arrays with '
-                        'native or cuda backend')
+                    arr = chainerx_in_data[i]
+                    # TODO(hvy): DRY the following code with optimizer.py.
+                    backend_name = arr.device.backend.name
+                    if backend_name == 'cuda':
+                        to_backend = cuda.to_gpu
+                    elif backend_name == 'native':
+                        to_backend = backend.to_numpy
+                    else:
+                        raise RuntimeError(
+                            'FunctionNode only supports ChainerX arrays with '
+                            'native or cuda backend')
+                    x_data = to_backend(arr)
+
+                    # Update the fallback cache if possible.
+                    if x_is_variable:
+                        x._chainerx_fallback_array = x_data
+
+                in_data.append(x_data)
+
             in_data = tuple(in_data)
 
         utils._check_arrays_forward_compatible(in_data, self.label)
@@ -338,8 +362,11 @@ Use apply() method instead.\
                 [variable._ChainerxVariableNodeProps(x) for x in inputs])
 
             ret = tuple([
-                variable.Variable(y, requires_grad=y.is_backprop_required())
-                for y in chainerx_out_data])
+                _to_variable_with_chainerx_fallback_array(
+                    chainerx_out_array, out_array)
+                for chainerx_out_array, out_array
+                in six.moves.zip(chainerx_out_data, outputs)])
+
         else:
             input_vars = [chainer.as_variable(x) for x in inputs]
             requires_grad = any([x.requires_grad for x in input_vars])

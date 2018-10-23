@@ -186,16 +186,30 @@ public:
 
 protected:
     CudaDevice(CudaBackend& backend, int index)
-        : Device{backend, index}, memory_pool_{std::make_shared<MemoryPool>(index)}, cudnn_handle_{index} {}
+        : Device{backend, index},
+          device_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<DeviceMemoryAllocator>())},
+          pinned_memory_pool_{std::make_shared<MemoryPool>(index, std::make_unique<PinnedMemoryAllocator>())},
+          cudnn_handle_{index} {}
 
 private:
-    cublasHandle_t cublas_handle();  // not thread-safe
-
     friend CudaDevice* cuda_internal::CreateDevice(CudaBackend&, int);
 
     friend class cuda_internal::CudaConvTest;  // for unit-tests
 
-    std::shared_ptr<MemoryPool> memory_pool_;
+    cublasHandle_t cublas_handle();  // not thread-safe
+
+    // Allocates pinned memory.
+    // The pinned memory is used internally by the CUDA device for asynchronous memory transfer, i.e. cudaMemcpyAsync.
+    std::shared_ptr<void> AllocatePinnedMemory(size_t bytesize);
+
+    // Asynchronous transfer from host to this device, w.r.t. host, using temporary pinned memory.
+    // The current device must be set to this device, prior to calling this function.
+    void MemoryCopyFromHostAsync(void* dst, const void* src, size_t bytesize);
+
+    std::shared_ptr<MemoryPool> device_memory_pool_;
+
+    // TODO(hvy): Consider checking if pinned memory is available by querying canMapHostMemory.
+    std::shared_ptr<MemoryPool> pinned_memory_pool_;
 
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};

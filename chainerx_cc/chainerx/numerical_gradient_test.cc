@@ -1,5 +1,6 @@
 #include "chainerx/numerical_gradient.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <vector>
@@ -51,12 +52,20 @@ public:
 
         EXPECT_EQ(grads.size(), expected_grads.size());
 
-        GetDefaultDevice().Synchronize();
-        for (size_t i = 0; i < nin; ++i) {
-            auto grads_data = static_cast<const T*>(grads[i].data().get());
-            auto expected_grads_data = static_cast<const T*>(expected_grads.at(i).data().get());
+        // Transfer to native device before accessing raw data.
+        Arrays native_grads;
+        Arrays native_expected_grads;
 
-            int64_t total_size = grads.at(i).GetTotalSize();
+        std::transform(grads.begin(), grads.end(), std::back_inserter(native_grads), [](const Array& array) { return array.ToNative(); });
+        std::transform(expected_grads.begin(), expected_grads.end(), std::back_inserter(native_expected_grads), [](const Array& array) {
+            return array.ToNative();
+        });
+
+        for (size_t i = 0; i < nin; ++i) {
+            auto grads_data = static_cast<const T*>(native_grads[i].data().get());
+            auto expected_grads_data = static_cast<const T*>(native_expected_grads.at(i).data().get());
+
+            int64_t total_size = native_grads.at(i).GetTotalSize();
             for (int64_t i = 0; i < total_size; ++i) {
                 EXPECT_NEAR(grads_data[i], expected_grads_data[i], 1e-3f) << "gradient mismatch at i=" << i;
             }

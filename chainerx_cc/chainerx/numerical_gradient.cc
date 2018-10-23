@@ -18,6 +18,13 @@
 
 namespace chainerx {
 namespace numerical_gradient_internal {
+namespace {
+
+void SynchronizeArrays(const Arrays& arrays) {
+    std::for_each(arrays.begin(), arrays.end(), [](const Array& array) { array.device().Synchronize(); });
+}
+
+}  // namespace
 
 Scalar Norm(const Array& x) {
     Scalar s = AsScalar((x * x).Sum());
@@ -33,7 +40,10 @@ void Set(const Array& out, int64_t flat_index, Scalar value) {
         Indexer<> indexer{out.shape()};
         T& dst = iarray[indexer.It(flat_index)];
         auto src = static_cast<T>(value);
-        out.device().MemoryCopyFrom(&dst, &src, sizeof(T), native_device);
+        Device& device = out.device();
+        device.MemoryCopyFrom(&dst, &src, sizeof(T), native_device);
+        // TODO(hvy): Avoid having to synchronize for each Set.
+        device.Synchronize();
     });
 }
 
@@ -56,6 +66,10 @@ Arrays CalculateNumericalGradient(
     // TODO(niboshi): Currently only elementwise functions are supported.
     // TODO(niboshi): Implement arithmetic operations and avoid manual synchronize
     NoBackpropModeScope scope{};
+
+    SynchronizeArrays(inputs);
+    SynchronizeArrays(grad_outputs);
+    SynchronizeArrays(eps);
 
     const int nin = inputs.size();
     const int nout = grad_outputs.size();
