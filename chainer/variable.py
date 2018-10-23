@@ -569,6 +569,8 @@ class Variable(object):
         else:
             self._data_chainerx = [data.view()]
 
+        self._chainerx_fallback_array = None
+
     @property
     def xp(self):
         """Array module for this variable.
