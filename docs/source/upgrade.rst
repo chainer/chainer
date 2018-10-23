@@ -10,6 +10,17 @@ Most changes are carefully designed not to break existing code; however changes 
 Chainer v5
 ==========
 
+ChainerMN Became Part of Chainer
+--------------------------------
+
+ChainerMN, which enables multi-node distributed deep learning using Chainer, has been merged to Chainer v5.
+
+Prior to Chainer v4, ChainerMN was provided as a separate ``chainermn`` package.
+In Chainer v5, ChainerMN now became a part of Chainer; ChainerMN will be installed just by installing ``chainer`` package.
+If you are using ``chainermn`` package, make sure to remove it by ``pip uninstall chainermn`` before upgrading to Chainer v5 or later.
+
+For documentation of ChainerMN, see :doc:`chainermn/index`.
+
 FunctionNode Classes are Hidden from ``chainer.functions``
 ----------------------------------------------------------
 
