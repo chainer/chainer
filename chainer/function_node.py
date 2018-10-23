@@ -20,6 +20,14 @@ from chainer import variable
 import chainerx
 
 
+def _to_variable_with_chainerx_fallback_array(chainerx_array, fallback_array):
+    var = variable.Variable(
+        chainerx_array,
+        requires_grad=chainerx_array.is_backprop_required())
+    var._chainerx_fallback_array = fallback_array
+    return var
+
+
 class FunctionNode(object):
 
     """Function node of the computational graph.
@@ -353,17 +361,8 @@ Use apply() method instead.\
             self.inputs = tuple(
                 [variable._ChainerxVariableNodeProps(x) for x in inputs])
 
-            # Store fallback arrays before converting.
-            def to_variable_with_chainerx_fallback_array(
-                    chainerx_array, array):
-                var = variable.Variable(
-                    chainerx_array,
-                    requires_grad=chainerx_array.is_backprop_required())
-                var._chainerx_fallback_array = array
-                return var
-
             ret = tuple([
-                to_variable_with_chainerx_fallback_array(
+                _to_variable_with_chainerx_fallback_array(
                     chainerx_out_array, out_array)
                 for chainerx_out_array, out_array
                 in zip(chainerx_out_data, outputs)])
