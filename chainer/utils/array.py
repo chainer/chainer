@@ -43,7 +43,9 @@ def size_of_shape(shape):
     size = 1
     for i in shape:
         size *= i
-    return size
+
+    # should not return long in Python 2
+    return int(size)
 
 
 def sum_to(x, shape):
