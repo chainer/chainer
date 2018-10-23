@@ -14,9 +14,17 @@ namespace cuda {
 
 constexpr size_t kAllocationUnitSize = 512;
 
+// TODO(hvy): Add a member function to check for the last error, using e.g. cudaPeekAtLastError.
+// This function may for instance throw in case the return value is not a cudaSuccess.
+// This will be necessary when extending the MemoryPool with a function to explicitly free blocks.
 class Allocator {
 public:
+    // Allocates memory.
+    // This function may throw.
     virtual void Malloc(void** ptr, size_t bytesize) = 0;
+
+    // Frees allocated memory.
+    // This function does not throw, since it should be usable from within a destructor.
     virtual void Free(void* ptr) = 0;
 };
 
