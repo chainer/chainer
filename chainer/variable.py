@@ -737,6 +737,8 @@ class Variable(object):
             self._data_chainerx[0] = d.view()
             if self._requires_grad:
                 self._data_chainerx[0].require_grad()
+
+            self._fallback_array = None
         else:
             self._node._update_data_info(d)
         self._data[0] = d
