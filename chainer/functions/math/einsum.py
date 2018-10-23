@@ -74,7 +74,7 @@ class EinSum(function_node.FunctionNode):
 
     def check_type_forward(self, in_types):
         for i, in_type in enumerate(in_types):
-            type_check.argname((in_type,), ('x{}'.format(i),))
+            type_check._argname((in_type,), ('x{}'.format(i),))
             type_check.expect(in_type.dtype.kind == 'f')
 
         in_subs = self.in_subs.split(',')
