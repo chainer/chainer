@@ -38,7 +38,7 @@ class Im2Col(function_node.FunctionNode):
         self.cover_all = cover_all
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('x',))
+        type_check._argname(in_types, ('x',))
 
         x_type = in_types[0]
         type_check.expect(
@@ -74,7 +74,7 @@ class Im2ColGrad(function_node.FunctionNode):
         self.in_shape = in_shape
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('gy',))
+        type_check._argname(in_types, ('gy',))
 
         gy_type = in_types[0]
         type_check.expect(

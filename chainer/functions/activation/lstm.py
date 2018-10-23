@@ -62,7 +62,7 @@ class LSTM(function_node.FunctionNode):
     """
 
     def check_type_forward(self, in_types):
-        type_check.argname(in_types, ('c', 'x'))
+        type_check._argname(in_types, ('c', 'x'))
         c_type, x_type = in_types
 
         type_check.expect(
