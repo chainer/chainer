@@ -117,7 +117,7 @@ def get_item(x, slices):
 
     .. note::
 
-       See NumPy document for details of `indexing
+       See NumPy documentation for details of `indexing
        <https://docs.scipy.org/doc/numpy/reference/arrays.indexing.html>`_.
 
     .. admonition:: Example
