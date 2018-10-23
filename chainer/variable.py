@@ -538,6 +538,7 @@ class Variable(object):
     def _clear_data_chainerx(self):
         self._is_chainerx = False
         self._data_chainerx = None
+        self._chainerx_fallback_array = None
 
     def _set_data_chainerx(self, data, grad, requires_grad):
         # Assigns the following attributes
