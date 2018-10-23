@@ -65,8 +65,12 @@ class dump_graph(extension.Extension):
                  variable_style=None, function_style=None):
         self._root_name = root_name
         self._out_name = out_name
-        self._variable_style = variable_style or _var_style
-        self._function_style = function_style or _func_style
+        if variable_style is None:
+            variable_style = _var_style
+        self._variable_style = variable_style
+        if function_style is None:
+            function_style = _func_style
+        self._function_style = function_style
         self._original_flag = None
         self._flag_called = False
 
