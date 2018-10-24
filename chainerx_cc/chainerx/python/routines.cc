@@ -75,8 +75,6 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     return MoveArrayBody(chainerx::FromData(shape, GetDtype(dtype), data, nonstd::nullopt, offset, GetDevice(device)));
 }
 
-}  // namespace
-
 void InitChainerxCreation(pybind11::module& m) {
     // creation routines
     // TODO(niboshi): Accept CuPy ndarray in `array` and `asarray`. In principle it's CuPy's responsibility to provide some standard
@@ -638,6 +636,8 @@ void InitChainerxPooling(pybind11::module& m) {
           py::arg("pad") = 0,
           py::arg("pad_mode") = "ignore");
 }
+
+}  // namespace
 
 void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxCreation(m);
