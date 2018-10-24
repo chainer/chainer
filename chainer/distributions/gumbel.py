@@ -48,7 +48,7 @@ class Gumbel(distribution.Distribution):
 
     @property
     def entropy(self):
-        return exponential.log(self.scale) + EULER + 1.
+        return exponential.log(self.scale) + (EULER + 1)
 
     @property
     def event_shape(self):

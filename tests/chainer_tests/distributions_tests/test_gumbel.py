@@ -1,7 +1,8 @@
+import numpy
+
 from chainer import distributions
 from chainer import testing
 from chainer import utils
-import numpy
 
 
 @testing.parameterize(*testing.product({
@@ -11,7 +12,7 @@ import numpy
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
-class TestLaplace(testing.distribution_unittest):
+class TestGumbel(testing.distribution_unittest):
 
     scipy_onebyone = True
 
