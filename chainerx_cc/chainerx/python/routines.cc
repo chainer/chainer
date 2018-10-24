@@ -77,7 +77,7 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
 
 }  // namespace
 
-void InitChainerxRoutines(pybind11::module& m) {
+void InitChainerxCreation(pybind11::module& m) {
     // creation routines
     // TODO(niboshi): Accept CuPy ndarray in `array` and `asarray`. In principle it's CuPy's responsibility to provide some standard
     // interface to allow this, but users may want to convert cupy.ndarray to ChainerX before CuPy's support will be implemented. In such
@@ -270,7 +270,9 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("endpoint") = true,
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
+}
 
+void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
           [](const ArrayBodyPtr& a, const ArrayBodyPtr& indices, const nonstd::optional<int8_t>& axis) {
@@ -282,13 +284,17 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("a"),
           py::arg("indices"),
           py::arg("axis") = nullptr);
+}
 
+void InitChainerxLinalg(pybind11::module& m) {
     // linalg routines
     m.def("dot",
           [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Dot(Array{a}, Array{b})); },
           py::arg("a"),
           py::arg("b"));
+}
 
+void InitChainerxLogic(pybind11::module& m) {
     // logic routines
     m.def("equal",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Equal(Array{x1}, Array{x2})); },
@@ -315,7 +321,9 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("x1"),
           py::arg("x2"));
     m.def("logical_not", [](const ArrayBodyPtr& x1) { return MoveArrayBody(LogicalNot(Array{x1})); }, py::arg("x1"));
+}
 
+void InitChainerxManipulation(pybind11::module& m) {
     // manipulation routines
     m.def("asscalar",
           [](const ArrayBodyPtr& a) -> py::object {
@@ -380,7 +388,9 @@ void InitChainerxRoutines(pybind11::module& m) {
           [](const ArrayBodyPtr& array, py::int_ shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
           py::arg("shape"));
+}
 
+void InitChainerxMath(pybind11::module& m) {
     // math routines
     m.def("negative", [](const ArrayBodyPtr& x) { return MoveArrayBody(Negative(Array{x})); }, py::arg("x"));
     m.def("add",
@@ -461,13 +471,17 @@ void InitChainerxRoutines(pybind11::module& m) {
     m.def("tanh", [](const ArrayBodyPtr& x) { return MoveArrayBody(Tanh(Array{x})); }, py::arg("x"));
     m.def("isnan", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsNan(Array{x})); }, py::arg("x"));
     m.def("isinf", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsInf(Array{x})); }, py::arg("x"));
+}
 
+void InitChainerxSorting(pybind11::module& m) {
     // sorting routines
     m.def("argmax",
           [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{a}, ToAxes(axis))); },
           py::arg("a"),
           py::arg("axis") = nullptr);
+}
 
+void InitChainerxStatistics(pybind11::module& m) {
     // statistics routines
     m.def("amax",
           [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(AMax(Array{a}, Axes{axis}, keepdims)); },
@@ -482,7 +496,9 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
     m.attr("max") = m.attr("amax");
+}
 
+void InitChainerxConnection(pybind11::module& m) {
     // connection routines
     m.def("conv",
           [](const ArrayBodyPtr& x,
@@ -533,7 +549,9 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("stride") = 1,
           py::arg("pad") = 0,
           py::arg("outsize") = nullptr);
+}
 
+void InitChainerxNormalization(pybind11::module& m) {
     // normalization routines
     m.def("batch_norm",
           [](const ArrayBodyPtr& x,
@@ -572,7 +590,9 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("var"),
           py::arg("eps") = 2e-5,
           py::arg("axis") = nullptr);
+}
 
+void InitChainerxPooling(pybind11::module& m) {
     // pooling routines
     // TODO(sonots): Support return_indicies option of chainer.functions.max_pooling_nd.
     m.def("max_pool",
@@ -617,6 +637,20 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("stride") = py::none(),
           py::arg("pad") = 0,
           py::arg("pad_mode") = "ignore");
+}
+
+void InitChainerxRoutines(pybind11::module& m) {
+    InitChainerxCreation(m);
+    InitChainerxIndexing(m);
+    InitChainerxLinalg(m);
+    InitChainerxLogic(m);
+    InitChainerxManipulation(m);
+    InitChainerxMath(m);
+    InitChainerxSorting(m);
+    InitChainerxStatistics(m);
+    InitChainerxConnection(m);
+    InitChainerxNormalization(m);
+    InitChainerxPooling(m);
 }
 
 }  // namespace python_internal
