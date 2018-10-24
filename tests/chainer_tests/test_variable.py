@@ -554,12 +554,12 @@ class TestVariable(unittest.TestCase):
 
     @attr.chainerx
     def test_cleargrad_chainerx(self):
-        # TODO(hvy): Simplity to chainerx.empty(3, ...) when supported.
+        # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
         self.check_cleargrad(chainerx.empty((3,), dtype=np.float32))
 
     @attr.chainerx
     def test_cleargrad_fill_chainerx(self):
-        # TODO(hvy): Simplity to chainerx.empty(3, ...) when supported.
+        # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
         self.check_cleargrad(chainerx.empty((3,), dtype=np.float32), fill=True)
 
     def check_zerograd(self, a_data, fill=False):
@@ -619,12 +619,12 @@ class TestVariable(unittest.TestCase):
 
     @attr.chainerx
     def test_zerograd_chainerx(self):
-        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
+        # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
         self.check_zerograd(chainerx.empty((3,), dtype=np.float32))
 
     @attr.chainerx
     def test_zerograd_fill_chainerx(self):
-        # TODO(hvy): Use backend.get_array_module when it supports chainerx.
+        # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
         self.check_zerograd(chainerx.empty((3,), dtype=np.float32), fill=True)
 
     def check_copydata(self, data1, data2, expect):
