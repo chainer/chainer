@@ -469,7 +469,7 @@ class Variable(object):
 
     # Cached grad-stopped view of chainerx array. This is the return value
     # of `array` and `data` properties.
-    _chainerx_const_array_cache = None
+    _chainerx_nobp_array_cache = None
 
     # Cached grad-stopped view of the array returned by `grad` property.
     # It's a 2-element tuple, where the first is the original grad array and
@@ -541,7 +541,7 @@ class Variable(object):
 
     def _clear_chainerx(self):
         self._is_chainerx = False
-        self._chainerx_const_array_cache = None
+        self._chainerx_nobp_array_cache = None
         self._chainerx_grad_cache = None
         self._chainerx_fallback_array = None
 
@@ -572,7 +572,7 @@ class Variable(object):
                     array_view.set_grad(grad)
             self._data = [array_view]
 
-        self._chainerx_const_array_cache = None
+        self._chainerx_nobp_array_cache = None
         self._chainerx_grad_cache = None
         self._chainerx_fallback_array = None
 
@@ -734,11 +734,11 @@ class Variable(object):
         # For ChainerX, this property always returns a grad-stopped view.
         # The view is cached to reduce potential overhead.
         if self._is_chainerx:
-            if (self._chainerx_const_array_cache is None
+            if (self._chainerx_nobp_array_cache is None
                     and self._data[0] is not None):
-                self._chainerx_const_array_cache = (
+                self._chainerx_nobp_array_cache = (
                     self._data[0].as_grad_stopped())
-            return self._chainerx_const_array_cache
+            return self._chainerx_nobp_array_cache
 
         return self._data[0]
 
