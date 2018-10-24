@@ -111,9 +111,24 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
+    m.def("empty",
+          [](py::int_ dim, py::handle dtype, py::handle device) {
+              return MoveArrayBody(Empty(Shape{dim}, GetDtype(dtype), GetDevice(device)));
+          },
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
     m.def("full",
           [](py::tuple shape, Scalar fill_value, py::handle dtype, py::handle device) {
               return MoveArrayBody(Full(ToShape(shape), fill_value, GetDtype(dtype), GetDevice(device)));
+          },
+          py::arg("shape"),
+          py::arg("fill_value"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
+    m.def("full",
+          [](py::int_ dim, Scalar fill_value, py::handle dtype, py::handle device) {
+              return MoveArrayBody(Full(Shape{dim}, fill_value, GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("fill_value"),
@@ -126,6 +141,11 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("shape"),
           py::arg("fill_value"),
           py::arg("device") = nullptr);
+    m.def("full",
+          [](py::int_ dim, Scalar fill_value, py::handle device) { return MoveArrayBody(Full(Shape{dim}, fill_value, GetDevice(device))); },
+          py::arg("shape"),
+          py::arg("fill_value"),
+          py::arg("device") = nullptr);
     m.def("zeros",
           [](py::tuple shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Zeros(ToShape(shape), GetDtype(dtype), GetDevice(device)));
@@ -133,9 +153,23 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("shape"),
           py::arg("dtype"),
           py::arg("device") = nullptr);
+    m.def("zeros",
+          [](py::int_ dim, py::handle dtype, py::handle device) {
+              return MoveArrayBody(Zeros(Shape{dim}, GetDtype(dtype), GetDevice(device)));
+          },
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
     m.def("ones",
           [](py::tuple shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Ones(ToShape(shape), GetDtype(dtype), GetDevice(device)));
+          },
+          py::arg("shape"),
+          py::arg("dtype"),
+          py::arg("device") = nullptr);
+    m.def("ones",
+          [](py::int_ dim, py::handle dtype, py::handle device) {
+              return MoveArrayBody(Ones(Shape{dim}, GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype"),
@@ -343,7 +377,7 @@ void InitChainerxRoutines(pybind11::module& m) {
           py::arg("array"),
           py::arg("shape"));
     m.def("broadcast_to",
-          [](const ArrayBodyPtr& array, py::tuple shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
+          [](const ArrayBodyPtr& array, py::int_ shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
           py::arg("shape"));
 
