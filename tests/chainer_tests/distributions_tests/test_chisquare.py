@@ -30,8 +30,8 @@ class TestChisquare(testing.distribution_unittest):
         self.support = "positive"
 
     def sample_for_test(self):
-        smp = numpy.random.gamma(
-            shape=5., size=self.sample_shape + self.shape
+        smp = numpy.random.chisquare(
+            df=1, size=self.sample_shape + self.shape
         ).astype(numpy.float32)
         return smp
 
