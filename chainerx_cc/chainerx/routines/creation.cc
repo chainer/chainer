@@ -159,7 +159,7 @@ Array Copy(const Array& a) {
 
     BackwardBuilder bb{"copy", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([](BackwardContext& bctx) { bctx.input_grad() = bctx.output_grad(); });
+        bt.Define([](BackwardContext& bctx) { bctx.input_grad() = *bctx.output_grad(); });
     }
     bb.Finalize();
 
@@ -220,7 +220,7 @@ Array AsContiguous(const Array& a, Dtype dtype) {
         BackwardBuilder bb{"ascontiguousarray", a, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([src_dtype = a.dtype()](BackwardContext& bctx) {
-                const Array& gout = bctx.output_grad();
+                const Array& gout = *bctx.output_grad();
                 bctx.input_grad() = gout.AsType(src_dtype, false);
             });
         }
@@ -290,7 +290,7 @@ Array Diag(const Array& v, int64_t k, Device& device) {
     BackwardBuilder bb{"diag", v, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([& device = v.device(), k](BackwardContext& bctx) {
-            const Array& gout = bctx.output_grad();
+            const Array& gout = *bctx.output_grad();
             bctx.input_grad() = Diag(gout, k, device);
         });
     }

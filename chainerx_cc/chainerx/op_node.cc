@@ -9,6 +9,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/array_node.h"
+#include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
 
@@ -25,8 +26,13 @@ std::shared_ptr<ArrayNode> FabricateOutputArrayNode(std::shared_ptr<OpNode> op_n
     CHAINERX_ASSERT(output_array_node_index < op_node->output_array_node_count());
     CHAINERX_ASSERT(op_node->output_array_nodes()[output_array_node_index].expired());
 
-    const ArrayProps& props = op_node->GetOutputArrayProps(output_array_node_index);
-    auto output_array_node = std::make_shared<ArrayNode>(props.shape, props.dtype, props.device, op_node->backprop_id());
+    const nonstd::optional<ArrayProps>& props = op_node->GetOutputArrayProps(output_array_node_index);
+    if (!props.has_value()) {
+        throw ChainerxError{
+                "The gradient of output ", output_array_node_index, " of operation \"", op_node->name(), "\" is not propagated."};
+    }
+
+    auto output_array_node = std::make_shared<ArrayNode>(props->shape, props->dtype, props->device, op_node->backprop_id());
 
     op_node->output_array_nodes()[output_array_node_index] = output_array_node;
     output_array_node->set_creator_op_node(std::move(op_node));
@@ -46,16 +52,16 @@ std::shared_ptr<OpNode> OpNode::CreateWithOutputArrayNodes(
 
     for (const Array& out : outputs) {
         const std::shared_ptr<ArrayBody>& out_body = GetArrayBody(out);
-        // TODO(niboshi): The following `continue` causes output count mismatch. Fix it.
-        // See also: BackwardBuilderTest.FloatToInt_PartiallyBackproppable in backward_builder_test.cc
-        if (GetKind(out_body->dtype()) != DtypeKind::kFloat) {
-            continue;
+        if (GetKind(out_body->dtype()) == DtypeKind::kFloat) {
+            CHAINERX_ASSERT(!out_body->HasArrayNode(backprop_id));
+            const std::shared_ptr<ArrayNode>& output_array_node = ArrayBody::CreateArrayNode(out_body, backprop_id);
+            op_node->output_array_props_.emplace_back(ArrayProps{*output_array_node});
+            op_node->output_array_nodes_.emplace_back(output_array_node);
+            output_array_node->set_creator_op_node(op_node);
+        } else {
+            op_node->output_array_props_.emplace_back(nonstd::nullopt);
+            op_node->output_array_nodes_.emplace_back(std::weak_ptr<ArrayNode>{});
         }
-        CHAINERX_ASSERT(!out_body->HasArrayNode(backprop_id));
-        const std::shared_ptr<ArrayNode>& output_array_node = ArrayBody::CreateArrayNode(out_body, backprop_id);
-        op_node->output_array_props_.emplace_back(*output_array_node);
-        op_node->output_array_nodes_.emplace_back(output_array_node);
-        output_array_node->set_creator_op_node(op_node);
     }
     op_node->AssertConsistency();
     return op_node;

@@ -50,7 +50,7 @@ TEST(BackwardBuilderTest, FloatToInt_PartiallyBackproppable) {
         bt.Define([](BackwardContext& bctx) {
             EXPECT_EQ(bctx.input_count(), 1U);
             EXPECT_EQ(bctx.output_count(), 2U);
-            bctx.input_grad() = bctx.output_grad(0) + bctx.output_grad(1);
+            bctx.input_grad() = *bctx.output_grad(1);
         });
         bb.Finalize();
     };
@@ -62,8 +62,7 @@ TEST(BackwardBuilderTest, FloatToInt_PartiallyBackproppable) {
     EXPECT_FALSE(y1.IsBackpropRequired());
     EXPECT_TRUE(y2.IsBackpropRequired());
 
-    // TODO(niboshi): Currently this test does not pass with the following line. Fix it.
-    // Backward(y2);
+    Backward(y2);
 }
 
 }  // namespace

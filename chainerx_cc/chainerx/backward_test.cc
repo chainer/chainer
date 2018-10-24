@@ -83,7 +83,7 @@ TEST(BackwardContextTest, InputGrad) {
                 EXPECT_EQ(internal::GetArrayBody(dummy2), internal::GetArrayBody(bctx.input_grad(2)));
 
                 // bctx.input_grad(1) is omitted as it's irrelevant to the test.
-                bctx.input_grad(2) = bctx.output_grad(0);
+                bctx.input_grad(2) = *bctx.output_grad(0);
             });
         }
         bb.Finalize();
@@ -825,7 +825,7 @@ TEST_F(BackpropTest, NoCyclicReferenceInvolvingInputGrad) {
             BackwardBuilder::Target bt = bb.CreateTarget(0);
             bt.Define([x](BackwardContext& bctx) {
                 // Create an input grad which references the input array.
-                bctx.input_grad() = 2 * x * bctx.output_grad();
+                bctx.input_grad() = 2 * x * *bctx.output_grad();
             });
             bb.Finalize();
         };
@@ -868,10 +868,10 @@ TEST_F(BackpropTest, SomeOfOutputArrayNodesAreGone) {
         BackwardBuilder bb{"func", x, {y1, y2, y3, y4}};
         BackwardBuilder::Target bt = bb.CreateTarget(0);
         bt.Define([x](BackwardContext& bctx) {
-            Array gy1gx = bctx.output_grad(0) * Exp(x) * x;
-            Array gy2gx = bctx.output_grad(1) * Exp(x) * 2;
-            Array gy3gx = bctx.output_grad(2) * Exp(x) * 3;
-            Array gy4gx = bctx.output_grad(3) * Exp(x) * 4;
+            Array gy1gx = *bctx.output_grad(0) * Exp(x) * x;
+            Array gy2gx = *bctx.output_grad(1) * Exp(x) * 2;
+            Array gy3gx = *bctx.output_grad(2) * Exp(x) * 3;
+            Array gy4gx = *bctx.output_grad(3) * Exp(x) * 4;
             bctx.input_grad() = gy1gx + gy2gx + gy3gx + gy4gx;
         });
         bb.Finalize();
@@ -1012,7 +1012,7 @@ TEST_P(BackpropFunctionTest, OneToOneFunc) {
             EXPECT_TRUE(static_cast<bool>(bt));
 
             bt.Define([gy1_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
-                const Array& gy1 = bctx.output_grad();  // omit index
+                const Array& gy1 = *bctx.output_grad();  // omit index
                 EXPECT_ARRAY_EQ(gy1_value, gy1);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                     EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id}, gy1));
@@ -1074,8 +1074,8 @@ TEST_P(BackpropFunctionTest, OneToMultiFunc) {
             EXPECT_TRUE(static_cast<bool>(bt));
 
             bt.Define([gy1_value, gy2_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
-                const Array& gy1 = bctx.output_grad(0);  // by index
-                const Array& gy2 = bctx.output_grad(1);
+                const Array& gy1 = *bctx.output_grad(0);  // by index
+                const Array& gy2 = *bctx.output_grad(1);
                 EXPECT_ARRAY_EQ(gy1_value, gy1);
                 EXPECT_ARRAY_EQ(gy2_value, gy2);
                 if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -1149,7 +1149,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                 EXPECT_TRUE(static_cast<bool>(bt));
 
                 bt.Define([gy1_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
-                    const Array& gy1 = bctx.output_grad();  // omit index
+                    const Array& gy1 = *bctx.output_grad();  // omit index
                     EXPECT_ARRAY_EQ(gy1_value, gy1);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                         EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id}, gy1));
@@ -1174,7 +1174,7 @@ TEST_P(BackpropFunctionTest, MultiToOneFunc) {
                 EXPECT_TRUE(static_cast<bool>(bt));
 
                 bt.Define([gy1_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
-                    const Array& gy1 = bctx.output_grad(0);  // by index
+                    const Array& gy1 = *bctx.output_grad(0);  // by index
                     EXPECT_ARRAY_EQ(gy1_value, gy1);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
                         EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id}, gy1));
@@ -1261,8 +1261,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                 EXPECT_TRUE(static_cast<bool>(bt));
 
                 bt.Define([gy1_value, gy2_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
-                    const Array& gy1 = bctx.output_grad(0);  // by index
-                    const Array& gy2 = bctx.output_grad(1);
+                    const Array& gy1 = *bctx.output_grad(0);  // by index
+                    const Array& gy2 = *bctx.output_grad(1);
                     EXPECT_ARRAY_EQ(gy1_value, gy1);
                     EXPECT_ARRAY_EQ(gy2_value, gy2);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -1281,8 +1281,8 @@ TEST_P(BackpropFunctionTest, MultiToMultiFunc) {
                 EXPECT_TRUE(static_cast<bool>(bt));
 
                 bt.Define([gy1_value, gy2_value, double_backprop_opt, &backprop_id](BackwardContext& bctx) {
-                    const Array& gy1 = bctx.output_grad(0);  // by index
-                    const Array& gy2 = bctx.output_grad(1);
+                    const Array& gy1 = *bctx.output_grad(0);  // by index
+                    const Array& gy2 = *bctx.output_grad(1);
                     EXPECT_ARRAY_EQ(gy1_value, gy1);
                     EXPECT_ARRAY_EQ(gy2_value, gy2);
                     if (double_backprop_opt == DoubleBackpropOption::kEnable) {
@@ -1362,8 +1362,8 @@ TEST_P(BackpropFunctionTest, SomeInputDoesNotRequireGrad) {
             bt.Define([](BackwardContext& bctx) {
                 EXPECT_FALSE(bctx.is_input_grad_required(0));
                 EXPECT_TRUE(bctx.is_input_grad_required(1));
-                Array gy1gx1 = 2 * bctx.output_grad();
-                Array gy1gx2 = 3 * bctx.output_grad();
+                Array gy1gx1 = 2 * *bctx.output_grad();
+                Array gy1gx2 = 3 * *bctx.output_grad();
 
                 // Input grad can be assigned even if it's not required.
                 bctx.input_grad(0) = gy1gx1;
@@ -1429,8 +1429,8 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
                 EXPECT_FALSE(bctx.HasOutputGrad(0));
                 EXPECT_TRUE(bctx.HasOutputGrad(1));
 
-                const Array& gy1 = bctx.output_grad(0);
-                const Array& gy2 = bctx.output_grad(1);
+                const Array& gy1 = *bctx.output_grad(0);
+                const Array& gy2 = *bctx.output_grad(1);
                 EXPECT_ARRAY_EQ(ZerosLike(gy2_value), gy1);
                 EXPECT_ARRAY_EQ(gy2_value, gy2);
 
@@ -1527,8 +1527,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
                 EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
-                Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
+                Array gy1gx1 = *bctx.output_grad(0) * (3 * y1 - y2) / 2;
+                Array gy2gx1 = *bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
                 bctx.input_grad() = gy1gx1 + gy2gx1;
             });
         }
@@ -1561,8 +1561,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OriginalBodyIsAlive) {
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
                 EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
-                Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
+                Array gy1gx2 = *bctx.output_grad(0) * (3 * y1 + y2) / 2;
+                Array gy2gx2 = *bctx.output_grad(1) * (y1 + 3 * y2) / 2;
                 bctx.input_grad() = gy1gx2 + gy2gx2;
             });
         }
@@ -1656,8 +1656,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
                 EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
-                Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
+                Array gy1gx1 = *bctx.output_grad(0) * (3 * y1 - y2) / 2;
+                Array gy2gx1 = *bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
                 bctx.input_grad() = gy1gx1 + gy2gx1;
             });
         }
@@ -1689,8 +1689,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_FallBackToOutputArrayNode) {
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
                 EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
-                Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
+                Array gy1gx2 = *bctx.output_grad(0) * (3 * y1 + y2) / 2;
+                Array gy2gx2 = *bctx.output_grad(1) * (y1 + 3 * y2) / 2;
                 bctx.input_grad() = gy1gx2 + gy2gx2;
             });
         }
@@ -1798,8 +1798,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
                 EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx1 = bctx.output_grad(0) * (3 * y1 - y2) / 2;
-                Array gy2gx1 = bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
+                Array gy1gx1 = *bctx.output_grad(0) * (3 * y1 - y2) / 2;
+                Array gy2gx1 = *bctx.output_grad(1) * (-y1 + 3 * y2) / 2;
                 bctx.input_grad() = gy1gx1 + gy2gx1;
             });
         }
@@ -1838,8 +1838,8 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_OutputArrayNodeOfBackwardGraphIsDe
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
                 EXPECT_EQ(internal::GetArrayBody(y2_again), internal::GetArrayBody(y2));
 
-                Array gy1gx2 = bctx.output_grad(0) * (3 * y1 + y2) / 2;
-                Array gy2gx2 = bctx.output_grad(1) * (y1 + 3 * y2) / 2;
+                Array gy1gx2 = *bctx.output_grad(0) * (3 * y1 + y2) / 2;
+                Array gy2gx2 = *bctx.output_grad(1) * (y1 + 3 * y2) / 2;
                 bctx.input_grad() = gy1gx2 + gy2gx2;
             });
         }
@@ -1922,7 +1922,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
 
-                bctx.input_grad() = bctx.output_grad(0) * y1 * 2;
+                bctx.input_grad() = *bctx.output_grad(0) * y1 * 2;
             });
         }
         {
@@ -1947,7 +1947,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArrays)
                 const Array& y1_again = bctx.GetRetainedOutput(tok1);
                 EXPECT_EQ(internal::GetArrayBody(y1_again), internal::GetArrayBody(y1));
 
-                bctx.input_grad() = bctx.output_grad(0) * y1;
+                bctx.input_grad() = *bctx.output_grad(0) * y1;
             });
         }
         bb.Finalize();
@@ -2031,7 +2031,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
                     EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, y1));
                 }
 
-                bctx.input_grad() = bctx.output_grad(0) * y1;
+                bctx.input_grad() = *bctx.output_grad(0) * y1;
             });
         }
         bb.Finalize();
@@ -2110,7 +2110,7 @@ TEST_P(BackpropRetainOutputTest, RetainOutput_NonOverlappingGraphsInInputArraysM
                     EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id1, backprop_id2}, y1));
                 }
 
-                bctx.input_grad() = bctx.output_grad(0) * y1;
+                bctx.input_grad() = *bctx.output_grad(0) * y1;
             });
         }
         {
@@ -2205,8 +2205,8 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
                         EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
                         EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
 
-                        Array gy1gx1 = bctx.output_grad(0) * 2 * x1 * x2 * x2;
-                        Array gy2gx1 = bctx.output_grad(1) * 3 * x1 * x1 * x2 * x2 * x2;
+                        Array gy1gx1 = *bctx.output_grad(0) * 2 * x1 * x2 * x2;
+                        Array gy2gx1 = *bctx.output_grad(1) * 3 * x1 * x1 * x2 * x2 * x2;
                         bctx.input_grad() = gy1gx1 + gy2gx1;
                     });
         }
@@ -2234,8 +2234,8 @@ TEST_P(BackpropRetainInputTest, RetainInput) {
                         EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
                         EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
 
-                        Array gy1gx2 = bctx.output_grad(0) * x1 * x1 * 2 * x2;
-                        Array gy2gx2 = bctx.output_grad(1) * x1 * x1 * x1 * 3 * x2 * x2;
+                        Array gy1gx2 = *bctx.output_grad(0) * x1 * x1 * 2 * x2;
+                        Array gy2gx2 = *bctx.output_grad(1) * x1 * x1 * x1 * 3 * x2 * x2;
                         bctx.input_grad() = gy1gx2 + gy2gx2;
                     });
         }
@@ -2324,8 +2324,8 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
                 EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
                 EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
 
-                Array gy1gx1 = bctx.output_grad(0) * 2 * x1 * x2 * x2;
-                Array gy2gx1 = bctx.output_grad(1) * 3 * x1 * x1 * x2 * x2 * x2;
+                Array gy1gx1 = *bctx.output_grad(0) * 2 * x1 * x2 * x2;
+                Array gy2gx1 = *bctx.output_grad(1) * 3 * x1 * x1 * x2 * x2 * x2;
                 bctx.input_grad() = gy1gx1 + gy2gx1;
             });
         }
@@ -2357,8 +2357,8 @@ TEST_P(BackpropRetainInputTest, RetainInputArrayBodyIsDead) {
                 EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
                 EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
 
-                Array gy1gx2 = bctx.output_grad(0) * x1 * x1 * 2 * x2;
-                Array gy2gx2 = bctx.output_grad(1) * x1 * x1 * x1 * 3 * x2 * x2;
+                Array gy1gx2 = *bctx.output_grad(0) * x1 * x1 * 2 * x2;
+                Array gy2gx2 = *bctx.output_grad(1) * x1 * x1 * x1 * 3 * x2 * x2;
                 bctx.input_grad() = gy1gx2 + gy2gx2;
             });
         }
@@ -2439,8 +2439,8 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
                         EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
                         EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
 
-                        Array gy1gx1 = bctx.output_grad(0) * 2 * x1 * x2 * x2;
-                        Array gy2gx1 = bctx.output_grad(1) * 3 * x1 * x1 * x2 * x2 * x2;
+                        Array gy1gx1 = *bctx.output_grad(0) * 2 * x1 * x2 * x2;
+                        Array gy2gx1 = *bctx.output_grad(1) * 3 * x1 * x1 * x2 * x2 * x2;
                         bctx.input_grad() = gy1gx1 + gy2gx1;
                     });
         }
@@ -2467,8 +2467,8 @@ TEST_P(BackpropRetainInputTest, RetainInputWithDifferentGraphs) {
                         EXPECT_EQ(internal::GetArrayBody(x1_again), internal::GetArrayBody(x1));
                         EXPECT_EQ(internal::GetArrayBody(x2_again), internal::GetArrayBody(x2));
 
-                        Array gy1gx2 = bctx.output_grad(0) * x1 * x1 * 2 * x2;
-                        Array gy2gx2 = bctx.output_grad(1) * x1 * x1 * x1 * 3 * x2 * x2;
+                        Array gy1gx2 = *bctx.output_grad(0) * x1 * x1 * 2 * x2;
+                        Array gy2gx2 = *bctx.output_grad(1) * x1 * x1 * x1 * 3 * x2 * x2;
                         bctx.input_grad() = gy1gx2 + gy2gx2;
                     });
         }
@@ -2516,7 +2516,7 @@ TEST(BackpropGradValidationTest, InvalidGradShape) {
             BackwardBuilder bb{"func", x1, y1};
             BackwardBuilder::Target bt = bb.CreateTarget(0);
             bt.Define([](BackwardContext& bctx) {
-                const Array& gy1 = bctx.output_grad(0);
+                const Array& gy1 = *bctx.output_grad(0);
                 EXPECT_TRUE(testing::IsBackpropIdsEqual({}, gy1));
                 bctx.input_grad() = gy1.Reshape({2, 1});  // Intentionally set to a wrong shape (2, 1), instead of (2,).
             });
@@ -2553,7 +2553,7 @@ TEST(BackpropGradValidationTest, InvalidGradDtype) {
             BackwardBuilder bb{"func", x1, y1};
             BackwardBuilder::Target bt = bb.CreateTarget(0);
             bt.Define([](BackwardContext& bctx) {
-                const Array& gy1 = bctx.output_grad(0);
+                const Array& gy1 = *bctx.output_grad(0);
                 EXPECT_TRUE(testing::IsBackpropIdsEqual({}, gy1));
                 bctx.input_grad() = gy1.AsType(Dtype::kFloat32);  // Intentionally set to a wrong dtype float, instead of double.
             });
@@ -2590,7 +2590,7 @@ TEST(BackpropGradValidationTest, InvalidGradDevice) {
             BackwardBuilder bb{"func", x1, y1};
             BackwardBuilder::Target bt = bb.CreateTarget(0);
             bt.Define([& device = x1.device()](BackwardContext& bctx) {
-                const Array& gy1 = bctx.output_grad(0);
+                const Array& gy1 = *bctx.output_grad(0);
                 EXPECT_TRUE(testing::IsBackpropIdsEqual({}, gy1));
                 bctx.input_grad() =
                         gy1.ToDevice(device.backend().GetDevice(device.index() + 1));  // Intentionally set to a different device.

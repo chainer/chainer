@@ -26,7 +26,7 @@ Array Mean(const Array& a, const OptionalAxes& axis, bool keepdims) {
     BackwardBuilder bb{"mean", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([n, sorted_axis, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
-            const Array& gout = bctx.output_grad();
+            const Array& gout = *bctx.output_grad();
             CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
             if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {

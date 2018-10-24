@@ -118,7 +118,7 @@ public:
 
     BackpropId backprop_id() const { return backprop_id_; }
 
-    const ArrayProps& GetOutputArrayProps(size_t i) const {
+    const nonstd::optional<ArrayProps>& GetOutputArrayProps(size_t i) const {
         CHAINERX_ASSERT(i < output_array_props_.size());
         return output_array_props_[i];
     }
@@ -166,7 +166,7 @@ private:
     std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>> outer_graphs_output_array_nodes_;
 
     // Array props of output array nodes. This is used for creating dummy gradients.
-    std::vector<ArrayProps> output_array_props_;
+    std::vector<nonstd::optional<ArrayProps>> output_array_props_;
 
     std::vector<OpNodeBackwardEntry> backward_entries_;
 };
