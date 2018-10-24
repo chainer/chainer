@@ -67,8 +67,8 @@ class BatchRenormalization(BatchNormalization):
             if chainer.config.recompute:
                 # Do not update statistics when extra forward computation is
                 # called.
-                avg_mean = self.xp.zeros_like(self.avg_mean.data)
-                avg_var = self.xp.zeros_like(self.avg_var.data)
+                avg_mean = self.xp.zeros_like(self.avg_mean)
+                avg_var = self.xp.zeros_like(self.avg_var)
 
             ret = batch_renormalization.batch_renormalization(
                 x, gamma, beta, self.rmax, self.dmax,
