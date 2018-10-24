@@ -113,7 +113,7 @@ Then, the following files will be created:
 
 ## Inference
 
-`inference.py` shows how to load the saved parameters which is trained by one of the above training scripts and use it for making a prediction on a test datum. It requires a saved snapshot file containing learnt parameters, so please run one of the above training script first.
+`inference.py` shows how to load the saved parameters trained by one of the above training scripts and use it for making a prediction on a test datum. It requires a saved snapshot file containing learned parameters, so please run one of the above training script first.
 
 Usage (when you used `train_mnist.py`):
 ```
