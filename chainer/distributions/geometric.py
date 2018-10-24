@@ -1,7 +1,6 @@
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.functions.math import ceil
 from chainer.functions.math import exponential
 
 
@@ -9,10 +8,10 @@ class Geometric(distribution.Distribution):
 
     """Geometric Distribution.
 
-    The probability density function of the distribution is expressed as
+    The probability mass function of the distribution is expressed as
 
     .. math::
-        f(x) = p(1-p)^{k-1},
+        f(x = k) = p(1-p)^{k-1},
 
     Args:
         p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
@@ -49,15 +48,14 @@ class Geometric(distribution.Distribution):
     def sample_n(self, n):
         xp = cuda.get_array_module(self.p)
         if xp is cuda.cupy:
-            eps = xp.random.uniform(
+            eps = xp.random.geometric(
+                self.p.data,
                 size=(n,)+self.batch_shape, dtype=self.p.dtype)
         else:
-            eps = xp.random.uniform(
+            eps = xp.random.geometric(
+                self.p.data,
                 size=(n,)+self.batch_shape).astype(self.p.dtype)
-
-        noise = ceil.ceil(exponential.log(1 - eps)
-                          / exponential.log(1 - self.p))
-        return noise
+        return chainer.Variable(eps)
 
     @property
     def support(self):
