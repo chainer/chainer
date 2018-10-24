@@ -43,7 +43,7 @@ class TestCauchy(testing.distribution_unittest):
         return smp
 
     def check_mean(self, is_gpu):
-        with self.assertWarns(RuntimeWarning):
+        with testing.assert_warns(RuntimeWarning):
             if is_gpu:
                 mean1 = self.gpu_dist.mean.data
             else:
@@ -88,7 +88,7 @@ class TestCauchy(testing.distribution_unittest):
         self.check_sample(True)
 
     def check_variance(self, is_gpu):
-        with self.assertWarns(RuntimeWarning):
+        with testing.assert_warns(RuntimeWarning):
             if is_gpu:
                 variance1 = self.gpu_dist.variance.data
             else:
