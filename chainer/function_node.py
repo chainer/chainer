@@ -694,7 +694,7 @@ Use apply() method instead.\
                 chainer.Variable(gy, requires_grad=gy.is_backprop_required())
                 for gy in grad_outputs]))
 
-        return [gx._data_chainerx[0] for gx in gxs]
+        return [gx._data[0] for gx in gxs]
 
     def _backward_target_inputs(self, target_input_indexes, grad_outputs):
         # Filters out input gradients that are not required and returns the
@@ -1108,7 +1108,7 @@ def _extract_apply_in_data(inputs):
     #
     # Each object in `inputs` may be `Variable` or an array.
     # If it's a `Variable` and its underlying array is a chainerx array,
-    # `Variable._data_chainerx[0]` (which is backproppable in contrast to
+    # `Variable._data[0]` (which is backproppable in contrast to
     # `Variable.array`) is returned.
     #
     # If at least one of the arrays is a ChainerX array, all other NumPy/CuPy
@@ -1118,7 +1118,7 @@ def _extract_apply_in_data(inputs):
 
     # Unwrap arrays
     arrays = [
-        (x._data_chainerx[0] if x._is_chainerx else x.array)
+        (x._data[0] if x._is_chainerx else x.array)
         if isinstance(x, variable.Variable) else x for x in inputs]
 
     if (chainerx.is_available()
