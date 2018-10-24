@@ -241,6 +241,7 @@ class TestKLDivergence(unittest.TestCase):
         dist2 = self.make_pareto_dist(True)
         self.check_kl(dist1, dist2)
 
+    @testing.with_requires('scipy')
     def test_poisson_poisson_cpu(self):
         dist1 = self.make_poisson_dist()
         dist2 = self.make_poisson_dist()
