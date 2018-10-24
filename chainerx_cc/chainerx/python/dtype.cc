@@ -138,24 +138,24 @@ Dtype GetDtype(py::handle handle) {
     throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
 }
 
-py::dtype GetNumpyDtypeFromModule(const py::module& m, Dtype dtype) {
+py::object GetNumpyDtypeFromModule(const py::module& m, Dtype dtype) {
     switch (dtype) {
         case Dtype::kBool:
-            return py::cast<py::dtype>(m.attr("_bool"));
+            return m.attr("_bool");
         case Dtype::kInt8:
-            return py::cast<py::dtype>(m.attr("_int8"));
+            return m.attr("_int8");
         case Dtype::kInt16:
-            return py::cast<py::dtype>(m.attr("_int16"));
+            return m.attr("_int16");
         case Dtype::kInt32:
-            return py::cast<py::dtype>(m.attr("_int32"));
+            return m.attr("_int32");
         case Dtype::kInt64:
-            return py::cast<py::dtype>(m.attr("_int64"));
+            return m.attr("_int64");
         case Dtype::kUInt8:
-            return py::cast<py::dtype>(m.attr("_uint8"));
+            return m.attr("_uint8");
         case Dtype::kFloat32:
-            return py::cast<py::dtype>(m.attr("_float32"));
+            return m.attr("_float32");
         case Dtype::kFloat64:
-            return py::cast<py::dtype>(m.attr("_float64"));
+            return m.attr("_float64");
         default:
             CHAINERX_NEVER_REACH();
     }
