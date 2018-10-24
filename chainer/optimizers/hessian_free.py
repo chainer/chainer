@@ -1,3 +1,5 @@
+import six
+
 import chainer
 from chainer import cuda
 from chainer import optimizer
@@ -5,11 +7,11 @@ from chainer.functions.math import identity
 
 
 def params_dot(xs, ys):
-    return sum([(x * y).sum() for x, y in zip(xs, ys)])
+    return sum([(x * y).sum() for x, y in six.moves.zip(xs, ys)])
 
 def conjugate_gradient(hessian_vector_product, bs, xs):
     hxs = hessian_vector_product(xs)
-    rs = [b - hx for b, hx in zip(bs, hxs)]
+    rs = [b - hx for b, hx in six.moves.zip(bs, hxs)]
 
     ps = [r.copy() for r in rs]
     for _ in range(3):
@@ -21,11 +23,11 @@ def conjugate_gradient(hessian_vector_product, bs, xs):
         if hpp < 0.0001:
             break
         alpha = rr / hpp
-        for x, p, r, hp in zip(xs, ps, rs, hps):
+        for x, p, r, hp in six.moves.zip(xs, ps, rs, hps):
             x += alpha * p
             r -= alpha * hp
         beta = params_dot(rs, rs) / rr
-        for p, r in zip(ps, rs):
+        for p, r in six.moves.zip(ps, rs):
             p *= beta
             p += r
     return xs
@@ -42,13 +44,13 @@ class HessianFree(optimizer.Optimizer):
         
         def hessian_vector_product(gs):
             gxs = identity.Identity().apply(grad_vars)
-            for gx, g, x in zip(gxs, gs, valid_params):
+            for gx, g, x in six.moves.zip(gxs, gs, valid_params):
                 gx.grad = cuda.get_array_module(x).asarray(g, x.dtype)
             self.target.cleargrads()
             gxs[0].backward()
             dumping_strength = 0.01
             return [x.grad + dumping_strength * g
-                    for x, g in zip(valid_params, gs)]
+                    for x, g in six.moves.zip(valid_params, gs)]
 
         gs = [-x.grad for x in valid_params]
         xs0 = [cuda.get_array_module(x).zeros_like(x.data)
@@ -61,13 +63,13 @@ class HessianFree(optimizer.Optimizer):
 
     def line_search(self, valid_params, y, func, grads, dxs, beta=0.5, c=0.01):
         alpha = 1
-        for param, dx in zip(valid_params, dxs):
+        for param, dx in six.moves.zip(valid_params, dxs):
             param.data += dx
         while True:
             y_new = func()
             if y_new <= y + c * alpha * params_dot(grads, dxs):
                 return
-            for param, dx in zip(valid_params, dxs):
+            for param, dx in six.moves.zip(valid_params, dxs):
                 param.data -= (1 - beta) * alpha * dx
             alpha *= beta
 
