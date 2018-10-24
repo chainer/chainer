@@ -146,18 +146,17 @@ class ExtensionOnce(Extension):
 
     def __init__(self, recall_on_resume=False):
         self._recall_on_resume = recall_on_resume
-        self._to_be_called = True
+        self._flag_called = True
 
     def trigger(self, trainer):
-        if self._to_be_called:
-            self._to_be_called = False
-            return True
-        return self._to_be_called
+        if self._flag_called:
+            return False
+        self._flag_called = True
+        return True
 
     def serialize(self, serializer):
         if not self._recall_on_resume:
-            self._to_be_called = serializer(
-                '_to_be_called', self._to_be_called)
+            self._flag_called = serializer('_flag_called', self._flag_called)
 
 
 def make_extension(trigger=None, default_name=None, priority=None,
