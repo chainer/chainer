@@ -94,6 +94,14 @@ In Chainer v5, it has been changed to return the actual :class:`cupy.cuda.Device
     >>> chainer.backends.cuda.get_device_from_array(x)
     <CUDA Device 0>
 
+Update of Docker Images
+-----------------------
+
+Chainer official Docker images (see :doc:`install` for details) are now updated to use CUDA 9.2 and cuDNN 7.
+
+To use these images, you may need to upgrade the NVIDIA driver on your host.
+See `Requirements of nvidia-docker <https://github.com/NVIDIA/nvidia-docker/wiki/CUDA#requirements>`_ for details.
+
 CuPy v5
 -------
 
