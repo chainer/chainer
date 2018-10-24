@@ -877,6 +877,7 @@ class Variable(object):
                     'A variable of a ChainerX array which requires gradients '
                     'cannot be copied into CPU.')
             self._clear_data_chainerx()
+            self._node = VariableNode(self, self._name)
 
         array = self.array
         if array is None:
@@ -909,6 +910,7 @@ class Variable(object):
                     'A variable of a ChainerX array which requires gradients '
                     'cannot be copied into GPU.')
             self._clear_data_chainerx()
+            self._node = VariableNode(self, self._name)
 
         if self.array is None:
             self._data = [None]  # Renew placeholder to break sharing
