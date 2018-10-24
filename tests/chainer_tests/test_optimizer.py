@@ -337,6 +337,8 @@ class TestOptimizerWithChainerxImplementation(unittest.TestCase):
         expected_p = backend.to_numpy(4. * initial_p - 6. * x)
 
         class ChainerxUpdateRule(optimizer.UpdateRule):
+            call_count = 0
+
             def update_core_chainerx(self, param):
                 # p <= 3 * p - 2 * (dy/dp)
                 array = param.array
@@ -344,6 +346,7 @@ class TestOptimizerWithChainerxImplementation(unittest.TestCase):
                 t2 = param.grad.as_grad_stopped() * 2.
                 delta = t1 - t2
                 array += delta
+                self.call_count += 1
 
         class ChainerxOptimizer(optimizer.GradientMethod):
             def create_update_rule(self):
@@ -365,6 +368,7 @@ class TestOptimizerWithChainerxImplementation(unittest.TestCase):
         optimizer_.setup(link)
         optimizer_.update()
 
+        assert link.p.update_rule.call_count == 1
         np.testing.assert_array_equal(
             backend.to_numpy(link.p.array), expected_p)
 
