@@ -422,7 +422,7 @@ void InitChainerxArray(pybind11::module& m) {
           py::arg("backprop_id") = nullptr);
     c.def_property_readonly(
             "device", [](const ArrayBodyPtr& self) -> Device& { return self->device(); }, py::return_value_policy::reference);
-    c.def_property_readonly("dtype", [](const ArrayBodyPtr& self) { return py::dtype(GetDtypeName(self->dtype())); });
+    c.def_property_readonly("dtype", [m](const ArrayBodyPtr& self) { return GetNumpyDtypeFromModule(m, self->dtype()); });
     c.def_property_readonly("itemsize", [](const ArrayBodyPtr& self) { return self->GetItemSize(); });
     c.def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return self->IsContiguous(); });
     c.def_property_readonly("ndim", [](const ArrayBodyPtr& self) { return self->ndim(); });

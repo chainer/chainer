@@ -17,6 +17,10 @@ Dtype GetDtypeFromNumpyDtype(const pybind11::dtype& npdtype);
 
 Dtype GetDtype(pybind11::handle handle);
 
+pybind11::object GetNumpyDtypeFromModule(const pybind11::module& m, Dtype dtype);
+
+void InitChainerxDtype(pybind11::module&);
+
 }  // namespace python_internal
 }  // namespace python
 }  // namespace chainerx

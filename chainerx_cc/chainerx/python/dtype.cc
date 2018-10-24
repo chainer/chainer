@@ -2,9 +2,12 @@
 
 #include <string>
 
+#include <pybind11/numpy.h>
+
 #include "chainerx/dtype.h"
 #include "chainerx/scalar.h"
 
+#include "chainerx/macro.h"
 #include "chainerx/python/common.h"
 
 namespace chainerx {
@@ -133,6 +136,42 @@ Dtype GetDtype(py::handle handle) {
     }
 
     throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
+}
+
+py::object GetNumpyDtypeFromModule(const py::module& m, Dtype dtype) {
+    switch (dtype) {
+        case Dtype::kBool:
+            return m.attr("_bool");
+        case Dtype::kInt8:
+            return m.attr("_int8");
+        case Dtype::kInt16:
+            return m.attr("_int16");
+        case Dtype::kInt32:
+            return m.attr("_int32");
+        case Dtype::kInt64:
+            return m.attr("_int64");
+        case Dtype::kUInt8:
+            return m.attr("_uint8");
+        case Dtype::kFloat32:
+            return m.attr("_float32");
+        case Dtype::kFloat64:
+            return m.attr("_float64");
+        default:
+            CHAINERX_NEVER_REACH();
+    }
+}
+
+void InitChainerxDtype(py::module& m) {
+    // Store cached py::dtype objects directly in the core module to optimize the ChainerX dtype to NumPy dtype conversions.
+    // This improves the performance of e.g. accessing ndarray.dtype.
+    m.attr("_bool") = py::dtype{"bool"};
+    m.attr("_int8") = py::dtype{"int8"};
+    m.attr("_int16") = py::dtype{"int16"};
+    m.attr("_int32") = py::dtype{"int32"};
+    m.attr("_int64") = py::dtype{"int64"};
+    m.attr("_uint8") = py::dtype{"uint8"};
+    m.attr("_float32") = py::dtype{"float32"};
+    m.attr("_float64") = py::dtype{"float64"};
 }
 
 }  // namespace python_internal
