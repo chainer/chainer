@@ -38,7 +38,7 @@ Then the following files will be created after the training script finishes:
 `snapshot_iter_12000` is a snapshot of `Trainer` object which enables to resume the training.
 You can also extract the trained model parameters from this snapshot file.
 
-If you have installed [matplotlib](https://matplotlib.org/) before the training, the following additional files will saved in the `result` dir:
+If you have installed [matplotlib](https://matplotlib.org/), the following files will be saved in the `result` directory:
 
 ```
 accuracy.png
