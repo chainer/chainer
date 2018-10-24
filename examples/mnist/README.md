@@ -45,7 +45,7 @@ accuracy.png
 loss.png
 ```
 
-These images visualize the accuracies and loss values changing through time during training.
+These images display the changes in accuracy and loss values during training.
 
 ### `train_mnist_custom_loop.py`
 
