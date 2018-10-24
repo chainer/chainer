@@ -326,6 +326,49 @@ class TestOptimizer(unittest.TestCase):
             self.optimizer.new_epoch(auto=True)
 
 
+class TestOptimizerWithChainerxImplementation(unittest.TestCase):
+    # This test ensures an optimizer can update ChainerX array by overriding
+    # update_core_chainerx().
+
+    def test_upate(self):
+        initial_p = chainerx.array([1., 2., 3.], np.float32)
+        x = chainerx.array([2., 4., 6.], np.float32)
+
+        expected_p = backend.to_numpy(4. * initial_p - 6. * x)
+
+        class ChainerxUpdateRule(optimizer.UpdateRule):
+            def update_core_chainerx(self, param):
+                # p <= 3 * p - 2 * (dy/dp)
+                array = param.array
+                t1 = param.array.as_grad_stopped() * 3.
+                t2 = param.grad.as_grad_stopped() * 2.
+                delta = t1 - t2
+                array += delta
+
+        class ChainerxOptimizer(optimizer.GradientMethod):
+            def create_update_rule(self):
+                return ChainerxUpdateRule(self.hyperparam)
+
+        class Link(chainer.Link):
+            def __init__(self):
+                super(Link, self).__init__()
+                with self.init_scope():
+                    self.p = chainer.Parameter(initial_p)
+
+            def forward(self, x):
+                return 3. * x * self.p
+
+        link = Link()
+        y = link(x)
+        y.backward()
+        optimizer_ = ChainerxOptimizer()
+        optimizer_.setup(link)
+        optimizer_.update()
+
+        np.testing.assert_array_equal(
+            backend.to_numpy(link.p.array), expected_p)
+
+
 class TestOptimizerHook(unittest.TestCase):
 
     def setUp(self):

@@ -289,8 +289,8 @@ class UpdateRule(object):
             raise RuntimeError(
                 'Default implementation of Optimizer.update_core_chainerx is '
                 'only provided for native or cuda backends (actual: {}). '
-                'Override Optimizer.update_chainerx() to implement custom '
-                'update logic.'.format(backend_name))
+                'Override Optimizer.update_core_chainerx() to implement '
+                'custom update logic.'.format(backend_name))
 
         # Convert state arrays to NumPy/CuPy
         chainerx_state_arrays = {}
