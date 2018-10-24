@@ -15,8 +15,12 @@ namespace cuda {
 
 CudaDevice::~CudaDevice() {
     if (cublas_handle_ != nullptr) {
-        CudaSetDeviceScope scope{index()};
+        // NOTE: CudaSetDeviceScope is not available because it may throw
+        int orig_index{0};
+        cudaGetDevice(&orig_index);
+        cudaSetDevice(index());
         cublasDestroy(cublas_handle_);
+        cudaSetDevice(orig_index);
     }
 }
 
