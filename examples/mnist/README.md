@@ -102,7 +102,7 @@ Usage:
 ./train_mnist_model_parallel.py
 ```
 
-Then, the following files will be craeted:
+Then, the following files will be created:
 
 ```
 -- result_model_parallel
