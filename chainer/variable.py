@@ -564,7 +564,7 @@ class Variable(object):
             self._data = [None]
         else:
             # A view is always created and kept, in order not to change the
-            # graph status of the original array `d`.
+            # graph status of the original array `array`.
             array_view = array.view()
             if requires_grad:
                 array_view.require_grad()
@@ -1699,8 +1699,6 @@ def as_array(obj):
 
     """
     if isinstance(obj, Variable):
-        if obj._is_chainerx:
-            return obj._data[0]
         return obj.array
     return obj
 
