@@ -138,36 +138,40 @@ Dtype GetDtype(py::handle handle) {
     throw py::type_error{"Dtype not understood: " + py::cast<std::string>(py::repr(handle))};
 }
 
-py::dtype GetNumpyDtype(Dtype dtype) {
-    static py::dtype np_bool{"bool"};
-    static py::dtype np_int8{"int8"};
-    static py::dtype np_int16{"int16"};
-    static py::dtype np_int32{"int32"};
-    static py::dtype np_int64{"int64"};
-    static py::dtype np_uint8{"uint8"};
-    static py::dtype np_float32{"float32"};
-    static py::dtype np_float64{"float64"};
-
+py::dtype GetNumpyDtypeFromModule(const py::module& m, Dtype dtype) {
     switch (dtype) {
-        case Dtype::kUInt8:
-            return np_uint8;
         case Dtype::kBool:
-            return np_bool;
+            return py::cast<py::dtype>(m.attr("_bool"));
         case Dtype::kInt8:
-            return np_int8;
+            return py::cast<py::dtype>(m.attr("_int8"));
         case Dtype::kInt16:
-            return np_int16;
+            return py::cast<py::dtype>(m.attr("_int16"));
         case Dtype::kInt32:
-            return np_int32;
+            return py::cast<py::dtype>(m.attr("_int32"));
         case Dtype::kInt64:
-            return np_int64;
+            return py::cast<py::dtype>(m.attr("_int64"));
+        case Dtype::kUInt8:
+            return py::cast<py::dtype>(m.attr("_uint8"));
         case Dtype::kFloat32:
-            return np_float32;
+            return py::cast<py::dtype>(m.attr("_float32"));
         case Dtype::kFloat64:
-            return np_float64;
+            return py::cast<py::dtype>(m.attr("_float64"));
         default:
             CHAINERX_NEVER_REACH();
     }
+}
+
+void InitChainerxDtype(py::module& m) {
+    // Store cached py::dtype objects directly in the core module to optimize the ChainerX dtype to NumPy dtype conversions.
+    // This improves the performance of e.g. accessing ndarray.dtype.
+    m.attr("_bool") = py::dtype{"bool"};
+    m.attr("_int8") = py::dtype{"int8"};
+    m.attr("_int16") = py::dtype{"int16"};
+    m.attr("_int32") = py::dtype{"int32"};
+    m.attr("_int64") = py::dtype{"int64"};
+    m.attr("_uint8") = py::dtype{"uint8"};
+    m.attr("_float32") = py::dtype{"float32"};
+    m.attr("_float64") = py::dtype{"float64"};
 }
 
 }  // namespace python_internal

@@ -35,6 +35,7 @@ void InitChainerxModule(pybind11::module& m) {
     InitChainerxBackpropMode(m);
     InitChainerxDevice(m);
     InitChainerxDeviceScope(m);
+    InitChainerxDtype(m);
     InitChainerxError(m);
     InitChainerxScalar(m);
     InitChainerxArrayIndex(m);
