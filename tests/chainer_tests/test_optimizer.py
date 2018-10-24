@@ -326,6 +326,7 @@ class TestOptimizer(unittest.TestCase):
             self.optimizer.new_epoch(auto=True)
 
 
+@attr.chainerx
 class TestOptimizerWithChainerxImplementation(unittest.TestCase):
     # This test ensures an optimizer can update ChainerX array by overriding
     # update_core_chainerx().
