@@ -71,7 +71,7 @@ Then, the following files will be created:
 ```
 
 `mlp.model` contains the trained parameters of the model.
-`mlp.state` contains the internal states of Adam optimizer after the training.
+`mlp.state` contains the internal states of the Adam optimizer after the training.
 
 ### `train_mnist_data_parallel.py`
 
