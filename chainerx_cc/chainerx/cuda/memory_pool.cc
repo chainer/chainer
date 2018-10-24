@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/macro.h"
 
 namespace chainerx {
