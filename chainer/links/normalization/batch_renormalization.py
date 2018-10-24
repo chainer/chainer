@@ -1,3 +1,4 @@
+import chainer
 from chainer.backends import cuda
 from chainer import configuration
 from chainer.functions.normalization import batch_normalization
@@ -60,9 +61,18 @@ class BatchRenormalization(BatchNormalization):
             else:
                 decay = self.decay
 
+            avg_mean = self.avg_mean
+            avg_var = self.avg_var
+
+            if chainer.config.recompute:
+                # Do not update statistics when extra forward computation is
+                # called.
+                avg_mean = self.xp.zeros_like(self.avg_mean.data)
+                avg_var = self.xp.zeros_like(self.avg_var.data)
+
             ret = batch_renormalization.batch_renormalization(
                 x, gamma, beta, self.rmax, self.dmax,
-                self.eps, self.avg_mean, self.avg_var, decay,
+                self.eps, avg_mean, avg_var, decay,
                 update_statistics=True)
         else:
             # Use running average statistics or fine-tuned statistics.
