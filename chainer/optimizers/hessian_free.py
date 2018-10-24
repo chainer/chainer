@@ -7,7 +7,7 @@ from chainer.functions.math import identity
 
 
 def params_dot(xs, ys):
-    return sum([(x * y).sum() for x, y in six.moves.zip(xs, ys)])
+    return sum([x.ravel().dot(y.ravel()) for x, y in six.moves.zip(xs, ys)])
 
 def conjugate_gradient(hessian_vector_product, bs, xs):
     hxs = hessian_vector_product(xs)
