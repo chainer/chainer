@@ -79,8 +79,9 @@ class CMakeBuild(build_ext.build_ext):
 
 
 def config_setup_kwargs(setup_kwargs):
-    if sys.version_info[0] < 3:
-        raise RuntimeError('ChainerX is not available in Python 2.')
+    if sys.version_info < (3, 5):
+        raise RuntimeError(
+            'ChainerX is only available for Python 3.5 or later.')
     setup_kwargs['packages'] += [
         'chainerx',
         'chainerx.creation',
