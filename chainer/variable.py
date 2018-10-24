@@ -1040,8 +1040,7 @@ class Variable(object):
         if self._is_chainerx:
             if gv is None:
                 self.grad = chainerx.zeros_like(self.data)
-            elif gv.requires_grad:
-                gv._data_chainerx[0].cleargrad()
+            else:
                 gv._data_chainerx[0].fill(0)
         else:
             with cuda.get_device_from_array(self.data) as dev:
