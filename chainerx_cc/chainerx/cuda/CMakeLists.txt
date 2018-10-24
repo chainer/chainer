@@ -4,6 +4,7 @@ install(FILES
     cuda_backend.h
     cuda_conv.h
     cuda_device.h
+    cuda_set_device_scope.h
     cuda_runtime.h
     cudnn.h
     elementwise.cuh
@@ -45,6 +46,7 @@ if(${CHAINERX_BUILD_TEST})
     add_executable(chainerx_cuda_test
         cuda_backend_test.cc
         cuda_conv_test.cc
+        cuda_set_device_scope_test.cc
         cuda_device_test.cc
         cuda_runtime_test.cc
         memory_pool_test.cc
