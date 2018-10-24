@@ -9,12 +9,13 @@ from chainer.functions.math import identity
 def params_dot(xs, ys):
     return sum([x.ravel().dot(y.ravel()) for x, y in six.moves.zip(xs, ys)])
 
-def conjugate_gradient(hessian_vector_product, bs, xs):
+
+def conjugate_gradient(hessian_vector_product, bs, xs, max_iteration=3):
     hxs = hessian_vector_product(xs)
     rs = [b - hx for b, hx in six.moves.zip(bs, hxs)]
 
     ps = [r.copy() for r in rs]
-    for _ in range(3):
+    for _ in six.moves.range(max_iteration):
         rr = params_dot(rs, rs)
         if rr < 0.00001:
             break
