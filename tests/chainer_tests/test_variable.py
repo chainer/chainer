@@ -565,11 +565,12 @@ class TestVariable(unittest.TestCase):
         # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
         self.check_cleargrad(chainerx.empty((3,), dtype=np.float32), fill=True)
 
-    def check_zerograd(self, a_data, fill=False):
+    def check_zerograd(self, a_data, fill=False, grad_var_requires_grad=True):
         xp = backend.get_array_module(a_data)
         a = chainer.Variable(a_data)
         if fill:
-            a.grad_var = chainer.Variable(xp.full_like(a_data, np.nan))
+            a.grad_var = chainer.Variable(xp.full_like(a_data, np.nan),
+                                          requires_grad=grad_var_requires_grad)
             if xp is not chainerx:
                 a.grad_var.creator_node = chainer.FunctionNode()
 
@@ -628,7 +629,15 @@ class TestVariable(unittest.TestCase):
     @attr.chainerx
     def test_zerograd_fill_chainerx(self):
         # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
-        self.check_zerograd(chainerx.empty((3,), dtype=np.float32), fill=True)
+        self.check_zerograd(chainerx.empty((3,), dtype=np.float32), fill=True,
+                            grad_var_requires_grad=False)
+
+    @attr.chainerx
+    def test_zerograd_fill_chainerx_requiring_grad(self):
+        # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
+        with self.assertRaises(RuntimeError):
+            self.check_zerograd(chainerx.empty((3,), dtype=np.float32),
+                                fill=True, grad_var_requires_grad=True)
 
     def check_copydata(self, data1, data2, expect):
         xp = backend.get_array_module(data1)
