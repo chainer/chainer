@@ -3,5 +3,3 @@ type: sphinx
 base: docs/source
 python:
   setup_py_install: true
-  extra_requirements:
-    - docs

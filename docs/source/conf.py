@@ -15,10 +15,7 @@
 import inspect
 import os
 import pkg_resources
-from six.moves.urllib import request
-import shutil
 import sys
-import zipfile
 
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
@@ -344,6 +341,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'cupy': ('https://docs-cupy.chainer.org/en/latest/', None),
+    'chainercv': ('https://chainercv.readthedocs.io/en/latest/', None),
 }
 
 doctest_global_setup = '''
@@ -367,24 +365,6 @@ spelling_word_list_filename = 'spelling_wordlist.txt'
 def setup(app):
     app.connect('autodoc-process-docstring', _autodoc_process_docstring)
     app.connect('build-finished', _build_finished)
-
-    import chainercv
-    chainercv_version = chainercv.__version__
-    chainercv_dir = 'chainercv-{}'.format(chainercv_version)
-    if not os.path.exists(chainercv_dir):
-        zip_file_name = 'v{}.zip'.format(chainercv_version)
-        url = 'https://github.com/chainer/chainercv/archive/{}'.format(
-            zip_file_name)
-        request.urlretrieve(url, zip_file_name)
-        zip_f = zipfile.ZipFile(zip_file_name, 'r')
-        zip_f.extractall('.')
-        zip_f.close()
-    if not os.path.exists('source/chainercv'):
-        shutil.copytree('{}/docs/source'.format(chainercv_dir),
-                        'source/chainercv')
-    if not os.path.exists('source/image'):
-        shutil.copytree('{}/docs/image'.format(chainercv_dir),
-                        'source/image')
 
 
 def _autodoc_process_docstring(app, what, name, obj, options, lines):
