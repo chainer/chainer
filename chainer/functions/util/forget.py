@@ -124,6 +124,16 @@ def forget(func, *xs):
 
         ``F.forget`` does not support double backpropagation.
 
+    .. note::
+
+        If you want to use ``F.forget`` to a link which updates the link's
+        internal information every time the forward computation is called,
+        please ensure that the information is updated just once in a single
+        iteration. You may use the ``chainer.config.recompute`` flag to check
+        if the forward computation is the first call in an iteration.
+        Please see the implementation of
+        :class:`~chainer.links.BatchNormalization` for detail.
+
     Args:
         func (callable): A function to call. It needs to be called with
             :class:`~chainer.Variable` object(s) and to return a
