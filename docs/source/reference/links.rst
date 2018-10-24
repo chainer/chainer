@@ -12,11 +12,6 @@ Chainer provides many :class:`~chainer.Link` implementations in the
    though it is strongly recommended to use them via the :mod:`chainer.links`
    package.
 
-.. note::
-   ChainerCV supports implementations of links that are useful for computer
-   vision problems, such as object detection, semantic segmentation, and
-   instance segmentation.
-   The documentation can be found in :mod:`chainercv.links`.
 
 Learnable connections
 ---------------------
@@ -162,6 +157,38 @@ Residual Networks
    :class:`chainercv.links.model.resnet.ResNet50`,
    :class:`chainercv.links.model.resnet.ResNet101`,
    :class:`chainercv.links.model.resnet.ResNet152`).
+
+ChainerCV models
+~~~~~~~~~~~~~~~~
+
+.. note::
+   ChainerCV supports implementations of links that are useful for computer
+   vision problems, such as object detection, semantic segmentation, and
+   instance segmentation.
+   The documentation can be found in :mod:`chainercv.links`.
+   Here is a subset of models with pre-trained weights supported by ChainerCV:
+
+   * Detection
+      * :class:`chainercv.links.model.faster_rcnn.FasterRCNNVGG16`
+      * :class:`chainercv.links.model.ssd.SSD300`
+      * :class:`chainercv.links.model.ssd.SSD512`
+      * :class:`chainercv.links.model.yolo.YOLOv2`
+      * :class:`chainercv.links.model.yolo.YOLOv3`
+   * Semantic Segmentation
+      * :class:`chainercv.links.model.segnet.SegNetBasic`
+      * :class:`chainercv.experimental.links.model.pspnet.PSPNetResNet101`
+   * Instance Segmentation
+      * :class:`chainercv.experimental.links.model.fcis.FCISResNet101`
+   * Classification
+      * :class:`chainercv.links.model.resnet.ResNet101`
+      * :class:`chainercv.links.model.resnet.ResNet152`
+      * :class:`chainercv.links.model.resnet.ResNet50`
+      * :class:`chainercv.links.model.senet.SEResNet101`
+      * :class:`chainercv.links.model.senet.SEResNet152`
+      * :class:`chainercv.links.model.senet.SEResNet50`
+      * :class:`chainercv.links.model.senet.SEResNeXt101`
+      * :class:`chainercv.links.model.senet.SEResNeXt50`
+      * :class:`chainercv.links.model.vgg.VGG16`
 
 Compatibility with other frameworks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
