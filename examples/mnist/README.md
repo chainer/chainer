@@ -50,7 +50,7 @@ These images display the changes in accuracy and loss values during training.
 ### `train_mnist_custom_loop.py`
 
 
-This example shows how you can write the training loop by yourself without using `Trainer` class abstraction.
+This example shows how you can write the training loop by yourself without using the `Trainer` class abstraction.
 
 Usage (with a GPU):
 ```
