@@ -101,7 +101,7 @@ class Uniform(distribution.Distribution):
         return where.where(
             utils.force_array(
                 (x.data >= self.low.data) & (x.data <= self.high.data)),
-            logp, xp.array(-xp.inf, logp.dtype))
+            logp, xp.full_like(logp.array, -numpy.inf))
 
     @property
     def mean(self):
