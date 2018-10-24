@@ -109,13 +109,23 @@ def is_module(request):
     return request.param
 
 
-@pytest.fixture(params=[
+_shapes = [
     (),
     (0,),
     (1,),
     (2, 3),
     (1, 1, 1),
     (2, 0, 3),
-])
+]
+
+_shapes_as_tuple_or_int = _shapes + [0, 1, 5]
+
+
+@pytest.fixture(params=_shapes)
 def shape(request):
+    return request.param
+
+
+@pytest.fixture(params=_shapes_as_tuple_or_int)
+def shape_as_tuple_or_int(request):
     return request.param
