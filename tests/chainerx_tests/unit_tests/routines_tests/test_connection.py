@@ -141,7 +141,8 @@ def test_conv_transpose(
     chainerx.testing.assert_allclose(
         chainerx.conv_transpose(
             *create_args(chainerx)),
-        chainer.functions.deconvolution_nd(*create_args(numpy)).data)
+        chainer.functions.deconvolution_nd(*create_args(numpy)).data,
+        rtol=1e-3)
 
 
 @pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad,outsize', [
