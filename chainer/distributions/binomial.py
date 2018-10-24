@@ -1,3 +1,5 @@
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
@@ -5,7 +7,6 @@ from chainer.functions.array import broadcast
 from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
-import numpy
 
 
 class Binomial(distribution.Distribution):
