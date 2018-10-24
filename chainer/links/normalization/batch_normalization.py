@@ -294,10 +294,12 @@ class BatchNormalization(link.Link):
             else:
                 decay = self.decay
 
-            if not chainer.config.recompute:
-                avg_mean = self.avg_mean
-                avg_var = self.avg_var
-            else:
+            avg_mean = self.avg_mean
+            avg_var = self.avg_var
+
+            if chainer.config.recompute:
+                # Do not update statistics when extra forward computation is
+                # called.
                 avg_mean = None
                 avg_var = None
 
