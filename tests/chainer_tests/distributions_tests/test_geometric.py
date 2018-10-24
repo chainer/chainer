@@ -10,7 +10,7 @@ import numpy
 }))
 @testing.fix_random()
 @testing.with_requires('scipy')
-class TestLogNormal(testing.distribution_unittest):
+class TestGeometric(testing.distribution_unittest):
 
     scipy_onebyone = True
 
