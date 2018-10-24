@@ -37,36 +37,37 @@ class HessianFree(optimizer.Optimizer):
         loss = lossfun(*args, **kwargs)
         self.target.cleargrads()
         loss.backward(enable_double_backprop=True)
-        grads = [x.grad_var for x in self.target.params()]
+        valid_params = [x for x in self.target.params() if x.grad is not None]
+        grad_vars = [x.grad_var for x in valid_params]
         
         def hessian_vector_product(gs):
-            gxs = identity.Identity().apply(grads)
-            for gx, g in zip(gxs, gs):
-                gx.grad = g
+            gxs = identity.Identity().apply(grad_vars)
+            for gx, g, x in zip(gxs, gs, valid_params):
+                gx.grad = cuda.get_array_module(x).asarray(g, x.dtype)
             self.target.cleargrads()
             gxs[0].backward()
             dumping_strength = 0.01
-            return [x.grad + dumping_strengsh * g
-                    for x, g in zip(self.target.params(), gs)]
+            return [x.grad + dumping_strength * g
+                    for x, g in zip(valid_params, gs)]
 
-        gs = [-x.grad for x in self.target.params()]
+        gs = [-x.grad for x in valid_params]
         xs0 = [cuda.get_array_module(x).zeros_like(x.data)
-               for x in self.target.params()]
+               for x in valid_params]
         dxs = conjugate_gradient(hessian_vector_product, gs, xs0)
         def func():
             return lossfun(*args, **kwargs).data
-        grads = [x.grad for x in self.target.params()]
-        self.line_search(loss.data, func, grads, dxs)
+        grads = [x.grad for x in valid_params]
+        self.line_search(valid_params, loss.data, func, grads, dxs)
 
-    def line_search(self, y, func, grads, dxs, beta=0.5, c=0.01):
+    def line_search(self, valid_params, y, func, grads, dxs, beta=0.5, c=0.01):
         alpha = 1
-        for param, dx in zip(self.target.params(), dxs):
+        for param, dx in zip(valid_params, dxs):
             param.data += dx
         while True:
             y_new = func()
             if y_new <= y + c * alpha * params_dot(grads, dxs):
                 return
-            for param, dx in zip(self.target.params(), dxs):
+            for param, dx in zip(valid_params, dxs):
                 param.data -= (1 - beta) * alpha * dx
             alpha *= beta
 
