@@ -11,6 +11,7 @@
 #include "chainerx/axes.h"
 #include "chainerx/cuda/cuda.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -108,7 +109,7 @@ __global__ void AddAtKernel(
 
 void CudaDevice::Take(const Array& a, const Array& indices, int8_t axis, const Array& out) {
     CheckDevicesCompatible(a, indices, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 
@@ -155,7 +156,7 @@ void CudaDevice::AddAt(const Array& a, const Array& indices, int8_t axis, const 
 
     CHAINERX_ASSERT(a.shape() == out.shape());
     CheckDevicesCompatible(a, indices, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
 

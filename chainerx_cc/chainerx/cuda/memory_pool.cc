@@ -5,12 +5,18 @@
 #include <vector>
 
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/macro.h"
 
 namespace chainerx {
 namespace cuda {
 
 MemoryPool::~MemoryPool() {
+    // NOTE: CudaSetDeviceScope is not available at dtor because it may throw
+    int orig_device_index{0};
+    cudaGetDevice(&orig_device_index);
+    cudaSetDevice(device_index_);
+
     for (const std::vector<void*>& free_list : free_bins_) {
         for (void* ptr : free_list) {
             allocator_->Free(ptr);
@@ -24,6 +30,8 @@ MemoryPool::~MemoryPool() {
         void* ptr = item.first;
         allocator_->Free(ptr);
     }
+
+    cudaSetDevice(orig_device_index);
 }
 
 void* MemoryPool::Malloc(size_t bytesize) {
@@ -50,12 +58,8 @@ void* MemoryPool::Malloc(size_t bytesize) {
 
     if (ptr == nullptr) {
         size_t allocation_size = (index + 1) * kAllocationUnitSize;
-        // TODO(niboshi): Do device management with RAII
-        int old_device{};
-        CheckCudaError(cudaGetDevice(&old_device));
-        CheckCudaError(cudaSetDevice(device_index_));
+        CudaSetDeviceScope scope{device_index_};
         allocator_->Malloc(&ptr, allocation_size);
-        CheckCudaError(cudaSetDevice(old_device));
     }
 
     {

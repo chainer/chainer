@@ -7,6 +7,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -24,7 +25,7 @@ struct ExpImpl {
 
 void CudaDevice::Exp(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, T>(ExpImpl<T>{}, x, out);
@@ -42,7 +43,7 @@ struct LogImpl {
 
 void CudaDevice::Log(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, T>(LogImpl<T>{}, x, out);

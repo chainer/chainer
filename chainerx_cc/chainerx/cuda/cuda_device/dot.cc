@@ -10,6 +10,7 @@
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cublas.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
@@ -73,7 +74,7 @@ struct GemmInputLayout {
 
 void CudaDevice::Dot(const Array& a, const Array& b, const Array& out) {
     CheckDevicesCompatible(a, b, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
 
     CHAINERX_ASSERT(a.ndim() == 2);
     CHAINERX_ASSERT(b.ndim() == 2);

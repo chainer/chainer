@@ -6,6 +6,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -23,7 +24,7 @@ struct EqualImpl {
 
 void CudaDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, const T, bool>(EqualImpl<T>{}, x1, x2, out);
@@ -41,7 +42,7 @@ struct NotEqualImpl {
 
 void CudaDevice::NotEqual(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, const T, bool>(NotEqualImpl<T>{}, x1, x2, out);
@@ -59,7 +60,7 @@ struct GreaterImpl {
 
 void CudaDevice::Greater(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, const T, bool>(GreaterImpl<T>{}, x1, x2, out);
@@ -77,7 +78,7 @@ struct GreaterEqualImpl {
 
 void CudaDevice::GreaterEqual(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, const T, bool>(GreaterEqualImpl<T>{}, x1, x2, out);
@@ -95,7 +96,7 @@ struct LogicalNotImpl {
 
 void CudaDevice::LogicalNot(const Array& x1, const Array& out) {
     CheckDevicesCompatible(x1, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(x1.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, bool>(LogicalNotImpl<T>{}, x1, out);

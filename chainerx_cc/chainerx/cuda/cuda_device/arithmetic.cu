@@ -7,6 +7,7 @@
 #include "chainerx/arithmetic_ops.h"
 #include "chainerx/array.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -26,7 +27,7 @@ struct AddImpl {
 // TODO(sonots): support stream
 void CudaDevice::Add(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, const T, T>(AddImpl<T>{}, x1, x2, out);
@@ -45,7 +46,7 @@ struct AddASImpl {
 
 void CudaDevice::AddAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, T>(AddASImpl<T>{static_cast<T>(x2)}, x1, out);
@@ -63,7 +64,7 @@ struct SubtractImpl {
 
 void CudaDevice::Subtract(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitNumericDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, const T, T>(SubtractImpl<T>{}, x1, x2, out);
@@ -82,7 +83,7 @@ struct SubtractASImpl {
 
 void CudaDevice::SubtractAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitNumericDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, T>(SubtractASImpl<T>{static_cast<T>(x2)}, x1, out);
@@ -101,7 +102,7 @@ struct MultiplyImpl {
 // TODO(sonots): support stream
 void CudaDevice::Multiply(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, const T, T>(MultiplyImpl<T>{}, x1, x2, out);
@@ -120,7 +121,7 @@ struct MultiplyASImpl {
 
 void CudaDevice::MultiplyAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, T>(MultiplyASImpl<T>{static_cast<T>(x2)}, x1, out);
@@ -138,7 +139,7 @@ struct DivideImpl {
 
 void CudaDevice::Divide(const Array& x1, const Array& x2, const Array& out) {
     CheckDevicesCompatible(x1, x2, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, const T, T>(DivideImpl<T>{}, x1, x2, out);
@@ -157,7 +158,7 @@ struct DivideASImpl {
 
 void CudaDevice::DivideAS(const Array& x1, Scalar x2, const Array& out) {
     CheckDevicesCompatible(x1, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, T>(DivideASImpl<T>{static_cast<T>(x2)}, x1, out);

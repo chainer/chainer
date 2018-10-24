@@ -13,6 +13,7 @@
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_device.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -268,6 +269,7 @@ Array CudaConv::Conv(
     } else {
         device.CheckDevicesCompatible(x, w);
     }
+    CudaSetDeviceScope scope{device.index()};
 
     ConvCheckDtype(x, w, b);
 
@@ -357,6 +359,7 @@ Array CudaConv::ConvTranspose(
     } else {
         device.CheckDevicesCompatible(x, w);
     }
+    CudaSetDeviceScope scope{device.index()};
 
     ConvCheckDtype(x, w, b);
 
@@ -437,6 +440,7 @@ Array CudaConv::ConvGradWeight(
     }
 
     device.CheckDevicesCompatible(x, gy);
+    CudaSetDeviceScope scope{device.index()};
 
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
     if (ndim < 2) {

@@ -7,6 +7,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -24,7 +25,7 @@ struct SqrtImpl {
 
 void CudaDevice::Sqrt(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, T>(SqrtImpl<T>{}, x, out);
@@ -49,7 +50,7 @@ struct IsNanImpl {
 
 void CudaDevice::IsNan(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(x.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, bool>(IsNanImpl<T>{}, x, out);
@@ -74,7 +75,7 @@ struct IsInfImpl {
 
 void CudaDevice::IsInf(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
-    CheckCudaError(cudaSetDevice(index()));
+    CudaSetDeviceScope scope{index()};
     VisitDtype(x.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
         Elementwise<const T, bool>(IsInfImpl<T>{}, x, out);

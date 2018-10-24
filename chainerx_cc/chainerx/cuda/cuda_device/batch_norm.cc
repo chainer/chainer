@@ -8,6 +8,7 @@
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/backend_util.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -124,6 +125,8 @@ public:
         Device& device = x.device();
         Dtype dtype = x.dtype();
 
+        CudaSetDeviceScope scope{device.index()};
+
         Array x_cont = internal::AsContiguous(x);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis());
@@ -222,6 +225,8 @@ public:
         Device& device = x_cont.device();
         Dtype dtype = x_cont.dtype();
 
+        CudaSetDeviceScope scope{device.index()};
+
         Array gout_cont = internal::AsContiguous(gout);
         Array gx = EmptyLike(x_cont, device);
 
@@ -287,6 +292,8 @@ Array CudaDevice::FixedBatchNorm(
     if (static_cast<double>(eps) < CUDNN_BN_MIN_EPSILON) {
         throw CudnnError{"Minimum allowed epsilon is ", CUDNN_BN_MIN_EPSILON, " but found ", eps, "."};
     }
+
+    CudaSetDeviceScope scope{index()};
 
     if (CHAINERX_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
