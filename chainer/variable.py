@@ -1080,8 +1080,10 @@ class Variable(object):
         if self._is_chainerx:
             if gv is None:
                 self.grad = chainerx.zeros_like(arr, device=arr.device)
-            elif gv.requires_grad:
-                gv._data[0].cleargrad()
+            else:
+                if gv.requires_grad:
+                    raise RuntimeError('In-place zero fill to ChainerX array '
+                                       'requiring grad is not allowed.')
                 gv._data[0].fill(0)
         else:
             with cuda.get_device_from_array(arr) as dev:
