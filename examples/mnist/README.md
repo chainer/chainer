@@ -76,7 +76,7 @@ Then, the following files will be created:
 ### `train_mnist_data_parallel.py`
 
 This example shows how to use multiple GPUs with the `Trainer` class in a data-parallel manner.
-This script does not support CPUs and requires at least two GPUs.
+This script does not support CPUs and **requires at least two GPUs.**
 
 Usage:
 ```
