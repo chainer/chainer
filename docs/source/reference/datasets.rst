@@ -213,5 +213,19 @@ Concrete Datasets
 .. note::
    ChainerCV supports implementations of datasets that are useful for computer
    vision problems, which can be found in :mod:`chainercv.datasets`.
-   For instance, ChainerCV contains data loaders for PASCAL VOC and
-   MS COCO.
+   Here is a subset of data loaders supported by ChainerCV:
+
+   * Bounding Box Datasets
+      * :class:`chainercv.datasets.VOCBboxDataset`
+      * :class:`chainercv.datasets.COCOBboxDataset`
+   * Semantic Segmentation Datasets
+      * :class:`chainercv.datasets.ADE20KSemanticSegmentationDataset`
+      * :class:`chainercv.datasets.CamVidDataset`
+      * :class:`chainercv.datasets.CityscapesSemanticSegmentationDataset`
+      * :class:`chainercv.datasets.VOCSemanticSegmentationDataset`
+   * Instance Segmentation Datasets
+      * :class:`chainercv.datasets.COCOInstanceSegmentationDataset`
+      * :class:`chainercv.datasets.VOCInstanceSegmentationDataset`
+   * Classification Datasets
+      * :class:`chainercv.datasets.CUBLabelDataset`
+      * :class:`chainercv.datasets.OnlineProductsDataset`
