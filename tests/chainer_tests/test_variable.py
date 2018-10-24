@@ -208,13 +208,13 @@ class TestVariable(unittest.TestCase):
     def test_chainerx_init(self):
         a = chainerx.asarray(self.x)
         x = chainer.Variable(a)
-        assert a is x.array
+        chainerx.testing.assert_array_equal(x.array, a)
 
     def check_attributes(self, xp):
         a = get_array(xp, self.x)
         x = chainer.Variable(a)
-        assert x.data is a
-        assert x.array is a
+        xp.testing.assert_array_equal(x.array, a)
+        assert x.array is x.data
         assert x.shape == self.x.shape
         assert x.ndim == self.x.ndim
         assert x.size == self.x.size
@@ -236,41 +236,44 @@ class TestVariable(unittest.TestCase):
         a = chainer.Variable(None)
         assert a.xp is np
 
-    def check_grad(self, x, g):
+    def check_grad(self, xp, x, g):
         v = chainer.Variable(x)
         v.grad = g
-        assert v.grad is g
+        xp.testing.assert_array_equal(v.grad, g)
 
     def test_grad_cpu(self):
-        self.check_grad(self.x, self.a)
+        self.check_grad(np, self.x, self.a)
 
     @attr.gpu
     def test_grad_gpu(self):
-        self.check_grad(cuda.to_gpu(self.x), cuda.to_gpu(self.a))
+        self.check_grad(cuda.cupy, cuda.to_gpu(self.x), cuda.to_gpu(self.a))
 
     @attr.chainerx
     def test_grad_chainerx(self):
-        self.check_grad(chainerx.array(self.x), chainerx.array(self.a))
+        self.check_grad(
+            chainerx, chainerx.array(self.x), chainerx.array(self.a))
 
-    def check_grad_var(self, x, g):
+    def check_grad_var(self, xp, x, g):
         v = chainer.Variable(x)
         gv = chainer.Variable(g)
         v.grad_var = gv
-        assert v.grad is g
+        xp.testing.assert_array_equal(v.grad, g)
 
         # Same instance should be returned each time.
         assert v.grad_var is gv
 
     def test_grad_var_cpu(self):
-        self.check_grad_var(self.x, self.a)
+        self.check_grad_var(np, self.x, self.a)
 
     @attr.gpu
     def test_grad_var_gpu(self):
-        self.check_grad_var(cuda.to_gpu(self.x), cuda.to_gpu(self.a))
+        self.check_grad_var(
+            cuda.cupy, cuda.to_gpu(self.x), cuda.to_gpu(self.a))
 
     @attr.chainerx
     def test_grad_var_chainerx(self):
-        self.check_grad_var(chainerx.array(self.x), chainerx.array(self.a))
+        self.check_grad_var(
+            chainerx, chainerx.array(self.x), chainerx.array(self.a))
 
     def check_len(self, a):
         x = chainer.Variable(a)
@@ -911,7 +914,6 @@ class TestVariableToCpu(unittest.TestCase):
             assert x_var.grad is not gx
 
         assert not x_var._is_chainerx
-        assert x_var._data_chainerx is None
         assert x_var._node is not None
 
     def test_to_cpu_from_cpu(self):
@@ -981,7 +983,6 @@ class TestVariableToGpu(unittest.TestCase):
             assert x_var.grad is not gx
 
         assert not x_var._is_chainerx
-        assert x_var._data_chainerx is None
         assert x_var._node is not None
 
     def test_to_gpu_from_cpu(self):
@@ -1061,7 +1062,6 @@ class TestVariableToChainerX(unittest.TestCase):
             assert x_var.grad is None
 
         assert x_var._is_chainerx
-        assert x_var._data_chainerx is not None
         assert x_var._node is None
 
     def test_to_chainerx_from_numpy(self):
