@@ -83,7 +83,7 @@ Usage:
 ./train_mnist_data_parallel.py
 ```
 
-Then, the following files will be craeted:
+Then, the following files will be created:
 
 ```
 -- result_data_parallel
