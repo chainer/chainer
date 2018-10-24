@@ -1,5 +1,7 @@
+import functools
 from io import StringIO
 import math
+import operator
 import sys
 import tempfile
 
@@ -463,6 +465,18 @@ def test_empty(xp, shape, dtype_spec, device):
     return a
 
 
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
+def test_empty_with_int_shape(xp, shape, dtype_spec, device):
+    shape = functools.reduce(operator.mul, shape, 1)
+    if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
+        dtype_spec = dtype_spec.name
+    a = xp.empty(shape, dtype_spec)
+    a.fill(0)
+    return a
+
+
 @pytest.mark.parametrize(
     'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_empty_with_device(device):
@@ -497,6 +511,16 @@ def test_empty_like_with_device(device):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier('dtype_spec')
 def test_zeros(xp, shape, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
+        dtype_spec = dtype_spec.name
+    return xp.zeros(shape, dtype_spec)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
+def test_zeros_with_int_shape(xp, shape, dtype_spec, device):
+    shape = functools.reduce(operator.mul, shape, 1)
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
     return xp.zeros(shape, dtype_spec)
@@ -537,6 +561,16 @@ def test_ones(xp, shape, dtype_spec, device):
     return xp.ones(shape, dtype_spec)
 
 
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
+def test_ones_with_int_shape(xp, shape, dtype_spec, device):
+    shape = functools.reduce(operator.mul, shape, 1)
+    if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
+        dtype_spec = dtype_spec.name
+    return xp.ones(shape, dtype_spec)
+
+
 @pytest.mark.parametrize(
     'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_ones_with_device(device):
@@ -568,6 +602,15 @@ def test_ones_like_with_device(shape, device):
     'value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_full(xp, shape, value, device):
+    return xp.full(shape, value)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize(
+    'value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_full_with_int_shape(xp, shape, value, device):
+    shape = functools.reduce(operator.mul, shape, 1)
     return xp.full(shape, value)
 
 
