@@ -37,6 +37,7 @@
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/scalar.h"
 
@@ -293,7 +294,10 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     return out;
 }
 
-void Array::Fill(Scalar value) const { device().Fill(*this, value); }
+void Array::Fill(Scalar value) const {
+    internal::CheckNoUnsafeInplace(*this, {});
+    device().Fill(*this, value);
+}
 
 const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);

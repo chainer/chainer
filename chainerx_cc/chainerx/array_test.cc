@@ -437,6 +437,22 @@ TEST_P(ArrayTest, NonContiguousFill) {
     }
 }
 
+TEST_P(ArrayTest, FillInplaceWithBackpropRequiredNotAllowed) {
+    Dtype dtype = Dtype::kFloat32;
+    Array a = Zeros(Shape{3, 2}, dtype);
+    a.RequireGrad();
+
+    Array b = a + 2;
+
+    ASSERT_TRUE(a.IsBackpropRequired());
+    ASSERT_TRUE(a.IsGradRequired());
+    ASSERT_TRUE(b.IsBackpropRequired());
+    ASSERT_FALSE(b.IsGradRequired());
+
+    EXPECT_THROW(a.Fill(Scalar{1, dtype}), ChainerxError);
+    EXPECT_THROW(b.Fill(Scalar{1, dtype}), ChainerxError);
+}
+
 TEST_P(ArrayTest, Negative) {
     Array a = testing::BuildArray({3}).WithData<float>({-1, 0, 2});
     Array e = testing::BuildArray({3}).WithData<float>({1, 0, -2});
