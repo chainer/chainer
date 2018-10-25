@@ -37,8 +37,23 @@ class CRF1d(link.Link):
             self.cost = variable.Parameter(initializer=initial_cost,
                                            shape=(n_label, n_label))
 
-    def forward(self, xs, ys, reduce='mean'):
-        if self.transpose:
+    def forward(self, xs, ys, reduce='mean', transpose=False):
+        """Computes negative log-likelihood of linear-chain CRF
+
+        Args:
+            xs (list of Variable): Input vector for each label
+            ys (list of Variable): Expected output labels.
+            transpose (bool): If ``True``, input/output sequences
+            will be sorted in descending order of length.
+
+        Returns:
+            ~chainer.Variable: A variable holding the average negative
+            log-likelihood of the input sequences.
+
+        .. seealso:: See :func:`~chainer.frunctions.crf1d` for more detail.
+        """
+
+        if transpose:
             indices = argsort_list_descent(xs)
             xs = permutate_list(xs, indices, inv=False)
             ys = permutate_list(ys, indices, inv=False)
@@ -51,11 +66,13 @@ class CRF1d(link.Link):
 
         return loss
 
-    def argmax(self, xs):
+    def argmax(self, xs, transpose=False):
         """Computes a state that maximizes a joint probability.
 
         Args:
             xs (list of Variable): Input vector for each label.
+            transpose (bool): If ``True``, input/output sequences
+            will be sorted in descending order of length.
 
         Returns:
             tuple: A tuple of :class:`~chainer.Variable` representing each
@@ -66,7 +83,7 @@ class CRF1d(link.Link):
 
         """
 
-        if self.transpose:
+        if transpose:
             indices = argsort_list_descent(xs)
             xs = permutate_list(xs, indices, inv=False)
             trans_x = transpose_sequence.transpose_sequence(xs)
