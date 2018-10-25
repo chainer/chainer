@@ -19,16 +19,16 @@ class CRF(chainer.Chain):
         super(CRF, self).__init__()
         with self.init_scope():
             self.feature = L.EmbedID(n_vocab, n_pos)
-            self.crf = L.CRF1d(n_pos, transpose=True)
+            self.crf = L.CRF1d(n_pos)
 
     def forward(self, xs, ys):
         # h[i] is feature vector for each batch of words.
         hs = [self.feature(x) for x in xs]
-        loss = self.crf(hs, ys)
+        loss = self.crf(hs, ys, transpose=True)
         reporter.report({'loss': loss}, self)
 
         # To predict labels, call argmax method.
-        _, predict = self.crf.argmax(hs)
+        _, predict = self.crf.argmax(hs, transpose=True)
         correct = 0
         total = 0
         for y, p in six.moves.zip(ys, predict):
@@ -43,7 +43,7 @@ class CRF(chainer.Chain):
 
     def argmax(self, xs):
         hs = [self.feature(x) for x in xs]
-        return self.crf.argmax(hs)
+        return self.crf.argmax(hs, transpose=True)
 
 
 def convert(batch, device):
