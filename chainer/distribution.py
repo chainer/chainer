@@ -15,14 +15,40 @@ class cached_property(object):
         if obj is None:
             return self
 
-        with chainer.using_config('enable_backprop', True):
-            value = obj.__dict__[self.func.__name__] = self.func(obj)
+        func = self.func
+        value = func(obj)
+
+        # create object-wise cached property
+        obj.__dict__[func.__name__] = _cached_property(
+            func, {chainer.config.enable_backprop: value}
+        )
+
         return value
 
     def __set__(self, obj, cls):
         raise AttributeError(
             'attribute \'{}\' of {} is readonly'.format(
                 self.func.__name__, cls))
+
+
+class _cached_property(cached_property):
+
+    def __init__(self, func, caches):
+        super(_cached_property, self).__init__(func)
+        self.caches = caches
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+
+        caches = self.caches
+        backprop_enabled = chainer.config.enable_backprop
+        try:
+            return caches[backprop_enabled]
+        except KeyError:
+            value = self.func(obj)
+            caches[backprop_enabled] = value
+            return value
 
 
 class Distribution(object):
