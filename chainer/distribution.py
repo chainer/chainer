@@ -1,4 +1,5 @@
 import copy
+import functools
 
 import chainer
 from chainer.backends import cuda
@@ -8,7 +9,7 @@ class cached_property(object):
     """Cache a result of computation of Chainer functions"""
 
     def __init__(self, func, _caches=None):
-        self.__doc__ = getattr(func, "__doc__")
+        functools.update_wrapper(self, func)
         self.func = func
         self.caches = _caches
 
