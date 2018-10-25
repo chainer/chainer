@@ -438,16 +438,19 @@ TEST_P(ArrayTest, NonContiguousFill) {
 }
 
 TEST_P(ArrayTest, FillInplaceWithBackpropRequiredNotAllowed) {
+    BackpropScope backprop_scope{"bp1"};
+    BackpropId backprop_id = backprop_scope.backprop_id();
+
     Dtype dtype = Dtype::kFloat32;
     Array a = Zeros(Shape{3, 2}, dtype);
-    a.RequireGrad();
+    a.RequireGrad(backprop_id);
 
     Array b = a + 2;
 
-    ASSERT_TRUE(a.IsBackpropRequired());
-    ASSERT_TRUE(a.IsGradRequired());
-    ASSERT_TRUE(b.IsBackpropRequired());
-    ASSERT_FALSE(b.IsGradRequired());
+    ASSERT_TRUE(a.IsBackpropRequired(backprop_id));
+    ASSERT_TRUE(a.IsGradRequired(backprop_id));
+    ASSERT_TRUE(b.IsBackpropRequired(backprop_id));
+    ASSERT_FALSE(b.IsGradRequired(backprop_id));
 
     EXPECT_THROW(a.Fill(Scalar{1, dtype}), ChainerxError);
     EXPECT_THROW(b.Fill(Scalar{1, dtype}), ChainerxError);
