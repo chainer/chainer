@@ -1,7 +1,9 @@
 #include "chainerx/python/routines.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <nonstd/optional.hpp>
@@ -386,6 +388,30 @@ void InitChainerxManipulation(pybind11::module& m) {
           [](const ArrayBodyPtr& array, py::int_ shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
           py::arg("shape"));
+    m.def("split",
+          [](const ArrayBodyPtr& ary, int64_t indices_or_sections, int8_t axis) {
+              std::vector<Array> sub_arrays = Split(Array{ary}, indices_or_sections, axis);
+              std::vector<ArrayBodyPtr> sub_array_body_ptrs;
+              std::transform(sub_arrays.begin(), sub_arrays.end(), std::back_inserter(sub_array_body_ptrs), [](Array& array) {
+                  return MoveArrayBody(std::move(array));
+              });
+              return sub_array_body_ptrs;
+          },
+          py::arg("ary"),
+          py::arg("indices_or_sections"),
+          py::arg("axis") = 0);
+    m.def("split",
+          [](const ArrayBodyPtr& ary, std::vector<int64_t> indices_or_sections, int8_t axis) {
+              std::vector<Array> sub_arrays = Split(Array{ary}, indices_or_sections, axis);
+              std::vector<ArrayBodyPtr> sub_array_body_ptrs;
+              std::transform(sub_arrays.begin(), sub_arrays.end(), std::back_inserter(sub_array_body_ptrs), [](Array& array) {
+                  return MoveArrayBody(std::move(array));
+              });
+              return sub_array_body_ptrs;
+          },
+          py::arg("ary"),
+          py::arg("indices_or_sections"),
+          py::arg("axis") = 0);
 }
 
 void InitChainerxMath(pybind11::module& m) {

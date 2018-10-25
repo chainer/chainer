@@ -377,4 +377,56 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
     return out;
 }
 
+std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
+    if (sections == 0) {
+        throw DimensionError("Cannot split and array into 0 sections.");
+    }
+
+    const Shape& in_shape = ary.shape();
+    if (in_shape[axis] % sections != 0) {
+        throw DimensionError("Array split does not result in an equal division.");
+    }
+
+    // Create a vector of indices such that the split becomes even, and use the overloaded function.
+    std::vector<int64_t> indices(sections - 1);
+    int64_t step = in_shape[axis] / sections;
+    int64_t start = step;
+    for (size_t i = 0; i < indices.size(); ++i) {
+        indices[i] = start;
+        start += step;
+    }
+
+    return Split(ary, indices, axis);
+}
+
+std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t axis) {
+    const Shape& in_shape = ary.shape();
+    int64_t in_dim = in_shape[axis];
+
+    // Wrap negative indices.
+    std::transform(
+            indices.begin(), indices.end(), indices.begin(), [in_dim](int64_t index) { return index >= 0 ? index : index + in_dim; });
+    indices.emplace_back(in_dim);
+
+    std::vector<Array> out;
+
+    Shape out_shape = in_shape;
+    int64_t& out_dim = out_shape[axis];
+    int64_t out_stride = ary.strides()[axis];
+    int64_t out_offset = ary.offset();
+    int64_t slice_start = 0;
+    for (int64_t index : indices) {
+        int64_t slice_stop = std::min(in_dim, index);
+
+        // Update the element of interest in the out_shape.
+        out_dim = slice_stop - slice_start;
+
+        out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
+
+        out_offset += out_stride * out_dim;
+        slice_start = slice_stop;
+    }
+    return out;
+}
+
 }  // namespace chainerx
