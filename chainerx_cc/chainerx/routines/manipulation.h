@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include <nonstd/optional.hpp>
 
@@ -33,5 +34,9 @@ Array Squeeze(const Array& a, const OptionalAxes& axis = nonstd::nullopt);
 // Broadcasts the array to the specified shape.
 // Returned array is always a view to this array.
 Array BroadcastTo(const Array& array, const Shape& shape);
+
+// Returns a concatenated array.
+Array Concat(const std::vector<Array>& arrays);
+Array Concat(const std::vector<Array>& arrays, int8_t axis);
 
 }  // namespace chainerx

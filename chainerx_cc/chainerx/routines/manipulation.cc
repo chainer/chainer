@@ -13,6 +13,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
+#include "chainerx/backprop_mode.h"
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
 #include "chainerx/device.h"
@@ -21,6 +22,8 @@
 #include "chainerx/macro.h"
 #include "chainerx/shape.h"
 #include "chainerx/strides.h"
+
+#include "chainerx/routines/creation.h"
 
 namespace chainerx {
 
@@ -373,6 +376,55 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         });
     }
     bb.Finalize();
+
+    return out;
+}
+
+Array Concat(const std::vector<Array>& arrays) { return Concat(arrays, 1); }
+
+Array Concat(const std::vector<Array>& arrays, int8_t axis = 1) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to concatenate"};
+    }
+
+    Shape shape = arrays.front().shape();
+    Dtype dtype = arrays.front().dtype();
+    Device& device = arrays.front().device();
+    uint8_t ndim = shape.size();
+    axis = internal::NormalizeAxis(axis, ndim);
+    shape[axis] = 0;
+
+    for (const Array& array : arrays) {
+        const Shape& s = array.shape();
+        if (ndim != s.size()) {
+            throw DimensionError{"All the input arrays must have same number of dimensions"};
+        }
+        if (dtype != array.dtype()) {
+            throw DtypeError{"All the input arrays must have same dtypes"};
+        }
+        for (int8_t i = 0; i < ndim; ++i) {
+            if (axis == i) {
+                shape[i] += s[i];
+            } else if (shape[i] != s[i]) {
+                throw DimensionError{"All the input array dimensions except for the concatenation axis must match exactly"};
+            }
+        }
+    }
+
+    Array out = Empty(shape, dtype, device);
+    const Strides& strides = out.strides();
+    {
+        NoBackpropModeScope scope{};
+        int64_t out_offset = 0;
+        for (const Array& array : arrays) {
+            const Shape& shape = array.shape();
+            Array sliced_out = internal::MakeArray(shape, strides, dtype, device, out.data(), out_offset);
+            device.Copy(array, sliced_out);
+            out_offset += strides[axis] * shape[axis];
+        }
+    }
+
+    // TODO(imanishi): Implement backward
 
     return out;
 }
