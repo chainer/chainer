@@ -264,8 +264,8 @@ class Summary(object):
     """
 
     def __init__(self):
-        self._x = 0
-        self._x2 = 0
+        self._x = 0.0
+        self._x2 = 0.0
         self._n = 0
 
     def add(self, value, weight=1):
