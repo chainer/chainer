@@ -128,7 +128,10 @@ VGG Networks
 
 .. note::
    ChainerCV contains implementation of VGG networks as well (i.e.,
-   :class:`chainercv.links.model.vgg.VGG16`).
+   :class:`chainercv.links.model.vgg.VGG16`). Unlike the Chainer's
+   implementation, the ChainerCV's implementation
+   assumes the color channel of the input image to be ordered in RGB instead
+   of BGR.
 
 GoogLeNet
 ~~~~~~~~~
@@ -157,6 +160,11 @@ Residual Networks
    :class:`chainercv.links.model.resnet.ResNet50`,
    :class:`chainercv.links.model.resnet.ResNet101`,
    :class:`chainercv.links.model.resnet.ResNet152`).
+   Unlike the Chainer's
+   implementation, the ChainerCV's implementation
+   assumes the color channel of the input image to be ordered in RGB instead
+   of BGR.
+
 
 ChainerCV models
 ~~~~~~~~~~~~~~~~
