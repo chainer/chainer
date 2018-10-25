@@ -86,7 +86,7 @@ def _array_to_numpy(array):
         return array
     if isinstance(array, intel64.mdarray):
         return numpy.asarray(array)
-    if chainerx.is_available() and isinstance(array, chainerx.ndarray):
+    if isinstance(array, chainerx.ndarray):
         return chainerx.to_numpy(array, copy=False)
     if isinstance(array, cuda.ndarray):
         cuda.check_cuda_available()
@@ -105,8 +105,6 @@ def to_numpy(array):
 
 
 def _array_to_chainerx(array, device):
-    if not chainerx.is_available():
-        raise RuntimeError('ChainerX is not available.')
     if device is not None:
         device = chainerx.get_device(device)
 
@@ -154,6 +152,9 @@ def _array_to_chainerx(array, device):
 
 # TODO(niboshi): Revisit API
 def to_chainerx(array, device=None):
+    if not chainerx.is_available():
+        raise RuntimeError('ChainerX is not available.')
+
     # If device is None, appropriate device is chosen according to the input
     # arrays.
     return _obj_to_array(array, lambda arr: _array_to_chainerx(arr, device))
@@ -329,8 +330,7 @@ def get_array_module(*args):
         args = [arg.data if isinstance(arg, chainer.variable.Variable) else arg
                 for arg in args]
 
-    if (chainerx.is_available()
-            and any([isinstance(a, chainerx.ndarray) for a in args])):
+    if any([isinstance(a, chainerx.ndarray) for a in args]):
         return chainerx
     elif cuda.available:
         return cuda.cupy.get_array_module(*args)
@@ -367,8 +367,7 @@ def get_device_from_array(*arrays):
     for array in arrays:
         if isinstance(array, cuda.ndarray) and array.device is not None:
             return array.device
-        if (chainerx.is_available()
-                and isinstance(array, chainerx.ndarray)):
+        if isinstance(array, chainerx.ndarray):
             return chainerx.device_scope(array.device)
     return cuda.DummyDevice
 
@@ -377,19 +376,21 @@ def get_device_from_array(*arrays):
 def get_device(device):
     if device is cuda.DummyDevice:
         return device
+
     if cuda.available and isinstance(device, cuda.Device):
         return device
+
     if isinstance(device, six.integer_types):
         if device < 0:
             return cuda.DummyDevice
         else:
             cuda.check_cuda_available()
             return cuda.Device(device)
-    if chainerx.is_available():
-        if isinstance(device, (chainerx.Device, chainerx.DeviceScope)):
-            return device
-        try:
-            return chainerx.get_device(device)
-        except (TypeError, chainerx.BackendError):
-            pass
-    raise ValueError('Invalid device specifier: {}'.format(device))
+
+    if isinstance(device, (chainerx.Device, chainerx.DeviceScope)):
+        return device
+
+    try:
+        return chainerx.get_device(device)
+    except (TypeError, chainerx.BackendError):
+        raise ValueError('Invalid device specifier: {}'.format(device))

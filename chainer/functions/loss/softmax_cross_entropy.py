@@ -444,9 +444,7 @@ for row, column in enumerate(t)])
 
     """
 
-    is_chainerx = (
-        chainerx.is_available()
-        and backend.get_array_module(x) is chainerx)
+    is_chainerx = backend.get_array_module(x) is chainerx
 
     if is_chainerx or not enable_double_backprop:
         # Optimized implementation.

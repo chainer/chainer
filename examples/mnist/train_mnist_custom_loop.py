@@ -73,7 +73,7 @@ def main():
         model.to_cpu()
     elif isinstance(device, chainer.cuda.Device):
         model.to_gpu(device.id)
-    elif chainerx.is_available() and isinstance(device, chainerx.Device):
+    elif isinstance(device, chainerx.Device):
         model.to_chainerx(device)
     else:
         assert False

@@ -297,7 +297,7 @@ def _array_to_gpu(array, device, stream):
     if array is None:
         return None
 
-    if chainerx.is_available() and isinstance(array, chainerx.ndarray):
+    if isinstance(array, chainerx.ndarray):
         # TODO(niboshi): Update this logic once both CuPy and ChainerX support
         # the array interface.
         if array.device.backend.name == 'cuda':

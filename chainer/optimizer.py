@@ -233,8 +233,7 @@ class UpdateRule(object):
 
         """
         with cuda.get_device_from_array(param.data) as dev:
-            if (chainerx.is_available()
-                    and isinstance(dev, chainerx.DeviceScope)):
+            if isinstance(dev, chainerx.DeviceScope):
                 self.update_core_chainerx(param)
             elif int(dev) == -1:
                 self.update_core_cpu(param)
