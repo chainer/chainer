@@ -7,21 +7,32 @@ from chainer.backends import cuda
 class cached_property(object):
     """Cache a result of computation of Chainer functions"""
 
-    def __init__(self, func):
+    def __init__(self, func, _caches=None):
         self.__doc__ = getattr(func, "__doc__")
         self.func = func
+        self.caches = _caches
 
     def __get__(self, obj, cls):
         if obj is None:
             return self
 
         func = self.func
-        value = func(obj)
+        caches = self.caches
+        backprop_enabled = chainer.config.enable_backprop
 
-        # create object-wise cached property
-        obj.__dict__[func.__name__] = _cached_property(
-            func, {chainer.config.enable_backprop: value}
-        )
+        if caches is None:
+            value = func(obj)
+
+            # create object-wise cached property
+            obj.__dict__[func.__name__] = cached_property(
+                func, {backprop_enabled: value}
+            )
+        else:
+            try:
+                value = caches[backprop_enabled]
+            except KeyError:
+                value = func(obj)
+                caches[backprop_enabled] = value
 
         return value
 
@@ -29,26 +40,6 @@ class cached_property(object):
         raise AttributeError(
             'attribute \'{}\' of {} is readonly'.format(
                 self.func.__name__, cls))
-
-
-class _cached_property(cached_property):
-
-    def __init__(self, func, caches):
-        super(_cached_property, self).__init__(func)
-        self.caches = caches
-
-    def __get__(self, obj, cls):
-        if obj is None:
-            return self
-
-        caches = self.caches
-        backprop_enabled = chainer.config.enable_backprop
-        try:
-            return caches[backprop_enabled]
-        except KeyError:
-            value = self.func(obj)
-            caches[backprop_enabled] = value
-            return value
 
 
 class Distribution(object):
