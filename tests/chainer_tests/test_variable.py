@@ -565,7 +565,8 @@ class TestVariable(unittest.TestCase):
         # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
         self.check_cleargrad(chainerx.empty((3,), dtype=np.float32), fill=True)
 
-    def check_zerograd(self, a_data, fill=False, grad_var_requires_grad=True):
+    def check_zerograd(self, a_data, fill=False, grad_var_requires_grad=True,
+                       expect_error=False):
         xp = backend.get_array_module(a_data)
         a = chainer.Variable(a_data)
         if fill:
@@ -575,7 +576,12 @@ class TestVariable(unittest.TestCase):
                 a.grad_var.creator_node = chainer.FunctionNode()
 
         with testing.assert_warns(DeprecationWarning):
+            if expect_error:
+                with pytest.raises(Exception):
+                    a.zerograd()
+                return
             a.zerograd()
+
         assert a.grad is not None
         if fill and xp is not chainerx:
             assert a.grad_var.creator_node is None
@@ -635,9 +641,9 @@ class TestVariable(unittest.TestCase):
     @attr.chainerx
     def test_zerograd_fill_chainerx_requiring_grad(self):
         # TODO(hvy): Simplify to chainerx.empty(int, ...) when supported.
-        with self.assertRaises(RuntimeError):
-            self.check_zerograd(chainerx.empty((3,), dtype=np.float32),
-                                fill=True, grad_var_requires_grad=True)
+        self.check_zerograd(chainerx.empty((3,), dtype=np.float32),
+                            fill=True, grad_var_requires_grad=True,
+                            expect_error=True)
 
     def check_copydata(self, data1, data2, expect):
         xp = backend.get_array_module(data1)
