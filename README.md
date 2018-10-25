@@ -25,7 +25,7 @@ For more details of Chainer, see the documents and resources listed above and jo
 
 ## Stable version
 
-The stable version of current Chainer is separated in here: [v4](https://github.com/chainer/chainer/tree/v4).
+The stable version of current Chainer is separated in here: [v5](https://github.com/chainer/chainer/tree/v5).
 
 ## Installation
 
