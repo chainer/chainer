@@ -1,0 +1,7 @@
+@inproceedings{chainermn_mlsys2017,
+author = {Akiba, Takuya and Fukuda, Keisuke and Suzuki, Shuji},
+title = {{ChainerMN: Scalable Distributed Deep Learning Framework}},
+booktitle = {Proceedings of Workshop on ML Systems in The Thirty-first Annual Conference on Neural Information Processing Systems (NIPS)},
+year = {2017}
+url = {http://learningsys.org/nips17/assets/papers/paper_25.pdf},
+}
