@@ -8,34 +8,25 @@ from chainer.backends import cuda
 class cached_property(object):
     """Cache a result of computation of Chainer functions"""
 
-    def __init__(self, func, _caches=None):
+    def __init__(self, func):
         functools.update_wrapper(self, func)
         self.func = func
-        self.caches = _caches
 
     def __get__(self, obj, cls):
         if obj is None:
             return self
 
         func = self.func
-        caches = self.caches
         backprop_enabled = chainer.config.enable_backprop
 
-        if caches is None:
+        caches = obj.__dict__.setdefault(func.__name__, {})
+
+        try:
+            return caches[backprop_enabled]
+        except KeyError:
             value = func(obj)
-
-            # create object-wise cached property
-            obj.__dict__[func.__name__] = cached_property(
-                func, {backprop_enabled: value}
-            )
-        else:
-            try:
-                value = caches[backprop_enabled]
-            except KeyError:
-                value = func(obj)
-                caches[backprop_enabled] = value
-
-        return value
+            caches[backprop_enabled] = value
+            return value
 
     def __set__(self, obj, cls):
         raise AttributeError(
