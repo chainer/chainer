@@ -309,3 +309,38 @@ def test_broadcast_to_auto_prefix(xp):
 def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     a = xp.ones(src_shape, 'float32')
     return xp.broadcast_to(a, dst_shape)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shapes,axis', [
+    ([], None),
+    ([(3, 4, 5)], None),
+    ([(2, 3, 1), (2, 3, 1)], None),
+    ([(2, 3, 2), (2, 4, 2), (2, 3, 2)], None),
+    ([(2, 3, 2), (2, 4, 2), (3, 3, 2)], None),
+    ([(4, 10), (5, 10)], 0),
+    ([(4, 10), (4, 8)], 0),
+    ([(4, 4), (4,)], None),
+    ([(2, 3), (2, 3)], 10),
+    ([(2, 3), (2, 3)], -1),
+])
+def test_concat(xp, shapes, axis):
+    arrays = []
+    for i, shape in enumerate(shapes):
+        size = numpy.product(shape)
+        a = numpy.arange(i * 100, i * 100 + size).reshape(shape).astype('f')
+        arrays.append(a)
+
+    if xp is numpy:
+        arrays = tuple(arrays)
+        if axis is None:
+            return numpy.concatenate(arrays, 1)
+        else:
+            return numpy.concatenate(arrays, axis)
+    elif xp is chainerx:
+        arrays = tuple([chainerx.array(a) for a in arrays])
+        if axis is None:
+            return chainerx.concat(arrays)
+        else:
+            return chainerx.concat(arrays, axis)
