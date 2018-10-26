@@ -112,6 +112,13 @@ class TestKLDivergence(unittest.TestCase):
             {"loc": loc, "scale_tril": scale_tril}, is_gpu)
         return distributions.MultivariateNormal(**params)
 
+    def make_one_hot_categorical_dist(self, is_gpu=False):
+        p = numpy.random.normal(size=self.shape+(3,)).astype(numpy.float32)
+        p = numpy.exp(p)
+        p /= numpy.expand_dims(p.sum(axis=-1), axis=-1)
+        params = self.encode_params({"p": p}, is_gpu)
+        return distributions.OneHotCategorical(**params)
+
     def make_pareto_dist(self, is_gpu=False):
         scale = numpy.exp(numpy.random.uniform(
             0.5, 1, self.shape)).astype(numpy.float32)
@@ -264,6 +271,18 @@ class TestKLDivergence(unittest.TestCase):
     def test_multivariatenormal_multivariatenormal_gpu(self):
         dist1 = self.make_multivariatenormal_dist(True)
         dist2 = self.make_multivariatenormal_dist(True)
+        self.check_kl(dist1, dist2)
+
+    @testing.with_requires('numpy>=1.11')
+    def test_one_hot_categorical_one_hot_categorical_cpu(self):
+        dist1 = self.make_one_hot_categorical_dist()
+        dist2 = self.make_one_hot_categorical_dist()
+        self.check_kl(dist1, dist2)
+
+    @attr.gpu
+    def test_one_hot_categorical_one_hot_categorical_gpu(self):
+        dist1 = self.make_one_hot_categorical_dist(True)
+        dist2 = self.make_one_hot_categorical_dist(True)
         self.check_kl(dist1, dist2)
 
     def test_pareto_pareto_cpu(self):
