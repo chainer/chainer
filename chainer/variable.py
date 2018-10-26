@@ -47,10 +47,13 @@ class movemethod(object):
 
     def __get__(self, obj, objtype=None):
         if obj is None:
-            return self.wrapped
+            return six.create_unbound_method(self.wrapped, objtype)
 
-        bound_method = types.MethodType(self.wrapped, [obj])
-        return bound_method
+        # six.create_bound_method cannot be used
+        if six.PY2:
+            return types.MethodType(self.wrapped, [obj], type(obj))
+        else:
+            return types.MethodType(self.wrapped, [obj])
 
 
 def _check_grad_type(func, x, gx):
