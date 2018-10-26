@@ -3,6 +3,7 @@ import copy
 import functools
 import heapq
 import traceback
+import types
 import warnings
 import weakref
 
@@ -17,6 +18,39 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
+
+
+class movemethod(object):
+
+    """Decorator of method to bind ``[self]``
+
+    >>> class C(object):
+    ...     @movemethod
+    ...     def m(self_, *args, **kwargs):
+    ...         self = self_.pop()
+    ...         print(1)
+    ...         del self
+    ...         print(3)
+    ...     def __del__(self):
+    ...         print(2)
+    ...
+    >>> C().m()
+    1
+    2
+    3
+
+    """
+
+    def __init__(self, wrapped):
+        functools.update_wrapper(self, wrapped)
+        self.wrapped = wrapped
+
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self.wrapped
+
+        bound_method = types.MethodType(self.wrapped, [obj])
+        return bound_method
 
 
 def _check_grad_type(func, x, gx):
@@ -908,12 +942,10 @@ Actual: {0}'''.format(type(data))
         """
         self._node.set_creator_node(fnode)
 
-    @property
-    def backward(self):
-        """backward(self, retain_grad=False, enable_double_backprop=False,
-        loss_scale=None):
-
-        Runs error backpropagation (a.k.a.\\  backprop) from this variable.
+    @movemethod
+    def backward(self_, retain_grad=False, enable_double_backprop=False,
+                 loss_scale=None):
+        """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop,
         :meth:`FunctionNode.backward() <chainer.FunctionNode.backward>`
@@ -963,7 +995,39 @@ Actual: {0}'''.format(type(data))
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        return functools.partial(_backward_impl, [self])
+        try:
+            self = self_.pop()
+        except IndexError:
+            raise RuntimeError(
+                'variable.backward is FnOnce.')  # TODO(kataoka): fix message
+
+        self._node._check_old_style_gradient()
+        if self.creator_node is None:
+            return
+
+        # Initialize error by 1, if this is a loss variable
+        if self.array.size == 1 and self._grad_var is None:
+            if self.array.ndim != 0:
+                warnings.warn(
+                    'Treating a scalar as a variable with only one element'
+                    ' in Variable.backward is deprecated. A scalar variable'
+                    ' must be a 0-dimensional array. Apply'
+                    ' chainer.functions.squeeze to obtain a scalar variable.'
+                    ' If the size of this variable accidentally becomes one,'
+                    ' set zero to grad.',
+                    DeprecationWarning)
+            with cuda.get_device_from_array(self.array) as device:
+                if device is cuda.DummyDevice:
+                    self.grad = numpy.ones_like(self.array)
+                else:
+                    self.grad = cuda.cupy.ones_like(self.array)
+            if loss_scale is not None:
+                self.grad *= loss_scale
+
+        with chainer.using_config('enable_backprop', enable_double_backprop):
+            outputs = [self]
+            del self
+            _backward_main(outputs, retain_grad, loss_scale)
 
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
@@ -1094,43 +1158,6 @@ else:
 
         def values(self):
             return self.dict.values()
-
-
-def _backward_impl(
-        self_, retain_grad=False, enable_double_backprop=False,
-        loss_scale=None):
-    if not self_:
-        raise RuntimeError(
-            'variable.backward is FnOnce.')  # TODO(kataoka): fix message
-    self, = self_
-    self._node._check_old_style_gradient()
-    if self.creator_node is None:
-        del self_[:]
-        return
-
-    # Initialize error by 1, if this is a loss variable
-    if self.array.size == 1 and self._grad_var is None:
-        if self.array.ndim != 0:
-            warnings.warn(
-                'Treating a scalar as a variable with only one element'
-                ' in Variable.backward is deprecated. A scalar variable'
-                ' must be a 0-dimensional array. Apply'
-                ' chainer.functions.squeeze to obtain a scalar variable.'
-                ' If the size of this variable accidentally becomes one,'
-                ' set zero to grad.',
-                DeprecationWarning)
-        with cuda.get_device_from_array(self.array) as device:
-            if device is cuda.DummyDevice:
-                self.grad = numpy.ones_like(self.array)
-            else:
-                self.grad = cuda.cupy.ones_like(self.array)
-        if loss_scale is not None:
-            self.grad *= loss_scale
-
-    with chainer.using_config('enable_backprop', enable_double_backprop):
-        del self
-        _backward_main(self_, retain_grad, loss_scale)
-    assert not self_
 
 
 def _backward_main(outputs, retain_grad, loss_scale):
