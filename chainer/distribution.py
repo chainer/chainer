@@ -10,28 +10,24 @@ class cached_property(object):
 
     def __init__(self, func):
         functools.update_wrapper(self, func)
-        self.func = func
 
     def __get__(self, obj, cls):
         if obj is None:
             return self
 
-        func = self.func
+        caches = obj.__dict__.setdefault(self.__name__, {})
         backprop_enabled = chainer.config.enable_backprop
-
-        caches = obj.__dict__.setdefault(func.__name__, {})
-
         try:
             return caches[backprop_enabled]
         except KeyError:
-            value = func(obj)
+            value = self.__wrapped__(obj)
             caches[backprop_enabled] = value
             return value
 
     def __set__(self, obj, cls):
         raise AttributeError(
             'attribute \'{}\' of {} is readonly'.format(
-                self.func.__name__, cls))
+                self.__name__, cls))
 
 
 class Distribution(object):
