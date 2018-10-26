@@ -1374,7 +1374,8 @@ class TestUninitializedParameter(unittest.TestCase):
     # of chainerx.Device.
     def _get_device_from_array(self, array):
         device = backend.get_device_from_array(array)
-        if isinstance(device, chainerx.DeviceScope):
+        if (chainerx.is_available()
+                and isinstance(device, chainerx.DeviceScope)):
             device = device.device
         return device
 

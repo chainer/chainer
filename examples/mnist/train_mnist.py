@@ -84,7 +84,7 @@ def main():
         model.to_cpu()
     elif isinstance(device, chainer.cuda.Device):
         model.to_gpu(device.id)
-    elif isinstance(device, chainerx.Device):
+    elif chainerx.is_available() and isinstance(device, chainerx.Device):
         model.to_chainerx(device)
     else:
         assert False
@@ -111,7 +111,7 @@ def main():
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
     # TODO(niboshi): Temporarily disabled for chainerx. Fix it.
-    if not isinstance(device, chainerx.Device):
+    if not (chainerx.is_available() and isinstance(device, chainerx.Device)):
         trainer.extend(extensions.dump_graph('main/loss'))
 
     # Take a snapshot for each specified epoch
