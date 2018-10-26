@@ -51,7 +51,7 @@ class movemethod(object):
 
         # six.create_bound_method cannot be used
         if six.PY2:
-            return types.MethodType(self.wrapped, [obj], type(obj))
+            return types.MethodType(self.wrapped, [obj], objtype)
         else:
             return types.MethodType(self.wrapped, [obj])
 
