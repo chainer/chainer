@@ -89,7 +89,7 @@ def forget(func, *xs):
        Let ``f`` be a function defined as:
 
        >>> def f(a, b):
-       ...   return a + b + a
+       ...   return (a + b) * a
 
        and, ``x`` and ``y`` be :class:`~chainer.Variable`\\ s:
 
