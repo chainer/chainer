@@ -37,6 +37,6 @@ Array BroadcastTo(const Array& array, const Shape& shape);
 
 // Returns a concatenated array.
 Array Concat(const std::vector<Array>& arrays);
-Array Concat(const std::vector<Array>& arrays, int8_t axis);
+Array Concat(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis);
 
 }  // namespace chainerx

@@ -380,9 +380,9 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
     return out;
 }
 
-Array Concat(const std::vector<Array>& arrays) { return Concat(arrays, 1); }
+namespace {
 
-Array Concat(const std::vector<Array>& arrays, int8_t axis = 1) {
+Array ConcatImpl(const std::vector<Array>& arrays, int8_t axis) {
     if (arrays.empty()) {
         throw DimensionError{"Need at least one array to concatenate"};
     }
@@ -427,6 +427,23 @@ Array Concat(const std::vector<Array>& arrays, int8_t axis = 1) {
     // TODO(imanishi): Implement backward
 
     return out;
+}
+
+}  // namespace
+
+Array Concat(const std::vector<Array>& arrays) { return ConcatImpl(arrays, 0); }
+
+Array Concat(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis) {
+    if (axis.has_value()) {
+        return ConcatImpl(arrays, *axis);
+    }
+    std::vector<Array> raveled_arrays;
+    raveled_arrays.reserve(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), std::back_inserter(raveled_arrays), [](const Array& array) {
+        Shape shape{array.GetTotalSize()};
+        return array.Reshape(shape);
+    });
+    return ConcatImpl(raveled_arrays, 0);
 }
 
 }  // namespace chainerx
