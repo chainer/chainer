@@ -10,6 +10,7 @@ class cached_property(object):
 
     def __init__(self, func):
         functools.update_wrapper(self, func)
+        self.func = func
 
     def __get__(self, obj, cls):
         if obj is None:
@@ -20,11 +21,12 @@ class cached_property(object):
         try:
             return caches[backprop_enabled]
         except KeyError:
-            value = self.__wrapped__(obj)
+            value = self.func(obj)
             caches[backprop_enabled] = value
             return value
 
     def __set__(self, obj, cls):
+        # Define __set__ to make cached_property a data descriptor
         raise AttributeError(
             'attribute \'{}\' of {} is readonly'.format(
                 self.__name__, cls))
