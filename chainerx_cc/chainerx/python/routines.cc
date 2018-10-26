@@ -386,6 +386,15 @@ void InitChainerxManipulation(pybind11::module& m) {
           [](const ArrayBodyPtr& array, py::int_ shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
           py::arg("shape"));
+    m.def("concat",
+          [](py::tuple tup, int8_t axis) {
+              std::vector<Array> xs;
+              std::transform(
+                      tup.begin(), tup.end(), std::back_inserter(xs), [](auto& item) { return Array{py::cast<ArrayBodyPtr>(item)}; });
+              return MoveArrayBody(Concat(xs, axis));
+          },
+          py::arg("arrays"),
+          py::arg("axis") = 1);
 }
 
 void InitChainerxMath(pybind11::module& m) {
