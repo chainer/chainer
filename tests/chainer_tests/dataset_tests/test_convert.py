@@ -19,7 +19,7 @@ class TestConcatExamples(unittest.TestCase):
     def check_device(self, array, expected_device):
         # TODO(niboshi): This is a workaround because get_device_from_array
         # returns chainerx.DeviceScope instead of chainerx.Device.
-        if chainerx.is_available() and isinstance(array, chainerx.ndarray):
+        if isinstance(array, chainerx.ndarray):
             assert array.device == expected_device
         else:
             assert backend.get_device_from_array(array) == expected_device

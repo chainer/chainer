@@ -280,7 +280,7 @@ class Summary(object):
                 Default is 1 (integer).
 
         """
-        if chainerx.is_available() and isinstance(value, chainerx.ndarray):
+        if isinstance(value, chainerx.ndarray):
             # ChainerX arrays does not support inplace assignment if it's
             # connected to the backprop graph.
             value = value.as_grad_stopped()

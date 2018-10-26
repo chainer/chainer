@@ -32,6 +32,9 @@ if _available:
     from chainerx import _numpy_compat_workarounds
 
     _numpy_compat_workarounds.populate()
+else:
+    class ndarray(object):
+        pass  # for type testing
 
 
 def is_available():

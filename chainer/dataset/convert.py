@@ -164,7 +164,7 @@ def _concat_arrays(arrays, padding):
     # does not support some operations required.
     # TODO(niboshi): Avoid conversion
     chainerx_device = None
-    if chainerx.is_available() and isinstance(arrays[0], chainerx.ndarray):
+    if isinstance(arrays[0], chainerx.ndarray):
         chainerx_device = arrays[0].device
         if chainerx_device.backend.name == 'native':
             arrays = backend.to_numpy(arrays)
