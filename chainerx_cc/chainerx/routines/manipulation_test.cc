@@ -504,6 +504,113 @@ TEST_P(ManipulationTest, BroadcastToDoubleBackward) {
             {Full({1, 3, 1, 3}, 1e-1), Full({2, 3, 4, 3}, 1e-1)});
 }
 
+TEST_THREAD_SAFE_P(ManipulationTest, Concat) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{2, 6, 1};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 2, 3, 7, 8, 9, 4, 5, 6, 10, 11, 12});
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Concat(xs);
+                    return std::vector<Array>{y};
+                },
+                {a, b},
+                {e});
+    });
+}
+
+TEST_P(ManipulationTest, ConcatAxis0) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{4, 3, 1};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+
+    EXPECT_ARRAY_EQ(e, Concat({a, b}, 0));
+}
+
+TEST_P(ManipulationTest, ConcatAxis1) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{2, 6, 1};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 2, 3, 7, 8, 9, 4, 5, 6, 10, 11, 12});
+
+    EXPECT_ARRAY_EQ(e, Concat({a, b}, 1));
+}
+
+TEST_P(ManipulationTest, ConcatAxis2) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{2, 3, 2};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 7, 2, 8, 3, 9, 4, 10, 5, 11, 6, 12});
+
+    EXPECT_ARRAY_EQ(e, Concat({a, b}, 2));
+}
+
+TEST_P(ManipulationTest, ConcatEmptyInput) { EXPECT_THROW(Concat({}), DimensionError); }
+
+TEST_P(ManipulationTest, ConcatDifferentNdims) {
+    using T = int32_t;
+
+    Array a = testing::BuildArray({2, 3, 1}).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray({2, 3, 1, 1}).WithData<T>({7, 8, 9, 10, 11, 12});
+
+    EXPECT_THROW(Concat({a, b}), DimensionError);
+}
+
+TEST_P(ManipulationTest, ConcatDifferentDtypes) {
+    Shape input_shape{2, 3, 1};
+
+    Array a = testing::BuildArray(input_shape).WithData<int32_t>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<int64_t>({7, 8, 9, 10, 11, 12});
+
+    EXPECT_THROW(Concat({a, b}), DtypeError);
+}
+
+TEST_P(ManipulationTest, ConcatDifferentDimensionOnlyForConcatenationAxis) {
+    using T = int32_t;
+
+    Array a = testing::BuildArray({2, 3, 1}).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray({2, 2, 1}).WithData<T>({7, 8, 9, 10});
+    Array e = testing::BuildArray({2, 5, 1}).WithData<T>({1, 2, 3, 7, 8, 4, 5, 6, 9, 10});
+
+    EXPECT_ARRAY_EQ(e, Concat({a, b}));
+}
+
+TEST_P(ManipulationTest, ConcatDifferentDimensionExceptForConcatenationAxis) {
+    using T = int32_t;
+
+    Array a = testing::BuildArray({2, 3, 1}).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray({2, 3, 2}).WithData<T>({7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18});
+
+    EXPECT_THROW(Concat({a, b}), DimensionError);
+}
+
+TEST_P(ManipulationTest, ConcatNonContiguous) {
+    using T = int32_t;
+
+    Array aa = testing::BuildArray({1, 3, 1}).WithData<T>({1, 2, 3});
+    Array a = BroadcastTo(aa, {2, 3, 1});
+    Array bb = testing::BuildArray({2, 3, 2}).WithData<T>({7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18});
+    Array b = bb.At({Slice{}, Slice{}, Slice{nonstd::nullopt, nonstd::nullopt, 2}});
+    Array e = testing::BuildArray({2, 6, 1}).WithData<T>({1, 2, 3, 7, 9, 11, 1, 2, 3, 13, 15, 17});
+
+    EXPECT_ARRAY_EQ(e, Concat({a, b}));
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         ManipulationTest,
