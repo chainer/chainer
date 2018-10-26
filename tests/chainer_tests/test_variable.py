@@ -2350,9 +2350,19 @@ class TestDelayBackward(unittest.TestCase):
         y, = self.func('f', [x], 1)
         y.grad_var = self.var('gy')
         backward = y.backward
+        del y
         backward()
         with pytest.raises(RuntimeError):
             backward()
+
+    def test_continuation_twice_backward_compat(self):
+        x = self.var('x')
+        y, = self.func('f', [x], 1)
+        y.grad_var = self.var('gy')
+        backward = y.backward
+        backward()
+        y.grad_var = self.var('gy2')
+        backward()
 
     def check_backward_return_none(self, del_y):
         # Variable.backward should return None because it will find the error

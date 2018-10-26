@@ -6,6 +6,7 @@ import traceback
 import types
 import warnings
 import weakref
+import sys
 
 import numpy
 import six
@@ -999,10 +1000,14 @@ Actual: {0}'''.format(type(data))
                 are to be updated.
         """
         try:
-            self = self_.pop()
-        except IndexError:
+            self, = self_
+        except ValueError:
             raise RuntimeError(
-                'variable.backward is FnOnce.')  # TODO(kataoka): fix message
+                'variable.backward has been consumed because the variable had'
+                'no other references.')
+        if sys.getrefcount(self) == 3:
+            # {self, self_, arg of getrefcount}
+            del self_[:]
 
         self._node._check_old_style_gradient()
         if self.creator_node is None:
