@@ -10,6 +10,17 @@ Most changes are carefully designed not to break existing code; however changes 
 Chainer v5
 ==========
 
+ChainerMN Became Part of Chainer
+--------------------------------
+
+ChainerMN, which enables multi-node distributed deep learning using Chainer, has been merged to Chainer v5.
+
+Prior to Chainer v4, ChainerMN was provided as a separate ``chainermn`` package.
+In Chainer v5, ChainerMN now became a part of Chainer; ChainerMN will be installed just by installing ``chainer`` package.
+If you are using ``chainermn`` package, make sure to remove it by ``pip uninstall chainermn`` before upgrading to Chainer v5 or later.
+
+For documentation of ChainerMN, see :doc:`chainermn/index`.
+
 FunctionNode Classes are Hidden from ``chainer.functions``
 ----------------------------------------------------------
 
@@ -72,6 +83,24 @@ Extending the Backend Namespace
 -------------------------------
 
 In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes ``chainer.backend.get_array_module`` which used to be defined in ``chainer.backends.cuda.get_array_module``. Both can be used but the latter will be deprecated.
+
+``get_device_from_array`` Returns Actual Device for Empty Arrays
+----------------------------------------------------------------
+
+Prior to Chainer v5, :func:`chainer.backends.cuda.get_device_from_array` returned :class:`chainer.backends.cuda.DummyDeviceType` if the array is empty.
+In Chainer v5, it has been changed to return the actual :class:`cupy.cuda.Device` object::
+
+    >>> x = cupy.array([])
+    >>> chainer.backends.cuda.get_device_from_array(x)
+    <CUDA Device 0>
+
+Update of Docker Images
+-----------------------
+
+Chainer official Docker images (see :doc:`install` for details) are now updated to use CUDA 9.2 and cuDNN 7.
+
+To use these images, you may need to upgrade the NVIDIA driver on your host.
+See `Requirements of nvidia-docker <https://github.com/NVIDIA/nvidia-docker/wiki/CUDA#requirements>`_ for details.
 
 CuPy v5
 -------
