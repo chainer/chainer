@@ -5,24 +5,25 @@ import chainer
 from chainer.backends import cuda
 
 
-class cached_property(object):
+class _CacheEachConfig(object):
     """Cache a result of computation of Chainer functions"""
 
-    def __init__(self, func):
+    def __init__(self, config_keys, func):
         functools.update_wrapper(self, func)
         self.func = func
+        self.config_keys = config_keys
 
     def __get__(self, obj, cls):
         if obj is None:
             return self
 
         caches = obj.__dict__.setdefault(self.__name__, {})
-        backprop_enabled = chainer.config.enable_backprop
+        config_values = tuple([
+            getattr(chainer.config, key) for key in self.config_keys])
         try:
-            return caches[backprop_enabled]
+            return caches[config_values]
         except KeyError:
-            value = self.func(obj)
-            caches[backprop_enabled] = value
+            value = caches[config_values] = self.func(obj)
             return value
 
     def __set__(self, obj, cls):
@@ -30,6 +31,13 @@ class cached_property(object):
         raise AttributeError(
             'attribute \'{}\' of {} is readonly'.format(
                 self.__name__, cls))
+
+
+def cache_each_config(*keys):
+    return functools.partial(_CacheEachConfig, keys)
+
+
+cached_property = cache_each_config('enable_backprop')
 
 
 class Distribution(object):
