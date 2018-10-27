@@ -378,21 +378,21 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
 }
 
 std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
-    if (sections == 0) {
-        throw DimensionError("Cannot split and array into 0 sections.");
+    if (sections < 1) {
+        throw DimensionError("Number of sections must be larger than 0.");
     }
 
-    const Shape& in_shape = ary.shape();
-    if (in_shape[axis] % sections != 0) {
+    int64_t in_dim = ary.shape()[axis];
+    if (in_dim % sections != 0) {
         throw DimensionError("Array split does not result in an equal division.");
     }
 
     // Create a vector of indices such that the split becomes even, and use the overloaded function.
     std::vector<int64_t> indices(sections - 1);
-    int64_t step = in_shape[axis] / sections;
+    int64_t step = in_dim / sections;
     int64_t start = step;
-    for (size_t i = 0; i < indices.size(); ++i) {
-        indices[i] = start;
+    for (int64_t& index : indices) {
+        index = start;
         start += step;
     }
 
@@ -417,13 +417,14 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     int64_t slice_start = 0;
     for (int64_t index : indices) {
         int64_t slice_stop = std::min(in_dim, index);
+        int64_t slice_step = slice_stop - slice_start;
 
-        // Update the element of interest in the out_shape.
-        out_dim = slice_stop - slice_start;
+        // Update the dimension of interest in the output shape.
+        out_dim = std::max(int64_t{0}, slice_step);
 
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
 
-        out_offset += out_stride * out_dim;
+        out_offset += out_stride * slice_step;
         slice_start = slice_stop;
     }
     return out;
