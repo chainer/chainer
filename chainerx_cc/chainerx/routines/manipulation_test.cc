@@ -504,6 +504,39 @@ TEST_P(ManipulationTest, BroadcastToDoubleBackward) {
             {Full({1, 3, 1, 3}, 1e-1), Full({2, 3, 4, 3}, 1e-1)});
 }
 
+TEST_THREAD_SAFE_P(ManipulationTest, SplitSections) {
+    Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>();
+    Array e1 = testing::BuildArray({2, 2}).WithData<int32_t>({0, 1, 4, 5});
+    Array e2 = testing::BuildArray({2, 2}).WithData<int32_t>({2, 3, 6, 7});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], 2, 1); }, {a}, {e1, e2}); });
+}
+
+TEST_THREAD_SAFE_P(ManipulationTest, SplitIndices) {
+    Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>();
+    Array e1 = testing::BuildArray({2, 2}).WithData<int32_t>({0, 1, 4, 5});
+    Array e2 = testing::BuildArray({2, 1}).WithData<int32_t>({2, 6});
+    Array e3 = testing::BuildArray({2, 1}).WithData<int32_t>({3, 7});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], {2, 3}, 1); }, {a}, {e1, e2, e3}); });
+}
+
+TEST_THREAD_SAFE_P(ManipulationTest, SplitDefaultAxes) {
+    Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>();
+    Array e1 = testing::BuildArray({1, 4}).WithData<int32_t>({0, 1, 2, 3});
+    Array e2 = testing::BuildArray({1, 4}).WithData<int32_t>({4, 5, 6, 7});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], 2); }, {a}, {e1, e2}); });
+}
+
+TEST_THREAD_SAFE_P(ManipulationTest, SplitNoncontiguous) {
+    Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>().WithPadding(1);
+    Array e1 = testing::BuildArray({2, 2}).WithData<int32_t>({0, 1, 4, 5});
+    Array e2 = testing::BuildArray({2, 2}).WithData<int32_t>({2, 3, 6, 7});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], 2, 1); }, {a}, {e1, e2}); });
+}
+
 INSTANTIATE_TEST_CASE_P(
         ForEachBackend,
         ManipulationTest,
