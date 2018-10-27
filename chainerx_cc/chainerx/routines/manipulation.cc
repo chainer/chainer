@@ -382,21 +382,33 @@ std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
         throw DimensionError("Number of sections must be larger than 0.");
     }
 
-    int64_t in_dim = ary.shape()[axis];
+    const Shape& in_shape = ary.shape();
+    int64_t in_dim = in_shape[axis];
     if (in_dim % sections != 0) {
         throw DimensionError("Array split does not result in an equal division.");
     }
 
-    // Create a vector of indices such that the split becomes even, and use the overloaded function.
-    std::vector<int64_t> indices(sections - 1);
-    int64_t step = in_dim / sections;
-    int64_t start = step;
-    for (int64_t& index : indices) {
-        index = start;
-        start += step;
-    }
+    std::vector<Array> out;
 
-    return Split(ary, indices, axis);
+    Shape out_shape = in_shape;
+    int64_t& out_dim = out_shape[axis];
+    int64_t out_stride = ary.strides()[axis];
+    int64_t out_offset = ary.offset();
+    int64_t slice_start = 0;
+    int64_t slice_step = in_dim / sections;
+
+    for (int64_t i = 0; i < sections; ++i) {
+        int64_t slice_stop = std::min(in_dim, slice_start + slice_step);
+
+        // Update the dimension of interest in the output shape.
+        out_dim = slice_stop - slice_start;
+
+        out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
+
+        out_offset += out_stride * out_dim;
+        slice_start = slice_stop;
+    }
+    return out;
 }
 
 std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t axis) {
@@ -415,6 +427,7 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     int64_t out_stride = ary.strides()[axis];
     int64_t out_offset = ary.offset();
     int64_t slice_start = 0;
+
     for (int64_t index : indices) {
         int64_t slice_stop = std::min(in_dim, index);
         int64_t slice_step = slice_stop - slice_start;

@@ -521,7 +521,7 @@ TEST_THREAD_SAFE_P(ManipulationTest, SplitIndices) {
     Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], {2, 3}, 1); }, {a}, {e1, e2, e3}); });
 }
 
-TEST_THREAD_SAFE_P(ManipulationTest, SplitDefaultAxes) {
+TEST_THREAD_SAFE_P(ManipulationTest, SplitDefaultAxesSections) {
     Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>();
     Array e1 = testing::BuildArray({1, 4}).WithData<int32_t>({0, 1, 2, 3});
     Array e2 = testing::BuildArray({1, 4}).WithData<int32_t>({4, 5, 6, 7});
@@ -529,12 +529,28 @@ TEST_THREAD_SAFE_P(ManipulationTest, SplitDefaultAxes) {
     Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], 2); }, {a}, {e1, e2}); });
 }
 
-TEST_THREAD_SAFE_P(ManipulationTest, SplitNoncontiguous) {
+TEST_THREAD_SAFE_P(ManipulationTest, SplitDefaultAxesIndices) {
+    Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>();
+    Array e1 = testing::BuildArray({1, 4}).WithData<int32_t>({0, 1, 2, 3});
+    Array e2 = testing::BuildArray({1, 4}).WithData<int32_t>({4, 5, 6, 7});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], {2}); }, {a}, {e1, e2}); });
+}
+
+TEST_THREAD_SAFE_P(ManipulationTest, SplitNoncontiguousSections) {
     Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>().WithPadding(1);
     Array e1 = testing::BuildArray({2, 2}).WithData<int32_t>({0, 1, 4, 5});
     Array e2 = testing::BuildArray({2, 2}).WithData<int32_t>({2, 3, 6, 7});
 
     Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], 2, 1); }, {a}, {e1, e2}); });
+}
+
+TEST_THREAD_SAFE_P(ManipulationTest, SplitNoncontiguousIndices) {
+    Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>().WithPadding(1);
+    Array e1 = testing::BuildArray({2, 2}).WithData<int32_t>({0, 1, 4, 5});
+    Array e2 = testing::BuildArray({2, 2}).WithData<int32_t>({2, 3, 6, 7});
+
+    Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], {2}, 1); }, {a}, {e1, e2}); });
 }
 
 INSTANTIATE_TEST_CASE_P(
