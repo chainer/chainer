@@ -147,11 +147,8 @@ def main():
         print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
     model.to_device(device)
-    # TODO(sonots): Cleanup
     if isinstance(device, chainer.cuda.Device):
         device.use()  # Make the GPU current
-    elif chainerx.is_available() and isinstance(device, chainerx.Device):
-        chainerx.set_default_device(device)
 
     # Load the mean file
     mean = np.load(args.mean)
