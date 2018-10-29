@@ -819,7 +819,7 @@ class Variable(object):
 
     @grad.setter
     def grad(self, g):
-        if not self._requires_grad:
+        if self._is_chainerx and not self._requires_grad:
             raise RuntimeError(
                 'Cannot set the gradient of a variable that is flagged to not '
                 'require any gradients.')
@@ -851,7 +851,7 @@ class Variable(object):
 
     @grad_var.setter
     def grad_var(self, g):
-        if not self._requires_grad:
+        if self._is_chainerx and not self._requires_grad:
             raise RuntimeError(
                 'Cannot set the gradient of a variable that is flagged to not '
                 'require any gradients.')
