@@ -5,6 +5,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
@@ -16,6 +17,7 @@ def _sigmoid_grad(x, y, gy):
 class NegativeSamplingFunction(function_node.FunctionNode):
 
     ignore_label = -1
+    _samples = None
 
     def __init__(self, sampler, sample_size, reduce='sum'):
         if reduce not in ('sum', 'no'):
@@ -29,14 +31,11 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         self.wx = None
 
     def _make_samples(self, t):
-        if hasattr(self, 'samples'):
-            return self.samples  # for testing
-
         size = int(t.shape[0])
         # first one is the positive, and others are sampled negatives
         samples = self.sampler((size, self.sample_size + 1))
         samples[:, 0] = t
-        self.samples = samples
+        return samples
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x', 't', 'W'))
@@ -57,9 +56,9 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         x, t, W = inputs
 
         self.ignore_mask = (t != self.ignore_label)
-        self._make_samples(t)
+        samples = self._make_samples(t)
 
-        w = W[self.samples]
+        w = W[samples]
         wx = numpy.einsum(
             'ij,ikj->ik', x[self.ignore_mask], w[self.ignore_mask])
         wx[:, 0] *= -1
@@ -69,6 +68,8 @@ class NegativeSamplingFunction(function_node.FunctionNode):
 
         if self.reduce == 'sum':
             loss = numpy.array(loss.sum(), 'f')
+
+        self._samples = samples
         return loss,
 
     def forward_gpu(self, inputs):
@@ -76,7 +77,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         x, t, W = inputs
 
         self.ignore_mask = (t != self.ignore_label)
-        self._make_samples(t)
+        samples = self._make_samples(t)
 
         n_in = x.shape[1]
         self.wx = cuda.elementwise(
@@ -93,7 +94,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
             wx = f;
             ''',
             'negative_sampling_wx'
-        )(W, x, self.ignore_mask[:, None], self.samples, n_in,
+        )(W, x, self.ignore_mask[:, None], samples, n_in,
           self.sample_size + 1)
 
         loss = cuda.elementwise(
@@ -120,13 +121,15 @@ class NegativeSamplingFunction(function_node.FunctionNode):
             loss = loss.sum()
         else:  # 'no':
             loss = loss.sum(axis=1)
+
+        self._samples = samples
         return loss,
 
     def backward(self, indexes, grad_outputs):
         x, t, W = self.get_retained_inputs()
         gy, = grad_outputs
         return NegativeSamplingFunctionGrad(
-            self.reduce, self.ignore_mask, self.sample_size, self.samples,
+            self.reduce, self.ignore_mask, self.sample_size, self._samples,
             self.wx).apply((x, W, gy))
 
 
@@ -314,8 +317,10 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
         return ret
 
 
-def negative_sampling(x, t, W, sampler, sample_size, reduce='sum'):
-    """Negative sampling loss function.
+def negative_sampling(x, t, W, sampler, sample_size, reduce='sum', **kwargs):
+    """negative_sampling(x, t, W, sampler, sample_size, reduce='sum', *, return_samples=False)
+
+    Negative sampling loss function.
 
     In natural language processing, especially language modeling, the number of
     words in a vocabulary can be very large.
@@ -373,8 +378,15 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum'):
 
     .. seealso:: :class:`~chainer.links.NegativeSampling`.
 
-    """
-    return (
-        NegativeSamplingFunction(sampler, sample_size, reduce)
-        .apply((x, t, W))
-    )[0]
+    """  # NOQA
+    return_samples = False
+    if kwargs:
+        return_samples, = argument.parse_kwargs(
+            kwargs, ('return_samples', return_samples))
+
+    func = NegativeSamplingFunction(sampler, sample_size, reduce)
+    out = func.apply((x, t, W))[0]
+
+    if return_samples:
+        return out, func._samples
+    return out
