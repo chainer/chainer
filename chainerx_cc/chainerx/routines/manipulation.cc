@@ -425,7 +425,7 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     std::vector<Array> out;
 
     for (int64_t index : indices) {
-        int64_t slice_stop = std::min(in_dim, index);
+        int64_t slice_stop = std::min(in_dim, std::max(int64_t{0}, index));
         int64_t slice_step = slice_stop - slice_start;
 
         // Update the dimension of interest in the output shape.
