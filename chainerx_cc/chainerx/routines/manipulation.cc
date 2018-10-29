@@ -383,50 +383,46 @@ std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
     }
 
     const Shape& in_shape = ary.shape();
-    int64_t in_dim = in_shape[axis];
+    int8_t axis_norm = internal::NormalizeAxis(axis, ary.ndim());
+    int64_t in_dim = in_shape[axis_norm];
+
     if (in_dim % sections != 0) {
         throw DimensionError("Array split does not result in an equal division.");
     }
 
+    Shape out_shape = in_shape;
+    int64_t out_dim = in_dim / sections;
+    out_shape[axis_norm] = out_dim;
+    int64_t out_stride = ary.strides()[axis_norm];
+    int64_t out_offset = ary.offset();
+
     std::vector<Array> out;
 
-    Shape out_shape = in_shape;
-    int64_t& out_dim = out_shape[axis];
-    int64_t out_stride = ary.strides()[axis];
-    int64_t out_offset = ary.offset();
-    int64_t slice_start = 0;
-    int64_t slice_step = in_dim / sections;
-
     for (int64_t i = 0; i < sections; ++i) {
-        int64_t slice_stop = std::min(in_dim, slice_start + slice_step);
-
-        // Update the dimension of interest in the output shape.
-        out_dim = slice_stop - slice_start;
-
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
-
         out_offset += out_stride * out_dim;
-        slice_start = slice_stop;
     }
+
     return out;
 }
 
 std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t axis) {
     const Shape& in_shape = ary.shape();
-    int64_t in_dim = in_shape[axis];
+    int8_t axis_norm = internal::NormalizeAxis(axis, ary.ndim());
+    int64_t in_dim = in_shape[axis_norm];
 
     // Wrap negative indices.
     std::transform(
             indices.begin(), indices.end(), indices.begin(), [in_dim](int64_t index) { return index >= 0 ? index : index + in_dim; });
     indices.emplace_back(in_dim);
 
-    std::vector<Array> out;
-
     Shape out_shape = in_shape;
-    int64_t& out_dim = out_shape[axis];
-    int64_t out_stride = ary.strides()[axis];
+    int64_t& out_dim = out_shape[axis_norm];
+    int64_t out_stride = ary.strides()[axis_norm];
     int64_t out_offset = ary.offset();
     int64_t slice_start = 0;
+
+    std::vector<Array> out;
 
     for (int64_t index : indices) {
         int64_t slice_stop = std::min(in_dim, index);
@@ -440,6 +436,7 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
         out_offset += out_stride * slice_step;
         slice_start = slice_stop;
     }
+
     return out;
 }
 

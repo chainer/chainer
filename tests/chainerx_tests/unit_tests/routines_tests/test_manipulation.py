@@ -318,11 +318,13 @@ def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     ((2,), [1, 2], 0),
     ((2, 4), 1, 0),
     ((2, 4), 2, 1),
+    ((2, 4), 2, -1),
     ((2, 4, 6), [], 0),
     ((2, 4, 6), [2, 4], 2),
     ((2, 4, 6), [2, -3], 2),
     ((2, 4, 6), [2, 8], 2),
     ((2, 4, 6), [4, 2], 2),
+    ((2, 4, 6), [1, 3], -2),
 ])
 def test_split(xp, shape, indices_or_sections, axis):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
