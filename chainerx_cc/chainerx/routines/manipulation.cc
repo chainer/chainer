@@ -382,7 +382,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
 
 namespace {
 
-Array ConcatImpl(const std::vector<Array>& arrays, int8_t axis) {
+Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
     if (arrays.empty()) {
         throw DimensionError{"Need at least one array to concatenate"};
     }
@@ -431,11 +431,11 @@ Array ConcatImpl(const std::vector<Array>& arrays, int8_t axis) {
 
 }  // namespace
 
-Array Concat(const std::vector<Array>& arrays) { return ConcatImpl(arrays, 0); }
+Array Concatenate(const std::vector<Array>& arrays) { return ConcatenateImpl(arrays, 0); }
 
-Array Concat(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis) {
+Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis) {
     if (axis.has_value()) {
-        return ConcatImpl(arrays, *axis);
+        return ConcatenateImpl(arrays, *axis);
     }
     std::vector<Array> raveled_arrays;
     raveled_arrays.reserve(arrays.size());
@@ -443,7 +443,7 @@ Array Concat(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis) {
         Shape shape{array.GetTotalSize()};
         return array.Reshape(shape);
     });
-    return ConcatImpl(raveled_arrays, 0);
+    return ConcatenateImpl(raveled_arrays, 0);
 }
 
 }  // namespace chainerx

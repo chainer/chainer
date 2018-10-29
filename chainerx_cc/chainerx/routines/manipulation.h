@@ -36,7 +36,7 @@ Array Squeeze(const Array& a, const OptionalAxes& axis = nonstd::nullopt);
 Array BroadcastTo(const Array& array, const Shape& shape);
 
 // Returns a concatenated array.
-Array Concat(const std::vector<Array>& arrays);
-Array Concat(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis);
+Array Concatenate(const std::vector<Array>& arrays);
+Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis);
 
 }  // namespace chainerx
