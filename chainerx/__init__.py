@@ -32,6 +32,13 @@ if _available:
     from chainerx import _numpy_compat_workarounds
 
     _numpy_compat_workarounds.populate()
+else:
+    class ndarray(object):
+
+        """Dummy class for type testing."""
+
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError('chainerx is not available.')
 
 
 def is_available():

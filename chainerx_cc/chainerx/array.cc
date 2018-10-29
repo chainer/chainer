@@ -4,12 +4,14 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <numeric>
 #include <ostream>
 #include <string>
 #include <tuple>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
@@ -50,6 +52,14 @@ BackpropId GetArrayBackpropId(const Array& array, const nonstd::optional<Backpro
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset) {
     return Array{shape, strides, dtype, device, std::move(data), offset};
+}
+
+std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<Array>&& arrays) {
+    std::vector<std::shared_ptr<ArrayBody>> array_body_ptrs;
+    std::transform(arrays.begin(), arrays.end(), std::back_inserter(array_body_ptrs), [](Array& array) {
+        return MoveArrayBody(std::move(array));
+    });
+    return array_body_ptrs;
 }
 
 }  // namespace internal

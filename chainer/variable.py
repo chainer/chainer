@@ -507,7 +507,7 @@ class Variable(object):
         self._loss_scale = None
         self._grad_var = None if grad is None else Variable(grad)
 
-        if chainerx.is_available() and isinstance(data, chainerx.ndarray):
+        if isinstance(data, chainerx.ndarray):
             if not requires_grad and grad is not None:
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
@@ -1676,7 +1676,7 @@ def as_variable(obj):
     if isinstance(obj, Variable):
         return obj
 
-    if chainerx.is_available() and isinstance(obj, chainerx.ndarray):
+    if isinstance(obj, chainerx.ndarray):
         requires_grad = obj.is_backprop_required()
     else:
         requires_grad = False

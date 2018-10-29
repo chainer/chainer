@@ -39,4 +39,11 @@ Array BroadcastTo(const Array& array, const Shape& shape);
 Array Concatenate(const std::vector<Array>& arrays);
 Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis);
 
+// Returns a set of arrays resulting from splitting the given array into sections along the specified axis.
+// If the dimension is not equally divisible, DimensionError is throws.
+std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis = 0);
+
+// Returns a set of arrays resulting from splitting the given array at the indices along the specified axis.
+std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t axis = 0);
+
 }  // namespace chainerx

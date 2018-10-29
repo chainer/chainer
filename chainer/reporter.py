@@ -265,8 +265,8 @@ class Summary(object):
     """
 
     def __init__(self):
-        self._x = 0
-        self._x2 = 0
+        self._x = 0.0
+        self._x2 = 0.0
         self._n = 0
 
     def add(self, value, weight=1):
@@ -280,7 +280,7 @@ class Summary(object):
                 Default is 1 (integer).
 
         """
-        if chainerx.is_available() and isinstance(value, chainerx.ndarray):
+        if isinstance(value, chainerx.ndarray):
             # ChainerX arrays does not support inplace assignment if it's
             # connected to the backprop graph.
             value = value.as_grad_stopped()

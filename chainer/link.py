@@ -121,11 +121,12 @@ class Link(object):
        forward propagation.
 
     Args:
-        params: *(deprecated since v2.0.0)* Names, shapes, and optional dtypes
-            of initial parameters. The keywords are used as the parameter
-            names and the corresponding values consist either of the shape or
-            a tuple of shape and a dtype ``(shape, dtype)``. If only the shape
-            is supplied, the default dtype will be used.
+        params:
+            Names, shapes, and optional dtypes of initial parameters.
+            The keywords are used as the parameter names and the corresponding
+            values consist either of the shape or a tuple of shape and a dtype
+            ``(shape, dtype)``.
+            If only the shape is supplied, the default dtype will be used.
 
     Attributes:
         name (str): Name of this link, given by the parent chain (if exists).
@@ -143,7 +144,6 @@ class Link(object):
         self.name = None
 
         for name, value in six.iteritems(params):
-            # Note: deprecation warning will be raised in add_param
             shape, dtype = _ensure_shape_dtype(value)
             self.add_param(name, shape, dtype=dtype)
 
@@ -278,26 +278,6 @@ class Link(object):
                   initializer=None):
         """Registers a parameter to the link.
 
-        .. deprecated:: v2.0.0
-
-           Assign a :class:`~chainer.Parameter` object directly to an
-           attribute within :meth:`~chainer.Link.init_scope` instead.
-           For example, the following code
-
-           .. code-block:: python
-
-               link.add_param('W', shape=(5, 3))
-
-           can be replaced by the following assignment.
-
-           .. code-block:: python
-
-               with link.init_scope():
-                   link.W = chainer.Parameter(None, (5, 3))
-
-           The latter is easier for IDEs to keep track of the attribute's
-           type.
-
         Args:
             name (str): Name of the parameter. This name is also used as the
                 attribute name.
@@ -311,11 +291,6 @@ class Link(object):
                 ignored.
 
         """
-        warnings.warn('''\
-Parameter registeration via Link.__init__ and Link.add_param are deprecated.
-Assign a Parameter object directly to an attribute within a \
-"with Link.init_scope():" block instead.
-''', DeprecationWarning)
         if name in self.__dict__:
             raise AttributeError(
                 'cannot register a new parameter %s: attribute exists'
@@ -936,10 +911,6 @@ class Chain(Link):
         links: Child links. The keywords are used as their names. The names are
             also set to the links.
 
-            .. deprecated:: v2.0.0
-
-               Assign child links directly to attributes instead.
-
     """
 
     def __init__(self, **links):
@@ -969,37 +940,12 @@ class Chain(Link):
     def add_link(self, name, link):
         """Registers a child link to this chain.
 
-        .. deprecated:: v2.0.0
-
-           Assign the child link directly to an attribute within
-           :meth:`~chainer.Chain.init_scope` instead.
-           For example, the following code
-
-           .. code-block:: python
-
-              chain.add_link('l1', L.Linear(3, 5))
-
-           can be replaced by the following line.
-
-           .. code-block:: python
-
-              with chain.init_scope():
-                  chain.l1 = L.Linear(3, 5)
-
-           The latter is easier for IDEs to keep track of the attribute's
-           type.
-
         Args:
             name (str): Name of the child link. This name is also used as the
                 attribute name.
             link (Link): The link object to be registered.
 
         """
-        warnings.warn('''\
-Child link registeration via Chain.__init__ and Chain.add_link are deprecated.
-Assign a Link object directly to an attribute within a \
-"with link.init_scope():" block instead.
-        ''', DeprecationWarning)
         if name in self.__dict__:
             raise AttributeError(
                 'cannot register a new link %s: attribute exists' % name)

@@ -86,7 +86,7 @@ def _array_to_numpy(array):
         return array
     if isinstance(array, intel64.mdarray):
         return numpy.asarray(array)
-    if chainerx.is_available() and isinstance(array, chainerx.ndarray):
+    if isinstance(array, chainerx.ndarray):
         return chainerx.to_numpy(array, copy=False)
     if isinstance(array, cuda.ndarray):
         cuda.check_cuda_available()
@@ -105,8 +105,6 @@ def to_numpy(array):
 
 
 def _array_to_chainerx(array, device):
-    if not chainerx.is_available():
-        raise RuntimeError('ChainerX is not available.')
     if device is not None:
         device = chainerx.get_device(device)
 
@@ -154,6 +152,9 @@ def _array_to_chainerx(array, device):
 
 # TODO(niboshi): Revisit API
 def to_chainerx(array, device=None):
+    if not chainerx.is_available():
+        raise RuntimeError('ChainerX is not available.')
+
     # If device is None, appropriate device is chosen according to the input
     # arrays.
     return _obj_to_array(array, lambda arr: _array_to_chainerx(arr, device))
@@ -367,8 +368,7 @@ def get_device_from_array(*arrays):
     for array in arrays:
         if isinstance(array, cuda.ndarray) and array.device is not None:
             return array.device
-        if (chainerx.is_available()
-                and isinstance(array, chainerx.ndarray)):
+        if isinstance(array, chainerx.ndarray):
             return chainerx.device_scope(array.device)
     return cuda.DummyDevice
 
