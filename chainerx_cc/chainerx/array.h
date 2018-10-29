@@ -276,6 +276,8 @@ inline const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array) { retu
 
 inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array) { return std::move(array.body_); }
 
+std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<Array>&& arrays);
+
 }  // namespace internal
 
 void DebugDumpComputationalGraph(

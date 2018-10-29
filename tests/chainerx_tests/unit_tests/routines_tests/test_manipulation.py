@@ -309,3 +309,40 @@ def test_broadcast_to_auto_prefix(xp):
 def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     a = xp.ones(src_shape, 'float32')
     return xp.broadcast_to(a, dst_shape)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('shape,indices_or_sections,axis', [
+    ((2,), 1, 0),
+    ((2,), [], 0),
+    ((2,), [1, 2], 0),
+    ((2,), [-5, -3], 0),
+    ((2, 4), 1, 0),
+    ((2, 4), 2, 1),
+    ((2, 4), 2, -1),
+    ((2, 4, 6), [], 0),
+    ((2, 4, 6), [2, 4], 2),
+    ((2, 4, 6), [2, -3], 2),
+    ((2, 4, 6), [2, 8], 2),
+    ((2, 4, 6), [4, 2], 2),
+    ((2, 4, 6), [1, 3], -2),
+])
+def test_split(xp, shape, indices_or_sections, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.split(a, indices_or_sections, axis)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, IndexError, ValueError, ZeroDivisionError))
+@pytest.mark.parametrize('shape,indices_or_sections,axis', [
+    ((), 1, 0),
+    ((2,), 3, 0),
+    ((2, 4), 0, 0),
+    ((2, 4), -1, 1),
+    ((2, 4), 1, 2),  # Axis out of range.
+    ((2, 4), 3, 1),  # Uneven split.
+])
+def test_split_invalid(xp, shape, indices_or_sections, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.split(a, indices_or_sections, axis)
