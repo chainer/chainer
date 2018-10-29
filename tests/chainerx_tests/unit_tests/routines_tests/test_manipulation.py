@@ -311,6 +311,37 @@ def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     return xp.broadcast_to(a, dst_shape)
 
 
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shapes,axis', [
+    ([], 0),
+    ([(0,)], 0),
+    ([(1,)], 0),
+    ([(0,), (0,)], 0),
+    ([(0,), (1,)], 0),
+    ([(1,), (1,)], 0),
+    ([(3, 4, 5)], 0),
+    ([(2, 3, 1), (2, 3, 1)], 1),
+    ([(2, 3, 2), (2, 4, 2), (2, 3, 2)], 1),
+    ([(2, 3, 2), (2, 4, 2), (3, 3, 2)], 1),
+    ([(4, 10), (5, 10)], 0),
+    ([(4, 10), (4, 8)], 0),
+    ([(4, 4), (5,)], 0),
+    ([(4, 4), (4,)], 0),
+    ([(2, 3), (2, 3)], 10),
+    ([(2, 3), (2, 3)], -1),
+    ([(2, 3), (2, 3)], None),
+    ([(2, 3), (4, 5)], None),
+])
+def test_concat(xp, shapes, axis):
+    arrays = []
+    for i, shape in enumerate(shapes):
+        size = numpy.product(shape)
+        a = numpy.arange(i * 100, i * 100 + size).reshape(shape).astype('f')
+        arrays.append(xp.array(a))
+    return xp.concatenate(arrays, axis)
+
+
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('shape,indices_or_sections,axis', [
     ((2,), 1, 0),

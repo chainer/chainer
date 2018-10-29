@@ -504,6 +504,125 @@ TEST_P(ManipulationTest, BroadcastToDoubleBackward) {
             {Full({1, 3, 1, 3}, 1e-1), Full({2, 3, 4, 3}, 1e-1)});
 }
 
+TEST_THREAD_SAFE_P(ManipulationTest, Concatenate) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{4, 3, 1};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Concatenate(xs);
+                    return std::vector<Array>{y};
+                },
+                {a, b},
+                {e});
+    });
+}
+
+TEST_P(ManipulationTest, ConcatenateAxis0) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{4, 3, 1};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+
+    EXPECT_ARRAY_EQ(e, Concatenate({a, b}, 0));
+}
+
+TEST_P(ManipulationTest, ConcatenateAxis1) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{2, 6, 1};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 2, 3, 7, 8, 9, 4, 5, 6, 10, 11, 12});
+
+    EXPECT_ARRAY_EQ(e, Concatenate({a, b}, 1));
+}
+
+TEST_P(ManipulationTest, ConcatenateAxis2) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{2, 3, 2};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 7, 2, 8, 3, 9, 4, 10, 5, 11, 6, 12});
+
+    EXPECT_ARRAY_EQ(e, Concatenate({a, b}, 2));
+}
+
+TEST_P(ManipulationTest, ConcatenateAxisNone) {
+    using T = int32_t;
+    Shape input_shape{2, 3, 1};
+    Shape output_shape{12};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+
+    EXPECT_ARRAY_EQ(e, Concatenate({a, b}, nonstd::nullopt));
+}
+
+TEST_P(ManipulationTest, ConcatenateEmptyInput) { EXPECT_THROW(Concatenate({}), DimensionError); }
+
+TEST_P(ManipulationTest, ConcatenateDifferentNdims) {
+    using T = int32_t;
+
+    Array a = testing::BuildArray({2, 3, 1}).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray({2, 3, 1, 1}).WithData<T>({7, 8, 9, 10, 11, 12});
+
+    EXPECT_THROW(Concatenate({a, b}), DimensionError);
+}
+
+TEST_P(ManipulationTest, ConcatenateDifferentDtypes) {
+    Shape input_shape{2, 3, 1};
+
+    Array a = testing::BuildArray(input_shape).WithData<int32_t>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<int64_t>({7, 8, 9, 10, 11, 12});
+
+    EXPECT_THROW(Concatenate({a, b}), DtypeError);
+}
+
+TEST_P(ManipulationTest, ConcatenateDifferentDimensionOnlyForConcatenationAxis) {
+    using T = int32_t;
+
+    Array a = testing::BuildArray({2, 3, 1}).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray({2, 2, 1}).WithData<T>({7, 8, 9, 10});
+    Array e = testing::BuildArray({2, 5, 1}).WithData<T>({1, 2, 3, 7, 8, 4, 5, 6, 9, 10});
+
+    EXPECT_ARRAY_EQ(e, Concatenate({a, b}, 1));
+}
+
+TEST_P(ManipulationTest, ConcatenateDifferentDimensionExceptForConcatenationAxis) {
+    using T = int32_t;
+
+    Array a = testing::BuildArray({2, 3, 1}).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray({2, 3, 2}).WithData<T>({7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18});
+
+    EXPECT_THROW(Concatenate({a, b}, 1), DimensionError);
+}
+
+TEST_P(ManipulationTest, ConcatenateNonContiguous) {
+    using T = int32_t;
+
+    Array aa = testing::BuildArray({1, 3, 1}).WithData<T>({1, 2, 3});
+    Array a = BroadcastTo(aa, {2, 3, 1});
+    Array bb = testing::BuildArray({2, 3, 2}).WithData<T>({7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18});
+    Array b = bb.At({Slice{}, Slice{}, Slice{nonstd::nullopt, nonstd::nullopt, 2}});
+    Array e = testing::BuildArray({2, 6, 1}).WithData<T>({1, 2, 3, 7, 9, 11, 1, 2, 3, 13, 15, 17});
+
+    EXPECT_ARRAY_EQ(e, Concatenate({a, b}, 1));
+}
+
 TEST_THREAD_SAFE_P(ManipulationTest, SplitSections) {
     Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>();
     Array e1 = testing::BuildArray({2, 2}).WithData<int32_t>({0, 1, 4, 5});
