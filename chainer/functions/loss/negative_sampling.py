@@ -43,12 +43,12 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         x_type, t_type, w_type = in_types
 
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             x_type.ndim == 2,
             t_type.dtype == numpy.int32,
             t_type.ndim == 1,
             x_type.shape[0] == t_type.shape[0],
-            w_type.dtype == numpy.float32,
+            w_type.dtype == x_type.dtype,
             w_type.ndim == 2,
         )
 
@@ -64,7 +64,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
             'ij,ikj->ik', x[self.ignore_mask], w[self.ignore_mask])
         wx[:, 0] *= -1
 
-        loss = numpy.zeros(len(x), numpy.float32)
+        loss = numpy.zeros(len(x), x.dtype)
         loss[self.ignore_mask] = numpy.sum(numpy.logaddexp(wx, 0), axis=1)
 
         if self.reduce == 'sum':
@@ -175,6 +175,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
         if self.reduce == 'no':
             gy = gy[:, None]
 
+        wx = self.wx.astype(x.dtype, copy=False)
         g = cuda.elementwise(
             'T wx, T gy, int32 m', 'T g',
             '''
@@ -188,7 +189,7 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
             g = -y * gy / (1.0f + __expf(wx * y));
             ''',
             'negative_sampling_calculate_g'
-        )(self.wx, gy, self.sample_size + 1)
+        )(wx, gy, self.sample_size + 1)
 
         cupy = cuda.cupy
         gx = cupy.zeros_like(x)
