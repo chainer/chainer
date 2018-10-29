@@ -1120,25 +1120,25 @@ class TestVariableToDevice(unittest.TestCase):
         self.x = np.zeros(self.x_shape, dtype=np.float32)
         self.gx = np.ones_like(self.x)
 
-    def check_to_device(self, x, gx, xp):
+    def check_to_device(self, x, gx, device_spec, expected_xp):
         x_var = chainer.Variable(x)
         x_var.grad_var = chainer.Variable(gx)
 
-        x_var.to_device(xp)
+        x_var.to_device(device_spec)
 
-        assert x_var.xp is xp
-        assert x_var.grad_var.xp is xp
+        assert x_var.xp is expected_xp
+        assert x_var.grad_var.xp is expected_xp
 
     def test_to_device_numpy(self):
-        self.check_to_device(self.x, self.gx, np)
+        self.check_to_device(self.x, self.gx, np, np)
 
     @attr.gpu
     def test_to_device_cupy(self):
-        self.check_to_device(self.x, self.gx, cuda.cupy)
+        self.check_to_device(self.x, self.gx, (cuda.cupy, 0), cuda.cupy)
 
     @attr.chainerx
     def test_to_device_chainerx(self):
-        self.check_to_device(self.x, self.gx, chainerx)
+        self.check_to_device(self.x, self.gx, 'native:0', chainerx)
 
 
 class TestVariableBasic(unittest.TestCase):
@@ -1282,86 +1282,89 @@ class TestParameter(unittest.TestCase):
 @attr.chainerx
 class TestParameterToDevice(unittest.TestCase):
 
-    def check_to_device(self, x, xp):
+    def check_to_device(self, x, device_spec, expected_xp):
         assert isinstance(x, chainer.Parameter)
-        x.to_device(xp)
-        assert x.xp is xp
+        x.to_device(device_spec)
+        assert x.xp is expected_xp
 
-    def check_initializer(self, shape, xp):
+    def check_initializer(self, shape, device_spec, expected_xp):
         x = chainer.Parameter(shape=shape)
-        self.check_to_device(x, xp)
+        self.check_to_device(x, device_spec, expected_xp)
 
-    def check_initialize_by_scalar(self, shape, xp):
+    def check_initialize_by_scalar(self, shape, device_spec, expected_xp):
         x = chainer.Parameter(2., shape)
-        self.check_to_device(x, xp)
+        self.check_to_device(x, device_spec, expected_xp)
 
-    def check_initialize_by_initializer(self, shape, xp):
+    def check_initialize_by_initializer(self, shape, device_spec, expected_xp):
         x = chainer.Parameter(initializers.One(), shape)
-        self.check_to_device(x, xp)
+        self.check_to_device(x, device_spec, expected_xp)
 
-    def check_initialize_by_none(self, shape, xp):
+    def check_initialize_by_none(self, shape, device_spec, expected_xp):
         x = chainer.Parameter(None, shape)
-        self.check_to_device(x, xp)
+        self.check_to_device(x, device_spec, expected_xp)
 
-    def check_initialize_by_array(self, shape, xp):
+    def check_initialize_by_array(self, shape, device_spec, expected_xp):
         data = np.random.uniform(-1, 1, shape).astype('f')
         x = chainer.Parameter(data)
-        self.check_to_device(x, xp)
+        self.check_to_device(x, device_spec, expected_xp)
 
     def test_initializer_to_device_numpy(self):
-        self.check_initializer(self.x_shape, np)
+        self.check_initializer(self.x_shape, np, np)
 
     @attr.gpu
     def test_initializer_to_device_cupy(self):
-        self.check_initializer(self.x_shape, cuda.cupy)
+        self.check_initializer(self.x_shape, (cuda.cupy, 0), cuda.cupy)
 
     @attr.chainerx
     def test_initializer_to_device_chainerx(self):
-        self.check_initializer(self.x_shape, chainerx)
+        self.check_initializer(self.x_shape, 'native:0', chainerx)
 
     def test_initialize_by_scalar_to_device_numpy(self):
-        self.check_initialize_by_scalar(self.x_shape, np)
+        self.check_initialize_by_scalar(self.x_shape, np, np)
 
     @attr.gpu
     def test_initialize_by_scalar_to_device_cupy(self):
-        self.check_initialize_by_scalar(self.x_shape, cuda.cupy)
+        self.check_initialize_by_scalar(
+            self.x_shape, (cuda.cupy, 0), cuda.cupy)
 
     @attr.chainerx
     def test_initialize_by_scalar_to_device_chainerx(self):
-        self.check_initialize_by_scalar(self.x_shape, chainerx)
+        self.check_initialize_by_scalar(self.x_shape, 'native:0', chainerx)
 
     def test_initialize_by_initializer_to_device_numpy(self):
-        self.check_initialize_by_initializer(self.x_shape, np)
+        self.check_initialize_by_initializer(self.x_shape, np, np)
 
     @attr.gpu
     def test_initialize_by_initializer_to_device_cupy(self):
-        self.check_initialize_by_initializer(self.x_shape, cuda.cupy)
+        self.check_initialize_by_initializer(
+            self.x_shape, (cuda.cupy, 0), cuda.cupy)
 
     @attr.chainerx
     def test_initialize_by_initializer_to_device_chainerx(self):
-        self.check_initialize_by_initializer(self.x_shape, chainerx)
+        self.check_initialize_by_initializer(
+            self.x_shape, 'native:0', chainerx)
 
     def test_initialize_by_none_to_device_numpy(self):
-        self.check_initialize_by_none(self.x_shape, np)
+        self.check_initialize_by_none(self.x_shape, np, np)
 
     @attr.gpu
     def test_initialize_by_none_to_device_cupy(self):
-        self.check_initialize_by_none(self.x_shape, cuda.cupy)
+        self.check_initialize_by_none(self.x_shape, (cuda.cupy, 0), cuda.cupy)
 
     @attr.chainerx
     def test_initialize_by_none_to_device_chainerx(self):
-        self.check_initialize_by_none(self.x_shape, chainerx)
+        self.check_initialize_by_none(self.x_shape, 'native:0', chainerx)
 
     def test_initialize_by_array_to_device_numpy(self):
-        self.check_initialize_by_array(self.x_shape, np)
+        self.check_initialize_by_array(self.x_shape, np, np)
 
     @attr.gpu
     def test_initialize_by_array_to_device_cupy(self):
-        self.check_initialize_by_array(self.x_shape, cuda.cupy)
+        self.check_initialize_by_array(self.x_shape, (cuda.cupy, 0), cuda.cupy)
 
     @attr.chainerx
     def test_initialize_by_array_to_device_chainerx(self):
-        self.check_initialize_by_array(self.x_shape, chainerx)
+        self.check_initialize_by_array(self.x_shape, 'native:0', chainerx)
 
 
 class TestUninitializedParameter(unittest.TestCase):
