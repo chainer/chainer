@@ -560,7 +560,7 @@ class Variable(object):
         # from chainer)
         if self._is_chainerx:
             self._grad = None
-            # Update is gradient variable if it has not yet been initialized or
+            # Update gradient variable if it has not yet been initialized or
             # it happens to be dirty w.r.t. the actual gradient of the
             # underlying chainerx.ndarray.
             arr = self._data[0]
@@ -812,7 +812,7 @@ class Variable(object):
         self.array = d
 
     def _set_chainerx_grad(self, g):
-        # Assigns ndarray.chainerx.grad
+        # Assigns chainerx.ndarray.grad
         assert self._is_chainerx
         arr = self._data[0]
         if arr is None:
