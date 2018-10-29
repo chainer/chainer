@@ -822,6 +822,15 @@ class Variable(object):
         elif arr.is_backprop_required():
             arr.set_grad(g)
 
+    def _set_grad_without_check(self, g):
+        if self._is_chainerx:
+            self._set_chainerx_grad(g)
+            self._grad_var = None
+            return
+
+        self._grad = g
+        self._grad_var = None
+
     @property
     def grad(self):
         """Gradient array of this variable.
@@ -863,15 +872,6 @@ class Variable(object):
         if self._grad_var is not None:
             return self._grad_var.array
         return self._grad
-
-    def _set_grad_without_check(self, g):
-        if self._is_chainerx:
-            self._set_chainerx_grad(g)
-            self._grad_var = None
-            return
-
-        self._grad = g
-        self._grad_var = None
 
     @grad.setter
     def grad(self, g):
