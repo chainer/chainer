@@ -1002,13 +1002,13 @@ Actual: {0}'''.format(type(data))
                 raise RuntimeError(
                     'the continuation Variable.backward(_return_cont=True) '
                     'has been consumed')
-            if sys.getrefcount(ref_self[0]) > 2:  # has other refs
-                outputs = list(ref_self)
-            else:
-                outputs = ref_self
+            if sys.getrefcount(ref_self[0]) > 2:
+                raise RuntimeError(
+                    'The continuation Variable.backward(_return_cont=True) '
+                    'is called but there are other references to self')
             with chainer.using_config(
                     'enable_backprop', enable_double_backprop):
-                _backward_main(outputs, retain_grad, loss_scale)
+                _backward_main(ref_self, retain_grad, loss_scale)
 
         return cont
 

@@ -2359,7 +2359,7 @@ class TestDelayBackward(unittest.TestCase):
         x = self.var('x')
         y, = self.func('f', [x], 1)
         y.grad_var = self.var('gy')
-        backward = y.backward(_return_cont=True)
+        backward = y.backward
         backward()
         y.grad_var = self.var('gy2')
         backward()
