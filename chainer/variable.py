@@ -1,9 +1,7 @@
 import collections
 import copy
-import functools
 import heapq
 import traceback
-import types
 import warnings
 import weakref
 import sys
@@ -19,42 +17,6 @@ from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
 from chainer.utils import argument
-
-
-class movemethod(object):
-
-    """Decorator of method to bind ``[self]``
-
-    >>> class C(object):
-    ...     @movemethod
-    ...     def m(self_, *args, **kwargs):
-    ...         self = self_.pop()
-    ...         print(1)
-    ...         del self
-    ...         print(3)
-    ...     def __del__(self):
-    ...         print(2)
-    ...
-    >>> C().m()
-    1
-    2
-    3
-
-    """
-
-    def __init__(self, wrapped):
-        functools.update_wrapper(self, wrapped)
-        self.wrapped = wrapped
-
-    def __get__(self, obj, objtype=None):
-        if obj is None:
-            return six.create_unbound_method(self.wrapped, objtype)
-
-        # six.create_bound_method cannot be used
-        if six.PY2:
-            return types.MethodType(self.wrapped, [obj], objtype)
-        else:
-            return types.MethodType(self.wrapped, [obj])
 
 
 def _check_grad_type(func, x, gx):
@@ -946,9 +908,8 @@ Actual: {0}'''.format(type(data))
         """
         self._node.set_creator_node(fnode)
 
-    @movemethod
-    def backward(self_, retain_grad=False, enable_double_backprop=False,
-                 loss_scale=None):
+    def backward(self, retain_grad=False, enable_double_backprop=False,
+                 loss_scale=None, **kwargs):
         """Runs error backpropagation (a.k.a.\\  backprop) from this variable.
 
         On backprop,
@@ -999,15 +960,11 @@ Actual: {0}'''.format(type(data))
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        try:
-            self, = self_
-        except ValueError:
-            raise RuntimeError(
-                'variable.backward has been consumed because the variable had'
-                'no other references.')
-        if sys.getrefcount(self) == 3:
-            # {self, self_, arg of getrefcount}
-            del self_[:]
+        return_cont = False
+        if kwargs:
+            return_cont = argument.parse_kwargs(
+                kwargs, ('_return_cont', False)
+            )
 
         self._node._check_old_style_gradient()
         if self.creator_node is None:
@@ -1032,10 +989,28 @@ Actual: {0}'''.format(type(data))
             if loss_scale is not None:
                 self.grad *= loss_scale
 
-        with chainer.using_config('enable_backprop', enable_double_backprop):
-            outputs = [self]
-            del self
-            _backward_main(outputs, retain_grad, loss_scale)
+        if not return_cont:
+            with chainer.using_config(
+                    'enable_backprop', enable_double_backprop):
+                _backward_main([self], retain_grad, loss_scale)
+            return
+
+        ref_self = [self]
+
+        def cont():
+            if not ref_self:
+                raise RuntimeError(
+                    'the continuation Variable.backward(_return_cont=True) '
+                    'has been consumed')
+            if sys.getrefcount(ref_self[0]) > 2:  # has other refs
+                outputs = list(ref_self)
+            else:
+                outputs = ref_self
+            with chainer.using_config(
+                    'enable_backprop', enable_double_backprop):
+                _backward_main(outputs, retain_grad, loss_scale)
+
+        return cont
 
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
