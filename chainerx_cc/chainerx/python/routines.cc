@@ -47,8 +47,8 @@ namespace py = pybind11;
 
 namespace {
 
-using internal::MoveArrayBody;
 using internal::MoveArrayBodies;
+using internal::MoveArrayBody;
 
 ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t count, int64_t offset, py::handle device) {
     const py::buffer_info& info = buffer.request();
