@@ -1,4 +1,3 @@
-import numpy
 import six
 
 from chainer.backends import cuda
@@ -65,7 +64,8 @@ class _PoolingND(function_node.FunctionNode):
         x = x[0]
         y = self.output_data[0]
         gx = cudnn.pooling_backward(
-            x, y, gy[0], self.ksize, self.stride, self.pad, self._get_pool_mode())
+            x, y, gy[0],
+            self.ksize, self.stride, self.pad, self._get_pool_mode())
         return gx,
 
     def _get_pool_mode(self):
