@@ -389,8 +389,8 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("array"),
           py::arg("shape"));
     m.def("split",
-          [](const ArrayBodyPtr& ary, int64_t indices_or_sections, int8_t axis) {
-              std::vector<Array> sub_arrays = Split(Array{ary}, indices_or_sections, axis);
+          [](const ArrayBodyPtr& ary, int64_t sections, int8_t axis) {
+              std::vector<Array> sub_arrays = Split(Array{ary}, sections, axis);
               std::vector<ArrayBodyPtr> sub_array_body_ptrs;
               std::transform(sub_arrays.begin(), sub_arrays.end(), std::back_inserter(sub_array_body_ptrs), [](Array& array) {
                   return MoveArrayBody(std::move(array));
@@ -401,8 +401,8 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("indices_or_sections"),
           py::arg("axis") = 0);
     m.def("split",
-          [](const ArrayBodyPtr& ary, std::vector<int64_t> indices_or_sections, int8_t axis) {
-              std::vector<Array> sub_arrays = Split(Array{ary}, indices_or_sections, axis);
+          [](const ArrayBodyPtr& ary, std::vector<int64_t> indices, int8_t axis) {
+              std::vector<Array> sub_arrays = Split(Array{ary}, indices, axis);
               std::vector<ArrayBodyPtr> sub_array_body_ptrs;
               std::transform(sub_arrays.begin(), sub_arrays.end(), std::back_inserter(sub_array_body_ptrs), [](Array& array) {
                   return MoveArrayBody(std::move(array));
