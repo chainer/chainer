@@ -623,6 +623,24 @@ TEST_P(ManipulationTest, ConcatenateNonContiguous) {
     EXPECT_ARRAY_EQ(e, Concatenate({a, b}, 1));
 }
 
+TEST_P(ManipulationTest, ConcatenateBackward) {
+    using T = double;
+    Shape shape_x1{2, 2, 1};
+    Shape shape_x2{3, 2, 1};
+    Shape shape_y{5, 2, 1};
+
+    Array x1 = (*testing::BuildArray(shape_x1).WithData<T>({1, 2, 3, 4})).RequireGrad();
+    Array x2 = (*testing::BuildArray(shape_x2).WithData<T>({5, 6, 7, 8, 9, 10})).RequireGrad();
+    Array gy = testing::BuildArray(shape_y).WithData<T>({3, 1, 4, 1, 5, 9, 2, 6, 5, 3});
+
+    // TODO(imanishi): Enable the following test after SplitBackward is implemented.
+    // CheckBackward(
+    //         [](const std::vector<Array>& xs) -> std::vector<Array> { return {Concatenate(xs)}; },
+    //         {x1, x2},
+    //         {gy},
+    //         {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6)});
+}
+
 TEST_THREAD_SAFE_P(ManipulationTest, SplitSections) {
     Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>();
     Array e1 = testing::BuildArray({2, 2}).WithData<int32_t>({0, 1, 4, 5});
