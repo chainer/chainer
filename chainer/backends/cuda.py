@@ -275,7 +275,7 @@ def to_gpu(array, device=None, stream=None):
             'Please remove it.', DeprecationWarning)
 
     check_cuda_available()
-    with _get_device(device) as device_:
+    with _get_device(device):
         if isinstance(array, (list, tuple)):
             d = {}
             ret = []
