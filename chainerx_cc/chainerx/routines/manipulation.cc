@@ -390,7 +390,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
     Shape shape = arrays.front().shape();
     Dtype dtype = arrays.front().dtype();
     Device& device = arrays.front().device();
-    uint8_t ndim = shape.size();
+    uint8_t ndim = arrays.front().ndim();
     axis = internal::NormalizeAxis(axis, ndim);
     shape[axis] = 0;
     std::vector<int64_t> indices;
@@ -398,7 +398,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
 
     for (const Array& array : arrays) {
         const Shape& s = array.shape();
-        if (ndim != s.size()) {
+        if (ndim != array.ndim()) {
             throw DimensionError{"All the input arrays must have same number of dimensions"};
         }
         if (dtype != array.dtype()) {
