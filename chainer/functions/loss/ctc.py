@@ -10,6 +10,12 @@ from chainer.utils import collections_abc
 from chainer.utils import type_check
 
 
+if cuda.cudnn_enabled:
+    cudnn = cuda.cudnn
+    libcudnn = cuda.cuda.cudnn
+    _cudnn_version = libcudnn.getVersion()
+
+
 def _logsumexp(a, xp, axis=None):
     vmax = xp.amax(a, axis=axis, keepdims=True)
     if xp is numpy:
@@ -312,6 +318,125 @@ class ConnectionistTemporalClassification(function.Function):
         return None, None, None, self.yseq
 
 
+
+
+class CudnnCTC(ConnectionistTemporalClassification):
+
+    """The implementation of Connectionist Temporal Classfication loss functions with CuDNN.
+    """
+
+    def forward(self, inputs):
+        # TODO: check the input length
+        # xp = backend.get_array_module(inputs[0])
+        input_length, label_length, t, xs = inputs
+        batch_size = len(xs[0])
+        handle = cudnn.get_handle()
+        # probs_desc = cudnn.create_tensor_descriptor()
+
+        # cudnnTensorDescriptor_t probsDesc;
+        # CUDNN_CALL( cudnnCreateTensorDescriptor( &probsDesc ) );
+        # int dimA[] = {INPUT_LENGTH, BATCH_SIZE, ALPHABET_SIZE};
+        # int strideA[] = {BATCH_SIZE * ALPHABET_SIZE, ALPHABET_SIZE, 1};
+        # CUDNN_CALL( cudnnSetTensorNdDescriptor( probsDesc, CUDNN_DATA_FLOAT, 3, dimA, strideA ) );
+        # dummy_probs = cuda.cupy.empty((input_length, batch_size, label_length), 'f')
+        probs = xs
+        print('probs:', type(probs))
+        probs_desc = cudnn.create_tensor_nd_descriptor(probs)
+
+        ctc_desc = cudnn.create_ctc_loss_descriptor(libcudnn.CUDNN_DATA_FLOAT)
+
+        # RNN
+        '''
+        # dimA[0] = miniBatch;
+        # dimA[1] = inputSize;
+        # dimA[2] = 1;
+        #
+        # strideA[0] = dimA[2] * dimA[1];
+        # strideA[1] = dimA[2];
+        # strideA[2] = 1;
+
+        # cudnnTensorDescriptor_t *xDesc, *yDesc, *dxDesc, *dyDesc;
+        # xDesc = (cudnnTensorDescriptor_t*)malloc(seqLength * sizeof(cudnnTensorDescriptor_t));
+        # cudnnErrCheck(cudnnCreateTensorDescriptor(&xDesc[i]));
+        # cudnnErrCheck(cudnnSetTensorNdDescriptor(xDesc[i], CUDNN_DATA_FLOAT, 3, dimA, strideA));
+        '''
+
+        # labelLengths
+        # CUDA_CALL( cudaMallocManaged( &labelLengths, sizeof(int) * BATCH_SIZE ) );
+
+        # inputLengths
+        # CUDA_CALL( cudaMallocManaged( &inputLengths, sizeof(int) * BATCH_SIZE ) );
+
+        # float *costs;
+        # CUDA_CALL( cudaMallocManaged( &costs, sizeof(float) * BATCH_SIZE ) );
+
+
+        # cudnnTensorDescriptor_t gradientsDesc;
+        # CUDNN_CALL( cudnnCreateTensorDescriptor( &gradientsDesc ) );
+        # {
+        # int dimA[] = {INPUT_LENGTH, BATCH_SIZE, ALPHABET_SIZE};
+        # int strideA[] = {BATCH_SIZE * ALPHABET_SIZE, ALPHABET_SIZE, 1};
+        # CUDNN_CALL( cudnnSetTensorNdDescriptor( gradientsDesc, CUDNN_DATA_FLOAT, 3, dimA, strideA ) );
+        # }
+        labelLengths = label_length.astype('i')
+        inputLengths = input_length.astype('i')
+        BATCH_SIZE = len(xs[0])
+        INPUT_LENGTH = int(cuda.cupy.max(input_length))
+        ALPHABET_SIZE = int(cuda.cupy.max(label_length))
+        print('INPUT_LENGTH:', INPUT_LENGTH, type(INPUT_LENGTH))
+        print('ALPHABET_SIZE:', ALPHABET_SIZE, type(ALPHABET_SIZE))
+        print('BATCH_SIZE:', BATCH_SIZE, type(BATCH_SIZE))
+        gradients = cuda.cupy.zeros((INPUT_LENGTH, BATCH_SIZE, ALPHABET_SIZE), 'f')
+        gradients_desc = cudnn.create_tensor_nd_descriptor(gradients)
+        # TODO: shape (BATCH_SIZE, ) is better?
+        costs = cuda.cupy.zeros((BATCH_SIZE, ), 'f')
+        # TODO: check this is Varibale or cupy.array
+        labels = t
+        # float *gradients;
+        # CUDA_CALL( cudaMallocManaged( &gradients, sizeof(float) * INPUT_LENGTH * BATCH_SIZE * ALPHABET_SIZE ) );
+
+        # algo = libcudnn.CUDNN_CTC_LOSS_ALGO_NON_DETERMINISTIC
+        algo = libcudnn.CUDNN_CTC_LOSS_ALGO_DETERMINISTIC
+        print('algo:', algo, type(algo))
+
+        # TODO: cupy ctcLossDesc
+        # cudnnCTCLossDescriptor_t ctcLossDesc;
+        # CUDNN_CALL( cudnnCreateCTCLossDescriptor( &ctcLossDesc ) );
+        # CUDNN_CALL( cudnnSetCTCLossDescriptor( ctcLossDesc, CUDNN_DATA_FLOAT ) );
+
+        # TODO: cupy cudnnGetCTCLossWorkspaceSize
+        # size_t workSpaceSizeInBytes;
+        print('labels.data:', type(labels.data))
+        print('labels.data.ptr:', type(labels.data.ptr))
+        work_size = libcudnn.getCTCLossWorkspaceSize(
+                handle, probs_desc.value, gradients_desc.value, labels.data.ptr,
+                labelLengths.data.ptr, inputLengths.data.ptr, algo, ctc_desc.value)
+        print('work_size:', work_size)
+        # CUDNN_CALL( cudnnGetCTCLossWorkspaceSize( handle, probsDesc, gradientsDesc, labels, labelLengths, inputLengths, algo, ctcLossDesc, &workSpaceSizeInBytes ) );
+
+
+        # void *workspace;
+        # CUDA_CALL( cudaMallocManaged( &workspace, workSpaceSizeInBytes ) );
+        workspace = cuda.cupy.empty((work_size,), dtype='b')
+
+        libcudnn.cudnnCTCLoss(handle, probs_desc.value,
+            probs.ptr, labels.ptr, labelLengths.ptr, inputLengths.ptr,
+            costs.ptr, gradients_desc.value, gradients.ptr, algo, ctc_desc.value,
+            workspace.ptr, work_size)
+        # loss
+        # CUDNN_CALL( cudnnCTCLoss( handle, probsDesc, probs, labels, labelLengths, inputLengths, costs, gradientsDesc, gradients, algo, ctcLossDesc, workspace, workSpaceSizeInBytes ) );
+        self._gradients = gradients
+        print('gradients:', gradients.shape)
+
+
+    def backward(self, inputs, grads):
+
+        return self._gradients
+
+
+
+
+
 def connectionist_temporal_classification(
         x, t, blank_symbol, input_length=None, label_length=None,
         reduce='mean'):
@@ -405,5 +530,13 @@ def connectionist_temporal_classification(
     if label_length is None:
         label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
 
-    return ConnectionistTemporalClassification(blank_symbol, reduce)(
+    print('t:', t.shape)
+    print('input_length:', input_length.shape, input_length)
+    print('label_length:', label_length.shape, label_length)
+
+    # return ConnectionistTemporalClassification(blank_symbol, reduce)(
+    #     input_length, label_length, t, chainer.functions.stack(x))
+    print('x:', type(x))
+    print('chainer.functions.stack(x):', type(chainer.functions.stack(x)))
+    return CudnnCTC(blank_symbol, reduce)(
         input_length, label_length, t, chainer.functions.stack(x))
