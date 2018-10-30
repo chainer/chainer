@@ -338,8 +338,9 @@ class CudnnCTC(ConnectionistTemporalClassification):
         # int dimA[] = {INPUT_LENGTH, BATCH_SIZE, ALPHABET_SIZE};
         # int strideA[] = {BATCH_SIZE * ALPHABET_SIZE, ALPHABET_SIZE, 1};
         # CUDNN_CALL( cudnnSetTensorNdDescriptor( probsDesc, CUDNN_DATA_FLOAT, 3, dimA, strideA ) );
-        dummy_probs = cuda.cupy.empty((input_length, batch_size, label_length), 'f')
-        probs_desc = cudnn.create_tensor_nd_descriptor(dummy_probs)
+        # dummy_probs = cuda.cupy.empty((input_length, batch_size, label_length), 'f')
+        probs = xs.data
+        probs_desc = cudnn.create_tensor_nd_descriptor(probs)
 
         ctc_desc = cudnn.create_ctc_loss_descriptor(libcudnn.CUDNN_DATA_FLOAT)
 
@@ -385,7 +386,6 @@ class CudnnCTC(ConnectionistTemporalClassification):
         gradients_desc = cudnn.create_tensor_nd_descriptor(gradients)
         # TODO: shape (BATCH_SIZE, ) is better?
         costs = cuda.cupy.zeros((BATCH_SIZE, ), 'f')
-        probs = xs.data
         # TODO: check this is Varibale or cupy.array
         labels = t
         # float *gradients;
