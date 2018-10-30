@@ -398,6 +398,15 @@ void InitChainerxManipulation(pybind11::module& m) {
           },
           py::arg("arrays"),
           py::arg("axis") = nullptr);
+    m.def("stack",
+          [](py::sequence tup, int8_t axis) {
+              std::vector<Array> xs;
+              std::transform(
+                      tup.begin(), tup.end(), std::back_inserter(xs), [](const auto& item) { return Array{py::cast<ArrayBodyPtr>(item)}; });
+              return MoveArrayBody(Stack(std::move(xs), axis));
+          },
+          py::arg("arrays"),
+          py::arg("axis") = 0);
     m.def("split",
           [](const ArrayBodyPtr& ary, int64_t sections, int8_t axis) { return MoveArrayBodies(Split(Array{ary}, sections, axis)); },
           py::arg("ary"),
