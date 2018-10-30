@@ -814,6 +814,10 @@ class Variable(object):
     def _set_chainerx_grad(self, g):
         # Assigns chainerx.ndarray.grad
         assert self._is_chainerx
+        if not self._requires_grad and g is not None:
+            raise RuntimeError(
+                'Cannot set the gradient of a variable that is flagged to not '
+                'require one.')
         arr = self._data[0]
         if arr is None:
             if g is not None:

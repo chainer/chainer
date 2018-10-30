@@ -903,22 +903,26 @@ class TestVariableToCpu(unittest.TestCase):
 
     def check_to_cpu(self, x, gx, requires_grad=True):
         x_var = chainer.Variable(x, requires_grad=requires_grad)
-        x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
+
+        set_grad_var = requires_grad or not isinstance(x, chainerx.ndarray)
+        if set_grad_var:
+            x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
 
         x_var.to_cpu()
 
         assert x_var.xp is np
         assert isinstance(x_var.data, np.ndarray)
-        assert isinstance(x_var.grad, np.ndarray)
         assert x.shape == x_var.shape
         assert x.dtype == x_var.dtype
-        assert gx.shape == x_var.grad.shape
-        assert gx.dtype == x_var.grad.dtype
-
         np.testing.assert_array_equal(
             backend.to_numpy(x_var.data), backend.to_numpy(x))
-        np.testing.assert_array_equal(
-            backend.to_numpy(x_var.grad), backend.to_numpy(gx))
+
+        if set_grad_var:
+            assert isinstance(x_var.grad, np.ndarray)
+            assert gx.shape == x_var.grad.shape
+            assert gx.dtype == x_var.grad.dtype
+            np.testing.assert_array_equal(
+                backend.to_numpy(x_var.grad), backend.to_numpy(gx))
 
         orig_xp = backend.get_array_module(x, gx)
         if orig_xp is np:
@@ -926,7 +930,7 @@ class TestVariableToCpu(unittest.TestCase):
             assert x_var.grad is gx
         else:
             assert x_var.data is not x
-            assert x_var.grad is not gx
+            assert not set_grad_var or x_var.grad is not gx
 
         assert not x_var._is_chainerx
         assert x_var._node is not None
@@ -967,26 +971,29 @@ class TestVariableToGpu(unittest.TestCase):
 
     def check_to_gpu(self, x, gx, device=None, requires_grad=True):
         x_var = chainer.Variable(x, requires_grad=requires_grad)
-        x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
+
+        set_grad_var = requires_grad or not isinstance(x, chainerx.ndarray)
+        if set_grad_var:
+            x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
 
         x_var.to_gpu(device)
 
         assert x_var.xp is cuda.cupy
         assert isinstance(x_var.data, cuda.cupy.ndarray)
-        assert isinstance(x_var.grad, cuda.cupy.ndarray)
         assert x.shape == x_var.shape
         assert x.dtype == x_var.dtype
-        assert gx.shape == x_var.grad.shape
-        assert gx.dtype == x_var.grad.dtype
-
         device = cuda.Device(device)
         assert cuda.get_device_from_array(x_var.data) == device
-        assert cuda.get_device_from_array(x_var.grad) == device
-
         np.testing.assert_array_equal(
             backend.to_numpy(x_var.data), backend.to_numpy(x))
-        np.testing.assert_array_equal(
-            backend.to_numpy(x_var.grad), backend.to_numpy(gx))
+
+        if set_grad_var:
+            assert isinstance(x_var.grad, cuda.cupy.ndarray)
+            assert gx.shape == x_var.grad.shape
+            assert gx.dtype == x_var.grad.dtype
+            assert cuda.get_device_from_array(x_var.grad) == device
+            np.testing.assert_array_equal(
+                backend.to_numpy(x_var.grad), backend.to_numpy(gx))
 
         orig_xp = backend.get_array_module(x, gx)
         orig_device = cuda.get_device_from_array(x)
@@ -995,7 +1002,7 @@ class TestVariableToGpu(unittest.TestCase):
             assert x_var.grad is gx
         else:
             assert x_var.data is not x
-            assert x_var.grad is not gx
+            assert not set_grad_var or x_var.grad is not gx
 
         assert not x_var._is_chainerx
         assert x_var._node is not None
