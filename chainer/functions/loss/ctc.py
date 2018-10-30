@@ -340,6 +340,7 @@ class CudnnCTC(ConnectionistTemporalClassification):
         # CUDNN_CALL( cudnnSetTensorNdDescriptor( probsDesc, CUDNN_DATA_FLOAT, 3, dimA, strideA ) );
         # dummy_probs = cuda.cupy.empty((input_length, batch_size, label_length), 'f')
         probs = xs.data
+        print('probs:', type(probs), probs.shape)
         probs_desc = cudnn.create_tensor_nd_descriptor(probs)
 
         ctc_desc = cudnn.create_ctc_loss_descriptor(libcudnn.CUDNN_DATA_FLOAT)
