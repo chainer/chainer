@@ -912,15 +912,15 @@ class TestVariableToCpu(unittest.TestCase):
 
         assert x_var.xp is np
         assert isinstance(x_var.data, np.ndarray)
-        assert not set_grad_var or isinstance(x_var.grad, np.ndarray)
         assert x.shape == x_var.shape
         assert x.dtype == x_var.dtype
-        assert not set_grad_var or gx.shape == x_var.grad.shape
-        assert not set_grad_var or gx.dtype == x_var.grad.dtype
-
         np.testing.assert_array_equal(
             backend.to_numpy(x_var.data), backend.to_numpy(x))
+
         if set_grad_var:
+            assert isinstance(x_var.grad, np.ndarray)
+            assert gx.shape == x_var.grad.shape
+            assert gx.dtype == x_var.grad.dtype
             np.testing.assert_array_equal(
                 backend.to_numpy(x_var.grad), backend.to_numpy(gx))
 
@@ -980,20 +980,18 @@ class TestVariableToGpu(unittest.TestCase):
 
         assert x_var.xp is cuda.cupy
         assert isinstance(x_var.data, cuda.cupy.ndarray)
-        assert not set_grad_var or isinstance(x_var.grad, cuda.cupy.ndarray)
         assert x.shape == x_var.shape
         assert x.dtype == x_var.dtype
-        assert not set_grad_var or gx.shape == x_var.grad.shape
-        assert not set_grad_var or gx.dtype == x_var.grad.dtype
-
         device = cuda.Device(device)
         assert cuda.get_device_from_array(x_var.data) == device
-        assert not set_grad_var or (
-            cuda.get_device_from_array(x_var.grad) == device)
-
         np.testing.assert_array_equal(
             backend.to_numpy(x_var.data), backend.to_numpy(x))
+
         if set_grad_var:
+            assert isinstance(x_var.grad, cuda.cupy.ndarray)
+            assert gx.shape == x_var.grad.shape
+            assert gx.dtype == x_var.grad.dtype
+            assert cuda.get_device_from_array(x_var.grad) == device
             np.testing.assert_array_equal(
                 backend.to_numpy(x_var.grad), backend.to_numpy(gx))
 
