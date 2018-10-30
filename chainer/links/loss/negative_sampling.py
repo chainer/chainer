@@ -63,9 +63,17 @@ class NegativeSampling(link.Link):
             reduce (str): Reduction option. Its value must be either
                 ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is
                 raised.
+            return_samples (bool):
+                If ``True``, the sample array taken by the sampler is also
+                returned.
 
         Returns:
-            ~chainer.Variable: Loss value.
+            ~chainer.Variable or tuple:
+                If ``return_samples`` is ``False`` (default), loss value is
+                returned.
+
+                Otherwise, a tuple of the loss value and the sample array taken
+                by the sampler is returned.
 
         """
         return_samples = False
