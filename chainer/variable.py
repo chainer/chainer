@@ -817,7 +817,7 @@ class Variable(object):
         if not self._requires_grad and g is not None:
             raise RuntimeError(
                 'Cannot set the gradient of a variable that is flagged to not '
-                'require any gradient.')
+                'require one.')
         arr = self._data[0]
         if arr is None:
             if g is not None:
