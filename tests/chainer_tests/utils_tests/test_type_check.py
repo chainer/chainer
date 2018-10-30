@@ -1,5 +1,6 @@
 import sys
 import unittest
+import warnings
 
 import numpy
 
@@ -368,7 +369,9 @@ class TestSameTypes(unittest.TestCase):
     def test_all_numpy_subclasses(self):
         x = numpy.array([0])
         y = numpy.array([[1], [2]])
-        z = numpy.matrix("3,4; 5,6")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            z = numpy.matrix("3,4; 5,6")
         self.assertTrue(T.same_types(x, y, z))
 
     @attr.gpu
