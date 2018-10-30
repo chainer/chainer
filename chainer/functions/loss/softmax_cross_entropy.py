@@ -55,7 +55,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
     normalize = True
     y = None
     _coeff = None
-    has_soft_t = False
+    soft_target = False
     eps = 1e-9
 
     def __init__(self, normalize=True, cache_score=True, class_weight=None,
@@ -69,44 +69,38 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
-        if len(in_types) == 3:
-            type_check._argname(in_types, ('x', 't', 'soft_t'))
-            x_type, t_type, soft_t_type = in_types
-        else:
-            type_check._argname(in_types, ('x', 't'))
-            x_type, t_type = in_types
+        type_check._argname(in_types, ('x', 't'))
+        x_type, t_type = in_types
 
-        type_check.expect(
-            x_type.dtype.kind == 'f',
-            t_type.dtype.kind == 'i',
-            t_type.ndim == x_type.ndim - 1,
-
-            x_type.shape[0] == t_type.shape[0],
-            x_type.shape[2:] == t_type.shape[1:],
-        )
-        if len(in_types) == 3:
+        if x_type.ndim == t_type.ndim and x_type.shape == t_type.shape:
+            # assume t is soft_target
+            self.soft_target = True
             type_check.expect(
-                soft_t_type.dtype.kind == x_type.dtype.kind,
-                soft_t_type.shape == x_type.shape,
+                x_type.dtype.kind == 'f',
+                t_type.dtype.kind == 'f',
+            )
+        else:
+            type_check.expect(
+                x_type.dtype.kind == 'f',
+                t_type.dtype.kind == 'i',
+                t_type.ndim == x_type.ndim - 1,
+
+                x_type.shape[0] == t_type.shape[0],
+                x_type.shape[2:] == t_type.shape[1:],
             )
 
     def forward_cpu(self, inputs):
-        if len(inputs) == 2:
-            self.retain_inputs((0, 1))
-            x, t = inputs
-        else:
-            self.retain_inputs((0, 1, 2))
-            x, t, soft_t = inputs
-            self.has_soft_t = True
-        if chainer.is_debug():
+        self.retain_inputs((0, 1))
+        x, t = inputs
+        if chainer.is_debug() and not self.soft_target:
             _check_input_values(x, t, self.ignore_label)
 
         log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = numpy.exp(log_y)
 
-        if self.has_soft_t:
-            return self._soft_target_loss(numpy, x, t, soft_t, log_y)
+        if self.soft_target:
+            return self._soft_target_loss(numpy, x, t, log_y)
 
         if self.class_weight is not None:
             shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
@@ -133,15 +127,10 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             return -log_p.reshape(t.shape),
 
     def forward_gpu(self, inputs):
-        if len(inputs) == 2:
-            self.retain_inputs((0, 1))
-            x, t = inputs
-        else:
-            self.retain_inputs((0, 1, 2))
-            x, t, soft_t = inputs
-            self.has_soft_t = True
+        self.retain_inputs((0, 1))
+        x, t = inputs
         cupy = cuda.cupy
-        if chainer.is_debug():
+        if chainer.is_debug() and not self.soft_target:
             _check_input_values(x, t, self.ignore_label)
 
         if x.size == 0:
@@ -156,8 +145,8 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         if self.cache_score:
             self.y = cupy.exp(log_y)
 
-        if self.has_soft_t:
-            return self._soft_target_loss(cupy, x, t, soft_t, log_y)
+        if self.soft_target:
+            return self._soft_target_loss(cupy, x, t, log_y)
 
         if self.class_weight is not None:
             shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
@@ -194,44 +183,38 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             ret = ret.reshape(t.shape)
         return ret,
 
-    def _soft_target_loss(self, xp, x, t, soft_t, log_y):
+    def _soft_target_loss(self, xp, x, t, log_y):
         _axis = tuple(six.moves.range(1, x.ndim))
-        kl_d = xp.sum(soft_t * (xp.log(soft_t + self.eps) - log_y), axis=_axis)
+        kl_d = xp.sum(t * (xp.log(t + self.eps) - log_y), axis=_axis)
         if self.reduce == 'mean':
             self._coeff = 1.0 / len(x)
             kl_d = kl_d.sum(keepdims=True) * self._coeff
             return kl_d.reshape(()),
         else:
-            return kl_d.reshape(t.shape),
+            return kl_d.reshape((x.shape[0],)),
 
     def backward(self, input_indexes, grad_outputs):
         func_grad = _SoftmaxCrossEntropyGrad_NoDoubleBackprop(
             self.reduce, self.ignore_label, self.class_weight, self.y,
-            self._coeff, self.has_soft_t)
+            self._coeff, self.soft_target)
         inputs = self.get_retained_inputs()
-        ret = func_grad.apply(inputs + grad_outputs) + (None,)
-        if self.has_soft_t:
-            ret += (None,)
-        return ret
+        return func_grad.apply(inputs + grad_outputs) + (None,)
 
 
 class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
     # A backward implementation which does not support double-backprop.
 
     def __init__(self, reduce, ignore_label, class_weight, y, coeff,
-                 has_soft_t):
+                 soft_target):
         self.reduce = reduce
         self.ignore_label = ignore_label
         self.class_weight = class_weight
         self.y = y
         self.coeff = coeff
-        self.has_soft_t = has_soft_t
+        self.soft_target = soft_target
 
     def forward_cpu(self, inputs_and_grad_outputs):
-        if self.has_soft_t:
-            x, t, soft_t, gloss = inputs_and_grad_outputs
-        else:
-            x, t, gloss = inputs_and_grad_outputs
+        x, t, gloss = inputs_and_grad_outputs
         if x.size == 0:
             return numpy.zeros(x.shape, dtype=x.dtype), None
         if self.y is not None:
@@ -241,8 +224,8 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
             numpy.exp(y, out=y)
         t_valid = t != self.ignore_label
         t = t * t_valid
-        if self.has_soft_t:
-            gx = y - soft_t
+        if self.soft_target:
+            gx = y - t
         elif y.ndim == 2:
             gx = y
             gx[numpy.arange(len(t)), t] -= 1
@@ -278,10 +261,7 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
 
     def forward_gpu(self, inputs_and_grad_outputs):
         cupy = cuda.cupy
-        if self.has_soft_t:
-            x, t, soft_t, gloss = inputs_and_grad_outputs
-        else:
-            x, t, gloss = inputs_and_grad_outputs
+        x, t, gloss = inputs_and_grad_outputs
         if x.size == 0:
             return cupy.zeros(x.shape, dtype=x.dtype), None
         if self.y is not None:
@@ -295,8 +275,8 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
         else:
             coeff = gloss[:, None, ...]
 
-        if self.has_soft_t:
-            gx = coeff * (y - soft_t)
+        if self.soft_target:
+            gx = coeff * (y - t)
         elif self.class_weight is None:
             gx = cuda.elementwise(
                 'T y, S t, T coeff, S n_channel, S n_unit, S ignore_label',
@@ -376,8 +356,7 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
 
 def softmax_cross_entropy(
         x, t, normalize=True, cache_score=True, class_weight=None,
-        ignore_label=-1, reduce='mean', enable_double_backprop=False,
-        soft_target=None):
+        ignore_label=-1, reduce='mean', enable_double_backprop=False):
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
@@ -464,8 +443,5 @@ for row, column in enumerate(t)])
     else:
         func = SoftmaxCrossEntropy(
             normalize, cache_score, class_weight, ignore_label, reduce)
-        if soft_target is None:
-            loss, = func.apply((x, t))
-        else:
-            loss, = func.apply((x, t, soft_target))
+        loss, = func.apply((x, t))
         return loss
