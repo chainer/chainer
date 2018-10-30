@@ -461,10 +461,7 @@ void DefineSplitBackward(const Array& ary, const std::vector<Array>& out, int8_t
             std::vector<Array> output_grads;
             output_grads.reserve(bctx.output_count());
             for (size_t i = 0; i < bctx.output_count(); ++i) {
-                nonstd::optional<Array> output_grad = bctx.output_grad(i);
-                if (output_grad.has_value()) {
-                    output_grads.emplace_back(*output_grad);
-                }
+                output_grads.emplace_back(*bctx.output_grad(i));
             }
             bctx.input_grad() = Concatenate(output_grads, axis_norm);
         });
