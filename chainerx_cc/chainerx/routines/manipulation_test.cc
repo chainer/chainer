@@ -641,6 +641,89 @@ TEST_P(ManipulationTest, ConcatenateBackward) {
     //         {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6)});
 }
 
+TEST_THREAD_SAFE_P(ManipulationTest, Stack) {
+    using T = int32_t;
+    Shape input_shape{2, 3};
+    Shape output_shape{3, 2, 3};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 7, 8, 9, 10, 11, 12});
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Stack(xs);
+                    return std::vector<Array>{y};
+                },
+                {a, b, b},
+                {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(ManipulationTest, StackAxis1) {
+    using T = int32_t;
+    Shape input_shape{2, 3};
+    Shape output_shape{2, 3, 3};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 2, 3, 7, 8, 9, 7, 8, 9, 4, 5, 6, 10, 11, 12, 10, 11, 12});
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Stack(xs, 1);
+                    return std::vector<Array>{y};
+                },
+                {a, b, b},
+                {e});
+    });
+}
+
+TEST_THREAD_SAFE_P(ManipulationTest, StackAxis2) {
+    using T = int32_t;
+    Shape input_shape{2, 3};
+    Shape output_shape{2, 3, 3};
+
+    Array a = testing::BuildArray(input_shape).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(input_shape).WithData<T>({7, 8, 9, 10, 11, 12});
+    Array e = testing::BuildArray(output_shape).WithData<T>({1, 7, 7, 2, 8, 8, 3, 9, 9, 4, 10, 10, 5, 11, 11, 6, 12, 12});
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Stack(xs, 2);
+                    return std::vector<Array>{y};
+                },
+                {a, b, b},
+                {e});
+    });
+}
+
+TEST_P(ManipulationTest, StackDifferentShape) {
+    using T = int32_t;
+    Array a = testing::BuildArray(Shape{2, 1, 3}).WithData<T>({1, 2, 3, 4, 5, 6});
+    Array b = testing::BuildArray(Shape{2, 2, 3}).WithData<T>({7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6});
+    EXPECT_THROW(Stack({a, b}), DimensionError);
+}
+
+TEST_THREAD_SAFE_P(ManipulationTest, StackNonContiguous) {
+    using T = int32_t;
+    Array a = (*testing::BuildArray(Shape{1, 2}).WithData<T>({1, 2})).BroadcastTo({2, 2});
+    Array b = testing::BuildArray(Shape{2, 2}).WithData<T>({3, 4, 5, 6}).WithPadding(1);
+    Array e = testing::BuildArray(Shape{3, 2, 2}).WithData<T>({1, 2, 1, 2, 3, 4, 5, 6, 3, 4, 5, 6});
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = Stack(xs);
+                    return std::vector<Array>{y};
+                },
+                {a, b, b},
+                {e});
+    });
+}
+
 TEST_THREAD_SAFE_P(ManipulationTest, SplitSections) {
     Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>();
     Array e1 = testing::BuildArray({2, 2}).WithData<int32_t>({0, 1, 4, 5});
