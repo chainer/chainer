@@ -242,6 +242,7 @@ def _get_device(*args):
         if available and isinstance(arg, Device):
             return arg
 
+    # NOTE: This function returns DummyDevice for both NumPy and ChainerX
     return DummyDevice
 
 
@@ -284,16 +285,15 @@ def to_gpu(array, device=None, stream=None):
                 else:
                     arr2 = d.get(id(arr))
                     if arr2 is None:
-                        arr2 = _array_to_gpu(arr, device_, stream)
+                        arr2 = _array_to_gpu(arr, stream)
                         d[id(arr)] = arr2
                     ret.append(arr2)
             return type(array)(ret)
         else:
-            return _array_to_gpu(array, device_, stream)
+            return _array_to_gpu(array, stream)
 
 
-def _array_to_gpu(array, device, stream):
-    assert device is DummyDevice or isinstance(device, Device)
+def _array_to_gpu(array, stream):
     if array is None:
         return None
 
