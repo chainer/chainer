@@ -339,8 +339,8 @@ class CudnnCTC(ConnectionistTemporalClassification):
         # int strideA[] = {BATCH_SIZE * ALPHABET_SIZE, ALPHABET_SIZE, 1};
         # CUDNN_CALL( cudnnSetTensorNdDescriptor( probsDesc, CUDNN_DATA_FLOAT, 3, dimA, strideA ) );
         # dummy_probs = cuda.cupy.empty((input_length, batch_size, label_length), 'f')
-        probs = xs.data
-        print('probs:', type(probs), probs.shape)
+        probs = xs
+        print('probs:', type(probs))
         probs_desc = cudnn.create_tensor_nd_descriptor(probs)
 
         ctc_desc = cudnn.create_ctc_loss_descriptor(libcudnn.CUDNN_DATA_FLOAT)
@@ -381,8 +381,11 @@ class CudnnCTC(ConnectionistTemporalClassification):
         labelLengths = label_length.astype('i')
         inputLengths = input_length.astype('i')
         BATCH_SIZE = len(xs[0])
-        INPUT_LENGTH = cuda.cupy.max(input_length)
-        ALPHABET_SIZE = cuda.cupy.max(label_length)
+        INPUT_LENGTH = int(cuda.cupy.max(input_length))
+        ALPHABET_SIZE = int(cuda.cupy.max(label_length))
+        print('INPUT_LENGTH:', INPUT_LENGTH, type(INPUT_LENGTH))
+        print('ALPHABET_SIZE:', ALPHABET_SIZE, type(ALPHABET_SIZE))
+        print('BATCH_SIZE:', BATCH_SIZE, type(BATCH_SIZE))
         gradients = cuda.cupy.zeros((INPUT_LENGTH, BATCH_SIZE, ALPHABET_SIZE), 'f')
         gradients_desc = cudnn.create_tensor_nd_descriptor(gradients)
         # TODO: shape (BATCH_SIZE, ) is better?
@@ -394,7 +397,7 @@ class CudnnCTC(ConnectionistTemporalClassification):
 
         # algo = libcudnn.CUDNN_CTC_LOSS_ALGO_NON_DETERMINISTIC
         algo = libcudnn.CUDNN_CTC_LOSS_ALGO_DETERMINISTIC
-        print('algo:', algo)
+        print('algo:', algo, type(algo))
 
         # TODO: cupy ctcLossDesc
         # cudnnCTCLossDescriptor_t ctcLossDesc;
@@ -403,9 +406,11 @@ class CudnnCTC(ConnectionistTemporalClassification):
 
         # TODO: cupy cudnnGetCTCLossWorkspaceSize
         # size_t workSpaceSizeInBytes;
+        print('labels.data:', type(labels.data))
+        print('labels.data.ptr:', type(labels.data.ptr))
         work_size = libcudnn.getCTCLossWorkspaceSize(
-                handle, probs_desc.value, gradients_desc.value, labels.ptr,
-                labelLengths.ptr, inputLengths.ptr, algo, ctc_desc)
+                handle, probs_desc.value, gradients_desc.value, labels.data.ptr,
+                labelLengths.data.ptr, inputLengths.data.ptr, algo, ctc_desc.value)
         print('work_size:', work_size)
         # CUDNN_CALL( cudnnGetCTCLossWorkspaceSize( handle, probsDesc, gradientsDesc, labels, labelLengths, inputLengths, algo, ctcLossDesc, &workSpaceSizeInBytes ) );
 
@@ -531,5 +536,7 @@ def connectionist_temporal_classification(
 
     # return ConnectionistTemporalClassification(blank_symbol, reduce)(
     #     input_length, label_length, t, chainer.functions.stack(x))
+    print('x:', type(x))
+    print('chainer.functions.stack(x):', type(chainer.functions.stack(x)))
     return CudnnCTC(blank_symbol, reduce)(
         input_length, label_length, t, chainer.functions.stack(x))
