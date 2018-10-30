@@ -390,7 +390,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
     Shape shape = arrays.front().shape();
     Dtype dtype = arrays.front().dtype();
     Device& device = arrays.front().device();
-    uint8_t ndim = arrays.front().ndim();
+    int8_t ndim = arrays.front().ndim();
     axis = internal::NormalizeAxis(axis, ndim);
     shape[axis] = 0;
     std::vector<int64_t> indices;
