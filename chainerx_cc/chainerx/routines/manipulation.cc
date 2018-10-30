@@ -446,6 +446,34 @@ Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axi
     return ConcatenateImpl(raveled_arrays, 0);
 }
 
+namespace {
+
+// Defines the backward pass for Split, for both by-sections and by-indices.
+void DefineSplitBackward(const Array& ary, const std::vector<Array>& out, int8_t axis_norm) {
+    // TODO(hvy): Avoid creating an intermediate vector of reference when BackwardBuilder accepts std::vector<Array>.
+    std::vector<ConstArrayRef> out_refs{};
+    out_refs.reserve(out.size());
+    std::transform(out.begin(), out.end(), std::back_inserter(out_refs), [](const Array& array) { return ConstArrayRef{array}; });
+
+    BackwardBuilder bb{"split", ary, out_refs};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([axis_norm](BackwardContext& bctx) {
+            std::vector<Array> output_grads;
+            output_grads.reserve(bctx.output_count());
+            for (size_t i = 0; i < bctx.output_count(); ++i) {
+                nonstd::optional<Array> output_grad = bctx.output_grad(i);
+                if (output_grad.has_value()) {
+                    output_grads.emplace_back(*output_grad);
+                }
+            }
+            bctx.input_grad() = Concatenate(output_grads, axis_norm);
+        });
+    }
+    bb.Finalize();
+}
+
+}  // namespace
+
 std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
     if (sections < 1) {
         throw DimensionError("Number of sections must be larger than 0.");
@@ -471,6 +499,8 @@ std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
         out_offset += out_stride * out_dim;
     }
+
+    DefineSplitBackward(ary, out, axis_norm);
 
     return out;
 }
@@ -505,6 +535,8 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
         out_offset += out_stride * slice_step;
         slice_start = slice_stop;
     }
+
+    DefineSplitBackward(ary, out, axis_norm);
 
     return out;
 }
