@@ -338,6 +338,13 @@ class TestDeviceId(unittest.TestCase):
     def test_eq_numpy(self):
         assert backend.DeviceId(numpy) == backend.DeviceId(numpy)
 
+    @attr.gpu
+    def test_eq_cupy(self):
+        DeviceId = backend.DeviceId
+        assert DeviceId((cuda.cupy, 0)) != DeviceId(numpy)
+        assert DeviceId((cuda.cupy, 0)) == DeviceId((cuda.cupy, 0))
+        assert DeviceId((cuda.cupy, 0)) != DeviceId((cuda.cupy, 1))
+
     @attr.chainerx
     def test_eq_chainerx(self):
         DeviceId = backend.DeviceId

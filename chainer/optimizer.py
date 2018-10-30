@@ -374,8 +374,7 @@ class UpdateRule(object):
                 self._state[key] = serializer(key, self._state[key])
 
     def _prepare(self, param):
-        device = cuda.get_device_from_array(param.data)
-        with device:
+        with backend.get_device_from_array(param.data) as device:
             state = self.state
             if state is None:
                 state = self._state = {}
