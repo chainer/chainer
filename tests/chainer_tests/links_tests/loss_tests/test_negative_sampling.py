@@ -7,12 +7,21 @@ from chainer.backends import cuda
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
 
 
 @testing.parameterize(*testing.product({
     't': [[0, 2], [-1, 1, 2]],
     'reduce': ['sum', 'no'],
 }))
+@backend.inject_backend_tests(
+    ['test_forward', 'test_return_samples'],
+    [
+        # CPU test
+        {},
+        # CUDA test
+        {'use_cuda': True},
+    ])
 class TestNegativeSampling(unittest.TestCase):
 
     in_size = 3
@@ -40,35 +49,43 @@ class TestNegativeSampling(unittest.TestCase):
         link.W.array[:] = rng.uniform(-1, 1, link.W.shape)
         return link
 
-    def call_link_and_return_samples(self, func):
-        # Calls the link while sneaking the samples returned from
-        # F.negative_sampling.
-        # func is a function in which the link is called.
+    def call_link_with_samples(self, samples, func):
+        # Call the link with given `samples` array.
+        # `func` is a function in which the link is called.
 
-        # Wrap F.negative_sampling to sneak the samples.
+        # mock sampler that returns the saved samples
+        def mock_sample(shape):
+            assert samples.shape == shape
+            return samples.copy()
+
+        # Wrap F.negative_sampling to replace sampler with the mock
         orig_negative_sampling = chainer.functions.negative_sampling
-        saved_samples = [None]
 
         def wrap_negative_sampling(*args, **kwargs):
-            out, samples = orig_negative_sampling(
-                *args, return_samples=True, **kwargs)
-            saved_samples[0] = samples
-            return out
+            args = args[:3] + (mock_sample,) + args[4:]
+            return orig_negative_sampling(*args, **kwargs)
 
         with testing.patch(
                 'chainer.functions.loss.negative_sampling.negative_sampling',
                 wraps=wrap_negative_sampling) as m:
-            out = func()
+            ret = func()
             assert m.call_count == 1
 
-        assert saved_samples[0] is not None
-        return out, saved_samples[0]
+        return ret
 
-    def check_forward(self, link, x_data, t_data):
+    def test_forward(self, backend_config):
+        x_data = backend_config.get_array(self.x)
+        t_data = backend_config.get_array(self.t)
         x = chainer.Variable(x_data)
         t = chainer.Variable(t_data)
-        y, samples = self.call_link_and_return_samples(
-            lambda: link(x, t, reduce=self.reduce))
+
+        link = self.create_link()
+        if backend_config.use_cuda:
+            link.to_gpu()
+
+        # return_samples=False
+        y, samples = link(x, t, reduce=self.reduce, return_samples=True)
+
         self.assertEqual(y.shape, self.gy.shape)
 
         W = cuda.to_cpu(link.W.data)
@@ -92,16 +109,6 @@ class TestNegativeSampling(unittest.TestCase):
 
         testing.assert_allclose(y.data, loss)
 
-    def test_forward_cpu(self):
-        link = self.create_link()
-        self.check_forward(link, self.x, self.t)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        link = self.create_link()
-        link.to_gpu()
-        self.check_forward(link, cuda.to_gpu(self.x), cuda.to_gpu(self.t))
-
     @attr.gpu
     def test_to_cpu(self):
         link = self.create_link()
@@ -109,6 +116,33 @@ class TestNegativeSampling(unittest.TestCase):
         self.assertTrue(link.sampler.use_gpu)
         link.to_cpu()
         self.assertFalse(link.sampler.use_gpu)
+
+    def test_return_samples(self, backend_config):
+        batch_size = self.t.shape[0]
+        link = self.create_link()
+        if backend_config.use_cuda:
+            link.to_gpu()
+
+        x_data = backend_config.get_array(self.x)
+        t_data = backend_config.get_array(self.t)
+        x = chainer.Variable(x_data)
+        t = chainer.Variable(t_data, requires_grad=False)
+
+        # return_samples=True
+        y, samples = link(x, t, reduce=self.reduce, return_samples=True)
+
+        assert isinstance(samples, backend_config.xp.ndarray)
+        assert samples.shape == (batch_size, self.sample_size + 1)
+        assert samples.dtype == numpy.int32
+
+        # return_samples=False, with saved samples
+        y_ = self.call_link_with_samples(
+            samples,
+            lambda: link(x, t, reduce=self.reduce))
+
+        # y and y_ should equal
+        numpy.testing.assert_array_equal(
+            cuda.to_cpu(y.array), cuda.to_cpu(y_.array))
 
     @attr.gpu
     def test_backward_cpu_gpu(self):
@@ -122,25 +156,12 @@ class TestNegativeSampling(unittest.TestCase):
         t = chainer.Variable(self.t)
         link = self.create_link(rng)
 
-        y, samples = self.call_link_and_return_samples(
-            lambda: link(x, t))
+        y, samples = link(x, t, return_samples=True)
 
         y.backward()
         assert t.grad is None
         gw_cpu = link.W.grad
         gx_cpu = x.grad
-
-        # mock sampler that returns the saved samples from CPU mode
-        def mock_sample_gpu(shape):
-            assert samples.shape == shape
-            return cuda.to_gpu(samples)
-
-        # Wrap F.negative_sampling to replace sampler with the mock
-        orig_negative_sampling = chainer.functions.negative_sampling
-
-        def wrap_negative_sampling2(*args, **kwargs):
-            args = args[:3] + (mock_sample_gpu,) + args[4:]
-            return orig_negative_sampling(*args, **kwargs)
 
         # Call GPU mode link
         rng.set_state(rng_state)
@@ -148,11 +169,8 @@ class TestNegativeSampling(unittest.TestCase):
         link.to_gpu()
         x = chainer.Variable(cuda.to_gpu(self.x))
         t = chainer.Variable(cuda.to_gpu(self.t))
-        with testing.patch(
-                'chainer.functions.loss.negative_sampling.negative_sampling',
-                wraps=wrap_negative_sampling2) as m:
-            y = link(x, t)
-            assert m.call_count == 1
+        y = self.call_link_with_samples(
+            cuda.to_gpu(samples), lambda: link(x, t))
 
         y.backward()
         assert t.grad is None

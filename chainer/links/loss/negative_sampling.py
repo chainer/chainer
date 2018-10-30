@@ -3,6 +3,7 @@ import numpy
 from chainer.backends import cuda
 from chainer.functions.loss import negative_sampling
 from chainer import link
+from chainer.utils import argument
 from chainer.utils import walker_alias
 from chainer import variable
 
@@ -51,8 +52,10 @@ class NegativeSampling(link.Link):
             self.sampler.to_gpu()
         return self
 
-    def forward(self, x, t, reduce='sum'):
-        """Computes the loss value for given input and ground truth labels.
+    def forward(self, x, t, reduce='sum', **kwargs):
+        """forward(x, t, reduce='sum', *, return_samples=False)
+
+        Computes the loss value for given input and ground truth labels.
 
         Args:
             x (~chainer.Variable): Input of the weight matrix multiplication.
@@ -65,6 +68,12 @@ class NegativeSampling(link.Link):
             ~chainer.Variable: Loss value.
 
         """
-        return negative_sampling.negative_sampling(
+        return_samples = False
+        if kwargs:
+            return_samples, = argument.parse_kwargs(
+                kwargs, ('return_samples', return_samples))
+
+        ret = negative_sampling.negative_sampling(
             x, t, self.W, self.sampler.sample, self.sample_size,
-            reduce=reduce)
+            reduce=reduce, return_samples=return_samples)
+        return ret
