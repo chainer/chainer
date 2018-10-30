@@ -3,7 +3,6 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
 from chainer.testing import backend
@@ -56,7 +55,12 @@ from chainer.testing import backend
         'use_ideep': ['never', 'always'],
     })
     # GPU tests
-    + [{'use_cuda': True}])
+    + [{'use_cuda': True}]
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
 class TestConcat(unittest.TestCase):
 
     def setUp(self):
@@ -70,8 +74,11 @@ class TestConcat(unittest.TestCase):
         self.inputs = xs
 
     def check_forward(self, inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        inputs = backend_config.get_array(inputs)
 
         with backend_config:
             y = functions.concat(inputs, axis=self.axis)
@@ -84,8 +91,11 @@ class TestConcat(unittest.TestCase):
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
+        # TODO(niboshi): Support it
+        if backend_config.use_chainerx and self.dtype == numpy.float16:
+            raise unittest.SkipTest('ChainerX does not support float16')
+
+        inputs = backend_config.get_array(inputs)
 
         inputs = [chainer.Variable(x) for x in inputs]
 
