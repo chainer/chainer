@@ -37,11 +37,6 @@ private:
 };
 
 TEST_THREAD_SAFE_P(PoolingTest, MaxPool) {
-    if (GetParam() == "cuda") {
-        // CuDNN convolution does not support cover_all, which is true by default.
-        Skip();
-        return;
-    }
     using T = float;
 
     int64_t batch_size = 3;
@@ -238,10 +233,6 @@ TEST_THREAD_SAFE_P(PoolingTest, MaxPoolNdNoCoverAll) {
 }
 
 TEST_P(PoolingTest, MaxPoolBackward) {
-    if (GetParam() == "cuda") {
-        // CuDNN convolution does not support cover_all, which is true by default.
-        return;
-    }
     using T = float;
 
     int64_t batch_size = 3;
@@ -355,10 +346,6 @@ TEST_P(PoolingTest, MaxPoolNoCoverAllBackward) {
 }
 
 TEST_P(PoolingTest, MaxPoolDoubleBackward) {
-    if (GetParam() == "cuda") {
-        // CuDNN convolution does not support cover_all, which is true by default.
-        return;
-    }
     using T = float;
 
     int64_t batch_size = 3;
