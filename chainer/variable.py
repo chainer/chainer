@@ -960,9 +960,9 @@ class Variable(object):
         if not isinstance(array, numpy.ndarray):
             self._data = [backend.to_numpy(array)]
 
-        self._ensure_grad_var_up_to_date()
-        if self._grad_var is not None:
-            self._grad_var.to_cpu()
+        grad_var = self.grad_var
+        if grad_var is not None:
+            grad_var.to_cpu()
 
         # ensure that the node tracks the device migration
         node = self._node
@@ -991,9 +991,9 @@ class Variable(object):
             self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.array, device)]
-            self._ensure_grad_var_up_to_date()
-            if self._grad_var is not None:
-                self._grad_var.to_gpu(device)
+            grad_var = self.grad_var
+            if grad_var is not None:
+                grad_var.to_gpu(device)
             # ensure that the node tracks the device migration
             node = self._node
             if node is not None and node._data is not None:
@@ -1024,9 +1024,9 @@ class Variable(object):
                     array, itype=intel64.ideep.wgt_array)
             self._data = [array]
 
-        self._ensure_grad_var_up_to_date()
-        if self._grad_var is not None:
-            self._grad_var.to_intel64()
+        grad_var = self.grad_var
+        if grad_var is not None:
+            grad_var.to_intel64()
         # ensure that the node tracks the device migration
         node = self._node
         if node._data is not None:
@@ -1057,8 +1057,7 @@ class Variable(object):
             if self._requires_grad:
                 new_data.require_grad()
 
-            self._ensure_grad_var_up_to_date()
-            grad_var = self._grad_var
+            grad_var = self.grad_var
             if grad_var is not None:
                 grad_var.to_chainerx(device)
                 new_grad = grad_var.array
@@ -1307,10 +1306,8 @@ class Variable(object):
         seen_set = set()
         grads = _backprop_utils.GradTable(load_if_new=True)
 
-        self._ensure_grad_var_up_to_date()
-
         # Initialize error by 1, if this is a loss variable
-        if self.array.size == 1 and self._grad_var is None:
+        if self.array.size == 1 and self.grad_var is None:
             if self.array.ndim != 0:
                 warnings.warn(
                     'Treating a scalar as a variable with only one element'
