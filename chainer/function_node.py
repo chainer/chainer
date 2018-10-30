@@ -271,10 +271,11 @@ Use apply() method instead.\
                     x_data = x._chainerx_fallback_array
                 else:
                     arr = chainerx_in_data[i]
-                    # TODO(hvy): DRY the following code with optimizer.py.
+                    # TODO(sonots): Use zero-copy API if it becomes available.
                     backend_name = arr.device.backend.name
                     if backend_name == 'cuda':
-                        to_backend = cuda.to_gpu
+                        def to_backend(x):
+                            return cuda.to_gpu(x, x.device.index)
                     elif backend_name == 'native':
                         to_backend = backend.to_numpy
                     else:
