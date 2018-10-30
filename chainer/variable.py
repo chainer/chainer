@@ -819,14 +819,14 @@ class Variable(object):
 
     @grad.setter
     def grad(self, g):
-        if self._is_chainerx and not self._requires_grad:
-            raise RuntimeError(
-                'Cannot set the gradient of a variable that is flagged to not '
-                'require any gradients.')
-
         if g is None:
             self.grad_var = None
         else:
+            if self._is_chainerx and not self._requires_grad:
+                raise RuntimeError(
+                    'Cannot set the gradient of a variable that is flagged to '
+                    'not require any gradients.')
+
             self.grad_var = Variable(g)
 
     @property
@@ -851,15 +851,15 @@ class Variable(object):
 
     @grad_var.setter
     def grad_var(self, g):
-        if self._is_chainerx and not self._requires_grad:
-            raise RuntimeError(
-                'Cannot set the gradient of a variable that is flagged to not '
-                'require any gradients.')
-
         if g is not None:
             _check_grad_type(None, self, g.array)
 
         if self._is_chainerx:
+            if not self._requires_grad and g is not None:
+                raise RuntimeError(
+                    'Cannot set the gradient of a variable that is flagged to '
+                    'not require any gradients.')
+
             arr = self._data[0]
             if arr is None:
                 if g is not None:
