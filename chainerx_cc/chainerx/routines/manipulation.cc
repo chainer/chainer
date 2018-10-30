@@ -466,6 +466,47 @@ Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axi
     return ConcatenateImpl(raveled_arrays, 0);
 }
 
+Array Stack(const std::vector<Array>& arrays, int8_t axis) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
+    Shape shape = arrays.front().shape();
+    Dtype dtype = arrays.front().dtype();
+    Device& device = arrays.front().device();
+    uint8_t ndim = shape.size();
+    axis = internal::NormalizeAxis(axis, ndim + 1);
+
+    for (const Array& array : arrays) {
+        if (shape != array.shape()) {
+            throw DimensionError{"All input arrays must have the same shape"};
+        }
+        if (dtype != array.dtype()) {
+            throw DtypeError{"All the input arrays must have same dtypes"};
+        }
+    }
+    shape.insert(shape.begin() + axis, static_cast<int64_t>(arrays.size()));
+
+    Array out = Empty(shape, dtype, device);
+    Strides strides = out.strides();
+    int64_t step = strides[axis];
+    strides.erase(strides.begin() + axis);
+
+    {
+        NoBackpropModeScope scope{};
+        int64_t out_offset = 0;
+        for (const Array& array : arrays) {
+            Array sliced_out = internal::MakeArray(array.shape(), strides, dtype, device, out.data(), out_offset);
+            device.Copy(array, sliced_out);
+            out_offset += step;
+        }
+    }
+
+    // TODO(imanishi): Implement backward
+
+    return out;
+}
+
 std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
     if (sections < 1) {
         throw DimensionError("Number of sections must be larger than 0.");
