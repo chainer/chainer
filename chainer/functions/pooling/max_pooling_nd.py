@@ -34,9 +34,6 @@ class MaxPoolingND(pooling_nd._PoolingND):
         if self.return_indices:
             return chainer.Fallback
         if x[0].device.backend.name == 'cuda':
-            # TODO(sonots): Support cover_all in CUDA ChainerX
-            if self.cover_all:
-                return chainer.Fallback
             # TODO(sonots): Support more ndim in ChainerX
             if self.ndim not in [2, 3]:
                 return chainer.Fallback
