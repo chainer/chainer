@@ -310,13 +310,12 @@ class UpdateRule(object):
         temp_param = variable.Variable(param._chainerx_fallback_array)
 
         if grad_array is not None:
-            temp_param.grad = to_backend(param.grad)
+            temp_param._set_grad_without_check(to_backend(grad_array))
 
         # Update
         update_core(temp_param)
 
         # Restore state arrays
-        assert param.grad is None or isinstance(param.grad, chainerx.ndarray)
         for state_name, arr in chainerx_state_arrays.items():
             self.state[state_name] = arr
 

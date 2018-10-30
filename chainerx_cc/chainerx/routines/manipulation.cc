@@ -13,6 +13,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
+#include "chainerx/backprop_mode.h"
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
 #include "chainerx/device.h"
@@ -21,6 +22,8 @@
 #include "chainerx/macro.h"
 #include "chainerx/shape.h"
 #include "chainerx/strides.h"
+
+#include "chainerx/routines/creation.h"
 
 namespace chainerx {
 
@@ -373,6 +376,135 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         });
     }
     bb.Finalize();
+
+    return out;
+}
+
+namespace {
+
+Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to concatenate"};
+    }
+
+    Shape shape = arrays.front().shape();
+    Dtype dtype = arrays.front().dtype();
+    Device& device = arrays.front().device();
+    uint8_t ndim = shape.size();
+    axis = internal::NormalizeAxis(axis, ndim);
+    shape[axis] = 0;
+
+    for (const Array& array : arrays) {
+        const Shape& s = array.shape();
+        if (ndim != s.size()) {
+            throw DimensionError{"All the input arrays must have same number of dimensions"};
+        }
+        if (dtype != array.dtype()) {
+            throw DtypeError{"All the input arrays must have same dtypes"};
+        }
+        for (int8_t i = 0; i < ndim; ++i) {
+            if (axis == i) {
+                shape[i] += s[i];
+            } else if (shape[i] != s[i]) {
+                throw DimensionError{"All the input array dimensions except for the concatenation axis must match exactly"};
+            }
+        }
+    }
+
+    Array out = Empty(shape, dtype, device);
+    const Strides& strides = out.strides();
+    {
+        NoBackpropModeScope scope{};
+        int64_t out_offset = 0;
+        for (const Array& array : arrays) {
+            const Shape& shape = array.shape();
+            Array sliced_out = internal::MakeArray(shape, strides, dtype, device, out.data(), out_offset);
+            device.Copy(array, sliced_out);
+            out_offset += strides[axis] * shape[axis];
+        }
+    }
+
+    // TODO(imanishi): Implement backward
+
+    return out;
+}
+
+}  // namespace
+
+Array Concatenate(const std::vector<Array>& arrays) { return ConcatenateImpl(arrays, 0); }
+
+Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis) {
+    if (axis.has_value()) {
+        return ConcatenateImpl(arrays, *axis);
+    }
+    std::vector<Array> raveled_arrays;
+    raveled_arrays.reserve(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), std::back_inserter(raveled_arrays), [](const Array& array) {
+        Shape shape{array.GetTotalSize()};
+        return array.Reshape(shape);
+    });
+    return ConcatenateImpl(raveled_arrays, 0);
+}
+
+std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
+    if (sections < 1) {
+        throw DimensionError("Number of sections must be larger than 0.");
+    }
+
+    const Shape& in_shape = ary.shape();
+    int8_t axis_norm = internal::NormalizeAxis(axis, ary.ndim());
+    int64_t in_dim = in_shape[axis_norm];
+
+    if (in_dim % sections != 0) {
+        throw DimensionError("Array split does not result in an equal division.");
+    }
+
+    Shape out_shape = in_shape;
+    int64_t out_dim = in_dim / sections;
+    out_shape[axis_norm] = out_dim;
+    int64_t out_stride = ary.strides()[axis_norm];
+    int64_t out_offset = ary.offset();
+
+    std::vector<Array> out;
+
+    for (int64_t i = 0; i < sections; ++i) {
+        out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
+        out_offset += out_stride * out_dim;
+    }
+
+    return out;
+}
+
+std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t axis) {
+    const Shape& in_shape = ary.shape();
+    int8_t axis_norm = internal::NormalizeAxis(axis, ary.ndim());
+    int64_t in_dim = in_shape[axis_norm];
+
+    // Wrap negative indices.
+    std::transform(
+            indices.begin(), indices.end(), indices.begin(), [in_dim](int64_t index) { return index >= 0 ? index : index + in_dim; });
+    indices.emplace_back(in_dim);
+
+    Shape out_shape = in_shape;
+    int64_t& out_dim = out_shape[axis_norm];
+    int64_t out_stride = ary.strides()[axis_norm];
+    int64_t out_offset = ary.offset();
+    int64_t slice_start = 0;
+
+    std::vector<Array> out;
+
+    for (int64_t index : indices) {
+        int64_t slice_stop = std::min(in_dim, std::max(int64_t{0}, index));
+        int64_t slice_step = slice_stop - slice_start;
+
+        // Update the dimension of interest in the output shape.
+        out_dim = std::max(int64_t{0}, slice_step);
+
+        out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
+
+        out_offset += out_stride * slice_step;
+        slice_start = slice_stop;
+    }
 
     return out;
 }

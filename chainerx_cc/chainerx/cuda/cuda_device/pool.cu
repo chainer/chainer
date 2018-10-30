@@ -90,11 +90,7 @@ public:
           stride_{std::move(stride)},
           pad_{std::move(pad)},
           cover_all_{cover_all},
-          cudnn_pooling_mode_{cudnn_pooling_mode} {
-        if (cover_all_) {
-            throw ChainerxError{"CUDA pooling does not support cover_all"};
-        }
-    }
+          cudnn_pooling_mode_{cudnn_pooling_mode} {}
 
     Array Forward(const Array& x) {
         int8_t ndim = x.ndim() - 2;  // Number of spacial dimensions

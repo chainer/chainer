@@ -1121,7 +1121,8 @@ def _extract_apply_in_data(inputs):
         (x._data[0] if x._is_chainerx else x.array)
         if isinstance(x, variable.Variable) else x for x in inputs]
 
-    if any([isinstance(arr, chainerx.ndarray) for arr in arrays]):
+    if (chainerx.is_available()
+            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
         return True, tuple(backend.to_chainerx(arrays))
     return False, tuple(arrays)
 

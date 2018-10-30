@@ -167,7 +167,8 @@ def is_arrays_compatible(arrays):
     # will be converted to memory-shared chainerx.ndarrays.
     # TODO(niboshi): intel64.mdarray is not supported yet.
     # TODO(niboshi): Delegate array compatibility check to chainerx.
-    if any([isinstance(arr, chainerx.ndarray) for arr in arrays]):
+    if (chainerx.is_available()
+            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
         return not any([
             isinstance(arr, backends.intel64.mdarray) for arr in arrays])
 

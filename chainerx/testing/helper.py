@@ -126,8 +126,8 @@ def _check_chainerx_numpy_result_impl(
     if chainerx_result is _ignored_result and numpy_result is _ignored_result:
         return
 
-    if isinstance(chainerx_result, tuple):
-        if not isinstance(numpy_result, tuple):
+    if isinstance(chainerx_result, (list, tuple)):
+        if type(chainerx_result) is not type(numpy_result):
             raise _ResultsCheckFailure('Different result types', indices)
         if len(chainerx_result) != len(numpy_result):
             raise _ResultsCheckFailure('Result length mismatch', indices)

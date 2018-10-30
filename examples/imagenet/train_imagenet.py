@@ -10,6 +10,7 @@ ImageDataLayer).
 """
 import argparse
 import random
+import re
 
 import numpy as np
 
@@ -17,6 +18,7 @@ import chainer
 from chainer import dataset
 from chainer import training
 from chainer.training import extensions
+import chainerx
 
 import dali_util
 
@@ -69,6 +71,19 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
         return image, label
 
 
+def parse_device(args):
+    gpu = None
+    if args.gpu is not None:
+        gpu = args.gpu
+    elif re.match(r'(-|\+|)[0-9]+$', args.device):
+        gpu = int(args.device)
+
+    if gpu is not None:
+        return chainer.backend.get_device(gpu)
+
+    return chainer.backend.get_device(args.device)
+
+
 def main():
     archs = {
         'alex': alex.Alex,
@@ -91,8 +106,11 @@ def main():
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU')
+    parser.add_argument('--device', '-d', type=str, default='native',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--initmodel',
                         help='Initialize the model from given file')
     parser.add_argument('--loaderjob', '-j', type=int,
@@ -111,17 +129,26 @@ def main():
     parser.set_defaults(test=False)
     parser.add_argument('--dali', action='store_true')
     parser.set_defaults(dali=False)
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    device = parse_device(args)
+
+    print('Device: {}'.format(device))
+    print('# Minibatch-size: {}'.format(args.batchsize))
+    print('# epoch: {}'.format(args.epoch))
+    print('')
 
     # Initialize the model to train
     model = archs[args.arch]()
     if args.initmodel:
         print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
-    if args.gpu >= 0:
-        chainer.backends.cuda.get_device_from_id(
-            args.gpu).use()  # Make the GPU current
-        model.to_gpu()
+    model.to_device(device)
+    if isinstance(device, chainer.cuda.Device):
+        device.use()  # Make the GPU current
 
     # Load the mean file
     mean = np.load(args.mean)
@@ -163,15 +190,17 @@ def main():
 
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
-        train_iter, optimizer, converter=converter, device=args.gpu)
+        train_iter, optimizer, converter=converter, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
     val_interval = (1 if args.test else 100000), 'iteration'
     log_interval = (1 if args.test else 1000), 'iteration'
 
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
-                                        device=args.gpu), trigger=val_interval)
-    trainer.extend(extensions.dump_graph('main/loss'))
+                                        device=device), trigger=val_interval)
+    # TODO(sonots): Temporarily disabled for chainerx. Fix it.
+    if not (chainerx.is_available() and isinstance(device, chainerx.Device)):
+        trainer.extend(extensions.dump_graph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)

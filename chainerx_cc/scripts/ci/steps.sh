@@ -193,7 +193,6 @@ step_python_test_chainerx() {
     COVERAGE_FILE="$WORK_DIR"/coverage-data \
     pytest \
         --showlocals \
-        --capture=no \
         --cov=chainerx \
         --no-cov-on-fail \
         --cov-fail-under=50 \
@@ -213,7 +212,6 @@ step_python_test_chainerx_nocuda() {
         -m='not cuda' \
         -p no:doctest \
         --showlocals \
-        --capture=no \
         --cov=chainerx \
         --no-cov-on-fail \
         --cov-fail-under=50 \
@@ -234,7 +232,6 @@ step_python_test_chainer() {
 
     pytest \
         --showlocals \
-        --capture=no \
         -m 'not slow and not ideep' \
         "$REPO_DIR"/tests/chainer_tests
 

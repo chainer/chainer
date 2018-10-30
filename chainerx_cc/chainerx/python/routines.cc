@@ -1,7 +1,9 @@
 #include "chainerx/python/routines.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <nonstd/optional.hpp>
@@ -45,6 +47,7 @@ namespace py = pybind11;
 
 namespace {
 
+using internal::MoveArrayBodies;
 using internal::MoveArrayBody;
 
 ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t count, int64_t offset, py::handle device) {
@@ -386,6 +389,27 @@ void InitChainerxManipulation(pybind11::module& m) {
           [](const ArrayBodyPtr& array, py::int_ shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
           py::arg("shape"));
+    m.def("concatenate",
+          [](py::sequence tup, nonstd::optional<int8_t> axis) {
+              std::vector<Array> xs;
+              std::transform(
+                      tup.begin(), tup.end(), std::back_inserter(xs), [](const auto& item) { return Array{py::cast<ArrayBodyPtr>(item)}; });
+              return MoveArrayBody(Concatenate(std::move(xs), axis));
+          },
+          py::arg("arrays"),
+          py::arg("axis") = nullptr);
+    m.def("split",
+          [](const ArrayBodyPtr& ary, int64_t sections, int8_t axis) { return MoveArrayBodies(Split(Array{ary}, sections, axis)); },
+          py::arg("ary"),
+          py::arg("indices_or_sections"),
+          py::arg("axis") = 0);
+    m.def("split",
+          [](const ArrayBodyPtr& ary, std::vector<int64_t> indices, int8_t axis) {
+              return MoveArrayBodies(Split(Array{ary}, indices, axis));
+          },
+          py::arg("ary"),
+          py::arg("indices_or_sections"),
+          py::arg("axis") = 0);
 }
 
 void InitChainerxMath(pybind11::module& m) {
