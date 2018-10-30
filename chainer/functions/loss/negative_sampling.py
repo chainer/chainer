@@ -17,7 +17,7 @@ def _sigmoid_grad(x, y, gy):
 class NegativeSamplingFunction(function_node.FunctionNode):
 
     ignore_label = -1
-    _samples = None
+    samples = None
 
     def __init__(self, sampler, sample_size, reduce='sum'):
         if reduce not in ('sum', 'no'):
@@ -69,7 +69,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         if self.reduce == 'sum':
             loss = numpy.array(loss.sum(), 'f')
 
-        self._samples = samples
+        self.samples = samples
         return loss,
 
     def forward_gpu(self, inputs):
@@ -122,14 +122,14 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         else:  # 'no':
             loss = loss.sum(axis=1)
 
-        self._samples = samples
+        self.samples = samples
         return loss,
 
     def backward(self, indexes, grad_outputs):
         x, t, W = self.get_retained_inputs()
         gy, = grad_outputs
         return NegativeSamplingFunctionGrad(
-            self.reduce, self.ignore_mask, self.sample_size, self._samples,
+            self.reduce, self.ignore_mask, self.sample_size, self.samples,
             self.wx).apply((x, W, gy))
 
 
@@ -396,5 +396,5 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum', **kwargs):
     out = func.apply((x, t, W))[0]
 
     if return_samples:
-        return out, func._samples
+        return out, func.samples
     return out
