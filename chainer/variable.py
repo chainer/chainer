@@ -816,8 +816,8 @@ class Variable(object):
         assert self._is_chainerx
         if not self._requires_grad and g is not None:
             raise RuntimeError(
-                'Cannot set the gradient of a variable that is flagged to '
-                'not require any gradients.')
+                'Cannot set the gradient of a variable that is flagged to not '
+                'require any gradients.')
         arr = self._data[0]
         if arr is None:
             if g is not None:
