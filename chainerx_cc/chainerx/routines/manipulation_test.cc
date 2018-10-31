@@ -705,10 +705,12 @@ TEST_P(ManipulationTest, SplitIndicesBackward) {
 
     CheckBackward(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                return {Split(xs[0], {1, 4}, 1)};
+                return {Split(xs[0], {1, 3}, 1)};
             },
             {(*testing::BuildArray({2, 4}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
-            {testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1), testing::BuildArray({2, 3}).WithLinearData<T>(-0.1, 0.1)},
+            {testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1),
+             testing::BuildArray({2, 2}).WithLinearData<T>(-0.1, 0.1),
+             testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1)},
             {Full({2, 4}, 1e-1)});
 }
 
