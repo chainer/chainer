@@ -365,15 +365,18 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum', **kwargs):
         reduce (str): Reduction option. Its value must be either
             ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
         return_samples (bool):
-            If ``True``, the sample array taken by ``sampler`` is also
-            returned.
+            If ``True``, the sample array is also returned.
+            The sample array is a
+            :math:`(\\text{batch_size}, \\text{sample_size} + 1)`-array of
+            integers whose first column is fixed to the ground truth labels
+            and the other columns are drawn from the ``sampler``.
 
     Returns:
         ~chainer.Variable or tuple:
             If ``return_samples`` is ``False`` (default), the output
             variable holding the loss value(s) calculated by the
             above equation is returned. Otherwise, a tuple of the output
-            variable and the sample array taken by ``sampler`` is returned.
+            variable and the sample array is returned.
 
             If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.

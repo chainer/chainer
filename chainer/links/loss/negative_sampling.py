@@ -64,16 +64,20 @@ class NegativeSampling(link.Link):
                 ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is
                 raised.
             return_samples (bool):
-                If ``True``, the sample array taken by the sampler is also
-                returned.
+                If ``True``, the sample array is also returned.
+                The sample array is a
+                :math:`(\\text{batch_size}, \\text{sample_size} + 1)`-array of
+                integers whose first column is fixed to the ground truth labels
+                and the other columns are drawn from the
+                :class:`chainer.utils.WalkerAlias` sampler.
 
         Returns:
             ~chainer.Variable or tuple:
                 If ``return_samples`` is ``False`` (default), loss value is
                 returned.
 
-                Otherwise, a tuple of the loss value and the sample array taken
-                by the sampler is returned.
+                Otherwise, a tuple of the loss value and the sample array
+                is returned.
 
         """
         return_samples = False
