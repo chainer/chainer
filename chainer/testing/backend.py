@@ -11,14 +11,18 @@ import chainerx
 class BackendConfig(object):
 
     _props = [
+        # ChainerX
         ('use_chainerx', False),
         ('chainerx_device', None),
+        # CuPy
         ('use_cuda', False),
+        ('cuda_device', None),  # 0 by default, if use_cuda=True
         ('use_cudnn', 'never'),
         ('cudnn_deterministic', False),
         ('autotune', False),
-        ('use_ideep', 'never'),
         ('cudnn_fast_batch_normalization', False),
+        # Intel64
+        ('use_ideep', 'never'),
     ]
 
     def __init__(self, params):
@@ -36,6 +40,7 @@ class BackendConfig(object):
             setattr(self, k, v)
 
         self._check_params()
+        self._adjust_params()
 
     def _check_params(self):
         # Checks consistency of parameters
@@ -44,6 +49,12 @@ class BackendConfig(object):
             assert isinstance(self.chainerx_device, str), (
                 '\'chainerx_device\' parameter is expected to be a string '
                 'representing a ChainerX device specifier')
+
+    def _adjust_params(self):
+        # Adjusts parameters, e.g. fill the default values
+        if self.use_cuda:
+            if self.cuda_device is None:
+                self.cuda_device = 0
 
     @property
     def xp(self):
@@ -104,6 +115,8 @@ class BackendConfig(object):
             marks.append(attr.gpu)
             if self.use_cudnn != 'never':
                 marks.append(attr.cudnn)
+            if self.cuda_device >= 1:
+                marks.append(attr.multi_gpu(self.cuda_device + 1))
         else:
             if self.use_ideep != 'never':
                 marks.append(attr.ideep)
@@ -120,7 +133,7 @@ class BackendConfig(object):
             arr = chainer.backend.to_chainerx(np_array)
             return arr.to_device(self.chainerx_device)
         if self.use_cuda:
-            return chainer.backend.cuda.to_gpu(np_array)
+            return chainer.backend.cuda.to_gpu(np_array, self.cuda_device)
         if self.use_ideep:
             return np_array
         return np_array
