@@ -40,6 +40,7 @@ class BackendConfig(object):
             setattr(self, k, v)
 
         self._check_params()
+        self._adjust_params()
 
     def _check_params(self):
         # Checks consistency of parameters
@@ -49,6 +50,8 @@ class BackendConfig(object):
                 '\'chainerx_device\' parameter is expected to be a string '
                 'representing a ChainerX device specifier')
 
+    def _adjust_params(self):
+        # Adjusts parameters, e.g. fill the default values
         if self.use_cuda:
             if self.cuda_device is None:
                 self.cuda_device = 0
