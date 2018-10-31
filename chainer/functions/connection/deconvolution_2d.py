@@ -1,5 +1,4 @@
 import numpy
-import six
 
 import chainer
 from chainer.backends import cuda
@@ -28,18 +27,15 @@ class Deconvolution2DFunction(function_node.FunctionNode):
     _use_ideep = False
 
     def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs,
+        dilate, groups = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1),
             deterministic="deterministic argument is not supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) context "
             "where value is either `True` or `False`.",
             requires_x_grad="requires_x_grad argument is not supported "
             "anymore. Just remove the argument. Note that whether to compute "
             "the gradient w.r.t. x is automatically decided during "
-            "backpropagation."
-        )
-        dilate, groups = argument.parse_kwargs(kwargs,
-                                               ('dilate', 1), ('groups', 1))
+            "backpropagation.")
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
@@ -111,6 +107,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 raise RuntimeError('Width in the output must be positive.')
 
     def forward_cpu(self, inputs):
+        if ((self.dy == 1 and self.dx == 1)
+                and intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(inputs)):
+            self._use_ideep = True
+
         self.retain_inputs((0, 1))  # only retain x and W
         if len(inputs) == 2:
             (x, W), b = inputs, None
@@ -133,6 +134,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             return self._forward_cpu_core(x, W, b)
 
     def _forward_cpu_core(self, x, W, b):
+        if self._use_ideep:
+            return self._forward_ideep(x, W, b)
+
         gcol = numpy.tensordot(W, x, (0, 1)).astype(x.dtype, copy=False)
         gcol = numpy.rollaxis(gcol, 3)
         y = conv.col2im_cpu(
@@ -140,7 +144,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             dy=self.dy, dx=self.dx)
         # b, k, h, w
         if b is not None:
-            y += b.reshape(1, b.size, 1, 1)
+            y += b.reshape((1, b.size, 1, 1))
         return y,
 
     def _forward_ideep(self, x, W, b):
@@ -166,7 +170,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             param)
 
         if b is not None:
-            y += b.reshape(1, b.size, 1, 1)
+            y += b.reshape((1, b.size, 1, 1))
         return y,
 
     def forward_gpu(self, inputs):
@@ -223,27 +227,27 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         # yC, yH, yW: y channels, y height, y width
         G = self.groups
         N, xC, xH, xW = x.shape
-        xCg = int(xC / G)
-        _, yCg, kH, kW = W.shape
+        xCg = xC // G
+        _, yCg, kH, kW = W.shape  # _ == xC
+        yC = yCg * G
 
-        xp = cuda.get_array_module(x)
+        x = x.transpose(1, 0, 2, 3)  # (xC, N, xH, xW)
+        x = x.reshape(G, xCg, N * xH * xW)
 
-        _x = x.reshape(N, G, xCg, xH, xW)
-        _x = xp.rollaxis(_x, 1)  # (G, N, xCg, xH, xW)
-        _W = W.reshape(G, xCg, yCg, kH, kW)
+        W = W.reshape(G, xCg, yCg * kH * kW)
+        W = W.transpose(0, 2, 1)  # (G, yCg*kH*kW, xCg)
+
+        # (G, yCg*kH*kW, N*xH*xW) = (G, yCg*kH*kW, xCg) @ (G, xCg, N*xH*xW)
+        col = convolution_2d._matmul(W, x).astype(x.dtype, copy=False)
+
+        col = col.reshape(yC, kH, kW, N, xH, xW)
+        col = col.transpose(3, 0, 1, 2, 4, 5)  # (N, yC, kH, kW, xH, xW)
+
+        y = conv.col2im(col, self.sy, self.sx, self.ph, self.pw,
+                        self.outh, self.outw, dy=self.dy, dx=self.dx)
+
         if b is not None:
-            _b = b.reshape(G, yCg)
-
-        _ys = []
-        for g in six.moves.range(G):
-            _bg = None if b is None else _b[g, ]
-            if xp is numpy:
-                _y, = self._forward_cpu_core(_x[g, ], _W[g, ], _bg)
-            else:
-                _y, = self._forward_gpu_core(_x[g, ], _W[g, ], _bg)
-            _ys.append(_y)
-
-        y = xp.concatenate(_ys, axis=1)  # (N, yC, yH, yW)
+            y += b.reshape(1, b.size, 1, 1)
         return y,
 
     def _forward_cudnn(self, x, W, b):

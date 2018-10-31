@@ -1,6 +1,7 @@
 import numpy
 import six
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
@@ -54,7 +55,7 @@ class SLSTM(function.Function):
     """
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 4)
+        type_check._argname(in_types, ('c_prev1', 'c_prev2', 'x1', 'x2'))
         c1_type, c2_type, x1_type, x2_type = in_types
 
         type_check.expect(
@@ -117,7 +118,7 @@ class SLSTM(function.Function):
         return self.c, h
 
     def backward(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         c_prev1, c_prev2, x1, x2 = inputs
         gc, gh = grad_outputs
 

@@ -23,8 +23,7 @@ class Shift(function_node.FunctionNode):
         self.dy, self.dx = _pair(dilate)
 
     def check_type_forward(self, in_types):
-        n_in = in_types.size()
-        type_check.expect(n_in == 1)
+        type_check._argname(in_types, ('x',))
 
         x_type = in_types[0]
         type_check.expect(

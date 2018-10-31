@@ -11,7 +11,7 @@ class Cast(function_node.FunctionNode):
         self.type = typ
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 1)
+        type_check._argname(in_types, ('x',))
         x_type = in_types[0]
 
         type_check.expect(x_type.dtype.kind == 'f')

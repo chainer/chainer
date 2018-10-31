@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -49,7 +50,7 @@ class TestCumsum(unittest.TestCase):
             self.check_double_backward_options = {'atol': 1e-3}
 
     def check_forward(self, x_data, axis):
-        xp = cuda.get_array_module(x_data)
+        xp = backend.get_array_module(x_data)
         x = chainer.Variable(x_data)
         y = functions.cumsum(x, axis=axis)
         self.assertEqual(y.data.dtype, self.dtype)
@@ -83,8 +84,7 @@ class TestCumsum(unittest.TestCase):
 
     def check_double_backward(self, x_data, axis, y_grad, x_grad_grad):
         def f(x):
-            y = functions.cumsum(x, axis)
-            return y * y
+            return functions.cumsum(x, axis)
 
         gradient_check.check_double_backward(
             f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
@@ -123,11 +123,14 @@ class TestCumsumInvalidTypeAxis(unittest.TestCase):
 
 class TestCumsumInvalidTypeError(unittest.TestCase):
 
+    def setUp(self):
+        self.x = numpy.random.uniform(-1, 1, (2, 3, 4)).astype('f')
+
     def test_invalid_type_axis(self):
         with self.assertRaises(TypeError):
-            functions.Cumsum([0])
+            functions.cumsum(self.x, [0])
         with self.assertRaises(TypeError):
-            functions.Cumsum((0,))
+            functions.cumsum(self.x, (0,))
 
 
 testing.run_module(__name__, __file__)

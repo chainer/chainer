@@ -18,9 +18,8 @@ class TestLink(unittest.TestCase):
     def setUp(self):
         x_shape_0 = 2
         x_shape_1 = numpy.int64(3)
-        with testing.assert_warns(DeprecationWarning):
-            self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
-                                     u=(None, 'd'))
+        self.link = chainer.Link(x=((x_shape_0, x_shape_1), 'd'),
+                                 u=(None, 'd'))
         with self.link.init_scope():
             self.link.y = chainer.Parameter(shape=(2,))
             self.link.v = chainer.Parameter()
@@ -80,46 +79,55 @@ class TestLink(unittest.TestCase):
             self.link.p = p
         self.assertTrue(all(p is not param for param in self.link.params()))
 
+    def test_call_injected_with_mixin(self):
+        call = mock.MagicMock()
+        call.return_value = 3
+
+        class CallMixin(object):
+            __call__ = call
+
+        class InjectedLink(chainer.Link, CallMixin):
+            pass
+
+        link = InjectedLink()
+        ret = link(1, a=2)
+
+        call.assert_called_once_with(1, a=2)
+        assert ret == call.return_value
+
     def test_add_param(self):
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('z', (2, 3))
+        self.link.add_param('z', (2, 3))
         self.check_param_init('z', (2, 3), 'f')
 
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('w', (2, 3), dtype='d')
+        self.link.add_param('w', (2, 3), dtype='d')
         self.check_param_init('w', (2, 3), 'd')
 
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('r')
+        self.link.add_param('r')
         self.check_param_uninit('r')
         self.link.r.initialize((2, 3))
         self.check_param_init('r', (2, 3), 'f')
 
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('s', dtype='d')
+        self.link.add_param('s', dtype='d')
         self.check_param_uninit('s')
         self.link.s.initialize((2, 3))
         self.check_param_init('s', (2, 3), 'd')
 
         initializer = initializers.Zero('d')
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('t', initializer=initializer)
+        self.link.add_param('t', initializer=initializer)
         self.check_param_uninit('t', initializer)
         self.link.t.initialize((2, 3))
         self.check_param_init('t', (2, 3), 'd', 0)
 
     def test_add_param_direct_initialization(self):
         z = numpy.random.rand(2, 3).astype('f')
-        with testing.assert_warns(DeprecationWarning):
-            self.link.add_param('z', initializer=z)
+        self.link.add_param('z', initializer=z)
         self.assertIsInstance(self.link.z.data, numpy.ndarray)
         numpy.testing.assert_array_equal(self.link.z.data, z)
 
     def test_add_param_duplicated_with_persistent(self):
         self.link.add_persistent('z', 'abc')
         with self.assertRaises(AttributeError):
-            with testing.assert_warns(DeprecationWarning):
-                self.link.add_param('z', (2, 3))
+            self.link.add_param('z', (2, 3))
 
     def test_add_persistent(self):
         self.assertTrue(hasattr(self.link, 'p'))
@@ -327,25 +335,25 @@ class TestLink(unittest.TestCase):
 
     def test_params(self):
         params = list(self.link.params())
-        self.assertEqual({id(p) for p in params},
-                         {id(self.link.x), id(self.link.y),
-                          id(self.link.u), id(self.link.v)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.link.u), id(self.link.v),
+                          id(self.link.x), id(self.link.y)])
 
     def test_params_skip_uninit(self):
         params = list(self.link.params(include_uninit=False))
-        self.assertEqual({id(p) for p in params},
-                         {id(self.link.x), id(self.link.y)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.link.x), id(self.link.y)])
 
     def test_namedparams(self):
         namedparams = list(self.link.namedparams())
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/x', id(self.link.x)), ('/y', id(self.link.y)),
-                          ('/u', id(self.link.u)), ('/v', id(self.link.v))})
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/u', id(self.link.u)), ('/v', id(self.link.v)),
+                          ('/x', id(self.link.x)), ('/y', id(self.link.y))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.link.namedparams(include_uninit=False))
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/x', id(self.link.x)), ('/y', id(self.link.y))})
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/x', id(self.link.x)), ('/y', id(self.link.y))])
 
     def test_links(self):
         links = list(self.link.links())
@@ -361,7 +369,7 @@ class TestLink(unittest.TestCase):
         self.assertEqual(pl[0][0], '/')
         self.assertIs(pl[0][1], self.link)
 
-    def test_copyparams(self):
+    def _setup_test_copyparams(self):
         self.link.x.grad.fill(0)
         self.link.y.grad.fill(1)
         self.link.u.initialize((2, 3))
@@ -386,8 +394,12 @@ class TestLink(unittest.TestCase):
         l.u.grad.fill(7)
         l.v.data.fill(8)
         l.v.grad.fill(9)
+        l.add_persistent('p', numpy.full_like(self.link.p, 10))
 
-        self.link.copyparams(l)
+        return l, (gx, gy, gu)
+
+    def _check_copyparams(self, l, gs):
+        gx, gy, gu = gs
         numpy.testing.assert_array_equal(self.link.x.data, l.x.data)
         numpy.testing.assert_array_equal(self.link.x.grad, gx)
         numpy.testing.assert_array_equal(self.link.y.data, l.y.data)
@@ -396,6 +408,22 @@ class TestLink(unittest.TestCase):
         numpy.testing.assert_array_equal(self.link.u.grad, gu)
         numpy.testing.assert_array_equal(self.link.v.data, l.v.data)
         numpy.testing.assert_array_equal(self.link.v.grad, None)
+
+    def test_copyparams(self):
+        l, gs = self._setup_test_copyparams()
+        self.link.copyparams(l)
+        self._check_copyparams(l, gs)
+        numpy.testing.assert_array_equal(self.link.p, l.p)
+
+    def test_copyparams_no_copy_persistent(self):
+        orig_p = self.link.p.copy()
+
+        l, gs = self._setup_test_copyparams()
+        numpy.testing.assert_array_equal(False, orig_p == l.p)
+        self.link.copyparams(l, copy_persistent=False)
+
+        self._check_copyparams(l, gs)
+        numpy.testing.assert_array_equal(self.link.p, orig_p)
 
     def test_cleargrads(self):
         self.link.cleargrads()
@@ -507,10 +535,9 @@ class TestLink(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            self.link.count_params()
+            assert self.link.count_params() == 8
         assert len(w) == 2
         assert w[0].category is UserWarning
-        assert self.link.count_params() == 8
 
         self.link.u.initialize((2, 3))
         self.link.v.initialize((2, 3))
@@ -531,7 +558,7 @@ class TestLinkRepeat(unittest.TestCase):
                     self.x = chainer.Parameter(
                         chainer.initializers.Normal(), shape=(2, 3))
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.link = Layer()
@@ -631,8 +658,7 @@ class TestChain(unittest.TestCase):
         self.c1 = chainer.Chain()
         with self.c1.init_scope():
             self.c1.l1 = self.l1
-        with testing.assert_warns(DeprecationWarning):
-            self.c1.add_link('l2', self.l2)
+        self.c1.add_link('l2', self.l2)
         self.c2 = chainer.Chain()
         with self.c2.init_scope():
             self.c2.c1 = self.c1
@@ -859,58 +885,60 @@ class TestChain(unittest.TestCase):
 
     def test_params(self):
         params = list(self.c2.params())
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l2.x), id(self.l3.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l2.x), id(self.l3.x)])
 
     def test_params_skip_uninit(self):
         params = list(self.c2.params(include_uninit=False))
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l2.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l2.x)])
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/c1/l1/x', id(self.l1.x)),
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/c1/l1/x', id(self.l1.x)),
                           ('/c1/l2/x', id(self.l2.x)),
-                          ('/l3/x', id(self.l3.x))})
+                          ('/l3/x', id(self.l3.x))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.c2.namedparams(include_uninit=False))
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/c1/l1/x', id(self.l1.x)),
-                          ('/c1/l2/x', id(self.l2.x))})
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/c1/l1/x', id(self.l1.x)),
+                          ('/c1/l2/x', id(self.l2.x))])
 
     def test_links(self):
         links = list(self.c2.links())
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3,
-                                          self.c1, self.c2]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c2,
+                                          self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_links_skipself(self):
         links = list(self.c2.links(skipself=True))
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3, self.c1]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_namedlinks(self):
         namedlinks = list(self.c2.namedlinks())
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/', id(self.c2)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/', id(self.c2)),
                           ('/c1', id(self.c1)),
                           ('/c1/l1', id(self.l1)),
                           ('/c1/l2', id(self.l2)),
-                          ('/l3', id(self.l3))})
+                          ('/l3', id(self.l3))])
 
     def test_namedlinks_skipself(self):
         namedlinks = list(self.c2.namedlinks(skipself=True))
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/c1', id(self.c1)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/c1', id(self.c1)),
                           ('/c1/l1', id(self.l1)),
                           ('/c1/l2', id(self.l2)),
-                          ('/l3', id(self.l3))})
+                          ('/l3', id(self.l3))])
 
     def test_children(self):
         children = list(self.c2.children())
-        self.assertEqual({id(c) for c in children}, {id(self.c1), id(self.l3)})
+        self.assertEqual([id(c) for c in children], [id(self.c1), id(self.l3)])
 
     def test_copyparams(self):
         l1 = chainer.Link()
@@ -999,12 +1027,13 @@ class TestChain(unittest.TestCase):
         mocks['l2'].assert_called_with('x', self.l2.x.data)
 
     def test_count_params(self):
+        assert self.c1.count_params() == 8
+
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             self.c2.count_params()
         assert len(w) == 1
         assert w[0].category is UserWarning
-        assert self.c1.count_params() == 8
 
         self.c2.l3.x.initialize((3,))
         with warnings.catch_warnings(record=True) as w:
@@ -1022,7 +1051,7 @@ class TestChainRepeat(unittest.TestCase):
                 with self.init_scope():
                     self.link = chainer.Link()
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.chain = ChainForTest()
@@ -1115,10 +1144,14 @@ class TestChainList(unittest.TestCase):
         self.l3 = chainer.Link()
         with self.l3.init_scope():
             self.l3.x = chainer.Parameter(shape=3)
+        self.l4 = chainer.Link()
+        self.l5 = chainer.Link()
+        self.l6 = chainer.Link()
         self.c1 = chainer.ChainList(self.l1)
         self.c1.add_link(self.l2)
         self.c2 = chainer.ChainList(self.c1)
         self.c2.append(self.l3)
+        self.c3 = chainer.ChainList(self.l4)
 
     def test_init(self):
         self.assertIs(self.c1[0], self.l1)
@@ -1133,6 +1166,44 @@ class TestChainList(unittest.TestCase):
     def test_append(self):
         self.assertIs(self.c2[1], self.l3)
         self.assertEqual(self.l3.name, '1')
+
+    def test_setitem(self):
+        self.c1[1] = self.l3
+        self.assertEqual(self.l3.name, '1')
+
+    def test_setitem_slice(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[3:0:-1] = [self.l4, self.l5]  # l1 l5 l4
+        self.assertEqual(len(self.c1), 3)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '2')
+        self.assertEqual(self.l5.name, '1')
+
+    def test_setitem_slice_short(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[1:3] = [self.l4]  # l1 l4
+        self.assertEqual(len(self.c1), 2)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '1')
+
+    def test_setitem_slice_long(self):
+        self.c1.append(self.l3)  # l1 l2 l3
+        self.c1[1:3] = [self.l4, self.l5, self.l6]  # l1 l4 l5 l6
+        self.assertEqual(len(self.c1), 4)
+        self.assertEqual(self.l1.name, '0')
+        self.assertEqual(self.l4.name, '1')
+        self.assertEqual(self.l5.name, '2')
+        self.assertEqual(self.l6.name, '3')
+
+    def test_iadd(self):
+        self.c2 += self.c3
+        self.assertIs(len(self.c2), 3)
+        self.assertEqual(self.l4.name, '2')
+
+    def test_delete_item(self):
+        del self.c2[0]
+        self.assertEqual(len(self.c2), 1)
+        self.assertEqual(self.l3.name, '0')
 
     def test_assign_param_in_init_scope(self):
         p = chainer.Parameter()
@@ -1338,57 +1409,59 @@ class TestChainList(unittest.TestCase):
 
     def test_params(self):
         params = list(self.c2.params())
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l1.y),
-                          id(self.l2.x), id(self.l3.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l1.y),
+                          id(self.l2.x), id(self.l3.x)])
 
     def test_params_skip_uninit(self):
         params = list(self.c2.params(include_uninit=False))
-        self.assertEqual({id(p) for p in params},
-                         {id(self.l1.x), id(self.l2.x), id(self.l3.x)})
+        self.assertEqual([id(p) for p in params],
+                         [id(self.l1.x), id(self.l2.x), id(self.l3.x)])
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/0/0/x', id(self.l1.x)),
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/0/0/x', id(self.l1.x)),
                           ('/0/0/y', id(self.l1.y)),
                           ('/0/1/x', id(self.l2.x)),
-                          ('/1/x', id(self.l3.x))})
+                          ('/1/x', id(self.l3.x))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.c2.namedparams(include_uninit=False))
-        self.assertEqual({(name, id(p)) for name, p in namedparams},
-                         {('/0/0/x', id(self.l1.x)),
+        self.assertEqual([(name, id(p)) for name, p in namedparams],
+                         [('/0/0/x', id(self.l1.x)),
                           ('/0/1/x', id(self.l2.x)),
-                          ('/1/x', id(self.l3.x))})
+                          ('/1/x', id(self.l3.x))])
 
     def test_links(self):
         links = list(self.c2.links())
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3,
-                                          self.c1, self.c2]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c2,
+                                          self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_links_skipself(self):
         links = list(self.c2.links(skipself=True))
-        self.assertEqual({id(l) for l in links},
-                         {id(l) for l in [self.l1, self.l2, self.l3, self.c1]})
+        self.assertEqual([id(l) for l in links],
+                         [id(l) for l in [self.c1, self.l1, self.l2,
+                                          self.l3]])
 
     def test_namedlinks(self):
         namedlinks = list(self.c2.namedlinks())
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/', id(self.c2)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/', id(self.c2)),
                           ('/0', id(self.c1)),
                           ('/0/0', id(self.l1)),
                           ('/0/1', id(self.l2)),
-                          ('/1', id(self.l3))})
+                          ('/1', id(self.l3))])
 
     def test_namedlinks_skipself(self):
         namedlinks = list(self.c2.namedlinks(skipself=True))
-        self.assertEqual({(name, id(l)) for name, l in namedlinks},
-                         {('/0', id(self.c1)),
+        self.assertEqual([(name, id(l)) for name, l in namedlinks],
+                         [('/0', id(self.c1)),
                           ('/0/0', id(self.l1)),
                           ('/0/1', id(self.l2)),
-                          ('/1', id(self.l3))})
+                          ('/1', id(self.l3))])
 
     def test_children(self):
         self.assertEqual(tuple(id(c) for c in self.c2.children()),
@@ -1494,10 +1567,15 @@ class TestChainList(unittest.TestCase):
     def test_count_params(self):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
+            assert self.c1.count_params() == 8
+        assert len(w) == 1
+        assert w[0].category is UserWarning
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             self.c2.count_params()
         assert len(w) == 1
         assert w[0].category is UserWarning
-        assert self.c1.count_params() == 8
 
         self.c2[0][0].y.initialize((2, 3))
         with warnings.catch_warnings(record=True) as w:
@@ -1513,7 +1591,7 @@ class TestChainListRepeat(unittest.TestCase):
             def __init__(self):
                 super(ChainListForTest, self).__init__(chainer.Link())
 
-            def __call__(self):
+            def forward(self):
                 pass
 
         self.chainlist = ChainListForTest()
@@ -1749,6 +1827,45 @@ class TestIntel64(unittest.TestCase):
             self.link.register_persistent('no_ideep')
         self.link.to_intel64()
         assert isinstance(self.link.no_ideep, numpy.ndarray)
+
+
+class TestCallMethod(unittest.TestCase):
+
+    def setUp(self):
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+
+        self.model = Model()
+
+    def test_has_forward_no_call(self):
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # model.forward is called
+        self.model.forward.assert_called_once()
+
+    def test_has_call_and_forward(self):
+        self.model.__call__ = mock.MagicMock()
+        self.model.forward = mock.MagicMock()
+        self.model(0)  # Link.__call__ is called
+        self.model.forward.assert_called_with(0)
+        self.model.__call__.assert_not_called()
+
+    def test_has_call_no_forward(self):
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+                self.mock = mock.MagicMock()
+
+            def __call__(self, x):
+                self.mock(x)
+
+        model = Model()
+        model(0)  # model.__call__ is called
+        model.mock.assert_called_with(0)
+
+    def test_no_call_no_forward(self):
+        with self.assertRaises(AttributeError):
+            self.model(0)
 
 
 testing.run_module(__name__, __file__)

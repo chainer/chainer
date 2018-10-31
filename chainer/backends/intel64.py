@@ -10,9 +10,10 @@ _error = None
 try:
     import ideep4py as ideep  # NOQA
     from ideep4py import mdarray  # NOQA
-    _ideep_version = 0
+    _ideep_version = 2 if hasattr(ideep, '__version__') else 1
 except ImportError as e:
     _error = e
+    _ideep_version = None
 
     class mdarray(object):
         pass  # for type testing
@@ -28,7 +29,12 @@ _SHOULD_USE_IDEEP = {
 
 
 def is_ideep_available():
-    return _ideep_version is not None
+    """Returns if iDeep is available.
+
+    Returns:
+        bool: ``True`` if the supported version of iDeep is installed.
+    """
+    return _ideep_version is not None and _ideep_version == 2
 
 
 def check_ideep_available():
@@ -47,6 +53,10 @@ def check_ideep_available():
         raise RuntimeError(
             'iDeep is not available.\n'
             'Reason: {}: {}'.format(type(_error).__name__, msg))
+    elif _ideep_version != 2:
+        raise RuntimeError(
+            'iDeep is not available.\n'
+            'Reason: Unsupported iDeep version ({})'.format(_ideep_version))
 
 
 def should_use_ideep(level):
@@ -64,7 +74,7 @@ def should_use_ideep(level):
         bool: ``True`` if the caller should use iDeep.
 
     """
-    if _ideep_version is None:
+    if not is_ideep_available():
         return False
 
     # TODO(niboshi):
@@ -87,28 +97,38 @@ def should_use_ideep(level):
 
 
 def inputs_all_ready(inputs, supported_ndim=(2, 4)):
-    """Checks if input arrays are supported for ideep optimization.
+    """Checks if input arrays are supported for an iDeep primitive.
 
+    Before calling an iDeep primitive (e.g., ``ideep4py.linear.Forward``), you
+    need to make sure that all input arrays are ready for the primitive by
+    calling this function.
     Information to be checked includes array types, dimesions and data types.
     The function checks ``inputs`` info and ``supported_ndim``.
 
+    Inputs to be tested can be any of ``Variable``, ``numpy.ndarray`` or
+    ``ideep4py.mdarray``. However, all inputs to iDeep primitives must be
+    ``ideep4py.mdarray``. Callers of iDeep primitives are responsible of
+    converting all inputs to ``ideep4py.mdarray``.
+
     Args:
-        inputs (sequence of arrays or variables``):
+        inputs (sequence of arrays or variables):
             Inputs to be checked.
         supported_ndim (tuple of ints):
-            Supported ndim values.
-            iDeep supports array dimension in either 2 or 4 only.
+            Supported ndim values for the iDeep primitive.
 
     Returns:
         bool: ``True`` if all conditions meet.
 
     """
-    if _ideep_version is None:
+
+    def _is_supported_array_type(a):
+        return isinstance(a, ideep.mdarray) or ideep.check_type([a])
+
+    if not is_ideep_available():
         return False
 
     inputs = [x.data if isinstance(x, chainer.variable.Variable)
               else x for x in inputs]
 
     return (ideep.check_ndim(inputs, supported_ndim)
-            and (all([isinstance(a, ideep.mdarray) for a in inputs])
-                 or ideep.check_type(inputs)))
+            and all([_is_supported_array_type(a) for a in inputs]))

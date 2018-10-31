@@ -1,6 +1,6 @@
 from __future__ import division
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function
 from chainer.utils import type_check
 
@@ -10,7 +10,7 @@ class BinaryAccuracy(function.Function):
     ignore_label = -1
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check._argname(in_types, ('x', 't'))
         x_type, t_type = in_types
 
         type_check.expect(
@@ -20,7 +20,7 @@ class BinaryAccuracy(function.Function):
         )
 
     def forward(self, inputs):
-        xp = cuda.get_array_module(*inputs)
+        xp = backend.get_array_module(*inputs)
         y, t = inputs
         # flatten
         y = y.ravel()
@@ -62,17 +62,17 @@ def binary_accuracy(y, t):
         ...               [3.0, -5.0]]) # prediction labels are [1, 0]
         >>> t = np.array([[0, 1],
         ...              [1, 0]], np.int32)
-        >>> F.binary_accuracy(y, t).data \
+        >>> F.binary_accuracy(y, t).array \
 # 100% accuracy because all samples are correct.
         array(1.)
         >>> t = np.array([[0, 0],
         ...              [1, 1]], np.int32)
-        >>> F.binary_accuracy(y, t).data \
+        >>> F.binary_accuracy(y, t).array \
 # 50% accuracy because y[0][0] and y[1][0] are correct.
         array(0.5)
         >>> t = np.array([[0, -1],
         ...              [1, -1]], np.int32)
-        >>> F.binary_accuracy(y, t).data \
+        >>> F.binary_accuracy(y, t).array \
 # 100% accuracy because of ignoring y[0][1] and y[1][1].
         array(1.)
     """

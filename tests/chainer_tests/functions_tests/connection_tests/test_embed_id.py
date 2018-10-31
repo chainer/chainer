@@ -72,12 +72,11 @@ class TestEmbedID(unittest.TestCase):
 
     def check_double_backward(self, x_data, W_data, gy_data, ggW_data):
         def f(W):
-            y = chainer.functions.embed_id(
+            return chainer.functions.embed_id(
                 x_data, W, self.ignore_label)
-            return y * y
 
         gradient_check.check_double_backward(
-            f,  W_data, gy_data, ggW_data,
+            f, W_data, gy_data, ggW_data,
             **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):

@@ -2,6 +2,7 @@ import numpy
 import six
 
 from chainer.backends import cuda
+from chainer.backends import intel64
 from chainer import serializer
 
 
@@ -149,8 +150,19 @@ class NpzDeserializer(serializer.Deserializer):
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):
             value.set(numpy.asarray(dataset, dtype=value.dtype))
+        elif isinstance(value, intel64.mdarray):
+            intel64.ideep.basic_copyto(value, numpy.asarray(dataset))
         else:
-            value = type(value)(numpy.asarray(dataset))
+            value_type = type(value)
+            dataset_arr = numpy.asarray(dataset)
+            if (issubclass(dataset_arr.dtype.type, numpy.number)
+                    and not numpy.can_cast(
+                        dataset_arr.dtype, value_type, casting='safe')):
+                raise TypeError(
+                    'Cannot safely deserialize from numpy array with dtype={} '
+                    'into a variable of type {}.'.format(
+                        dataset.dtype, type(value)))
+            value = value_type(dataset_arr)
         return value
 
 

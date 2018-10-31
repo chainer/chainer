@@ -51,8 +51,12 @@ class Convolution2D(link.Link):
         dilate (int or pair of ints):
             Dilation factor of filter applications.
             ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
-        groups (int): The number of groups to use grouped convolution. The
-            default is one, where grouped convolution is not used.
+        groups (:class:`int`): Number of groups of channels. If the number
+            is greater than 1, input tensor :math:`W` is divided into some
+            blocks by this value channel-wise. For each tensor blocks,
+            convolution operation will be executed independently. Input channel
+            size ``in_channels`` and output channel size ``out_channels`` must
+            be exactly divisible by this value.
 
     .. seealso::
        See :func:`chainer.functions.convolution_2d` for the definition of
@@ -111,13 +115,11 @@ class Convolution2D(link.Link):
                  nobias=False, initialW=None, initial_bias=None, **kwargs):
         super(Convolution2D, self).__init__()
 
-        argument.check_unexpected_kwargs(
-            kwargs, deterministic="deterministic argument is not "
-            "supported anymore. "
+        dilate, groups = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1),
+            deterministic="deterministic argument is not supported anymore. "
             "Use chainer.using_config('cudnn_deterministic', value) "
             "context where value is either `True` or `False`.")
-        dilate, groups = argument.parse_kwargs(kwargs,
-                                               ('dilate', 1), ('groups', 1))
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
@@ -147,14 +149,14 @@ class Convolution2D(link.Link):
         kh, kw = _pair(self.ksize)
         if self.out_channels % self.groups != 0:
             raise ValueError('the number of output channels must be'
-                             'divisible by the number of groups')
+                             ' divisible by the number of groups')
         if in_channels % self.groups != 0:
             raise ValueError('the number of input channels must be'
-                             'divisible by the number of groups')
+                             ' divisible by the number of groups')
         W_shape = (self.out_channels, int(in_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Applies the convolution layer.
 
         Args:

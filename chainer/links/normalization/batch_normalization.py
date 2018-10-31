@@ -1,5 +1,6 @@
 import numpy
 
+import chainer
 from chainer.backends import cuda
 from chainer import configuration
 from chainer import functions
@@ -20,21 +21,26 @@ class BatchNormalization(link.Link):
 
     In training mode, it normalizes the input by *batch statistics*. It also
     maintains approximated population statistics by moving averages, which can
-    be used for instant evaluation in testing mode.
+    be used for instant evaluation in testing mode. Training mode is enabled
+    when ``chainer.config.train`` is set to ``True`` and :meth:`__call__`
+    is invoked with ``finetune=False`` (the default is False).
 
     In fine-tuning mode, it accumulates the input to compute *population
     statistics*. In order to correctly compute the population statistics, a
     user must use this mode to feed mini-batches running through whole training
-    dataset.
+    dataset. Finetuning mode is enabled when ``chainer.config.train`` is set to
+    ``True`` and :meth:`__call__` is invoked with ``finetune=True``.
 
     In testing mode, it uses pre-computed population statistics to normalize
     the input variable. The population statistics is approximated if it is
     computed by training mode, or accurate if it is correctly computed by
-    fine-tuning mode.
+    fine-tuning mode. Testing mode is enabled when ``chainer.config.train``
+    is set to ``False``.
 
     Args:
-        size (int or tuple of ints): Size (or shape) of channel
-            dimensions.
+        size (int, tuple of ints, or None): Size (or shape) of channel
+            dimensions.  If ``None``, the size will be determined from
+            dimension(s) of the input batch during the first forward pass.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability.
         dtype (numpy.dtype): Type to use in computing.
@@ -51,6 +57,22 @@ class BatchNormalization(link.Link):
             option, numbers in the tuple must be being sorted in ascending
             order. For example, (0, 2) is OK, but (2, 0) is not.
 
+        initial_gamma: Initializer of the scaling parameter. The default value
+            is ``1``.
+        initial_beta: Initializer of the shifting parameter. The default value
+            is ``0``.
+        initial_avg_mean: Initializer of the moving average of population mean.
+            The default value is ``0``.
+        initial_avg_var: Initializer of the moving average of population
+            variance. The default value is ``1``.
+
+    .. note::
+
+        From v5.0.0, the initial value of the population variance is changed to
+        1. It does not change the behavior of training, but the resulting model
+        may have a slightly different behavior on inference. To emulate the
+        old behavior, pass ``initial_avg_var=0`` for training.
+
     See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
           Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
@@ -65,41 +87,160 @@ class BatchNormalization(link.Link):
         avg_var (numpy.ndarray or cupy.ndarray): Population variance.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
-        ~BatchNormalization.eps (float): Epsilon value for numerical stability.
-            This value is added to the batch variances.
+        eps (float): Epsilon value for numerical stability. This value is added
+            to the batch variances.
+
+    .. admonition:: Example
+
+        >>> x = np.arange(12).reshape(4, 3).astype(np.float32) ** 2
+        >>> x
+        array([[  0.,   1.,   4.],
+               [  9.,  16.,  25.],
+               [ 36.,  49.,  64.],
+               [ 81., 100., 121.]], dtype=float32)
+        >>> bn = chainer.links.BatchNormalization(3)
+        >>> bn(x)
+        variable([[-1.        , -1.0664359 , -1.1117983 ],
+                  [-0.71428573, -0.6714596 , -0.6401263 ],
+                  [ 0.14285715,  0.19748813,  0.23583598],
+                  [ 1.5714287 ,  1.5404074 ,  1.5160885 ]])
+        >>> (x - x.mean(axis=0)) / np.sqrt(x.var(axis=0) + 2e-5)
+        array([[-1.        , -1.0664359 , -1.1117983 ],
+               [-0.71428573, -0.6714596 , -0.6401263 ],
+               [ 0.14285715,  0.19748813,  0.235836  ],
+               [ 1.5714285 ,  1.5404074 ,  1.5160886 ]], dtype=float32)
+
+        There are several ways to make a BatchNormalization link.
+        Consider an input of batched 10 images of 32x32 with 3 channels.
+
+        >>> x = np.random.randn(10, 3, 32, 32).astype(np.float32)
+
+        1. Give the parameter size:
+
+            To normalize for each channel, give the number of channels
+            to ``size``.
+
+            >>> bn = chainer.links.BatchNormalization(3)
+            >>> bn.avg_mean.shape
+            (3,)
+            >>> bn.beta += 2.0
+            >>> bn.gamma *= 5.0
+            >>> list(sorted(bn.namedparams()))  # doctest: +ELLIPSIS
+            [('/beta', variable([2., ...])), ('/gamma', variable([5., ...]))]
+            >>> y = bn(x)
+            >>> y.shape
+            (10, 3, 32, 32)
+            >>> np.testing.assert_allclose(
+            ...     y.array.mean(axis=(0, 2, 3)), bn.beta.array, atol=1e-6)
+            >>> np.testing.assert_allclose(
+            ...     y.array.std(axis=(0, 2, 3)),
+            ...     bn.gamma.array, atol=1e-3)
+
+            To normalize for each channel for each pixel, ``size`` should
+            be the tuple of the dimensions.
+
+            >>> bn = chainer.links.BatchNormalization((3, 32, 32))
+            >>> bn.avg_mean.shape
+            (3, 32, 32)
+            >>> y = bn(x)
+            >>> y.shape
+            (10, 3, 32, 32)
+            >>> np.testing.assert_allclose(
+            ...     y.array.mean(axis=0), bn.beta.array, atol=1e-6)
+            >>> np.testing.assert_allclose(
+            ...     y.array.std(axis=0),
+            ...     bn.gamma.array, atol=1e-3)
+
+            By default, channel axis is (or starts from) the 1st axis of the
+            input shape.
+
+        2. Give the aggregate axes:
+
+            from Chainer v5
+
+            With ``axis`` option, similarly to NumPy, you may specify the
+            aggregate axes, which are treated as the "batch" axes for the
+            batch statistics.
+
+            You can omit ``size`` if ``axis`` is given. In this case, creation
+            of persistent values ``avg_mean``, ``avg_var`` and parameters
+            ``beta``, ``gamma`` is deferred until first forward propagation.
+
+            The examples in 1. corresponds to the following, respectively.
+
+            >>> bn = chainer.links.BatchNormalization(axis=(0, 2, 3))
+            >>> print(bn.avg_mean)
+            None
+            >>> y = bn(x)
+            >>> bn.avg_mean.shape
+            (3,)
+
+            >>> bn = chainer.links.BatchNormalization(axis=0)
+            >>> print(bn.avg_mean)
+            None
+            >>> y = bn(x)
+            >>> bn.avg_mean.shape
+            (3, 32, 32)
 
     """
 
-    def __init__(self, size, decay=0.9, eps=2e-5, dtype=numpy.float32,
+    gamma = None
+    beta = None
+    avg_mean = None
+    avg_var = None
+
+    def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=None,
                  use_gamma=True, use_beta=True,
-                 initial_gamma=None, initial_beta=None, axis=None):
+                 initial_gamma=None, initial_beta=None, axis=None,
+                 initial_avg_mean=None, initial_avg_var=None):
         super(BatchNormalization, self).__init__()
-        self.avg_mean = numpy.zeros(size, dtype=dtype)
-        self.register_persistent('avg_mean')
-        self.avg_var = numpy.zeros(size, dtype=dtype)
-        self.register_persistent('avg_var')
+
+        if size is None and axis is None:
+            raise RuntimeError('size or axis is required')
+        self._initial_avg_mean = initial_avg_mean
+        self._initial_avg_var = initial_avg_var
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
+        if isinstance(axis, int):
+            axis = (axis,)
         self.axis = axis
+        self._dtype = chainer.get_dtype(dtype)
 
         with self.init_scope():
             if use_gamma:
                 if initial_gamma is None:
                     initial_gamma = 1
-                initial_gamma = initializers._get_initializer(initial_gamma)
-                initial_gamma.dtype = dtype
-                self.gamma = variable.Parameter(initial_gamma, size)
+                gamma_initializer = \
+                    initializers._get_initializer(initial_gamma)
+                gamma_initializer.dtype = self._dtype
+                self.gamma = variable.Parameter(gamma_initializer)
             if use_beta:
                 if initial_beta is None:
                     initial_beta = 0
-                initial_beta = initializers._get_initializer(initial_beta)
-                initial_beta.dtype = dtype
-                self.beta = variable.Parameter(initial_beta, size)
+                beta_initializer = initializers._get_initializer(initial_beta)
+                beta_initializer.dtype = self._dtype
+                self.beta = variable.Parameter(beta_initializer)
 
-    def __call__(self, x, **kwargs):
-        """__call__(self, x, finetune=False)
+        if size is not None:
+            self._initialize_params(size)
+
+    def _initialize_params(self, shape):
+        dtype = self._dtype
+        self.avg_mean = _init_array(self._initial_avg_mean, 0, shape, dtype)
+        self._initial_avg_mean = None
+        self.register_persistent('avg_mean')
+        self.avg_var = _init_array(self._initial_avg_var, 1, shape, dtype)
+        self._initial_avg_var = None
+        self.register_persistent('avg_var')
+        if self.gamma is not None:
+            self.gamma.initialize(shape)
+        if self.beta is not None:
+            self.beta.initialize(shape)
+
+    def forward(self, x, **kwargs):
+        """forward(self, x, finetune=False)
 
         Invokes the forward propagation of BatchNormalization.
 
@@ -122,24 +263,29 @@ class BatchNormalization(link.Link):
                 statistics.
 
         """
-        argument.check_unexpected_kwargs(
-            kwargs, test='test argument is not supported anymore. '
-            'Use chainer.using_config')
-        finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
+        finetune, = argument.parse_kwargs(
+            kwargs, ('finetune', False),
+            test='test argument is not supported anymore. '
+                 'Use chainer.using_config')
 
-        if hasattr(self, 'gamma'):
-            gamma = self.gamma
-        else:
-            with cuda.get_device_from_id(self._device_id):
-                gamma = variable.Variable(self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype))
+        if self.avg_mean is None:
+            param_shape = tuple([
+                d
+                for i, d in enumerate(x.shape)
+                if i not in self.axis])
+            self._initialize_params(param_shape)
 
-        if hasattr(self, 'beta'):
-            beta = self.beta
-        else:
+        gamma = self.gamma
+        if gamma is None:
             with cuda.get_device_from_id(self._device_id):
-                beta = variable.Variable(self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype))
+                gamma = self.xp.ones(
+                    self.avg_mean.shape, dtype=x.dtype)
+
+        beta = self.beta
+        if beta is None:
+            with cuda.get_device_from_id(self._device_id):
+                beta = self.xp.zeros(
+                    self.avg_mean.shape, dtype=x.dtype)
 
         if configuration.config.train:
             if finetune:
@@ -153,8 +299,8 @@ class BatchNormalization(link.Link):
                 running_var=self.avg_var, decay=decay, axis=self.axis)
         else:
             # Use running average statistics or fine-tuned statistics.
-            mean = variable.Variable(self.avg_mean)
-            var = variable.Variable(self.avg_var)
+            mean = self.avg_mean
+            var = self.avg_var
             ret = functions.fixed_batch_normalization(
                 x, gamma, beta, mean, var, self.eps, axis=self.axis)
         return ret
@@ -168,3 +314,10 @@ class BatchNormalization(link.Link):
 
         """
         self.N = 0
+
+
+def _init_array(initializer, default_value, size, dtype):
+    if initializer is None:
+        initializer = default_value
+    initializer = initializers._get_initializer(initializer)
+    return initializers.generate_array(initializer, size, numpy, dtype=dtype)

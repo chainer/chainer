@@ -12,7 +12,7 @@ import argparse
 import chainer
 from chainer import configuration
 from chainer.dataset import convert
-from chainer.iterators import MultiprocessIterator
+from chainer.iterators import SerialIterator
 import chainer.links as L
 from chainer import serializers
 
@@ -64,21 +64,19 @@ def main():
     train_count = len(train)
     test_count = len(test)
 
-    with MultiprocessIterator(train, args.batchsize) as train_iter, \
-        MultiprocessIterator(test, args.batchsize,
-                             repeat=False, shuffle=False) as test_iter:
+    with SerialIterator(train, args.batchsize) as train_iter, \
+        SerialIterator(
+            test, args.batchsize, repeat=False, shuffle=False) as test_iter:
 
         sum_accuracy = 0
         sum_loss = 0
 
         while train_iter.epoch < args.epoch:
             batch = train_iter.next()
-            x_array, t_array = convert.concat_examples(batch, args.gpu)
-            x = chainer.Variable(x_array)
-            t = chainer.Variable(t_array)
+            x, t = convert.concat_examples(batch, args.gpu)
             optimizer.update(model, x, t)
-            sum_loss += float(model.loss.data) * len(t.data)
-            sum_accuracy += float(model.accuracy.data) * len(t.data)
+            sum_loss += float(model.loss.array) * len(t)
+            sum_accuracy += float(model.accuracy.array) * len(t)
 
             if train_iter.is_new_epoch:
                 print('epoch: {}'.format(train_iter.epoch))
@@ -92,14 +90,11 @@ def main():
                     # This is optional but can reduce computational overhead.
                     with chainer.using_config('enable_backprop', False):
                         for batch in test_iter:
-                            x, t = convert.concat_examples(batch,
-                                                           args.gpu)
-                            x = chainer.Variable(x)
-                            t = chainer.Variable(t)
+                            x, t = convert.concat_examples(batch, args.gpu)
                             loss = model(x, t)
-                            sum_loss += float(loss.data) * len(t.data)
-                            sum_accuracy += (float(model.accuracy.data) *
-                                             len(t.data))
+                            sum_loss += float(loss.array) * len(t)
+                            sum_accuracy += float(
+                                model.accuracy.array) * len(t)
 
                 test_iter.reset()
                 print('test mean  loss: {}, accuracy: {}'.format(

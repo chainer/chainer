@@ -8,7 +8,7 @@ class BestValueTrigger(object):
 
     Args:
         key (str): Key of value.
-        compare (function): Compare function which takes current best value and
+        compare (callable): Compare function which takes current best value and
             new value and returns whether new value is better than current
             best.
         trigger: Trigger that decides the comparison interval between current
@@ -59,6 +59,11 @@ class BestValueTrigger(object):
 
     def _init_summary(self):
         self._summary = reporter.DictSummary()
+
+    def serialize(self, serializer):
+        self._interval_trigger.serialize(serializer['interval_trigger'])
+        self._summary.serialize(serializer['summary'])
+        self._best_value = serializer('best_value', self._best_value)
 
 
 class MaxValueTrigger(BestValueTrigger):

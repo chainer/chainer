@@ -9,7 +9,6 @@ import chainer
 from chainer import function
 from chainer import function_node
 from chainer.links.caffe.protobuf3 import caffe_pb2 as caffe_pb
-from chainer import utils
 from chainer import variable
 
 
@@ -116,10 +115,10 @@ class _RetrieveAsCaffeModel(object):
             s += ' ' * (depth * indent)
             s += '}\n'
             return s
-        elif isinstance(layer_params, (int, float)):
-            return '{}: {}\n'.format(name, layer_params)
         elif isinstance(layer_params, bool):
             return '{}: {}\n'.format(name, 'true' if layer_params else 'false')
+        elif isinstance(layer_params, six.integer_types + (float,)):
+            return '{}: {}\n'.format(name, layer_params)
         elif isinstance(layer_params, str):
             return '{}: "{}"\n'.format(name, layer_params)
         elif isinstance(layer_params, list):
@@ -193,6 +192,7 @@ class _RetrieveAsCaffeModel(object):
                 params['type'] = 'Convolution'
             else:
                 params['type'] = 'Deconvolution'
+                convolution_param['num_output'] = n_in
             params['convolution_param'] = convolution_param
 
             if net is not None:
@@ -239,7 +239,7 @@ class _RetrieveAsCaffeModel(object):
 
         elif func.label == 'FixedBatchNormalization':
             _, gamma, beta, mean, var = func.inputs
-            batch_norm_param = {'use_global_stats': True}
+            batch_norm_param = {'use_global_stats': True, 'eps': func.eps}
             params['type'] = 'BatchNorm'
             params['bottom'] = params['bottom'][:1]
             params['batch_norm_param'] = batch_norm_param
@@ -288,6 +288,14 @@ class _RetrieveAsCaffeModel(object):
 
         elif func.label == 'ReLU':
             params['type'] = 'ReLU'
+
+        elif func.label == 'LeakyReLU':
+            relu_param = {'negative_slope': func.slope}
+            params['type'] = 'ReLU'
+            params['relu_param'] = relu_param
+            if net is not None:
+                for k, v in six.iteritems(relu_param):
+                    setattr(layer.relu_param, k, v)
 
         elif func.label == 'Concat':
             axis = func.axis
@@ -373,7 +381,7 @@ def export(model, args, directory=None,
     """(Experimental) Export a computational graph as Caffe format.
 
     Args:
-        model (~chainer.Chain): The model object you want to export in ONNX
+        model (~chainer.Chain): The model object you want to export in Caffe
             format. It should have :meth:`__call__` method because the second
             argment ``args`` is directly given to the model by the ``()``
             accessor.
@@ -399,6 +407,7 @@ def export(model, args, directory=None,
         - :func:`~chainer.functions.batch_normalization`
         - :func:`~chainer.functions.local_response_normalization`
         - :func:`~chainer.functions.relu`
+        - :func:`~chainer.functions.leaky_relu`
         - :func:`~chainer.functions.concat`
         - :func:`~chainer.functions.softmax`
         - :func:`~chainer.functions.reshape`
@@ -434,7 +443,6 @@ def export(model, args, directory=None,
 
     """
 
-    utils.experimental('chainer.exporters.caffe.export')
     assert isinstance(args, (tuple, list))
     if len(args) != 1:
         raise NotImplementedError()

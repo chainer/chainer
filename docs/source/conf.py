@@ -50,14 +50,17 @@ extlinks = {
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.autosummary',
-              'sphinx.ext.doctest',
-              'sphinx.ext.extlinks',
-              'sphinx.ext.intersphinx',
-              'sphinx.ext.mathjax',
-              'sphinx.ext.napoleon',
-              'sphinx.ext.linkcode']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.doctest',
+    'sphinx.ext.extlinks',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.linkcode',
+    '_napoleon_patch',
+]
 
 try:
     import sphinxcontrib.spelling  # noqa
@@ -338,6 +341,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'cupy': ('https://docs-cupy.chainer.org/en/latest/', None),
+    'chainercv': ('https://chainercv.readthedocs.io/en/latest/', None),
 }
 
 doctest_global_setup = '''

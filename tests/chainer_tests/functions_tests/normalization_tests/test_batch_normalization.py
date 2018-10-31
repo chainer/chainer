@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 import six
+import warnings
 
 import chainer
 from chainer.backends import cuda
@@ -13,7 +14,7 @@ from chainer.testing import backend
 
 
 def _to_fcontiguous(arrays):
-    xp = cuda.get_array_module(*arrays)
+    xp = chainer.backend.get_array_module(*arrays)
     return [xp.asfortranarray(a) for a in arrays]
 
 
@@ -57,6 +58,7 @@ def _batch_normalization(args):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+        'cudnn_fast_batch_normalization': [True, False],
     }))
 class TestBatchNormalization(unittest.TestCase):
 
@@ -183,9 +185,8 @@ class TestBatchNormalization(unittest.TestCase):
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(*inputs):
-            y = functions.batch_normalization(
+            return functions.batch_normalization(
                 *inputs, **self.bn_options)
-            return y * y,  # make nonlinear against beta
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -219,6 +220,7 @@ class TestBatchNormalization(unittest.TestCase):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+        'cudnn_fast_batch_normalization': [True, False],
     }))
 class TestFixedBatchNormalization(unittest.TestCase):
 
@@ -312,8 +314,7 @@ class TestFixedBatchNormalization(unittest.TestCase):
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
 
         def f(*inputs):
-            y = functions.fixed_batch_normalization(*inputs, eps=self.eps)
-            return y * y,  # make nonlinear against beta
+            return functions.fixed_batch_normalization(*inputs, eps=self.eps)
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -395,6 +396,63 @@ class TestBatchNormalizationCudnnEps(unittest.TestCase):
     def test_invalid(self):
         with self.assertRaises(RuntimeError):
             functions.batch_normalization(*self.args, eps=2e-6)
+
+
+@attr.cudnn
+class TestFixedBatchNormalizationCudnnEps(unittest.TestCase):
+    def setUp(self):
+        ndim = 0
+        param_shape = (3,)
+        dtype = numpy.float32
+        gamma = cuda.cupy.random.uniform(.5, 1, param_shape).astype(dtype)
+        beta = cuda.cupy.random.uniform(-1, 1, param_shape).astype(dtype)
+        mean = cuda.cupy.random.uniform(-1, 1, param_shape).astype(dtype)
+        var = cuda.cupy.random.uniform(-1, 1, param_shape).astype(dtype)
+        shape = (7,) + param_shape + (2,) * ndim
+        x = cuda.cupy.random.uniform(-1, 1, shape).astype(dtype)
+        self.args = [x, gamma, beta, mean, var]
+
+    def test_valid(self):
+        functions.fixed_batch_normalization(*self.args, eps=1e-5)
+
+    def test_invalid(self):
+        with self.assertRaises(RuntimeError):
+            functions.fixed_batch_normalization(*self.args, eps=2e-6)
+
+
+class TestBatchNormalizationWarning(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def create_batch(self, param_shape, x_shape):
+        dtype = numpy.float32
+        gamma = numpy.random.uniform(.5, 1, param_shape).astype(dtype)
+        beta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
+        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+        args = [x, gamma, beta]
+        return args
+
+    def test_invalid_batch(self):
+        args = self.create_batch((3,), (1, 3))
+        with testing.assert_warns(UserWarning):
+            functions.batch_normalization(*args)
+
+    def test_invalid_batch_no_batch_axis(self):
+        args = self.create_batch((1, 3,), (1, 3, 1))
+        with testing.assert_warns(UserWarning):
+            functions.batch_normalization(*args, axis=2)
+
+    def test_valid_batch(self):
+        args = self.create_batch((3,), (1, 3, 2, 2))
+        with warnings.catch_warnings(record=True) as w:
+            functions.batch_normalization(*args)
+            assert len(w) == 0
+
+    def test_valid_batch_no_batch_axis(self):
+        args = self.create_batch((1, 3,), (1, 3, 2))
+        with warnings.catch_warnings(record=True) as w:
+            functions.batch_normalization(*args, axis=2)
+            assert len(w) == 0
 
 
 testing.run_module(__name__, __file__)

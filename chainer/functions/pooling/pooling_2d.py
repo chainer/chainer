@@ -1,9 +1,8 @@
-import collections
-
 import numpy
 
 from chainer.backends import cuda
 from chainer import function_node
+from chainer.utils import collections_abc
 from chainer.utils import conv
 from chainer.utils import type_check
 
@@ -13,7 +12,7 @@ if cuda.cudnn_enabled:
 
 
 def _pair(x):
-    if isinstance(x, collections.Iterable):
+    if isinstance(x, collections_abc.Iterable):
         return x
     return x, x
 

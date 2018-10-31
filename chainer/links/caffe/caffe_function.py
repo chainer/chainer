@@ -1,4 +1,3 @@
-import collections
 import warnings
 
 import numpy
@@ -10,6 +9,7 @@ from chainer import initializer
 from chainer import link
 from chainer.links.caffe.protobuf3 import caffe_pb2 as caffe_pb
 from chainer.links.connection import convolution_2d
+from chainer.links.connection import deconvolution_2d
 from chainer.links.connection import linear
 from chainer.links.connection import scale
 from chainer.links.normalization import batch_normalization
@@ -173,8 +173,8 @@ class CaffeFunction(link.Chain):
                         'Skip the layer "%s", since CaffeFunction does not'
                         'support it' % layer.name)
 
-    def __call__(self, inputs, outputs, disable=(), **kwargs):
-        """__call__(self, inputs, outputs, disable=())
+    def forward(self, inputs, outputs, disable=(), **kwargs):
+        """forward(self, inputs, outputs, disable=())
 
         Executes a sub-network of the network.
 
@@ -203,12 +203,14 @@ class CaffeFunction(link.Chain):
             corresponding to elements of the  `outputs` argument.
 
         """
-        argument.check_unexpected_kwargs(
-            kwargs, train='train argument is not supported anymore. '
-            'Use chainer.using_config')
-        argument.assert_kwargs_empty(kwargs)
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
+            argument.assert_kwargs_empty(kwargs)
 
         variables = dict(inputs)
+        disable = set(disable)
         for func_name, bottom, top in self.layers:
             if (func_name in disable or
                 func_name not in self.forwards or
@@ -218,7 +220,7 @@ class CaffeFunction(link.Chain):
             func = self.forwards[func_name]
             input_vars = tuple(variables[blob] for blob in bottom)
             output_vars = func(*input_vars)
-            if not isinstance(output_vars, collections.Iterable):
+            if not isinstance(output_vars, (tuple, list)):
                 output_vars = output_vars,
             for var, name in zip(output_vars, top):
                 variables[name] = var
@@ -258,6 +260,30 @@ class CaffeFunction(link.Chain):
         n_out = num
 
         func = convolution_2d.Convolution2D(
+            n_in, n_out, ksize, stride, pad, nobias=not bias_term,
+            initialW=_ConvolutionBlob(blobs[0], param.group),
+            initial_bias=_Blob(blobs[1]) if bias_term else None)
+
+        with self.init_scope():
+            setattr(self, layer.name, func)
+        self.forwards[layer.name] = _CallChildLink(self, layer.name)
+        self._add_layer(layer)
+
+    @_layer('Deconvolution', 'DECONVOLUTION')
+    def _setup_deconvolution(self, layer):
+        blobs = layer.blobs
+        param = layer.convolution_param
+        ksize = _get_ksize(param)
+        stride = _get_stride(param)
+        pad = _get_pad(param)
+        num = _get_num(blobs[0])
+        channels = _get_channels(blobs[0])
+        bias_term = param.bias_term
+
+        n_in = num
+        n_out = channels * param.group
+
+        func = deconvolution_2d.Deconvolution2D(
             n_in, n_out, ksize, stride, pad, nobias=not bias_term,
             initialW=_ConvolutionBlob(blobs[0], param.group),
             initial_bias=_Blob(blobs[1]) if bias_term else None)
@@ -347,6 +373,15 @@ class CaffeFunction(link.Chain):
             fw = _SingleArgumentFunction(functions.leaky_relu, slope=slope)
         else:
             fw = functions.relu
+
+        self.forwards[layer.name] = fw
+        self._add_layer(layer)
+
+    @_layer('Reshape', None)
+    def _setup_reshape(self, layer):
+        shape = layer.reshape_param.shape.dim
+
+        fw = _SingleArgumentFunction(functions.reshape, shape=shape)
 
         self.forwards[layer.name] = fw
         self._add_layer(layer)
@@ -511,7 +546,7 @@ def _get_stride(param):
 
 
 def _get_pad(param):
-    if param.pad_h > 0:
+    if param.pad_h > 0 or param.pad_w > 0:
         return param.pad_h, param.pad_w
     elif type(param.pad) == int:
         return param.pad
@@ -564,6 +599,7 @@ def _get_width(blob):
 
 
 # Internal class
+# __call__ must return Variable or tuple
 
 class _SingleArgumentFunction(object):
 

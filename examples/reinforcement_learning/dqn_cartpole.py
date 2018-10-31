@@ -29,7 +29,7 @@ class QFunction(chainer.Chain):
             self.l1 = L.Linear(n_units, n_units)
             self.l2 = L.Linear(n_units, n_actions)
 
-    def __call__(self, x):
+    def forward(self, x):
         """Compute Q-values of actions for given observations."""
         h = F.relu(self.l0(x))
         h = F.relu(self.l1(h))
@@ -40,7 +40,7 @@ def get_greedy_action(Q, obs):
     """Get a greedy action wrt a given Q-function."""
     obs = Q.xp.asarray(obs[None], dtype=np.float32)
     with chainer.no_backprop_mode():
-        q = Q(obs).data[0]
+        q = Q(obs).array[0]
     return int(q.argmax())
 
 

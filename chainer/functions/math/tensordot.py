@@ -1,11 +1,10 @@
-import collections
-
 import numpy
 import six
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer import utils
+from chainer.utils import collections_abc
 from chainer.utils import type_check
 
 
@@ -22,7 +21,7 @@ def _tensordot(a, b, a_axes, b_axes, c_axes=None):
         if a.shape[a_axis] != b.shape[b_axis]:
             raise ValueError('shape mismatch')
 
-    xp = cuda.get_array_module(a)
+    xp = backend.get_array_module(a)
     y = xp.tensordot(a, b, axes=(tuple(a_axes[1]), tuple(b_axes[0])))
 
     if c_axes is not None:
@@ -62,7 +61,7 @@ class TensorDot(function_node.FunctionNode):
         self.c_axes = c_axes
         self.dtype = dtype
 
-        if isinstance(axes, collections.Sequence):
+        if isinstance(axes, collections_abc.Sequence):
             if len(axes) != 2:
                 raise ValueError('axes must be a pair of sequence of integers '
                                  'when it is a list or tuple.')
@@ -73,7 +72,7 @@ class TensorDot(function_node.FunctionNode):
                             'an integer')
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check._argname(in_types, ('a', 'b'))
         a_type, b_type = in_types
 
         type_check.expect(
@@ -89,7 +88,7 @@ class TensorDot(function_node.FunctionNode):
             a_axes = [[], []]  # 0:row axes, 1:col axes
             b_axes = [[], []]  # 0:row axes, 1:col axes
             axes = self.axes
-            if isinstance(axes, collections.Sequence):
+            if isinstance(axes, collections_abc.Sequence):
                 a_axes[1], b_axes[0] = axes
                 if numpy.isscalar(a_axes[1]):
                     a_axes[1] = a_axes[1],
