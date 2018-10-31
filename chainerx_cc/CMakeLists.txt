@@ -52,6 +52,9 @@ endif()
 if(${CHAINERX_BUILD_CUDA})
     find_package(CUDA QUIET)
     if(${CUDA_FOUND})
+        # CUDA_cublas_device_LIBRARY is required for CUDA > 9.2 with cmake < to 3.12.2.
+        # This is because cublas_device was deprecated in CUDA 9.2, but FindCUDA supported it in 3.12.2.
+        set(CUDA_cublas_device_LIBRARY ${CUDA_LIBRARIES})
         add_definitions(-DCHAINERX_ENABLE_CUDA=1)
         find_package(CuDNN 7 REQUIRED)
         include_directories(${CUDNN_INCLUDE_DIRS})
@@ -126,7 +129,7 @@ endif()
 get_third_party(gsl-lite)
 include_directories(${CMAKE_BINARY_DIR}/gsl-lite/include)
 # ref. https://github.com/martinmoene/gsl-lite#api-macro
-# As default, functions (methods) are decorated with __host__ __device__ for the CUDA platform. 
+# As default, functions (methods) are decorated with __host__ __device__ for the CUDA platform.
 # We want to stop it because we get many warnings with nvcc.
 add_definitions(-Dgsl_api=)
 if(${CUDA_FOUND})
