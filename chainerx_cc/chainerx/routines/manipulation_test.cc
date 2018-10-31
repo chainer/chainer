@@ -758,16 +758,17 @@ TEST_P(ManipulationTest, SplitIndicesDoubleBackward) {
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {
-                std::vector<Array> ys = Split(xs[0], 2, 0);
+                std::vector<Array> ys = Split(xs[0], {1, 3}, 1);
                 std::vector<Array> ys_non_linear;  // to make them nonlinear
                 std::transform(ys.begin(), ys.end(), std::back_inserter(ys_non_linear), [](const Array& y) { return y * y; });
                 return ys_non_linear;
             },
             {(*testing::BuildArray({2, 4}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
-            {(*testing::BuildArray({1, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad(),
-             (*testing::BuildArray({1, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
+            {(*testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad(),
+             (*testing::BuildArray({2, 2}).WithLinearData<T>(-0.1, 0.1)).RequireGrad(),
+             (*testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 4}).WithLinearData<T>()},
-            {Full({2, 4}, 1e-1), Full({1, 4}, 1e-1), Full({1, 4}, 1e-1)});
+            {Full({2, 4}, 1e-1), Full({2, 1}, 1e-1), Full({2, 2}, 1e-1), Full({2, 1}, 1e-1)});
 }
 
 INSTANTIATE_TEST_CASE_P(
