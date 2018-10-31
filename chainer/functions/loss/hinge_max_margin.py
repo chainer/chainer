@@ -1,11 +1,12 @@
 import numpy
 
+from chainer import functions as F
 from chainer.backends import cuda
-from chainer import function as F
+from chainer.function_node import FunctionNode
 from chainer.utils import type_check
 
 
-class HingeMaxMargin(F.Function):
+class HingeMaxMargin(FunctionNode):
 
     """Hinge max margin loss."""
 
@@ -20,8 +21,8 @@ class HingeMaxMargin(F.Function):
             self.reduce = reduce
         else:
             raise ValueError(
-                "only 'mean' and 'along_second_axis' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
+                "only 'mean' and 'along_second_axis' are valid for 'reduce',"
+                " but '%s' is " 'given' % reduce)
         self.mask = None
         self.margin = None
 
@@ -64,21 +65,20 @@ class HingeMaxMargin(F.Function):
 
         return loss,
 
-    def backward(self, inputs, grad_outputs):
-        xp = cuda.get_array_module(*inputs)
-        t, gloss = inputs[1], grad_outputs[0]
+    def backward(self, indexes, grad_outputs):
+        gloss, = grad_outputs
 
         if self.reduce == 'mean':
-            gloss /= len(t)
+            gloss /= self.margin.shape[0]
 
         if self.norm == 'L1':
-            gx = gloss * xp.sign(self.mask * xp.expand_dims(self.margin, 1))
+            gx = gloss * F.sign(self.mask * F.expand_dims(self.margin, 1))
         elif self.norm == 'L2':
-            gx = 2 * gloss * self.mask * xp.expand_dims(self.margin, 1)
+            gx = 2 * gloss * self.mask * F.expand_dims(self.margin, 1)
         elif self.norm == 'Huber':
             gx = gloss * self.mask * \
-                xp.expand_dims(xp.minimum(
-                    self.margin / 2, xp.sign(self.margin)), 1)
+                F.expand_dims(F.minimum(
+                    self.margin / 2, F.sign(self.margin)), 1)
         else:
             raise NotImplementedError()
 
@@ -89,7 +89,8 @@ def hinge_max_margin(x, t, norm='L2', reduce='mean'):
     """Computes the hinge loss for a one vs max classification task.
 
         .. math::
-            margin_{i} = ReLu \\left ( 1-x_{i,t_{i}}+max_{k,k\\neq t_{i}} \\left ( x_{i,k} \\right )\\right )
+            margin_{i} = ReLu \\left ( 1-x_{i,t_{i}}+max_{k,k\\neq t_{i}}
+             \\left ( x_{i,k} \\right )\\right )
 
         and
 
@@ -97,7 +98,8 @@ def hinge_max_margin(x, t, norm='L2', reduce='mean'):
             loss_{i} = \\left \\{ \\begin{array}{cc}
             margin_{i} & {\\rm if~norm} = {\\rm L1} \\\\
             margin_{i}^{2} & {\\rm if~norm} = {\\rm L2} \\\\
-            margin_{i}-1 & \\rm if~norm} = {\\rm Huber \\& margin_{i} \\geqslant 2} \\\\
+            margin_{i}-1 & \\rm if~norm} = {\\rm Huber \\& margin_{i}
+             \\geqslant 2} \\\\
             margin_{i}^{2} & {\\rm if~norm} = {\\rm Huber \\& margin_{i}<2}
 
             \\end{array} \\right.
@@ -106,11 +108,12 @@ def hinge_max_margin(x, t, norm='L2', reduce='mean'):
         ``'L2'`` and ``'Huber'`` are differentiable, ``'L1'`` is not.
 
         The output is a variable whose value depends on the value of
-        the option ``reduce``. If it is ``'along_second_axis'``, it holds the loss
-        values for each example. If it is ``'mean'``, it takes the mean of loss values.
+        the option ``reduce``. If it is ``'along_second_axis'``,
+         it holds the loss values for each example. If it is ``'mean'``,
+          it takes the mean of loss values.
 
-        See: `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`
-        and Structured support vector machine - Wikipedia
+        See: `Huber loss- Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`
+        and Structured support vector machine- Wikipedia
         <https://en.wikipedia.org/wiki/Structured_support_vector_machine>'
 
     Args:
@@ -123,8 +126,8 @@ def hinge_max_margin(x, t, norm='L2', reduce='mean'):
             The :math:`N`-dimensional label vector with values
             :math:`t_n \\in \\{0, 1, 2, \\dots, K-1\\}`.
             The shape of ``t`` should be (:math:`N`,).
-        norm (string): Specifies norm type. Either ``'L1'`` , ``'L2'`` , ``'Huber'`` are
-            acceptable.
+        norm (string): Specifies norm type. Either ``'L1'`` , ``'L2'`` ,
+         ``'Huber'`` are acceptable.
         reduce (str): Reduction option. Its value must be either
             ``'mean'`` [default] or ``'along_second_axis'``.
              Otherwise, :class:`ValueError` is raised.
@@ -132,8 +135,8 @@ def hinge_max_margin(x, t, norm='L2', reduce='mean'):
     Returns:
         ~chainer.Variable:
             A variable object holding the hinge max margin loss.
-            If ``reduce`` is ``'along_second_axis'``, the output variable holds array
-            whose shape is same :math:`N`.
+            If ``reduce`` is ``'along_second_axis'``, the output variable holds
+             an array whose shape is same :math:`N`.
             If it is ``'mean'``, the output variable holds a scalar value.
 
     .. admonition:: Example
@@ -154,28 +157,8 @@ def hinge_max_margin(x, t, norm='L2', reduce='mean'):
 
 
     """
-    return HingeMaxMargin(norm, reduce)(x, t)
+    return HingeMaxMargin(norm, reduce).apply((x, t))[0]
 
-
-"""
-import numpy as np
-import matplotlib.pyplot as plt
-u=np.linspace(-4,2)
-m = np.clip((1-u),0,np.inf)
-h = (u>=-1)*m**2/4 + (u<=-1)*(m-1)
-h = (m<2)*m**2/4 + (m>=2)*(m-1)
-
-plt.figure()
-plt.plot(u,h,'r*')
-plt.plot(u,m**2/4)
-plt.plot(u,m)
-
-
-plt.figure()
-plt.plot(u,(m>0)*np.maximum(-m/2,-1),'r*')
-plt.plot(u,(m>0)*-m/2)
-plt.plot(u,-(m>0))
-"""
 
 if __name__ == '__main__':
     help(hinge_max_margin)

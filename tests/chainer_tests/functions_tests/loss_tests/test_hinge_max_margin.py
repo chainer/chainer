@@ -2,17 +2,15 @@ import unittest
 
 import numpy
 
-import chainer
 from chainer.backends import cuda
-from chainer import gradient_check
-from chainer import testing
+from chainer import gradient_check, testing, Variable, no_backprop_mode
+from chainer.functions import hinge_max_margin
 from chainer.testing import attr
 
-from non_iid.hinge.hinge_max_margin import hinge_max_margin, HingeMaxMargin
 
 @testing.parameterize(*testing.product({
     'reduce': ['along_second_axis', 'mean'],
-    'norm': ['L1', 'L2','Huber'],
+    'norm': ['L1', 'L2', 'Huber'],
     'label_dtype': [numpy.int8, numpy.int16, numpy.int32, numpy.int64],
 }))
 class TestHingeMaxMargin(unittest.TestCase):
@@ -23,7 +21,7 @@ class TestHingeMaxMargin(unittest.TestCase):
         self.x = numpy.random.uniform(-1, 1, shape).astype(numpy.float32)
         self.t = numpy.random.randint(
             0, shape[1], shape[:1]).astype(self.label_dtype)
-        self.x[numpy.arange(shape[0]),self.t]+=1
+        self.x[numpy.arange(shape[0]), self.t] += 1
         if self.reduce == 'along_second_axis':
             self.gy = numpy.random.uniform(
                 -1, 1, self.x.shape).astype(numpy.float32)
@@ -31,18 +29,17 @@ class TestHingeMaxMargin(unittest.TestCase):
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
 
     def check_forward(self, x_data, t_data):
-        x_val = chainer.Variable(x_data)
-        t_val = chainer.Variable(t_data)
+        x_val = Variable(x_data)
+        t_val = Variable(t_data)
 
         loss = hinge_max_margin(x_val, t_val, self.norm, self.reduce)
         if self.reduce == 'mean':
             self.assertEqual(loss.data.shape, ())
         else:
-            new_shape = list(x_data.shape) #list
+            new_shape = list(x_data.shape)  # list
             del new_shape[1]
             self.assertEqual(list(loss.data.shape), new_shape)
         self.assertEqual(loss.data.dtype, numpy.float32)
-
 
     def test_forward_cpu(self):
         self.check_forward(self.x, self.t)
@@ -53,29 +50,34 @@ class TestHingeMaxMargin(unittest.TestCase):
 
     def check_backward(self, x_data, t_data):
         xp = cuda.get_array_module(x_data)
-        if self.norm == 'L1':#L2 and Huber are differnetiable
+        if self.norm == 'L1':  # L2 and Huber are differentiable
             no_sign_change = False
             delta = self.check_backward_options['atol'] * 5
             t_data_numpy = cuda.to_cpu(t_data)
             while not no_sign_change:
                 samples = len(x_data)
                 x_data_plus = cuda.to_cpu(x_data.copy())
-                x_data_plus[numpy.arange(samples),t_data_numpy] += delta
+                x_data_plus[numpy.arange(samples), t_data_numpy] += delta
                 x_data_minus = cuda.to_cpu(x_data.copy())
                 x_data_minus[numpy.arange(samples), t_data_numpy] -= delta
-                with chainer.no_backprop_mode():
-                    no_sign_change = numpy.allclose(numpy.sign(hinge_max_margin(x_data_plus, t_data_numpy, self.norm,
-                                                                                'along_second_axis').data),
-                                                    numpy.sign(hinge_max_margin(x_data_minus, t_data_numpy, self.norm,
-                                                                                'along_second_axis').data))
+                with no_backprop_mode():
+                    no_sign_change = numpy.allclose(numpy.sign(
+                        hinge_max_margin(x_data_plus, t_data_numpy, self.norm,
+                                         'along_second_axis').data),
+                        numpy.sign(hinge_max_margin(x_data_minus, t_data_numpy,
+                                   self.norm, 'along_second_axis').data))
                 if not no_sign_change:
-                    x_data = xp.random.uniform(-1, 1, x_data.shape).astype(x_data.dtype)
+                    x_data = xp.random.uniform(-1, 1, x_data.shape).astype(
+                        x_data.dtype)
                     x_data[numpy.arange(x_data.shape[0]), t_data] += 1
-
-        gradient_check.check_backward(
-            HingeMaxMargin(self.norm), (x_data, t_data), None,
-            dtype='d',
-            **self.check_backward_options)
+        else:
+            def f(x, t):
+                y = hinge_max_margin(x, t, norm=self.norm)
+                return y
+            gradient_check.check_backward(
+                f, (x_data, t_data), None,
+                dtype='d',
+                **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.t)
