@@ -5,6 +5,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
+from chainer.utils import argument
 from chainer.utils import type_check
 
 
@@ -16,6 +17,7 @@ def _sigmoid_grad(x, y, gy):
 class NegativeSamplingFunction(function_node.FunctionNode):
 
     ignore_label = -1
+    samples = None
 
     def __init__(self, sampler, sample_size, reduce='sum'):
         if reduce not in ('sum', 'no'):
@@ -29,14 +31,11 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         self.wx = None
 
     def _make_samples(self, t):
-        if hasattr(self, 'samples'):
-            return self.samples  # for testing
-
         size = int(t.shape[0])
         # first one is the positive, and others are sampled negatives
         samples = self.sampler((size, self.sample_size + 1))
         samples[:, 0] = t
-        self.samples = samples
+        return samples
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x', 't', 'W'))
@@ -57,9 +56,9 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         x, t, W = inputs
 
         self.ignore_mask = (t != self.ignore_label)
-        self._make_samples(t)
+        samples = self._make_samples(t)
 
-        w = W[self.samples]
+        w = W[samples]
         wx = numpy.einsum(
             'ij,ikj->ik', x[self.ignore_mask], w[self.ignore_mask])
         wx[:, 0] *= -1
@@ -69,6 +68,8 @@ class NegativeSamplingFunction(function_node.FunctionNode):
 
         if self.reduce == 'sum':
             loss = numpy.array(loss.sum(), 'f')
+
+        self.samples = samples
         return loss,
 
     def forward_gpu(self, inputs):
@@ -76,7 +77,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         x, t, W = inputs
 
         self.ignore_mask = (t != self.ignore_label)
-        self._make_samples(t)
+        samples = self._make_samples(t)
 
         n_in = x.shape[1]
         self.wx = cuda.elementwise(
@@ -93,7 +94,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
             wx = f;
             ''',
             'negative_sampling_wx'
-        )(W, x, self.ignore_mask[:, None], self.samples, n_in,
+        )(W, x, self.ignore_mask[:, None], samples, n_in,
           self.sample_size + 1)
 
         loss = cuda.elementwise(
@@ -120,6 +121,8 @@ class NegativeSamplingFunction(function_node.FunctionNode):
             loss = loss.sum()
         else:  # 'no':
             loss = loss.sum(axis=1)
+
+        self.samples = samples
         return loss,
 
     def backward(self, indexes, grad_outputs):
@@ -314,8 +317,10 @@ class NegativeSamplingFunctionGrad(function_node.FunctionNode):
         return ret
 
 
-def negative_sampling(x, t, W, sampler, sample_size, reduce='sum'):
-    """Negative sampling loss function.
+def negative_sampling(x, t, W, sampler, sample_size, reduce='sum', **kwargs):
+    """negative_sampling(x, t, W, sampler, sample_size, reduce='sum', *, return_samples=False)
+
+    Negative sampling loss function.
 
     In natural language processing, especially language modeling, the number of
     words in a vocabulary can be very large.
@@ -359,11 +364,20 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum'):
         sample_size (int): Number of samples.
         reduce (str): Reduction option. Its value must be either
             ``'sum'`` or ``'no'``. Otherwise, :class:`ValueError` is raised.
+        return_samples (bool):
+            If ``True``, the sample array is also returned.
+            The sample array is a
+            :math:`(\\text{batch_size}, \\text{sample_size} + 1)`-array of
+            integers whose first column is fixed to the ground truth labels
+            and the other columns are drawn from the ``sampler``.
 
     Returns:
-        ~chainer.Variable:
-            A variable holding the loss value(s) calculated by the
-            above equation.
+        ~chainer.Variable or tuple:
+            If ``return_samples`` is ``False`` (default), the output
+            variable holding the loss value(s) calculated by the
+            above equation is returned. Otherwise, a tuple of the output
+            variable and the sample array is returned.
+
             If ``reduce`` is ``'no'``, the output variable holds array
             whose shape is same as one of (hence both of) input variables.
             If it is ``'sum'``, the output variable holds a scalar value.
@@ -373,8 +387,15 @@ def negative_sampling(x, t, W, sampler, sample_size, reduce='sum'):
 
     .. seealso:: :class:`~chainer.links.NegativeSampling`.
 
-    """
-    return (
-        NegativeSamplingFunction(sampler, sample_size, reduce)
-        .apply((x, t, W))
-    )[0]
+    """  # NOQA
+    return_samples = False
+    if kwargs:
+        return_samples, = argument.parse_kwargs(
+            kwargs, ('return_samples', return_samples))
+
+    func = NegativeSamplingFunction(sampler, sample_size, reduce)
+    out = func.apply((x, t, W))[0]
+
+    if return_samples:
+        return out, func.samples
+    return out

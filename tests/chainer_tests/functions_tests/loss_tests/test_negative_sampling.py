@@ -63,11 +63,23 @@ class TestNegativeSamplingFunction(unittest.TestCase):
         x = chainer.Variable(x_data)
         t = chainer.Variable(t_data)
         w = chainer.Variable(w_data)
+
+        # return_samples=False
         y = functions.negative_sampling(
             x, t, w, sampler, self.sample_size, reduce=self.reduce)
+
+        # return_samples=True
+        y_, samples = functions.negative_sampling(
+            x, t, w, sampler, self.sample_size, reduce=self.reduce,
+            return_samples=True)
+
+        # Sampler is deterministic, so y and y_ should equal.
+        numpy.testing.assert_array_equal(
+            cuda.to_cpu(y.array), cuda.to_cpu(y_.array))
+
         self.assertEqual(y.shape, self.gy.shape)
 
-        samples = cuda.to_cpu(y.creator.samples)
+        samples = cuda.to_cpu(samples)
 
         loss = numpy.empty((len(self.x),), self.dtype)
         for i in six.moves.range(len(self.x)):
