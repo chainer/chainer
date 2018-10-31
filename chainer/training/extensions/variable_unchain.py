@@ -8,7 +8,9 @@ class unchain_variables(extension.Extension):
     """Trainer extension to unchain all comptational graphs.
 
     This extenstion unchains all comptational graphs after all extensions are
-    run to avoid any memory problem.
+    run to release memory and to avoid memory leak.
+    This extension can be used as a last resort when there is an extension that
+    use a variable graph and cannot release the graph in itself.
     It observes the previous ``chainer.config.keep_graph_on_report`` flag.
     The extension is triggered when the flag is turned on.
 
