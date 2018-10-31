@@ -50,12 +50,8 @@ TEST(CudaDeviceTest, Allocate) {
 
     cudaPointerAttributes attr = {};
     CheckCudaError(cudaPointerGetAttributes(&attr, ptr.get()));
-#if CUDART_VERSION < 10000
-    EXPECT_TRUE(attr.isManaged);
-#else
-    EXPECT_TRUE(attr.type == cudaMemoryTypeManaged);
-#endif
     EXPECT_EQ(device.index(), attr.device);
+    EXPECT_TRUE(IsPointerManagedMemory(ptr.get()));
 }
 
 TEST(CudaDeviceTest, AllocateZero) {
@@ -149,12 +145,8 @@ TEST(CudaDeviceTest, FromHostMemory) {
 
     cudaPointerAttributes attr = {};
     CheckCudaError(cudaPointerGetAttributes(&attr, dst.get()));
-#if CUDART_VERSION < 10000
-    EXPECT_TRUE(attr.isManaged);
-#else
-    EXPECT_TRUE(attr.type == cudaMemoryTypeManaged);
-#endif
     EXPECT_EQ(device.index(), attr.device);
+    EXPECT_TRUE(IsPointerManagedMemory(dst.get()));
 }
 
 TEST(CudaDeviceTest, DotNonContiguousOut) {

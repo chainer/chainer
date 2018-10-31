@@ -22,6 +22,8 @@ void Throw(cudaError_t error);
 
 bool IsPointerCudaMemory(const void* ptr);
 
+bool IsPointerManagedMemory(const void* ptr);
+
 // Occupancy
 #ifdef __CUDACC__
 

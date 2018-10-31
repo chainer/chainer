@@ -288,12 +288,8 @@ TEST_P(CudaBackendTransferTest, TransferDataFrom) {
     // Destination is ALWAYS CUDA device
     cudaPointerAttributes attr = {};
     CheckCudaError(cudaPointerGetAttributes(&attr, trans_data.get()));
-#if CUDART_VERSION < 10000
-    EXPECT_TRUE(attr.isManaged);
-#else
-    EXPECT_TRUE(attr.type == cudaMemoryTypeManaged);
-#endif
     EXPECT_EQ(device0.index(), attr.device);
+    EXPECT_TRUE(IsPointerManagedMemory(trans_data.get()));
 }
 
 TEST_P(CudaBackendTransferTest, TransferDataTo) {
@@ -315,12 +311,8 @@ TEST_P(CudaBackendTransferTest, TransferDataTo) {
         // Destination is CUDA device
         cudaPointerAttributes attr = {};
         CheckCudaError(cudaPointerGetAttributes(&attr, trans_data.get()));
-#if CUDART_VERSION < 10000
-        EXPECT_TRUE(attr.isManaged);
-#else
-        EXPECT_TRUE(attr.type == cudaMemoryTypeManaged);
-#endif
         EXPECT_EQ(device1.index(), attr.device);
+        EXPECT_TRUE(IsPointerManagedMemory(trans_data.get()));
     } else {
         // Destination is native device
         EXPECT_FALSE(IsPointerCudaMemory(trans_data.get()));

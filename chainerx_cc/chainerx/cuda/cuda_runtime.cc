@@ -42,5 +42,24 @@ bool IsPointerCudaMemory(const void* ptr) {
     CHAINERX_NEVER_REACH();
 }
 
+bool IsPointerManagedMemory(const void* ptr) {
+    cudaPointerAttributes attr = {};
+    cudaError_t status = cudaPointerGetAttributes(&attr, ptr);
+    switch (status) {
+        case cudaSuccess:
+#if CUDART_VERSION < 10000
+            return attr.isManaged;
+#else
+            return attr.type == cudaMemoryTypeManaged;
+#endif
+        case cudaErrorInvalidValue:
+            return false;
+        default:
+            CheckCudaError(status);
+            break;
+    }
+    CHAINERX_NEVER_REACH();
+}
+
 }  // namespace cuda
 }  // namespace chainerx
