@@ -7,7 +7,7 @@ import six
 class unchain_variables(extension.Extension):
     """Trainer extension to unchain all comptational graphs.
 
-    This extenstion unchain all comptational graphs after all extensions is
+    This extenstion unchains all comptational graphs after all extensions are
     run to avoid any memory problem.
     It observes the previous ``chainer.config.keep_graph_on_report`` flag.
     The extension is enable while the flag is turned on.
