@@ -481,6 +481,8 @@ void DefineSplitBackward(const Array& ary, const std::vector<Array>& out, int8_t
             std::vector<Array> output_grads;
             output_grads.reserve(bctx.output_count());
             for (size_t i = 0; i < bctx.output_count(); ++i) {
+                // TODO(hvy): bctx.output_grad(i) here will never return a nonstd::nullopt. However, this is expected to change, and when it
+                // does, we need to check for it here and create appropriate zero-filled arrays before pushing back.
                 output_grads.emplace_back(*bctx.output_grad(i));
             }
             bctx.input_grad() = Concatenate(output_grads, axis_norm);
