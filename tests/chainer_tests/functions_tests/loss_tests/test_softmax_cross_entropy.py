@@ -572,4 +572,106 @@ class TestForwardConsistency(unittest.TestCase):
             self.check_consistency(cuda.cupy)
 
 
+class BaseSoftTarget(object):
+
+    def setUp(self):
+        x_shape = (self.nb,) + self.shape
+        self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+        if self.reduce == 'mean':
+            self.gy = numpy.random.uniform(-1, 1, ()).astype(self.dtype)
+        else:
+            _shape = (self.x.shape[0],) + self.x.shape[2:]
+            self.gy = numpy.random.uniform(
+                -1, 1, _shape).astype(self.dtype)
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-2}
+            self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+        else:
+            self.check_forward_options = {}
+            self.check_backward_options = {}
+
+    def test_forward_cpu(self):
+        self.check_forward(numpy)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.cupy)
+
+    def check_backward(self, xp):
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+        gy = None
+        if self.reduce == 'no':
+            gy = xp.asarray(self.gy)
+
+        def f(x_, t_):
+            return functions.softmax_cross_entropy(
+                x_, t_, reduce=self.reduce)
+
+        gradient_check.check_backward(f, (x, t), gy, dtype=numpy.float64,
+                                      no_grads=(False, True),
+                                      **self.check_backward_options)
+
+    def test_backward_cpu(self):
+        self.check_backward(numpy)
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.cupy)
+
+
+@testing.parameterize(*(testing.product({
+    'nb': [1, 2, 4],
+    'shape': [(3,), (3, 2), (3, 2, 2)],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'reduce': ['mean', 'no'],
+})))
+class TestSoftTargetCompareToHard(BaseSoftTarget, unittest.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        _shape = (self.x.shape[0],) + self.x.shape[2:]
+        self.t_hard = numpy.random.randint(0, self.x.shape[1],
+                                           _shape).astype(numpy.int32)
+        t = numpy.zeros(numpy.prod(self.x.shape)).astype(self.dtype)
+        t = t.reshape(self.x.shape[1], -1)
+        t[[self.t_hard.ravel()], [range(t.shape[1])]] = 1.0
+        t = t.reshape((self.x.shape[1], self.x.shape[0],) + self.x.shape[2:])
+        self.t = t.swapaxes(0, 1)
+
+    def check_forward(self, xp):
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+        loss = functions.softmax_cross_entropy(x, t, reduce=self.reduce)
+        t_hard = xp.asarray(self.t_hard)
+        expect = functions.softmax_cross_entropy(x, t_hard, reduce=self.reduce)
+        testing.assert_allclose(loss.data, expect.data,
+                                **self.check_forward_options)
+
+
+@testing.parameterize(*(testing.product({
+    'nb': [1, 2, 4],
+    'shape': [(3,), (3, 2), (3, 2, 2)],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'reduce': ['mean', 'no'],
+})))
+class TestSoftTargetExpectNearZero(BaseSoftTarget, unittest.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.t = functions.softmax(self.x).array
+
+    def check_forward(self, xp):
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+        loss = functions.softmax_cross_entropy(x, t, reduce=self.reduce)
+        if self.reduce == 'mean':
+            expect = 0.
+        else:
+            shape = (x.shape[0],) + x.shape[2:]
+            expect = numpy.zeros(shape, dtype=self.dtype)
+        testing.assert_allclose(loss.data, expect,
+                                **self.check_forward_options)
+
+
 testing.run_module(__name__, __file__)

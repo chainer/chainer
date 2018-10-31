@@ -56,7 +56,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
     y = None
     _coeff = None
     soft_target = False
-    eps = 1e-9
+    eps = 1e-7
 
     def __init__(self, normalize=True, cache_score=True, class_weight=None,
                  ignore_label=-1, reduce='mean'):
@@ -92,6 +92,8 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
         x, t = inputs
+        if x.ndim == t.ndim and x.shape == t.shape:
+            self.soft_target = True
         if chainer.is_debug() and not self.soft_target:
             _check_input_values(x, t, self.ignore_label)
 
@@ -129,6 +131,8 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1))
         x, t = inputs
+        if x.ndim == t.ndim and x.shape == t.shape:
+            self.soft_target = True
         cupy = cuda.cupy
         if chainer.is_debug() and not self.soft_target:
             _check_input_values(x, t, self.ignore_label)
@@ -184,14 +188,14 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         return ret,
 
     def _soft_target_loss(self, xp, x, t, log_y):
-        _axis = tuple(six.moves.range(1, x.ndim))
-        kl_d = xp.sum(t * (xp.log(t + self.eps) - log_y), axis=_axis)
+        kl_d = xp.sum(t * (xp.log(t + self.eps) - log_y), axis=1)
         if self.reduce == 'mean':
-            self._coeff = 1.0 / len(x)
+            self._coeff = 1.0 / (numpy.prod(x.shape) / x.shape[1])
             kl_d = kl_d.sum(keepdims=True) * self._coeff
             return kl_d.reshape(()),
         else:
-            return kl_d.reshape((x.shape[0],)),
+            shape = (x.shape[0],) + x.shape[2:]
+            return kl_d.reshape(shape),
 
     def backward(self, input_indexes, grad_outputs):
         func_grad = _SoftmaxCrossEntropyGrad_NoDoubleBackprop(
