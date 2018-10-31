@@ -342,7 +342,8 @@ def test_concat(xp, shapes, axis):
     arrays = []
     for i, shape in enumerate(shapes):
         size = numpy.product(shape)
-        a = numpy.arange(i * 100, i * 100 + size).reshape(shape).astype('f')
+        a = numpy.arange(i * 100, i * 100 + size)
+        a = a.reshape(shape).astype('float32')
         arrays.append(xp.array(a))
     return xp.concatenate(arrays, axis)
 
@@ -379,7 +380,8 @@ def test_stack(xp, shapes, axis):
     arrays = []
     for i, shape in enumerate(shapes):
         size = numpy.product(shape)
-        a = numpy.arange(i * 100, i * 100 + size).reshape(shape).astype('f')
+        a = numpy.arange(i * 100, i * 100 + size)
+        a = a.reshape(shape).astype('float32')
         arrays.append(xp.array(a))
     if axis is None:
         return xp.stack(arrays)
