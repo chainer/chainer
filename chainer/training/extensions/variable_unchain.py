@@ -10,7 +10,7 @@ class unchain_variables(extension.Extension):
     This extenstion unchains all comptational graphs after all extensions are
     run to avoid any memory problem.
     It observes the previous ``chainer.config.keep_graph_on_report`` flag.
-    The extension is enable while the flag is turned on.
+    The extension is triggered when the flag is turned on.
 
     """
     priority = 0
