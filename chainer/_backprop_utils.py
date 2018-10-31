@@ -1,3 +1,6 @@
+import contextlib
+import traceback
+
 import six
 
 import chainer
@@ -99,11 +102,13 @@ def backprop_step(
             _pop_or_none(grad_inputs[func.inputs[i]])
             for i in target_input_indexes
         ])
-        gxs = func.backward_accumulate(
-            target_input_indexes, grad_outputs, grad_inputs_tuple)
+        with _reraise_forward_stack(func):
+            gxs = func.backward_accumulate(
+                target_input_indexes, grad_outputs, grad_inputs_tuple)
     else:  # otherwise, backward should be overridden
-        gxs = func.backward(
-            target_input_indexes, grad_outputs)
+        with _reraise_forward_stack(func):
+            gxs = func.backward(
+                target_input_indexes, grad_outputs)
 
         if is_debug:
             for gx in gxs:
@@ -174,3 +179,23 @@ def backprop_step(
     if not func.lazy_grad_sum:
         for gx in grad_inputs.values():
             _reduce(gx)
+
+
+@contextlib.contextmanager
+def _reraise_forward_stack(func):
+    if func.stack is None:
+        yield
+    else:
+        try:
+            yield
+        except Exception as e:
+            # Chainer raises RuntimeError for NaN values, and numpy raises
+            # FloatingPointError for invalid values.
+            if func.stack is not None and \
+                    (isinstance(e, RuntimeError) or
+                     isinstance(e, FloatingPointError)):
+                additional_message = \
+                    " in backward computation for:\n{}".format(
+                        "\n".join(traceback.format_list(func.stack[:-1])))
+                e.args = (e.args[0] + additional_message, ) + e.args[1:]
+            raise

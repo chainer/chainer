@@ -552,19 +552,7 @@ Use apply() method instead.\
         assert isinstance(grad_outputs, tuple)
         assert isinstance(grad_inputs, tuple)
 
-        try:
-            gxs = self.backward(target_input_indexes, grad_outputs)
-        except Exception as e:
-            # Chainer raises RuntimeError for NaN values, and numpy raises
-            # FloatingPointError for invalid values.
-            if self.stack is not None and \
-                    (isinstance(e, RuntimeError) or
-                     isinstance(e, FloatingPointError)):
-                additional_message = \
-                    " in backward computation for:\n{}".format(
-                        "\n".join(traceback.format_list(self.stack[:-1])))
-                e.args = (e.args[0] + additional_message, ) + e.args[1:]
-            raise
+        gxs = self.backward(target_input_indexes, grad_outputs)
 
         len_gxs = len(gxs)
         if len_gxs == len(self.inputs):
