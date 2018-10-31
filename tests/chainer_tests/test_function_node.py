@@ -80,11 +80,11 @@ class TestFunctionNode(unittest.TestCase):
         self.f.forward_cpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_gpu(self):
-        self._setup(cuda.cupy)
+        self._setup((cuda.cupy, 0))
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
-    def setup_chainerx(self, device='native:0'):
-        self._setup(device)
+    def setup_chainerx(self, device_name='native:0'):
+        self._setup(device_name)
         self.f.forward = mock.MagicMock(side_effect=lambda inputs: (
             utils.force_array(inputs[0] * inputs[1]),
             utils.force_array(inputs[0] + inputs[1])))
@@ -1133,10 +1133,8 @@ class TestFunctionNodeBackwardChainerx(unittest.TestCase):
     def test_backward(self):
         shape = (2, 3)
         dtype = numpy.float32
-        x1 = numpy.full(shape, 3, dtype)
-        x2 = numpy.full(shape, 5, dtype)
-        x1 = chainerx.array(x1)
-        x2 = chainerx.array(x2).require_grad()
+        x1 = chainerx.full(shape, 3, dtype)
+        x2 = chainerx.full(shape, 5, dtype).require_grad()
         gx2_expected = numpy.full(shape, 2, dtype)
 
         backward_call_args = []
@@ -1179,6 +1177,33 @@ class TestFunctionNodeBackwardChainerx(unittest.TestCase):
 
         with pytest.raises(chainerx.ChainerxError):
             x1.grad
+
+    @attr.gpu
+    def test_backward_default_device(self):
+        # Default device in backward should be determined by arrays,
+        # otherwise, creation routines in backward do not create new arrays
+        # on the proper device.
+
+        device = chainerx.get_device('cuda:0')
+        shape = (2, 3)
+        dtype = numpy.float32
+        x1 = chainerx.full(shape, 3, dtype, device=device)
+        x2 = chainerx.full(shape, 5, dtype, device=device).require_grad()
+
+        backward_call_new_array = []
+
+        def backward_call_callback(call_arg):
+            backward_call_new_array.append(chainerx.empty(shape, dtype))
+
+        with chainerx.device_scope('native:0'):
+            # forward
+            func = self.SimpleFunctionNode(backward_call_callback)
+            y1, y2 = func.apply((x1, x2))
+
+            # backward
+            y2.backward()
+
+        assert backward_call_new_array[0].device is device
 
 
 testing.run_module(__name__, __file__)
