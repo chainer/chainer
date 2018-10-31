@@ -12,4 +12,5 @@ from chainer.distributions.multivariate_normal import MultivariateNormal  # NOQA
 from chainer.distributions.normal import Normal  # NOQA
 from chainer.distributions.one_hot_categorical import OneHotCategorical  # NOQA
 from chainer.distributions.pareto import Pareto  # NOQA
+from chainer.distributions.poisson import Poisson  # NOQA
 from chainer.distributions.uniform import Uniform  # NOQA
