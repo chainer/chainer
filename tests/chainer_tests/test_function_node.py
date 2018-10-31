@@ -12,6 +12,7 @@ from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
+from chainer import utils
 from chainer.utils import type_check
 import chainerx
 import chainerx.testing
@@ -48,7 +49,7 @@ class TestFunctionNode(unittest.TestCase):
 
         f = chainer.FunctionNode()
         f.check_type_forward = mock.MagicMock()
-        f.forward_cpu = mock.MagicMock(return_value=(y1, y2))
+        f.forward_cpu = mock.MagicMock()
         f.forward_gpu = mock.MagicMock()
         f.backward = mock.MagicMock(return_value=(gx1, gx2))
         self.f = f
@@ -76,16 +77,17 @@ class TestFunctionNode(unittest.TestCase):
 
     def setup_cpu(self):
         self._setup(numpy)
+        self.f.forward_cpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_gpu(self):
-        self._setup(cuda.cupy)
+        self._setup((cuda.cupy, 0))
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
-        self.f.backward = mock.MagicMock(return_value=(self.gx1, self.gx2))
 
-    def setup_chainerx(self, device='native:0'):
-        self._setup(device)
-        self.f.forward = mock.MagicMock(return_value=(self.y1, self.y2))
-        self.f.backward = mock.MagicMock(return_value=(self.gx1, self.gx2))
+    def setup_chainerx(self, device_name='native:0'):
+        self._setup(device_name)
+        self.f.forward = mock.MagicMock(side_effect=lambda inputs: (
+            utils.force_array(inputs[0] * inputs[1]),
+            utils.force_array(inputs[0] + inputs[1])))
 
     def check_forward(self, gpu):
         y1, y2 = self.f.forward((self.x1, self.x2))
@@ -171,6 +173,12 @@ class TestFunctionNode(unittest.TestCase):
     @attr.gpu
     def test_apply_chainerx_gpu(self):
         self.setup_chainerx('cuda:0')
+        self.check_apply_chainerx()
+
+    @attr.chainerx
+    @attr.multi_gpu(2)
+    def test_apply_chainerx_multi_gpu(self):
+        self.setup_chainerx('cuda:1')
         self.check_apply_chainerx()
 
     def check_apply_all_ndarray(self):
@@ -289,14 +297,16 @@ class TestFunctionNode(unittest.TestCase):
     @attr.chainerx
     def test_apply_single_return_value_chainerx_cpu(self):
         self.setup_chainerx()
-        self.f.forward.return_value = (self.y1,)
+        self.f.forward.side_effect = lambda inputs: (
+            utils.force_array(inputs[0] * inputs[1]),)
         self.check_apply_single_return_value_chainerx()
 
     @attr.chainerx
     @attr.gpu
     def test_apply_single_return_value_chainerx_gpu(self):
         self.setup_chainerx('cuda:0')
-        self.f.forward.return_value = (self.y1,)
+        self.f.forward.side_effect = lambda inputs: (
+            utils.force_array(inputs[0] * inputs[1]),)
         self.check_apply_single_return_value_chainerx()
 
     def _get_f(self):

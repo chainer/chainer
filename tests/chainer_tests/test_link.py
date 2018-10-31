@@ -2036,20 +2036,18 @@ class TestToDevice(unittest.TestCase):
         if cuda.available:
             self.current_device_id = cuda.cupy.cuda.get_device_id()
 
-    def check_to_device(self, xp, device=None):
+    def check_to_device(self, device_spec, expected_ndarray_type):
         link = self.link
 
-        if device is None:
-            device = xp
-        link.to_device(device)
+        link.to_device(device_spec)
 
         # Initialized parameter
-        assert isinstance(link.y.data, xp.ndarray)
+        assert isinstance(link.y.data, expected_ndarray_type)
         _assert_variable_array_equal(link.y, self.y_array)
         # Uninitialized parameter
         assert link.v.data is None
         # Persistent ndarray
-        assert isinstance(link.pa, xp.ndarray)
+        assert isinstance(link.pa, expected_ndarray_type)
         _assert_arrays_equal(link.pa, self.pa_array)
         # Persistent scalar
         assert link.ps == self.ps_scalar
@@ -2057,19 +2055,19 @@ class TestToDevice(unittest.TestCase):
         return link
 
     def test_to_device_numpy(self):
-        link = self.check_to_device(numpy)
+        link = self.check_to_device(numpy, numpy.ndarray)
         assert link._xp is None
         assert link._device_id is None
 
     @attr.gpu
     def test_to_device_cupy(self):
-        link = self.check_to_device(cuda.cupy)
+        link = self.check_to_device((cuda.cupy, 0), cuda.ndarray)
         assert link._xp is cuda.cupy
         assert link._device_id == self.current_device_id
 
     @attr.chainerx
     def test_to_device_chainerx(self):
-        link = self.check_to_device(chainerx, device='native:0')
+        link = self.check_to_device('native:0', chainerx.ndarray)
         assert link._xp is chainerx
         assert link._device_id is None
 

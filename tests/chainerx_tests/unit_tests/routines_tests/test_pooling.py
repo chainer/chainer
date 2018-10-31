@@ -10,8 +10,6 @@ from chainerx_tests import array_utils
 def _create_max_pool_args(
         xp, device, x_shape, ksize, stride, pad, cover_all, float_dtype):
     x = array_utils.create_dummy_ndarray(xp, x_shape, float_dtype)
-    if device.backend.name == 'cuda':  # cover_all is not supported by CUDA.
-        cover_all = False
     ret_args = dict(x=x, ksize=ksize)
     if stride is not None:
         ret_args['stride'] = stride

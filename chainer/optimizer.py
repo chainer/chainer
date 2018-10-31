@@ -232,13 +232,13 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        with cuda.get_device_from_array(param.data) as dev:
-            if (chainerx.is_available()
-                    and isinstance(dev, chainerx.DeviceScope)):
-                self.update_core_chainerx(param)
-            elif int(dev) == -1:
-                self.update_core_cpu(param)
-            else:
+        xp = backend.get_array_module(param.data)
+        if xp is chainerx:
+            self.update_core_chainerx(param)
+        elif xp is numpy:
+            self.update_core_cpu(param)
+        else:
+            with param.data.device:
                 self.update_core_gpu(param)
 
     def update_core_cpu(self, param):
@@ -310,13 +310,12 @@ class UpdateRule(object):
         temp_param = variable.Variable(param._chainerx_fallback_array)
 
         if grad_array is not None:
-            temp_param.grad = to_backend(param.grad)
+            temp_param._set_grad_without_check(to_backend(grad_array))
 
         # Update
         update_core(temp_param)
 
         # Restore state arrays
-        assert param.grad is None or isinstance(param.grad, chainerx.ndarray)
         for state_name, arr in chainerx_state_arrays.items():
             self.state[state_name] = arr
 
@@ -383,6 +382,9 @@ class UpdateRule(object):
             for name, value in six.iteritems(state):
                 if not isinstance(value, chainer.get_array_types()):
                     continue
+                if (chainerx.is_available()
+                        and isinstance(device, chainerx.DeviceScope)):
+                    device = device.device
                 state[name] = backend.to_device(value, device)
 
     def use_fp32_update(self, flag=True):

@@ -390,13 +390,15 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
     Shape shape = arrays.front().shape();
     Dtype dtype = arrays.front().dtype();
     Device& device = arrays.front().device();
-    uint8_t ndim = shape.size();
+    int8_t ndim = arrays.front().ndim();
     axis = internal::NormalizeAxis(axis, ndim);
     shape[axis] = 0;
+    std::vector<int64_t> indices;
+    indices.reserve(arrays.size() - 1);
 
     for (const Array& array : arrays) {
         const Shape& s = array.shape();
-        if (ndim != s.size()) {
+        if (ndim != array.ndim()) {
             throw DimensionError{"All the input arrays must have same number of dimensions"};
         }
         if (dtype != array.dtype()) {
@@ -408,6 +410,9 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
             } else if (shape[i] != s[i]) {
                 throw DimensionError{"All the input array dimensions except for the concatenation axis must match exactly"};
             }
+        }
+        if (indices.size() < arrays.size() - 1) {
+            indices.push_back(shape[axis]);
         }
     }
 
@@ -424,7 +429,22 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
         }
     }
 
-    // TODO(imanishi): Implement backward
+    std::vector<ConstArrayRef> array_refs;
+    array_refs.reserve(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), std::back_inserter(array_refs), [](const Array& array) { return ConstArrayRef{array}; });
+
+    {
+        BackwardBuilder bb{"concatenate", array_refs, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget()) {
+            bt.Define([indices = std::move(indices), axis](BackwardContext& bctx) {
+                std::vector<Array> gxs = Split(*bctx.output_grad(), indices, axis);
+                for (size_t i = 0; i < gxs.size(); ++i) {
+                    bctx.input_grad(i) = std::move(gxs[i]);
+                }
+            });
+        }
+        bb.Finalize();
+    }
 
     return out;
 }

@@ -278,12 +278,12 @@ class VariableNode(object):
 
         """
         var = self._variable()
-        return None if var is None else var._grad_var
+        return None if var is None else var.grad_var
 
     def _set_grad_var_if_available(self, g):
         var = self._variable()
         if var is not None:
-            var._grad_var = g
+            var._set_grad_var_without_check(g)
 
     @property
     def label(self):
@@ -486,6 +486,11 @@ class Variable(object):
     # TODO(hvy): Avoid modifying this variable from outside this class.
     _chainerx_fallback_array = None
 
+    # Used in non-ChainerX variables. The gradient array is stored in
+    # this attribute on Variable.grad setter to delay creation of grad_var
+    # instance.
+    _grad = None
+
     def __init__(self, data=None, **kwargs):
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
@@ -505,7 +510,7 @@ class Variable(object):
 
         self._requires_grad = requires_grad
         self._loss_scale = None
-        self._grad_var = None if grad is None else Variable(grad)
+        self._grad_var = None
 
         if isinstance(data, chainerx.ndarray):
             if not requires_grad and grad is not None:
@@ -520,6 +525,7 @@ class Variable(object):
         else:
             self._data = [data]
             self._node = VariableNode(self, name)
+            self._grad = grad
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -544,6 +550,35 @@ class Variable(object):
         self._chainerx_nobp_array_cache = None
         self._chainerx_grad_cache = None
         self._chainerx_fallback_array = None
+
+    def _ensure_grad_var_up_to_date(self):
+        # For non-ChainerX, this method creates _grad_var if it's not yet
+        # created and _grad is set.
+        # For ChainerX, this method checks consistency between
+        # _grad_var._data[0] and self._data[0].grad and recreates _grad_var
+        # as necessary. (chainerx.ndarray.grad can be altered independently
+        # from chainer)
+        if self._is_chainerx:
+            self._grad = None
+            # Update gradient variable if it has not yet been initialized or
+            # it happens to be dirty w.r.t. the actual gradient of the
+            # underlying chainerx.ndarray.
+            arr = self._data[0]
+            actual_grad = arr.grad if arr.is_grad_required() else None
+            if actual_grad is None:
+                self._grad_var = None
+            else:
+                grad_var = self._grad_var
+                old_grad = None if grad_var is None else grad_var._data[0]
+                if actual_grad is not old_grad:
+                    self._grad_var = Variable(
+                        actual_grad,
+                        requires_grad=actual_grad.is_backprop_required())
+            return
+
+        if self._grad_var is None:
+            if self._grad is not None:
+                self._grad_var = Variable(self._grad)
 
     def _set_chainerx_array(self, array, grad):
         # Sets chainerx array and grad.
@@ -776,6 +811,30 @@ class Variable(object):
     def data(self, d):
         self.array = d
 
+    def _set_chainerx_grad(self, g):
+        # Assigns chainerx.ndarray.grad
+        assert self._is_chainerx
+        if not self._requires_grad and g is not None:
+            raise RuntimeError(
+                'Cannot set the gradient of a variable that is flagged to not '
+                'require one.')
+        arr = self._data[0]
+        if arr is None:
+            if g is not None:
+                raise RuntimeError(
+                    'Cannot set a gradient to an empty variable')
+        elif arr.is_backprop_required():
+            arr.set_grad(g)
+
+    def _set_grad_without_check(self, g):
+        if self._is_chainerx:
+            self._set_chainerx_grad(g)
+            self._grad_var = None
+            return
+
+        self._grad = g
+        self._grad_var = None
+
     @property
     def grad(self):
         """Gradient array of this variable.
@@ -814,55 +873,37 @@ class Variable(object):
 
             return grad_stopped_grad
 
-        gv = self._grad_var
-        return None if gv is None else gv.array
+        if self._grad_var is not None:
+            return self._grad_var.array
+        return self._grad
 
     @grad.setter
     def grad(self, g):
-        if g is None:
-            self.grad_var = None
-        else:
-            self.grad_var = Variable(g)
+        if g is not None:
+            _check_grad_type(None, self, g)
+
+        self._set_grad_without_check(g)
+
+    def _set_grad_var_without_check(self, gv):
+        if self._is_chainerx:
+            self._set_chainerx_grad(None if gv is None else gv._data[0])
+            self._grad_var = gv
+            return
+
+        self._grad_var = gv
+        self._grad = None if gv is None else gv.array
 
     @property
     def grad_var(self):
         """Gradient variable."""
-        if self._is_chainerx:
-            # Update is gradient variable if it has not yet been initialized or
-            # it happens to be dirty w.r.t. the actual gradient of the
-            # underlying chainerx.ndarray.
-            arr = self._data[0]
-            actual_grad = arr.grad if arr.is_grad_required() else None
-            if actual_grad is None:
-                self._grad_var = None
-            else:
-                grad_var = self._grad_var
-                old_grad = None if grad_var is None else grad_var._data[0]
-                if actual_grad is not old_grad:
-                    self._grad_var = Variable(
-                        actual_grad,
-                        requires_grad=actual_grad.is_backprop_required())
+        self._ensure_grad_var_up_to_date()
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
         if g is not None:
             _check_grad_type(None, self, g.array)
-
-        if self._is_chainerx:
-            arr = self._data[0]
-            if arr is None:
-                if g is not None:
-                    raise RuntimeError(
-                        'Cannot set a gradient to an empty variable')
-            elif arr.is_backprop_required():
-                if g is None:
-                    arr.set_grad(None)
-                else:
-                    assert g._is_chainerx
-                    arr.set_grad(g._data[0])
-
-        self._grad_var = g
+        self._set_grad_var_without_check(g)
 
     @property
     def shape(self):
@@ -923,8 +964,9 @@ class Variable(object):
         if not isinstance(array, numpy.ndarray):
             self._data = [backend.to_numpy(array)]
 
-        if self._grad_var is not None:
-            self._grad_var.to_cpu()
+        grad_var = self.grad_var
+        if grad_var is not None:
+            grad_var.to_cpu()
 
         # ensure that the node tracks the device migration
         node = self._node
@@ -953,8 +995,9 @@ class Variable(object):
             self._data = [None]  # Renew placeholder to break sharing
         else:
             self._data = [cuda.to_gpu(self.array, device)]
-            if self._grad_var is not None:
-                self._grad_var.to_gpu(device)
+            grad_var = self.grad_var
+            if grad_var is not None:
+                grad_var.to_gpu(device)
             # ensure that the node tracks the device migration
             node = self._node
             if node is not None and node._data is not None:
@@ -985,8 +1028,9 @@ class Variable(object):
                     array, itype=intel64.ideep.wgt_array)
             self._data = [array]
 
-        if self._grad_var is not None:
-            self._grad_var.to_intel64()
+        grad_var = self.grad_var
+        if grad_var is not None:
+            grad_var.to_intel64()
         # ensure that the node tracks the device migration
         node = self._node
         if node._data is not None:
@@ -1017,7 +1061,7 @@ class Variable(object):
             if self._requires_grad:
                 new_data.require_grad()
 
-            grad_var = self._grad_var
+            grad_var = self.grad_var
             if grad_var is not None:
                 grad_var.to_chainerx(device)
                 new_grad = grad_var.array
@@ -1075,21 +1119,23 @@ class Variable(object):
         if arr is None:
             return
 
-        gv = self._grad_var
-
         if self._is_chainerx:
+            gv = self.grad_var
             if gv is None:
                 self.grad = chainerx.zeros_like(arr, device=arr.device)
             else:
                 gv._data[0].fill(0)
         else:
             with cuda.get_device_from_array(arr) as dev:
-                if gv is None:
+                if self._grad is None:
                     xp = numpy if dev.id == -1 else cuda.cupy
-                    self.grad = xp.zeros_like(arr)
+                    self._grad = xp.zeros_like(arr)
+                    self._grad_var = None
                 else:
-                    gv.unchain()
-                    gv.array.fill(0)
+                    gv = self._grad_var
+                    if gv is not None:
+                        gv.unchain()
+                    self._grad.fill(0)
 
     def copydata(self, var):
         """Copies the data array from given source variable.
@@ -1135,13 +1181,17 @@ class Variable(object):
         # TODO(sonots): Implement for ChainerX
         if self._is_chainerx:
             raise NotImplementedError()
-        src = var._grad_var
-        if src is None:
+
+        assert not var._is_chainerx
+        if var._grad is None:
             return
+
+        src = var.grad_var
 
         if self.array is None:
             self.initialize(var.shape)
-        dst = self._grad_var
+
+        dst = self.grad_var
 
         src_dev = cuda.get_device_from_array(src.array)
         dst_dev = cuda.get_device_from_array(self.array)
@@ -1149,6 +1199,7 @@ class Variable(object):
         if src_dev.id != dst_dev.id:
             src = chainer.functions.copy(src, dst_dev.id)
         self._grad_var = src if dst is None else src + dst
+        self._grad = None
 
     def set_creator(self, gen_func):
         """Notifies the variable that the given function is its creator.
@@ -1257,7 +1308,7 @@ class Variable(object):
         grads = _backprop_utils.GradTable(load_if_new=True)
 
         # Initialize error by 1, if this is a loss variable
-        if self.array.size == 1 and self._grad_var is None:
+        if self.array.size == 1 and self.grad_var is None:
             if self.array.ndim != 0:
                 warnings.warn(
                     'Treating a scalar as a variable with only one element'
@@ -1274,7 +1325,7 @@ class Variable(object):
                     self.grad = cuda.cupy.ones_like(self.array)
             if loss_scale is not None:
                 self.grad *= loss_scale
-        grads[self._node] = self._grad_var
+        grads[self._node] = self.grad_var
 
         def add_cand(cand):
             if cand not in seen_set:
@@ -1351,7 +1402,7 @@ class Variable(object):
             x_var = x.get_variable_or_none()
             gx = grads.pop(x)
             if x_var is not None:
-                x_var._grad_var = gx
+                x_var._set_grad_var_without_check(gx)
                 x_var._loss_scale = loss_scale
         grads.assert_no_grads()
 

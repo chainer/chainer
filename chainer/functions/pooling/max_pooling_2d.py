@@ -17,9 +17,6 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         # TODO(sonots): Support return_indices in ChainerX
         if self.return_indices:
             return chainer.Fallback
-        # TODO(sonots): Support cover_all in CUDA ChainerX
-        if x[0].device.backend.name == 'cuda' and self.cover_all:
-            return chainer.Fallback
         return chainerx.max_pool(x[0], (self.kh, self.kw), (self.sy, self.sx),
                                  (self.ph, self.pw), self.cover_all),
 
