@@ -168,21 +168,20 @@ class DeviceId(object):
 
     Args:
         device_spec (object): Device specifier.
-            1. If it is a module, it represents a transfer between
-               modules. It tries a zero-copy transfer as much as possible.
-            2. If it is a string, it represents a chainerx device.
-            3. If it is a tuple whose first element is a string such as
-               ('cuda', 1) or ('cuda',), it represents a chainerx device.
-            4. If it is a tuple of a cupy module and an integer such
-               as (cupy, 1), it represents a cupy device.
-            5. If it is :class:`~chainer.backends.cuda.DummyDevice`,
-               it represents numpy module.
-            6. If it is an instance of :class:`chainerx.Device` or
-               :class:`chainerx.DeviceScope`, it represents a chainerx device.
-            7. If it is an instance of :class:`~chainer.backends.cuda.Device`,
-               it represents a cupy device.
-            8. If it is an instance of this class, a new instance with
-               same properties is created.
+            * If it is a string, it represents a chainerx device.
+            * If it is a tuple whose first element is a string such as
+              ('cuda', 1) or ('cuda',), it represents a chainerx device.
+            * If it is a tuple of a cupy module and an integer such
+              as (cupy, 1), it represents a cupy device.
+            * If it is :mod:`numpy` module object, it represents numpy module.
+            * If it is :class:`~chainer.backends.cuda.DummyDevice`,
+              it represents numpy module.
+            * If it is an instance of :class:`chainerx.Device`, it represents
+              a chainerx device.
+            * If it is an instance of :class:`~chainer.backends.cuda.Device`,
+              it represents a cupy device.
+            * If it is an instance of this class, a new instance with
+              same properties is created.
 
     Attributes:
         xp: Target array module to transfer.
@@ -209,10 +208,6 @@ class DeviceId(object):
             return
 
         if chainerx.is_available():
-            if device_spec is chainerx:
-                self.xp = chainerx
-                self.device = None
-                return
             if isinstance(device_spec, str):
                 self.xp = chainerx
                 self.device = chainerx.get_device(device_spec)
@@ -226,16 +221,8 @@ class DeviceId(object):
                 self.xp = chainerx
                 self.device = device_spec
                 return
-            if isinstance(device_spec, chainerx.DeviceScope):
-                self.xp = chainerx
-                self.device = device_spec.device
-                return
 
         if cuda.available:
-            if device_spec is cuda.cupy:
-                self.xp = cuda.cupy
-                self.device = None
-                return
             if isinstance(device_spec, cuda.Device):
                 self.xp = cuda.cupy
                 self.device = device_spec
