@@ -24,7 +24,7 @@ class Uniform(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=0.05, dtype=None):
+    def __init__(self, scale=None, dtype=None):
         if scale is None:
             scale = 0.05 if chainer.config.initializers_legacy_scale else 1.0
         self.scale = scale
