@@ -83,7 +83,6 @@ class TestNegativeSampling(unittest.TestCase):
         if backend_config.use_cuda:
             link.to_gpu()
 
-        # return_samples=False
         y, samples = link(x, t, reduce=self.reduce, return_samples=True)
 
         self.assertEqual(y.shape, self.gy.shape)
