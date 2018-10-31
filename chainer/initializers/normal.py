@@ -26,6 +26,7 @@ class Normal(initializer.Initializer):
 
     def __init__(self, scale=None, dtype=None):
         if scale is None:
+            initializer._warn_legacy_scale()
             scale = 0.05 if chainer.config.initializers_legacy_scale else 1.0
         self.scale = scale
         super(Normal, self).__init__(dtype)

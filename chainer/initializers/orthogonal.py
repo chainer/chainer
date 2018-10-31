@@ -39,6 +39,7 @@ class Orthogonal(initializer.Initializer):
 
     def __init__(self, scale=None, dtype=None):
         if scale is None:
+            initializer._warn_legacy_scale()
             scale = 1.1 if chainer.config.initializers_legacy_scale else 1.0
         self.scale = scale
         super(Orthogonal, self).__init__(dtype)

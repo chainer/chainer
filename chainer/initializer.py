@@ -1,4 +1,8 @@
+import warnings
+
 import numpy
+
+import chainer
 
 
 class Initializer(object):
@@ -29,6 +33,15 @@ class Initializer(object):
 
         """
         raise NotImplementedError()
+
+
+def _warn_legacy_scale():
+    if chainer.config.initializers_legacy_scale is None:
+        warnings.warn('''\
+The default scales of initializers are changed in Chainer v6.
+Set chainer.config.initializers_legacy_scale=True to use old defaults.
+Set chainer.config.initializers_legacy_scale=False to disable this warning.
+''')
 
 
 # Original code forked from MIT licensed keras project
