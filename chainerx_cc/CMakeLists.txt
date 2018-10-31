@@ -52,7 +52,7 @@ endif()
 if(${CHAINERX_BUILD_CUDA})
     find_package(CUDA QUIET)
     if(${CUDA_FOUND})
-        # CUDA_cublas_device_LIBRARY needs to explicitly set for cmake 3.10.2.
+        # CUDA_cublas_device_LIBRARY needs to explicitly set for older cmake versions including 3.10.2.
         set(CUDA_cublas_device_LIBRARY ${CUDA_LIBRARIES})
         add_definitions(-DCHAINERX_ENABLE_CUDA=1)
         find_package(CuDNN 7 REQUIRED)
