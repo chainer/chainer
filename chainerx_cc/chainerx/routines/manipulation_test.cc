@@ -633,12 +633,11 @@ TEST_P(ManipulationTest, ConcatenateBackward) {
     Array x2 = (*testing::BuildArray(shape_x2).WithData<T>({5, 6, 7, 8, 9, 10})).RequireGrad();
     Array gy = testing::BuildArray(shape_y).WithData<T>({3, 1, 4, 1, 5, 9, 2, 6, 5, 3});
 
-    // TODO(imanishi): Enable the following test after SplitBackward is implemented.
-    // CheckBackward(
-    //         [](const std::vector<Array>& xs) -> std::vector<Array> { return {Concatenate(xs)}; },
-    //         {x1, x2},
-    //         {gy},
-    //         {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6)});
+    CheckBackward(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Concatenate(xs)}; },
+            {x1, x2},
+            {gy},
+            {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6)});
 }
 
 TEST_THREAD_SAFE_P(ManipulationTest, SplitSections) {
