@@ -74,7 +74,7 @@ class LinearModel(object):
         y_test = model(x_test)
         return F.accuracy(y_test, t_test)
 
-    def accuracy(self, backend_config, gpu_device=None):
+    def accuracy(self, backend_config):
         # TODO(niboshi): Support it
         if backend_config.use_chainerx and self.dtype == numpy.float16:
             raise unittest.SkipTest('ChainerX does not support float16')
@@ -87,7 +87,7 @@ class LinearModel(object):
             model.to_chainerx(
                 device=chainerx.get_device(backend_config.chainerx_device))
         elif backend_config.use_cuda:
-            model.to_gpu(device=gpu_device)
+            model.to_gpu(device=backend_config.cuda_device)
         elif backend_config.use_ideep == 'always':
             if not intel64.is_ideep_available():
                 # TODO(niboshi): This is temporary workaround.
@@ -102,8 +102,8 @@ class LinearModel(object):
     def accuracy_gpu(self, device):
         with cuda.get_device_from_id(device):
             return self.accuracy(
-                backend.BackendConfig({'use_cuda': True}),
-                device)
+                backend.BackendConfig(
+                    {'use_cuda': True, 'cuda_device': device}))
 
 
 @backend.inject_backend_tests(
