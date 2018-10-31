@@ -474,7 +474,7 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
     Shape shape = arrays.front().shape();
     Dtype dtype = arrays.front().dtype();
     Device& device = arrays.front().device();
-    uint8_t ndim = shape.size();
+    uint8_t ndim = shape.ndim();
     axis = internal::NormalizeAxis(axis, ndim + 1);
 
     for (const Array& array : arrays) {
