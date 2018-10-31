@@ -416,8 +416,15 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
         }
     }
 
-    Array out = Empty(shape, dtype, device);
-    const Strides& strides = out.strides();
+    Strides strides{shape, dtype};
+
+    // Aligning with NumPy strides behavior
+    auto last_zero_it = std::find(shape.rbegin(), shape.rend(), int64_t{0});
+    if (last_zero_it != shape.rend()) {
+        std::fill(strides.rbegin() + (last_zero_it - shape.rbegin() + 1), strides.rend(), int64_t{0});
+    }
+
+    Array out = internal::Empty(shape, dtype, strides, device);
     {
         NoBackpropModeScope scope{};
         int64_t out_offset = 0;
@@ -488,10 +495,13 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
     shape.insert(shape.begin() + axis, static_cast<int64_t>(arrays.size()));
 
     Strides strides{shape, dtype};
+
+    // Aligning with NumPy strides behavior
     auto last_zero_it = std::find(shape.rbegin(), shape.rend(), int64_t{0});
     if (last_zero_it != shape.rend()) {
         std::fill(strides.rbegin() + (last_zero_it - shape.rbegin() + 1), strides.rend(), int64_t{0});
     }
+
     Array out = internal::Empty(shape, dtype, strides, device);
 
     int64_t step = strides[axis];
