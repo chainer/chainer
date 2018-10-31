@@ -120,6 +120,8 @@ public:
     };
 
     // TODO(niboshi): Add an overload to accept `const std::vector<Array>&` as `inputs` and `outputs`
+    // Note that simply overloading with the above type will results in ambiguous calls.
+    // One solution is to define a type that accepts all of the expected types of inputs.
     BackwardBuilder(const char* op_name, std::vector<ConstArrayRef> inputs, std::vector<ConstArrayRef> outputs);
     BackwardBuilder(const char* op_name, const Array& input, std::vector<ConstArrayRef> outputs)
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::move(outputs)} {}

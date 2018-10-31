@@ -633,12 +633,34 @@ TEST_P(ManipulationTest, ConcatenateBackward) {
     Array x2 = (*testing::BuildArray(shape_x2).WithData<T>({5, 6, 7, 8, 9, 10})).RequireGrad();
     Array gy = testing::BuildArray(shape_y).WithData<T>({3, 1, 4, 1, 5, 9, 2, 6, 5, 3});
 
-    // TODO(imanishi): Enable the following test after SplitBackward is implemented.
-    // CheckBackward(
-    //         [](const std::vector<Array>& xs) -> std::vector<Array> { return {Concatenate(xs)}; },
-    //         {x1, x2},
-    //         {gy},
-    //         {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6)});
+    CheckBackward(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Concatenate(xs)}; },
+            {x1, x2},
+            {gy},
+            {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6)});
+}
+
+TEST_P(ManipulationTest, ConcatenateDoubleBackward) {
+    using T = double;
+    Shape shape_x1{2, 2, 1};
+    Shape shape_x2{3, 2, 1};
+    Shape shape_y{5, 2, 1};
+
+    Array x1 = (*testing::BuildArray(shape_x1).WithData<T>({1, 2, 3, 4})).RequireGrad();
+    Array x2 = (*testing::BuildArray(shape_x2).WithData<T>({5, 6, 7, 8, 9, 10})).RequireGrad();
+    Array gy = (*testing::BuildArray(shape_y).WithData<T>({3, 1, 4, 1, 5, 9, 2, 6, 5, 3})).RequireGrad();
+    Array ggx1 = testing::BuildArray(shape_x1).WithLinearData<T>(-0.1, 0.1);
+    Array ggx2 = testing::BuildArray(shape_x2).WithLinearData<T>(-0.1, 0.1);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                Array y = Concatenate(xs);
+                return {y * y};  // to make it nonlinear
+            },
+            {x1, x2},
+            {gy},
+            {ggx1, ggx2},
+            {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6), Full(shape_y, 1e-6)});
 }
 
 TEST_THREAD_SAFE_P(ManipulationTest, SplitSections) {
@@ -688,6 +710,65 @@ TEST_THREAD_SAFE_P(ManipulationTest, SplitNoncontiguousIndices) {
     Array e2 = testing::BuildArray({2, 2}).WithData<int32_t>({2, 3, 6, 7});
 
     Run([&]() { testing::CheckForward([](const std::vector<Array>& xs) { return Split(xs[0], {2}, 1); }, {a}, {e1, e2}); });
+}
+
+TEST_P(ManipulationTest, SplitSectionsBackward) {
+    using T = double;
+
+    CheckBackward(
+            [](const std::vector<Array>& xs) -> std::vector<Array> { return {Split(xs[0], 2, 0)}; },
+            {(*testing::BuildArray({2, 4}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {testing::BuildArray({1, 4}).WithLinearData<T>(-0.1, 0.1), testing::BuildArray({1, 4}).WithLinearData<T>(-0.1, 0.1)},
+            {Full({2, 4}, 1e-1)});
+}
+
+TEST_P(ManipulationTest, SplitIndicesBackward) {
+    using T = double;
+
+    CheckBackward(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                return {Split(xs[0], {1, 3}, 1)};
+            },
+            {(*testing::BuildArray({2, 4}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1),
+             testing::BuildArray({2, 2}).WithLinearData<T>(-0.1, 0.1),
+             testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1)},
+            {Full({2, 4}, 1e-1)});
+}
+
+TEST_P(ManipulationTest, SplitSectionsDoubleBackward) {
+    using T = double;
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                std::vector<Array> ys = Split(xs[0], 2, 0);
+                std::vector<Array> ys_non_linear;  // to make them nonlinear
+                std::transform(ys.begin(), ys.end(), std::back_inserter(ys_non_linear), [](const Array& y) { return y * y; });
+                return ys_non_linear;
+            },
+            {(*testing::BuildArray({2, 4}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {(*testing::BuildArray({1, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad(),
+             (*testing::BuildArray({1, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
+            {testing::BuildArray({2, 4}).WithLinearData<T>()},
+            {Full({2, 4}, 1e-1), Full({1, 4}, 1e-1), Full({1, 4}, 1e-1)});
+}
+
+TEST_P(ManipulationTest, SplitIndicesDoubleBackward) {
+    using T = double;
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                std::vector<Array> ys = Split(xs[0], {1, 3}, 1);
+                std::vector<Array> ys_non_linear;  // to make them nonlinear
+                std::transform(ys.begin(), ys.end(), std::back_inserter(ys_non_linear), [](const Array& y) { return y * y; });
+                return ys_non_linear;
+            },
+            {(*testing::BuildArray({2, 4}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
+            {(*testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad(),
+             (*testing::BuildArray({2, 2}).WithLinearData<T>(-0.1, 0.1)).RequireGrad(),
+             (*testing::BuildArray({2, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
+            {testing::BuildArray({2, 4}).WithLinearData<T>()},
+            {Full({2, 4}, 1e-1), Full({2, 1}, 1e-1), Full({2, 2}, 1e-1), Full({2, 1}, 1e-1)});
 }
 
 INSTANTIATE_TEST_CASE_P(
