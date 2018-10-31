@@ -640,6 +640,29 @@ TEST_P(ManipulationTest, ConcatenateBackward) {
             {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6)});
 }
 
+TEST_P(ManipulationTest, ConcatenateDoubleBackward) {
+    using T = double;
+    Shape shape_x1{2, 2, 1};
+    Shape shape_x2{3, 2, 1};
+    Shape shape_y{5, 2, 1};
+
+    Array x1 = (*testing::BuildArray(shape_x1).WithData<T>({1, 2, 3, 4})).RequireGrad();
+    Array x2 = (*testing::BuildArray(shape_x2).WithData<T>({5, 6, 7, 8, 9, 10})).RequireGrad();
+    Array gy = (*testing::BuildArray(shape_y).WithData<T>({3, 1, 4, 1, 5, 9, 2, 6, 5, 3})).RequireGrad();
+    Array ggx1 = testing::BuildArray(shape_x1).WithLinearData<T>(-0.1, 0.1);
+    Array ggx2 = testing::BuildArray(shape_x2).WithLinearData<T>(-0.1, 0.1);
+
+    CheckDoubleBackwardComputation(
+            [](const std::vector<Array>& xs) -> std::vector<Array> {
+                Array y = Concatenate(xs);
+                return {y * y};  // to make it nonlinear
+            },
+            {x1, x2},
+            {gy},
+            {ggx1, ggx2},
+            {Full(shape_x1, 1e-6), Full(shape_x2, 1e-6), Full(shape_y, 1e-6)});
+}
+
 TEST_THREAD_SAFE_P(ManipulationTest, SplitSections) {
     Array a = testing::BuildArray({2, 4}).WithLinearData<int32_t>();
     Array e1 = testing::BuildArray({2, 2}).WithData<int32_t>({0, 1, 4, 5});
