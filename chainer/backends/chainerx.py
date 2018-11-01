@@ -30,7 +30,7 @@ class ChainerxDevice(backend.Device):
         if isinstance(array, chainerx.ndarray):
             if array.device is device:
                 return array
-            return array.to_device(array)
+            return array.to_device(device)
         return _array_to_chainerx(array, device)
 
 
