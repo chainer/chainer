@@ -491,8 +491,8 @@ std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
         Dtype dtype = gout.dtype();
         Device& device = gout.device();
         for (size_t i = 0; i < dim; ++i) {
-            gxs.push_back(internal::MakeArray(shape, strides, dtype, device, gout.data(), step * i));
-            gxs_refs.push_back(gxs.back());
+            gxs.emplace_back(internal::MakeArray(shape, strides, dtype, device, gout.data(), step * i));
+            gxs_refs.emplace_back(gxs.back());
         }
     }
 
@@ -503,7 +503,7 @@ std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
                 std::vector<Array> ggxs;
                 ggxs.reserve(bctx.output_count());
                 for (size_t i = 0; i < bctx.output_count(); ++i) {
-                    ggxs.push_back(*bctx.output_grad(i));
+                    ggxs.emplace_back(*bctx.output_grad(i));
                 }
                 bctx.input_grad() = Stack(ggxs);
             });
