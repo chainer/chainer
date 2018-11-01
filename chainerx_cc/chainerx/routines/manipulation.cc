@@ -473,7 +473,7 @@ Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axi
     return ConcatenateImpl(raveled_arrays, 0);
 }
 
-namespace internal {
+namespace {
 std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
     Shape shape{gout.shape()};
     Strides strides{gout.strides()};
@@ -512,7 +512,7 @@ std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
     }
     return gxs;
 }
-}  // namespace internal
+}  // namespace
 
 Array Stack(const std::vector<Array>& arrays, int8_t axis) {
     if (arrays.empty()) {
@@ -566,7 +566,7 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
         if (BackwardBuilder::Target bt = bb.CreateTarget()) {
             bt.Define([axis](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
-                std::vector<Array> gxs = internal::StackGrad(gout, axis);
+                std::vector<Array> gxs = StackGrad(gout, axis);
                 for (size_t i = 0; i < gxs.size(); ++i) {
                     bctx.input_grad(i) = gxs[i];
                 }
