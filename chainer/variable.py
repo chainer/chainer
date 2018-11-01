@@ -963,7 +963,7 @@ Actual: {0}'''.format(type(data))
         return_cont = False
         assert_refs = True
         if kwargs:
-            return_cont = argument.parse_kwargs(
+            return_cont, assert_refs = argument.parse_kwargs(
                 kwargs,
                 ('_return_cont', return_cont),
                 ('_assert_refs', assert_refs),
