@@ -1429,6 +1429,14 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
     def test_traceback_gpu(self):
         self.check_traceback(cuda.to_gpu(self.x))
 
+    def test_traceback_numpy_error(self):
+        x = chainer.Variable(np.array(0.))
+        line = inspect.currentframe().f_lineno + 1
+        y = chainer.functions.sqrt(x)  # `line` is THIS line
+        with self.assertRaisesRegex(FloatingPointError, 'line %d' % line):
+            with np.errstate(divide='raise'):
+                y.backward()
+
     def test_raise(self):
         x = np.array([1], np.float32)
         x = chainer.Variable(x)
