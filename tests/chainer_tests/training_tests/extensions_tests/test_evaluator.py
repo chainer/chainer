@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backends
 from chainer import dataset
 from chainer import iterators
 from chainer import testing
@@ -150,7 +151,7 @@ class TestEvaluatorTupleData(unittest.TestCase):
                 self.converter.args[i]['batch'], self.data[i])
             self.assertEqual(
                 self.converter.args[i]['device'],
-                chainer.backend.get_device(numpy))
+                chainer.get_device(backends.cpu.CpuDevice()))
 
         # The model gets results of converter.
         self.assertEqual(len(self.target.args), len(self.batches))

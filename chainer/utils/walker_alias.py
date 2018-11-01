@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 
 
@@ -44,7 +45,7 @@ class WalkerAlias(object):
         assert((values < len(threshold)).all())
         self.threshold = threshold
         self.values = values
-        self._device = chainer.get_device(numpy)
+        self._device = chainer.get_device(backends.cpu.CpuDevice())
 
     @property
     def device(self):
@@ -73,7 +74,7 @@ class WalkerAlias(object):
         """Make a sampler CPU mode.
 
         """
-        return self.to_device(numpy)
+        return self.to_device(backends.cpu.CpuDevice())
 
     def sample(self, shape):
         """Generates a random sample based on given probabilities.

@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer.functions.loss import negative_sampling
 from chainer import links
@@ -76,7 +77,8 @@ class TestNegativeSampling(unittest.TestCase):
             self.link.sampler.device, chainer.get_device((cuda.cupy, 0)))
         self.link.to_cpu()
         self.assertEqual(
-            self.link.sampler.device, chainer.get_device(numpy))
+            self.link.sampler.device,
+            chainer.get_device(backends.cpu.CpuDevice()))
 
     @attr.gpu
     def test_backward_cpu_gpu(self):

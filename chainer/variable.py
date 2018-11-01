@@ -11,6 +11,7 @@ import six
 import chainer
 from chainer import _backprop_utils
 from chainer import backend
+from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -948,7 +949,7 @@ class Variable(object):
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
-        return self.to_device(numpy)
+        return self.to_device(backends.cpu.CpuDevice())
 
     def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
@@ -1556,7 +1557,7 @@ class Parameter(Variable):
             grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
-        self._initial_device = chainer.get_device(numpy)
+        self._initial_device = chainer.get_device(backends.cpu.CpuDevice())
         self.update_rule = None
         self.initializer = initializer
 
@@ -1568,7 +1569,7 @@ class Parameter(Variable):
                                     self.initializer, self.update_rule)
 
     def to_cpu(self):
-        return self.to_device(numpy)
+        return self.to_device(backends.cpu.CpuDevice())
 
     def to_gpu(self, device=None):
         device = chainer.get_device(cuda._get_device_or_current(device))

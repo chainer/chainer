@@ -6,6 +6,7 @@ import mock
 import numpy
 
 import chainer
+from chainer import backends
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
@@ -928,7 +929,7 @@ class TestChain(unittest.TestCase):
 
     @attr.chainerx
     def test_to_chainerx(self):
-        self.c2.to_device(numpy)
+        self.c2.to_device(backends.cpu.CpuDevice())
 
         self.set_count_parameters()
         self.c2.to_chainerx()
@@ -955,7 +956,7 @@ class TestChain(unittest.TestCase):
 
     def test_to_device(self):
         self.set_count_parameters()
-        device = chainer.backend.get_device(numpy)
+        device = chainer.backend.get_device(backends.cpu.CpuDevice())
         self.c2.to_device(device)
         self.assertIs(self.c2.xp, numpy)
         self.assertIs(self.c1.xp, numpy)
@@ -1501,7 +1502,7 @@ class TestChainList(unittest.TestCase):
 
     @attr.chainerx
     def test_to_chainerx(self):
-        self.c2.to_device(numpy)
+        self.c2.to_device(backends.cpu.CpuDevice())
         self.c2.to_chainerx()
         self.assertIs(self.c2.xp, chainerx)
         self.assertIs(self.c1.xp, chainerx)
@@ -1523,7 +1524,7 @@ class TestChainList(unittest.TestCase):
         self.assertIs(self.l3.x.grad.device, expected_device)
 
     def test_to_device(self):
-        device = chainer.backend.get_device(numpy)
+        device = chainer.backend.get_device(backends.cpu.CpuDevice())
         self.c2.to_device(device)
         self.assertIs(self.c2.xp, numpy)
         self.assertIs(self.c1.xp, numpy)

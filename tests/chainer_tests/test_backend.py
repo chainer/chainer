@@ -287,6 +287,9 @@ class TestGetDevice(unittest.TestCase):
     def test_module_numpy(self):
         self.check_device_spec_numpy(numpy)
 
+    def test_module_numpy_device(self):
+        self.check_device_spec_numpy(chainer.backends.cpu.CpuDevice())
+
     @attr.chainerx
     def test_str_chainerx_backend(self):
         self.check_device_spec_chainerx('native', 'native:0')
@@ -347,6 +350,8 @@ class TestDevice(unittest.TestCase):
 
     def test_eq_numpy(self):
         assert backend.get_device(numpy) == backend.get_device(numpy)
+        assert (backend.get_device(chainer.backends.cpu.CpuDevice())
+                == backend.get_device(numpy))
 
     @attr.gpu
     def test_eq_cupy(self):
@@ -524,7 +529,8 @@ class TestDeviceSend(unittest.TestCase):
 
     def test_numpy_to_numpy_with_device(self):
         orig = self.orig_numpy()
-        self.send_check_equal(orig, chainer.get_device(numpy))
+        self.send_check_equal(
+            orig, chainer.get_device(chainer.backends.cpu.CpuDevice()))
 
 
 testing.run_module(__name__, __file__)
