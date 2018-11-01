@@ -38,9 +38,9 @@ def copyto(dst, src):
 
     """
     if isinstance(dst, numpy.ndarray):
-        numpy.copyto(dst, backends._numpy.to_numpy(src))
+        numpy.copyto(dst, backends.cpu.to_numpy(src))
     elif isinstance(dst, backends.intel64.mdarray):
-        backends.intel64.ideep.basic_copyto(dst, backends._numpy.to_numpy(src))
+        backends.intel64.ideep.basic_copyto(dst, backends.cpu.to_numpy(src))
     elif isinstance(dst, backends.cuda.ndarray):
         if isinstance(src, chainer.get_cpu_array_types()):
             src = numpy.asarray(src)
@@ -80,12 +80,12 @@ def _convert_arrays(array, func):
 
 # TODO(niboshi): Revisit API
 def to_numpy(array):
-    return chainer.backends._numpy.to_numpy(array)
+    return chainer.backends.cpu.to_numpy(array)
 
 
 # TODO(niboshi): Revisit API
 def to_chainerx(array, device_spec=None):
-    return chainer.backends._chainerx.to_chainerx(array)
+    return chainer.backends.chainerx.to_chainerx(array)
 
 
 class Device(object):
@@ -180,10 +180,10 @@ def get_device(device_spec):
         return device_spec
 
     get_device_funcs = (
-        backends._numpy._get_device,
+        backends.cpu._get_device,
         backends.cuda._get_device,
         backends.intel64._get_device,
-        backends._chainerx._get_device,
+        backends.chainerx._get_device,
     )
 
     for get_device_func in get_device_funcs:
@@ -200,7 +200,7 @@ def _get_device_compat(device_spec):
     # Returns chainer.Device.
     if isinstance(device_spec, backends.cuda._integer_types):
         if device_spec < 0:
-            return chainer.backends._numpy.CpuDevice()
+            return chainer.backends.cpu.CpuDevice()
         else:
             return backends.cuda.GpuDevice.from_device_id(device_spec)
     return get_device(device_spec)
@@ -284,10 +284,10 @@ def get_device_from_array(*arrays):
             return device
 
         if isinstance(array, chainerx.ndarray):
-            return backends._chainerx.ChainerxDevice(array.device)
+            return backends.chainerx.ChainerxDevice(array.device)
 
         device = backends.intel64.Intel64Device.from_array(array)
         if device is not None:
             return device
 
-    return backends._numpy.CpuDevice()
+    return backends.cpu.CpuDevice()

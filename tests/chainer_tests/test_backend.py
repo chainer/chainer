@@ -131,12 +131,12 @@ class TestGetDeviceFromArray(unittest.TestCase):
 
     def test_numpy_int(self):
         device = chainer.backend.get_device_from_array(numpy.int64(0))
-        assert isinstance(device, chainer.backends._numpy.CpuDevice)
+        assert isinstance(device, chainer.backends.cpu.CpuDevice)
         assert device.xp is numpy
 
     def test_numpy_array(self):
         device = chainer.backend.get_device_from_array(numpy.array([0]))
-        assert isinstance(device, chainer.backends._numpy.CpuDevice)
+        assert isinstance(device, chainer.backends.cpu.CpuDevice)
         assert device.xp is numpy
 
     @attr.gpu
@@ -158,7 +158,7 @@ class TestGetDeviceFromArray(unittest.TestCase):
     def test_chainerx_cpu_array(self):
         arr = chainer.backend.to_chainerx(numpy.array([0]))
         device = chainer.backend.get_device_from_array(arr)
-        assert isinstance(device, chainer.backends._chainerx.ChainerxDevice)
+        assert isinstance(device, chainer.backends.chainerx.ChainerxDevice)
         assert device.xp is chainerx
         assert device.device == chainerx.get_device('native:0')
 
@@ -167,7 +167,7 @@ class TestGetDeviceFromArray(unittest.TestCase):
     def test_chainerx_gpu_array(self):
         arr = chainer.backend.to_chainerx(cuda.cupy.array([0]))
         device = chainer.backend.get_device_from_array(arr)
-        assert isinstance(device, chainer.backends._chainerx.ChainerxDevice)
+        assert isinstance(device, chainer.backends.chainerx.ChainerxDevice)
         assert device.xp is chainerx
         assert device.device == chainerx.get_device('cuda:0')
 
@@ -257,7 +257,7 @@ class TestGetDevice(unittest.TestCase):
 
     def check_device_spec_numpy(self, device_spec):
         device = backend.get_device(device_spec)
-        assert isinstance(device, chainer.backends._numpy.CpuDevice)
+        assert isinstance(device, chainer.backends.cpu.CpuDevice)
         assert device.xp is numpy
 
     def check_device_spec_cupy(self, device_spec, expected_device_id):
@@ -269,7 +269,7 @@ class TestGetDevice(unittest.TestCase):
 
     def check_device_spec_chainerx(self, device_spec, expected_device_name):
         device = backend.get_device(device_spec)
-        assert isinstance(device, chainer.backends._chainerx.ChainerxDevice)
+        assert isinstance(device, chainer.backends.chainerx.ChainerxDevice)
         assert device.xp is chainerx
         assert isinstance(device.device, chainerx.Device)
         assert device.device.name == expected_device_name
@@ -331,13 +331,13 @@ class TestDevice(unittest.TestCase):
 
     def test_repr_module_numpy(self):
         device = chainer.get_device(numpy)
-        assert str(device) == '<chainer.backends._numpy.CpuDevice(numpy)>'
+        assert str(device) == '<chainer.backends.cpu.CpuDevice(numpy)>'
 
     @attr.chainerx
     def test_repr_tuple_chainerx_device(self):
         device = chainer.get_device(('native', 0))
         assert (str(device)
-                == '<chainer.backends._chainerx.ChainerxDevice'
+                == '<chainer.backends.chainerx.ChainerxDevice'
                 '(chainerx, native:0)>')
 
     @attr.gpu

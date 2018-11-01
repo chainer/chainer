@@ -38,7 +38,7 @@ class TestWalkerAlias(unittest.TestCase):
         self.sampler.to_gpu()
         self.sampler.to_cpu()
         assert isinstance(
-            self.sampler._device, chainer.backends._numpy.CpuDevice)
+            self.sampler._device, chainer.backends.cpu.CpuDevice)
         self.check_sample()
 
 

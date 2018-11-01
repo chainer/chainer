@@ -455,7 +455,7 @@ def _array_to_cpu(array, stream):
         check_cuda_available()
         with get_device_from_array(array):
             return array.get(stream)
-    return chainer.backends._numpy._array_to_numpy(array)
+    return chainer.backends.cpu._array_to_numpy(array)
 
 
 def copy(array, out=None, out_device=None, stream=None):

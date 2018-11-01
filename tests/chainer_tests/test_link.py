@@ -1914,7 +1914,7 @@ class TestIntel64(unittest.TestCase):
         link.to_intel64()
         assert isinstance(link.device, intel64.Intel64Device)
         link.to_cpu()
-        assert isinstance(link.device, chainer.backends._numpy.CpuDevice)
+        assert isinstance(link.device, chainer.backends.cpu.CpuDevice)
 
         # Arrays should be converted to numpy.ndarray
 
@@ -2080,7 +2080,7 @@ class TestToDevice(unittest.TestCase):
 
     def test_to_device_numpy(self):
         link = self.check_to_device(numpy, numpy.ndarray)
-        assert isinstance(link.device, chainer.backends._numpy.CpuDevice)
+        assert isinstance(link.device, chainer.backends.cpu.CpuDevice)
 
     @attr.gpu
     def test_to_device_cupy(self):
