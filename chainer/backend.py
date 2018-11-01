@@ -160,7 +160,8 @@ def get_device(device_spec):
               * :mod:`chainer.backends.intel64` module object.
                 (``chainer.backends.intel64``)
     """
-    assert device_spec is not None
+    if device_spec is None:
+        raise ValueError('Invalid dtype specifier: {}'.format(device_spec))
 
     if isinstance(device_spec, Device):
         return device_spec
