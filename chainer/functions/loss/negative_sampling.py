@@ -67,7 +67,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         loss[self.ignore_mask] = numpy.sum(numpy.logaddexp(wx, 0), axis=1)
 
         if self.reduce == 'sum':
-            loss = numpy.array(loss.sum(), 'f')
+            loss = numpy.array(loss.sum(), x.dtype)
 
         self.samples = samples
         return loss,

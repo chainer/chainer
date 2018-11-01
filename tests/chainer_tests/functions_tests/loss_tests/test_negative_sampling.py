@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import pytest
 import six
 
 import chainer
@@ -60,6 +61,7 @@ class TestNegativeSamplingFunction(unittest.TestCase):
             self.check_double_backward_options['dtype'] = numpy.float64
 
     def check_forward(self, x_data, t_data, w_data, sampler):
+        batch_size = len(self.t)
         x = chainer.Variable(x_data)
         t = chainer.Variable(t_data)
         w = chainer.Variable(w_data)
@@ -67,17 +69,24 @@ class TestNegativeSamplingFunction(unittest.TestCase):
         # return_samples=False
         y = functions.negative_sampling(
             x, t, w, sampler, self.sample_size, reduce=self.reduce)
+        assert y.dtype == self.dtype
 
         # return_samples=True
         y_, samples = functions.negative_sampling(
             x, t, w, sampler, self.sample_size, reduce=self.reduce,
             return_samples=True)
 
+        xp = chainer.backend.get_array_module(x)
+        assert isinstance(samples, xp.ndarray)
+        assert samples.dtype == numpy.int32
+        assert samples.shape == (batch_size, self.sample_size + 1)
+
         # Sampler is deterministic, so y and y_ should equal.
+        assert y.dtype == y_.dtype
         numpy.testing.assert_array_equal(
             cuda.to_cpu(y.array), cuda.to_cpu(y_.array))
 
-        self.assertEqual(y.shape, self.gy.shape)
+        assert y.shape == self.gy.shape
 
         samples = cuda.to_cpu(samples)
 
@@ -98,6 +107,7 @@ class TestNegativeSamplingFunction(unittest.TestCase):
         if self.reduce == 'sum':
             loss = loss.sum()
 
+        assert y.dtype == loss.dtype
         testing.assert_allclose(y.data, loss, **self.check_forward_options)
 
     def test_forward_cpu(self):
@@ -167,7 +177,7 @@ class TestNegativeSamplingInvalidReductionOption(unittest.TestCase):
         t = xp.asarray(self.t)
         w = xp.asarray(self.w)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             negative_sampling.negative_sampling(
                 x, t, w, make_sampler(xp, 5), 2, reduce='invalid_option')
 
