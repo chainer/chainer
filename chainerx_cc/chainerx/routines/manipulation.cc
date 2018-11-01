@@ -506,7 +506,7 @@ std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
                     // TODO(imanishi): Check if bctx.output_grad(i) is not nullopt.
                     ggxs.emplace_back(*bctx.output_grad(i));
                 }
-                bctx.input_grad() = Stack(ggxs);
+                bctx.input_grad() = Stack(ggxs, axis);
             });
         }
         bb.Finalize();
