@@ -580,15 +580,17 @@ class BaseSoftTarget(object):
         if self.reduce == 'mean':
             self.gy = numpy.random.uniform(-1, 1, ()).astype(self.dtype)
         else:
-            _shape = (self.x.shape[0],) + self.x.shape[2:]
-            self.gy = numpy.random.uniform(
-                -1, 1, _shape).astype(self.dtype)
+            y_shape = (self.nb,) + self.shape[1:]
+            self.gy = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-2}
             self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
         else:
             self.check_forward_options = {}
             self.check_backward_options = {}
+
+    def check_forward(self, xp):
+        pass
 
     def test_forward_cpu(self):
         self.check_forward(numpy)
@@ -629,22 +631,22 @@ class BaseSoftTarget(object):
 class TestSoftTargetCompareToHard(BaseSoftTarget, unittest.TestCase):
 
     def setUp(self):
-        super().setUp()
-        _shape = (self.x.shape[0],) + self.x.shape[2:]
-        self.t_hard = numpy.random.randint(0, self.x.shape[1],
-                                           _shape).astype(numpy.int32)
+        BaseSoftTarget.setUp(self)
+        t_hard_shape = (self.nb,) + self.shape[1:]
+        self.t_hard = numpy.random.randint(
+            0, self.shape[0], t_hard_shape).astype(numpy.int32)
         t = numpy.zeros(numpy.prod(self.x.shape)).astype(self.dtype)
-        t = t.reshape(self.x.shape[1], -1)
+        t = t.reshape(self.shape[0], -1)
         t[[self.t_hard.ravel()], [range(t.shape[1])]] = 1.0
-        t = t.reshape((self.x.shape[1], self.x.shape[0],) + self.x.shape[2:])
+        t = t.reshape((self.shape[0], self.nb,) + self.shape[1:])
         self.t = t.swapaxes(0, 1)
 
     def check_forward(self, xp):
         x = xp.asarray(self.x)
         t = xp.asarray(self.t)
         loss = functions.softmax_cross_entropy(x, t, reduce=self.reduce)
-        t_hard = xp.asarray(self.t_hard)
-        expect = functions.softmax_cross_entropy(x, t_hard, reduce=self.reduce)
+        expect = functions.softmax_cross_entropy(x, xp.asarray(self.t_hard),
+                                                 reduce=self.reduce)
         testing.assert_allclose(loss.data, expect.data,
                                 **self.check_forward_options)
 
@@ -658,7 +660,7 @@ class TestSoftTargetCompareToHard(BaseSoftTarget, unittest.TestCase):
 class TestSoftTargetExpectNearZero(BaseSoftTarget, unittest.TestCase):
 
     def setUp(self):
-        super().setUp()
+        BaseSoftTarget.setUp(self)
         self.t = functions.softmax(self.x).array
 
     def check_forward(self, xp):
@@ -668,8 +670,7 @@ class TestSoftTargetExpectNearZero(BaseSoftTarget, unittest.TestCase):
         if self.reduce == 'mean':
             expect = 0.
         else:
-            shape = (x.shape[0],) + x.shape[2:]
-            expect = numpy.zeros(shape, dtype=self.dtype)
+            expect = numpy.zeros(self.gy.shape, dtype=self.dtype)
         testing.assert_allclose(loss.data, expect,
                                 **self.check_forward_options)
 
