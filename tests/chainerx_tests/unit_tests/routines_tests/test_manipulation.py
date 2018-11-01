@@ -320,6 +320,11 @@ def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     ([(0,), (0,)], 0),
     ([(0,), (1,)], 0),
     ([(1,), (1,)], 0),
+    ([(0, 0,), (0, 0,)], 0),
+    ([(0, 0,), (0, 0,)], 1),
+    ([(1, 0,), (1, 0,)], 0),
+    ([(1, 0,), (1, 0,)], 1),
+    ([(1, 0,), (1, 0,)], 2),
     ([(3, 4, 5)], 0),
     ([(2, 3, 1), (2, 3, 1)], 1),
     ([(2, 3, 2), (2, 4, 2), (2, 3, 2)], 1),
@@ -337,9 +342,51 @@ def test_concat(xp, shapes, axis):
     arrays = []
     for i, shape in enumerate(shapes):
         size = numpy.product(shape)
-        a = numpy.arange(i * 100, i * 100 + size).reshape(shape).astype('f')
+        a = numpy.arange(i * 100, i * 100 + size)
+        a = a.reshape(shape).astype('float32')
         arrays.append(xp.array(a))
     return xp.concatenate(arrays, axis)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shapes,axis', [
+    ([], None),
+    ([], 0),
+    ([(0,)], -1),
+    ([(0,)], 0),
+    ([(0,)], 1),
+    ([(0,)], 2),
+    ([(1,)], -1),
+    ([(1,)], 0),
+    ([(1,)], 1),
+    ([(1,)], 2),
+    ([(0,), (0,)], 0),
+    ([(0,), (0,)], 1),
+    ([(0, 0,), (0, 0,)], 0),
+    ([(0, 0,), (0, 0,)], 1),
+    ([(1, 0,), (1, 0,)], 0),
+    ([(1, 0,), (1, 0,)], 1),
+    ([(1, 0,), (1, 0,)], 2),
+    ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], None),
+    ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 0),
+    ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 1),
+    ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 2),
+    ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 3),
+    ([(3, 4, 5), (3, 4, 5), (3, 4, 5)], 4),
+    ([(2, 3, 2), (2, 4, 2), (2, 3, 2)], 1),
+])
+def test_stack(xp, shapes, axis):
+    arrays = []
+    for i, shape in enumerate(shapes):
+        size = numpy.product(shape)
+        a = numpy.arange(i * 100, i * 100 + size)
+        a = a.reshape(shape).astype('float32')
+        arrays.append(xp.array(a))
+    if axis is None:
+        return xp.stack(arrays)
+    else:
+        return xp.stack(arrays, axis)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
