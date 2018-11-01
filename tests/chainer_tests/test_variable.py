@@ -943,7 +943,6 @@ class TestVariableToCpu(unittest.TestCase):
         self.check_to_cpu(cuda.to_gpu(self.x), cuda.to_gpu(self.gx))
 
     @attr.chainerx
-    @unittest.skip('Cannot set grad on variable with requires_grad=False')
     def test_to_cpu_from_chainerx(self):
         self.check_to_cpu(
             chainerx.array(self.x),
@@ -1019,7 +1018,6 @@ class TestVariableToGpu(unittest.TestCase):
         self.check_to_gpu(cuda.to_gpu(self.x), cuda.to_gpu(self.gx), 1)
 
     @attr.chainerx
-    @unittest.skip('Cannot set grad on variable with requires_grad=False')
     def test_to_gpu_from_chainerx(self):
         self.check_to_gpu(
             chainerx.array(self.x),
